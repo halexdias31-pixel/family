@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@family.</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+      
+    <header>
+        <h1>@family.</h1>
+    </header>
+       <section id="gallery-section">
+         
+            <div id="gallery" style="margin-bottom: 40px;">Loading feed...</div>
+        </section>
+
+   <section id="team-section">
+            <h2>Team</h2>
+            <div id="secure-team-wrapper" style="margin-bottom: 40px;">
+                <div id="loggedOutView" class="portal-logged-out">
+                    <button type="button" id="revealBtn" class="reveal-btn">View Active Roster</button>
+                </div>
+                <div id="loggedInView" style="display: none;">
+                    <div class="portal-header">
+                        <span style="font-size: 14px; color: var(--gold); font-weight: bold;">Our Tutors</span>
+                    </div>
+                    <div class="filter-controls-container">
+                        <input type="text" id="tutorSearchInput" class="custom-filter-input" placeholder="Search tutors by name...">
+                        <select id="tutorSubjectSelect" class="custom-filter-input" style="cursor: pointer;">
+                            <option value="">All Subjects</option>
+                        </select>
+                    </div>
+                    <div id="tutorCardsContainer" class="tutor-grid"></div>
+                </div>
+            </div>
+        </section>
+
+    <main>
+        <section id="pricing-section" class="pricing-calculator">
+            <p class="mad-libs-text">
+                I want 
+                <span class="service-wrapper">
+                    <select id="calc-service" class="inline-select color-service"></select> 
+                    <sup id="service-badge" class="superscript-badge color-service" style="opacity: 0;"></sup>
+                </span>
+                at 
+                <span class="level-wrapper">
+                    <select id="calc-level" class="inline-select color-level"></select> 
+                    <sup id="level-badge" class="superscript-badge color-level" style="opacity: 0;"></sup>
+                </span>
+                level, delivered 
+                <span class="location-wrapper">
+                    <select id="calc-location" class="inline-select" style="color: #ffd54f;"></select>
+                    <sup id="location-badge" class="superscript-badge" style="color: #ffd54f; opacity: 0;"></sup>
+                </span>
+                for 
+                <span class="qty-wrapper">
+                    <input type="number" id="calc-qty" min="1" value="1" class="inline-input color-qty">
+                    <sup id="discount-badge" class="superscript-badge color-discount" style="opacity: 0;"></sup>
+                </span>
+                subscriptions for <span id="weeks-left-display" style="color: #d4af37; font-weight: bold;">0</span> weeks (left in term), matching with 
+                <span class="badge-wrapper">
+                    <select id="calc-tutor" class="inline-select" style="color: #d4af37;">
+                        <option value="Any" selected>Any Tutor</option>
+                    </select>
+                </span> 
+                on 
+                <span class="badge-wrapper">
+                    <select id="calc-day" class="inline-select" style="color: #d4af37;"></select>
+                </span> 
+                @ 
+                <span class="badge-wrapper">
+                    <select id="calc-time" class="inline-select" style="color: #d4af37;"></select>
+                </span>.
+            </p>
+
+            <div class="total-section">
+                <h2>Total: £<span id="grand-total">0.00</span></h2>
+                <p id="toggle-receipt" class="receipt-link">View live formula ⌄</p>
+            </div>
+
+            <div id="receipt-breakdown" style="display: none; margin-top: 15px; padding: 15px; background: var(--panel); border: 1px dashed var(--border); border-radius: 6px;">
+                <div class="live-formula">
+                   <span class="color-base">£<span id="form-base-rate">0</span>/h</span> &times;
+                   <span class="color-base">2hrs</span> &times; 
+                   <span class="color-base"><span id="form-weeks">0</span>wks</span> &times;
+                   <span id="form-service" class="color-service">1.00</span> &times; 
+                   <span id="form-level" class="color-level">1.00</span> &times; 
+                   <span id="form-location" style="color: #ffd54f;">1.00</span> &times; 
+                   <span id="form-qty" class="color-qty">1</span> &times; 
+                   <span id="form-discount" class="color-discount">1.0</span> 
+                   = <strong style="color: #fff;">£<span id="form-total">0.00</span></strong>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 25px; border-top: 1px dashed var(--border); text-align: center;">
+                <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
+                    <input type="text" id="client-name-input" placeholder="Your Name" class="checkout-input">
+                    <input type="text" id="client-contact-input" placeholder="Phone or Email" class="checkout-input">
+                </div>
+                <button type="button" id="checkout-btn" class="checkout-btn">Lock in & Pay</button>
+            </div>
+        </section>
+
+     
+
+        <section id="links-section">
+            <h2>Helpful Links</h2>
+            <div id="link-library" style="margin-bottom: 40px;">Loading library...</div>
+        </section>
+             
+     
+        
+        <section id="staff-portal" style="display: none; padding: 30px; border: 1px dashed var(--gold); border-radius: 12px; margin: 40px 0; background: var(--panel-alt); box-shadow: inset 0 0 20px rgba(0,0,0,0.8);">
+            <h2 style="color: var(--gold); margin-top: 0;">Staff Portal: Live Roster Board</h2>
+            <label style="display: block; margin-bottom: 5px; color: #aaa;">Enter your exact tutor name to securely unlock your allocations:</label>
+            <input type="text" id="tutor-name-input" placeholder="e.g. Sasha" style="padding: 10px; width: 100%; max-width: 300px; margin-bottom: 20px; font-family: monospace; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 4px;">
+            <div id="jobs-container">Type your name to scan the master script for open assignments...</div>
+        </section>
+    </main>
+
+    <footer>
+        <p style="text-align: center; margin-top: 50px; color: #666;">
+            <small>&copy; 2026 @family. | <a href="#" id="staff-login-btn" style="color: #555; text-decoration: none; cursor: pointer; transition: color 0.3s;">Staff Access</a></small>
+        </p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
