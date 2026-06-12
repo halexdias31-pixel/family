@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@family.</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="startup-loader" class="loader-mask">
+        <h1 class="pulse-text">@family.</h1>
+        <p class="loader-text">Syncing...</p>
+    </div>
+
+    <header>
+        <h1>@family.</h1>
+    </header>
+
+    <main>
+        <section id="gallery-section">
+            <div id="gallery">Loading feed...</div>
+        </section>
+
+        <section id="team-section">
+            <h2>Team</h2>
+            <div id="loggedOutView" class="portal-logged-out">
+                <button type=\"button\" id="revealBtn" class="reveal-btn">View Active Roster</button>
+            </div>
+            
+            <div id="loggedInView" class="hidden">
+                <div class="filter-controls-container">
+                    <input type="text" id="tutorSearchInput" class="custom-filter-input" placeholder="Search names, locations, tags...">
+                    <select id="tutorSubjectSelect" class="custom-filter-input">
+                        <option value="">All Subjects</option>
+                    </select>
+                </div>
+                <div id="tutorCardsContainer" class="tutor-grid"></div>
+            </div>
+        </section>
+
+        <section id="calculator-section">
+            <h2>Pricing & Checkout</h2>
+            <div class="pricing-calculator">
+                <p class="mad-libs-text">
+                    I want 
+                    <select id="calc-service" class="inline-select color-service"></select>
+                    at 
+                    <select id="calc-level" class="inline-select color-level"></select>
+                    level, delivered 
+                    <select id="calc-location" class="inline-select color-base"></select>
+                    for 
+                    <input type="number" id="calc-qty" class="inline-input color-qty" value="1" min="1" max="30">
+                    subscriptions for <span id="weeks-left-display" class="color-base">X</span> weeks (left in term), matching with 
+                    <select id="calc-tutor" class="inline-select color-base"></select>
+                    on 
+                    <select id="calc-day" class="inline-select color-base"></select>
+                    @ 
+                    <select id="calc-time" class="inline-select color-base"></select>.
+                </p>
+
+                <div class="total-section">
+                    <h2>Total: £<span id="grand-total">0.00</span></h2>
+                    <p id="toggle-receipt" class="receipt-link">View live formula ⌄</p>
+                    <div id="receipt-breakdown" class="hidden live-formula">
+                        <p>Base Rate: £<span id="form-base-rate"></span>/hr</p>
+                        <p>Weeks: x <span id="form-weeks"></span></p>
+                        <p>Service: x <span id="form-service"></span> <span id="service-badge" class="badge"></span></p>
+                        <p>Level: x <span id="form-level"></span> <span id="level-badge" class="badge"></span></p>
+                        <p>Delivery: x <span id="form-location"></span> <span id="location-badge" class="badge"></span></p>
+                        <p>Quantity: x <span id="form-qty"></span></p>
+                        <p>Bulk Discount: x <span id="form-discount"></span> <span id="discount-badge" class="badge"></span></p>
+                    </div>
+                </div>
+
+                <div class="checkout-footer">
+                    <input type="text" id="client-name-input" class="checkout-input" placeholder="Your Name">
+                    <input type="text" id="client-contact-input" class="checkout-input" placeholder="Email or Phone">
+                    <button type="button" id="checkout-btn" class="checkout-btn">Lock in & Pay</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="links-section">
+            <h2>Helpful Links</h2>
+            <div id="link-library">Loading library...</div>
+        </section>
+
+        <button type="button" id="staff-login-btn" class="reveal-btn staff-toggle-btn">Staff Access</button>
+        
+        <section id="staff-portal" class="staff-portal-box hidden">
+            <h2 class="gold-text">Staff Portal: Live Roster Board</h2>
+            <div class="staff-auth-form">
+                <div>
+                    <label>Full Registered Name:</label>
+                    <input type="text" id="tutor-name-input" placeholder="e.g. Sasha Smith" class="auth-input">
+                </div>
+                <div>
+                    <label>Secure 4-Digit PIN:</label>
+                    <input type="password" id="tutor-pin-input" placeholder="••••" maxlength="6" class="auth-input pin-input">
+                </div>
+                <button type="button" id="tutor-auth-btn" class="tutor-booking-btn">Unlock Assignments</button>
+            </div>
+            <div id="jobs-container" class="jobs-board">Verification required to sync secure ledger pipeline...</div>
+        </section>
+    </main>
+
+    <footer>
+        <p class="footer-text">&copy; 2026 @family.</p>
+    </footer>
+
+    <div id="global-video-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-modal-btn">&times;</button>
+            <h3 id="modal-title" class="gold-text capitalize">Intro Video</h3>
+            <iframe id="modal-iframe" src="" allow="autoplay"></iframe>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
