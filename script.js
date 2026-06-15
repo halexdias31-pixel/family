@@ -3,7 +3,6 @@
  *************************************************/
 const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbxzEqryOdmFGUWp_vUmTw3qr5VzIxZ33nFlgmsLFuOobpo9oU8b7FiGPUnLuV6XcjXH/exec',
-    LINKS_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRs8Ru1DTBOYThOFKyrk3Ys15ixhQ3KfrSyKQzmcpHnBV0_oDODVk7ljrVwOCdp34IhlWRJxllQcwxd/pub?gid=69062415&single=true&output=csv',
     TERM_ENDS: ['2026-07-22', '2026-12-18', '2027-04-02'],
     SOCIAL_LINK: 'https://instagram.com'
 };
@@ -11,7 +10,7 @@ const CONFIG = {
 /*************************************************
  * 2. GLOBAL STATE & UTILITIES
  *************************************************/
-let db = { tutors: [], dropdowns: { subjects: [], days: [], times: [] }, pricing: { baseRate: 2, multipliers: {} }, gallery: [] };
+let db = { tutors: [], dropdowns: { subjects: [], days: [], times: [] }, pricing: { baseRate: 2, multipliers: {} }, gallery: [], links: [] };
 let activeJobsList = [];
 
 const $ = id => document.getElementById(id);
@@ -25,11 +24,15 @@ const getTutorDisplayName = t => {
 
 const getTutorSubjects = t => [1,2,3,4,5].map(i => t[`subject ${i} taught`] ? `${t[`subject ${i} taught`]}<sup>${t[`subject ${i} level`] || ''}</sup>` : '').filter(Boolean);
 
-const getTutorQuals = t => [1,2,3,4,5].map(i => {
+const getStandardQuals = t => [1,2,3,4,5].map(i => {
     const s = t[`qual subject ${i}`] || t[`qual ${i} subject`];
+    return s ? `<li>${t[`qual ${i} level`]||''} ${s} (${t[`qual ${i} grade`]||''})</li>` : '';
+}).filter(Boolean).join('');
+
+const getExtraQuals = t => [1,2,3,4,5].map(i => {
     const e = t[`extra qual. ${i}`] || t[`extra qual ${i}`];
-    return (s ? `<li>${t[`qual ${i} level`]||''} ${s} (${t[`qual ${i} grade`]||''})</li>` : '') + (e ? `<li>${e}</li>` : '');
-}).join('');
+    return e ? `<li>${e}</li>` : '';
+}).filter(Boolean).join('');
 
 const formatVideoUrl = url => {
     if (!url) return '';
@@ -47,17 +50,18 @@ const formatPhotoUrl = url => {
  * 3. INITIALIZATION
  *************************************************/
 document.addEventListener('DOMContentLoaded', async () => {
-    fetch(CONFIG.LINKS_CSV_URL).then(r => r.text()).then(csv => {
-        setHtml('link-library', csv.trim().split('\n').map(row => {
-            const [t, u] = row.split(',');
-            return t && u ? `<a class="book" href="${u.trim()}" target="_blank"><span>${t.trim()}</span></a>` : '';
-        }).join(''));
-    }).catch(e => console.error("Link fetch failed", e));
-
     try {
         const data = await (await fetch(CONFIG.API_URL)).json();
         if (data.error) throw data.error;
         db = data;
+        
+        // Render links from secure API package
+        if (db.links && db.links.length > 0) {
+            const linksHtml = db.links.map(l => `<a class="book" href="${l.url}" target="_blank"><span>${l.text}</span></a>`).join('');
+            setHtml('link-library', linksHtml);
+        } else {
+            setHtml('link-library', '<p class="loader-text">No links active.</p>');
+        }
         
         buildDropdowns();
         buildGallery();
@@ -131,6 +135,7 @@ function buildDropdowns() {
     const validTutors = db.tutors.map(getTutorDisplayName).filter(Boolean);
     setHtml('calc-tutor', `<option value="Any">Any Tutor</option>` + validTutors.map(n => `<option value="${n}">${n}</option>`).join(''));
 }
+
 function buildGallery() {
     if (!db.gallery?.length) return setHtml('gallery', '<p class="loader-text">No showcases active.</p>');
 
@@ -159,29 +164,20 @@ function buildGallery() {
         return { ts: postDate.getTime(), label };
     };
 
-    // Sort chronologically (Oldest first, Newest last for right-side snap rendering)
     const sorted = [...db.gallery].map(post => {
         const name = typeof post === 'object' ? post.name : '';
-        
-        // Dynamic Extraction Engine for Location inside brackets [Location Name]
         const locMatch = (name || '').match(/\[(.*?)\]/);
-        const locationTag = locMatch ? locMatch[1].trim() : '';
-
         return { 
             ...post, 
             ...parseDate(name), 
-            location: locationTag,
+            location: locMatch ? locMatch[1].trim() : '',
             id: typeof post === 'object' ? post.id : post, 
             rawName: name || '' 
         };
     }).sort((a, b) => a.ts - b.ts); 
 
     const feedHtml = sorted.map(post => {
-        // Strip out file extensions, dates, and bracket locations so the bottom caption stays perfectly clean
-        let cleanName = post.rawName.replace(/\.[^/.]+$/, "")
-                                    .replace(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/, "")
-                                    .replace(/\[.*?\]/, "")
-                                    .trim();
+        let cleanName = post.rawName.replace(/\.[^/.]+$/, "").replace(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/, "").replace(/\[.*?\]/, "").trim();
         cleanName = cleanName.replace(/^[-–—\s]+|[-–—\s]+$/g, '');
 
         return `
@@ -202,20 +198,8 @@ function buildGallery() {
         </div>`;
     }).join('');
 
-    setHtml('gallery', `
-        <div class="gallery-wrapper">
-            <div class="social-carousel" id="clean-carousel">
-                ${feedHtml}
-            </div>
-        </div>
-    `);
-
-    setTimeout(() => {
-        const carousel = document.getElementById('clean-carousel');
-        if (carousel) {
-            carousel.scrollLeft = carousel.scrollWidth;
-        }
-    }, 50);
+    setHtml('gallery', `<div class="gallery-wrapper"><div class="social-carousel" id="clean-carousel">${feedHtml}</div></div>`);
+    setTimeout(() => { const carousel = $('clean-carousel'); if (carousel) carousel.scrollLeft = carousel.scrollWidth; }, 50);
 }
 
 function setupRoster() {
@@ -230,8 +214,9 @@ function setupRoster() {
             const name = getTutorDisplayName(t);
             if (!name) return '';
 
-            const subs = getTutorSubjects(t);
-            const quals = getTutorQuals(t);
+                       const subs = getTutorSubjects(t);
+            const stdQuals = getStandardQuals(t); // Uses our new function
+            const extQuals = getExtraQuals(t);    // Uses our new function
             const vid = formatVideoUrl(t['video link'] || t.video);
             const photo = formatPhotoUrl(t.photo);
             
@@ -239,28 +224,43 @@ function setupRoster() {
             const matchSubj = !subjFilter || subs.join(' ').toLowerCase().includes(subjFilter);
             if (!matchTxt || !matchSubj) return '';
 
-            return `
+                       return `
                 <div class="tutor-card">
                     <div class="exp-badge">${t['yrs experience ']?.trim() || t['yrs experience'] || '0'} YRS</div>
                     <div class="portrait"><img src="${photo}" alt="${name}" loading="lazy"></div>
                     <h3 class="tutor-name capitalize">${name}</h3>
                     <div class="distance-badge">📍 ${t['based in']||''} ${t.distance ? '• Travels: '+t.distance+'km' : ''}</div>
-                    <div class="subjects">${subs.join(' • ').toUpperCase()}</div>
-                    <div class="slaptag">${[1,2,3,4,5].map(i=>t[`adjective ${i}`]).filter(Boolean).join(' • ').toUpperCase()}</div>
-                    <div class="pitch">"${t.pitch||''}"</div>
-                    <div class="quals"><ul>${quals}</ul></div>
-                    ${vid ? `<button data-url="${vid}" data-name="${name}" class="tutor-video-btn">▶ Watch Intro Video</button>` : ''}
+                    
+                    <div class="slaptag" style="margin-bottom: 15px;">${[1,2,3,4,5].map(i=>t[`adjective ${i}`]).filter(Boolean).join(' • ').toUpperCase()}</div>
+                    
+                    ${t.pitch ? `
+                        <div class="card-section-title">About Me</div>
+                        <div class="pitch">"${t.pitch}"</div>
+                    ` : ''}
+
+                    ${subs.length ? `
+                        <div class="card-section-title">Core Subjects</div>
+                        <div class="subjects">${subs.join(' • ').toUpperCase()}</div>
+                    ` : ''}
+
+                    ${stdQuals ? `
+                        <div class="card-section-title">Qualifications</div>
+                        <div class="quals"><ul>${stdQuals}</ul></div>
+                    ` : ''}
+
+                    ${extQuals ? `
+                        <div class="card-section-title">Extra Qualifications</div>
+                        <div class="quals"><ul>${extQuals}</ul></div>
+                    ` : ''}
+
+                    ${vid ? `<button data-url="${vid}" data-name="${name}" class="tutor-video-btn" style="margin-top: 15px;">▶ Watch Intro Video</button>` : ''}
                 </div>`;
         }).filter(Boolean).join('');
 
         setHtml('tutorCardsContainer', html || '<p class="loader-text" style="text-align:center;width:100%;">No roster matches.</p>');
     };
 
-    revealBtn.onclick = () => { 
-        $('loggedOutView').classList.add('hidden'); 
-        $('loggedInView').classList.remove('hidden'); 
-        render(); 
-    };
+    revealBtn.onclick = () => { $('loggedOutView').classList.add('hidden'); $('loggedInView').classList.remove('hidden'); render(); };
     $('tutorSearchInput')?.addEventListener('input', render);
     $('tutorSubjectSelect')?.addEventListener('change', render);
 }
@@ -285,13 +285,11 @@ function setupCalculator() {
         const total = (db.pricing.baseRate * 2 * weeks * s * l * loc * n * disc).toFixed(2);
         if($('grand-total')) $('grand-total').innerText = total;
         
-        // Math converter to generate text like +10% or -10%
         const getPercStr = val => {
             const diff = Math.round((val - 1) * 100);
             return diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '';
         };
 
-        // Update the formula breakdown row values at the bottom
         if($('form-base-rate')) $('form-base-rate').innerText = Number(db.pricing.baseRate).toFixed(2);
         if($('form-service')) $('form-service').innerText = s.toFixed(2);
         if($('form-level')) $('form-level').innerText = l.toFixed(2);
@@ -299,7 +297,6 @@ function setupCalculator() {
         if($('form-qty')) $('form-qty').innerText = n;
         if($('form-discount')) $('form-discount').innerText = disc.toFixed(2);
 
-        // Inject the matching percentage superscript directly after the option in the mad-lib sentence
         if($('sentence-perc-service')) $('sentence-perc-service').innerText = getPercStr(s);
         if($('sentence-perc-level')) $('sentence-perc-level').innerText = getPercStr(l);
         if($('sentence-perc-location')) $('sentence-perc-location').innerText = getPercStr(loc);
@@ -317,7 +314,8 @@ function setupCalculator() {
 
     $('checkout-btn')?.addEventListener('click', async function() {
         const contact = $('client-contact-input')?.value.trim();
-        if (!contact) return alert("Please enter a phone number or email!");
+        const clientLocation = $('client-location-input')?.value.trim();
+        if (!contact || !clientLocation) return alert("Please enter your contact info and general location!");
 
         this.innerText = "Loading Secure Checkout...";
         this.disabled = true;
@@ -328,6 +326,16 @@ function setupCalculator() {
         const qty = $('calc-qty').value;
         const total = parseFloat($('grand-total').innerText);
 
+        let finalTutorPay = "TBC"; 
+        if (tut.value && tut.value.toLowerCase() !== "any tutor") {
+            const selectedTutorObj = db.tutors.find(t => getTutorDisplayName(t) === tut.value);
+            if (selectedTutorObj && selectedTutorObj.rate) {
+                const tRate = parseFloat(selectedTutorObj.rate);
+                const totalHours = 2 * parseInt(weeks) * parseInt(qty); 
+                finalTutorPay = (tRate * totalHours).toFixed(2);
+            }
+        }
+
         try {
             const r = await fetch(CONFIG.API_URL, {
                 method: 'POST',
@@ -335,9 +343,10 @@ function setupCalculator() {
                     action: "create_checkout",
                     details: `${srv.options[srv.selectedIndex].text} at ${lvl.options[lvl.selectedIndex].text}, ${qty} Sub(s) for ${weeks} wks (Pref: ${tut.value})`,
                     totalPrice: total,
-                    tutorPay: (total * 0.70).toFixed(2),
+                    tutorPay: finalTutorPay,
                     clientName: $('client-name-input')?.value.trim() || 'Client',
-                    clientContact: contact
+                    clientContact: contact,
+                    clientLocation: clientLocation
                 })
             });
             const d = await r.json();
@@ -364,19 +373,13 @@ function setupStaffPortal() {
         const container = 'jobs-container';
         
         const nameParts = nameInput.split(/\s+/);
-        if (nameParts.length < 2 || nameParts[1] === "") {
-            return setHtml(container, '<p class="error-text">Verification Fault: Enter first and last name.</p>');
-        }
+        if (nameParts.length < 2 || nameParts[1] === "") return setHtml(container, '<p class="error-text">Verification Fault: Enter first and last name.</p>');
 
         const tutorRecord = db.tutors?.find(t => (t.combinedfullname || '').trim().toLowerCase() === nameInput);
-        if (!tutorRecord) {
-            return setHtml(container, '<p class="error-text">Access Denied: Name not found on roster.</p>');
-        }
+        if (!tutorRecord) return setHtml(container, '<p class="error-text">Access Denied: Name not found on roster.</p>');
 
         const correctPin = String(tutorRecord.pin || '').trim();
-        if (!correctPin || pinInput !== correctPin) {
-            return setHtml(container, '<p class="error-text">Access Denied: Invalid authentication pin.</p>');
-        }
+        if (!correctPin || pinInput !== correctPin) return setHtml(container, '<p class="error-text">Access Denied: Invalid authentication pin.</p>');
 
         const html = activeJobsList.filter(j => {
             if (!j.status || String(j.status).trim().toLowerCase() !== 'available') return false;
@@ -386,7 +389,8 @@ function setupStaffPortal() {
             <div id="job-${j.id}" class="job-card">
                 <h3 class="gold-text">Job #${j.id}</h3>
                 <p><strong>Allocations:</strong> ${j.details}</p>
-                <p><strong>Transfer Rate:</strong> ${j.pay}</p>
+                <p><strong>Location:</strong> ${j.location}</p>
+                <p><strong>Transfer Rate:</strong> £${j.pay}</p>
                 <button type="button" data-job-id="${j.id}" class="tutor-booking-btn claim-job-btn">Accept & Lock Allocation</button>
             </div>`).join('');
             
@@ -402,14 +406,10 @@ function setupStaffPortal() {
                 try {
                     activeJobsList = await (await fetch(`${CONFIG.API_URL}?get=jobs`)).json();
                     setHtml('jobs-container', "Pipeline initialized. Input credentials above.");
-                } catch(err) {
-                    setHtml('jobs-container', '<p class="error-text">Database stream failure.</p>');
-                }
+                } catch(err) { setHtml('jobs-container', '<p class="error-text">Database stream failure.</p>'); }
             }
             portal.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            loginBtn.style.color = '#555';
-        }
+        } else loginBtn.style.color = '#555';
     };
 
     if(authBtn) authBtn.onclick = renderJobs;
@@ -420,22 +420,103 @@ async function claimJob(id, btn) {
     btn.disabled = true;
     try {
         const res = await (await fetch(CONFIG.API_URL, { 
-            method: 'POST', 
-            body: JSON.stringify({ action: "claim_job", jobId: id, tutorName: $('tutor-name-input').value.trim() }) 
+            method: 'POST', body: JSON.stringify({ action: "claim_job", jobId: id, tutorName: $('tutor-name-input').value.trim() }) 
         })).json();
         
         if (res.success) {
             setHtml(`job-${id}`, `
                 <div class="job-success">
                     <h3 style="margin-top:0;">🎉 Confirmed!</h3>
-                    <p>Client: ${res.clientName}<br>Contact: ${res.clientContact}</p>
+                    <p>Client: ${res.clientName}<br>Contact: ${res.clientContact}<br>Location: ${res.clientLocation || 'TBC'}</p>
                 </div>`);
-        } else { 
-            throw new Error(res.message || "Already claimed."); 
-        }
+        } else throw new Error(res.message || "Already claimed."); 
     } catch(err) { 
         alert("Claim Blocked: " + err.message); 
-        btn.innerText = "Accept & Lock Job"; 
+        btn.innerText = "Accept & Lock Allocation"; 
         btn.disabled = false; 
     }
 }
+
+// --- SECURE PROFILE EDITOR LOGIC ---
+
+$('tutor-auth-btn')?.addEventListener('click', () => {
+    const inputName = $('tutor-name-input').value.trim().toLowerCase();
+    const inputPin = $('tutor-pin-input').value.trim();
+    
+    const loggedInTutor = db.tutors.find(t => t.combinedfullname === inputName && t.pin === inputPin);
+
+    if (loggedInTutor) {
+        $('tutor-profile-editor').classList.remove('hidden');
+        
+        $('edit-photo').value = loggedInTutor['photo'] || '';
+        $('edit-video').value = loggedInTutor['video link'] || '';
+        $('edit-basedin').value = loggedInTutor['based in'] || '';
+        $('edit-distance').value = loggedInTutor['distance'] || '';
+        
+        $('edit-adj1').value = loggedInTutor['adjective 1'] || '';
+        $('edit-adj2').value = loggedInTutor['adjective 2'] || '';
+        $('edit-adj3').value = loggedInTutor['adjective 3'] || '';
+        $('edit-pitch').value = loggedInTutor['pitch'] || ''; 
+        
+        $('edit-sub1').value = loggedInTutor['subject 1 taught'] || '';
+        $('edit-sub1-lvl').value = loggedInTutor['subject 1 level'] || '';
+        $('edit-sub2').value = loggedInTutor['subject 2 taught'] || '';
+        $('edit-sub2-lvl').value = loggedInTutor['subject 2 level'] || '';
+
+        $('edit-q1-s').value = loggedInTutor['qual subject 1'] || '';
+        $('edit-q1-l').value = loggedInTutor['qual 1 level'] || '';
+        $('edit-q1-g').value = loggedInTutor['qual 1 grade'] || '';
+        $('edit-q2-s').value = loggedInTutor['qual 2 subject'] || '';
+        $('edit-q2-l').value = loggedInTutor['qual 2 level'] || '';
+        $('edit-q2-g').value = loggedInTutor['qual 2 grade'] || '';
+        $('edit-q3-s').value = loggedInTutor['qual 3 subject'] || '';
+        $('edit-q3-l').value = loggedInTutor['qual 3 level'] || '';
+        $('edit-q3-g').value = loggedInTutor['qual 3 grade'] || '';
+
+        $('edit-ext1').value = loggedInTutor['extra qual. 1'] || '';
+        $('edit-ext2').value = loggedInTutor['extra qual. 2'] || '';
+    }
+});
+
+$('update-profile-btn')?.addEventListener('click', async function() {
+    const btn = this;
+    btn.innerText = "Saving changes...";
+    btn.disabled = true;
+    $('profile-update-status').innerHTML = "";
+    
+    try {
+        const res = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: "update_profile",
+                tutorName: $('tutor-name-input').value.trim(),
+                tutorPin: $('tutor-pin-input').value.trim(),
+                
+                photo: $('edit-photo').value.trim(), video: $('edit-video').value.trim(),
+                basedIn: $('edit-basedin').value.trim(), distance: $('edit-distance').value.trim(),
+                
+                adj1: $('edit-adj1').value.trim(), adj2: $('edit-adj2').value.trim(), adj3: $('edit-adj3').value.trim(),
+                pitch: $('edit-pitch').value.trim(),
+                
+                sub1: $('edit-sub1').value.trim(), sub1lvl: $('edit-sub1-lvl').value.trim(),
+                sub2: $('edit-sub2').value.trim(), sub2lvl: $('edit-sub2-lvl').value.trim(),
+
+                q1s: $('edit-q1-s').value.trim(), q1l: $('edit-q1-l').value.trim(), q1g: $('edit-q1-g').value.trim(),
+                q2s: $('edit-q2-s').value.trim(), q2l: $('edit-q2-l').value.trim(), q2g: $('edit-q2-g').value.trim(),
+                q3s: $('edit-q3-s').value.trim(), q3l: $('edit-q3-l').value.trim(), q3g: $('edit-q3-g').value.trim(),
+                
+                ext1: $('edit-ext1').value.trim(), ext2: $('edit-ext2').value.trim()
+            })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            $('profile-update-status').innerHTML = "<span style='color: var(--success-text);'>Profile updated! Refresh to see changes.</span>";
+        } else throw new Error(data.message || "Authentication failed.");
+    } catch (err) {
+        $('profile-update-status').innerHTML = `<span style='color: var(--error-text);'>Error: ${err.message}</span>`;
+    } finally {
+        btn.innerText = "Save Profile";
+        btn.disabled = false;
+    }
+});
