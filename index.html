@@ -80,12 +80,14 @@
     </p>
 </div>
                 </div>
-
-                <div class="checkout-footer">
-                    <input type="text" id="client-name-input" class="checkout-input" placeholder="Your Name">
-                    <input type="text" id="client-contact-input" class="checkout-input" placeholder="Email or Phone">
-                    <button type="button" id="checkout-btn" class="checkout-btn">Lock in & Pay</button>
-                </div>
+<div class="checkout-footer">
+    <input type="text" id="client-name-input" class="checkout-input" placeholder="Your Name">
+    <input type="text" id="client-contact-input" class="checkout-input" placeholder="Email or Phone">
+    <input type="text" id="client-location-input" class="checkout-input" placeholder="General Location (e.g., London / NW3)">
+    
+    <button type="button" id="checkout-btn" class="checkout-btn">Lock in & Pay</button>
+</div>
+             
             </div>
         </section>
 
@@ -96,8 +98,9 @@
 
         <button type="button" id="staff-login-btn" class="reveal-btn staff-toggle-btn">Staff Access</button>
         
-        <section id="staff-portal" class="staff-portal-box hidden">
+               <section id="staff-portal" class="staff-portal-box hidden">
             <h2 class="gold-text">Staff Portal: Live Roster Board</h2>
+            
             <div class="staff-auth-form">
                 <div>
                     <label>Full Registered Name:</label>
@@ -109,7 +112,67 @@
                 </div>
                 <button type="button" id="tutor-auth-btn" class="tutor-booking-btn">Unlock Assignments</button>
             </div>
+
             <div id="jobs-container" class="jobs-board">Verification required to sync secure ledger pipeline...</div>
+
+                       <div id="tutor-profile-editor" class="staff-auth-form hidden" style="margin-top: 40px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <h3 class="gold-text">Edit Your Complete Profile</h3>
+                <p style="font-size: 14px; margin-bottom: 20px; color: var(--text-muted);">
+                    Update your public roster card details below.
+                </p>
+                
+                <div>
+                    <label>Media Links (Google Drive URL):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="edit-photo" placeholder="Photo Link" class="auth-input">
+                        <input type="text" id="edit-video" placeholder="Video Link" class="auth-input">
+                    </div>
+                </div>
+                <div>
+                    <label>Location & Travel (km):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="edit-basedin" placeholder="Based In (e.g., London)" class="auth-input" style="width: 70%;">
+                        <input type="number" id="edit-distance" placeholder="km" class="auth-input" style="width: 30%;">
+                    </div>
+                </div>
+
+                <div>
+                    <label>Top 3 Adjectives (Slaptags):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="edit-adj1" placeholder="Adj 1" class="auth-input">
+                        <input type="text" id="edit-adj2" placeholder="Adj 2" class="auth-input">
+                        <input type="text" id="edit-adj3" placeholder="Adj 3" class="auth-input">
+                    </div>
+                </div>
+                <div><label>Pitch / Bio:</label><textarea id="edit-pitch" class="auth-input" rows="3"></textarea></div>
+
+                <div>
+                    <label>Core Subjects Taught:</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="edit-sub1" placeholder="Sub 1" class="auth-input">
+                        <input type="text" id="edit-sub1-lvl" placeholder="Level" class="auth-input">
+                        <input type="text" id="edit-sub2" placeholder="Sub 2" class="auth-input">
+                        <input type="text" id="edit-sub2-lvl" placeholder="Level" class="auth-input">
+                    </div>
+                </div>
+
+                <div><label>Qual 1:</label><div style="display: flex; gap: 5px;"><input type="text" id="edit-q1-s" placeholder="Subject" class="auth-input"><input type="text" id="edit-q1-l" placeholder="Level" class="auth-input"><input type="text" id="edit-q1-g" placeholder="Grade" class="auth-input"></div></div>
+                <div><label>Qual 2:</label><div style="display: flex; gap: 5px;"><input type="text" id="edit-q2-s" placeholder="Subject" class="auth-input"><input type="text" id="edit-q2-l" placeholder="Level" class="auth-input"><input type="text" id="edit-q2-g" placeholder="Grade" class="auth-input"></div></div>
+                <div><label>Qual 3:</label><div style="display: flex; gap: 5px;"><input type="text" id="edit-q3-s" placeholder="Subject" class="auth-input"><input type="text" id="edit-q3-l" placeholder="Level" class="auth-input"><input type="text" id="edit-q3-g" placeholder="Grade" class="auth-input"></div></div>
+                
+                <div>
+                    <label>Extra Qualifications (e.g. DBS, First Aid):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="edit-ext1" placeholder="Extra Qual 1" class="auth-input">
+                        <input type="text" id="edit-ext2" placeholder="Extra Qual 2" class="auth-input">
+                    </div>
+                </div>
+
+                <button type="button" id="update-profile-btn" class="tutor-booking-btn" style="margin-top: 15px;">Save Profile</button>
+                <div id="profile-update-status" style="margin-top:15px; font-weight:bold;"></div>
+            </div>
+        </section>
+
         </section>
     </main>
 
