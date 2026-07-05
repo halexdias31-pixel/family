@@ -4,11 +4,11 @@
   --text: #fff; --muted: #aaa; --text-muted: #888; --err: #ff6b6b;
   --card-w: 170px; /* (legacy) column count is now set via .grid column-count */
   /* Type scale — tight cluster so text reads as one uniform size, with only headings larger */
-  --fs-xs: 12px;    /* badges, tiny labels */
-  --fs-sm: 12px;    /* sub-text, tags, captions */
-  --fs-base: 13px;  /* body / default — the dominant size */
-  --fs-md: 13px;    /* sentence, inputs — same as body now */
-  --fs-lg: 17px;    /* totals, headings (only place that's bigger) */
+  --fs-xs: 11px;    /* badges, tiny labels */
+  --fs-sm: 11px;    /* sub-text, tags, captions */
+  --fs-base: 12px;  /* body / default — the dominant size */
+  --fs-md: 12px;    /* sentence, inputs — same as body now */
+  --fs-lg: 16px;    /* totals, headings (only place that's bigger) */
 }
 
 * { box-sizing: border-box; }
@@ -19,6 +19,8 @@ section { margin-bottom: 50px; }
 
 /* ---------- Utilities ---------- */
 .hidden { display: none !important; }
+.health-banner { background: #2a1a00; border: 1px solid var(--err); color: #ffd9a0; border-radius: 8px; padding: 14px 18px; margin: 0 0 30px; font-size: var(--fs-sm); line-height: 1.7; }
+.health-banner code { background: rgba(255,107,107,0.15); color: #ff9b9b; padding: 1px 6px; border-radius: 4px; }
 .center { text-align: center; }
 .gold, .sub, .cap, .total h2 { color: var(--gold); }
 .muted, .desc { color: var(--muted); }
@@ -30,7 +32,7 @@ section { margin-bottom: 50px; }
 .mt-sm { margin-top: 10px; } .mt-md { margin-top: 15px; } .mt-lg { margin-top: 30px; }
 .mb-md { margin-bottom: 15px; }
 .stack { flex-direction: column; gap: 10px; }
-.stack input, .stack button { width: 100%; }
+.stack input, .stack button { width: 100%; min-width: 0; flex: none; }
 
 /* ---------- Buttons & Inputs ---------- */
 button { font: bold var(--fs-sm) inherit; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-radius: 4px; transition: .3s; }
@@ -225,9 +227,79 @@ option { background: var(--panel); color: var(--text); }
 .receipt-total { border-bottom: none; border-top: 2px solid var(--gold); margin-top: 6px; padding-top: 10px; font-weight: bold; font-size: var(--fs-md); color: var(--gold); }
 
 /* ---------- Mobile (single merged block) ---------- */
+/* ---------- Mobile ---------- */
 @media (max-width: 600px) {
-  body { margin: 15px auto; padding: 15px; }
-  .sentence { font-size: var(--fs-md); line-height: 2.5; }
+  body { margin: 0 auto; padding: 14px; }
+  section { margin-bottom: 30px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 20px; }
+
+  /* One full-width card per row — readable, no stranded half-cards */
+  .grid { column-count: 1 !important; }
+  #gallery.grid { grid-template-columns: 1fr !important; }
+  .card { margin-bottom: 16px; }
+
+  /* Filters stack instead of forcing sideways scroll */
+  .filters { gap: 10px; }
+  .filter, .filter-dyn { min-width: 0; width: 100%; flex: 1 1 100%; }
+  .filter-add-wrap { width: 100%; }
+  .filter-add { width: 100%; }
+
+  /* Calculator sentence: a touch more breathing room, dropdowns don't overflow */
+  .sentence { font-size: var(--fs-md); line-height: 2.6; }
+  .pick { max-width: 100%; }
   input, select, .num { font-size: var(--fs-md); }
   .checkout { flex-direction: column; }
+  .checkout input { min-width: 0; }
+
+  /* Game canvas fits the screen */
+  #flappy-canvas { max-width: 100%; }
+
+  /* Modal uses more of the screen */
+  .modal-box { width: 94%; }
 }
+/* Compact GCSE calculator in Tools */
+.mini-calc .mc-display{width:100%;background:#0d0f13;border:1px solid var(--border);border-radius:6px;
+  color:#fff;font-family:'Courier New',monospace;font-size:18px;text-align:right;padding:8px 10px;margin-bottom:8px;}
+.mc-grid{display:grid;gap:5px;}
+.mc-fns{grid-template-columns:repeat(5,1fr);margin-bottom:5px;}
+.mc-nums{grid-template-columns:repeat(4,1fr);}
+.mc-btn{padding:9px 0;border:none;border-radius:6px;background:linear-gradient(#3a3f47,#2b2f36);color:#fff;
+  font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 0 #0c0e11;}
+.mc-btn:active{transform:translateY(2px);box-shadow:none;}
+.mc-btn.op{background:linear-gradient(#4a5568,#374151);}
+.mc-btn.fn{background:linear-gradient(#3a4553,#2a333f);font-size:11px;color:#9fd3ff;}
+.mc-btn.eq{background:linear-gradient(#e0b43e,#c99a1e);color:#1a1d22;}
+.mc-btn.del{background:linear-gradient(#c25b5b,#a04343);}
+
+/* Tutor progress stats — quiet gray, bottom of card, not status-signalling */
+.tutor-stats{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);
+  font-size:var(--fs-xs);color:var(--muted);text-align:center;letter-spacing:.3px;}
+
+/* Two-checkbox checklist rows (Started / Mastered) */
+.check-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);margin-bottom:5px;}
+.check-topic{flex:1;font-size:11px !important;line-height:1.35 !important;}
+.mini-check{display:flex;align-items:center;gap:2px;font-size:10px !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
+.mini-check input{width:14px;height:14px;accent-color:#4f9eff;margin:0;}
+.mini-check span{font-size:10px !important;}
+.check-legend{display:flex;gap:12px;font-size:var(--fs-xs);color:var(--muted);margin-bottom:8px;}
+.filter-select{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font:inherit;font-size:var(--fs-sm);margin-right:8px;}
+
+/* ---------- Flat card text: every bit of text the same size/colour/weight ---------- */
+.card h1, .card h2, .card h3,
+.card p, .card .sub, .card .desc, .card .cap, .card .muted, .card li,
+.card .attr-line {
+  font-size: var(--fs-base) !important;
+  color: var(--text) !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  margin: 6px 0 !important;
+}
+/* buttons keep their own styling (calculator keys, actions) */
+.card .action { font-weight: bold !important; }
+
+/* Job client-slot rows (per-client status + chat in the class card) */
+.slot-row{text-align:left;font-size:var(--fs-sm);padding:8px;margin-top:8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);}
+.counter-box input{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;}
