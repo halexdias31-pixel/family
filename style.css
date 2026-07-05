@@ -303,3 +303,8 @@ option { background: var(--panel); color: var(--text); }
 /* Job client-slot rows (per-client status + chat in the class card) */
 .slot-row{text-align:left;font-size:var(--fs-sm);padding:8px;margin-top:8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);}
 .counter-box input{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;}
+
+/* Student notepad tool */
+.notepad-area{width:100%;min-height:160px;background:var(--panel2);color:var(--text);border:1px solid var(--border);
+  border-radius:6px;padding:10px;font:inherit;font-size:var(--fs-sm);resize:vertical;outline:none;}
+.notepad-area:focus{border-color:var(--gold);}
