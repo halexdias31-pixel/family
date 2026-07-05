@@ -43,6 +43,19 @@ const fmtDate = v => {
 const $   = id => document.getElementById(id);
 const esc = s  => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const val = id => ($(id) || {}).value || '';
+// Who participates in the checklist + arcade (topics, levels, highscores): kids AND tutors.
+const canTrack = () => !!USER && (USER.role === 'kid' || USER.role === 'tutor');
+
+// Checklist progress: three independent columns tick1/tick2/tick3, each a comma list of topic names.
+// A topic present in tickN's list = that box checked. Returns { topicLower: {t1,t2,t3} }.
+function parseProgress() {
+  const listToSet = str => new Set(String(str || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
+  const s1 = listToSet(USER?.tick1), s2 = listToSet(USER?.tick2), s3 = listToSet(USER?.tick3);
+  const keys = new Set([...s1, ...s2, ...s3]);
+  const out = {};
+  keys.forEach(k => out[k] = { t1: s1.has(k), t2: s2.has(k), t3: s3.has(k) });
+  return out;
+}
 const html = (el, content) => { if ($(el)) $(el).innerHTML = content; };
 const tog = (el, force) => $(el)?.classList.toggle('hidden', force);
 const drive = url => { const m = (url||'').match(/\/d\/([\w-]+)/); return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : url; };
@@ -53,6 +66,7 @@ async function init() {
   try {
     DATA = await (await fetch(API)).json();
     if (DATA.error) throw new Error(DATA.error);
+    renderHealth();
     renderCards('tutors', DATA.tutors);
     renderCards('venues', DATA.venues);
     renderClasses();
@@ -66,27 +80,30 @@ async function init() {
     ['tutor','venue','class','link'].forEach(renderFilterBar);
     calc();
   } catch (e) {
-    html('loader', `<h1 style="color:red">Error</h1><p class="muted">${esc(e.message)}</p>`);
-    return;
+    // Show a load error in the health banner (no full-screen loader anymore)
+    const banner = $('health-banner');
+    if (banner) {
+      banner.innerHTML = `⚠ <b>Couldn't load site data.</b> ${esc(e.message)}`;
+      banner.classList.remove('hidden');
+    }
   }
-  $('loader').style.display = 'none';
 }
 
 /* ---------- TEMPLATES ---------- */
 const tpl = {
   tag: t => `<span class="tag">${esc(t)}</span>`,
-  // Standard rectangular-label row: takes a list of strings, drops empties, renders .tag boxes
-  // in the shared .attr-tags flex row. Used by every card so labels look identical everywhere.
+  // Flat label row: renders the items as plain comma-separated text (no bordered boxes),
+  // consistent with the standardised flat text look. `extra` (e.g. hashtag spans) still appended.
   tagRow: (items, extra = '') => {
-    const tags = (items || []).filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join('');
-    return (tags || extra) ? `<div class="attr-tags">${tags}${extra}</div>` : '';
+    const text = (items || []).filter(Boolean).map(esc).join(', ');
+    return (text || extra) ? `<p class="attr-line">${text}${extra ? ' ' + extra : ''}</p>` : '';
   },
   img: (src, style = '') => src ? `<img src="${drive(src)}" alt=""${style ? ` style="${style}"` : ''}>` : '',
 
   actionBtn: it => it.link
-    ? `<a href="${esc(it.link)}" target="_blank" style="text-decoration:none;width:100%"><button class="action" style="width:100%">${esc(it.actionText || 'Book Session')}</button></a>`
+    ? `<a href="${esc(it.link)}" target="_blank" style="text-decoration:none;width:100%"><button type="button" class="action" style="width:100%">${esc(it.actionText || 'Book Session')}</button></a>`
     : it.mediaUrl
-      ? `<button class="action" data-video="${esc(it.mediaUrl)}" data-title="${esc(it.title)}">${esc(it.actionText || 'View')}</button>`
+      ? `<button type="button" class="action" data-video="${esc(it.mediaUrl)}" data-title="${esc(it.title)}">${esc(it.actionText || 'View')}</button>`
       : '',
 
   schedule: hours => {
@@ -104,8 +121,13 @@ const tpl = {
   card: it => {
     const norm = s => String(s || '').toLowerCase().trim();
     const isOwn = USER && USER.role === 'tutor' && it.type === 'tutor' && norm(it.title) === norm(USER.name);
+    // Tutor progress (level + high score) — shown quietly at the BOTTOM in gray so it doesn't
+    // read as ranking/status between tutors to clients.
+    const stats = (it.type === 'tutor' && (it.topics || it.highscore))
+      ? `<div class="tutor-stats">Lv ${levelInfo(it.topics).level} · 🎮 ${it.highscore || 0}</div>`
+      : '';
     return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}">
-    ${isOwn ? `<button class="edit-profile-btn" title="Edit your profile">✎ Edit</button>` : ''}
+    ${isOwn ? `<button type="button" class="edit-profile-btn" title="Edit your profile">✎ Edit</button>` : ''}
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
@@ -113,6 +135,7 @@ const tpl = {
     ${tpl.tagRow(it.tags)}
     ${tpl.schedule(it.hours)}
     ${tpl.actionBtn(it)}
+    ${stats}
   </div>`;
   },
 
@@ -123,7 +146,7 @@ const tpl = {
     const pct = menuTotal ? Math.round(done / menuTotal * 100) : 0;
     const lvl = levelInfo(s.topics);
     return `<div class="card" style="text-align:left">
-      <button class="remove-friend-btn" data-handle="${esc(s.handle)}" title="Remove">✕</button>
+      <button type="button" class="remove-friend-btn" data-handle="${esc(s.handle)}" title="Remove">✕</button>
       <h3>${esc(s.name)} <span class="lb-lvl">Lv ${lvl.level}</span></h3>
       <p class="sub">${esc(s.handle)}</p>
       <div class="friend-bar"><div class="friend-bar-fill" style="width:${pct}%"></div></div>
@@ -134,45 +157,67 @@ const tpl = {
   // Arcade game card (Flappy-style canvas)
   gameCard: () => `<div class="card" style="text-align:center">
     <h3 class="gold" style="margin-bottom:8px">Flappy Maths</h3>
-    <p class="muted" style="font-size:var(--fs-xs);margin:0 0 10px">Tap / click / space to flap. Avoid the pipes!</p>
     <canvas id="flappy-canvas" width="280" height="360" style="width:100%;max-width:280px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;cursor:pointer"></canvas>
-    <p style="margin:10px 0 0">Score: <b id="flappy-score" style="color:#fff">0</b>${USER && USER.role === 'kid' ? ` · Best: <b id="flappy-best" style="color:var(--gold)">${USER.highscore || 0}</b>` : ''}</p>
+    <p style="margin:10px 0 0">Score: <b id="flappy-score" style="color:#fff">0</b>${canTrack() ? ` · Best: <b id="flappy-best" style="color:var(--gold)">${USER.highscore || 0}</b>` : ''}</p>
     <p id="flappy-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:6px">Click the game to start</p>
   </div>`,
 
   // Kid's checklist: ONE CARD PER GRADE (each its own card in the grid)
-  checklistCard: (topicsStr = '') => {
-    const have = String(topicsStr || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-    const byGrade = DATA.dropdowns?.topicsByGrade || {};
-    const allTopics = DATA.dropdowns?.topics || [];
-    const grades = Object.keys(byGrade).sort((a, b) => +a - +b);
+  // Compact GCSE calculator that fits in a card (basic + √, x², trig, brackets, π)
+  calcToolCard: () => `<div class="card mini-calc" style="text-align:left">
+    <h3 class="gold" style="margin-bottom:8px">Calculator</h3>
+    <input id="mc-display" class="mc-display" value="0" readonly>
+    <div class="mc-grid mc-fns">
+      <button type="button" class="mc-btn fn" data-mc="sin(">sin</button>
+      <button type="button" class="mc-btn fn" data-mc="cos(">cos</button>
+      <button type="button" class="mc-btn fn" data-mc="tan(">tan</button>
+      <button type="button" class="mc-btn fn" data-mc="sqrt(">√</button>
+      <button type="button" class="mc-btn fn" data-mc="^2">x²</button>
+      <button type="button" class="mc-btn fn" data-mc="^">xʸ</button>
+      <button type="button" class="mc-btn fn" data-mc="(">(</button>
+      <button type="button" class="mc-btn fn" data-mc=")">)</button>
+      <button type="button" class="mc-btn fn" data-mc="pi">π</button>
+      <button type="button" class="mc-btn del" data-mc="del">DEL</button>
+    </div>
+    <div class="mc-grid mc-nums">
+      <button type="button" class="mc-btn" data-mc="7">7</button>
+      <button type="button" class="mc-btn" data-mc="8">8</button>
+      <button type="button" class="mc-btn" data-mc="9">9</button>
+      <button type="button" class="mc-btn op" data-mc="/">÷</button>
+      <button type="button" class="mc-btn" data-mc="4">4</button>
+      <button type="button" class="mc-btn" data-mc="5">5</button>
+      <button type="button" class="mc-btn" data-mc="6">6</button>
+      <button type="button" class="mc-btn op" data-mc="*">×</button>
+      <button type="button" class="mc-btn" data-mc="1">1</button>
+      <button type="button" class="mc-btn" data-mc="2">2</button>
+      <button type="button" class="mc-btn" data-mc="3">3</button>
+      <button type="button" class="mc-btn op" data-mc="-">−</button>
+      <button type="button" class="mc-btn" data-mc="0">0</button>
+      <button type="button" class="mc-btn" data-mc=".">.</button>
+      <button type="button" class="mc-btn eq" data-mc="=">=</button>
+      <button type="button" class="mc-btn op" data-mc="+">+</button>
+    </div>
+    <p class="muted" style="font-size:var(--fs-xs);margin:8px 0 0">Degrees mode</p>
+  </div>`,
 
-    const cb = t => {
-      const checked = have.includes(t.toLowerCase()) ? 'checked' : '';
-      return `<label class="check-item"><input type="checkbox" class="topic-cb" value="${esc(t)}" ${checked}> ${esc(t)}</label>`;
-    };
-
-    if (!grades.length) {
-      return allTopics.length
-        ? `<div class="card" style="text-align:left"><h3 class="gold">Maths Topics</h3>
-            <div class="check-list">${allTopics.map(cb).join('')}</div>
-            <button id="save-topics-btn" class="action" style="width:100%;margin-top:14px">Save Checklist</button></div>`
-        : '<div class="card"><p class="muted">No topics set up yet.</p></div>';
-    }
-
-    // One card per grade; any card's Save button saves the whole checklist
-    return grades.map(gr => {
-      const topics = byGrade[gr];
-      const done = topics.filter(t => have.includes(t.toLowerCase())).length;
-      const pct = Math.round(done / topics.length * 100);
-      return `<div class="card grade-card" style="text-align:left">
-        <h3 class="gold" style="margin-bottom:4px">Grade ${esc(gr)}</h3>
-        <p class="muted" style="font-size:var(--fs-xs);margin:0 0 8px">${done}/${topics.length} done</p>
-        <div class="friend-bar"><div class="friend-bar-fill" style="width:${pct}%"></div></div>
-        <div class="check-list" style="margin-top:10px">${topics.map(cb).join('')}</div>
-        <button class="action save-topics-btn" style="width:100%;margin-top:12px">Save</button>
+  // One checklist band card (subject + grade/stage) with two checkboxes per topic.
+  // `item` = { subject, band, bandLabel, topics }. Uses current USER progress.
+  checklistBandCard: (item) => {
+    const prog = canTrack() ? parseProgress() : {};
+    const rows = item.topics.map(t => {
+      const p = prog[t.toLowerCase()] || {};
+      return `<div class="check-row">
+        <span class="check-topic">${esc(t)}</span>
+        <label class="mini-check"><input type="checkbox" class="topic-cb cb-tick1" data-topic="${esc(t)}" ${p.t1?'checked':''}></label>
+        <label class="mini-check"><input type="checkbox" class="topic-cb cb-tick2" data-topic="${esc(t)}" ${p.t2?'checked':''}></label>
+        <label class="mini-check"><input type="checkbox" class="topic-cb cb-tick3" data-topic="${esc(t)}" ${p.t3?'checked':''}></label>
       </div>`;
     }).join('');
+    return `<div class="card grade-card" style="text-align:left">
+      <h3 class="gold" style="margin-bottom:4px">${esc(item.subject)} · ${esc(item.bandLabel)}</h3>
+      <div class="check-list">${rows}</div>
+      <button type="button" class="action save-topics-btn" style="width:100%;margin-top:12px">Save</button>
+    </div>`;
   },
 
   // The same card switched into edit mode (inputs in place of display fields)
@@ -193,57 +238,81 @@ const tpl = {
     <label class="edit-label">Intro video URL</label>
     <input id="pf-video" class="edit-input" value="${esc(p.video || '')}">
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button id="save-profile-btn" class="action" style="flex:1">Save</button>
-      <button id="cancel-profile-btn" class="ghost" style="padding:11px">Cancel</button>
+      <button type="button" id="save-profile-btn" class="action" style="flex:1">Save</button>
+      <button type="button" id="cancel-profile-btn" class="ghost" style="padding:11px">Cancel</button>
     </div>
   </div>`,
 
   jobCard: (j, isDash = false, state = '') => {
-    const full = j.spotsLeft <= 0;
-    const mine = state === 'confirmed';
-    const pending = state === 'pending';
-    const chatBox = isDash ? `
-      <div class="chat-box" style="margin-top:15px;border-top:1px dashed var(--border);padding-top:10px;text-align:left">
-        <p class="muted" style="font-size:var(--fs-sm);margin-bottom:8px"><strong>Latest update:</strong> <span class="chat-text">${esc(j.chat) || 'No messages yet.'}</span></p>
-        <div style="display:flex;gap:5px">
-          <input type="text" id="chat-input-${j.id}" placeholder="Type reply..." style="flex:1;padding:8px;font-size:var(--fs-sm)">
-          <button class="action send-chat-btn" data-job="${j.id}" style="margin:0;padding:8px 15px;width:auto">Reply</button>
-        </div>
-      </div>` : '';
-    // Tutors see who's in the class (the family/children)
-    const tutorTag = (state && USER && USER.role === 'tutor' && j.clients)
-      ? `<span class="tag">👪 ${esc(j.clients)}</span>` : '';
-    const stateBadge = mine ? `<span class="badge mine-badge">Yours</span>`
-      : pending ? `<span class="badge pending-badge">Pending</span>` : '';
-    const attrRow = tpl.tagRow([
-      j.level ? `Level: ${j.level}` : '',
-      j.subject || '',
-      `📍 ${j.location || 'Online'}`,
-      fmtWeeks(j.weeks) ? `${fmtWeeks(j.weeks)} wks` : '',
-    ], tutorTag);
+    const norm = s => String(s || '').toLowerCase().trim();
+    const slots = j.slots || [];
+    const isTutor = USER && USER.role === 'tutor' && norm(j.requestedTutor) === norm(USER.name);
+    const myName = USER ? norm(USER.name) : '';
+    const mySlot = slots.find(s => norm(s.client) === myName);          // am I in this class?
+    const emptySlot = slots.find(s => !String(s.client||'').trim());    // is there room?
+    const canJoin = USER && USER.role !== 'tutor' && !mySlot && emptySlot && norm(j.status) === 'ongoing';
 
-    // Action area: tutor with a pending request gets Accept/Reject; otherwise normal Book/Full
-    let action = '';
-    if (pending && USER && USER.role === 'tutor') {
-      action = `<div style="display:flex;gap:8px;margin-top:12px">
-        <button class="action accept-job-btn" data-job="${j.id}">Accept</button>
-        <button class="ghost reject-job-btn" data-job="${j.id}" style="margin:0;padding:11px">Decline</button>
-      </div>`;
-    } else if (!isDash) {
-      action = `<button class="action" ${full ? 'disabled' : ''}>${full ? 'Full' : 'Book Now'}</button>`;
+    const stateBadge = mySlot ? `<span class="badge mine-badge">Yours</span>`
+      : norm(j.status) === 'unstarted' ? `<span class="badge pending-badge">Unstarted</span>` : '';
+
+    const attrRow = tpl.tagRow([
+      j.level ? `Level: ${j.level}` : '', j.subject || '',
+      `${j.location || 'Online'}`, fmtWeeks(j.weeks) ? `${fmtWeeks(j.weeks)} wks` : '',
+    ]);
+
+    // Slot list — the tutor sees every client + status + controls; a client sees their own row + chat.
+    let slotRows = '';
+    if (isTutor) {
+      slotRows = slots.filter(s => String(s.client||'').trim()).map(s => {
+        const st = s.status || 'Requested';
+        const controls = /request|negotiat/i.test(st)
+          ? `<div style="display:flex;gap:6px;margin-top:6px">
+               <button type="button" class="action slot-act" data-job="${j.id}" data-slot="${s.n}" data-status="Active" style="margin:0;padding:6px 10px">Accept</button>
+               <button type="button" class="ghost slot-act" data-job="${j.id}" data-slot="${s.n}" data-status="Declined" style="margin:0;padding:6px 10px">Decline</button>
+             </div>` : '';
+        const chat = tpl.slotChat(j, s);
+        return `<div class="slot-row"><b>${esc(s.client)}</b> — ${esc(st)}${controls}${chat}</div>`;
+      }).join('');
+    } else if (mySlot) {
+      slotRows = `<div class="slot-row">Your status: <b>${esc(mySlot.status || 'Requested')}</b>${tpl.slotChat(j, mySlot)}</div>`;
     }
 
-    const cls = mine ? 'mine-class' : pending ? 'pending-class' : '';
+    // Actions
+    let action = '';
+    if (canJoin) {
+      action = `<button type="button" class="action join-job-btn" data-job="${j.id}">Request to Join</button>`;
+    } else if (!USER && !isDash) {
+      action = `<button type="button" class="action book-btn-inline" ${j.spotsLeft<=0?'disabled':''}>${j.spotsLeft<=0?'Full':'Book Now'}</button>`;
+    }
+    // Counter-offer (client 1 or tutor, only while Pending)
+    const isClient1 = mySlot && mySlot.n === 1;
+    const counter = ((isClient1 || isTutor) && norm(j.status) === 'unstarted')
+      ? `<div class="counter-box" style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">
+           <input type="text" id="counter-time-${j.id}" placeholder="Propose new time" style="width:100%;padding:6px;font-size:var(--fs-sm);margin-bottom:6px">
+           <button type="button" class="ghost counter-btn" data-job="${j.id}" style="margin:0;padding:6px 12px;width:100%">Send counter-offer</button>
+         </div>` : '';
+
+    const cls = mySlot ? 'mine-class' : norm(j.status) === 'pending' ? 'pending-class' : '';
     return `<div class="card ${cls}">
       ${stateBadge}
       <h3>${esc(j.title) || 'Session'}</h3>
       <p class="sub">${esc(fmtDay(j.day))} @ ${esc(fmtTime(j.time) || 'TBD')}</p>
       <p class="cap">👥 ${esc(j.capacity)}</p>
       ${attrRow}
+      ${slotRows}
       ${action}
-      ${chatBox}
+      ${counter}
     </div>`;
   },
+
+  // A slot's chat thread + reply box (shown to the tutor per slot, and to the client for their own slot)
+  slotChat: (j, s) => `<div class="chat-box" style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;text-align:left">
+    <p class="muted" style="font-size:var(--fs-xs);white-space:pre-line;margin-bottom:6px">${esc(s.chat) || 'No messages yet.'}</p>
+    <div style="display:flex;gap:5px">
+      <input type="text" id="slotchat-${j.id}-${s.n}" placeholder="Message..." style="flex:1;padding:6px;font-size:var(--fs-xs)">
+      <button type="button" class="action slot-chat-btn" data-job="${j.id}" data-slot="${s.n}" style="margin:0;padding:6px 10px;width:auto">Send</button>
+    </div>
+  </div>`,
 
   // One card per category, listing all links in that category as rows
   linkGroupCard: (category, links) => `<div class="card link-group">
@@ -268,23 +337,56 @@ const tpl = {
   socialPost: post => {
     const caption = tpl.cleanCaption(post.rawName);
     const tokens  = tpl.extractTokens(post.rawName);
-    // location + date via the shared tagRow; #tags/@mentions appended with their blue accent
-    const hashtags = tokens.map(tk => `<span class="tag tag-social">${esc(tk)}</span>`).join('');
+    // location + date via the shared tagRow; #tags/@mentions as plain text
+    const hashtags = tokens.map(tk => esc(tk)).join(', ');
     const tagRow = tpl.tagRow([
-      post.location ? `📍 ${post.location}` : '',
-      post.label ? `🗓 ${post.label}` : '',
+      post.location ? `${post.location}` : '',
+      post.label ? `${post.label}` : '',
     ], hashtags);
     return `<div class="card social-post">
       <div class="social-header">
         <div class="social-avatar">@</div>
         <span class="social-username">@family.</span>
-        <button data-share-url="https://drive.google.com/file/d/${post.id}/view" class="social-share-btn">⎘</button>
+        <button type="button" data-share-url="https://drive.google.com/file/d/${post.id}/view" class="social-share-btn">⎘</button>
       </div>
       <img class="social-img" src="https://drive.google.com/thumbnail?id=${post.id}&sz=w800" alt="Gallery Post" loading="lazy">
       <div class="social-body">
         ${caption ? `<p class="desc" style="margin:0 0 8px">${esc(caption)}</p>` : ''}
         ${tagRow}
       </div>
+    </div>`;
+  },
+
+  // Access card: login form when logged out, personal dashboard when logged in.
+  // Lives in the Classes & Booking grid so access sits with booking.
+  // Login form card (shown in People when logged out)
+  loginCard: () => `<div class="card" id="login-card">
+      <h3 class="gold mb-md">Login</h3>
+      <div class="checkout stack">
+        <input type="text" id="auth-email" placeholder="Full Name">
+        <input type="password" id="auth-pin" placeholder="PIN">
+        <button type="button" id="auth-btn" class="action">Enter</button>
+      </div>
+      <p id="auth-msg" class="err mt-sm"></p>
+    </div>`,
+
+  // A logged-in parent/kid's own account card in People (their details + logout).
+  // Kids also get their level/high score here since they take part in topics/arcade.
+  accountCard: () => {
+    const roleLabel = { parent: 'Parent', kid: 'Student' }[USER.role] || 'Member';
+    const kidStats = USER.role === 'kid'
+      ? `<div class="friend-bar"><div class="friend-bar-fill" style="width:${levelInfo(USER.topics).pct}%"></div></div>
+         ${tpl.tagRow([`Lv ${levelInfo(USER.topics).level}`, `🎮 ${USER.highscore || 0}`])}` : '';
+    return `<div class="card own-profile" id="account-card" style="text-align:left">
+      <h3 class="gold" style="margin-bottom:4px">${esc(USER.name)}</h3>
+      <p class="sub">${roleLabel}${USER.handle ? ' · ' + esc(USER.handle) : ''}</p>
+      ${kidStats}
+      <p class="muted" style="font-size:var(--fs-xs);margin:10px 0">${
+        USER.role === 'kid'
+          ? 'Your checklist, friends and classes are in their sections below.'
+          : 'Your classes are highlighted in Classes & Booking.'
+      }</p>
+      <button type="button" id="logout-btn" class="ghost" style="width:100%">Log Out</button>
     </div>`;
   },
 
@@ -325,6 +427,19 @@ const tpl = {
 /* ---------- RENDER ---------- */
 function renderCards(id, items = []) {
   let cardsHtml = items.length ? items.map(tpl.card).join('') : '<p class="muted">Nothing yet.</p>';
+
+  // People section: the login card (logged out) or the person's own account card (logged in).
+  if (id === 'tutors') {
+    if (!USER) {
+      // Not logged in → login card leads the People grid
+      cardsHtml = tpl.loginCard() + cardsHtml;
+    } else if (USER.role !== 'tutor') {
+      // Parent/kid have no profile card, so give them their own editable account card here
+      cardsHtml = tpl.accountCard() + cardsHtml;
+    }
+    // Tutor: their existing card in the list already shows the ✎ Edit button (no extra card)
+  }
+
   // In the People section, a logged-in kid also sees a friend search + their friend cards
   if (id === 'tutors' && USER && USER.role === 'kid') {
     const norm = s => String(s || '').toLowerCase().trim();
@@ -334,7 +449,7 @@ function renderCards(id, items = []) {
     cardsHtml += `<div class="card friend-search-card" style="text-align:left">
         <h3 class="gold" style="margin-bottom:8px">Add a Friend</h3>
         <input id="friend-search" class="edit-input" placeholder="Exact name e.g. LuccaD" style="margin-bottom:8px">
-        <button id="add-friend-btn" class="action" style="width:100%">Add Friend</button>
+        <button type="button" id="add-friend-btn" class="action" style="width:100%">Add Friend</button>
         <p id="friend-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:8px"></p>
       </div>` + friendCards;
   }
@@ -359,56 +474,107 @@ function classState(j) {
   const status = norm(j.status);
   if (USER.role === 'tutor') {
     if (norm(j.requestedTutor) !== norm(USER.name)) return '';
-    return status === 'confirmed' ? 'confirmed' : 'pending';  // requested but not yet accepted = grey
+    return status === 'ongoing' ? 'confirmed' : 'pending';  // not yet started = grey
   }
-  // Parent/kid: their family's classes
-  const owner = norm(j.clients);
-  const isMine = USER.role === 'kid' ? owner === norm(USER.parent) : owner === norm(USER.name);
-  if (!isMine) return '';
-  return status === 'pending' ? 'pending' : 'confirmed';
+  // Parent/kid: am I in any slot of this class?
+  const mySlot = (j.slots || []).find(s => norm(s.client) === norm(USER.name));
+  if (!mySlot) return '';
+  return status === 'unstarted' ? 'pending' : 'confirmed';
 }
 
 // Back-compat boolean (used by onLogin filter)
 function isMyClass(j) { return classState(j) !== ''; }
 
-// After a successful login: greet by role, surface the user's classes at the top of the live list (blue)
-function onLogin() {
-  renderCheckout();
-  tog('login-section', true);
-  tog('dashboard-section', false);
-
-  const roleLabel = { tutor: 'Tutor', parent: 'Parent', kid: 'Student' }[USER.role] || 'Member';
-  $('dash-greeting').textContent = `Welcome back, ${USER.name} (${roleLabel})`;
-
-  if (USER.role === 'tutor') {
-    html('dash-content', `<p class="muted">Your profile card in People has an ✎ Edit button. Your classes appear highlighted in Open Classes.</p>`);
-  } else if (USER.role === 'kid') {
-    html('dash-content', `<p class="muted">Your checklist and friends are in the Maths Checklist and People sections. Your classes appear highlighted in Open Classes.</p>`);
-  } else {
-    html('dash-content', `<p class="muted">Your family's classes appear highlighted at the top of Open Classes.</p>`);
-  }
-
-  // Render the always-present sections with login-aware content
-  renderCards('tutors', DATA.tutors);  // People: tutors (+ kid's friends if applicable)
-  renderChecklist();                   // Checklist section
-  renderArcade();                      // Arcade game
-  renderClasses();                     // Open Classes (user's float to top, blue)
-  $('classes').closest('section').classList.remove('hidden');
-  $('classes').closest('section').scrollIntoView({ behavior: 'smooth' });
+// Column health-check banner: warns if the sheet is missing columns the code needs.
+function renderHealth() {
+  const el = $('health-banner');
+  if (!el) return;
+  const h = DATA.health;
+  if (!h || h.ok) { el.classList.add('hidden'); return; }
+  const lines = h.missing.map(m =>
+    `<b>${esc(m.group)}</b>: ${m.columns.map(c => `<code>${esc(c)}</code>`).join(', ')}`
+  ).join('<br>');
+  el.innerHTML = `⚠ <b>Sheet health warning</b> — the code expects columns that aren't in the sheet ` +
+    `(likely a rename or deletion). Affected features may not work until these are restored:<br>${lines}`;
+  el.classList.remove('hidden');
 }
 
-// Maths Checklist section: always the same grade cards. A logged-in kid's saved topics
-// pre-tick their boxes (and they can save); for anyone else the boxes are simply unticked.
+// After a successful login: re-render sections; the login card in People becomes the user's own card
+function onLogin() {
+  renderCards('tutors', DATA.tutors);  // People: login card → own account card / tutor edit
+  renderChecklist();                   // Checklist section
+  renderArcade();                      // Arcade game
+  renderClasses();                     // Classes & Booking (user's classes highlight blue)
+  renderCheckout();
+  $('tutors').closest('section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Tools section: a calculator card + the maths checklist (grade cards).
+// Grade cards can be filtered by subject/tier/grade via the database-driven filter bar.
+// Build the flat list of checklist band-items (one per subject+band) for the shared filter system.
+function checklistItems() {
+  const checklists = DATA.dropdowns?.checklists || {};
+  const items = [];
+  Object.keys(checklists).forEach(subject => {
+    const bands = checklists[subject];
+    Object.keys(bands).sort((a,b)=>+a-+b).forEach(band => {
+      items.push({
+        subject, band: String(band),
+        bandLabel: subject === 'Reading' ? `Stage ${band}` : `Grade ${band}`,
+        topics: bands[band]
+      });
+    });
+  });
+  return items;
+}
+
+// Tools section: calculator card is fixed; the checklist band cards go through the shared filter.
 function renderChecklist() {
   const el = $('checklist-content');
   if (!el) return;
-  const myTopics = (USER && USER.role === 'kid') ? USER.topics : '';
-  el.innerHTML = tpl.checklistCard(myTopics);
+  renderFilterBar('tool');   // shared filter bar (search + subject/level dropdowns)
+  applyFilter('tool');       // shared filter renders the band cards into #checklist-content
+  initMiniCalc();
 }
 
-// Progression: level from number of topics ticked (every 5 topics = +1 level)
+// Compact calculator logic (degrees; uses math.js if present, else Function eval fallback)
+function initMiniCalc() {
+  const disp = $('mc-display');
+  if (!disp) return;
+  let expr = '';
+  const render = () => disp.value = expr || '0';
+  window._mcClick = (v) => {
+    if (v === '=') {
+      try {
+        let s = expr.replace(/π/g,'pi');
+        // degree trig
+        s = s.replace(/\b(sin|cos|tan)\(/g, '$1(DEG*');
+        let result;
+        if (window.math) {
+          result = window.math.evaluate(s, { pi: Math.PI, DEG: Math.PI/180 });
+        } else {
+          s = s.replace(/pi/g, Math.PI).replace(/DEG/g, Math.PI/180)
+               .replace(/sqrt/g,'Math.sqrt').replace(/sin/g,'Math.sin').replace(/cos/g,'Math.cos').replace(/tan/g,'Math.tan').replace(/\^/g,'**');
+          result = Function('"use strict";return (' + s + ')')();
+        }
+        expr = String(Math.round(result * 1e10) / 1e10);
+      } catch { expr = 'Error'; }
+    } else if (v === 'del') {
+      expr = (expr === 'Error') ? '' : expr.slice(0, -1);
+    } else {
+      if (expr === 'Error' || expr === '0') expr = '';
+      expr += v;
+    }
+    render();
+  };
+  render();
+}
+
+// Progression: XP = number of topics with any progress. Every 5 = +1 level.
 const TOPICS_PER_LEVEL = 5;
-function topicCount(topicsStr) { return String(topicsStr || '').split(',').map(s => s.trim()).filter(Boolean).length; }
+function topicCount(topicsStr) {
+  return String(topicsStr || '').split(',').map(s => s.trim()).filter(Boolean).length;
+}
 function levelInfo(topicsStr) {
   const xp = topicCount(topicsStr);
   const level = Math.floor(xp / TOPICS_PER_LEVEL) + 1;
@@ -458,14 +624,19 @@ function initFlappy() {
   const gameOver = () => {
     S.dead = true; S.running = false;
     $('flappy-msg').textContent = `Game over — score ${S.score}. Click to retry.`;
-    // Save score if a logged-in kid
-    if (USER && USER.role === 'kid') {
+    // Save score if a logged-in kid or tutor
+    if (canTrack()) {
       const prev = USER.highscore || 0;
       if (S.score > prev) {
         USER.highscore = S.score;
         if ($('flappy-best')) $('flappy-best').textContent = S.score;
         fetch(API, { method:'POST', body: JSON.stringify({ action:'saveScore', name: USER.name, score: S.score }) })
-          .then(() => { const me = (DATA.students||[]).find(s => String(s.handle).toLowerCase() === String(USER.handle).toLowerCase()); if (me) me.highscore = S.score; if (USER.role === 'kid') renderCards('tutors', DATA.tutors); });
+          .then(() => {
+            const norm = s => String(s||'').toLowerCase().trim();
+            const meS = (DATA.students||[]).find(s => norm(s.handle) === norm(USER.handle)); if (meS) meS.highscore = S.score;
+            const meT = (DATA.tutors||[]).find(x => norm(x.title) === norm(USER.name)); if (meT) meT.highscore = S.score;
+            // No re-render mid-game — the "Best" display already updated; cards refresh naturally later
+          });
         $('flappy-msg').textContent = `New best: ${S.score}! Click to retry.`;
       }
     }
@@ -518,9 +689,9 @@ function renderCheckout() {
   if (!$('checkout-area')) return;
   $('checkout-area').innerHTML = USER
     ? `<p class="muted" style="font-size:var(--fs-sm);margin:0">Booking as <b style="color:#fff">${esc(USER.name)}</b></p>
-       <button id="book-btn" style="margin-top:5px">Lock in &amp; Book</button>`
+       <button type="button" id="book-btn" style="margin-top:5px">Lock in &amp; Book</button>`
     : `<p class="muted" style="font-size:var(--fs-sm);margin:0">Log in to book a session.</p>
-       <button id="go-login-btn" class="action">Log in to Book</button>`;
+       <button type="button" id="go-login-btn" class="action">Log in to Book</button>`;
 }
 
 function renderLinks(items = DATA.links || []) {
@@ -866,6 +1037,19 @@ const FILTER_DEFS = {
       location: { label: 'Location', opts: () => uniq(GALLERY_POSTS.map(p => p.location)), match: (x,v) => norm(x.location) === v },
     }
   },
+  tool: {
+    target: 'checklist-content',
+    source: () => checklistItems(),
+    // Calculator card always first, then the filtered checklist band cards
+    render: items => { html('checklist-content',
+      tpl.calcToolCard() + (items.length ? items.map(tpl.checklistBandCard).join('')
+        : '<div class="card"><p class="muted">No topics match.</p></div>')); initMiniCalc(); },
+    text: x => (x.subject + ' ' + x.bandLabel + ' ' + x.topics.join(' ')),
+    fields: {
+      subject: { label: 'Subject', opts: () => Object.keys(DATA.dropdowns?.checklists || {}), match: (x,v) => norm(x.subject) === v },
+      level:   { label: 'Level',   opts: () => uniq(checklistItems().map(i => i.bandLabel)), match: (x,v) => norm(x.bandLabel) === v },
+    }
+  },
 };
 
 const norm = s => String(s || '').toLowerCase().trim();
@@ -892,15 +1076,15 @@ function renderFilterBar(prefix) {
       <select class="filter filter-dyn" data-prefix="${prefix}" data-field="${field}">
         <option value="">All ${esc(fd.label)}</option>${opts}
       </select>
-      <button class="filter-remove" data-prefix="${prefix}" data-field="${field}" title="Remove filter">×</button>
+      <button type="button" class="filter-remove" data-prefix="${prefix}" data-field="${field}" title="Remove filter">×</button>
     </span>`;
   }).join('');
 
   const addChip = available.length
     ? `<span class="filter-add-wrap">
-        <button class="filter-add" data-prefix="${prefix}">+ Filter</button>
+        <button type="button" class="filter-add" data-prefix="${prefix}">+ Filter</button>
         <span class="filter-add-menu hidden" id="${prefix}-add-menu">
-          ${available.map(f => `<button class="filter-add-opt" data-prefix="${prefix}" data-field="${f}">${esc(def.fields[f].label)}</button>`).join('')}
+          ${available.map(f => `<button type="button" class="filter-add-opt" data-prefix="${prefix}" data-field="${f}">${esc(def.fields[f].label)}</button>`).join('')}
         </span>
       </span>` : '';
 
@@ -957,8 +1141,14 @@ function enforceHomeRule() {
   }
 }));
 
+// Safety net: block any accidental form submission from ever reloading the page
+document.addEventListener('submit', e => e.preventDefault());
+
 document.addEventListener('click', e => {
   const t = e.target;
+
+  // Mini calculator buttons
+  if (t.dataset && t.dataset.mc !== undefined) { window._mcClick?.(t.dataset.mc); return; }
 
   // Filter: toggle the "+ Filter" menu
   if (t.classList.contains('filter-add')) {
@@ -999,7 +1189,7 @@ document.addEventListener('click', e => {
 
   // Prompt login from the booking card
   if (t.id === 'go-login-btn') {
-    $('login-section').scrollIntoView({ behavior: 'smooth' });
+    ($('login-card') || $('tutors'))?.scrollIntoView({ behavior: 'smooth' });
     $('auth-email')?.focus();
   }
 
@@ -1012,19 +1202,12 @@ document.addEventListener('click', e => {
       setTimeout(() => t.textContent = 'Lock in & Book', 2500);
       return;
     }
-    post({ action: 'createJob', ...q.summary, price: q.total, profit: q.profitTotal, clientName: USER.name, clientContact: USER.role || '' }, t, '✅ Booked!');
-  }
-
-  // Chat reply
-  if (t.classList.contains('send-chat-btn')) {
-    const jobId = t.dataset.job;
-    const input = $(`chat-input-${jobId}`);
-    const message = input.value.trim();
-    if (!message) return;
-    const msg = `Me: ${message}`;
-    post({ action: 'sendChat', jobId, message: msg }, t, 'Sent!');
-    t.closest('.chat-box').querySelector('.chat-text').textContent = msg;
-    input.value = '';
+    // Compute the actual session dates (every chosen-day occurrence until term end) to store in the sheet
+    const sel = $('c-interval');
+    const endDate = sel?.options[sel.selectedIndex]?.dataset.end || '';
+    const dates = computeSessionDates(q.summary.day, endDate).map(fmtDate);
+    post({ action: 'createJob', ...q.summary, price: q.total, profit: q.profitTotal,
+           clientName: USER.name, clientContact: USER.role || '', dates: dates.join(', ') }, t, '✅ Booked!');
   }
 
   // Tutor accepts a pending requested job → turns blue
@@ -1042,6 +1225,37 @@ document.addEventListener('click', e => {
     post({ action: 'rejectJob', jobId }, t, 'Declined');
     const job = (DATA.clientClasses || []).find(j => String(j.id) === String(jobId));
     if (job) { job.status = 'active'; job.requestedTutor = ''; setTimeout(() => renderClasses(), 600); }
+  }
+
+  // Client requests to join an existing class (takes an empty slot)
+  if (t.classList.contains('join-job-btn')) {
+    if (!USER) { $('go-login-btn')?.click(); return; }
+    const jobId = t.dataset.job;
+    post({ action: 'joinJob', jobId, clientName: USER.name }, t, '✅ Requested');
+  }
+
+  // Tutor accepts/declines a specific client slot
+  if (t.classList.contains('slot-act')) {
+    const { job: jobId, slot, status } = t.dataset;
+    post({ action: 'slotAction', jobId, slot, newStatus: status }, t, status === 'Accepted' ? '✅ Accepted' : 'Declined');
+  }
+
+  // Counter-offer (client 1 or tutor) — propose a new time while job is Pending
+  if (t.classList.contains('counter-btn')) {
+    const jobId = t.dataset.job;
+    const time = val(`counter-time-${jobId}`).trim();
+    if (!time) return;
+    post({ action: 'counterOffer', jobId, time }, t, '✅ Sent');
+  }
+
+  // Send a message to a client slot's chat thread
+  if (t.classList.contains('slot-chat-btn')) {
+    const { job: jobId, slot } = t.dataset;
+    const input = $(`slotchat-${jobId}-${slot}`);
+    const message = input.value.trim();
+    if (!message) return;
+    post({ action: 'slotChat', jobId, slot, sender: USER ? USER.name : 'User', message }, t, 'Sent');
+    input.value = '';
   }
 
   // Kid adds a friend by exact handle (e.g. "LuccaD")
@@ -1074,15 +1288,23 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // Kid saves their checklist (ticked topics → comma-separated topics cell)
+  // Kid/tutor saves their checklist → three independent lists (tick1/tick2/tick3 columns)
   if (t.id === 'save-topics-btn' || t.classList.contains('save-topics-btn')) {
-    if (!USER || USER.role !== 'kid') { t.textContent = 'Log in as a student to save'; setTimeout(() => t.textContent = 'Save', 1800); return; }
-    // Read ticks across ALL grade cards (the whole checklist), not just this card
-    const ticked = Array.from(document.querySelectorAll('.topic-cb:checked')).map(cb => cb.value);
-    const topicsStr = ticked.join(', ');
-    post({ action: 'saveTopics', name: USER.name, topics: topicsStr }, t, '✅ Saved');
-    USER.topics = topicsStr;
-    setTimeout(() => renderChecklist(), 700);
+    if (!canTrack()) { t.textContent = 'Log in as a student or tutor to save'; setTimeout(() => t.textContent = 'Save', 1800); return; }
+    // Start from existing state (so topics filtered off-screen aren't lost)
+    const map = parseProgress();
+    const setFlag = (cls, flag) => document.querySelectorAll(cls).forEach(cb => {
+      const k = cb.dataset.topic.toLowerCase();
+      map[k] = map[k] || { t1:false, t2:false, t3:false };
+      map[k][flag] = cb.checked;
+    });
+    setFlag('.cb-tick1', 't1'); setFlag('.cb-tick2', 't2'); setFlag('.cb-tick3', 't3');
+    // Build the three comma lists (original-case topic names come from the checkbox text isn't stored,
+    // so we use the lowercased key; topics are matched case-insensitively on read)
+    const listFor = flag => Object.entries(map).filter(([,v]) => v[flag]).map(([k]) => k).join(', ');
+    const tick1 = listFor('t1'), tick2 = listFor('t2'), tick3 = listFor('t3');
+    post({ action: 'saveTopics', name: USER.name, tick1, tick2, tick3 }, t, '✅ Saved');
+    USER.tick1 = tick1; USER.tick2 = tick2; USER.tick3 = tick3;
     return;
   }
 
@@ -1093,9 +1315,12 @@ document.addEventListener('click', e => {
     if (card) card.outerHTML = tpl.profileEditCard(USER.profile || {});
     return;
   }
-  // Cancel editing → restore the normal Team section
+  // Cancel editing → restore just this card to display form (no section rebuild)
   if (t.id === 'cancel-profile-btn') {
-    applyFilter('tutor');
+    const norm = s => String(s || '').toLowerCase().trim();
+    const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
+    const card = t.closest('.card');
+    if (card && me) card.outerHTML = tpl.card(me);
     return;
   }
 
@@ -1113,7 +1338,7 @@ document.addEventListener('click', e => {
     };
     post(profile, t, '✅ Saved');
     if (USER.profile) Object.assign(USER.profile, profile);
-    // Update the live tutor record so the re-rendered card shows the new values immediately
+    // Update the live tutor record so a later natural re-render shows new values
     const norm = s => String(s || '').toLowerCase().trim();
     const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
     if (me) {
@@ -1123,7 +1348,9 @@ document.addEventListener('click', e => {
       me.mediaUrl = profile.video;
       me.subtitle = `📍 ${profile.location || 'London'}`;
     }
-    setTimeout(() => applyFilter('tutor'), 700);
+    // Swap just this one card back to its display form (no whole-section rebuild)
+    const card = t.closest('.card');
+    if (card && me) card.outerHTML = tpl.card(me);
     return;
   }
 
@@ -1148,14 +1375,11 @@ document.addEventListener('click', e => {
   // Logout
   if (t.id === 'logout-btn') {
     USER = null;
-    renderCheckout();
-    tog('dashboard-section', true);
-    tog('login-section', false);
-    $('classes').closest('section').classList.remove('hidden');
-    renderClasses();                      // clear role highlighting
+    renderClasses();                      // access card reverts to login; clears highlighting
     renderCards('tutors', DATA.tutors);   // People: drop friend cards/edit buttons
     renderChecklist();                    // Checklist: back to default view
     renderArcade();                       // Arcade: drop personal best display
+    renderCheckout();
   }
 
   // Custom multi-select dropdowns
