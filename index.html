@@ -7,35 +7,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="loader" class="loader">
-    <h1 class="pulse">@family.</h1>
-    <p class="muted">Syncing...</p>
-  </div>
-
   <header><h1>@family.</h1></header>
 
+  <div id="health-banner" class="health-banner hidden"></div>
+
   <main>
-    <section id="login-section">
-      <h2>Portal Access</h2>
-      <div class="grid">
-        <div class="card">
-          <h3 class="gold mb-md">Login</h3>
-          <div class="checkout stack">
-            <input type="text" id="auth-email" placeholder="Full Name">
-            <input type="password" id="auth-pin" placeholder="PIN">
-            <button id="auth-btn" class="action">Enter</button>
-          </div>
-          <p id="auth-msg" class="err mt-sm"></p>
-        </div>
-      </div>
-    </section>
-
-    <section id="dashboard-section" class="hidden">
-      <h2 id="dash-greeting" class="gold">Welcome</h2>
-      <div id="dash-content" class="grid"></div>
-      <button id="logout-btn" class="ghost mt-lg">Log Out</button>
-    </section>
-
     <section>
       <h2>Showcase</h2>
       <div class="filters" id="post-filters"></div>
@@ -43,7 +19,7 @@
     </section>
 
     <section>
-      <h2>Open Classes</h2>
+      <h2>Classes &amp; Booking</h2>
       <div class="filters" id="class-filters"></div>
       <div id="classes" class="grid"><p class="muted">Loading...</p></div>
     </section>
@@ -61,8 +37,9 @@
     </section>
 
     <section id="checklist-section">
-      <h2>Maths Checklist</h2>
-      <div id="checklist-content" class="grid"><p class="muted">Log in as a student to track your topics.</p></div>
+      <h2>Tools</h2>
+      <div class="filters" id="tool-filters"></div>
+      <div id="checklist-content" class="grid"><p class="muted">Loading...</p></div>
     </section>
 
     <section id="arcade-section">
@@ -81,12 +58,13 @@
 
   <div id="modal" class="modal hidden">
     <div class="modal-box">
-      <button class="modal-close">&times;</button>
+      <button type="button" class="modal-close">&times;</button>
       <h3 id="modal-title" class="gold">Intro</h3>
       <iframe id="modal-frame" src="" allow="autoplay"></iframe>
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
