@@ -71,6 +71,7 @@ async function init() {
     renderCards('venues', DATA.venues);
     renderClasses();
     renderLinks();
+    renderShop();
     renderChecklist();
     renderArcade();
     renderGallery(DATA.gallery);
@@ -140,13 +141,22 @@ const tpl = {
   },
 
   // A single friend's card (shows their level, checklist progress, and arcade high score)
-  friendCard: (s) => {
+  // Shop item card: image, name, price, description, Buy button (payment wired later)
+  shopCard: (it) => `<div class="card" style="text-align:left">
+    ${it.image ? tpl.img(it.image) : ''}
+    <h3>${esc(it.name)}</h3>
+    ${it.price ? `<p class="sub">£${esc(it.price)}</p>` : ''}
+    ${it.description ? `<p class="desc">${esc(it.description)}</p>` : ''}
+    <button type="button" class="action buy-item-btn" data-item="${esc(it.id)}" data-name="${esc(it.name)}">Buy</button>
+  </div>`,
+
+  friendCard: (s, isChild = false) => {
     const menuTotal = (DATA.dropdowns?.topics || []).length;
     const done = String(s.topics || '').split(',').map(x => x.trim()).filter(Boolean).length;
     const pct = menuTotal ? Math.round(done / menuTotal * 100) : 0;
     const lvl = levelInfo(s.topics);
     return `<div class="card" style="text-align:left">
-      <button type="button" class="remove-friend-btn" data-handle="${esc(s.handle)}" title="Remove">✕</button>
+      ${isChild ? '' : `<button type="button" class="remove-friend-btn" data-handle="${esc(s.handle)}" title="Remove">✕</button>`}
       <h3>${esc(s.name)} <span class="lb-lvl">Lv ${lvl.level}</span></h3>
       <p class="sub">${esc(s.handle)}</p>
       <div class="friend-bar"><div class="friend-bar-fill" style="width:${pct}%"></div></div>
@@ -164,6 +174,13 @@ const tpl = {
 
   // Kid's checklist: ONE CARD PER GRADE (each its own card in the grid)
   // Compact GCSE calculator that fits in a card (basic + √, x², trig, brackets, π)
+  // Student notepad tool — saves to the person's `notepad` cell. Any logged-in user.
+  notepadCard: () => USER ? `<div class="card" style="text-align:left">
+    <h3 class="gold" style="margin-bottom:8px">Notepad</h3>
+    <textarea id="notepad-text" class="notepad-area" placeholder="Jot notes here...">${esc(USER.notepad || '')}</textarea>
+    <button type="button" id="save-notepad-btn" class="action" style="width:100%;margin-top:10px">Save Notes</button>
+  </div>` : '',
+
   calcToolCard: () => `<div class="card mini-calc" style="text-align:left">
     <h3 class="gold" style="margin-bottom:8px">Calculator</h3>
     <input id="mc-display" class="mc-display" value="0" readonly>
@@ -384,7 +401,7 @@ const tpl = {
       <p class="muted" style="font-size:var(--fs-xs);margin:10px 0">${
         USER.role === 'kid'
           ? 'Your checklist, friends and classes are in their sections below.'
-          : 'Your classes are highlighted in Classes & Booking.'
+          : 'Your children and classes are shown below.'
       }</p>
       <button type="button" id="logout-btn" class="ghost" style="width:100%">Log Out</button>
     </div>`;
@@ -407,7 +424,8 @@ const tpl = {
       <span id="dates-display" class="muted" style="font-size:0.8em;display:block;margin-top:4px"></span>
       <input type="hidden" id="c-weeks" value="0">
       at <select id="c-time" class="pick"></select>
-      on <select id="c-day" class="pick"></select>.
+      on <select id="c-day" class="pick"></select>
+      with <select id="c-tutor" class="pick"></select>.
     </p>
     <div class="total"><h2 style="font-size:var(--fs-lg);margin:15px 0">Total: £<span id="total">0.00</span></h2></div>
 
@@ -453,6 +471,14 @@ function renderCards(id, items = []) {
         <p id="friend-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:8px"></p>
       </div>` + friendCards;
   }
+  // A logged-in parent sees their children's profile cards
+  if (id === 'tutors' && USER && USER.role === 'parent') {
+    const norm = s => String(s || '').toLowerCase().trim();
+    const kidNames = (USER.kids || []).map(norm);
+    const myKids = (DATA.students || []).filter(s => kidNames.includes(norm(s.name)) || kidNames.includes(norm(s.handle)));
+    cardsHtml += myKids.map(s => tpl.friendCard(s, true)).join('');
+  }
+
   html(id, cardsHtml);
 }
 
@@ -462,6 +488,10 @@ function renderClasses(items = DATA.clientClasses || []) {
   const sorted = [...items].sort((a, b) => rank(b) - rank(a));
   const cards = sorted.map(j => tpl.jobCard(j, false, classState(j))).join('');
   html('classes', tpl.builderCard() + cards);
+  // The builder card was just rebuilt — repopulate its dropdowns and intervals so the
+  // calculator works after any re-render (e.g. login), not just on first load.
+  fillDropdowns();
+  initIntervals();
   renderCheckout();
   enforceHomeRule();
 }
@@ -702,6 +732,11 @@ function renderLinks(items = DATA.links || []) {
   html('links', Object.entries(groups).map(([cat, links]) => tpl.linkGroupCard(cat, links)).join(''));
 }
 
+function renderShop(items = DATA.shop || []) {
+  if (!items.length) { html('shop', '<p class="muted">No items in the shop yet.</p>'); return; }
+  html('shop', items.map(tpl.shopCard).join(''));
+}
+
 let GALLERY_POSTS = [];  // parsed posts, kept for filtering
 
 function renderGallery(galleryData = []) {
@@ -743,6 +778,10 @@ function fillDropdowns() {
     ['c-day', d.days, null, fmtDay], ['c-time', d.times, null, fmtTime],
   ];
   selects.forEach(([id, list, first, labelFn]) => fill(id, list, first, labelFn));
+
+  // Tutor preference: "No preference" first, then each tutor by name
+  const tutorNames = (DATA.tutors || []).map(t => t.title).filter(Boolean);
+  fill('c-tutor', tutorNames, 'No preference');
 
   // Checkbox dropdowns
   const checkboxDrops = [
@@ -1042,7 +1081,7 @@ const FILTER_DEFS = {
     source: () => checklistItems(),
     // Calculator card always first, then the filtered checklist band cards
     render: items => { html('checklist-content',
-      tpl.calcToolCard() + (items.length ? items.map(tpl.checklistBandCard).join('')
+      tpl.calcToolCard() + tpl.notepadCard() + (items.length ? items.map(tpl.checklistBandCard).join('')
         : '<div class="card"><p class="muted">No topics match.</p></div>')); initMiniCalc(); },
     text: x => (x.subject + ' ' + x.bandLabel + ' ' + x.topics.join(' ')),
     fields: {
@@ -1206,25 +1245,10 @@ document.addEventListener('click', e => {
     const sel = $('c-interval');
     const endDate = sel?.options[sel.selectedIndex]?.dataset.end || '';
     const dates = computeSessionDates(q.summary.day, endDate).map(fmtDate);
+    const chosenTutor = val('c-tutor');   // '' = No preference
     post({ action: 'createJob', ...q.summary, price: q.total, profit: q.profitTotal,
-           clientName: USER.name, clientContact: USER.role || '', dates: dates.join(', ') }, t, '✅ Booked!');
-  }
-
-  // Tutor accepts a pending requested job → turns blue
-  if (t.classList.contains('accept-job-btn')) {
-    const jobId = t.dataset.job;
-    post({ action: 'acceptJob', jobId }, t, '✅ Accepted');
-    // Optimistically update local state and re-render
-    const job = (DATA.clientClasses || []).find(j => String(j.id) === String(jobId));
-    if (job) { job.status = 'confirmed'; setTimeout(() => renderClasses(), 600); }
-  }
-
-  // Tutor declines a pending requested job → reopens to others
-  if (t.classList.contains('reject-job-btn')) {
-    const jobId = t.dataset.job;
-    post({ action: 'rejectJob', jobId }, t, 'Declined');
-    const job = (DATA.clientClasses || []).find(j => String(j.id) === String(jobId));
-    if (job) { job.status = 'active'; job.requestedTutor = ''; setTimeout(() => renderClasses(), 600); }
+           clientName: USER.name, clientContact: USER.role || '', dates: dates.join(', '),
+           requestedTutor: chosenTutor }, t, '✅ Booked!');
   }
 
   // Client requests to join an existing class (takes an empty slot)
@@ -1237,7 +1261,7 @@ document.addEventListener('click', e => {
   // Tutor accepts/declines a specific client slot
   if (t.classList.contains('slot-act')) {
     const { job: jobId, slot, status } = t.dataset;
-    post({ action: 'slotAction', jobId, slot, newStatus: status }, t, status === 'Accepted' ? '✅ Accepted' : 'Declined');
+    post({ action: 'slotAction', jobId, slot, newStatus: status }, t, /active/i.test(status) ? '✅ Accepted' : 'Declined');
   }
 
   // Counter-offer (client 1 or tutor) — propose a new time while job is Pending
@@ -1256,6 +1280,23 @@ document.addEventListener('click', e => {
     if (!message) return;
     post({ action: 'slotChat', jobId, slot, sender: USER ? USER.name : 'User', message }, t, 'Sent');
     input.value = '';
+  }
+
+  // Shop: Buy button (payment not wired yet — placeholder confirmation)
+  if (t.classList.contains('buy-item-btn')) {
+    const name = t.dataset.name;
+    t.textContent = 'Coming soon';
+    setTimeout(() => t.textContent = 'Buy', 2000);
+    return;
+  }
+
+  // Save notepad
+  if (t.id === 'save-notepad-btn') {
+    if (!USER) return;
+    const notes = $('notepad-text').value;
+    post({ action: 'saveNotepad', name: USER.name, notepad: notes }, t, '✅ Saved');
+    USER.notepad = notes;
+    return;
   }
 
   // Kid adds a friend by exact handle (e.g. "LuccaD")
