@@ -63,12 +63,28 @@ const empty = (arr, msg) => arr?.length ? arr.map : () => `<p class="muted">${ms
 
 /* ---------- INIT ---------- */
 async function init() {
+  // Restore login from this browser session (survives the Stripe redirect / refresh)
+  try {
+    const saved = localStorage.getItem('familyUser');
+    if (saved) USER = JSON.parse(saved);
+  } catch {}
+
   // If returning from Stripe checkout (?paid=1&ref=...), finalize the booking now.
   const params = new URLSearchParams(location.search);
   const justPaid = params.get('paid') === '1' && params.get('ref');
   if (justPaid) {
     try {
-      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'finalizeBooking', ref: params.get('ref') }) });
+      const res = await (await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'finalizeBooking', ref: params.get('ref') }) })).json();
+      // If we weren't still logged in, restore login from who booked
+      if (!USER && res && res.clientName) {
+        try {
+          const lr = await (await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'relogin', name: res.clientName }) })).json();
+          if (lr && lr.success) {
+            USER = { name: lr.name, role: (lr.role||'parent').toLowerCase(), kids: lr.kids||[], parent: lr.parent||'', profile: lr.profile||null, topics: lr.topics||'', friends: lr.friends||'', handle: lr.handle||'', highscore: lr.highscore||0, tick1: lr.tick1||'', tick2: lr.tick2||'', tick3: lr.tick3||'', notepad: lr.notepad||'' };
+            try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+          }
+        } catch {}
+      }
     } catch {}
     history.replaceState({}, '', location.pathname);
   } else if (params.get('paid') === '0') {
@@ -1431,7 +1447,8 @@ document.addEventListener('click', e => {
       .then(d => {
         t.textContent = 'Enter'; t.disabled = false;
         if (!d.success) { $('auth-msg').textContent = d.error || 'Login failed.'; return; }
-        USER = { name: d.name, role: (d.role || 'parent').toLowerCase(), kids: d.kids || [], parent: d.parent || '', profile: d.profile || null, topics: d.topics || '', friends: d.friends || '', handle: d.handle || '', highscore: d.highscore || 0 };
+        USER = { name: d.name, role: (d.role || 'parent').toLowerCase(), kids: d.kids || [], parent: d.parent || '', profile: d.profile || null, topics: d.topics || '', friends: d.friends || '', handle: d.handle || '', highscore: d.highscore || 0, tick1: d.tick1 || '', tick2: d.tick2 || '', tick3: d.tick3 || '', notepad: d.notepad || '' };
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
         $('auth-pin').value = '';
         onLogin();
       })
@@ -1441,6 +1458,7 @@ document.addEventListener('click', e => {
   // Logout
   if (t.id === 'logout-btn') {
     USER = null;
+    try { localStorage.removeItem('familyUser'); } catch {}
     renderClasses();                      // access card reverts to login; clears highlighting
     renderCards('tutors', DATA.tutors);   // People: drop friend cards/edit buttons
     renderChecklist();                    // Checklist: back to default view
