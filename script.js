@@ -63,10 +63,25 @@ const empty = (arr, msg) => arr?.length ? arr.map : () => `<p class="muted">${ms
 
 /* ---------- INIT ---------- */
 async function init() {
+  // If returning from Stripe checkout (?paid=1&ref=...), finalize the booking now.
+  const params = new URLSearchParams(location.search);
+  const justPaid = params.get('paid') === '1' && params.get('ref');
+  if (justPaid) {
+    try {
+      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'finalizeBooking', ref: params.get('ref') }) });
+    } catch {}
+    history.replaceState({}, '', location.pathname);
+  } else if (params.get('paid') === '0') {
+    history.replaceState({}, '', location.pathname);
+  }
   try {
     DATA = await (await fetch(API)).json();
     if (DATA.error) throw new Error(DATA.error);
     renderHealth();
+    if (justPaid) {
+      const banner = $('health-banner');
+      if (banner) { banner.textContent = '✅ Payment received — your booking is confirmed.'; banner.classList.remove('hidden'); }
+    }
     renderCards('tutors', DATA.tutors);
     renderCards('venues', DATA.venues);
     renderClasses();
@@ -1246,9 +1261,19 @@ document.addEventListener('click', e => {
     const endDate = sel?.options[sel.selectedIndex]?.dataset.end || '';
     const dates = computeSessionDates(q.summary.day, endDate).map(fmtDate);
     const chosenTutor = val('c-tutor');   // '' = No preference
-    post({ action: 'createJob', ...q.summary, price: q.total, profit: q.profitTotal,
-           clientName: USER.name, clientContact: USER.role || '', dates: dates.join(', '),
-           requestedTutor: chosenTutor }, t, '✅ Booked!');
+    const booking = { ...q.summary, price: q.total, profit: q.profitTotal,
+      clientName: USER.name, clientContact: USER.role || '', dates: dates.join(', '),
+      requestedTutor: chosenTutor };
+    // Go to Stripe checkout; the job is created only after payment succeeds (on return).
+    t.textContent = 'Redirecting to payment...';
+    t.disabled = true;
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'createCheckout', ...booking }) })
+      .then(r => r.json())
+      .then(d => {
+        if (d.url) { window.location.href = d.url; }       // → Stripe checkout page
+        else { t.textContent = d.error || 'Payment error'; t.disabled = false; }
+      })
+      .catch(() => { t.textContent = 'Connection error'; t.disabled = false; });
   }
 
   // Client requests to join an existing class (takes an empty slot)
