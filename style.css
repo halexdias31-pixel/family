@@ -308,3 +308,13 @@ option { background: var(--panel); color: var(--text); }
 .notepad-area{width:100%;min-height:160px;background:var(--panel2);color:var(--text);border:1px solid var(--border);
   border-radius:6px;padding:10px;font:inherit;font-size:var(--fs-sm);resize:vertical;outline:none;}
 .notepad-area:focus{border-color:var(--gold);}
+
+/* Split-the-bill option in the booking calculator */
+.split-area .split-row{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);cursor:pointer;}
+.split-area input[type="email"]{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;}
+.split-area select{margin:0 4px;}
+
+/* Multi-lesson order builder */
+.lesson-block{background:var(--panel2);}
+#add-lesson-btn{border-style:dashed;}
+.remove-lesson-btn:hover{color:#e06c6c!important;}
