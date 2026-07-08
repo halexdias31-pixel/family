@@ -63,14 +63,51 @@ const empty = (arr, msg) => arr?.length ? arr.map : () => `<p class="muted">${ms
 
 /* ---------- INIT ---------- */
 async function init() {
+  const params = new URLSearchParams(location.search);
   // Restore login from this browser session (survives the Stripe redirect / refresh)
   try {
     const saved = localStorage.getItem('familyUser');
     if (saved) USER = JSON.parse(saved);
   } catch {}
 
+  // Returning after paying for an added student (?addpaid=1&ref=...)
+  if (params.get('addpaid') === '1' && params.get('ref')) {
+    try {
+      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'finalizeAddStudent', ref: params.get('ref') }) });
+    } catch {}
+    history.replaceState({}, '', location.pathname);
+    const banner = $('health-banner');
+    if (banner) { banner.textContent = '✅ Student added and paid — they\'re confirmed in the class.'; banner.classList.remove('hidden'); }
+  } else if (params.get('addpaid') === '0') {
+    history.replaceState({}, '', location.pathname);
+  }
+
+  // A parent landed on a split pay-share link (?pay_share=ORDERREF) → send them to pay their share.
+  if (params.get('pay_share')) {
+    const orderRef = params.get('pay_share');
+    history.replaceState({}, '', location.pathname);
+    try {
+      const d = await (await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'payShare', splitRef: orderRef }) })).json();
+      if (d.url) { window.location.href = d.url; return; }
+    } catch {}
+  }
+  // Returning after paying a share (?sharepaid=1&ref=...) → mark it paid, maybe confirm the class.
+  const sharePaid = params.get('sharepaid') === '1' && params.get('ref');
+  if (sharePaid) {
+    try {
+      const d = await (await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'finalizeShare', ref: params.get('ref') }) })).json();
+      history.replaceState({}, '', location.pathname);
+      const banner = $('health-banner');
+      if (banner) {
+        banner.textContent = d.allPaid
+          ? '✅ Share paid — the class is now fully funded and confirmed!'
+          : '✅ Your share is paid. Waiting on the remaining parents.';
+        banner.classList.remove('hidden');
+      }
+    } catch {}
+  }
+
   // If returning from Stripe checkout (?paid=1&ref=...), finalize the booking now.
-  const params = new URLSearchParams(location.search);
   const justPaid = params.get('paid') === '1' && params.get('ref');
   if (justPaid) {
     try {
@@ -98,6 +135,7 @@ async function init() {
       const banner = $('health-banner');
       if (banner) { banner.textContent = '✅ Payment received — your booking is confirmed.'; banner.classList.remove('hidden'); }
     }
+    renderHeaderAuth();
     renderCards('tutors', DATA.tutors);
     renderCards('venues', DATA.venues);
     renderClasses();
@@ -151,15 +189,25 @@ const tpl = {
   },
 
   card: it => {
-    const norm = s => String(s || '').toLowerCase().trim();
-    const isOwn = USER && USER.role === 'tutor' && it.type === 'tutor' && norm(it.title) === norm(USER.name);
+    const norm = s => String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    // Match the logged-in tutor to their own card by full name, name-without-spaces, or first name.
+    const myName = norm(USER?.name);
+    const myNameNoSpace = myName.replace(/\s+/g, '');
+    const cardName = norm(it.title);
+    const cardNameNoSpace = cardName.replace(/\s+/g, '');
+    const nameMatches = myName && (myName === cardName || myNameNoSpace === cardNameNoSpace
+      || cardName.startsWith(myName) || myName.startsWith(cardName.split(' ')[0]));
+    const isOwn = USER && USER.role === 'tutor' && it.type === 'tutor' && nameMatches;
     // Tutor progress (level + high score) — shown quietly at the BOTTOM in gray so it doesn't
     // read as ranking/status between tutors to clients.
     const stats = (it.type === 'tutor' && (it.topics || it.highscore))
       ? `<div class="tutor-stats">Lv ${levelInfo(it.topics).level} · 🎮 ${it.highscore || 0}</div>`
       : '';
     return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}">
-    ${isOwn ? `<button type="button" class="edit-profile-btn" title="Edit your profile">✎ Edit</button>` : ''}
+    ${isOwn ? `<div style="display:flex;gap:8px;margin-bottom:8px">
+      <button type="button" class="edit-profile-btn" title="Edit your profile" style="flex:1">✎ Edit</button>
+      <button type="button" id="logout-btn" class="ghost" style="flex:1;margin:0;padding:8px">Log Out</button>
+    </div>` : ''}
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
@@ -251,20 +299,25 @@ const tpl = {
   // One checklist band card (subject + grade/stage) with two checkboxes per topic.
   // `item` = { subject, band, bandLabel, topics }. Uses current USER progress.
   checklistBandCard: (item) => {
-    const prog = canTrack() ? parseProgress() : {};
-    const rows = item.topics.map(t => {
-      const p = prog[t.toLowerCase()] || {};
+    const myHandle = canTrack() ? String(USER.handle || '').toLowerCase().trim() : '';
+    // A box is checked if my handle appears in that topic's tickN handle-list.
+    const iAmIn = (cellStr) => {
+      if (!myHandle) return false;
+      return String(cellStr || '').split(/[,\n]/).map(s => s.trim().toLowerCase())
+        .some(h => h && h === myHandle);
+    };
+    const rows = item.topics.map(tp => {
+      const box = (n, cell) => `<label class="mini-check"><input type="checkbox" class="topic-cb"
+        data-row="${tp.rowIndex}" data-tick="${n}" ${iAmIn(cell) ? 'checked' : ''} ${myHandle ? '' : 'disabled'}></label>`;
       return `<div class="check-row">
-        <span class="check-topic">${esc(t)}</span>
-        <label class="mini-check"><input type="checkbox" class="topic-cb cb-tick1" data-topic="${esc(t)}" ${p.t1?'checked':''}></label>
-        <label class="mini-check"><input type="checkbox" class="topic-cb cb-tick2" data-topic="${esc(t)}" ${p.t2?'checked':''}></label>
-        <label class="mini-check"><input type="checkbox" class="topic-cb cb-tick3" data-topic="${esc(t)}" ${p.t3?'checked':''}></label>
+        <span class="check-topic">${esc(tp.name)}</span>
+        ${box(1, tp.tick1)}${box(2, tp.tick2)}${box(3, tp.tick3)}
       </div>`;
     }).join('');
     return `<div class="card grade-card" style="text-align:left">
       <h3 class="gold" style="margin-bottom:4px">${esc(item.subject)} · ${esc(item.bandLabel)}</h3>
       <div class="check-list">${rows}</div>
-      <button type="button" class="action save-topics-btn" style="width:100%;margin-top:12px">Save</button>
+      ${myHandle ? '' : '<p class="muted" style="font-size:var(--fs-xs);margin-top:8px">Log in as a student to tick topics.</p>'}
     </div>`;
   },
 
@@ -296,7 +349,7 @@ const tpl = {
     const slots = j.slots || [];
     const isTutor = USER && USER.role === 'tutor' && norm(j.requestedTutor) === norm(USER.name);
     const myName = USER ? norm(USER.name) : '';
-    const mySlot = slots.find(s => norm(s.client) === myName);          // am I in this class?
+    const mySlot = USER ? slots.find(s => norm(s.client) === myName && myName) : null;   // logged out = none
     const emptySlot = slots.find(s => !String(s.client||'').trim());    // is there room?
     const canJoin = USER && USER.role !== 'tutor' && !mySlot && emptySlot && norm(j.status) === 'ongoing';
 
@@ -332,6 +385,17 @@ const tpl = {
     } else if (!USER && !isDash) {
       action = `<button type="button" class="action book-btn-inline" ${j.spotsLeft<=0?'disabled':''}>${j.spotsLeft<=0?'Full':'Book Now'}</button>`;
     }
+
+    // Add-a-student: a booker already in this job can add another student to an empty slot mid-term.
+    // Shows the extra-student cost for the REMAINING weeks. (Request → tutor accepts → then pay.)
+    let addStudent = '';
+    if (USER && mySlot && emptySlot && norm(j.status) === 'ongoing') {
+      const add = priceAddStudent(j);
+      addStudent = `<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">
+        <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px">Add another student for the remaining ${add.weeksLeft} week${add.weeksLeft==1?'':'s'}: <b style="color:#fff">£${add.cost.toFixed(2)}</b></p>
+        <button type="button" class="ghost add-student-btn" data-job="${j.id}" style="margin:0;padding:6px 12px;width:100%">Add a student (£${add.cost.toFixed(2)})</button>
+      </div>`;
+    }
     // Counter-offer (client 1 or tutor, only while Pending)
     const isClient1 = mySlot && mySlot.n === 1;
     const counter = ((isClient1 || isTutor) && norm(j.status) === 'unstarted')
@@ -349,6 +413,7 @@ const tpl = {
       ${attrRow}
       ${slotRows}
       ${action}
+      ${addStudent}
       ${counter}
     </div>`;
   },
@@ -441,28 +506,16 @@ const tpl = {
   builderCard: () => `<div class="card" id="new-job">
     <h3 class="gold" style="margin-bottom:15px">Build a Session</h3>
     <input type="hidden" id="c-service" value="Tuition">
-    <p class="sentence" style="line-height:2.2;margin-bottom:15px;text-align:left">
-      I want <strong>tuition</strong> for
-      <span class="custom-select-wrapper" id="subject-wrapper">
-        <span class="inline-select pick c-level" id="subject-display" style="cursor:pointer">Select Subjects ⌄</span>
-        <span class="custom-dropdown hidden" id="subject-dropdown"></span>
-      </span>
-      (<select id="c-level" class="pick c-level"></select>)
-      delivered @ <select id="c-location" class="pick c-service"></select>
-      for <input type="number" id="c-qty" class="num c-qty" value="1" min="1" max="4" style="width:40px"><sup id="qty-sup" class="qty-sup c-qty"></sup> student
-      for <select id="c-interval" class="pick"></select>
-      <span class="muted" style="font-size:0.9em;white-space:nowrap">(<span id="term-display" style="font-weight:bold;color:#fff"></span> · <span id="weeks-display" style="font-weight:bold;color:#fff">0</span> weeks)</span>
-      <span id="dates-display" class="muted" style="font-size:0.8em;display:block;margin-top:4px"></span>
-      <input type="hidden" id="c-weeks" value="0">
-      at <select id="c-time" class="pick"></select>
-      on <select id="c-day" class="pick"></select>
-      with <select id="c-tutor" class="pick"></select>.
-    </p>
-    <div class="total"><h2 style="font-size:var(--fs-lg);margin:15px 0">Total: £<span id="total">0.00</span></h2></div>
+
+    <!-- Each lesson is fully independent: its own subject, tutor, term, and split. -->
+    <p class="sentence" style="line-height:2.2;text-align:left;margin:0 0 4px">I want tuition:</p>
+
+    <div id="lessons"></div>
+    <button type="button" id="add-lesson-btn" class="ghost" style="width:100%;margin:10px 0">＋ Add another lesson</button>
+
+    <div class="total"><h2 style="font-size:var(--fs-lg);margin:15px 0">Order total: £<span id="total">0.00</span></h2></div>
 
     <div class="calc-breakdown">
-      <p class="muted breakdown-heading">Live formula <span id="formula-source" class="formula-source"></span></p>
-      <div id="calc-formula" class="formula"></div>
       <p class="muted breakdown-heading">Breakdown</p>
       <div id="calc-receipt" class="receipt"></div>
     </div>
@@ -470,10 +523,43 @@ const tpl = {
     <p id="home-note" class="muted hidden" style="font-size:var(--fs-sm);margin:10px 0 0">At-home lessons require a group of 4 students.</p>
 
     <div id="checkout-area" class="checkout" style="display:flex;flex-direction:column;gap:8px"></div>
-  </div>`
+  </div>`,
+
+  // One lesson block (repeatable). `i` = block index, used to keep field ids unique.
+  lessonBlock: (i) => `<div class="lesson-block" data-lesson="${i}" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span class="muted" style="font-size:var(--fs-xs)">Lesson ${i + 1}</span>
+      ${i > 0 ? `<button type="button" class="remove-lesson-btn" data-lesson="${i}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">×</button>` : ''}
+    </div>
+    <p class="sentence" style="line-height:2.2;text-align:left;margin:0">
+      <strong>tuition</strong> of
+      <span class="custom-select-wrapper">
+        <span class="inline-select pick l-subject-display" data-lesson="${i}" style="cursor:pointer">Select Subjects ⌄</span>
+        <span class="custom-dropdown hidden l-subject-dropdown" data-lesson="${i}"></span>
+      </span>
+      with <select class="pick l-level" data-lesson="${i}"></select>
+      delivered @ <select class="pick l-location" data-lesson="${i}"></select>
+      for <input type="number" class="num l-qty" data-lesson="${i}" value="1" min="1" max="4" style="width:40px"> student
+      with <select class="pick l-tutor" data-lesson="${i}"></select>
+      at <select class="pick l-time" data-lesson="${i}"></select>
+      on <select class="pick l-day" data-lesson="${i}"></select>
+      for <select class="pick l-interval" data-lesson="${i}"></select>
+      <span class="muted l-weeks-label" data-lesson="${i}" style="font-size:0.85em"></span>,
+      split with <select class="pick l-split" data-lesson="${i}"></select> other people.
+    </p>
+  </div>`,
 };
 
 /* ---------- RENDER ---------- */
+// Persistent header auth: shows who's logged in (logout lives on their profile card).
+function renderHeaderAuth() {
+  const el = $('header-auth');
+  if (!el) return;
+  el.innerHTML = USER
+    ? `<span class="muted" style="font-size:var(--fs-sm)">${esc(USER.name)}</span>`
+    : '';
+}
+
 function renderCards(id, items = []) {
   let cardsHtml = items.length ? items.map(tpl.card).join('') : '<p class="muted">Nothing yet.</p>';
 
@@ -514,13 +600,15 @@ function renderCards(id, items = []) {
 }
 
 function renderClasses(items = DATA.clientClasses || []) {
-  // Logged-in user's own classes (confirmed or pending) float to the top
+  const norm = s => String(s || '').toLowerCase().trim();
+  const iAmIn = j => USER && (j.slots || []).some(s => norm(s.client) === norm(USER.name));
+  // Visible if it has open spots, OR it's the logged-in user's own class (so they see their booking even when full)
+  const visible = items.filter(j => (j.spotsLeft > 0) || iAmIn(j));
+  // The user's own classes float to the top
   const rank = j => classState(j) ? 1 : 0;
-  const sorted = [...items].sort((a, b) => rank(b) - rank(a));
+  const sorted = [...visible].sort((a, b) => rank(b) - rank(a));
   const cards = sorted.map(j => tpl.jobCard(j, false, classState(j))).join('');
   html('classes', tpl.builderCard() + cards);
-  // The builder card was just rebuilt — repopulate its dropdowns and intervals so the
-  // calculator works after any re-render (e.g. login), not just on first load.
   fillDropdowns();
   initIntervals();
   renderCheckout();
@@ -562,6 +650,7 @@ function renderHealth() {
 
 // After a successful login: re-render sections; the login card in People becomes the user's own card
 function onLogin() {
+  renderHeaderAuth();                   // persistent top-right Log Out
   renderCards('tutors', DATA.tutors);  // People: login card → own account card / tutor edit
   renderChecklist();                   // Checklist section
   renderArcade();                      // Arcade game
@@ -800,28 +889,52 @@ function renderGallery(galleryData = []) {
 }
 
 /* ---------- DROPDOWNS ---------- */
+let LESSON_COUNT = 0;   // how many lesson blocks currently exist
+
 function fillDropdowns() {
   const d = DATA.dropdowns || {};
+  // Ensure at least one lesson block exists, then populate every block's dropdowns
+  const wrap = $('lessons');
+  if (wrap && !wrap.children.length) { wrap.innerHTML = tpl.lessonBlock(0); LESSON_COUNT = 1; }
+  document.querySelectorAll('.lesson-block').forEach(b => fillLessonBlock(parseInt(b.dataset.lesson)));
+}
 
-  // Standard selects. Time & day keep raw values (for multiplier matching) but show friendly labels.
-  const selects = [
-    ['c-level', d.levels], ['c-location', d.locations],
-    ['c-day', d.days, null, fmtDay], ['c-time', d.times, null, fmtTime],
-  ];
-  selects.forEach(([id, list, first, labelFn]) => fill(id, list, first, labelFn));
-
-  // Tutor preference: "No preference" first, then each tutor by name
-  const tutorNames = (DATA.tutors || []).map(t => t.title).filter(Boolean);
-  fill('c-tutor', tutorNames, 'No preference');
-
-  // Checkbox dropdowns
-  const checkboxDrops = [
-    ['subject-dropdown', d.subjects, 'subj-cb'],
-    ['dash-topic-dropdown', d.subjects, 'dash-topic-cb'],
-  ];
-  checkboxDrops.forEach(([id, list, cls]) => {
-    if ($(id)) $(id).innerHTML = (list||[]).map(s => `<label><input type="checkbox" class="${cls}" value="${esc(s)}"> ${esc(s)}</label>`).join('');
-  });
+// Populate one lesson block's dropdowns (level, location, day, time, subjects)
+function fillLessonBlock(i) {
+  const d = DATA.dropdowns || {};
+  const set = (cls, list, labelFn) => {
+    const el = document.querySelector(`.${cls}[data-lesson="${i}"]`);
+    if (!el) return;
+    const fmt = labelFn || (v => v);
+    el.innerHTML = (list||[]).map(v => `<option value="${esc(v)}">${esc(fmt(v))}</option>`).join('');
+  };
+  set('l-level', d.levels);
+  set('l-location', d.locations);
+  set('l-day', d.days, fmtDay);
+  set('l-time', d.times, fmtTime);
+  // Tutor: "No preference" first, then each tutor
+  const tutorEl = document.querySelector(`.l-tutor[data-lesson="${i}"]`);
+  if (tutorEl) {
+    const tutors = (DATA.tutors || []).map(t => t.title).filter(Boolean);
+    tutorEl.innerHTML = `<option value="">No preference</option>` +
+      tutors.map(nm => `<option value="${esc(nm)}">${esc(nm)}</option>`).join('');
+  }
+  // Term/interval: each lesson has its own
+  const ivEl = document.querySelector(`.l-interval[data-lesson="${i}"]`);
+  if (ivEl) {
+    const intervals = getAcademicIntervals();
+    ivEl.innerHTML = intervals.length
+      ? intervals.map(iv => `<option value="${esc(iv.name)}" data-weeks="${iv.weeks}" data-term="${esc(iv.name)}" data-end="${esc(iv.endDate)}">${esc(iv.label)}</option>`).join('')
+      : '<option value="">No terms</option>';
+    syncBlockWeeks(i);
+  }
+  // Split: each lesson can be split with up to 3 others (0 = no split)
+  const splitEl = document.querySelector(`.l-split[data-lesson="${i}"]`);
+  if (splitEl) splitEl.innerHTML = [0,1,2,3].map(x => `<option value="${x}">${x}</option>`).join('');
+  // Subject checkbox dropdown for this block
+  const drop = document.querySelector(`.l-subject-dropdown[data-lesson="${i}"]`);
+  if (drop) drop.innerHTML = (d.subjects||[]).map(s =>
+    `<label><input type="checkbox" class="subj-cb" data-lesson="${i}" value="${esc(s)}"> ${esc(s)}</label>`).join('');
 }
 
 function fill(id, list = [], first, labelFn) {
@@ -856,36 +969,18 @@ function getAcademicIntervals() {
     });
 }
 
-function initIntervals() {
-  const sel = $('c-interval');
-  if (!sel) return;
-  const intervals = getAcademicIntervals();
-  if (!intervals.length) { sel.innerHTML = '<option value="">No terms</option>'; return; }
-  sel.innerHTML = intervals
-    .map(i => `<option value="${esc(i.name)}" data-weeks="${i.weeks}" data-term="${esc(i.name)}"
-        data-end="${esc(i.endDate)}" data-lastmon="${esc(i.lastMon)}" data-lastsun="${esc(i.lastSun)}">${esc(i.label)}</option>`)
-    .join('');
-  syncWeeks();
-}
+function initIntervals() { /* intervals are populated per lesson block in fillLessonBlock now */ }
 
-function syncWeeks() {
-  const sel = $('c-interval');
-  if (!sel?.options.length) return;
+function syncWeeks() { calc(); }   // term is now per-lesson; order-level sync just recalcs
+
+// Update a lesson block's weeks label from its own chosen term
+function syncBlockWeeks(i) {
+  const sel = document.querySelector(`.l-interval[data-lesson="${i}"]`);
+  const label = document.querySelector(`.l-weeks-label[data-lesson="${i}"]`);
+  if (!sel || !sel.options.length) return;
   const opt = sel.options[sel.selectedIndex];
-  $('weeks-display').textContent = opt.dataset.weeks;
-  if ($('term-display')) $('term-display').textContent = opt.dataset.term;
-  // Show the actual session dates: every occurrence of the chosen day, up to the term end
-  if ($('dates-display')) {
-    const dates = computeSessionDates(val('c-day'), opt.dataset.end);
-    if (dates.length) {
-      $('dates-display').textContent = `${dates.length} session${dates.length>1?'s':''}: ${dates.map(fmtDate).join(', ')}`;
-    } else {
-      const end = fmtDate(opt.dataset.end);
-      $('dates-display').textContent = end ? `ends ${end}` : '';
-    }
-  }
-  $('c-weeks').value = opt.dataset.weeks;
-  calc();
+  const weeks = opt?.dataset.weeks || '0';
+  if (label) label.textContent = `(${weeks} weeks)`;
 }
 
 // Every date matching `dayName` from today until endDate (inclusive). Returns Date[].
@@ -930,118 +1025,163 @@ function pct(mult) {
 
 // Self-check: verifies the profit formula still produces a known result. Logs if it drifts.
 function verifyFormula() {
-  const profit = (lam, mu, beta, eps, eta, alpha, gamma, n) => {
-    const K = gamma * eta * alpha * lam * mu;
-    return K * (1 + beta * (n - 1)) - K * eps * (1 - beta * (n - 1));
+  const profit = (wageMult, minWage, extraChild, tutorShare, subjF, dayF, timeF, n) => {
+    const baseRate = timeF * subjF * dayF * wageMult * minWage;
+    const studentAdj = 1 + extraChild * (n - 1);
+    return baseRate * studentAdj * (1 - tutorShare);   // per hour, symmetric
   };
-  // λ=1.5 μ=12 β=0.25 ε=0.9 η=1.1 α=1.1 γ=0.9 n=2 → K=19.60 → 24.50 − 13.23 = 11.27
-  const got = profit(1.5, 12, 0.25, 0.9, 1.1, 1.1, 0.9, 2), want = 11.27;
+  // γ=0.9 η=1.1 α=1.1 λ=1.5 μ=12 → baseRate=19.60; n=2 β=0.25 → studentAdj=1.25; ε=0.9 → ×0.1
+  const got = profit(1.5, 12, 0.25, 0.9, 1.1, 1.1, 0.9, 2), want = 2.45;
   if (Math.abs(got - want) > 0.01) console.error(`⚠ Profit formula drift: expected ${want}/h, got ${got.toFixed(2)}/h`);
 }
 
-function quote() {
+// Helper: read a field scoped to one lesson block by class + data-lesson index.
+function lval(i, cls) {
+  const el = document.querySelector(`.${cls}[data-lesson="${i}"]`);
+  return el ? el.value : '';
+}
+function lsubjects(i) {
+  return Array.from(document.querySelectorAll(`.subj-cb[data-lesson="${i}"]:checked`)).map(cb => cb.value).filter(Boolean);
+}
+
+// Price a single lesson block (index i). Weeks come from the order-level interval (shared).
+function priceLesson(i) {
   const m = DATA.multipliers || {};
   const k = DATA.constants || {};
   const v = k.vars || {};
-  // Read constants by symbol, with name fallbacks (robust to encoding / which column held the symbol)
   const cv = (...keys) => { for (const key of keys) { const x = parseFloat(v[key]); if (!isNaN(x)) return x; } return 0; };
-  const lam  = cv('λ', 'lambda', 'constant 3', 'constant3');
-  const mu   = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');
-  const beta = cv('β', 'beta', 'constant 1', 'constant1');
-  const eps  = cv('ε', 'epsilon', 'constant 2', 'constant2');
   const lookup = (group, value) => parseFloat((m[group] || {})[value]) || 1;
-
-  const subjects = Array.from(document.querySelectorAll('.subj-cb:checked')).map(cb => cb.value).filter(Boolean);
-  const n = Math.max(1, parseInt(val('c-qty')) || 1);
-  const weeks = parseFloat(val('c-weeks')) || 1;
-
-  // Venue rate V: match the chosen location to its venue row's per-hour cost (case-insensitive)
-  const loc = val('c-location');
   const norm = s => String(s || '').toLowerCase().trim();
+
+  const subjects = lsubjects(i);
+  const n = Math.max(1, parseInt(lval(i, 'l-qty')) || 1);
+  // Weeks come from THIS lesson's own term dropdown
+  const ivSel = document.querySelector(`.l-interval[data-lesson="${i}"]`);
+  const ivOpt = ivSel?.options[ivSel.selectedIndex];
+  const weeks = parseFloat(ivOpt?.dataset.weeks) || 1;
+  const interval = ivSel?.value || '';
+  const endDate = ivOpt?.dataset.end || '';
+  const loc = lval(i, 'l-location');
+  const day = lval(i, 'l-day');
+  const time = lval(i, 'l-time');
+  const level = lval(i, 'l-level');
+  const tutor = lval(i, 'l-tutor');
+  const splitOthers = parseInt(lval(i, 'l-split')) || 0;   // per-lesson split
+
   const venue = (DATA.venues || []).find(x => norm(x.title) === norm(loc));
   const V = venue ? (parseFloat(venue.bestRate) || 0) : 0;
 
-  // Multipliers: η = subject (highest among chosen), α = day, γ = time. Default 1 if unset.
-  const eta   = subjects.reduce((max, s) => Math.max(max, parseFloat((m.subjects || {})[s]) || 0), 0) || 1;
-  const alpha = lookup('days',  val('c-day'));   // α harder day
-  const gamma = lookup('times', val('c-time'));  // γ easier time
+  // ---- Pricing factors (all from the sheet; set any to 1 to switch it off) ----
+  const timeFactor    = lookup('times', time);   // γ  easier/harder time of day
+  const subjectFactor = subjects.reduce((max, s) => Math.max(max, parseFloat((m.subjects || {})[s]) || 0), 0) || 1;  // η
+  const dayFactor     = lookup('days',  day);     // α  harder day
+  const wageMultiplier = cv('λ', 'lambda', 'constant 3', 'constant3');   // λ
+  const minWage        = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');  // μ
+  const extraChildRate = cv('β', 'beta', 'constant 1', 'constant1');     // β
+  const tutorShare     = cv('ε', 'epsilon', 'constant 2', 'constant2');  // ε
+  const hoursPerWeek   = 2;
 
-  // --- Core rate K = γ·η·α·λ·μ ; Client = K + Kβ(n−1) + V ---
-  const K = gamma * eta * alpha * lam * mu;
-  const baseFirst = K;                  // first student
-  const baseExtra = K * beta * (n - 1); // extra students
-  const perHour = baseFirst + baseExtra + V;
+  // ---- The formula, in readable stages ----
+  const baseRate   = timeFactor * subjectFactor * dayFactor * wageMultiplier * minWage;  // one student, one hour
+  const studentAdj = 1 + extraChildRate * (n - 1);                                        // extra students
+  const promoAdj   = activePromoFactor({ subjects, n, weeks, day, time, level, lessonCount: document.querySelectorAll('.lesson-block').length });
 
-  const hoursPerWeek = 2;
-  const total = perHour * hoursPerWeek * weeks;
+  const chargePerHour = baseRate * studentAdj * promoAdj;
+  const total  = chargePerHour * hoursPerWeek * weeks + V;              // PRICE customer pays
+  const cost   = baseRate * studentAdj * tutorShare * hoursPerWeek * weeks + V;  // COST to us
+  const profitTotal = total - cost;                                     // PROFIT
 
-  // Client-facing breakdown lines
-  const lines = [
-    { label: `Tuition (1 student)`, amount: baseFirst, cls: 'c-base' },
-    n > 1 ? { label: `Extra students (×${n - 1})`, amount: baseExtra, cls: 'c-qty' } : null,
-    V ? { label: `Venue (${esc(loc)})`, amount: V, cls: 'c-service' } : null,
-  ].filter(Boolean);
-
-  // Adjustment badges: show day (α) and time (γ) as % when not neutral
-  const adjustments = [
-    { label: 'Day',  value: val('c-day'),  mult: alpha, cls: 'c-day' },
-    { label: 'Time', value: val('c-time'), mult: gamma, cls: 'c-time' },
-    { label: 'Subject', value: subjects.join(', '), mult: eta, cls: 'c-level' },
-  ].filter(a => a.value && a.mult !== 1);
-
-  // --- Internal profit (hidden): K(1 + β(n−1)) − Kε(1 − β(n−1))  (V cancels) ---
-  const profitPerHour = K * (1 + beta * (n - 1)) - K * eps * (1 - beta * (n - 1));
-  const profitTotal = profitPerHour * hoursPerWeek * weeks;
-
+  const splitShares = splitOthers + 1;
+  const shareAmount = total / splitShares;
   return {
-    perHour, total: total.toFixed(2), weeks, n, V, eta, alpha, gamma, lines, adjustments,
-    baseFirst, baseExtra, perStudentStep: K * beta,  // £ each extra student adds per hour
-    profitPerHour, profitTotal: profitTotal.toFixed(2),
-    summary: { service: val('c-service'), level: val('c-level'), subject: subjects.join(', '), location: loc, day: val('c-day'), time: val('c-time'), students: n, interval: val('c-interval'), weeks }
+    i, total, weeks, n, V, loc, day, time, level, subjects, tutor, interval, endDate,
+    baseRate, studentAdj, promoAdj, chargePerHour,
+    splitOthers, splitShares, shareAmount, profitTotal,
+    summary: { service: val('c-service'), level, subject: subjects.join(', '), location: loc, day, time, students: n, interval, weeks, requestedTutor: tutor }
   };
+}
+
+// Cost of ADDING ONE student to an existing job, for the weeks remaining.
+// The extra-student cost is the β step: baseRate · β · hours · weeksLeft (venue not re-charged).
+function priceAddStudent(job) {
+  const m = DATA.multipliers || {};
+  const v = (DATA.constants || {}).vars || {};
+  const cv = (...keys) => { for (const key of keys) { const x = parseFloat(v[key]); if (!isNaN(x)) return x; } return 0; };
+  const lookup = (group, value) => parseFloat((m[group] || {})[value]) || 1;
+
+  const timeFactor    = lookup('times', job.time);
+  const subjectFactor = parseFloat((m.subjects || {})[job.subject]) || 1;
+  const dayFactor     = lookup('days', job.day);
+  const wageMultiplier = cv('λ', 'lambda', 'constant 3', 'constant3');
+  const minWage        = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');
+  const extraChildRate = cv('β', 'beta', 'constant 1', 'constant1');
+  const hoursPerWeek   = 2;
+
+  const weeksLeft = parseFloat(job.weeks) || 0;         // job.weeks = weeks_left
+  const baseRate  = timeFactor * subjectFactor * dayFactor * wageMultiplier * minWage;
+  const cost = baseRate * extraChildRate * hoursPerWeek * weeksLeft;   // marginal β step for remaining weeks
+  return { cost, weeksLeft };
+}
+
+// ---- Promotions framework (empty for now) ----
+// Each promotion is a sheet row (category = 'promo') with a condition and a multiplier.
+// Returns the product of every active promo's multiplier (1 = no promotions active).
+// ctx = { subjects, n, weeks, day, time, level, lessonCount } so conditions can check the booking.
+function activePromoFactor(ctx) {
+  const promos = DATA.promotions || [];
+  let factor = 1;
+  promos.forEach(p => {
+    if (promoApplies(p, ctx)) factor *= (parseFloat(p.value) || 1);
+  });
+  return factor;
+}
+// Decides whether a promo applies to this booking. Extend as you add promo types.
+function promoApplies(p, ctx) {
+  if (!p || !p.active) return false;
+  switch ((p.type || '').toLowerCase()) {
+    case 'bulk':        return ctx.lessonCount >= (parseFloat(p.threshold) || 999);   // many lessons
+    case 'multi_student': return ctx.n >= (parseFloat(p.threshold) || 999);           // many students
+    case 'long_term':   return ctx.weeks >= (parseFloat(p.threshold) || 999);         // many weeks
+    // add 'advance_booking', 'subject', 'day' etc. here later
+    default: return false;
+  }
+}
+
+// Order-level quote: price every lesson block, sum into an order total.
+function quote() {
+  const blocks = Array.from(document.querySelectorAll('.lesson-block')).map(b => parseInt(b.dataset.lesson));
+  const lessons = blocks.map(priceLesson);
+  const total = lessons.reduce((s, L) => s + L.total, 0);
+  const profitTotal = lessons.reduce((s, L) => s + L.profitTotal, 0);
+  return { lessons, total: total.toFixed(2), profitTotal: profitTotal.toFixed(2) };
 }
 
 function calc() {
   const q = quote();
   if ($('total')) $('total').textContent = q.total;
 
-  // Superscript next to student count: cumulative extra £/h for the added students (+3, +6, ...)
-  if ($('qty-sup')) {
-    const extra = Math.round(q.perStudentStep * (q.n - 1));
-    $('qty-sup').textContent = q.n > 1 && extra > 0 ? `+${extra}` : '';
-  }
-
-  // Live formula: per-hour pieces summed, then × hours × weeks (client never sees T)
-  if ($('calc-formula')) {
-    const pieces = q.lines.map(l => `<span class="${l.cls}">£${l.amount.toFixed(2)}</span>`).join(' + ');
-    $('calc-formula').innerHTML = `( ${pieces} ) <span class="c-base">× 2h × ${q.weeks}wk</span>`;
-  }
-  // Show the formula text straight from the sheet, so the displayed rule always matches the source
-  const fSrc = $('formula-source'), ftext = (DATA.constants || {}).clientFormula;
-  if (fSrc && ftext) fSrc.textContent = `(${ftext})`;
-
-  // Receipt: per-hour line items + adjustment badges + total
   if ($('calc-receipt')) {
-    const lineRows = q.lines.map(l =>
-      `<div class="receipt-row">
-        <span class="receipt-label">${l.label}</span>
-        <span class="receipt-pct ${l.cls}">£${l.amount.toFixed(2)}/h</span>
-      </div>`).join('');
-
-    const adjRows = q.adjustments.map(a =>
-      `<div class="receipt-row">
-        <span class="receipt-label">${esc(a.label)}: <b>${esc(a.value)}</b></span>
-        <span class="receipt-pct ${a.cls}">${pct(a.mult)}</span>
-      </div>`).join('');
-
-    const meta = `<div class="receipt-row">
-        <span class="receipt-label">Duration</span>
-        <span class="receipt-pct c-base">2h × ${q.weeks} weeks</span>
-      </div>`;
-
-    $('calc-receipt').innerHTML = lineRows + adjRows + meta
-      + `<div class="receipt-row receipt-total"><span>Total</span><span>£${q.total}</span></div>`;
+    const lessonRows = q.lessons.map(L => {
+      const label = `${L.subjects.join(', ') || 'Lesson'} · ${fmtDay(L.day) || '—'} ${fmtTime(L.time) || ''}`.trim();
+      const shareLine = L.splitOthers >= 1
+        ? `<div class="receipt-row" style="color:var(--gold)">
+             <span class="receipt-label">↳ split ${L.splitShares} ways — your share</span>
+             <span class="receipt-pct">£${L.shareAmount.toFixed(2)}</span>
+           </div>` : '';
+      return `<div class="receipt-row">
+        <span class="receipt-label">${esc(label)} (${L.n} student${L.n>1?'s':''}, ${L.weeks} wks)</span>
+        <span class="receipt-pct">£${L.total.toFixed(2)}</span>
+      </div>${shareLine}`;
+    }).join('');
+    // What the booker pays now = sum of their own share of each lesson
+    const bookerPays = q.lessons.reduce((s, L) => s + L.shareAmount, 0);
+    const payRow = bookerPays.toFixed(2) !== q.total
+      ? `<div class="receipt-row receipt-total" style="color:var(--gold)"><span>You pay now</span><span>£${bookerPays.toFixed(2)}</span></div>` : '';
+    $('calc-receipt').innerHTML = lessonRows
+      + `<div class="receipt-row receipt-total"><span>Order total</span><span>£${q.total}</span></div>`
+      + payRow;
   }
+  document.querySelectorAll('.lesson-block').forEach(b => enforceHomeRuleBlock(parseInt(b.dataset.lesson)));
 }
 
 /* ---------- API POST ---------- */
@@ -1182,22 +1322,22 @@ function applyFilter(prefix) {
 }
 
 /* ---------- EVENTS ---------- */
-// When 'Home' is the location, the kid count minimum jumps to 4 (max is always 4)
-function enforceHomeRule() {
-  const qty = $('c-qty');
-  if (!qty) return;
-  const home = isHome(val('c-location'));
+// When 'Home' is the location for a lesson block, that block's student min jumps to 4.
+function enforceHomeRuleBlock(i) {
+  const qty = document.querySelector(`.l-qty[data-lesson="${i}"]`);
+  const locEl = document.querySelector(`.l-location[data-lesson="${i}"]`);
+  if (!qty || !locEl) return;
+  const home = isHome(locEl.value);
   qty.min = home ? 4 : 1;
   if (home && (parseInt(qty.value) || 0) < 4) qty.value = 4;
-  const note = $('home-note');
-  if (note) note.classList.toggle('hidden', !home);
 }
+function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
 
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const id = e.target.id;
-  if (id === 'c-interval' || id === 'c-day') syncWeeks();
-  if (id === 'c-location' || id === 'c-qty') enforceHomeRule();
   if (e.target.closest('#new-job')) calc();
+  // Per-lesson term changed → update that block's weeks label
+  if (e.target.classList.contains('l-interval')) { syncBlockWeeks(parseInt(e.target.dataset.lesson)); calc(); }
 
   // Search box typing
   const prefix = Object.keys(FILTER_DEFS).find(p => id === `${p}-search`);
@@ -1264,32 +1404,60 @@ document.addEventListener('click', e => {
   }
 
   // Book (requires login + home-group rule)
+  // Add another lesson block
+  if (t.id === 'add-lesson-btn') {
+    if (LESSON_COUNT >= 5) return;   // sane cap
+    const i = LESSON_COUNT;
+    $('lessons').insertAdjacentHTML('beforeend', tpl.lessonBlock(i));
+    fillLessonBlock(i);
+    LESSON_COUNT++;
+    calc();
+    return;
+  }
+  // Remove a lesson block
+  if (t.classList.contains('remove-lesson-btn')) {
+    const i = t.dataset.lesson;
+    const block = document.querySelector(`.lesson-block[data-lesson="${i}"]`);
+    if (block) block.remove();
+    calc();
+    return;
+  }
+
   if (t.id === 'book-btn') {
     if (!USER) { $('go-login-btn')?.click(); return; }
     const q = quote();
-    if (isHome(q.summary.location) && q.summary.students < 4) {
-      t.textContent = 'Home lessons need 4 students';
-      setTimeout(() => t.textContent = 'Lock in & Book', 2500);
-      return;
+    if (!q.lessons.length) return;
+    // Validate each lesson (home rule, subject chosen)
+    for (const L of q.lessons) {
+      if (!L.subjects.length) { t.textContent = 'Pick a subject for each lesson'; setTimeout(()=>t.textContent='Lock in & Book',2500); return; }
+      if (isHome(L.loc) && L.n < 4) { t.textContent = 'Home lessons need 4 students'; setTimeout(()=>t.textContent='Lock in & Book',2500); return; }
     }
-    // Compute the actual session dates (every chosen-day occurrence until term end) to store in the sheet
-    const sel = $('c-interval');
-    const endDate = sel?.options[sel.selectedIndex]?.dataset.end || '';
-    const dates = computeSessionDates(q.summary.day, endDate).map(fmtDate);
-    const chosenTutor = val('c-tutor');   // '' = No preference
-    const booking = { ...q.summary, price: q.total, profit: q.profitTotal,
-      clientName: USER.name, clientContact: USER.role || '', dates: dates.join(', '),
-      requestedTutor: chosenTutor };
-    // Go to Stripe checkout; the job is created only after payment succeeds (on return).
+    // Build the list of lessons (each becomes its own job, with its own tutor, term, split)
+    const lessons = q.lessons.map(L => {
+      const dates = computeSessionDates(L.day, L.endDate).map(fmtDate);
+      const lessonObj = { ...L.summary, price: L.total.toFixed(2), profit: L.profitTotal.toFixed(2),
+        dates: dates.join(', ') };
+      if (L.splitOthers >= 1) {
+        lessonObj.split = true;
+        lessonObj.splitShares = L.splitShares;
+        lessonObj.shareAmount = L.shareAmount.toFixed(2);
+      }
+      return lessonObj;
+    });
+    // Booker pays the sum of their own share of each lesson
+    const bookerPays = q.lessons.reduce((s, L) => s + L.shareAmount, 0).toFixed(2);
+    const order = { action: 'createCheckout', clientName: USER.name, clientContact: USER.role || '',
+      lessons, orderTotal: q.total, payNow: bookerPays };
     t.textContent = 'Redirecting to payment...';
     t.disabled = true;
-    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'createCheckout', ...booking }) })
+    fetch(API, { method: 'POST', body: JSON.stringify(order) })
       .then(r => r.json())
       .then(d => {
-        if (d.url) { window.location.href = d.url; }       // → Stripe checkout page
+        if (d.url) { window.location.href = d.url; }
         else { t.textContent = d.error || 'Payment error'; t.disabled = false; }
       })
       .catch(() => { t.textContent = 'Connection error'; t.disabled = false; });
+    return;
   }
 
   // Client requests to join an existing class (takes an empty slot)
@@ -1297,6 +1465,26 @@ document.addEventListener('click', e => {
     if (!USER) { $('go-login-btn')?.click(); return; }
     const jobId = t.dataset.job;
     post({ action: 'joinJob', jobId, clientName: USER.name }, t, '✅ Requested');
+  }
+
+  // Booker adds another student mid-job → creates a Requested slot with the add-cost stored.
+  // Tutor accepts (existing slot-act), then the parent pays (see below).
+  if (t.classList.contains('add-student-btn')) {
+    if (!USER) { $('go-login-btn')?.click(); return; }
+    const jobId = t.dataset.job;
+    // Find the job to price the add
+    const job = (DATA.clientClasses || []).find(j => String(j.id) === String(jobId));
+    const add = job ? priceAddStudent(job) : { cost: 0 };
+    post({ action: 'addStudent', jobId, clientName: USER.name, addCost: add.cost.toFixed(2) }, t, '✅ Requested — awaiting tutor');
+  }
+
+  // Pay for an accepted mid-job add
+  if (t.classList.contains('pay-add-btn')) {
+    const { job: jobId, slot } = t.dataset;
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'payAddStudent', jobId, slot }) })
+      .then(r => r.json())
+      .then(d => { if (d.url) window.location.href = d.url; else { t.textContent = d.error || 'Error'; } })
+      .catch(() => { t.textContent = 'Connection error'; });
   }
 
   // Tutor accepts/declines a specific client slot
@@ -1370,23 +1558,13 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // Kid/tutor saves their checklist → three independent lists (tick1/tick2/tick3 columns)
-  if (t.id === 'save-topics-btn' || t.classList.contains('save-topics-btn')) {
-    if (!canTrack()) { t.textContent = 'Log in as a student or tutor to save'; setTimeout(() => t.textContent = 'Save', 1800); return; }
-    // Start from existing state (so topics filtered off-screen aren't lost)
-    const map = parseProgress();
-    const setFlag = (cls, flag) => document.querySelectorAll(cls).forEach(cb => {
-      const k = cb.dataset.topic.toLowerCase();
-      map[k] = map[k] || { t1:false, t2:false, t3:false };
-      map[k][flag] = cb.checked;
-    });
-    setFlag('.cb-tick1', 't1'); setFlag('.cb-tick2', 't2'); setFlag('.cb-tick3', 't3');
-    // Build the three comma lists (original-case topic names come from the checkbox text isn't stored,
-    // so we use the lowercased key; topics are matched case-insensitively on read)
-    const listFor = flag => Object.entries(map).filter(([,v]) => v[flag]).map(([k]) => k).join(', ');
-    const tick1 = listFor('t1'), tick2 = listFor('t2'), tick3 = listFor('t3');
-    post({ action: 'saveTopics', name: USER.name, tick1, tick2, tick3 }, t, '✅ Saved');
-    USER.tick1 = tick1; USER.tick2 = tick2; USER.tick3 = tick3;
+  // Student ticks/unticks a topic box → instantly write their handle to that topic row's tickN cell
+  if (t.classList.contains('topic-cb')) {
+    if (!canTrack() || !USER.handle) return;
+    const { row: rowIndex, tick } = t.dataset;
+    fetch(API, { method: 'POST', body: JSON.stringify({
+      action: 'toggleTopicTick', rowIndex, tick, handle: USER.handle, checked: t.checked
+    }) }).catch(() => {});
     return;
   }
 
@@ -1459,6 +1637,7 @@ document.addEventListener('click', e => {
   if (t.id === 'logout-btn') {
     USER = null;
     try { localStorage.removeItem('familyUser'); } catch {}
+    renderHeaderAuth();
     renderClasses();                      // access card reverts to login; clears highlighting
     renderCards('tutors', DATA.tutors);   // People: drop friend cards/edit buttons
     renderChecklist();                    // Checklist: back to default view
@@ -1466,21 +1645,25 @@ document.addEventListener('click', e => {
     renderCheckout();
   }
 
-  // Custom multi-select dropdowns
-  if (t.closest('#subject-display') || t.closest('#dash-topic-display')) {
+  // Custom multi-select dropdowns (per-lesson subject picker + dash topics)
+  if (t.classList.contains('l-subject-display') || t.closest('#dash-topic-display')) {
     t.closest('.custom-select-wrapper').querySelector('.custom-dropdown').classList.toggle('hidden');
   } else if (!t.closest('.custom-select-wrapper')) {
     document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.add('hidden'));
   }
 
-  // Checkbox sync
-  const cbMap = { 'subj-cb': ['subject-display', 'Select Subjects ⌄'], 'dash-topic-cb': ['dash-topic-display', 'Select Topics ⌄'] };
-  for (const [cls, [displayId, def]] of Object.entries(cbMap)) {
-    if (t.classList.contains(cls)) {
-      const checked = Array.from(document.querySelectorAll(`.${cls}:checked`)).map(cb => cb.value);
-      if ($(displayId)) $(displayId).textContent = checked.length ? checked.join(', ') + ' ⌄' : def;
-      if (cls === 'subj-cb') calc();
-    }
+  // Subject checkbox sync (per lesson block) — update that block's display label + recalc
+  if (t.classList.contains('subj-cb')) {
+    const i = t.dataset.lesson;
+    const checked = Array.from(document.querySelectorAll(`.subj-cb[data-lesson="${i}"]:checked`)).map(cb => cb.value);
+    const disp = document.querySelector(`.l-subject-display[data-lesson="${i}"]`);
+    if (disp) disp.textContent = checked.length ? checked.join(', ') + ' ⌄' : 'Select Subjects ⌄';
+    calc();
+  }
+  // Dash topics (unchanged)
+  if (t.classList.contains('dash-topic-cb')) {
+    const checked = Array.from(document.querySelectorAll('.dash-topic-cb:checked')).map(cb => cb.value);
+    if ($('dash-topic-display')) $('dash-topic-display').textContent = checked.length ? checked.join(', ') + ' ⌄' : 'Select Topics ⌄';
   }
 
   // Save checklist
