@@ -662,20 +662,38 @@ function onLogin() {
 // Tools section: a calculator card + the maths checklist (grade cards).
 // Grade cards can be filtered by subject/tier/grade via the database-driven filter bar.
 // Build the flat list of checklist band-items (one per subject+band) for the shared filter system.
+// Each item also carries the distinct values of the per-topic fields, so the shared filter
+// can match a band if ANY of its topics has the chosen company / tier / keystage / stage.
 function checklistItems() {
   const checklists = DATA.dropdowns?.checklists || {};
   const items = [];
+  const distinctOf = (topics, key) => [...new Set(topics.map(t => String(t[key]||'').trim()).filter(Boolean).map(s=>s.toLowerCase()))];
   Object.keys(checklists).forEach(subject => {
     const bands = checklists[subject];
     Object.keys(bands).sort((a,b)=>+a-+b).forEach(band => {
+      const topics = bands[band];
       items.push({
         subject, band: String(band),
         bandLabel: subject === 'Reading' ? `Stage ${band}` : `Grade ${band}`,
-        topics: bands[band]
+        topics,
+        // field value-sets for filtering (a band matches if any topic has the value)
+        companies: distinctOf(topics, 'company'),
+        tiers:     distinctOf(topics, 'tier'),
+        keystages: distinctOf(topics, 'keystage'),
+        stages:    distinctOf(topics, 'stage'),
+        grade:     String(band)
       });
     });
   });
   return items;
+}
+// All distinct values of a per-topic field across every topic (for filter dropdown options)
+function allTopicFieldValues(key) {
+  const checklists = DATA.dropdowns?.checklists || {};
+  const vals = new Set();
+  Object.values(checklists).forEach(bands => Object.values(bands).forEach(topics =>
+    topics.forEach(t => { const x = String(t[key]||'').trim(); if (x) vals.add(x); })));
+  return [...vals];
 }
 
 // Tools section: calculator card is fixed; the checklist band cards go through the shared filter.
@@ -1256,8 +1274,12 @@ const FILTER_DEFS = {
         : '<div class="card"><p class="muted">No topics match.</p></div>')); initMiniCalc(); },
     text: x => (x.subject + ' ' + x.bandLabel + ' ' + x.topics.join(' ')),
     fields: {
-      subject: { label: 'Subject', opts: () => Object.keys(DATA.dropdowns?.checklists || {}), match: (x,v) => norm(x.subject) === v },
-      level:   { label: 'Level',   opts: () => uniq(checklistItems().map(i => i.bandLabel)), match: (x,v) => norm(x.bandLabel) === v },
+      subject:      { label: 'Subject',       opts: () => Object.keys(DATA.dropdowns?.checklists || {}), match: (x,v) => norm(x.subject) === v },
+      grade:        { label: 'Grade',          opts: () => uniq(checklistItems().map(i => i.grade)).sort((a,b)=>+a-+b), match: (x,v) => norm(x.grade) === v },
+      keystage:     { label: 'Key stage',      opts: () => uniq(allTopicFieldValues('keystage')), match: (x,v) => x.keystages.includes(v) },
+      tier:         { label: 'Higher/lower',   opts: () => uniq(allTopicFieldValues('tier')),     match: (x,v) => x.tiers.includes(v) },
+      company:      { label: 'Company',        opts: () => uniq(allTopicFieldValues('company')),  match: (x,v) => x.companies.includes(v) },
+      stage:        { label: 'Stage',          opts: () => uniq(allTopicFieldValues('stage')),    match: (x,v) => x.stages.includes(v) },
     }
   },
 };
