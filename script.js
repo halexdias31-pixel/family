@@ -1,6 +1,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbyINfTA44t4ibW6ihxADTwCo1CxCP8v6UA_SR_4GiCQuR7Q4cRNWnlkOdb2xQaSoGzk/exec';
 let DATA = {};
 let USER = null; // set on login: { name }
+let NOTEPAD_TIMER = null;   // debounce timer for notepad auto-save
 
 const isHome = loc => /home/i.test(loc || '');
 // Normalise any time value to a friendly 12-hour label: "09:00"/Date/ISO → "9am", "13:30" → "1:30pm"
@@ -42,6 +43,9 @@ const fmtDate = v => {
 /* ---------- UTILS ---------- */
 const $   = id => document.getElementById(id);
 const esc = s  => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Site-wide rule: any @mention or #hashtag in text is coloured blue, like social media.
+// Always escapes first, so it's safe to use anywhere user/sheet text is rendered.
+const escTokens = s => esc(s).replace(/([#@][\w.]+)/g, '<span class="token">$1</span>');
 const val = id => ($(id) || {}).value || '';
 // Who participates in the checklist + arcade (topics, levels, highscores): kids AND tutors.
 const canTrack = () => !!USER && (USER.role === 'kid' || USER.role === 'tutor');
@@ -58,7 +62,14 @@ function parseProgress() {
 }
 const html = (el, content) => { if ($(el)) $(el).innerHTML = content; };
 const tog = (el, force) => $(el)?.classList.toggle('hidden', force);
-const drive = url => { const m = (url||'').match(/\/d\/([\w-]+)/); return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : url; };
+// Turn a Google Drive share link into a direct thumbnail URL.
+// Handles both /file/d/FILEID/... and open?id=FILEID / ?id=FILEID formats.
+// Anything that isn't a Drive link is passed through untouched.
+const drive = url => {
+  const s = String(url || '');
+  const m = s.match(/\/d\/([\w-]+)/) || s.match(/[?&]id=([\w-]+)/);
+  return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : s;
+};
 const empty = (arr, msg) => arr?.length ? arr.map : () => `<p class="muted">${msg}</p>`;
 
 /* ---------- INIT ---------- */
@@ -117,7 +128,7 @@ async function init() {
         try {
           const lr = await (await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'relogin', name: res.clientName }) })).json();
           if (lr && lr.success) {
-            USER = { name: lr.name, role: (lr.role||'parent').toLowerCase(), kids: lr.kids||[], parent: lr.parent||'', profile: lr.profile||null, topics: lr.topics||'', friends: lr.friends||'', handle: lr.handle||'', highscore: lr.highscore||0, tick1: lr.tick1||'', tick2: lr.tick2||'', tick3: lr.tick3||'', notepad: lr.notepad||'' };
+            USER = { name: lr.name, role: (lr.role||'parent').toLowerCase(), kids: lr.kids||[], parent: lr.parent||'', profile: lr.profile||null, topics: lr.topics||'', friends: lr.friends||'', handle: lr.handle||'', highscore: lr.highscore||0, ttHighscore: lr.ttHighscore||0, xp: lr.xp||0, credits: lr.credits||0, tick1: lr.tick1||'', tick2: lr.tick2||'', tick3: lr.tick3||'', notepad: lr.notepad||'' };
             try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
           }
         } catch {}
@@ -165,10 +176,14 @@ const tpl = {
   // Flat label row: renders the items as plain comma-separated text (no bordered boxes),
   // consistent with the standardised flat text look. `extra` (e.g. hashtag spans) still appended.
   tagRow: (items, extra = '') => {
-    const text = (items || []).filter(Boolean).map(esc).join(', ');
+    const text = (items || []).filter(Boolean).map(escTokens).join(', ');
     return (text || extra) ? `<p class="attr-line">${text}${extra ? ' ' + extra : ''}</p>` : '';
   },
-  img: (src, style = '') => src ? `<img src="${drive(src)}" alt=""${style ? ` style="${style}"` : ''}>` : '',
+  // If an image fails to load (bad/expired Drive link), remove it rather than showing
+  // the browser's broken-image icon. Applies everywhere tpl.img is used.
+  img: (src, style = '') => src
+    ? `<img src="${drive(src)}" alt="" loading="lazy" onerror="this.remove()"${style ? ` style="${style}"` : ''}>`
+    : '',
 
   actionBtn: it => it.link
     ? `<a href="${esc(it.link)}" target="_blank" style="text-decoration:none;width:100%"><button type="button" class="action" style="width:100%">${esc(it.actionText || 'Book Session')}</button></a>`
@@ -200,8 +215,9 @@ const tpl = {
     const isOwn = USER && USER.role === 'tutor' && it.type === 'tutor' && nameMatches;
     // Tutor progress (level + high score) — shown quietly at the BOTTOM in gray so it doesn't
     // read as ranking/status between tutors to clients.
-    const stats = (it.type === 'tutor' && (it.topics || it.highscore))
-      ? `<div class="tutor-stats">Lv ${levelInfo(it.topics).level} · 🎮 ${it.highscore || 0}</div>`
+    const st = statsOf(it);
+    const stats = (it.type === 'tutor' && (st.xp || it.highscore || st.credits))
+      ? `<div class="tutor-stats">Lv ${st.level} · ${st.xp} XP · 🪙 ${st.credits} · 🎮 ${it.highscore || 0}</div>`
       : '';
     return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}">
     ${isOwn ? `<div style="display:flex;gap:8px;margin-bottom:8px">
@@ -211,7 +227,7 @@ const tpl = {
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
-    <p class="desc">${esc(it.description)}</p>
+    <p class="desc">${escTokens(it.description)}</p>
     ${tpl.tagRow(it.tags)}
     ${tpl.schedule(it.hours)}
     ${tpl.actionBtn(it)}
@@ -224,29 +240,25 @@ const tpl = {
   shopCard: (it) => `<div class="card" style="text-align:left">
     ${it.image ? tpl.img(it.image) : ''}
     <h3>${esc(it.name)}</h3>
-    ${it.price ? `<p class="sub">£${esc(it.price)}</p>` : ''}
-    ${it.description ? `<p class="desc">${esc(it.description)}</p>` : ''}
+    ${it.price ? `<p class="sub">${esc(it.unit || '')}${esc(it.price)}</p>` : ''}
+    ${it.description ? `<p class="desc">${escTokens(it.description)}</p>` : ''}
     <button type="button" class="action buy-item-btn" data-item="${esc(it.id)}" data-name="${esc(it.name)}">Buy</button>
   </div>`,
 
   friendCard: (s, isChild = false) => {
-    const menuTotal = (DATA.dropdowns?.topics || []).length;
-    const done = String(s.topics || '').split(',').map(x => x.trim()).filter(Boolean).length;
-    const pct = menuTotal ? Math.round(done / menuTotal * 100) : 0;
-    const lvl = levelInfo(s.topics);
+    const st = statsOf(s);
     return `<div class="card" style="text-align:left">
       ${isChild ? '' : `<button type="button" class="remove-friend-btn" data-handle="${esc(s.handle)}" title="Remove">✕</button>`}
-      <h3>${esc(s.name)} <span class="lb-lvl">Lv ${lvl.level}</span></h3>
+      <h3>${esc(s.name)} <span class="lb-lvl">Lv ${st.level}</span></h3>
       <p class="sub">${esc(s.handle)}</p>
-      <div class="friend-bar"><div class="friend-bar-fill" style="width:${pct}%"></div></div>
-      ${tpl.tagRow([`${done}/${menuTotal} topics`, `🎮 ${s.highscore || 0}`])}
+      ${tpl.tagRow([`${st.xp} XP`, `🪙 ${st.credits} credits`, `🎮 ${s.highscore || 0}`])}
     </div>`;
   },
 
   // Arcade game card (Flappy-style canvas)
   gameCard: () => `<div class="card" style="text-align:center">
-    <h3 class="gold" style="margin-bottom:8px">Flappy Maths</h3>
-    <canvas id="flappy-canvas" width="280" height="360" style="width:100%;max-width:280px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;cursor:pointer"></canvas>
+    <h3 class="gold" style="margin-bottom:8px">Flabby Pird</h3>
+    <canvas id="flappy-canvas" width="170" height="300" style="background:#0a0a0a;border:1px solid var(--border);border-radius:8px;cursor:pointer;display:block;margin:0 auto"></canvas>
     <p style="margin:10px 0 0">Score: <b id="flappy-score" style="color:#fff">0</b>${canTrack() ? ` · Best: <b id="flappy-best" style="color:var(--gold)">${USER.highscore || 0}</b>` : ''}</p>
     <p id="flappy-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:6px">Click the game to start</p>
   </div>`,
@@ -254,11 +266,47 @@ const tpl = {
   // Kid's checklist: ONE CARD PER GRADE (each its own card in the grid)
   // Compact GCSE calculator that fits in a card (basic + √, x², trig, brackets, π)
   // Student notepad tool — saves to the person's `notepad` cell. Any logged-in user.
-  notepadCard: () => USER ? `<div class="card" style="text-align:left">
+  // Notepad is always visible (simplest design). Saves automatically as you type, like the tickboxes.
+  notepadCard: () => `<div class="card" style="text-align:left">
     <h3 class="gold" style="margin-bottom:8px">Notepad</h3>
-    <textarea id="notepad-text" class="notepad-area" placeholder="Jot notes here...">${esc(USER.notepad || '')}</textarea>
-    <button type="button" id="save-notepad-btn" class="action" style="width:100%;margin-top:10px">Save Notes</button>
-  </div>` : '',
+    <textarea id="notepad-text" class="notepad-area" placeholder="Jot notes here..." ${USER ? '' : 'disabled'}>${esc(USER?.notepad || '')}</textarea>
+    <p class="muted" id="notepad-status" style="font-size:var(--fs-xs);margin:6px 0 0;min-height:1em">${USER ? '' : 'Log in to save your notes.'}</p>
+  </div>`,
+
+  // Times-tables sprint: 60 seconds, random questions up to 12×12. Score = correct answers.
+  timesTableCard: () => `<div class="card" style="text-align:left">
+    <h3 class="gold" style="margin-bottom:8px">Times Tables Sprint</h3>
+    <p class="muted" style="font-size:var(--fs-xs);margin:0 0 10px">60 seconds. As many as you can.</p>
+    <div id="tt-idle">
+      <button type="button" id="tt-start" class="action" style="width:100%">Start</button>
+      ${canTrack() ? `<p class="muted" style="font-size:var(--fs-xs);margin:8px 0 0">Best: <b style="color:var(--gold)">${USER.ttHighscore || 0}</b></p>` : ''}
+    </div>
+    <div id="tt-play" class="hidden">
+      <p style="display:flex;justify-content:space-between;font-size:var(--fs-sm);margin:0 0 8px">
+        <span>Time: <b id="tt-time" style="color:#fff">60</b>s</span>
+        <span>Score: <b id="tt-score" style="color:var(--gold)">0</b></span>
+      </p>
+      <p id="tt-question" style="font-size:26px;text-align:center;margin:12px 0;color:#fff"></p>
+      <input id="tt-answer" type="number" inputmode="numeric" placeholder="Answer" style="width:100%;padding:10px;text-align:center;font-size:18px">
+      <p id="tt-feedback" class="muted" style="font-size:var(--fs-xs);min-height:1em;margin:6px 0 0;text-align:center"></p>
+    </div>
+    <div id="tt-over" class="hidden" style="text-align:center">
+      <p style="font-size:var(--fs-lg);margin:10px 0">You got <b id="tt-final" style="color:var(--gold)">0</b></p>
+      <p id="tt-best-msg" class="muted" style="font-size:var(--fs-xs);min-height:1em"></p>
+      <button type="button" id="tt-again" class="action" style="width:100%;margin-top:8px">Play again</button>
+    </div>
+  </div>`,
+
+  // Simple 25-minute countdown timer with an alarm.
+  timerCard: () => `<div class="card" style="text-align:left">
+    <h3 class="gold" style="margin-bottom:8px">Timer</h3>
+    <p id="timer-display" style="font-size:34px;text-align:center;margin:10px 0;color:#fff;letter-spacing:2px">25:00</p>
+    <div style="display:flex;gap:6px">
+      <button type="button" id="timer-toggle" class="action" style="flex:1;margin:0">Start</button>
+      <button type="button" id="timer-reset" class="ghost" style="flex:1;margin:0">Reset</button>
+    </div>
+    <p id="timer-msg" class="muted" style="font-size:var(--fs-xs);min-height:1em;margin:8px 0 0;text-align:center"></p>
+  </div>`,
 
   calcToolCard: () => `<div class="card mini-calc" style="text-align:left">
     <h3 class="gold" style="margin-bottom:8px">Calculator</h3>
@@ -310,14 +358,15 @@ const tpl = {
       const box = (n, cell) => `<label class="mini-check"><input type="checkbox" class="topic-cb"
         data-row="${tp.rowIndex}" data-tick="${n}" ${iAmIn(cell) ? 'checked' : ''} ${myHandle ? '' : 'disabled'}></label>`;
       return `<div class="check-row">
-        <span class="check-topic">${esc(tp.name)}</span>
+        ${tp.link
+          ? `<a class="check-topic" href="${esc(tp.link)}" target="_blank" rel="noopener">${esc(tp.name)}</a>`
+          : `<span class="check-topic">${esc(tp.name)}</span>`}
         ${box(1, tp.tick1)}${box(2, tp.tick2)}${box(3, tp.tick3)}
       </div>`;
     }).join('');
     return `<div class="card grade-card" style="text-align:left">
       <h3 class="gold" style="margin-bottom:4px">${esc(item.subject)} · ${esc(item.bandLabel)}</h3>
       <div class="check-list">${rows}</div>
-      ${myHandle ? '' : '<p class="muted" style="font-size:var(--fs-xs);margin-top:8px">Log in as a student to tick topics.</p>'}
     </div>`;
   },
 
@@ -440,31 +489,22 @@ const tpl = {
     </ul>
   </div>`,
 
-  // Pull #tags and @mentions out of caption text → array of tokens
-  extractTokens: text => (String(text || '').match(/[#@][\w.]+/g) || []),
-  // Caption with the tokens (and dates/brackets) stripped, for the plain text line
-  cleanCaption: text => String(text || '')
-    .replace(/\.[^/.]+$/, '').replace(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/, '').replace(/\[.*?\]/, '')
-    .replace(/[#@][\w.]+/g, '').replace(/^[-–—\s]+|[-–—\s]+$/g, '').trim(),
+  // The filename is the caption. Only the file extension is removed — everything else,
+  // including brackets, dates and tokens, is ordinary text.
+  cleanCaption: text => String(text || '').replace(/\.[^/.]+$/, '').trim(),
 
   socialPost: post => {
     const caption = tpl.cleanCaption(post.rawName);
-    const tokens  = tpl.extractTokens(post.rawName);
-    // location + date via the shared tagRow; #tags/@mentions as plain text
-    const hashtags = tokens.map(tk => esc(tk)).join(', ');
-    const tagRow = tpl.tagRow([
-      post.location ? `${post.location}` : '',
-      post.label ? `${post.label}` : '',
-    ], hashtags);
+    const tagRow = tpl.tagRow([post.label ? `${post.label}` : '']);
     return `<div class="card social-post">
       <div class="social-header">
         <div class="social-avatar">@</div>
         <span class="social-username">@family.</span>
         <button type="button" data-share-url="https://drive.google.com/file/d/${post.id}/view" class="social-share-btn">⎘</button>
       </div>
-      <img class="social-img" src="https://drive.google.com/thumbnail?id=${post.id}&sz=w800" alt="Gallery Post" loading="lazy">
+      <img class="social-img" src="https://drive.google.com/thumbnail?id=${post.id}&sz=w800" alt="Gallery Post" loading="lazy" onerror="this.closest('.social-post')?.remove()">
       <div class="social-body">
-        ${caption ? `<p class="desc" style="margin:0 0 8px">${esc(caption)}</p>` : ''}
+        ${caption ? `<p class="desc" style="margin:0 0 8px">${escTokens(caption)}</p>` : ''}
         ${tagRow}
       </div>
     </div>`;
@@ -487,9 +527,9 @@ const tpl = {
   // Kids also get their level/high score here since they take part in topics/arcade.
   accountCard: () => {
     const roleLabel = { parent: 'Parent', kid: 'Student' }[USER.role] || 'Member';
+    const st = statsOf(USER);
     const kidStats = USER.role === 'kid'
-      ? `<div class="friend-bar"><div class="friend-bar-fill" style="width:${levelInfo(USER.topics).pct}%"></div></div>
-         ${tpl.tagRow([`Lv ${levelInfo(USER.topics).level}`, `🎮 ${USER.highscore || 0}`])}` : '';
+      ? tpl.tagRow([`Lv ${st.level}`, `${st.xp} XP`, `🪙 ${st.credits} credits`, `🎮 ${USER.highscore || 0}`]) : '';
     return `<div class="card own-profile" id="account-card" style="text-align:left">
       <h3 class="gold" style="margin-bottom:4px">${esc(USER.name)}</h3>
       <p class="sub">${roleLabel}${USER.handle ? ' · ' + esc(USER.handle) : ''}</p>
@@ -667,21 +707,25 @@ function onLogin() {
 function checklistItems() {
   const checklists = DATA.dropdowns?.checklists || {};
   const items = [];
+  const cap = s => String(s||'').charAt(0).toUpperCase() + String(s||'').slice(1);
   const distinctOf = (topics, key) => [...new Set(topics.map(t => String(t[key]||'').trim()).filter(Boolean).map(s=>s.toLowerCase()))];
   Object.keys(checklists).forEach(subject => {
     const bands = checklists[subject];
     Object.keys(bands).sort((a,b)=>+a-+b).forEach(band => {
-      const topics = bands[band];
+      const entry = bands[band];
+      const topics = entry.topics || [];
+      // The label uses whichever banding column the sheet actually used for these rows.
+      const bandField = entry.bandField || '';
       items.push({
         subject, band: String(band),
-        bandLabel: subject === 'Reading' ? `Stage ${band}` : `Grade ${band}`,
+        bandLabel: `${cap(bandField)} ${band}`.trim(),
         topics,
         // field value-sets for filtering (a band matches if any topic has the value)
         companies: distinctOf(topics, 'company'),
         tiers:     distinctOf(topics, 'tier'),
         keystages: distinctOf(topics, 'keystage'),
         stages:    distinctOf(topics, 'stage'),
-        grade:     String(band)
+        grades:    distinctOf(topics, 'grade')
       });
     });
   });
@@ -691,8 +735,8 @@ function checklistItems() {
 function allTopicFieldValues(key) {
   const checklists = DATA.dropdowns?.checklists || {};
   const vals = new Set();
-  Object.values(checklists).forEach(bands => Object.values(bands).forEach(topics =>
-    topics.forEach(t => { const x = String(t[key]||'').trim(); if (x) vals.add(x); })));
+  Object.values(checklists).forEach(bands => Object.values(bands).forEach(entry =>
+    (entry.topics || []).forEach(t => { const x = String(t[key]||'').trim(); if (x) vals.add(x); })));
   return [...vals];
 }
 
@@ -738,28 +782,132 @@ function initMiniCalc() {
   render();
 }
 
-// Progression: XP = number of topics with any progress. Every 5 = +1 level.
-const TOPICS_PER_LEVEL = 5;
-function topicCount(topicsStr) {
-  return String(topicsStr || '').split(',').map(s => s.trim()).filter(Boolean).length;
+// Progression. XP = number of topics ticked (stored in the sheet's `xp` column).
+// Level is DERIVED from XP: every 10 XP = 1 level (so each tick is +0.1 of a level).
+// Credits are a spendable currency (stored in `credits`) — 1 earned per tick, spent in the Shop.
+const XP_PER_LEVEL = 10;
+function levelFromXp(xp) {
+  return +( (Number(xp) || 0) / XP_PER_LEVEL ).toFixed(1);   // e.g. 23 xp → level 2.3
 }
-function levelInfo(topicsStr) {
-  const xp = topicCount(topicsStr);
-  const level = Math.floor(xp / TOPICS_PER_LEVEL) + 1;
-  const intoLevel = xp % TOPICS_PER_LEVEL;
-  const pct = Math.round(intoLevel / TOPICS_PER_LEVEL * 100);
-  return { xp, level, intoLevel, toNext: TOPICS_PER_LEVEL, pct };
+// Stats for a person object coming from the backend (or the logged-in USER)
+function statsOf(p) {
+  const xp = Number(p?.xp) || 0;
+  return { xp, level: levelFromXp(xp), credits: Number(p?.credits) || 0 };
+}
+
+// --- Times Tables Sprint: 60s, random questions up to 12×12 ---
+let ttState = null;
+function startTimesTables() {
+  const q = () => ({ a: 1 + Math.floor(Math.random()*12), b: 1 + Math.floor(Math.random()*12) });
+  ttState = { score: 0, left: 60, cur: q(), timer: null };
+  $('tt-idle')?.classList.add('hidden');
+  $('tt-over')?.classList.add('hidden');
+  $('tt-play')?.classList.remove('hidden');
+  $('tt-score').textContent = '0';
+  $('tt-time').textContent = '60';
+  $('tt-question').textContent = `${ttState.cur.a} × ${ttState.cur.b}`;
+  const input = $('tt-answer');
+  input.value = ''; input.focus();
+
+  ttState.timer = setInterval(() => {
+    ttState.left--;
+    $('tt-time').textContent = ttState.left;
+    if (ttState.left <= 0) endTimesTables();
+  }, 1000);
+
+  input.oninput = () => {
+    const val = parseInt(input.value);
+    if (isNaN(val)) return;
+    if (val === ttState.cur.a * ttState.cur.b) {
+      ttState.score++;
+      $('tt-score').textContent = ttState.score;
+      $('tt-feedback').textContent = '✓';
+      ttState.cur = q();
+      $('tt-question').textContent = `${ttState.cur.a} × ${ttState.cur.b}`;
+      input.value = '';
+    }
+  };
+}
+function endTimesTables() {
+  if (!ttState) return;
+  clearInterval(ttState.timer);
+  const score = ttState.score;
+  $('tt-play')?.classList.add('hidden');
+  $('tt-over')?.classList.remove('hidden');
+  $('tt-final').textContent = score;
+  // Save a new personal best
+  if (canTrack() && score > (USER.ttHighscore || 0)) {
+    USER.ttHighscore = score;
+    try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+    $('tt-best-msg').textContent = '🎉 New personal best!';
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'saveTtHighscore', name: USER.name, score }) }).catch(()=>{});
+  } else if (canTrack()) {
+    $('tt-best-msg').textContent = `Best: ${USER.ttHighscore || 0}`;
+  }
+  ttState = null;
+}
+
+// --- Countdown timer with alarm ---
+let timerState = { total: 25*60, left: 25*60, running: false, tick: null };
+function initTimer() {
+  timerState.running = false;
+  clearInterval(timerState.tick);
+  paintTimer();
+}
+function paintTimer() {
+  const el = $('timer-display');
+  if (!el) return;
+  const m = Math.floor(timerState.left / 60), s = timerState.left % 60;
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const btn = $('timer-toggle');
+  if (btn) btn.textContent = timerState.running ? 'Pause' : 'Start';
+}
+function toggleTimer() {
+  if (timerState.running) {
+    clearInterval(timerState.tick);
+    timerState.running = false;
+  } else {
+    if (timerState.left <= 0) timerState.left = timerState.total;
+    timerState.running = true;
+    timerState.tick = setInterval(() => {
+      timerState.left--;
+      if (timerState.left <= 0) {
+        clearInterval(timerState.tick);
+        timerState.running = false;
+        timerState.left = 0;
+        if ($('timer-msg')) $('timer-msg').textContent = '⏰ Time\'s up!';
+        beep();
+      }
+      paintTimer();
+    }, 1000);
+    if ($('timer-msg')) $('timer-msg').textContent = '';
+  }
+  paintTimer();
+}
+// Short alarm tone via the Web Audio API (no sound file needed)
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach(delay => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
+      osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.2);
+    });
+  } catch {}
 }
 
 // Arcade section: the game card (high scores show on student/friend cards)
 function renderArcade() {
   const el = $('arcade-content');
   if (!el) return;
-  el.innerHTML = tpl.gameCard();
+  el.innerHTML = tpl.gameCard() + tpl.timesTableCard();
   initFlappy();  // wire up the canvas game
 }
 
-// --- Flappy Maths: simple one-button canvas game ---
+// --- Flabby Pird: simple one-button canvas game ---
 let flappyState = null;
 function initFlappy() {
   const canvas = $('flappy-canvas');
@@ -771,17 +919,17 @@ function initFlappy() {
   // reset any previous loop
   if (flappyState?.raf) cancelAnimationFrame(flappyState.raf);
   const S = flappyState = {
-    bird: { x: 60, y: H/2, vy: 0, r: 9 },
+    bird: { x: 40, y: H/2, vy: 0, r: 7 },
     pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
   };
-  const GRAV = 0.45, FLAP = -7, GAP = 110, PIPE_W = 42, SPEED = 2;
+  const GRAV = 0.38, FLAP = -6, GAP = 95, PIPE_W = 28, SPEED = 1.7;
 
   const reset = () => {
     S.bird.y = H/2; S.bird.vy = 0; S.pipes = []; S.score = 0; S.frame = 0; S.dead = false;
     $('flappy-score').textContent = '0';
   };
   const spawnPipe = () => {
-    const top = 40 + Math.random() * (H - GAP - 110);
+    const top = 30 + Math.random() * (H - GAP - 70);
     S.pipes.push({ x: W, top, scored: false });
   };
   const flap = () => {
@@ -880,25 +1028,21 @@ let GALLERY_POSTS = [];  // parsed posts, kept for filtering
 function renderGallery(galleryData = []) {
   if (!galleryData?.length) { html('gallery', '<p class="loader-text">No showcases active.</p>'); return; }
 
-  const parseDate = name => {
-    const match = (name||'').match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-    if (!match) return { ts: 0, label: '', year: '' };
-    let [, d, m, y] = match;
-    if (y.length === 2) y = '20' + y;
-    const postDate = new Date(y, m - 1, d);
-    const year = String(y);
-    const diff = Math.floor((Date.now() - postDate.setHours(0,0,0,0)) / 86400000);
-    const label = diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday'
+  // "3 days ago" style label from the file's own date (no filename parsing).
+  const ageLabel = ts => {
+    if (!ts) return '';
+    const diff = Math.floor((Date.now() - new Date(ts).setHours(0,0,0,0)) / 86400000);
+    return diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday'
       : diff < 7 ? `${diff} days ago` : diff < 30 ? `${Math.floor(diff/7)} weeks ago`
       : diff < 365 ? `${Math.floor(diff/30)} months ago` : `${Math.floor(diff/365)} years ago`;
-    return { ts: postDate.getTime(), label, year };
   };
 
   GALLERY_POSTS = galleryData
     .map(p => {
-      const name = typeof p === 'object' ? p.name : '';
-      const locMatch = (name||'').match(/\[(.*?)\]/);
-      return { ...(typeof p === 'object' ? p : { id: p }), ...parseDate(name), location: locMatch?.[1]?.trim() || '', rawName: name };
+      const obj = (typeof p === 'object') ? p : { id: p };
+      const ts = obj.date ? new Date(obj.date).getTime() : 0;
+      // The filename is just the caption now — no date, no location extracted from it.
+      return { ...obj, ts, label: ageLabel(ts), year: ts ? String(new Date(ts).getFullYear()) : '', rawName: obj.name || '' };
     })
     .sort((a, b) => b.ts - a.ts);  // newest first
 
@@ -1259,10 +1403,9 @@ const FILTER_DEFS = {
     render: items => html('gallery', items.length
       ? items.map(tpl.socialPost).join('')
       : '<p class="muted">No posts match.</p>'),
-    text: x => (x.rawName + ' ' + (x.location||'')),
+    text: x => x.rawName,
     fields: {
       year:     { label: 'Year',     opts: () => uniq(GALLERY_POSTS.map(p => p.year)).sort().reverse(), match: (x,v) => norm(x.year) === v },
-      location: { label: 'Location', opts: () => uniq(GALLERY_POSTS.map(p => p.location)), match: (x,v) => norm(x.location) === v },
     }
   },
   tool: {
@@ -1270,12 +1413,14 @@ const FILTER_DEFS = {
     source: () => checklistItems(),
     // Calculator card always first, then the filtered checklist band cards
     render: items => { html('checklist-content',
-      tpl.calcToolCard() + tpl.notepadCard() + (items.length ? items.map(tpl.checklistBandCard).join('')
-        : '<div class="card"><p class="muted">No topics match.</p></div>')); initMiniCalc(); },
-    text: x => (x.subject + ' ' + x.bandLabel + ' ' + x.topics.join(' ')),
+      tpl.calcToolCard() + tpl.timerCard() + tpl.notepadCard()
+      + (items.length ? items.map(tpl.checklistBandCard).join('')
+        : '<div class="card"><p class="muted">No topics match.</p></div>'));
+      initMiniCalc(); initTimer(); },
+    text: x => (x.subject + ' ' + x.bandLabel + ' ' + x.topics.map(t => t.name).join(' ')),
     fields: {
       subject:      { label: 'Subject',       opts: () => Object.keys(DATA.dropdowns?.checklists || {}), match: (x,v) => norm(x.subject) === v },
-      grade:        { label: 'Grade',          opts: () => uniq(checklistItems().map(i => i.grade)).sort((a,b)=>+a-+b), match: (x,v) => norm(x.grade) === v },
+      grade:        { label: 'Grade',          opts: () => uniq(allTopicFieldValues('grade')).sort((a,b)=>+a-+b), match: (x,v) => x.grades.includes(v) },
       keystage:     { label: 'Key stage',      opts: () => uniq(allTopicFieldValues('keystage')), match: (x,v) => x.keystages.includes(v) },
       tier:         { label: 'Higher/lower',   opts: () => uniq(allTopicFieldValues('tier')),     match: (x,v) => x.tiers.includes(v) },
       company:      { label: 'Company',        opts: () => uniq(allTopicFieldValues('company')),  match: (x,v) => x.companies.includes(v) },
@@ -1357,6 +1502,19 @@ function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
 
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const id = e.target.id;
+
+  // Notepad auto-saves shortly after you stop typing (debounced so we don't save every keystroke)
+  if (id === 'notepad-text' && USER) {
+    const status = $('notepad-status');
+    if (status) status.textContent = 'Saving…';
+    clearTimeout(NOTEPAD_TIMER);
+    NOTEPAD_TIMER = setTimeout(() => {
+      const notes = $('notepad-text')?.value ?? '';
+      fetch(API, { method: 'POST', body: JSON.stringify({ action: 'saveNotepad', name: USER.name, notepad: notes }) })
+        .then(() => { USER.notepad = notes; if (status) status.textContent = 'Saved'; })
+        .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
+    }, 900);
+  }
   if (e.target.closest('#new-job')) calc();
   // Per-lesson term changed → update that block's weeks label
   if (e.target.classList.contains('l-interval')) { syncBlockWeeks(parseInt(e.target.dataset.lesson)); calc(); }
@@ -1541,12 +1699,17 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // Save notepad
-  if (t.id === 'save-notepad-btn') {
-    if (!USER) return;
-    const notes = $('notepad-text').value;
-    post({ action: 'saveNotepad', name: USER.name, notepad: notes }, t, '✅ Saved');
-    USER.notepad = notes;
+  // Times Tables Sprint
+  if (t.id === 'tt-start' || t.id === 'tt-again') { startTimesTables(); return; }
+
+  // Timer
+  if (t.id === 'timer-toggle') { toggleTimer(); return; }
+  if (t.id === 'timer-reset') {
+    clearInterval(timerState.tick);
+    timerState.running = false;
+    timerState.left = timerState.total;
+    if ($('timer-msg')) $('timer-msg').textContent = '';
+    paintTimer();
     return;
   }
 
@@ -1586,7 +1749,16 @@ document.addEventListener('click', e => {
     const { row: rowIndex, tick } = t.dataset;
     fetch(API, { method: 'POST', body: JSON.stringify({
       action: 'toggleTopicTick', rowIndex, tick, handle: USER.handle, checked: t.checked
-    }) }).catch(() => {});
+    }) })
+      .then(r => r.json())
+      .then(d => {
+        // Keep the local stats in step so the profile card shows the new XP/credits
+        if (d && d.xp !== null && d.xp !== undefined) USER.xp = d.xp;
+        if (d && d.credits !== null && d.credits !== undefined) USER.credits = d.credits;
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        renderCards('tutors', DATA.tutors);   // refresh the profile card's Lv / XP / credits
+      })
+      .catch(() => {});
     return;
   }
 
@@ -1647,7 +1819,7 @@ document.addEventListener('click', e => {
       .then(d => {
         t.textContent = 'Enter'; t.disabled = false;
         if (!d.success) { $('auth-msg').textContent = d.error || 'Login failed.'; return; }
-        USER = { name: d.name, role: (d.role || 'parent').toLowerCase(), kids: d.kids || [], parent: d.parent || '', profile: d.profile || null, topics: d.topics || '', friends: d.friends || '', handle: d.handle || '', highscore: d.highscore || 0, tick1: d.tick1 || '', tick2: d.tick2 || '', tick3: d.tick3 || '', notepad: d.notepad || '' };
+        USER = { name: d.name, role: (d.role || 'parent').toLowerCase(), kids: d.kids || [], parent: d.parent || '', profile: d.profile || null, topics: d.topics || '', friends: d.friends || '', handle: d.handle || '', highscore: d.highscore || 0, ttHighscore: d.ttHighscore || 0, xp: d.xp || 0, credits: d.credits || 0, tick1: d.tick1 || '', tick2: d.tick2 || '', tick3: d.tick3 || '', notepad: d.notepad || '' };
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
         $('auth-pin').value = '';
         onLogin();
