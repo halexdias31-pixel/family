@@ -12,10 +12,10 @@
 }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font: var(--fs-base)/1.55 Consolas, monospace; max-width: 1200px; margin: 40px auto; padding: 20px; }
+body { background: var(--bg); color: var(--text); font: var(--fs-base)/1.55 Consolas, monospace; max-width: 2200px; margin: 24px auto; padding: 12px; }
 img { width: 100%; height: auto; }
 h1, h2, h3 { margin-top: 0; }
-section { margin-bottom: 50px; }
+section { margin-bottom: 28px; }
 
 /* ---------- Utilities ---------- */
 .hidden { display: none !important; }
@@ -50,35 +50,72 @@ input:focus, select:focus { border-color: var(--gold); }
 option { background: var(--panel); color: var(--text); }
 
 /* ---------- Masonry Grid ---------- */
-.grid { column-count: 6; column-gap: 20px; width: 100%; }
-@media (max-width: 1100px) { .grid { column-count: 5; } }
-@media (max-width: 900px)  { .grid { column-count: 4; } }
-@media (max-width: 700px)  { .grid { column-count: 3; } }
-@media (max-width: 500px)  { .grid { column-count: 2; } }
+/* Masonry columns. `column-width` = the IDEAL column width; the browser fits as many
+   columns as the available width allows, so wide screens get more columns automatically
+   and narrow ones fewer. No breakpoints needed. */
+.grid { column-width: 190px; column-gap: 10px; width: 100%; }
 
 .card {
   display: inline-block;
   width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  /* Keep a card whole within one column (all three properties for cross-browser support) */
   break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
   background: linear-gradient(135deg, #121212, #050505);
   border: 1px solid var(--gold);
   border-radius: 12px;
-  padding: 20px;
+  padding: 12px;
   position: relative;
   text-align: center;
+  /* A card can never be forced wider than its column by its contents.
+     Note: we deliberately do NOT set overflow:hidden — the .badge sits above the card
+     and .custom-dropdown pops out below it. The wrapping rules below stop overflow instead. */
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-/* Profile pictures: vertical rounded rectangle (portrait) */
-.card:not(.social-post) img {
-  width: 100%; max-width: 160px;
-  aspect-ratio: 3 / 4;            /* vertical rectangle */
+/* ---- Holistic overflow control ----
+   Long unbroken strings (topic names, URLs, emails, handles) are the main cause of text
+   spilling out of cards. Allow them to wrap, and break mid-word only when there's no
+   other option. Applies to every element inside every card, so no spot-fixes are needed. */
+.card, .card * {
+  min-width: 0;                 /* lets flex/grid children actually shrink */
+  overflow-wrap: anywhere;      /* wrap long words rather than overflow */
+  word-break: break-word;       /* legacy fallback */
+}
+/* Media and embeds stay inside their card */
+/* Media inside cards stays within the card. NOTE: canvas is excluded — scaling a canvas
+   with CSS forces the browser to resample its bitmap every frame, which kills game
+   performance. The game canvas sizes itself instead (see #flappy-canvas below). */
+.card img, .card iframe, .card video, .card svg {
+  max-width: 100%;
   height: auto;
-  border-radius: 14px;
-  object-fit: cover;
-  margin: 0 auto 15px;
   display: block;
+}
+/* Game canvas: render at its native resolution, never CSS-scaled. */
+.card canvas { max-width: 100%; display: block; margin: 0 auto; }
+/* Form controls default to content-width and blow out layouts — cap them */
+.card input, .card select, .card textarea, .card button {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Every card image: square (cropped, never squashed), bounded inside the card's padding,
+   with the same gold frame. One rule so any new image type is standardised automatically. */
+.card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;            /* square */
+  height: auto;
+  object-fit: cover;              /* fill the square, crop the overflow */
+  object-position: center;        /* crop evenly from the middle */
+  display: block;
+  border-radius: 14px;
   border: 2px solid var(--gold);
+  margin: 0 auto 10px;
+  background: var(--panel2);
 }
 
 .badge { position: absolute; top: -10px; right: 15px; background: var(--gold); color: var(--bg); padding: 3px 10px; font: bold var(--fs-xs) Arial; border-radius: 4px; }
@@ -202,17 +239,20 @@ option { background: var(--panel); color: var(--text); }
 
 /* ---------- Social Media Posts (masonry cards) ---------- */
 /* .social-post is also a .card; metadata reuses the shared .tag boxes (DRY). */
-.card.social-post { padding: 0; overflow: hidden; text-align: left; }
+/* Post cards use the same padding as every other card, so the image is bounded (not edge-to-edge). */
+.card.social-post { text-align: left; }
 
-.social-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--panel-alt); }
+.social-header { display: flex; align-items: center; gap: 10px; padding: 0 0 8px; border-bottom: 1px solid var(--panel-alt); margin-bottom: 10px; }
 .social-avatar { width: 30px; height: 30px; background: var(--gold); color: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
 .social-username { font-weight: bold; color: var(--text); font-size: var(--fs-sm); }
-.social-img { width: 100%; height: auto; display: block; background: var(--panel2); }  /* natural height = variable cards */
+/* .social-img needs no rules of its own — it inherits the shared .card img treatment above. */
 .social-share-btn { margin-left: auto; color: var(--text-muted); background: none; border: none; font-size: var(--fs-lg); cursor: pointer; transition: 0.2s; padding: 0 4px; }
 .social-share-btn:hover { color: var(--gold); }
-.social-body { padding: 12px 14px; }
+.social-body { padding: 10px 0 0; }
 .social-body .attr-tags { justify-content: flex-start; margin: 0; }
-.tag-social { color: #4f9eff; border-color: #4f9eff; }  /* hashtag/mention accent on the shared .tag */
+/* Site-wide: any @mention or #hashtag renders blue, wherever it appears.
+   !important so it survives the card flat-text colour rule. */
+.token, .card .token { color: #4f9eff !important; }
 
 /* ---------- Calculator breakdown ---------- */
 .calc-breakdown { text-align: left; margin: 20px 0; border-top: 1px solid var(--border); padding-top: 15px; }
@@ -253,7 +293,7 @@ option { background: var(--panel); color: var(--text); }
   .checkout input { min-width: 0; }
 
   /* Game canvas fits the screen */
-  #flappy-canvas { max-width: 100%; }
+  #flappy-canvas { max-width: 100%; }  /* never CSS-scale: keeps the game fast */
 
   /* Modal uses more of the screen */
   .modal-box { width: 94%; }
@@ -276,9 +316,13 @@ option { background: var(--panel); color: var(--text); }
 .tutor-stats{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);
   font-size:var(--fs-xs);color:var(--muted);text-align:center;letter-spacing:.3px;}
 
-/* Two-checkbox checklist rows (Started / Mastered) */
-.check-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);margin-bottom:5px;}
-.check-topic{flex:1;font-size:11px !important;line-height:1.35 !important;}
+/* Checklist rows: flat lines (no bubble) to maximise text space */
+.check-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);margin:0;}
+.check-row:last-child{border-bottom:none;}
+.check-topic{flex:1;font-size:11px !important;line-height:1.3 !important;}
+/* Topics with a resource link are clickable — subtle, only revealing on hover. */
+a.check-topic{color:inherit;text-decoration:none;cursor:pointer;}
+a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .mini-check{display:flex;align-items:center;gap:2px;font-size:10px !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
 .mini-check input{width:14px;height:14px;accent-color:#4f9eff;margin:0;}
 .mini-check span{font-size:10px !important;}
@@ -295,7 +339,8 @@ option { background: var(--panel); color: var(--text); }
   font-weight: normal !important;
   letter-spacing: normal !important;
   text-transform: none !important;
-  margin: 6px 0 !important;
+  margin: 3px 0 !important;
+  line-height: 1.4 !important;
 }
 /* buttons keep their own styling (calculator keys, actions) */
 .card .action { font-weight: bold !important; }
