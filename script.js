@@ -20,6 +20,13 @@ const fmtTime = t => {
   const h12 = h % 12 || 12;
   return min ? `${h12}:${String(min).padStart(2,'0')}${ampm}` : `${h12}${ampm}`;
 };
+// Add N hours to an "HH:MM" time, returning "HH:MM" (used for session end times)
+const addHours = (t, n) => {
+  const m = String(t ?? '').match(/(\d{1,2}):(\d{2})/);
+  if (!m) return t;
+  const h = (+m[1] + n) % 24;
+  return `${String(h).padStart(2,'0')}:${m[2]}`;
+};
 // Day → plural, capitalised: "thursday"/"thursdays" → "Thursdays"
 const fmtDay = day => {
   const s = String(day || '').trim();
@@ -227,10 +234,12 @@ const tpl = {
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
+    ${it.dbs ? `<p class="dbs-badge">✓ DBS checked</p>` : ''}
     <p class="desc">${escTokens(it.description)}</p>
     ${tpl.tagRow(it.tags)}
     ${tpl.schedule(it.hours)}
     ${tpl.actionBtn(it)}
+    ${isOwn ? tpl.timetableSection(it.title) : ''}
     ${stats}
   </div>`;
   },
@@ -245,6 +254,38 @@ const tpl = {
     <button type="button" class="action buy-item-btn" data-item="${esc(it.id)}" data-name="${esc(it.name)}">Buy</button>
   </div>`,
 
+  // Tutor's weekly timetable, rendered INSIDE their own profile card.
+  // Built from their jobs; availability can slot into these lines later.
+  timetableSection: (tutorName) => {
+    const norm = s => String(s || '').toLowerCase().trim();
+    const DAYS = (DATA.dropdowns?.days || []);
+    const mine = (DATA.clientClasses || []).filter(j => norm(j.requestedTutor) === norm(tutorName));
+
+    const rows = DAYS.map(day => {
+      const jobs = mine
+        .filter(j => norm(j.day) === norm(day))
+        .sort((a, b) => String(a.time).localeCompare(String(b.time)));
+      if (!jobs.length) return '';
+      const lines = jobs.map(j => {
+        const who = (j.slots || []).map(s => s.client).filter(Boolean).join(', ');
+        const end = addHours(j.time, 2);   // sessions run 2 hours
+        return `<div class="tt-line">
+          <span class="tt-time">${esc(fmtTime(j.time))}–${esc(fmtTime(end))}</span>
+          <span class="tt-what">${esc(who || j.subject || 'Class')}</span>
+        </div>`;
+      }).join('');
+      return `<div class="tt-day">
+        <div class="tt-dayname">${esc(fmtDay(day))}</div>
+        ${lines}
+      </div>`;
+    }).filter(Boolean).join('');
+
+    return `<div class="tt-section">
+      <div class="tt-heading">Timetable</div>
+      ${rows || '<p class="muted" style="font-size:var(--fs-xs);margin:0">No classes scheduled.</p>'}
+    </div>`;
+  },
+
   friendCard: (s, isChild = false) => {
     const st = statsOf(s);
     return `<div class="card" style="text-align:left">
@@ -258,7 +299,7 @@ const tpl = {
   // Arcade game card (Flappy-style canvas)
   gameCard: () => `<div class="card" style="text-align:center">
     <h3 class="gold" style="margin-bottom:8px">Flabby Pird</h3>
-    <canvas id="flappy-canvas" width="170" height="300" style="background:#0a0a0a;border:1px solid var(--border);border-radius:8px;cursor:pointer;display:block;margin:0 auto"></canvas>
+    <canvas id="flappy-canvas" width="280" height="360" style="width:100%;max-width:280px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;cursor:pointer"></canvas>
     <p style="margin:10px 0 0">Score: <b id="flappy-score" style="color:#fff">0</b>${canTrack() ? ` · Best: <b id="flappy-best" style="color:var(--gold)">${USER.highscore || 0}</b>` : ''}</p>
     <p id="flappy-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:6px">Click the game to start</p>
   </div>`,
@@ -456,6 +497,7 @@ const tpl = {
     const cls = mySlot ? 'mine-class' : norm(j.status) === 'pending' ? 'pending-class' : '';
     return `<div class="card ${cls}">
       ${stateBadge}
+      ${j.image ? tpl.img(j.image) : ''}
       <h3>${esc(j.title) || 'Session'}</h3>
       <p class="sub">${esc(fmtDay(j.day))} @ ${esc(fmtTime(j.time) || 'TBD')}</p>
       <p class="cap">👥 ${esc(j.capacity)}</p>
@@ -612,7 +654,7 @@ function renderCards(id, items = []) {
       // Parent/kid have no profile card, so give them their own editable account card here
       cardsHtml = tpl.accountCard() + cardsHtml;
     }
-    // Tutor: their existing card in the list already shows the ✎ Edit button (no extra card)
+    // Tutor: their timetable renders inside their own card (see tpl.card)
   }
 
   // In the People section, a logged-in kid also sees a friend search + their friend cards
@@ -919,17 +961,17 @@ function initFlappy() {
   // reset any previous loop
   if (flappyState?.raf) cancelAnimationFrame(flappyState.raf);
   const S = flappyState = {
-    bird: { x: 40, y: H/2, vy: 0, r: 7 },
+    bird: { x: 60, y: H/2, vy: 0, r: 9 },
     pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
   };
-  const GRAV = 0.38, FLAP = -6, GAP = 95, PIPE_W = 28, SPEED = 1.7;
+  const GRAV = 0.45, FLAP = -7, GAP = 110, PIPE_W = 42, SPEED = 2;
 
   const reset = () => {
     S.bird.y = H/2; S.bird.vy = 0; S.pipes = []; S.score = 0; S.frame = 0; S.dead = false;
     $('flappy-score').textContent = '0';
   };
   const spawnPipe = () => {
-    const top = 30 + Math.random() * (H - GAP - 70);
+    const top = 40 + Math.random() * (H - GAP - 110);
     S.pipes.push({ x: W, top, scored: false });
   };
   const flap = () => {
