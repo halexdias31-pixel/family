@@ -87,16 +87,11 @@ option { background: var(--panel); color: var(--text); }
   word-break: break-word;       /* legacy fallback */
 }
 /* Media and embeds stay inside their card */
-/* Media inside cards stays within the card. NOTE: canvas is excluded — scaling a canvas
-   with CSS forces the browser to resample its bitmap every frame, which kills game
-   performance. The game canvas sizes itself instead (see #flappy-canvas below). */
-.card img, .card iframe, .card video, .card svg {
+.card img, .card canvas, .card iframe, .card video, .card svg {
   max-width: 100%;
   height: auto;
   display: block;
 }
-/* Game canvas: render at its native resolution, never CSS-scaled. */
-.card canvas { max-width: 100%; display: block; margin: 0 auto; }
 /* Form controls default to content-width and blow out layouts — cap them */
 .card input, .card select, .card textarea, .card button {
   max-width: 100%;
@@ -363,3 +358,21 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .lesson-block{background:var(--panel2);}
 #add-lesson-btn{border-style:dashed;}
 .remove-lesson-btn:hover{color:#e06c6c!important;}
+
+/* DBS-checked marker on a tutor's card (only shown when 'dbs checked' is TRUE in the sheet) */
+.card .dbs-badge {
+  color: var(--ok, #3cb043) !important;
+  font-size: var(--fs-xs) !important;
+  margin: 2px 0 6px !important;
+  letter-spacing: .3px !important;
+}
+
+/* Tutor timetable: plain text lines inside the tutor's own profile card */
+.tt-section { text-align: left; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.tt-heading { color: var(--gold); font-size: var(--fs-sm); margin-bottom: 6px; }
+.tt-day { margin-bottom: 6px; }
+.tt-dayname { color: var(--gold) !important; font-size: 10px !important; letter-spacing: .5px; margin-bottom: 2px; }
+.tt-line { display: flex; gap: 8px; font-size: 11px; padding: 2px 0; border-bottom: 1px solid var(--border); }
+.tt-line:last-child { border-bottom: none; }
+.tt-time { color: var(--muted) !important; flex-shrink: 0; }
+.tt-what { flex: 1; }
