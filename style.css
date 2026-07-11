@@ -3,21 +3,19 @@
   --panel-alt: #1a1a1a; --border: #333;
   --text: #fff; --muted: #aaa; --text-muted: #888; --err: #ff6b6b;
   --card-w: 170px; /* (legacy) column count is now set via .grid column-count */
-  /* Type scale — FLUID: base + a little vw + a little vh, the same blend as the cards, so
-     text scales with them and balances across screen shapes. Phone ≈ today's sizes, gently
-     larger on big screens, damped by the fixed base so it never swings hard. */
-  --fs-xs: calc(9px + 0.15vw + 0.15vh);   /* badges, tiny labels */
-  --fs-sm: calc(9px + 0.15vw + 0.15vh);   /* sub-text, tags, captions */
-  --fs-base: calc(9.5px + 0.2vw + 0.2vh); /* body / default — the dominant size */
-  --fs-md: calc(9.5px + 0.2vw + 0.2vh);   /* sentence, inputs — same as body */
-  --fs-lg: calc(12px + 0.3vw + 0.3vh);    /* totals, headings (the only larger size) */
+  /* Type: base sets the phone size, a little vw grows it on bigger screens. */
+  --fs-xs: calc(10px + 0.15vw);   /* badges, tiny labels */
+  --fs-sm: calc(10px + 0.15vw);   /* sub-text, tags, captions */
+  --fs-base: calc(10.5px + 0.2vw);/* body / default */
+  --fs-md: calc(10.5px + 0.2vw);  /* sentence, inputs */
+  --fs-lg: calc(13px + 0.3vw);    /* totals, headings */
 
-  /* Fluid spacing — same base + vw + vh blend as type and cards, so padding and gaps
-     breathe in proportion with everything else across every screen shape. */
-  --sp-card:   calc(8px + 0.3vw + 0.3vh);   /* padding inside cards */
-  --sp-gap:    calc(6px + 0.2vw + 0.2vh);   /* gap between cards */
-  --sp-cardmb: calc(6px + 0.2vw + 0.2vh);   /* space below each card */
-  --sp-section:calc(16px + 0.6vw + 0.6vh);  /* space between sections */
+  /* Spacing: same base + vw idea, so padding and gaps grow with everything else. */
+  --sp-card:   calc(6px + 0.25vw);  /* padding inside cards — tightened to give text more room */
+  --sp-gap:    calc(6px + 0.2vw);   /* gap between cards */
+  --sp-cardmb: calc(6px + 0.2vw);   /* space below each card */
+  --sp-section:calc(16px + 0.6vw);  /* space between sections */
+  --tick:      calc(9px + 0.35vw);  /* checkbox size — scales with everything else */
 }
 
 * { box-sizing: border-box; }
@@ -64,12 +62,8 @@ option { background: var(--panel); color: var(--text); }
    term adds width back on wide-but-short screens (laptops) that vh alone under-sizes. So a
    card responds to the screen's overall size, not one axis. Still damped (big base), no
    walls. ~3 per row on a phone, ~9 on a laptop (now wider), ~13 on a 4K screen. */
-/* Card WIDTH = base + a bit of viewport width + a bit of viewport height. Blending vw and
-   vh cancels each unit's bias (vh under-sizes on short laptops, vw over-sizes on phones),
-   giving balanced cards across screen shapes; the fixed base keeps it damped. The browser
-   fits as many columns as the width allows. Tuned so a phone shows ~3 per row and a laptop
-   ~8 (tablet ~5, desktop ~10, 4K ~11). */
-.grid { column-width: calc(88px + 3.5vw + 1.5vh); column-gap: var(--sp-gap); width: 100%; }
+/* Card width: 93px base fits a phone, 3.96vw widens it on bigger screens. ~3 per row on a phone, ~8 on a laptop. */
+.grid { column-width: calc(93px + 3.96vw); column-gap: var(--sp-gap); width: 100%; }
 
 .card {
   display: inline-block;
@@ -327,15 +321,15 @@ option { background: var(--panel); color: var(--text); }
   font-size:var(--fs-xs);color:var(--muted);text-align:center;letter-spacing:.3px;}
 
 /* Checklist rows: flat lines (no bubble) to maximise text space */
-.check-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);margin:0;}
+.check-row{display:flex;align-items:center;gap:4px;padding:2px 0;border-bottom:1px solid var(--border);margin:0;}
 .check-row:last-child{border-bottom:none;}
-.check-topic{flex:1;font-size:var(--fs-sm) !important;line-height:1.3 !important;}
+.check-topic{flex:1;font-size:var(--fs-sm) !important;line-height:1.25 !important;}
 /* Topics with a resource link are clickable — subtle, only revealing on hover. */
 a.check-topic{color:inherit;text-decoration:none;cursor:pointer;}
 a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
-.mini-check{display:flex;align-items:center;gap:2px;font-size:10px !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
-.mini-check input{width:14px;height:14px;accent-color:#4f9eff;margin:0;}
-.mini-check span{font-size:10px !important;}
+.mini-check{display:flex;align-items:center;gap:1px;font-size:var(--fs-xs) !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
+.mini-check input{width:var(--tick);height:var(--tick);accent-color:#4f9eff;margin:0;flex-shrink:0;}
+.mini-check span{font-size:var(--fs-xs) !important;}
 .check-legend{display:flex;gap:12px;font-size:var(--fs-xs);color:var(--muted);margin-bottom:8px;}
 .filter-select{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font:inherit;font-size:var(--fs-sm);margin-right:8px;}
 
