@@ -3,19 +3,28 @@
   --panel-alt: #1a1a1a; --border: #333;
   --text: #fff; --muted: #aaa; --text-muted: #888; --err: #ff6b6b;
   --card-w: 170px; /* (legacy) column count is now set via .grid column-count */
-  /* Type scale — tight cluster so text reads as one uniform size, with only headings larger */
-  --fs-xs: 11px;    /* badges, tiny labels */
-  --fs-sm: 11px;    /* sub-text, tags, captions */
-  --fs-base: 12px;  /* body / default — the dominant size */
-  --fs-md: 12px;    /* sentence, inputs — same as body now */
-  --fs-lg: 16px;    /* totals, headings (only place that's bigger) */
+  /* Type scale — FLUID: base + a little vw + a little vh, the same blend as the cards, so
+     text scales with them and balances across screen shapes. Phone ≈ today's sizes, gently
+     larger on big screens, damped by the fixed base so it never swings hard. */
+  --fs-xs: calc(9px + 0.15vw + 0.15vh);   /* badges, tiny labels */
+  --fs-sm: calc(9px + 0.15vw + 0.15vh);   /* sub-text, tags, captions */
+  --fs-base: calc(9.5px + 0.2vw + 0.2vh); /* body / default — the dominant size */
+  --fs-md: calc(9.5px + 0.2vw + 0.2vh);   /* sentence, inputs — same as body */
+  --fs-lg: calc(12px + 0.3vw + 0.3vh);    /* totals, headings (the only larger size) */
+
+  /* Fluid spacing — same base + vw + vh blend as type and cards, so padding and gaps
+     breathe in proportion with everything else across every screen shape. */
+  --sp-card:   calc(8px + 0.3vw + 0.3vh);   /* padding inside cards */
+  --sp-gap:    calc(6px + 0.2vw + 0.2vh);   /* gap between cards */
+  --sp-cardmb: calc(6px + 0.2vw + 0.2vh);   /* space below each card */
+  --sp-section:calc(16px + 0.6vw + 0.6vh);  /* space between sections */
 }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font: var(--fs-base)/1.55 Consolas, monospace; max-width: 2200px; margin: 24px auto; padding: 12px; }
+body { background: var(--bg); color: var(--text); font: var(--fs-base)/1.55 Consolas, monospace; margin: 2vw auto; padding: 2vw; }
 img { width: 100%; height: auto; }
 h1, h2, h3 { margin-top: 0; }
-section { margin-bottom: 28px; }
+section { margin-bottom: var(--sp-section); }
 
 /* ---------- Utilities ---------- */
 .hidden { display: none !important; }
@@ -50,15 +59,22 @@ input:focus, select:focus { border-color: var(--gold); }
 option { background: var(--panel); color: var(--text); }
 
 /* ---------- Masonry Grid ---------- */
-/* Masonry columns. `column-width` = the IDEAL column width; the browser fits as many
-   columns as the available width allows, so wide screens get more columns automatically
-   and narrow ones fewer. No breakpoints needed. */
-.grid { column-width: 190px; column-gap: 10px; width: 100%; }
+/* Card WIDTH = fixed base + a little viewport WIDTH + more viewport HEIGHT.
+   The vh term keeps cards stable across phone rotation and viewing distance; the small vw
+   term adds width back on wide-but-short screens (laptops) that vh alone under-sizes. So a
+   card responds to the screen's overall size, not one axis. Still damped (big base), no
+   walls. ~3 per row on a phone, ~9 on a laptop (now wider), ~13 on a 4K screen. */
+/* Card WIDTH = base + a bit of viewport width + a bit of viewport height. Blending vw and
+   vh cancels each unit's bias (vh under-sizes on short laptops, vw over-sizes on phones),
+   giving balanced cards across screen shapes; the fixed base keeps it damped. The browser
+   fits as many columns as the width allows. Tuned so a phone shows ~3 per row and a laptop
+   ~8 (tablet ~5, desktop ~10, 4K ~11). */
+.grid { column-width: calc(88px + 3.5vw + 1.5vh); column-gap: var(--sp-gap); width: 100%; }
 
 .card {
   display: inline-block;
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: var(--sp-cardmb);
   /* Keep a card whole within one column (all three properties for cross-browser support) */
   break-inside: avoid;
   page-break-inside: avoid;
@@ -66,7 +82,7 @@ option { background: var(--panel); color: var(--text); }
   background: linear-gradient(135deg, #121212, #050505);
   border: 1px solid var(--gold);
   border-radius: 12px;
-  padding: 12px;
+  padding: var(--sp-card);
   position: relative;
   text-align: center;
   /* A card can never be forced wider than its column by its contents.
@@ -269,10 +285,9 @@ option { background: var(--panel); color: var(--text); }
   h1 { font-size: 26px; }
   h2 { font-size: 20px; }
 
-  /* One full-width card per row — readable, no stranded half-cards */
-  .grid { column-count: 1 !important; }
-  #gallery.grid { grid-template-columns: 1fr !important; }
-  .card { margin-bottom: 16px; }
+  /* Cards stay proportional (~3 per row) on phones too — no forced single column.
+     The .grid vw rule above already handles it; nothing to override here. */
+  .card { margin-bottom: 2vw; }
 
   /* Filters stack instead of forcing sideways scroll */
   .filters { gap: 10px; }
@@ -314,7 +329,7 @@ option { background: var(--panel); color: var(--text); }
 /* Checklist rows: flat lines (no bubble) to maximise text space */
 .check-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);margin:0;}
 .check-row:last-child{border-bottom:none;}
-.check-topic{flex:1;font-size:11px !important;line-height:1.3 !important;}
+.check-topic{flex:1;font-size:var(--fs-sm) !important;line-height:1.3 !important;}
 /* Topics with a resource link are clickable — subtle, only revealing on hover. */
 a.check-topic{color:inherit;text-decoration:none;cursor:pointer;}
 a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
@@ -372,7 +387,7 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .tt-heading { color: var(--gold); font-size: var(--fs-sm); margin-bottom: 6px; }
 .tt-day { margin-bottom: 6px; }
 .tt-dayname { color: var(--gold) !important; font-size: 10px !important; letter-spacing: .5px; margin-bottom: 2px; }
-.tt-line { display: flex; gap: 8px; font-size: 11px; padding: 2px 0; border-bottom: 1px solid var(--border); }
+.tt-line { display: flex; gap: 8px; font-size: var(--fs-sm); padding: 2px 0; border-bottom: 1px solid var(--border); }
 .tt-line:last-child { border-bottom: none; }
 .tt-time { color: var(--muted) !important; flex-shrink: 0; }
 .tt-what { flex: 1; }
