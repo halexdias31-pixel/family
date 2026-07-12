@@ -341,10 +341,10 @@ const tpl = {
   // Simple 25-minute countdown timer with an alarm.
   timerCard: () => `<div class="card" style="text-align:left">
     <h3 class="gold" style="margin-bottom:8px">Timer</h3>
-    <p id="timer-display" style="font-size:34px;text-align:center;margin:10px 0;color:#fff;letter-spacing:2px">25:00</p>
+    <p id="timer-display" style="font-size:var(--fs-display);text-align:center;margin:10px 0;color:#fff;letter-spacing:2px">25:00</p>
     <div style="display:flex;gap:6px">
-      <button type="button" id="timer-toggle" class="action" style="flex:1;margin:0">Start</button>
-      <button type="button" id="timer-reset" class="ghost" style="flex:1;margin:0">Reset</button>
+      <button type="button" id="timer-toggle" class="action" style="flex:1;margin:0;font-size:var(--fs-lg);padding:8px 0">&#9654;</button>
+      <button type="button" id="timer-reset" class="ghost" style="flex:1;margin:0;font-size:var(--fs-lg);padding:8px 0">&#8635;</button>
     </div>
     <p id="timer-msg" class="muted" style="font-size:var(--fs-xs);min-height:1em;margin:8px 0 0;text-align:center"></p>
   </div>`,
@@ -902,7 +902,7 @@ function paintTimer() {
   const m = Math.floor(timerState.left / 60), s = timerState.left % 60;
   el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   const btn = $('timer-toggle');
-  if (btn) btn.textContent = timerState.running ? 'Pause' : 'Start';
+  if (btn) btn.innerHTML = timerState.running ? '&#9208;' : '&#9654;';
 }
 function toggleTimer() {
   if (timerState.running) {
