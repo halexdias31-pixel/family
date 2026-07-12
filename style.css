@@ -15,7 +15,8 @@
   --sp-gap:    calc(6px + 0.2vw);   /* gap between cards */
   --sp-cardmb: calc(6px + 0.2vw);   /* space below each card */
   --sp-section:calc(16px + 0.6vw);  /* space between sections */
-  --tick:      calc(9px + 0.35vw);  /* checkbox size — scales with everything else */
+  --tick:      calc(5px + 0.1vw + 0.1vh);  /* checkbox: ~9px phone, modest growth on PC */
+  --fs-display:calc(20px + 0.8vw);  /* big numeric readouts: calculator + timer */
 }
 
 * { box-sizing: border-box; }
@@ -93,8 +94,7 @@ option { background: var(--panel); color: var(--text); }
    other option. Applies to every element inside every card, so no spot-fixes are needed. */
 .card, .card * {
   min-width: 0;                 /* lets flex/grid children actually shrink */
-  overflow-wrap: anywhere;      /* wrap long words rather than overflow */
-  word-break: break-word;       /* legacy fallback */
+  overflow-wrap: break-word;    /* break a word ONLY if it alone is too wide (not per-character) */
 }
 /* Media and embeds stay inside their card */
 .card img, .card canvas, .card iframe, .card video, .card svg {
@@ -304,15 +304,15 @@ option { background: var(--panel); color: var(--text); }
 }
 /* Compact GCSE calculator in Tools */
 .mini-calc .mc-display{width:100%;background:#0d0f13;border:1px solid var(--border);border-radius:6px;
-  color:#fff;font-family:'Courier New',monospace;font-size:18px;text-align:right;padding:8px 10px;margin-bottom:8px;}
+  color:#fff;font-family:'Courier New',monospace;font-size:var(--fs-display);text-align:right;padding:8px 10px;margin-bottom:8px;}
 .mc-grid{display:grid;gap:5px;}
 .mc-fns{grid-template-columns:repeat(5,1fr);margin-bottom:5px;}
 .mc-nums{grid-template-columns:repeat(4,1fr);}
-.mc-btn{padding:9px 0;border:none;border-radius:6px;background:linear-gradient(#3a3f47,#2b2f36);color:#fff;
-  font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 0 #0c0e11;}
+.mc-btn{padding:calc(6px + 0.4vw) 0;border:none;border-radius:6px;background:linear-gradient(#3a3f47,#2b2f36);color:#fff;
+  font-size:var(--fs-md);font-weight:600;cursor:pointer;box-shadow:0 2px 0 #0c0e11;}
 .mc-btn:active{transform:translateY(2px);box-shadow:none;}
 .mc-btn.op{background:linear-gradient(#4a5568,#374151);}
-.mc-btn.fn{background:linear-gradient(#3a4553,#2a333f);font-size:11px;color:#9fd3ff;}
+.mc-btn.fn{background:linear-gradient(#3a4553,#2a333f);font-size:var(--fs-sm);color:#9fd3ff;}
 .mc-btn.eq{background:linear-gradient(#e0b43e,#c99a1e);color:#1a1d22;}
 .mc-btn.del{background:linear-gradient(#c25b5b,#a04343);}
 
@@ -323,12 +323,24 @@ option { background: var(--panel); color: var(--text); }
 /* Checklist rows: flat lines (no bubble) to maximise text space */
 .check-row{display:flex;align-items:center;gap:4px;padding:2px 0;border-bottom:1px solid var(--border);margin:0;}
 .check-row:last-child{border-bottom:none;}
-.check-topic{flex:1;font-size:var(--fs-sm) !important;line-height:1.25 !important;}
+.check-topic{flex:1;font-size:var(--fs-sm) !important;line-height:1.25 !important;overflow-wrap:normal;word-break:normal;}
 /* Topics with a resource link are clickable — subtle, only revealing on hover. */
 a.check-topic{color:inherit;text-decoration:none;cursor:pointer;}
 a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .mini-check{display:flex;align-items:center;gap:1px;font-size:var(--fs-xs) !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
-.mini-check input{width:var(--tick);height:var(--tick);accent-color:#4f9eff;margin:0;flex-shrink:0;}
+/* iOS Safari ignores width/height on native checkboxes and renders them huge.
+   appearance:none strips the native control so our sizing actually applies. */
+.mini-check input{
+  -webkit-appearance:none; appearance:none;
+  width:var(--tick); height:var(--tick); min-width:var(--tick);
+  border:1px solid var(--border); border-radius:3px; background:var(--panel2);
+  margin:0; flex-shrink:0; cursor:pointer; position:relative;
+}
+.mini-check input:checked{ background:#4f9eff; border-color:#4f9eff; }
+.mini-check input:checked::after{
+  content:''; position:absolute; left:32%; top:12%;
+  width:26%; height:55%; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
+}
 .mini-check span{font-size:var(--fs-xs) !important;}
 .check-legend{display:flex;gap:12px;font-size:var(--fs-xs);color:var(--muted);margin-bottom:8px;}
 .filter-select{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font:inherit;font-size:var(--fs-sm);margin-right:8px;}
