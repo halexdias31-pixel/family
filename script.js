@@ -52,7 +52,10 @@ const $   = id => document.getElementById(id);
 const esc = s  => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Site-wide rule: any @mention or #hashtag in text is coloured blue, like social media.
 // Always escapes first, so it's safe to use anywhere user/sheet text is rendered.
-const escTokens = s => esc(s).replace(/([#@][\w.]+)/g, '<span class="token">$1</span>');
+// Wrap @mentions and #hashtags for styling. They get separate modifier classes because a
+// mention is highlighted in marker while a hashtag stays blue ink.
+const escTokens = s => esc(s).replace(/([#@][\w.]+)/g,
+  m => `<span class="token ${m[0] === '@' ? 'token-at' : 'token-tag'}">${m}</span>`);
 const val = id => ($(id) || {}).value || '';
 // Who participates in the checklist + arcade (topics, levels, highscores): kids AND tutors.
 const canTrack = () => !!USER && (USER.role === 'kid' || USER.role === 'tutor');
@@ -67,7 +70,14 @@ function parseProgress() {
   keys.forEach(k => out[k] = { t1: s1.has(k), t2: s2.has(k), t3: s3.has(k) });
   return out;
 }
-const html = (el, content) => { if ($(el)) $(el).innerHTML = content; };
+// Every section render funnels through here, so it's the one place that needs to re-pack
+// the masonry after the DOM changes.
+const html = (el, content) => {
+  const node = $(el);
+  if (!node) return;
+  node.innerHTML = content;
+  if (node.classList.contains('grid')) requestAnimationFrame(() => layoutGrid(node));
+};
 const tog = (el, force) => $(el)?.classList.toggle('hidden', force);
 // Turn a Google Drive share link into a direct thumbnail URL.
 // Handles both /file/d/FILEID/... and open?id=FILEID / ?id=FILEID formats.
@@ -78,6 +88,104 @@ const drive = url => {
   return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : s;
 };
 const empty = (arr, msg) => arr?.length ? arr.map : () => `<p class="muted">${msg}</p>`;
+
+/* ---------- STICKY-NOTE VARIATION ----------
+   Cards get a small handmade wobble — tilt, tint, uneven corners — so they read as pinned-up
+   notes rather than identical boxes.
+   The important part is that it's NOT random per render: the dice are seeded by the card's
+   own identity, so a given card always looks the same. With Math.random() every card would
+   change tilt and colour on each filter, re-render and resize, and the wall would twitch.
+   Same card → same seed → same look, forever. Different card → different look. */
+const hashOf = str => {                       // FNV-1a: small, fast, well-spread
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+};
+function stickyStyle(card) {
+  // Identify the card by something stable and meaningful, not its position on screen.
+  const id = card.dataset.cardName || card.dataset.cardId
+          || card.querySelector('h3')?.textContent || card.textContent.slice(0, 48);
+  const h = hashOf(String(id));
+  const dice = (shift, n) => (h >>> shift) % n;      // quasi-independent rolls from one hash
+  const s = card.style;
+  s.setProperty('--tilt', (dice(0, 240) / 100 - 1.2).toFixed(2) + 'deg');  // -1.20 … +1.19deg
+  // Paper colour. A narrow band of yellows (lemon -> amber) so the wall reads as one pad of
+  // notes rather than a rainbow. Keeping the hue tight is what makes it feel systematic.
+  s.setProperty('--h', (43 + dice(9, 15)) + '');                           // 43 … 57
+  s.setProperty('--s', (62 + dice(13, 28)) + '%');                         // 62 … 89%
+  s.setProperty('--l', (62 + dice(19, 16)) + '%');                         // 62 … 77%
+  s.setProperty('--ang', (dice(17, 90) + 100) + 'deg');                    // sheen direction
+  // Slightly uneven corners — the torn-paper hint. Subtle, so cards still read as cards.
+  s.setProperty('--r1', (4 + dice(3, 10)) + 'px');
+  s.setProperty('--r2', (4 + dice(6, 10)) + 'px');
+  s.setProperty('--r3', (4 + dice(12, 10)) + 'px');
+  s.setProperty('--r4', (4 + dice(21, 10)) + 'px');
+  // How this one is stuck up: 0 tape, 1 pin, 2 curled corner, 3 bare. Same seed means a
+  // card always gets the same treatment.
+  card.dataset.deco = dice(24, 4);
+}
+
+/* ---------- GRID MASONRY ---------- */
+// How many columns a card should ask for, given how many items it holds. This is the
+// "cards resize to their content" rule — tune the thresholds to taste.
+const spanForCount = n => n >= 80 ? 4 : n >= 35 ? 3 : n >= 14 ? 2 : 1;
+
+/*  The .grid sections are CSS Grid with a small row unit (grid-auto-rows). A card's real
+   height is measured here and turned into a row-span, which is what makes cards of
+   different heights pack tightly — CSS alone can't do this yet.
+   Unlike the old multi-column layout, Grid lets a card span several columns: a card asks
+   via data-span="N", and we clamp N to however many columns actually fit, so a 3-wide card
+   never breaks a narrow phone. */
+function layoutGrid(only) {
+  const grids = only ? [only] : document.querySelectorAll('.grid');
+  grids.forEach(grid => {
+    const cs = getComputedStyle(grid);
+    const rowH = parseFloat(cs.gridAutoRows) || 8;
+    const gap  = parseFloat(cs.rowGap) || 0;
+    const cols = cs.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+    grid.querySelectorAll(':scope > .card').forEach(card => {
+      stickyStyle(card);                      // deterministic wobble; safe to re-run
+      // Width first: spanning more columns makes a card wider, which changes its height.
+      const want = parseInt(card.dataset.span) || 1;
+      const span = Math.max(1, Math.min(want, cols));
+      card.style.gridColumnEnd = span > 1 ? `span ${span}` : '';
+      // Then measure. align-items:start means this is the card's natural content height.
+      // offsetHeight, NOT getBoundingClientRect(): cards are slightly rotated (see
+      // stickyStyle), and getBoundingClientRect would return the rotated bounding box —
+      // taller than the card — which would blow the packing out. offsetHeight ignores
+      // transforms and reports the real layout height.
+      const h = card.offsetHeight;
+      card.style.gridRowEnd = `span ${Math.max(1, Math.ceil((h + gap) / (rowH + gap)))}`;
+    });
+  });
+}
+// Re-pack when the window resizes (column count and card heights both change).
+let GRID_TIMER;
+addEventListener('resize', () => { clearTimeout(GRID_TIMER); GRID_TIMER = setTimeout(() => layoutGrid(), 120); });
+// Images arrive after render and change card heights, so re-pack when each one loads.
+// 'load' doesn't bubble, hence the capture phase.
+addEventListener('load', e => {
+  if (e.target.tagName === 'IMG') layoutGrid(e.target.closest('.grid'));
+}, true);
+
+// A shareable deep link to one card. Built from the card's NAME rather than its sheet row,
+// so a shared link keeps pointing at the right tutor/venue even if rows move in the sheet.
+const cardShareUrl = name =>
+  `${location.origin}${location.pathname}?card=${encodeURIComponent(String(name || '').trim())}`;
+
+// If the page was opened from a shared card link (?card=Name), bring that card into view
+// and flash it, so the person who followed the link sees what was actually shared.
+function focusSharedCard() {
+  const want = new URLSearchParams(location.search).get('card');
+  if (!want) return;
+  const key = s => String(s || '').toLowerCase().trim();
+  const card = [...document.querySelectorAll('[data-card-name]')]
+    .find(el => key(el.dataset.cardName) === key(want));
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('card-flash');
+  setTimeout(() => card.classList.remove('card-flash'), 2200);
+}
 
 /* ---------- INIT ---------- */
 async function init() {
@@ -167,6 +275,11 @@ async function init() {
     verifyFormula();
     ['tutor','venue','class','link'].forEach(renderFilterBar);
     calc();
+    focusSharedCard();   // ?card=Name from a shared link → scroll to it
+    // Which backend is actually serving /exec? If this isn't the version you just saved in
+    // the Apps Script editor, the redeploy didn't land — that's the usual cause of new
+    // backend fields arriving empty.
+    console.log('@family. backend version:', DATA.version || '(older than versioning — needs redeploy)');
   } catch (e) {
     // Show a load error in the health banner (no full-screen loader anymore)
     const banner = $('health-banner');
@@ -226,8 +339,10 @@ const tpl = {
     const stats = (it.type === 'tutor' && (st.xp || it.highscore || st.credits))
       ? `<div class="tutor-stats">Lv ${st.level} · ${st.xp} XP · 🪙 ${st.credits} · 🎮 ${it.highscore || 0}</div>`
       : '';
-    return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}">
-    ${isOwn ? `<div style="display:flex;gap:8px;margin-bottom:8px">
+    return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}" data-card-name="${esc(it.title)}">
+    <button type="button" class="card-share-btn" title="Share ${esc(it.title)}"
+      data-share-url="${esc(cardShareUrl(it.title))}" data-share-title="${esc(it.title)}">⎘</button>
+    ${isOwn ? `<div style="display:flex;gap:8px;margin-bottom:8px;padding-right:26px">
       <button type="button" class="edit-profile-btn" title="Edit your profile" style="flex:1">✎ Edit</button>
       <button type="button" id="logout-btn" class="ghost" style="flex:1;margin:0;padding:8px">Log Out</button>
     </div>` : ''}
@@ -237,11 +352,24 @@ const tpl = {
     ${it.dbs ? `<p class="dbs-badge">✓ DBS checked</p>` : ''}
     <p class="desc">${escTokens(it.description)}</p>
     ${tpl.tagRow(it.tags)}
+    ${tpl.tutorCreds(it)}
     ${tpl.schedule(it.hours)}
     ${tpl.actionBtn(it)}
     ${isOwn ? tpl.timetableSection(it.title) : ''}
     ${stats}
   </div>`;
+  },
+
+  // Professional credentials shown on a tutor's card to any visitor: experience,
+  // what they teach, their qualifications. Each part appears only if it has data, so a
+  // sparse profile just shows less rather than empty headings.
+  tutorCreds: (it) => {
+    const rows = [];
+    if (it.yrsExp) rows.push(`<div class="cred-row"><span class="cred-k">Experience</span><span class="cred-v">${esc(it.yrsExp)} yr${String(it.yrsExp) === '1' ? '' : 's'}</span></div>`);
+    if (it.teaches?.length) rows.push(`<div class="cred-row"><span class="cred-k">Teaches</span><span class="cred-v">${esc(it.teaches.join(', '))}</span></div>`);
+    if (it.quals?.length) rows.push(`<div class="cred-row"><span class="cred-k">Qualifications</span><span class="cred-v">${it.quals.map(q => esc(q)).join('<br>')}</span></div>`);
+    if (it.extraQuals) rows.push(`<div class="cred-row"><span class="cred-k">Also</span><span class="cred-v">${esc(it.extraQuals)}</span></div>`);
+    return rows.length ? `<div class="tutor-creds">${rows.join('')}</div>` : '';
   },
 
   // A single friend's card (shows their level, checklist progress, and arcade high score)
@@ -387,7 +515,7 @@ const tpl = {
 
   // One checklist band card (subject + grade/stage) with two checkboxes per topic.
   // `item` = { subject, band, bandLabel, topics }. Uses current USER progress.
-  checklistBandCard: (item) => {
+  checklistBandCard: (item, _i, all) => {
     const myHandle = canTrack() ? String(USER.handle || '').toLowerCase().trim() : '';
     // A box is checked if my handle appears in that topic's tickN handle-list.
     const iAmIn = (cellStr) => {
@@ -398,41 +526,101 @@ const tpl = {
     const rows = item.topics.map(tp => {
       const box = (n, cell) => `<label class="mini-check"><input type="checkbox" class="topic-cb"
         data-row="${tp.rowIndex}" data-tick="${n}" ${iAmIn(cell) ? 'checked' : ''} ${myHandle ? '' : 'disabled'}></label>`;
-      return `<div class="check-row">
+      // Only trackable items (checklist=TRUE) get the three tick boxes. Reference-only
+      // items (checklist=FALSE — inserts, formula sheets, technique glossaries) show just
+      // the name and link.
+      const boxes = tp.trackable
+        ? `<span class="check-boxes">${box(1, tp.tick1)}${box(2, tp.tick2)}${box(3, tp.tick3)}</span>`
+        : '';
+      return `<div class="check-row${tp.trackable ? '' : ' ref-row'}">
         ${tp.link
           ? `<a class="check-topic" href="${esc(tp.link)}" target="_blank" rel="noopener">${esc(tp.name)}</a>`
           : `<span class="check-topic">${esc(tp.name)}</span>`}
-        ${box(1, tp.tick1)}${box(2, tp.tick2)}${box(3, tp.tick3)}
+        ${boxes}
       </div>`;
     }).join('');
-    return `<div class="card grade-card" style="text-align:left">
-      <h3 class="gold" style="margin-bottom:4px">${esc(item.subject)} · ${esc(item.bandLabel)}</h3>
+    // How many columns this card asks for, based on how much it holds. A 1-topic card stays
+    // small; the 198-topic reference list spreads across 4 columns instead of becoming a
+    // 5000px strip. layoutGrid() clamps this to the columns that actually fit.
+    const span = spanForCount(item.topics.length);
+    // `all` is the sibling list — Array.map hands it over as the third argument, which is
+    // exactly what the title rule needs to see what varies between cards.
+    const title = cardTitle(item, all || [item]);
+    return `<div class="card grade-card" data-span="${span}" style="text-align:left">
+      <h3 class="gold" style="margin-bottom:4px">${esc(title)}</h3>
       <div class="check-list">${rows}</div>
     </div>`;
   },
 
   // The same card switched into edit mode (inputs in place of display fields)
-  profileEditCard: (p = {}) => `<div class="card own-profile editing">
-    <h3 class="gold" style="margin-bottom:12px">Editing your profile</h3>
-    <label class="edit-label">Photo URL</label>
-    <input id="pf-photo" class="edit-input" value="${esc(p.photo || '')}">
-    <label class="edit-label">Tagline</label>
-    <textarea id="pf-description" class="edit-input" rows="2">${esc(p.description || '')}</textarea>
-    <label class="edit-label">Adjectives</label>
-    <div style="display:flex;gap:6px">
-      <input id="pf-adj1" class="edit-input" placeholder="patient" value="${esc(p.adjective_1 || '')}">
-      <input id="pf-adj2" class="edit-input" placeholder="driven"  value="${esc(p.adjective_2 || '')}">
-      <input id="pf-adj3" class="edit-input" placeholder="precise" value="${esc(p.adjective_3 || '')}">
-    </div>
-    <label class="edit-label">Location</label>
-    <input id="pf-location" class="edit-input" value="${esc(p.location || '')}">
-    <label class="edit-label">Intro video URL</label>
-    <input id="pf-video" class="edit-input" value="${esc(p.video || '')}">
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button type="button" id="save-profile-btn" class="action" style="flex:1">Save</button>
-      <button type="button" id="cancel-profile-btn" class="ghost" style="padding:11px">Cancel</button>
-    </div>
-  </div>`,
+  // The edit form is generated from DATA.profileFields (sent by the backend), so the field
+  // list lives in exactly one place. Each input carries data-pf="<sheet column>", and Save
+  // just harvests those — adding a field later needs no frontend change.
+  profileEditCard: (p = {}) => {
+    const groups   = DATA.profileFields || {};
+    const readonly = DATA.profileReadonly || [];
+    const times    = DATA.dropdowns?.times || [];
+    // The field list comes from the backend. If it's missing, the deployed Apps Script is
+    // older than this frontend — say so plainly rather than showing an empty form.
+    if (!Object.keys(groups).length) {
+      return `<div class="card own-profile editing">
+        <h3 class="gold" style="margin-bottom:8px">Editing your profile</h3>
+        <p class="muted" style="font-size:var(--fs-sm);text-align:left">
+          Couldn't load the profile fields. The Apps Script needs redeploying as a
+          <b>new version</b> before this form can appear.</p>
+        <button type="button" id="cancel-profile-btn" class="ghost" style="width:100%">Close</button>
+      </div>`;
+    }
+    const human = c => String(c).replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
+      .replace(/^./, m => m.toUpperCase());
+
+    const field = (colName) => {
+      const v  = p[colName] ?? '';
+      const ro = readonly.includes(colName);
+      let input;
+      if (/_(start|end)$/.test(colName) && times.length) {
+        // Availability uses the same time list as booking, so the two always agree.
+        input = `<select data-pf="${esc(colName)}" class="edit-input">
+          <option value="">—</option>
+          ${times.map(t => `<option value="${esc(t)}"${String(v) === String(t) ? ' selected' : ''}>${esc(fmtTime(t))}</option>`).join('')}
+        </select>`;
+      } else if (['description', 'extra_qualifications', 'Hobbies'].includes(colName)) {
+        input = `<textarea data-pf="${esc(colName)}" class="edit-input" rows="2">${esc(v)}</textarea>`;
+      } else {
+        input = `<input data-pf="${esc(colName)}" class="edit-input" value="${esc(v)}"${ro ? ' disabled' : ''}>`;
+      }
+      return `<label class="pf-field">
+        <span class="edit-label">${esc(human(colName))}</span>
+        ${input}
+      </label>`;
+    };
+
+    const section = (title, cols) => `<fieldset class="pf-group">
+      <legend>${esc(title)}</legend>
+      <div class="pf-grid">${cols.map(c => field(c)).join('')}</div>
+    </fieldset>`;
+
+    const sections = Object.keys(groups).map(g => section(g, groups[g])).join('');
+    // Read-only fields are shown so the tutor can see their status, but can't be changed here.
+    const roSection = readonly.length
+      ? `<fieldset class="pf-group">
+           <legend>Set by admin</legend>
+           <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px;text-align:left">
+             Shown for reference — ask an admin to change these.</p>
+           <div class="pf-grid">${readonly.map(c => field(c)).join('')}</div>
+         </fieldset>`
+      : '';
+
+    return `<div class="card own-profile editing profile-edit-wide" data-span="99">
+      <h3 class="gold" style="margin-bottom:12px">Editing your profile</h3>
+      ${sections}
+      ${roSection}
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button type="button" id="save-profile-btn" class="action" style="flex:1">Save</button>
+        <button type="button" id="cancel-profile-btn" class="ghost" style="padding:11px">Cancel</button>
+      </div>
+    </div>`;
+  },
 
   jobCard: (j, isDash = false, state = '') => {
     const norm = s => String(s || '').toLowerCase().trim();
@@ -621,7 +809,7 @@ const tpl = {
       </span>
       with <select class="pick l-level" data-lesson="${i}"></select>
       delivered @ <select class="pick l-location" data-lesson="${i}"></select>
-      for <input type="number" class="num l-qty" data-lesson="${i}" value="1" min="1" max="4" style="width:40px"> student
+      for <select class="pick l-qty" data-lesson="${i}"></select> student
       with <select class="pick l-tutor" data-lesson="${i}"></select>
       at <select class="pick l-time" data-lesson="${i}"></select>
       on <select class="pick l-day" data-lesson="${i}"></select>
@@ -746,30 +934,142 @@ function onLogin() {
 // Build the flat list of checklist band-items (one per subject+band) for the shared filter system.
 // Each item also carries the distinct values of the per-topic fields, so the shared filter
 // can match a band if ANY of its topics has the chosen company / tier / keystage / stage.
-function checklistItems() {
+// Flatten every tool item into one list (each carries its subject + all its fields).
+function allToolItems() {
   const checklists = DATA.dropdowns?.checklists || {};
-  const items = [];
-  const cap = s => String(s||'').charAt(0).toUpperCase() + String(s||'').slice(1);
-  const distinctOf = (topics, key) => [...new Set(topics.map(t => String(t[key]||'').trim()).filter(Boolean).map(s=>s.toLowerCase()))];
+  const out = [];
   Object.keys(checklists).forEach(subject => {
     const bands = checklists[subject];
-    Object.keys(bands).sort((a,b)=>+a-+b).forEach(band => {
-      const entry = bands[band];
-      const topics = entry.topics || [];
-      // The label uses whichever banding column the sheet actually used for these rows.
-      const bandField = entry.bandField || '';
-      items.push({
-        subject, band: String(band),
-        bandLabel: `${cap(bandField)} ${band}`.trim(),
-        topics,
-        // field value-sets for filtering (a band matches if any topic has the value)
-        companies: distinctOf(topics, 'company'),
-        tiers:     distinctOf(topics, 'tier'),
-        keystages: distinctOf(topics, 'keystage'),
-        stages:    distinctOf(topics, 'stage'),
-        grades:    distinctOf(topics, 'grade')
-      });
+    Object.values(bands).forEach(entry => {
+      (entry.topics || []).forEach(t => out.push({ ...t, subject, _bandField: entry.bandField || '' }));
     });
+  });
+  return out;
+}
+
+// Attributes a card title may mention, in the order they read best.
+const TITLE_DIMS = ['subject', 'band', 'resourceType', 'printout', 'keystage', 'examBoard', 'company', 'tier'];
+
+// The distinct values one card holds for a given attribute.
+function cardValues(item, dim) {
+  if (dim === 'subject')      return item.subject ? [String(item.subject)] : [];
+  if (dim === 'band')         return item.bandLabel ? [String(item.bandLabel)] : [];
+  if (dim === 'resourceType') return item.resourceTypes || [];
+  if (dim === 'keystage')     return item.keystages || [];
+  if (dim === 'examBoard')    return item.examBoards || [];
+  if (dim === 'company')      return item.companies || [];
+  if (dim === 'tier')         return item.tiers || [];
+  if (dim === 'printout')     return item.printouts || [];
+  return [];
+}
+
+// A card's title should say exactly what tells it apart from the cards beside it — no more,
+// no less. An attribute earns its place only if BOTH hold:
+//   1. it's the same for every topic in this card  → it's genuinely a property of the card
+//   2. it separates two cards that the title SO FAR still leaves looking identical
+// Rule 2 does all the work. An attribute that's identical everywhere (exam board, when
+// every card is Edexcel) separates nothing, so it's dropped. So is an attribute that merely
+// restates one already shown: once "Grade 5" is in the title, "KS3" splits no cards that
+// grade hasn't already split, so it's redundant and goes too.
+// This is also why titles respond to filtering without ever looking at the filters: pinning
+// the exam board makes it constant, so it stops separating anything and drops out by itself.
+function cardTitle(item, siblings) {
+  const sibs = (siblings && siblings.length) ? siblings : [item];
+  const cap = s => String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1);
+  // One card's value for a set of attributes, as a comparable key.
+  const sig = (card, dims) => dims.map(d => {
+    const v = cardValues(card, d);
+    return v.length === 1 ? String(v[0]).toLowerCase() : '\u0000mixed';
+  }).join('|');
+
+  const chosen = [];
+  // The "Group by" control doesn't regroup any more (grouping is fixed to "everything") — it
+  // just promotes one attribute to the FRONT of the title, so the person can lead with what
+  // they care about. It's added first if this card has a single value for it.
+  const force = item._force;
+  if (force && force !== 'auto' && cardValues(item, force).length === 1) chosen.push(force);
+
+  for (const dim of TITLE_DIMS) {
+    if (chosen.includes(dim)) continue;
+    if (cardValues(item, dim).length !== 1) continue;   // mixed inside this card
+    // Does this attribute split any group of cards the title can't tell apart yet?
+    const seen = new Map();
+    let separates = false;
+    for (const s of sibs) {
+      const key = sig(s, chosen), val = sig(s, [dim]);
+      if (!seen.has(key)) seen.set(key, val);
+      else if (seen.get(key) !== val) { separates = true; break; }
+    }
+    if (separates) chosen.push(dim);
+  }
+
+  const parts = chosen.map(d => cap(cardValues(item, d)[0]));
+  // If filtering narrows things so far that nothing distinguishes, the card still needs a name.
+  return parts.join(' · ')
+      || [item.subject, item.bandLabel].filter(Boolean).join(' · ')
+      || 'Topics';
+}
+
+// The attributes that define a card. Two topics share a card only if they match on ALL of
+// these — so every card is uniform in every attribute, and any difference splits it into its
+// own card. This is the whole grouping rule: no priority list, no "which dimension wins".
+// Order here is just the order they read in the title.
+const CARD_DIMS = ['subject', 'band', 'resourceType', 'printout', 'keystage', 'examBoard', 'tier', 'company'];
+
+// One topic's value for a dimension, as a plain string (band = grade or stage, whichever it has).
+function dimValue(it, dim) {
+  if (dim === 'band')     return String(it.grade || it.stage || '');
+  if (dim === 'subject')  return String(it.subject || '');
+  return String(it[dim] || '');
+}
+
+// Build the checklist cards. Grouping is fixed (group by everything); `forceDim` is kept for
+// the manual override, which now just promotes one dimension to the front of the title.
+function checklistItems(forceDim) {
+  const distinctOf = (topics, key) => [...new Set(topics.map(t => String(t[key]||'').trim()).filter(Boolean).map(s=>s.toLowerCase()))];
+  const all = allToolItems();
+  if (!all.length) return [];
+
+  // A card = a set of topics identical across every CARD_DIM. The composite key is just all
+  // those values joined, so any single difference lands the topics in different cards.
+  const groups = {};
+  all.forEach(it => {
+    const key = CARD_DIMS.map(d => dimValue(it, d)).join('|~|');
+    if (!groups[key]) groups[key] = { sample: it, topics: [] };
+    groups[key].topics.push(it);
+  });
+
+  const cap = s => String(s||'').charAt(0).toUpperCase() + String(s||'').slice(1);
+  const items = Object.values(groups).map(g => {
+    const t = g.sample;
+    const bandVal = t.grade || t.stage || '';
+    const bandLabel = bandVal
+      ? `${cap(t._bandField || (t.grade ? 'grade' : 'stage'))} ${bandVal}`.trim()
+      : (t.trackable ? '' : 'Reference');
+    return {
+      subject: t.subject || 'Other',
+      band: bandVal || (t.trackable ? '' : 'Reference'),
+      bandLabel,
+      topics: g.topics,
+      // Each card is uniform, so these sets have exactly one value (or none) — but the title
+      // rule and filters read them the same way as before.
+      companies: distinctOf(g.topics, 'company'),
+      tiers:     distinctOf(g.topics, 'tier'),
+      keystages: distinctOf(g.topics, 'keystage'),
+      stages:    distinctOf(g.topics, 'stage'),
+      grades:    distinctOf(g.topics, 'grade'),
+      examBoards:distinctOf(g.topics, 'examBoard'),
+      resourceTypes: distinctOf(g.topics, 'resourceType'),
+      printouts: distinctOf(g.topics, 'printout'),
+      hasPaper:  g.topics.some(x => x.paper),
+      _force: (forceDim && forceDim !== 'auto') ? forceDim : ''
+    };
+  });
+  items.sort((a, b) => {
+    if (a.subject !== b.subject) return a.subject.localeCompare(b.subject);
+    const na = parseFloat(a.band), nb = parseFloat(b.band);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return String(a.band).localeCompare(String(b.band));
   });
   return items;
 }
@@ -1103,6 +1403,40 @@ function fillDropdowns() {
   document.querySelectorAll('.lesson-block').forEach(b => fillLessonBlock(parseInt(b.dataset.lesson)));
 }
 
+// Seats in a lesson. (Venues carry max_capacity in the sheet; if that ever reaches the
+// venue payload, read it from there instead of this constant.)
+const MAX_SEATS = 4;
+
+// Students dropdown — a <select> like every other field in the sentence, so the whole
+// sentence behaves the same way (no number spinner). Home lessons need the full group,
+// so those only offer the maximum.
+function syncQtyOptions(i) {
+  const qtyEl = document.querySelector(`.l-qty[data-lesson="${i}"]`);
+  if (!qtyEl) return;
+  const locEl = document.querySelector(`.l-location[data-lesson="${i}"]`);
+  const min = (locEl && isHome(locEl.value)) ? MAX_SEATS : 1;
+  const prev = parseInt(qtyEl.value) || 1;
+  const opts = [];
+  for (let n = min; n <= MAX_SEATS; n++) opts.push(n);
+  qtyEl.innerHTML = opts.map(n => `<option value="${n}">${n}</option>`).join('');
+  qtyEl.value = opts.includes(prev) ? prev : opts[0];
+}
+
+// "split with N other people" — the bill is divided (N+1) ways, so N can never exceed
+// (seats - 1): a lesson can't be split more ways than it has students. Options rebuild
+// whenever the student count changes, keeping the current choice when it's still valid.
+function syncSplitOptions(i) {
+  const splitEl = document.querySelector(`.l-split[data-lesson="${i}"]`);
+  if (!splitEl) return;
+  const qtyEl = document.querySelector(`.l-qty[data-lesson="${i}"]`);
+  const n = Math.max(1, parseInt(qtyEl?.value) || 1);
+  const prev = parseInt(splitEl.value) || 0;
+  const opts = [];
+  for (let x = 0; x <= n - 1; x++) opts.push(x);
+  splitEl.innerHTML = opts.map(x => `<option value="${x}">${x}</option>`).join('');
+  splitEl.value = opts.includes(prev) ? prev : 0;
+}
+
 // Populate one lesson block's dropdowns (level, location, day, time, subjects)
 function fillLessonBlock(i) {
   const d = DATA.dropdowns || {};
@@ -1132,9 +1466,9 @@ function fillLessonBlock(i) {
       : '<option value="">No terms</option>';
     syncBlockWeeks(i);
   }
-  // Split: each lesson can be split with up to 3 others (0 = no split)
-  const splitEl = document.querySelector(`.l-split[data-lesson="${i}"]`);
-  if (splitEl) splitEl.innerHTML = [0,1,2,3].map(x => `<option value="${x}">${x}</option>`).join('');
+  // Students, then split — split's options depend on how many students were picked.
+  syncQtyOptions(i);
+  syncSplitOptions(i);
   // Subject checkbox dropdown for this block
   const drop = document.querySelector(`.l-subject-dropdown[data-lesson="${i}"]`);
   if (drop) drop.innerHTML = (d.subjects||[]).map(s =>
@@ -1452,8 +1786,8 @@ const FILTER_DEFS = {
   },
   tool: {
     target: 'checklist-content',
-    source: () => checklistItems(),
-    // Calculator card always first, then the filtered checklist band cards
+    source: () => checklistItems(window.TOOL_GROUP_BY || 'auto'),
+    // Calculator card always first, then the group-by control, then the checklist cards
     render: items => { html('checklist-content',
       tpl.calcToolCard() + tpl.timerCard() + tpl.notepadCard()
       + (items.length ? items.map(tpl.checklistBandCard).join('')
@@ -1465,8 +1799,11 @@ const FILTER_DEFS = {
       grade:        { label: 'Grade',          opts: () => uniq(allTopicFieldValues('grade')).sort((a,b)=>+a-+b), match: (x,v) => x.grades.includes(v) },
       keystage:     { label: 'Key stage',      opts: () => uniq(allTopicFieldValues('keystage')), match: (x,v) => x.keystages.includes(v) },
       tier:         { label: 'Higher/lower',   opts: () => uniq(allTopicFieldValues('tier')),     match: (x,v) => x.tiers.includes(v) },
+      examBoard:    { label: 'Exam board',     opts: () => uniq(allTopicFieldValues('examBoard')),match: (x,v) => x.examBoards.includes(v) },
+      resourceType: { label: 'Resource type',  opts: () => uniq(allTopicFieldValues('resourceType')), match: (x,v) => x.resourceTypes.includes(v) },
       company:      { label: 'Company',        opts: () => uniq(allTopicFieldValues('company')),  match: (x,v) => x.companies.includes(v) },
       stage:        { label: 'Stage',          opts: () => uniq(allTopicFieldValues('stage')),    match: (x,v) => x.stages.includes(v) },
+      paper:        { label: 'Print-out needed', opts: () => ['Yes'], match: (x,v) => x.hasPaper },
     }
   },
 };
@@ -1507,7 +1844,22 @@ function renderFilterBar(prefix) {
         </span>
       </span>` : '';
 
-  bar.innerHTML = search + dropdowns + addChip;
+  // Tools section gets a "Group by" control in the filter bar (not in the grid).
+  let groupBy = '';
+  if (prefix === 'tool') {
+    const cur = window.TOOL_GROUP_BY || 'auto';
+    const opt = (v, label) => `<option value="${v}"${cur === v ? ' selected' : ''}>${label}</option>`;
+    groupBy = `<select id="tool-group-by" class="filter filter-dyn" title="Lead card titles with">
+      ${opt('auto', 'Sort: Automatic')}
+      ${opt('band', 'Sort: Grade / Stage')}
+      ${opt('resourceType', 'Sort: Resource type')}
+      ${opt('printout', 'Sort: Print-out')}
+      ${opt('keystage', 'Sort: Key stage')}
+      ${opt('examBoard', 'Sort: Exam board')}
+    </select>`;
+  }
+
+  bar.innerHTML = search + dropdowns + addChip + groupBy;
 }
 
 function applyFilter(prefix) {
@@ -1536,14 +1888,22 @@ function enforceHomeRuleBlock(i) {
   const qty = document.querySelector(`.l-qty[data-lesson="${i}"]`);
   const locEl = document.querySelector(`.l-location[data-lesson="${i}"]`);
   if (!qty || !locEl) return;
-  const home = isHome(locEl.value);
-  qty.min = home ? 4 : 1;
-  if (home && (parseInt(qty.value) || 0) < 4) qty.value = 4;
+  // Rebuild the options (a <select> has no .min), then resync split, since the seat
+  // count may have been forced up to a full group.
+  syncQtyOptions(i);
+  syncSplitOptions(i);
 }
 function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
 
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const id = e.target.id;
+
+  // Tools "Group by" override: store the choice and re-run the tool filter to regroup.
+  if (id === 'tool-group-by') {
+    window.TOOL_GROUP_BY = e.target.value;
+    applyFilter('tool');
+    return;
+  }
 
   // Notepad auto-saves shortly after you stop typing (debounced so we don't save every keystroke)
   if (id === 'notepad-text' && USER) {
@@ -1557,6 +1917,9 @@ function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
         .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
     }, 900);
   }
+  // Student count changed → rebuild that block's split options (max = seats - 1) BEFORE
+  // pricing, so the price never uses a split that's no longer valid.
+  if (e.target.classList.contains('l-qty')) syncSplitOptions(parseInt(e.target.dataset.lesson));
   if (e.target.closest('#new-job')) calc();
   // Per-lesson term changed → update that block's weeks label
   if (e.target.classList.contains('l-interval')) { syncBlockWeeks(parseInt(e.target.dataset.lesson)); calc(); }
@@ -1808,7 +2171,7 @@ document.addEventListener('click', e => {
   // Tutor clicks Edit on their own Team card → swap that card to edit mode in place
   if (t.classList.contains('edit-profile-btn')) {
     const card = t.closest('.card');
-    if (card) card.outerHTML = tpl.profileEditCard(USER.profile || {});
+    if (card) { const g = card.closest('.grid'); card.outerHTML = tpl.profileEditCard(USER.profile || {}); layoutGrid(g); }
     return;
   }
   // Cancel editing → restore just this card to display form (no section rebuild)
@@ -1816,37 +2179,43 @@ document.addEventListener('click', e => {
     const norm = s => String(s || '').toLowerCase().trim();
     const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
     const card = t.closest('.card');
-    if (card && me) card.outerHTML = tpl.card(me);
+    if (card && me) { const g = card.closest('.grid'); card.outerHTML = tpl.card(me); layoutGrid(g); }
     return;
   }
 
   if (t.id === 'save-profile-btn') {
-    const profile = {
-      action: 'updateProfile',
-      name: USER.name,
-      description: val('pf-description'),
-      adjective_1: val('pf-adj1'),
-      adjective_2: val('pf-adj2'),
-      adjective_3: val('pf-adj3'),
-      location: val('pf-location'),
-      photo: val('pf-photo'),
-      video: val('pf-video'),
-    };
-    post(profile, t, '✅ Saved');
-    if (USER.profile) Object.assign(USER.profile, profile);
-    // Update the live tutor record so a later natural re-render shows new values
+    const card = t.closest('.card');
+    // Harvest every field the form rendered. Disabled (admin-only) inputs are skipped, and
+    // the backend ignores anything not on its allow-list anyway.
+    const fields = {};
+    card?.querySelectorAll('[data-pf]').forEach(el => { if (!el.disabled) fields[el.dataset.pf] = el.value; });
+
     const norm = s => String(s || '').toLowerCase().trim();
-    const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
+    const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));  // find BEFORE any rename
+
+    post({ action: 'updateProfile', name: USER.name, fields }, t, '✅ Saved');
+    if (!USER.profile) USER.profile = {};
+    Object.assign(USER.profile, fields);
+
+    // Renaming changes the name login matches on, so the session has to follow it or the
+    // tutor would be editing a profile the site no longer recognises as theirs.
+    const newName = `${fields.first_name ?? ''} ${fields.last_name ?? ''}`.trim();
+    if (newName && newName !== USER.name) {
+      USER.name = newName;
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+    }
+
+    // Update the live tutor record so the card shows the new values immediately
     if (me) {
-      me.description = profile.description ? `"${profile.description}"` : '';
-      me.tags = [profile.adjective_1, profile.adjective_2, profile.adjective_3].filter(Boolean);
-      me.image = profile.photo;
-      me.mediaUrl = profile.video;
-      me.subtitle = `📍 ${profile.location || 'London'}`;
+      if (newName) me.title = newName;
+      if (fields.description !== undefined) me.description = fields.description ? `"${fields.description}"` : '';
+      me.tags = [fields.adjective_1, fields.adjective_2, fields.adjective_3].filter(Boolean);
+      if (fields.photo !== undefined) me.image = fields.photo;
+      if (fields.video !== undefined) me.mediaUrl = fields.video;
+      if (fields.city !== undefined) me.subtitle = `📍 ${fields.city || 'London'}`;
     }
     // Swap just this one card back to its display form (no whole-section rebuild)
-    const card = t.closest('.card');
-    if (card && me) card.outerHTML = tpl.card(me);
+    if (card && me) { const g = card.closest('.grid'); card.outerHTML = tpl.card(me); layoutGrid(g); }
     return;
   }
 
@@ -1910,10 +2279,16 @@ document.addEventListener('click', e => {
     setTimeout(() => t.textContent = 'Save Progress', 2000);
   }
 
-  // Share button
-  if (t.closest('.social-share-btn')) {
-    const url = t.closest('.social-share-btn').dataset.shareUrl;
-    navigator.share ? navigator.share({ title: '@family. Gallery', url }).catch(()=>{}) : (navigator.clipboard.writeText(url), alert('Image link copied!'));
+  // Share buttons — gallery posts and tutor/venue cards all behave the same:
+  // native share sheet where the device has one, clipboard copy otherwise.
+  const shareBtn = t.closest('.social-share-btn, .card-share-btn');
+  if (shareBtn) {
+    const url = shareBtn.dataset.shareUrl;
+    const title = shareBtn.dataset.shareTitle || '@family. Gallery';
+    if (navigator.share) navigator.share({ title, url }).catch(() => {});
+    else navigator.clipboard?.writeText(url)
+      .then(() => alert('Link copied!'))
+      .catch(() => alert(url));
   }
 });
 
