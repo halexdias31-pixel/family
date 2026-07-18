@@ -126,16 +126,18 @@ function stickyStyle(card) {
 }
 
 /* ---------- GRID MASONRY ---------- */
-// How many columns a card should ask for, given how many items it holds. This is the
-// "cards resize to their content" rule — tune the thresholds to taste.
-const spanForCount = n => n >= 80 ? 4 : n >= 35 ? 3 : n >= 14 ? 2 : 1;
-
 /*  The .grid sections are CSS Grid with a small row unit (grid-auto-rows). A card's real
    height is measured here and turned into a row-span, which is what makes cards of
    different heights pack tightly — CSS alone can't do this yet.
    Unlike the old multi-column layout, Grid lets a card span several columns: a card asks
    via data-span="N", and we clamp N to however many columns actually fit, so a 3-wide card
    never breaks a narrow phone. */
+// The height a card is allowed to reach before the layout widens it into more columns.
+// Spreading a card's content across N columns cuts its height to roughly 1/N, so a very tall
+// card earns more columns. This is the ONE rule that governs every card's width — no per-card
+// settings. Raise it for taller/narrower cards, lower it for shorter/wider ones.
+const CARD_TARGET_H = 460;
+
 function layoutGrid(only) {
   const grids = only ? [only] : document.querySelectorAll('.grid');
   grids.forEach(grid => {
@@ -145,15 +147,29 @@ function layoutGrid(only) {
     const cols = cs.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
     grid.querySelectorAll(':scope > .card').forEach(card => {
       stickyStyle(card);                      // deterministic wobble; safe to re-run
-      // Width first: spanning more columns makes a card wider, which changes its height.
-      const want = parseInt(card.dataset.span) || 1;
-      const span = Math.max(1, Math.min(want, cols));
-      card.style.gridColumnEnd = span > 1 ? `span ${span}` : '';
-      // Then measure. align-items:start means this is the card's natural content height.
-      // offsetHeight, NOT getBoundingClientRect(): cards are slightly rotated (see
-      // stickyStyle), and getBoundingClientRect would return the rotated bounding box —
-      // taller than the card — which would blow the packing out. offsetHeight ignores
-      // transforms and reports the real layout height.
+
+      // Decide the width. An explicit data-span (booking card, edit form) is intentional and
+      // always wins. Otherwise: try 1 column, and only widen while the card is still taller
+      // than the target — re-measuring at each width. This beats "height ÷ target" because a
+      // card's 1-column height can be inflated by pathological wrapping (a value breaking one
+      // letter per line); widening fixes the wrap, so the card gets shorter faster than the
+      // arithmetic predicts. Stepping up and re-measuring finds the true minimum width.
+      let span;
+      if (card.dataset.span) {
+        span = Math.max(1, Math.min(parseInt(card.dataset.span) || 1, cols));
+        card.style.gridColumnEnd = span > 1 ? `span ${span}` : '';
+      } else {
+        span = 1;
+        card.style.gridColumnEnd = '';
+        while (span < Math.min(4, cols) && card.offsetHeight > CARD_TARGET_H) {
+          span++;
+          card.style.gridColumnEnd = `span ${span}`;
+        }
+      }
+
+      // Now measure height at the CHOSEN width (wider cards are shorter) and convert to a
+      // row-span. offsetHeight, NOT getBoundingClientRect(): cards are slightly rotated (see
+      // stickyStyle), and the rotated bounding box would blow the packing out.
       const h = card.offsetHeight;
       card.style.gridRowEnd = `span ${Math.max(1, Math.ceil((h + gap) / (rowH + gap)))}`;
     });
@@ -539,14 +555,13 @@ const tpl = {
         ${boxes}
       </div>`;
     }).join('');
-    // How many columns this card asks for, based on how much it holds. A 1-topic card stays
-    // small; the 198-topic reference list spreads across 4 columns instead of becoming a
-    // 5000px strip. layoutGrid() clamps this to the columns that actually fit.
-    const span = spanForCount(item.topics.length);
     // `all` is the sibling list — Array.map hands it over as the third argument, which is
     // exactly what the title rule needs to see what varies between cards.
     const title = cardTitle(item, all || [item]);
-    return `<div class="card grade-card" data-span="${span}" style="text-align:left">
+    // No data-span: this card widens by the same height rule as every other card in
+    // layoutGrid(). A big reference list is tall, so it earns more columns; a 1-topic card
+    // stays at 1. The .check-list flows into internal columns when the card is wide (CSS).
+    return `<div class="card grade-card" style="text-align:left">
       <h3 class="gold" style="margin-bottom:4px">${esc(title)}</h3>
       <div class="check-list">${rows}</div>
     </div>`;
