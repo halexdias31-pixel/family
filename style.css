@@ -602,3 +602,15 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .cred-row { display: flex; gap: 8px; font-size: var(--fs-sm); padding: 2px 0; align-items: baseline; }
 .cred-k { color: var(--gold); flex-shrink: 0; min-width: 84px; }
 .cred-v { color: var(--text); }
+
+/* Booking builder: two columns (form | running total) when the card is wide, one when narrow.
+   The summary sticks so the price stays visible while you scroll a long lesson list. */
+.builder-cols { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 620px) {
+  .builder-cols { grid-template-columns: 1.4fr 1fr; }
+  .builder-summary { align-self: start; position: sticky; top: 10px; }
+}
+.builder-summary { border-top: 1px solid var(--border); padding-top: 12px; }
+@media (min-width: 620px) {
+  .builder-summary { border-top: none; border-left: 1px solid var(--border); padding: 0 0 0 16px; }
+}
