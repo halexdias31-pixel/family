@@ -773,26 +773,30 @@ const tpl = {
     </div>`;
   },
 
-  builderCard: () => `<div class="card" id="new-job">
+  builderCard: () => `<div class="card" id="new-job" data-span="2">
     <h3 class="gold" style="margin-bottom:15px">Build a Session</h3>
     <input type="hidden" id="c-service" value="Tuition">
 
-    <!-- Each lesson is fully independent: its own subject, tutor, term, and split. -->
-    <p class="sentence" style="line-height:2.2;text-align:left;margin:0 0 4px">I want tuition:</p>
+    <!-- Two columns when the card is wide enough: the form on the left, the running total
+         and breakdown on the right. Collapses to one column on narrow screens. -->
+    <div class="builder-cols">
+      <div class="builder-form">
+        <!-- Each lesson is fully independent: its own subject, tutor, term, and split. -->
+        <p class="sentence" style="line-height:2.2;text-align:left;margin:0 0 4px">I want tuition:</p>
+        <div id="lessons"></div>
+        <button type="button" id="add-lesson-btn" class="ghost" style="width:100%;margin:10px 0">＋ Add another lesson</button>
+      </div>
 
-    <div id="lessons"></div>
-    <button type="button" id="add-lesson-btn" class="ghost" style="width:100%;margin:10px 0">＋ Add another lesson</button>
-
-    <div class="total"><h2 style="font-size:var(--fs-lg);margin:15px 0">Order total: £<span id="total">0.00</span></h2></div>
-
-    <div class="calc-breakdown">
-      <p class="muted breakdown-heading">Breakdown</p>
-      <div id="calc-receipt" class="receipt"></div>
+      <div class="builder-summary">
+        <div class="total"><h2 style="font-size:var(--fs-lg);margin:0 0 12px">Order total: £<span id="total">0.00</span></h2></div>
+        <div class="calc-breakdown">
+          <p class="muted breakdown-heading">Breakdown</p>
+          <div id="calc-receipt" class="receipt"></div>
+        </div>
+        <p id="home-note" class="muted hidden" style="font-size:var(--fs-sm);margin:10px 0 0">At-home lessons require a group of 4 students.</p>
+        <div id="checkout-area" class="checkout" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
+      </div>
     </div>
-
-    <p id="home-note" class="muted hidden" style="font-size:var(--fs-sm);margin:10px 0 0">At-home lessons require a group of 4 students.</p>
-
-    <div id="checkout-area" class="checkout" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>`,
 
   // One lesson block (repeatable). `i` = block index, used to keep field ids unique.
