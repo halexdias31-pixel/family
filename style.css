@@ -561,10 +561,8 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 /* A checklist card that spans more than one column flows its own topics into columns, so a
    wide card stays a readable shape instead of a long single list. */
 /* When a checklist card is wider than one column, flow its topics into internal columns so a
-   tall list becomes a readable block instead of one long strip. Keys off the applied span. */
-.grade-card[style*="span 2"] .check-list,
-.grade-card[style*="span 3"] .check-list,
-.grade-card[style*="span 4"] .check-list {
+   tall list becomes a readable block instead of one long strip. */
+.grade-card:not([data-span="1"]) .check-list {
   display: block;                       /* was flex column — multicol needs a block */
   column-width: calc(110px + 3vw);
   column-gap: calc(10px + 1vw);
@@ -603,18 +601,10 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 
 /* Tutor credentials block — a small key/value list on the card. Reads as a note, not a form. */
 .tutor-creds { text-align: left; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); }
-/* Stack label above value: on a narrow card a side-by-side label eats the width and forces
-   the value to wrap one letter per line. Stacked, the value always gets the full card width. */
+/* Stack label above value so the value gets the full width and never wraps one letter/line. */
 .cred-row { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-sm); padding: 3px 0; }
 .cred-k { color: var(--gold); font-size: var(--fs-xs); }
 .cred-v { color: var(--text); min-width: 0; overflow-wrap: anywhere; }
-/* When the card is wide, lay the credential rows out in columns to use the space */
-.card:not([style*="span 1"]) .tutor-creds { }
-.tutor-creds { column-gap: 16px; }
-.card[style*="span 2"] .tutor-creds, .card[style*="span 3"] .tutor-creds, .card[style*="span 4"] .tutor-creds {
-  column-width: 150px;
-}
-.tutor-creds .cred-row { break-inside: avoid; }
 
 /* Booking builder: two columns (form | running total) when the card is wide, one when narrow.
    The summary sticks so the price stays visible while you scroll a long lesson list. */
