@@ -2,6 +2,8 @@
   --gold: #d4af37; --bg: #000; --panel: #111; --panel2: #0a0a0a;
   --panel-alt: #1a1a1a; --border: #333;
   --text: #fff; --muted: #aaa; --text-muted: #888; --err: #ff6b6b;
+  --token: #4f9eff;   /* @mention / #hashtag blue (re-defined darker inside cards) */
+  --board: #4f3520;   /* the cork board — lighter = paler cork, darker = deeper board */
   --card-w: 170px; /* (legacy) column count is now set via .grid column-count */
   /* Type: base sets the phone size, a little vw grows it on bigger screens. */
   --fs-xs: calc(10px + 0.15vw);   /* badges, tiny labels */
@@ -15,12 +17,40 @@
   --sp-gap:    calc(6px + 0.2vw);   /* gap between cards */
   --sp-cardmb: calc(6px + 0.2vw);   /* space below each card */
   --sp-section:calc(16px + 0.6vw);  /* space between sections */
-  --tick:      calc(5px + 0.1vw + 0.1vh);  /* checkbox: ~9px phone, modest growth on PC */
+  --tick:      calc(2px + 0.1vw + 0.01vh);  /* checkbox size */
   --fs-display:calc(20px + 0.8vw);  /* big numeric readouts: calculator + timer */
 }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font: var(--fs-base)/1.55 Consolas, monospace; margin: 2vw auto; padding: 2vw; }
+/* The board the notes are pinned to. Cork, built from layered flecks rather than an image
+   file — no extra request, and it scales to any screen. Real cork is granular, so this is
+   eight fleck layers, both lighter and darker than the base, at small tile sizes. The sizes
+   are deliberately co-prime-ish (23/29/31/37/41/19/47/53) so the layers drift out of step
+   and the grain never visibly repeats.
+   background-attachment:fixed holds the board still while the notes scroll over it — that
+   parallax is what keeps the two reading as separate layers rather than one surface.
+   --bg stays black: it doubles as the "contrast against gold" colour on buttons and badges,
+   so it can't become brown. */
+body {
+  background-color: var(--board, #4f3520);
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(150,108,64,.55) 0 2px,   transparent 2.5px),
+    radial-gradient(circle at 62% 8%,  rgba(30,18,8,.55)    0 1.5px, transparent 2px),
+    radial-gradient(circle at 84% 41%, rgba(160,118,72,.45) 0 2.5px, transparent 3px),
+    radial-gradient(circle at 33% 63%, rgba(26,15,6,.5)     0 2px,   transparent 2.5px),
+    radial-gradient(circle at 71% 78%, rgba(138,100,58,.5)  0 1.5px, transparent 2px),
+    radial-gradient(circle at 9%  88%, rgba(34,20,9,.45)    0 2px,   transparent 2.5px),
+    radial-gradient(circle at 47% 35%, rgba(126,90,52,.42)  0 1px,   transparent 1.5px),
+    radial-gradient(circle at 95% 92%, rgba(22,13,5,.42)    0 1.5px, transparent 2px);
+  background-size: 23px 23px, 29px 27px, 31px 33px, 37px 35px, 41px 43px, 19px 21px, 47px 45px, 53px 51px;
+  background-attachment: fixed;
+  color: var(--text);
+  font: var(--fs-base)/1.55 Consolas, monospace;
+  margin: 2vw auto;
+  padding: 2vw;
+}
+/* Headings sit straight on the cork, so they need a shadow to stay crisp against it */
+h1, h2 { text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 img { width: 100%; height: auto; }
 h1, h2, h3 { margin-top: 0; }
 section { margin-bottom: var(--sp-section); }
@@ -64,19 +94,69 @@ option { background: var(--panel); color: var(--text); }
    card responds to the screen's overall size, not one axis. Still damped (big base), no
    walls. ~3 per row on a phone, ~9 on a laptop (now wider), ~13 on a 4K screen. */
 /* Card width: 93px base fits a phone, 3.96vw widens it on bigger screens. ~3 per row on a phone, ~8 on a laptop. */
-.grid { column-width: calc(93px + 3.96vw); column-gap: var(--sp-gap); width: 100%; }
+/* Masonry via CSS Grid. Columns auto-fill at the fluid card width, exactly as the old
+   column-width did — but Grid (unlike multi-column) lets a card span 2, 3 or more columns,
+   and fills left-to-right instead of down-then-across.
+   The tight packing comes from grid-auto-rows: each card's measured height is turned into
+   a row-span by layoutGrid() in script.js. `dense` lets small cards backfill the gaps that
+   wider cards leave behind. align-items:start keeps every card at its natural height, which
+   is what makes the height measurement work. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(93px + 3.96vw), 1fr));
+  grid-auto-rows: 8px;
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: var(--sp-gap);
+  width: 100%;
+}
 
 .card {
-  display: inline-block;
+  /* --- Sticky note ---
+     The variables below are RE-POINTED for light paper. Because almost everything inside a
+     card is written as var(--text) / var(--muted) / var(--gold), re-pointing them flips the
+     card's whole palette at a stroke — including rules marked !important, since this changes
+     what the variable MEANS rather than trying to out-specify the rule. */
+  --text: #241f0c;
+  --muted: #6a6038;
+  --text-muted: #7b7148;
+  --gold: #6b4d00;              /* headings: dark amber, legible on yellow */
+  --bg: #fffdf0;                /* the "contrast against gold" colour — buttons and badges
+                                   use color:var(--bg) on a gold fill, so on paper it has to
+                                   become near-white, not black */
+  --border: rgba(60,45,0,.25);
+  --token: #14459c;             /* @mention / #hashtag, darkened for paper */
+  --err: #a32b2b;
+  --ok: #2c6b1f;
+  --panel: rgba(0,0,0,.05);
+  --panel2: rgba(0,0,0,.07);
+  --panel-alt: rgba(0,0,0,.10);
+
+  /* Written in pen. Patrick Hand is printed rather than joined-up — the clearest of the
+     handwriting faces, which matters when a card holds 40 topic names. Its x-height is
+     healthier than a script face, so the type only needs ~1.2x rather than 1.35x. Same
+     variable trick as the colours: every rule using var(--fs-*) follows automatically. */
+  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive;
+  --fs-xs: calc(12px + 0.18vw);
+  --fs-sm: calc(12.5px + 0.18vw);
+  --fs-base: calc(13px + 0.22vw);
+  --fs-md: calc(13px + 0.22vw);
+  --fs-lg: calc(16.5px + 0.3vw);
+
+  display: block;
   width: 100%;
-  margin-bottom: var(--sp-cardmb);
-  /* Keep a card whole within one column (all three properties for cross-browser support) */
-  break-inside: avoid;
-  page-break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  background: linear-gradient(135deg, #121212, #050505);
-  border: 1px solid var(--gold);
-  border-radius: 12px;
+  color: var(--text);
+  /* Flat yellow paper with a soft sheen. --h/--s/--l/--ang come from stickyStyle(), so
+     every note is its own shade of yellow. */
+  background:
+    linear-gradient(var(--ang, 150deg), rgba(255,255,255,.16), rgba(0,0,0,.05)),
+    hsl(var(--h, 48) var(--s, 80%) var(--l, 70%));
+  border: 1px solid var(--border);
+  border-radius: var(--r1, 8px) var(--r2, 8px) var(--r3, 8px) var(--r4, 8px);
+  transform: rotate(var(--tilt, 0deg));
+  /* The drop shadow lifts it off the wall; the inset darkens the bottom edge like paper
+     curling away from the surface. */
+  box-shadow: 0 4px 12px rgba(0,0,0,.55), inset 0 -18px 24px -18px rgba(90,65,0,.5);
   padding: var(--sp-card);
   position: relative;
   text-align: center;
@@ -87,6 +167,41 @@ option { background: var(--panel); color: var(--text); }
   max-width: 100%;
   box-sizing: border-box;
 }
+/* Notes stay where they're pinned — no hover movement. */
+
+/* --- How each note is stuck up. data-deco is rolled from the card's own hash, so a note
+   always keeps the same treatment. --- */
+/* 0 — a strip of tape over the top-left corner */
+.card[data-deco="0"]::before {
+  content: ''; position: absolute; top: -8px; left: 11%;
+  width: 44px; height: 17px;
+  background: rgba(255,255,255,.34);
+  border-left: 1px solid rgba(255,255,255,.45);
+  border-right: 1px solid rgba(255,255,255,.45);
+  transform: rotate(-5deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+/* 1 — a pin through the top */
+.card[data-deco="1"]::before {
+  content: ''; position: absolute; top: 5px; left: 50%; margin-left: -6px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #ff9b9b, #c0392b 58%, #6f1a12);
+  box-shadow: 0 2px 5px rgba(0,0,0,.55);
+}
+/* 2 — the bottom-right corner curling up off the wall */
+.card[data-deco="2"]::after {
+  content: ''; position: absolute; right: 0; bottom: 0;
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, transparent 48%, rgba(0,0,0,.16) 50%, rgba(0,0,0,.34));
+  border-bottom-right-radius: var(--r3, 8px);
+}
+/* 3 — bare, just a crease along the bottom edge */
+.card[data-deco="3"]::after {
+  content: ''; position: absolute; left: 8%; right: 8%; bottom: 0; height: 9px;
+  background: linear-gradient(to top, rgba(90,65,0,.20), transparent);
+}
+/* Decorations are paper, not content — never let them swallow a click */
+.card::before, .card::after { pointer-events: none; }
 
 /* ---- Holistic overflow control ----
    Long unbroken strings (topic names, URLs, emails, handles) are the main cause of text
@@ -180,7 +295,7 @@ option { background: var(--panel); color: var(--text); }
 .lb-name { flex: 1; }
 .lb-score { font-weight: bold; color: var(--gold); }
 .lb-me { background: rgba(79,158,255,0.12); border-radius: 6px; }
-.lb-lvl { font-size: var(--fs-xs); color: #4f9eff; border: 1px solid #4f9eff; border-radius: 4px; padding: 0 5px; margin-left: 4px; }
+.lb-lvl { font-size: var(--fs-xs); color: var(--token); border: 1px solid var(--token); border-radius: 4px; padding: 0 5px; margin-left: 4px; }
 
 /* Grouped link cards */
 .link-group { text-align: left; }
@@ -195,9 +310,10 @@ option { background: var(--panel); color: var(--text); }
 /* ---------- Calculator ---------- */
 .calc { padding: 30px; }
 .sentence { font-size: var(--fs-md); line-height: 2; }
-.pick, .num { font: bold inherit; border: none; border-bottom: 2px dashed var(--gold); background: transparent; color: var(--text); cursor: pointer; text-align: center; padding: 0 5px 2px; outline: none; -webkit-appearance: none; }
+/* Every field in the booking sentence is a .pick select, so they all look and behave
+   identically — no native spinners or chevrons, just the gold dashed underline. */
+.pick { font: bold inherit; border: none; border-bottom: 2px dashed var(--gold); background: transparent; color: var(--text); cursor: pointer; text-align: center; padding: 0 5px 2px; outline: none; -webkit-appearance: none; appearance: none; }
 .pick { max-width: 150px; text-overflow: ellipsis; vertical-align: bottom; }
-.num { width: 50px; }
 
 .c-qty { color: #4fc3f7; } .c-service { color: #ce93d8; } .c-level { color: #ffab91; } .c-base { color: #d4af37; }
 
@@ -257,7 +373,7 @@ option { background: var(--panel); color: var(--text); }
 .social-body .attr-tags { justify-content: flex-start; margin: 0; }
 /* Site-wide: any @mention or #hashtag renders blue, wherever it appears.
    !important so it survives the card flat-text colour rule. */
-.token, .card .token { color: #4f9eff !important; }
+.token, .card .token { color: var(--token) !important; }
 
 /* ---------- Calculator breakdown ---------- */
 .calc-breakdown { text-align: left; margin: 20px 0; border-top: 1px solid var(--border); padding-top: 15px; }
@@ -280,8 +396,9 @@ option { background: var(--panel); color: var(--text); }
   h2 { font-size: 20px; }
 
   /* Cards stay proportional (~3 per row) on phones too — no forced single column.
-     The .grid vw rule above already handles it; nothing to override here. */
-  .card { margin-bottom: 2vw; }
+     The .grid rule above already handles it. No card margin here: the grid's own gap does
+     the spacing, and a margin would sit outside the measured height that layoutGrid()
+     turns into a row-span, throwing the packing out. */
 
   /* Filters stack instead of forcing sideways scroll */
   .filters { gap: 10px; }
@@ -292,7 +409,7 @@ option { background: var(--panel); color: var(--text); }
   /* Calculator sentence: a touch more breathing room, dropdowns don't overflow */
   .sentence { font-size: var(--fs-md); line-height: 2.6; }
   .pick { max-width: 100%; }
-  input, select, .num { font-size: var(--fs-md); }
+  input, select { font-size: var(--fs-md); }
   .checkout { flex-direction: column; }
   .checkout input { min-width: 0; }
 
@@ -320,23 +437,38 @@ option { background: var(--panel); color: var(--text); }
 .tutor-stats{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);
   font-size:var(--fs-xs);color:var(--muted);text-align:center;letter-spacing:.3px;}
 
-/* Checklist rows: flat lines (no bubble) to maximise text space */
-.check-row{display:flex;align-items:center;gap:4px;padding:2px 0;border-bottom:1px solid var(--border);margin:0;}
+/* Checklist rows: flat lines (no bubble) to maximise text space.
+   The topic gets min-width:0 so flexbox lets it shrink and WRAP rather than overflowing
+   underneath the checkboxes. The boxes sit in a fixed-width group that never shrinks. */
+.check-row{display:flex;align-items:flex-start;gap:3px;padding:3px 0;border-bottom:1px solid var(--border);margin:0;}
 .check-row:last-child{border-bottom:none;}
-.check-topic{flex:1;font-size:var(--fs-sm) !important;line-height:1.25 !important;overflow-wrap:normal;word-break:normal;}
+.check-topic{flex:1 1 auto;min-width:0;font-size:var(--fs-sm) !important;line-height:1.25 !important;overflow-wrap:break-word;word-break:normal;}
 /* Topics with a resource link are clickable — subtle, only revealing on hover. */
 a.check-topic{color:inherit;text-decoration:none;cursor:pointer;}
 a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
+/* The topic checkboxes are custom-drawn. appearance:none is REQUIRED — without it the
+   browser draws its own native checkbox and ignores width/height (that's the "huge boxes"
+   bug). !important + the .topic-cb class guard against any inherited sizing. */
+.check-boxes{display:flex;gap:2px;flex-shrink:0;align-items:center;padding-top:1px;}
 .mini-check{display:flex;align-items:center;gap:1px;font-size:var(--fs-xs) !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
-/* iOS Safari ignores width/height on native checkboxes and renders them huge.
-   appearance:none strips the native control so our sizing actually applies. */
-.mini-check input{
-  -webkit-appearance:none; appearance:none;
-  width:var(--tick); height:var(--tick); min-width:var(--tick);
+.mini-check input.topic-cb, .mini-check input[type="checkbox"]{
+  appearance:none !important; -moz-appearance:none !important; -webkit-appearance:none !important;
   border:1px solid var(--border); border-radius:3px; background:var(--panel2);
-  margin:0; flex-shrink:0; cursor:pointer; position:relative;
+  margin:0 !important; padding:0 !important;
+  flex:0 0 auto !important; cursor:pointer; position:relative; accent-color:auto;
+  width:14px !important; height:14px !important;
+  min-width:14px !important; max-width:14px !important; min-height:14px !important; max-height:14px !important;
+  box-sizing:border-box !important;
 }
-.mini-check input:checked{ background:#4f9eff; border-color:#4f9eff; }
+.mini-check input:checked{
+  appearance:none !important; -moz-appearance:none !important; -webkit-appearance:none !important;
+  padding:0 !important;
+  width:14px !important; height:14px !important;
+  min-width:14px !important; max-width:14px !important;
+  min-height:14px !important; max-height:14px !important;
+  background:#4f9eff !important; border-color:#4f9eff !important;
+  -webkit-appearance:none !important;
+}
 .mini-check input:checked::after{
   content:''; position:absolute; left:32%; top:12%;
   width:26%; height:55%; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
@@ -397,3 +529,76 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .tt-line:last-child { border-bottom: none; }
 .tt-time { color: var(--muted) !important; flex-shrink: 0; }
 .tt-what { flex: 1; }
+/* Reference-only rows (no tick boxes) — slightly muted so they read as resources, not tasks */
+.ref-row .check-topic{color:var(--muted) !important;}
+
+/* Tools "Group by" control lives in the filter bar and reuses .filter/.filter-dyn styles */
+
+/* Share button on tutor/venue cards — same idea as the gallery post share button,
+   tucked into the card's top-right corner. */
+.card-share-btn { position: absolute; top: 8px; right: 8px; z-index: 2; border: none;
+  background: rgba(0,0,0,.55); border-radius: 50%; width: 22px; height: 22px;
+  color: var(--muted); font-size: var(--fs-md); line-height: 1; padding: 0; cursor: pointer; transition: .2s; }
+.card-share-btn:hover { color: var(--gold); background: rgba(0,0,0,.8); }
+/* A card opened from a shared ?card= link flashes briefly so it's obvious which one it is */
+.card-flash { animation: card-flash 2.2s ease-out; }
+@keyframes card-flash {
+  0%, 100% { box-shadow: none; }
+  15%, 60% { box-shadow: 0 0 0 3px var(--gold); }
+}
+
+/* Profile edit form — far too many fields for one ~150px column, so it spans every column
+   (data-span="99" is clamped to however many columns exist) and grids its fields. */
+.profile-edit-wide { text-align: left; }
+.pf-group { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; }
+.pf-group legend { color: var(--gold); font-size: var(--fs-sm); padding: 0 6px; }
+.pf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.pf-field { display: flex; flex-direction: column; gap: 3px; text-align: left; min-width: 0; }
+/* Inside the grid the label sits directly above its input, so drop the standalone margin */
+.pf-field .edit-label { margin: 0; }
+.pf-field .edit-input:disabled { opacity: .6; cursor: not-allowed; }
+
+/* A checklist card that spans more than one column flows its own topics into columns, so a
+   wide card stays a readable shape instead of a long single list. */
+.grade-card:not([data-span="1"]) .check-list {
+  display: block;                       /* was flex column — multicol needs a block */
+  column-width: calc(110px + 3vw);
+  column-gap: calc(10px + 1vw);
+}
+/* Never split a topic row across two columns */
+.grade-card .check-row { break-inside: avoid; -webkit-column-break-inside: avoid; }
+
+/* Controls and screens keep the original monospace face and its tighter sizing. A
+   handwritten calculator readout or form field is charming for about two seconds and
+   unusable thereafter — and the bumped card type scale would blow the keypad apart. */
+.card input, .card select, .card textarea, .card button, .card .mc-display {
+  font-family: Consolas, monospace;
+  --fs-xs: calc(10px + 0.15vw);
+  --fs-sm: calc(10px + 0.15vw);
+  --fs-base: calc(10.5px + 0.2vw);
+  --fs-md: calc(10.5px + 0.2vw);
+  --fs-lg: calc(13px + 0.3vw);
+}
+
+/* @mentions: written in the same black pen as everything else, then run over with a blue
+   highlighter. The gradient deliberately stops short of full line-height and fades at both
+   ends — that's what reads as a marker stroke rather than a coloured box. */
+.card .token.token-at {
+  color: var(--text) !important;
+  background-image: linear-gradient(100deg,
+    rgba(60,140,255,0) 0.4%, rgba(60,140,255,.60) 1.8%,
+    rgba(60,140,255,.52) 96%, rgba(60,140,255,0) 99.5%);
+  background-size: 100% 60%;
+  background-repeat: no-repeat;
+  background-position: 0 82%;
+  padding: 0 2px;
+  border-radius: 1px;
+}
+/* #hashtags stay blue ink — same pen, different colour */
+.card .token.token-tag { color: var(--token) !important; }
+
+/* Tutor credentials block — a small key/value list on the card. Reads as a note, not a form. */
+.tutor-creds { text-align: left; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); }
+.cred-row { display: flex; gap: 8px; font-size: var(--fs-sm); padding: 2px 0; align-items: baseline; }
+.cred-k { color: var(--gold); flex-shrink: 0; min-width: 84px; }
+.cred-v { color: var(--text); }
