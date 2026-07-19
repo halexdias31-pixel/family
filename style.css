@@ -275,8 +275,14 @@ option { background: var(--panel); color: var(--text); }
 .edit-label { display: block; font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 4px; }
 .edit-input { width: 100%; padding: 8px; font: inherit; font-size: var(--fs-sm); background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
 .own-profile { border-color: #4f9eff !important; box-shadow: 0 0 12px rgba(79,158,255,0.3); }
-.edit-profile-btn { position: absolute; top: 10px; right: 10px; background: #4f9eff; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: var(--fs-xs); cursor: pointer; z-index: 2; }
-.edit-profile-btn:hover { filter: brightness(1.1); }
+/* Card actions (Edit, Log out) are plain tappable text on their own lines — no buttons. */
+.card-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; margin-bottom: 8px; }
+.text-action {
+  color: var(--gold); font-size: var(--fs-sm); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+  background: none; border: none; padding: 0; letter-spacing: normal; text-transform: none;
+}
+.text-action:hover { opacity: .75; }
 .card.editing { text-align: left; }
 /* Kid checklist */
 .check-list { display: flex; flex-direction: column; gap: 8px; }
@@ -345,17 +351,23 @@ option { background: var(--panel); color: var(--text); }
 
 /* ---------- Multi-Select Dropdown ---------- */
 .custom-select-wrapper { position: relative; display: inline-block; text-align: left; }
-#subject-display { cursor: pointer; padding: 0 5px; transition: color 0.3s; }
-#subject-display:hover { color: var(--gold) !important; }
+/* The subject picker should look identical to the other booking fields: gold dashed underline. */
+.inline-select {
+  font: bold inherit; border: none; border-bottom: 2px dashed var(--gold);
+  background: transparent; color: var(--text); cursor: pointer; text-align: center;
+  padding: 0 5px 2px; vertical-align: bottom; max-width: 150px;
+  display: inline-block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+}
+.inline-select:hover { color: var(--gold); }
 
 .custom-dropdown {
   position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  background: var(--panel); border: 1px solid var(--gold); border-radius: 8px;
-  padding: 10px; width: 220px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+  background: var(--bg); border: 1px solid var(--gold); border-radius: 8px;
+  padding: 10px; width: 220px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
   max-height: 250px; overflow-y: auto; margin-top: 10px;
 }
 .custom-dropdown label { display: flex; align-items: center; padding: 10px 8px; cursor: pointer; font-size: var(--fs-base); color: var(--text); transition: 0.2s; border-radius: 4px; }
-.custom-dropdown label:hover { background: #222; color: var(--gold); }
+.custom-dropdown label:hover { background: var(--panel2); color: var(--gold); }
 .custom-dropdown input[type="checkbox"] { margin-right: 12px; cursor: pointer; accent-color: var(--gold); width: 18px; height: 18px; }
 
 /* ---------- Social Media Posts (masonry cards) ---------- */
@@ -617,3 +629,29 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 @media (min-width: 620px) {
   .builder-summary { border-top: none; border-left: 1px solid var(--border); padding: 0 0 0 16px; }
 }
+
+/* Availability tickbox grid in the profile editor: 7 days × hourly columns. Compact so the
+   whole week fits without scrolling on a wide card. */
+.avail-wrap { overflow-x: auto; }
+.avail-table { border-collapse: collapse; font-size: var(--fs-xs); }
+.avail-table th, .avail-table td { padding: 2px 4px; text-align: center; }
+.avail-table th { color: var(--gold); font-weight: normal; }
+.avail-table .avail-day { text-align: right; padding-right: 8px; color: var(--text); }
+.avail-cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); margin: 0; }
+
+/* Booking time-slot picker: only bookable hours (tutor free ∩ venue open) show as ticks. */
+.l-slots { margin: 8px 0 0; text-align: left; }
+.slots-hint { font-size: var(--fs-xs); margin: 0 0 4px; }
+.slot-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.slot { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm);
+  padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.slot input { accent-color: var(--gold); cursor: pointer; margin: 0; }
+
+/* Booking time-slot GRID: days down the side, hours across; only available cells are tickable. */
+.slot-grid-wrap { overflow-x: auto; margin-top: 4px; }
+.slot-grid { border-collapse: collapse; font-size: var(--fs-xs); }
+.slot-grid th, .slot-grid td { padding: 3px 5px; text-align: center; }
+.slot-grid th { color: var(--gold); font-weight: normal; }
+.slot-grid .slot-day { text-align: right; padding-right: 8px; color: var(--text); }
+.slot-grid .slot-cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); margin: 0; }
+.slot-grid .slot-off { background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 6px); border-radius: 3px; }
