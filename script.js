@@ -2,6 +2,8 @@ const API = 'https://script.google.com/macros/s/AKfycbyINfTA44t4ibW6ihxADTwCo1Cx
 let DATA = {};
 let USER = null; // set on login: { name }
 let NOTEPAD_TIMER = null;   // debounce timer for notepad auto-save
+let PROFILE_SAVE_TIMER = null;   // debounce timer for profile editor auto-save
+let VENUE_SAVE_TIMER = null;     // debounce timer for venue editor auto-save
 
 const isHome = loc => /home/i.test(loc || '');
 // Normalise any time value to a friendly 12-hour label: "09:00"/Date/ISO → "9am", "13:30" → "1:30pm"
@@ -58,7 +60,11 @@ const escTokens = s => esc(s).replace(/([#@][\w.]+)/g,
   m => `<span class="token ${m[0] === '@' ? 'token-at' : 'token-tag'}">${m}</span>`);
 const val = id => ($(id) || {}).value || '';
 // Who participates in the checklist + arcade (topics, levels, highscores): kids AND tutors.
-const canTrack = () => !!USER && (USER.role === 'kid' || USER.role === 'tutor');
+const canTrack = () => !!USER && (USER.role === 'kid' || USER.role === 'tutor' || USER.role === 'admin');
+// An admin is a tutor with extra powers, so everywhere that gates on "tutor" should also
+// admit admin. Use these helpers rather than `USER.role === 'tutor'` directly.
+const isTutorRole = () => !!USER && (USER.role === 'tutor' || USER.role === 'admin');
+const isAdmin = () => !!USER && USER.role === 'admin';
 
 // Checklist progress: three independent columns tick1/tick2/tick3, each a comma list of topic names.
 // A topic present in tickN's list = that box checked. Returns { topicLower: {t1,t2,t3} }.
@@ -331,20 +337,21 @@ const tpl = {
     const cardNameNoSpace = cardName.replace(/\s+/g, '');
     const nameMatches = myName && (myName === cardName || myNameNoSpace === cardNameNoSpace
       || cardName.startsWith(myName) || myName.startsWith(cardName.split(' ')[0]));
-    const isOwn = USER && USER.role === 'tutor' && it.type === 'tutor' && nameMatches;
+    const isOwn = isTutorRole() && it.type === 'tutor' && nameMatches;
     // Tutor progress (level + high score) — shown quietly at the BOTTOM in gray so it doesn't
     // read as ranking/status between tutors to clients.
     const st = statsOf(it);
     const stats = (it.type === 'tutor' && (st.xp || it.highscore || st.credits))
       ? `<div class="tutor-stats">Lv ${st.level} · ${st.xp} XP · 🪙 ${st.credits} · 🎮 ${it.highscore || 0}</div>`
       : '';
-    return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}" data-card-name="${esc(it.title)}">
+    return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}" data-card-name="${esc(it.title)}"${it.type === 'venue' ? ` data-venue="${esc(it.title)}"` : ''}>
     <button type="button" class="card-share-btn" title="Share ${esc(it.title)}"
       data-share-url="${esc(cardShareUrl(it.title))}" data-share-title="${esc(it.title)}">⎘</button>
-    ${isOwn ? `<div style="display:flex;gap:8px;margin-bottom:8px;padding-right:26px">
-      <button type="button" class="edit-profile-btn" title="Edit your profile" style="flex:1">✎ Edit</button>
-      <button type="button" id="logout-btn" class="ghost" style="flex:1;margin:0;padding:8px">Log Out</button>
+    ${isOwn ? `<div class="card-actions">
+      <span class="text-action edit-profile-btn" title="Edit your profile">Edit</span>
+      <span class="text-action" id="logout-btn">Log out</span>
     </div>` : ''}
+    ${(it.type === 'venue' && isAdmin()) ? `<div class="card-actions"><span class="text-action edit-venue-btn" data-venue="${esc(it.title)}" title="Edit this venue">Edit</span></div>` : ''}
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
@@ -357,6 +364,61 @@ const tpl = {
     ${isOwn ? tpl.timetableSection(it.title) : ''}
     ${stats}
   </div>`;
+  },
+
+  // Admin-only: full venue editor — details, location, capacity, rate, and the open-hours
+  // grid. Built from DATA.venueFields + DATA.availGrid so it stays in sync with the sheet.
+  venueEditCard: (v = {}) => {
+    const groups = DATA.venueFields || {};
+    const grid   = DATA.availGrid;
+    if (!Object.keys(groups).length) {
+      return `<div class="card editing"><p class="muted">Venue fields unavailable — the backend needs redeploying.</p>
+        <button type="button" id="cancel-venue-btn" class="ghost" style="width:100%">Close</button></div>`;
+    }
+    const vals = v.fields || {};
+    const human = c => String(c).replace(/source_address_names/, 'venue name')
+      .replace(/_/g, ' ').replace(/\bconstant\b/, 'surcharge £/h').replace(/link 1/, 'more info link')
+      .replace(/\s+/g, ' ').trim().replace(/^./, m => m.toUpperCase());
+    const field = (colName) => {
+      const val = vals[colName] ?? '';
+      const isNum = ['max_capacity','min_capacity','min_notice_days','constant'].includes(colName);
+      const input = ['description'].includes(colName)
+        ? `<textarea data-vf="${esc(colName)}" class="edit-input" rows="2">${esc(val)}</textarea>`
+        : `<input ${isNum ? 'type="number" min="0"' : ''} data-vf="${esc(colName)}" class="edit-input" value="${esc(val)}">`;
+      return `<label class="pf-field"><span class="edit-label">${esc(human(colName))}</span>${input}</label>`;
+    };
+    const section = (title, cols) => `<fieldset class="pf-group"><legend>${esc(title)}</legend>
+      <div class="pf-grid">${cols.map(field).join('')}</div></fieldset>`;
+    const fieldSections = Object.keys(groups).map(g => section(g, groups[g])).join('');
+
+    // Open-hours tickbox grid
+    let hoursSection = '';
+    if (grid) {
+      const on = x => /^(true|yes|1|✓)$/i.test(String(x || '').trim());
+      const av = v.avail || {};
+      const head = `<tr><th></th>${grid.hours.map(h => `<th>${h}</th>`).join('')}</tr>`;
+      const gridRows = grid.days.map(([prefix, label]) => {
+        const cells = grid.hours.map(h => {
+          const col = prefix + String(h).padStart(2, '0');
+          return `<td><input type="checkbox" class="venue-cb" data-vf="${esc(col)}" ${on(av[col]) ? 'checked' : ''}></td>`;
+        }).join('');
+        return `<tr><th class="avail-day">${esc(label)}</th>${cells}</tr>`;
+      }).join('');
+      hoursSection = `<fieldset class="pf-group"><legend>Open hours</legend>
+        <div class="avail-wrap"><table class="avail-table">${head}${gridRows}</table>
+        <p class="muted" style="font-size:var(--fs-xs);margin:6px 0 0">Tick the hours this venue is open for sessions.</p></div>
+      </fieldset>`;
+    }
+
+    return `<div class="card editing profile-edit-wide" data-span="99" data-venue="${esc(v.title)}">
+      <h3 class="gold" style="margin-bottom:12px">Editing ${esc(v.title)}</h3>
+      ${fieldSections}
+      ${hoursSection}
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+        <span class="edit-status muted" style="flex:1;font-size:var(--fs-xs);white-space:nowrap"></span>
+        <button type="button" id="cancel-venue-btn" class="action" style="padding:11px 20px">Done</button>
+      </div>
+    </div>`;
   },
 
   // Professional credentials shown on a tutor's card to any visitor: experience,
@@ -576,13 +638,7 @@ const tpl = {
       const v  = p[colName] ?? '';
       const ro = readonly.includes(colName);
       let input;
-      if (/_(start|end)$/.test(colName) && times.length) {
-        // Availability uses the same time list as booking, so the two always agree.
-        input = `<select data-pf="${esc(colName)}" class="edit-input">
-          <option value="">—</option>
-          ${times.map(t => `<option value="${esc(t)}"${String(v) === String(t) ? ' selected' : ''}>${esc(fmtTime(t))}</option>`).join('')}
-        </select>`;
-      } else if (['description', 'extra_qualifications', 'Hobbies'].includes(colName)) {
+      if (['description', 'extra_qualifications', 'Hobbies'].includes(colName)) {
         input = `<textarea data-pf="${esc(colName)}" class="edit-input" rows="2">${esc(v)}</textarea>`;
       } else {
         input = `<input data-pf="${esc(colName)}" class="edit-input" value="${esc(v)}"${ro ? ' disabled' : ''}>`;
@@ -593,10 +649,34 @@ const tpl = {
       </label>`;
     };
 
-    const section = (title, cols) => `<fieldset class="pf-group">
-      <legend>${esc(title)}</legend>
-      <div class="pf-grid">${cols.map(c => field(c)).join('')}</div>
-    </fieldset>`;
+    // The availability group is rendered as a compact day × hour tickbox grid rather than 77
+    // separate fields. Each cell is a checkbox whose data-pf is the sheet column (m09, tu10…);
+    // Save harvests them as TRUE/FALSE like any other field.
+    const availGrid = () => {
+      const g = DATA.availGrid;
+      if (!g) return '';
+      const on = v => /^(true|yes|1|✓)$/i.test(String(v || '').trim());
+      const head = `<tr><th></th>${g.hours.map(h => `<th>${h}</th>`).join('')}</tr>`;
+      const rows = g.days.map(([prefix, label]) => {
+        const cells = g.hours.map(h => {
+          const col = prefix + String(h).padStart(2, '0');
+          return `<td><input type="checkbox" class="avail-cb" data-pf="${esc(col)}" ${on(p[col]) ? 'checked' : ''}></td>`;
+        }).join('');
+        return `<tr><th class="avail-day">${esc(label)}</th>${cells}</tr>`;
+      }).join('');
+      return `<div class="avail-wrap"><table class="avail-table">${head}${rows}</table>
+        <p class="muted" style="font-size:var(--fs-xs);margin:6px 0 0">Tick the hours you can teach.</p></div>`;
+    };
+
+    const section = (title, cols) => {
+      if (title === 'Availability') {
+        return `<fieldset class="pf-group"><legend>${esc(title)}</legend>${availGrid()}</fieldset>`;
+      }
+      return `<fieldset class="pf-group">
+        <legend>${esc(title)}</legend>
+        <div class="pf-grid">${cols.map(c => field(c)).join('')}</div>
+      </fieldset>`;
+    };
 
     const sections = Object.keys(groups).map(g => section(g, groups[g])).join('');
     // Read-only fields are shown so the tutor can see their status, but can't be changed here.
@@ -613,9 +693,9 @@ const tpl = {
       <h3 class="gold" style="margin-bottom:12px">Editing your profile</h3>
       ${sections}
       ${roSection}
-      <div style="display:flex;gap:8px;margin-top:14px">
-        <button type="button" id="save-profile-btn" class="action" style="flex:1">Save</button>
-        <button type="button" id="cancel-profile-btn" class="ghost" style="padding:11px">Cancel</button>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+        <span class="edit-status muted" style="flex:1;font-size:var(--fs-xs);white-space:nowrap"></span>
+        <button type="button" id="cancel-profile-btn" class="action" style="padding:11px 20px">Done</button>
       </div>
     </div>`;
   },
@@ -623,11 +703,11 @@ const tpl = {
   jobCard: (j, isDash = false, state = '') => {
     const norm = s => String(s || '').toLowerCase().trim();
     const slots = j.slots || [];
-    const isTutor = USER && USER.role === 'tutor' && norm(j.requestedTutor) === norm(USER.name);
+    const isTutor = isTutorRole() && norm(j.requestedTutor) === norm(USER.name);
     const myName = USER ? norm(USER.name) : '';
     const mySlot = USER ? slots.find(s => norm(s.client) === myName && myName) : null;   // logged out = none
     const emptySlot = slots.find(s => !String(s.client||'').trim());    // is there room?
-    const canJoin = USER && USER.role !== 'tutor' && !mySlot && emptySlot && norm(j.status) === 'ongoing';
+    const canJoin = USER && !isTutorRole() && !mySlot && emptySlot && norm(j.status) === 'ongoing';
 
     const stateBadge = mySlot ? `<span class="badge mine-badge">Yours</span>`
       : norm(j.status) === 'unstarted' ? `<span class="badge pending-badge">Unstarted</span>` : '';
@@ -767,11 +847,11 @@ const tpl = {
           ? 'Your checklist, friends and classes are in their sections below.'
           : 'Your children and classes are shown below.'
       }</p>
-      <button type="button" id="logout-btn" class="ghost" style="width:100%">Log Out</button>
+      <div class="card-actions"><span class="text-action" id="logout-btn">Log out</span></div>
     </div>`;
   },
 
-  builderCard: () => `<div class="card" id="new-job" data-span="2">
+  builderCard: () => `<div class="card" id="new-job" data-span="3">
     <h3 class="gold" style="margin-bottom:15px">Build a Session</h3>
     <input type="hidden" id="c-service" value="Tuition">
 
@@ -806,19 +886,18 @@ const tpl = {
     <p class="sentence" style="line-height:2.2;text-align:left;margin:0">
       <strong>tuition</strong> of
       <span class="custom-select-wrapper">
-        <span class="inline-select pick l-subject-display" data-lesson="${i}" style="cursor:pointer">Select Subjects ⌄</span>
+        <span class="inline-select pick l-subject-display" data-lesson="${i}" style="cursor:pointer">Subject ⌄</span>
         <span class="custom-dropdown hidden l-subject-dropdown" data-lesson="${i}"></span>
       </span>
       with <select class="pick l-level" data-lesson="${i}"></select>
       delivered @ <select class="pick l-location" data-lesson="${i}"></select>
       for <select class="pick l-qty" data-lesson="${i}"></select> student
       with <select class="pick l-tutor" data-lesson="${i}"></select>
-      at <select class="pick l-time" data-lesson="${i}"></select>
-      on <select class="pick l-day" data-lesson="${i}"></select>
       for <select class="pick l-interval" data-lesson="${i}"></select>
       <span class="muted l-weeks-label" data-lesson="${i}" style="font-size:0.85em"></span>,
       split with <select class="pick l-split" data-lesson="${i}"></select> other people.
     </p>
+    <div class="l-slots" data-lesson="${i}"></div>
   </div>`,
 };
 
@@ -835,12 +914,31 @@ function renderHeaderAuth() {
 function renderCards(id, items = []) {
   let cardsHtml = items.length ? items.map(tpl.card).join('') : '<p class="muted">Nothing yet.</p>';
 
+  // Diagnostic: spell out exactly why the venue Edit button does/doesn't show.
+  if (id === 'venues') {
+    const diag = $('venue-diag');
+    if (diag) {
+      const v0 = (DATA.venues || [])[0];
+      const lines = [
+        `logged in: ${USER ? 'YES' : 'NO'}`,
+        `USER.role: ${USER ? '"' + USER.role + '"' : '(none)'}`,
+        `isAdmin(): ${isAdmin()}`,
+        `backend version: ${DATA.version || '(none - OLD backend, needs redeploy)'}`,
+        `sample venue type==="venue": ${v0 ? (v0.type === 'venue') : 'no venues'}`,
+        `-> Edit shows when role is "admin" AND backend is current`,
+      ];
+      diag.textContent = lines.join('\n');
+      const problem = !USER || !isAdmin() || !DATA.version;
+      diag.style.display = problem ? 'block' : 'none';
+    }
+  }
+
   // People section: the login card (logged out) or the person's own account card (logged in).
   if (id === 'tutors') {
     if (!USER) {
       // Not logged in → login card leads the People grid
       cardsHtml = tpl.loginCard() + cardsHtml;
-    } else if (USER.role !== 'tutor') {
+    } else if (!isTutorRole()) {
       // Parent/kid have no profile card, so give them their own editable account card here
       cardsHtml = tpl.accountCard() + cardsHtml;
     }
@@ -893,7 +991,7 @@ function classState(j) {
   if (!USER) return '';
   const norm = s => String(s || '').toLowerCase().trim();
   const status = norm(j.status);
-  if (USER.role === 'tutor') {
+  if (isTutorRole()) {
     if (norm(j.requestedTutor) !== norm(USER.name)) return '';
     return status === 'ongoing' ? 'confirmed' : 'pending';  // not yet started = grey
   }
@@ -1440,6 +1538,89 @@ function syncSplitOptions(i) {
 }
 
 // Populate one lesson block's dropdowns (level, location, day, time, subjects)
+// Map a day dropdown value (e.g. "monday" / "Mon") to the availability-grid prefix.
+const DAY_PREFIX = { monday:'m', tuesday:'tu', wednesday:'w', thursday:'th', friday:'f', saturday:'sa', sunday:'su' };
+function dayPrefix(dayVal) {
+  const d = String(dayVal || '').toLowerCase().trim();
+  if (DAY_PREFIX[d]) return DAY_PREFIX[d];
+  // also accept short forms
+  const short = { mon:'m', tue:'tu', wed:'w', thu:'th', fri:'f', sat:'sa', sun:'su' };
+  return short[d.slice(0,3)] || '';
+}
+
+// The booking time picker. For the chosen tutor + venue + day, show ONLY the hours where the
+// tutor is free AND the venue is open (both grids say TRUE). Empty grid = unavailable (strict).
+// The client ticks the hours they want; a booking is 2 CONSECUTIVE hours, so ticking one hour
+// auto-suggests its neighbour and non-adjacent ticks are rejected.
+function renderSlots(i) {
+  const wrap = document.querySelector(`.l-slots[data-lesson="${i}"]`);
+  if (!wrap) return;
+  const norm = s => String(s || '').toLowerCase().trim();
+  const on = v => /^(true|yes|1|✓)$/i.test(String(v || '').trim());
+
+  const tutorName = document.querySelector(`.l-tutor[data-lesson="${i}"]`)?.value || '';
+  const venueName = document.querySelector(`.l-location[data-lesson="${i}"]`)?.value || '';
+
+  if (!tutorName) { wrap.innerHTML = `<p class="slots-hint muted">Pick a tutor to see available times.</p>`; layoutGrid(wrap.closest('.grid')); return; }
+  if (!venueName) { wrap.innerHTML = `<p class="slots-hint muted">Pick a venue to see available times.</p>`; layoutGrid(wrap.closest('.grid')); return; }
+
+  const tutor = (DATA.tutors || []).find(t => norm(t.title) === norm(tutorName));
+  const venue = (DATA.venues || []).find(v => norm(v.title) === norm(venueName));
+  const tAvail = tutor?.avail || {};
+  const vAvail = venue?.avail || {};
+
+  const g = DATA.availGrid || { days: [['m','Mon'],['tu','Tue'],['w','Wed'],['th','Thu'],['f','Fri'],['sa','Sat'],['su','Sun']], hours: [9,10,11,12,13,14,15,16,17,18,19] };
+
+  // Only show days that have at least one bookable hour, so the grid stays compact.
+  const dayHasSlots = g.days.filter(([prefix]) =>
+    g.hours.some(h => { const c = prefix + String(h).padStart(2,'0'); return on(tAvail[c]) && on(vAvail[c]); })
+  );
+
+  if (!dayHasSlots.length) {
+    wrap.innerHTML = `<p class="slots-hint muted">No times available for ${esc(tutorName)} at ${esc(venueName)}. ${isAdmin() ? 'Set the venue\u2019s open hours in its Edit form.' : ''}</p>`;
+    layoutGrid(wrap.closest('.grid'));
+    return;
+  }
+
+  // A grid: rows = days with availability, columns = hours. Available cells are tickable,
+  // unavailable ones are greyed (shown but disabled). Client ticks 2 consecutive hours in ONE day.
+  const head = `<tr><th></th>${g.hours.map(h => `<th>${h}</th>`).join('')}</tr>`;
+  const rows = dayHasSlots.map(([prefix, label]) => {
+    const cells = g.hours.map(h => {
+      const c = prefix + String(h).padStart(2,'0');
+      const ok = on(tAvail[c]) && on(vAvail[c]);
+      return ok
+        ? `<td><input type="checkbox" class="slot-cb" data-lesson="${i}" data-day="${prefix}" data-hour="${h}"></td>`
+        : `<td class="slot-off"></td>`;
+    }).join('');
+    return `<tr><th class="slot-day">${esc(label)}</th>${cells}</tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<p class="slots-hint muted">Tick the 2 back-to-back hours you want:</p>
+    <div class="slot-grid-wrap"><table class="slot-grid">${head}${rows}</table></div>`;
+  layoutGrid(wrap.closest('.grid'));
+}
+
+// Enforce "2 consecutive hours in ONE day" when a slot is ticked.
+function onSlotTick(i, day, hour, checked) {
+  const boxes = Array.from(document.querySelectorAll(`.slot-cb[data-lesson="${i}"]`));
+  if (checked) {
+    // Ticking a cell: keep only this day, this hour + an adjacent hour in the same day.
+    const sameDay = boxes.filter(b => b.dataset.day === day);
+    const hoursAvail = sameDay.map(b => parseInt(b.dataset.hour));
+    // Clear everything first, then set this hour + a neighbour in the same day.
+    boxes.forEach(b => { b.checked = false; });
+    const self = sameDay.find(b => parseInt(b.dataset.hour) === hour);
+    if (self) self.checked = true;
+    const neighbour = hoursAvail.includes(hour + 1) ? hour + 1 : hoursAvail.includes(hour - 1) ? hour - 1 : null;
+    if (neighbour !== null) {
+      const nb = sameDay.find(b => parseInt(b.dataset.hour) === neighbour);
+      if (nb) nb.checked = true;
+    }
+  }
+  calc();
+}
+
 function fillLessonBlock(i) {
   const d = DATA.dropdowns || {};
   const set = (cls, list, labelFn) => {
@@ -1450,8 +1631,6 @@ function fillLessonBlock(i) {
   };
   set('l-level', d.levels);
   set('l-location', d.locations);
-  set('l-day', d.days, fmtDay);
-  set('l-time', d.times, fmtTime);
   // Tutor: "No preference" first, then each tutor
   const tutorEl = document.querySelector(`.l-tutor[data-lesson="${i}"]`);
   if (tutorEl) {
@@ -1471,6 +1650,7 @@ function fillLessonBlock(i) {
   // Students, then split — split's options depend on how many students were picked.
   syncQtyOptions(i);
   syncSplitOptions(i);
+  renderSlots(i);   // tutor × venue availability tickboxes for the chosen day
   // Subject checkbox dropdown for this block
   const drop = document.querySelector(`.l-subject-dropdown[data-lesson="${i}"]`);
   if (drop) drop.innerHTML = (d.subjects||[]).map(s =>
@@ -1485,12 +1665,15 @@ function fill(id, list = [], first, labelFn) {
 }
 
 /* ---------- ACADEMIC INTERVALS ---------- */
-// Map the sheet's relative names to friendly dropdown labels
+// Friendly wording for the relative interval names. The dropdown shows the real term plus
+// this in brackets, e.g. "Summer 2 (This Term)". A sheet display_name column overrides the
+// whole label if you want something fully custom.
 const INTERVAL_LABELS = {
-  'current academic interval': 'This Term',
-  'current academic interval -1': 'This Term (final weeks)',
-  'next academic interval': 'Next Term',
-  'next next academic interval': 'Term After',
+  'current academic interval':          'This Term',
+  'current academic interval - 1':      'Final Weeks',
+  'current academic interval -1':       'Final Weeks',
+  'next academic interval':             'Next Term',
+  'next next academic interval':        'Term After',
 };
 
 function getAcademicIntervals() {
@@ -1500,10 +1683,16 @@ function getAcademicIntervals() {
     .map(iv => {
       const rel = String(iv.rel || '').toLowerCase().trim();
       const weeks = parseInt(parseFloat(iv.weeks)) || 0;   // sheet already rounded; just strip ".00"
+      const term = iv.term || iv.rel;
+      // Label priority: a fully-custom sheet label wins; otherwise "Term (Friendly relative)";
+      // if there's no friendly mapping, just the term on its own.
+      const friendly = INTERVAL_LABELS[rel];
+      const label = iv.label
+        || (term && friendly ? `${term} (${friendly})` : term);
       return {
-        name:  iv.term || iv.rel,                              // value = actual term name
-        label: INTERVAL_LABELS[rel] || iv.rel || iv.term,      // friendly dropdown label
-        weeks,                                                 // whole weeks for billing + display
+        name:  term,                                          // value = actual term name
+        label,                                                // what the dropdown shows
+        weeks,                                                // whole weeks for billing + display
         endDate: iv.endDate || '', lastMon: iv.lastMon || '', lastSun: iv.lastSun || ''
       };
     });
@@ -1584,6 +1773,18 @@ function lsubjects(i) {
   return Array.from(document.querySelectorAll(`.subj-cb[data-lesson="${i}"]:checked`)).map(cb => cb.value).filter(Boolean);
 }
 
+// Hours taught per week — ONE source, read from a sheet variable so it isn't hardcoded in
+// two pricing functions (which could silently disagree). Add a category=variable row named
+// `hours_per_week` (or `hours`) to control it; falls back to 2 if the sheet doesn't set it.
+function hoursPerWeek() {
+  const v = (DATA.constants || {}).vars || {};
+  for (const key of ['hours_per_week', 'hours per week', 'hours', 'hpw']) {
+    const x = parseFloat(v[key]);
+    if (!isNaN(x) && x > 0) return x;
+  }
+  return 2;
+}
+
 // Price a single lesson block (index i). Weeks come from the order-level interval (shared).
 function priceLesson(i) {
   const m = DATA.multipliers || {};
@@ -1602,8 +1803,14 @@ function priceLesson(i) {
   const interval = ivSel?.value || '';
   const endDate = ivOpt?.dataset.end || '';
   const loc = lval(i, 'l-location');
-  const day = lval(i, 'l-day');
-  const time = lval(i, 'l-time');
+  // Day + time come from the ticked slot grid. A booking is 2 consecutive hours in one day;
+  // read the earliest ticked cell for the start time and its day.
+  const ticked = Array.from(document.querySelectorAll(`.slot-cb[data-lesson="${i}"]:checked`))
+    .map(b => ({ day: b.dataset.day, hour: parseInt(b.dataset.hour) }))
+    .sort((a, b) => a.hour - b.hour);
+  const PREFIX_DAY = { m:'Monday', tu:'Tuesday', w:'Wednesday', th:'Thursday', f:'Friday', sa:'Saturday', su:'Sunday' };
+  const day  = ticked.length ? (PREFIX_DAY[ticked[0].day] || '') : '';
+  const time = ticked.length ? String(ticked[0].hour).padStart(2, '0') + ':00' : '';
   const level = lval(i, 'l-level');
   const tutor = lval(i, 'l-tutor');
   const splitOthers = parseInt(lval(i, 'l-split')) || 0;   // per-lesson split
@@ -1619,7 +1826,7 @@ function priceLesson(i) {
   const minWage        = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');  // μ
   const extraChildRate = cv('β', 'beta', 'constant 1', 'constant1');     // β
   const tutorShare     = cv('ε', 'epsilon', 'constant 2', 'constant2');  // ε
-  const hoursPerWeek   = 2;
+  const hoursPerWk = hoursPerWeek();
 
   // ---- The formula, in readable stages ----
   const baseRate   = timeFactor * subjectFactor * dayFactor * wageMultiplier * minWage;  // one student, one hour
@@ -1627,8 +1834,8 @@ function priceLesson(i) {
   const promoAdj   = activePromoFactor({ subjects, n, weeks, day, time, level, lessonCount: document.querySelectorAll('.lesson-block').length });
 
   const chargePerHour = baseRate * studentAdj * promoAdj;
-  const total  = chargePerHour * hoursPerWeek * weeks + V;              // PRICE customer pays
-  const cost   = baseRate * studentAdj * tutorShare * hoursPerWeek * weeks + V;  // COST to us
+  const total  = chargePerHour * hoursPerWk * weeks + V;              // PRICE customer pays
+  const cost   = baseRate * studentAdj * tutorShare * hoursPerWk * weeks + V;  // COST to us
   const profitTotal = total - cost;                                     // PROFIT
 
   const splitShares = splitOthers + 1;
@@ -1655,11 +1862,11 @@ function priceAddStudent(job) {
   const wageMultiplier = cv('λ', 'lambda', 'constant 3', 'constant3');
   const minWage        = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');
   const extraChildRate = cv('β', 'beta', 'constant 1', 'constant1');
-  const hoursPerWeek   = 2;
+  const hoursPerWk = hoursPerWeek();
 
   const weeksLeft = parseFloat(job.weeks) || 0;         // job.weeks = weeks_left
   const baseRate  = timeFactor * subjectFactor * dayFactor * wageMultiplier * minWage;
-  const cost = baseRate * extraChildRate * hoursPerWeek * weeksLeft;   // marginal β step for remaining weeks
+  const cost = baseRate * extraChildRate * hoursPerWk * weeksLeft;   // marginal β step for remaining weeks
   return { cost, weeksLeft };
 }
 
@@ -1897,6 +2104,71 @@ function enforceHomeRuleBlock(i) {
 }
 function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
 
+// Auto-save the profile editor. Unlike the old Save button, this does NOT rebuild the card
+// (that would destroy the form mid-edit) — it writes to the backend and updates the live
+// data quietly, with a small status line. Debounced so typing doesn't fire a save per key.
+function autosaveProfile(card) {
+  if (!card) return;
+  const status = card.querySelector('.edit-status');
+  if (status) status.textContent = 'Saving…';
+  clearTimeout(PROFILE_SAVE_TIMER);
+  PROFILE_SAVE_TIMER = setTimeout(() => {
+    const fields = {};
+    card.querySelectorAll('[data-pf]').forEach(el => {
+      if (el.disabled) return;
+      fields[el.dataset.pf] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value;
+    });
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateProfile', name: USER.name, fields }) })
+      .then(r => r.json())
+      .then(d => {
+        if (!USER.profile) USER.profile = {};
+        Object.assign(USER.profile, fields);
+        const norm = s => String(s || '').toLowerCase().trim();
+        const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
+        if (d && d.name && d.name !== USER.name) {
+          USER.name = d.name;
+          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        }
+        // Keep the visible tutor card record in step so "Done" shows the new values.
+        if (me) {
+          if (d && d.name) me.title = d.name;
+          if (fields.description !== undefined) me.description = fields.description ? `"${fields.description}"` : '';
+          me.tags = [fields.adjective_1, fields.adjective_2, fields.adjective_3].filter(Boolean);
+          if (fields.photo !== undefined) me.image = fields.photo;
+          if (fields.video !== undefined) me.mediaUrl = fields.video;
+          if (fields.city !== undefined) me.subtitle = `📍 ${fields.city || 'London'}`;
+        }
+        if (status) status.textContent = 'Saved ✓';
+      })
+      .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
+  }, 800);
+}
+
+// Auto-save the venue editor (admin only). Same idea: write quietly, don't rebuild.
+function autosaveVenue(card) {
+  if (!card) return;
+  const status = card.querySelector('.edit-status');
+  if (status) status.textContent = 'Saving…';
+  clearTimeout(VENUE_SAVE_TIMER);
+  VENUE_SAVE_TIMER = setTimeout(() => {
+    const venueName = card.dataset.venue;
+    const fields = {};
+    card.querySelectorAll('[data-vf]').forEach(el => {
+      if (el.disabled) return;
+      fields[el.dataset.vf] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value;
+    });
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateVenue', adminName: USER.name, venue: venueName, fields }) })
+      .then(r => r.json())
+      .then(d => {
+        const norm = s => String(s || '').toLowerCase().trim();
+        const v = (DATA.venues || []).find(x => norm(x.title) === norm(venueName));
+        if (v) { v.fields = { ...(v.fields || {}), ...fields }; v.avail = { ...(v.avail || {}), ...fields }; }
+        if (status) status.textContent = (d && d.error) ? d.error : 'Saved ✓';
+      })
+      .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
+  }, 800);
+}
+
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const id = e.target.id;
 
@@ -1906,6 +2178,13 @@ function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
     applyFilter('tool');
     return;
   }
+
+  // Profile & venue editors auto-save — no Save button. Any change to a data-pf / data-vf
+  // field harvests the whole form and writes it (debounced so typing doesn't fire per key).
+  const pfEl = e.target.closest('[data-pf]') ? e.target : null;
+  const vfEl = e.target.closest('[data-vf]') ? e.target : null;
+  if (pfEl && USER) { autosaveProfile(pfEl.closest('.card')); }
+  if (vfEl && USER && isAdmin()) { autosaveVenue(vfEl.closest('.card')); }
 
   // Notepad auto-saves shortly after you stop typing (debounced so we don't save every keystroke)
   if (id === 'notepad-text' && USER) {
@@ -1922,6 +2201,17 @@ function enforceHomeRule() { /* legacy no-op; per-block version used now */ }
   // Student count changed → rebuild that block's split options (max = seats - 1) BEFORE
   // pricing, so the price never uses a split that's no longer valid.
   if (e.target.classList.contains('l-qty')) syncSplitOptions(parseInt(e.target.dataset.lesson));
+
+  // Tutor / venue changed → rebuild that block's available-time grid.
+  if (e.target.classList.contains('l-tutor') || e.target.classList.contains('l-location')) {
+    renderSlots(parseInt(e.target.dataset.lesson));
+  }
+  // A time slot was ticked → enforce the 2-consecutive-hours rule.
+  if (e.target.classList.contains('slot-cb')) {
+    onSlotTick(parseInt(e.target.dataset.lesson), e.target.dataset.day, parseInt(e.target.dataset.hour), e.target.checked);
+    return;
+  }
+
   if (e.target.closest('#new-job')) calc();
   // Per-lesson term changed → update that block's weeks label
   if (e.target.classList.contains('l-interval')) { syncBlockWeeks(parseInt(e.target.dataset.lesson)); calc(); }
@@ -1999,6 +2289,8 @@ document.addEventListener('click', e => {
     fillLessonBlock(i);
     LESSON_COUNT++;
     calc();
+    // The card just got taller — re-measure so it doesn't overflow into the next section.
+    layoutGrid(document.getElementById('new-job')?.closest('.grid'));
     return;
   }
   // Remove a lesson block
@@ -2007,6 +2299,7 @@ document.addEventListener('click', e => {
     const block = document.querySelector(`.lesson-block[data-lesson="${i}"]`);
     if (block) block.remove();
     calc();
+    layoutGrid(document.getElementById('new-job')?.closest('.grid'));
     return;
   }
 
@@ -2185,42 +2478,24 @@ document.addEventListener('click', e => {
     return;
   }
 
-  if (t.id === 'save-profile-btn') {
-    const card = t.closest('.card');
-    // Harvest every field the form rendered. Disabled (admin-only) inputs are skipped, and
-    // the backend ignores anything not on its allow-list anyway.
-    const fields = {};
-    card?.querySelectorAll('[data-pf]').forEach(el => { if (!el.disabled) fields[el.dataset.pf] = el.value; });
-
+  // Admin: open a venue's editor
+  if (t.classList.contains('edit-venue-btn')) {
+    if (!isAdmin()) return;
     const norm = s => String(s || '').toLowerCase().trim();
-    const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));  // find BEFORE any rename
-
-    post({ action: 'updateProfile', name: USER.name, fields }, t, '✅ Saved');
-    if (!USER.profile) USER.profile = {};
-    Object.assign(USER.profile, fields);
-
-    // Renaming changes the name login matches on, so the session has to follow it or the
-    // tutor would be editing a profile the site no longer recognises as theirs.
-    const newName = `${fields.first_name ?? ''} ${fields.last_name ?? ''}`.trim();
-    if (newName && newName !== USER.name) {
-      USER.name = newName;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-    }
-
-    // Update the live tutor record so the card shows the new values immediately
-    if (me) {
-      if (newName) me.title = newName;
-      if (fields.description !== undefined) me.description = fields.description ? `"${fields.description}"` : '';
-      me.tags = [fields.adjective_1, fields.adjective_2, fields.adjective_3].filter(Boolean);
-      if (fields.photo !== undefined) me.image = fields.photo;
-      if (fields.video !== undefined) me.mediaUrl = fields.video;
-      if (fields.city !== undefined) me.subtitle = `📍 ${fields.city || 'London'}`;
-    }
-    // Swap just this one card back to its display form (no whole-section rebuild)
-    if (card && me) { const g = card.closest('.grid'); card.outerHTML = tpl.card(me); layoutGrid(g); }
+    const v = (DATA.venues || []).find(x => norm(x.title) === norm(t.dataset.venue));
+    const card = t.closest('.card');
+    if (card && v) { const g = card.closest('.grid'); card.outerHTML = tpl.venueEditCard(v); layoutGrid(g); }
     return;
   }
-
+  // Cancel venue edit → restore the venue card
+  if (t.id === 'cancel-venue-btn') {
+    const norm = s => String(s || '').toLowerCase().trim();
+    const card = t.closest('.card');
+    const v = (DATA.venues || []).find(x => norm(x.title) === norm(card?.dataset.venue));
+    if (card && v) { const g = card.closest('.grid'); card.outerHTML = tpl.card(v); layoutGrid(g); }
+    return;
+  }
+  // Save venue edits (admin only)
   // Login — verify full name + PIN against the sheet
   if (t.id === 'auth-btn') {
     const name = val('auth-email'), pin = val('auth-pin');
@@ -2234,6 +2509,11 @@ document.addEventListener('click', e => {
         if (!d.success) { $('auth-msg').textContent = d.error || 'Login failed.'; return; }
         USER = { name: d.name, role: (d.role || 'parent').toLowerCase(), kids: d.kids || [], parent: d.parent || '', profile: d.profile || null, topics: d.topics || '', friends: d.friends || '', handle: d.handle || '', highscore: d.highscore || 0, ttHighscore: d.ttHighscore || 0, xp: d.xp || 0, credits: d.credits || 0, tick1: d.tick1 || '', tick2: d.tick2 || '', tick3: d.tick3 || '', notepad: d.notepad || '' };
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        // Brief diagnostic so you can SEE the role the backend gave you + which backend it is.
+        const bv = DATA.version || 'unknown';
+        const msg = `Logged in as role: "${USER.role}" · backend ${bv}`;
+        $('auth-msg').textContent = msg;
+        console.log('@family. login →', msg);
         $('auth-pin').value = '';
         onLogin();
       })
@@ -2264,13 +2544,13 @@ document.addEventListener('click', e => {
     const i = t.dataset.lesson;
     const checked = Array.from(document.querySelectorAll(`.subj-cb[data-lesson="${i}"]:checked`)).map(cb => cb.value);
     const disp = document.querySelector(`.l-subject-display[data-lesson="${i}"]`);
-    if (disp) disp.textContent = checked.length ? checked.join(', ') + ' ⌄' : 'Select Subjects ⌄';
+    if (disp) disp.textContent = checked.length ? checked.join(', ') + ' ⌄' : 'Subject ⌄';
     calc();
   }
   // Dash topics (unchanged)
   if (t.classList.contains('dash-topic-cb')) {
     const checked = Array.from(document.querySelectorAll('.dash-topic-cb:checked')).map(cb => cb.value);
-    if ($('dash-topic-display')) $('dash-topic-display').textContent = checked.length ? checked.join(', ') + ' ⌄' : 'Select Topics ⌄';
+    if ($('dash-topic-display')) $('dash-topic-display').textContent = checked.length ? checked.join(', ') + ' ⌄' : 'Topics ⌄';
   }
 
   // Save checklist
