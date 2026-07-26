@@ -32,17 +32,18 @@
    --bg stays black: it doubles as the "contrast against gold" colour on buttons and badges,
    so it can't become brown. */
 body {
-  background-color: var(--board, #4f3520);
+  background-color: var(--board, #6b4a2b);
+  /* Wood grain: layered horizontal streaks at varied opacities/offsets so it reads as timber
+     rather than a regular grid. The irregular gradient stops give a random-plank grain feel. */
   background-image:
-    radial-gradient(circle at 18% 22%, rgba(150,108,64,.55) 0 2px,   transparent 2.5px),
-    radial-gradient(circle at 62% 8%,  rgba(30,18,8,.55)    0 1.5px, transparent 2px),
-    radial-gradient(circle at 84% 41%, rgba(160,118,72,.45) 0 2.5px, transparent 3px),
-    radial-gradient(circle at 33% 63%, rgba(26,15,6,.5)     0 2px,   transparent 2.5px),
-    radial-gradient(circle at 71% 78%, rgba(138,100,58,.5)  0 1.5px, transparent 2px),
-    radial-gradient(circle at 9%  88%, rgba(34,20,9,.45)    0 2px,   transparent 2.5px),
-    radial-gradient(circle at 47% 35%, rgba(126,90,52,.42)  0 1px,   transparent 1.5px),
-    radial-gradient(circle at 95% 92%, rgba(22,13,5,.42)    0 1.5px, transparent 2px);
-  background-size: 23px 23px, 29px 27px, 31px 33px, 37px 35px, 41px 43px, 19px 21px, 47px 45px, 53px 51px;
+    repeating-linear-gradient(91deg,
+      rgba(60,38,18,.55) 0px, rgba(90,60,32,.15) 2px, rgba(120,84,48,.10) 5px,
+      rgba(70,45,22,.35) 9px, rgba(110,76,42,.12) 13px, rgba(55,34,16,.45) 17px),
+    repeating-linear-gradient(89.4deg,
+      rgba(40,25,10,.30) 0px, transparent 3px, rgba(95,64,34,.14) 7px, transparent 12px,
+      rgba(45,28,12,.28) 19px, transparent 26px),
+    linear-gradient(178deg, rgba(120,84,48,.20), rgba(60,38,18,.30) 40%, rgba(95,64,34,.18) 70%, rgba(70,45,22,.28));
+  background-size: 100% 140px, 100% 90px, 100% 100%;
   background-attachment: fixed;
   color: var(--text);
   font: var(--fs-base)/1.55 Consolas, monospace;
@@ -83,7 +84,8 @@ button { font: bold var(--fs-sm) inherit; text-transform: uppercase; letter-spac
 .ghost { display: block; margin: 0 auto; background: transparent; color: var(--gold); padding: 12px 24px; }
 .ghost:hover { background: var(--gold); color: var(--bg); }
 
-input, select { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font: inherit; outline: none; }
+input, select, textarea, button, option { font-family: 'Patrick Hand','Segoe Print','Comic Sans MS',cursive; }
+input, select { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: var(--fs-base); outline: none; }
 input:focus, select:focus { border-color: var(--gold); }
 option { background: var(--panel); color: var(--text); }
 
@@ -318,7 +320,7 @@ option { background: var(--panel); color: var(--text); }
 .sentence { font-size: var(--fs-md); line-height: 2; }
 /* Every field in the booking sentence is a .pick select, so they all look and behave
    identically — no native spinners or chevrons, just the gold dashed underline. */
-.pick { font: bold inherit; border: none; border-bottom: 2px dashed var(--gold); background: transparent; color: var(--text); cursor: pointer; text-align: center; padding: 0 5px 2px; outline: none; -webkit-appearance: none; appearance: none; }
+.pick { font-family: 'Patrick Hand','Segoe Print','Comic Sans MS',cursive; font-weight: normal; font-size: var(--fs-md); border: none; border-bottom: 2px dashed var(--gold); background: transparent; color: var(--text); cursor: pointer; text-align: center; padding: 0 5px 2px; outline: none; -webkit-appearance: none; appearance: none; }
 .pick { max-width: 150px; text-overflow: ellipsis; vertical-align: bottom; }
 
 .c-qty { color: #4fc3f7; } .c-service { color: #ce93d8; } .c-level { color: #ffab91; } .c-base { color: #d4af37; }
@@ -353,7 +355,7 @@ option { background: var(--panel); color: var(--text); }
 .custom-select-wrapper { position: relative; display: inline-block; text-align: left; }
 /* The subject picker should look identical to the other booking fields: gold dashed underline. */
 .inline-select {
-  font: bold inherit; border: none; border-bottom: 2px dashed var(--gold);
+  font-family: 'Patrick Hand','Segoe Print','Comic Sans MS',cursive; font-weight: normal; font-size: var(--fs-md); border: none; border-bottom: 2px dashed var(--gold);
   background: transparent; color: var(--text); cursor: pointer; text-align: center;
   padding: 0 5px 2px; vertical-align: bottom; max-width: 150px;
   display: inline-block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
@@ -376,11 +378,10 @@ option { background: var(--panel); color: var(--text); }
 .card.social-post { text-align: left; }
 
 .social-header { display: flex; align-items: center; gap: 10px; padding: 0 0 8px; border-bottom: 1px solid var(--panel-alt); margin-bottom: 10px; }
-.social-avatar { width: 30px; height: 30px; background: var(--gold); color: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+.social-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--fs-lg); flex-shrink: 0; }
 .social-username { font-weight: bold; color: var(--text); font-size: var(--fs-sm); }
 /* .social-img needs no rules of its own — it inherits the shared .card img treatment above. */
-.social-share-btn { margin-left: auto; color: var(--text-muted); background: none; border: none; font-size: var(--fs-lg); cursor: pointer; transition: 0.2s; padding: 0 4px; }
-.social-share-btn:hover { color: var(--gold); }
+.social-share-btn { margin-left: auto; font-size: var(--fs-xs); cursor: pointer; }
 .social-body { padding: 10px 0 0; }
 .social-body .attr-tags { justify-content: flex-start; margin: 0; }
 /* Site-wide: any @mention or #hashtag renders blue, wherever it appears.
@@ -531,6 +532,12 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
   margin: 2px 0 6px !important;
   letter-spacing: .3px !important;
 }
+/* Enhanced DBS tickbox on tutor cards — visible to all, tickable only by admins */
+.dbs-tick { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); margin: 2px 0 6px; color: var(--muted); }
+.dbs-tick input { width: 15px; height: 15px; accent-color: var(--ok, #3cb043); margin: 0; }
+.dbs-tick input:disabled { opacity: 1; }        /* still clearly readable when non-admin */
+.dbs-tick.admin { cursor: pointer; color: var(--text); }
+.dbs-tick.admin input { cursor: pointer; }
 
 /* Tutor timetable: plain text lines inside the tutor's own profile card */
 .tt-section { text-align: left; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
@@ -548,10 +555,8 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 
 /* Share button on tutor/venue cards — same idea as the gallery post share button,
    tucked into the card's top-right corner. */
-.card-share-btn { position: absolute; top: 8px; right: 8px; z-index: 2; border: none;
-  background: rgba(0,0,0,.55); border-radius: 50%; width: 22px; height: 22px;
-  color: var(--muted); font-size: var(--fs-md); line-height: 1; padding: 0; cursor: pointer; transition: .2s; }
-.card-share-btn:hover { color: var(--gold); background: rgba(0,0,0,.8); }
+.card-share-btn { position: absolute; top: 10px; right: 12px; z-index: 2;
+  font-size: var(--fs-xs); cursor: pointer; }
 /* A card opened from a shared ?card= link flashes briefly so it's obvious which one it is */
 .card-flash { animation: card-flash 2.2s ease-out; }
 @keyframes card-flash {
@@ -648,10 +653,98 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .slot input { accent-color: var(--gold); cursor: pointer; margin: 0; }
 
 /* Booking time-slot GRID: days down the side, hours across; only available cells are tickable. */
-.slot-grid-wrap { overflow-x: auto; margin-top: 4px; }
-.slot-grid { border-collapse: collapse; font-size: var(--fs-xs); }
-.slot-grid th, .slot-grid td { padding: 3px 5px; text-align: center; }
-.slot-grid th { color: var(--gold); font-weight: normal; }
-.slot-grid .slot-day { text-align: right; padding-right: 8px; color: var(--text); }
-.slot-grid .slot-cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); margin: 0; }
+.slot-grid-wrap { margin-top: 4px; }
+.slot-grid { border-collapse: collapse; font-size: var(--fs-xs); width: 100%; }
+.slot-grid th, .slot-grid td { padding: 2px 3px; text-align: center; }
+.slot-grid th { color: var(--gold); font-weight: normal; font-size: var(--fs-xs); }
+.slot-grid .slot-day { text-align: right; padding-right: 6px; color: var(--text); white-space: nowrap; }
+.slot-grid .slot-cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); margin: 0; }
 .slot-grid .slot-off { background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 6px); border-radius: 3px; }
+
+/* Multi-select field (validated columns that allow multiple values) */
+.ms-list { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.ms-opt { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-sm); cursor: pointer; }
+.ms-opt input { accent-color: var(--gold); cursor: pointer; margin: 0; }
+
+/* Job cards: clean label:value lines, role-gated money, chat as a single line. */
+.job-detail, .job-slots { text-align: left; margin: 8px 0; }
+.job-slots { border-top: 1px dashed var(--border); padding-top: 8px; }
+.job-line { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: var(--fs-sm); align-items: baseline; }
+.job-k { color: var(--gold); flex-shrink: 0; }
+.job-v { color: var(--text); text-align: right; }
+.job-chat { font-style: italic; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.job-actions { display: inline-flex; gap: 8px; margin-left: 6px; }
+.job-chat-box { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.job-chat-input { flex: 1; padding: 6px; font-size: var(--fs-xs); }
+.job-foot { margin-top: 10px; text-align: left; }
+
+/* "I'll host the venue" toggle in the booking sentence */
+.host-toggle { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-sm); cursor: pointer; white-space: nowrap; }
+.host-toggle input { accent-color: var(--gold); cursor: pointer; margin: 0; }
+.host-toggle.locked { opacity: 0.7; cursor: not-allowed; }
+.host-toggle.locked input { cursor: not-allowed; }
+
+/* Job lifecycle status badges — colour by stage */
+.st-requested   { background:#8a6d00; color:#fff; }
+.st-negotiating { background:#9a5b00; color:#fff; }
+.st-accepted    { background:#4a6b00; color:#fff; }
+.st-paid        { background:#2f6b3f; color:#fff; }
+.st-active      { background:#1f6b5f; color:#fff; }
+.st-completed   { background:#555;    color:#fff; }
+.st-declined    { background:#7a2a2a; color:#fff; }
+.act-sep { opacity: .4; }
+.job-act.pay { font-weight: bold; }
+
+/* Job card shows two photos side by side: venue + tutor */
+.job-photos { display: flex; gap: 6px; }
+.job-photos img { flex: 1; min-width: 0; margin: 0 auto 10px; }
+
+/* Unified turn-based "make your move" box on job cards */
+.move-box { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; text-align: left; }
+.move-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.move-chip { font-size: var(--fs-xs); padding: 4px 10px; border: 1px solid var(--gold); border-radius: 999px; cursor: pointer; color: var(--gold); transition: 0.15s; }
+.move-chip:hover { background: var(--panel2); }
+.move-chip.selected { background: var(--gold); color: var(--bg); }
+.move-time { width: 100%; padding: 6px; font-size: var(--fs-xs); margin-bottom: 8px; }
+.move-send-row { display: flex; gap: 6px; align-items: center; }
+.move-text { flex: 1; padding: 6px; font-size: var(--fs-xs); }
+
+/* Checkbox-style profile fields (e.g. DBS check) */
+.pf-field.pf-check { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.pf-field.pf-check .edit-check { width: 18px; height: 18px; accent-color: var(--gold); margin: 0; }
+.pf-field.pf-check .edit-label { margin: 0; }
+
+/* One full-screen loading overlay: covers everything until the site is ready, then fades out. */
+#load-screen {
+  position: fixed; inset: 0; z-index: 99999;
+  background: var(--board, #6b4a2b);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .4s ease;
+}
+#load-screen.gone { opacity: 0; pointer-events: none; }
+#load-screen .spin {
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,.25); border-top-color: var(--gold);
+  animation: loadSpin .8s linear infinite;
+}
+@keyframes loadSpin { to { transform: rotate(360deg); } }
+
+/* Calendar tool */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal-grid .cal-h { font-size: var(--fs-xs); color: var(--gold); padding: 4px 0; }
+.cal-grid .cal-d { padding: 6px 0; font-size: var(--fs-sm); border-radius: 6px; }
+.cal-grid .cal-today { background: var(--gold); color: var(--bg); font-weight: bold; }
+/* Itemised price breakdown — the build-up of the hourly rate, step by step */
+.bd-lesson { margin-bottom: 12px; }
+.bd-detail { margin: 4px 0 4px 8px; padding-left: 8px; border-left: 2px dotted var(--border); }
+.bd-sub { font-size: var(--fs-xs); opacity: .85; }
+.bd-share { color: var(--gold); }
+.bd-warn { color: #b3401f; font-weight: bold; }
+
+/* Client blocks inside a job card — each family as its own labelled section */
+.cl-block { text-align: left; padding: 8px 0; border-top: 1px dashed var(--border); }
+.cl-block:first-child { border-top: none; }
+.cl-head { font-weight: bold; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cl-blurb { font-size: var(--fs-xs); color: var(--muted); margin-bottom: 5px; }
+.cl-acts { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.cl-note { font-size: var(--fs-xs); font-style: italic; }
