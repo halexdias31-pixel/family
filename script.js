@@ -5,7 +5,62 @@ let NOTEPAD_TIMER = null;   // debounce timer for notepad auto-save
 let PROFILE_SAVE_TIMER = null;   // debounce timer for profile editor auto-save
 let VENUE_SAVE_TIMER = null;     // debounce timer for venue editor auto-save
 
-const isHome = loc => /home/i.test(loc || '');
+const isHome = loc => /\b(home|your house|your venue|my house|my home)\b/i.test(loc || '');
+
+// Parse a number that may be written as a FRACTION ("1/100", "1/2"), a percentage ("5%") or a
+// plain decimal. parseFloat("1/100") silently returns 1 — a 100x error on a price constant —
+// so anything read from the sheet goes through here.
+function num(raw) {
+  if (typeof raw === 'number') return raw;
+  const t = String(raw == null ? '' : raw).trim().replace(/[£$,\s]/g, '');
+  if (!t) return NaN;
+  const frac = t.match(/^(-?\d*\.?\d+)\/(-?\d*\.?\d+)$/);
+  if (frac) { const den = parseFloat(frac[2]); return den === 0 ? NaN : parseFloat(frac[1]) / den; }
+  if (t.endsWith('%')) { const p = parseFloat(t); return isNaN(p) ? NaN : p / 100; }
+  return parseFloat(t);
+}
+
+// The 7 canonical job statuses. The `status` cell in the sheet holds one of these; any older
+// value (Unstarted/Ongoing/Pending/etc.) is mapped onto the new set by jobStatus() so nothing
+// breaks during the transition. This is the single source of truth for the lifecycle.
+const JOB_STATUSES = ['Requested', 'Negotiating', 'Accepted', 'Paid', 'Active', 'Completed', 'Declined/Cancelled'];
+function jobStatus(j) {
+  const s = String(j?.status || '').toLowerCase().trim();
+  if (/negotiat/.test(s))              return 'Negotiating';
+  if (/decline|cancel/.test(s))        return 'Declined/Cancelled';
+  if (/complete|finished|ended/.test(s)) return 'Completed';
+  if (/paid/.test(s))                  return 'Paid';
+  if (/accept/.test(s))                return 'Accepted';
+  if (/active|ongoing|started|confirmed/.test(s)) return 'Active';
+  if (/request|unstarted|pending|new/.test(s) || !s) return 'Requested';
+  // Exact match on a canonical value wins if none of the patterns caught it.
+  const exact = JOB_STATUSES.find(x => x.toLowerCase() === s);
+  return exact || 'Requested';
+}
+
+// --- CLIENT (family) statuses: the 6-state journey each family goes through in a job. ---
+// Requested ⇄ Waiting (negotiation, turn tracked by offer_turn) → Accepted → (pay) → Participant.
+// Declined (tutor rejects) and Cancelled (client withdraws) are the two exits.
+const CLIENT_STATUSES = ['Requested', 'Waiting', 'Accepted', 'Participant', 'Declined', 'Cancelled'];
+function clientStatus(raw) {
+  const s = String(raw || '').toLowerCase().trim();
+  if (/particip|paid|joined|active/.test(s))      return 'Participant';
+  if (/decline|rejected/.test(s))                 return 'Declined';
+  if (/cancel|withdraw|left/.test(s))             return 'Cancelled';
+  if (/accept|agreed/.test(s))                    return 'Accepted';
+  if (/wait/.test(s))                             return 'Waiting';    // "waiting to hear back"
+  if (/request|pending|new/.test(s) || !s)        return 'Requested';
+  const exact = CLIENT_STATUSES.find(x => x.toLowerCase() === s);
+  return exact || 'Requested';
+}
+// A family occupies a seat unless they've left the job entirely.
+const CLIENT_ACTIVE = st => !['Declined', 'Cancelled'].includes(clientStatus(st));
+// Friendly label for what the client sees.
+const clientStatusLabel = st => ({
+  Requested: 'Requested', Waiting: 'Waiting to hear back', Accepted: 'Accepted — payment due',
+  Participant: 'Participant', Declined: 'Declined', Cancelled: 'Cancelled'
+}[clientStatus(st)] || 'Requested');
+
 // Normalise any time value to a friendly 12-hour label: "09:00"/Date/ISO → "9am", "13:30" → "1:30pm"
 const fmtTime = t => {
   let s = String(t ?? '').trim();
@@ -201,6 +256,28 @@ async function init() {
     if (saved) USER = JSON.parse(saved);
   } catch {}
 
+  // The cached USER (esp. USER.profile) can be stale — e.g. after editing the profile in a
+  // previous session. Re-fetch it from the sheet so what you saved actually shows after a
+  // reload. relogin matches on name only (no PIN) since we already trust the saved session.
+  if (USER && USER.name) {
+    try {
+      const fresh = await (await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'relogin', name: USER.name }) })).json();
+      if (fresh && !fresh.error && fresh.name) {
+        USER = { ...USER,
+          role: (fresh.role || USER.role || 'parent').toLowerCase(),
+          profile: fresh.profile || USER.profile || null,
+          kids: fresh.kids || USER.kids, parent: fresh.parent ?? USER.parent,
+          topics: fresh.topics ?? USER.topics, friends: fresh.friends ?? USER.friends,
+          handle: fresh.handle || USER.handle, xp: fresh.xp ?? USER.xp, credits: fresh.credits ?? USER.credits,
+          highscore: fresh.highscore ?? USER.highscore, ttHighscore: fresh.ttHighscore ?? USER.ttHighscore,
+          tick1: fresh.tick1 ?? USER.tick1, tick2: fresh.tick2 ?? USER.tick2, tick3: fresh.tick3 ?? USER.tick3,
+          notepad: fresh.notepad ?? USER.notepad
+        };
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      }
+    } catch {}
+  }
+
   // Returning after paying for an added student (?addpaid=1&ref=...)
   if (params.get('addpaid') === '1' && params.get('ref')) {
     try {
@@ -273,12 +350,13 @@ async function init() {
     renderLinks();
     renderShop();
     renderChecklist();
+    renderTools();
     renderArcade();
     renderGallery(DATA.gallery);
     fillDropdowns();
     initIntervals();
     verifyFormula();
-    ['tutor','venue','class','link'].forEach(renderFilterBar);
+    ['tutor','venue','class','link','shop'].forEach(renderFilterBar);
     calc();
     focusSharedCard();   // ?card=Name from a shared link → scroll to it
     // Which backend is actually serving /exec? If this isn't the version you just saved in
@@ -292,10 +370,43 @@ async function init() {
       banner.innerHTML = `⚠ <b>Couldn't load site data.</b> ${esc(e.message)}`;
       banner.classList.remove('hidden');
     }
+  } finally {
+    // Site is ready (or errored) — fade the full-screen loading overlay out and remove it.
+    const ls = document.getElementById('load-screen');
+    if (ls) { ls.classList.add('gone'); setTimeout(() => ls.remove(), 450); }
   }
 }
 
+// Money breakdown for a job. NOTE: the profit model isn't finalised yet (β/ε/λ/μ are all 0),
+// so this currently reports the stored price only and leaves cut/profit null until you define
+// how earnings split. Wire the real split here once the model exists — one place, every view.
+function jobMoney(j) {
+  const total = parseFloat(j.price);
+  return {
+    total: isNaN(total) ? null : total,
+    tutorCut: null,   // TODO: set once profit model defines the tutor's share
+    profit: null,     // TODO: total - tutorCut once defined
+  };
+}
+
 /* ---------- TEMPLATES ---------- */
+
+// A multi-select field for validated columns that allow multiple values (stored comma-separated
+// in the sheet cell). Renders a checkbox list; the hidden input (data-pf/data-vf) holds the
+// joined value that Save harvests, exactly like a normal field. `kind` is 'pf' or 'vf'.
+function multiSelectField(kind, colName, current, opts) {
+  const chosen = String(current || '').split(',').map(s => s.trim()).filter(Boolean);
+  const isOn = o => chosen.some(c => c.toLowerCase() === String(o).toLowerCase());
+  const boxes = opts.map(o =>
+    `<label class="ms-opt"><input type="checkbox" class="ms-cb" data-ms="${esc(colName)}" value="${esc(o)}" ${isOn(o) ? 'checked' : ''}> ${esc(o)}</label>`
+  ).join('');
+  // The hidden input is what Save reads; ms-cb ticks keep it updated (see the change handler).
+  return `<span class="ms-wrap" data-ms-for="${esc(colName)}">
+    <input type="hidden" data-${kind}="${esc(colName)}" class="ms-value" value="${esc(chosen.join(', '))}">
+    <span class="ms-list">${boxes}</span>
+  </span>`;
+}
+
 const tpl = {
   tag: t => `<span class="tag">${esc(t)}</span>`,
   // Flat label row: renders the items as plain comma-separated text (no bordered boxes),
@@ -311,9 +422,9 @@ const tpl = {
     : '',
 
   actionBtn: it => it.link
-    ? `<a href="${esc(it.link)}" target="_blank" style="text-decoration:none;width:100%"><button type="button" class="action" style="width:100%">${esc(it.actionText || 'Book Session')}</button></a>`
+    ? `<a href="${esc(it.link)}" target="_blank" style="text-decoration:none;width:100%"><span class="text-action" style="display:inline-block">${esc(it.actionText || 'Book Session')}</span></a>`
     : it.mediaUrl
-      ? `<button type="button" class="action" data-video="${esc(it.mediaUrl)}" data-title="${esc(it.title)}">${esc(it.actionText || 'View')}</button>`
+      ? `<span class="text-action" data-video="${esc(it.mediaUrl)}" data-title="${esc(it.title)}">${esc(it.actionText || 'View')}</span>`
       : '',
 
   schedule: hours => {
@@ -345,8 +456,8 @@ const tpl = {
       ? `<div class="tutor-stats">Lv ${st.level} · ${st.xp} XP · 🪙 ${st.credits} · 🎮 ${it.highscore || 0}</div>`
       : '';
     return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}" data-card-name="${esc(it.title)}"${it.type === 'venue' ? ` data-venue="${esc(it.title)}"` : ''}>
-    <button type="button" class="card-share-btn" title="Share ${esc(it.title)}"
-      data-share-url="${esc(cardShareUrl(it.title))}" data-share-title="${esc(it.title)}">⎘</button>
+    <span class="text-action card-share-btn" title="Share ${esc(it.title)}"
+      data-share-url="${esc(cardShareUrl(it.title))}" data-share-title="${esc(it.title)}">Share</span>
     ${isOwn ? `<div class="card-actions">
       <span class="text-action edit-profile-btn" title="Edit your profile">Edit</span>
       <span class="text-action" id="logout-btn">Log out</span>
@@ -355,7 +466,10 @@ const tpl = {
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
-    ${it.dbs ? `<p class="dbs-badge">✓ DBS checked</p>` : ''}
+    ${it.type === 'tutor' ? `<label class="dbs-tick${isAdmin() ? ' admin' : ''}">
+      <input type="checkbox" class="dbs-cb" data-tutor="${esc(it.title)}" ${it.dbs ? 'checked' : ''} ${isAdmin() ? '' : 'disabled'}>
+      <span>Enhanced DBS</span>
+    </label>` : ''}
     <p class="desc">${escTokens(it.description)}</p>
     ${tpl.tagRow(it.tags)}
     ${tpl.tutorCreds(it)}
@@ -373,7 +487,7 @@ const tpl = {
     const grid   = DATA.availGrid;
     if (!Object.keys(groups).length) {
       return `<div class="card editing"><p class="muted">Venue fields unavailable — the backend needs redeploying.</p>
-        <button type="button" id="cancel-venue-btn" class="ghost" style="width:100%">Close</button></div>`;
+        <span class="text-action" id="cancel-venue-btn">Close</span></div>`;
     }
     const vals = v.fields || {};
     const human = c => String(c).replace(/source_address_names/, 'venue name')
@@ -381,10 +495,22 @@ const tpl = {
       .replace(/\s+/g, ' ').trim().replace(/^./, m => m.toUpperCase());
     const field = (colName) => {
       const val = vals[colName] ?? '';
-      const isNum = ['max_capacity','min_capacity','min_notice_days','constant'].includes(colName);
-      const input = ['description'].includes(colName)
-        ? `<textarea data-vf="${esc(colName)}" class="edit-input" rows="2">${esc(val)}</textarea>`
-        : `<input ${isNum ? 'type="number" min="0"' : ''} data-vf="${esc(colName)}" class="edit-input" value="${esc(val)}">`;
+      const opts = (DATA.validations || {})[colName];
+      const multi = (DATA.multiSelect || []).includes(colName);
+      let input;
+      if (opts && opts.length && multi) {
+        input = multiSelectField('vf', colName, val, opts);
+      } else if (opts && opts.length) {
+        input = `<select data-vf="${esc(colName)}" class="edit-input">
+          <option value="">—</option>
+          ${opts.map(o => `<option value="${esc(o)}"${String(val)===String(o)?' selected':''}>${esc(o)}</option>`).join('')}
+        </select>`;
+      } else if (['description'].includes(colName)) {
+        input = `<textarea data-vf="${esc(colName)}" class="edit-input" rows="2">${esc(val)}</textarea>`;
+      } else {
+        const isNum = ['max_capacity','min_capacity','min_notice_days','constant'].includes(colName);
+        input = `<input ${isNum ? 'type="number" min="0"' : ''} data-vf="${esc(colName)}" class="edit-input" value="${esc(val)}">`;
+      }
       return `<label class="pf-field"><span class="edit-label">${esc(human(colName))}</span>${input}</label>`;
     };
     const section = (title, cols) => `<fieldset class="pf-group"><legend>${esc(title)}</legend>
@@ -416,7 +542,7 @@ const tpl = {
       ${hoursSection}
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
         <span class="edit-status muted" style="flex:1;font-size:var(--fs-xs);white-space:nowrap"></span>
-        <button type="button" id="cancel-venue-btn" class="action" style="padding:11px 20px">Done</button>
+        <span class="text-action" id="cancel-venue-btn">Done</span>
       </div>
     </div>`;
   },
@@ -430,6 +556,13 @@ const tpl = {
     if (it.teaches?.length) rows.push(`<div class="cred-row"><span class="cred-k">Teaches</span><span class="cred-v">${esc(it.teaches.join(', '))}</span></div>`);
     if (it.quals?.length) rows.push(`<div class="cred-row"><span class="cred-k">Qualifications</span><span class="cred-v">${it.quals.map(q => esc(q)).join('<br>')}</span></div>`);
     if (it.extraQuals) rows.push(`<div class="cred-row"><span class="cred-k">Also</span><span class="cred-v">${esc(it.extraQuals)}</span></div>`);
+    // Venues this tutor is comfortable teaching at — stored on each venue's comfort list, read
+    // back here by matching this tutor's handle. (Data lives venue-side, displays tutor-side.)
+    const myHandle = String(it.handle || '').toLowerCase().trim();
+    const venues = (DATA.venues || [])
+      .filter(v => (v.comfort || []).some(h => String(h).toLowerCase().trim() === myHandle))
+      .map(v => v.title);
+    if (venues.length) rows.push(`<div class="cred-row"><span class="cred-k">Teaches at</span><span class="cred-v">${venues.map(esc).join(', ')}</span></div>`);
     return rows.length ? `<div class="tutor-creds">${rows.join('')}</div>` : '';
   },
 
@@ -440,7 +573,7 @@ const tpl = {
     <h3>${esc(it.name)}</h3>
     ${it.price ? `<p class="sub">${esc(it.unit || '')}${esc(it.price)}</p>` : ''}
     ${it.description ? `<p class="desc">${escTokens(it.description)}</p>` : ''}
-    <button type="button" class="action buy-item-btn" data-item="${esc(it.id)}" data-name="${esc(it.name)}">Buy</button>
+    <span class="text-action buy-item-btn" data-item="${esc(it.id)}" data-name="${esc(it.name)}">Buy</span>
   </div>`,
 
   // Tutor's weekly timetable, rendered INSIDE their own profile card.
@@ -503,12 +636,22 @@ const tpl = {
     <p class="muted" id="notepad-status" style="font-size:var(--fs-xs);margin:6px 0 0;min-height:1em">${USER ? '' : 'Log in to save your notes.'}</p>
   </div>`,
 
+  // Month calendar tool — today highlighted, prev/next navigation.
+  calendarCard: () => `<div class="card" style="text-align:left">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span class="text-action" onclick="calShift(-1)">‹</span>
+      <h3 class="gold" id="cal-label" style="margin:0">Calendar</h3>
+      <span class="text-action" onclick="calShift(1)">›</span>
+    </div>
+    <div id="cal-body" class="cal-grid"></div>
+  </div>`,
+
   // Times-tables sprint: 60 seconds, random questions up to 12×12. Score = correct answers.
   timesTableCard: () => `<div class="card" style="text-align:left">
     <h3 class="gold" style="margin-bottom:8px">Times Tables Sprint</h3>
     <p class="muted" style="font-size:var(--fs-xs);margin:0 0 10px">60 seconds. As many as you can.</p>
     <div id="tt-idle">
-      <button type="button" id="tt-start" class="action" style="width:100%">Start</button>
+      <span class="text-action" id="tt-start">Start</span>
       ${canTrack() ? `<p class="muted" style="font-size:var(--fs-xs);margin:8px 0 0">Best: <b style="color:var(--gold)">${USER.ttHighscore || 0}</b></p>` : ''}
     </div>
     <div id="tt-play" class="hidden">
@@ -523,7 +666,7 @@ const tpl = {
     <div id="tt-over" class="hidden" style="text-align:center">
       <p style="font-size:var(--fs-lg);margin:10px 0">You got <b id="tt-final" style="color:var(--gold)">0</b></p>
       <p id="tt-best-msg" class="muted" style="font-size:var(--fs-xs);min-height:1em"></p>
-      <button type="button" id="tt-again" class="action" style="width:100%;margin-top:8px">Play again</button>
+      <span class="text-action" id="tt-again">Play again</span>
     </div>
   </div>`,
 
@@ -628,7 +771,7 @@ const tpl = {
         <p class="muted" style="font-size:var(--fs-sm);text-align:left">
           Couldn't load the profile fields. The Apps Script needs redeploying as a
           <b>new version</b> before this form can appear.</p>
-        <button type="button" id="cancel-profile-btn" class="ghost" style="width:100%">Close</button>
+        <span class="text-action" id="cancel-profile-btn">Close</span>
       </div>`;
     }
     const human = c => String(c).replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
@@ -637,8 +780,26 @@ const tpl = {
     const field = (colName) => {
       const v  = p[colName] ?? '';
       const ro = readonly.includes(colName);
+      const opts = (DATA.validations || {})[colName];
+      const multi = (DATA.multiSelect || []).includes(colName);
       let input;
-      if (['description', 'extra_qualifications', 'Hobbies'].includes(colName)) {
+      // 'dbs checked' is a yes/no safeguarding flag → show it as a tickbox. It lives in the
+      // "Set by admin" section and is readonly here, so the box is disabled for tutors.
+      if (/^dbs[\s_]*check/i.test(colName)) {
+        const on = /^(true|yes|1|✓)$/i.test(String(v).trim());
+        return `<label class="pf-field pf-check">
+          <input type="checkbox" data-pf="${esc(colName)}" class="edit-check" ${on ? 'checked' : ''}${ro ? ' disabled' : ''}>
+          <span class="edit-label">${esc(human(colName))}</span>
+        </label>`;
+      }
+      if (opts && opts.length && multi && !ro) {
+        input = multiSelectField('pf', colName, v, opts);
+      } else if (opts && opts.length) {
+        input = `<select data-pf="${esc(colName)}" class="edit-input"${ro ? ' disabled' : ''}>
+          <option value="">—</option>
+          ${opts.map(o => `<option value="${esc(o)}"${String(v)===String(o)?' selected':''}>${esc(o)}</option>`).join('')}
+        </select>`;
+      } else if (['description', 'extra_qualifications', 'Hobbies'].includes(colName)) {
         input = `<textarea data-pf="${esc(colName)}" class="edit-input" rows="2">${esc(v)}</textarea>`;
       } else {
         input = `<input data-pf="${esc(colName)}" class="edit-input" value="${esc(v)}"${ro ? ' disabled' : ''}>`;
@@ -679,6 +840,20 @@ const tpl = {
     };
 
     const sections = Object.keys(groups).map(g => section(g, groups[g])).join('');
+
+    // "Venues I teach at" — the tutor ticks venues they're comfortable at. Each tick writes
+    // their handle into that VENUE's comfort list (like a checklist), saved instantly.
+    const myHandle = String(p.username || USER?.handle || '').toLowerCase().trim();
+    const venueTicks = (DATA.venues || []).map(v => {
+      const on = (v.comfort || []).some(h => String(h).toLowerCase().trim() === myHandle);
+      return `<label class="ms-opt"><input type="checkbox" class="venue-comfort-cb" data-venue="${esc(v.title)}" ${on ? 'checked' : ''}> ${esc(v.title)}</label>`;
+    }).join('');
+    const comfortSection = (DATA.venues || []).length
+      ? `<fieldset class="pf-group"><legend>Venues I teach at</legend>
+           <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px;text-align:left">Tick the venues you're happy to teach at.</p>
+           <div class="ms-list">${venueTicks}</div>
+         </fieldset>`
+      : '';
     // Read-only fields are shown so the tutor can see their status, but can't be changed here.
     const roSection = readonly.length
       ? `<fieldset class="pf-group">
@@ -692,10 +867,11 @@ const tpl = {
     return `<div class="card own-profile editing profile-edit-wide" data-span="99">
       <h3 class="gold" style="margin-bottom:12px">Editing your profile</h3>
       ${sections}
+      ${comfortSection}
       ${roSection}
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
         <span class="edit-status muted" style="flex:1;font-size:var(--fs-xs);white-space:nowrap"></span>
-        <button type="button" id="cancel-profile-btn" class="action" style="padding:11px 20px">Done</button>
+        <span class="text-action" id="cancel-profile-btn">Done</span>
       </div>
     </div>`;
   },
@@ -704,85 +880,180 @@ const tpl = {
     const norm = s => String(s || '').toLowerCase().trim();
     const slots = j.slots || [];
     const isTutor = isTutorRole() && norm(j.requestedTutor) === norm(USER.name);
+    const admin = isAdmin();
     const myName = USER ? norm(USER.name) : '';
-    const mySlot = USER ? slots.find(s => norm(s.client) === myName && myName) : null;   // logged out = none
-    const emptySlot = slots.find(s => !String(s.client||'').trim());    // is there room?
-    const canJoin = USER && !isTutorRole() && !mySlot && emptySlot && norm(j.status) === 'ongoing';
+    const mySlot = USER ? slots.find(s => norm(s.client) === myName && myName) : null;
+    const emptySlot = slots.find(s => !String(s.client||'').trim());
+    const role = USER ? USER.role : '';
+    const status = jobStatus(j);   // canonical status drives every action below
+    const isClient1 = mySlot && mySlot.n === 1;
+    // Joining only makes sense while the job is live and has room.
+    const canJoin = USER && !isTutorRole() && role !== 'kid' && !mySlot && emptySlot && status === 'Active';
 
-    const stateBadge = mySlot ? `<span class="badge mine-badge">Yours</span>`
-      : norm(j.status) === 'unstarted' ? `<span class="badge pending-badge">Unstarted</span>` : '';
+    // Whose turn is it during negotiation? On a fresh Requested job the tutor responds first;
+    // during Negotiating, offerTurn names the side that must respond next. myTurn = mine.
+    const negotiating = (status === 'Requested' || status === 'Negotiating');
+    const mySide = (isTutor || admin) ? 'tutor' : (mySlot ? 'client' : '');
+    const turn = j.offerTurn || (status === 'Requested' ? 'tutor' : '');
+    const myTurn = mySide && mySide === turn;
 
-    const attrRow = tpl.tagRow([
-      j.level ? `Level: ${j.level}` : '', j.subject || '',
-      `${j.location || 'Online'}`, fmtWeeks(j.weeks) ? `${fmtWeeks(j.weeks)} wks` : '',
-    ]);
+    // Status shown as a coloured badge, colour by lifecycle stage.
+    const badgeClass = { Requested:'st-requested', Negotiating:'st-negotiating', Accepted:'st-accepted',
+      Paid:'st-paid', Active:'st-active', Completed:'st-completed', 'Declined/Cancelled':'st-declined' }[status] || 'st-requested';
+    const stateBadge = `<span class="badge ${badgeClass}">${esc(status)}</span>`
+      + (mySlot ? ` <span class="badge mine-badge">Yours</span>` : '');
 
-    // Slot list — the tutor sees every client + status + controls; a client sees their own row + chat.
+    // A job's details as clean label:value lines. Everyone sees the basics; money lines are
+    // gated by role (tutor sees their earnings; admin sees earnings + tutor cut + profit).
+    const money = jobMoney(j);   // { total, tutorCut, profit } — placeholder until profit model is set
+    const line = (k, v) => v ? `<div class="job-line"><span class="job-k">${esc(k)}</span><span class="job-v">${esc(v)}</span></div>` : '';
+    const detail = [
+      line('Subject', j.subject),
+      line('Level', j.level),
+      line('Day', fmtDay(j.day)),
+      line('Time', fmtTime(j.time) || 'TBD'),
+      line('Venue', j.location || 'Online'),
+      line('Weeks', fmtWeeks(j.weeks)),
+      line('Students', j.capacity),
+      line('Tutor', j.requestedTutor || 'Any'),
+      // Money lines — role-gated.
+      (isTutor || admin) ? line('You earn', money.tutorCut != null ? `£${money.tutorCut.toFixed(2)}` : '—') : '',
+      admin ? line('Client pays', money.total != null ? `£${money.total.toFixed(2)}` : '—') : '',
+      admin ? line('Tutor cut', money.tutorCut != null ? `£${money.tutorCut.toFixed(2)}` : '—') : '',
+      admin ? line('Your profit', money.profit != null ? `£${money.profit.toFixed(2)}` : '—') : '',
+    ].filter(Boolean).join('');
+
+    // Chat: just the LAST message on one line (tutor & admin see it; a client sees their own).
+    const chatLine = (s) => {
+      const last = String(s.chat || '').split('\n').filter(Boolean).pop() || '';
+      return last ? `<div class="job-line"><span class="job-k">Chat</span><span class="job-v job-chat">${esc(last)}</span></div>` : '';
+    };
+
+    // Slot list — tutor/admin sees every family + their status + the right action for that state;
+    // a client sees just their own status. Six-state model via clientMove.
     let slotRows = '';
-    if (isTutor) {
+    const cStatusBadge = st => {
+      const cs = clientStatus(st);
+      const cls = { Requested:'st-requested', Waiting:'st-negotiating', Accepted:'st-accepted',
+        Participant:'st-active', Declined:'st-declined', Cancelled:'st-declined' }[cs] || 'st-requested';
+      return `<span class="badge ${cls}">${esc(clientStatusLabel(st))}</span>`;
+    };
+    if (isTutor || admin) {
       slotRows = slots.filter(s => String(s.client||'').trim()).map(s => {
-        const st = s.status || 'Requested';
-        const controls = /request|negotiat/i.test(st)
-          ? `<div style="display:flex;gap:6px;margin-top:6px">
-               <button type="button" class="action slot-act" data-job="${j.id}" data-slot="${s.n}" data-status="Active" style="margin:0;padding:6px 10px">Accept</button>
-               <button type="button" class="ghost slot-act" data-job="${j.id}" data-slot="${s.n}" data-status="Declined" style="margin:0;padding:6px 10px">Decline</button>
-             </div>` : '';
-        const chat = tpl.slotChat(j, s);
-        return `<div class="slot-row"><b>${esc(s.client)}</b> — ${esc(st)}${controls}${chat}</div>`;
+        const cs = clientStatus(s.status);
+        const ctl = [];
+        if (cs === 'Requested') {   // ball in tutor's court
+          ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="accept">Accept</span>`);
+          ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="counter">Counter-offer</span>`);
+          ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="decline">Decline</span>`);
+        } else if (cs === 'Waiting')  ctl.push(`<span class="muted cl-note">Waiting on their reply…</span>`);
+        else if (cs === 'Accepted')   ctl.push(`<span class="muted cl-note">Awaiting their payment…</span>`);
+        // A one-line human description of where this family is.
+        const blurb = {
+          Requested:   'is asking to join — your move.',
+          Waiting:     'countered; waiting for you… (their turn)',
+          Accepted:    'agreed the terms — payment due.',
+          Participant: 'has paid and is in the class.',
+          Declined:    'was declined.',
+          Cancelled:   'cancelled their request.'
+        }[cs] || '';
+        const controls = ctl.length ? `<div class="cl-acts">${ctl.join('<span class="act-sep"> · </span>')}</div>` : '';
+        return `<div class="cl-block">
+          <div class="cl-head">Client ${s.n} — ${esc(s.client)}: ${cStatusBadge(s.status)}</div>
+          ${blurb ? `<div class="cl-blurb">${esc(s.client)} ${blurb}</div>` : ''}
+          ${chatLine(s)}
+          ${controls}
+        </div>`;
       }).join('');
     } else if (mySlot) {
-      slotRows = `<div class="slot-row">Your status: <b>${esc(mySlot.status || 'Requested')}</b>${tpl.slotChat(j, mySlot)}</div>`;
-    }
-
-    // Actions
-    let action = '';
-    if (canJoin) {
-      action = `<button type="button" class="action join-job-btn" data-job="${j.id}">Request to Join</button>`;
-    } else if (!USER && !isDash) {
-      action = `<button type="button" class="action book-btn-inline" ${j.spotsLeft<=0?'disabled':''}>${j.spotsLeft<=0?'Full':'Book Now'}</button>`;
-    }
-
-    // Add-a-student: a booker already in this job can add another student to an empty slot mid-term.
-    // Shows the extra-student cost for the REMAINING weeks. (Request → tutor accepts → then pay.)
-    let addStudent = '';
-    if (USER && mySlot && emptySlot && norm(j.status) === 'ongoing') {
-      const add = priceAddStudent(j);
-      addStudent = `<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">
-        <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px">Add another student for the remaining ${add.weeksLeft} week${add.weeksLeft==1?'':'s'}: <b style="color:#fff">£${add.cost.toFixed(2)}</b></p>
-        <button type="button" class="ghost add-student-btn" data-job="${j.id}" style="margin:0;padding:6px 12px;width:100%">Add a student (£${add.cost.toFixed(2)})</button>
+      const cs = clientStatus(mySlot.status);
+      const ctl = [];
+      if (cs === 'Requested')   ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="counter">Counter</span>`,
+                                         `<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="accept">Accept terms</span>`);
+      if (cs === 'Accepted')    ctl.push(`<span class="text-action cmove pay" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="pay">Pay now</span>`);
+      if (['Requested','Waiting','Accepted'].includes(cs))
+        ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Cancel</span>`);
+      if (cs === 'Participant') ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Leave</span>`);
+      const controls = ctl.length ? `<div class="cl-acts">${ctl.join('<span class="act-sep"> · </span>')}</div>` : '';
+      const myBlurb = {
+        Requested:   'Your request is with the tutor.',
+        Waiting:     'Your counter-offer is with the tutor.',
+        Accepted:    'Terms agreed — pay now to secure your place.',
+        Participant: "You're in the class.",
+        Declined:    'The tutor declined this request.',
+        Cancelled:   'You cancelled this request.'
+      }[cs] || '';
+      slotRows = `<div class="cl-block">
+        <div class="cl-head">Your status: ${cStatusBadge(mySlot.status)}</div>
+        ${myBlurb ? `<div class="cl-blurb">${esc(myBlurb)}</div>` : ''}
+        ${chatLine(mySlot)}
+        ${controls}
       </div>`;
     }
-    // Counter-offer (client 1 or tutor, only while Pending)
-    const isClient1 = mySlot && mySlot.n === 1;
-    const counter = ((isClient1 || isTutor) && norm(j.status) === 'unstarted')
-      ? `<div class="counter-box" style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">
-           <input type="text" id="counter-time-${j.id}" placeholder="Propose new time" style="width:100%;padding:6px;font-size:var(--fs-sm);margin-bottom:6px">
-           <button type="button" class="ghost counter-btn" data-job="${j.id}" style="margin:0;padding:6px 12px;width:100%">Send counter-offer</button>
-         </div>` : '';
 
-    const cls = mySlot ? 'mine-class' : norm(j.status) === 'pending' ? 'pending-class' : '';
+    // Whether it's my move: during negotiation only the party whose turn it is; once settled
+    // (Accepted onward) anyone in the job can keep sending text turns.
+    const inJob = mySlot || isTutor || admin;
+    const myMove = USER && role !== 'kid' && inJob && (!negotiating || myTurn);
+
+    // The ACTIONS available to me this turn, as tappable chips that set the pending move. Text
+    // can accompany any of them (or none). One "Send" submits action + text together.
+    const moveOpts = [];
+    if (myMove) {
+      if (negotiating) {
+        moveOpts.push(['propose', 'Propose new time']);
+        moveOpts.push(['accept',  'Accept']);
+        moveOpts.push(['decline', isTutor || admin ? 'Decline' : 'Cancel']);
+      }
+      if (status === 'Active' && !isTutor && !admin && emptySlot) {
+        moveOpts.push(['addchild', 'Add a child']);
+      }
+    }
+
+    // The move box: action chips (optional) + a time field (only shown for "propose") + text + Send.
+    let moveBox = '';
+    if (myMove) {
+      const chips = moveOpts.map(([m, label]) =>
+        `<span class="move-chip" data-job="${j.id}" data-move="${m}">${esc(label)}</span>`).join('');
+      moveBox = `<div class="move-box" data-job="${j.id}" data-side="${mySide}">
+        ${chips ? `<div class="move-chips">${chips}</div>` : ''}
+        <input type="text" class="move-time hidden" id="move-time-${j.id}" placeholder="New time e.g. 4pm Tue">
+        <div class="move-send-row">
+          <input type="text" class="move-text" id="move-text-${j.id}" placeholder="Add a message (optional)…">
+          <span class="text-action move-send" data-job="${j.id}" data-side="${mySide}">Send</span>
+        </div>
+      </div>`;
+    } else if (negotiating && inJob) {
+      moveBox = `<p class="muted" style="font-size:var(--fs-xs);text-align:left;margin:6px 0">Waiting for the ${esc(turn === 'tutor' ? 'tutor' : 'other party')} to respond…</p>`;
+    }
+
+    // Status-driven NON-negotiation actions (pay, set active) stay as their own line.
+    const acts = [];
+    if (status === 'Accepted') {
+      if (isClient1) acts.push(`<span class="text-action job-act pay" data-job="${j.id}" data-to="Paid">Pay now</span>`);
+      else if (isTutor || admin) acts.push(`<span class="muted" style="font-size:var(--fs-xs)">Waiting for client to pay…</span>`);
+    } else if (status === 'Paid') {
+      if (isTutor || admin) acts.push(`<span class="text-action job-act" data-job="${j.id}" data-to="Active">Venue booked → set Active</span>`);
+      else acts.push(`<span class="muted" style="font-size:var(--fs-xs)">Paid — tutor is arranging the venue.</span>`);
+    } else if (status === 'Active' && canJoin) {
+      acts.push(`<span class="text-action join-job-btn" data-job="${j.id}">Request to join</span>`);
+    }
+    if (!USER && !isDash) {
+      acts.push(`<span class="text-action book-btn-inline${j.spotsLeft<=0?' disabled':''}">${j.spotsLeft<=0?'Full':'Book now'}</span>`);
+    }
+    const action = acts.join('<span class="act-sep"> · </span>');
+
+    const cls = mySlot ? 'mine-class' : '';
     return `<div class="card ${cls}">
       ${stateBadge}
-      ${j.image ? tpl.img(j.image) : ''}
+      ${(j.image || j.image2) ? `<div class="job-photos">${j.image ? tpl.img(j.image) : ''}${j.image2 ? tpl.img(j.image2) : ''}</div>` : ''}
       <h3>${esc(j.title) || 'Session'}</h3>
-      <p class="sub">${esc(fmtDay(j.day))} @ ${esc(fmtTime(j.time) || 'TBD')}</p>
-      <p class="cap">👥 ${esc(j.capacity)}</p>
-      ${attrRow}
-      ${slotRows}
-      ${action}
-      ${addStudent}
-      ${counter}
+      <div class="job-detail">${detail}</div>
+      ${slotRows ? `<div class="job-slots">${slotRows}</div>` : ''}
+      ${moveBox}
+      ${action ? `<div class="job-foot">${action}</div>` : ''}
     </div>`;
   },
-
-  // A slot's chat thread + reply box (shown to the tutor per slot, and to the client for their own slot)
-  slotChat: (j, s) => `<div class="chat-box" style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;text-align:left">
-    <p class="muted" style="font-size:var(--fs-xs);white-space:pre-line;margin-bottom:6px">${esc(s.chat) || 'No messages yet.'}</p>
-    <div style="display:flex;gap:5px">
-      <input type="text" id="slotchat-${j.id}-${s.n}" placeholder="Message..." style="flex:1;padding:6px;font-size:var(--fs-xs)">
-      <button type="button" class="action slot-chat-btn" data-job="${j.id}" data-slot="${s.n}" style="margin:0;padding:6px 10px;width:auto">Send</button>
-    </div>
-  </div>`,
 
   // One card per category, listing all links in that category as rows
   linkGroupCard: (category, links) => `<div class="card link-group">
@@ -806,9 +1077,9 @@ const tpl = {
     const tagRow = tpl.tagRow([post.label ? `${post.label}` : '']);
     return `<div class="card social-post">
       <div class="social-header">
-        <div class="social-avatar">@</div>
+        <div class="social-avatar">🔵</div>
         <span class="social-username">@family.</span>
-        <button type="button" data-share-url="https://drive.google.com/file/d/${post.id}/view" class="social-share-btn">⎘</button>
+        <span class="text-action social-share-btn" data-share-url="https://drive.google.com/file/d/${post.id}/view">Share</span>
       </div>
       <img class="social-img" src="https://drive.google.com/thumbnail?id=${post.id}&sz=w800" alt="Gallery Post" loading="lazy" onerror="this.closest('.social-post')?.remove()">
       <div class="social-body">
@@ -826,7 +1097,7 @@ const tpl = {
       <div class="checkout stack">
         <input type="text" id="auth-email" placeholder="Full Name">
         <input type="password" id="auth-pin" placeholder="PIN">
-        <button type="button" id="auth-btn" class="action">Enter</button>
+        <span class="text-action" id="auth-btn">Enter</span>
       </div>
       <p id="auth-msg" class="err mt-sm"></p>
     </div>`,
@@ -860,9 +1131,9 @@ const tpl = {
     <div class="builder-cols">
       <div class="builder-form">
         <!-- Each lesson is fully independent: its own subject, tutor, term, and split. -->
-        <p class="sentence" style="line-height:2.2;text-align:left;margin:0 0 4px">I want tuition:</p>
+        <p class="sentence" style="line-height:2.2;text-align:left;margin:0 0 4px">Build your sessions:</p>
         <div id="lessons"></div>
-        <button type="button" id="add-lesson-btn" class="ghost" style="width:100%;margin:10px 0">＋ Add another lesson</button>
+        <span class="text-action" id="add-lesson-btn" style="display:inline-block;margin:10px 0">＋ Add another lesson</span>
       </div>
 
       <div class="builder-summary">
@@ -881,21 +1152,21 @@ const tpl = {
   lessonBlock: (i) => `<div class="lesson-block" data-lesson="${i}" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;text-align:left">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <span class="muted" style="font-size:var(--fs-xs)">Lesson ${i + 1}</span>
-      ${i > 0 ? `<button type="button" class="remove-lesson-btn" data-lesson="${i}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">×</button>` : ''}
+      ${i > 0 ? `<span class="text-action remove-lesson-btn" data-lesson="${i}" style="font-size:var(--fs-xs)">Remove</span>` : ''}
     </div>
     <p class="sentence" style="line-height:2.2;text-align:left;margin:0">
-      <strong>tuition</strong> of
+      I'd like
       <span class="custom-select-wrapper">
         <span class="inline-select pick l-subject-display" data-lesson="${i}" style="cursor:pointer">Subject ⌄</span>
         <span class="custom-dropdown hidden l-subject-dropdown" data-lesson="${i}"></span>
       </span>
-      with <select class="pick l-level" data-lesson="${i}"></select>
-      delivered @ <select class="pick l-location" data-lesson="${i}"></select>
-      for <select class="pick l-qty" data-lesson="${i}"></select> student
-      with <select class="pick l-tutor" data-lesson="${i}"></select>
-      for <select class="pick l-interval" data-lesson="${i}"></select>
-      <span class="muted l-weeks-label" data-lesson="${i}" style="font-size:0.85em"></span>,
-      split with <select class="pick l-split" data-lesson="${i}"></select> other people.
+      at <select class="pick l-level" data-lesson="${i}"></select> level,
+      at <select class="pick l-location" data-lesson="${i}"></select>,
+      <label class="host-toggle"><input type="checkbox" class="l-host" data-lesson="${i}"> I'll host the venue</label>
+      for <select class="pick l-qty" data-lesson="${i}"></select> <span class="l-qty-label" data-lesson="${i}">student</span>,
+      with <select class="pick l-tutor" data-lesson="${i}"></select>,
+      during <select class="pick l-interval" data-lesson="${i}"></select>,
+      split with <select class="pick l-split" data-lesson="${i}"></select> others.
     </p>
     <div class="l-slots" data-lesson="${i}"></div>
   </div>`,
@@ -954,7 +1225,7 @@ function renderCards(id, items = []) {
     cardsHtml += `<div class="card friend-search-card" style="text-align:left">
         <h3 class="gold" style="margin-bottom:8px">Add a Friend</h3>
         <input id="friend-search" class="edit-input" placeholder="Exact name e.g. LuccaD" style="margin-bottom:8px">
-        <button type="button" id="add-friend-btn" class="action" style="width:100%">Add Friend</button>
+        <span class="text-action" id="add-friend-btn">Add friend</span>
         <p id="friend-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:8px"></p>
       </div>` + friendCards;
   }
@@ -972,8 +1243,10 @@ function renderCards(id, items = []) {
 function renderClasses(items = DATA.clientClasses || []) {
   const norm = s => String(s || '').toLowerCase().trim();
   const iAmIn = j => USER && (j.slots || []).some(s => norm(s.client) === norm(USER.name));
-  // Visible if it has open spots, OR it's the logged-in user's own class (so they see their booking even when full)
-  const visible = items.filter(j => (j.spotsLeft > 0) || iAmIn(j));
+  const iAmTutor = j => USER && isTutorRole() && norm(j.requestedTutor) === norm(USER.name);
+  // Visible if it has open spots, OR it's the user's own class, OR the user is its tutor (so a
+  // full job still shows to the people already in it and to the tutor running it).
+  const visible = items.filter(j => (j.spotsLeft > 0 && !j.isFull) || iAmIn(j) || iAmTutor(j));
   // The user's own classes float to the top
   const rank = j => classState(j) ? 1 : 0;
   const sorted = [...visible].sort((a, b) => rank(b) - rank(a));
@@ -990,15 +1263,16 @@ function renderClasses(items = DATA.clientClasses || []) {
 function classState(j) {
   if (!USER) return '';
   const norm = s => String(s || '').toLowerCase().trim();
-  const status = norm(j.status);
+  const status = jobStatus(j);
+  const confirmed = ['Paid', 'Active', 'Completed'].includes(status);
   if (isTutorRole()) {
     if (norm(j.requestedTutor) !== norm(USER.name)) return '';
-    return status === 'ongoing' ? 'confirmed' : 'pending';  // not yet started = grey
+    return confirmed ? 'confirmed' : 'pending';
   }
   // Parent/kid: am I in any slot of this class?
   const mySlot = (j.slots || []).find(s => norm(s.client) === norm(USER.name));
   if (!mySlot) return '';
-  return status === 'unstarted' ? 'pending' : 'confirmed';
+  return confirmed ? 'confirmed' : 'pending';
 }
 
 // Back-compat boolean (used by onLogin filter)
@@ -1188,7 +1462,67 @@ function renderChecklist() {
   if (!el) return;
   renderFilterBar('tool');   // shared filter bar (search + subject/level dropdowns)
   applyFilter('tool');       // shared filter renders the band cards into #checklist-content
+}
+
+// The Tools section: calculator, timer, notepad, and a month calendar. (These will become
+// database-driven items later; for now they're the built-in tool cards.)
+function renderTools(query) {
+  const el = $('tools-content');
+  if (!el) return;
+  // Simple search box for the section (filters the tool cards by name).
+  const bar = $('tools-filters');
+  if (bar && !bar.dataset.wired) {
+    bar.innerHTML = `<input class="filter" id="tools-search" placeholder="Search tools…">`;
+    bar.dataset.wired = '1';
+    $('tools-search').addEventListener('input', e => renderTools(e.target.value));
+  }
+  const q = String(query || (($('tools-search')||{}).value) || '').toLowerCase().trim();
+  const tools = [
+    { name: 'calculator', html: tpl.calcToolCard() },
+    { name: 'timer',      html: tpl.timerCard() },
+    { name: 'notepad',    html: tpl.notepadCard() },
+    { name: 'calendar',   html: tpl.calendarCard() },
+  ].filter(t => !q || t.name.includes(q));
+  html('tools-content', tools.map(t => t.html).join('') || '<p class="muted">No tools match.</p>');
   initMiniCalc();
+  initTimer();
+  initCalendar();
+}
+
+// A simple month calendar card — today highlighted, prev/next month navigation.
+let CAL_VIEW = null;
+function initCalendar() {
+  const host = $('cal-body');
+  if (!host) return;
+  const now = new Date();
+  CAL_VIEW = CAL_VIEW || { y: now.getFullYear(), m: now.getMonth() };
+  drawCalendar();
+}
+function drawCalendar() {
+  const host = $('cal-body'); if (!host) return;
+  const { y, m } = CAL_VIEW;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const first = new Date(y, m, 1);
+  const startDay = (first.getDay() + 6) % 7;   // Monday-first
+  const days = new Date(y, m + 1, 0).getDate();
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const label = $('cal-label'); if (label) label.textContent = `${months[m]} ${y}`;
+  const cells = [];
+  ['M','T','W','T','F','S','S'].forEach(d => cells.push(`<span class="cal-h">${d}</span>`));
+  for (let i = 0; i < startDay; i++) cells.push('<span></span>');
+  for (let d = 1; d <= days; d++) {
+    const date = new Date(y, m, d);
+    const isToday = date.getTime() === today.getTime();
+    cells.push(`<span class="cal-d${isToday ? ' cal-today' : ''}">${d}</span>`);
+  }
+  host.innerHTML = cells.join('');
+}
+function calShift(delta) {
+  if (!CAL_VIEW) return;
+  let m = CAL_VIEW.m + delta, y = CAL_VIEW.y;
+  if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
+  CAL_VIEW = { y, m };
+  drawCalendar();
 }
 
 // Compact calculator logic (degrees; uses math.js if present, else Function eval fallback)
@@ -1345,7 +1679,7 @@ function beep() {
 function renderArcade() {
   const el = $('arcade-content');
   if (!el) return;
-  el.innerHTML = tpl.gameCard() + tpl.timesTableCard();
+  html('arcade-content', tpl.gameCard() + tpl.timesTableCard());
   initFlappy();  // wire up the canvas game
 }
 
@@ -1447,9 +1781,9 @@ function renderCheckout() {
   if (!$('checkout-area')) return;
   $('checkout-area').innerHTML = USER
     ? `<p class="muted" style="font-size:var(--fs-sm);margin:0">Booking as <b style="color:#fff">${esc(USER.name)}</b></p>
-       <button type="button" id="book-btn" style="margin-top:5px">Lock in &amp; Book</button>`
+       <span class="text-action" id="book-btn" style="margin-top:6px;font-size:var(--fs-md)">Lock in &amp; book</span>`
     : `<p class="muted" style="font-size:var(--fs-sm);margin:0">Log in to book a session.</p>
-       <button type="button" id="go-login-btn" class="action">Log in to Book</button>`;
+       <span class="text-action" id="go-login-btn" style="margin-top:6px;font-size:var(--fs-md)">Log in to book</span>`;
 }
 
 function renderLinks(items = DATA.links || []) {
@@ -1503,23 +1837,52 @@ function fillDropdowns() {
   document.querySelectorAll('.lesson-block').forEach(b => fillLessonBlock(parseInt(b.dataset.lesson)));
 }
 
-// Seats in a lesson. (Venues carry max_capacity in the sheet; if that ever reaches the
-// venue payload, read it from there instead of this constant.)
+// Fallback seat cap when a venue hasn't set one. Real limits come per-venue from the sheet.
 const MAX_SEATS = 4;
 
-// Students dropdown — a <select> like every other field in the sentence, so the whole
-// sentence behaves the same way (no number spinner). Home lessons need the full group,
-// so those only offer the maximum.
+// Look up the selected venue's capacity from the sheet data (falls back to sensible defaults).
+function venueCapacity(venueName) {
+  const norm = s => String(s || '').toLowerCase().trim();
+  const v = (DATA.venues || []).find(x => norm(x.title) === norm(venueName));
+  const max = (v && v.maxCapacity) ? v.maxCapacity : MAX_SEATS;
+  const min = (v && v.minCapacity) ? v.minCapacity : 1;
+  return { max, min: Math.min(min, max) };
+}
+
+// Keep the "I'll host" toggle in step with the chosen venue: a home venue means the client is
+// always hosting, so it's auto-ticked and disabled (can't untick). Any other venue leaves it
+// free to choose.
+function syncHostToggle(i) {
+  const hostEl = document.querySelector(`.l-host[data-lesson="${i}"]`);
+  const locEl = document.querySelector(`.l-location[data-lesson="${i}"]`);
+  if (!hostEl || !locEl) return;
+  if (isHome(locEl.value)) {
+    hostEl.checked = true;
+    hostEl.disabled = true;
+    hostEl.closest('.host-toggle')?.classList.add('locked');
+  } else {
+    hostEl.disabled = false;
+    hostEl.closest('.host-toggle')?.classList.remove('locked');
+  }
+}
+
+// Students dropdown — a <select> like every other field. The range comes from the chosen
+// VENUE's own max/min capacity in the sheet; a "home" venue still requires its full group.
 function syncQtyOptions(i) {
   const qtyEl = document.querySelector(`.l-qty[data-lesson="${i}"]`);
   if (!qtyEl) return;
   const locEl = document.querySelector(`.l-location[data-lesson="${i}"]`);
-  const min = (locEl && isHome(locEl.value)) ? MAX_SEATS : 1;
+  const cap = venueCapacity(locEl?.value);
+  // Home venues need the whole group, so the minimum jumps to the venue's own minimum (or max).
+  const min = (locEl && isHome(locEl.value)) ? Math.max(cap.min, cap.max) : cap.min;
   const prev = parseInt(qtyEl.value) || 1;
   const opts = [];
-  for (let n = min; n <= MAX_SEATS; n++) opts.push(n);
+  for (let n = min; n <= cap.max; n++) opts.push(n);
+  if (!opts.length) opts.push(cap.max || 1);
   qtyEl.innerHTML = opts.map(n => `<option value="${n}">${n}</option>`).join('');
   qtyEl.value = opts.includes(prev) ? prev : opts[0];
+  const lbl = document.querySelector(`.l-qty-label[data-lesson="${i}"]`);
+  if (lbl) lbl.textContent = (parseInt(qtyEl.value) === 1) ? 'student' : 'students';
 }
 
 // "split with N other people" — the bill is divided (N+1) ways, so N can never exceed
@@ -1638,18 +2001,23 @@ function fillLessonBlock(i) {
     tutorEl.innerHTML = `<option value="">No preference</option>` +
       tutors.map(nm => `<option value="${esc(nm)}">${esc(nm)}</option>`).join('');
   }
-  // Term/interval: each lesson has its own
+  // Term/interval: each lesson has its own. Bookable weeks are the term's remaining weeks
+  // MINUS 1 — the last week is reserved so the tutor (and library) have prep/coordination time.
   const ivEl = document.querySelector(`.l-interval[data-lesson="${i}"]`);
   if (ivEl) {
     const intervals = getAcademicIntervals();
     ivEl.innerHTML = intervals.length
-      ? intervals.map(iv => `<option value="${esc(iv.name)}" data-weeks="${iv.weeks}" data-term="${esc(iv.name)}" data-end="${esc(iv.endDate)}">${esc(iv.label)}</option>`).join('')
+      ? intervals.map(iv => {
+          const bookable = Math.max(0, (parseInt(iv.weeks) || 0) - 1);   // reserve 1 week
+          return `<option value="${esc(iv.name)}" data-weeks="${bookable}" data-term="${esc(iv.name)}" data-start="${esc(iv.startDate)}" data-end="${esc(iv.endDate)}" data-lastsun="${esc(iv.lastSun)}">${esc(iv.label)}</option>`;
+        }).join('')
       : '<option value="">No terms</option>';
     syncBlockWeeks(i);
   }
   // Students, then split — split's options depend on how many students were picked.
   syncQtyOptions(i);
   syncSplitOptions(i);
+  syncHostToggle(i);
   renderSlots(i);   // tutor × venue availability tickboxes for the chosen day
   // Subject checkbox dropdown for this block
   const drop = document.querySelector(`.l-subject-dropdown[data-lesson="${i}"]`);
@@ -1664,35 +2032,73 @@ function fill(id, list = [], first, labelFn) {
     + (list||[]).map(v => `<option value="${esc(v)}">${esc(fmt(v))}</option>`).join('');
 }
 
+// Parse a DD/MM/YYYY (or loose) date string to a Date at local midnight; null if unparseable.
+function parseDMY(s) {
+  if (!s) return null;
+  const m = String(s).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  let d;
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; d = new Date(+y, +m[2] - 1, +m[1]); }
+  else { d = new Date(s); }
+  if (isNaN(d)) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 /* ---------- ACADEMIC INTERVALS ---------- */
 // Friendly wording for the relative interval names. The dropdown shows the real term plus
 // this in brackets, e.g. "Summer 2 (This Term)". A sheet display_name column overrides the
 // whole label if you want something fully custom.
 const INTERVAL_LABELS = {
-  'current academic interval':          'This Term',
-  'current academic interval - 1':      'Final Weeks',
-  'current academic interval -1':       'Final Weeks',
-  'next academic interval':             'Next Term',
-  'next next academic interval':        'Term After',
+  'current academic interval':          'This Interval',
+  'current academic interval - 1':      'Current Interval',
+  'current academic interval - week':   'Current Interval',
+  'next academic interval':             'Next Interval',
+  'next next academic interval':        'Interval After',
 };
+// Tolerant lookup — the sheet's relative names vary in spacing and dashes.
+function intervalFriendly(rel) {
+  const key = String(rel || '').toLowerCase()
+    .replace(/[–—]/g, '-').replace(/\s*-\s*/g, ' - ').replace(/\s+/g, ' ').trim();
+  return INTERVAL_LABELS[key] || '';
+}
+
+// Whole weeks bookable inside an interval's window: from the later of (today, start_date) up to
+// its last Sunday. Derived from the DATES, not a column — the sheet has days, not weeks, and a
+// price built on days would be ~7x wrong. This also guarantees weeks matches the sessions that
+// actually get booked, since both use the same window.
+function weeksInWindow(startStr, endStr) {
+  const start = parseDMY(startStr);
+  const end   = parseDMY(endStr);
+  if (!end) return 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const from = (start && start > today) ? start : today;
+  if (end < from) return 0;
+  return Math.max(0, Math.floor((end - from) / (7 * 864e5)) + 1);
+}
 
 function getAcademicIntervals() {
-  // Read straight from the sheet (DATA.intervals). Weeks come pre-rounded from weeks_left_round_down.
+  const isPlainCurrent = rel => String(rel || '').toLowerCase()
+    .replace(/\s+/g, ' ').trim() === 'current academic interval';
   return (DATA.intervals || [])
     .filter(iv => iv.term || iv.rel)
+    .filter(iv => !isPlainCurrent(iv.rel))     // clients can't book the current interval
     .map(iv => {
       const rel = String(iv.rel || '').toLowerCase().trim();
-      const weeks = parseInt(parseFloat(iv.weeks)) || 0;   // sheet already rounded; just strip ".00"
       const term = iv.term || iv.rel;
-      // Label priority: a fully-custom sheet label wins; otherwise "Term (Friendly relative)";
-      // if there's no friendly mapping, just the term on its own.
-      const friendly = INTERVAL_LABELS[rel];
-      const label = iv.label
-        || (term && friendly ? `${term} (${friendly})` : term);
+      // Weeks: derive from the window. Fall back to the sheet's own value, then days/7.
+      const lastSun = iv.lastSun || iv.endDate;
+      let weeks = weeksInWindow(iv.startDate, lastSun);
+      if (!weeks) {
+        const raw = parseFloat(iv.weeks);
+        if (!isNaN(raw) && raw > 0) weeks = raw > 25 ? Math.floor(raw / 7) : Math.floor(raw);
+      }
+      const friendly = intervalFriendly(rel);
+      const label = iv.label || (term && friendly ? `${term} (${friendly})` : term);
       return {
         name:  term,                                          // value = actual term name
         label,                                                // what the dropdown shows
         weeks,                                                // whole weeks for billing + display
+        startDate: iv.startDate || '',
         endDate: iv.endDate || '', lastMon: iv.lastMon || '', lastSun: iv.lastSun || ''
       };
     });
@@ -1707,9 +2113,7 @@ function syncBlockWeeks(i) {
   const sel = document.querySelector(`.l-interval[data-lesson="${i}"]`);
   const label = document.querySelector(`.l-weeks-label[data-lesson="${i}"]`);
   if (!sel || !sel.options.length) return;
-  const opt = sel.options[sel.selectedIndex];
-  const weeks = opt?.dataset.weeks || '0';
-  if (label) label.textContent = `(${weeks} weeks)`;
+  if (label) label.textContent = '';   // weeks bracket removed at Halex's request
 }
 
 // Every date matching `dayName` from today until endDate (inclusive). Returns Date[].
@@ -1752,16 +2156,25 @@ function pct(mult) {
   return p === 0 ? '' : (p > 0 ? `+${p}%` : `${p}%`);
 }
 
-// Self-check: verifies the profit formula still produces a known result. Logs if it drifts.
+// Self-check: verifies the pricing formula still produces a known result. Logs if it drifts.
 function verifyFormula() {
-  const profit = (wageMult, minWage, extraChild, tutorShare, subjF, dayF, timeF, n) => {
-    const baseRate = timeF * subjF * dayF * wageMult * minWage;
-    const studentAdj = 1 + extraChild * (n - 1);
-    return baseRate * studentAdj * (1 - tutorShare);   // per hour, symmetric
-  };
-  // γ=0.9 η=1.1 α=1.1 λ=1.5 μ=12 → baseRate=19.60; n=2 β=0.25 → studentAdj=1.25; ε=0.9 → ×0.1
-  const got = profit(1.5, 12, 0.25, 0.9, 1.1, 1.1, 0.9, 2), want = 2.45;
-  if (Math.abs(got - want) > 0.01) console.error(`⚠ Profit formula drift: expected ${want}/h, got ${got.toFixed(2)}/h`);
+  // Confirm the pricing constants actually arrived from the sheet. The #1 cause of a £0 quote is
+  // a stale backend deploy — the vars object comes back empty. Show it ON THE PAGE, not console.
+  const v = (DATA.constants || {}).vars || {};
+  const M = num(v['M'] ?? v['minimum wage'] ?? v['mu']);
+  const banner = $('pricing-diag');
+  if (isNaN(M) || M <= 0) {
+    const msg = '⚠ Pricing isn\'t set up — every price will be £0. ' +
+      'The backend sent no minimum wage (M). Usual fix: redeploy the Apps Script as a NEW version ' +
+      '(Deploy → Manage deployments → pencil → Version: New version → Deploy). ' +
+      'Or add a category=variable row named M. ' +
+      `[backend: ${DATA.version || 'OLD / not redeployed'}]`;
+    if (banner) { banner.textContent = msg; banner.style.display = 'block'; }
+    console.error(msg, 'vars =', v);
+  } else {
+    if (banner) banner.style.display = 'none';
+    console.log('@family. pricing OK — M =', M, '| vars =', Object.keys(v).join(', '));
+  }
 }
 
 // Helper: read a field scoped to one lesson block by class + data-lesson index.
@@ -1788,11 +2201,13 @@ function hoursPerWeek() {
 // Price a single lesson block (index i). Weeks come from the order-level interval (shared).
 function priceLesson(i) {
   const m = DATA.multipliers || {};
-  const k = DATA.constants || {};
-  const v = k.vars || {};
-  const cv = (...keys) => { for (const key of keys) { const x = parseFloat(v[key]); if (!isNaN(x)) return x; } return 0; };
-  const lookup = (group, value) => parseFloat((m[group] || {})[value]) || 1;
-  const norm = s => String(s || '').toLowerCase().trim();
+  const v = (DATA.constants || {}).vars || {};
+  // Sheet numbers may be written as fractions ("1/100", "1/2") — parseFloat would read those
+  // as 1, so every constant goes through num() instead.
+  const cv  = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  const cvD = (key, dflt, ...alts) => { for (const key2 of [key, ...alts]) { const x = num(v[key2]); if (!isNaN(x)) return x; } return dflt; };
+  const sur = (group, value) => { const x = num((m[group] || {})[value]); return isNaN(x) ? 0 : x; };  // £ surcharge, blank = 0
+  const norm = str => String(str || '').toLowerCase().trim();
 
   const subjects = lsubjects(i);
   const n = Math.max(1, parseInt(lval(i, 'l-qty')) || 1);
@@ -1802,6 +2217,8 @@ function priceLesson(i) {
   const weeks = parseFloat(ivOpt?.dataset.weeks) || 1;
   const interval = ivSel?.value || '';
   const endDate = ivOpt?.dataset.end || '';
+  const startDate = ivOpt?.dataset.start || '';
+  const lastSun = ivOpt?.dataset.lastsun || endDate;   // sessions run up to the last Sunday
   const loc = lval(i, 'l-location');
   // Day + time come from the ticked slot grid. A booking is 2 consecutive hours in one day;
   // read the earliest ticked cell for the start time and its day.
@@ -1816,57 +2233,122 @@ function priceLesson(i) {
   const splitOthers = parseInt(lval(i, 'l-split')) || 0;   // per-lesson split
 
   const venue = (DATA.venues || []).find(x => norm(x.title) === norm(loc));
-  const V = venue ? (parseFloat(venue.bestRate) || 0) : 0;
+  // "I'll host the venue" — the client provides the space (or it's their home), so they don't
+  // pay venue rent. Auto-on and locked for a home venue. When hosting, the V term drops to 0.
+  const hostEl = document.querySelector(`.l-host[data-lesson="${i}"]`);
+  const hosting = isHome(loc) || (hostEl && hostEl.checked);
+  const V = (venue && !hosting) ? (parseFloat(venue.bestRate) || 0) : 0;
 
-  // ---- Pricing factors (all from the sheet; set any to 1 to switch it off) ----
-  const timeFactor    = lookup('times', time);   // γ  easier/harder time of day
-  const subjectFactor = subjects.reduce((max, s) => Math.max(max, parseFloat((m.subjects || {})[s]) || 0), 0) || 1;  // η
-  const dayFactor     = lookup('days',  day);     // α  harder day
-  const wageMultiplier = cv('λ', 'lambda', 'constant 3', 'constant3');   // λ
-  const minWage        = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');  // μ
-  const extraChildRate = cv('β', 'beta', 'constant 1', 'constant1');     // β
-  const tutorShare     = cv('ε', 'epsilon', 'constant 2', 'constant2');  // ε
-  const hoursPerWk = hoursPerWeek();
+  /* ================== THE PRICING FORMULA ==================
+     P = ( [ M·w + (Σ Sᵢ)/k + L + D + T ]      ← £/hour/child, all ADDED
+           · [ 1 + s(k−1) ]                     ← subject-count
+           · [ 1 + (c+B)(n−1) ]                 ← extra children (c = tutor's, B = yours)
+           · [ 1 − b(W−1) ]                     ← bulk discount
+           · [ 1 − a(A−1) ]                     ← advance-booking discount
+         + V ) · h · W                          ← venue is £/hour (not per child)
+     Every symbol comes from the sheet; set a rate to 0 to switch that effect off. ============ */
 
-  // ---- The formula, in readable stages ----
-  const baseRate   = timeFactor * subjectFactor * dayFactor * wageMultiplier * minWage;  // one student, one hour
-  const studentAdj = 1 + extraChildRate * (n - 1);                                        // extra students
-  const promoAdj   = activePromoFactor({ subjects, n, weeks, day, time, level, lessonCount: document.querySelectorAll('.lesson-block').length });
+  // --- £/hour/child surcharges (blank in the sheet = 0, i.e. no surcharge) ---
+  const M = cv('M', 'minimum wage', 'min wage', 'μ', 'mu');    // minimum wage £/hr
+  const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');  // wage multiplier (default 1)
+  const L = sur('levels', level);   // level  surcharge £/h/child
+  const D = sur('days',   day);     // day    surcharge £/h/child
+  const T = sur('times',  time);    // time   surcharge £/h/child
 
-  const chargePerHour = baseRate * studentAdj * promoAdj;
-  const total  = chargePerHour * hoursPerWk * weeks + V;              // PRICE customer pays
-  const cost   = baseRate * studentAdj * tutorShare * hoursPerWk * weeks + V;  // COST to us
-  const profitTotal = total - cost;                                     // PROFIT
+  // Subjects: the AVERAGE of the chosen subjects' £ surcharges — so a pricey subject among
+  // three exerts only a third of its pull. (Σ Sᵢ)/k, written out.
+  const subjAdds = subjects.map(s => num((m.subjectsEta || {})[s]) || 0);
+  const k = Math.max(1, subjAdds.length);                       // k = subject count
+  const avgSubject = subjAdds.length ? subjAdds.reduce((x, y) => x + y, 0) / k : 0;
+
+  // --- Rates (0 switches the effect off) ---
+  const s = cv('s', 'subject count rate', 'subject_count_rate');  // 1 + s(k−1)
+  const c = cv('c', 'extra child rate', 'extra_child_rate');      // tutor's share of each extra child
+  const B = cv('B', 'boss rate', 'boss_rate');                    // YOUR cut per extra child
+  const b = cv('b', 'bulk discount rate', 'bulk_discount_rate');  // 1 − b(W−1)
+  const a = cv('a', 'advance booking rate', 'early booking rate');// 1 − a(A−1)
+
+  const h = cvD('h', hoursPerWeek(), 'hours per session', 'hours_per_session');   // hours/session
+  const W = weeks;                                                // W = weeks booked
+
+  // A = whole weeks between today and the first session.
+  const firstDate = computeSessionDates(day, lastSun, startDate)[0] || null;
+  const A = firstDate ? Math.max(0, Math.floor((firstDate - new Date()) / (7 * 864e5))) : 0;
+
+  // --- The five brackets ---
+  const perChildHourly  = M * wMul + avgSubject + L + D + T;   // [ M·w + (ΣSᵢ)/k + L + D + T ]
+  const fSubjectCount   = 1 + s * (k - 1);                     // [ 1 + s(k−1) ]
+  const fChildrenAll    = 1 + (c + B) * (n - 1);               // [ 1 + (c+B)(n−1) ]  ← client
+  const fChildrenTutor  = 1 + c * (n - 1);                     // tutor's slice of that bracket
+  const fChildrenBoss   = B * (n - 1);                         // your slice of that bracket
+  const fBulk           = 1 - b * (W - 1);                     // [ 1 − b(W−1) ]
+  const fAdvance        = 1 - a * (A - 1);                     // [ 1 − a(A−1) ]
+  // The two discounts MULTIPLY, so on a long, far-ahead booking they compound hard — and past
+  // a point 1−b(W−1) goes negative, which would invert the price. F is a floor (sheet variable
+  // `F`, default 0.5): the combined discount can never take the rate below F × full.
+  const F = cvD('F', 0.5, 'discount floor', 'discount_floor');
+  const discountRaw     = fBulk * fAdvance;
+  const discountFactor  = Math.max(F, discountRaw);            // Δ — clamped
+  const discountFloored = discountRaw < F;                     // did the floor bite?
+
+  // R = the per-child hourly rate after the subject-count bump (shared by all three shares).
+  const R = perChildHourly * fSubjectCount;
+  const promoAdj = activePromoFactor({ subjects, n, weeks, day, time, level, lessonCount: document.querySelectorAll('.lesson-block').length });
+
+  // --- The money, split three ways. These SUM to the client price exactly. ---
+  const hoursTotal  = h * W;
+  const chargePerHour = R * fChildrenAll * discountFactor * promoAdj + V;   // all-in £/hour
+  const total       = chargePerHour * hoursTotal;                       // client pays
+  const tutorPay    = R * fChildrenTutor * discountFactor * promoAdj * hoursTotal;  // tutor gets
+  const profitTotal = R * fChildrenBoss  * discountFactor * promoAdj * hoursTotal;  // you get
+  const venueTotal  = V * hoursTotal;                                   // venue gets
+  const cost        = tutorPay + venueTotal;                            // what the job costs us
+
+  // The tutor's effective £/hour — surfaced so you can SEE if discounts push it under minimum
+  // wage (the formula doesn't silently clamp it; this just makes the number visible).
+  const tutorHourly = hoursTotal ? tutorPay / hoursTotal : 0;
+  const belowMinWage = M > 0 && tutorHourly > 0 && tutorHourly < M;
 
   const splitShares = splitOthers + 1;
   const shareAmount = total / splitShares;
   return {
-    i, total, weeks, n, V, loc, day, time, level, subjects, tutor, interval, endDate,
-    baseRate, studentAdj, promoAdj, chargePerHour,
-    splitOthers, splitShares, shareAmount, profitTotal,
+    i, total, weeks, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
+    // every factor exposed so the breakdown can explain the price
+    M, wMul, L, D, T, avgSubject, k, s, c, B, b, a, h, A, W,
+    perChildHourly, fSubjectCount, fChildrenAll, fBulk, fAdvance, discountFactor, discountFloored, F, R,
+    chargePerHour, hoursTotal, tutorPay, venueTotal, cost, tutorHourly, belowMinWage,
+    promoAdj, splitOthers, splitShares, shareAmount, profitTotal,
     summary: { service: val('c-service'), level, subject: subjects.join(', '), location: loc, day, time, students: n, interval, weeks, requestedTutor: tutor }
   };
 }
 
 // Cost of ADDING ONE student to an existing job, for the weeks remaining.
-// The extra-student cost is the β step: baseRate · β · hours · weeksLeft (venue not re-charged).
+// An extra child pays half rate by default (eChild), for the remaining weeks (venue not re-charged).
 function priceAddStudent(job) {
   const m = DATA.multipliers || {};
   const v = (DATA.constants || {}).vars || {};
-  const cv = (...keys) => { for (const key of keys) { const x = parseFloat(v[key]); if (!isNaN(x)) return x; } return 0; };
-  const lookup = (group, value) => parseFloat((m[group] || {})[value]) || 1;
+  const cv  = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  const cvD = (key, dflt, ...alts) => { for (const k2 of [key, ...alts]) { const x = num(v[k2]); if (!isNaN(x)) return x; } return dflt; };
+  const sur = (group, value) => { const x = num((m[group] || {})[value]); return isNaN(x) ? 0 : x; };
 
-  const timeFactor    = lookup('times', job.time);
-  const subjectFactor = parseFloat((m.subjects || {})[job.subject]) || 1;
-  const dayFactor     = lookup('days', job.day);
-  const wageMultiplier = cv('λ', 'lambda', 'constant 3', 'constant3');
-  const minWage        = cv('μ', 'mu', 'minimum wage', 'min wage', 'minimumwage');
-  const extraChildRate = cv('β', 'beta', 'constant 1', 'constant1');
-  const hoursPerWk = hoursPerWeek();
+  // Same per-child hourly rate as the main formula, for ONE extra child over the weeks left.
+  const M = cv('M', 'minimum wage', 'min wage', 'μ', 'mu');
+  const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');
+  const subjList = String(job.subject || '').split(',').map(x => x.trim()).filter(Boolean);
+  const adds = subjList.map(x => num((m.subjectsEta || {})[x]) || 0);
+  const kS = Math.max(1, adds.length);
+  const avgSubject = adds.length ? adds.reduce((x, y) => x + y, 0) / kS : 0;
+  const perChildHourly = M * wMul + avgSubject + sur('levels', job.level) + sur('days', job.day) + sur('times', job.time);
 
-  const weeksLeft = parseFloat(job.weeks) || 0;         // job.weeks = weeks_left
-  const baseRate  = timeFactor * subjectFactor * dayFactor * wageMultiplier * minWage;
-  const cost = baseRate * extraChildRate * hoursPerWk * weeksLeft;   // marginal β step for remaining weeks
+  const s = cv('s', 'subject count rate', 'subject_count_rate');
+  const c = cv('c', 'extra child rate', 'extra_child_rate');
+  const B = cv('B', 'boss rate', 'boss_rate');
+  const h = cvD('h', hoursPerWeek(), 'hours per session', 'hours_per_session');
+
+  const weeksLeft = parseFloat(job.weeks) || 0;              // job.weeks = weeks_left
+  const R = perChildHourly * (1 + s * (kS - 1));
+  // One extra child adds (c + B) of the rate — the same slice the main formula charges.
+  const cost = R * (c + B) * h * weeksLeft;
   return { cost, weeksLeft };
 }
 
@@ -1908,17 +2390,51 @@ function calc() {
   if ($('total')) $('total').textContent = q.total;
 
   if ($('calc-receipt')) {
+    const money = x => `£${(x || 0).toFixed(2)}`;
+    // One row of the itemised build-up. `mult` rows show a ×factor instead of a £ amount.
+    const row = (label, value, cls = '') =>
+      `<div class="receipt-row ${cls}"><span class="receipt-label">${label}</span><span class="receipt-pct">${value}</span></div>`;
+    const sub = (label, value) => row(`<span class="bd-sub">${label}</span>`, `<span class="bd-sub">${value}</span>`);
+
     const lessonRows = q.lessons.map(L => {
       const label = `${L.subjects.join(', ') || 'Lesson'} · ${fmtDay(L.day) || '—'} ${fmtTime(L.time) || ''}`.trim();
+
+      // --- itemised build-up of the hourly rate, mirroring the formula step by step ---
+      const build = [];
+      build.push(sub(`Base rate (min wage ${money(L.M)} × ${L.wMul})`, money(L.M * L.wMul)));
+      if (L.avgSubject) build.push(sub(`Subject${L.k > 1 ? ` (avg of ${L.k})` : ''}`, `+ ${money(L.avgSubject)}`));
+      if (L.L) build.push(sub(`Level${L.level ? ` (${esc(L.level)})` : ''}`, `+ ${money(L.L)}`));
+      if (L.D) build.push(sub(`Day${L.day ? ` (${esc(fmtDay(L.day))})` : ''}`, `+ ${money(L.D)}`));
+      if (L.T) build.push(sub(`Time${L.time ? ` (${esc(fmtTime(L.time))})` : ''}`, `+ ${money(L.T)}`));
+      build.push(sub('<b>Per child, per hour</b>', `<b>${money(L.perChildHourly)}</b>`));
+      if (L.k > 1 && L.s)  build.push(sub(`${L.k} subjects`, `× ${L.fSubjectCount.toFixed(3)}`));
+      if (L.n > 1)         build.push(sub(`${L.n} children (extras at ${((L.c + L.B) * 100).toFixed(0)}%)`, `× ${L.fChildrenAll.toFixed(3)}`));
+      if (L.W > 1 && L.b)  build.push(sub(`Bulk — ${L.W} weeks`, `× ${L.fBulk.toFixed(3)}`));
+      if (L.A > 1 && L.a)  build.push(sub(`Booked ${L.A} wks ahead`, `× ${L.fAdvance.toFixed(3)}`));
+      if (L.discountFloored) build.push(sub(`<span class="bd-warn">Discount capped at floor</span>`,
+        `<span class="bd-warn">× ${L.F.toFixed(2)}</span>`));
+      if (L.promoAdj !== 1) build.push(sub('Promotion', `× ${L.promoAdj.toFixed(3)}`));
+      if (L.V)             build.push(sub('Venue (per hour)', `+ ${money(L.V)}`));
+      build.push(sub('<b>All-in per hour</b>', `<b>${money(L.chargePerHour)}</b>`));
+      build.push(sub(`× ${L.h} hr × ${L.W} wk = ${L.hoursTotal} hours`, ''));
+
       const shareLine = L.splitOthers >= 1
-        ? `<div class="receipt-row" style="color:var(--gold)">
-             <span class="receipt-label">↳ split ${L.splitShares} ways — your share</span>
-             <span class="receipt-pct">£${L.shareAmount.toFixed(2)}</span>
-           </div>` : '';
-      return `<div class="receipt-row">
-        <span class="receipt-label">${esc(label)} (${L.n} student${L.n>1?'s':''}, ${L.weeks} wks)</span>
-        <span class="receipt-pct">£${L.total.toFixed(2)}</span>
-      </div>${shareLine}`;
+        ? row(`↳ split ${L.splitShares} ways — your share`, money(L.shareAmount), 'bd-share') : '';
+
+      // Admin-only: where the money actually goes. These three sum to the client price.
+      const adminLines = isAdmin() ? [
+        sub('↳ tutor', money(L.tutorPay)),
+        sub('↳ venue', money(L.venueTotal)),
+        sub('↳ <b>your profit</b>', `<b>${money(L.profitTotal)}</b>`),
+        L.belowMinWage ? sub('<span class="bd-warn">⚠ tutor below min wage</span>',
+          `<span class="bd-warn">${money(L.tutorHourly)}/hr</span>`) : ''
+      ].join('') : '';
+
+      return `<div class="bd-lesson">
+        ${row(`<b>${esc(label)}</b> (${L.n} student${L.n > 1 ? 's' : ''}, ${L.W} wks)`, `<b>${money(L.total)}</b>`)}
+        <div class="bd-detail">${build.join('')}</div>
+        ${shareLine}${adminLines}
+      </div>`;
     }).join('');
     // What the booker pays now = sum of their own share of each lesson
     const bookerPays = q.lessons.reduce((s, L) => s + L.shareAmount, 0);
@@ -1982,6 +2498,16 @@ const FILTER_DEFS = {
       category: { label: 'Category', opts: () => DATA.dropdowns?.linkCategories || [], match: (x,v) => norm(x.category) === v },
     }
   },
+  shop: {
+    target: 'shop',
+    render: items => html('shop', items.length
+      ? items.map(tpl.shopCard).join('')
+      : '<p class="muted">No items match.</p>'),
+    text: x => (x.name + ' ' + (x.description||'')),
+    fields: {
+      unit: { label: 'Pay with', opts: () => uniq((DATA.shop||[]).map(s => s.unit)), match: (x,v) => norm(x.unit) === v },
+    }
+  },
   post: {
     target: 'posts',
     source: () => GALLERY_POSTS,
@@ -1996,12 +2522,11 @@ const FILTER_DEFS = {
   tool: {
     target: 'checklist-content',
     source: () => checklistItems(window.TOOL_GROUP_BY || 'auto'),
-    // Calculator card always first, then the group-by control, then the checklist cards
+    // Only the checklist topic cards render here now — the calc/timer/notepad/calendar tools
+    // live in their own Tools section (renderTools).
     render: items => { html('checklist-content',
-      tpl.calcToolCard() + tpl.timerCard() + tpl.notepadCard()
-      + (items.length ? items.map(tpl.checklistBandCard).join('')
-        : '<div class="card"><p class="muted">No topics match.</p></div>'));
-      initMiniCalc(); initTimer(); },
+      items.length ? items.map(tpl.checklistBandCard).join('')
+        : '<div class="card"><p class="muted">No topics match.</p></div>'); },
     text: x => (x.subject + ' ' + x.bandLabel + ' ' + x.topics.map(t => t.name).join(' ')),
     fields: {
       subject:      { label: 'Subject',       opts: () => Object.keys(DATA.dropdowns?.checklists || {}), match: (x,v) => norm(x.subject) === v },
@@ -2118,9 +2643,11 @@ function autosaveProfile(card) {
       if (el.disabled) return;
       fields[el.dataset.pf] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value;
     });
+    console.log('[autosave] sending fields:', JSON.stringify(fields));
     fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateProfile', name: USER.name, fields }) })
       .then(r => r.json())
       .then(d => {
+        console.log('[autosave] backend replied:', JSON.stringify(d));
         if (!USER.profile) USER.profile = {};
         Object.assign(USER.profile, fields);
         const norm = s => String(s || '').toLowerCase().trim();
@@ -2179,6 +2706,60 @@ function autosaveVenue(card) {
     return;
   }
 
+  // Tutor ticks a venue they teach at → add/remove their handle in that venue's comfort list.
+  if (e.target.classList.contains('venue-comfort-cb')) {
+    const venueName = e.target.dataset.venue;
+    const checked = e.target.checked;
+    const handle = USER?.handle || USER?.name || '';
+    const status = e.target.closest('.card')?.querySelector('.edit-status');
+    if (status) status.textContent = 'Saving…';
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'toggleVenueComfort', handle, venue: venueName, checked }) })
+      .then(r => r.json())
+      .then(d => {
+        // Reflect on the live venue object so the tutor card updates without a reload.
+        const norm = s => String(s || '').toLowerCase().trim();
+        const v = (DATA.venues || []).find(x => norm(x.title) === norm(venueName));
+        if (v) {
+          v.comfort = (v.comfort || []).filter(h => norm(h) !== norm(handle));
+          if (checked) v.comfort.push(handle);
+        }
+        if (status) status.textContent = (d && d.error) ? d.error : 'Saved ✓';
+      })
+      .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
+    return;
+  }
+
+  // Admin toggles a tutor's Enhanced DBS tickbox directly on their card.
+  if (e.target.classList.contains('dbs-cb') && isAdmin()) {
+    const tutor = e.target.dataset.tutor;
+    const checked = e.target.checked;
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'setTutorDbs', adminName: USER.name, tutor, checked }) })
+      .then(r => r.json())
+      .then(d => {
+        // Reflect on the live tutor object so it sticks without a reload.
+        const norm = s => String(s || '').toLowerCase().trim();
+        const t = (DATA.tutors || []).find(x => norm(x.title) === norm(tutor));
+        if (t) t.dbs = checked;
+        if (d && d.error) e.target.checked = !checked;   // revert on failure
+      })
+      .catch(() => { e.target.checked = !checked; });
+    return;
+  }
+
+  // Multi-select checkbox toggled → rebuild the hidden value from all ticked boxes, then save.
+  if (e.target.classList.contains('ms-cb')) {
+    const wrap = e.target.closest('.ms-wrap');
+    if (wrap) {
+      const picked = Array.from(wrap.querySelectorAll('.ms-cb:checked')).map(cb => cb.value);
+      const hidden = wrap.querySelector('.ms-value');
+      if (hidden) hidden.value = picked.join(', ');
+      const card = wrap.closest('.card');
+      if (card && hidden?.dataset.pf && USER) autosaveProfile(card);
+      if (card && hidden?.dataset.vf && USER && isAdmin()) autosaveVenue(card);
+    }
+    return;
+  }
+
   // Profile & venue editors auto-save — no Save button. Any change to a data-pf / data-vf
   // field harvests the whole form and writes it (debounced so typing doesn't fire per key).
   const pfEl = e.target.closest('[data-pf]') ? e.target : null;
@@ -2200,12 +2781,23 @@ function autosaveVenue(card) {
   }
   // Student count changed → rebuild that block's split options (max = seats - 1) BEFORE
   // pricing, so the price never uses a split that's no longer valid.
-  if (e.target.classList.contains('l-qty')) syncSplitOptions(parseInt(e.target.dataset.lesson));
+  if (e.target.classList.contains('l-qty')) {
+    const li = parseInt(e.target.dataset.lesson);
+    syncSplitOptions(li);
+    const lbl = document.querySelector(`.l-qty-label[data-lesson="${li}"]`);
+    if (lbl) lbl.textContent = (parseInt(e.target.value) === 1) ? 'student' : 'students';
+  }
 
   // Tutor / venue changed → rebuild that block's available-time grid.
   if (e.target.classList.contains('l-tutor') || e.target.classList.contains('l-location')) {
     renderSlots(parseInt(e.target.dataset.lesson));
+    if (e.target.classList.contains('l-location')) {
+      syncQtyOptions(parseInt(e.target.dataset.lesson));
+      syncHostToggle(parseInt(e.target.dataset.lesson));
+    }
   }
+  // "I'll host the venue" toggled → reprice (drops venue rent).
+  if (e.target.classList.contains('l-host')) calc();
   // A time slot was ticked → enforce the 2-consecutive-hours rule.
   if (e.target.classList.contains('slot-cb')) {
     onSlotTick(parseInt(e.target.dataset.lesson), e.target.dataset.day, parseInt(e.target.dataset.hour), e.target.checked);
@@ -2305,17 +2897,20 @@ document.addEventListener('click', e => {
 
   if (t.id === 'book-btn') {
     if (!USER) { $('go-login-btn')?.click(); return; }
-    const q = quote();
-    if (!q.lessons.length) return;
-    // Validate each lesson (home rule, subject chosen)
+    let q;
+    try { q = quote(); } catch (err) { t.textContent = 'Error: ' + err.message; setTimeout(()=>t.textContent='Lock in & book',3000); return; }
+    if (!q.lessons.length) { t.textContent = 'Add a lesson first'; setTimeout(()=>t.textContent='Lock in & book',2500); return; }
+    // Validate each lesson (subject chosen, a slot ticked, home rule)
     for (const L of q.lessons) {
-      if (!L.subjects.length) { t.textContent = 'Pick a subject for each lesson'; setTimeout(()=>t.textContent='Lock in & Book',2500); return; }
-      if (isHome(L.loc) && L.n < 4) { t.textContent = 'Home lessons need 4 students'; setTimeout(()=>t.textContent='Lock in & Book',2500); return; }
+      if (!L.subjects.length) { t.textContent = 'Pick a subject for each lesson'; setTimeout(()=>t.textContent='Lock in & book',2500); return; }
+      if (!L.day || !L.time)  { t.textContent = 'Tick a day & time slot'; setTimeout(()=>t.textContent='Lock in & book',2500); return; }
+      if (isHome(L.loc) && L.n < 4) { t.textContent = 'Home lessons need 4 students'; setTimeout(()=>t.textContent='Lock in & book',2500); return; }
     }
+    if (parseFloat(q.total) <= 0) { t.textContent = 'Price is £0 — check pricing is set up'; setTimeout(()=>t.textContent='Lock in & book',3000); return; }
     // Build the list of lessons (each becomes its own job, with its own tutor, term, split)
     const lessons = q.lessons.map(L => {
-      const dates = computeSessionDates(L.day, L.endDate).map(fmtDate);
-      const lessonObj = { ...L.summary, price: L.total.toFixed(2), profit: L.profitTotal.toFixed(2),
+      const dates = computeSessionDates(L.day, L.lastSun || L.endDate, L.startDate).map(fmtDate);
+      const lessonObj = { ...L.summary, price: L.total.toFixed(2), profit: (L.profitTotal||0).toFixed(2),
         dates: dates.join(', ') };
       if (L.splitOthers >= 1) {
         lessonObj.split = true;
@@ -2344,7 +2939,7 @@ document.addEventListener('click', e => {
   if (t.classList.contains('join-job-btn')) {
     if (!USER) { $('go-login-btn')?.click(); return; }
     const jobId = t.dataset.job;
-    post({ action: 'joinJob', jobId, clientName: USER.name }, t, '✅ Requested');
+    post({ action: 'clientMove', jobId, client: USER.name, move: 'request', by: 'client', sender: USER.name }, t, '✅ Requested');
   }
 
   // Booker adds another student mid-job → creates a Requested slot with the add-cost stored.
@@ -2368,27 +2963,84 @@ document.addEventListener('click', e => {
   }
 
   // Tutor accepts/declines a specific client slot
+  // Job lifecycle transition (Accept / Decline / Pay / set Active / Complete etc.)
+  if (t.classList.contains('job-act')) {
+    const { job: jobId, to } = t.dataset;
+    // "Pay now" will eventually route through checkout; for now it just advances the status.
+    post({ action: 'setJobStatus', jobId, status: to }, t, `✅ ${to}`);
+    // Reflect immediately so the card updates without waiting for a reload.
+    const job = (DATA.clientClasses || []).find(x => String(x.id) === String(jobId));
+    if (job) { job.status = to; setTimeout(() => renderClasses(), 400); }
+    return;
+  }
+
   if (t.classList.contains('slot-act')) {
     const { job: jobId, slot, status } = t.dataset;
     post({ action: 'slotAction', jobId, slot, newStatus: status }, t, /active/i.test(status) ? '✅ Accepted' : 'Declined');
   }
 
-  // Counter-offer (client 1 or tutor) — propose a new time while job is Pending
-  if (t.classList.contains('counter-btn')) {
-    const jobId = t.dataset.job;
-    const time = val(`counter-time-${jobId}`).trim();
-    if (!time) return;
-    post({ action: 'counterOffer', jobId, time }, t, '✅ Sent');
+  // Six-state per-client move (request / counter / accept / decline / cancel / pay).
+  if (t.classList.contains('cmove')) {
+    const { job: jobId, client, move } = t.dataset;
+    const by = isTutorRole() ? 'tutor' : 'client';
+    // Counter needs a message; pay is a confirm; the rest are one-tap.
+    let text = '';
+    if (move === 'counter') {
+      text = prompt('Your counter-offer (e.g. "Can we do 4pm Tuesdays instead?")') || '';
+      if (!text.trim()) return;
+    } else if (move === 'pay') {
+      if (!confirm('Confirm payment to become a participant?')) return;
+    } else if (move === 'cancel' || move === 'decline') {
+      if (!confirm(`Are you sure you want to ${move}?`)) return;
+    }
+    const label = { accept:'✅ Accepted', counter:'Sent', decline:'Declined', cancel:'Cancelled', pay:'✅ Paid', request:'Requested' }[move] || 'Done';
+    post({ action: 'clientMove', jobId, client, move, by, text, sender: USER ? USER.name : '' }, t, label);
+    return;
   }
 
-  // Send a message to a client slot's chat thread
-  if (t.classList.contains('slot-chat-btn')) {
-    const { job: jobId, slot } = t.dataset;
-    const input = $(`slotchat-${jobId}-${slot}`);
-    const message = input.value.trim();
-    if (!message) return;
-    post({ action: 'slotChat', jobId, slot, sender: USER ? USER.name : 'User', message }, t, 'Sent');
-    input.value = '';
+  // A move chip was tapped → mark it selected (toggle), and reveal the time field for "propose".
+  if (t.classList.contains('move-chip')) {
+    const box = t.closest('.move-box');
+    const wasSel = t.classList.contains('selected');
+    box.querySelectorAll('.move-chip').forEach(c => c.classList.remove('selected'));
+    if (!wasSel) t.classList.add('selected');
+    const move = wasSel ? '' : t.dataset.move;
+    const timeField = box.querySelector('.move-time');
+    if (timeField) timeField.classList.toggle('hidden', move !== 'propose');
+    return;
+  }
+
+  // "Send" submits this turn: the selected action (if any) + optional text, together.
+  if (t.classList.contains('move-send')) {
+    const jobId = t.dataset.job;
+    const by = t.dataset.side || 'client';
+    const box = t.closest('.move-box');
+    const selected = box.querySelector('.move-chip.selected');
+    const move = selected ? selected.dataset.move : 'text';
+    const text = (box.querySelector('.move-text')?.value || '').trim();
+    const time = (box.querySelector('.move-time')?.value || '').trim();
+    // A text-only turn still needs *something* — either an action or a message.
+    if (move === 'text' && !text) return;
+    if (move === 'propose' && !time) { box.querySelector('.move-time')?.focus(); return; }
+
+    // Add-a-child routes through the existing add-student flow (it prices/pays separately).
+    if (move === 'addchild') {
+      const job = (DATA.clientClasses || []).find(x => String(x.id) === String(jobId));
+      if (job) { const add = priceAddStudent(job);
+        post({ action: 'addStudent', jobId, clientName: USER.name, addCost: add.cost.toFixed(2), text }, t, '✅ Requested'); }
+    } else {
+      post({ action: 'jobMove', jobId, by, move, text, time, sender: USER ? USER.name : 'User' }, t, '✅ Sent');
+    }
+    // Reflect locally so the turn passes without waiting for a reload.
+    const job = (DATA.clientClasses || []).find(x => String(x.id) === String(jobId));
+    if (job) {
+      if (move === 'accept') job.status = 'Accepted';
+      else if (move === 'decline') job.status = 'Declined/Cancelled';
+      else if (move === 'propose') job.status = 'Negotiating';
+      if (move !== 'decline') job.offerTurn = (by === 'tutor' ? 'client' : 'tutor');
+      setTimeout(() => renderClasses(), 400);
+    }
+    return;
   }
 
   // Shop: Buy button (payment not wired yet — placeholder confirmation)
@@ -2565,13 +3217,80 @@ document.addEventListener('click', e => {
   // native share sheet where the device has one, clipboard copy otherwise.
   const shareBtn = t.closest('.social-share-btn, .card-share-btn');
   if (shareBtn) {
-    const url = shareBtn.dataset.shareUrl;
-    const title = shareBtn.dataset.shareTitle || '@family. Gallery';
-    if (navigator.share) navigator.share({ title, url }).catch(() => {});
-    else navigator.clipboard?.writeText(url)
-      .then(() => alert('Link copied!'))
-      .catch(() => alert(url));
+    const card = shareBtn.closest('.card');
+    const title = shareBtn.dataset.shareTitle || 'family-note';
+    if (card && window.html2canvas) {
+      shareCardImage(card, title);
+    } else {
+      // Fallback: share the link if image capture isn't available.
+      const url = shareBtn.dataset.shareUrl;
+      if (navigator.share) navigator.share({ title, url }).catch(() => {});
+      else navigator.clipboard?.writeText(url).then(() => flash('Link copied!')).catch(() => alert(url));
+    }
   }
 });
+
+// Capture a card as a PNG and share it (native share sheet) or download it.
+async function shareCardImage(card, title) {
+  const btn = card.querySelector('.card-share-btn, .social-share-btn');
+  const prevText = btn ? btn.textContent : '';
+  if (btn) btn.textContent = 'Preparing…';
+
+  // Un-rotate the sticky-note wobble during capture so the image comes out straight, and hide
+  // the share link itself so it isn't baked into the picture.
+  const prevTransform = card.style.transform;
+  const shareEls = card.querySelectorAll('.card-share-btn, .social-share-btn, .card-actions');
+  card.style.transform = 'none';
+  shareEls.forEach(el => el.style.visibility = 'hidden');
+
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: null,       // keep the note's own colour, transparent margins
+      scale: 2,                    // crisp on retina
+      useCORS: true,               // allow cross-origin images (venue/tutor photos)
+      logging: false,
+    });
+    // Restore the card immediately after capture.
+    card.style.transform = prevTransform;
+    shareEls.forEach(el => el.style.visibility = '');
+    if (btn) btn.textContent = prevText;
+
+    const safeName = String(title).replace(/[^\w\-]+/g, '_').slice(0, 40) || 'note';
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    if (!blob) { flash('Could not create image'); return; }
+    const file = new File([blob], `${safeName}.png`, { type: 'image/png' });
+
+    // Prefer the native share sheet with the image file (mobile). Fall back to download.
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title }); return; } catch { /* cancelled → fall through */ }
+    }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${safeName}.png`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    flash('Image saved');
+  } catch (e) {
+    card.style.transform = prevTransform;
+    shareEls.forEach(el => el.style.visibility = '');
+    if (btn) btn.textContent = prevText;
+    flash('Could not capture the note');
+  }
+}
+
+// Tiny transient toast for share feedback.
+function flash(msg) {
+  let el = document.getElementById('flash-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'flash-toast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;padding:10px 18px;border-radius:8px;font-family:inherit;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.4);transition:opacity .3s';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(window._flashTimer);
+  window._flashTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+}
 
 init();
