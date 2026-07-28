@@ -45,23 +45,45 @@ function jobStatus(j) {
 // --- CLIENT (family) statuses: the 6-state journey each family goes through in a job. ---
 // Requested ⇄ Waiting (negotiation, turn tracked by offer_turn) → Accepted → (pay) → Participant.
 // Declined (tutor rejects) and Cancelled (client withdraws) are the two exits.
-const CLIENT_STATUSES = ['Requested', 'Waiting', 'Accepted', 'Participant', 'Declined', 'Cancelled'];
+const CLIENT_STATUSES = ['Requested', 'Queried', 'Unpaid', 'Participant', 'Declined', 'Cancelled'];
 function clientStatus(raw) {
   const s = String(raw || '').toLowerCase().trim();
-  if (/particip|paid|joined|active/.test(s))      return 'Participant';
-  if (/decline|rejected/.test(s))                 return 'Declined';
-  if (/cancel|withdraw|left/.test(s))             return 'Cancelled';
-  if (/accept|agreed/.test(s))                    return 'Accepted';
-  if (/wait/.test(s))                             return 'Waiting';    // "waiting to hear back"
-  if (/request|pending|new/.test(s) || !s)        return 'Requested';
+  // ORDER MATTERS: "unpaid" contains "paid", so it must be tested first or every unpaid client
+  // reads as a paid participant — which would show a family as enrolled before they've paid.
+  if (/unpaid|awaiting payment|payment due/.test(s))   return 'Unpaid';
+  if (/particip|joined|enrolled/.test(s))              return 'Participant';
+  if (/decline|rejected/.test(s))                      return 'Declined';
+  if (/cancel|withdraw|left/.test(s))                  return 'Cancelled';
+  if (/quer|wait|returned|changes/.test(s))            return 'Queried';   // ball with the client
+  if (/accept|agreed|paid/.test(s))                    return 'Unpaid';    // legacy "Accepted"
+  if (/request|pending|new/.test(s) || !s)             return 'Requested'; // ball with the tutor
   const exact = CLIENT_STATUSES.find(x => x.toLowerCase() === s);
   return exact || 'Requested';
 }
+// --- TUTOR status: the job's other negotiation, running in parallel with the families' ---
+// A client can book with "No preference", which leaves the job Open for any tutor to claim.
+// A claim isn't binding until the CLIENT accepts it — you don't get assigned a stranger.
+const TUTOR_STATUSES = ['Open', 'Claimed', 'Confirmed', 'Declined'];
+function tutorStatus(raw, tutorName) {
+  const s = String(raw || '').toLowerCase().trim();
+  if (/confirm|agreed/.test(s))  return 'Confirmed';
+  if (/claim|proposed/.test(s))  return 'Claimed';
+  if (/declin|reject/.test(s))   return 'Declined';
+  if (/open|none|any/.test(s))   return 'Open';
+  // No stored status: infer it. A real name means someone was picked; "No preference" is Open.
+  const nm = String(tutorName || '').toLowerCase().trim();
+  return (!nm || nm === 'no preference' || nm === 'any') ? 'Open' : 'Confirmed';
+}
+const tutorStatusLabel = st => ({
+  Open: 'Open — any tutor can claim', Claimed: 'Claimed — awaiting your approval',
+  Confirmed: 'Confirmed', Declined: 'Declined'
+}[st] || 'Open');
+
 // A family occupies a seat unless they've left the job entirely.
 const CLIENT_ACTIVE = st => !['Declined', 'Cancelled'].includes(clientStatus(st));
 // Friendly label for what the client sees.
 const clientStatusLabel = st => ({
-  Requested: 'Requested', Waiting: 'Waiting to hear back', Accepted: 'Accepted — payment due',
+  Requested: 'Requested', Queried: 'Queried', Unpaid: 'Unpaid',
   Participant: 'Participant', Declined: 'Declined', Cancelled: 'Cancelled'
 }[clientStatus(st)] || 'Requested');
 
@@ -789,8 +811,13 @@ const tpl = {
   // list lives in exactly one place. Each input carries data-pf="<sheet column>", and Save
   // just harvests those — adding a field later needs no frontend change.
   profileEditCard: (p = {}) => {
-    const groups   = DATA.profileFields || {};
-    const readonly = DATA.profileReadonly || [];
+    // Which fields you may edit depends on who you are. A tutor gets qualifications and
+    // availability; a parent gets contact details; a student gets those plus date of birth.
+    // The lists come from the backend so there is one definition of each, not two.
+    const groups = (USER && USER.role === 'parent') ? (DATA.clientFields || {})
+                 : (USER && USER.role === 'kid')    ? (DATA.studentFields || {})
+                 : (DATA.profileFields || {});
+    const readonly = isTutorRole() ? (DATA.profileReadonly || []) : [];
     const times    = DATA.dropdowns?.times || [];
     // The field list comes from the backend. If it's missing, the deployed Apps Script is
     // older than this frontend — say so plainly rather than showing an empty form.
@@ -877,7 +904,7 @@ const tpl = {
       const on = (v.comfort || []).some(h => String(h).toLowerCase().trim() === myHandle);
       return `<label class="ms-opt"><input type="checkbox" class="venue-comfort-cb" data-venue="${esc(v.title)}" ${on ? 'checked' : ''}> ${esc(v.title)}</label>`;
     }).join('');
-    const comfortSection = (DATA.venues || []).length
+    const comfortSection = (isTutorRole() && (DATA.venues || []).length)
       ? `<fieldset class="pf-group"><legend>Venues I teach at</legend>
            <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px;text-align:left">Tick the venues you're happy to teach at.</p>
            <div class="ms-list">${venueTicks}</div>
@@ -935,8 +962,20 @@ const tpl = {
     // The job prices itself through the SAME function the booking form uses, so a class card
     // shows exactly the per-line costs the client agreed to. No separate breakdown anywhere.
     const P = priceJob(j);
+    // offer_turn stores an ABSOLUTE side ('tutor' or 'client'), because one cell is read by
+    // both of them — it can't say "Yours" and mean different people. The translation into
+    // "Yours" / "Others" happens here, per reader, which is the only place it can be correct.
+    // Reuses `turn` and `mySide` declared above — `turn` already falls back to the tutor on a
+    // Requested job, which is right: the ball starts with them before anyone has moved.
+    const possession = !turn
+      ? '<span class="badge st-completed">Nobody — settled</span>'
+      : mySide
+        ? (mySide === turn ? '<span class="badge st-active">Yours</span>'
+                           : '<span class="badge st-negotiating">Others</span>')
+        : `<span class="badge st-requested">${esc(turn === 'tutor' ? 'Tutor' : 'Client')}</span>`;
+
     const detail = tpl.priceRows(P, {
-      editable: false, studentsLabel: j.capacity, datesText: j.dates,
+      editable: false, studentsLabel: j.capacity, datesText: j.dates, possession,
       status: `<span class="badge ${badgeClass}">${esc(status)}</span>`
         + (mySlot ? ` <span class="badge mine-badge">Yours</span>` : '')
     });
@@ -956,7 +995,7 @@ const tpl = {
     let slotRows = '';
     const cStatusBadge = st => {
       const cs = clientStatus(st);
-      const cls = { Requested:'st-requested', Waiting:'st-negotiating', Accepted:'st-accepted',
+      const cls = { Requested:'st-requested', Queried:'st-negotiating', Unpaid:'st-accepted',
         Participant:'st-active', Declined:'st-declined', Cancelled:'st-declined' }[cs] || 'st-requested';
       return `<span class="badge ${cls}">${esc(clientStatusLabel(st))}</span>`;
     };
@@ -971,34 +1010,70 @@ const tpl = {
         return `<div class="cl-msg-line"><span class="cl-who">${esc(who)}</span><span class="cl-what">${esc(msg)}</span></div>`;
       }).join('')}</div>`;
     };
-    // The message box that closes every block. An action chip above it is optional — Send on its
-    // own posts a plain note and passes the turn; Send with an action does both in one move.
-    const msgBox = (client, acts) => `
-      <div class="cl-acts">${acts.join('<span class="act-sep"> · </span>')}</div>
-      <div class="move-send-row">
+    // ONE control for every move: pick an action (or leave it on "just send a message"), type a
+    // note, hit Submit. Action and message travel together as a single move, which is why the
+    // text box sits above the button — you compose the whole turn, then send it once.
+    const moveForm = (client, opts) => opts.length ? `
+      <div class="cl-form">
+        <select class="cl-action">
+          ${opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}
+        </select>
         <input type="text" class="move-text cl-msg" placeholder="Add a message (optional)…">
-        <span class="text-action cl-send" data-job="${j.id}" data-client="${esc(client)}">Send</span>
+        <span class="text-action cl-submit" data-job="${j.id}" data-client="${esc(client)}">Submit</span>
+      </div>` : '';
+
+    // Three options everywhere, on every block, for both sides. "Pass" is the move that says
+    // "not deciding yet — here's my reply", which is what a tutor asking for a change actually
+    // is. Anything that isn't a decision (pay, cancel, change terms) is a link, not an option,
+    // because mixing decisions and actions in one control is what made this confusing before.
+    const VERDICTS = [['', '— choose —'], ['accept', 'Accept'], ['decline', 'Decline'], ['pass', 'Pass']];
+
+    // The tutor's own block. It sits ABOVE the families, because who is teaching is settled
+    // before, and independently of, who is attending.
+    const tStatus = tutorStatus(j.tutorStatus, j.requestedTutor);
+    const tBadgeCls = { Open:'st-requested', Claimed:'st-negotiating',
+                        Confirmed:'st-active', Declined:'st-declined' }[tStatus] || 'st-requested';
+    const iAmTheTutor = isTutorRole() && norm(j.requestedTutor) === norm(USER && USER.name);
+    // The tutor block is a STATUS, not a conversation. There's no thread and no dropdown here:
+    // the tutor side has exactly one question ("is this the tutor?") with a yes/no answer, and
+    // wrapping that in a message box implied a negotiation that doesn't exist. Any discussion
+    // belongs in the family's own thread below, where the terms being discussed actually live.
+    let tutorBlock = '';
+    {
+      const acts = [];
+      // An unclaimed job is claimable by any tutor — that's what "No preference" is for.
+      if (isTutorRole() && tStatus === 'Open')
+        acts.push(`<span class="text-action tutor-verdict" data-job="${j.id}" data-move="claim">Claim this job</span>`);
+      // Only the family who booked decides whether the claiming tutor is acceptable.
+      if (mySlot && tStatus === 'Claimed') {
+        acts.push(`<span class="text-action tutor-verdict" data-job="${j.id}" data-move="accept">Accept tutor</span>`);
+        acts.push(`<span class="text-action tutor-verdict" data-job="${j.id}" data-move="decline">Decline tutor</span>`);
+      }
+      const blurb = {
+        Open:      'No tutor yet — any tutor can claim this.',
+        Claimed:   mySlot ? 'A tutor has claimed this. Accept or decline them.'
+                          : 'Claimed — waiting on the family to approve.',
+        Confirmed: '',
+        Declined:  'The family declined this tutor. Open again.'
+      }[tStatus] || '';
+      tutorBlock = `<div class="cl-block">
+        <div class="cl-head">Tutor — ${esc(j.requestedTutor || 'No preference')}</div>
+        ${tpl.fieldLine('Status', `<span class="badge ${tBadgeCls}">${esc(tutorStatusLabel(tStatus))}</span>`, '', '', 'fl-free')}
+        ${blurb ? `<div class="cl-blurb">${esc(blurb)}</div>` : ''}
+        ${acts.length ? `<div class="cl-acts">${acts.join('<span class="act-sep"> · </span>')}</div>` : ''}
       </div>`;
+    }
 
     if (isTutor || admin) {
       slotRows = slots.filter(s => String(s.client || '').trim()).map(s => {
         const cs = clientStatus(s.status);
-        const acts = [];
-        if (cs === 'Requested') {
-          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="accept">Accept</span>`);
-          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="counter">Ask for a change</span>`);
-          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="decline">Decline</span>`);
-        } else if (cs === 'Waiting') {
-          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="accept">Accept their terms</span>`);
-          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="counter">Ask again</span>`);
-          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="decline">Decline</span>`);
-        } else if (cs === 'Accepted') {
-          acts.push(`<span class="muted cl-note">Awaiting their payment…</span>`);
-        }
+        // What the tutor can do depends only on where this family is. Note the tutor never gets
+        // an option that edits terms — asking is the whole of their influence over them.
+        const opts = ['Declined', 'Cancelled', 'Participant'].includes(cs) ? [] : VERDICTS;
         const blurb = {
           Requested:   'is asking to join — your move.',
-          Waiting:     'countered — your move.',
-          Accepted:    'agreed the terms; payment due.',
+          Queried:     'has been asked for a change — waiting on them.',
+          Unpaid:      'agreed the terms; waiting for payment.',
           Participant: 'has paid and is in the class.',
           Declined:    'was declined.',
           Cancelled:   'cancelled their request.'
@@ -1008,38 +1083,39 @@ const tpl = {
           ${tpl.fieldLine('Status', cStatusBadge(s.status), '', '', 'fl-free')}
           ${blurb ? `<div class="cl-blurb">${esc(s.client)} ${blurb}</div>` : ''}
           ${chatThread(s)}
-          ${msgBox(s.client, acts)}
+          ${moveForm(s.client, opts)}
         </div>`;
       }).join('');
       if (!slotRows) slotRows = '<p class="muted cl-note">No families have requested this yet.</p>';
 
     } else if (mySlot) {
       const cs = clientStatus(mySlot.status);
-      const editable = ['Requested', 'Waiting'].includes(cs);
-      const acts = [];
-      if (cs === 'Requested') acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="accept">Accept terms</span>`);
-      if (editable)           acts.push(`<span class="text-action edit-req" data-job="${j.id}" data-client="${esc(mySlot.client)}">Edit request</span>`);
-      if (cs === 'Accepted')  acts.push(`<span class="text-action cmove pay" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="pay">Pay now</span>`);
-      if (cs === 'Participant' && emptySlot)
-        acts.push(`<span class="text-action add-student-btn" data-job="${j.id}">Add a child</span>`);
-      if (['Requested','Waiting','Accepted'].includes(cs))
-        acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Cancel</span>`);
-      if (cs === 'Participant') acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Leave</span>`);
+      // Terms are the client's to change, and only while the tutor hasn't yet agreed them.
+      const canEdit = ['Requested', 'Queried'].includes(cs);
+      const opts = ['Declined', 'Cancelled'].includes(cs) ? [] : VERDICTS;
+      // Paying, cancelling and changing terms are actions, not verdicts — they get links.
+      const links = [];
+      if (cs === 'Unpaid') links.push(`<span class="text-action cl-pay" data-job="${j.id}" data-client="${esc(mySlot.client)}">Pay now</span>`);
+      if (!['Declined', 'Cancelled'].includes(cs))
+        links.push(`<span class="text-action cl-cancel" data-job="${j.id}" data-client="${esc(mySlot.client)}">${cs === 'Participant' ? 'Leave the class' : 'Cancel my request'}</span>`);
       const myBlurb = {
         Requested:   'Your request is with the tutor.',
-        Waiting:     'Your counter-offer is with the tutor.',
-        Accepted:    'Terms agreed — pay now to secure your place.',
+        Queried:     'The tutor has asked for a change — update your request below.',
+        Unpaid:      'Terms agreed. Pay to secure your place.',
         Participant: "You're in the class.",
         Declined:    'The tutor declined this request.',
         Cancelled:   'You cancelled this request.'
       }[cs] || '';
-      const editForm = editable ? `
+      // Changing terms is a form, not a dropdown option, because it needs fields. Sending it
+      // puts the request back to Requested — the ball returns to the tutor.
+      const editForm = canEdit ? `
+        <span class="text-action edit-req" data-job="${j.id}" data-client="${esc(mySlot.client)}">Change my request</span>
         <div class="edit-req-form hidden" data-job="${j.id}" data-client="${esc(mySlot.client)}">
           <label class="erf-row">Students <select class="erf-students">${[1,2,3,4].map(x=>`<option value="${x}"${x==j.currentKids?' selected':''}>${x}</option>`).join('')}</select></label>
           <label class="erf-row">Day <select class="erf-day">${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=>`<option${norm(d)===norm(j.day)?' selected':''}>${d}</option>`).join('')}</select></label>
           <label class="erf-row">Time <input class="erf-time" value="${esc(j.time||'')}" placeholder="e.g. 16:00"></label>
           <label class="erf-row">Venue <select class="erf-venue">${(DATA.venues||[]).map(v=>`<option${norm(v.title)===norm(j.location)?' selected':''}>${esc(v.title)}</option>`).join('')}</select></label>
-          <div class="erf-note muted">Changing terms sends the request back to the tutor to re-approve.</div>
+          <div class="erf-note muted">Sending changes puts your request back to the tutor to approve.</div>
           <div class="cl-acts">
             <span class="text-action edit-req-send" data-job="${j.id}" data-client="${esc(mySlot.client)}">Send changes</span>
             <span class="text-action edit-req-cancel">Close</span>
@@ -1050,8 +1126,9 @@ const tpl = {
         ${tpl.fieldLine('Status', cStatusBadge(mySlot.status), '', '', 'fl-free')}
         ${myBlurb ? `<div class="cl-blurb">${esc(myBlurb)}</div>` : ''}
         ${chatThread(mySlot)}
-        ${msgBox(mySlot.client, acts)}
         ${editForm}
+        ${links.length ? `<div class="cl-acts">${links.join('<span class="act-sep"> · </span>')}</div>` : ''}
+        ${moveForm(mySlot.client, opts)}
       </div>`;
     }
 
@@ -1076,7 +1153,7 @@ const tpl = {
       ${(j.image || j.image2) ? `<div class="job-photos">${j.image ? tpl.img(j.image) : ''}${j.image2 ? tpl.img(j.image2) : ''}</div>` : ''}
       <h3>${esc(j.title) || 'Session'}</h3>
       <div class="job-detail">${detail}</div>
-      ${slotRows ? `<div class="job-slots">${slotRows}</div>` : ''}
+      <div class="job-slots">${tutorBlock}${slotRows}</div>
       ${moveBox}
       ${action ? `<div class="job-foot">${action}</div>` : ''}
     </div>`;
@@ -1123,6 +1200,9 @@ const tpl = {
     // Status leads, because it's the first thing anyone looks for and it belongs in the row
     // system like everything else — a floating badge reads as decoration, a row reads as data.
     if (o.status) rows.push(tpl.fieldLine('Status', o.status, '', '', 'fl-free'));
+    // Whose move it is, on its own line. Status says where the negotiation IS; possession says
+    // who has to do something next. They answer different questions, so they get different rows.
+    if (o.possession) rows.push(tpl.fieldLine('Possession', o.possession, '', '', 'fl-free'));
 
     rows.push(tpl.fieldLine('Tuition',
       `<span class="fl-note">${L.usingTutorRate ? 'tutor rate' : 'min wage'} × ${esc(String(L.wMul || 1))}</span>`,
@@ -1286,7 +1366,10 @@ const tpl = {
           ? 'Your checklist, friends and classes are in their sections below.'
           : 'Your children and classes are shown below.'
       }</p>
-      <div class="card-actions"><span class="text-action" id="logout-btn">Log out</span></div>
+      <div class="card-actions">
+        <span class="text-action edit-profile-btn" title="Edit your details">Edit</span>
+        <span class="text-action" id="logout-btn">Log out</span>
+      </div>
     </div>`;
   },
 
@@ -1319,7 +1402,8 @@ const tpl = {
     </div>
     <div class="job-detail">${tpl.priceRows(null, {
       editable: true, lesson: i,
-      status: '<span class="badge st-draft">Not sent yet</span>'
+      status: '<span class="badge st-draft">Not sent yet</span>',
+      possession: '<span class="badge st-active">Yours</span>'
     })}</div>
     <div class="move-send-row">
       <input type="text" class="move-text l-message" data-lesson="${i}" placeholder="Add a message for the tutor (optional)…">
@@ -1339,25 +1423,6 @@ function renderHeaderAuth() {
 
 function renderCards(id, items = []) {
   let cardsHtml = items.length ? items.map(tpl.card).join('') : '<p class="muted">Nothing yet.</p>';
-
-  // Diagnostic: spell out exactly why the venue Edit button does/doesn't show.
-  if (id === 'venues') {
-    const diag = $('venue-diag');
-    if (diag) {
-      const v0 = (DATA.venues || [])[0];
-      const lines = [
-        `logged in: ${USER ? 'YES' : 'NO'}`,
-        `USER.role: ${USER ? '"' + USER.role + '"' : '(none)'}`,
-        `isAdmin(): ${isAdmin()}`,
-        `backend version: ${DATA.version || '(none - OLD backend, needs redeploy)'}`,
-        `sample venue type==="venue": ${v0 ? (v0.type === 'venue') : 'no venues'}`,
-        `-> Edit shows when role is "admin" AND backend is current`,
-      ];
-      diag.textContent = lines.join('\n');
-      const problem = !USER || !isAdmin() || !DATA.version;
-      diag.style.display = problem ? 'block' : 'none';
-    }
-  }
 
   // People section: the login card (logged out) or the person's own account card (logged in).
   if (id === 'tutors') {
@@ -3265,38 +3330,73 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // Per-client move (request / counter / accept / decline / cancel / pay). The message typed in
-  // THIS client's box rides along with the action, so one tap sends both.
-  if (t.classList.contains('cmove')) {
-    const { job: jobId, client, move } = t.dataset;
-    const by = isTutorRole() ? 'tutor' : 'client';
+  // One submit sends the whole turn: the chosen action (if any) plus the typed message.
+  if (t.classList.contains('cl-submit')) {
+    const { job: jobId, client } = t.dataset;
     const block = t.closest('.cl-block');
+    const sel = block?.querySelector('.cl-action');
     const input = block?.querySelector('.cl-msg');
+    const chosen = sel?.value || '';
     const text = (input?.value || '').trim();
-    if (move === 'counter' && !text) {
-      // A counter with no words is just a rejection with extra steps.
+    // Nothing chosen and nothing typed is not a turn.
+    if (!chosen && !text) { input?.focus(); return; }
+    // Asking for a change without saying what to change is just a decline with extra steps.
+    if (chosen === 'pass' && !text) {
       input?.focus();
-      input?.setAttribute('placeholder', 'Say what you\'d like changed…');
+      input?.setAttribute('placeholder', "Say what you'd like changed…");
       return;
     }
-    if (move === 'pay' && !confirm('Confirm payment to become a participant?')) return;
-    if ((move === 'cancel' || move === 'decline') && !confirm(`Are you sure you want to ${move}?`)) return;
+    if (chosen === 'decline' && !confirm(isTutorRole()
+      ? 'Decline this request? This cannot be undone.'
+      : 'Withdraw from this session? This cannot be undone.')) return;
+
+    const by = isTutorRole() ? 'tutor' : 'client';
+    // The same three verdicts mean different things depending on who casts them.
+    //   Tutor:  Accept = agree terms (→Unpaid).  Pass = ask for a change (→Queried).
+    //   Client: Accept = re-submit for approval (→Requested).  Pass = reply, no change.
+    // Decline is the only one that means the same to both: this isn't happening.
+    const MAP = by === 'tutor'
+      ? { accept: 'accept', decline: 'decline', pass: 'query' }
+      : { accept: 'edit',   decline: 'cancel',  pass: 'text'  };
+    const move = MAP[chosen] || 'text';
     if (input) input.value = '';
-    const label = { accept:'✅ Accepted', counter:'Sent', decline:'Declined', cancel:'Cancelled', pay:'✅ Paid', request:'Requested' }[move] || 'Done';
+    if (sel) sel.value = '';
+    const label = { accept: '✅ Accepted', query: '✅ Sent', edit: '✅ Sent', decline: 'Declined',
+                    cancel: 'Cancelled', pay: '✅ Paid', text: '✅ Sent' }[move] || '✅ Sent';
     post({ action: 'clientMove', jobId, client, move, by, text, sender: USER ? USER.name : '' }, t, label);
     setTimeout(() => renderClasses(), 600);
     return;
   }
 
-  // Plain message to one client's thread — no status change, but the turn still passes.
-  if (t.classList.contains('cl-send')) {
-    const { job: jobId, client } = t.dataset;
-    const input = t.closest('.cl-block')?.querySelector('.cl-msg');
-    const text = (input?.value || '').trim();
-    if (!text) { input?.focus(); return; }
-    const by = isTutorRole() ? 'tutor' : 'client';
-    if (input) input.value = '';
-    post({ action: 'clientMove', jobId, client, move: 'text', by, text, sender: USER ? USER.name : '' }, t, '✅ Sent');
+  // The tutor side: claim it, or the family's verdict on whoever claimed it. No message box —
+  // these are one-tap decisions, and any discussion belongs in the family's thread.
+  if (t.classList.contains('tutor-verdict')) {
+    const move = t.dataset.move;
+    const ask = {
+      claim:   'Claim this job? The family will be asked to approve you.',
+      accept:  'Accept this tutor for your session?',
+      decline: 'Decline this tutor? The job reopens for others to claim.'
+    }[move];
+    if (ask && !confirm(ask)) return;
+    const label = { claim: '✅ Claimed', accept: '✅ Accepted', decline: 'Declined' }[move] || '✅ Sent';
+    post({ action: 'tutorMove', jobId: t.dataset.job, move,
+           by: isTutorRole() ? 'tutor' : 'client', sender: USER ? USER.name : '' }, t, label);
+    setTimeout(() => renderClasses(), 600);
+    return;
+  }
+
+  // Pay and cancel are actions, not verdicts, so they're links rather than dropdown options.
+  if (t.classList.contains('cl-pay')) {
+    if (!confirm('Continue to payment?')) return;
+    post({ action: 'clientMove', jobId: t.dataset.job, client: t.dataset.client,
+           move: 'pay', by: 'client', sender: USER ? USER.name : '' }, t, '✅ Paid');
+    setTimeout(() => renderClasses(), 600);
+    return;
+  }
+  if (t.classList.contains('cl-cancel')) {
+    if (!confirm('Withdraw from this session? This cannot be undone.')) return;
+    post({ action: 'clientMove', jobId: t.dataset.job, client: t.dataset.client,
+           move: 'cancel', by: 'client', sender: USER ? USER.name : '' }, t, 'Cancelled');
     setTimeout(() => renderClasses(), 600);
     return;
   }
@@ -3427,9 +3527,14 @@ document.addEventListener('click', e => {
   // Cancel editing → restore just this card to display form (no section rebuild)
   if (t.id === 'cancel-profile-btn') {
     const norm = s => String(s || '').toLowerCase().trim();
-    const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
     const card = t.closest('.card');
-    if (card && me) { const g = card.closest('.grid'); card.outerHTML = tpl.card(me); layoutGrid(g); }
+    if (!card) return;
+    const g = card.closest('.grid');
+    // A tutor returns to their public profile card; a parent or student to their account card,
+    // which is the only card they have.
+    const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER && USER.name));
+    card.outerHTML = (isTutorRole() && me) ? tpl.card(me) : tpl.accountCard();
+    layoutGrid(g);
     return;
   }
 
@@ -3534,29 +3639,57 @@ document.addEventListener('click', e => {
 });
 
 // Capture a card as a PNG and share it (native share sheet) or download it.
+//
+// Two things used to cut the image short, and both are about what "the card" actually is:
+//   • Inner scroll areas. .cl-thread caps at 170px with overflow:auto, so a long conversation
+//     rendered only the visible slice — html2canvas photographs boxes, it doesn't scroll them.
+//   • Page scroll. html2canvas renders from the document origin, so a card halfway down a
+//     scrolled page came out offset, clipping the bottom.
+// Both are fixed by a single `.capturing` class (see style.css) plus telling html2canvas the
+// element's FULL scroll size rather than its on-screen box. One class beats the pile of inline
+// style juggling this used to do — and it can't leak, because it's removed in a finally block.
 async function shareCardImage(card, title) {
   const btn = card.querySelector('.card-share-btn, .social-share-btn');
   const prevText = btn ? btn.textContent : '';
   if (btn) btn.textContent = 'Preparing…';
-
-  // Un-rotate the sticky-note wobble during capture so the image comes out straight, and hide
-  // the share link itself so it isn't baked into the picture.
-  const prevTransform = card.style.transform;
-  const shareEls = card.querySelectorAll('.card-share-btn, .social-share-btn, .card-actions');
-  card.style.transform = 'none';
-  shareEls.forEach(el => el.style.visibility = 'hidden');
+  card.classList.add('capturing');
 
   try {
+    // Wait for Patrick Hand. html2canvas draws text with the computed font at capture time; if
+    // the webfont hasn't finished loading it can render nothing at all rather than falling back.
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch {} }
+
+    // Deliberately MINIMAL options. Passing width/height together with scrollX/scrollY and
+    // windowWidth/windowHeight sizes the canvas to the element while laying its contents out at
+    // document coordinates — so the card's own background and border draw at the origin and
+    // everything inside lands off-canvas. That produced a blank note with a pin on it.
+    // The .capturing class already unrolls every scroll box, which was the real clipping cause,
+    // so html2canvas only needs to be told to keep the paper colour and render sharply.
     const canvas = await html2canvas(card, {
       backgroundColor: null,       // keep the note's own colour, transparent margins
       scale: 2,                    // crisp on retina
-      useCORS: true,               // allow cross-origin images (venue/tutor photos)
-      logging: false,
+      logging: true,               // TEMPORARY: html2canvas narrates the clone to the console
+      // Don't fetch images at all. Every photo here is a drive.google.com thumbnail, and Drive
+      // doesn't reliably send CORS headers — so html2canvas would sit waiting on a load that
+      // can never succeed, then return a canvas with the box decorations and nothing else.
+      // That is exactly the blank note. Stripping the sources in the clone means there is
+      // nothing to wait for, and the note exports as text, which is what it's for.
+      useCORS: false,
+      imageTimeout: 0,
+      onclone: (doc, el) => {
+        el.querySelectorAll('img').forEach(img => {
+          img.removeAttribute('src');
+          img.removeAttribute('srcset');
+          img.style.visibility = 'hidden';   // keep its space, so the layout is unchanged
+        });
+        // TEMPORARY diagnostic. If the clone HAS the text but the export doesn't, the problem is
+        // where it's drawn, not whether it exists — and those have opposite fixes.
+        console.log('[share] clone height:', el.scrollHeight, 'live height:', card.scrollHeight);
+        console.log('[share] clone text length:', (el.innerText || '').trim().length);
+        console.log('[share] first 120 chars:', (el.innerText || '').trim().slice(0, 120));
+      },
     });
-    // Restore the card immediately after capture.
-    card.style.transform = prevTransform;
-    shareEls.forEach(el => el.style.visibility = '');
-    if (btn) btn.textContent = prevText;
+    console.log('[share] canvas:', canvas.width, '×', canvas.height);
 
     const safeName = String(title).replace(/[^\w\-]+/g, '_').slice(0, 40) || 'note';
     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
@@ -3565,7 +3698,7 @@ async function shareCardImage(card, title) {
 
     // Prefer the native share sheet with the image file (mobile). Fall back to download.
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title }); return; } catch { /* cancelled → fall through */ }
+      try { await navigator.share({ files: [file], title }); return; } catch { /* cancelled */ }
     }
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -3574,10 +3707,12 @@ async function shareCardImage(card, title) {
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     flash('Image saved');
   } catch (e) {
-    card.style.transform = prevTransform;
-    shareEls.forEach(el => el.style.visibility = '');
-    if (btn) btn.textContent = prevText;
     flash('Could not capture the note');
+  } finally {
+    // Always restore, even if the capture threw — a card stuck in capture mode would sit
+    // un-tilted with its actions invisible and no way back short of a reload.
+    card.classList.remove('capturing');
+    if (btn) btn.textContent = prevText;
   }
 }
 
