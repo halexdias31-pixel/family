@@ -147,8 +147,8 @@ option { background: var(--panel); color: var(--text); }
   position: relative;
   text-align: center;
   /* A card can never be forced wider than its column by its contents.
-     Note: we deliberately do NOT set overflow:hidden — the .badge sits above the card
-     and .custom-dropdown pops out below it. The wrapping rules below stop overflow instead. */
+     Note: we deliberately do NOT set overflow:hidden — .custom-dropdown pops out below the
+     card. (The .badge used to overhang the top edge too; it flows inline now.) */
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -224,7 +224,11 @@ option { background: var(--panel); color: var(--text); }
   background: var(--panel2);
 }
 
-.badge { position: absolute; top: -10px; right: 15px; background: var(--gold); color: var(--bg); padding: 3px 10px; font: bold var(--fs-xs) Arial; border-radius: 4px; }
+/* A badge sits WHERE IT IS WRITTEN. It used to be position:absolute pinned to the card's
+   top-right corner, which is why moving the status markup into the Status row changed nothing
+   on screen — the badge was lifted straight back out to the corner, leaving the row it belonged
+   to looking empty. Inline-block, so it flows in whatever row it's placed in. */
+.badge { display: inline-block; background: var(--gold); color: var(--bg); padding: 3px 10px; font: bold var(--fs-xs) Arial; border-radius: 4px; vertical-align: middle; }
 .badge.alert { background: var(--err); color: #fff; animation: pulse 2s infinite; }
 .tag { display: inline-block; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; margin: 2px; font-size: var(--fs-xs); }
 .cap { margin: 8px 0; }
@@ -787,6 +791,13 @@ select, option, input, textarea, button,
 .cl-msg-line { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); }
 .cl-msg-line .cl-who { color: var(--gold); white-space: nowrap; }
 .cl-msg-line .cl-what { color: var(--text); }
+/* One turn = one action + one message + one Submit, stacked in the order you compose them:
+   decide, write, send. The message sits above the button because it's part of the same move,
+   not a separate afterthought. */
+.cl-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cl-form .cl-action { width: 100%; }
+.cl-form .cl-msg { width: 100%; }
+.cl-form .cl-submit { align-self: flex-end; }
 .cl-acts { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0 4px; }
 .cl-note { font-size: var(--fs-xs); }
 
@@ -826,3 +837,33 @@ select, option, input, textarea, button,
 .card .badge { color: #fff; opacity: 1; }
 /* Labels earn their place through weight now that they're no longer gold. */
 .card .fl-k, .card .job-k, .card .cl-head { font-weight: bold; opacity: 1; }
+
+
+/* ---------- CAPTURE MODE ----------
+   Applied for the instant a card is photographed by html2canvas, then removed.
+   html2canvas renders boxes as they are, so anything hidden behind a scrollbar or clipped by a
+   max-height simply isn't in the picture. This flattens every such box so the note is captured
+   whole — literally as-is, just fully unrolled. The tilt is cancelled too, otherwise the export
+   is a rotated note inside a larger transparent rectangle. */
+.card.capturing {
+  transform: none !important;
+  box-shadow: none !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+/* Any scrollable region inside the card: threads, availability grids, slot grids, date lists. */
+.card.capturing .cl-thread,
+.card.capturing .slot-grid-wrap,
+.card.capturing .avail-wrap,
+.card.capturing .check-list,
+.card.capturing .link-list {
+  max-height: none !important;
+  overflow: visible !important;
+}
+/* The controls aren't part of the note — visibility, not display, so nothing reflows and the
+   capture matches the layout you were looking at. */
+.card.capturing .card-actions,
+.card.capturing .card-share-btn,
+.card.capturing .social-share-btn,
+.card.capturing .cl-form,
+.card.capturing .cl-acts { visibility: hidden !important; }
