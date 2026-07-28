@@ -22,29 +22,14 @@
 }
 
 * { box-sizing: border-box; }
-/* The board the notes are pinned to. Cork, built from layered flecks rather than an image
-   file — no extra request, and it scales to any screen. Real cork is granular, so this is
-   eight fleck layers, both lighter and darker than the base, at small tile sizes. The sizes
-   are deliberately co-prime-ish (23/29/31/37/41/19/47/53) so the layers drift out of step
-   and the grain never visibly repeats.
-   background-attachment:fixed holds the board still while the notes scroll over it — that
-   parallax is what keeps the two reading as separate layers rather than one surface.
+/* The board the notes are pinned to — one flat brown. The wood-grain gradient stack that used
+   to live here is gone: solid colour, nothing to tile, nothing to repaint on scroll.
+   The shade comes from --board so it stays changeable in one place.
    --bg stays black: it doubles as the "contrast against gold" colour on buttons and badges,
    so it can't become brown. */
 body {
   background-color: var(--board, #6b4a2b);
-  /* Wood grain: layered horizontal streaks at varied opacities/offsets so it reads as timber
-     rather than a regular grid. The irregular gradient stops give a random-plank grain feel. */
-  background-image:
-    repeating-linear-gradient(91deg,
-      rgba(60,38,18,.55) 0px, rgba(90,60,32,.15) 2px, rgba(120,84,48,.10) 5px,
-      rgba(70,45,22,.35) 9px, rgba(110,76,42,.12) 13px, rgba(55,34,16,.45) 17px),
-    repeating-linear-gradient(89.4deg,
-      rgba(40,25,10,.30) 0px, transparent 3px, rgba(95,64,34,.14) 7px, transparent 12px,
-      rgba(45,28,12,.28) 19px, transparent 26px),
-    linear-gradient(178deg, rgba(120,84,48,.20), rgba(60,38,18,.30) 40%, rgba(95,64,34,.18) 70%, rgba(70,45,22,.28));
-  background-size: 100% 140px, 100% 90px, 100% 100%;
-  background-attachment: fixed;
+  background-image: none;
   color: var(--text);
   font: var(--fs-base)/1.55 Consolas, monospace;
   margin: 2vw auto;
@@ -84,8 +69,7 @@ button { font: bold var(--fs-sm) inherit; text-transform: uppercase; letter-spac
 .ghost { display: block; margin: 0 auto; background: transparent; color: var(--gold); padding: 12px 24px; }
 .ghost:hover { background: var(--gold); color: var(--bg); }
 
-input, select, textarea, button, option { font-family: 'Patrick Hand','Segoe Print','Comic Sans MS',cursive; }
-input, select { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: var(--fs-base); outline: none; }
+input, select { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font: inherit; outline: none; }
 input:focus, select:focus { border-color: var(--gold); }
 option { background: var(--panel); color: var(--text); }
 
@@ -278,7 +262,10 @@ option { background: var(--panel); color: var(--text); }
 .edit-input { width: 100%; padding: 8px; font: inherit; font-size: var(--fs-sm); background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
 .own-profile { border-color: #4f9eff !important; box-shadow: 0 0 12px rgba(79,158,255,0.3); }
 /* Card actions (Edit, Log out) are plain tappable text on their own lines — no buttons. */
-.card-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; margin-bottom: 8px; }
+/* One action per line, left-aligned, above everything else on the card. Vertical because these
+   are unrelated choices, not a toolbar — stacking makes each one its own decision to read. */
+.card-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; margin: 0 0 10px; }
+.card-actions:empty { display: none; }
 .text-action {
   color: var(--gold); font-size: var(--fs-sm); cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
@@ -521,7 +508,29 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .split-area select{margin:0 4px;}
 
 /* Multi-lesson order builder */
-.lesson-block{background:var(--panel2);}
+/* With a single lesson the block IS the card, so the nested frame is redundant — a job card
+   has no inner box either. The frame comes back the moment a second lesson needs separating. */
+#lessons .lesson-block:only-child { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
+#lessons .lesson-block:only-child > .lesson-head { display: none; }
+/* Footer holds the total and the book action, where a class card puts its actions. */
+#new-job .job-foot { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; }
+#new-job .checkout { margin-top: 10px; justify-content: flex-start; }
+
+/* A lesson block is a booking-in-progress: same box treatment and same .job-line rows as a
+   class card, so the thing you're building and the thing you booked look like one object. */
+.lesson-block { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; text-align: left; }
+.lesson-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.lesson-title { color: var(--gold); font-size: var(--fs-sm); }
+/* Controls sit in the value column, so they align right like the text they replace. */
+.lesson-block .job-line { min-height: 30px; }
+.lesson-block .job-v { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.lesson-block .job-v select { max-width: 100%; }
+/* Read-only grid on a booked class: the ticked hours must stay legible, so don't let the
+   browser's default disabled-greying wash them out. */
+.slot-grid-static { margin-top: 8px; opacity: 0.95; }
+.slot-grid-static .slot-cb { cursor: default; }
+.slot-grid-static .slot-cb:disabled { opacity: 1; }
+.slot-grid-static .slot-cb:disabled:not(:checked) { opacity: 0.35; }
 #add-lesson-btn{border-style:dashed;}
 .remove-lesson-btn:hover{color:#e06c6c!important;}
 
@@ -555,8 +564,9 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 
 /* Share button on tutor/venue cards — same idea as the gallery post share button,
    tucked into the card's top-right corner. */
-.card-share-btn { position: absolute; top: 10px; right: 12px; z-index: 2;
-  font-size: var(--fs-xs); cursor: pointer; }
+/* Share is just another action in the card's action stack. It used to be absolutely positioned
+   in the top-right corner, which overlapped the Edit/Log out stack and sat on top of the photo. */
+.card-share-btn { font-size: var(--fs-xs); cursor: pointer; }
 /* A card opened from a shared ?card= link flashes briefly so it's obvious which one it is */
 .card-flash { animation: card-flash 2.2s ease-out; }
 @keyframes card-flash {
@@ -625,15 +635,10 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 
 /* Booking builder: two columns (form | running total) when the card is wide, one when narrow.
    The summary sticks so the price stays visible while you scroll a long lesson list. */
-.builder-cols { display: grid; grid-template-columns: 1fr; gap: 16px; }
 @media (min-width: 620px) {
-  .builder-cols { grid-template-columns: 1.4fr 1fr; }
-  .builder-summary { align-self: start; position: sticky; top: 10px; }
-}
-.builder-summary { border-top: 1px solid var(--border); padding-top: 12px; }
+    }
 @media (min-width: 620px) {
-  .builder-summary { border-top: none; border-left: 1px solid var(--border); padding: 0 0 0 16px; }
-}
+  }
 
 /* Availability tickbox grid in the profile editor: 7 days × hourly columns. Compact so the
    whole week fits without scrolling on a wide card. */
@@ -685,6 +690,7 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .host-toggle.locked input { cursor: not-allowed; }
 
 /* Job lifecycle status badges — colour by stage */
+.st-draft       { background:#5c5c5c; color:#fff; }   /* a booking that hasn't been sent yet */
 .st-requested   { background:#8a6d00; color:#fff; }
 .st-negotiating { background:#9a5b00; color:#fff; }
 .st-accepted    { background:#4a6b00; color:#fff; }
@@ -717,14 +723,14 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 /* One full-screen loading overlay: covers everything until the site is ready, then fades out. */
 #load-screen {
   position: fixed; inset: 0; z-index: 99999;
-  background: var(--board, #6b4a2b);
+  background: #c9a86a;
   display: flex; align-items: center; justify-content: center;
   transition: opacity .4s ease;
 }
 #load-screen.gone { opacity: 0; pointer-events: none; }
 #load-screen .spin {
   width: 46px; height: 46px; border-radius: 50%;
-  border: 4px solid rgba(255,255,255,.25); border-top-color: var(--gold);
+  border: 4px solid rgba(255,255,255,.3); border-top-color: var(--gold);
   animation: loadSpin .8s linear infinite;
 }
 @keyframes loadSpin { to { transform: rotate(360deg); } }
@@ -734,17 +740,89 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .cal-grid .cal-h { font-size: var(--fs-xs); color: var(--gold); padding: 4px 0; }
 .cal-grid .cal-d { padding: 6px 0; font-size: var(--fs-sm); border-radius: 6px; }
 .cal-grid .cal-today { background: var(--gold); color: var(--bg); font-weight: bold; }
-/* Itemised price breakdown — the build-up of the hourly rate, step by step */
-.bd-lesson { margin-bottom: 12px; }
-.bd-detail { margin: 4px 0 4px 8px; padding-left: 8px; border-left: 2px dotted var(--border); }
-.bd-sub { font-size: var(--fs-xs); opacity: .85; }
-.bd-share { color: var(--gold); }
-.bd-warn { color: #b3401f; font-weight: bold; }
+/* ===== FINAL OVERRIDE: every form control + booking-sentence value uses the handwriting font,
+   in black. Placed last so it wins over any earlier rule. Fixes dropdown values (Sutton Library,
+   GCSE, etc.) rendering in the browser's default Arial. ===== */
+select, option, input, textarea, button,
+.pick, .inline-select, .l-location, .l-level, .l-subject-display,
+.l-qty, .l-tutor, .l-interval, .l-split {
+  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive !important;
+  color: #241f0c !important;
+}
 
-/* Client blocks inside a job card — each family as its own labelled section */
-.cl-block { text-align: left; padding: 8px 0; border-top: 1px dashed var(--border); }
-.cl-block:first-child { border-top: none; }
-.cl-head { font-weight: bold; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.cl-blurb { font-size: var(--fs-xs); color: var(--muted); margin-bottom: 5px; }
-.cl-acts { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-.cl-note { font-size: var(--fs-xs); font-style: italic; }
+/* Inline "edit request" form for a pending booking */
+.edit-req-form { margin-top: 8px; padding: 8px; border: 1px dashed var(--border); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
+.erf-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--fs-sm); }
+.erf-row select, .erf-row input { flex: 0 0 55%; }
+.erf-note { font-size: var(--fs-xs); }
+
+/* Simplified breakdown: clean summary + optional collapsible detail */
+.bd-simple { margin: 2px 0 6px 8px; }
+/* THE shared priced-field row. Booking form and live class card both render this, which is
+   what makes a quote and a booked class read as one object: label | value | what it adds/hour.
+   Fixed price column so every £ lines up down the right edge in both places. */
+.field-line { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; padding: 4px 0; font-size: var(--fs-sm); align-items: center; }
+/* The rate column is the explanation, the total column is the consequence — so the rate is
+   quieter. "+£1/h" means nothing until you see it's "+£22" over the term; both, or neither. */
+.field-line .fl-r { color: var(--muted); text-align: right; min-width: 62px; white-space: nowrap; font-size: var(--fs-xs); }
+.field-line .fl-k { color: var(--gold); white-space: nowrap; }
+.field-line .fl-v .badge { margin: 0; }
+.field-line .fl-v { color: var(--text); text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.field-line .fl-v select { max-width: 100%; }
+.field-line .fl-p { color: var(--text); text-align: right; min-width: 62px; white-space: nowrap; }
+/* The full date list can run to a dozen entries — let it wrap into the value column rather
+   than forcing the row wide, and keep it quiet since it's reference, not a decision. */
+.field-line .fl-dates { color: var(--muted); font-size: var(--fs-xs); line-height: 1.5; text-align: right; }
+.field-line .fl-note { color: var(--muted); font-size: var(--fs-xs); }
+/* A choice that costs nothing still earns a row — the client should see it was free — but it
+   mustn't compete with the lines that actually move the price. */
+.field-line.fl-free .fl-p, .field-line.fl-free .fl-r { color: var(--muted); }
+/* One client's negotiation: their status, their thread, their actions, their message box.
+   A job stacks up to four of these and they run independently — one family accepting says
+   nothing about the other three, so each needs its own everything. */
+.cl-block { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; text-align: left; }
+.cl-head { color: var(--gold); font-size: var(--fs-sm); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cl-blurb { color: var(--muted); font-size: var(--fs-xs); margin: 3px 0 6px; }
+.cl-thread { margin: 6px 0; max-height: 170px; overflow-y: auto; }
+.cl-msg-line { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); }
+.cl-msg-line .cl-who { color: var(--gold); white-space: nowrap; }
+.cl-msg-line .cl-what { color: var(--text); }
+.cl-acts { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0 4px; }
+.cl-note { font-size: var(--fs-xs); }
+
+.field-line.fl-warn .fl-p { color: var(--danger, #c0392b); }
+.field-line.fl-rule { border-top: 1px solid var(--border); margin-top: 5px; padding-top: 7px; }
+/* The slot grid sits inside the same row stack, indented to line up with the value column. */
+.field-line + .slot-grid-wrap, .job-detail > .l-slots { margin: 6px 0; }
+
+/* Live breakdown rows, built to mirror .job-line on the class cards so the quote and the
+   booked class read as the same object. The third column is what that choice adds to the
+   hourly rate; it's fixed-width so every £ figure lines up down the right edge. */
+.bd-line { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; padding: 3px 0; font-size: var(--fs-sm); align-items: baseline; }
+.bd-line .bd-k { color: var(--gold); }
+.bd-line .bd-v { color: var(--text); text-align: right; }
+.bd-line .bd-p { color: var(--text); text-align: right; min-width: 58px; font-weight: bold; }
+/* A choice that costs nothing still gets a row — the client should see it was free — but it
+   shouldn't compete visually with the lines that actually move the price. */
+.bd-line.bd-free .bd-p { color: var(--muted); font-weight: normal; }
+.bd-line.bd-rule { border-top: 1px solid var(--border); margin-top: 5px; padding-top: 7px; }
+.bd-more { margin: 4px 0 4px 8px; }
+.bd-more summary { font-size: var(--fs-xs); color: var(--gold); cursor: pointer; }
+.bd-more .bd-detail { margin-top: 4px; padding-left: 8px; border-left: 2px dotted var(--border); }
+
+/* ---------- CARD TEXT ----------
+   Notes are paper, and ink on paper is black. Gold reads well on the dark board behind, but on
+   a yellow note it's low-contrast and looks washed out — worse the smaller the text. So inside
+   a card everything is black and hierarchy comes from size and weight instead of colour.
+   Badges keep their own colours: they sit on a filled background, not on the paper. */
+.card, .card h3, .card .sub, .card .desc, .card .muted,
+.card .fl-k, .card .fl-v, .card .fl-r, .card .fl-p, .card .fl-note, .card .fl-dates,
+.card .cl-head, .card .cl-blurb, .card .cl-who, .card .cl-what, .card .cl-note,
+.card .job-k, .card .job-v, .card .lesson-title, .card .text-action,
+.card .attr-line, .card .check-topic, .card .slot-day, .card .avail-day { color: #000; }
+/* Quiet text stays quiet by fading the ink, not by changing its colour. */
+.card .muted, .card .fl-note, .card .fl-dates, .card .cl-blurb,
+.card .fl-free .fl-p, .card .fl-free .fl-r { opacity: 0.6; }
+.card .badge { color: #fff; opacity: 1; }
+/* Labels earn their place through weight now that they're no longer gold. */
+.card .fl-k, .card .job-k, .card .cl-head { font-weight: bold; opacity: 1; }
