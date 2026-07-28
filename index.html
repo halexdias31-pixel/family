@@ -11,71 +11,87 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260726b">
+  <!-- Cache control without a build step.
+       On GitHub Pages you can't set cache headers, so the query string IS the cache key.
+       Editing a file without changing that string means browsers keep serving the old copy —
+       which is exactly the "did my change persist?" confusion.
+       In dev (?dev=1, or localhost) the key is the current millisecond, so every load is
+       guaranteed fresh. In normal use it's BUILD: bump that ONE line to ship a change to
+       everyone. document.write is used deliberately — it inserts the tags during parsing, so
+       load order is preserved (script.js must run after mathjs and html2canvas). -->
+  <script>
+    (function () {
+      var BUILD = '2026-07-27a';           // ← bump this to push changes to everyone
+      var dev = /(^|\.)localhost$/.test(location.hostname)
+             || location.protocol === 'file:'
+             || /[?&]dev=1/.test(location.search);
+      window.ASSET_V = dev ? Date.now() : BUILD;
+      document.write('<link rel="stylesheet" href="style.css?v=' + window.ASSET_V + '">');
+    })();
+  </script>
 </head>
 <body>
-  <div id="load-screen"><div class="spin"></div></div>
   <header style="display:flex;justify-content:space-between;align-items:center">
     <h1>@family.</h1>
     <span id="header-auth"></span>
   </header>
 
   <div id="health-banner" class="health-banner hidden"></div>
-  <div id="pricing-diag" style="display:none;background:#7a1f1f;color:#fff;padding:10px 14px;margin:8px 0;border-radius:6px;font-size:14px;line-height:1.4"></div>
 
   <main>
     <section>
       <h2>Showcase</h2>
       <div class="filters" id="post-filters"></div>
-      <div id="gallery" class="grid"><p class="muted">Loading…</p></div>
+      <div id="gallery" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section>
       <h2>Classes &amp; Booking</h2>
       <div class="filters" id="class-filters"></div>
-      <div id="classes" class="grid"><p class="muted">Loading…</p></div>
+      <div id="classes" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section>
       <h2>Venues</h2>
       <div id="venue-diag" style="font-size:12px;color:#ffd700;background:rgba(0,0,0,.5);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-family:monospace;white-space:pre-wrap;display:none"></div>
       <div class="filters" id="venue-filters"></div>
-      <div id="venues" class="grid"><p class="muted">Loading…</p></div>
+      <div id="venues" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section>
       <h2>People</h2>
       <div class="filters" id="tutor-filters"></div>
-      <div id="tutors" class="grid"><p class="muted">Loading…</p></div>
+      <div id="tutors" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section id="tools-section">
       <h2>Tools</h2>
       <div class="filters" id="tools-filters"></div>
-      <div id="tools-content" class="grid"><p class="muted">Loading…</p></div>
+      <div id="tools-content" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section id="checklist-section">
       <h2>Checklist</h2>
       <div class="filters" id="tool-filters"></div>
-      <div id="checklist-content" class="grid"><p class="muted">Loading…</p></div>
+      <div id="checklist-content" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section id="arcade-section">
       <h2>Arcade</h2>
+      <div class="filters" id="arcade-filters"></div>
       <div id="arcade-content" class="grid"></div>
     </section>
 
     <section>
       <h2>Shop</h2>
       <div class="filters" id="shop-filters"></div>
-      <div id="shop" class="grid"><p class="muted">Loading…</p></div>
+      <div id="shop" class="grid"><p class="loader-note">Loading</p></div>
     </section>
 
     <section>
       <h2>Helpful Links</h2>
       <div class="filters" id="link-filters"></div>
-      <div id="links" class="grid"><p class="muted">Loading…</p></div>
+      <div id="links" class="grid"><p class="loader-note">Loading</p></div>
     </section>
   </main>
 
@@ -91,6 +107,18 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="script.js?v=20260726b"></script>
+  <script>document.write('<scr' + 'ipt src="script.js?v=' + window.ASSET_V + '"></scr' + 'ipt>');</script>
+  <script>
+    // If script.js never executed, every section sits on "Loading" with an empty console and
+    // there's nothing to tell you why. Say so instead.
+    addEventListener('load', function () {
+      if (window.__familyBooted) return;
+      var b = document.getElementById('health-banner');
+      if (!b) return;
+      b.innerHTML = '\u26a0 <b>script.js did not load.</b> Check it sits next to index.html and '
+        + 'that the filename case matches, then hard-refresh (Ctrl/Cmd + Shift + R).';
+      b.classList.remove('hidden');
+    });
+  </script>
 </body>
 </html>
