@@ -1,3 +1,7 @@
+// Set the moment this file starts executing. index.html watches it to distinguish a script
+// that never loaded (cache/path problem) from one that loaded but couldn't reach the backend.
+window.__familyBooted = true;
+
 const API = 'https://script.google.com/macros/s/AKfycbyINfTA44t4ibW6ihxADTwCo1CxCP8v6UA_SR_4GiCQuR7Q4cRNWnlkOdb2xQaSoGzk/exec';
 let DATA = {};
 let USER = null; // set on login: { name }
@@ -336,7 +340,22 @@ async function init() {
     history.replaceState({}, '', location.pathname);
   }
   try {
-    DATA = await (await fetch(API)).json();
+    // Hard timeout. Without one, a slow or timing-out Apps Script leaves every section stuck on
+    // "Loading" with nothing in the console — indistinguishable from a broken build.
+    const ctl = new AbortController();
+    const killer = setTimeout(() => ctl.abort(), 45000);
+    let res;
+    try {
+      res = await fetch(API, { signal: ctl.signal });
+    } catch (err) {
+      throw new Error(err.name === 'AbortError'
+        ? 'The backend took over 45s to respond. Open the /exec URL directly to see how long it takes, '
+          + 'and try adding ?refresh=1 to rebuild its caches.'
+        : 'Could not reach the backend. ' + err.message);
+    } finally {
+      clearTimeout(killer);
+    }
+    DATA = await res.json();
     if (DATA.error) throw new Error(DATA.error);
     renderHealth();
     if (justPaid) {
@@ -363,6 +382,22 @@ async function init() {
     // the Apps Script editor, the redeploy didn't land — that's the usual cause of new
     // backend fields arriving empty.
     console.log('@family. backend version:', DATA.version || '(older than versioning — needs redeploy)');
+    // Which sheet dropdowns resolved to an option list. An empty one isn't fatal — the field
+    // falls back to a plain text input — but it almost always means the validation rule isn't
+    // applied to that column, so it's worth seeing rather than discovering by accident.
+    if (DATA.validationsBuiltAt) {
+      console.log('@family. dropdown options last rebuilt:', DATA.validationsBuiltAt,
+        DATA.validationsBuiltAt === 'never'
+          ? '— run rebuildValidations() in the Apps Script editor, or load /exec?rebuild=validations'
+          : '— re-run that after editing a dropdown in the sheet');
+    }
+    if (DATA.timings) console.log('@family. backend timings (ms):', DATA.timings);
+    if (DATA.validationReport) {
+      const r = DATA.validationReport;
+      console.log('@family. dropdowns loaded:', (r.found || []).length, r.found);
+      if ((r.empty || []).length) console.warn('@family. NO validation found for:', r.empty,
+        '— these render as plain text inputs. Check the rule covers the whole column, then reload with ?refresh=1');
+    }
   } catch (e) {
     // Show a load error in the health banner (no full-screen loader anymore)
     const banner = $('health-banner');
@@ -375,18 +410,6 @@ async function init() {
     const ls = document.getElementById('load-screen');
     if (ls) { ls.classList.add('gone'); setTimeout(() => ls.remove(), 450); }
   }
-}
-
-// Money breakdown for a job. NOTE: the profit model isn't finalised yet (β/ε/λ/μ are all 0),
-// so this currently reports the stored price only and leaves cut/profit null until you define
-// how earnings split. Wire the real split here once the model exists — one place, every view.
-function jobMoney(j) {
-  const total = parseFloat(j.price);
-  return {
-    total: isNaN(total) ? null : total,
-    tutorCut: null,   // TODO: set once profit model defines the tutor's share
-    profit: null,     // TODO: total - tutorCut once defined
-  };
 }
 
 /* ---------- TEMPLATES ---------- */
@@ -455,14 +478,20 @@ const tpl = {
     const stats = (it.type === 'tutor' && (st.xp || it.highscore || st.credits))
       ? `<div class="tutor-stats">Lv ${st.level} · ${st.xp} XP · 🪙 ${st.credits} · 🎮 ${it.highscore || 0}</div>`
       : '';
+    // Every action a card offers, in ONE stack, in normal flow. Share used to be absolutely
+    // positioned in the corner while Edit/Log out sat in their own block, so the two collided
+    // and landed on top of the photo. One list, one below the other, no overlap possible.
+    const actions = [
+      isOwn ? `<span class="text-action edit-profile-btn" title="Edit your profile">Edit</span>` : '',
+      (it.type === 'venue' && isAdmin())
+        ? `<span class="text-action edit-venue-btn" data-venue="${esc(it.title)}" title="Edit this venue">Edit</span>` : '',
+      `<span class="text-action card-share-btn" title="Share ${esc(it.title)}"
+         data-share-url="${esc(cardShareUrl(it.title))}" data-share-title="${esc(it.title)}">Share</span>`,
+      isOwn ? `<span class="text-action" id="logout-btn">Log out</span>` : '',
+    ].filter(Boolean).join('');
+
     return `<div class="card${isOwn ? ' own-profile' : ''}" data-card-id="${it.id}" data-card-name="${esc(it.title)}"${it.type === 'venue' ? ` data-venue="${esc(it.title)}"` : ''}>
-    <span class="text-action card-share-btn" title="Share ${esc(it.title)}"
-      data-share-url="${esc(cardShareUrl(it.title))}" data-share-title="${esc(it.title)}">Share</span>
-    ${isOwn ? `<div class="card-actions">
-      <span class="text-action edit-profile-btn" title="Edit your profile">Edit</span>
-      <span class="text-action" id="logout-btn">Log out</span>
-    </div>` : ''}
-    ${(it.type === 'venue' && isAdmin()) ? `<div class="card-actions"><span class="text-action edit-venue-btn" data-venue="${esc(it.title)}" title="Edit this venue">Edit</span></div>` : ''}
+    <div class="card-actions">${actions}</div>
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
@@ -900,28 +929,17 @@ const tpl = {
     // Status shown as a coloured badge, colour by lifecycle stage.
     const badgeClass = { Requested:'st-requested', Negotiating:'st-negotiating', Accepted:'st-accepted',
       Paid:'st-paid', Active:'st-active', Completed:'st-completed', 'Declined/Cancelled':'st-declined' }[status] || 'st-requested';
-    const stateBadge = `<span class="badge ${badgeClass}">${esc(status)}</span>`
-      + (mySlot ? ` <span class="badge mine-badge">Yours</span>` : '');
+    // No floating badge any more — status is a row like everything else, and two places to
+    // read the same value is one place too many. "Yours" rides along in that row's value.
 
-    // A job's details as clean label:value lines. Everyone sees the basics; money lines are
-    // gated by role (tutor sees their earnings; admin sees earnings + tutor cut + profit).
-    const money = jobMoney(j);   // { total, tutorCut, profit } — placeholder until profit model is set
-    const line = (k, v) => v ? `<div class="job-line"><span class="job-k">${esc(k)}</span><span class="job-v">${esc(v)}</span></div>` : '';
-    const detail = [
-      line('Subject', j.subject),
-      line('Level', j.level),
-      line('Day', fmtDay(j.day)),
-      line('Time', fmtTime(j.time) || 'TBD'),
-      line('Venue', j.location || 'Online'),
-      line('Weeks', fmtWeeks(j.weeks)),
-      line('Students', j.capacity),
-      line('Tutor', j.requestedTutor || 'Any'),
-      // Money lines — role-gated.
-      (isTutor || admin) ? line('You earn', money.tutorCut != null ? `£${money.tutorCut.toFixed(2)}` : '—') : '',
-      admin ? line('Client pays', money.total != null ? `£${money.total.toFixed(2)}` : '—') : '',
-      admin ? line('Tutor cut', money.tutorCut != null ? `£${money.tutorCut.toFixed(2)}` : '—') : '',
-      admin ? line('Your profit', money.profit != null ? `£${money.profit.toFixed(2)}` : '—') : '',
-    ].filter(Boolean).join('');
+    // The job prices itself through the SAME function the booking form uses, so a class card
+    // shows exactly the per-line costs the client agreed to. No separate breakdown anywhere.
+    const P = priceJob(j);
+    const detail = tpl.priceRows(P, {
+      editable: false, studentsLabel: j.capacity, datesText: j.dates,
+      status: `<span class="badge ${badgeClass}">${esc(status)}</span>`
+        + (mySlot ? ` <span class="badge mine-badge">Yours</span>` : '')
+    });
 
     // Chat: just the LAST message on one line (tutor & admin see it; a client sees their own).
     const chatLine = (s) => {
@@ -931,6 +949,10 @@ const tpl = {
 
     // Slot list — tutor/admin sees every family + their status + the right action for that state;
     // a client sees just their own status. Six-state model via clientMove.
+    // Everything about a client's participation is bound to THAT client: their status, their
+    // thread, their actions, their message box. A job holds up to four of these blocks and they
+    // negotiate independently — one family accepting says nothing about the other three. There
+    // is deliberately no job-level chat box; a message is always to or from someone.
     let slotRows = '';
     const cStatusBadge = st => {
       const cs = clientStatus(st);
@@ -938,43 +960,71 @@ const tpl = {
         Participant:'st-active', Declined:'st-declined', Cancelled:'st-declined' }[cs] || 'st-requested';
       return `<span class="badge ${cls}">${esc(clientStatusLabel(st))}</span>`;
     };
+    // The whole thread for one client, oldest first. Each line was written as "Sender: text".
+    const chatThread = (s) => {
+      const lines = String(s.chat || '').split('\n').map(x => x.trim()).filter(Boolean);
+      if (!lines.length) return '';
+      return `<div class="cl-thread">${lines.map(l => {
+        const cut = l.indexOf(':');
+        const who = cut > 0 ? l.slice(0, cut) : '';
+        const msg = cut > 0 ? l.slice(cut + 1).trim() : l;
+        return `<div class="cl-msg-line"><span class="cl-who">${esc(who)}</span><span class="cl-what">${esc(msg)}</span></div>`;
+      }).join('')}</div>`;
+    };
+    // The message box that closes every block. An action chip above it is optional — Send on its
+    // own posts a plain note and passes the turn; Send with an action does both in one move.
+    const msgBox = (client, acts) => `
+      <div class="cl-acts">${acts.join('<span class="act-sep"> · </span>')}</div>
+      <div class="move-send-row">
+        <input type="text" class="move-text cl-msg" placeholder="Add a message (optional)…">
+        <span class="text-action cl-send" data-job="${j.id}" data-client="${esc(client)}">Send</span>
+      </div>`;
+
     if (isTutor || admin) {
-      slotRows = slots.filter(s => String(s.client||'').trim()).map(s => {
+      slotRows = slots.filter(s => String(s.client || '').trim()).map(s => {
         const cs = clientStatus(s.status);
-        const ctl = [];
-        if (cs === 'Requested') {   // ball in tutor's court
-          ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="accept">Accept</span>`);
-          ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="counter">Counter-offer</span>`);
-          ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="decline">Decline</span>`);
-        } else if (cs === 'Waiting')  ctl.push(`<span class="muted cl-note">Waiting on their reply…</span>`);
-        else if (cs === 'Accepted')   ctl.push(`<span class="muted cl-note">Awaiting their payment…</span>`);
-        // A one-line human description of where this family is.
+        const acts = [];
+        if (cs === 'Requested') {
+          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="accept">Accept</span>`);
+          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="counter">Ask for a change</span>`);
+          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="decline">Decline</span>`);
+        } else if (cs === 'Waiting') {
+          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="accept">Accept their terms</span>`);
+          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="counter">Ask again</span>`);
+          acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(s.client)}" data-move="decline">Decline</span>`);
+        } else if (cs === 'Accepted') {
+          acts.push(`<span class="muted cl-note">Awaiting their payment…</span>`);
+        }
         const blurb = {
           Requested:   'is asking to join — your move.',
-          Waiting:     'countered; waiting for you… (their turn)',
-          Accepted:    'agreed the terms — payment due.',
+          Waiting:     'countered — your move.',
+          Accepted:    'agreed the terms; payment due.',
           Participant: 'has paid and is in the class.',
           Declined:    'was declined.',
           Cancelled:   'cancelled their request.'
         }[cs] || '';
-        const controls = ctl.length ? `<div class="cl-acts">${ctl.join('<span class="act-sep"> · </span>')}</div>` : '';
         return `<div class="cl-block">
-          <div class="cl-head">Client ${s.n} — ${esc(s.client)}: ${cStatusBadge(s.status)}</div>
+          <div class="cl-head">Client ${s.n} — ${esc(s.client)}</div>
+          ${tpl.fieldLine('Status', cStatusBadge(s.status), '', '', 'fl-free')}
           ${blurb ? `<div class="cl-blurb">${esc(s.client)} ${blurb}</div>` : ''}
-          ${chatLine(s)}
-          ${controls}
+          ${chatThread(s)}
+          ${msgBox(s.client, acts)}
         </div>`;
       }).join('');
+      if (!slotRows) slotRows = '<p class="muted cl-note">No families have requested this yet.</p>';
+
     } else if (mySlot) {
       const cs = clientStatus(mySlot.status);
-      const ctl = [];
-      if (cs === 'Requested')   ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="counter">Counter</span>`,
-                                         `<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="accept">Accept terms</span>`);
-      if (cs === 'Accepted')    ctl.push(`<span class="text-action cmove pay" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="pay">Pay now</span>`);
+      const editable = ['Requested', 'Waiting'].includes(cs);
+      const acts = [];
+      if (cs === 'Requested') acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="accept">Accept terms</span>`);
+      if (editable)           acts.push(`<span class="text-action edit-req" data-job="${j.id}" data-client="${esc(mySlot.client)}">Edit request</span>`);
+      if (cs === 'Accepted')  acts.push(`<span class="text-action cmove pay" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="pay">Pay now</span>`);
+      if (cs === 'Participant' && emptySlot)
+        acts.push(`<span class="text-action add-student-btn" data-job="${j.id}">Add a child</span>`);
       if (['Requested','Waiting','Accepted'].includes(cs))
-        ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Cancel</span>`);
-      if (cs === 'Participant') ctl.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Leave</span>`);
-      const controls = ctl.length ? `<div class="cl-acts">${ctl.join('<span class="act-sep"> · </span>')}</div>` : '';
+        acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Cancel</span>`);
+      if (cs === 'Participant') acts.push(`<span class="text-action cmove" data-job="${j.id}" data-client="${esc(mySlot.client)}" data-move="cancel">Leave</span>`);
       const myBlurb = {
         Requested:   'Your request is with the tutor.',
         Waiting:     'Your counter-offer is with the tutor.',
@@ -983,69 +1033,46 @@ const tpl = {
         Declined:    'The tutor declined this request.',
         Cancelled:   'You cancelled this request.'
       }[cs] || '';
+      const editForm = editable ? `
+        <div class="edit-req-form hidden" data-job="${j.id}" data-client="${esc(mySlot.client)}">
+          <label class="erf-row">Students <select class="erf-students">${[1,2,3,4].map(x=>`<option value="${x}"${x==j.currentKids?' selected':''}>${x}</option>`).join('')}</select></label>
+          <label class="erf-row">Day <select class="erf-day">${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=>`<option${norm(d)===norm(j.day)?' selected':''}>${d}</option>`).join('')}</select></label>
+          <label class="erf-row">Time <input class="erf-time" value="${esc(j.time||'')}" placeholder="e.g. 16:00"></label>
+          <label class="erf-row">Venue <select class="erf-venue">${(DATA.venues||[]).map(v=>`<option${norm(v.title)===norm(j.location)?' selected':''}>${esc(v.title)}</option>`).join('')}</select></label>
+          <div class="erf-note muted">Changing terms sends the request back to the tutor to re-approve.</div>
+          <div class="cl-acts">
+            <span class="text-action edit-req-send" data-job="${j.id}" data-client="${esc(mySlot.client)}">Send changes</span>
+            <span class="text-action edit-req-cancel">Close</span>
+          </div>
+        </div>` : '';
       slotRows = `<div class="cl-block">
-        <div class="cl-head">Your status: ${cStatusBadge(mySlot.status)}</div>
+        <div class="cl-head">Your place</div>
+        ${tpl.fieldLine('Status', cStatusBadge(mySlot.status), '', '', 'fl-free')}
         ${myBlurb ? `<div class="cl-blurb">${esc(myBlurb)}</div>` : ''}
-        ${chatLine(mySlot)}
-        ${controls}
+        ${chatThread(mySlot)}
+        ${msgBox(mySlot.client, acts)}
+        ${editForm}
       </div>`;
     }
 
-    // Whether it's my move: during negotiation only the party whose turn it is; once settled
-    // (Accepted onward) anyone in the job can keep sending text turns.
-    const inJob = mySlot || isTutor || admin;
-    const myMove = USER && role !== 'kid' && inJob && (!negotiating || myTurn);
-
-    // The ACTIONS available to me this turn, as tappable chips that set the pending move. Text
-    // can accompany any of them (or none). One "Send" submits action + text together.
-    const moveOpts = [];
-    if (myMove) {
-      if (negotiating) {
-        moveOpts.push(['propose', 'Propose new time']);
-        moveOpts.push(['accept',  'Accept']);
-        moveOpts.push(['decline', isTutor || admin ? 'Decline' : 'Cancel']);
-      }
-      if (status === 'Active' && !isTutor && !admin && emptySlot) {
-        moveOpts.push(['addchild', 'Add a child']);
-      }
-    }
-
-    // The move box: action chips (optional) + a time field (only shown for "propose") + text + Send.
-    let moveBox = '';
-    if (myMove) {
-      const chips = moveOpts.map(([m, label]) =>
-        `<span class="move-chip" data-job="${j.id}" data-move="${m}">${esc(label)}</span>`).join('');
-      moveBox = `<div class="move-box" data-job="${j.id}" data-side="${mySide}">
-        ${chips ? `<div class="move-chips">${chips}</div>` : ''}
-        <input type="text" class="move-time hidden" id="move-time-${j.id}" placeholder="New time e.g. 4pm Tue">
-        <div class="move-send-row">
-          <input type="text" class="move-text" id="move-text-${j.id}" placeholder="Add a message (optional)…">
-          <span class="text-action move-send" data-job="${j.id}" data-side="${mySide}">Send</span>
-        </div>
-      </div>`;
-    } else if (negotiating && inJob) {
-      moveBox = `<p class="muted" style="font-size:var(--fs-xs);text-align:left;margin:6px 0">Waiting for the ${esc(turn === 'tutor' ? 'tutor' : 'other party')} to respond…</p>`;
-    }
-
-    // Status-driven NON-negotiation actions (pay, set active) stay as their own line.
+    // Not in the job at all: the only action is to ask for a place.
     const acts = [];
-    if (status === 'Accepted') {
-      if (isClient1) acts.push(`<span class="text-action job-act pay" data-job="${j.id}" data-to="Paid">Pay now</span>`);
-      else if (isTutor || admin) acts.push(`<span class="muted" style="font-size:var(--fs-xs)">Waiting for client to pay…</span>`);
-    } else if (status === 'Paid') {
-      if (isTutor || admin) acts.push(`<span class="text-action job-act" data-job="${j.id}" data-to="Active">Venue booked → set Active</span>`);
-      else acts.push(`<span class="muted" style="font-size:var(--fs-xs)">Paid — tutor is arranging the venue.</span>`);
-    } else if (status === 'Active' && canJoin) {
-      acts.push(`<span class="text-action join-job-btn" data-job="${j.id}">Request to join</span>`);
-    }
-    if (!USER && !isDash) {
-      acts.push(`<span class="text-action book-btn-inline${j.spotsLeft<=0?' disabled':''}">${j.spotsLeft<=0?'Full':'Book now'}</span>`);
+    if (!mySlot && !isTutor && !admin) {
+      if (canJoin) acts.push(`<span class="text-action join-job-btn" data-job="${j.id}">Request to join</span>`);
+      else if (!USER && !isDash) acts.push(`<span class="text-action book-btn-inline${j.spotsLeft<=0?' disabled':''}">${j.spotsLeft<=0?'Full':'Book now'}</span>`);
     }
     const action = acts.join('<span class="act-sep"> · </span>');
+    const moveBox = '';
 
     const cls = mySlot ? 'mine-class' : '';
-    return `<div class="card ${cls}">
-      ${stateBadge}
+    // Two columns wide: a priced card holds a dozen label/value/price rows plus the hour grid,
+    // and at single width every value wraps. The booking card matches, so the pair still read
+    // as one kind of object. layoutGrid clamps this down to 1 on narrow screens automatically.
+    return `<div class="card ${cls}" data-span="2" data-card-name="${esc(j.title || 'Session')}">
+      <div class="card-actions">
+        <span class="text-action card-share-btn" title="Share this session"
+          data-share-url="${esc(cardShareUrl(j.title || 'Session'))}" data-share-title="${esc(j.title || 'Session')}">Share</span>
+      </div>
       ${(j.image || j.image2) ? `<div class="job-photos">${j.image ? tpl.img(j.image) : ''}${j.image2 ? tpl.img(j.image2) : ''}</div>` : ''}
       <h3>${esc(j.title) || 'Session'}</h3>
       <div class="job-detail">${detail}</div>
@@ -1053,6 +1080,147 @@ const tpl = {
       ${moveBox}
       ${action ? `<div class="job-foot">${action}</div>` : ''}
     </div>`;
+  },
+
+  // ONE row shape for every priced field, used by the booking form AND by live job cards:
+  //   label | value | £/hour it adds | what that comes to over the whole booking
+  // Two money columns because a rate on its own is unactionable — "+£1/h" sounds like nothing
+  // until you see it's +£22 across the term — and a total on its own hides where it came from.
+  fieldLine: (k, valueHtml, rateHtml, totalHtml, cls) =>
+    `<div class="field-line ${cls || ''}"><span class="fl-k">${esc(k)}</span>` +
+    `<span class="fl-v">${valueHtml}</span><span class="fl-r">${rateHtml || ''}</span>` +
+    `<span class="fl-p">${totalHtml || ''}</span></div>`,
+
+  // P = a priceFrom() result (or null while a booking is still blank).
+  // o = { editable, lesson, studentsLabel }
+  priceRows: (P, o) => {
+    o = o || {};
+    const ed = !!o.editable, i = o.lesson;
+    const L = P || {};
+    const money = x => `£${(Number(x) || 0).toFixed(2)}`;
+
+    // Every per-hour surcharge is discounted and multiplied by the hours before it reaches the
+    // client — except the venue, which is room hire at cost and never discounted. So the total
+    // a row contributes has to be derived the same way the price itself was, or the column
+    // would quietly disagree with the Total beneath it.
+    const F = (L.discountFactor || 1) * (L.promoAdj || 1);
+    const H = L.hoursTotal || 0;
+    const totOf = (x, atCost) => (Number(x) || 0) * (atCost ? 1 : F) * H;
+
+    const rate = x => x ? `+ ${money(x)}/h` : '—';
+    const tot  = (x, atCost) => x ? `+ ${money(totOf(x, atCost))}` : '—';
+    // Editable rows get placeholders keyed by name; calc() refreshes them in place, because
+    // re-rendering the block would drop keyboard focus and close the subject dropdown.
+    const cell = (key, html) => ed ? `<span data-${key}>${P ? html : '—'}</span>` : html;
+    const rateCell = (key, x) => cell('rate="' + key + '"', rate(x));
+    const totCell  = (key, x, atCost) => cell('total="' + key + '"', tot(x, atCost));
+
+    const ctl = (cls, extra) => `<select class="pick ${cls}" data-lesson="${i}"></select>${extra || ''}`;
+    const free = x => x ? '' : 'fl-free';
+    const subjectAdd = (L.avgSubject || 0) + (L.addSubjects || 0);
+    const rows = [];
+
+    // Status leads, because it's the first thing anyone looks for and it belongs in the row
+    // system like everything else — a floating badge reads as decoration, a row reads as data.
+    if (o.status) rows.push(tpl.fieldLine('Status', o.status, '', '', 'fl-free'));
+
+    rows.push(tpl.fieldLine('Tuition',
+      `<span class="fl-note">${L.usingTutorRate ? 'tutor rate' : 'min wage'} × ${esc(String(L.wMul || 1))}</span>`,
+      cell('rate="base"', `${money((L.M || 0) * (L.wMul || 0))}/h`),
+      cell('total="base"', `<b>${money(totOf((L.M || 0) * (L.wMul || 0)))}</b>`)));
+
+    rows.push(tpl.fieldLine('Subject',
+      ed ? `<span class="custom-select-wrapper">
+             <span class="inline-select pick l-subject-display" data-lesson="${i}">Choose ⌄</span>
+             <span class="custom-dropdown hidden l-subject-dropdown" data-lesson="${i}"></span>
+           </span>`
+         : esc((L.subjects || []).join(', ') || '—'),
+      rateCell('subject', subjectAdd), totCell('subject', subjectAdd), ed ? '' : free(subjectAdd)));
+
+    rows.push(tpl.fieldLine('Level', ed ? ctl('l-level') : esc(L.level || '—'),
+      rateCell('level', L.L), totCell('level', L.L), ed ? '' : free(L.L)));
+
+    rows.push(tpl.fieldLine('Venue',
+      ed ? ctl('l-location') : esc((L.loc || 'Online') + (L.V ? '' : ' (hosted)')),
+      rateCell('venue', L.V), totCell('venue', L.V, true), ed ? '' : free(L.V)));
+
+    if (ed) rows.push(tpl.fieldLine('Host',
+      `<label class="host-toggle"><input type="checkbox" class="l-host" data-lesson="${i}"> I'll host the venue</label>`, '', ''));
+
+    rows.push(tpl.fieldLine('Students',
+      ed ? ctl('l-qty', ` <span class="l-qty-label" data-lesson="${i}">student</span>`)
+         : esc(o.studentsLabel || String(L.n || 1)),
+      rateCell('students', L.addChildren), totCell('students', L.addChildren), ed ? '' : free(L.addChildren)));
+
+    rows.push(tpl.fieldLine('Tutor', ed ? ctl('l-tutor') : esc(L.tutor || 'Any'), '—', '—', 'fl-free'));
+    rows.push(tpl.fieldLine('Term',
+      ed ? ctl('l-interval')
+         : esc(L.interval || (L.slotsKnown ? `${L.W} session${L.W === 1 ? '' : 's'}` : '—')),
+      '—', '—', 'fl-free'));
+    if (ed) rows.push(tpl.fieldLine('Split with', ctl('l-split', ' others'), '—', '—', 'fl-free'));
+
+    // The window, then every date inside it. Start is the sheet's start_date, or TODAY when that
+    // date has already passed — picking the current interval mid-term can only start now. End is
+    // the interval's last Sunday. Sessions are the chosen weekday between the two, which is why
+    // the count here and the count in the price can never drift apart: they're the same array.
+    const dateList = (L.sessionDates || []).map(d => fmtDate(d));
+    const datesText = dateList.length ? dateList.join(', ') : (o.datesText || '');
+    rows.push(tpl.fieldLine('Starts',
+      cell('starts', esc(dateList[0] || fmtDate(L.startDate) || '—')), '', '', 'fl-free'));
+    rows.push(tpl.fieldLine('Ends',
+      cell('ends', esc(fmtDate(L.lastSun) || fmtDate(L.endDate) || '—')), '', '', 'fl-free'));
+    rows.push(tpl.fieldLine('Dates',
+      cell('dates', datesText ? `<span class="fl-dates">${esc(datesText)}</span>` : '—'),
+      '',
+      cell('total="dates"', dateList.length ? esc(dateList.length + ' dates') : '—'), 'fl-free'));
+
+    // Day and time are the tick grid in BOTH modes — a class card shows the same widget the
+    // booking asked with, ticked and locked, so the two never look like different questions.
+    rows.push(ed
+      ? `<div class="l-slots" data-lesson="${i}"></div>`
+      : tpl.slotGridStatic(L.day, L.time, L.h));
+
+    rows.push(tpl.fieldLine('Per hour', '',
+      cell('rate="perhour"', `<b>${money(L.chargePerHour)}/h</b>`), '', 'fl-rule'));
+    rows.push(tpl.fieldLine('Length',
+      cell('lengthtext', esc(`${L.h || 0} hr × ${L.slots || 0} session${(L.slots || 0) > 1 ? 's' : ''}`)),
+      '', cell('total="length"', esc((L.hoursTotal || 0) + ' hrs')), 'fl-free'));
+    rows.push(tpl.fieldLine('Total', '', '',
+      cell('total="total"', `<b>${money(L.total)}</b>`), 'fl-rule'));
+
+    // Where the money goes. Role-gated, but decided HERE rather than by each card, so the
+    // booking form and the class it becomes can never show a different set of rows.
+    if (isTutorRole()) rows.push(tpl.fieldLine('You earn', '', '',
+      cell('total="tutorpay"', `<b>${money(L.tutorPay)}</b>`), 'fl-free'));
+    if (isAdmin()) {
+      rows.push(tpl.fieldLine('Venue cost', '', '',
+        cell('total="venuetotal"', `<b>${money(L.venueTotal)}</b>`), 'fl-free'));
+      rows.push(tpl.fieldLine('Your profit', '', '',
+        cell('total="profit"', `<b>${money(L.profitTotal)}</b>`)));
+      if (L.belowMinWage) rows.push(tpl.fieldLine('⚠ tutor below min wage', '',
+        money(L.tutorHourly) + '/h', '', 'fl-warn'));
+    }
+    return rows.join('');
+  },
+
+  // A READ-ONLY version of the booking slot grid, so a booked class shows its hours the same
+  // way the builder asks for them. Same table markup and classes as renderSlots(), so the two
+  // are visually identical — only the disabled state and the pre-ticked cells differ.
+  slotGridStatic: (day, time, hours) => {
+    // Always renders, even with no day set — an empty grid still says "this is where the time
+    // goes", where a "not set yet" sentence made the card look like a different component.
+    const g = DATA.availGrid || { days: [['m','Mon'],['tu','Tue'],['w','Wed'],['th','Thu'],['f','Fri'],['sa','Sat'],['su','Sun']], hours: [9,10,11,12,13,14,15,16,17,18,19] };
+    const prefix = dayPrefix(day);
+    const start = parseInt(String(time || '').match(/(\d{1,2}):/)?.[1]);
+    const span = Math.max(1, parseInt(hours) || 2);
+    const booked = (p, h) => prefix && p === prefix && !isNaN(start) && h >= start && h < start + span;
+    const head = `<tr><th></th>${g.hours.map(h => `<th>${h}</th>`).join('')}</tr>`;
+    const rows = g.days.map(([p, label]) => {
+      const cells = g.hours.map(h =>
+        `<td><input type="checkbox" class="slot-cb" disabled ${booked(p, h) ? 'checked' : ''}></td>`).join('');
+      return `<tr><th class="slot-day">${esc(label)}</th>${cells}</tr>`;
+    }).join('');
+    return `<div class="slot-grid-wrap slot-grid-static"><table class="slot-grid">${head}${rows}</table></div>`;
   },
 
   // One card per category, listing all links in that category as rows
@@ -1122,53 +1290,40 @@ const tpl = {
     </div>`;
   },
 
-  builderCard: () => `<div class="card" id="new-job" data-span="3">
-    <h3 class="gold" style="margin-bottom:15px">Build a Session</h3>
+  // The booking card is a job card that hasn't been agreed yet, so it's built to the same
+  // width and the same skeleton: title → priced rows → message → footer actions. It used to be
+  // data-span="3" with a separate summary column; that width alone made it read as a different
+  // kind of thing from the classes beside it, and the summary pane was the last of the old
+  // breakdown. Both are gone — the total now sits in the footer where a job card puts its
+  // actions, and the per-line costs live in the rows, same as everywhere else.
+  builderCard: () => `<div class="card" id="new-job" data-span="2">
     <input type="hidden" id="c-service" value="Tuition">
-
-    <!-- Two columns when the card is wide enough: the form on the left, the running total
-         and breakdown on the right. Collapses to one column on narrow screens. -->
-    <div class="builder-cols">
-      <div class="builder-form">
-        <!-- Each lesson is fully independent: its own subject, tutor, term, and split. -->
-        <p class="sentence" style="line-height:2.2;text-align:left;margin:0 0 4px">Build your sessions:</p>
-        <div id="lessons"></div>
-        <span class="text-action" id="add-lesson-btn" style="display:inline-block;margin:10px 0">＋ Add another lesson</span>
-      </div>
-
-      <div class="builder-summary">
-        <div class="total"><h2 style="font-size:var(--fs-lg);margin:0 0 12px">Order total: £<span id="total">0.00</span></h2></div>
-        <div class="calc-breakdown">
-          <p class="muted breakdown-heading">Breakdown</p>
-          <div id="calc-receipt" class="receipt"></div>
-        </div>
-        <p id="home-note" class="muted hidden" style="font-size:var(--fs-sm);margin:10px 0 0">At-home lessons require a group of 4 students.</p>
-        <div id="checkout-area" class="checkout" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
-      </div>
+    <h3>Build a session</h3>
+    <div id="lessons"></div>
+    <span class="text-action" id="add-lesson-btn">＋ Add another lesson</span>
+    <div class="job-foot">
+      <div class="field-line fl-rule hidden" id="order-total-row"><span class="fl-k">Order total</span><span class="fl-v"></span><span class="fl-p"><b>£<span id="total">0.00</span></b></span></div>
+      <p id="home-note" class="muted hidden" style="font-size:var(--fs-xs);margin:6px 0 0">At-home lessons require a group of 4 students.</p>
+      <div id="checkout-area" class="checkout"></div>
     </div>
   </div>`,
 
-  // One lesson block (repeatable). `i` = block index, used to keep field ids unique.
-  lessonBlock: (i) => `<div class="lesson-block" data-lesson="${i}" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;text-align:left">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <span class="muted" style="font-size:var(--fs-xs)">Lesson ${i + 1}</span>
-      ${i > 0 ? `<span class="text-action remove-lesson-btn" data-lesson="${i}" style="font-size:var(--fs-xs)">Remove</span>` : ''}
+  // A lesson block IS a job card whose values haven't been chosen yet. Same rows, same price
+  // column, same message box — because the next thing that happens to it (the tutor editing it
+  // and sending it back) uses the identical component. That symmetry is why the message box is
+  // here from the very first request: a counter-offer is just this card, edited, with a note.
+  lessonBlock: (i) => `<div class="lesson-block" data-lesson="${i}">
+    <div class="lesson-head">
+      <span class="lesson-title">Lesson ${i + 1}</span>
+      ${i > 0 ? `<span class="text-action remove-lesson-btn" data-lesson="${i}">Remove</span>` : ''}
     </div>
-    <p class="sentence" style="line-height:2.2;text-align:left;margin:0">
-      I'd like
-      <span class="custom-select-wrapper">
-        <span class="inline-select pick l-subject-display" data-lesson="${i}" style="cursor:pointer">Subject ⌄</span>
-        <span class="custom-dropdown hidden l-subject-dropdown" data-lesson="${i}"></span>
-      </span>
-      at <select class="pick l-level" data-lesson="${i}"></select> level,
-      at <select class="pick l-location" data-lesson="${i}"></select>,
-      <label class="host-toggle"><input type="checkbox" class="l-host" data-lesson="${i}"> I'll host the venue</label>
-      for <select class="pick l-qty" data-lesson="${i}"></select> <span class="l-qty-label" data-lesson="${i}">student</span>,
-      with <select class="pick l-tutor" data-lesson="${i}"></select>,
-      during <select class="pick l-interval" data-lesson="${i}"></select>,
-      split with <select class="pick l-split" data-lesson="${i}"></select> others.
-    </p>
-    <div class="l-slots" data-lesson="${i}"></div>
+    <div class="job-detail">${tpl.priceRows(null, {
+      editable: true, lesson: i,
+      status: '<span class="badge st-draft">Not sent yet</span>'
+    })}</div>
+    <div class="move-send-row">
+      <input type="text" class="move-text l-message" data-lesson="${i}" placeholder="Add a message for the tutor (optional)…">
+    </div>
   </div>`,
 };
 
@@ -1676,11 +1831,23 @@ function beep() {
 }
 
 // Arcade section: the game card (high scores show on student/friend cards)
-function renderArcade() {
+function renderArcade(query) {
   const el = $('arcade-content');
   if (!el) return;
-  html('arcade-content', tpl.gameCard() + tpl.timesTableCard());
-  initFlappy();  // wire up the canvas game
+  // Same search pattern the Tools section uses: a plain box that filters the cards by name.
+  const bar = $('arcade-filters');
+  if (bar && !bar.dataset.wired) {
+    bar.innerHTML = `<input class="filter" id="arcade-search" placeholder="Search arcade…">`;
+    bar.dataset.wired = '1';
+    $('arcade-search').addEventListener('input', e => renderArcade(e.target.value));
+  }
+  const q = String(query || (($('arcade-search') || {}).value) || '').toLowerCase().trim();
+  const games = [
+    { name: 'flabby pird flappy bird', html: tpl.gameCard() },
+    { name: 'times tables sprint multiplication', html: tpl.timesTableCard() },
+  ].filter(g => !q || g.name.includes(q));
+  html('arcade-content', games.map(g => g.html).join('') || '<p class="muted">No games match.</p>');
+  initFlappy();  // wire up the canvas game (no-op when filtered out)
 }
 
 // --- Flabby Pird: simple one-button canvas game ---
@@ -2117,20 +2284,19 @@ function syncBlockWeeks(i) {
 }
 
 // Every date matching `dayName` from today until endDate (inclusive). Returns Date[].
-function computeSessionDates(dayName, endDateStr) {
+// Every session date for `dayName` inside the booking window: from the later of (today, start)
+// up to and including the last Sunday / end. These are the ACTUAL sessions that will run — so
+// their count is what we bill, never a raw week count that might overrun the term cutoff.
+function computeSessionDates(dayName, endDateStr, startDateStr) {
   const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const target = DAYS.indexOf(String(dayName||'').toLowerCase().replace(/s$/,''));
-  if (target < 0 || !endDateStr) return [];
-  // parse end date (DD/MM/YYYY or long string)
-  let end;
-  const m = String(endDateStr).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if (m) { let y = m[3].length===2 ? '20'+m[3] : m[3]; end = new Date(+y, +m[2]-1, +m[1]); }
-  else { end = new Date(endDateStr); }
-  if (isNaN(end)) return [];
-  const out = [];
-  const d = new Date(); d.setHours(0,0,0,0);
-  // advance to the next occurrence of the target weekday
+  const end = parseDMY(endDateStr);
+  if (target < 0 || !end) return [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const winStart = parseDMY(startDateStr);
+  const d = (winStart && winStart > today) ? new Date(winStart) : new Date(today);
   while (d.getDay() !== target) d.setDate(d.getDate()+1);
+  const out = [];
   while (d <= end && out.length < 60) { out.push(new Date(d)); d.setDate(d.getDate()+7); }
   return out;
 }
@@ -2199,6 +2365,151 @@ function hoursPerWeek() {
 }
 
 // Price a single lesson block (index i). Weeks come from the order-level interval (shared).
+// Pure pricing. Takes a plain spec — no DOM, no lesson index — so the booking builder AND a
+// live job card can both price themselves through exactly one implementation. A booking and a
+// booked class are the same object at different stages; they must never disagree on the money.
+// spec = { subjects, n, level, loc, hosting, day, time, splitOthers, startDate, lastSun,
+//          endDate, interval, tutor, weeks, slots, lessonCount }
+function priceFrom(spec) {
+  spec = spec || {};
+  const m = DATA.multipliers || {};
+  const v = (DATA.constants || {}).vars || {};
+  const cv  = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  const cvD = (key, dflt, ...alts) => { for (const key2 of [key, ...alts]) { const x = num(v[key2]); if (!isNaN(x)) return x; } return dflt; };
+  const sur = (group, value) => { const x = num((m[group] || {})[value]); return isNaN(x) ? 0 : x; };
+  const norm = str => String(str || '').toLowerCase().trim();
+
+  const subjects = spec.subjects || [];
+  const n = Math.max(1, parseInt(spec.n) || 1);
+  const weeks = parseFloat(spec.weeks) || 1;
+  const interval = spec.interval || '';
+  const endDate = spec.endDate || '';
+  const startDate = spec.startDate || '';
+  const lastSun = spec.lastSun || endDate;
+  const loc = spec.loc || '';
+  const day = spec.day || '';
+  const time = spec.time || '';
+  const level = spec.level || '';
+  const tutor = spec.tutor || '';
+  const splitOthers = parseInt(spec.splitOthers) || 0;
+  const i = spec.i;
+  const hosting = spec.hosting;
+
+  const venue = (DATA.venues || []).find(x => norm(x.title) === norm(loc));
+  // "I'll host the venue" — the client provides the space (or it's their home), so they don't
+  // pay venue rent. Auto-on and locked for a home venue. When hosting, the V term drops to 0.
+  const V = (venue && !hosting) ? (parseFloat(venue.bestRate) || 0) : 0;
+
+  /* ================== THE PRICING FORMULA ==================
+     P = ( [ M·w + (Σ Sᵢ)/k + L + D + T ]      ← £/hour/child, all ADDED
+           · [ 1 + s(k−1) ]                     ← subject-count
+           · [ 1 + (c+B)(n−1) ]                 ← extra children (c = tutor's, B = yours)
+           · [ 1 − b(W−1) ]                     ← bulk discount
+           · [ 1 − a(A−1) ]                     ← advance-booking discount
+         + V ) · h · W                          ← venue is £/hour (not per child)
+     Every symbol comes from the sheet; set a rate to 0 to switch that effect off. ============ */
+
+  // --- £/hour/child surcharges (blank in the sheet = 0, i.e. no surcharge) ---
+  // What the tutor is paid per hour. Each tutor row carries its own `constant`; the row named
+  // "No preference" holds the default, so switching the default is a sheet edit, not a code
+  // change. Only if no tutor (and no such row) resolves do we fall back to the M variable.
+  const tutorRow = (DATA.tutors || []).find(t => norm(t.title) === norm(tutor))
+                || (DATA.tutors || []).find(t => norm(t.title) === 'no preference');
+  const tutorRate = Number(tutorRow && tutorRow.rate) > 0 ? Number(tutorRow.rate) : 0;
+  const M = tutorRate || cv('M', 'minimum wage', 'min wage', 'μ', 'mu');   // tutor's £/hr
+  const usingTutorRate = !!tutorRate;
+  const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');  // wage multiplier (default 1)
+  const L = sur('levels', level);   // level  surcharge £/h/child
+  const D = sur('days',   day);     // day    surcharge £/h/child
+  const T = sur('times',  time);    // time   surcharge £/h/child
+
+  // Subjects: the AVERAGE of the chosen subjects' £ surcharges — so a pricey subject among
+  // three exerts only a third of its pull. (Σ Sᵢ)/k, written out.
+  const subjAdds = subjects.map(s => num((m.subjectsEta || {})[s]) || 0);
+  const k = Math.max(1, subjAdds.length);                       // k = subject count
+  const avgSubject = subjAdds.length ? subjAdds.reduce((x, y) => x + y, 0) / k : 0;
+
+  // --- Rates (0 switches the effect off) ---
+  const s = cv('s', 'subject count rate', 'subject_count_rate');  // 1 + s(k−1)
+  const c = cv('c', 'extra child rate', 'extra_child_rate');      // tutor's share of each extra child
+  const B = cv('B', 'boss rate', 'boss_rate');                    // YOUR cut per extra child
+  const b = cv('b', 'bulk discount rate', 'bulk_discount_rate');  // 1 − b(W−1)
+  const a = cv('a', 'advance booking rate', 'early booking rate');// 1 − a(A−1)
+
+  const h = cvD('h', hoursPerWeek(), 'hours per session', 'hours_per_session');   // hours/session
+
+  // The ACTUAL sessions that will run, bounded by the term window (never past the cutoff).
+  const sessionDates = computeSessionDates(day, lastSun, startDate);
+  // A live job already knows how many sessions it runs; only a fresh booking derives them
+  // from the term window. spec.slots lets a job card price itself without a term dropdown.
+  const slots = spec.slots || sessionDates.length || 1;
+  const W = slots;                             // bill by real sessions, not raw week count
+  const firstDate = sessionDates[0] || null;
+  const A = firstDate ? Math.max(0, Math.floor((firstDate - new Date()) / (7 * 864e5))) : 0;
+
+  // --- The parts, all ADDED (£/hour). Only the discounts stay multiplicative, because a
+  //     percentage off is the one thing a parent reads correctly as a percentage. ---
+  const perChildHourly  = M * wMul + avgSubject + L + D + T;   // M·w + (ΣSᵢ)/k + L + D + T
+  const addSubjects     = s * (k - 1);                         // + £/h per EXTRA subject
+  const addChildren     = (c + B) * (n - 1);                   // + £/h per EXTRA child (c→tutor, B→you)
+  const fBulk           = 1 - b * (W - 1);                     // [ 1 − b(W−1) ] — W = sessions
+  const fAdvance        = 1 - a * (A - 1);                     // [ 1 − a(A−1) ]
+  // Floor the combined discount at 20% off. fBulk is linear and unbounded, so a long enough
+  // booking would otherwise reach zero and then go negative.
+  const F = 0.8;
+  const discountRaw     = fBulk * fAdvance;                    // Δ before the floor
+  const discountFactor  = Math.max(F, discountRaw);
+  const discountFloored = discountRaw < F;
+
+  // R = the per-child hourly rate including any extra-subject charge.
+  const R = perChildHourly + addSubjects;
+  // Kept so anything downstream reading the old factor names still gets a sane number.
+  const fSubjectCount   = perChildHourly ? R / perChildHourly : 1;
+  const fChildrenAll    = R ? (R + addChildren) / R : 1;
+  const promoAdj = activePromoFactor({ subjects, n, weeks: W, day, time, level, lessonCount: spec.lessonCount || 1 });
+
+  // --- The money, split three ways. These SUM to the client price exactly. ---
+  const hoursTotal  = h * slots;                                        // hours = hrs/session × sessions
+  const chargePerHour = (R + addChildren) * discountFactor * promoAdj + V;   // all-in £/hour
+  const total       = chargePerHour * hoursTotal;                       // client pays
+  // The tutor is paid minimum wage plus every teaching-related surcharge; YOUR margin is the
+  // wage markup M(w−1) plus your slice of each extra child. Works on a single-student booking,
+  // which the old multiplicative split did not — it paid you B×(n−1) = £0 whenever n was 1.
+  const tutorPay    = (M + avgSubject + L + D + T + addSubjects + c * (n - 1))
+                      * discountFactor * promoAdj * hoursTotal;         // tutor gets
+  const profitTotal = (M * (wMul - 1) + B * (n - 1))
+                      * discountFactor * promoAdj * hoursTotal;         // you get
+  const venueTotal  = V * hoursTotal;                                   // venue gets
+  const cost        = tutorPay + venueTotal;                            // what the job costs us
+
+  // The tutor's effective £/hour — surfaced so you can SEE if discounts push it under minimum
+  // wage (the formula doesn't silently clamp it; this just makes the number visible).
+  const tutorHourly = hoursTotal ? tutorPay / hoursTotal : 0;
+  const belowMinWage = M > 0 && tutorHourly > 0 && tutorHourly < M;
+
+  const splitShares = splitOthers + 1;
+  const shareAmount = total / splitShares;
+  return {
+    i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
+    slotsKnown: spec.slotsKnown !== false,
+    // The real dates this booking runs on. These ARE the billing basis — slots is their count —
+    // so showing them is showing the client exactly what they're paying for, not a summary of it.
+    sessionDates, firstDate,
+    // every factor exposed so the breakdown can explain the price
+    M, wMul, L, D, T, avgSubject, k, s, c, B, b, a, h, A, W,
+    usingTutorRate,
+    perChildHourly, addSubjects, addChildren, fSubjectCount, fChildrenAll, fBulk, fAdvance,
+    discountFactor, discountFloored, F, R,
+    chargePerHour, hoursTotal, tutorPay, venueTotal, cost, tutorHourly, belowMinWage,
+    promoAdj, splitOthers, splitShares, shareAmount, profitTotal,
+    summary: { service: (typeof document !== 'undefined' ? val('c-service') : ''), level,
+               subject: subjects.join(', '), location: loc, day, time, students: n,
+               interval, weeks, requestedTutor: tutor }
+  };
+}
+
+
+// Price ONE lesson block in the builder (index i) by scraping its controls into a spec.
 function priceLesson(i) {
   const m = DATA.multipliers || {};
   const v = (DATA.constants || {}).vars || {};
@@ -2232,94 +2543,41 @@ function priceLesson(i) {
   const tutor = lval(i, 'l-tutor');
   const splitOthers = parseInt(lval(i, 'l-split')) || 0;   // per-lesson split
 
-  const venue = (DATA.venues || []).find(x => norm(x.title) === norm(loc));
-  // "I'll host the venue" — the client provides the space (or it's their home), so they don't
-  // pay venue rent. Auto-on and locked for a home venue. When hosting, the V term drops to 0.
+
   const hostEl = document.querySelector(`.l-host[data-lesson="${i}"]`);
   const hosting = isHome(loc) || (hostEl && hostEl.checked);
-  const V = (venue && !hosting) ? (parseFloat(venue.bestRate) || 0) : 0;
+  return priceFrom({
+    i, subjects, n, level, loc, hosting, day, time, splitOthers,
+    weeks, interval, startDate, endDate, lastSun, tutor,
+    lessonCount: document.querySelectorAll('.lesson-block').length
+  });
+}
 
-  /* ================== THE PRICING FORMULA ==================
-     P = ( [ M·w + (Σ Sᵢ)/k + L + D + T ]      ← £/hour/child, all ADDED
-           · [ 1 + s(k−1) ]                     ← subject-count
-           · [ 1 + (c+B)(n−1) ]                 ← extra children (c = tutor's, B = yours)
-           · [ 1 − b(W−1) ]                     ← bulk discount
-           · [ 1 − a(A−1) ]                     ← advance-booking discount
-         + V ) · h · W                          ← venue is £/hour (not per child)
-     Every symbol comes from the sheet; set a rate to 0 to switch that effect off. ============ */
-
-  // --- £/hour/child surcharges (blank in the sheet = 0, i.e. no surcharge) ---
-  const M = cv('M', 'minimum wage', 'min wage', 'μ', 'mu');    // minimum wage £/hr
-  const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');  // wage multiplier (default 1)
-  const L = sur('levels', level);   // level  surcharge £/h/child
-  const D = sur('days',   day);     // day    surcharge £/h/child
-  const T = sur('times',  time);    // time   surcharge £/h/child
-
-  // Subjects: the AVERAGE of the chosen subjects' £ surcharges — so a pricey subject among
-  // three exerts only a third of its pull. (Σ Sᵢ)/k, written out.
-  const subjAdds = subjects.map(s => num((m.subjectsEta || {})[s]) || 0);
-  const k = Math.max(1, subjAdds.length);                       // k = subject count
-  const avgSubject = subjAdds.length ? subjAdds.reduce((x, y) => x + y, 0) / k : 0;
-
-  // --- Rates (0 switches the effect off) ---
-  const s = cv('s', 'subject count rate', 'subject_count_rate');  // 1 + s(k−1)
-  const c = cv('c', 'extra child rate', 'extra_child_rate');      // tutor's share of each extra child
-  const B = cv('B', 'boss rate', 'boss_rate');                    // YOUR cut per extra child
-  const b = cv('b', 'bulk discount rate', 'bulk_discount_rate');  // 1 − b(W−1)
-  const a = cv('a', 'advance booking rate', 'early booking rate');// 1 − a(A−1)
-
-  const h = cvD('h', hoursPerWeek(), 'hours per session', 'hours_per_session');   // hours/session
-  const W = weeks;                                                // W = weeks booked
-
-  // A = whole weeks between today and the first session.
-  const firstDate = computeSessionDates(day, lastSun, startDate)[0] || null;
-  const A = firstDate ? Math.max(0, Math.floor((firstDate - new Date()) / (7 * 864e5))) : 0;
-
-  // --- The five brackets ---
-  const perChildHourly  = M * wMul + avgSubject + L + D + T;   // [ M·w + (ΣSᵢ)/k + L + D + T ]
-  const fSubjectCount   = 1 + s * (k - 1);                     // [ 1 + s(k−1) ]
-  const fChildrenAll    = 1 + (c + B) * (n - 1);               // [ 1 + (c+B)(n−1) ]  ← client
-  const fChildrenTutor  = 1 + c * (n - 1);                     // tutor's slice of that bracket
-  const fChildrenBoss   = B * (n - 1);                         // your slice of that bracket
-  const fBulk           = 1 - b * (W - 1);                     // [ 1 − b(W−1) ]
-  const fAdvance        = 1 - a * (A - 1);                     // [ 1 − a(A−1) ]
-  // The two discounts MULTIPLY, so on a long, far-ahead booking they compound hard — and past
-  // a point 1−b(W−1) goes negative, which would invert the price. F is a floor (sheet variable
-  // `F`, default 0.5): the combined discount can never take the rate below F × full.
-  const F = cvD('F', 0.5, 'discount floor', 'discount_floor');
-  const discountRaw     = fBulk * fAdvance;
-  const discountFactor  = Math.max(F, discountRaw);            // Δ — clamped
-  const discountFloored = discountRaw < F;                     // did the floor bite?
-
-  // R = the per-child hourly rate after the subject-count bump (shared by all three shares).
-  const R = perChildHourly * fSubjectCount;
-  const promoAdj = activePromoFactor({ subjects, n, weeks, day, time, level, lessonCount: document.querySelectorAll('.lesson-block').length });
-
-  // --- The money, split three ways. These SUM to the client price exactly. ---
-  const hoursTotal  = h * W;
-  const chargePerHour = R * fChildrenAll * discountFactor * promoAdj + V;   // all-in £/hour
-  const total       = chargePerHour * hoursTotal;                       // client pays
-  const tutorPay    = R * fChildrenTutor * discountFactor * promoAdj * hoursTotal;  // tutor gets
-  const profitTotal = R * fChildrenBoss  * discountFactor * promoAdj * hoursTotal;  // you get
-  const venueTotal  = V * hoursTotal;                                   // venue gets
-  const cost        = tutorPay + venueTotal;                            // what the job costs us
-
-  // The tutor's effective £/hour — surfaced so you can SEE if discounts push it under minimum
-  // wage (the formula doesn't silently clamp it; this just makes the number visible).
-  const tutorHourly = hoursTotal ? tutorPay / hoursTotal : 0;
-  const belowMinWage = M > 0 && tutorHourly > 0 && tutorHourly < M;
-
-  const splitShares = splitOthers + 1;
-  const shareAmount = total / splitShares;
-  return {
-    i, total, weeks, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
-    // every factor exposed so the breakdown can explain the price
-    M, wMul, L, D, T, avgSubject, k, s, c, B, b, a, h, A, W,
-    perChildHourly, fSubjectCount, fChildrenAll, fBulk, fAdvance, discountFactor, discountFloored, F, R,
-    chargePerHour, hoursTotal, tutorPay, venueTotal, cost, tutorHourly, belowMinWage,
-    promoAdj, splitOthers, splitShares, shareAmount, profitTotal,
-    summary: { service: val('c-service'), level, subject: subjects.join(', '), location: loc, day, time, students: n, interval, weeks, requestedTutor: tutor }
-  };
+// Price a LIVE job from its sheet record, so a class card can show the same per-line costs the
+// booking form showed. The job stores its own session count, so no term lookup is needed.
+function priceJob(j) {
+  if (!j) return null;
+  const subjects = String(j.subject || '').split(',').map(x => x.trim()).filter(Boolean);
+  // weeks_left is one of the columns missing from the sheet, so fall back to counting the dates
+  // the booking stored. If neither exists we still need a number to price with, but we flag that
+  // it was invented so the card can say "—" instead of confidently claiming "1 session".
+  const dateCount = String(j.dates || '').split(',').filter(x => x.trim()).length;
+  const known = parseInt(j.weeks) || dateCount;
+  const slots = Math.max(1, known || 1);
+  return priceFrom({
+    slotsKnown: !!known,
+    subjects,
+    n: Math.max(1, parseInt(j.currentKids) || 1),
+    level: j.level || '',
+    loc: j.location || '',
+    hosting: isHome(j.location),
+    day: j.day || '',
+    time: j.time || '',
+    splitOthers: 0,
+    weeks: slots, slots,
+    tutor: j.requestedTutor || '',
+    lessonCount: 1
+  });
 }
 
 // Cost of ADDING ONE student to an existing job, for the weeks remaining.
@@ -2376,74 +2634,73 @@ function promoApplies(p, ctx) {
   }
 }
 
-// Order-level quote: price every lesson block, sum into an order total.
+// A lesson is only priceable once a subject is chosen and a slot is ticked. Without a day the
+// term window yields no session dates and the maths silently falls back to ONE session — a
+// number that looks real and isn't. So unready lessons contribute nothing to the order.
+const lessonReady = L => !!(L && L.subjects.length && L.day && L.time);
+
+// Order-level quote: price every lesson block, sum the ready ones into an order total.
 function quote() {
   const blocks = Array.from(document.querySelectorAll('.lesson-block')).map(b => parseInt(b.dataset.lesson));
   const lessons = blocks.map(priceLesson);
-  const total = lessons.reduce((s, L) => s + L.total, 0);
-  const profitTotal = lessons.reduce((s, L) => s + L.profitTotal, 0);
-  return { lessons, total: total.toFixed(2), profitTotal: profitTotal.toFixed(2) };
+  const ready = lessons.filter(lessonReady);
+  const total = ready.reduce((s, L) => s + L.total, 0);
+  const profitTotal = ready.reduce((s, L) => s + L.profitTotal, 0);
+  return { lessons, ready, total: total.toFixed(2), profitTotal: profitTotal.toFixed(2) };
 }
 
 function calc() {
   const q = quote();
   if ($('total')) $('total').textContent = q.total;
+  // With a single lesson its Total row IS the order total, so showing both is just a repeat.
+  $('order-total-row')?.classList.toggle('hidden', q.lessons.length < 2);
 
-  if ($('calc-receipt')) {
-    const money = x => `£${(x || 0).toFixed(2)}`;
-    // One row of the itemised build-up. `mult` rows show a ×factor instead of a £ amount.
-    const row = (label, value, cls = '') =>
-      `<div class="receipt-row ${cls}"><span class="receipt-label">${label}</span><span class="receipt-pct">${value}</span></div>`;
-    const sub = (label, value) => row(`<span class="bd-sub">${label}</span>`, `<span class="bd-sub">${value}</span>`);
+  const money = x => `£${(Number(x) || 0).toFixed(2)}`;
+  const plus  = x => x ? `+ ${money(x)}` : '—';
 
-    const lessonRows = q.lessons.map(L => {
-      const label = `${L.subjects.join(', ') || 'Lesson'} · ${fmtDay(L.day) || '—'} ${fmtTime(L.time) || ''}`.trim();
+  // The prices live inside each lesson block now, so refresh the individual spans in place.
+  // Re-rendering the block would drop keyboard focus and close the subject dropdown mid-edit.
+  q.lessons.forEach(L => {
+    const block = document.querySelector(`.lesson-block[data-lesson="${L.i}"]`);
+    if (!block) return;
+    const ok = lessonReady(L);
+    const F = (L.discountFactor || 1) * (L.promoAdj || 1);
+    const H = L.hoursTotal || 0;
+    const totOf = (x, atCost) => (Number(x) || 0) * (atCost ? 1 : F) * H;
+    const rate = x => x ? `+ ${money(x)}/h` : '—';
+    // Totals only mean anything once the length is known, so they stay dashed until a slot is
+    // ticked — otherwise they'd quietly report the cost of one invented session.
+    const tot  = (x, atCost) => (ok && x) ? `+ ${money(totOf(x, atCost))}` : '—';
+    const setR = (key, html) => { const el = block.querySelector(`[data-rate="${key}"]`); if (el) el.innerHTML = html; };
+    const setT = (key, html) => { const el = block.querySelector(`[data-total="${key}"]`); if (el) el.innerHTML = html; };
 
-      // --- itemised build-up of the hourly rate, mirroring the formula step by step ---
-      const build = [];
-      build.push(sub(`Base rate (min wage ${money(L.M)} × ${L.wMul})`, money(L.M * L.wMul)));
-      if (L.avgSubject) build.push(sub(`Subject${L.k > 1 ? ` (avg of ${L.k})` : ''}`, `+ ${money(L.avgSubject)}`));
-      if (L.L) build.push(sub(`Level${L.level ? ` (${esc(L.level)})` : ''}`, `+ ${money(L.L)}`));
-      if (L.D) build.push(sub(`Day${L.day ? ` (${esc(fmtDay(L.day))})` : ''}`, `+ ${money(L.D)}`));
-      if (L.T) build.push(sub(`Time${L.time ? ` (${esc(fmtTime(L.time))})` : ''}`, `+ ${money(L.T)}`));
-      build.push(sub('<b>Per child, per hour</b>', `<b>${money(L.perChildHourly)}</b>`));
-      if (L.k > 1 && L.s)  build.push(sub(`${L.k} subjects`, `× ${L.fSubjectCount.toFixed(3)}`));
-      if (L.n > 1)         build.push(sub(`${L.n} children (extras at ${((L.c + L.B) * 100).toFixed(0)}%)`, `× ${L.fChildrenAll.toFixed(3)}`));
-      if (L.W > 1 && L.b)  build.push(sub(`Bulk — ${L.W} weeks`, `× ${L.fBulk.toFixed(3)}`));
-      if (L.A > 1 && L.a)  build.push(sub(`Booked ${L.A} wks ahead`, `× ${L.fAdvance.toFixed(3)}`));
-      if (L.discountFloored) build.push(sub(`<span class="bd-warn">Discount capped at floor</span>`,
-        `<span class="bd-warn">× ${L.F.toFixed(2)}</span>`));
-      if (L.promoAdj !== 1) build.push(sub('Promotion', `× ${L.promoAdj.toFixed(3)}`));
-      if (L.V)             build.push(sub('Venue (per hour)', `+ ${money(L.V)}`));
-      build.push(sub('<b>All-in per hour</b>', `<b>${money(L.chargePerHour)}</b>`));
-      build.push(sub(`× ${L.h} hr × ${L.W} wk = ${L.hoursTotal} hours`, ''));
+    const base = (L.M || 0) * (L.wMul || 0);
+    setR('base', `${money(base)}/h`);
+    setT('base', ok ? `<b>${money(totOf(base))}</b>` : '—');
+    const subjectAdd = (L.avgSubject || 0) + (L.addSubjects || 0);
+    setR('subject', rate(subjectAdd));   setT('subject', tot(subjectAdd));
+    setR('level', rate(L.L));            setT('level', tot(L.L));
+    setR('venue', rate(L.V));            setT('venue', tot(L.V, true));
+    setR('students', rate(L.addChildren)); setT('students', tot(L.addChildren));
+    setR('perhour', ok ? `<b>${money(L.chargePerHour)}/h</b>` : '—');
+    setT('length', ok ? esc(H + ' hrs') : '—');
+    setT('total', ok ? `<b>${money(L.total)}</b>` : '—');
+    setT('tutorpay', ok ? `<b>${money(L.tutorPay)}</b>` : '—');
+    setT('venuetotal', ok ? `<b>${money(L.venueTotal)}</b>` : '—');
+    setT('profit', ok ? `<b>${money(L.profitTotal)}</b>` : '—');
+    const dl = (L.sessionDates || []).map(d => fmtDate(d));
+    const setEl = (attr, html) => { const el = block.querySelector(`[data-${attr}]`); if (el) el.innerHTML = html; };
+    setEl('starts', esc(dl[0] || fmtDate(L.startDate) || '—'));
+    setEl('ends',   esc(fmtDate(L.lastSun) || fmtDate(L.endDate) || '—'));
+    setEl('dates',  dl.length ? `<span class="fl-dates">${esc(dl.join(', '))}</span>` : '—');
+    setT('dates',   dl.length ? esc(dl.length + ' dates') : '—');
 
-      const shareLine = L.splitOthers >= 1
-        ? row(`↳ split ${L.splitShares} ways — your share`, money(L.shareAmount), 'bd-share') : '';
+    const lenEl = block.querySelector('[data-lengthtext]');
+    if (lenEl) lenEl.innerHTML = ok
+      ? esc(`${L.h} hr × ${L.slots} session${L.slots > 1 ? 's' : ''}`)
+      : '<span class="muted">pick a day and time</span>';
+  });
 
-      // Admin-only: where the money actually goes. These three sum to the client price.
-      const adminLines = isAdmin() ? [
-        sub('↳ tutor', money(L.tutorPay)),
-        sub('↳ venue', money(L.venueTotal)),
-        sub('↳ <b>your profit</b>', `<b>${money(L.profitTotal)}</b>`),
-        L.belowMinWage ? sub('<span class="bd-warn">⚠ tutor below min wage</span>',
-          `<span class="bd-warn">${money(L.tutorHourly)}/hr</span>`) : ''
-      ].join('') : '';
-
-      return `<div class="bd-lesson">
-        ${row(`<b>${esc(label)}</b> (${L.n} student${L.n > 1 ? 's' : ''}, ${L.W} wks)`, `<b>${money(L.total)}</b>`)}
-        <div class="bd-detail">${build.join('')}</div>
-        ${shareLine}${adminLines}
-      </div>`;
-    }).join('');
-    // What the booker pays now = sum of their own share of each lesson
-    const bookerPays = q.lessons.reduce((s, L) => s + L.shareAmount, 0);
-    const payRow = bookerPays.toFixed(2) !== q.total
-      ? `<div class="receipt-row receipt-total" style="color:var(--gold)"><span>You pay now</span><span>£${bookerPays.toFixed(2)}</span></div>` : '';
-    $('calc-receipt').innerHTML = lessonRows
-      + `<div class="receipt-row receipt-total"><span>Order total</span><span>£${q.total}</span></div>`
-      + payRow;
-  }
   document.querySelectorAll('.lesson-block').forEach(b => enforceHomeRuleBlock(parseInt(b.dataset.lesson)));
 }
 
@@ -2907,31 +3164,40 @@ document.addEventListener('click', e => {
       if (isHome(L.loc) && L.n < 4) { t.textContent = 'Home lessons need 4 students'; setTimeout(()=>t.textContent='Lock in & book',2500); return; }
     }
     if (parseFloat(q.total) <= 0) { t.textContent = 'Price is £0 — check pricing is set up'; setTimeout(()=>t.textContent='Lock in & book',3000); return; }
-    // Build the list of lessons (each becomes its own job, with its own tutor, term, split)
-    const lessons = q.lessons.map(L => {
+    // Create each lesson as a REQUESTED job — no payment yet. The client pays only after the
+    // tutor accepts (Accepted → Pay now → Participant). One createJob per lesson.
+    t.textContent = 'Sending request…';
+    const jobs = q.ready.map(L => {
       const dates = computeSessionDates(L.day, L.lastSun || L.endDate, L.startDate).map(fmtDate);
-      const lessonObj = { ...L.summary, price: L.total.toFixed(2), profit: (L.profitTotal||0).toFixed(2),
-        dates: dates.join(', ') };
-      if (L.splitOthers >= 1) {
-        lessonObj.split = true;
-        lessonObj.splitShares = L.splitShares;
-        lessonObj.shareAmount = L.shareAmount.toFixed(2);
-      }
-      return lessonObj;
+      return {
+        action: 'createJob',
+        clientName: USER.name, clientContact: USER.role || '',
+        level: L.level, subject: L.subjects.join(', '), service: L.summary.service || 'Group',
+        day: L.day, time: L.time, location: L.loc,
+        weeks: L.weeks, students: L.n,
+        requestedTutor: L.tutor,
+        price: L.total.toFixed(2), profit: (L.profitTotal || 0).toFixed(2),
+        dates: dates.join(', '),
+        // Opens the job's thread. The tutor's reply — an edited card plus a note — lands in the
+        // same thread, so a negotiation is one continuous conversation from the first request.
+        message: lval(L.i, 'l-message')
+      };
     });
-    // Booker pays the sum of their own share of each lesson
-    const bookerPays = q.lessons.reduce((s, L) => s + L.shareAmount, 0).toFixed(2);
-    const order = { action: 'createCheckout', clientName: USER.name, clientContact: USER.role || '',
-      lessons, orderTotal: q.total, payNow: bookerPays };
-    t.textContent = 'Redirecting to payment...';
-    t.disabled = true;
-    fetch(API, { method: 'POST', body: JSON.stringify(order) })
-      .then(r => r.json())
-      .then(d => {
-        if (d.url) { window.location.href = d.url; }
-        else { t.textContent = d.error || 'Payment error'; t.disabled = false; }
-      })
-      .catch(() => { t.textContent = 'Connection error'; t.disabled = false; });
+    // Fire them in sequence; report the outcome on the button.
+    (async () => {
+      try {
+        for (const job of jobs) {
+          const r = await fetch(API, { method: 'POST', body: JSON.stringify(job) });
+          const d = await r.json();
+          if (d && d.error) throw new Error(d.error);
+        }
+        t.textContent = '✅ Requested — awaiting tutor';
+        setTimeout(() => { t.textContent = 'Lock in & book'; init(); }, 1800);
+      } catch (err) {
+        t.textContent = err.message || 'Could not send request';
+        setTimeout(() => t.textContent = 'Lock in & book', 3000);
+      }
+    })();
     return;
   }
 
@@ -2943,7 +3209,7 @@ document.addEventListener('click', e => {
   }
 
   // Booker adds another student mid-job → creates a Requested slot with the add-cost stored.
-  // Tutor accepts (existing slot-act), then the parent pays (see below).
+  // Tutor accepts via the per-client cmove buttons, then the parent pays (see below).
   if (t.classList.contains('add-student-btn')) {
     if (!USER) { $('go-login-btn')?.click(); return; }
     const jobId = t.dataset.job;
@@ -2974,27 +3240,64 @@ document.addEventListener('click', e => {
     return;
   }
 
-  if (t.classList.contains('slot-act')) {
-    const { job: jobId, slot, status } = t.dataset;
-    post({ action: 'slotAction', jobId, slot, newStatus: status }, t, /active/i.test(status) ? '✅ Accepted' : 'Declined');
+  // Open the inline edit form for a pending request.
+  if (t.classList.contains('edit-req')) {
+    const form = t.closest('.cl-block')?.querySelector('.edit-req-form');
+    if (form) form.classList.toggle('hidden');
+    return;
+  }
+  if (t.classList.contains('edit-req-cancel')) {
+    t.closest('.edit-req-form')?.classList.add('hidden');
+    return;
+  }
+  // Submit edited terms → a counter-offer carrying the new details, back to the tutor.
+  if (t.classList.contains('edit-req-send')) {
+    const { job: jobId, client } = t.dataset;
+    const form = t.closest('.edit-req-form');
+    if (!form) return;
+    const edits = {
+      students: form.querySelector('.erf-students')?.value,
+      day:      form.querySelector('.erf-day')?.value,
+      time:     form.querySelector('.erf-time')?.value,
+      venue:    form.querySelector('.erf-venue')?.value,
+    };
+    post({ action: 'clientMove', jobId, client, move: 'edit', by: 'client', edits, sender: USER ? USER.name : '' }, t, '✅ Updated');
+    return;
   }
 
-  // Six-state per-client move (request / counter / accept / decline / cancel / pay).
+  // Per-client move (request / counter / accept / decline / cancel / pay). The message typed in
+  // THIS client's box rides along with the action, so one tap sends both.
   if (t.classList.contains('cmove')) {
     const { job: jobId, client, move } = t.dataset;
     const by = isTutorRole() ? 'tutor' : 'client';
-    // Counter needs a message; pay is a confirm; the rest are one-tap.
-    let text = '';
-    if (move === 'counter') {
-      text = prompt('Your counter-offer (e.g. "Can we do 4pm Tuesdays instead?")') || '';
-      if (!text.trim()) return;
-    } else if (move === 'pay') {
-      if (!confirm('Confirm payment to become a participant?')) return;
-    } else if (move === 'cancel' || move === 'decline') {
-      if (!confirm(`Are you sure you want to ${move}?`)) return;
+    const block = t.closest('.cl-block');
+    const input = block?.querySelector('.cl-msg');
+    const text = (input?.value || '').trim();
+    if (move === 'counter' && !text) {
+      // A counter with no words is just a rejection with extra steps.
+      input?.focus();
+      input?.setAttribute('placeholder', 'Say what you\'d like changed…');
+      return;
     }
+    if (move === 'pay' && !confirm('Confirm payment to become a participant?')) return;
+    if ((move === 'cancel' || move === 'decline') && !confirm(`Are you sure you want to ${move}?`)) return;
+    if (input) input.value = '';
     const label = { accept:'✅ Accepted', counter:'Sent', decline:'Declined', cancel:'Cancelled', pay:'✅ Paid', request:'Requested' }[move] || 'Done';
     post({ action: 'clientMove', jobId, client, move, by, text, sender: USER ? USER.name : '' }, t, label);
+    setTimeout(() => renderClasses(), 600);
+    return;
+  }
+
+  // Plain message to one client's thread — no status change, but the turn still passes.
+  if (t.classList.contains('cl-send')) {
+    const { job: jobId, client } = t.dataset;
+    const input = t.closest('.cl-block')?.querySelector('.cl-msg');
+    const text = (input?.value || '').trim();
+    if (!text) { input?.focus(); return; }
+    const by = isTutorRole() ? 'tutor' : 'client';
+    if (input) input.value = '';
+    post({ action: 'clientMove', jobId, client, move: 'text', by, text, sender: USER ? USER.name : '' }, t, '✅ Sent');
+    setTimeout(() => renderClasses(), 600);
     return;
   }
 
