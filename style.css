@@ -228,7 +228,7 @@ option { background: var(--panel); color: var(--text); }
    top-right corner, which is why moving the status markup into the Status row changed nothing
    on screen — the badge was lifted straight back out to the corner, leaving the row it belonged
    to looking empty. Inline-block, so it flows in whatever row it's placed in. */
-.badge { display: inline-block; background: var(--gold); color: var(--bg); padding: 3px 10px; font: bold var(--fs-xs) Arial; border-radius: 4px; vertical-align: middle; }
+.badge { display: inline-block; white-space: nowrap; background: var(--gold); color: var(--bg); padding: 3px 10px; font: bold var(--fs-xs) Arial; border-radius: 4px; vertical-align: middle; }
 .badge.alert { background: var(--err); color: #fff; animation: pulse 2s infinite; }
 .tag { display: inline-block; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; margin: 2px; font-size: var(--fs-xs); }
 .cap { margin: 8px 0; }
@@ -526,9 +526,7 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .lesson-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .lesson-title { color: var(--gold); font-size: var(--fs-sm); }
 /* Controls sit in the value column, so they align right like the text they replace. */
-.lesson-block .job-line { min-height: 30px; }
-.lesson-block .job-v { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
-.lesson-block .job-v select { max-width: 100%; }
+.lesson-block .lesson-block .lesson-block .job-v select { max-width: 100%; }
 /* Read-only grid on a booked class: the ticked hours must stay legible, so don't let the
    browser's default disabled-greying wash them out. */
 .slot-grid-static { margin-top: 8px; opacity: 0.95; }
@@ -631,11 +629,7 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 .card .token.token-tag { color: var(--token) !important; }
 
 /* Tutor credentials block — a small key/value list on the card. Reads as a note, not a form. */
-.tutor-creds { text-align: left; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); }
 /* Stack label above value so the value gets the full width and never wraps one letter/line. */
-.cred-row { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-sm); padding: 3px 0; }
-.cred-k { color: var(--gold); font-size: var(--fs-xs); }
-.cred-v { color: var(--text); min-width: 0; overflow-wrap: anywhere; }
 
 /* Booking builder: two columns (form | running total) when the card is wide, one when narrow.
    The summary sticks so the price stays visible while you scroll a long lesson list. */
@@ -678,9 +672,6 @@ a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
 /* Job cards: clean label:value lines, role-gated money, chat as a single line. */
 .job-detail, .job-slots { text-align: left; margin: 8px 0; }
 .job-slots { border-top: 1px dashed var(--border); padding-top: 8px; }
-.job-line { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: var(--fs-sm); align-items: baseline; }
-.job-k { color: var(--gold); flex-shrink: 0; }
-.job-v { color: var(--text); text-align: right; }
 .job-chat { font-style: italic; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
 .job-actions { display: inline-flex; gap: 8px; margin-left: 6px; }
 .job-chat-box { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
@@ -769,6 +760,9 @@ select, option, input, textarea, button,
 /* The rate column is the explanation, the total column is the consequence — so the rate is
    quieter. "+£1/h" means nothing until you see it's "+£22" over the term; both, or neither. */
 .field-line .fl-r { color: var(--muted); text-align: right; min-width: 62px; white-space: nowrap; font-size: var(--fs-xs); }
+/* Rows carrying no money use two columns. The empty rate/total cells aren't rendered at all,
+   so they can't squeeze the value column to nothing in a narrow card. */
+.field-line.fl-plain { grid-template-columns: auto 1fr; }
 .field-line .fl-k { color: var(--gold); white-space: nowrap; }
 .field-line .fl-v .badge { margin: 0; }
 .field-line .fl-v { color: var(--text); text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; min-width: 0; }
@@ -787,7 +781,10 @@ select, option, input, textarea, button,
 .cl-block { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; text-align: left; }
 .cl-head { color: var(--gold); font-size: var(--fs-sm); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .cl-blurb { color: var(--muted); font-size: var(--fs-xs); margin: 3px 0 6px; }
-.cl-thread { margin: 6px 0; max-height: 170px; overflow-y: auto; }
+/* The conversation leads each block — it's what you actually came to read. Capped so four
+   families and three tutors don't turn one card into a scroll of transcripts. */
+.cl-thread { margin: 4px 0 8px; max-height: 170px; overflow-y: auto; }
+.cl-applicant .cl-thread { flex-basis: 100%; margin: 4px 0 0; }
 .cl-msg-line { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); }
 .cl-msg-line .cl-who { color: var(--gold); white-space: nowrap; }
 .cl-msg-line .cl-what { color: var(--text); }
@@ -799,6 +796,19 @@ select, option, input, textarea, button,
 .cl-form .cl-msg { width: 100%; }
 .cl-form .cl-submit { align-self: flex-end; }
 .cl-acts { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0 4px; }
+/* The list of tutors who've applied. One row each, with a decline beside it — declining one
+   doesn't settle the job, it just removes that applicant. */
+.cl-applicants { margin: 6px 0; }
+.cl-app-name { font-weight: bold; }
+.cl-app-msg { flex-basis: 100%; font-size: var(--fs-xs); opacity: .75; margin-top: 2px; }
+/* Admin directory: everyone, grouped by role. */
+.dir-group { margin-top: 10px; }
+.dir-role { font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 3px; margin-bottom: 4px; text-align: left; }
+.dir-row { display: grid; grid-template-columns: 1.2fr 1fr 1.4fr; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); text-align: left; }
+.dir-name { font-weight: bold; }
+.dir-meta { opacity: .7; overflow-wrap: anywhere; }
+.dir-warn { opacity: 1; color: var(--err, #c0392b); }
+.cl-applicant { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 3px 0; font-size: var(--fs-sm); }
 .cl-note { font-size: var(--fs-xs); }
 
 .field-line.fl-warn .fl-p { color: var(--danger, #c0392b); }
@@ -867,3 +877,40 @@ select, option, input, textarea, button,
 .card.capturing .social-share-btn,
 .card.capturing .cl-form,
 .card.capturing .cl-acts { visibility: hidden !important; }
+
+
+/* ---------- UNIFORMITY ------------------------------------------------------------------------
+   One name per idea. These replaced 54 inline style attributes that were each making the same
+   handful of decisions separately — which is how two cards meaning "a quiet note under the
+   title" ended up with different sizes and margins. Change a value here and every card follows.
+--------------------------------------------------------------------------------------------- */
+.t-left   { text-align: left; }
+.t-center { text-align: center; }
+.mb-xs { margin-bottom: 4px; }
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 12px; }
+.mt-md { margin-top: 14px; }
+.ink-gold   { color: var(--gold); }
+.ink-strong { color: #fff; }
+.card .ink-gold, .card .ink-strong { color: #000; }   /* on paper, ink is black — see CARD TEXT */
+
+/* A quiet line of explanation. The single commonest thing a card does after its title. */
+.note    { font-size: var(--fs-xs); margin: 6px 0 0; opacity: .7; }
+.note-sm { font-size: var(--fs-sm); margin: 0; opacity: .7; }
+/* Reserves its own height so a card doesn't jump when a status message appears in it. */
+.status-line { min-height: 1em; }
+
+.cta { margin-top: 6px; font-size: var(--fs-md); }
+.btn-wide { flex: 1; margin: 0; font-size: var(--fs-lg); padding: 8px 0; }
+
+.row-gap     { display: flex; gap: 6px; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+.center-y    { align-items: center; }
+.grow        { flex: 1; }
+.nowrap      { white-space: nowrap; }
+
+/* The relabel form, inline under the resource it belongs to. Indented so it reads as belonging
+   to the row above rather than as a new item in the list. */
+.res-edit { margin: 4px 0 10px 14px; padding: 8px 10px; border-left: 2px solid var(--border); }
+.res-edit .pf-group { margin: 0 0 6px; }
+.check-row .res-edit-btn { font-size: var(--fs-xs); margin-left: 8px; opacity: .7; }
