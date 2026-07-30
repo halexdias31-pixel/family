@@ -2,12 +2,21 @@
 // that never loaded (cache/path problem) from one that loaded but couldn't reach the backend.
 window.__familyBooted = true;
 
+// What this frontend needs the backend to be able to do. Checked by NAME, not by version:
+// version strings don't order ("…-machine" sorts after "…-events" because m > e), so comparing
+// them would call an older deploy current. Add a name here when the site starts relying on
+// something new in hermes.
+const NEEDS_FEATURES = ['move', 'events'];
+
 const API = 'https://script.google.com/macros/s/AKfycbyINfTA44t4ibW6ihxADTwCo1CxCP8v6UA_SR_4GiCQuR7Q4cRNWnlkOdb2xQaSoGzk/exec';
 let DATA = {};
 let USER = null; // set on login: { name }
 let NOTEPAD_TIMER = null;   // debounce timer for notepad auto-save
 let PROFILE_SAVE_TIMER = null;   // debounce timer for profile editor auto-save
 let VENUE_SAVE_TIMER = null;     // debounce timer for venue editor auto-save
+// When an admin opens someone else's profile: { name, role, profile }. null means you're
+// editing your own, which is the only thing anyone but an admin can do.
+let EDIT_TARGET = null;
 
 const isHome = loc => /\b(home|your house|your venue|my house|my home)\b/i.test(loc || '');
 
@@ -27,19 +36,20 @@ function num(raw) {
 // The 7 canonical job statuses. The `status` cell in the sheet holds one of these; any older
 // value (Unstarted/Ongoing/Pending/etc.) is mapped onto the new set by jobStatus() so nothing
 // breaks during the transition. This is the single source of truth for the lifecycle.
-const JOB_STATUSES = ['Requested', 'Negotiating', 'Accepted', 'Paid', 'Active', 'Completed', 'Declined/Cancelled'];
+// JOB STATUS — the four words in source_job_status. Nothing else is a job status.
+//   unsent       not created yet (the builder card)
+//   unconfirmed  created, but nobody has paid — it exists on paper only
+//   active       at least one family is Locked in and paying
+//   cancelled    everybody left; with removal semantics the slots are simply empty
+// Anything older in the sheet (Unstarted, Requested, Negotiating, Accepted…) maps onto these,
+// so nothing breaks while old rows are still lying around.
+const JOB_STATUSES = ['Unsent', 'Unconfirmed', 'Active', 'Cancelled'];
 function jobStatus(j) {
   const s = String(j?.status || '').toLowerCase().trim();
-  if (/negotiat/.test(s))              return 'Negotiating';
-  if (/decline|cancel/.test(s))        return 'Declined/Cancelled';
-  if (/complete|finished|ended/.test(s)) return 'Completed';
-  if (/paid/.test(s))                  return 'Paid';
-  if (/accept/.test(s))                return 'Accepted';
-  if (/active|ongoing|started|confirmed/.test(s)) return 'Active';
-  if (/request|unstarted|pending|new/.test(s) || !s) return 'Requested';
-  // Exact match on a canonical value wins if none of the patterns caught it.
-  const exact = JOB_STATUSES.find(x => x.toLowerCase() === s);
-  return exact || 'Requested';
+  if (/cancel|abandon|declin/.test(s))              return 'Cancelled';
+  if (/unsent|draft/.test(s))                       return 'Unsent';
+  if (/active|locked|ongoing|started|complete/.test(s)) return 'Active';
+  return 'Unconfirmed';   // requested, negotiating, accepted, unstarted, blank — all "on paper"
 }
 
 // --- CLIENT (family) statuses: the 6-state journey each family goes through in a job. ---
@@ -63,11 +73,11 @@ function clientStatus(raw) {
 // --- TUTOR status: the job's other negotiation, running in parallel with the families' ---
 // A client can book with "No preference", which leaves the job Open for any tutor to claim.
 // A claim isn't binding until the CLIENT accepts it — you don't get assigned a stranger.
-const TUTOR_STATUSES = ['Open', 'Claimed', 'Confirmed', 'Declined'];
+const TUTOR_STATUSES = ['Open', 'Applied', 'Confirmed', 'Declined'];
 function tutorStatus(raw, tutorName) {
   const s = String(raw || '').toLowerCase().trim();
   if (/confirm|agreed/.test(s))  return 'Confirmed';
-  if (/claim|proposed/.test(s))  return 'Claimed';
+  if (/appli|claim|proposed/.test(s)) return 'Applied';
   if (/declin|reject/.test(s))   return 'Declined';
   if (/open|none|any/.test(s))   return 'Open';
   // No stored status: infer it. A real name means someone was picked; "No preference" is Open.
@@ -75,7 +85,7 @@ function tutorStatus(raw, tutorName) {
   return (!nm || nm === 'no preference' || nm === 'any') ? 'Open' : 'Confirmed';
 }
 const tutorStatusLabel = st => ({
-  Open: 'Open — any tutor can claim', Claimed: 'Claimed — awaiting your approval',
+  Open: 'Open — no applicants yet', Applied: 'Applicants waiting',
   Confirmed: 'Confirmed', Declined: 'Declined'
 }[st] || 'Open');
 
@@ -130,6 +140,58 @@ const fmtDate = v => {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
 };
 
+/* --- Booking state machine (mirror of BookingMachine.gs) ------------------------------------
+   The SAME rules the backend enforces, so the dropdown can only ever offer moves the backend
+   will accept. If you change one, change the other — they're deliberately identical, because a
+   UI that offers an illegal action and a backend that rejects it is the worst of both.
+   Leaving removes you: there is no Declined or Withdrawn status, the slot is simply emptied. */
+const BM_STATUS = { NONE: '', REQUESTED: 'Requested', ACCEPTED: 'Accepted', PAID: 'Paid', LOCKED: 'Locked' };
+const BM_ACTION = { REQUEST: 'Request', ACCEPT: 'Accept', DECLINE: 'Decline', WITHDRAW: 'Withdraw', PAY: 'Pay' };
+const BM_RULES = [
+  { when: (me, them) => me === 'Paid'   || them === 'Paid',   client: [], tutor: [] },
+  { when: (me, them) => me === 'Locked' || them === 'Locked', client: ['Withdraw'], tutor: ['Withdraw'] },
+  { when: (me, them) => me === 'Accepted' || them === 'Accepted', client: ['Pay', 'Withdraw'], tutor: ['Withdraw'] },
+  { when: me => me === 'Requested', client: ['Withdraw'], tutor: ['Withdraw'] },
+  { when: (me, them) => !me && them === 'Requested',
+    client: ['Accept', 'Decline', 'Request', 'Withdraw'], tutor: ['Accept', 'Decline', 'Request', 'Withdraw'] },
+  { when: (me, them) => !me && !them, client: ['Request'], tutor: ['Request'] }
+];
+function bmActionsFor(role, mine, theirs) {
+  const r = BM_RULES.find(x => x.when(mine || '', theirs || ''));
+  return r ? (r[role] || []) : [];
+}
+function bmPossession(clientStatus, tutorStatus) {
+  if (clientStatus === 'Paid' || tutorStatus === 'Paid' || clientStatus === 'Locked') return '';
+  if (clientStatus === 'Requested') return 'tutor';
+  if (tutorStatus === 'Requested') return 'client';
+  if (clientStatus === 'Accepted' || tutorStatus === 'Accepted') return 'client';
+  return '';
+}
+/* ---------- ONE BADGE ------------------------------------------------------------------------
+   Every coloured chip on the site, from one map. There were four separate ones — job status,
+   participant status, tutor status and lifecycle — each with its own lookup object and its own
+   inline <span> built at the call site. Four places to edit to change one colour, and four
+   chances for the same word to come out a different shade in different cards.
+   The values are the vocabularies in the `options` tab; anything unrecognised falls back rather
+   than rendering an unstyled chip. --------------------------------------------------------- */
+const BADGE_CLASS = {
+  // job status
+  Unsent: 'st-draft', Unconfirmed: 'st-requested', Active: 'st-active', Cancelled: 'st-declined',
+  // participant status
+  Requested: 'st-requested', Accepted: 'st-accepted', Paid: 'st-negotiating', Locked: 'st-active',
+  // tutor status
+  Open: 'st-requested', Applied: 'st-negotiating', Confirmed: 'st-active',
+  // lifecycle
+  Uncreated: 'st-draft', Upcoming: 'st-accepted', Started: 'st-active',
+  Ongoing: 'st-active', Ended: 'st-completed',
+  // possession
+  Yours: 'st-active', Others: 'st-requested',
+};
+const badge = v => {
+  const s = String(v ?? '').trim();
+  return s ? `<span class="badge ${BADGE_CLASS[s] || 'st-requested'}">${esc(s)}</span>` : '';
+};
+
 /* ---------- UTILS ---------- */
 const $   = id => document.getElementById(id);
 const esc = s  => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -176,6 +238,14 @@ const drive = url => {
 };
 const empty = (arr, msg) => arr?.length ? arr.map : () => `<p class="muted">${msg}</p>`;
 
+// Sheet column -> the name that column arrives under on a topic object. Only the ones that
+// differ; everything else matches. Kept next to nothing else because it exists solely to let the
+// relabel form prefill from what the card already has.
+const RES_FIELD_MAP = {
+  band_value: 'grade', key_stage: 'keystage', exam_board: 'examBoard',
+  resource_type: 'resourceType', band_type: 'bandType',
+};
+
 // How many columns a checklist card asks for, based on how many topics it holds.
 const spanForCount = n => n >= 80 ? 4 : n >= 35 ? 3 : n >= 14 ? 2 : 1;
 
@@ -198,21 +268,26 @@ function stickyStyle(card) {
   const h = hashOf(String(id));
   const dice = (shift, n) => (h >>> shift) % n;      // quasi-independent rolls from one hash
   const s = card.style;
-  s.setProperty('--tilt', (dice(0, 240) / 100 - 1.2).toFixed(2) + 'deg');  // -1.20 … +1.19deg
-  // Paper colour. A narrow band of yellows (lemon -> amber) so the wall reads as one pad of
-  // notes rather than a rainbow. Keeping the hue tight is what makes it feel systematic.
-  s.setProperty('--h', (43 + dice(9, 15)) + '');                           // 43 … 57
-  s.setProperty('--s', (62 + dice(13, 28)) + '%');                         // 62 … 89%
-  s.setProperty('--l', (62 + dice(19, 16)) + '%');                         // 62 … 77%
+  // Variance is deliberately SMALL. The wider ranges this used to use (2.4deg of tilt, 15 degrees
+  // of hue, 28 points of saturation) were aiming at "handmade", but across a grid of cards they
+  // read as inconsistent rather than crafted — one note noticeably greener or paler than the one
+  // beside it. Tightened to roughly a third: enough that no two notes are identical, not enough
+  // to notice a difference unless you look for it. One pad, not a mixed handful.
+  s.setProperty('--tilt', (dice(0, 80) / 100 - 0.4).toFixed(2) + 'deg');   // -0.40 … +0.39deg
+  s.setProperty('--h', (46 + dice(9, 6)) + '');                            // 46 … 51
+  s.setProperty('--s', (70 + dice(13, 10)) + '%');                         // 70 … 79%
+  s.setProperty('--l', (66 + dice(19, 7)) + '%');                          // 66 … 72%
   s.setProperty('--ang', (dice(17, 90) + 100) + 'deg');                    // sheen direction
   // Slightly uneven corners — the torn-paper hint. Subtle, so cards still read as cards.
-  s.setProperty('--r1', (4 + dice(3, 10)) + 'px');
-  s.setProperty('--r2', (4 + dice(6, 10)) + 'px');
-  s.setProperty('--r3', (4 + dice(12, 10)) + 'px');
-  s.setProperty('--r4', (4 + dice(21, 10)) + 'px');
-  // How this one is stuck up: 0 tape, 1 pin, 2 curled corner, 3 bare. Same seed means a
-  // card always gets the same treatment.
-  card.dataset.deco = dice(24, 4);
+  // Corners: 4 independent radii spanning 10px made some cards visibly lopsided next to others.
+  s.setProperty('--r1', (7 + dice(3, 4)) + 'px');
+  s.setProperty('--r2', (7 + dice(6, 4)) + 'px');
+  s.setProperty('--r3', (7 + dice(12, 4)) + 'px');
+  s.setProperty('--r4', (7 + dice(21, 4)) + 'px');
+  // How it's stuck up. Reduced from four treatments to two (tape or pin): four meant a single
+  // screen showed tape, a pin, a curled corner and nothing at all, which is the least uniform
+  // thing on the page. Same seed, so a given card never changes.
+  card.dataset.deco = dice(24, 2);
 }
 
 /* ---------- GRID MASONRY ---------- */
@@ -404,6 +479,22 @@ async function init() {
     // the Apps Script editor, the redeploy didn't land — that's the usual cause of new
     // backend fields arriving empty.
     console.log('@family. backend version:', DATA.version || '(older than versioning — needs redeploy)');
+    // This frontend needs at least this backend. Versions are date-prefixed, so a plain string
+    // compare orders them correctly. Worth checking automatically: a stale deploy looks exactly
+    // like a broken feature — the action succeeds and the new behaviour silently doesn't happen.
+    const have = DATA.features || [];
+    const lacks = NEEDS_FEATURES.filter(f => !have.includes(f));
+    if (lacks.length) {
+      // A stale deploy is the worst kind of bug because it isn't one: the action succeeds, and
+      // the newer half of it silently doesn't happen. Exactly what "the card updated but no
+      // event row appeared" looks like.
+      const msg = `Backend ${DATA.version || '(unversioned)'} is missing: ${lacks.join(', ')}. `
+                + 'Redeploy the Apps Script as a NEW version — actions will seem to work while '
+                + 'anything newer quietly does nothing.';
+      console.warn('@family.', msg);
+      const b = $('health-banner');
+      if (b) { b.innerHTML = '⚠ <b>Stale backend.</b> ' + esc(msg); b.classList.remove('hidden'); }
+    }
     // Which sheet dropdowns resolved to an option list. An empty one isn't fatal — the field
     // falls back to a plain text input — but it almost always means the validation rule isn't
     // applied to that column, so it's worth seeing rather than discovering by accident.
@@ -414,6 +505,9 @@ async function init() {
           : '— re-run that after editing a dropdown in the sheet');
     }
     if (DATA.timings) console.log('@family. backend timings (ms):', DATA.timings);
+    // The showcase failing is not the same as the showcase being empty, and the section can't
+    // tell you which. The backend now says which; this is where you read it.
+    if (DATA.galleryError) console.warn('@family. showcase:', DATA.galleryError);
     if (DATA.validationReport) {
       const r = DATA.validationReport;
       console.log('@family. dropdowns loaded:', (r.found || []).length, r.found);
@@ -503,8 +597,12 @@ const tpl = {
     // Every action a card offers, in ONE stack, in normal flow. Share used to be absolutely
     // positioned in the corner while Edit/Log out sat in their own block, so the two collided
     // and landed on top of the photo. One list, one below the other, no overlap possible.
+    // An admin can edit anyone. `data-person` names whose profile to open; absent means your own.
+    const isPersonCard = it.type === 'tutor' || it.type === 'person';
     const actions = [
       isOwn ? `<span class="text-action edit-profile-btn" title="Edit your profile">Edit</span>` : '',
+      (!isOwn && isPersonCard && isAdmin())
+        ? `<span class="text-action edit-profile-btn" data-person="${esc(it.title)}" title="Edit ${esc(it.title)}">Edit</span>` : '',
       (it.type === 'venue' && isAdmin())
         ? `<span class="text-action edit-venue-btn" data-venue="${esc(it.title)}" title="Edit this venue">Edit</span>` : '',
       `<span class="text-action card-share-btn" title="Share ${esc(it.title)}"
@@ -517,6 +615,16 @@ const tpl = {
     ${tpl.img(it.image)}
     <h3>${esc(it.title)}</h3>
     <p class="sub">${esc(it.subtitle)}</p>
+    ${it.role ? tpl.row('Role', `<span class="badge st-requested">${esc(it.role)}</span>`, '', '', 'fl-free') : ''}
+    ${(it.type === 'tutor' && Number(it.rate) > 0)
+      // ONE rate row. A tutor's `constant` is their PAY; showing that publicly hands over your
+      // margin in one subtraction, so everyone sees pay × markup — what an hour with this tutor
+      // actually costs — and only an admin sees the pay behind it.
+      ? tpl.row('Rate', esc('£' + (Number(it.rate) * wageMultiplier()).toFixed(2) + '/h'
+          + (isAdmin() ? ' (pays £' + Number(it.rate).toFixed(2) + ')' : '')), '', '', 'fl-free')
+      : ''}
+    ${it.contact ? tpl.row('Contact', esc(it.contact), '', '', 'fl-free') : ''}
+    ${it.warn ? `<p class="cl-blurb dir-warn">${esc(it.warn)}</p>` : ''}
     ${it.type === 'tutor' ? `<label class="dbs-tick${isAdmin() ? ' admin' : ''}">
       <input type="checkbox" class="dbs-cb" data-tutor="${esc(it.title)}" ${it.dbs ? 'checked' : ''} ${isAdmin() ? '' : 'disabled'}>
       <span>Enhanced DBS</span>
@@ -583,16 +691,16 @@ const tpl = {
       }).join('');
       hoursSection = `<fieldset class="pf-group"><legend>Open hours</legend>
         <div class="avail-wrap"><table class="avail-table">${head}${gridRows}</table>
-        <p class="muted" style="font-size:var(--fs-xs);margin:6px 0 0">Tick the hours this venue is open for sessions.</p></div>
+        <p class="muted note">Tick the hours this venue is open for sessions.</p></div>
       </fieldset>`;
     }
 
     return `<div class="card editing profile-edit-wide" data-span="99" data-venue="${esc(v.title)}">
-      <h3 class="gold" style="margin-bottom:12px">Editing ${esc(v.title)}</h3>
+      <h3 class="gold mb-md">Editing ${esc(v.title)}</h3>
       ${fieldSections}
       ${hoursSection}
-      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
-        <span class="edit-status muted" style="flex:1;font-size:var(--fs-xs);white-space:nowrap"></span>
+      <div class="row-gap mt-md center-y">
+        <span class="edit-status muted note grow nowrap"></span>
         <span class="text-action" id="cancel-venue-btn">Done</span>
       </div>
     </div>`;
@@ -603,23 +711,26 @@ const tpl = {
   // sparse profile just shows less rather than empty headings.
   tutorCreds: (it) => {
     const rows = [];
-    if (it.yrsExp) rows.push(`<div class="cred-row"><span class="cred-k">Experience</span><span class="cred-v">${esc(it.yrsExp)} yr${String(it.yrsExp) === '1' ? '' : 's'}</span></div>`);
-    if (it.teaches?.length) rows.push(`<div class="cred-row"><span class="cred-k">Teaches</span><span class="cred-v">${esc(it.teaches.join(', '))}</span></div>`);
-    if (it.quals?.length) rows.push(`<div class="cred-row"><span class="cred-k">Qualifications</span><span class="cred-v">${it.quals.map(q => esc(q)).join('<br>')}</span></div>`);
-    if (it.extraQuals) rows.push(`<div class="cred-row"><span class="cred-k">Also</span><span class="cred-v">${esc(it.extraQuals)}</span></div>`);
-    // Venues this tutor is comfortable teaching at — stored on each venue's comfort list, read
-    // back here by matching this tutor's handle. (Data lives venue-side, displays tutor-side.)
-    const myHandle = String(it.handle || '').toLowerCase().trim();
+    // Same row component as the rest of the card, so Experience lines up with Rate and Status
+    // rather than sitting in its own slightly different grid.
+    if (it.yrsExp) rows.push(tpl.row('Experience',
+      esc(it.yrsExp + ' yr' + (String(it.yrsExp) === '1' ? '' : 's')), '', '', 'fl-free'));
+    if (it.teaches?.length) rows.push(tpl.row('Teaches', esc(it.teaches.join(', ')), '', '', 'fl-free'));
+    if (it.quals?.length) rows.push(tpl.row('Qualifications',
+      it.quals.map(esc).join('<br>'), '', '', 'fl-free'));
+    if (it.extraQuals) rows.push(tpl.row('Also', esc(it.extraQuals), '', '', 'fl-free'));
+    // Venues this tutor is happy at — stored venue-side, displayed tutor-side.
+    const myHandle = norm(it.handle);
     const venues = (DATA.venues || [])
-      .filter(v => (v.comfort || []).some(h => String(h).toLowerCase().trim() === myHandle))
+      .filter(v => (v.comfort || []).some(h => norm(h) === myHandle))
       .map(v => v.title);
-    if (venues.length) rows.push(`<div class="cred-row"><span class="cred-k">Teaches at</span><span class="cred-v">${venues.map(esc).join(', ')}</span></div>`);
-    return rows.length ? `<div class="tutor-creds">${rows.join('')}</div>` : '';
+    if (venues.length) rows.push(tpl.row('Teaches at', esc(venues.join(', ')), '', '', 'fl-free'));
+    return rows.join('');
   },
 
   // A single friend's card (shows their level, checklist progress, and arcade high score)
   // Shop item card: image, name, price, description, Buy button (payment wired later)
-  shopCard: (it) => `<div class="card" style="text-align:left">
+  shopCard: (it) => `<div class="card t-left">
     ${it.image ? tpl.img(it.image) : ''}
     <h3>${esc(it.name)}</h3>
     ${it.price ? `<p class="sub">${esc(it.unit || '')}${esc(it.price)}</p>` : ''}
@@ -661,7 +772,7 @@ const tpl = {
 
   friendCard: (s, isChild = false) => {
     const st = statsOf(s);
-    return `<div class="card" style="text-align:left">
+    return `<div class="card t-left">
       ${isChild ? '' : `<button type="button" class="remove-friend-btn" data-handle="${esc(s.handle)}" title="Remove">✕</button>`}
       <h3>${esc(s.name)} <span class="lb-lvl">Lv ${st.level}</span></h3>
       <p class="sub">${esc(s.handle)}</p>
@@ -670,10 +781,10 @@ const tpl = {
   },
 
   // Arcade game card (Flappy-style canvas)
-  gameCard: () => `<div class="card" style="text-align:center">
-    <h3 class="gold" style="margin-bottom:8px">Flabby Pird</h3>
+  gameCard: () => `<div class="card t-center">
+    <h3 class="gold mb-sm">Flabby Pird</h3>
     <canvas id="flappy-canvas" width="280" height="360" style="width:100%;max-width:280px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;cursor:pointer"></canvas>
-    <p style="margin:10px 0 0">Score: <b id="flappy-score" style="color:#fff">0</b>${canTrack() ? ` · Best: <b id="flappy-best" style="color:var(--gold)">${USER.highscore || 0}</b>` : ''}</p>
+    <p style="margin:10px 0 0">Score: <b id="flappy-score" class="ink-strong">0</b>${canTrack() ? ` · Best: <b id="flappy-best" class="ink-gold">${USER.highscore || 0}</b>` : ''}</p>
     <p id="flappy-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:6px">Click the game to start</p>
   </div>`,
 
@@ -681,15 +792,15 @@ const tpl = {
   // Compact GCSE calculator that fits in a card (basic + √, x², trig, brackets, π)
   // Student notepad tool — saves to the person's `notepad` cell. Any logged-in user.
   // Notepad is always visible (simplest design). Saves automatically as you type, like the tickboxes.
-  notepadCard: () => `<div class="card" style="text-align:left">
-    <h3 class="gold" style="margin-bottom:8px">Notepad</h3>
+  notepadCard: () => `<div class="card t-left">
+    <h3 class="gold mb-sm">Notepad</h3>
     <textarea id="notepad-text" class="notepad-area" placeholder="Jot notes here..." ${USER ? '' : 'disabled'}>${esc(USER?.notepad || '')}</textarea>
     <p class="muted" id="notepad-status" style="font-size:var(--fs-xs);margin:6px 0 0;min-height:1em">${USER ? '' : 'Log in to save your notes.'}</p>
   </div>`,
 
   // Month calendar tool — today highlighted, prev/next navigation.
-  calendarCard: () => `<div class="card" style="text-align:left">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+  calendarCard: () => `<div class="card t-left">
+    <div class="row-between mb-sm">
       <span class="text-action" onclick="calShift(-1)">‹</span>
       <h3 class="gold" id="cal-label" style="margin:0">Calendar</h3>
       <span class="text-action" onclick="calShift(1)">›</span>
@@ -698,42 +809,42 @@ const tpl = {
   </div>`,
 
   // Times-tables sprint: 60 seconds, random questions up to 12×12. Score = correct answers.
-  timesTableCard: () => `<div class="card" style="text-align:left">
-    <h3 class="gold" style="margin-bottom:8px">Times Tables Sprint</h3>
+  timesTableCard: () => `<div class="card t-left">
+    <h3 class="gold mb-sm">Times Tables Sprint</h3>
     <p class="muted" style="font-size:var(--fs-xs);margin:0 0 10px">60 seconds. As many as you can.</p>
     <div id="tt-idle">
       <span class="text-action" id="tt-start">Start</span>
-      ${canTrack() ? `<p class="muted" style="font-size:var(--fs-xs);margin:8px 0 0">Best: <b style="color:var(--gold)">${USER.ttHighscore || 0}</b></p>` : ''}
+      ${canTrack() ? `<p class="muted note">Best: <b class="ink-gold">${USER.ttHighscore || 0}</b></p>` : ''}
     </div>
     <div id="tt-play" class="hidden">
       <p style="display:flex;justify-content:space-between;font-size:var(--fs-sm);margin:0 0 8px">
-        <span>Time: <b id="tt-time" style="color:#fff">60</b>s</span>
-        <span>Score: <b id="tt-score" style="color:var(--gold)">0</b></span>
+        <span>Time: <b id="tt-time" class="ink-strong">60</b>s</span>
+        <span>Score: <b id="tt-score" class="ink-gold">0</b></span>
       </p>
       <p id="tt-question" style="font-size:26px;text-align:center;margin:12px 0;color:#fff"></p>
       <input id="tt-answer" type="number" inputmode="numeric" placeholder="Answer" style="width:100%;padding:10px;text-align:center;font-size:18px">
       <p id="tt-feedback" class="muted" style="font-size:var(--fs-xs);min-height:1em;margin:6px 0 0;text-align:center"></p>
     </div>
-    <div id="tt-over" class="hidden" style="text-align:center">
-      <p style="font-size:var(--fs-lg);margin:10px 0">You got <b id="tt-final" style="color:var(--gold)">0</b></p>
-      <p id="tt-best-msg" class="muted" style="font-size:var(--fs-xs);min-height:1em"></p>
+    <div id="tt-over" class="hidden t-center">
+      <p style="font-size:var(--fs-lg);margin:10px 0">You got <b id="tt-final" class="ink-gold">0</b></p>
+      <p id="tt-best-msg" class="muted note status-line"></p>
       <span class="text-action" id="tt-again">Play again</span>
     </div>
   </div>`,
 
   // Simple 25-minute countdown timer with an alarm.
-  timerCard: () => `<div class="card" style="text-align:left">
-    <h3 class="gold" style="margin-bottom:8px">Timer</h3>
+  timerCard: () => `<div class="card t-left">
+    <h3 class="gold mb-sm">Timer</h3>
     <p id="timer-display" style="font-size:var(--fs-display);text-align:center;margin:10px 0;color:#fff;letter-spacing:2px">25:00</p>
-    <div style="display:flex;gap:6px">
-      <button type="button" id="timer-toggle" class="action" style="flex:1;margin:0;font-size:var(--fs-lg);padding:8px 0">&#9654;</button>
-      <button type="button" id="timer-reset" class="ghost" style="flex:1;margin:0;font-size:var(--fs-lg);padding:8px 0">&#8635;</button>
+    <div class="row-gap">
+      <button type="button" id="timer-toggle" class="action btn-wide">&#9654;</button>
+      <button type="button" id="timer-reset" class="ghost btn-wide">&#8635;</button>
     </div>
     <p id="timer-msg" class="muted" style="font-size:var(--fs-xs);min-height:1em;margin:8px 0 0;text-align:center"></p>
   </div>`,
 
-  calcToolCard: () => `<div class="card mini-calc" style="text-align:left">
-    <h3 class="gold" style="margin-bottom:8px">Calculator</h3>
+  calcToolCard: () => `<div class="card mini-calc t-left">
+    <h3 class="gold mb-sm">Calculator</h3>
     <input id="mc-display" class="mc-display" value="0" readonly>
     <div class="mc-grid mc-fns">
       <button type="button" class="mc-btn fn" data-mc="sin(">sin</button>
@@ -745,7 +856,7 @@ const tpl = {
       <button type="button" class="mc-btn fn" data-mc="(">(</button>
       <button type="button" class="mc-btn fn" data-mc=")">)</button>
       <button type="button" class="mc-btn fn" data-mc="pi">π</button>
-      <button type="button" class="mc-btn del" data-mc="del">DEL</button>
+      <button type="button" class="mc-btn del" data-mc="del" aria-label="Delete">⌫</button>
     </div>
     <div class="mc-grid mc-nums">
       <button type="button" class="mc-btn" data-mc="7">7</button>
@@ -765,8 +876,39 @@ const tpl = {
       <button type="button" class="mc-btn eq" data-mc="=">=</button>
       <button type="button" class="mc-btn op" data-mc="+">+</button>
     </div>
-    <p class="muted" style="font-size:var(--fs-xs);margin:8px 0 0">Degrees mode</p>
+    <p class="muted note">Degrees mode</p>
   </div>`,
+
+  // Admin only: relabel one resource in place. Built from DATA.resourceFields, so adding a field
+  // is a backend change and nothing here moves. Saves on change like the tick boxes and the DBS
+  // flag do — there's no Save button anywhere else on the site, so there isn't one here.
+  resourceEdit: (tp) => {
+    const groups = DATA.resourceFields || {};
+    const lists  = DATA.options || {};
+    const which  = DATA.resourceOptions || {};
+    const field = (f) => {
+      const v = tp[RES_FIELD_MAP[f] !== undefined ? RES_FIELD_MAP[f] : f] ?? '';
+      const label = `<span class="edit-label">${esc(f.replace(/_/g, ' '))}</span>`;
+      if (f === 'trackable' || f === 'print_required') {
+        const on = f === 'trackable' ? tp.trackable : tp.paper;
+        return `<label class="pf-field pf-check">
+          <input type="checkbox" class="res-f" data-f="${esc(f)}" ${on ? 'checked' : ''}>${label}</label>`;
+      }
+      const opts = lists[which[f]] || null;
+      const input = opts
+        ? `<select class="res-f edit-input" data-f="${esc(f)}"><option value="">—</option>` +
+          opts.map(o => `<option value="${esc(o)}"${norm(o) === norm(v) ? ' selected' : ''}>${esc(o)}</option>`).join('') +
+          `</select>`
+        : `<input class="res-f edit-input" data-f="${esc(f)}" value="${esc(v)}">`;
+      return `<label class="pf-field">${label}${input}</label>`;
+    };
+    return `<div class="res-edit hidden" data-row="${tp.rowIndex}">
+      ${Object.keys(groups).map(g => `<fieldset class="pf-group"><legend>${esc(g)}</legend>
+        <div class="pf-grid">${groups[g].map(field).join('')}</div></fieldset>`).join('')}
+      <div class="cl-acts"><span class="edit-status note grow"></span>
+        <span class="text-action res-done">Done</span></div>
+    </div>`;
+  },
 
   // One checklist band card (subject + grade/stage) with two checkboxes per topic.
   // `item` = { subject, band, bandLabel, topics }. Uses current USER progress.
@@ -791,8 +933,9 @@ const tpl = {
         ${tp.link
           ? `<a class="check-topic" href="${esc(tp.link)}" target="_blank" rel="noopener">${esc(tp.name)}</a>`
           : `<span class="check-topic">${esc(tp.name)}</span>`}
+        ${isAdmin() ? `<span class="text-action res-edit-btn" data-row="${tp.rowIndex}">Edit</span>` : ''}
         ${boxes}
-      </div>`;
+      </div>${isAdmin() ? tpl.resourceEdit(tp) : ''}`;
     }).join('');
     // `all` is the sibling list — Array.map hands it over as the third argument, which is
     // exactly what the title rule needs to see what varies between cards.
@@ -800,8 +943,8 @@ const tpl = {
     // Width from how many topics the card holds — a big reference list spreads wide instead
     // of becoming a tall strip; a small card stays at 1 column.
     const span = spanForCount(item.topics.length);
-    return `<div class="card grade-card" data-span="${span}" style="text-align:left">
-      <h3 class="gold" style="margin-bottom:4px">${esc(title)}</h3>
+    return `<div class="card grade-card" data-span="${span}" class="t-left">
+      <h3 class="gold mb-xs">${esc(title)}</h3>
       <div class="check-list">${rows}</div>
     </div>`;
   },
@@ -814,16 +957,22 @@ const tpl = {
     // Which fields you may edit depends on who you are. A tutor gets qualifications and
     // availability; a parent gets contact details; a student gets those plus date of birth.
     // The lists come from the backend so there is one definition of each, not two.
-    const groups = (USER && USER.role === 'parent') ? (DATA.clientFields || {})
-                 : (USER && USER.role === 'kid')    ? (DATA.studentFields || {})
+    // Whose role decides the fields: the person being EDITED, not the person doing the editing.
+    // An admin opening a parent's profile should see the parent's form, not a tutor's.
+    const editRole = EDIT_TARGET ? EDIT_TARGET.role : (USER && USER.role);
+    const groups = (editRole === 'parent') ? (DATA.clientFields || {})
+                 : (editRole === 'kid')    ? (DATA.studentFields || {})
                  : (DATA.profileFields || {});
-    const readonly = isTutorRole() ? (DATA.profileReadonly || []) : [];
+    // The admin-set flags are read-only to the person themselves and WRITABLE to an admin —
+    // that's what makes them admin-set rather than simply hidden.
+    const readonly = EDIT_TARGET ? [] : (isTutorRole() ? (DATA.profileReadonly || []) : []);
+    const adminExtras = EDIT_TARGET ? (DATA.profileReadonly || []) : [];
     const times    = DATA.dropdowns?.times || [];
     // The field list comes from the backend. If it's missing, the deployed Apps Script is
     // older than this frontend — say so plainly rather than showing an empty form.
     if (!Object.keys(groups).length) {
       return `<div class="card own-profile editing">
-        <h3 class="gold" style="margin-bottom:8px">Editing your profile</h3>
+        <h3 class="gold mb-sm">Editing your profile</h3>
         <p class="muted" style="font-size:var(--fs-sm);text-align:left">
           Couldn't load the profile fields. The Apps Script needs redeploying as a
           <b>new version</b> before this form can appear.</p>
@@ -882,7 +1031,7 @@ const tpl = {
         return `<tr><th class="avail-day">${esc(label)}</th>${cells}</tr>`;
       }).join('');
       return `<div class="avail-wrap"><table class="avail-table">${head}${rows}</table>
-        <p class="muted" style="font-size:var(--fs-xs);margin:6px 0 0">Tick the hours you can teach.</p></div>`;
+        <p class="muted note">Tick the hours you can teach.</p></div>`;
     };
 
     const section = (title, cols) => {
@@ -906,7 +1055,7 @@ const tpl = {
     }).join('');
     const comfortSection = (isTutorRole() && (DATA.venues || []).length)
       ? `<fieldset class="pf-group"><legend>Venues I teach at</legend>
-           <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px;text-align:left">Tick the venues you're happy to teach at.</p>
+           <p class="muted note t-left">Tick the venues you're happy to teach at.</p>
            <div class="ms-list">${venueTicks}</div>
          </fieldset>`
       : '';
@@ -914,19 +1063,29 @@ const tpl = {
     const roSection = readonly.length
       ? `<fieldset class="pf-group">
            <legend>Set by admin</legend>
-           <p class="muted" style="font-size:var(--fs-xs);margin:0 0 6px;text-align:left">
+           <p class="muted note t-left">
              Shown for reference — ask an admin to change these.</p>
            <div class="pf-grid">${readonly.map(c => field(c)).join('')}</div>
          </fieldset>`
       : '';
 
+    const adminSection = adminExtras.length
+      ? `<fieldset class="pf-group"><legend>Admin only</legend>
+           <p class="muted note t-left">
+             Only an admin can change these.</p>
+           <div class="pf-grid">${adminExtras.map(c => field(c)).join('')}</div>
+         </fieldset>`
+      : '';
+
     return `<div class="card own-profile editing profile-edit-wide" data-span="99">
-      <h3 class="gold" style="margin-bottom:12px">Editing your profile</h3>
+      <h3 class="gold mb-md">${EDIT_TARGET
+        ? 'Editing ' + esc(EDIT_TARGET.name) : 'Editing your profile'}</h3>
       ${sections}
       ${comfortSection}
+      ${adminSection}
       ${roSection}
-      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
-        <span class="edit-status muted" style="flex:1;font-size:var(--fs-xs);white-space:nowrap"></span>
+      <div class="row-gap mt-md center-y">
+        <span class="edit-status muted note grow nowrap"></span>
         <span class="text-action" id="cancel-profile-btn">Done</span>
       </div>
     </div>`;
@@ -954,192 +1113,136 @@ const tpl = {
     const myTurn = mySide && mySide === turn;
 
     // Status shown as a coloured badge, colour by lifecycle stage.
-    const badgeClass = { Requested:'st-requested', Negotiating:'st-negotiating', Accepted:'st-accepted',
-      Paid:'st-paid', Active:'st-active', Completed:'st-completed', 'Declined/Cancelled':'st-declined' }[status] || 'st-requested';
+
     // No floating badge any more — status is a row like everything else, and two places to
     // read the same value is one place too many. "Yours" rides along in that row's value.
 
     // The job prices itself through the SAME function the booking form uses, so a class card
     // shows exactly the per-line costs the client agreed to. No separate breakdown anywhere.
     const P = priceJob(j);
-    // offer_turn stores an ABSOLUTE side ('tutor' or 'client'), because one cell is read by
-    // both of them — it can't say "Yours" and mean different people. The translation into
-    // "Yours" / "Others" happens here, per reader, which is the only place it can be correct.
-    // Reuses `turn` and `mySide` declared above — `turn` already falls back to the tutor on a
-    // Requested job, which is right: the ball starts with them before anyone has moved.
-    const possession = !turn
-      ? '<span class="badge st-completed">Nobody — settled</span>'
-      : mySide
-        ? (mySide === turn ? '<span class="badge st-active">Yours</span>'
-                           : '<span class="badge st-negotiating">Others</span>')
-        : `<span class="badge st-requested">${esc(turn === 'tutor' ? 'Tutor' : 'Client')}</span>`;
+    // POSSESSION = is this job mine? It separates the classes you're part of from other
+    // families' classes that happen to have a free seat. It is NOT whose turn it is — that's
+    // offer_turn, a different question with a different answer, and conflating them made the
+    // row say "Yours" on a stranger's class just because you were the one being waited on.
+    // Purely per-viewer: the same row is Yours to one family and Others to the next, so it is
+    // derived here and never stored.
+    // Computed inline rather than reusing the iAmTheTutor further down: that's a `const`
+    // declared later in the function, so reading it here throws on the temporal dead zone —
+    // a runtime error node --check can't see.
+    // "Yours" = this job involves you, on either side. You booked it, you're teaching it, or
+    // you've applied to teach it. Anything else is someone else's class that happens to be
+    // visible to you — which is the distinction the row exists to draw.
+    const meNow = norm(USER && USER.name);
+    const isMine = !!mySlot
+      || (isTutorRole() && norm(j.requestedTutor) === meNow)
+      || (isTutorRole() && (j.tutorSlots || []).some(t => norm(t.name) === meNow));
+    const possession = !USER
+      ? ''
+      : badge(isMine ? 'Yours' : 'Others');
+
+    // JOB LIFECYCLE — the calendar life of the class, from source_job_lifecycle:
+    //   uncreated · upcoming · started · ongoing · ended
+    // Every one of these is decided by a DATE passing, never by anyone pressing anything, which
+    // is what makes it independent of Status. A class can be Requested and Ongoing at once if
+    // the term is running while terms are still being argued over.
+    //   uncreated  the booking hasn't been made yet (the builder card only — a live job exists)
+    //   upcoming   booked, no session has happened
+    //   started    the first session has happened
+    //   ongoing    more than one done, more still to come
+    //   ended      every session is behind us
+    const lifecycle = (() => {
+      const ds = String(j.dates || '').split(',').map(x => x.trim()).filter(Boolean)
+        .map(parseDMY).filter(Boolean).sort((a, b) => a - b);
+      if (!ds.length) return 'Upcoming';                    // exists, but nothing scheduled yet
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const done = ds.filter(d => d <= today).length;
+      if (done === 0)        return 'Upcoming';
+      if (done >= ds.length) return 'Ended';
+      if (done === 1)        return 'Started';
+      return 'Ongoing';
+    })();
 
     const detail = tpl.priceRows(P, {
       editable: false, studentsLabel: j.capacity, datesText: j.dates, possession,
-      status: `<span class="badge ${badgeClass}">${esc(status)}</span>`
-        + (mySlot ? ` <span class="badge mine-badge">Yours</span>` : '')
+      lifecycle: badge(lifecycle),
+      // Status says WHERE the job is; Possession says whose it is. The "Yours" badge used to
+      // ride along here as well, so the two rows said the same word one line apart.
+      status: badge(status)
     });
 
-    // Chat: just the LAST message on one line (tutor & admin see it; a client sees their own).
-    const chatLine = (s) => {
-      const last = String(s.chat || '').split('\n').filter(Boolean).pop() || '';
-      return last ? `<div class="job-line"><span class="job-k">Chat</span><span class="job-v job-chat">${esc(last)}</span></div>` : '';
-    };
-
-    // Slot list — tutor/admin sees every family + their status + the right action for that state;
-    // a client sees just their own status. Six-state model via clientMove.
-    // Everything about a client's participation is bound to THAT client: their status, their
-    // thread, their actions, their message box. A job holds up to four of these blocks and they
-    // negotiate independently — one family accepting says nothing about the other three. There
-    // is deliberately no job-level chat box; a message is always to or from someone.
-    let slotRows = '';
-    const cStatusBadge = st => {
-      const cs = clientStatus(st);
-      const cls = { Requested:'st-requested', Queried:'st-negotiating', Unpaid:'st-accepted',
-        Participant:'st-active', Declined:'st-declined', Cancelled:'st-declined' }[cs] || 'st-requested';
-      return `<span class="badge ${cls}">${esc(clientStatusLabel(st))}</span>`;
-    };
-    // The whole thread for one client, oldest first. Each line was written as "Sender: text".
-    const chatThread = (s) => {
-      const lines = String(s.chat || '').split('\n').map(x => x.trim()).filter(Boolean);
-      if (!lines.length) return '';
-      return `<div class="cl-thread">${lines.map(l => {
-        const cut = l.indexOf(':');
-        const who = cut > 0 ? l.slice(0, cut) : '';
-        const msg = cut > 0 ? l.slice(cut + 1).trim() : l;
-        return `<div class="cl-msg-line"><span class="cl-who">${esc(who)}</span><span class="cl-what">${esc(msg)}</span></div>`;
-      }).join('')}</div>`;
-    };
-    // ONE control for every move: pick an action (or leave it on "just send a message"), type a
-    // note, hit Submit. Action and message travel together as a single move, which is why the
-    // text box sits above the button — you compose the whole turn, then send it once.
-    const moveForm = (client, opts) => opts.length ? `
-      <div class="cl-form">
-        <select class="cl-action">
-          ${opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}
-        </select>
-        <input type="text" class="move-text cl-msg" placeholder="Add a message (optional)…">
-        <span class="text-action cl-submit" data-job="${j.id}" data-client="${esc(client)}">Submit</span>
-      </div>` : '';
-
-    // Three options everywhere, on every block, for both sides. "Pass" is the move that says
-    // "not deciding yet — here's my reply", which is what a tutor asking for a change actually
-    // is. Anything that isn't a decision (pay, cancel, change terms) is a link, not an option,
-    // because mixing decisions and actions in one control is what made this confusing before.
-    const VERDICTS = [['', '— choose —'], ['accept', 'Accept'], ['decline', 'Decline'], ['pass', 'Pass']];
-
-    // The tutor's own block. It sits ABOVE the families, because who is teaching is settled
-    // before, and independently of, who is attending.
+    // Where the tutor side of this job stands, and which tutor a family is actually dealing with.
+    // Both are needed by the control below; they lived inside the tutor panel that's now gone.
     const tStatus = tutorStatus(j.tutorStatus, j.requestedTutor);
-    const tBadgeCls = { Open:'st-requested', Claimed:'st-negotiating',
-                        Confirmed:'st-active', Declined:'st-declined' }[tStatus] || 'st-requested';
-    const iAmTheTutor = isTutorRole() && norm(j.requestedTutor) === norm(USER && USER.name);
-    // The tutor block is a STATUS, not a conversation. There's no thread and no dropdown here:
-    // the tutor side has exactly one question ("is this the tutor?") with a yes/no answer, and
-    // wrapping that in a message box implied a negotiation that doesn't exist. Any discussion
-    // belongs in the family's own thread below, where the terms being discussed actually live.
-    let tutorBlock = '';
-    {
-      const acts = [];
-      // An unclaimed job is claimable by any tutor — that's what "No preference" is for.
-      if (isTutorRole() && tStatus === 'Open')
-        acts.push(`<span class="text-action tutor-verdict" data-job="${j.id}" data-move="claim">Claim this job</span>`);
-      // Only the family who booked decides whether the claiming tutor is acceptable.
-      if (mySlot && tStatus === 'Claimed') {
-        acts.push(`<span class="text-action tutor-verdict" data-job="${j.id}" data-move="accept">Accept tutor</span>`);
-        acts.push(`<span class="text-action tutor-verdict" data-job="${j.id}" data-move="decline">Decline tutor</span>`);
-      }
-      const blurb = {
-        Open:      'No tutor yet — any tutor can claim this.',
-        Claimed:   mySlot ? 'A tutor has claimed this. Accept or decline them.'
-                          : 'Claimed — waiting on the family to approve.',
-        Confirmed: '',
-        Declined:  'The family declined this tutor. Open again.'
-      }[tStatus] || '';
-      tutorBlock = `<div class="cl-block">
-        <div class="cl-head">Tutor — ${esc(j.requestedTutor || 'No preference')}</div>
-        ${tpl.fieldLine('Status', `<span class="badge ${tBadgeCls}">${esc(tutorStatusLabel(tStatus))}</span>`, '', '', 'fl-free')}
-        ${blurb ? `<div class="cl-blurb">${esc(blurb)}</div>` : ''}
-        ${acts.length ? `<div class="cl-acts">${acts.join('<span class="act-sep"> · </span>')}</div>` : ''}
+    // The settled tutor if there is one, otherwise the only applicant. With several applicants
+    // there is no single counterpart yet — which is exactly when the chooser appears instead.
+    const dealTutor = (j.tutorSlots || []).find(t => /confirm/i.test(t.status || ''))
+                   || ((j.tutorSlots || []).length === 1 ? j.tutorSlots[0] : null);
+    const theirT = dealTutor ? dealTutor.status : '';
+
+    // ---- THE ONE THING YOU CAN DO -----------------------------------------------------------
+    // Everything below used to be three stacked blocks: a tutor panel with an applicant list and
+    // a picker, a per-family panel with its own dropdown and blurb, and a history log — all open
+    // at once, for every viewer, whether or not any of it was theirs to act on. A client who had
+    // just booked was shown "1 tutor waiting. Picking one declines the rest" beside "pay to
+    // secure your place", which are instructions for two different situations.
+    //
+    // So: the card states what it is and where it stands in its rows, offers AT MOST ONE control,
+    // and puts the record behind a disclosure. If there is nothing for you to do, there is
+    // nothing to read.
+
+    // Who am I here, and what may I do about it?
+    const meRow = mySlot || (isTutor ? { client: USER && USER.name, status: (j.tutorSlots || [])
+      .filter(x => norm(x.name) === norm(USER && USER.name)).map(x => x.status)[0] || '' } : null);
+    const myActs = meRow
+      ? bmActionsFor(isTutor ? 'tutor' : 'client', String(meRow.status || ''), String(theirT || ''))
+      : [];
+
+    // A family with unchosen applicants has a real decision. Nobody else does — and if the tutor
+    // was named at booking there was never a choice to make, so this never appears.
+    const applicants = (j.tutorSlots || []).filter(x => !/confirm/i.test(x.status || ''));
+    const mustPickTutor = !!mySlot && tStatus !== 'Confirmed' && applicants.length > 0;
+
+    let control = '';
+    if (mustPickTutor) {
+      control = `<div class="cl-form">
+        <select class="tutor-pick">
+          <option value="">— choose your tutor —</option>
+          ${applicants.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('')}
+        </select>
+        <span class="text-action tutor-choose" data-job="${j.id}">Confirm tutor</span>
       </div>`;
-    }
-
-    if (isTutor || admin) {
-      slotRows = slots.filter(s => String(s.client || '').trim()).map(s => {
-        const cs = clientStatus(s.status);
-        // What the tutor can do depends only on where this family is. Note the tutor never gets
-        // an option that edits terms — asking is the whole of their influence over them.
-        const opts = ['Declined', 'Cancelled', 'Participant'].includes(cs) ? [] : VERDICTS;
-        const blurb = {
-          Requested:   'is asking to join — your move.',
-          Queried:     'has been asked for a change — waiting on them.',
-          Unpaid:      'agreed the terms; waiting for payment.',
-          Participant: 'has paid and is in the class.',
-          Declined:    'was declined.',
-          Cancelled:   'cancelled their request.'
-        }[cs] || '';
-        return `<div class="cl-block">
-          <div class="cl-head">Client ${s.n} — ${esc(s.client)}</div>
-          ${tpl.fieldLine('Status', cStatusBadge(s.status), '', '', 'fl-free')}
-          ${blurb ? `<div class="cl-blurb">${esc(s.client)} ${blurb}</div>` : ''}
-          ${chatThread(s)}
-          ${moveForm(s.client, opts)}
-        </div>`;
-      }).join('');
-      if (!slotRows) slotRows = '<p class="muted cl-note">No families have requested this yet.</p>';
-
-    } else if (mySlot) {
-      const cs = clientStatus(mySlot.status);
-      // Terms are the client's to change, and only while the tutor hasn't yet agreed them.
-      const canEdit = ['Requested', 'Queried'].includes(cs);
-      const opts = ['Declined', 'Cancelled'].includes(cs) ? [] : VERDICTS;
-      // Paying, cancelling and changing terms are actions, not verdicts — they get links.
-      const links = [];
-      if (cs === 'Unpaid') links.push(`<span class="text-action cl-pay" data-job="${j.id}" data-client="${esc(mySlot.client)}">Pay now</span>`);
-      if (!['Declined', 'Cancelled'].includes(cs))
-        links.push(`<span class="text-action cl-cancel" data-job="${j.id}" data-client="${esc(mySlot.client)}">${cs === 'Participant' ? 'Leave the class' : 'Cancel my request'}</span>`);
-      const myBlurb = {
-        Requested:   'Your request is with the tutor.',
-        Queried:     'The tutor has asked for a change — update your request below.',
-        Unpaid:      'Terms agreed. Pay to secure your place.',
-        Participant: "You're in the class.",
-        Declined:    'The tutor declined this request.',
-        Cancelled:   'You cancelled this request.'
-      }[cs] || '';
-      // Changing terms is a form, not a dropdown option, because it needs fields. Sending it
-      // puts the request back to Requested — the ball returns to the tutor.
-      const editForm = canEdit ? `
-        <span class="text-action edit-req" data-job="${j.id}" data-client="${esc(mySlot.client)}">Change my request</span>
-        <div class="edit-req-form hidden" data-job="${j.id}" data-client="${esc(mySlot.client)}">
-          <label class="erf-row">Students <select class="erf-students">${[1,2,3,4].map(x=>`<option value="${x}"${x==j.currentKids?' selected':''}>${x}</option>`).join('')}</select></label>
-          <label class="erf-row">Day <select class="erf-day">${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=>`<option${norm(d)===norm(j.day)?' selected':''}>${d}</option>`).join('')}</select></label>
-          <label class="erf-row">Time <input class="erf-time" value="${esc(j.time||'')}" placeholder="e.g. 16:00"></label>
-          <label class="erf-row">Venue <select class="erf-venue">${(DATA.venues||[]).map(v=>`<option${norm(v.title)===norm(j.location)?' selected':''}>${esc(v.title)}</option>`).join('')}</select></label>
-          <div class="erf-note muted">Sending changes puts your request back to the tutor to approve.</div>
-          <div class="cl-acts">
-            <span class="text-action edit-req-send" data-job="${j.id}" data-client="${esc(mySlot.client)}">Send changes</span>
-            <span class="text-action edit-req-cancel">Close</span>
-          </div>
-        </div>` : '';
-      slotRows = `<div class="cl-block">
-        <div class="cl-head">Your place</div>
-        ${tpl.fieldLine('Status', cStatusBadge(mySlot.status), '', '', 'fl-free')}
-        ${myBlurb ? `<div class="cl-blurb">${esc(myBlurb)}</div>` : ''}
-        ${chatThread(mySlot)}
-        ${editForm}
-        ${links.length ? `<div class="cl-acts">${links.join('<span class="act-sep"> · </span>')}</div>` : ''}
-        ${moveForm(mySlot.client, opts)}
+    } else if (myActs.length) {
+      const opts = (myActs.length > 1 ? [''] : []).concat(myActs);
+      control = `<div class="cl-form">
+        <select class="cl-action">${opts.map(a =>
+          `<option value="${esc(a)}">${a ? esc(a) : '— choose —'}</option>`).join('')}</select>
+        <input type="text" class="move-text cl-msg" placeholder="Add a message (optional)…">
+        <span class="text-action cl-submit" data-job="${j.id}"
+              data-counterpart="${esc(dealTutor ? dealTutor.name : '')}">Submit</span>
       </div>`;
+    } else if (!mySlot && !isTutor && !admin && canJoin) {
+      control = `<div class="cl-acts"><span class="text-action join-job-btn" data-job="${j.id}">Request to join</span></div>`;
+    } else if (!USER && !isDash) {
+      control = `<div class="cl-acts"><span class="text-action book-btn-inline${j.spotsLeft <= 0 ? ' disabled' : ''}">${j.spotsLeft <= 0 ? 'Full' : 'Book now'}</span></div>`;
     }
 
-    // Not in the job at all: the only action is to ask for a place.
-    const acts = [];
-    if (!mySlot && !isTutor && !admin) {
-      if (canJoin) acts.push(`<span class="text-action join-job-btn" data-job="${j.id}">Request to join</span>`);
-      else if (!USER && !isDash) acts.push(`<span class="text-action book-btn-inline${j.spotsLeft<=0?' disabled':''}">${j.spotsLeft<=0?'Full':'Book now'}</span>`);
-    }
-    const action = acts.join('<span class="act-sep"> · </span>');
-    const moveBox = '';
+    // A tutor needs to see who is attending; a family does not need to see the other families.
+    // Rows, not blocks — one line each, in the same grid as everything else on the card.
+    const roster = (isTutor || admin)
+      ? (j.slots || []).filter(x => x.client)
+          .map(x => tpl.row(x.client, badge(x.status), '', '', 'fl-free')).join('')
+      : '';
+
+    // The record. Collapsed, because it's for when something looks wrong — not for every load.
+    const history = (j.events || []).length
+      ? `<details class="bd-more"><summary>History (${j.events.length})</summary>
+           <div class="cl-thread">${j.events.map(e => `<div class="cl-msg-line">
+             <span class="cl-who">${esc(e.actor || '—')}</span>
+             <span class="cl-what">${esc(e.action)}${e.target ? ' → ' + esc(e.target) : ''}${
+               e.message ? ' — ' + esc(e.message) : ''}<span class="note"> ${esc(e.at || '')}</span></span>
+           </div>`).join('')}</div>
+         </details>`
+      : '';
 
     const cls = mySlot ? 'mine-class' : '';
     // Two columns wide: a priced card holds a dozen label/value/price rows plus the hour grid,
@@ -1153,9 +1256,9 @@ const tpl = {
       ${(j.image || j.image2) ? `<div class="job-photos">${j.image ? tpl.img(j.image) : ''}${j.image2 ? tpl.img(j.image2) : ''}</div>` : ''}
       <h3>${esc(j.title) || 'Session'}</h3>
       <div class="job-detail">${detail}</div>
-      <div class="job-slots">${tutorBlock}${slotRows}</div>
-      ${moveBox}
-      ${action ? `<div class="job-foot">${action}</div>` : ''}
+      ${roster ? `<div class="job-slots">${roster}</div>` : ''}
+      ${control}
+      ${history}
     </div>`;
   },
 
@@ -1163,10 +1266,22 @@ const tpl = {
   //   label | value | £/hour it adds | what that comes to over the whole booking
   // Two money columns because a rate on its own is unactionable — "+£1/h" sounds like nothing
   // until you see it's +£22 across the term — and a total on its own hides where it came from.
-  fieldLine: (k, valueHtml, rateHtml, totalHtml, cls) =>
-    `<div class="field-line ${cls || ''}"><span class="fl-k">${esc(k)}</span>` +
-    `<span class="fl-v">${valueHtml}</span><span class="fl-r">${rateHtml || ''}</span>` +
-    `<span class="fl-p">${totalHtml || ''}</span></div>`,
+  // THE row. Every "label: value" on the site is this, so a card's rows line up with every
+   // other card's rows whatever the card is. There were three of these — field-line here,
+   // job-line in the class card and cred-row in the tutor credentials — each with its own class
+   // names and its own CSS, which is why labels didn't align between sections.
+  row: (k, valueHtml, rateHtml, totalHtml, cls) => {
+    // A row with no money in it (Status, Role, Possession, Contact) drops to two columns.
+    // Keeping four meant the two empty ones still claimed width, so in a one-column card the
+    // value column was crushed to a few pixels and its contents wrapped one letter per line —
+    // "A / d / m / i / n". Deciding this here rather than at each call site is the point: no
+    // caller can forget, and no future row can reintroduce it.
+    const money = (rateHtml || '') !== '' || (totalHtml || '') !== '';
+    return `<div class="field-line ${money ? '' : 'fl-plain '}${cls || ''}">` +
+      `<span class="fl-k">${esc(k)}</span><span class="fl-v">${valueHtml}</span>` +
+      (money ? `<span class="fl-r">${rateHtml || ''}</span><span class="fl-p">${totalHtml || ''}</span>` : '') +
+      `</div>`;
+  },
 
   // P = a priceFrom() result (or null while a booking is still blank).
   // o = { editable, lesson, studentsLabel }
@@ -1199,17 +1314,28 @@ const tpl = {
 
     // Status leads, because it's the first thing anyone looks for and it belongs in the row
     // system like everything else — a floating badge reads as decoration, a row reads as data.
-    if (o.status) rows.push(tpl.fieldLine('Status', o.status, '', '', 'fl-free'));
+    if (o.status) rows.push(tpl.row('Status', o.status, '', '', 'fl-free'));
     // Whose move it is, on its own line. Status says where the negotiation IS; possession says
     // who has to do something next. They answer different questions, so they get different rows.
-    if (o.possession) rows.push(tpl.fieldLine('Possession', o.possession, '', '', 'fl-free'));
+    if (o.possession) rows.push(tpl.row('Possession', o.possession, '', '', 'fl-free'));
+    // Lifecycle is the CALENDAR life of the class, which moves independently of the deal.
+    // A job can be Accepted (deal) and still Upcoming (calendar); it becomes Ended by the date
+    // passing, not by anyone pressing anything. Status answers "where's the negotiation",
+    // Lifecycle answers "has it happened yet".
+    if (o.lifecycle) rows.push(tpl.row('Lifecycle', o.lifecycle, '', '', 'fl-free'));
 
-    rows.push(tpl.fieldLine('Tuition',
-      `<span class="fl-note">${L.usingTutorRate ? 'tutor rate' : 'min wage'} × ${esc(String(L.wMul || 1))}</span>`,
+    rows.push(tpl.row('Tuition',
+      // What a client should see is the rate, not how it was arrived at. "min wage × 2" tells a
+      // parent what the tutor is paid and what the markup is — neither is theirs to know, and
+      // "minimum wage" reads as a quality statement about the tutor besides. Admins keep the
+      // derivation, because they're the ones who need to check it.
+      `<span class="fl-note">${isAdmin()
+        ? esc(`${L.usingTutorRate ? 'tutor rate' : 'min wage'} ${money(L.M)} × ${L.wMul}`)
+        : (L.usingTutorRate ? "Tutor's rate" : 'Standard rate')}</span>`,
       cell('rate="base"', `${money((L.M || 0) * (L.wMul || 0))}/h`),
       cell('total="base"', `<b>${money(totOf((L.M || 0) * (L.wMul || 0)))}</b>`)));
 
-    rows.push(tpl.fieldLine('Subject',
+    rows.push(tpl.row('Subject',
       ed ? `<span class="custom-select-wrapper">
              <span class="inline-select pick l-subject-display" data-lesson="${i}">Choose ⌄</span>
              <span class="custom-dropdown hidden l-subject-dropdown" data-lesson="${i}"></span>
@@ -1217,39 +1343,44 @@ const tpl = {
          : esc((L.subjects || []).join(', ') || '—'),
       rateCell('subject', subjectAdd), totCell('subject', subjectAdd), ed ? '' : free(subjectAdd)));
 
-    rows.push(tpl.fieldLine('Level', ed ? ctl('l-level') : esc(L.level || '—'),
+    rows.push(tpl.row('Level', ed ? ctl('l-level') : esc(L.level || '—'),
       rateCell('level', L.L), totCell('level', L.L), ed ? '' : free(L.L)));
 
-    rows.push(tpl.fieldLine('Venue',
+    rows.push(tpl.row('Venue',
       ed ? ctl('l-location') : esc((L.loc || 'Online') + (L.V ? '' : ' (hosted)')),
       rateCell('venue', L.V), totCell('venue', L.V, true), ed ? '' : free(L.V)));
 
-    if (ed) rows.push(tpl.fieldLine('Host',
+    if (ed) rows.push(tpl.row('Host',
       `<label class="host-toggle"><input type="checkbox" class="l-host" data-lesson="${i}"> I'll host the venue</label>`, '', ''));
 
-    rows.push(tpl.fieldLine('Students',
+    rows.push(tpl.row('Students',
       ed ? ctl('l-qty', ` <span class="l-qty-label" data-lesson="${i}">student</span>`)
          : esc(o.studentsLabel || String(L.n || 1)),
       rateCell('students', L.addChildren), totCell('students', L.addChildren), ed ? '' : free(L.addChildren)));
 
-    rows.push(tpl.fieldLine('Tutor', ed ? ctl('l-tutor') : esc(L.tutor || 'Any'), '—', '—', 'fl-free'));
-    rows.push(tpl.fieldLine('Term',
+    rows.push(tpl.row('Tutor', ed ? ctl('l-tutor') : esc(L.tutor || 'Any'), '—', '—', 'fl-free'));
+    rows.push(tpl.row('Term',
       ed ? ctl('l-interval')
          : esc(L.interval || (L.slotsKnown ? `${L.W} session${L.W === 1 ? '' : 's'}` : '—')),
       '—', '—', 'fl-free'));
-    if (ed) rows.push(tpl.fieldLine('Split with', ctl('l-split', ' others'), '—', '—', 'fl-free'));
+    if (ed) rows.push(tpl.row('Split with', ctl('l-split', ' others'), '—', '—', 'fl-free'));
 
     // The window, then every date inside it. Start is the sheet's start_date, or TODAY when that
     // date has already passed — picking the current interval mid-term can only start now. End is
     // the interval's last Sunday. Sessions are the chosen weekday between the two, which is why
     // the count here and the count in the price can never drift apart: they're the same array.
     const dateList = (L.sessionDates || []).map(d => fmtDate(d));
-    const datesText = dateList.length ? dateList.join(', ') : (o.datesText || '');
-    rows.push(tpl.fieldLine('Starts',
+    // Anything arriving from the sheet goes through fmtDate too. A stored date can reach here
+    // as a Date, an ISO string or a long GMT string depending on how it was written, and the
+    // display must not depend on which.
+    const datesText = dateList.length
+      ? dateList.join(', ')
+      : String(o.datesText || '').split(',').map(x => fmtDate(x.trim())).filter(Boolean).join(', ');
+    rows.push(tpl.row('Starts',
       cell('starts', esc(dateList[0] || fmtDate(L.startDate) || '—')), '', '', 'fl-free'));
-    rows.push(tpl.fieldLine('Ends',
+    rows.push(tpl.row('Ends',
       cell('ends', esc(fmtDate(L.lastSun) || fmtDate(L.endDate) || '—')), '', '', 'fl-free'));
-    rows.push(tpl.fieldLine('Dates',
+    rows.push(tpl.row('Dates',
       cell('dates', datesText ? `<span class="fl-dates">${esc(datesText)}</span>` : '—'),
       '',
       cell('total="dates"', dateList.length ? esc(dateList.length + ' dates') : '—'), 'fl-free'));
@@ -1260,24 +1391,24 @@ const tpl = {
       ? `<div class="l-slots" data-lesson="${i}"></div>`
       : tpl.slotGridStatic(L.day, L.time, L.h));
 
-    rows.push(tpl.fieldLine('Per hour', '',
+    rows.push(tpl.row('Per hour', '',
       cell('rate="perhour"', `<b>${money(L.chargePerHour)}/h</b>`), '', 'fl-rule'));
-    rows.push(tpl.fieldLine('Length',
+    rows.push(tpl.row('Length',
       cell('lengthtext', esc(`${L.h || 0} hr × ${L.slots || 0} session${(L.slots || 0) > 1 ? 's' : ''}`)),
       '', cell('total="length"', esc((L.hoursTotal || 0) + ' hrs')), 'fl-free'));
-    rows.push(tpl.fieldLine('Total', '', '',
+    rows.push(tpl.row('Total', '', '',
       cell('total="total"', `<b>${money(L.total)}</b>`), 'fl-rule'));
 
     // Where the money goes. Role-gated, but decided HERE rather than by each card, so the
     // booking form and the class it becomes can never show a different set of rows.
-    if (isTutorRole()) rows.push(tpl.fieldLine('You earn', '', '',
+    if (isTutorRole()) rows.push(tpl.row('You earn', '', '',
       cell('total="tutorpay"', `<b>${money(L.tutorPay)}</b>`), 'fl-free'));
     if (isAdmin()) {
-      rows.push(tpl.fieldLine('Venue cost', '', '',
+      rows.push(tpl.row('Venue cost', '', '',
         cell('total="venuetotal"', `<b>${money(L.venueTotal)}</b>`), 'fl-free'));
-      rows.push(tpl.fieldLine('Your profit', '', '',
+      rows.push(tpl.row('Your profit', '', '',
         cell('total="profit"', `<b>${money(L.profitTotal)}</b>`)));
-      if (L.belowMinWage) rows.push(tpl.fieldLine('⚠ tutor below min wage', '',
+      if (L.belowMinWage) rows.push(tpl.row('⚠ tutor below min wage', '',
         money(L.tutorHourly) + '/h', '', 'fl-warn'));
     }
     return rows.join('');
@@ -1357,11 +1488,11 @@ const tpl = {
     const st = statsOf(USER);
     const kidStats = USER.role === 'kid'
       ? tpl.tagRow([`Lv ${st.level}`, `${st.xp} XP`, `🪙 ${st.credits} credits`, `🎮 ${USER.highscore || 0}`]) : '';
-    return `<div class="card own-profile" id="account-card" style="text-align:left">
-      <h3 class="gold" style="margin-bottom:4px">${esc(USER.name)}</h3>
+    return `<div class="card own-profile" id="account-card" class="t-left">
+      <h3 class="gold mb-xs">${esc(USER.name)}</h3>
       <p class="sub">${roleLabel}${USER.handle ? ' · ' + esc(USER.handle) : ''}</p>
       ${kidStats}
-      <p class="muted" style="font-size:var(--fs-xs);margin:10px 0">${
+      <p class="muted note">${
         USER.role === 'kid'
           ? 'Your checklist, friends and classes are in their sections below.'
           : 'Your children and classes are shown below.'
@@ -1386,7 +1517,7 @@ const tpl = {
     <span class="text-action" id="add-lesson-btn">＋ Add another lesson</span>
     <div class="job-foot">
       <div class="field-line fl-rule hidden" id="order-total-row"><span class="fl-k">Order total</span><span class="fl-v"></span><span class="fl-p"><b>£<span id="total">0.00</span></b></span></div>
-      <p id="home-note" class="muted hidden" style="font-size:var(--fs-xs);margin:6px 0 0">At-home lessons require a group of 4 students.</p>
+      <p id="home-note" class="muted hidden note">At-home lessons require a group of 4 students.</p>
       <div id="checkout-area" class="checkout"></div>
     </div>
   </div>`,
@@ -1402,8 +1533,9 @@ const tpl = {
     </div>
     <div class="job-detail">${tpl.priceRows(null, {
       editable: true, lesson: i,
-      status: '<span class="badge st-draft">Not sent yet</span>',
-      possession: '<span class="badge st-active">Yours</span>'
+      status: badge('Unsent'),
+      possession: badge('Yours'),
+      lifecycle: badge('Uncreated')
     })}</div>
     <div class="move-send-row">
       <input type="text" class="move-text l-message" data-lesson="${i}" placeholder="Add a message for the tutor (optional)…">
@@ -1412,6 +1544,20 @@ const tpl = {
 };
 
 /* ---------- RENDER ---------- */
+// Fetch the admin people directory once, then re-render the People section with it.
+function loadPeopleDirectory() {
+  if (!isAdmin() || DATA._peopleLoading) return;
+  DATA._peopleLoading = true;
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'listPeople', adminName: USER.name }) })
+    .then(r => r.json())
+    .then(d => {
+      DATA._people = d.people || [];
+      DATA._peopleLoading = false;
+      renderCards('tutors', DATA.tutors);
+    })
+    .catch(() => { DATA._people = []; DATA._peopleLoading = false; });
+}
+
 // Persistent header auth: shows who's logged in (logout lives on their profile card).
 function renderHeaderAuth() {
   const el = $('header-auth');
@@ -1422,7 +1568,58 @@ function renderHeaderAuth() {
 }
 
 function renderCards(id, items = []) {
+  // Two sheet rows for one person shouldn't become two cards. Deduped by name here rather than
+  // hidden in the backend, because a duplicate ROW is a data problem worth noticing — it's
+  // reported to the console so it can be fixed at source.
+  if (id === 'tutors' || id === 'venues') {
+    const k = x => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const seen = new Set(), dupes = [];
+    items = (items || []).filter(x => {
+      const key = k(x.title);
+      if (!key) return true;                       // unnamed rows are their own problem
+      if (seen.has(key)) { dupes.push(x.title); return false; }
+      seen.add(key);
+      return true;
+    });
+    if (dupes.length) console.warn('@family. duplicate rows in the sheet for:', dupes,
+      '— same person twice in the database, showing one card each');
+  }
   let cardsHtml = items.length ? items.map(tpl.card).join('') : '<p class="muted">Nothing yet.</p>';
+
+  // Admin sees everyone, with each person's role spelled out. Loaded on demand rather than
+  // shipped in every payload — it carries contact details, so it's an authorised request.
+  // Admin sees everyone. Tutors and admins already have cards above, so this adds the people
+  // who normally have none — clients and students — as ordinary cards in the same grid. No
+  // separate list: the same card, just more of them, which is the whole difference the role makes.
+  if (id === 'tutors' && isAdmin()) {
+    if (!DATA._people) loadPeopleDirectory();
+    // Compare names with spaces and punctuation stripped. `tutors` builds "George Povey" from
+    // first_name + last_name, while the directory reads full_name, which in this sheet is often
+    // "GeorgePovey" — so a plain lowercase compare treated them as two different people and
+    // every tutor appeared twice.
+    const key = x => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const shown = new Set((DATA.tutors || []).map(t => key(t.title)));
+    const extra = (DATA._people || [])
+      .filter(p => {
+        const k = key(p.name);
+        if (!k || shown.has(k)) return false;
+        shown.add(k);        // also guards against duplicates WITHIN the directory itself
+        return true;
+      })
+      .map((p, n) => ({
+        id: 'p' + n, type: 'person', role: p.role,
+        title: p.name,
+        subtitle: [p.role, p.city].filter(Boolean).join(' · '),
+        image: p.photo,
+        tags: p.tags || [],
+        description: p.description,
+        // Flagged on the card because a blank address means every notification to this person
+        // is silently dropped, and that stays invisible until someone says they weren't told.
+        warn: p.contactable ? '' : 'No email — receives no notifications',
+        contact: [p.email, p.phone].filter(Boolean).join(' · ')
+      }));
+    cardsHtml += extra.map(tpl.card).join('');
+  }
 
   // People section: the login card (logged out) or the person's own account card (logged in).
   if (id === 'tutors') {
@@ -1442,11 +1639,11 @@ function renderCards(id, items = []) {
     const handles = friendHandles().map(norm);
     const friends = (DATA.students || []).filter(s => handles.includes(norm(s.handle)));
     const friendCards = friends.map(tpl.friendCard).join('');
-    cardsHtml += `<div class="card friend-search-card" style="text-align:left">
-        <h3 class="gold" style="margin-bottom:8px">Add a Friend</h3>
-        <input id="friend-search" class="edit-input" placeholder="Exact name e.g. LuccaD" style="margin-bottom:8px">
+    cardsHtml += `<div class="card friend-search-card t-left">
+        <h3 class="gold mb-sm">Add a Friend</h3>
+        <input id="friend-search" class="edit-input" placeholder="Exact name e.g. LuccaD" class="mb-sm">
         <span class="text-action" id="add-friend-btn">Add friend</span>
-        <p id="friend-msg" class="muted" style="font-size:var(--fs-xs);min-height:14px;margin-top:8px"></p>
+        <p id="friend-msg" class="muted note status-line"></p>
       </div>` + friendCards;
   }
   // A logged-in parent sees their children's profile cards
@@ -1484,7 +1681,7 @@ function classState(j) {
   if (!USER) return '';
   const norm = s => String(s || '').toLowerCase().trim();
   const status = jobStatus(j);
-  const confirmed = ['Paid', 'Active', 'Completed'].includes(status);
+  const confirmed = status === 'Active';
   if (isTutorRole()) {
     if (norm(j.requestedTutor) !== norm(USER.name)) return '';
     return confirmed ? 'confirmed' : 'pending';
@@ -2012,10 +2209,10 @@ function friendHandles() {
 function renderCheckout() {
   if (!$('checkout-area')) return;
   $('checkout-area').innerHTML = USER
-    ? `<p class="muted" style="font-size:var(--fs-sm);margin:0">Booking as <b style="color:#fff">${esc(USER.name)}</b></p>
-       <span class="text-action" id="book-btn" style="margin-top:6px;font-size:var(--fs-md)">Lock in &amp; book</span>`
-    : `<p class="muted" style="font-size:var(--fs-sm);margin:0">Log in to book a session.</p>
-       <span class="text-action" id="go-login-btn" style="margin-top:6px;font-size:var(--fs-md)">Log in to book</span>`;
+    ? `<p class="muted note-sm">Booking as <b class="ink-strong">${esc(USER.name)}</b></p>
+       <span class="text-action" id="book-btn" class="cta">Lock in &amp; book</span>`
+    : `<p class="muted note-sm">Log in to book a session.</p>
+       <span class="text-action" id="go-login-btn" class="cta">Log in to book</span>`;
 }
 
 function renderLinks(items = DATA.links || []) {
@@ -2156,13 +2353,26 @@ function renderSlots(i) {
   const tutorName = document.querySelector(`.l-tutor[data-lesson="${i}"]`)?.value || '';
   const venueName = document.querySelector(`.l-location[data-lesson="${i}"]`)?.value || '';
 
-  if (!tutorName) { wrap.innerHTML = `<p class="slots-hint muted">Pick a tutor to see available times.</p>`; layoutGrid(wrap.closest('.grid')); return; }
   if (!venueName) { wrap.innerHTML = `<p class="slots-hint muted">Pick a venue to see available times.</p>`; layoutGrid(wrap.closest('.grid')); return; }
 
-  const tutor = (DATA.tutors || []).find(t => norm(t.title) === norm(tutorName));
   const venue = (DATA.venues || []).find(v => norm(v.title) === norm(venueName));
-  const tAvail = tutor?.avail || {};
   const vAvail = venue?.avail || {};
+
+  // "No preference" means ANY tutor who is free — so the hours offered are the UNION across every
+  // tutor, not a blank grid. Without this a no-preference booking could never pick a time, which
+  // made the whole open-pool flow unreachable: the card said "Pick a tutor to see available
+  // times" to someone who had deliberately not picked one.
+  // A placeholder tutor row would have done the same job, but it would also have appeared in the
+  // People section as a person, needed an email, and been counted in the admin directory. This
+  // is the same answer without inventing someone.
+  const tutor = tutorName ? (DATA.tutors || []).find(t => norm(t.title) === norm(tutorName)) : null;
+  const anyTutor = !tutorName;
+  const tAvail = anyTutor
+    ? (DATA.tutors || []).reduce((acc, t) => {
+        Object.keys(t.avail || {}).forEach(c => { if (on(t.avail[c])) acc[c] = 'TRUE'; });
+        return acc;
+      }, {})
+    : (tutor?.avail || {});
 
   const g = DATA.availGrid || { days: [['m','Mon'],['tu','Tue'],['w','Wed'],['th','Thu'],['f','Fri'],['sa','Sat'],['su','Sun']], hours: [9,10,11,12,13,14,15,16,17,18,19] };
 
@@ -2172,7 +2382,10 @@ function renderSlots(i) {
   );
 
   if (!dayHasSlots.length) {
-    wrap.innerHTML = `<p class="slots-hint muted">No times available for ${esc(tutorName)} at ${esc(venueName)}. ${isAdmin() ? 'Set the venue\u2019s open hours in its Edit form.' : ''}</p>`;
+    wrap.innerHTML = `<p class="slots-hint muted">No times available ${
+      anyTutor ? 'at ' + esc(venueName) : 'for ' + esc(tutorName) + ' at ' + esc(venueName)}. ${
+      isAdmin() ? 'Check the venue\u2019s open hours and the tutors\u2019 availability \u2014 an ' +
+                  'hour has to be ticked on both to be bookable.' : ''}</p>`;
     layoutGrid(wrap.closest('.grid'));
     return;
   }
@@ -2191,7 +2404,9 @@ function renderSlots(i) {
     return `<tr><th class="slot-day">${esc(label)}</th>${cells}</tr>`;
   }).join('');
 
-  wrap.innerHTML = `<p class="slots-hint muted">Tick the 2 back-to-back hours you want:</p>
+  wrap.innerHTML = `<p class="slots-hint muted">${anyTutor
+      ? 'Hours when a tutor is free here \u2014 tick the 2 back-to-back you want:'
+      : 'Tick the 2 back-to-back hours you want:'}</p>
     <div class="slot-grid-wrap"><table class="slot-grid">${head}${rows}</table></div>`;
   layoutGrid(wrap.closest('.grid'));
 }
@@ -2395,13 +2610,18 @@ function verifyFormula() {
   const M = num(v['M'] ?? v['minimum wage'] ?? v['mu']);
   const banner = $('pricing-diag');
   if (isNaN(M) || M <= 0) {
-    const msg = '⚠ Pricing isn\'t set up — every price will be £0. ' +
-      'The backend sent no minimum wage (M). Usual fix: redeploy the Apps Script as a NEW version ' +
+    // The full diagnosis names the pay variable and the deploy step — useful to an admin, and
+    // nobody else's business. A visitor gets told prices are unavailable, which is the only part
+    // that concerns them, and the detail still goes to the console either way.
+    const detail = '⚠ Pricing isn\'t set up — every price will be £0. ' +
+      'The backend sent no rate variable (M). Usual fix: redeploy the Apps Script as a NEW version ' +
       '(Deploy → Manage deployments → pencil → Version: New version → Deploy). ' +
       'Or add a category=variable row named M. ' +
       `[backend: ${DATA.version || 'OLD / not redeployed'}]`;
-    if (banner) { banner.textContent = msg; banner.style.display = 'block'; }
-    console.error(msg, 'vars =', v);
+    const publicMsg = '⚠ Prices are temporarily unavailable. Please check back shortly, ' +
+      'or get in touch and we\'ll quote you directly.';
+    if (banner) { banner.textContent = isAdmin() ? detail : publicMsg; banner.style.display = 'block'; }
+    console.error(detail, 'vars =', v);
   } else {
     if (banner) banner.style.display = 'none';
     console.log('@family. pricing OK — M =', M, '| vars =', Object.keys(v).join(', '));
@@ -2415,6 +2635,27 @@ function lval(i, cls) {
 }
 function lsubjects(i) {
   return Array.from(document.querySelectorAll(`.subj-cb[data-lesson="${i}"]:checked`)).map(cb => cb.value).filter(Boolean);
+}
+
+// The wage multiplier from the sheet — what turns a tutor's pay into what a client is charged.
+function wageMultiplier() {
+  const v = (DATA.constants || {}).vars || {};
+  for (const key of ['w', 'wage multiplier', 'λ', 'lambda']) {
+    const x = num(v[key]);
+    if (!isNaN(x) && x > 0) return x;
+  }
+  return 1;
+}
+
+// The wage markup from the sheet. Needed on the card because a tutor's `constant` is what THEY
+// are paid; what a client pays for them is that times w.
+function wageMultiplier() {
+  const v = (DATA.constants || {}).vars || {};
+  for (const k of ['w', 'wage multiplier', 'λ', 'lambda']) {
+    const x = num(v[k]);
+    if (!isNaN(x) && x > 0) return x;
+  }
+  return 1;
 }
 
 // Hours taught per week — ONE source, read from a sheet variable so it isn't hardcoded in
@@ -2478,9 +2719,14 @@ function priceFrom(spec) {
   // What the tutor is paid per hour. Each tutor row carries its own `constant`; the row named
   // "No preference" holds the default, so switching the default is a sheet edit, not a code
   // change. Only if no tutor (and no such row) resolves do we fall back to the M variable.
-  const tutorRow = (DATA.tutors || []).find(t => norm(t.title) === norm(tutor))
-                || (DATA.tutors || []).find(t => norm(t.title) === 'no preference');
-  const tutorRate = Number(tutorRow && tutorRow.rate) > 0 ? Number(tutorRow.rate) : 0;
+  // With a tutor named, their rate. With "No preference", the HIGHEST rate any tutor charges —
+  // because whoever ends up taking it must be covered by the price already agreed. Falling back to
+  // the M variable instead would quote 12.30 and then hand the job to a 14.00 tutor, leaving the
+  // difference out of your margin on every open booking.
+  const tutorRow = tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(tutor)) : null;
+  const openRate = (DATA.tutors || []).reduce((hi, t) => Math.max(hi, Number(t.rate) || 0), 0);
+  const tutorRate = Number(tutorRow && tutorRow.rate) > 0 ? Number(tutorRow.rate)
+                  : (tutor ? 0 : openRate);
   const M = tutorRate || cv('M', 'minimum wage', 'min wage', 'μ', 'mu');   // tutor's £/hr
   const usingTutorRate = !!tutorRate;
   const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');  // wage multiplier (default 1)
@@ -2770,16 +3016,48 @@ function calc() {
 }
 
 /* ---------- API POST ---------- */
+// One id per user action, generated here and recorded server-side. If the same id arrives twice
+// — double tap, flaky connection, impatient retry — the second is ignored. Ten lines, and it's
+// the difference between one charge and two on a Pay.
+const newRequestId = () =>
+  'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+
+// Re-fetch the payload, then redraw. Every move used to call renderClasses() alone, which
+// redraws from the DATA fetched at page load — so a job the backend had just cancelled, or a
+// slot it had just wiped, kept rendering exactly as it was before the move. The server was
+// right and the screen was stale. Only the classes section is redrawn, so this can't disturb
+// an open profile editor or a game in progress elsewhere on the page.
+async function reloadData() {
+  try {
+    const res = await fetch(API);
+    const d = await res.json();
+    if (d && !d.error) { DATA = d; renderClasses(); }
+  } catch { renderClasses(); }   // offline: at least redraw what we have
+}
+
+
 async function post(body, btn, okText) {
   btn.textContent = 'Working...';
   btn.disabled = true;
   try {
     const d = await (await fetch(API, { method: 'POST', body: JSON.stringify(body) })).json();
-    btn.textContent = d.success ? okText : (d.error || 'Error');
-    if (!d.success) btn.disabled = false;
-  } catch {
+    if (d && d.success) { btn.textContent = okText; return d; }
+    // Put the reason somewhere it survives. The button is destroyed by the next re-render, so
+    // the message on it lasted about half a second — long enough to see that something failed
+    // and not long enough to read why. The toast and the console both persist.
+    const msg = (d && d.error) || 'The server didn\'t accept that.';
+    btn.textContent = msg;
+    btn.disabled = false;
+    flash(msg);
+    console.error('[action failed]', msg, '\nsent:', body, '\ngot:', d);
+    return d || {};
+  } catch (err) {
     btn.textContent = 'Error';
     btn.disabled = false;
+    flash('Could not reach the server — is the backend deployed?');
+    console.error('[action failed] no valid JSON back', err, '\nsent:', body);
+    return {};
   }
 }
 
@@ -2966,7 +3244,8 @@ function autosaveProfile(card) {
       fields[el.dataset.pf] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value;
     });
     console.log('[autosave] sending fields:', JSON.stringify(fields));
-    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateProfile', name: USER.name, fields }) })
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateProfile',
+      name: USER.name, target: EDIT_TARGET ? EDIT_TARGET.name : USER.name, fields }) })
       .then(r => r.json())
       .then(d => {
         console.log('[autosave] backend replied:', JSON.stringify(d));
@@ -2974,7 +3253,7 @@ function autosaveProfile(card) {
         Object.assign(USER.profile, fields);
         const norm = s => String(s || '').toLowerCase().trim();
         const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER.name));
-        if (d && d.name && d.name !== USER.name) {
+        if (!EDIT_TARGET && d && d.name && d.name !== USER.name) {
           USER.name = d.name;
           try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
         }
@@ -3047,6 +3326,23 @@ function autosaveVenue(card) {
         }
         if (status) status.textContent = (d && d.error) ? d.error : 'Saved ✓';
       })
+      .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
+    return;
+  }
+
+  // A relabel saves the moment it changes. Nothing else on this site has a Save button.
+  if (e.target.classList.contains('res-f') && isAdmin()) {
+    const form = e.target.closest('.res-edit');
+    const status = form?.querySelector('.edit-status');
+    if (status) status.textContent = 'Saving…';
+    const fields = {};
+    form.querySelectorAll('.res-f').forEach(el => {
+      fields[el.dataset.f] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value;
+    });
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateResource',
+      adminName: USER.name, rowIndex: form.dataset.row, fields }) })
+      .then(r => r.json())
+      .then(d => { if (status) status.textContent = d && d.error ? d.error : 'Saved ✓'; })
       .catch(() => { if (status) status.textContent = 'Not saved — check connection'; });
     return;
   }
@@ -3301,7 +3597,9 @@ document.addEventListener('click', e => {
     post({ action: 'setJobStatus', jobId, status: to }, t, `✅ ${to}`);
     // Reflect immediately so the card updates without waiting for a reload.
     const job = (DATA.clientClasses || []).find(x => String(x.id) === String(jobId));
-    if (job) { job.status = to; setTimeout(() => renderClasses(), 400); }
+    // Refetch rather than guessing the new status locally: the backend derives it from every
+    // client slot, so a local guess is right only until it isn't.
+    setTimeout(reloadData, 700);
     return;
   }
 
@@ -3332,7 +3630,7 @@ document.addEventListener('click', e => {
 
   // One submit sends the whole turn: the chosen action (if any) plus the typed message.
   if (t.classList.contains('cl-submit')) {
-    const { job: jobId, client } = t.dataset;
+    const { job: jobId, counterpart } = t.dataset;
     const block = t.closest('.cl-block');
     const sel = block?.querySelector('.cl-action');
     const input = block?.querySelector('.cl-msg');
@@ -3341,63 +3639,67 @@ document.addEventListener('click', e => {
     // Nothing chosen and nothing typed is not a turn.
     if (!chosen && !text) { input?.focus(); return; }
     // Asking for a change without saying what to change is just a decline with extra steps.
-    if (chosen === 'pass' && !text) {
+    if (chosen === 'Request' && !text) {
       input?.focus();
       input?.setAttribute('placeholder', "Say what you'd like changed…");
       return;
     }
-    if (chosen === 'decline' && !confirm(isTutorRole()
-      ? 'Decline this request? This cannot be undone.'
-      : 'Withdraw from this session? This cannot be undone.')) return;
+    // Both of these erase the person from the job — name, status and every thread. There is no
+    // Declined or Withdrawn state to recover from, so the confirm is the only safety net.
+    if (chosen === 'Decline' && !confirm('Decline this? They are removed from the session entirely.')) return;
+    if (chosen === 'Withdraw' && !confirm('Withdraw? You are removed from this session entirely.')) return;
 
+    // The dropdown already holds machine verbs, so there's nothing to translate — that mapping
+    // table was only ever papering over two vocabularies that should have been one.
     const by = isTutorRole() ? 'tutor' : 'client';
-    // The same three verdicts mean different things depending on who casts them.
-    //   Tutor:  Accept = agree terms (→Unpaid).  Pass = ask for a change (→Queried).
-    //   Client: Accept = re-submit for approval (→Requested).  Pass = reply, no change.
-    // Decline is the only one that means the same to both: this isn't happening.
-    const MAP = by === 'tutor'
-      ? { accept: 'accept', decline: 'decline', pass: 'query' }
-      : { accept: 'edit',   decline: 'cancel',  pass: 'text'  };
-    const move = MAP[chosen] || 'text';
+    const move = chosen;
     if (input) input.value = '';
     if (sel) sel.value = '';
-    const label = { accept: '✅ Accepted', query: '✅ Sent', edit: '✅ Sent', decline: 'Declined',
-                    cancel: 'Cancelled', pay: '✅ Paid', text: '✅ Sent' }[move] || '✅ Sent';
-    post({ action: 'clientMove', jobId, client, move, by, text, sender: USER ? USER.name : '' }, t, label);
-    setTimeout(() => renderClasses(), 600);
+    const label = { Accept: '✅ Accepted', Request: '✅ Sent', Decline: 'Declined',
+                    Withdraw: 'Withdrawn', Pay: '✅ Paid' }[move] || '✅ Sent';
+    post({ action: 'move', jobId, role: by, name: USER ? USER.name : '',
+           counterpart, move, text, requestId: newRequestId() }, t, label)
+      .then(d => { if (d && d.success) setTimeout(reloadData, 700); });
     return;
   }
 
   // The tutor side: claim it, or the family's verdict on whoever claimed it. No message box —
   // these are one-tap decisions, and any discussion belongs in the family's thread.
-  if (t.classList.contains('tutor-verdict')) {
-    const move = t.dataset.move;
-    const ask = {
-      claim:   'Claim this job? The family will be asked to approve you.',
-      accept:  'Accept this tutor for your session?',
-      decline: 'Decline this tutor? The job reopens for others to claim.'
-    }[move];
-    if (ask && !confirm(ask)) return;
-    const label = { claim: '✅ Claimed', accept: '✅ Accepted', decline: 'Declined' }[move] || '✅ Sent';
-    post({ action: 'tutorMove', jobId: t.dataset.job, move,
-           by: isTutorRole() ? 'tutor' : 'client', sender: USER ? USER.name : '' }, t, label);
-    setTimeout(() => renderClasses(), 600);
+  if (t.classList.contains('tutor-apply')) {
+    const box = t.closest('.cl-block')?.querySelector('.tutor-msg');
+    const text = (box?.value || '').trim();
+    if (!confirm('Apply to teach this job? The family will see you among the applicants.')) return;
+    if (box) box.value = '';
+    post({ action: 'tutorMove', jobId: t.dataset.job, move: 'claim', text,
+           by: 'tutor', sender: USER ? USER.name : '', requestId: newRequestId() }, t, '✅ Applied')
+      .then(d => { if (d && d.success) setTimeout(reloadData, 700); });
     return;
   }
 
-  // Pay and cancel are actions, not verdicts, so they're links rather than dropdown options.
-  if (t.classList.contains('cl-pay')) {
-    if (!confirm('Continue to payment?')) return;
-    post({ action: 'clientMove', jobId: t.dataset.job, client: t.dataset.client,
-           move: 'pay', by: 'client', sender: USER ? USER.name : '' }, t, '✅ Paid');
-    setTimeout(() => renderClasses(), 600);
+  if (t.classList.contains('tutor-verdict')) {
+    const move = t.dataset.move;
+    const who = t.dataset.tutor || '';
+    const ask = {
+      decline: `Decline ${who}? Other applicants are unaffected.`
+    }[move];
+    if (ask && !confirm(ask)) return;
+    post({ action: 'tutorMove', jobId: t.dataset.job, move, tutor: who,
+           by: isTutorRole() ? 'tutor' : 'client', sender: USER ? USER.name : '',
+           requestId: newRequestId() }, t,
+         move === 'claim' ? '✅ Applied' : 'Declined')
+      .then(d => { if (d && d.success) setTimeout(reloadData, 700); });
     return;
   }
-  if (t.classList.contains('cl-cancel')) {
-    if (!confirm('Withdraw from this session? This cannot be undone.')) return;
-    post({ action: 'clientMove', jobId: t.dataset.job, client: t.dataset.client,
-           move: 'cancel', by: 'client', sender: USER ? USER.name : '' }, t, 'Cancelled');
-    setTimeout(() => renderClasses(), 600);
+
+  // The family picks one applicant. That single act declines everyone else.
+  if (t.classList.contains('tutor-choose')) {
+    const sel = t.closest('.cl-form')?.querySelector('.tutor-pick');
+    const chosen = sel?.value || '';
+    if (!chosen) { sel?.focus(); return; }
+    if (!confirm(`Choose ${chosen}? Any other applicants will be declined.`)) return;
+    post({ action: 'tutorMove', jobId: t.dataset.job, move: 'accept', tutor: chosen,
+           by: 'client', sender: USER ? USER.name : '', requestId: newRequestId() }, t, '✅ Chosen')
+      .then(d => { if (d && d.success) setTimeout(reloadData, 700); });
     return;
   }
 
@@ -3440,8 +3742,7 @@ document.addEventListener('click', e => {
       if (move === 'accept') job.status = 'Accepted';
       else if (move === 'decline') job.status = 'Declined/Cancelled';
       else if (move === 'propose') job.status = 'Negotiating';
-      if (move !== 'decline') job.offerTurn = (by === 'tutor' ? 'client' : 'tutor');
-      setTimeout(() => renderClasses(), 400);
+      setTimeout(reloadData, 700);
     }
     return;
   }
@@ -3498,6 +3799,21 @@ document.addEventListener('click', e => {
     return;
   }
 
+  // Admin opens the relabel form for one resource.
+  if (t.classList.contains('res-edit-btn')) {
+    const form = t.closest('.check-row')?.nextElementSibling;
+    if (form && form.classList.contains('res-edit')) {
+      form.classList.toggle('hidden');
+      layoutGrid(t.closest('.grid'));
+    }
+    return;
+  }
+  if (t.classList.contains('res-done')) {
+    const form = t.closest('.res-edit');
+    if (form) { form.classList.add('hidden'); layoutGrid(t.closest('.grid')); }
+    return;
+  }
+
   // Student ticks/unticks a topic box → instantly write their handle to that topic row's tickN cell
   if (t.classList.contains('topic-cb')) {
     if (!canTrack() || !USER.handle) return;
@@ -3521,7 +3837,29 @@ document.addEventListener('click', e => {
   // Tutor clicks Edit on their own Team card → swap that card to edit mode in place
   if (t.classList.contains('edit-profile-btn')) {
     const card = t.closest('.card');
-    if (card) { const g = card.closest('.grid'); card.outerHTML = tpl.profileEditCard(USER.profile || {}); layoutGrid(g); }
+    if (!card) return;
+    const who = t.dataset.person || '';
+    // Your own profile is already in memory. Someone else's has to be fetched, and the fetch is
+    // authorised server-side — it carries contact details and dates of birth.
+    if (!who) {
+      EDIT_TARGET = null;
+      const g = card.closest('.grid');
+      card.outerHTML = tpl.profileEditCard(USER.profile || {});
+      layoutGrid(g);
+      return;
+    }
+    t.textContent = 'Opening…';
+    fetch(API, { method: 'POST', body: JSON.stringify({ action: 'getProfile', adminName: USER.name, target: who }) })
+      .then(r => r.json())
+      .then(d => {
+        t.textContent = 'Edit';
+        if (!d || !d.success) { flash((d && d.error) || 'Could not open that profile.'); return; }
+        EDIT_TARGET = { name: who, role: d.role, profile: d.profile || {} };
+        const g = card.closest('.grid');
+        card.outerHTML = tpl.profileEditCard(EDIT_TARGET.profile);
+        layoutGrid(g);
+      })
+      .catch(() => { t.textContent = 'Edit'; flash('Could not reach the server.'); });
     return;
   }
   // Cancel editing → restore just this card to display form (no section rebuild)
@@ -3530,6 +3868,14 @@ document.addEventListener('click', e => {
     const card = t.closest('.card');
     if (!card) return;
     const g = card.closest('.grid');
+    // Finished editing someone else: forget them and rebuild the section, so their card shows
+    // the new values and the next Edit doesn't reopen the previous person.
+    if (EDIT_TARGET) {
+      EDIT_TARGET = null;
+      DATA._people = null;               // refetch the directory so the card reflects the edit
+      renderCards('tutors', DATA.tutors);
+      return;
+    }
     // A tutor returns to their public profile card; a parent or student to their account card,
     // which is the only card they have.
     const me = (DATA.tutors || []).find(x => norm(x.title) === norm(USER && USER.name));
