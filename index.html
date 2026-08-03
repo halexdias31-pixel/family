@@ -11,21 +11,28 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-  <!-- Cache control without a build step.
-       On GitHub Pages you can't set cache headers, so the query string IS the cache key.
-       Editing a file without changing that string means browsers keep serving the old copy —
-       which is exactly the "did my change persist?" confusion.
-       In dev (?dev=1, or localhost) the key is the current millisecond, so every load is
-       guaranteed fresh. In normal use it's BUILD: bump that ONE line to ship a change to
-       everyone. document.write is used deliberately — it inserts the tags during parsing, so
-       load order is preserved (script.js must run after mathjs and html2canvas). -->
+  <!-- CACHE CONTROL
+       Every request for script.js and style.css carries the current millisecond, so the browser
+       can never serve an old copy of either. Upload a file, refresh, see the change. No version
+       string to remember, no "did that actually deploy?".
+
+       Why not a fixed build number: it lived in THIS file, and GitHub Pages caches HTML too. So a
+       stale index.html kept asking for the old ?v= and served old JS and CSS however many times
+       you re-uploaded them — the bump could never arrive, because the thing holding the bump was
+       itself the stale copy. Nothing inside a cacheable file can solve that.
+
+       The cost is that both files are re-downloaded on every visit rather than reused. For a
+       couple of hundred KB on a site of this size that's a fraction of a second, and it buys the
+       certainty that what's on screen is what's on disk.
+
+       The meta tags below ask for the same treatment for index.html. Browsers honour them
+       unevenly, which is exactly why the loader doesn't rely on them. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <script>
     (function () {
-      var BUILD = '2026-07-30e';           // ← bump this to push changes to everyone
-      var dev = /(^|\.)localhost$/.test(location.hostname)
-             || location.protocol === 'file:'
-             || /[?&]dev=1/.test(location.search);
-      window.ASSET_V = dev ? Date.now() : BUILD;
+      window.ASSET_V = Date.now();
       document.write('<link rel="stylesheet" href="style.css?v=' + window.ASSET_V + '">');
     })();
   </script>
@@ -105,7 +112,6 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>document.write('<scr' + 'ipt src="script.js?v=' + window.ASSET_V + '"></scr' + 'ipt>');</script>
   <script>
     // If script.js never executed, every section sits on "Loading" with an empty console and
