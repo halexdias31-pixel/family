@@ -1,129 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>@family.</title>
-  <!-- Patrick Hand = the pen the notes are written in. Chosen over the flowing script faces
-       because it's PRINTED, not joined — by some distance the most legible handwriting face
-       at small sizes, which matters for dense topic lists. Loaded here rather than
-       @import-ed in the CSS so it starts downloading immediately. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-  <!-- CACHE CONTROL
-       Every request for script.js and style.css carries the current millisecond, so the browser
-       can never serve an old copy of either. Upload a file, refresh, see the change. No version
-       string to remember, no "did that actually deploy?".
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#12100d">
+<title>@family.</title>
 
-       Why not a fixed build number: it lived in THIS file, and GitHub Pages caches HTML too. So a
-       stale index.html kept asking for the old ?v= and served old JS and CSS however many times
-       you re-uploaded them — the bump could never arrive, because the thing holding the bump was
-       itself the stale copy. Nothing inside a cacheable file can solve that.
+<!-- ==================================================================================================
+     NOTHING HERE IS EVER CACHED.
 
-       The cost is that both files are re-downloaded on every visit rather than reused. For a
-       couple of hundred KB on a site of this size that's a fraction of a second, and it buys the
-       certainty that what's on screen is what's on disk.
+     A fix can be committed, published by GitHub Pages and live on the internet while the phone in
+     your hand is still running last week's script.js — and nothing anywhere says so. That has cost
+     more time on this project than any actual bug, because a stale file and a broken feature look
+     identical from the outside: you change something, you reload, and nothing happens.
 
-       The meta tags below ask for the same treatment for index.html. Browsers honour them
-       unevenly, which is exactly why the loader doesn't rely on them. -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <script>
-    (function () {
-      window.ASSET_V = Date.now();
-      document.write('<link rel="stylesheet" href="style.css?v=' + window.ASSET_V + '">');
-    })();
-  </script>
+     A version number in the URL only works if somebody remembers to change it, which is a step
+     that can be forgotten, which means eventually it is. So the number is the CLOCK. Every load
+     asks for a URL no browser has ever seen, so no browser can be holding an old copy of it.
+
+     THE ONE FILE THIS CANNOT FIX IS ITSELF. index.html is the entry point, so nothing can date its
+     URL — GitHub Pages serves it with its own cache headers and the meta tags below do not
+     override them. That is why one manual clear is needed to pick this file up, and why it is the
+     last one you will need: this file never has to change again. Everything it loads is dated at
+     run time, and everything it does not load is loaded by script.js, which is.
+
+     IF IT IS ON YOUR HOME SCREEN, delete the icon and re-add it after that clear. An iOS webclip
+     caches its start page far harder than Safari does, and clearing Safari does not touch it. The
+     `apple-mobile-web-app-capable` tag that makes it a webclip is deliberately NOT here while this
+     is being edited daily — it is worth adding back when the app settles down.
+
+     WHAT IT COSTS. About 230KB re-downloaded on every load rather than served from cache —
+     noticeable on a slow connection, invisible on wifi. The right trade while this changes several
+     times a day; swap Date.now() for a release string later and the caching comes back.
+
+     document.write, deliberately. It is the one method that keeps these synchronous and in order
+     during parsing: the stylesheet is fetched before anything is painted, and script.js runs after
+     the markup below it exists, which is what it expects. Appending elements instead would make
+     both load asynchronously, and script.js would go hunting for #tabs before the parser had
+     written it.
+================================================================================================== -->
+<script>
+  /* A SERVICE WORKER OUTLIVES EVERYTHING — a reload, a hard reload, and on some browsers clearing
+     history. While one is installed it can serve a copy of any file from months ago whatever the
+     server sends, which is indistinguishable from an edit not saving.
+     Nothing here has ever registered one deliberately. That is not the same as there not being
+     one. Removed first, before a single file is asked for, so it cannot intercept them. */
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) { r.unregister(); });
+      });
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+    }
+  } catch (e) {}
+
+  /* ONE number, used by both — so the stylesheet and the script can never come from different
+     loads. A half-updated pair is a bug that appears sometimes and never reproduces. */
+  var LOAD = Date.now();
+  document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
+</script>
+<noscript><link rel="stylesheet" href="style.css"></noscript>
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 </head>
 <body>
-  <header style="display:flex;justify-content:space-between;align-items:center">
-    <h1>@family.</h1>
-    <span id="header-auth"></span>
-  </header>
 
-  <div id="health-banner" class="health-banner hidden"></div>
+<!-- ==================================================================================================
+     THE SHELL.
 
-  <main>
-    <section>
-      <h2>Showcase</h2>
-      <div class="filters" id="post-filters"></div>
-      <div id="gallery" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+     Three fixed parts and one scrolling one, which is what every mobile app is:
 
-    <section>
-      <h2>Classes &amp; Booking</h2>
-      <div class="filters" id="class-filters"></div>
-      <div id="classes" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+       a HEADER that says where you are and holds the one action for this screen
+       a SCROLLER that is the only thing that moves
+       a TAB BAR at the bottom, in the thumb's reach
+       and a SHEET that slides up over all of it for anything that needs full attention
 
-    <section>
-      <h2>Venues</h2>
-      <div class="filters" id="venue-filters"></div>
-      <div id="venues" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+     The old layout was a wall of notes packed by height — right on a desktop, and a mile of
+     scrolling on a phone. This shows ONE screen at a time, which is the whole change.
+================================================================================================== -->
 
-    <section>
-      <h2>People</h2>
-      <div class="filters" id="tutor-filters"></div>
-      <div id="tutors" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+<header id="top">
+  <div id="top-left"></div>
+  <h1 id="top-title">Posts</h1>
+  <div id="top-right"></div>
+</header>
 
-    <section id="tools-section">
-      <h2>Tools</h2>
-      <div class="filters" id="tools-filters"></div>
-      <div id="tools-content" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+<!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a
+     backend older than the site. -->
+<div id="banner" class="hidden"></div>
 
-    <section id="checklist-section">
-      <h2>Checklist</h2>
-      <div class="filters" id="tool-filters"></div>
-      <div id="checklist-content" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+<main id="screen">
+  <!-- Every screen lives here. Only one is ever un-hidden, so the page is never taller than the
+       thing being looked at.
 
-    <section id="arcade-section">
-      <h2>Arcade</h2>
-      <div class="filters" id="arcade-filters"></div>
-      <div id="arcade-content" class="grid"></div>
-    </section>
+       EACH ID IS `s-` PLUS ITS TAB ID, and nothing checks that. `go()` reads the tab table and
+       asks for `s-<id>`; a section whose name does not match is a tab that switches to nothing,
+       silently — which is entry four on the list of seven in the notes. `who` became `find`
+       because the screen holds tutors, venues AND subjects, so this had to move with it. -->
 
-    <section>
-      <h2>Shop</h2>
-      <div class="filters" id="shop-filters"></div>
-      <div id="shop" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
+  <section class="screen" id="s-posts"></section>
+  <section class="screen hidden" id="s-library"></section>
+  <section class="screen hidden" id="s-stuff"></section>
+  <section class="screen hidden" id="s-arcade"></section>
+  <section class="screen hidden" id="s-tools"></section>
+  <section class="screen hidden" id="s-find"></section>
+  <section class="screen hidden" id="s-book"></section>
+  <section class="screen hidden" id="s-me"></section>
+</main>
 
-    <section>
-      <h2>Helpful Links</h2>
-      <div class="filters" id="link-filters"></div>
-      <div id="links" class="grid"><p class="loader-note">Loading</p></div>
-    </section>
-  </main>
-
-  <footer><p class="muted center">© 2026 @family.</p></footer>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-box">
-      <button type="button" class="modal-close">&times;</button>
-      <h3 id="modal-title" class="gold">Intro</h3>
-      <iframe id="modal-frame" src="" allow="autoplay"></iframe>
-    </div>
+<!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,
+     a form — opens in here rather than in a card that pushes the page around. -->
+<div id="sheet-back" class="hidden"></div>
+<div id="sheet" class="hidden">
+  <div id="sheet-grab"></div>
+  <div id="sheet-head">
+    <span id="sheet-title"></span>
+    <span id="sheet-close">✕</span>
   </div>
+  <div id="sheet-body"></div>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
-  <script>document.write('<scr' + 'ipt src="script.js?v=' + window.ASSET_V + '"></scr' + 'ipt>');</script>
-  <script>
-    // If script.js never executed, every section sits on "Loading" with an empty console and
-    // there's nothing to tell you why. Say so instead.
-    addEventListener('load', function () {
-      if (window.__familyBooted) return;
-      var b = document.getElementById('health-banner');
-      if (!b) return;
-      b.innerHTML = '\u26a0 <b>script.js did not load.</b> Check it sits next to index.html and '
-        + 'that the filename case matches, then hard-refresh (Ctrl/Cmd + Shift + R).';
-      b.classList.remove('hidden');
-    });
-  </script>
+<nav id="tabs"></nav>
+
+<!-- Dated with the same number as the stylesheet, and at the END of the body, where script.js
+     expects every element above it to already exist. -->
+<script>
+  document.write('<scr' + 'ipt src="script.js?t=' + LOAD + '"><\/scr' + 'ipt>');
+</script>
+<noscript>
+  <p style="padding:2rem;text-align:center;color:#9a9a9a;font-family:monospace">
+    @family. needs JavaScript to run.
+  </p>
+</noscript>
 </body>
 </html>
