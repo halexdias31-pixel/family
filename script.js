@@ -193,13 +193,135 @@ function seatLimits(space, tutor) {
 }
 
 
+
+/* ================================================================================================
+   THE EIGHT THAT WERE NEVER CARRIED OVER.
+
+   Each of these is referenced by the rules above and was not declared anywhere — so eight separate
+   features would have thrown a ReferenceError the first time their path ran, and every one of them
+   is on a path nothing has called yet. `node --check` cannot see any of it: a name that does not
+   exist is perfectly good syntax right up until the line executes.
+
+   All eight are restored from the pre-rewrite file rather than reinvented, because a plausible
+   guess at OPEN_RATE is a wrong price, and a plausible guess at jobStatus is a booking in the
+   wrong state. Where the original had a comment explaining itself, the comment came too.
+================================================================================================ */
+
+/* R is the hourly rate, and it is the tutor's own. A job nobody has claimed yet cannot be priced
+   from the rate of a tutor who has not taken it, so an unclaimed one uses this.
+   There is no minimum-wage floor and no markup: a tutor names their price, and what they are paid
+   is what they charged. Your margin comes from B — your share of what an extra seat is worth —
+   which is the only part of the price that is not the tutor's work. */
+const OPEN_RATE = 10;
+
+/* One word for "nothing chosen yet", everywhere. The form had four — "Choose ⌄", "All Levels", an
+   empty option and "No preference" — which read as four different states rather than one. */
+const NONE_LABEL = '\u2014\u2014\u2014';
+
+/** The value of an input by id, or ''. Reads a control that may not be on screen without throwing. */
+const val = id => ($(id) || {}).value || '';
+
+/* Who takes part in the checklist and the arcade: students, tutors and admins. A parent has no
+   topics to tick and no score to keep. */
+const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') || hasRole('admin');
+
+/* An admin is a tutor with extra powers, so everywhere gated on "tutor" admits an admin too.
+   Written once rather than as `USER.role === 'tutor'` at each site, which is how an admin came to
+   be refused by half the checks and allowed by the other half. */
+const isTutorRole = () => hasRole('tutor') || hasRole('admin');
+
+/* THE FOUR WORDS A JOB'S STATUS CAN BE, and nothing else.
+     unsent       built, not sent to anyone
+     unconfirmed  created, nobody has paid — it exists on paper only
+     active       at least one family is booked in and paying
+     cancelled    everybody left
+   Anything older in the sheet — Requested, Negotiating, Accepted, Unstarted — maps onto these, so
+   rows written before the rename still read correctly rather than falling through to a default. */
+const JOB_STATUSES = ['Unsent', 'Unconfirmed', 'Active', 'Cancelled'];
+function jobStatus(j) {
+  const s = String((j && j.status) || '').toLowerCase().trim();
+  if (/cancel|abandon|declin/.test(s))                  return 'Cancelled';
+  if (/unsent|draft/.test(s))                           return 'Unsent';
+  if (/active|locked|ongoing|started|complete/.test(s)) return 'Active';
+  return 'Unconfirmed';   // requested, negotiating, accepted, unstarted, blank — all "on paper"
+}
+
+/**
+ * DOES THIS PROMOTION APPLY to this booking?
+ *
+ * Returns false for anything it does not recognise, which is the safe direction: an unknown promo
+ * type that defaulted to true would silently discount every booking on the site, and the first
+ * anybody would know of it is the money.
+ */
+function promoApplies(p, ctx) {
+  if (!p || !p.active) return false;
+  switch (String(p.type || '').toLowerCase()) {
+    case 'bulk':          return ctx.lessonCount >= (parseFloat(p.threshold) || 999);
+    case 'multi_student': return ctx.n           >= (parseFloat(p.threshold) || 999);
+    case 'long_term':     return ctx.weeks       >= (parseFloat(p.threshold) || 999);
+    default: return false;
+  }
+}
+
+/**
+ * THE RUNNING TOTAL after a given row has applied.
+ *
+ * The last column used to hold each row's own contribution — "+ £3.08" — which made reading the
+ * card an addition problem: to know what a booking costs after the level surcharge you had to sum
+ * everything above it. A running figure answers that directly, and the last one IS the total, so
+ * the column ends where the price ends.
+ *
+ * Walks the same order the card renders in, so the number beside a row is the price with that row
+ * and everything above it applied, and nothing below.
+ */
+function runningAfter(key, L) {
+  let p = L.chargeRate || 0;
+  const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
+                 level: L.L, students: L.fChildrenAll };
+  for (const k of ['base', 'subject', 'complexity', 'level', 'students']) {
+    if (k !== 'base') p *= Number(step[k]) || 1;
+    if (k === key) return p;
+  }
+  /* The venue always ADDS its rate and hosting TAKES IT BACK on the row below. Folding the hosting
+     into the venue row meant that row said "+ £15.00/h" while the running total beside it did not
+     move, and the Host row showed nothing at all — the deduction happened between two rows with
+     neither of them reporting it. Each row moves the figure by exactly what it says it does. */
+  p += (L.venueRate || 0);
+  if (key === 'venue') return p;
+  if (L.hosting) p -= (L.venueRate || 0);
+  if (key === 'host') return p;
+  p *= (L.hoursPerWeek || 0) || 1;
+  if (key === 'hoursweek') return p;
+  /* WEEKS, not dates. Hours-a-week already spans every day ticked, so multiplying by the date
+     count — which is days × weeks — would count the days a second time. */
+  p *= (L.weeksBooked || 0) || 1;
+  if (key === 'term') return p;
+  p /= (L.splitShares || 1);
+  return p;
+}
+
 function priceFrom(spec) {
   spec = spec || {};
   const m = DATA.multipliers || {};
   const v = (DATA.constants || {}).vars || {};
   const cv  = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
   const cvD = (key, dflt, ...alts) => { for (const key2 of [key, ...alts]) { const x = num(v[key2]); if (!isNaN(x)) return x; } return dflt; };
-  const sur = (group, value) => { const x = num((m[group] || {})[value]); return isNaN(x) ? 0 : x; };
+  /* A SURCHARGE IS A MULTIPLIER, so the neutral value is 1. It returned 0 — and everything in the
+     hourly bracket is multiplied together, so ONE missing entry took the whole tuition to nothing
+     and the client was charged room hire and no teaching.
+
+     It was reachable on a perfectly ordinary booking: the level multipliers live in the pricing
+     tab, most levels have never been given one, and a blank cell and an unlisted level are the
+     same thing here. Days and times escaped it only because `worstOf` happens to end in `|| 1`,
+     and subjects because they carry their own guard — so the same fault existed three times over
+     and two of them had already been patched at the call site rather than here.
+
+     Zero and blank both mean "no effect", which for a multiplier is 1. There is no value of this
+     that should ever be able to zero a price. */
+  const sur = (group, value) => {
+    const x = num((m[group] || {})[value]);
+    return (isNaN(x) || x <= 0) ? 1 : x;
+  };
 
   const subjects = spec.subjects || [];
   const n = Math.max(1, parseInt(spec.n) || 1);
@@ -265,7 +387,10 @@ function priceFrom(spec) {
      Monday offset a Sunday, so a booking that includes the expensive slot would cost less than one
      that is only the expensive slot. */
   const worstOf = (group, csv) => String(csv || '').split(',').map(x => x.trim()).filter(Boolean)
-    .reduce((hi, one) => Math.max(hi, sur(group, one)), 0) || 1;
+    /* Starts at 1 rather than 0 now that `sur` is neutral there — the `|| 1` on the end was the
+       patch that hid this fault for days and times, and a patch that is no longer load-bearing is
+       one somebody will remove for tidiness and reintroduce the bug with. */
+    .reduce((hi, one) => Math.max(hi, sur(group, one)), 1);
   const D = worstOf('days',  day);
   const T = worstOf('times', time);
 
@@ -474,6 +599,130 @@ function priceFrom(spec) {
 }
 
 
+/* ---------- THE PRICE BREAKDOWN, AS DATA ------------------------------------------------------
+   Carried over whole. Every priced row on the card is declared ONCE here, and both the renderer
+   and the refresher walk this same list — which is what stops a row being drawn and never updated,
+   or updated after it stopped existing.
+
+   `priceCells` and `runningAfter` were carried over at the rewrite and this table was not, so both
+   were sitting in the file with nothing to walk. That is why the booker could only manage a per-
+   hour figure and a total: the machinery for the full chain was already here and had no list.
+--------------------------------------------------------------------------------------------- */
+const PRICE_ROWS = [
+  // --- the shape of the booking: these multiply the finished total ---
+  /* The 'Hours a week' row lived here. The When row reports the same number beside the grid that
+     decides it, and two rows for one fact is the duplication this card has been shedding all along. */
+
+  { key: 'term',   label: 'Time interval', kind: 'total-mult', group: 'shape',
+    control: 'l-interval',
+    value: L => L.interval || (L.weeksBooked ? L.weeksBooked + ' weeks' : ''),
+    // Weeks, matching what it actually multiplies by. It reported the DATE count while the price
+    // used weeks — the row and the arithmetic disagreed by a factor of the days ticked.
+    /* Weeks are known as soon as an interval is chosen — they come from its own dates. Gating this
+       on the session-date list meant a chosen interval showed no multiplier until the dates
+       resolved, which is a later and separate question. */
+    scale: L => L.weeksBooked || L.weeksLeft || 0,
+    /* Until days are ticked, the interval only says how many WEEKS are left — not how many
+       sessions, because a client may book one day a week or three. Stating a count here was a
+       guess shown in the same column as settled figures. */
+    // Silent until the days are ticked. A note in the multiplier column is a sentence where the
+    // eye is looking for a number.
+    idle:  L => '',
+    show:  L => !!L.W },
+
+  { key: 'base',    label: 'Tuition',  kind: 'rate-add',  group: 'rate',
+    control: 'l-tutor',
+    value: L => L.tutor || 'No preference',
+    perHour: L => L.chargeRate || 0,
+    // The rate itself, not an addition to it — so it shows unsigned, and its total is the tuition
+    // component of the price rather than a "+".
+    isBase: true, show: L => true },
+
+  /* THE ORDER MATTERS. Each of these multiplies what the ones above it have already produced, so
+     its `of` is the running total at its own point in the chain — not the bare rate. Writing the
+     bases out by hand is how two rows came to share one, which made the breakdown £13.67 short of
+     the price it was breaking down. `rateBase` derives each from the order below. */
+  { key: 'subject', label: 'Subject',  kind: 'rate-mult', group: 'rate',
+    control: 'subject-picker',
+    value: L => (L.subjects || []).join(', '),
+    mult:  L => L.avgSubject,
+    of:    L => rateBase(L, 'subject') },
+
+  { key: 'complexity', label: 'Extra subjects', kind: 'rate-mult', group: 'rate',
+    control: null,
+    value: L => String(Math.max(0, (L.k || 1) - 1)),
+    mult:  L => L.fSubjectCount,
+    of:    L => rateBase(L, 'complexity') },
+
+  { key: 'level',   label: 'Level',    kind: 'rate-mult', group: 'rate',
+    control: 'l-level',
+    value: L => L.level || '',
+    mult:  L => L.L,
+    of:    L => rateBase(L, 'level') },
+
+  { key: 'students', label: 'Extra seats', kind: 'rate-mult', group: 'rate',
+    control: 'l-qty',
+    /* Says WHERE the fraction came from, for an admin. A tutor's own setting and the site default
+       produce identical-looking multipliers, so a setting that isn't reaching the price is
+       indistinguishable from one that is — which is exactly how 1.5 kept applying while a tutor's
+       0.25 sat in a column that didn't exist. */
+    value: L => String(Math.max(0, (L.n || 1) - 1))
+      + (isAdmin() && L.seatSource ? ` <span class="note">${esc(L.seatSource)}</span>` : ''),
+    mult:  L => L.fChildrenAll,
+    of:    L => rateBase(L, 'students') },
+
+  { key: 'venue',   label: 'Venue',    kind: 'rate-add',  group: 'rate',
+    control: 'l-location',
+    value: L => L.loc || '',
+    perHour: L => L.venueRate || 0,
+    atCost: true },
+
+  { key: 'host',    label: 'Host',     kind: 'rate-add',  group: 'rate',
+    control: 'host-toggle',
+    perHour: L => (L.hosting && L.venueRate) ? -L.venueRate : 0,
+    atCost: true,
+    show:  L => !!L.venueRate },
+
+  { key: 'split',  label: 'Split with', kind: 'total-mult', group: 'shape',
+    /* The count comes from the addresses. A number picked separately is a second statement of the
+       same fact — choose 3, name 2, and neither the price nor the invitation list knows which is
+       true. Naming someone IS splitting with them. */
+    control: 'split-emails',
+    /* Splitting changes both the hourly rate and the total, so it reports both — it was the only
+       row that moved the price without saying by how much. */
+    perHour: L => (L.splitOthers || 0) > 0 && L.chargePerHour
+      ? -(L.chargePerHour * (L.splitOthers || 0)) : 0,
+    value: L => String(L.splitOthers || 0),
+    // Splitting with nobody is not a division — a row saying "÷ 1" is an operation that isn't
+    // happening, which reads as a rule you have to think about.
+    scale: L => (L.splitOthers || 0) > 0 ? 1 / ((L.splitOthers || 0) + 1) : 1,
+    show:  L => (L.splitOthers || 0) > 0 },
+
+  // --- what builds the hourly rate ---
+  /* The bulk and booked-ahead rows lived here. Removed for now, and their coefficients are
+     ignored with them — leaving b and a applying with no row to explain them would be a price
+     change nobody on the card could account for. Set them back to a live factor when the section
+     returns; the rest of the machinery is unchanged. */
+];
+
+const RATE_CHAIN = [
+  { key: 'subject',    mult: L => L.avgSubject },
+  { key: 'complexity', mult: L => L.fSubjectCount },
+  { key: 'level',      mult: L => L.L },
+  { key: 'students',   mult: L => L.fChildrenAll },
+];
+
+/** The running hourly rate immediately BEFORE the named row applies. */
+function rateBase(L, key) {
+  let base = L.chargeRate || 0;
+  for (const step of RATE_CHAIN) {
+    if (step.key === key) return base;
+    base *= Number(step.mult(L)) || 1;
+  }
+  return base;
+}
+
+
 function priceCells(row, L, fmt) {
   const { money, esc } = fmt;
   const out = { mul: '', rate: '', total: '' };
@@ -546,7 +795,10 @@ function priceCells(row, L, fmt) {
     const m = Number(row.mult(L));
     // A multiplier of exactly 1 is a real answer — "this choice costs nothing extra" — and it read
     // as a blank row, which looks like a value that failed to load.
-    if (!m || m === 1) { out.mul = row.value && row.value(L) ? 'no change' : ''; return out; }
+    /* A DASH, not a sentence. "no change" is three words where the column holds numbers, and it
+       is the only entry in it that has to be read rather than scanned. A dash says the same thing
+       and keeps the column a column. */
+    if (!m || m === 1) { out.mul = row.value && row.value(L) ? '—' : ''; return out; }
     const base = row.of(L);
     const perHour = base * (m - 1);
     /* The multiplier AND the percentage. They are the same fact — x1.01 is +1% — and showing only
@@ -1188,7 +1440,25 @@ const API = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8
    week's. Nothing said so, and there was no way to ask.
 
    Bumped whenever this file changes. Shown on the You screen and in every failure banner. */
-const SITE_VERSION = '2026-08-06-wear';
+const SITE_VERSION = '2026-08-06-map';
+
+/**
+ * WHICH STYLESHEET IS RUNNING.
+ *
+ * Read from a custom property `style.css` sets on :root. Without it the site could report its own
+ * script version and its backend version and say nothing at all about its CSS — so a rule that had
+ * been changed and a rule that had not arrived looked identical, and the only way to tell was to
+ * ask somebody to hard refresh and try again.
+ *
+ * An empty answer means the stylesheet predates this, which is itself the answer.
+ */
+function cssVersion() {
+  try {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue('--css-version').trim().replace(/^["']|["']$/g, '');
+    return v || '(older than versioning)';
+  } catch { return '(unknown)'; }
+}
 
 let DATA = {};
 let USER = null;
@@ -1205,6 +1475,23 @@ const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperC
 /* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
    been filled in — the whole point of that tab is that most of it is empty most of the time. */
 const brand = (k, or) => ((DATA.brand || {})[k] || or || '');
+
+/**
+ * IS THIS SOMETHING YOU WEAR?
+ *
+ * The backend used to call it `avatar` — the sheet's own word — and now says `wearable`, which is
+ * what it is to a person looking at one. Both are accepted, and that is not tidiness: these two
+ * files travel separately and are pasted one per message, so for at least one deploy the payload
+ * and the code that reads it will disagree about the word. Accepting either means the order they
+ * arrive in does not matter, which is the same reason the screen describes its own layout rather
+ * than trusting the stylesheet.
+ *
+ * Asked in one place, so the day the old word can be dropped is a one-line day.
+ */
+const isWearable = x => {
+  const k = norm(x && (x.kind || x.kindRaw));
+  return k === 'wearable' || k === 'avatar';
+};
 
 /* Whether the person signed in is an admin. Asked through roleOf, so it is true whichever of the
    four spellings the sheet happens to use — the old app had this and the new shell never did,
@@ -1236,6 +1523,11 @@ const LAW_CLASS = {
      It needs a row in the `laws` tab to take effect — kind `list`, match `venues`, colour
      `purple` — because the list of venues is data and this is only the palette. */
   purple: 'w-purple',
+  /* PINK IS SOMETHING YOU WEAR. A cape and a subject are not the same kind of noun, and the whole
+     value of colouring a word is that you know what kind of thing it is before you have read it.
+     It needs a row in the `laws` tab like the others — kind `list`, match `wearables`, colour
+     `pink`. This is the palette; the list of wearables is data. */
+  pink: 'w-pink',
   red: 'w-red', amber: 'w-amber', dim: 'w-dim', ink: '',
 };
 
@@ -1247,6 +1539,11 @@ function lawList(name) {
     case 'tutors':   return (d.tutors || []).map(t => t.title);
     case 'venues':   return (d.venues || []).map(v => v.title);
     case 'clients':  return (d.clients || d.people || []).map(p => p.title || p.name || p);
+    /* Everything in the shop that is worn rather than posted. Read from the shop rather than kept
+       as a second list, so an item added to the sheet is coloured without anything else changing —
+       which is the point of a law naming a list instead of naming words. */
+    case 'wearables':
+    case 'wearable': return (d.shop || []).filter(isWearable).map(x => x.name);
     default:         return [];
   }
 }
@@ -1383,8 +1680,15 @@ const TABS = [
   /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
      question, and a person with no question needs somewhere to land. */
   { id: 'posts',   icon: '▦',  label: 'Posts',   title: 'Posts' },
-  { id: 'stuff',   icon: '🎁', label: 'Stuff',   title: 'Shop & Resources' },
-  { id: 'tools',   icon: '🧰', label: 'Tools',   title: 'Tools' },
+  /* ONE TAB FOR FINDING ANYTHING — tutors, venues, subjects, resources, wearables, things.
+     The id stays `stuff` because it keys the pager, the page memory and the tests; only what it is
+     called has changed, and renaming an id to match a label is a day of moving things for no
+     effect anybody can see. */
+  /* FOUR TABS. Everything that is a THING you might want is behind one question here — people,
+     places, subjects, resources, links, tools, games — and the three tabs that used to hold some
+     of them are gone. What is left is the three things that are not lookups: the feed, booking,
+     and you. */
+  { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
 
   /* BOOK, dead centre and a plus. The middle is where a thumb rests without moving, and a plus
      says "make something" in a way no other glyph does — it is the one action the whole app is
@@ -1393,9 +1697,6 @@ const TABS = [
 
   /* NOT "Who". It holds tutors, venues AND subjects — people, places and things — so a name
      asking about people was wrong about two thirds of it. "Find" is what you are doing on it. */
-  { id: 'find',    icon: '🔎', label: 'Find',    title: 'Tutors, venues & subjects' },
-  { id: 'arcade',  icon: '🕹', label: 'Arcade',  title: 'Arcade' },
-  { id: 'library', icon: '🔗', label: 'Library', title: 'Link Library' },
   /* You, last. Everything else is the app; this is the one screen that is only about the person
      using it, and the far corner is where every app in the world has taught people to look. */
   { id: 'me',      icon: '◉',  label: 'You',     title: 'You' },
@@ -1411,15 +1712,30 @@ function screen(id, draw, act) { SCREENS[id] = { draw, act }; }
 let AT = 'posts';
 try { AT = localStorage.getItem('familyTab') || 'posts'; } catch {}
 
-function go(id, remember) {
+function go(id, remember, instant) {
   const tab = TABS.find(t => t.id === id) || TABS[0];
+  const was = AT;
   AT = tab.id;
   if (remember !== false) { try { localStorage.setItem('familyTab', AT); } catch {} }
 
-  /* Every screen hidden, one shown. `hidden` rather than emptied, because a hidden screen keeps
-     its half-filled form and its scroll position — and a person switching tabs to check something
-     expects to come back to what they were doing. */
-  TABS.forEach(t => $('s-' + t.id)?.classList.toggle('hidden', t.id !== AT));
+  /* NOTHING IS HIDDEN ANY MORE. Every screen sits on the X axis and is placed by how far it is
+     from the one in front — which is what makes a sideways swipe show the next tab arriving rather
+     than nothing at all, and what makes the two axes the same thing.
+     A screen keeps its half-filled form and its scroll position exactly as it did when it was
+     hidden, because it is still in the document; it is simply somewhere else. */
+  /* IT ARRIVES FROM THE SIDE IT CAME FROM. One class and one keyframe, rather than eight screens
+     held in position so that one of them could be seen sliding in. */
+  const from = TABS.findIndex(t => t.id === was), to = TABS.findIndex(t => t.id === AT);
+  const way = (was && was !== AT) ? (to > from ? 1 : -1) : 0;
+
+  /* PAINT FIRST, PLACE SECOND, ALWAYS.
+     `paintNeighbours` was running AFTER the placement and repainting the current screen along with
+     its neighbours — so the pages that had just been given a position were replaced by fresh ones
+     with none, and a page with no position sits at its resting place: off the side, invisible.
+     The screen went blank and its neighbour showed a sliver. Placement is the last thing that
+     happens here, and nothing after it may write innerHTML. */
+  paintNeighbours();
+  placeCells('x', instant);
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === AT));
 
   $('top-title').textContent = tab.title;
@@ -1436,7 +1752,7 @@ function go(id, remember) {
      start, and a `const` read before its own line throws — including through `typeof`, which is
      the one check that cannot see into a temporal dead zone. A function declaration is hoisted,
      so calling it from up here is fine. */
-  wake(AT);
+  if (AT === 'stuff') fillStuffPages();
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved.
      INSTANT, because this is arriving rather than travelling: the tab remembers which widget you
      were on, and animating there from the top is the app appearing to lose your place and then
@@ -1446,16 +1762,74 @@ function go(id, remember) {
   /* Back to the top on a tab change. Landing halfway down a new screen because the last one was
      scrolled is the single most disorienting thing a tab bar can do. */
   scrollTo({ top: 0, behavior: 'instant' });
+
+  /* Played last, on the screen that is now the only one in the layout. Removed when it finishes
+     rather than on a timer, so a slow phone sees the end of it. */
+  if (way && !instant) arrive($('s-' + AT), way > 0 ? 'from-right' : 'from-left');
+}
+
+/** A short slide in, from one side or the other. The whole of the movement, in one place. */
+function arrive(el, which) {
+  if (!el) return;
+  el.classList.remove('from-left', 'from-right', 'from-below', 'from-above');
+  void el.offsetWidth;          // or the browser folds both changes into one frame and nothing runs
+  el.classList.add(which);
+  el.addEventListener('animationend', () => el.classList.remove(which), { once: true });
+}
+
+/**
+ * DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle.
+ *
+ * Only the neighbours. Eight screens redrawn on every tab change would be most of a second on a
+ * phone, and one of them holds four hundred resources — the same reasoning that fills a page of
+ * the Stuff list only when you can reach it.
+ */
+function paintNeighbours() {
+  const at = TABS.findIndex(t => t.id === AT);
+  [at - 1, at + 1].forEach(i => {
+    if (i < 0 || i >= TABS.length) return;
+    const id = TABS[i].id;
+    const el = $('s-' + id);
+    if (!el || el.innerHTML) return;          // already drawn; redrawing would only cost
+    paint(id);
+    /* And placed, if it is a paged screen. A neighbour whose pages have no position shows nothing
+       when a drag reveals it, which is worse than showing an empty rectangle because it looks like
+       the screen itself is empty. */
+    if (PAGER[id]) paintPager(id, true);
+  });
+  /* The screen in front is NOT repainted here. `go` has already drawn it, and drawing it a second
+     time is what threw its placement away. */
 }
 
 /** Redraw one screen where it stands. Called after anything that changes what it should say. */
 function paint(id) {
+  /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
+     against the screen's padding box and would otherwise be inset by it and then pad itself again.
+     Marked here rather than in the markup so the two lists of paged screens cannot disagree:
+     `PAGER` is the only one. */
+  $('s-' + id)?.classList.toggle('paged', !!PAGER[id]);
   const el = $('s-' + id);
   const s = SCREENS[id];
   if (!el) return;
   el.innerHTML = s
     ? s.draw()
     : '<p class="empty">Nothing here yet.</p>';
+}
+
+/**
+ * WHAT TO SAY WHEN THERE IS NOTHING.
+ *
+ * "Nothing here yet" and "we could not reach the server" are different facts, and every screen was
+ * saying the first for both — so a phone with no signal told people to go and add rows to a
+ * spreadsheet. One sentence, so no screen can get it wrong on its own, and so improving the
+ * wording improves it everywhere at once.
+ */
+function nothingHere(whenEmpty) {
+  return LOAD_FAILED
+    ? `<p class="empty">Couldn’t load.<br>
+        <span class="faint">${esc(LOAD_FAILED)}</span><br>
+        <span class="text-action" data-do="retry">Try again</span></p>`
+    : `<p class="empty">${whenEmpty}</p>`;
 }
 
 /** Redraw whatever is showing. What almost everything calls after a change. */
@@ -1479,6 +1853,170 @@ function buildTabs() {
      </button>`).join('') + '</div>';
 }
 
+/* ================================================================================================
+   ONE GRID. TWO AXES. THE SAME BEHAVIOUR ON BOTH.
+
+   Tabs sit along X and a tab's widgets sit along Y, and until now those were two different pieces
+   of machinery that happened to be operated by the same thumb: different rules about when a drag
+   counts, different distances to travel, different-looking movement, and two separate ways of
+   committing at the end. Learning one taught you nothing about the other.
+
+   They are one thing here. A CELL is a screen or a page — the difference is only which axis it
+   lies on — and everything below is written once and applied to both:
+
+     · the same rule for when a gesture belongs to the grid rather than to what is under the finger
+     · the same throw distance, as a fraction of the axis being travelled
+     · the same resistance at the ends
+     · the same depth and fade while turning, so a neighbour arriving looks the same either way
+     · the same commit, so a tap on a tab and a swipe to it are the same movement
+
+   Adding a third axis later would be a third entry in AXES and nothing else.
+================================================================================================ */
+const AXES = {
+  /* X — the tabs. */
+  x: {
+    prop: '--dx',                                   // the drag offset, in the cell's transform
+    span: () => innerWidth,
+    /* The same signature as the other axis, `id` ignored — there is only one row of tabs. Written
+       the same way so nothing calling an axis has to know which one it has. */
+    at:    () => Math.max(0, TABS.findIndex(t => t.id === AT)),
+    count: () => TABS.length,
+    /* IN TAB ORDER, not in the order the sections happen to appear in index.html.
+       This returned `querySelectorAll`, which is document order — and the markup lists the screens
+       in a different order from the tab bar. So a screen was placed at the position of whichever
+       section happened to sit at that index in the file: switching to Stuff put Library at the
+       front and Stuff two screens off, which is a blank screen with a sliver of something else.
+       Only Posts and You lined up by luck, which is precisely the two that ever worked.
+       The tab bar is the order. Nothing should have to know how the markup is arranged. */
+    cells: () => TABS.map(t => $('s-' + t.id)).filter(Boolean),
+    go:    (n, instant) => go(TABS[n].id, true, instant),
+  },
+  /* Y — the widgets on a paged screen. Absent on a screen that is not paged, which is what makes
+     a vertical drag there fall through to ordinary scrolling. */
+  y: {
+    prop: '--dy',
+    span: () => innerHeight,
+    /* EVERY ONE OF THESE TAKES AN `id`, defaulting to the screen in front. They used to read `AT`
+       and nothing else, so the pages of a screen you were about to swipe onto could not be placed
+       until you were already on it — and a page that has not been placed sits at its resting
+       position, which is off the side at zero opacity. A blank screen with a sliver of its
+       neighbour showing. */
+    at:    id => PAGE[id || AT] || 0,
+    count: id => PAGER[id || AT] ? pageCount(id || AT) : 0,
+    cells: id => $('s-' + (id || AT))?.querySelectorAll(':scope > .page') || [],
+    go:    (n, instant) => goPage(AT, n, instant),
+  },
+};
+
+/**
+ * PLACE EVERY CELL ON AN AXIS.
+ *
+ * Two numbers each, exactly as the dial already used:
+ *   --ox / --oy   how far from the front, signed
+ *   --a           the same, unsigned, because scale and fade want distance rather than direction
+ *
+ * `instant` is the difference between arriving and travelling: coming back to a tab has to put you
+ * where you left off rather than fly you there, and a boot has to draw rather than animate.
+ */
+function placeCells(which, instant, dragPx, id) {
+  const ax = AXES[which];
+  const cells = ax.cells(id);
+  if (!cells.length) return;
+  const n = ax.at(id);
+  cells.forEach((el, i) => showCell_(el, i === n, which, i === n ? (dragPx || 0) : 0));
+
+  /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which
+     of them exist — so removing a tab leaves a section behind that nothing ever places, keeping
+     whatever the markup last gave it. `s-find` became one of those the moment Find and Stuff
+     merged, and it would have sat on top of Posts.
+     Hidden here rather than by deleting it from index.html, because that is the one file whose URL
+     cannot be dated and so the one that has to be pasted by hand. The grid owning everything in
+     its viewport is also just true: a cell it does not place is a cell it should not show. */
+  if (which === 'x') {
+    const mine = ax.cells();
+    document.querySelectorAll('#screen > .screen').forEach(el => {
+      if ([].indexOf.call(mine, el) === -1) showCell_(el, false, 'x', 0);
+    });
+  }
+}
+
+/**
+ * ONE CELL IS SHOWN. THE REST ARE NOT IN THE LAYOUT AT ALL.
+ *
+ * This used to place eight screens side by side, each absolutely positioned, transformed by its
+ * distance from the front, culled past a threshold, hidden by two properties at once, ordered by
+ * z-index, and repainted as a neighbour so a drag would reveal it. Every one of those was a way of
+ * saying "you are looking at this one" — and between them they went wrong six different times, in
+ * six ways that all looked the same on a screen: black.
+ *
+ * `display: none` cannot go wrong. There is no position to be relative to, no transform to be
+ * invalidated by a missing variable, no stacking order, no clip, and nothing to be off the side of.
+ * The screen you are on is in the document and the other seven are not.
+ *
+ * WHAT THAT COSTS: a drag no longer reveals the next screen underneath. It slides the one you are
+ * on and the next one arrives when you let go. That is a real loss and it is worth it — the
+ * preview was the reason for all of the above, and it was never once seen working.
+ */
+function showCell_(el, front, which, dragPx) {
+  if (!front) {
+    /* Out of the layout entirely. One declaration, and there is no state it can be in where it is
+       half-there. */
+    el.style.display = 'none';
+    el.classList.remove('on');
+    /* And put the class back, so a screen is hidden by the markup's own means as well as by the
+       inline style — the same belt-and-braces as the front cell, in the other direction. */
+    el.classList.add('hidden');
+    return;
+  }
+
+  /* THE FRONT CELL IS DESCRIBED IN FULL, and every one of these is an OVERRIDE rather than an
+     absence.
+     That distinction is what broke it: the previous version REMOVED inline properties, on the
+     assumption that what was left underneath was nothing. What was left underneath was the
+     stylesheet — which still said `position: absolute`, `transform: translateX(100%)` and
+     `visibility: hidden`, because those are what the old layout needed. Removing an inline value
+     does not remove the rule beneath it; it reveals it. Every screen went off the side and
+     invisible, and nothing in the code said so.
+
+     Written out, the screen you are on looks the same whatever style.css says — the current one,
+     one from last week, or none at all. That is worth six lines: this file and the stylesheet
+     travel separately, and they have been out of step more often than they have been in it. */
+  /* THE ONE CLASS THAT BEATS AN INLINE STYLE.
+     index.html marks seven of the eight sections `class="screen hidden"` so the page is not a wall
+     of every screen before script.js runs — and `.hidden` is `display: none !important`, which
+     outranks anything written on the element. So a screen could be described perfectly, in full,
+     inline, and still not appear: the markup had said no first and said it louder.
+     Taken off here, where the decision about what you are looking at is actually made. */
+  el.classList.remove('hidden');
+
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  /* IT FILLS ITS CONTAINER. This said `position: static; inset: auto` — chosen when the layout was
+     being made independent of the stylesheet, and the wrong value to choose: a static block is as
+     tall as its CONTENTS, so a cell stopped where its content stopped and everything below was the
+     screen behind it showing through.
+     Nothing looked wrong. Every computed style read correctly and the page simply had no spare
+     height, so anything asking to be centred in it had nothing to be centred in — which is why a
+     post stayed at the top through two attempts to centre it, neither of which was addressing the
+     actual cause.
+     Absolute and inset to zero, written out here rather than trusted to the stylesheet, which was
+     the point of doing it inline in the first place. */
+  el.style.position = 'absolute';
+  el.style.top = '0'; el.style.right = '0'; el.style.bottom = '0'; el.style.left = '0';
+  el.style.visibility = 'visible';
+  el.style.opacity = '1';
+  el.style.pointerEvents = 'auto';
+  el.classList.add('on');
+  el.classList.remove('far');
+
+  /* Following a finger, or at rest. `none` rather than empty: empty would let the stylesheet's
+     own transform back in. */
+  const px = dragPx || 0;
+  el.style.transform = px
+    ? (which === 'x' ? 'translateX(' + px + 'px)' : 'translateY(' + px + 'px)')
+    : 'none';
+}
+
 /* ---------- WIDGETS AS PAGES --------------------------------------------------------------------
    Tools and Arcade hold four things each, and a column of four cards means the fourth is a
    scroll away from being remembered. One at a time, full height, swipe up for the next — the
@@ -1500,16 +2038,47 @@ function buildTabs() {
    without the screen having to tell it.
 --------------------------------------------------------------------------------------------- */
 const PAGER = {
-  tools:  ['Calculator', 'Timer', 'Docket', 'Notepad', 'Calendar'],
-  arcade: ['Chess', 'Times Tables', 'Flabby Pird', 'One more thing'],
+  /* POSTS ARE HOWEVER MANY THERE ARE, so this is a function rather than a list. Everything else
+     about them is the same: one to a screen, swipe up for the next.
+     They have no names to put in the header, so the position goes there instead. That is the
+     thing the dots used to say and the only part of it worth keeping — on a feed, "4 of 12" is
+     genuinely useful, where on five named tools it was saying nothing the title did not. */
+  /* EVERY SCREEN IS PAGED. Nothing scrolls anywhere: a screen is a screen, and getting from one
+     thing to the next is the same movement on both axes on all eight tabs. There is no longer such
+     a thing as a screen you have to learn separately.
+     The name shown in the header, or an empty string to leave the tab's own title alone — a
+     single-page screen has no "1 of 1" worth saying.
+     Each count comes from the same function that renders the pages, so the header and the screen
+     cannot disagree about how many there are. */
+  me:      () => mePages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
+  book:    () => bookPages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
+
+  /* Empty names, one per post. The pager needs the COUNT — that is what it pages through — and
+     a post has no name worth putting in a header: "1 of 10" is a fact about the list rather than
+     about the photograph, and it changed on every swipe where a title should hold still.
+     Empty falls through to the tab's own title, so no special case is needed anywhere. */
+  posts:  () => feedPosts().map(() => ''),
+  /* The controls, then the results. Named so the header says which page of how many — on a list
+     you are working through, that is the one thing a title cannot tell you and the number is
+     worth having. */
+  stuff:  () => {
+    const n = stuffPageCount();
+    return ['Search'].concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));
+  },
 };
+
+/** The page names for a screen, whether they are a list or worked out each time. */
+function pagerNames(id) {
+  const v = PAGER[id];
+  return typeof v === 'function' ? v() : (v || []);
+}
 
 /* Which page each paged screen is showing. Kept per screen, so leaving Tools on the calendar and
    coming back puts you on the calendar — a pager that resets is a pager you have to re-navigate
    every time you check something on another tab. */
-const PAGE = { tools: 0, arcade: 0 };
+const PAGE = { posts: 0, stuff: 0, me: 0, book: 0 };
 
-const pageCount = id => (PAGER[id] || []).length;
+const pageCount = id => pagerNames(id).length;
 
 /**
  * THE DIAL.
@@ -1529,65 +2098,75 @@ const pageCount = id => (PAGER[id] || []).length;
  */
 function paintPager(id, instant) {
   if (!PAGER[id]) return;
-  const wrap = $('s-' + id)?.querySelector('.pager');
-  const strip = wrap?.querySelector('.pages');
-  if (!strip) return;
+  const host = $('s-' + id);
+  if (!host || !host.querySelector(':scope > .page')) return;
   const n = Math.max(0, Math.min(pageCount(id) - 1, PAGE[id] || 0));
   PAGE[id] = n;
 
-  /* One frame with the transition off. Removed on the NEXT frame rather than immediately, because
-     a style set and unset inside the same frame is a style the browser never applies — it collapses
-     both into one recalculation and animates anyway. */
-  if (instant) {
-    wrap.classList.add('no-anim');
-    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.remove('no-anim')));
-  }
+  /* THE SAME PLACER THE TABS USE. There were two of these — one setting `--o` on a page and one
+     that did not exist at all for screens — which is precisely why the two axes drifted apart. */
+  placeCells('y', instant, 0, id);
 
-  strip.style.setProperty('--drag', '0px');
-  strip.querySelectorAll('.page').forEach((pg, i) => {
-    const o = i - n;
-    pg.style.setProperty('--o', o);
-    pg.style.setProperty('--a', Math.abs(o));
-    /* The front one is the only one that can be touched or scrolled. Without that, a tap aimed at
-       the calculator can land on the timer showing behind it — which is worse than useless,
-       because it works. */
-    pg.classList.toggle('on', o === 0);
-  });
-
-  $('s-' + id).querySelectorAll('.page-dot').forEach((d, i) =>
-    d.classList.toggle('on', i === n));
-  /* The header says which widget, because the dots say how many and not which. On a screen where
-     every page is a different tool that is the one word worth having at the top. */
+  /* THE HEADER SAYS WHICH WIDGET. It is now the only thing that does, which is why it matters:
+     on a screen where every page is a different tool, the name at the top is worth more than a
+     row of marks that could only ever say "third of five". */
   const tab = TABS.find(t => t.id === id);
-  if (id === AT && tab) $('top-title').textContent = PAGER[id][n] || tab.title;
+  /* A page with a name puts it in the header; one without leaves the tab's own title alone. */
+  if (id === AT && tab) $('top-title').textContent = pagerNames(id)[n] || tab.title;
 }
 
-function goPage(id, to) {
+function goPage(id, to, instant) {
   if (!PAGER[id]) return;
   const n = Math.max(0, Math.min(pageCount(id) - 1, to));
-  if (n === PAGE[id]) return;
+  const was = PAGE[id] || 0;
+  if (n === was && !instant) return;
   PAGE[id] = n;
-  /* The canvas is sized from its box, and its box is only real once its page is the one on screen.
-     Arriving on the bird for the first time has to re-measure, or it draws into whatever size it
-     happened to have while it was off to one side. */
-  if (id === 'arcade' && PAGER.arcade[n] === 'Flabby Pird') setTimeout(() => initFlappy(), 300);
-  /* A running game on a page nobody is looking at is a flat battery for nothing — the same reason
-     `wake` only starts what is on screen. */
-  if (id === 'arcade' && flappyState && flappyState.raf) {
-    cancelAnimationFrame(flappyState.raf);
-    flappyState.running = false;
+  /* The page being turned to may be empty. Filled BEFORE the transform moves, so it arrives with
+     its contents rather than filling in underneath somebody. */
+  if (id === 'stuff') fillStuffPages();
+  if (id === AT) {
+    placeCells('y', instant);
+    if (!instant) arrive(AXES.y.cells(id)[n], was > n ? 'from-above' : 'from-below');
   }
   paintPager(id);
 }
 
-/** Wrap a screen's cards into a vertical strip of pages. */
+/** Wrap a screen's cards into a vertical strip of pages.
+
+    NO DOTS. There was a column of them down the right edge saying how many widgets there were and
+    which one you were on — and once each page fills the screen, the header already names the
+    widget, so the dots were saying the same thing twice in a less readable way. The count they
+    also carried is not worth a permanent mark on every screen: you find out by turning the dial,
+    which takes one movement. */
 const pages = (id, cards) =>
-  `<div class="pager"><div class="pages">${
-    cards.map(c => `<section class="page">${c}</section>`).join('')
-  }</div><div class="page-dots">${
-    cards.map((c, i) => `<span class="page-dot" data-do="page-dot" data-id="${id}"
-      data-n="${i}"></span>`).join('')
-  }</div></div>`;
+  cards.map(c => `<section class="page">${c}</section>`).join('');
+
+/**
+ * BLOCKS INTO PAGES.
+ *
+ * A screen says what it is made of — cards, tiles, sections — and this cuts the list into screens.
+ * Every paged screen was working out its own chunking, which is the same three lines copied four
+ * times and four chances for one of them to be off by one.
+ *
+ * The pager asks THIS for the number of pages and the screen asks it for the markup, so what is
+ * rendered and what the header says can never disagree. That is the whole reason it is a function
+ * rather than a number written down in two places.
+ */
+function chunk(blocks, per, wrap) {
+  const out = [];
+  for (let i = 0; i < blocks.length; i += per) {
+    const part = blocks.slice(i, i + per).join('');
+    out.push(wrap ? wrap(part) : part);
+  }
+  /* Never zero pages. A screen with nothing on it is still a screen, and a pager with no pages is
+     a blank rectangle with no way to tell it from a fault. */
+  return out.length ? out : [''];
+}
+
+/* How many of each thing a phone holds without cutting the last one in half. Different per screen
+   because a tile is not a card and a card is not a post — one number for all of them would be
+   wrong four times out of five. */
+const PER_PAGE = { library: 12, me: 4, book: 5 };
 
 /* The dot's handler is registered further down, WITH the other actions. `on()` writes into
    `ACTIONS`, which is a `const` declared after this point — and a const read before its own line
@@ -1621,6 +2200,56 @@ function closeSheet() {
   if (f) f();
 }
 
+/* ---------- ONE WAY TO POST ----------------------------------------------------------------------
+   Twenty-odd places call the backend, each with its own `.then(r => r.json())` and its own idea of
+   what counts as a failure. That is twenty chances to miss something the server said — and the
+   server has just started saying something new: a request that wrote to a column that does not
+   exist comes back with `unwritten`, because a save that saved nothing must not report success.
+
+   Handled here, once, so no caller has to know. Anything that reaches the `.then` of `send()` has
+   genuinely worked; anything else lands in the `.catch` with a sentence worth showing.
+--------------------------------------------------------------------------------------------- */
+/**
+ * ONE REQUEST, BUILT IN ONE PLACE.
+ *
+ * Called `api` rather than `post`, because `post` is a NOUN in this app before it is a verb — a
+ * photograph with a caption — and three handlers already hold one in a local variable of exactly
+ * that name. A shadowed function is a "post is not a function" thrown from a line that looks
+ * correct, which is what happened the moment this was introduced.
+ *
+ * Every call to the backend carried its own copy of the method, the cache policy and the JSON
+ * encoding — twenty-one copies of four lines, which is twenty-one places to edit the day any of
+ * them has to carry a header, a timeout, a retry, or a queue for when the phone is offline. None
+ * of that exists yet; all of it becomes one edit from here rather than twenty-one.
+ *
+ * IT DOES NOT THROW ON A REFUSAL. That was the tempting version, and it would have meant rewriting
+ * every caller's reply handling by hand — most of them already read `d.error` and say something
+ * specific about it, which is better than a generic catch. The reply comes back as it came.
+ */
+function api(body) {
+  return fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(body) })
+    .then(r => r.json())
+    .then(d => {
+      /* A value the sheet had nowhere to put. The server turns this into an error where it can, so
+         reaching here means it could not — a read that wrote, or a reply with no `success` to take
+         away. Rare, and worth a word rather than nothing. */
+      if (d && d.unwritten && d.unwritten.length) {
+        banner('Some values were not saved: '
+          + d.unwritten.map(x => x.tab + '.' + x.field).join(', ')
+          + ' — those columns are not in the sheet.');
+      }
+      return d || {};
+    });
+}
+
+/** The same request, refusing to resolve on a refusal — for callers that would rather catch. */
+function send(body) {
+  return api(body).then(d => {
+    if (d && d.error) throw new Error(d.error);
+    return d;
+  });
+}
+
 /* ---------- SAYING SOMETHING BRIEFLY ------------------------------------------------------------ */
 let toastTimer = null;
 function toast(msg) {
@@ -1644,9 +2273,9 @@ const ACTIONS = {};
 /** Register what a `data-do` means. */
 function on(name, fn) { ACTIONS[name] = fn; }
 
-/* Jumping straight to a widget. The dots are a map as well as a position — four of them says
-   there are four things here, which a scrolling column never managed to say at all. */
-on('page-dot', el => goPage(el.dataset.id, Number(el.dataset.n)));
+/* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
+   reload is the thing most likely to lose whatever was half-typed on another screen. */
+on('retry', () => { LOADED = false; LOAD_FAILED = ''; banner(''); repaint(); load(); });
 
 document.addEventListener('click', e => {
   const tab = e.target.closest('.tab');
@@ -1663,7 +2292,19 @@ document.addEventListener('click', e => {
      They are refused here and picked up by the `change` listener further down. */
   if (doer && (doer.tagName === 'SELECT' || doer.type === 'checkbox')) return;
   if (doer && ACTIONS[doer.dataset.do]) {
-    ACTIONS[doer.dataset.do](doer, e);
+    /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS.
+       Almost everything this app does runs from this one line, and an error escaping it reaches
+       the window — where a browser serving from file:// reports it as "Script error." with no
+       message, no file and no line, because it treats every local script as cross-origin. A real
+       fault becomes two words that could mean anything.
+       Caught, it keeps its message and names the action that produced it, which is the difference
+       between "Script error." and "react — Cannot read properties of null". */
+    try {
+      ACTIONS[doer.dataset.do](doer, e);
+    } catch (err) {
+      console.error('[' + doer.dataset.do + ']', err);
+      toast(doer.dataset.do + ' — ' + String((err && err.message) || err));
+    }
   }
 });
 
@@ -1695,10 +2336,27 @@ async function load() {
     const d = await res.json();
     if (d && !d.error) {
       DATA = d;
+      LOAD_FAILED = '';
       /* WHAT THE BACKEND CAN DO, against what this site needs. `features` has been in the payload
          since before the rewrite and nothing has ever read it — which is why a stale deploy shows
          up as "That action is not recognised", a sentence written for somebody who did something
          wrong rather than for a deployment that is out of date. */
+      /* A payload that could not write something — the schema check ran and a column is still
+         missing. Said on load rather than waiting for somebody to try to save into it. */
+      if (d.unwritten && d.unwritten.length) {
+        banner('The sheet is missing columns: '
+          + d.unwritten.map(x => x.tab + '.' + x.field).join(', ')
+          + '. Anything saved to them is discarded.');
+      }
+      /* NO BANNER FOR A VERSION MISMATCH ANY MORE.
+         It was built when a cached stylesheet was a real and invisible problem — twice a rule had
+         been changed and the browser was serving an old copy, and there was no way to tell that
+         from a rule that was simply wrong.
+         index.html fixed that at the source: both files are requested with `?t=` and the current
+         millisecond, so neither can be cached at all. What is left is a mismatch that means "the
+         other file has not been pasted yet", which is true, harmless, and self-correcting — and an
+         orange bar across the top of every screen is a heavy way to say it.
+         Both versions are still on the You screen, which is where you look when you want to know. */
       const NEEDS = ['editPost', 'deletePost', 'editResource', 'deleteResource'];
       const missing = NEEDS.filter(f => (d.features || []).indexOf(f) === -1);
       if (missing.length) {
@@ -1712,8 +2370,12 @@ async function load() {
              + 'Deployment ID in Manage deployments.');
       }
     }
-    else banner('The server said: ' + (d.error || 'something went wrong'));
+    else {
+      LOAD_FAILED = String(d.error || 'the server refused the request');
+      banner('The server said: ' + (d.error || 'something went wrong'));
+    }
   } catch (err) {
+    LOAD_FAILED = String((err && err.message) || err || 'could not reach the backend');
     /* WHICH URL IT TRIED, as something you can press.
        "Could not reach the server" is true of four different faults and useful for none of them:
        a wrong deployment id, a deployment whose access is still "Only myself", a browser with no
@@ -1724,15 +2386,32 @@ async function load() {
     const el = $('banner');
     if (el) {
       el.classList.remove('hidden');
+      /* THE ADVICE MATCHES THE FAULT. It used to print all of it every time — including "Failed
+         to fetch means the reply never arrived" underneath an error that plainly was a reply. Two
+         paragraphs of which one applied, and no way to tell which, is worse than one sentence. */
+      const msg = String((err && err.message) || err || '');
+      const why = /Unexpected token|not valid JSON/.test(msg)
+        /* A reply arrived and it was a web page. Apps Script serves its own errors as HTML, and
+           since the scopes were written into the manifest the commonest one by far is a consent
+           that has not been given — a manifest change invalidates the authorisation, and only a
+           run from the EDITOR can raise the prompt again. */
+        ? 'The backend answered with a web page instead of data. Open it in a tab and read what '
+          + 'it says — “Authorization is required” means the scopes changed and nobody has '
+          + 'consented yet: run any function from the Apps Script editor once, accept the prompt, '
+          + 'then deploy a new version.'
+        : /Failed to fetch|NetworkError|Load failed/.test(msg)
+        /* Nothing arrived at all — so it is the address or the access, not the code. */
+        ? 'The reply never arrived, so this URL is not being served. Check Manage deployments: the '
+          + 'one under ACTIVE is the only one that answers, an archived id looks exactly like '
+          + 'this, and “Only myself” access does too.'
+        : 'Something else went wrong on the way.';
+
       el.innerHTML = 'Could not reach the backend.<br>'
+        + '<span class="faint">' + esc(why) + '</span><br>'
         + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
-        + 'tab</a> — JSON means the address is right; a Google sign-in page means that deployment '
-        + 'is set to “Only myself” rather than “Anyone”; a 404 means the id is wrong.<br>'
-        + '<span class="faint">“Failed to fetch” means the reply never arrived at all: this URL is '
-        + 'not being served. Check Manage deployments — the one under ACTIVE is the only one that '
-        + 'answers, and an archived id looks exactly like this.</span><br>'
-        + '<span class="faint">' + esc(String(err && err.message || err))
-        + ' · site ' + esc(SITE_VERSION) + '</span>';
+        + 'tab</a> — the page itself will say which it is.<br>'
+        + '<span class="faint">' + esc(msg)
+        + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
     }
   }
   /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
@@ -1777,10 +2456,17 @@ function banner(msg) {
   } catch {}
 })();
 
-/* ---------- GO ------------------------------------------------------------------------------------ */
-buildTabs();
-go(AT, false);
-load();
+/* The app STARTS at the very bottom of this file, not here.
+
+   It used to start here, and here is above every `screen(...)` registration — so `go()` ran with
+   an empty SCREENS table and `paint()` fell through to its own "Nothing here yet", on every tab,
+   until the first fetch came back and repainted. The skeleton was never reached once, on any
+   device: the thing it was covering had already been replaced by a sentence saying there was
+   nothing to cover.
+
+   Nothing marks the boundary in a file that is read top to bottom, which is exactly why the
+   start belongs at the end — where everything it needs is behind it by construction rather than
+   by somebody remembering. */
 
 /* ================================================================================================
    THE FIRST SCREEN — Who.
@@ -1795,17 +2481,19 @@ load();
      · anything pressable carries `data-do`, so the markup can be thrown away and redrawn
 ================================================================================================ */
 
-screen('find', () => {
-  const tutors = (DATA.tutors || []).filter(t => t.title);
-  const venues = (DATA.venues || []).filter(v => v.title);
+/* ---------- WHAT A PERSON, A PLACE AND A SUBJECT LOOK LIKE ---------------------------------------
+   The Find SCREEN is gone — it and Stuff were two tabs asking the same question, and the funnel
+   can hold both lists now that it skips whatever a kind cannot answer. What survives is the three
+   card shapes, because a tutor still has to look like a tutor.
 
-  if (!tutors.length && !venues.length) {
-    return '<p class="empty">Nothing loaded yet.</p>';
-  }
-
-  /* `is-tutor`, so a tutor's name is red wherever it appears — the same trick that makes a
-     subject green and a venue purple. Three colours, three questions: what, where, who. */
-  const person = t => `
+   `findItems`, `findPageHtml`, `findBrowse`, `findPageCount` and the `find-kind` handler went with
+   the screen. Every one of them was a smaller, worse copy of something the funnel already does:
+   a browse page with three counts, a pager, and a filter that could only ever ask one question.
+--------------------------------------------------------------------------------------------- */
+/** One card. The three shapes, each carrying the class that colours its name. */
+function findCard(x) {
+  const t = x.row;
+  if (x.kind === 'tutor') return `
     <div class="card tap is-tutor${t.listed === false ? ' is-off' : ''}"
          data-do="who" data-kind="tutor" data-name="${esc(t.title)}">
       <h3>${esc(t.title)}${t.listed === false
@@ -1817,38 +2505,29 @@ screen('find', () => {
         ? `<p class="faint">${mark((t.tags || []).slice(0, 4).join(' · '))}</p>` : ''}
     </div>`;
 
-  /* `is-venue`, so a venue name is purple wherever it appears — the same trick that makes a
-     subject green, and the reason the eye can read this list without a legend. */
-  const place = v => `
-    <div class="card tap is-venue" data-do="who" data-kind="venue" data-name="${esc(v.title)}">
-      <h3>${esc(v.title)}</h3>
-      ${v.subtitle ? `<p class="sub">${mark(v.subtitle)}</p>` : ''}
-      ${v.bestRate
+  if (x.kind === 'venue') return `
+    <div class="card tap is-venue" data-do="who" data-kind="venue" data-name="${esc(t.title)}">
+      <h3>${esc(t.title)}</h3>
+      ${t.subtitle ? `<p class="sub">${mark(t.subtitle)}</p>` : ''}
+      ${t.bestRate
         ? `<div class="row"><span class="k">Room hire</span>
-             <span class="v mono">${money(v.bestRate)}/h</span></div>`
+             <span class="v mono">${money(t.bestRate)}/h</span></div>`
         : '<p class="faint">No charge</p>'}
     </div>`;
 
-  /* Subjects last, after venues — the order a booking is assembled in: who, then where, then
-     what. A list that matches the order somebody thinks in needs no explaining. */
-  const subs = (typeof subjectRows === 'function' ? subjectRows() : []);
-  const subject = x => `
-    <div class="card tap is-subject" data-do="subject" data-name="${esc(x.name)}">
-      <h3>${esc(x.name)}</h3>
+  return `
+    <div class="card tap is-subject" data-do="subject" data-name="${esc(t.name)}">
+      <h3>${esc(t.name)}</h3>
       <div class="row">
-        <span class="k">${x.mult === 1 ? 'No surcharge' : 'Surcharge'}</span>
-        <span class="v mono">${x.mult === 1 ? '—'
-          : (x.mult > 1 ? '+' : '−') + Math.abs(Math.round((x.mult - 1) * 100)) + '%'}</span>
+        <span class="k">${t.mult === 1 ? 'No surcharge' : 'Surcharge'}</span>
+        <span class="v mono">${t.mult === 1 ? '—'
+          : (t.mult > 1 ? '+' : '−') + Math.abs(Math.round((t.mult - 1) * 100)) + '%'}</span>
       </div>
-      ${x.tutors && x.tutors.length
-        ? `<p class="faint" style="margin:.3rem 0 0">${esc(x.tutors.map(t => t.title).join(', '))}</p>`
+      ${t.tutors && t.tutors.length
+        ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
         : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches this yet</p>'}
     </div>`;
-
-  return (tutors.length ? '<h2>Tutors</h2>' + tutors.map(person).join('') : '')
-       + (venues.length ? '<h2>Venues</h2>' + venues.map(place).join('') : '')
-       + (subs.length ? '<h2>Subjects</h2>' + subs.map(subject).join('') : '');
-});
+}
 
 /* Tapping one opens a sheet rather than expanding the card. An expanding card pushes everything
    below it down, which on a phone means the thing you were looking at moves the moment you touch
@@ -1888,9 +2567,8 @@ on('who', (el) => {
    clients before you had agreed to it. */
 on('set-listed', el => {
   const on = el.checked;
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'setListed',
-    adminName: USER.name, name: USER.name, who: el.dataset.who, on }) })
-    .then(r => r.json())
+  api({ action: 'setListed',
+    adminName: USER.name, name: USER.name, who: el.dataset.who, on })
     .then(d => {
       if (d && d.error) { el.checked = !on; toast(d.error); return; }
       toast(on ? 'Listed' : 'Hidden from clients');
@@ -1907,7 +2585,14 @@ on('set-listed', el => {
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-do]');
   if (!el || !ACTIONS[el.dataset.do]) return;
-  if (el.tagName === 'SELECT' || el.type === 'checkbox') ACTIONS[el.dataset.do](el, e);
+  if (el.tagName !== 'SELECT' && el.type !== 'checkbox') return;
+  /* The same reason as the click handler: an error that gets out of here loses its message. */
+  try {
+    ACTIONS[el.dataset.do](el, e);
+  } catch (err) {
+    console.error('[' + el.dataset.do + ']', err);
+    toast(el.dataset.do + ' — ' + String((err && err.message) || err));
+  }
 });
 
 /* Tapping a SUBJECT. It has emitted `data-do="subject"` since the screen was written and no
@@ -1956,9 +2641,15 @@ on('book-with', (el) => {
    Everything about the person using the app, and nothing about the app. Signed out it is one
    button; signed in it is who you are, what you have, and the ways out.
 --------------------------------------------------------------------------------------------- */
-screen('me', () => {
+/* One card ends where the next begins — the one place they are unambiguously separated, and the
+   reason these screens are written as one template and split rather than assembled from a list:
+   the template is how they read. */
+const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x.trim()).filter(Boolean);
+
+/** Every card on the You screen, in order. */
+function meBlocks() {
   if (!USER) {
-    return `<div class="card">
+    return split_(`<div class="card">
         <h3>Sign in</h3>
         <p class="sub">You need an account to book, to keep a checklist, or to spend credits.</p>
         <label class="field"><span>your name</span>
@@ -1971,7 +2662,7 @@ screen('me', () => {
       <div class="card tap" data-do="register">
         <h3>No account yet?</h3>
         <p class="sub">Making one takes a name, an email and a PIN.</p>
-      </div>`;
+      </div>`);
   }
 
   const ticks = typeof tickCount === 'function' ? tickCount() : 0;
@@ -1994,7 +2685,7 @@ screen('me', () => {
      figure whether or not anybody has chosen one, because the starting look is seeded from the
      handle. */
   const face = pic(USER.photo || (USER.profile || {}).photo || '');
-  return `<div class="card">
+  return split_(`<div class="card">
       <div class="thing">
         ${face
           ? `<img class="thing-pic" src="${esc(face)}" alt="">`
@@ -2031,6 +2722,20 @@ screen('me', () => {
     <div class="card tap" data-do="edit-me"><h3>Edit your details</h3>
       <p class="sub">Name, email, address, availability.</p></div>
 
+    ${/* MESSAGES. Unread first in the count, because that is the only part anybody scans for. */''}
+    <div class="card tap" data-do="messages"><h3>Messages</h3>
+      <p class="sub">${(() => {
+        const ms = DATA.messages || [];
+        const unread = ms.filter(m => !m.mine && !m.read).length;
+        return ms.length
+          ? (unread ? unread + ' unread of ' + ms.length : ms.length + ', all read')
+          : 'Nothing yet';
+      })()}</p></div>
+
+    ${/* Friends moved to Find, where people are looked for. A card here made them a setting about
+          yourself rather than a set of people you can look through — and it was the only list on
+          the site reachable from two places. */''}
+
     <div class="card tap" data-do="change-pin"><h3>Change your PIN</h3>
       <p class="sub">You will need the current one.</p></div>
 
@@ -2042,21 +2747,34 @@ screen('me', () => {
           question that has cost more rounds than any bug: is what I am looking at the thing I
           just changed? Two strings, and either one being stale is visible without opening
           anything. */''}
+    ${/* ALL THREE, because any one of them being stale looks exactly like a bug in the other
+          two. This line is the first thing to read when something has been changed and has not
+          changed — and the CSS was the one that could not be asked. */''}
     <p class="faint" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
-      site ${esc(SITE_VERSION)} · backend ${esc(DATA.version || '—')}</p>`;
-});
+      site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
+      backend ${esc(DATA.version || '—')}</p>`);}
 
+const mePages = () => chunk(meBlocks(), PER_PAGE.me);
+
+screen('me', () => pages('me', mePages()));
 on('do-signin', () => {
   const name = ($('in-name') || {}).value || '';
   const pin = ($('in-pin') || {}).value || '';
   const said = $('in-said');
   if (!name || !pin) { if (said) said.textContent = 'Both, please.'; return; }
   if (said) said.textContent = 'Checking…';
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'verifyLogin', name, pin }) })
-    .then(r => r.json())
+  api({ action: 'verifyLogin', name, pin })
     .then(d => {
       if (!d || !d.success) { if (said) said.textContent = (d && d.error) || 'That did not work.'; return; }
-      USER = d;
+      /* THE REPLY, PLUS WHAT WE ALREADY KNEW. This was `USER = d` — the reply wholesale — so any
+         field the backend did not send simply did not exist on the person afterwards. Not
+         hypothetical: `todo` was missing from this reply for weeks and every docket vanished at
+         sign-in because of it.
+         The name matters most, because it is what every request identifies the person by. A reply
+         without one signs somebody in as nobody, and the failure that follows is a booking refused
+         for not being signed in, to somebody who plainly is. */
+      USER = Object.assign({ name: name }, d);
+      if (!USER.name) USER.name = name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
       load();
@@ -2144,9 +2862,8 @@ function avatarSave(change) {
   const fig = $('av-figure');
   if (fig) fig.innerHTML = avatarFor(USER.handle || USER.name, 120, USER.avatar);
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveAvatar',
-    name: USER.name, personId: USER.personId, avatar: cfg }) })
-    .then(r => r.json())
+  api({ action: 'saveAvatar',
+    name: USER.name, personId: USER.personId, avatar: cfg })
     .then(d => {
       if (!d || d.error) throw new Error((d && d.error) || 'Could not save that');
       USER.avatar = d.avatar;
@@ -2169,7 +2886,174 @@ on('av-colour', el => avatarSave({ [el.dataset.field]: Number(el.dataset.value) 
 on('av-pick', el => avatarSave({ [el.dataset.slot]: el.dataset.id }));
 
 on('register',    () => toast('Registration is the next thing to wire'));
-on('edit-me',     () => toast('The profile form is next'));
+
+/* ---------- FRIENDS ------------------------------------------------------------------------------
+   A comma list of handles on the person's own row. Kept as one cell for the same reason the docket
+   is: a friendship has no life of its own, nothing links to it, and a tab would mean a row id and
+   a deletion policy for something that is a name in a list.
+--------------------------------------------------------------------------------------------- */
+const friendHandles = () =>
+  String((USER && USER.friends) || '').split(',').map(x => x.trim()).filter(Boolean);
+
+/* ADDING ONE. The LIST is on Find with everything else; this is only the asking — a short question
+   with an end, which is what a sheet is for. It used to show the list here too, which made friends
+   the one set of people on the site reachable from two places. */
+function friendsSheet() {
+  openSheet('Add a friend', `
+    <label class="field"><span>their handle</span>
+      <input id="fr-add" placeholder="e.g. LuccaD" autocomplete="off"></label>
+    <button class="btn" data-do="friend-add">Add</button>
+    <p class="faint" id="fr-said" style="margin:.6rem 0 0">
+      Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
+      harder to notice than nobody — they simply appear on a list you scroll past.</p>`);
+}
+on('friends', () => { if (!USER) { toast('Sign in first'); return; } friendsSheet(); });
+
+on('friend-add', () => {
+  const box = $('fr-add'), said = $('fr-said');
+  const want = ((box && box.value) || '').trim();
+  if (!want) { box && box.focus(); return; }
+  /* EXACT, and it has to be. A search that guesses adds the wrong person, and the wrong person is
+     harder to notice than nobody — they simply appear on a list somebody scrolls past. */
+  const found = (DATA.students || []).find(s2 => norm(s2.handle) === norm(want));
+  if (!found) { if (said) said.textContent = 'Nobody has the handle "' + want + '".'; return; }
+  if (norm(found.handle) === norm(USER.handle)) {
+    if (said) said.textContent = 'That is you.'; return;
+  }
+  const list = friendHandles();
+  if (list.some(h => norm(h) === norm(found.handle))) {
+    if (said) said.textContent = found.handle + ' is already on your list.'; return;
+  }
+  friendsSave(list.concat([found.handle]), said);
+  closeSheet();
+  toast('Added ' + found.handle);
+});
+
+on('friend-drop', el => friendsSave(
+  friendHandles().filter(h => norm(h) !== norm(el.dataset.handle)), $('fr-said')));
+
+/* Adding one from the Find browse page, where the list is. */
+on('friend-add-open', () => friendsSheet());
+
+/* Written on the phone first, then sent — and the sheet redrawn either way, so removing somebody
+   is visible before the round trip and put back if it fails. */
+function friendsSave(list, said) {
+  const before = USER.friends;
+  USER.friends = list.join(', ');
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  /* The list lives on Find now, so that is what has to be redrawn — and the memo has to be told,
+     or it serves the list from before the change. */
+  FIND_MEMO.key = null;
+  if (AT === 'stuff') paintStuff();
+  api({ action: 'saveFriends', name: USER.name, personId: USER.personId, friends: USER.friends })
+    .then(d => { if (d && d.error) throw new Error(d.error); })
+    .catch(err => {
+      USER.friends = before;
+      FIND_MEMO.key = null;
+      if (AT === 'stuff') paintStuff();
+      const el = $('fr-said');
+      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+    });
+}
+
+/* ---------- MESSAGES -----------------------------------------------------------------------------
+   Read-only for now on the sending side of a thread nobody has started: the backend has
+   `sendMessage` and this can post to it, but there is no picker for WHO — that belongs with the
+   roster, where the people you are talking to are already on screen.
+--------------------------------------------------------------------------------------------- */
+on('messages', () => {
+  if (!USER) { toast('Sign in first'); return; }
+  const ms = DATA.messages || [];
+  openSheet('Messages', ms.length
+    ? ms.map(m => `<div class="msg${m.mine ? ' mine' : ''}${!m.mine && !m.read ? ' unread' : ''}">
+        <p class="msg-body">${mark(m.body)}</p>
+        <p class="faint msg-when">${esc(m.mine ? 'you' : (m.fromName || 'them'))} · ${esc(m.at || '')}</p>
+      </div>`).join('')
+    : `<p class="empty">Nothing yet.<br><span class="faint">Messages about a session appear
+         here.</span></p>`);
+});
+
+/* ---------- YOUR OWN DETAILS ---------------------------------------------------------------------
+   Built from the backend's own field list, exactly as the resource editor is — `profileFields` IS
+   the allow-list the server checks writes against, so a form built from it cannot offer a field
+   the server will refuse or miss one it would accept.
+--------------------------------------------------------------------------------------------- */
+on('edit-me', () => {
+  if (!USER) { toast('Sign in first'); return; }
+  const role = roleOf(USER.role || '');
+  const groups = (role === 'client' && DATA.clientFields && Object.keys(DATA.clientFields).length)
+      ? DATA.clientFields
+    : (role === 'student' && DATA.studentFields && Object.keys(DATA.studentFields).length)
+      ? DATA.studentFields
+    : (DATA.profileFields && Object.keys(DATA.profileFields).length)
+      ? DATA.profileFields
+    /* A backend too old to send it. The form still opens with what this file knows about — an
+       admin who can edit nothing is worse than one who can edit a few things. */
+    : { 'About you': ['first_name', 'last_name', 'photo'],
+        'Where': ['borough', 'city'], 'Contact': ['email', 'phone'] };
+
+  const p = USER.profile || {};
+  const readonly = DATA.profileReadonly || [];
+
+  const field = f => {
+    const v = p[f] ?? '';
+    const ro = readonly.indexOf(f) !== -1;
+    const opts = (DATA.validations || {})[f];
+    if (/^(dbs|active|listed)/.test(f)) {
+      return `<label class="check">
+        <input type="checkbox" data-me="${esc(f)}" ${TRUEish_(v) ? 'checked' : ''} ${ro ? 'disabled' : ''}>
+        <span class="box"></span><span>${esc(fieldLabel(f))}</span></label>`;
+    }
+    if (opts && opts.length) {
+      return `<label class="field"><span>${esc(fieldLabel(f))}</span>
+        <select data-me="${esc(f)}" ${ro ? 'disabled' : ''}>
+          <option value="">${NONE_LABEL}</option>
+          ${opts.map(o => `<option value="${esc(o)}"${String(v) === String(o) ? ' selected' : ''}
+            >${esc(o)}</option>`).join('')}
+        </select></label>`;
+    }
+    return `<label class="field"><span>${esc(fieldLabel(f))}</span>
+      <input data-me="${esc(f)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+        ${/rate|hours|students|km|years/.test(f) ? 'inputmode="decimal"' : ''}></label>`;
+  };
+
+  openSheet('Your details',
+    Object.keys(groups).map(g => `<h2><span>${esc(g)}</span></h2>`
+      + groups[g].map(field).join('')).join('')
+    + `<button class="btn" data-do="me-save">Save</button>
+       <p class="faint" id="me-said" style="margin:.6rem 0 0"></p>`);
+});
+
+/* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
+   versions send neither consistently. One reader for all three. */
+const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
+
+on('me-save', el => {
+  const said = $('me-said');
+  const fields = {};
+  document.querySelectorAll('#sheet-body [data-me]').forEach(box => {
+    if (box.disabled) return;
+    fields[box.dataset.me] = box.type === 'checkbox' ? (box.checked ? 'TRUE' : 'FALSE')
+                                                     : String(box.value || '').trim();
+  });
+  el.disabled = true;
+  if (said) said.textContent = 'Saving…';
+
+  api({ action: 'updateProfile', name: USER.name,
+    target: USER.name, targetId: USER.personId || '', fields })
+    .then(d => {
+      if (d && d.error) throw new Error(d.error);
+      /* Kept on the phone as well, so the You screen shows the new values before the next load. */
+      USER.profile = Object.assign({}, USER.profile || {}, fields);
+      if (d && d.name) USER.name = d.name;
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      closeSheet(); toast('Saved'); load();
+    })
+    .catch(err => {
+      el.disabled = false;
+      if (said) said.textContent = String(err.message || 'Could not save that');
+    });
+});
 on('change-pin',  () => openSheet('Change your PIN', `
   <label class="field"><span>current PIN</span>
     <input id="pin-now" type="password" inputmode="numeric"></label>
@@ -2186,9 +3070,8 @@ on('pin-save', () => {
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
   if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The two new PINs do not match.'; return; }
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'changePin', name: USER.name,
-    currentPin: v('pin-now'), newPin: v('pin-new') }) })
-    .then(r => r.json())
+  api({ action: 'changePin', name: USER.name,
+    currentPin: v('pin-now'), newPin: v('pin-new') })
     .then(d => {
       if (d && d.error) { if (said) said.textContent = d.error; return; }
       toast('PIN changed'); closeSheet();
@@ -2197,8 +3080,7 @@ on('pin-save', () => {
 });
 
 on('my-referral', () => {
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'myReferral', name: USER.name }) })
-    .then(r => r.json())
+  api({ action: 'myReferral', name: USER.name })
     .then(d => {
       if (!d || d.error) { toast((d && d.error) || 'Could not fetch it'); return; }
       const link = location.origin + location.pathname + '?ref=' + encodeURIComponent(d.code);
@@ -2228,26 +3110,41 @@ on('ref-send', el => {
    empty state answer different questions, and showing the wrong one makes an app look broken in
    the first second somebody sees it. */
 let LOADED = false;
+/* WHY there is nothing to show. `LOADED` says the attempt finished; this says whether it worked.
+   Without it a failed fetch and an empty spreadsheet produce the same screen — and the words on
+   that screen were "add a row to the posts tab", which is advice for a problem the person does not
+   have, with no mention of the one they do. */
+let LOAD_FAILED = '';
 
 /**
  * A SHAPE OF THE THING THAT IS COMING, not a spinner.
  *
- * A spinner says "wait"; this says "a picture and two lines are about to appear here" — so the
- * page does not jump when they do, and the wait feels like loading rather than like nothing
- * happening.
+ * A spinner says "wait". This says "a face, a photograph and two lines are about to be here" — so
+ * nothing jumps when they arrive, and the wait reads as loading rather than as nothing happening.
+ *
+ * IT HAS TO MATCH. It used to draw two stacked articles because the feed was a column; the feed is
+ * one post per screen now, so it draws ONE, inside the same pager, with the picture taking the
+ * same room the real one will. A skeleton in the wrong shape is worse than no skeleton at all —
+ * the page still jumps, and it jumps at the exact moment somebody has started reading it.
+ *
+ * The bars are staggered a little. In lockstep they pulse as one block, which reads as a single
+ * animated rectangle; slightly apart they read as separate things arriving.
  */
-function skeleton(n = 2) {
-  return Array.from({ length: n }, () => `
+function skeleton() {
+  const bar = (w, h, delay, extra) =>
+    `<span class="sk-box" style="width:${w};height:${h};animation-delay:${delay}s${
+      extra ? ';' + extra : ''}"></span>`;
+  return pages('posts', [`
     <article class="post sk">
       <header class="post-by">
-        <span class="sk-box" style="width:1.9rem;height:1.9rem;border-radius:50%"></span>
-        <span class="sk-box" style="width:6rem;height:.7rem"></span>
+        ${bar('1.9rem', '1.9rem', 0, 'border-radius:50%;flex:none')}
+        ${bar('6rem', '.7rem', .08)}
       </header>
-      <span class="sk-box sk-pic"></span>
-      <div class="post-acts"><span class="sk-box" style="width:3.5rem;height:1rem"></span></div>
-      <span class="sk-box" style="width:80%;height:.7rem;margin-top:.5rem"></span>
-      <span class="sk-box" style="width:45%;height:.7rem;margin-top:.35rem"></span>
-    </article>`).join('');
+      <span class="sk-box sk-pic" style="animation-delay:.16s"></span>
+      <div class="post-acts">${bar('9rem', '2.3rem', .24)}</div>
+      ${bar('80%', '.7rem', .32, 'margin-top:.5rem')}
+      ${bar('45%', '.7rem', .4, 'margin-top:.35rem')}
+    </article>`]);
 }
 
 /* ---------- POSTS -------------------------------------------------------------------------------
@@ -2302,15 +3199,19 @@ screen('posts', () => {
   /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
      wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
      in flight is a lie the app corrects a second later, which is worse than saying nothing. */
-  if (!LOADED) return skeleton(2);
+  if (!LOADED) return skeleton();
 
   const posts = feedPosts();
   if (!posts.length) {
-    return `<p class="empty">Nothing posted yet.<br>
-      <span class="faint">Add a row to the posts tab with an image link and a caption.</span></p>`;
+    return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
+      + 'with an image link and a caption.</span>');
   }
 
-  return posts.map((p, i) => {
+  /* ONE POST PER SCREEN, and the same pager the tools use. A feed is the place this shape
+     belongs most obviously — a photograph competing with the top of the next photograph is a
+     photograph nobody looks at properly, and scrolling past one by accident is how you never see
+     it again. */
+  return pages('posts', posts.map((p, i) => {
     const src = pic(p.image);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
@@ -2362,7 +3263,7 @@ screen('posts', () => {
       ${p.body ? `<p class="note">${mark(p.body)}</p>` : ''}
       ${p.when || p.at ? `<p class="faint post-when">${esc(ago(p.at || p.when))}</p>` : ''}
     </article>`;
-  }).join('');
+  }));
 }, () => isAdmin()
   ? '<span class="act" data-do="new-post">＋</span><span class="act" data-do="scan-posts">⟳</span>'
   : '');
@@ -2453,10 +3354,7 @@ on('react', el => {
   else { r.yours = emoji; r.counts[at(emoji)]++; r.total++; }
   repaint();
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'reactPost',
-    name: USER.name, postId: id, emoji }) })
-    .then(x => x.json())
-    .then(d => { if (d && d.error) throw new Error(d.error); })
+  send({ action: 'reactPost', name: USER.name, postId: id, emoji })
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
       repaint();
@@ -2515,9 +3413,8 @@ on('vote', el => {
   else { q.yours = choice; q.counts[at(choice)]++; q.total++; }
   repaint();
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'votePoll',
-    name: USER.name, postId: id, choice }) })
-    .then(r => r.json())
+  api({ action: 'votePoll',
+    name: USER.name, postId: id, choice })
     .then(d => { if (d && d.error) throw new Error(d.error); })
     .catch(err => {
       q.yours = before.yours; q.counts = before.counts; q.total = before.total;
@@ -2552,11 +3449,17 @@ function openSharedPost() {
   let id = '';
   try { id = new URLSearchParams(location.search).get('post') || ''; } catch {}
   if (!id) return;
+
+  /* TURN THE DIAL TO IT, rather than scrolling. The feed is one post per screen now, so the post
+     somebody was sent is a PAGE rather than a position down a column — and scrollIntoView on an
+     absolutely-positioned page moves nothing at all, silently, which would look exactly like a
+     shared link going to the top of the feed. */
+  const n = feedPosts().findIndex(p => String(p.id) === String(id));
+  if (n < 0) { go('posts'); return; }
+  PAGE.posts = n;
   go('posts');
-  /* After the frame that draws it — the element cannot be scrolled to before it exists. */
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const el = document.querySelector(`[data-post="${CSS.escape(id)}"]`);
-    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('post-lit'); }
+    document.querySelector(`[data-post="${CSS.escape(id)}"]`)?.classList.add('post-lit');
   }));
 }
 
@@ -2567,26 +3470,27 @@ function openSharedPost() {
    what Apps Script will take, and a minute of a library's wifi. Scaled to 1600px and re-encoded it
    is about 300KB, and nobody can tell on a phone screen.
 --------------------------------------------------------------------------------------------- */
-function shrink(file, maxSide = 1600, quality = .82) {
-  return new Promise((done, fail) => {
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-      const c = document.createElement('canvas');
-      c.width = Math.round(img.width * scale);
-      c.height = Math.round(img.height * scale);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(img.src);       // or the full-size picture stays in memory
-      done(c.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => fail(new Error('That file is not a picture we can read.'));
-    img.src = URL.createObjectURL(file);
-  });
-}
+/* `shrink` lived here — it resized a chosen photograph in the browser before uploading it, so a
+   4MB camera picture did not become a 4MB row. There is nothing to upload any more: a post is the
+   ADDRESS of a picture, so the picture is never carried anywhere and never needs shrinking.
+   Deleted rather than left unused. Dead code reads as a thing the app does, and the next person to
+   wonder why posting is slow would have found a resizer and believed it. */
 
-on('new-post', () => openSheet('New post', `
-  <label class="field"><span>picture</span>
-    <input type="file" id="post-file" accept="image/*"></label>
+on('new-post', () => {
+  openSheet('New post', `
+  ${/* CHOOSE ONE THAT IS ALREADY THERE, before being offered the upload.
+       Uploading writes to Drive; choosing only reads it. That difference matters because a
+       deployment can hold read and not write — and for a photograph taken on a phone this is the
+       shorter route anyway: share it to the folder from the camera roll and it is here. */''}
+  <div id="post-from-folder"><p class="faint">Looking in the folder…</p></div>
+  ${/* A LINK, not a file.
+       Uploading meant this app had to be allowed to write to your Drive, which is a large
+       permission to hold for the sake of one button — and the picture has to be somewhere with a
+       link anyway before anybody but you can see it.
+       So the picture stays where it is and the post keeps its address. The row above fills this in
+       for anything already in the folder; anything else is a paste. */''}
+  <label class="field"><span>link to the picture</span>
+    <input id="post-link" placeholder="https://…" inputmode="url" autocomplete="off"></label>
   <div id="post-preview"></div>
   <label class="field"><span>caption</span>
     <input id="post-cap" placeholder="One line about it"></label>
@@ -2606,53 +3510,102 @@ on('new-post', () => openSheet('New post', `
       <button class="btn quiet" data-do="as" data-as="me">${esc(USER ? USER.name : 'me')}</button>
     </span></label>
   <button class="btn" data-do="post-send">Post it</button>
-  <p class="faint" id="post-said" style="margin:.6rem 0 0">
-    Goes to the Drive folder and the posts tab together.</p>`));
+  <p class="faint" id="post-said" style="margin:.6rem 0 0"></p>`);
 
-/* A preview the moment a file is chosen. It is also the first sign that the resize worked — if the
-   preview appears, the picture is readable and small. */
-document.addEventListener('change', async e => {
-  if (e.target.id !== 'post-file') return;
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-  const said = $('post-said');
-  try {
-    const data = await shrink(f);
-    $('post-preview').innerHTML = `<img src="${data}" style="width:100%;margin-bottom:.6rem">`;
-    $('post-preview').dataset.data = data;
-    if (said) said.textContent = Math.round(data.length / 1365) + ' KB after resizing — from '
-      + Math.round(f.size / 1024) + ' KB.';
-  } catch (err) {
-    if (said) said.textContent = String(err.message || err);
-  }
+  /* Fetched after the sheet is up, so the form is usable while the folder is being read. */
+  api({ action: 'folderFiles', name: USER.name, adminName: USER.name })
+    .then(d => {
+      const box = $('post-from-folder');
+      if (!box) return;                                   // the sheet was closed
+      if (d.error || !(d.files || []).length) {
+        /* Nothing to choose, or no permission to look. Either way the upload below is the only
+           route, and a picker with nothing in it is worse than no picker. */
+        box.innerHTML = d.error
+          ? `<p class="faint">Could not look in the folder: ${esc(d.error)}</p>`
+          : `<p class="faint">Nothing new in the folder. Put a photograph in it from Drive and it
+               will appear here.</p>`;
+        return;
+      }
+      box.innerHTML = `<p class="faint">In the folder — tap one</p>
+        <div class="pickers">${d.files.map(f => `
+          <button class="picker" data-do="post-pick" data-id="${esc(f.id)}"
+                  data-caption="${esc(f.caption)}" title="${esc(f.name)}">
+            <img src="${esc(pic('https://drive.google.com/file/d/' + f.id + '/view'))}" alt=""
+                 loading="lazy">
+            <span>${esc(f.caption)}</span>
+          </button>`).join('')}</div>`;
+    })
+    .catch(() => {
+      const box = $('post-from-folder');
+      if (box) box.innerHTML = '';
+    });
 });
 
-/* Which name goes on the post. The business by default — the feed should read @family. rather
-   than whoever had their phone out, and posting under your own name should be a choice you make
-   rather than the one you fall into. */
-on('as', el => {
-  const row = $('post-as');
-  if (!row) return;
-  row.dataset.as = el.dataset.as;
-  row.querySelectorAll('[data-do="as"]').forEach(b =>
-    b.classList.toggle('on', b.dataset.as === el.dataset.as));
+/* Choosing one. It does not upload anything — the picture is already in Drive and already shared,
+   so all that is missing is the row. */
+on('post-pick', el => {
+  document.querySelectorAll('.picker').forEach(b => b.classList.toggle('on', b === el));
+  /* Straight into the link box, not into a hidden field beside it. There is one place the picture
+     is named, and you can see it and change it — a picker that stores its answer somewhere
+     invisible is a second source of truth waiting to disagree with the one on screen. */
+  const box = $('post-link');
+  if (box) box.value = 'https://drive.google.com/file/d/' + el.dataset.id + '/view';
+  /* The caption comes from the file's name, and only while the box is empty — somebody who has
+     already typed one meant it. */
+  const cap = $('post-cap');
+  if (cap && !cap.value) cap.value = el.dataset.caption || '';
+  showPostPreview();
+});
+
+/**
+ * A PREVIEW OF WHATEVER THE LINK POINTS AT.
+ *
+ * It is the only way to find out, before posting, that a Drive link has not been shared — the
+ * commonest fault by far, and one that looks fine to whoever pasted it because they can see the
+ * picture and nobody else can.
+ */
+function showPostPreview() {
+  const box = $('post-preview');
+  const url = ($('post-link') || {}).value || '';
+  if (!box) return;
+  if (!url.trim()) { box.innerHTML = ''; return; }
+
+  const src = pic(url.trim());
+  box.innerHTML = `<img src="${esc(src)}" alt=""
+    style="width:100%;margin:.2rem 0 .6rem;background:var(--sunk)">`;
+  const img = box.querySelector('img');
+  if (!img) return;                 // nothing to watch load, so nothing to report about it
+  const said = $('post-said');
+  img.onload = () => { if (said) said.textContent = ''; };
+  img.onerror = () => {
+    box.innerHTML = '';
+    if (said) said.textContent = 'That link does not show a picture. If it is in Drive, it needs '
+      + 'to be shared with anyone who has the link.';
+  };
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'post-link') showPostPreview();
 });
 
 on('post-send', el => {
-  const data = ($('post-preview') || {}).dataset?.data || '';
+  const link = (($('post-link') || {}).value || '').trim();
   const said = $('post-said');
-  if (!data) { if (said) said.textContent = 'Pick a picture first.'; return; }
+  if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
   el.disabled = true;
-  if (said) said.textContent = 'Uploading…';
+  if (said) said.textContent = 'Posting…';
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'addPost',
-    name: USER.name, adminName: USER.name, data,
+  api({ action: 'addPost',
+    name: USER.name, adminName: USER.name,
+    /* THE ADDRESS OF THE PICTURE, and nothing else. No bytes go anywhere: the picture stays where
+       it already is, which is the only reason this app no longer needs permission to write to your
+       Drive at all. */
+    image: link,
     caption: ($('post-cap') || {}).value || '',
     location: ($('post-loc') || {}).value || '',
     poll: ($('post-poll') || {}).value || '',
     postAs: ($('post-as') || {}).dataset?.as || 'brand',
-    body: ($('post-body') || {}).value || '' }) })
-    .then(r => r.json())
+    body: ($('post-body') || {}).value || '' })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       closeSheet(); toast('Posted'); load();
@@ -2745,9 +3698,8 @@ on('post-save', el => {
 
   el.disabled = true;
   if (said) said.textContent = 'Saving…';
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'editPost',
-    name: USER.name, adminName: USER.name, id: el.dataset.id, fields }) })
-    .then(r => r.json())
+  api({ action: 'editPost',
+    name: USER.name, adminName: USER.name, id: el.dataset.id, fields })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       closeSheet(); toast('Saved'); load();
@@ -2774,9 +3726,8 @@ on('post-delete', el => {
   el.disabled = true;
   if (said) said.textContent = restoring ? 'Restoring…' : 'Deleting…';
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'deletePost',
-    name: USER.name, adminName: USER.name, id: el.dataset.id, on: restoring }) })
-    .then(r => r.json())
+  api({ action: 'deletePost',
+    name: USER.name, adminName: USER.name, id: el.dataset.id, on: restoring })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       closeSheet();
@@ -2795,15 +3746,28 @@ on('post-delete', el => {
    somebody uploads outside the app. */
 on('scan-posts', () => {
   toast('Looking in the folder…');
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'scanPosts',
-    name: USER.name, adminName: USER.name }) })
-    .then(r => r.json())
+  api({ action: 'scanPosts',
+    name: USER.name, adminName: USER.name })
     .then(d => {
       if (d && d.error) { toast(d.error); return; }
-      if (d.added || d.dated) {
-        toast([d.added ? d.added + ' new post' + (d.added === 1 ? '' : 's') : '',
-               d.dated ? d.dated + ' date' + (d.dated === 1 ? '' : 's') + ' filled in' : '']
-              .filter(Boolean).join(', '));
+
+      /* EVERYTHING THE SCAN CAN CHANGE, not just what it added.
+         This asked `d.added || d.dated` — so a run that took ten captions off ten filenames and
+         added nothing fell through to the "Nothing to add" report below, which never reloads. The
+         captions went into the sheet and the screen went on showing the old payload, which looks
+         exactly like the captions not working. `recaptioned` is a third thing it can do and was
+         the only one nobody was asking about. */
+      const did = [
+        d.added       ? d.added + ' new post' + (d.added === 1 ? '' : 's') : '',
+        d.dated       ? d.dated + ' date' + (d.dated === 1 ? '' : 's') + ' filled in' : '',
+        d.recaptioned ? d.recaptioned + ' caption' + (d.recaptioned === 1 ? '' : 's')
+                        + ' from the file name' : '',
+      ].filter(Boolean);
+
+      if (did.length) {
+        toast(did.join(', '));
+        /* The payload is refetched, or nothing on screen changes. A write nobody can see is
+           indistinguishable from a write that did not happen. */
         load();
         return;
       }
@@ -2811,7 +3775,7 @@ on('scan-posts', () => {
       /* NOTHING ADDED. A toast saying "nothing found" leaves you with no way to tell a folder in
          the wrong place from a folder full of shortcuts, so the whole report is shown instead —
          which folder it opened, how many it looked in, and what it skipped and why. */
-      openSheet('Nothing to add', `
+      openSheet('Nothing changed', `
         <div class="row"><span class="k">Folder</span>
           <span class="v">${esc(d.folder || 'unknown')}</span></div>
         <div class="row"><span class="k">Folders looked in</span>
@@ -2819,7 +3783,11 @@ on('scan-posts', () => {
         <div class="row"><span class="k">Files seen</span>
           <span class="v mono">${(d.seen || []).length}</span></div>
         ${(d.seen || []).length
-          ? `<h2>What it skipped</h2>` + (d.seen || []).map(x =>
+          /* "What it skipped" was a lie about half of these lines: a file that is already a post
+             with the right caption was not skipped, it was checked and found to be correct. A
+             heading that misdescribes the list under it is worse than no heading, because it tells
+             you to stop reading. */
+          ? `<h2>Every file it looked at</h2>` + (d.seen || []).map(x =>
               `<p class="faint" style="margin:.2rem 0">${esc(x)}</p>`).join('')
           : `<p class="note" style="margin-top:.8rem">The folder opened, and there was nothing in
                it at all.<br><br>
@@ -2849,28 +3817,8 @@ const NAMED_COLOURS = {
   yellow:'#e8c33a', lime:'#7cb342', brown:'#8a5a3c', grey:'#6b6b6b', black:'#2b2b2b',
 };
 
-screen('library', () => {
-  const links = [...(DATA.links || [])].sort((a, b) =>
-    String(a.title || '').localeCompare(String(b.title || ''), 'en', { sensitivity: 'base' }));
-  if (!links.length) return '<p class="empty">No links yet.</p>';
-
-  return `<div class="tiles">${links.map(l => {
-    const shape = (LINK_SHAPE.find(x => x.is.test(norm(l.category))) || {}).cls || 'mark';
-    const want = norm(l.colour);
-    const hex = /^#?[0-9a-f]{6}$/.test(want) ? (want[0] === '#' ? want : '#' + want) : null;
-    /* A colour chosen in the sheet wins; otherwise one derived from the name, so every link looks
-       like itself without anybody having to pick ninety colours. */
-    const col = NAMED_COLOURS[want] || hex || `hsl(${hashOf(l.title || '?') % 360} 48% 46%)`;
-    const initials = String(l.title || '').replace(/[^A-Za-z0-9 ]/g, '')
-      .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
-    return `<a class="tile" href="${esc(l.url)}" target="_blank" rel="noopener">
-      <span class="shape ${shape}" style="--c:${col}">${esc(initials)}</span>
-      <span class="tile-name">${esc(l.title)}</span>
-    </a>`;
-  }).join('')}</div>`;
-});
-
-
+/* The Library SCREEN is gone with its tab — every link is a card on Find, searchable and
+   filterable, which the tile wall never was. `libraryTiles` and `libraryPages` went with it. */
 /* ================================================================================================
    AVATARS.
 
@@ -3041,7 +3989,7 @@ function wardrobe() {
   const level = levelFromXp(USER && USER.xp);
   const shop = {};
   (DATA.shop || []).forEach(x => {
-    if (x.kind === 'avatar' && x.slot && x.artId) shop[x.slot + ':' + x.artId] = x;
+    if (isWearable(x) && x.slot && x.artId) shop[x.slot + ':' + x.artId] = x;
   });
   const out = [];
   AV_SLOTS.forEach(([slot]) => {
@@ -3088,36 +4036,158 @@ function wardrobe() {
 
    Each one is a chip you can take off, so nothing can be narrowing the list without saying so —
    which is the failure of a dropdown you set three screens ago and forgot about. */
-const STUFF = { q: '', group: 'subject', sort: 'name', filters: [] };
+const STUFF = { q: '', sort: 'name', filters: [] };
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
    chip label all read it. */
-const FILTER_FIELDS = {
-  subject: { label: 'Subject', of: items => uniq(items.map(x => x.subject)).sort(cmpText) },
-  grade:   { label: 'Grade',   of: items => uniq(items.map(x => x.grade)).sort(cmpText) },
-  /* Three kinds, not two. A wearable and a bicycle are both "shop" to the database and nothing
-     alike to a person: one is earned and worn, the other is bought and posted. */
-  kind:    { label: 'Kind',    of: () => ['Shop', 'Wearables', 'Resources'] },
-  slot:    { label: 'Slot',    of: items => uniq(items.map(x => x.slot)).sort(cmpText) },
-  /* Not a field on the item — a question about the person. It sits in the same list because to
-     somebody filtering it is the same kind of thing: one more way to see less. */
-  afford:  { label: 'Price',   of: () => USER ? ['Can afford', 'Free'] : ['Free'] },
-};
+/* ---------- ONE QUESTION AT A TIME ----------------------------------------------------------------
+   Eleven filters as eleven controls is a form, and a form is the opposite of finding something.
 
-/** Does one item satisfy one filter? The only place a field's values are interpreted. */
-function filterHit(x, f, credits) {
-  switch (f.field) {
-    case 'subject': return x.subject === f.value;
-    case 'grade':   return String(x.grade) === String(f.value);
-    case 'kind':    return f.value === 'Wearables' ? !!x.wearable
-                         : f.value === 'Shop'      ? x.kind === 'shop' && !x.wearable
-                         :                           x.kind === 'topic';
-    case 'slot':    return x.slot === f.value;
-    case 'afford':  return f.value === 'Free' ? x.cost === 0
-                                              : x.kind === 'shop' && x.cost <= credits;
-    default:        return true;
+   They are not eleven independent questions. Key stage decides band value. Tier only exists for
+   some subjects at some levels. Exam wave contains the year. Board and company are near enough the
+   same fact that one sheet row says Edexcel and Pearson. Asked all at once they are a wall; asked
+   in order they collapse into two or three.
+
+   SO: ONE RULE, AND EVERYTHING FOLLOWS FROM IT — only ever offer a filter that would change what
+   you see. If everything left is Edexcel, do not ask about the board. If nothing left has a tier,
+   do not ask about tier. That is not a guess about what people want; it is a fact about the
+   remaining set, worked out again after every tap.
+
+   Finding a past paper becomes: Maths → KS4 → Edexcel → Past paper. Four taps, one short list at a
+   time, each shorter than the last because the one before it narrowed things.
+
+   THE ORDER IS FIXED, and deliberately so. It mirrors how somebody actually asks — what sort of
+   thing, what subject, what level, whose paper, what kind of paper — and a page that reorders
+   itself is a page you have to read every time instead of reaching for.
+--------------------------------------------------------------------------------------------- */
+const FACETS = [
+  /* What sort of thing, first. It is the one question that changes which of the others make any
+     sense at all — a wearable has a slot and no exam board, a paper the reverse. */
+  /* WHAT FOR, before what kind.
+     A tutor, a venue and a subject are three answers to one question — who, where and what — and
+     nobody assembling a session thinks of them as three different sorts of thing. They are the
+     things you BOOK. Grouping them says so, and it takes the first question from nine answers to
+     four, which is the difference between a menu and a choice.
+     Derived, not stored: what a thing is for follows from what it IS, so there is no column for
+     this and nothing to keep in step. And `kindLabel` below still asks which one — except where
+     the group holds only one kind, in which case the one-answer rule skips it and choosing
+     Learning takes you straight to the resources. */
+  { field: 'forLabel',  label: 'What for',    of: x =>
+      (x.kind === 'tutor' || x.kind === 'venue' || x.kind === 'subject') ? 'Booking'
+    : x.kind === 'friend'                                                  ? 'Friends'
+    : (x.kind === 'topic' || x.kind === 'link')                          ? 'Learning'
+    : (x.kind === 'tool' || x.kind === 'game')                           ? 'Tools & games'
+    :                                                                      'Shop' },
+  { field: 'kindLabel', label: 'What kind',   of: x =>
+      x.kind === 'tutor'   ? 'Tutors'
+    : x.kind === 'venue'   ? 'Venues'
+    : x.kind === 'subject' ? 'Subjects'
+    : x.kind === 'friend'  ? 'Friends'
+    : x.kind === 'link'    ? 'Links'
+    : x.kind === 'tool'    ? 'Tools'
+    : x.kind === 'game'    ? 'Games'
+    : x.wearable           ? 'Wearables'
+    : x.kind === 'shop'    ? 'Things'
+    :                        'Resources' },
+  /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
+     coverage rule doing the work that a per-kind filter list would otherwise have to. */
+  { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
+  /* Only links have one, so it is only ever asked once you are looking at links — the coverage
+     rule again, doing what a per-kind filter list would otherwise need code for. */
+  { field: 'category',  label: 'Category',    of: x => x.category || '' },
+  { field: 'subject',   label: 'Subject',     of: x => x.subject },
+  /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
+     revising and somebody sitting a mock are not looking for the same thing — so it is the
+     question that most changes what should come next. 412 of 417 rows can answer it, which is
+     the other half of what makes a good early question. */
+  { field: 'resourceType', label: 'Type',     of: x => x.resourceType },
+  { field: 'keystage',  label: 'Key stage',   of: x => x.keystage },
+  { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
+                                                    ? 'Grade ' + x.bandValue : '' },
+  { field: 'stage',     label: 'Stage',       of: x => x.bandValue && x.bandType === 'stage'
+                                                    ? x.bandValue : '' },
+  { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
+  { field: 'tier',      label: 'Tier',        of: x => x.tier },
+  { field: 'examWave',  label: 'Exam wave',   of: x => x.examWave },
+  /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
+     without anybody having to type it into a second column to make the filter work. */
+  { field: 'year',      label: 'Year',        of: x => yearOf(x) },
+  { field: 'company',   label: 'Company',     of: x => x.company },
+  /* A yes-or-no, phrased as the two answers rather than as the question. "Printed / Digital" is a
+     choice; "Print required: true" is a database column somebody left showing. */
+  { field: 'paper',     label: 'Printed?',    of: x => x.paper ? 'Printed' : 'Digital' },
+  { field: 'slot',      label: 'Goes on',     of: x => x.slot },
+  /* Last, because it is the one somebody asks when they already know what they want. */
+  { field: 'afford',    label: 'Price',       of: x => x.cost === 0 ? 'Free'
+                                                    : x.cost <= (USER ? USER.credits || 0 : 0)
+                                                      ? 'Can afford' : '' },
+];
+
+const facetBy = f => FACETS.find(x => x.field === f);
+
+/** Does one item satisfy one chosen filter? One comparison, because a facet says how to read
+    itself — the old version had a switch with a case per field, which is a place to forget one. */
+function filterHit(x, f) {
+  const facet = facetBy(f.field);
+  if (!facet) return true;
+  return norm(facet.of(x)) === norm(f.value);
+}
+
+/** The distinct values of one facet across a set, with how many each would leave. */
+function facetValues(items, facet) {
+  const by = {};
+  items.forEach(x => {
+    const v = String(facet.of(x) ?? '').trim();
+    if (!v) return;                       // blank is not an answer, so it is never offered
+    by[v] = (by[v] || 0) + 1;
+  });
+  return Object.keys(by).sort(cmpText).map(v => ({ value: v, n: by[v] }));
+}
+
+/* HOW MANY OF THESE COULD EVEN ANSWER IT. Not how many distinct answers there are — how many
+   items have one at all. */
+function facetCoverage(items, facet) {
+  if (!items.length) return 0;
+  let n = 0;
+  items.forEach(x => { if (String(facet.of(x) ?? '').trim()) n++; });
+  return n / items.length;
+}
+
+/* HOW MUCH OF THE SET A QUESTION HAS TO COVER BEFORE IT IS WORTH ASKING. */
+const FACET_COVERAGE = 0.5;
+
+/**
+ * THE NEXT QUESTION WORTH ASKING, or nothing.
+ *
+ * Three reasons to skip one, and the third is the one that matters:
+ *
+ * ALREADY ANSWERED. Obvious.
+ *
+ * EVERYTHING AGREES. A list with one entry is a tap that changes nothing, and three of those in a
+ * row is what makes a filter feel like paperwork.
+ *
+ * MOST OF THEM CANNOT ANSWER IT. This is not about usefulness — it is about damage. Choosing a
+ * value excludes every item with NO value for that field, and it does so silently: they do not
+ * fail to match, they were never asked. On this library `exam_board` is filled on 26% of rows and
+ * on 3% of past papers, so offering it and having somebody tap "Edexcel" takes them from four
+ * hundred resources to a hundred and seven, with three hundred and eight vanishing for a reason no
+ * screen mentions. That is not a filter, it is a trapdoor.
+ *
+ * Half is the line. Below it, a question is doing more harm by being asked than good by being
+ * answered — and the rule is SELF-CORRECTING, which is what makes it better than reordering: once
+ * you have narrowed to the rows that do carry a board, its coverage rises and it starts being
+ * offered. The sparse questions arrive exactly when they stop being sparse.
+ */
+function nextFacet(items) {
+  const asked = STUFF.filters.map(f => f.field);
+  for (const facet of FACETS) {
+    if (asked.indexOf(facet.field) !== -1) continue;
+    if (facetValues(items, facet).length < 2) continue;
+    if (facetCoverage(items, facet) < FACET_COVERAGE) continue;
+    return facet;
   }
+  return null;
 }
 
 /* THE RESOURCES, flattened out of where the payload actually puts them.
@@ -3129,8 +4199,18 @@ function filterHit(x, f, credits) {
    Flattened here rather than changed at the source: the checklist wants them nested and this wants
    them flat, and a payload that carries the same four hundred rows twice to satisfy both would be
    a waste of every phone's morning. */
+/* WALKED ONCE PER PAYLOAD, not once per caller.
+   Four hundred resources live three levels deep in `dropdowns.checklists`, and eight different
+   things ask for them flat — the shop list, the wardrobe, the checklist, `topicBy` twice in one
+   lookup. Each call rebuilt all four hundred objects. Cached against the payload itself, so it is
+   rebuilt exactly when the data changes and never otherwise. */
+let TOPICS_MEMO = { from: null, list: null };
+
 function allTopics() {
   const by = (DATA.dropdowns || {}).checklists || {};
+  /* Keyed on the object IDENTITY of the payload's own branch. A new payload is a new object, so
+     this cannot go stale — and it costs one comparison rather than hashing four hundred rows. */
+  if (TOPICS_MEMO.from === by) return TOPICS_MEMO.list;
   const out = [];
   Object.keys(by).forEach(subject => {
     Object.keys(by[subject] || {}).forEach(band => {
@@ -3141,6 +4221,14 @@ function allTopics() {
              deleting the wrong one is not. */
           id: t.id || '', name: t.name, subject, grade: t.grade || band, link: t.link,
           type: t.resourceType, board: t.examBoard, image: t.image,
+          /* EVERY QUESTION THE FUNNEL CAN ASK. They have been in the payload since the fields
+             were added and stopped here — flattened into six of twenty, because the checklist
+             only needed six. A facet nothing carries is a facet that silently offers nothing. */
+          bandType: t.bandType || '', bandValue: t.bandValue || band,
+          keystage: t.keystage || '', tier: t.tier || '',
+          examBoard: t.examBoard || '', company: t.company || '',
+          resourceType: t.resourceType || '', examWave: t.examWave || '',
+          year: t.year || '', paper: !!t.paper,
           pages: Number(t.pages) || 0, printable: t.printable,
           active: t.active !== false,
           /* THE THREE TICKS. Each is the comma-separated list of everybody who has done that pass
@@ -3154,6 +4242,7 @@ function allTopics() {
       });
     });
   });
+  TOPICS_MEMO = { from: by, list: out };
   return out;
 }
 
@@ -3257,9 +4346,8 @@ on('tick', el => {
   t.ticks[n - 1] = list.join(', ');
   el.closest('.tick')?.classList.toggle('on', checked);
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'toggleTopicTick',
-    name: USER.name, handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked }) })
-    .then(r => r.json())
+  api({ action: 'toggleTopicTick',
+    name: USER.name, handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       /* XP AND CREDITS MOVE WITH IT — a tick is worth one of each, which is what the wardrobe is
@@ -3292,16 +4380,81 @@ const printRatePence = () => {
    the shop items, because their label had already been decided. */
 function stuffItems() {
   return [
+    /* ---------- PEOPLE, PLACES AND SUBJECTS -----------------------------------------------------
+       Find and Stuff were two tabs asking the same question — where is the thing I want — split by
+       a distinction nobody makes while looking: people and places on one, objects on the other.
+       Somebody who wants Maths does not know whether they need a tutor, a venue, a subject page or
+       a past paper, and being made to guess which tab holds it is the whole problem.
+
+       They can be one list now because the funnel skips a question most of the set cannot answer.
+       That was the objection to merging and it is answered: choose Tutors and you will never be
+       asked about exam boards, because a tutor has none and the coverage rule sees it. */
+    ...(DATA.tutors || []).filter(t => t.title).map(t => ({
+      kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
+      cost: Number(t.rate) || 0, slot: '', subject: '', grade: '', off: t.listed === false,
+      row: t,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    ...(DATA.venues || []).filter(v => v.title).map(v => ({
+      kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
+      cost: Number(v.bestRate) || 0, slot: '', subject: '', grade: '', off: false,
+      row: v, borough: v.borough || v.city || '',
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    /* A LINK IS A THING YOU ARE LOOKING FOR TOO. It lives on its own tab as a wall of tiles —
+       which is the right way to SCAN ninety of them — and it was reachable no other way, so
+       somebody who half-remembers "that BBC one" had to know which tab to go to before they could
+       search for it. Here it is searchable and filterable like everything else. */
+    /* The nine widgets, findable like everything else. Searching "timer" now finds the timer,
+       which on a tab it never could. */
+    ...WIDGETS.map(wgt => ({
+      kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
+      cost: 0, slot: '', subject: '', grade: '', off: false, row: wgt,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    /* FRIENDS. People are found on the Find tab like everything else — they were a card on You,
+       which made them a setting about yourself rather than a set of people you can look through.
+       Only somebody who has a checklist and a score has any: a parent has no scoreboard to compare
+       and no reason to collect handles. */
+    ...(canTrack() ? friendHandles().map(h => {
+      const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
+      return {
+        kind: 'friend', name: s2.name || h, key: 'friend:' + h, sub: h, image: '',
+        cost: 0, slot: '', subject: '', grade: '', off: false, row: Object.assign({ handle: h }, s2),
+        bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+        resourceType: '', examWave: '', year: '', paper: false,
+      };
+    }) : []),
+    ...(DATA.links || []).filter(l => l.title).map(l => ({
+      kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
+      cost: 0, slot: '', subject: '', grade: '', off: false, row: l,
+      category: l.category || '',
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
+      kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
+      cost: 0, slot: '', subject: x.name, grade: '', off: false, row: x,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
     /* `name` and `price`, which is what the payload actually calls them. I had written `title`
        and `cost` — so every shop item drew with no name and a price of zero. */
     ...(DATA.shop || []).map(x => ({
       kind: 'shop', name: x.name, key: x.name, sub: x.description || '', image: x.image,
       cost: Number(x.price) || 0, slot: x.slot || '', subject: '', grade: '', off: false,
+      /* Blank on a shop row, and blank is what makes the funnel skip them: a facet whose values
+         are all empty is never offered, so choosing Wearables never shows an exam board. */
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
       /* WHETHER IT IS A WEARABLE, AND WHAT IT COSTS TO REACH.
          A wearable is priced in one of two currencies and the card only ever read one of them: a
          level-gated item has a price of zero, which was being drawn as "free" — an item saying
          free that cannot be taken is worse than one saying nothing, because somebody presses it. */
-      wearable: x.kind === 'avatar',
+      wearable: isWearable(x),
       level: Number(x.level) || 0,
       artId: x.artId || '',
     })),
@@ -3314,6 +4467,11 @@ function stuffItems() {
       .map(x => ({
         kind: 'topic', name: x.name, key: x.id || x.name, sub: x.subject || '', image: x.image,
         cost: 0, slot: '', subject: x.subject || '', grade: x.grade || '', off: !x.active,
+        /* Straight through onto the flat item, so one funnel can ask one question of a past paper
+           and a beanie without knowing which it has. */
+        bandType: x.bandType, bandValue: x.bandValue, keystage: x.keystage, tier: x.tier,
+        examBoard: x.examBoard, company: x.company, resourceType: x.resourceType,
+        examWave: x.examWave, year: x.year, paper: x.paper,
         /* The topic itself rides along, so the card can draw its ticks without looking it up
            again — a lookup per card is four hundred scans of four hundred rows to draw a list. */
         topic: x,
@@ -3321,29 +4479,56 @@ function stuffItems() {
   ];
 }
 
+/**
+ * THE YEAR OF A THING, from the column or from the wave.
+ *
+ * `year` is its own column because a filter wants the year on its own — "June 2024" and
+ * "November 2024" are two waves and one year, and bucketing by wave gives a facet with an entry
+ * per sitting. But a wave already contains the year, and asking somebody to type 2024 into a
+ * second cell to make the filter work is asking them to keep two facts in step by hand.
+ *
+ * So: the column when it is filled, and the four digits out of the wave when it is not.
+ */
+function yearOf(x) {
+  const own = String((x && x.year) || '').trim();
+  if (own) return own;
+  const m = String((x && x.examWave) || '').match(/\b(19|20)\d{2}\b/);
+  return m ? m[0] : '';
+}
+
 /* Numeric-aware, so Grade 2 comes before Grade 10. Plain alphabetical put Grade 10 first, and that
    reads as the list being unsorted rather than sorted by a rule nobody wanted. */
 const cmpText = (a, b) =>
   String(a).localeCompare(String(b), 'en', { sensitivity: 'base', numeric: true });
 
-/* Buckets that mean "none of the above" sink to the bottom. Alphabetically "Other" and "Ungraded"
-   land in the middle of the real groups, where they read as a subject somebody invented. */
-const GROUP_LAST = ['Other', 'Ungraded', 'Shop', 'Resources'];
-const groupOrder = (a, b) => {
-  const la = GROUP_LAST.includes(a), lb = GROUP_LAST.includes(b);
-  return la !== lb ? (la ? 1 : -1) : cmpText(a, b);
-};
-
-function groupOf(x) {
-  switch (STUFF.group) {
-    /* A shop item has no grade and never will. It gets its own bucket rather than being forced
-       into "Ungraded" beside a topic that genuinely is missing one — those are different facts. */
-    case 'grade': return x.kind === 'topic'
-      ? (x.grade ? 'Grade ' + x.grade : 'Ungraded') : 'Shop';
-    case 'kind':  return x.kind === 'shop' ? 'Shop' : 'Resources';
-    default:      return x.kind === 'topic' ? (x.subject || 'Other') : (x.slot || 'Shop');
-  }
+/**
+ * THE SORTS WORTH OFFERING, for what is actually on screen.
+ *
+ * A–Z always. "Cheapest" only when something costs — with four hundred free resources it sorted
+ * nothing and took up a third of the row. "Newest" only when anything carries a year.
+ *
+ * The same rule as the funnel: a control that cannot change what you see is a control that teaches
+ * people the controls do not do anything.
+ */
+function sortsWorthOffering() {
+  const items = stuffFiltered();
+  const out = [['name', 'A–Z']];
+  if (items.some(x => x.cost > 0)) out.push(['cost', 'Cheapest']);
+  if (items.some(x => yearOf(x))) out.push(['year', 'Newest']);
+  return out;
 }
+
+/* NO HEADINGS AT ALL, and no grouping behind them.
+
+   It went in stages, and each stage removed a reason for the next. The dropdown went because the
+   funnel asked the same question better. Then the headings followed the funnel automatically —
+   which was neat, and still bought nothing: by the time you have answered two questions there are
+   a handful of cards on a page, and a heading over four things names what all four already say on
+   their own second line.
+
+   What is left is a list. The funnel says what you asked for, the count says how many, and the
+   cards say what they are. Three things, none of them repeating another.
+--------------------------------------------------------------------------------------------- */
 
 /* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two
    words having to sit next to each other. Searching only the name and the group label missed a
@@ -3367,19 +4552,179 @@ function stuffFind(items, credits) {
     return words.every(w => hay.includes(w));
   });
 
+  /* ONE KEY, then the name to settle ties. There was an outer sort by group — and with the
+     groups gone there is nothing above the sort, which is most of why this is now four lines.
+     The name is always the tiebreak, so two papers priced the same come out in the order anybody
+     would look for them rather than in the order the sheet happens to hold them. */
   return out.sort((a, b) =>
-      STUFF.sort === 'cost'  ? (a.cost - b.cost) || cmpText(a.name, b.name)
-    : STUFF.sort === 'group' ? groupOrder(groupOf(a), groupOf(b)) || cmpText(a.name, b.name)
-    :                          cmpText(a.name, b.name));
+       (STUFF.sort === 'cost' ? (a.cost - b.cost)
+      : STUFF.sort === 'year' ? cmpText(yearOf(b), yearOf(a))
+      : 0)
+    || cmpText(a.name, b.name));
 }
 
-/* The list and nothing else — the count, the groups, the cards. Everything above it on the screen
-   is untouched when this is redrawn, which is the whole point. */
-function stuffList() {
-  const all = stuffItems();
-  const credits = USER ? (USER.credits || 0) : 0;
-  const items = stuffFind(all, credits);
+/* How many cards to a page. Eight fills a phone without quite filling it — a page that ends
+   exactly at the fold gives no sign there is anything below, and one that overflows makes you
+   scroll before you can swipe. If a chunk does overflow, the page scrolls and the pager waits,
+   which is the same rule every other widget follows. */
+const STUFF_PER_PAGE = 8;
 
+/* THE FILTERED LIST, held between calls.
+   Searching, grouping, sorting and paging all want the same array, and each was recomputing it —
+   `stuffItems` flattens four hundred topics and twenty shop rows, `stuffFind` filters and sorts
+   them, and that ran four times to draw one screen and again on every page turn.
+   Keyed on everything that can change the answer. */
+let FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+
+function stuffFiltered() {
+  /* KEYED ON THE PAYLOAD ITSELF, by object identity, not on `DATA.version`.
+     `version` is the BACKEND's version string — it changes when you deploy, and not when anybody
+     edits a row. So a reload that brought back four hundred changed resources produced the same
+     key as the reload before it, and this handed back the list it built last time. Editing a
+     resource and refreshing showed the old one, for as long as the tab stayed open, and nothing
+     anywhere said so.
+     A new payload is a new object. That is the whole test, it costs one comparison, and it is the
+     same one `allTopics` already uses one level down — which is why THAT was correct and this was
+     not. */
+  const key = JSON.stringify([STUFF.q, STUFF.sort, STUFF.filters,
+                              USER ? USER.credits : -1, isAdmin()]);
+  if (FIND_MEMO.key === key && FIND_MEMO.from === DATA) return FIND_MEMO.items;
+  const all = stuffItems();
+  const items = stuffFind(all, USER ? (USER.credits || 0) : 0);
+  FIND_MEMO = { key: key, from: DATA, items: items, total: all.length };
+  return items;
+}
+
+/**
+ * ARE WE LOOKING AT WIDGETS AND NOTHING ELSE?
+ *
+ * If so they stop being cards and become the pages themselves — one to a screen, swipe between
+ * them, already running. A game you have to open is not a game, and a calculator behind a tap is a
+ * calculator you use the phone's own one instead.
+ *
+ * ALL of them, not some. A search matching a tool and three resources cannot give one thing a
+ * whole screen and eight things another, so a mixed result stays a list of cards and the widget
+ * card opens in the sheet as before. The whole-screen version is for when you have said Tools or
+ * Games and there is nothing else in the way.
+ */
+const showingWidgets = () => {
+  const items = stuffFiltered();
+  return items.length > 0 && items.every(x => x.kind === 'tool' || x.kind === 'game');
+};
+
+/** One widget to a page; eight cards otherwise. */
+const stuffPerPage = () => showingWidgets() ? 1 : STUFF_PER_PAGE;
+
+/**
+ * HOW MANY PAGES, WITHOUT BUILDING ANY OF THEM.
+ *
+ * This used to render every page's markup and return the length of the array — half a megabyte of
+ * HTML to produce the number 59, and it ran on every single page turn because the pager asks for
+ * the page names each time it moves. Drawing the screen took a fifth of a second with a library
+ * this size and would take longer with every resource added.
+ *
+ * A page holds a fixed number of cards, so the count is a division.
+ */
+function stuffPageCount() {
+  const n = stuffFiltered().length;
+  return n ? Math.ceil(n / stuffPerPage()) : 1;
+}
+
+/**
+ * ONE PAGE'S MARKUP, built when it is needed and not before.
+ *
+ * A GROUP HEADING IS REPEATED at the top of a page that continues one. Four hundred resources
+ * eight to a screen means most groups span several, and a page opening with eight subject names
+ * and no subject is a page you would have to swipe back to understand.
+ */
+function stuffPageHtml(n) {
+  const items = stuffFiltered();
+  const credits = USER ? (USER.credits || 0) : 0;
+
+  if (!items.length) {
+    const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
+              : STUFF.q                          ? 'Try fewer words.'
+              : STUFF.filters.length             ? 'Nothing matches all of those together.'
+              : '';
+    return (!FIND_MEMO.total)
+      ? nothingHere('Nothing in the shop or the library yet.')
+      : `<p class="empty">Nothing matches.${
+          why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
+  }
+
+  /* Cards, in order, and nothing between them. The continuation-heading logic went with the
+     headings — repeating a group name at the top of a page that carries on from the last one was
+     the fiddliest part of this function and existed only to make grouping survive being paged. */
+  /* A WHOLE SCREEN EACH. The widget's own markup rather than a card standing in for it — the
+     card was only ever a door, and there is nothing behind that door which could not be here. */
+  if (showingWidgets()) {
+    const wgt = items[n] && items[n].row;
+    return wgt ? `<div class="widget-full">${wgt.html}</div>` : '';
+  }
+
+  const per = stuffPerPage();
+  return items.slice(n * per, (n + 1) * per)
+    .map(x => stuffCard(x, credits)).join('');
+}
+
+/* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
+   all four hundred around it. */
+function stuffCard(x, credits) {
+  /* A person, a place and a subject already have a card each — written for the Find screen and
+     carrying the class that colours the name. Reused rather than reimplemented: two cards for one
+     tutor is two things to keep looking the same. */
+  if (x.kind === 'tutor' || x.kind === 'venue' || x.kind === 'subject') {
+    return findCard({ kind: x.kind, row: x.row });
+  }
+
+  /* A LINK IS AN ANCHOR, not a card that opens a sheet. Everything else here opens something
+     inside the app and a link leaves it — so it is the one card that has to be a real `<a>`, or a
+     long-press cannot copy it and a middle-click cannot open it in a tab. It carries the same
+     coloured shape the Library wall uses, so the same link looks like itself in both places. */
+  /* A FRIEND. Their figure, their level, and a way to stop being one — everything a friend card
+     ever showed, on the tab where people are looked for. */
+  if (x.kind === 'friend') {
+    const f = x.row;
+    const xp = Number(f.xp) || 0;
+    return `<div class="card">
+      <div class="thing">
+        <span class="thing-pic art">${avatarFor(f.handle, 44, f.avatar)}</span>
+        <div class="thing-body">
+          <h3>${esc(x.name)}</h3>
+          <p class="sub">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
+        </div>
+        <span class="text-drop" data-do="friend-drop" data-handle="${esc(f.handle)}">✕</span>
+      </div>
+    </div>`;
+  }
+
+  /* A widget's card is its name and nothing else — there is no picture, no price and no subject,
+     and inventing a line to fill the space would be the card apologising for being short. */
+  if (x.kind === 'tool' || x.kind === 'game') {
+    return `<div class="card tap" data-do="widget" data-id="${esc(x.row.id)}">
+      <h3>${esc(x.name)}</h3>
+    </div>`;
+  }
+
+  if (x.kind === 'link') {
+    const l = x.row;
+    const shape = (LINK_SHAPE.find(y => y.is.test(norm(l.category))) || {}).cls || 'mark';
+    const want = norm(l.colour);
+    const hex = /^#?[0-9a-f]{6}$/.test(want) ? (want[0] === '#' ? want : '#' + want) : null;
+    const col = NAMED_COLOURS[want] || hex || `hsl(${hashOf(l.title || '?') % 360} 48% 46%)`;
+    const initials = String(l.title || '').replace(/[^A-Za-z0-9 ]/g, '')
+      .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+    return `<a class="card tap" href="${esc(l.url)}" target="_blank" rel="noopener">
+      <div class="thing">
+        <span class="thing-pic art"><span class="shape ${shape}" style="--c:${col}"
+          >${esc(initials)}</span></span>
+        <div class="thing-body">
+          <h3>${esc(l.title)}</h3>
+          <p class="sub">${mark(l.category || 'Link')} <span class="faint">· opens elsewhere</span></p>
+        </div>
+      </div>
+    </a>`;
+  }
   /* One card shape for both, because they are the same kind of thing to a person looking for one:
      a picture, a name, what it belongs to, and — if it costs anything — what.
 
@@ -3391,7 +4736,7 @@ function stuffList() {
 
      A shop item priced at zero still says free, because there it means something — free among
      things that cost. A resource is free because it is a resource. */
-  const card = x => {
+  {
     const free = x.cost === 0;
     const afford = x.kind === 'shop' && !free && credits >= x.cost;
     /* WHAT IT TAKES TO HAVE IT. Three answers, and the card used to give one:
@@ -3407,7 +4752,10 @@ function stuffList() {
             myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
       : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
           free ? 'free' : x.cost + ' credits'}</span>`;
-    return `<div class="card tap${x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}"
+    /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
+       so it is marked as one and coloured as one, the same way a subject and a venue are. */
+    return `<div class="card tap${x.wearable ? ' is-wear'
+             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}"
          data-do="${x.kind === 'shop' ? 'shop-item' : 'topic'}" data-key="${esc(x.key)}">
       <div class="thing">
         ${/* A WEARABLE DRAWS ITSELF. It has no photograph and never will — the drawing is the
@@ -3419,7 +4767,17 @@ function stuffList() {
           : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy">` : ''}
         <div class="thing-body">
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
-          <p class="sub">${mark(x.sub || groupOf(x))}${x.wearable && x.slot
+          ${/* Its own second line: a resource says its subject, a shop item its description. This
+                fell back to the GROUP name when both were empty — which was the card repeating the
+                heading above it, and is now a fallback to nothing, which is honest. */''}
+          ${/* THE YEAR, ON THE CARD. For a past paper it is most of the identity — "Paper 1" is
+                four papers and "Paper 1 · 2024" is one — and it was in the payload, filterable and
+                sortable, and shown nowhere. A thing you can sort by and cannot see is a sort you
+                have to take on trust.
+                Read off the wave when the year itself is blank: "June 2024" carries it, and
+                nobody should have to type the same fact into two columns. */''}
+          <p class="sub">${mark(x.sub || x.subject || '')}${yearOf(x)
+            ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
             /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
                says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
                own is a word. */
@@ -3429,33 +4787,7 @@ function stuffList() {
       </div>
       ${x.kind === 'topic' && x.topic ? tickRow(x.topic) : ''}
     </div>`;
-  };
-
-  let body;
-  if (!items.length) {
-    /* WHICH control emptied it. "Nothing matches" beside four controls leaves somebody turning
-       each one off in turn to find out which one is lying to them. */
-    const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
-              : STUFF.q                          ? 'Try fewer words.'
-              : STUFF.filters.length             ? 'Nothing matches all of those together.'
-              : '';
-    body = `<p class="empty">Nothing matches.${
-      why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
-  } else if (STUFF.group === 'none') {
-    body = items.map(card).join('');
-  } else {
-    /* Grouped. The heading carries a COUNT, because "Maths 27" tells somebody whether it is worth
-       opening in a way "Maths" does not.
-       It goes through the laws like everything else — so a heading that names a subject is green
-       without this code knowing what a subject is. */
-    const by = {};
-    items.forEach(x => { const g = groupOf(x); (by[g] = by[g] || []).push(x); });
-    body = Object.keys(by).sort(groupOrder).map(g =>
-      `<h2><span>${mark(g)}</span><span class="faint">${by[g].length}</span></h2>`
-      + by[g].map(card).join('')).join('');
   }
-
-  return `<p class="faint">${items.length} of ${all.length}</p>` + body;
 }
 
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
@@ -3464,68 +4796,186 @@ function filterChips() {
   return `<div class="chips">
     ${STUFF.filters.map((f, i) => `
       <button class="chip" data-do="filter-drop" data-i="${i}">
-        <span class="chip-k">${esc((FILTER_FIELDS[f.field] || {}).label || f.field)}</span>
+        <span class="chip-k">${esc((facetBy(f.field) || {}).label || f.field)}</span>
         ${esc(f.value)}<span class="chip-x">✕</span>
       </button>`).join('')}
-    <button class="chip add" data-do="filter-add">+ filter</button>
     ${STUFF.filters.length > 1
       ? '<button class="chip clear" data-do="filter-clear">clear</button>' : ''}
   </div>`;
 }
 
-/* THE PICKER, in two steps — which field, then which value. One long list of every value across
-   every field would put "Maths", "Grade 9" and "Can afford" together with nothing to say they are
-   different kinds of thing. */
-on('filter-add', () => {
-  const items = stuffItems();
-  const fields = Object.keys(FILTER_FIELDS)
-    .filter(k => FILTER_FIELDS[k].of(items).filter(Boolean).length);
-  openSheet('Add a filter', fields.map(k => {
-    const vals = FILTER_FIELDS[k].of(items).filter(Boolean);
-    return `<div class="card tap" data-do="filter-field" data-field="${esc(k)}">
-       <h3>${esc(FILTER_FIELDS[k].label)}</h3>
-       <p class="sub">${esc(vals.slice(0, 6).join(', '))}${vals.length > 6 ? '…' : ''}</p>
-     </div>`;
-  }).join(''));
-});
+/* THE PICKER SHEET IS GONE. It asked which FIELD, then which VALUE — two taps and a panel over
+   the screen before anything narrowed, and a list of every field whether or not it would change
+   what you could see. The funnel asks the same questions in place, one at a time, already knowing
+   which are worth asking.
 
-on('filter-field', el => {
-  const field = el.dataset.field;
-  const items = stuffItems();
-  const credits = USER ? (USER.credits || 0) : 0;
-  const values = FILTER_FIELDS[field].of(items).filter(Boolean);
-
-  openSheet(FILTER_FIELDS[field].label, values.map(v => {
-    /* HOW MANY it would leave. A value with a number beside it is a choice; one without is a
-       guess, and a guess that empties the list costs two taps to undo. */
-    const n = items.filter(x => filterHit(x, { field, value: v }, credits)).length;
-    const already = STUFF.filters.some(f => f.field === field && f.value === v);
-    return `<div class="card tap${already ? ' is-off' : ''}"
-         data-do="${already ? 'noop' : 'filter-pick'}"
-         data-field="${esc(field)}" data-value="${esc(v)}">
-      <div class="row" style="border:0;padding:0">
-        <span class="k">${mark(v)}${already ? ' <span class="faint">— already on</span>' : ''}</span>
-        <span class="v mono faint">${n}</span>
-      </div>
-    </div>`;
-  }).join(''));
-});
+   `filter-add` went with it. There is nothing to add: the next question is already on the page. */
 
 on('noop', () => {});
-on('filter-pick', el => {
+/* ANSWERING THE QUESTION ON THE PAGE. One tap: it becomes a chip, and the next question — if
+   there is one worth asking — takes its place. */
+on('facet-pick', el => {
   STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
-  closeSheet();
   paintStuff();
 });
 on('filter-drop', el => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); });
 on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
 
-/** Redraw the chips and the list. The two selects above them keep their state and their focus. */
+/**
+ * REDRAW THE RESULTS AND NOTHING ELSE.
+ *
+ * The controls are page one and are never rebuilt — that is the whole reason they are a page of
+ * their own. A search box redrawn on the keystroke loses its focus and its caret, and every
+ * version of this screen so far has had a workaround for that somewhere.
+ *
+ * So the first `.page` is left exactly as it is and the rest are replaced. The chips live on that
+ * first page too and DO get rewritten, because adding a filter is a press rather than a keystroke
+ * and there is nothing to lose focus from.
+ */
 function paintStuff() {
   const chips = $('stuff-chips');
   if (chips) chips.innerHTML = filterChips();
-  const el = $('stuff-list');
-  if (el) el.innerHTML = stuffList();
+  const count = $('stuff-count');
+  if (count) count.innerHTML = stuffCount();
+  const groups = $('stuff-groups');
+  if (groups) groups.innerHTML = stuffQuestion();
+
+  const host = $('s-stuff');
+  if (!host) return;
+  const first = host.querySelector(':scope > .page');
+  if (!first) return;
+
+  /* EMPTY pages, filled in as you reach them. Building all fifty-nine put half a megabyte of
+     markup in the document to show eight cards, and rebuilt it on every keystroke. */
+  host.innerHTML = first.outerHTML
+    + Array.from({ length: stuffPageCount() }, () => '<section class="page"></section>').join('');
+  fillStuffPages();
+  paintPager('stuff', true);
+}
+
+/**
+ * THE PAGES YOU CAN SEE, AND ONE EITHER SIDE.
+ *
+ * A page two turns away is off-screen and behind two others; its markup is a cost with no reader.
+ * So a page is filled when it comes within reach and emptied when it leaves, which keeps the
+ * document the size of five screens however long the library grows.
+ *
+ * Filled INDIVIDUALLY rather than by rewriting the strip, because rewriting it mid-turn destroys
+ * the elements the transition is animating and the dial jumps instead of turning.
+ */
+function fillStuffPages() {
+  const host = $('s-stuff');
+  if (!host) return;
+  const pages = host.querySelectorAll(':scope > .page');
+  const at = PAGE.stuff || 0;
+  const items = stuffFiltered();
+  for (let i = 1; i < pages.length; i++) {
+    const el = pages[i];
+    const near = Math.abs(i - at) <= 1;
+    if (near && el.dataset.filled !== '1') {
+      el.innerHTML = stuffPageHtml(i - 1);
+      el.dataset.filled = '1';
+    } else if (!near && el.dataset.filled === '1') {
+      el.innerHTML = '';
+      delete el.dataset.filled;
+    }
+  }
+
+  /* AND START THE ONE YOU ARE LOOKING AT.
+     Only that one: a canvas measures itself from its box, and a page that is not the front one has
+     no box worth measuring — the bird would draw into whatever size it happened to have while off
+     to the side. Every widget finds its parts by id, so this has to come after the markup is in
+     the document, which is why it is here rather than anywhere earlier.
+     Started again on every fill rather than once. They are all idempotent — a board redraws from
+     the position it already holds, a clock from the time it already has — and remembering which
+     have been started is a second thing to keep true. */
+  if (!showingWidgets()) return;
+  const wgt = items[at - 1] && items[at - 1].row;
+  if (!wgt) return;
+  startWidget_(wgt);
+}
+
+/**
+ * BRING ONE WIDGET TO LIFE, and say so in its own space if it does not.
+ *
+ * The same three steps `on('widget')` does — start it, look where it should have drawn, write the
+ * reason there if nothing did. Shared rather than repeated, because a widget opened from a card
+ * and a widget filling a page are the same widget and must fail the same way.
+ */
+function startWidget_(wgt) {
+  let err = null;
+  try { wgt.start(); } catch (e) { err = e; console.warn('[widget]', wgt.id, e); }
+
+  const into = $(wgt.into);
+  if (!into) { console.warn('[widget]', wgt.id, 'has nowhere to draw: #' + wgt.into); return; }
+  /* A canvas and a textarea draw into themselves, so their emptiness says nothing about them. */
+  if (wgt.into === 'flappy-canvas' || wgt.into === 'notepad') return;
+  if (String(into.innerHTML || '').trim()) return;
+  into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
+    ${esc(wgt.what)} did not start.<br>
+    <span class="faint">${esc(err ? String(err.message || err) : 'It drew nothing.')}</span></p>`;
+}
+
+/**
+ * THE QUESTION, ON THE PAGE.
+ *
+ * What was here showed the groups the results would be put in — useful, and only ever one facet:
+ * whatever `group` happened to be set to. This asks the next question that would actually narrow
+ * things, whichever facet that turns out to be, and stops asking when there is nothing left worth
+ * asking.
+ *
+ * WHAT IT LOOKS LIKE, in order down the page:
+ *   the chips     what you have already said, each one removable
+ *   the count     how many that leaves, and how many pages
+ *   the question  one heading and a short list with counts
+ *
+ * And when the questions run out it says so, rather than showing an empty heading — which is the
+ * moment somebody needs telling that swiping up is the next move.
+ */
+/* NAMED FOR WHAT IT WAS, not what it is. This drew the group list once; it draws the funnel's
+   next question now, and the grouping it was named after no longer exists. Renamed so the one
+   thing left on the browse page is called what it does. */
+function stuffQuestion() {
+  const items = stuffFiltered();
+  /* NOBODY YET, and a way to fix that. An empty Friends list is the one empty result on this
+     screen that is not a dead end — every other kind is empty because the sheet is, and this one
+     is empty because you have not added anybody. */
+  if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
+    return `<p class="empty">No friends yet.<br>
+      <span class="text-action" data-do="friend-add-open">Add someone by their handle</span></p>`;
+  }
+  if (!items.length) return '';
+
+  const facet = nextFacet(items);
+  const adding = STUFF.filters.some(f => f.value === 'Friends')
+    ? `<p style="margin:.6rem 0 0"><span class="text-action" data-do="friend-add-open"
+        >Add someone by their handle</span></p>` : '';
+  if (!facet) {
+    return `<p class="faint" style="margin:.6rem 0 0">Nothing left to narrow.
+      Swipe up for the ${items.length === 1 ? 'one' : items.length}.</p>` + adding;
+  }
+
+  const values = facetValues(items, facet);
+  /* The count beside each value is what makes this a choice rather than a guess — a value that
+     would leave three things and one that would leave three hundred look identical without it,
+     and the difference is whether the next tap is worth making. */
+  return `<h2><span>${esc(facet.label)}</span><span class="faint">${values.length}</span></h2>`
+    + values.map(v => `<div class="row tap" data-do="facet-pick"
+        data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
+        <span class="k">${mark(v.value)}</span>
+        <span class="v mono">${v.n}</span>
+      </div>`).join('');
+}
+
+/* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,
+   which is exactly what `facet-pick` does — except that it only ever knew about the one grouping,
+   so it could jump you to a subject and never to a key stage. */
+
+/** How many of how many, for the line under the controls. Arithmetic, not markup. */
+function stuffCount() {
+  const n = stuffFiltered().length;
+  const pages = stuffPageCount();
+  return `${n} of ${FIND_MEMO.total}` + (n ? ` · ${pages} page${pages === 1 ? '' : 's'}` : '');
 }
 
 screen('stuff', () => {
@@ -3535,25 +4985,37 @@ screen('stuff', () => {
      one you believe is the one you can see. */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';
 
-  return (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
+  const controls = (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
         <span class="k">Your credits</span><span class="v big gold mono">${credits}</span>
       </div></div>` : '')
     + `<input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}">
-    <div class="pick-row">
-      <select id="stuff-group" data-do="stuff-set" data-what="group">
-        <option value="subject"${sel('group','subject')}>By subject</option>
-        <option value="grade"${sel('group','grade')}>By grade</option>
-        <option value="kind"${sel('group','kind')}>Shop / resources</option>
-        <option value="none"${sel('group','none')}>No grouping</option>
-      </select>
-      <select id="stuff-sort" data-do="stuff-set" data-what="sort">
-        <option value="name"${sel('sort','name')}>A–Z</option>
-        <option value="cost"${sel('sort','cost')}>Cheapest</option>
-        <option value="group"${sel('sort','group')}>By group</option>
-      </select>
-    </div>
+    ${/* ONE CONTROL, and only when it has more than one answer.
+          The grouping dropdown is gone — the headings follow the funnel now, so there was nothing
+          left for it to decide. The sort offers what would actually change the order and nothing
+          else, which on a library of four hundred free resources is one option, and one option is
+          not a choice. */''}
+    ${(() => {
+      const opts = sortsWorthOffering();
+      return opts.length < 2 ? '' : `<div class="pick-row">
+        <select id="stuff-sort" data-do="stuff-set" data-what="sort">
+          ${opts.map(([v, label]) =>
+            `<option value="${v}"${sel('sort', v)}>${esc(label)}</option>`).join('')}
+        </select>
+      </div>`;
+    })()}
     <div id="stuff-chips">${filterChips()}</div>
-    <div id="stuff-list">${stuffList()}</div>`;
+    <p class="faint" id="stuff-count">${stuffCount()}</p>
+    <div id="stuff-groups">${stuffQuestion()}</div>`;
+
+  /* THE CONTROLS ARE A PAGE, and the results are the pages after it. Four hundred cards under a
+     search box is a column nobody reaches the end of; eight to a screen is a thing you turn.
+
+     It also solves what every version of this screen has worked around: the controls are drawn
+     once and never rebuilt, so typing in the search box cannot lose its own focus. */
+  /* Empty pages. `fillStuffPages` puts markup in the ones you can reach, after the screen exists
+     — a page cannot be measured or moved until it is in the document. */
+  return pages('stuff', [controls].concat(
+    Array.from({ length: stuffPageCount() }, () => '')));
 }, () => CART.length
   ? `<span class="act" data-do="open-cart">basket ‧ ${CART.length}</span>`
   : '');
@@ -3611,9 +5073,8 @@ function docketSave(list) {
   const said = $('dock-said');
   if (said) said.textContent = 'Saving…';
   dockTimer = setTimeout(() => {
-    fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveTodo',
-      name: USER.name, personId: USER.personId, todo: USER.todo }) })
-      .then(r => r.json())
+    api({ action: 'saveTodo',
+      name: USER.name, personId: USER.personId, todo: USER.todo })
       .then(d => {
         if (d && d.error) throw new Error(d.error);
         const el = $('dock-said');
@@ -3724,9 +5185,8 @@ document.addEventListener('input', e => {
   /* Longer than the docket's, because this is typed continuously rather than tapped. Nine hundred
      milliseconds into a sentence is a write per word. */
   padTimer = setTimeout(() => {
-    fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveNotepad',
-      name: USER.name, personId: USER.personId, notepad: USER.notepad }) })
-      .then(r => r.json())
+    api({ action: 'saveNotepad',
+      name: USER.name, personId: USER.personId, notepad: USER.notepad })
       .then(d => {
         if (d && d.error) throw new Error(d.error);
         const el = $('pad-said');
@@ -3757,6 +5217,12 @@ on('topic', el => {
       <span class="v">${mark(t.subject || '—')}</span></div>
     <div class="row"><span class="k">Grade</span>
       <span class="v">${esc(String(t.grade || '—'))}</span></div>
+    ${/* Only when there is one. A row reading "Year —" on four hundred exercises is four hundred
+          lines saying nothing, and this sheet is already long. */''}
+    ${yearOf(t) ? `<div class="row"><span class="k">Year</span>
+      <span class="v mono">${esc(yearOf(t))}</span></div>` : ''}
+    ${t.examWave ? `<div class="row"><span class="k">Exam wave</span>
+      <span class="v">${esc(t.examWave)}</span></div>` : ''}
     <div class="row"><span class="k">Pages</span>
       <span class="v mono">${t.pages || '—'}</span></div>
 
@@ -3801,53 +5267,110 @@ on('topic', el => {
       <p class="faint" id="topic-said"></p>` : ''}`);
 });
 
+/* ---------- EDITING A RESOURCE, FROM THE BACKEND'S OWN LIST ---------------------------------------
+   The form used to name seven fields by hand while the tab had twenty-five and the allow-list
+   twenty. Adding a column meant a schema edit, an allow-list edit AND a form edit — and forgetting
+   the third meant a column that existed, could be written to, and had nowhere to type it in.
+
+   `resourceFields` has been in the payload the whole time. It IS the allow-list — the same object
+   the server checks writes against — so a form built from it cannot offer a field the server will
+   refuse, and cannot miss one the server would accept. One list, two readers.
+
+   The groups come with it, so the form arrives already sectioned: What it is, Level, Source,
+   Flags, Pages, Costs, Admin.
+--------------------------------------------------------------------------------------------- */
+
+/* A column name as a person would say it. Everything not named here is the column with its
+   underscores taken out, which is right far more often than it is wrong — `exam_board` reads
+   perfectly well as "exam board". */
+const FIELD_LABEL = {
+  band_type: 'grade or stage', band_value: 'which one', key_stage: 'key stage',
+  exam_board: 'exam board', exam_wave: 'exam wave', resource_type: 'type',
+  print_required: 'needs printing', level_required: 'unlocks at level',
+  pages_checked: 'page count checked', trackable: 'can be ticked off',
+};
+const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
+
+/* The ones that are a yes or a no rather than a value. A checkbox for these and a text box for
+   everything else — a boolean in a text field is somebody typing TRUE and hoping. */
+const FIELD_BOOL = ['trackable', 'print_required', 'printable', 'active'];
+
+/* Where a field's value comes from on the topic object, when it is not simply the same name.
+   The payload names things as a person would — `examBoard` — and the sheet as a column does. */
+const FIELD_FROM = {
+  band_type: 'bandType', band_value: 'bandValue', key_stage: 'keystage',
+  exam_board: 'examBoard', exam_wave: 'examWave', resource_type: 'resourceType',
+  print_required: 'paper', level_required: 'level', name: 'name', link: 'link',
+};
+
 on('topic-edit', el => {
   const t = topicBy(el.dataset.key);
   if (!t) return;
-  const subjects = (DATA.dropdowns || {}).subjects || [];
-  openSheet('Edit — ' + t.name, `
-    <label class="field"><span>name</span>
-      <input id="ed-name" value="${esc(t.name)}"></label>
-    <label class="field"><span>subject</span>
-      <input id="ed-subject" value="${esc(t.subject || '')}" list="ed-subjects">
-      <datalist id="ed-subjects">
-        ${subjects.map(s => `<option value="${esc(s)}">`).join('')}
-      </datalist></label>
-    <label class="field"><span>grade</span>
-      <input id="ed-grade" value="${esc(String(t.grade || ''))}"></label>
-    <label class="field"><span>link</span>
-      <input id="ed-link" value="${esc(t.link || '')}"></label>
-    <label class="field"><span>type</span>
-      <input id="ed-type" value="${esc(t.type || '')}"></label>
-    <label class="field"><span>exam board</span>
-      <input id="ed-board" value="${esc(t.board || '')}"></label>
-    <label class="field"><span>pages</span>
-      <input id="ed-pages" inputmode="numeric" value="${t.pages || ''}"></label>
-    <label class="check">
-      <input type="checkbox" id="ed-print" ${canPrint(t) ? 'checked' : ''}>
-      <span class="box"></span>
-      <span>Offer a printed copy<br><span class="faint">Untick for anything too long to be
-        worth printing.</span></span></label>
-    <button class="btn" data-do="topic-save" data-key="${esc(t.id || t.name)}">Save</button>
-    <p class="faint" id="ed-said" style="margin:.6rem 0 0">
-      Changing the link clears the page count — it was read off the old file.</p>`);
+
+  const groups = (DATA.resourceFields && Object.keys(DATA.resourceFields).length)
+    ? DATA.resourceFields
+    /* A backend too old to send it. The form still opens, with what this file knows about — an
+       admin who cannot edit anything is worse than one who can edit seven things. */
+    : { 'What it is': ['name', 'subject', 'resource_type', 'link'],
+        'Level': ['band_type', 'band_value'], 'Pages': ['pages', 'printable'] };
+
+  /* Values already known, offered as you type. Every value any resource has for that field, which
+     is how "Edexcel" gets typed once and picked thereafter — and how three spellings of one board
+     stop happening. */
+  const known = f => {
+    const from = FIELD_FROM[f] || f;
+    return uniq(allTopics().map(x => String(x[from] ?? '').trim())).filter(Boolean).sort(cmpText);
+  };
+
+  const field = f => {
+    const from = FIELD_FROM[f] || f;
+    const v = t[from];
+    if (FIELD_BOOL.indexOf(f) !== -1) {
+      return `<label class="check">
+        <input type="checkbox" data-ed="${esc(f)}" ${v ? 'checked' : ''}>
+        <span class="box"></span><span>${esc(fieldLabel(f))}</span></label>`;
+    }
+    const opts = known(f);
+    const list = opts.length > 1 ? 'ed-list-' + f : '';
+    return `<label class="field"><span>${esc(fieldLabel(f))}</span>
+      <input data-ed="${esc(f)}" value="${esc(String(v ?? ''))}"
+             ${list ? `list="${list}"` : ''}
+             ${/pages|price|level|year/.test(f) ? 'inputmode="numeric"' : ''}>
+      ${list ? `<datalist id="${list}">${
+        opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : ''}</label>`;
+  };
+
+  openSheet('Edit — ' + t.name,
+    Object.keys(groups).map(g => `<h2><span>${esc(g)}</span></h2>`
+      + groups[g].map(field).join('')).join('')
+    + `<button class="btn" data-do="topic-save" data-key="${esc(t.id || t.name)}">Save</button>
+       <p class="faint" id="ed-said" style="margin:.6rem 0 0">
+         Changing the link clears the page count — it was read off the old file.</p>`);
 });
 
 on('topic-save', el => {
-  const v = id => (($(id) || {}).value || '').trim();
   const said = $('ed-said');
-  if (!v('ed-name')) { if (said) said.textContent = 'It needs a name.'; return; }
+
+  /* WHATEVER THE FORM PUT ON THE PAGE, read back by the name it was given. The old version listed
+     the seven fields again — a third place to forget one, and the reason adding a column meant
+     three edits. */
+  const fields = {};
+  document.querySelectorAll('#sheet-body [data-ed]').forEach(box => {
+    fields[box.dataset.ed] = box.type === 'checkbox'
+      ? (box.checked ? 'TRUE' : 'FALSE')
+      : String(box.value || '').trim();
+  });
+
+  if (!String(fields.name || '').trim()) {
+    if (said) said.textContent = 'It needs a name.';
+    return;
+  }
+
   el.disabled = true;
   if (said) said.textContent = 'Saving…';
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'editResource',
-    name: USER.name, adminName: USER.name, id: el.dataset.key,
-    fields: {
-      name: v('ed-name'), subject: v('ed-subject'), grade: v('ed-grade'),
-      link: v('ed-link'), resource_type: v('ed-type'), exam_board: v('ed-board'),
-      pages: v('ed-pages'), printable: ($('ed-print') || {}).checked ? 'TRUE' : 'FALSE',
-    } }) })
-    .then(r => r.json())
+  api({ action: 'editResource',
+    name: USER.name, adminName: USER.name, id: el.dataset.key, fields })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       closeSheet(); toast('Saved'); load();
@@ -3872,9 +5395,8 @@ on('topic-delete', el => {
   el.disabled = true;
   if (said) said.textContent = restoring ? 'Restoring…' : 'Deleting…';
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'deleteResource',
-    name: USER.name, adminName: USER.name, id: el.dataset.key, on: restoring }) })
-    .then(r => r.json())
+  api({ action: 'deleteResource',
+    name: USER.name, adminName: USER.name, id: el.dataset.key, on: restoring })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       closeSheet();
@@ -3894,7 +5416,7 @@ on('shop-item', el => {
   const credits = USER ? (USER.credits || 0) : 0;
   const price = Number(it.price) || 0;
   const inCart = CART.some(c => c.key === it.name && c.kind === 'shop');
-  const wearable = it.kind === 'avatar';
+  const wearable = isWearable(it);
 
   /* A WEARABLE IS NOT PUT IN A BASKET. There is nothing to post and nothing to collect — it is
      worn, or it is not — so it goes on straight away and the credits come off at that moment.
@@ -3952,9 +5474,8 @@ on('wear', el => {
   el.disabled = true;
   el.textContent = 'Putting it on…';
 
-  fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveAvatar',
-    name: USER.name, personId: USER.personId, avatar: cfg }) })
-    .then(r => r.json())
+  api({ action: 'saveAvatar',
+    name: USER.name, personId: USER.personId, avatar: cfg })
     .then(d => {
       if (!d || d.error) throw new Error((d && d.error) || 'Could not save that');
       USER.avatar = d.avatar;
@@ -4066,69 +5587,6 @@ on('cart-send', () => {
    `tt-question`, `timer-display`. Twelve of them were wrong at once here, and every single one
    would have failed in silence.
 --------------------------------------------------------------------------------------------- */
-screen('arcade', () => pages('arcade', [
-  `<div class="card">
-    <h3>Chess</h3>
-    <p class="sub">Against the computer. Full rules, including castling and en passant.</p>
-    <div id="chess-board" class="chess"></div>
-    <p class="note" id="chess-say" style="text-align:center;margin:.2rem 0 .6rem">
-      Your move — you are white.</p>
-    <div class="btn-row">
-      <button class="btn quiet" data-do="chess-new">New game</button>
-      <button class="btn quiet" data-do="chess-undo">Take back</button>
-      <select id="chess-level" style="flex:0 0 7rem">
-        <option value="1">Gentle</option>
-        <option value="2" selected>Steady</option>
-        <option value="3">Tough</option>
-      </select>
-    </div>
-  </div>`,
-
-  `<div class="card">
-    <h3>Times Tables Sprint</h3>
-    <div id="tt-idle">
-      <p class="sub">Sixty seconds. As many as you can.</p>
-      <button class="btn" id="tt-play" data-do="tt-start">Start</button>
-    </div>
-    <div id="tt-question" class="hidden tt">
-      <p class="mono" id="tt-q" style="font-size:2rem;text-align:center;margin:.6rem 0">—</p>
-      <input id="tt-answer" inputmode="numeric" placeholder="answer" autocomplete="off">
-      <p class="note" id="tt-feedback" style="text-align:center;min-height:1.2em"></p>
-      <div class="row"><span class="k">Time</span><span class="v mono" id="tt-time">60</span></div>
-      <div class="row"><span class="k">Right</span><span class="v mono" id="tt-score">0</span></div>
-      <button class="btn quiet" data-do="tt-stop" style="margin-top:.5rem">Give up</button>
-    </div>
-    <div id="tt-over" class="hidden"></div>
-  </div>`,
-
-  `<div class="card">
-    <h3>Flabby Pird</h3>
-    <p class="sub">Harder than it looks.</p>
-    <canvas id="flappy-canvas" class="flappy"></canvas>
-    <p class="note" id="flappy-msg" style="text-align:center;margin:.4rem 0 0">Tap to play</p>
-    <div class="row"><span class="k">Score</span><span class="v mono" id="flappy-score">0</span></div>
-    <div class="row"><span class="k">Best</span><span class="v mono" id="flappy-best">0</span></div>
-  </div>`,
-
-  `<div class="card">
-    <h3>One more thing</h3>
-    <p class="sub">Something worth knowing. Tap for another.</p>
-    <div id="feed-screen" class="feed" data-do="feed-tap"></div>
-  </div>`,
-]));
-
-/* ---------- TOOLS -------------------------------------------------------------------------------
-   Four things that are actually tools.
-
-   THE IDS HERE ARE NOT A CHOICE. The calculator, the timer and the calendar were carried over
-   whole from the old app, and they find their parts by id — `mc-display`, `cal-body`, `cal-label`.
-   I first wrote this markup with the names I would have picked, and both simply did nothing: the
-   calculator drew no keys and the calendar drew no month, silently, because a function that cannot
-   find its element has nothing to say about it.
-
-   So the markup matches the functions. The same mistake as writing `tools` for `tools-content` in
-   the tab table, and the same fix: read what is there rather than write what seems right.
---------------------------------------------------------------------------------------------- */
 /* TWELVE function keys, not ten. Ten into a four-column grid is two and a half rows, so `7` and
    `8` finished the row `π` and `⌫` started and the number pad never lined up — a keypad whose 5
    is not under the 8 is one you have to read rather than reach for.
@@ -4145,8 +5603,227 @@ const CALC_KEYS = [
   ['up', '▲', 'nav'], ['down', '▼', 'nav'], ['=', '=', 'eq'],
 ];
 
-screen('tools', () => pages('tools', [
-  `<div class="card">
+/* ================================================================================================
+   THE WIDGETS — nine things you USE rather than things you find.
+
+   They had two tabs between them, Tools and Arcade, and both are gone. Not because the widgets
+   changed: a calculator is a calculator. Because a tab is an expensive thing — eight of them and
+   the labels are dropped on a small phone — and these are nine items in a list of six hundred that
+   the funnel can already narrow in one tap.
+
+   ONE TABLE, and it does four jobs that were spread across four places: what the card says, what
+   the markup is, what starts it, and where to look to see whether it started. The last one is what
+   was missing when a blank card looked like a widget nobody had finished building.
+
+   THEY OPEN IN THE SHEET rather than on a page of their own. The sheet is already the thing that
+   takes the whole screen for anything needing full attention, and a calculator needs exactly that
+   — full width, nothing behind it, and a way out that is the same gesture as everywhere else.
+================================================================================================ */
+/* ================================================================================================
+   THE OVERWORLD.
+
+   Your venues as a map you move across, and the point of it is the thing a real map cannot do:
+   nodes you have not reached yet are shut. Ticking topics moves you along it.
+
+   DRAWN, NOT PHOTOGRAPHED, and that is a decision rather than a shortcut. Map tiles would need a
+   key that is public in this site, come with terms about how they may be redrawn, weigh more than
+   the whole app, and — the part that actually decides it — aerial London is grey roofs. An
+   overworld is nodes, paths and a few landmarks with everything else deleted, which is why it
+   reads at a glance.
+
+   REAL POSITIONS WHERE THERE ARE ANY. A venue with coordinates sits where it really is, so Morden
+   is south of Colliers Wood on the map because it is south of it in London. Without them the
+   venues are laid on a winding path in the order they come, which is a worse map and a perfectly
+   good game — so this works today and gets truer the moment the postcodes are filled in.
+================================================================================================ */
+
+/* Somewhere you can stand. `Online` and a client's own house are not places — they have no
+   coordinates and never will, and putting them on a map would be inventing a location for the
+   two entries whose whole meaning is not having one. */
+const mapNodes = () => (DATA.venues || [])
+  .filter(v => v.title && !/^online$/i.test(v.title) && !isHome(v.title));
+
+/**
+ * WHERE EACH NODE SITS, in a 0-100 box.
+ *
+ * Coordinates are projected against the SPREAD of the venues rather than against London — eleven
+ * places inside six miles would otherwise be a cluster of dots in the middle of an empty square.
+ * The map is of your estate, so it is scaled to your estate.
+ *
+ * Latitude is flipped because north is up and y counts down, which is the one arithmetic mistake
+ * that makes a map look plausible and be upside down.
+ */
+function mapLayout() {
+  const nodes = mapNodes();
+  const placed = nodes.filter(v => Number(v.lat) && Number(v.lng));
+
+  /* Fewer than two placed venues cannot be scaled — one point has no spread — so the whole set
+     goes on the fallback path rather than half of them being real and half invented, which would
+     look like a map with mistakes in it rather than a map that isn't one yet. */
+  if (placed.length < 2) {
+    /* A WINDING PATH, and it winds on purpose: a straight line of nodes reads as a progress bar,
+       which is exactly the reading to avoid — this is somewhere you go, not how far through you
+       are. */
+    return nodes.map((v, i) => ({
+      v, real: false,
+      x: 14 + (i % 2 ? 58 : 14) + (i % 4 === 3 ? 14 : 0),
+      y: 8 + i * (84 / Math.max(1, nodes.length - 1)),
+    }));
+  }
+
+  const lats = placed.map(v => Number(v.lat)), lngs = placed.map(v => Number(v.lng));
+  const lo = { la: Math.min(...lats), ln: Math.min(...lngs) };
+  const hi = { la: Math.max(...lats), ln: Math.max(...lngs) };
+  /* A spread of zero on one axis — every venue on the same street — would divide by nothing. */
+  const span = { la: (hi.la - lo.la) || 1, ln: (hi.ln - lo.ln) || 1 };
+
+  return nodes.map((v, i) => {
+    const la = Number(v.lat), ln = Number(v.lng);
+    if (!la || !ln) {
+      /* Not placed yet. Down the left edge, out of the way of the real ones, so it is visibly
+         waiting for a postcode rather than pretending to be somewhere. */
+      return { v, real: false, x: 6, y: 10 + (i * 9) % 80 };
+    }
+    return { v, real: true,
+      x: 10 + ((ln - lo.ln) / span.ln) * 80,
+      /* Flipped: north is up, y counts down. */
+      y: 90 - ((la - lo.la) / span.la) * 80 };
+  });
+}
+
+/* HOW FAR ALONG YOU ARE. Ticked topics, which is the same number the wardrobe prices against —
+   so one thing earns everything, and nobody has to work out which activity feeds which reward. */
+const MAP_PER_NODE = 5;
+const mapReached = () => Math.floor((Number(USER && USER.xp) || 0) / MAP_PER_NODE) + 1;
+
+function drawOverworld() {
+  const host = $('map-board');
+  if (!host) return;
+  const nodes = mapLayout();
+  if (!nodes.length) {
+    host.innerHTML = '<p class="note" style="padding:1rem;text-align:center">No venues yet.</p>';
+    return;
+  }
+  const reached = USER ? mapReached() : 1;
+  const at = Math.min(reached, nodes.length) - 1;
+
+  /* The path first, so the nodes sit on top of it. One line through every node in order — the
+     road, and the thing that makes a set of dots a journey. */
+  const line = nodes.map((n, i) => (i ? 'L' : 'M') + n.x.toFixed(1) + ' ' + n.y.toFixed(1)).join(' ');
+  const walked = nodes.slice(0, at + 1)
+    .map((n, i) => (i ? 'L' : 'M') + n.x.toFixed(1) + ' ' + n.y.toFixed(1)).join(' ');
+
+  host.innerHTML = `<svg viewBox="0 0 100 100" class="map-svg" aria-hidden="true">
+    <path d="${line}" class="map-road"/>
+    ${at > 0 ? `<path d="${walked}" class="map-road-done"/>` : ''}
+    ${nodes.map((n, i) => {
+      const open = i <= at;
+      const here = i === at;
+      return `<g class="map-node${open ? ' open' : ''}${here ? ' here' : ''}"
+           data-do="map-node" data-i="${i}" data-name="${esc(n.v.title)}">
+        <circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${here ? 4.2 : 3}"/>
+        ${open ? '' : `<text x="${n.x.toFixed(1)}" y="${(n.y + 1).toFixed(1)}"
+          class="map-lock">?</text>`}
+      </g>`;
+    }).join('')}
+  </svg>
+  <p class="map-where">${esc(nodes[at] ? nodes[at].v.title : '')}</p>
+  <p class="faint map-next">${(() => {
+    if (!USER) return 'Sign in to make your way along it.';
+    if (at >= nodes.length - 1) return 'Everywhere reached.';
+    const need = (at + 1) * MAP_PER_NODE - (Number(USER.xp) || 0);
+    return need + ' more tick' + (need === 1 ? '' : 's') + ' to reach '
+      + nodes[at + 1].v.title + '.';
+  })()}</p>
+  ${nodes.every(n => n.real) ? '' :
+    `<p class="faint" style="text-align:center">${
+      nodes.filter(n => !n.real).length} venue${nodes.filter(n => !n.real).length === 1 ? '' : 's'}
+      not placed yet — fill in a postcode and run the geocoder.</p>`}`;
+}
+
+/* Tapping a node. A shut one says what it would take rather than nothing at all — a locked door
+   with no sign on it is just a door that does not work. */
+on('map-node', el => {
+  const nodes = mapLayout();
+  const i = Number(el.dataset.i);
+  const n = nodes[i];
+  if (!n) return;
+  const at = Math.min(USER ? mapReached() : 1, nodes.length) - 1;
+  if (i > at) {
+    const need = i * MAP_PER_NODE - (Number(USER && USER.xp) || 0);
+    toast(need + ' more tick' + (need === 1 ? '' : 's') + ' to reach ' + n.v.title);
+    return;
+  }
+  ACTIONS.who({ dataset: { kind: 'venue', name: n.v.title } });
+});
+
+function initOverworld() { drawOverworld(); }
+
+const WIDGETS = [
+  { id: 'chess', kind: 'game', name: 'Chess', start: () => initChess?.(),
+    into: 'chess-board', what: 'The board',
+    html: `<div class="card">
+    <h3>Chess</h3>
+    <p class="sub">Against the computer. Full rules, including castling and en passant.</p>
+    <div id="chess-board" class="chess"></div>
+    <p class="note" id="chess-say" style="text-align:center;margin:.2rem 0 .6rem">
+      Your move — you are white.</p>
+    <div class="btn-row">
+      <button class="btn quiet" data-do="chess-new">New game</button>
+      <button class="btn quiet" data-do="chess-undo">Take back</button>
+      <select id="chess-level" style="flex:0 0 7rem">
+        <option value="1">Gentle</option>
+        <option value="2" selected>Steady</option>
+        <option value="3">Tough</option>
+      </select>
+    </div>
+  </div>` },
+  { id: 'tables', kind: 'game', name: 'Times Tables', start: () => initTables?.(),
+    into: 'tt-idle', what: 'The sprint',
+    html: `<div class="card">
+    <h3>Times Tables Sprint</h3>
+    <div id="tt-idle">
+      <p class="sub">Sixty seconds. As many as you can.</p>
+      <button class="btn" id="tt-play" data-do="tt-start">Start</button>
+    </div>
+    <div id="tt-question" class="hidden tt">
+      <p class="mono" id="tt-q" style="font-size:2rem;text-align:center;margin:.6rem 0">—</p>
+      <input id="tt-answer" inputmode="numeric" placeholder="answer" autocomplete="off">
+      <p class="note" id="tt-feedback" style="text-align:center;min-height:1.2em"></p>
+      <div class="row"><span class="k">Time</span><span class="v mono" id="tt-time">60</span></div>
+      <div class="row"><span class="k">Right</span><span class="v mono" id="tt-score">0</span></div>
+      <button class="btn quiet" data-do="tt-stop" style="margin-top:.5rem">Give up</button>
+    </div>
+    <div id="tt-over" class="hidden"></div>
+  </div>` },
+  { id: 'flabby', kind: 'game', name: 'Flabby Pird', start: () => initFlappy?.(),
+    into: 'flappy-canvas', what: 'The game',
+    html: `<div class="card">
+    <h3>Flabby Pird</h3>
+    <p class="sub">Harder than it looks.</p>
+    <canvas id="flappy-canvas" class="flappy"></canvas>
+    <p class="note" id="flappy-msg" style="text-align:center;margin:.4rem 0 0">Tap to play</p>
+    <div class="row"><span class="k">Score</span><span class="v mono" id="flappy-score">0</span></div>
+    <div class="row"><span class="k">Best</span><span class="v mono" id="flappy-best">0</span></div>
+  </div>` },
+  { id: 'overworld', kind: 'game', name: 'The Overworld', start: () => initOverworld?.(),
+    into: 'map-board', what: 'The map',
+    html: `<div class="card">
+      <h3>The Overworld</h3>
+      <p class="sub">Every place we teach, and how far along you have got.</p>
+      <div id="map-board" class="map"></div>
+    </div>` },
+
+  { id: 'reels', kind: 'game', name: 'One more thing', start: () => initFeed?.(),
+    into: 'feed-screen', what: 'This',
+    html: `<div class="card">
+    <h3>One more thing</h3>
+    <p class="sub">Something worth knowing. Tap for another.</p>
+    <div id="feed-screen" class="feed" data-do="feed-tap"></div>
+  </div>` },
+  { id: 'calculator', kind: 'tool', name: 'Calculator', start: () => initMiniCalc?.(),
+    into: 'mc-display', what: 'The calculator',
+    html: `<div class="card">
     <h3>Calculator</h3>
     ${/* A DIV, not an input. A readonly input shows no caret on a phone, and one that is not
           readonly opens the keyboard over the keypad you are trying to press — so the caret is
@@ -4157,9 +5834,10 @@ screen('tools', () => pages('tools', [
         `<button type="button" class="mc-btn ${cls}" data-mc="${esc(v)}">${esc(label)}</button>`
       ).join('')}
     </div>
-  </div>`,
-
-  `<div class="card">
+  </div>` },
+  { id: 'timer', kind: 'tool', name: 'Timer', start: () => initTimer?.(),
+    into: 'timer-display', what: 'The timer',
+    html: `<div class="card">
     <h3>Timer</h3>
     <p class="mono" id="timer-display" style="font-size:2.1rem;text-align:center;margin:.4rem 0">25:00</p>
     <div class="btn-row">
@@ -4175,9 +5853,10 @@ screen('tools', () => pages('tools', [
       ${[5, 15, 25, 45].map(m =>
         `<button class="btn quiet tiny" data-do="timer-set" data-min="${m}">${m}</button>`).join('')}
     </div>
-  </div>`,
-
-  `<div class="card">
+  </div>` },
+  { id: 'docket', kind: 'tool', name: 'Docket', start: () => paintDocket?.(),
+    into: 'docket-body', what: 'The docket',
+    html: `<div class="card">
     <h3>Docket</h3>
     <p class="sub">What there is to do. Tick it off as you go.</p>
     <div id="docket-body"></div>
@@ -4186,23 +5865,27 @@ screen('tools', () => pages('tools', [
       <button class="btn quiet tiny" data-do="dock-add">＋</button>
     </div>
     <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
-  </div>`,
-
-  `<div class="card">
+  </div>` },
+  { id: 'notepad', kind: 'tool', name: 'Notepad', start: () => initPad?.(),
+    into: 'notepad', what: 'The notepad',
+    html: `<div class="card">
     <h3>Notepad</h3>
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
-  </div>`,
-
-  `<div class="card">
+  </div>` },
+  { id: 'calendar', kind: 'tool', name: 'Calendar', start: () => initCalendar?.(),
+    into: 'cal-body', what: 'The calendar',
+    html: `<div class="card">
     <div class="cal-head">
       <span class="cal-arrow" data-do="cal-back">‹</span>
       <h3 id="cal-label" style="margin:0">Calendar</h3>
       <span class="cal-arrow" data-do="cal-fwd">›</span>
     </div>
     <div id="cal-body" class="cal"></div>
-  </div>`,
-]));
+  </div>` },
+];
+
+
 
 /* The calculator keys go through the same delegated handler as everything else. The old app kept a
    `window._mcClick` and the carried-over function still sets it — so this hands the press to it
@@ -4216,7 +5899,8 @@ document.addEventListener('click', e => {
    The classes that exist, and the way to ask for one that does not. The pricing chain underneath
    this is the one carried over whole — the screen only has to show what it says.
 --------------------------------------------------------------------------------------------- */
-screen('book', () => {
+/** Everything on the Book screen, in order. */
+function bookBlocks() {
   const jobs = DATA.liveJobs || DATA.jobs || [];
   const mine = USER ? jobs.filter(j => norm(j.client) === norm(USER.name)
                                     || norm(j.tutor) === norm(USER.name)) : [];
@@ -4232,19 +5916,761 @@ screen('book', () => {
       </div>
     </div>`;
 
-  return (USER
+  /* Built as blocks rather than one string, because the pager needs the pieces and this screen's
+     pieces are already separate things — the button, the two headings, a card per session. */
+  return [
+    USER
       ? `<button class="btn" data-do="new-booking" style="margin-bottom:4px">Ask for a session</button>`
       : `<div class="card"><h3>Sign in to book</h3>
            <p class="sub">You need an account to ask for a session.</p>
-           <button class="btn" data-do="signin">Sign in</button></div>`)
-    + (mine.length ? '<h2>Yours</h2>' + mine.map(jobCard).join('') : '')
-    + (open.length ? '<h2>Open</h2>' + open.map(jobCard).join('') : '')
-    + (!jobs.length ? '<p class="empty">No sessions yet.</p>' : '');
-}, () => USER ? '' : '<span class="act" data-do="signin">Sign in</span>');
+           <button class="btn" data-do="signin">Sign in</button></div>`,
+    mine.length ? '<h2><span>Yours</span></h2>' : '',
+    ...mine.map(jobCard),
+    open.length ? '<h2><span>Open</span></h2>' : '',
+    ...open.map(jobCard),
+    !jobs.length ? '<p class="empty">No sessions yet.</p>' : '',
+  ].filter(Boolean);
+}
 
+const bookPages = () => chunk(bookBlocks(), PER_PAGE.book);
+
+screen('book', () => pages('book', bookPages()), () => USER ? '' : '<span class="act" data-do="signin">Sign in</span>');
 on('soon', () => toast('Not moved across yet'));
 on('signin', () => toast('Sign-in screen next'));
-on('new-booking', () => toast('The booking builder is the next thing to build'));
+/* ================================================================================================
+   THE BOOKER.
+
+   Nine things have to be known before a session can be asked for: subject, level, how many
+   students, where, which days, what time, how long, for how many weeks, and whether a particular
+   tutor. Put on one screen that is a form nobody finishes on a phone.
+
+   SO IT IS THE SAME FUNNEL AS FIND. One question at a time, each answer narrowing the next, and
+   the price appearing the moment it can be worked out rather than at the end. Which is not a
+   stylistic echo — it is the same problem. A booking is a search through everything you COULD ask
+   for, and the questions that matter depend on the answers already given: nobody is asked about a
+   tier at KS3, and nobody is asked which room when the venue has one.
+
+   TWO RULES CARRIED OVER, both learned the hard way on the finding screen:
+
+     A QUESTION EVERYONE ANSWERS THE SAME WAY IS NOT ASKED. One venue means no venue question. One
+     interval means no interval question. It is not a shortcut, it is the difference between a form
+     and a conversation.
+
+     AN ANSWER IS NEVER TAKEN AWAY. Choosing a small room after asking for six students does not
+     silently drop you to four. The conflict is SHOWN — the room says why it does not fit — and it
+     is yours to resolve. `setOptions` has done this for the old form since the beginning and the
+     reasoning is written out there; this obeys the same rule for the same reason.
+================================================================================================ */
+/* EVERY ANSWER STARTS EMPTY, including the numbers.
+   `n` began at 1 and `hours` at 0 — sensible defaults, and both counted as ANSWERED, so the
+   booker never asked how many students were coming and quietly booked for one. A default is the
+   app answering on somebody's behalf and then showing them the answer as though they gave it,
+   which is the same fault `setOptions` was written to avoid on the old form.
+   They become numbers in `bookSpec`, which is where a number is actually needed. */
+const BOOKING = {
+  subjects: [], level: '', n: '', loc: '', hosting: '',
+  /* `m16` codes — Monday at four. One list replaces days, time and length, because ticking two
+     adjacent hours says all three at once. */
+  slots: [],
+  /* Which questions have been finished with. A multiple-choice question needs telling. */
+  done: [],
+  /* The addresses of the other families, and whether the question has been put at all. */
+  splitWith: [], splitAsked: false,
+  interval: '', tutor: '', service: '',
+};
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/* The day codes the availability grids are written in. `m16` is Monday at four. */
+const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
+                   ['f', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
+
+/* ---------- WHEN, AS ONE QUESTION -----------------------------------------------------------------
+   This was three: which day, what time, how long. It is one, and the reason is written in the old
+   file at `onSlotTick` — a session length chosen separately from the hours ticked meant two
+   controls describing one thing, and everything that function did existed to force them to agree.
+   Tick two hours on Monday and you have said the day, the time AND the length. Tick two more on
+   Wednesday and you have a second session a week, which three separate questions could not express
+   at all.
+
+   AND IT ONLY OFFERS HOURS SOMEBODY CAN ACTUALLY TEACH IN. The tutor's availability and the
+   venue's, overlapped. My three questions offered every hour of every day and would happily have
+   booked a tutor who does not work Sundays into a library that shuts at four.
+--------------------------------------------------------------------------------------------- */
+
+/** An availability grid as a set of `m16` codes, from whatever shape the payload uses. */
+function availSet_(a) {
+  const out = {};
+  if (!a) return out;
+  if (Array.isArray(a)) { a.forEach(k => { out[norm(k)] = true; }); return out; }
+  Object.keys(a).forEach(k => {
+    const v = a[k];
+    if (v === false || v === '' || v === 0) return;
+    /* Either `{ m16: true }` or `{ m: [16,17] }` — both shapes exist in the sheet's history. */
+    if (Array.isArray(v)) v.forEach(h => { out[norm(k) + String(h).padStart(2, '0')] = true; });
+    else out[norm(k)] = true;
+  });
+  return out;
+}
+
+/** Which hours can be booked, and why not when there are none. */
+function slotGrid() {
+  const t = tutorRow_();
+  const sp = spaceFor(BOOKING.loc);
+  const venue = (DATA.venues || []).find(x => norm(x.title) === norm(BOOKING.loc));
+  const tAvail = availSet_(t && t.avail);
+  const vAvail = availSet_((sp && sp.avail) || (venue && venue.avail));
+  const haveT = Object.keys(tAvail).length, haveV = Object.keys(vAvail).length;
+
+  /* NOTHING SET IS NOT THE SAME AS NOTHING FREE. A tutor with no hours in the sheet has not said
+     they are unavailable — nobody has said anything — so every hour is offered and the sheet is
+     the thing to fix. Refusing everything would be the app inventing a constraint. */
+  const open = code => (!haveT || tAvail[code]) && (!haveV || vAvail[code]);
+
+  /* EVERY DAY AND EVERY HOUR, ALWAYS — the ones nobody is free for greyed rather than removed.
+     A grid that changes shape as you choose things cannot be read: you cannot tell a Tuesday the
+     tutor does not work from a Tuesday that was never offered, and the row moving under your thumb
+     as you pick a venue is the same fault the dropdowns had before they started showing WHY an
+     option does not fit instead of dropping it. */
+  /* TEN TILL EIGHT, and eight is included — a session starting at eight is a session, and a grid
+     that stops at the last START time has to explain itself. Eleven columns rather than fourteen,
+     which is three fewer boxes sharing the same row and so three-fourteenths more width for each
+     of them. */
+  const hours = [];
+  for (let h = 10; h <= 20; h++) hours.push(h);
+  const rows = SLOT_DAYS.map(([prefix, label]) => ({
+    prefix, label,
+    hours: hours.map(h => {
+      const code = prefix + String(h).padStart(2, '0');
+      return { h, code, open: open(code) };
+    }),
+  }));
+  const anyOpen = rows.some(r => r.hours.some(h => h.open));
+
+  const why = anyOpen ? ''
+    : !haveT && !haveV ? 'Nobody has set any hours yet.'
+    : !haveT ? 'That venue is open, but the tutor has no hours set.'
+    : !haveV ? 'The tutor has hours, but that venue has none set.'
+    : 'The tutor’s hours and the venue’s do not overlap.';
+  return { rows, why, anyOpen };
+}
+
+/**
+ * THE TICKED HOURS, GROUPED INTO SESSIONS.
+ *
+ * A run of adjacent hours in one day IS a session, and its length IS the session length. Carried
+ * over whole from `lessonRuns`, because it is the rule that lets one grid answer three questions.
+ */
+function bookRuns() {
+  /* A LIST, WHATEVER HAPPENED. Anything that writes a string here is a bug elsewhere, and it
+     should not become a crash three functions away from its cause. */
+  const on = (Array.isArray(BOOKING.slots) ? BOOKING.slots : []).map(c => ({
+    day: String(c).replace(/\d+$/, ''), hour: Number(String(c).match(/\d+$/) || 0),
+  }));
+  const runs = [];
+  on.forEach(t => {
+    /* The first hour of a run is one with nothing ticked directly before it in the same day. */
+    if (on.some(x => x.day === t.day && x.hour === t.hour - 1)) return;
+    let hours = 1;
+    while (on.some(x => x.day === t.day && x.hour === t.hour + hours)) hours++;
+    const dayName = (SLOT_DAYS.find(d => d[0] === t.day) || [])[1] || t.day;
+    runs.push({ day: t.day, dayName, hour: t.hour, hours });
+  });
+  return runs.sort((a, b) => a.day.localeCompare(b.day) || a.hour - b.hour);
+}
+
+/* Every question, in the order somebody assembles a booking: WHAT, then WHO FOR, then WHERE, then
+   WHEN, then HOW LONG, then WHO BY. `multi` means several answers are normal rather than an edge
+   case — two subjects in one session is a thing people do, one venue is not.
+   `why` is what makes an option that does not fit visible instead of absent. */
+const BOOK_STEPS = [
+  { id: 'subjects', label: 'What are we working on?', multi: true,
+    options: () => (subjectRows() || []).map(x => x.name) },
+
+  { id: 'level', label: 'What level?',
+    options: () => ((DATA.dropdowns || {}).levels || []) },
+
+  { id: 'n', label: 'How many students?',
+    options: () => {
+      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
+      const out = [];
+      for (let i = 1; i <= Math.min(12, lim.max); i++) out.push(String(i));
+      return out;
+    },
+    why: v => {
+      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
+      if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
+      if (Number(v) < lim.min) return (lim.why.min || 'the minimum') + ' needs ' + lim.min;
+      return '';
+    } },
+
+  { id: 'loc', label: 'Where?',
+    options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
+    why: v => {
+      const sp = spaceFor(v);
+      /* The seat count is already chosen by now, so a room too small says so rather than
+         quietly resetting it. */
+      if (sp && Number(sp.max) && BOOKING.n > Number(sp.max)) {
+        return 'holds ' + sp.max + ', you asked for ' + BOOKING.n;
+      }
+      return '';
+    } },
+
+  /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At
+     home", so a client who wanted to provide the room at a paid venue could not say so and never
+     saw the saving. The rule the pricing chain has always followed is written at `const V`: the
+     client provides the space, so they pay no venue rent, and it is AUTO-ON AND LOCKED for a venue
+     that costs nothing.
+     Locked is what `nextBookStep` already does with a one-answer question — a free venue offers
+     only "Yes", so it is filled in and never asked. Nothing special is needed for the lock; it
+     falls out of the rule that a question with one answer is not a question. */
+  { id: 'hosting', label: 'Are you providing the space?',
+    options: () => {
+      const rate = venueRate_();
+      /* Nothing to charge means nothing to decide: hosting is already true and asking would be
+         the app consulting somebody about a fact. */
+      return rate > 0 ? ['No', 'Yes'] : ['Yes'];
+    },
+    /* The saving was spelled out here and it is already on the card: the Host row shows
+       − £15.00/h against the venue's + £15.00/h, one line apart. Saying it twice made the option
+       longer to read than the question. */
+    label_: v => v === 'Yes' ? 'Yes — no room hire' : 'No — we book the room' },
+
+  /* ONE QUESTION WHERE THERE WERE THREE. `days`, `time` and `hours` all described the same
+     fact, which is the mistake the old file had already found and removed: two controls for one
+     thing means code whose whole job is making them agree.
+     `grid` rather than a list, so it is drawn by hand below rather than as options. */
+  { id: 'slots', label: 'When?', grid: true,
+    options: () => slotGrid().rows.length ? ['grid'] : [] },
+
+  { id: 'interval', label: 'Over what period?',
+    options: () => (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
+
+  /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
+     three families in one session each pay a third — and the form never set it, so the feature
+     existed and could not be reached. It is asked last but one because it changes the price
+     without changing the session. */
+  /* NAMING SOMEONE IS SPLITTING WITH THEM. The old form learned this the hard way: a count
+     chosen separately from the addresses is two statements of one fact, and choosing three while
+     naming two leaves neither the price nor the invitation list knowing which is true.
+     So there is no number to pick. The count IS how many addresses have been given. */
+  { id: 'splitOthers', label: 'Sharing the cost with anyone?', emails: true,
+    options: () => ['emails'] },
+
+  { id: 'tutor', label: 'Anyone in particular?',
+    options: () => ['No preference'].concat(
+      (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
+    why: v => {
+      if (v === 'No preference') return '';
+      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
+      if (!t || !BOOKING.subjects.length) return '';
+      const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
+      const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
+      return missing.length ? 'does not teach ' + missing.join(', ') : '';
+    } },
+];
+
+const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
+
+/* What the chosen place costs an hour — the ROOM's own rate where there is one, because a small
+   room and a large one at the same venue are different prices and the building's single figure
+   could only ever be right for one of them. */
+function venueRate_() {
+  if (!BOOKING.loc || BOOKING.loc === 'At home') return 0;
+  const sp = spaceFor(BOOKING.loc);
+  if (sp) return Number(sp.rate) || 0;
+  const v = (DATA.venues || []).find(x => norm(x.title) === norm(BOOKING.loc));
+  return v ? Number(v.bestRate) || 0 : 0;
+}
+
+const bookStep_ = id => BOOK_STEPS.find(s => s.id === id);
+
+/** Has this one been answered? A multi is answered when it holds anything. */
+function bookAnswered_(step) {
+  /* A QUESTION YOU CAN ANSWER SEVERAL TIMES IS FINISHED WHEN YOU SAY IT IS.
+     This returned true the moment ONE thing was ticked — so picking Maths counted as an answer,
+     the booker moved straight on, and the Done button that would have let you add Physics was
+     never drawn. Both multiple-choice questions were single-choice in practice: subjects, and the
+     hours grid, where it meant you could book one hour and never two.
+     `done` is the list of questions somebody has finished with. */
+  if (step.multi || step.grid) {
+    const any = step.grid ? (Array.isArray(BOOKING.slots) && BOOKING.slots.length > 0)
+                          : (BOOKING[step.id] || []).length > 0;
+    return any && (BOOKING.done || []).indexOf(step.id) !== -1;
+  }
+  /* Answered by SAYING so, since nought is a legitimate answer and an empty list cannot be told
+     apart from an unanswered one. */
+  if (step.emails) return BOOKING.splitAsked === true;
+  const v = BOOKING[step.id];
+  /* EMPTY IS UNANSWERED. NOTHING ELSE IS.
+     This also refused '0', from when `hours` started at 0 and had to be told apart from a real
+     answer. Everything starts empty now, so that guard had nothing left to protect — and it made
+     "Just us", which is nought other families, impossible to record: the question was answered,
+     the answer was thrown away, and it was asked again for ever.
+     A zero is an answer. It is the answer to most of the questions worth asking. */
+  return String(v ?? '') !== '';
+}
+
+/**
+ * THE NEXT QUESTION WORTH ASKING, or nothing left.
+ *
+ * Skipped when answered, and skipped when there is only one thing it could be — in which case the
+ * answer is filled in on the way past. One venue is not a choice, and asking is the app pretending
+ * to consult somebody it has already decided for.
+ */
+function nextBookStep() {
+  for (const step of BOOK_STEPS) {
+    if (bookAnswered_(step)) continue;
+    const opts = step.options().filter(Boolean);
+    if (!opts.length) continue;                    // nothing to offer: leave it unanswered
+    /* A GRID AND AN EMAIL LIST ARE NOT ONE-ANSWER QUESTIONS. Both declare a single option because
+       they are drawn rather than listed — and the fill-in-the-only-answer rule took that literally,
+       writing the string 'emails' into the booking and skipping the question entirely. The rule is
+       about a LIST with one entry in it; these have no list. */
+    if (opts.length === 1 && !step.multi && !step.grid && !step.emails) {
+      BOOKING[step.id] = opts[0];                  // the only answer there is
+      continue;
+    }
+    return step;
+  }
+  return null;
+}
+
+/** What the pricing chain wants, out of what has been answered so far. */
+function bookSpec() {
+  const iv = (DATA.intervals || []).find(x => (x.label || x.term) === BOOKING.interval) || {};
+  const runs = bookRuns();
+  /* The session length IS the length of a run — not a separate answer that has to be reconciled
+     with the hours ticked. Where runs differ, the first one names the session; the total hours a
+     week is what the price is actually built from. */
+  const hours = runs.length ? runs[0].hours : 0;
+  const perWeek = runs.reduce((n, r) => n + r.hours, 0);
+  const days = [...new Set(runs.map(r => r.dayName))];
+  const firstHour = runs.length ? String(runs[0].hour).padStart(2, '0') + ':00' : '';
+  return {
+    subjects: BOOKING.subjects, level: BOOKING.level, n: Number(BOOKING.n) || 1,
+    loc: BOOKING.loc === 'At home' ? '' : BOOKING.loc,
+    /* The answer, or the rule when it has not been given: a venue that charges nothing is hosted
+       whether or not anybody said so. */
+    hosting: BOOKING.hosting ? BOOKING.hosting === 'Yes'
+                             : (BOOKING.loc === 'At home' || isHome(BOOKING.loc)),
+    /* HOW MANY OTHERS, counted from the addresses given rather than picked separately. */
+    splitOthers: (BOOKING.splitWith || []).filter(x => String(x).trim()).length,
+    day: days.join(', '), time: firstHour,
+    hours: hours,
+    /* EVERY TICKED HOUR, added up. Two on Monday and two on Wednesday is four a week — and the
+       chain multiplies by weeks, so passing one session's length would price a two-day booking as
+       a one-day one. Counted from the grid rather than multiplied out, so two hours on Monday and
+       one on Friday is three, which no amount of days-times-length can express. */
+    hoursPerWeek: perWeek,
+    /* The runs themselves, so the chain can work out the real session dates across every day. */
+    runs: runs.map(r => ({ dayName: r.dayName, day: r.day, hours: r.hours })),
+    interval: BOOKING.interval, weeks: iv.weeks || 0,
+    startDate: iv.startDate || '', endDate: iv.endDate || '', lastSun: iv.lastSun || iv.endDate || '',
+    tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
+  };
+}
+
+/* The price so far, or nothing. Shown from the moment it can be worked out rather than at the end
+   — the whole point of asking in this order is that somebody can stop when it gets too dear. */
+function bookPrice() {
+  if (!BOOKING.subjects.length) return null;
+  const L = priceFrom(bookSpec());
+  return (L && L.chargePerHour > 0) ? L : null;
+}
+
+on('new-booking', () => {
+  if (!USER) { toast('Sign in to book'); go('me'); return; }
+  drawBooker();
+});
+
+/* Ticking an hour. Adjacent ticks become one session; the grid is redrawn so the summary under it
+   keeps up. */
+on('book-slot', el => {
+  const code = el.dataset.code;
+  const list = BOOKING.slots || [];
+  const at = list.indexOf(code);
+  if (at === -1) list.push(code); else list.splice(at, 1);
+  BOOKING.slots = list;
+  drawBooker();
+});
+
+on('split-add', () => { (BOOKING.splitWith = BOOKING.splitWith || []).push(''); drawBooker(); });
+on('split-set', el => {
+  const list = BOOKING.splitWith || [];
+  list[Number(el.dataset.k)] = el.value;
+  BOOKING.splitWith = list;
+  /* NOT redrawn. Rebuilding the sheet on every keystroke destroys the box being typed into — the
+     same fault the Stuff search box was built around. The price catches up when Done is pressed. */
+});
+on('split-done', () => { BOOKING.splitAsked = true; drawBooker(); });
+
+/* Answering one. A multi toggles, everything else replaces and moves on. */
+on('book-pick', el => {
+  const step = bookStep_(el.dataset.step);
+  const v = el.dataset.value;
+  if (!step) return;
+  /* Changing an answer takes you back to the card rather than onwards through questions you have
+     already answered. */
+  const wasEditing = BOOKING.editing === step.id;
+  /* A GRID IS TICKED, NOT PICKED. `book-slot` owns it, and letting this one through would write a
+     single code string over the list of them — after which everything that reads the slots as a
+     list throws, several functions away from the press that caused it. */
+  if (step.grid) return;
+  if (step.multi) {
+    const list = BOOKING[step.id] || [];
+    const at = list.indexOf(v);
+    if (at === -1) list.push(v); else list.splice(at, 1);
+    BOOKING[step.id] = list;
+  } else {
+    BOOKING[step.id] = v;
+    if (wasEditing) BOOKING.editing = '';
+  }
+  drawBooker();
+});
+
+/* Pressing a value on the card. It reopens that question and keeps everything else — which is the
+   difference between changing your mind and starting again. */
+on('book-edit', el => { BOOKING.editing = el.dataset.step; drawBooker(); });
+/* And backing out of one without changing it. */
+on('book-back', () => { BOOKING.editing = ''; drawBooker(); });
+
+/* Going back to change one. It is emptied rather than the whole booking reset — everything after
+   it stays answered, because changing the venue does not mean you changed your mind about the
+   subject. */
+on('book-undo', el => {
+  const step = bookStep_(el.dataset.step);
+  if (!step) return;
+  if (step.emails) { BOOKING.splitWith = []; BOOKING.splitAsked = false; }
+  else BOOKING[step.id] = step.grid ? [] : (step.multi ? [] : '');
+  drawBooker();
+});
+
+/* Finished with a multiple-choice question. Recorded, so it stops being asked — and so that
+   coming back to it later reopens it rather than treating one tick as the whole answer. */
+on('book-more', el => {
+  const id = (el && el.dataset && el.dataset.step) || (nextBookStep() || {}).id;
+  if (id) BOOKING.done = uniq((BOOKING.done || []).concat([id]));
+  BOOKING.editing = '';
+  drawBooker();
+});
+
+/**
+ * THE CARD. Photographs, then every priced row, then the dates, then where it stands.
+ *
+ * The order is the old one and it is right: what you are buying, what it costs and how that was
+ * arrived at, when it happens, and only then its state. State last because what a booking IS is
+ * what somebody came to read; where it STANDS is what they check afterwards.
+ */
+function bookBreakdown(L) {
+  if (!L) return '<p class="note">Not enough answered to price it yet.</p>';
+  const fmt = { money, esc, pct: x => x };
+
+  /* Photographs of the two things chosen — the room and the person. A booking is largely about
+     whether you like the look of both, and a card that names them without showing them is a
+     receipt rather than an offer. */
+  const sp = spaceFor(BOOKING.loc);
+  const venue = (DATA.venues || []).find(x => norm(x.title) === norm(sp ? sp.venue : BOOKING.loc));
+  const tutor = tutorRow_();
+  /* A DRAWN STAND-IN rather than a word. "No tutor yet" in a box is a caption where a picture
+     should be; a vague figure is recognisably a person nobody has chosen, which is what an open
+     booking IS — and it holds the frame so a card with one photograph does not look like a booking
+     with a room and no teacher. */
+  const figure = kind => `<span class="bk-none"><svg viewBox="0 0 64 52" aria-hidden="true">${
+    kind === 'venue'
+      ? `<path d="M14 42V22l18-11 18 11v20z" fill="none" stroke="currentColor" stroke-width="2"/>
+         <rect x="28" y="30" width="8" height="12" fill="currentColor" opacity=".45"/>
+         <rect x="19" y="26" width="6" height="6" fill="currentColor" opacity=".28"/>
+         <rect x="39" y="26" width="6" height="6" fill="currentColor" opacity=".28"/>`
+      : `<circle cx="32" cy="20" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+         <path d="M16 46a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="2"/>`
+  }</svg></span>`;
+  const frame = (img, kind) => img
+    ? `<img src="${esc(pic(img))}" alt="" loading="lazy">`
+    : figure(kind);
+  const photos = `<div class="bk-photos">
+      ${frame(venue && venue.image, 'venue')}
+      ${frame(tutor && tutor.image, 'tutor')}
+    </div>`;
+
+  /* One row: label, what was chosen, the multiplier, what it adds an hour, and the running total.
+     Five columns because a multiplier and a fixed amount are different operations and sharing a
+     column made the arithmetic impossible to follow. */
+  /* `step` is which question this row's value came from. Given one, the value becomes a button
+     that reopens it — which is the whole of "play with it": no mode to enter, no pencil to find,
+     the number you want to change is the thing you press. */
+  const row = (k, v, mul, rate, run, cls, step) => `<div class="bk-row ${cls || ''}">
+      <span class="bk-k">${esc(k)}</span>
+      <span class="bk-v${step ? ' bk-pick" data-do="book-edit" data-step="' + esc(step) : ''}">${v || ''}</span>
+      <span class="bk-m">${mul || ''}</span>
+      <span class="bk-r">${rate || ''}</span>
+      <span class="bk-t">${run || ''}</span>
+    </div>`;
+
+  const out = [];
+  ['rate', 'shape'].forEach(group => {
+    const inGroup = PRICE_ROWS.filter(r => r.group === group);
+
+    /* The hour grid sits at the top of the shape section, because ticking it is what produces a
+       session count — so the rows below read as consequences of it rather than promises made
+       before it. */
+    if (group === 'shape') {
+      bookRuns().forEach(r => {
+        const g = slotGrid();
+        const day = g.rows.find(x => x.prefix === r.day);
+        const hours = (day ? day.hours : []).map(h =>
+          `<span class="bk-hr${(BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}"
+            >${h.h}</span>`).join('');
+        out.push(row(r.dayName, `<span class="bk-hrs">${hours}</span>`, '', '', '', 'bk-day',
+          'slots'));
+      });
+      if (L.hoursPerWeek) {
+        out.push(row('Hours a week', '', '× ' + L.hoursPerWeek, '',
+          L.weeksBooked ? money(runningAfter('hoursweek', L)) : '', 'bk-day'));
+      }
+    }
+
+    inGroup.forEach((r, gi) => {
+      if (r.show && !r.show(L)) return;
+      const c = priceCells(r, L, fmt);
+      /* Which question this row is showing the answer to. The row keys and the step ids are
+         different vocabularies — one describes the price, the other the conversation — so the join
+         is written out rather than assumed. */
+      const asked = { base: 'tutor', subject: 'subjects', level: 'level', students: 'n',
+                      venue: 'loc', host: 'hosting', term: 'interval',
+                      split: 'splitOthers' }[r.key];
+      /* A ROW'S VALUE IS WHAT WAS CHOSEN, and nothing else.
+         Some rows carry an admin annotation in a `note` span — Extra seats explains WHERE its
+         fraction came from, which matters when a tutor's own setting is being ignored. Stripping
+         the tags kept the words, so "1" arrived as "1 config 1.5 + B 0.1" in a column two
+         characters wide. The note is removed WITH its contents; what is left is the answer. */
+      const plain = r.value
+        ? String(r.value(L)).replace(/<span class="note">[\s\S]*?<\/span>/g, '')
+                            .replace(/<[^>]*>/g, '').trim()
+        : '';
+      out.push(row(r.label, esc(plain),
+        c.mul, c.rate, c.total, gi === inGroup.length - 1 ? 'bk-end' : '', asked));
+    });
+  });
+
+  /* THE DATES. Not a summary of them — the actual list, because they ARE what is being paid for
+     and a count is something you either believe or you do not. */
+  const dates = (L.sessionDates || []).map(d => fmtDate(d));
+  out.push(row('Dates', dates.length ? `<span class="bk-dates">${esc(dates.join(', '))}</span>` : '—',
+    '', '', dates.length ? dates.length + ' dates' : '', 'bk-free'));
+
+  /* Where it stands, last. Three separate facts that were once one word:
+       status      where the negotiation is
+       possession  whose booking this is
+       lifecycle   where the CALENDAR is, which moves on its own as dates pass */
+  out.push(row('Status', 'Unsent', '', '', '', 'bk-free'));
+  out.push(row('Possession', 'Yours', '', '', '', 'bk-free'));
+  out.push(row('Lifecycle', 'Uncreated', '', '', '', 'bk-free'));
+
+  return photos + '<div class="bk">' + out.join('') + '</div>';
+}
+
+/**
+ * REDRAW WITHOUT MOVING.
+ *
+ * Every answer rebuilds the whole sheet — the options change, the breakdown grows a row — and the
+ * sheet scrolls back to the top each time, so the thing you were looking at leaves the screen at
+ * the moment you touch it. On a list of eleven venues that means scrolling back down after every
+ * single tap.
+ *
+ * The position is taken before the rebuild and put back after it, in the frame after the markup
+ * lands — before that, the new content has no height and the scroll would be clamped to zero.
+ * Clamped to the new height, because the page after an answer is usually shorter.
+ */
+function redrawBooker_(draw) {
+  const body = $('sheet-body');
+  const was = body ? body.scrollTop : 0;
+  draw();
+  const now = $('sheet-body');
+  if (!now || !was) return;
+  requestAnimationFrame(() => {
+    now.scrollTop = Math.min(was, Math.max(0, now.scrollHeight - now.clientHeight));
+  });
+}
+
+/* The one entry point. Everything that changes an answer calls this, and it is the only thing
+   that calls `drawBooker_` — so nothing can redraw the sheet without keeping its place. */
+function drawBooker() { redrawBooker_(drawBooker_); }
+
+function drawBooker_() {
+  /* PLAYING WITH IT.
+     Once every question is answered the card is the whole booking, and the thing somebody actually
+     wants next is not to start again — it is to ask what happens if. A different tutor, one fewer
+     seat, hosting it themselves. The funnel is right for BUILDING a booking, where each answer
+     narrows the next, and wrong for CHANGING one, where you already know what you want to change.
+     So the card becomes the control. Every chosen value on it is already underlined to say
+     somebody picked it; pressing one reopens that question with everything else kept, and answering
+     it comes straight back to the card with the running column moved. No mode, no edit button —
+     the value IS the button, which is what the old form did with its inline selects.
+     `editing` is which question is open. Empty means the card. */
+  const step = BOOKING.editing
+    ? (bookStep_(BOOKING.editing) || nextBookStep())
+    : nextBookStep();
+  const L = bookPrice();
+
+  /* WHAT HAS BEEN SAID SO FAR, each one pressable to change. A wizard that hides its earlier
+     answers is one you have to restart to correct. */
+  const said = BOOK_STEPS.filter(bookAnswered_).map(st => {
+    const v = BOOKING[st.id];
+    const text = st.emails
+      ? ((BOOKING.splitWith || []).filter(x => String(x).trim()).length
+          ? (BOOKING.splitWith || []).filter(x => String(x).trim()).join(', ') : 'Just us')
+      : st.grid
+      ? bookRuns().map(r => r.dayName.slice(0, 3) + ' ' + r.hour + ':00').join(', ')
+      : st.multi ? v.join(', ') : (st.label_ ? st.label_(v) : v);
+    return `<button class="chip" data-do="book-undo" data-step="${esc(st.id)}">
+      <span class="chip-k">${esc(st.label.replace(/\?$/, ''))}</span>${esc(text)}
+      <span class="chip-x">✕</span></button>`;
+  }).join('');
+
+  /* THE RUNNING BREAKDOWN. Every row says what it did to the price and what the price is with it
+     applied — so the last figure IS the total, rather than a number you have to trust.
+     Built from PRICE_ROWS, the same list the old card used, so a row cannot be drawn without being
+     costed or costed without being drawn. */
+  const money_ = bookBreakdown(L);
+  if (!step) {
+    openSheet('Ask for a session', `
+      ${said ? `<div class="chips">${said}</div>` : ''}
+      ${money_ || '<p class="note">Not enough answered to price it yet.</p>'}
+      <label class="field"><span>anything else we should know</span>
+        <textarea id="book-note" placeholder="Optional"></textarea></label>
+      <button class="btn" data-do="book-send">Ask for it</button>
+      <p class="faint" id="book-said" style="margin:.6rem 0 0">
+        Nothing is booked or charged yet — this asks, and we come back to you.</p>`);
+    return;
+  }
+
+  /* THE GRID IS DRAWN, not listed. Every other question is a set of options; this one is a week. */
+  if (step.grid) {
+    const g = slotGrid();
+    const on = BOOKING.slots || [];
+    const runs = bookRuns();
+    openSheet(step.label, `
+      ${g.anyOpen ? `
+        <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
+          session that week.</p>
+        <div class="slot-grid">
+          ${g.rows.map(r => `<div class="slot-row">
+            <span class="slot-day">${esc(r.label.slice(0, 3))}</span>
+            <div class="slot-hours">
+              ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
+                h.open ? '' : ' shut'}" ${h.open ? '' : 'disabled'}
+                title="${h.h}:00${h.open ? '' : ' — not available'}"
+                data-do="book-slot" data-code="${esc(h.code)}">${h.h}</button>`).join('')}
+            </div>
+          </div>`).join('')}
+        </div>
+        ${runs.length ? `<p class="note">${runs.map(r =>
+            esc(r.dayName) + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00').join(' · ')}</p>
+          <button class="btn" data-do="book-more" data-step="slots">Done — ${runs.length} session${
+            runs.length === 1 ? '' : 's'} a week</button>` : ''}`
+        /* NO HOURS AND WHY. An empty grid with no explanation reads as the app being broken; the
+           reason is always something somebody can go and fix in the sheet. */
+        : `<p class="note">${esc(g.why)}</p>`}
+      ${said ? `<div class="chips">${said}</div>` : ''}
+      ${money_}`);
+    return;
+  }
+
+  /* ONE BOX PER PERSON, and a ＋ for another. How many there are IS how many there are. */
+  if (step.emails) {
+    const list = BOOKING.splitWith || [];
+    openSheet(step.label, `
+      <p class="faint">Each family pays their own share. Leave it empty if it is just you.</p>
+      ${list.map((v, k) => `<label class="field"><span>their email</span>
+        <input type="email" data-do="split-set" data-k="${k}" value="${esc(v)}"
+               placeholder="name@example.com"></label>`).join('')}
+      <div class="btn-row">
+        <button class="btn quiet" data-do="split-add">＋ another</button>
+        <button class="btn" data-do="split-done">
+          ${list.filter(x => String(x).trim()).length
+            ? 'Done — split ' + (list.filter(x => String(x).trim()).length + 1) + ' ways'
+            : 'Just us'}</button>
+      </div>
+      ${said ? `<div class="chips">${said}</div>` : ''}
+      ${money_}`);
+    return;
+  }
+
+  const opts = step.options().filter(Boolean);
+  const chosen = step.multi ? (BOOKING[step.id] || []) : [];
+
+  openSheet(step.label, `
+    ${BOOKING.editing ? '<button class="btn quiet" data-do="book-back">Leave it as it is</button>' : ''}
+    ${opts.map(v => {
+      const why = step.why ? step.why(v) : '';
+      const on = chosen.indexOf(v) !== -1;
+      /* NOT REMOVED, MARKED. An option that does not fit is shown with the reason, because a list
+         that quietly drops things is a list that seems to have decided for you — and because the
+         thing it would drop is often the thing you meant. */
+      return `<div class="card tap${on ? ' is-on' : ''}${why ? ' is-off' : ''}"
+           data-do="book-pick" data-step="${esc(step.id)}" data-value="${esc(v)}">
+        <div class="row" style="border:0;padding:0">
+          <span class="k">${on ? '✓ ' : ''}${mark(step.label_ ? step.label_(v) : v)}</span>
+          ${why ? `<span class="v faint">${esc(why)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
+    ${step.multi && chosen.length
+      ? `<button class="btn" style="margin-top:.6rem" data-do="book-more"
+           data-step="${esc(step.id)}">Done — ${chosen.length} chosen</button>` : ''}
+    ${/* WHAT HAS BEEN SAID, between the question and the price. Above the choices it was the first
+          thing read on a screen whose whole job is the list below it; below the breakdown it would
+          be past the fold. Here it separates the two and reads as the join between them. */''}
+    ${said ? `<div class="chips">${said}</div>` : ''}
+    ${money_}`);
+}
+
+on('book-send', el => {
+  const said = $('book-said');
+  const L = bookPrice();
+  el.disabled = true;
+  if (said) said.textContent = 'Asking…';
+
+  const spec = bookSpec();
+  api({ action: 'createJob',
+    name: USER.name, clientName: USER.name,
+    subject: spec.subjects.join(', '), level: spec.level,
+    day: spec.day, time: spec.time, location: BOOKING.loc,
+    hosting: spec.hosting, hours: spec.hours, interval: spec.interval,
+    requestedTutor: spec.tutor,
+    dates: (L && L.sessionDates || []).map(d => fmtDate(d)).join(', '),
+    price: L ? String(L.total || '') : '',
+    /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
+       sent — so the sheet's profit column stayed empty on every booking made through the app. */
+    profit: L ? String(Math.round((L.profitTotal || 0) * 100) / 100) : '',
+    service: BOOKING.service || 'Tuition',
+    splitOthers: spec.splitOthers,
+    /* Who to invite. `createJob` has accepted this since the beginning and nothing ever sent it,
+       so a split booking was priced per family and nobody else was ever told about it. */
+    splitEmails: (BOOKING.splitWith || []).filter(x => String(x).trim()).join(', '),
+    message: ($('book-note') || {}).value || '',
+    /* THE SAME ASK TWICE IS ONE ASK. A slow connection and an impatient thumb are the ordinary way
+       a family ends up with two identical bookings, and the backend already refuses a repeated
+       requestId — this is what gives it one. */
+    requestId: 'R' + Date.now() + '-' + Math.floor(Math.random() * 1e6) })
+    .then(d => {
+      if (d && d.error) throw new Error(d.error);
+      closeSheet();
+      toast('Asked — we will come back to you');
+      /* Emptied, so the next booking starts from nothing rather than from the last one. */
+      BOOKING.subjects = []; BOOKING.slots = [];
+      BOOKING.splitWith = []; BOOKING.splitAsked = false;
+      ['level', 'loc', 'interval', 'tutor', 'n', 'hosting', 'service']
+        .forEach(k => { BOOKING[k] = ''; });
+      load();
+    })
+    .catch(err => {
+      el.disabled = false;
+      if (said) said.textContent = String(err.message || 'Could not ask for that');
+    });
+});
+
 on('job', el => {
   const jobs = DATA.liveJobs || DATA.jobs || [];
   const j = jobs.find(x => String(x.id || x.jobId) === el.dataset.id);
@@ -4343,7 +6769,10 @@ function initFlappy() {
       if (S.score > prev) {
         USER.highscore = S.score;
         if ($('flappy-best')) $('flappy-best').textContent = S.score;
-        fetch(API, { method:'POST', body: JSON.stringify({ action:'saveScore', name: USER.name, score: S.score }) })
+        /* Through `send`, which refuses to resolve on a refusal. This ignored the reply entirely
+           — `.then(() => …)` runs whatever came back — so a rejected save ran the success branch
+           and the catch below, written for exactly this, could never fire. */
+        send({ action: 'saveScore', name: USER.name, score: S.score })
           .then(() => {
 
             const meS = (DATA.students||[]).find(s => norm(s.handle) === norm(USER.handle)); if (meS) meS.highscore = S.score;
@@ -4455,9 +6884,12 @@ function startTimesTables() {
      answer must not be told they have failed. */
   input.oninput = () => {
     if (!ttState) return;
-    const val = parseInt(input.value, 10);
-    if (isNaN(val)) return;
-    if (val === ttState.cur.a * ttState.cur.b) {
+    /* Named `answer`, not `val`. There is a global `val()` that reads an input by id, and a local
+       shadowing it inside a function that also reads inputs is a trap set for whoever edits this
+       next. */
+    const answer = parseInt(input.value, 10);
+    if (isNaN(answer)) return;
+    if (answer === ttState.cur.a * ttState.cur.b) {
       ttState.score++;
       ttState.asked++;
       $('tt-score').textContent = ttState.score;
@@ -4511,9 +6943,8 @@ function endTimesTables() {
   if (USER && score > (Number(USER.ttHighscore) || 0)) {
     const was = Number(USER.ttHighscore) || 0;
     USER.ttHighscore = score;
-    fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveTtHighscore',
-      name: USER.name, personId: USER.personId, score }) })
-      .then(r => r.json())
+    api({ action: 'saveTtHighscore',
+      name: USER.name, personId: USER.personId, score })
       .then(d => {
         if (d && d.error) throw new Error(d.error);
         if (typeof d.best === 'number') USER.ttHighscore = d.best;
@@ -5074,19 +7505,36 @@ function paintTimer() {
 
 let flappyState = null;
 
+/**
+ * OPEN A WIDGET. Its markup into the sheet, then the one function that brings it to life.
+ *
+ * `openSheet` first and `start` second, always: every one of these finds its parts by id, and an
+ * id cannot be found before the markup carrying it is in the document. That ordering was the whole
+ * content of `wake` and it is the whole content of this.
+ *
+ * AND IT SAYS SO WHEN IT DOES NOT START. Same as before, in the same place — the space the widget
+ * should have filled — because a card with a heading and nothing under it has been mistaken for an
+ * unfinished feature twice.
+ */
+on('widget', el => {
+  const wgt = WIDGETS.find(x => x.id === el.dataset.id);
+  if (!wgt) return;
+  /* Still here for a MIXED result — searching "timer" alongside three resources gives a list of
+     cards, and the card has to open something. When Tools or Games is chosen on its own they are
+     the pages themselves and nothing needs opening. */
+  openSheet(wgt.name, wgt.html);
+  startWidget_(wgt);
+});
+
 /* Started when their screen appears, and only then — a canvas loop running behind a screen nobody
    is looking at is a flat battery for nothing. */
-function wake(id) {
-  try {
-    if (id === 'arcade') { initChess?.(); initFlappy?.(); initFeed?.(); initTables?.(); }
-    if (id === 'tools')  { initMiniCalc?.(); initTimer?.(); initCalendar?.();
-                           initPad?.(); paintDocket?.(); }
-  } catch (e) {
-    /* One broken game must not take the screen with it — the other three on that screen are fine,
-       and a blank tab is a worse answer than a game that does not start. */
-    console.warn('[wake]', id, e);
-  }
-}
+/* `wake` IS GONE, and with it the whole idea of a screen having things that need starting.
+   It existed for two screens and both are gone: nine widgets now open one at a time in the sheet,
+   and `on('widget')` does what wake did — markup first, then the one function that brings it to
+   life, then a sentence in the empty space if it did not.
+   That also ends the fault it was built around. `paint` replaced a screen's markup and threw away
+   whatever had been drawn into it, so every repaint blanked the arcade and `repaint` had to
+   remember to wake it again. A sheet is not repainted; it is opened, used and closed. */
 
 on('chess-new',  () => { CHESS = newGame(); CHESS_HIST = []; CHESS_PICK = -1; drawChess(); });
 on('chess-undo', () => {
@@ -5112,216 +7560,262 @@ on('flap-start', () => toast('Tap the canvas to flap'));
 
 const SWIPE = {
   x: 0, y: 0,          // where the finger started
-  dx: 0, dy: 0,
+  d: 0,                // how far it has travelled along the axis it claimed
   axis: null,          // null until the finger commits: 'x' or 'y'
   live: false,
-  page: null,          // the .page under the finger, on a paged screen
+  cells: null,         // the strip being dragged, held so the release moves the same one
 };
 
-/* The scrolling page the finger is on, if any. A paged screen hands its gesture to the pager only
-   when the page itself has nowhere left to scroll — which is the same hierarchy the horizontal
-   swipe uses for a wide table, said vertically. */
-function pageUnder(target) {
-  if (!PAGER[AT]) return null;
-  return target && target.closest ? target.closest('.page') : null;
-}
-
-/* Places a sideways drag means something else. Checked once at the start rather than on every
-   move — the answer cannot change mid-gesture, and asking sixty times a second would be work for
-   nothing. */
-function swipeAllowed(target) {
+/**
+ * DOES THIS DRAG BELONG TO THE GRID, OR TO WHAT IS UNDER THE FINGER?
+ *
+ * ONE RULE, BOTH AXES. There were two lists — a blocklist of selectors for sideways and a
+ * different one for vertical — and they disagreed by construction: the sideways list named the
+ * chess board and the keypad, the vertical list reused it, and the result was that the three
+ * widgets you most wanted to swipe off were the three you could not.
+ *
+ * The rule is now the same question asked in either direction: is there something under the finger
+ * that can still scroll THIS WAY? If so it is theirs. If not, it is the grid's. A short list of
+ * controls that consume a drag for their own reasons is the only exception.
+ */
+function axisFree(target, axis, dir) {
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is over everything
-  const no = target.closest?.(
-    'input, textarea, select, canvas, .chess, .mc-grid, [data-noswipe]');
-  if (no) return false;
-  /* Anything that scrolls sideways on its own — a wide table, a row of tiles. Taking its gesture
-     would make it unscrollable, and it has no other way to be read. */
+  /* A text area scrolls its own contents and a select opens by dragging on some phones. Neither is
+     a scroll container the walk below would notice, so they are named. */
+  if (target.closest?.('textarea, select, [data-noswipe]')) return false;
+  /* A cell is not a scroll container any more, so the walk below stops at anything genuinely
+     inside one — the docket's list, the notepad — and hands everything else to the grid. That is
+     what makes a swipe up mean the next widget rather than a few pixels of nothing. */
+
   let el = target;
   while (el && el !== document.body) {
-    if (el.scrollWidth > el.clientWidth + 4) {
-      const how = getComputedStyle(el).overflowX;
-      if (how === 'auto' || how === 'scroll') return false;
+    const style = getComputedStyle(el);
+    const over = axis === 'x' ? style.overflowX : style.overflowY;
+    if (over === 'auto' || over === 'scroll') {
+      const size = axis === 'x' ? el.clientWidth : el.clientHeight;
+      const full = axis === 'x' ? el.scrollWidth : el.scrollHeight;
+      const pos  = axis === 'x' ? el.scrollLeft : el.scrollTop;
+      if (full > size + 1) {
+        /* It can scroll. Whether it still can IN THIS DIRECTION is what decides: at its very top a
+           downward drag is nothing to it and everything to the grid, which is what lets a long
+           docket be read to the end and then hand over in one movement. */
+        const atStart = pos <= 0, atEnd = pos + size >= full - 1;
+        if ((dir > 0 && !atStart) || (dir < 0 && !atEnd)) return false;
+      }
     }
     el = el.parentElement;
   }
   return true;
 }
 
-addEventListener('touchstart', e => {
-  if (e.touches.length !== 1) return;                 // a pinch is not a swipe
-  const t = e.touches[0];
-  SWIPE.x = t.clientX; SWIPE.y = t.clientY;
-  SWIPE.dx = 0; SWIPE.dy = 0; SWIPE.axis = null;
-  SWIPE.live = swipeAllowed(e.target);
-  SWIPE.page = pageUnder(e.target);
+/* HOW FAR IS FAR ENOUGH, as a fraction of the axis being travelled rather than a number of pixels.
+   Sideways used to ask for a quarter of the width and vertical an eighth of the height, so the
+   same flick meant different things depending which way it went. One number, and it is the same
+   proportion of the same thumb whichever way it is moving. */
+const THROW = ax => Math.max(56, AXES[ax].span() * 0.16);
+
+/* POINTER EVENTS, NOT TOUCH EVENTS.
+   The grid listened for `touchstart` and nothing else, so it worked on a phone and did nothing at
+   all on a desktop — there is no touch to listen for, and dragging with a mouse produced no events
+   the grid had any handler for. The tabs still worked because a tap is a click; the swipe simply
+   was not there, which reads as broken rather than as unsupported.
+
+   One pointer handler covers a finger, a mouse and a pen with the same code, which is the same
+   argument as the two axes: a second way of doing it is a second thing to keep in step. */
+addEventListener('pointerdown', e => {
+  if (!e.isPrimary) return;                            // a second finger is a pinch, not a swipe
+  /* A mouse only counts while a button is down. Without this, moving the cursor across the page
+     would drag the grid. */
+  if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+  SWIPE.x = e.clientX; SWIPE.y = e.clientY;
+  SWIPE.d = 0; SWIPE.axis = null; SWIPE.cells = null;
+  SWIPE.live = true;
+  SWIPE.target = e.target;
 }, { passive: true });
 
-addEventListener('touchmove', e => {
-  if (!SWIPE.live || e.touches.length !== 1) return;
-  const t = e.touches[0];
-  const dx = t.clientX - SWIPE.x, dy = t.clientY - SWIPE.y;
+addEventListener('pointermove', e => {
+  if (!SWIPE.live || !e.isPrimary) return;
+  if (e.pointerType === 'mouse' && e.buttons !== 1) { SWIPE.live = false; return; }
+  const dx = e.clientX - SWIPE.x, dy = e.clientY - SWIPE.y;
 
-  /* THE DECISION, made once. Ten pixels is enough to tell a deliberate sideways drag from the
-     wobble in a thumb starting a scroll — and 1.4× means an ambiguous diagonal is treated as a
-     scroll, which is the safer of the two wrong answers. */
+  /* THE DECISION, made once. Ten pixels is enough to tell a deliberate drag from the wobble in a
+     thumb, and 1.4x means an ambiguous diagonal goes to the vertical — which on a phone is the
+     safer wrong answer, because scrolling is the thing people do a thousand times more often. */
   if (!SWIPE.axis) {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-    SWIPE.axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
+    const axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
+    const dir = axis === 'x' ? dx : dy;
+    if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) { SWIPE.live = false; return; }
+    SWIPE.axis = axis;
+    SWIPE.cells = AXES[axis].cells();
   }
 
-  /* --- UP AND DOWN, on a paged screen ----------------------------------------------------------
-     The page keeps the gesture while it has anywhere to scroll to. Only at its very top (dragging
-     down) or its very bottom (dragging up) does the pager take it — so a docket with twenty lines
-     is read to the end and THEN hands over, and the calculator, which fits, pages on the first
-     movement.
-     Nobody has to be told this rule. It is what happens in every reader anybody has used, and the
-     alternative is a thumb-flick that sometimes scrolls and sometimes changes screens. */
-  if (SWIPE.axis === 'y') {
-    const pg = SWIPE.page;
-    if (!pg) return;                                   // not a paged screen: the page scrolls
-    const atTop = pg.scrollTop <= 0;
-    const atEnd = pg.scrollTop + pg.clientHeight >= pg.scrollHeight - 1;
-    if ((dy > 0 && !atTop) || (dy < 0 && !atEnd)) return;
+  const ax = AXES[SWIPE.axis];
+  const travelled = SWIPE.axis === 'x' ? dx : dy;
+  const at = ax.at(), last = ax.count() - 1;
+  /* Resisted at the ends. The grid still moves, grudgingly, which says "nothing that way" better
+     than refusing to move at all. */
+  const end = (travelled > 0 && at === 0) || (travelled < 0 && at === last);
 
-    const at = PAGE[AT] || 0;
-    /* Resisted at the ends, exactly as the tab swipe is: the dial still turns, grudgingly, which
-       says "nothing that way" better than refusing to move at all. */
-    const end = (dy > 0 && at === 0) || (dy < 0 && at === pageCount(AT) - 1);
-    e.preventDefault();
-    SWIPE.dy = dy;
-    /* ONE property, inherited by every page. Each page's transform already reads `--drag`, so the
-       whole dial follows the finger without JavaScript touching five elements on every frame of a
-       gesture — which is what makes it smooth on a phone. */
-    const wrap = $('s-' + AT)?.querySelector('.pager');
-    const strip = wrap?.querySelector('.pages');
-    if (wrap && strip) {
-      wrap.classList.add('no-anim');
-      strip.style.setProperty('--drag', (end ? dy * 0.25 : dy) + 'px');
-    }
-    return;
-  }
-
-  e.preventDefault();                                  // ours now — stop the page moving
-  SWIPE.dx = dx;
-
-  /* The screen follows the finger. Without this a swipe is a guess: you drag, nothing happens, and
-     either the tab changes or it does not. Movement is what tells somebody the gesture was heard.
-     Resisted at the ends — the drag still moves, but grudgingly, which says "nothing that way"
-     better than refusing to move at all. */
-  const at = TABS.findIndex(x => x.id === AT);
-  const end = (dx > 0 && at === 0) || (dx < 0 && at === TABS.length - 1);
-  const shift = end ? dx * 0.25 : dx;
-  const el = $('s-' + AT);
-  if (el) { el.style.transform = `translateX(${shift}px)`; el.style.transition = 'none'; }
+  /* A mouse drag selects text as it goes, so the screen ends up half-highlighted behind the
+     movement. Cancelled once the gesture belongs to the grid — and only then, because a drag that
+     is still ambiguous might turn out to be somebody selecting a caption. */
+  if (e.cancelable) e.preventDefault();
+  document.getSelection?.()?.removeAllRanges?.();
+  SWIPE.d = travelled;
+  SWIPE.cells.forEach(el => el.classList.add('no-anim'));
+  /* THE SAME PLACER that puts them at rest, given a drag. One function decides where a cell is,
+     whether a finger is on it or not — two would be two things to keep in step, which is how the
+     axes came apart in the first place. */
+  placeCells(SWIPE.axis, false, end ? travelled * 0.25 : travelled);
 }, { passive: false });
 
-addEventListener('touchend', () => {
+addEventListener('pointerup', () => {
   if (!SWIPE.live) return;
-  const el = $('s-' + AT);
-  const dx = SWIPE.dx, dy = SWIPE.dy, axis = SWIPE.axis;
-  SWIPE.live = false; SWIPE.axis = null; SWIPE.dx = 0; SWIPE.dy = 0; SWIPE.page = null;
+  const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells;
+  SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
+  if (!axis || !cells) return;
 
-  if (axis === 'y') {
-    $('s-' + AT)?.querySelector('.pager')?.classList.remove('no-anim');
-    /* A SHORTER throw than the tab swipe. Sideways is a deliberate reach across the screen; up is
-       a flick, and asking a quarter of the height for it makes the gesture feel heavy. */
-    if (Math.abs(dy) >= Math.max(50, innerHeight * 0.12)) {
-      goPage(AT, (PAGE[AT] || 0) + (dy < 0 ? 1 : -1));
-    } else {
-      paintPager(AT);            // not far enough: the dial turns back, and it should be seen to
-    }
-    return;
-  }
-
-  if (el) { el.style.transition = ''; el.style.transform = ''; }
-  /* A quarter of the screen, or 70px on a small one. Proportional rather than fixed, so the
-     gesture asks for the same fraction of a thumb's travel on every phone. */
-  const enough = Math.max(70, innerWidth * 0.25);
-  if (Math.abs(dx) < enough) return;
-
-  const at = TABS.findIndex(x => x.id === AT);
-  const to = dx < 0 ? at + 1 : at - 1;
-  if (to < 0 || to >= TABS.length) return;
-  go(TABS[to].id);
+  cells.forEach(el => el.classList.remove('no-anim'));
+  const ax = AXES[axis];
+  if (Math.abs(d) >= THROW(axis)) ax.go(ax.at() + (d < 0 ? 1 : -1));
+  else placeCells(axis);          // not far enough: it settles back, and is seen to
 }, { passive: true });
 
-/* ---------- THE SAME GESTURE ON A TRACKPAD -------------------------------------------------------
-   Two fingers sideways on a laptop is a `wheel` event with a horizontal delta, not a touch — so
-   none of the code above sees it.
-
-   It differs from a swipe in one way that matters: a touch has a beginning and an end, and a wheel
-   is a stream of small numbers that stops whenever it stops. So the movement is accumulated, and a
-   short pause is what counts as letting go.
---------------------------------------------------------------------------------------------- */
+/* THE SAME GESTURE ON A TRACKPAD. Two fingers is a `wheel` event rather than a touch, so none of
+   the above sees it — and without this a desktop can reach the tabs and not the widgets, because
+   every page fits and there is nothing to scroll.
+   One handler for both directions now, deciding the axis exactly as the finger does. */
 let wheelAt = 0, wheelStop = null, wheelDone = false;
-let wheelY = 0, wheelYStop = null, wheelYDone = false;
-
-/* THE SAME GESTURE ON A TRACKPAD, vertically. Without it a desktop can reach the tabs and not the
-   widgets — every page fits, so there is nothing to scroll and the wheel does nothing at all. */
-addEventListener('wheel', e => {
-  if (!PAGER[AT]) return;
-  if (Math.abs(e.deltaY) < Math.abs(e.deltaX) * 1.4) return;   // sideways: that is the tab swipe
-  if (!$('sheet').classList.contains('hidden')) return;
-  const pg = e.target.closest?.('.page');
-  if (!pg) return;
-  const atTop = pg.scrollTop <= 0;
-  const atEnd = pg.scrollTop + pg.clientHeight >= pg.scrollHeight - 1;
-  if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atEnd)) return;
-
-  wheelY += e.deltaY;
-  /* Once per gesture. A trackpad keeps sending numbers after the fingers lift, and without this
-     one flick would walk through every widget on the screen. */
-  if (!wheelYDone && Math.abs(wheelY) > 90) {
-    wheelYDone = true;
-    goPage(AT, (PAGE[AT] || 0) + (wheelY > 0 ? 1 : -1));
-  }
-  clearTimeout(wheelYStop);
-  wheelYStop = setTimeout(() => { wheelY = 0; wheelYDone = false; }, 140);
-}, { passive: true });
 
 addEventListener('wheel', e => {
-  /* Mostly vertical: they are scrolling the page, and taking it would make the feed unreadable. */
-  if (Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.4) return;
-  if (!$('sheet').classList.contains('hidden')) return;
-  /* Something that scrolls sideways on its own owns the gesture — a wide table, a row of tiles. */
-  if (e.target.closest?.('input, textarea, select, canvas, .chess, .mc-grid, [data-noswipe]')) return;
+  const axis = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.4 ? 'x' : 'y';
+  const delta = axis === 'x' ? e.deltaX : e.deltaY;
+  if (!AXES[axis].count()) return;
+  if (!axisFree(e.target, axis, -delta)) return;
 
-  wheelAt += e.deltaX;
-
-  /* Once per gesture. A trackpad keeps sending numbers after the fingers lift — momentum — and
-     without this one flick would walk through four tabs. */
-  if (!wheelDone && Math.abs(wheelAt) > 90) {
+  wheelAt += delta;
+  /* ONE NOTCH IS ONE WIDGET. The threshold was ninety, which is about one notch of a mouse wheel
+     and several of a trackpad — so a small scroll did nothing at all and a large one did one
+     thing, and in between it felt like the page had shifted slightly and given up. Forty is past
+     any accidental brush and short of a deliberate scroll.
+     Still once per gesture: a trackpad keeps sending numbers after the fingers lift, and without
+     that guard one flick walks through four tabs. */
+  if (!wheelDone && Math.abs(wheelAt) > 40) {
     wheelDone = true;
-    const i = TABS.findIndex(x => x.id === AT);
-    const to = wheelAt > 0 ? i + 1 : i - 1;
-    if (to >= 0 && to < TABS.length) go(TABS[to].id);
+    const ax = AXES[axis];
+    const to = ax.at() + (wheelAt > 0 ? 1 : -1);
+    if (to >= 0 && to < ax.count()) ax.go(to);
   }
-
-  /* A gap of 140ms means the fingers have stopped. Long enough to outlast the momentum, short
+  /* A gap of 140ms means the fingers have stopped: long enough to outlast the momentum, short
      enough that a second deliberate flick is a second gesture. */
   clearTimeout(wheelStop);
   wheelStop = setTimeout(() => { wheelAt = 0; wheelDone = false; }, 140);
 }, { passive: true });
 
-/* TURNING THE PHONE changes the height of every page at once, and a canvas measured in portrait
-   is the wrong shape in landscape. Debounced, because a rotation fires this a dozen times and
-   re-measuring a canvas mid-game is a game that resets under your thumb. */
-let sizeTimer = null;
-addEventListener('resize', () => {
-  clearTimeout(sizeTimer);
-  sizeTimer = setTimeout(() => {
-    paintPager(AT, true);
-    if (AT === 'arcade' && PAGER.arcade[PAGE.arcade] === 'Flabby Pird'
-        && !(flappyState && flappyState.running)) initFlappy();
-  }, 220);
-});
-
 /* A finger interrupted — a call arriving, the app going to the background. Put the screen back,
    or it stays shifted sideways for ever. */
-addEventListener('touchcancel', () => {
-  const el = $('s-' + AT);
-  if (el) { el.style.transition = ''; el.style.transform = ''; }
-  SWIPE.live = false; SWIPE.axis = null; SWIPE.dx = 0; SWIPE.dy = 0; SWIPE.page = null;
-  $('s-' + AT)?.querySelector('.pager')?.classList.remove('no-anim');
-  paintPager(AT);          // a half-turned dial must not stay half-turned
+/* A finger interrupted — a call arriving, the app going to the background. Whatever was being
+   dragged is put back, on whichever axis it was. */
+addEventListener('pointercancel', () => {
+  const axis = SWIPE.axis;
+  (SWIPE.cells || []).forEach(el => el.classList.remove('no-anim'));
+  SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
+  if (axis) placeCells(axis);
 }, { passive: true });
+
+
+/* ================================================================================================
+   IF ANY OF THIS THROWS, SAY SO ON THE SCREEN.
+
+   A script that fails while starting leaves the page exactly as index.html wrote it: a header that
+   already says "Posts", an empty tab bar, and eight empty sections. Which looks like a layout bug,
+   or a stylesheet problem, or a backend that will not answer — anything except what it is. It has
+   looked like all three this week, and each time the actual error was sitting in a console nobody
+   had open.
+
+   So the error is put where the app would have been. It costs nothing when nothing goes wrong, and
+   the first line of it is worth more than an afternoon of guessing.
+================================================================================================ */
+function bootFailed(err, when) {
+  try {
+    const box = document.getElementById('screen') || document.body;
+    box.innerHTML = ''
+      + '<div style="padding:1rem;font:13px/1.5 ui-monospace,Menlo,monospace;color:#ffd7a8">'
+      + '<p style="color:#ff8f6b;font-weight:700;margin:0 0 .6rem">'
+      + 'The app stopped while ' + String(when) + '.</p>'
+      + '<p style="margin:0 0 .6rem;white-space:pre-wrap">'
+      + String((err && err.message) || err) + '</p>'
+      + (err && err.stack
+          ? '<p style="margin:0 0 .6rem;color:#9a8f82;white-space:pre-wrap;font-size:11px">'
+            + String(err.stack).split('\n').slice(0, 4).join('\n') + '</p>'
+          : '')
+      + '<p style="margin:0;color:#9a8f82">site ' + SITE_VERSION + ' · css ' + cssVersion() + '</p>'
+      + '</div>';
+  } catch (e2) {
+    /* Even that failed — the document is not there to write to. Nothing left but the console. */
+  }
+  try { console.error('@family. stopped while ' + when, err); } catch (e3) {}
+}
+
+/**
+ * ANYTHING THAT THROWS LATER, and did not get caught nearer to where it happened.
+ *
+ * IT DOES NOT WIPE THE SCREEN ANY MORE. It did, and that was wrong twice over: an app that is
+ * working is replaced by a message for something that may not matter at all, and the message
+ * itself is usually "Script error." — the two words a browser gives for an uncaught error in a
+ * script it treats as cross-origin, which on file:// is every script. Trading a working app for
+ * two words that could mean anything is a bad trade.
+ *
+ * A PICTURE THAT FAILED TO LOAD IS NOT A CRASH. A missing avatar, a Drive link nobody shared, a
+ * font — these fire an error event with an element as the target, and the app is fine. They are
+ * counted and ignored.
+ *
+ * Once only, still: a loop of failures should not bury the first message, which is the one that
+ * says what actually happened.
+ */
+let toldYou = false;
+addEventListener('error', e => {
+  /* A resource, not the code. `target` is the <img> or <script> that failed. */
+  if (e && e.target && e.target !== window && e.target.tagName) {
+    console.warn('[load]', e.target.tagName, e.target.currentSrc || e.target.src || '');
+    return;
+  }
+  if (toldYou) return;
+  toldYou = true;
+
+  const msg = String((e && e.error && e.error.message) || (e && e.message) || 'something went wrong');
+  console.error('[window]', (e && e.error) || msg);
+  /* A banner rather than the whole screen. Whatever threw, everything else still works — and if it
+     did not, the person can see that for themselves without being told. */
+  banner('Something went wrong: ' + msg
+    + (/^Script error/i.test(msg)
+        /* The browser is withholding it, which it does for any script it treats as cross-origin —
+           and opening the app from a file:// path makes every script cross-origin. */
+        ? ' — the browser will not say more than that when the app is opened from a file rather '
+          + 'than from a web address. The console has the real one.'
+        : ''));
+});
+
+/* ================================================================================================
+   AND GO.
+
+   THE LAST LINES IN THE FILE, deliberately. `go()` draws a screen, and a screen only exists once
+   its `screen(...)` call has run — so starting anywhere above them means drawing a table that has
+   not been filled in yet. It did, for weeks: every tab said "Nothing here yet" until the first
+   fetch returned, which looked like an empty database rather than an app that had not started.
+
+   Everything below a boot line is a thing the boot cannot see. So there is nothing below it.
+================================================================================================ */
+try {
+  buildTabs();
+  go(AT, false);
+} catch (err) {
+  /* Drawing failed. There is no point asking the backend for data to put in a screen that could
+     not be built, so `load` is not called — the message stays on screen instead of being replaced
+     by a network error a moment later. */
+  bootFailed(err, 'drawing the first screen');
+  throw err;
+}
+
+load();
