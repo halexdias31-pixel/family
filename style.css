@@ -1,1336 +1,1218 @@
-/* Sixty-one classes were styled here for markup that no longer exists — the old receipt
-   breakdown, the leaderboard, the directory rows, the job chat box, the separate split-email row.
-   Removed. Dead CSS is quieter than dead JavaScript and worse for it: it never errors, it just
-   sits there looking like the site still has a leaderboard. */
+/* ================================================================================================
+   @family. — a phone app.
+
+   Not a responsive website. A PHONE app, which on a desktop is the same phone app in a column —
+   because everybody who uses this will be holding a phone, and a layout that stretches to 1600px
+   is a second design to maintain for the two people who never wanted it.
+
+   HOW IT SCALES
+   One line does almost all of it: the root font size is fluid, and everything else is in `rem`.
+   A 320px phone gets a 15px root and a 430px phone gets 17px, so every size, every gap and every
+   piece of padding grows with the screen without a single media query.
+
+   What stays in pixels is deliberate: hairlines and tiny radii. A 1px border scaled up on a big
+   phone is a 2px border, which reads as a mistake rather than as a bigger border.
+================================================================================================ */
 
 :root {
-  --gold: #d4af37; --bg: #000; --panel: #111; --panel2: #0a0a0a;
-  --panel-alt: #1a1a1a; --border: #333;
-  --text: #fff; --muted: #aaa; --text-muted: #888; --err: #ff6b6b;
-  --token: #4f9eff;   /* @mention / #hashtag blue (re-defined darker inside cards) */
-  --board: #4f3520;   /* the cork board — lighter = paler cork, darker = deeper board */
-  --card-w: 170px; /* (legacy) column count is now set via .grid column-count */
-  /* Type: base sets the phone size, a little vw grows it on bigger screens. */
-  --fs-xs: calc(10px + 0.15vw);   /* badges, tiny labels */
-  --fs-sm: calc(10px + 0.15vw);   /* sub-text, tags, captions */
-  --fs-base: calc(10.5px + 0.2vw);/* body / default */
-  --fs-md: calc(10.5px + 0.2vw);  /* sentence, inputs */
-  --fs-lg: calc(13px + 0.3vw);    /* totals, headings */
+  /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
+     means something.
 
-  /* Spacing: same base + vw idea, so padding and gaps grow with everything else. */
-  --sp-card:   calc(6px + 0.25vw);  /* padding inside cards — tightened to give text more room */
-  --sp-gap:    calc(6px + 0.2vw);   /* gap between cards */
-  --sp-cardmb: calc(6px + 0.2vw);   /* space below each card */
-  --sp-section:calc(16px + 0.6vw);  /* space between sections */
-  --tick:      calc(2px + 0.1vw + 0.01vh);  /* checkbox size */
-  --fs-display:calc(20px + 0.8vw);  /* big numeric readouts: calculator + timer */
+     The whole discipline is restraint: if everything is green then green says nothing. Here white
+     is everything, GREEN is a subject and nothing else, amber is the one action, and red only ever
+     means something is wrong. */
+  --bg:        #000000;
+  --raised:    #0b0b0b;
+  --sunk:      #050505;
+  --line:      #232323;
+  --line-soft: #171717;
+
+  --ink:       #e6e6e6;
+  --dim:       #9a9a9a;
+  --faint:     #5e5e5e;
+
+  --green:     #3ddc84;   /* a subject. Reserved — nothing else uses it. */
+  --purple:    #b98cff;   /* a venue. The second colour to be given a meaning, and the last. */
+  --gold:      #ffb454;   /* the one action */
+  --warn:      #ffb454;
+  --good:      #3ddc84;
+  --bad:       #ff5f56;
+
+  /* Everything below is in rem, so it all scales together from the one root above. */
+  /* Square, near enough. A terminal has no rounded corners, and this is the single value that
+     decides whether the look lands or reads as an app in fancy dress. */
+  --r:      3px;
+  --r-sm:   2px;
+  --pad:    1rem;
+  --gap:    0.62rem;
+  --top:    3.25rem;
+  --bar:    3.6rem;
+
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* One family, and it is the code one. A terminal that switches to a UI font for its headings is
+     a terminal for about four seconds. */
+  --font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --mono: var(--font);
+
+  /* How wide the app is ever allowed to be. A phone, and on a desktop still a phone. */
+  --app: 26.5rem;
+
+  --quick: .13s;         /* how long anything takes to respond to a touch */
 }
-* { box-sizing: border-box; }
-/* The board the notes are pinned to — one flat brown. The wood-grain gradient stack that used
-   to live here is gone: solid colour, nothing to tile, nothing to repaint on scroll.
-   The shade comes from --board so it stays changeable in one place.
-   --bg stays black: it doubles as the "contrast against gold" colour on buttons and badges,
-   so it can't become brown. */
+
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* THE ONE LINE. 4.1vw between 15 and 17px — so a small phone is legible and a large one uses the
+   room, and every rem in the file follows without being told. */
+html {
+  font-size: clamp(15px, 4.1vw, 17px);
+  /* On a screen wider than a phone the app is a fixed-width column, so the root stops growing and
+     the layout is exactly what a phone gets. */
+  -webkit-text-size-adjust: 100%;
+}
+@media (min-width: 30rem) { html { font-size: 16.5px; } }
+
 body {
-  background-color: var(--board, #6b4a2b);
-  background-image: none;
-  color: var(--text);
-  font: var(--fs-base)/1.55 Consolas, monospace;
-  margin: 2vw auto;
-  padding: 2vw;
-}
-/* Headings sit straight on the cork, so they need a shadow to stay crisp against it */
-h1, h2 { text-shadow: 0 1px 3px rgba(0,0,0,.6); }
-img { width: 100%; height: auto; }
-h1, h2, h3 { margin-top: 0; }
-section { margin-bottom: var(--sp-section); }
-/* ---------- Utilities ---------- */
-.hidden { display: none !important; }
-.health-banner { background: #2a1a00; border: 1px solid var(--err); color: #ffd9a0; border-radius: 8px; padding: 14px 18px; margin: 0 0 30px; font-size: var(--fs-sm); line-height: 1.7; }
-.health-banner code { background: rgba(255,107,107,0.15); color: #ff9b9b; padding: 1px 6px; border-radius: 4px; }
-.center { text-align: center; }
-.gold, .sub, .cap, .total h2 { color: var(--gold); }
-.muted, .desc { color: var(--muted); }
-.err { color: var(--err); }
-.sub, .desc { font-size: var(--fs-sm); }
-.desc { font-style: italic; }
-/* Spacing helpers (replace repeated inline styles) */
-.mt-sm { margin-top: 10px; } .mt-md { margin-top: 15px; } .mt-lg { margin-top: 30px; }
-.mb-md { margin-bottom: 15px; }
-.stack input, .stack button { width: 100%; min-width: 0; flex: none; }
-/* ---------- Buttons & Inputs ---------- */
-button { font: bold var(--fs-sm) inherit; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-radius: 4px; transition: .3s; }
-.action { border: 1px solid var(--gold); }
-.action { background: var(--gold); color: var(--bg); padding: 11px; width: 100%; margin-top: 12px; }
-.action:hover { background: transparent; color: var(--gold); }
-.action:disabled { opacity: .5; cursor: not-allowed; }
-input, select { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font: inherit; outline: none; }
-input:focus, select:focus { border-color: var(--gold); }
-option { background: var(--panel); color: var(--text); }
-/* ---------- Masonry Grid ---------- */
-/* Card WIDTH = fixed base + a little viewport WIDTH + more viewport HEIGHT.
-   The vh term keeps cards stable across phone rotation and viewing distance; the small vw
-   term adds width back on wide-but-short screens (laptops) that vh alone under-sizes. So a
-   card responds to the screen's overall size, not one axis. Still damped (big base), no
-   walls. ~3 per row on a phone, ~9 on a laptop (now wider), ~13 on a 4K screen. */
-/* Card width: 93px base fits a phone, 3.96vw widens it on bigger screens. ~3 per row on a phone, ~8 on a laptop. */
-/* Masonry via CSS Grid. Columns auto-fill at the fluid card width, exactly as the old
-   column-width did — but Grid (unlike multi-column) lets a card span 2, 3 or more columns,
-   and fills left-to-right instead of down-then-across.
-   The tight packing comes from grid-auto-rows: each card's measured height is turned into
-   a row-span by layoutGrid() in script.js. `dense` lets small cards backfill the gaps that
-   wider cards leave behind. align-items:start keeps every card at its natural height, which
-   is what makes the height measurement work. */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(93px + 3.96vw), 1fr));
-  grid-auto-rows: 8px;
-  grid-auto-flow: row dense;
-  align-items: start;
-  gap: var(--sp-gap);
-  width: 100%;
-}
-.card {
-  /* --- Sticky note ---
-     The variables below are RE-POINTED for light paper. Because almost everything inside a
-     card is written as var(--text) / var(--muted) / var(--gold), re-pointing them flips the
-     card's whole palette at a stroke — including rules marked !important, since this changes
-     what the variable MEANS rather than trying to out-specify the rule. */
-  --text: #241f0c;
-  --muted: #6a6038;
-  --text-muted: #7b7148;
-  --gold: #6b4d00;              /* headings: dark amber, legible on yellow */
-  --bg: #fffdf0;                /* the "contrast against gold" colour — buttons and badges
-                                   use color:var(--bg) on a gold fill, so on paper it has to
-                                   become near-white, not black */
-  --border: rgba(60,45,0,.25);
-  --token: #14459c;             /* @mention / #hashtag, darkened for paper */
-  --err: #a32b2b;
-  --ok: #2c6b1f;
-  --panel: rgba(0,0,0,.05);
-  --panel2: rgba(0,0,0,.07);
-  --panel-alt: rgba(0,0,0,.10);
+  margin: 0 auto;
+  max-width: var(--app);
+  /* NOTHING SCROLLS SIDEWAYS — but with `clip`, not `hidden`.
 
-  /* Written in pen. Patrick Hand is printed rather than joined-up — the clearest of the
-     handwriting faces, which matters when a card holds 40 topic names. Its x-height is
-     healthier than a script face, so the type only needs ~1.2x rather than 1.35x. Same
-     variable trick as the colours: every rule using var(--fs-*) follows automatically. */
-  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive;
-  --fs-xs: calc(12px + 0.18vw);
-  --fs-sm: calc(12.5px + 0.18vw);
-  --fs-base: calc(13px + 0.22vw);
-  --fs-md: calc(13px + 0.22vw);
-  --fs-lg: calc(16.5px + 0.3vw);
+     `hidden` does not merely clip: it makes the element a SCROLL CONTAINER. Put it on html and
+     body and two things now claim to be the thing that scrolls, and the page stops responding to
+     a vertical drag at all. That is what broke it.
 
-  display: block;
-  width: 100%;
-  color: var(--text);
-  /* Flat yellow paper with a soft sheen. --h/--s/--l/--ang come from stickyStyle(), so
-     every note is its own shade of yellow. */
-  /* Flat colour, square corners, one shadow. The sheen gradient, the uneven radii and the
-     curling-paper inset were all reaching for realism and landing in the uncanny middle. What
-     actually says "pinned note" is the tilt, the shadow and the fixing at the top — so those stay
-     and the imitation goes. */
-  background: hsl(var(--h, 48) var(--s, 80%) var(--l, 70%));
-  border: none;
-  border-radius: 0;
-  transform: rotate(var(--tilt, 0deg));
-  box-shadow: 0 3px 10px rgba(0,0,0,.45);
-  padding: var(--sp-card);
+     `clip` exists for exactly this case. It clips the overflow and creates no scroll container,
+     so vertical scrolling is untouched. One word, and it is the difference between a page that
+     works and one that does not move. */
+  overflow-x: clip;
+  min-height: 100dvh;                 /* dvh, not vh — vh ignores the browser chrome on a phone */
+  background: var(--bg);
+  color: var(--ink);
+  font: 1rem/1.55 var(--font);
+  letter-spacing: -.01em;
+  padding: calc(var(--top) + var(--safe-top)) 0 calc(var(--bar) + var(--safe-bottom));
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
   position: relative;
-  text-align: center;
-  /* A card can never be forced wider than its column by its contents.
-     Note: we deliberately do NOT set overflow:hidden — .custom-dropdown pops out below the
-     card. (The .badge used to overhang the top edge too; it flows inline now.) */
-  min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
 }
-/* Notes stay where they're pinned — no hover movement. */
 
-/* --- HOW EACH NOTE IS FIXED TO THE WALL ------------------------------------------------------
-   data-deco is rolled from the card's own hash, so a note keeps its treatment for ever.
+/* On a desktop the column sits on a darker field, so it reads as an app rather than as a website
+   that failed to fill the window. */
+@media (min-width: 30rem) {
+  html { background: #0a0908; }
+  body { box-shadow: 0 0 0 1px var(--line-soft); }
+  /* The bars keep the app's own background on a wider screen, so the column reads as continuous
+     from the header, through the content, to the tabs. */
+  #top, #tabs { background: rgba(0,0,0,.96); }
+}
 
-   Five treatments, and they fall into two groups that must not overlap:
-     0 pin · 1 thumbtack              — both ::before, both at the top centre.
-                                        They're alternatives to one another, so only one is ever
-                                        drawn and they share one position rule.
-     2 · 3  a folded corner            — ::after, bottom-left and bottom-right only. A note held
-                                        at the top curls away at the bottom; a top corner folding
-                                        under its own pin is wrong in a way you feel first.
+.hidden { display: none !important; }
 
-   Drawn as characters rather than as CSS shapes. A box-shadow pretending to be a thumbtack needed
-   its own width, offset and highlight to read as one, and the offsets are what put the staple off
-   centre — a character is centred by the same rule as its neighbours and can't drift.
+/* ---------- HEADER, BAR, SHEET: anchored to the app column, not the window ----------------------
+   `position: fixed` is relative to the WINDOW, so on a desktop these would span the whole screen
+   while the content sat in a column. Anchoring them to the same width and centring them is what
+   keeps the app an app at any size.
 --------------------------------------------------------------------------------------------- */
-.card[data-deco="0"]::before,
-.card[data-deco="1"]::before {
-  /* Stretched across the whole card and centred as TEXT, rather than positioned at the halfway
-     point and pulled back by half its own width. translateX(-50%) is only as accurate as the
-     glyph's box, and an em-dash, a pin emoji and a thumbtack emoji have three different boxes
-     with three different side bearings — so the same rule put each of them in a slightly
-     different place. Spanning left:0 to right:0 makes the card the reference instead of the
-     character, and glyph metrics stop mattering. */
-  position: absolute; top: 3px; left: 0; right: 0;
-  text-align: center;
-  font-size: 13px; line-height: 1;
-  /* The box spans the card, so without this it lies across the actions in the corner and
-     swallows their clicks — which is why a mark appeared to be "under" the share button. */
-  pointer-events: none; z-index: 1;
-}
-.card[data-deco="0"]::before { content: '\1F534'; }   /* pin — red circle */
-.card[data-deco="1"]::before { content: '\1F4CC'; }   /* thumbtack */
+/* THE BARS GO EDGE TO EDGE. Their CONTENTS stay in the column.
 
-.card[data-deco="2"]::after, .card[data-deco="3"]::after {
-  content: ''; position: absolute; width: 18px; height: 18px;
-  background: linear-gradient(135deg, hsl(var(--h,48) var(--s,80%) calc(var(--l,70%) - 14%)) 50%, transparent 50%);
+   Capping the bar itself at the app width left a strip of background either side of it, which
+   reads as a broken layout rather than as a deliberate margin — a bar that stops short of the
+   screen looks like it failed to load.
+   `left: 0; right: 0` rather than `width: 100%`, because for a fixed element the two differ once
+   a scrollbar exists, and the difference is exactly the sliver of gap that started this. */
+#top, #tabs, #banner {
+  position: fixed;
+  left: 0; right: 0;
+  transform: none;
 }
-.card[data-deco="2"]::after { bottom: 0; left: 0;  transform: rotate(270deg); }
-.card[data-deco="3"]::after { bottom: 0; right: 0; transform: rotate(180deg); }
-/* Decorations are paper, not content — never let them swallow a click */
-.card::before, .card::after { pointer-events: none; }
-/* ---- Holistic overflow control ----
-   Long unbroken strings (topic names, URLs, emails, handles) are the main cause of text
-   spilling out of cards. Allow them to wrap, and break mid-word only when there's no
-   other option. Applies to every element inside every card, so no spot-fixes are needed. */
-.card, .card * {
-  min-width: 0;                 /* lets flex/grid children actually shrink */
-  overflow-wrap: break-word;    /* break a word ONLY if it alone is too wide (not per-character) */
-}
-/* Media and embeds stay inside their card */
-.card img, .card canvas, .card iframe, .card video, .card svg {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-/* Form controls default to content-width and blow out layouts — cap them */
-.card input, .card select, .card textarea, .card button {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-/* Every card image: square (cropped, never squashed), bounded inside the card's padding,
-   with the same gold frame. One rule so any new image type is standardised automatically. */
-.card img {
+
+/* The sheet and the toast still follow the column — they are content, not furniture, and a sheet
+   spanning a desktop would be a wall. */
+#sheet, #toast {
+  position: fixed;
+  left: 50%;
   width: 100%;
-  aspect-ratio: 1 / 1;            /* square */
-  height: auto;
-  object-fit: cover;              /* fill the square, crop the overflow */
-  object-position: center;        /* crop evenly from the middle */
-  display: block;
+  max-width: var(--app);
+  transform: translateX(-50%);
+}
+
+/* And inside a full-width bar, the row stays the width of the app. So the tabs sit under the
+   content they belong to rather than stretching across a screen. */
+.tabs-inner { max-width: var(--app); }
+
+/* The header is a flex row of three, so it cannot be capped by capping its children — the padding
+   does it instead: whatever is left over beyond the app width becomes margin, split evenly. */
+#top { padding-inline: max(var(--pad), calc((100vw - var(--app)) / 2 + var(--pad))); }
+
+#top {
+  top: 0; z-index: 30;
+  height: calc(var(--top) + var(--safe-top));
+  padding: var(--safe-top) var(--pad) 0;
+  /* The bar is full width; its contents are centred in a column of the app's width. */
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  margin: 0 auto;
+  background: rgba(0,0,0,.88);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line-soft);
+}
+#top h1 { margin: 0; font-size: 1.05rem; font-weight: 650; letter-spacing: -.01em; }
+#top-left, #top-right { min-width: 3.4rem; display: flex; align-items: center; gap: .75rem;
+                        font-size: .82rem; color: var(--gold); }
+#top-right { justify-content: flex-end; }
+#top .act { cursor: pointer; padding: .4rem 0; }
+
+#banner {
+  top: calc(var(--top) + var(--safe-top)); z-index: 29;
+  padding: .62rem var(--pad);
+  background: var(--warn); color: #1a1209;
+  font-size: .82rem; line-height: 1.4;
+  max-height: 40dvh; overflow: auto;
+}
+
+/* ---------- THE SCROLLER ------------------------------------------------------------------------ */
+#screen { padding: .75rem var(--pad) 1.5rem; }
+/* No gap. The rules separate things; a gap on top of a rule is a stripe of background showing
+   through, which is the look of a list that has come apart. */
+.screen { display: flex; flex-direction: column; gap: 0; }
+
+/* A SECTION is two lines across the full width with its name between them. Not a heading floating
+   above a boxed group — the rules do the separating, so nothing has to be enclosed to be grouped. */
+.screen h2 {
+  margin: 1.4rem 0 .2rem;
+  padding: .45rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: .7rem; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.screen h2:first-child { margin-top: 0; }
+
+/* A heading inside the sheet is a section marker too — Digital, Printed, Admin. It has no rules
+   above and below it, because the sheet is one thing rather than a list of things. */
+#sheet-body h2 {
+  margin: 1.1rem 0 .3rem; padding: 0;
+  border: 0;
+  font-size: .7rem; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+}
+
+/* ---------- CARDS -------------------------------------------------------------------------------
+   Full width, one column, always. On a phone a card is a ROW — two side by side and both are too
+   narrow to say anything, and the eye has to choose between them before reading either.
+--------------------------------------------------------------------------------------------- */
+/* NOT A BOX. A card is a block with a rule under it — the rectangle around everything was the
+   single least minimal thing in the file, and eight of them stacked reads as a form rather than a
+   list.
+   No background, no border, no corner: just space above and below, and one hairline to say where
+   one thing ends and the next begins. */
+.card {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
   border-radius: 0;
-  border: none;
-  margin: 0 auto 10px;
-  background: var(--panel2);
+  padding: .85rem 0;
+  position: relative;
 }
-/* A badge sits WHERE IT IS WRITTEN. It used to be position:absolute pinned to the card's
-   top-right corner, which is why moving the status markup into the Status row changed nothing
-   on screen — the badge was lifted straight back out to the corner, leaving the row it belonged
-   to looking empty. Inline-block, so it flows in whatever row it's placed in. */
-.tag { display: inline-block; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; margin: 2px; font-size: var(--fs-xs); }
-.cap { margin: 8px 0; }
-.details { list-style: none; padding: 0; margin: 10px 0; text-align: left; font-size: var(--fs-sm); }
-.details li { padding: 2px 0; }
-/* ---------- Filters ---------- */
-.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 25px; align-items: center; }
-.filter { flex: 1; min-width: 200px; }
-/* Addable filter chips */
-.filter-chip-wrap { display: inline-flex; align-items: center; gap: 4px; }
-.filter-dyn { min-width: 140px; }
-.filter-remove { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 50%; width: 24px; height: 24px; padding: 0; line-height: 1; font-size: var(--fs-md); }
-.filter-remove:hover { border-color: var(--err); color: var(--err); }
-.filter-add-wrap { position: relative; display: inline-block; }
-.filter-add { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 8px 14px; border-radius: 6px; }
-.filter-add:hover { background: var(--gold); color: var(--bg); }
-.filter-add-menu { position: absolute; top: 100%; left: 0; margin-top: 6px; background: var(--panel); border: 1px solid var(--gold); border-radius: 8px; padding: 6px; z-index: 100; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
-.filter-add-opt { background: transparent; border: none; color: var(--text); text-align: left; padding: 8px 14px; border-radius: 4px; white-space: nowrap; }
-.filter-add-opt:hover { background: #222; color: var(--gold); }
-/* Tutor profile edit form */
-.edit-label { display: block; font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 4px; }
-.edit-input { width: 100%; padding: 8px; font: inherit; font-size: var(--fs-sm); background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
-.own-profile { border-color: #4f9eff !important; box-shadow: 0 0 12px rgba(79,158,255,0.3); }
-/* Card actions (Edit, Log out) are plain tappable text on their own lines — no buttons. */
-/* One action per line, left-aligned, above everything else on the card. Vertical because these
-   are unrelated choices, not a toolbar — stacking makes each one its own decision to read. */
-.card-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; margin: 0 0 10px; }
-.card-actions:empty { display: none; }
-/* Underlined because a text action reads as a link. An ICON action doesn't — an underline beneath
-   a pencil or a link glyph looks like a stray rule, which is exactly what it was doing under the
-   share button. So the underline goes on words only, and the rules below take it off the icons. */
-.text-action {
-  color: var(--gold); font-size: var(--fs-sm); cursor: pointer;
-  text-decoration: underline; text-underline-offset: 2px;
-  background: none; border: none; padding: 0; letter-spacing: normal; text-transform: none;
-}
-.text-action:hover { opacity: .75; }
-.card.editing { text-align: left; }
-/* Kid checklist */
-.check-list { display: flex; flex-direction: column; gap: 8px; }
-.remove-friend-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 50%; width: 22px; height: 22px; padding: 0; line-height: 1; cursor: pointer; font-size: var(--fs-xs); }
-.remove-friend-btn:hover { border-color: var(--err); color: var(--err); }
-/* Grouped link cards */
-.link-group { text-align: left; }
-.link-list { list-style: none; padding: 0; margin: 12px 0 0; }
-.link-list li { padding: 8px 0; border-bottom: 1px dashed var(--border); }
-.link-list li:last-child { border-bottom: none; }
-.link-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-size: var(--fs-base); transition: color .2s; }
-.link-row:hover { color: var(--gold); }
-.link-arrow { color: var(--gold); opacity: .6; font-size: var(--fs-sm); }
-.link-desc { font-size: var(--fs-xs); margin: 4px 0 0; }
-/* ---------- Calculator ---------- */
-.calc { padding: 30px; }
-.sentence { font-size: var(--fs-md); line-height: 2; }
-/* Every field in the booking sentence is a .pick select, so they all look and behave
-   identically — no native spinners or chevrons, just the gold dashed underline. */
-.pick { font-family: 'Patrick Hand','Segoe Print','Comic Sans MS',cursive; font-weight: normal; font-size: var(--fs-md); border: none; border-bottom: 2px dashed var(--gold); background: transparent; color: var(--text); cursor: pointer; text-align: center; padding: 0 5px 2px; outline: none; -webkit-appearance: none; appearance: none; }
-.pick { max-width: 150px; text-overflow: ellipsis; vertical-align: bottom; }
-.total { text-align: center; margin-top: 30px; }
-.total h2 { margin-bottom: 5px; }
-.link { font-size: var(--fs-sm); text-decoration: underline; cursor: pointer; }
-/* ---------- Checkouts & Forms ---------- */
-.checkout { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px; }
-.checkout input { flex: 1; min-width: 150px; }
-.checkout button { width: 100%; padding: 15px; font-size: var(--fs-md); }
-.auth { display: flex; flex-direction: column; gap: 15px; max-width: 350px; margin-bottom: 20px; }
-.job { border: 1px solid var(--gold); padding: 15px; margin-bottom: 15px; border-radius: 8px; background: var(--panel); }
-/* ---------- Overlays (Loader & Modal) ---------- */
-.loader, .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.loader { background: var(--bg); flex-direction: column; }
-.modal { background: rgba(0,0,0,.8); }
-.pulse { color: var(--gold); animation: pulse 1.5s infinite; }
-.modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 90%; max-width: 600px; position: relative; }
-.modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text); font-size: var(--fs-lg); }
-.modal-box iframe { width: 100%; height: 350px; border: none; }
-@keyframes pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
-/* ---------- Multi-Select Dropdown ---------- */
-.custom-select-wrapper { position: relative; display: inline-block; text-align: left; }
-/* The subject picker should look identical to the other booking fields: gold dashed underline. */
-.inline-select {
-  font-family: 'Patrick Hand','Segoe Print','Comic Sans MS',cursive; font-weight: normal; font-size: var(--fs-md); border: none; border-bottom: 2px dashed var(--gold);
-  background: transparent; color: var(--text); cursor: pointer; text-align: center;
-  padding: 0 5px 2px; vertical-align: bottom; max-width: 150px;
-  display: inline-block; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
-}
-.inline-select:hover { color: var(--gold); }
-.custom-dropdown {
-  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  background: var(--bg); border: 1px solid var(--gold); border-radius: 8px;
-  padding: 10px; width: 220px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  max-height: 250px; overflow-y: auto; margin-top: 10px;
-}
-.custom-dropdown label { display: flex; align-items: center; padding: 10px 8px; cursor: pointer; font-size: var(--fs-base); color: var(--text); transition: 0.2s; border-radius: 4px; }
-.custom-dropdown label:hover { background: var(--panel2); color: var(--gold); }
-.custom-dropdown input[type="checkbox"] { margin-right: 12px; cursor: pointer; accent-color: var(--gold); width: 18px; height: 18px; }
-/* ---------- Social Media Posts (masonry cards) ---------- */
-/* .social-post is also a .card; metadata reuses the shared .tag boxes (DRY). */
-/* Post cards use the same padding as every other card, so the image is bounded (not edge-to-edge). */
-.card.social-post { text-align: left; }
-/* .social-img needs no rules of its own — it inherits the shared .card img treatment above. */
-.social-share-btn { margin-left: auto; font-size: var(--fs-xs); cursor: pointer; }
-/* Site-wide: any @mention or #hashtag renders blue, wherever it appears.
-   !important so it survives the card flat-text colour rule. */
-.token, .card .token { color: var(--token) !important; }
-.formula { font: bold var(--fs-md) 'Courier New', monospace; letter-spacing: 1px; line-height: 2; margin-bottom: 20px; word-spacing: 4px; }
-/* ---------- Mobile (single merged block) ---------- */
-/* ---------- Mobile ---------- */
-@media (max-width: 600px) {
-  body { margin: 0 auto; padding: 14px; }
-  section { margin-bottom: 30px; }
-  h1 { font-size: 26px; }
-  h2 { font-size: 20px; }
-  /* Cards stay proportional (~3 per row) on phones too — no forced single column.
-     The .grid rule above already handles it. No card margin here: the grid's own gap does
-     the spacing, and a margin would sit outside the measured height that layoutGrid()
-     turns into a row-span, throwing the packing out. */
+.card:last-child { border-bottom: 0; }
+.card > h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
+.card .sub { color: var(--dim); font-size: .82rem; margin: -.25rem 0 .5rem; }
 
-  /* Filters stack instead of forcing sideways scroll */
-  .filters { gap: 10px; }
-  .filter, .filter-dyn { min-width: 0; width: 100%; flex: 1 1 100%; }
-  .filter-add-wrap { width: 100%; }
-  .filter-add { width: 100%; }
-  /* Calculator sentence: a touch more breathing room, dropdowns don't overflow */
-  .sentence { font-size: var(--fs-md); line-height: 2.6; }
-  .pick { max-width: 100%; }
-  input, select { font-size: var(--fs-md); }
-  .checkout { flex-direction: column; }
-  .checkout input { min-width: 0; }
-  /* Game canvas fits the screen */
-  #flappy-canvas { max-width: 100%; }  /* never CSS-scale: keeps the game fast */
+/* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
+   and it must SAY something happened the instant it is touched. */
+.card.tap { cursor: pointer; transition: transform var(--quick) ease, background var(--quick) ease; }
+.card.tap:active { transform: scale(.985); background: #221e19; }
 
-  /* Modal uses more of the screen */
-  .modal-box { width: 94%; }
-}
-/* Compact GCSE calculator in Tools */
-.mini-calc .mc-display{width:100%;background:#0d0f13;border:1px solid var(--border);border-radius:6px;
-  color:#fff;font-family:'Courier New',monospace;font-size:var(--fs-display);text-align:right;padding:8px 10px;margin-bottom:8px;}
-.mc-grid{display:grid;gap:5px;}
-.mc-fns{grid-template-columns:repeat(5,1fr);margin-bottom:5px;}
-.mc-nums{grid-template-columns:repeat(4,1fr);}
-.mc-btn{padding:calc(6px + 0.4vw) 0;border:none;border-radius:6px;background:linear-gradient(#3a3f47,#2b2f36);color:#fff;
-  font-size:var(--fs-md);font-weight:600;cursor:pointer;box-shadow:0 2px 0 #0c0e11;}
-.mc-btn:active{transform:translateY(2px);box-shadow:none;}
-/* Tutor progress stats — quiet gray, bottom of card, not status-signalling */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .9rem .5rem; }
 
-/* Checklist rows: flat lines (no bubble) to maximise text space.
-   The topic gets min-width:0 so flexbox lets it shrink and WRAP rather than overflowing
-   underneath the checkboxes. The boxes sit in a fixed-width group that never shrinks. */
-.check-row{display:flex;align-items:flex-start;gap:3px;padding:3px 0;border-bottom:1px solid var(--border);margin:0;}
-.check-row:last-child{border-bottom:none;}
-.check-topic{flex:1 1 auto;min-width:0;font-size:var(--fs-sm) !important;line-height:1.25 !important;overflow-wrap:break-word;word-break:normal;}
-/* Topics with a resource link are clickable — subtle, only revealing on hover. */
-a.check-topic{color:inherit;text-decoration:none;cursor:pointer;}
-a.check-topic:hover{color:var(--gold) !important;text-decoration:underline;}
-/* The topic checkboxes are custom-drawn. appearance:none is REQUIRED — without it the
-   browser draws its own native checkbox and ignores width/height (that's the "huge boxes"
-   bug). !important + the .topic-cb class guard against any inherited sizing. */
-.check-boxes{display:flex;gap:2px;flex-shrink:0;align-items:center;padding-top:1px;}
-.mini-check{display:flex;align-items:center;gap:1px;font-size:var(--fs-xs) !important;color:var(--muted) !important;cursor:pointer;flex-shrink:0;}
-.mini-check input.topic-cb, .mini-check input[type="checkbox"]{
-  appearance:none !important; -moz-appearance:none !important; -webkit-appearance:none !important;
-  border:1px solid var(--border); border-radius:3px; background:var(--panel2);
-  margin:0 !important; padding:0 !important;
-  flex:0 0 auto !important; cursor:pointer; position:relative; accent-color:auto;
-  width:14px !important; height:14px !important;
-  min-width:14px !important; max-width:14px !important; min-height:14px !important; max-height:14px !important;
-  box-sizing:border-box !important;
+/* ---------- A ROW OF FACTS ---------------------------------------------------------------------- */
+.row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: .75rem;
+  padding: .44rem 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: .88rem;
 }
-.mini-check input:checked{
-  appearance:none !important; -moz-appearance:none !important; -webkit-appearance:none !important;
-  padding:0 !important;
-  width:14px !important; height:14px !important;
-  min-width:14px !important; max-width:14px !important;
-  min-height:14px !important; max-height:14px !important;
-  background:#4f9eff !important; border-color:#4f9eff !important;
-  -webkit-appearance:none !important;
-}
-.mini-check input:checked::after{
-  content:''; position:absolute; left:32%; top:12%;
-  width:26%; height:55%; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
-}
-.mini-check span{font-size:var(--fs-xs) !important;}
-/* ---------- Flat card text: every bit of text the same size/colour/weight ---------- */
-.card h1, .card h2, .card h3,
-.card p, .card .sub, .card .desc, .card .cap, .card .muted, .card li,
-.card .attr-line {
-  font-size: var(--fs-base) !important;
-  color: var(--text) !important;
-  font-style: normal !important;
-  font-weight: normal !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
-  margin: 3px 0 !important;
-  line-height: 1.4 !important;
-}
-/* buttons keep their own styling (calculator keys, actions) */
-.card .action { font-weight: bold !important; }
-/* Student notepad tool */
-.notepad-area{width:100%;min-height:160px;background:var(--panel2);color:var(--text);border:1px solid var(--border);
-  border-radius:6px;padding:10px;font:inherit;font-size:var(--fs-sm);resize:vertical;outline:none;}
-.notepad-area:focus{border-color:var(--gold);}
-/* Multi-lesson order builder */
-/* With a single lesson the block IS the card, so the nested frame is redundant — a job card
-   has no inner box either. The frame comes back the moment a second lesson needs separating. */
-#lessons .lesson-block:only-child { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
-#lessons .lesson-block:only-child > .lesson-head { display: none; }
-/* Footer holds the total and the book action, where a class card puts its actions. */
-#new-job .job-foot { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; }
-#new-job .checkout { margin-top: 10px; justify-content: flex-start; }
-/* A lesson block is a booking-in-progress: same box treatment and same .job-line rows as a
-   class card, so the thing you're building and the thing you booked look like one object. */
-.lesson-block { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; text-align: left; }
-.lesson-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.lesson-title { color: var(--gold); font-size: var(--fs-sm); }
-/* Controls sit in the value column, so they align right like the text they replace. */
-.lesson-block .lesson-block .lesson-block .job-v select { max-width: 100%; }
-/* Read-only grid on a booked class: the ticked hours must stay legible, so don't let the
-   browser's default disabled-greying wash them out. */
-.slot-grid-static { margin-top: 8px; opacity: 0.95; }
-.slot-grid-static .slot-cb { cursor: default; }
-.slot-grid-static .slot-cb:disabled { opacity: 1; }
-.slot-grid-static .slot-cb:disabled:not(:checked) { opacity: 0.35; }
-.remove-lesson-btn:hover{color:#e06c6c!important;}
-/* DBS-checked marker on a tutor's card (only shown when 'dbs checked' is TRUE in the sheet) */
-.card .dbs-badge {
-  color: var(--ok, #3cb043) !important;
-  font-size: var(--fs-xs) !important;
-  margin: 2px 0 6px !important;
-  letter-spacing: .3px !important;
-}
-.tt-heading { color: var(--gold); font-size: var(--fs-sm); margin-bottom: 6px; }
-.tt-day { margin-bottom: 6px; }
-.tt-dayname { color: var(--gold) !important; font-size: 10px !important; letter-spacing: .5px; margin-bottom: 2px; }
-.tt-line { display: flex; gap: 8px; font-size: var(--fs-sm); padding: 2px 0; border-bottom: 1px solid var(--border); }
-.tt-line:last-child { border-bottom: none; }
-.tt-time { color: var(--muted) !important; flex-shrink: 0; }
-.tt-what { flex: 1; }
-/* Reference-only rows (no tick boxes) — slightly muted so they read as resources, not tasks */
-.ref-row .check-topic{color:var(--muted) !important;}
-/* Tools "Group by" control lives in the filter bar and reuses .filter/.filter-dyn styles */
+.row:last-child { border-bottom: 0; }
+.row .k { color: var(--dim); flex: 0 0 auto; }
+.row .v { text-align: right; overflow-wrap: anywhere; min-width: 0; }
+.row .v.big { font-size: 1.05rem; font-weight: 620; }
 
-/* Share button on tutor/venue cards — same idea as the gallery post share button,
-   tucked into the card's top-right corner. */
-/* Share is just another action in the card's action stack. It used to be absolutely positioned
-   in the top-right corner, which overlapped the Edit/Log out stack and sat on top of the photo. */
-.card-share-btn { font-size: var(--fs-xs); cursor: pointer; }
-/* A card opened from a shared ?card= link flashes briefly so it's obvious which one it is */
-.card-flash { animation: card-flash 2.2s ease-out; }
-@keyframes card-flash {
-  0%, 100% { box-shadow: none; }
-  15%, 60% { box-shadow: 0 0 0 3px var(--gold); }
+/* Below about 21rem a label and a value cannot share a line at all. Stacking is the only honest
+   answer — squeezing gives one word per line, which reads as a fault rather than a tight fit. */
+@container (max-width: 21rem) {
+  .row { flex-direction: column; align-items: stretch; gap: .1rem; }
+  .row .v { text-align: left; }
 }
-/* Profile edit form — far too many fields for one ~150px column, so it spans every column
-   (data-span="99" is clamped to however many columns exist) and grids its fields. */
-.profile-edit-wide { text-align: left; }
-.pf-group { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; }
-.pf-group legend { color: var(--gold); font-size: var(--fs-sm); padding: 0 6px; }
-.pf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.pf-field { display: flex; flex-direction: column; gap: 3px; text-align: left; min-width: 0; }
-/* Inside the grid the label sits directly above its input, so drop the standalone margin */
-.pf-field .edit-label { margin: 0; }
-.pf-field .edit-input:disabled { opacity: .6; cursor: not-allowed; }
-/* A checklist card that spans more than one column flows its own topics into columns, so a
-   wide card stays a readable shape instead of a long single list. */
-/* When a checklist card is wider than one column, flow its topics into internal columns so a
-   tall list becomes a readable block instead of one long strip. */
-.grade-card:not([data-span="1"]) .check-list {
-  display: block;                       /* was flex column — multicol needs a block */
-  column-width: calc(110px + 3vw);
-  column-gap: calc(10px + 1vw);
+#screen { container-type: inline-size; }
+
+/* ---------- CONTROLS ----------------------------------------------------------------------------
+   2.9rem minimum on everything pressable — about 46px at the middle root size, which clears both
+   Apple's 44 and Google's 48 on a large phone.
+--------------------------------------------------------------------------------------------- */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  /* max(44px, …) — the rem scales it up on a big phone, and the 44px floor means the smallest
+     phone never drops below what a thumb can reliably hit. A minimum that scales is not a
+     minimum. */
+  min-height: max(44px, 2.9rem); padding: 0 1.1rem; width: 100%;
+  border: 0; border-radius: var(--r-sm);
+  background: var(--gold); color: #000;
+  font: 600 .93rem/1 var(--font);
+  cursor: pointer;
+  transition: transform var(--quick) ease, filter var(--quick) ease;
 }
-/* Never split a topic row across two columns */
-.grade-card .check-row { break-inside: avoid; -webkit-column-break-inside: avoid; }
-/* Controls and screens keep the original monospace face and its tighter sizing. A
-   handwritten calculator readout or form field is charming for about two seconds and
-   unusable thereafter — and the bumped card type scale would blow the keypad apart. */
-.card input, .card select, .card textarea, .card button, .card .mc-display {
-  font-family: Consolas, monospace;
-  --fs-xs: calc(10px + 0.15vw);
-  --fs-sm: calc(10px + 0.15vw);
-  --fs-base: calc(10.5px + 0.2vw);
-  --fs-md: calc(10.5px + 0.2vw);
-  --fs-lg: calc(13px + 0.3vw);
+.btn:active { transform: scale(.97); filter: brightness(.92); }
+.btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
+.btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
+.btn.danger { background: transparent; color: var(--bad); border: 1px solid #3a2320; }
+.btn[disabled] { opacity: .4; pointer-events: none; }
+
+.btn-row { display: flex; gap: .5rem; }
+.btn-row .btn { width: auto; flex: 1; }
+
+input, select, textarea {
+  width: 100%;
+  min-height: max(44px, 2.9rem); padding: .7rem .75rem;
+  background: var(--sunk);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--ink);
+  /* 16px EXACTLY, not a rem — below 16px iOS zooms the page when a field is focused and never
+     zooms back, and a fluid root would drop under it on a small phone. This is the one place a
+     fixed pixel value is the correct answer. */
+  font: 16px/1.3 var(--font);
+  -webkit-appearance: none; appearance: none;
+  transition: border-color var(--quick) ease;
 }
-/* @mentions: written in the same black pen as everything else, then run over with a blue
-   highlighter. The gradient deliberately stops short of full line-height and fades at both
-   ends — that's what reads as a marker stroke rather than a coloured box. */
-.card .token.token-at {
-  color: var(--text) !important;
-  background-image: linear-gradient(100deg,
-    rgba(60,140,255,0) 0.4%, rgba(60,140,255,.60) 1.8%,
-    rgba(60,140,255,.52) 96%, rgba(60,140,255,0) 99.5%);
-  background-size: 100% 60%;
-  background-repeat: no-repeat;
-  background-position: 0 82%;
-  padding: 0 2px;
-  border-radius: 1px;
+textarea { min-height: 5.8rem; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
+label.field { display: block; margin-bottom: .75rem; }
+label.field > span {
+  display: block; margin-bottom: .3rem;
+  font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
-/* #hashtags stay blue ink — same pen, different colour */
-.card .token.token-tag { color: var(--token) !important; }
-/* Availability tickbox grid in the profile editor: 7 days × hourly columns. Compact so the
-   whole week fits without scrolling on a wide card. */
-.avail-wrap { overflow-x: auto; }
-.avail-table { border-collapse: collapse; font-size: var(--fs-xs); }
-.avail-table th, .avail-table td { padding: 2px 4px; text-align: center; }
-.avail-table th { color: var(--gold); font-weight: normal; }
-.avail-table .avail-day { text-align: right; padding-right: 8px; color: var(--text); }
-.avail-cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); margin: 0; }
-/* Booking time-slot picker: only bookable hours (tutor free ∩ venue open) show as ticks. */
-.l-slots { margin: 8px 0 0; text-align: left; }
-.slots-hint { font-size: var(--fs-xs); margin: 0 0 4px; }
-.slot { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm);
-  padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
-.slot input { accent-color: var(--gold); cursor: pointer; margin: 0; }
-/* Booking time-slot GRID: days down the side, hours across; only available cells are tickable. */
-.slot-grid-wrap { margin-top: 4px; }
-.slot-grid { border-collapse: collapse; font-size: var(--fs-xs); width: 100%; }
-.slot-grid th, .slot-grid td { padding: 2px 3px; text-align: center; }
-.slot-grid th { color: var(--gold); font-weight: normal; font-size: var(--fs-xs); }
-.slot-grid .slot-day { text-align: right; padding-right: 6px; color: var(--text); white-space: nowrap; }
-.slot-grid .slot-cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); margin: 0; }
-.slot-grid .slot-off { background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 6px); border-radius: 3px; }
-/* Multi-select field (validated columns that allow multiple values) */
-.ms-list { display: flex; flex-wrap: wrap; gap: 4px 12px; }
-.ms-opt { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-sm); cursor: pointer; }
-.ms-opt input { accent-color: var(--gold); cursor: pointer; margin: 0; }
-/* Job cards: clean label:value lines,
-role-gated money,
-chat as a single line. */
-.job-detail { text-align: left; margin: 8px 0; }
-.job-foot { margin-top: 10px; text-align: left; }
-/* "I'll host the venue" toggle in the booking sentence */
-.host-toggle { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-sm); cursor: pointer; white-space: nowrap; }
-.host-toggle input { accent-color: var(--gold); cursor: pointer; margin: 0; }
-.host-toggle.locked { opacity: 0.7; cursor: not-allowed; }
-.host-toggle.locked input { cursor: not-allowed; }
-/* Job card shows two photos side by side: venue + tutor */
-/* Venue and tutor, side by side and the same size — a wide building photo and a portrait left to
-   their own proportions read as one mattering more than the other. */
-.job-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.job-photos > * { min-width: 0; margin: 0; }
-.job-photos img { width: 100%; aspect-ratio: 1; height: auto; object-fit: cover; display: block; }
-/* A stand-in where a photograph will go. Same box as a real one, so the pair keeps its shape while
-   a booking is still being decided — a card showing one photo read as a class with a tutor and no
-   room, rather than one half-answered.
-   Drawn in the paper's own ink and faint, so it reads as absence rather than as a picture. */
-.ph-art { display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 4px; aspect-ratio: 1; border: 1px dashed rgba(0,0,0,.22);
-          color: rgba(0,0,0,.45); }
-.ph-art svg { width: 52px; height: 42px; display: block; }
-.ph-say { font-size: var(--fs-xs); opacity: .75; text-align: center; padding: 0 6px; }
-.move-text { flex: 1; padding: 6px; font-size: var(--fs-xs); }
-/* Checkbox-style profile fields (e.g. DBS check) */
-.pf-field.pf-check { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.pf-field.pf-check .edit-check { width: 18px; height: 18px; accent-color: var(--gold); margin: 0; }
-.pf-field.pf-check .edit-label { margin: 0; }
-/* One full-screen loading overlay: covers everything until the site is ready, then fades out. */
-#load-screen {
-  position: fixed; inset: 0; z-index: 99999;
-  background: #c9a86a;
+/* A note UNDER a field — why an input is disabled, what will happen when it is saved. It is not
+   the label, so it does not get the label's uppercase treatment. */
+label.field > .faint { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
+
+/* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
+   because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the
+   sort of thing that gets waved through and then misses on a real thumb. */
+.check { display: flex; align-items: center; gap: .7rem; padding: .7rem 0; cursor: pointer;
+         min-height: max(44px, 2.9rem); }
+.check input { position: absolute; opacity: 0; width: 0; height: 0; }
+.check .box {
+  /* The box is small, but the LABEL around it is the target — .7rem of padding above and below
+     gives the whole row a 44px reach without a 44px square, which would look absurd. */
+  flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); border-radius: 2px;
+  border: 1.5px solid var(--line); background: var(--sunk);
   display: flex; align-items: center; justify-content: center;
-  transition: opacity .4s ease;
+  font-size: .82rem; color: #1a1409;
+  transition: background var(--quick) ease, border-color var(--quick) ease;
 }
-#load-screen.gone { opacity: 0; pointer-events: none; }
-#load-screen .spin {
-  width: 46px; height: 46px; border-radius: 50%;
-  border: 4px solid rgba(255,255,255,.3); border-top-color: var(--gold);
-  animation: loadSpin .8s linear infinite;
+.check input:checked + .box { background: var(--gold); border-color: var(--gold); }
+.check input:checked + .box::after { content: '✓'; font-weight: 700; }
+
+/* ---------- SMALL THINGS ------------------------------------------------------------------------ */
+.note  { color: var(--dim); font-size: .82rem; }
+.faint { color: var(--faint); font-size: .72rem; }
+.gold  { color: var(--gold); }
+/* Two that were used in the markup and never defined here — a value that has gone wrong, and a
+   price that is nothing. Undefined, they simply rendered in the body colour, which is the quiet
+   kind of missing this file keeps producing. */
+.bad   { color: var(--bad); }
+.green { color: var(--green); }
+.mono  { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.link  { color: var(--gold); text-decoration: none; }
+.stack { display: flex; flex-direction: column; gap: var(--gap); }
+.empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
+code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
+
+/* ---------- THE SHEET --------------------------------------------------------------------------- */
+#sheet-back {
+  position: fixed; inset: 0; z-index: 45;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  animation: fade .18s ease-out;
 }
-@keyframes loadSpin { to { transform: rotate(360deg); } }
-/* Calendar tool */
-/* ===== FINAL OVERRIDE: every form control + booking-sentence value uses the handwriting font,
-   in black. Placed last so it wins over any earlier rule. Fixes dropdown values (Sutton Library,
-   GCSE, etc.) rendering in the browser's default Arial. ===== */
-select, option, input, textarea, button,
-.pick, .inline-select, .l-location, .l-level, .l-subject-display,
-.l-qty, .l-tutor, .l-interval, .l-split {
-  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive !important;
-  color: #241f0c !important;
+@keyframes fade { from { opacity: 0; } }
+
+#sheet {
+  bottom: 0; z-index: 46;
+  max-height: 92dvh;
+  display: flex; flex-direction: column;
+  background: var(--raised);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding-bottom: var(--safe-bottom);
+  /* The curve matters: a sheet that decelerates feels like something being lifted, and a linear
+     one feels like something being dragged by a machine. */
+  animation: sheet-up .26s cubic-bezier(.18,.85,.3,1);
 }
-/* Inline "edit request" form for a pending booking */
-.edit-req-form { margin-top: 8px; padding: 8px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
-/* THE shared priced-field row. Booking form and live class card both render this, which is
-   what makes a quote and a booked class read as one object: label | value | what it adds/hour.
-   Fixed price column so every £ lines up down the right edge in both places. */
-/* Five columns: label, value, % change, £/h change, total.
-   A multiplier and a fixed amount are different kinds of number and were sharing one column, so
-   "+30%" and "+ £15.00/h" landed in the same place and had to be read to be told apart. Given
-   their own columns they stack: percentages under percentages, hourly figures under hourly ones,
-   totals down the right. */
-/* Six columns: label · value · ×multiplier · %change · £/h change · total.
-   Three kinds of number, each in its own column, because they do different things:
-     ×  scales the finished total   — length, term, split, bulk, advance
-     %  changes the hourly rate     — subject, level, extra seats
-     £/h adds a fixed amount        — venue, host
-   Sharing a column made the arithmetic unfollowable: reading down it meant switching between
-   kinds of number without being told which you were looking at. */
-/* SIX columns: label · value · ×multiplier · %change · £/h · total.
-   Three kinds of number, each with its own column, because they do different things:
-     ×   scales the finished total   — length, term, split, bulk, ahead
-     %   changes the hourly rate     — subject, level, extra subjects, extra seats
-     £/h adds a fixed amount         — tuition, venue, hosting
-   `minmax(0, 1fr)` on the value column rather than `1fr`: a plain 1fr refuses to shrink below its
-   content, so a long venue name pushed the money columns off the card instead of wrapping. */
-/* The four money columns keep their width even when EMPTY.
-   `auto` collapses an empty column to nothing, so a row with no multiplier and no percentage — the
-   Total row — had its £/h slide left into where the multiplier sits on every row above it. The
-   columns only line up if they exist whether or not they hold anything, which is the entire point
-   of putting numbers in columns. */
-/* FIVE columns: label · value · × · ±£/h · running.
-   One running column carries every row — the "/h" on the rate rows says which unit a figure is in,
-   and one column reads as a single chain where two read as two half-finished ones. */
-/* FIXED label column. `auto` is measured per row — and every row is its own grid — so a short
-   label and a long one put their values at different x positions. Invisible on rows whose value is
-   right-aligned, and glaring on the day rows, where the hour boxes start at the left edge of the
-   column: seven days, seven different starting points.
-   A column has to be the same width on every row, or it isn't a column. */
-.field-line { display: grid;
-  grid-template-columns: 7.4em minmax(0, 1fr) 62px 78px 88px;
-  gap: 8px; padding: 4px 0; font-size: var(--fs-sm); align-items: center; }
-/* A label longer than the column wraps rather than widening it, which would put us back where we
-   started on that row alone. */
-.field-line .fl-k { white-space: normal; overflow-wrap: break-word; line-height: 1.2; }
-/* The multiplier column is deliberately distinct from the percentage one: "× 11 sessions" and
-   "+1%" are different operations and must never be mistaken for each other. */
-/* The multipliers line up as a column of numbers, so they can be read down. Tabular figures keep
-   "× 1.01" and "× 14" the same width per digit — without them the decimal points wander. */
-.field-line .fl-mul { text-align: right; white-space: nowrap; font-size: var(--fs-xs);
-                      font-weight: bold; font-variant-numeric: tabular-nums; }
-.field-line .fl-r, .field-line .fl-p { font-variant-numeric: tabular-nums; }
-.field-line .fl-pct { text-align: right; white-space: nowrap; font-size: var(--fs-xs); }
-/* The rate column is the explanation, the total column is the consequence — so the rate is
-   quieter. "+£1/h" means nothing until you see it's "+£22" over the term; both, or neither. */
-.field-line .fl-r { color: var(--muted); text-align: right; min-width: 62px; white-space: nowrap; font-size: var(--fs-xs); }
-/* Rows carrying no money use two columns. The empty rate/total cells aren't rendered at all,
-   so they can't squeeze the value column to nothing in a narrow card. */
-.field-line.fl-plain { grid-template-columns: 7.4em 1fr; }
-.field-line .fl-k { color: var(--gold); white-space: nowrap; }
-.field-line .fl-v { color: var(--text); text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; min-width: 0; }
-.field-line .fl-v select { max-width: 100%; }
-.field-line .fl-p { color: var(--text); text-align: right; min-width: 62px; white-space: nowrap; }
-/* The full date list can run to a dozen entries — let it wrap into the value column rather
-   than forcing the row wide, and keep it quiet since it's reference, not a decision. */
-.field-line .fl-dates { color: var(--muted); font-size: var(--fs-xs); line-height: 1.5; text-align: right; }
-.field-line .fl-note { color: var(--muted); font-size: var(--fs-xs); }
-/* A choice that costs nothing still earns a row — the client should see it was free — but it
-   mustn't compete with the lines that actually move the price. */
-.field-line.fl-free .fl-p, .field-line.fl-free .fl-r { color: var(--muted); }
-/* One client's negotiation: their status, their thread, their actions, their message box.
-   A job stacks up to four of these and they run independently — one family accepting says
-   nothing about the other three, so each needs its own everything. */
-/* The conversation leads each block — it's what you actually came to read. Capped so four
-   families and three tutors don't turn one card into a scroll of transcripts. */
-.cl-thread { margin: 4px 0 8px; max-height: 170px; overflow-y: auto; }
-.cl-applicant .cl-thread { flex-basis: 100%; margin: 4px 0 0; }
-.cl-msg-line { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); }
-.cl-msg-line .cl-who { color: var(--gold); white-space: nowrap; }
-.cl-msg-line .cl-what { color: var(--text); }
-/* One turn = one action + one message + one Submit, stacked in the order you compose them:
-   decide, write, send. The message sits above the button because it's part of the same move,
-   not a separate afterthought. */
-.cl-acts { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0 4px; }
-.dir-row { display: grid; grid-template-columns: 1.2fr 1fr 1.4fr; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); text-align: left; }
-.dir-warn { opacity: 1; color: var(--err, #c0392b); }
-.field-line.fl-warn .fl-p { color: var(--danger, #c0392b); }
-.field-line.fl-rule { border-top: 1px solid var(--border); margin-top: 5px; padding-top: 7px; }
-/* The slot grid sits inside the same row stack, indented to line up with the value column. */
-.field-line + .slot-grid-wrap, .job-detail > .l-slots { margin: 6px 0; }
-/* Live breakdown rows, built to mirror .job-line on the class cards so the quote and the
-   booked class read as the same object. The third column is what that choice adds to the
-   hourly rate; it's fixed-width so every £ figure lines up down the right edge. */
-.bd-line { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; padding: 3px 0; font-size: var(--fs-sm); align-items: baseline; }
-.bd-more { margin: 4px 0 4px 8px; }
-.bd-more summary { font-size: var(--fs-xs); color: var(--gold); cursor: pointer; }
-.bd-more .bd-detail { margin-top: 4px; padding-left: 8px; border-left: 2px dotted var(--border); }
-/* ---------- CARD TEXT ----------
-   Notes are paper, and ink on paper is black. Gold reads well on the dark board behind, but on
-   a yellow note it's low-contrast and looks washed out — worse the smaller the text. So inside
-   a card everything is black and hierarchy comes from size and weight instead of colour.
-   Everything on a note is black ink; nothing sits on a filled background any more. */
-.card, .card h3, .card .sub, .card .desc, .card .muted,
-.card .fl-k, .card .fl-v, .card .fl-r, .card .fl-p, .card .fl-note, .card .fl-dates,
-.card .cl-head, .card .cl-blurb, .card .cl-who, .card .cl-what, .card .cl-note,
-.card .job-k, .card .job-v, .card .lesson-title, .card .text-action,
-.card .attr-line, .card .check-topic, .card .slot-day, .card .avail-day { color: #000; }
-/* Quiet text stays quiet by fading the ink, not by changing its colour. */
-.card .muted, .card .fl-note, .card .fl-dates, .card .cl-blurb,
-.card .fl-free .fl-p, .card .fl-free .fl-r { opacity: 0.6; }
-/* Labels earn their place through weight now that they're no longer gold. */
-.card .fl-k, .card .job-k { font-weight: bold; }
-/* ---------- UNIFORMITY ------------------------------------------------------------------------
-   One name per idea. These replaced 54 inline style attributes that were each making the same
-   handful of decisions separately — which is how two cards meaning "a quiet note under the
-   title" ended up with different sizes and margins. Change a value here and every card follows.
+@keyframes sheet-up { from { transform: translate(-50%, 100%); } }
+
+/* The grab handle does nothing, and it is what tells somebody the panel can be pulled down —
+   worth more than a dozen close buttons. */
+#sheet-grab { width: 2.3rem; height: 3px; border-radius: 0; background: var(--line);
+              margin: .55rem auto .25rem; flex: none; }
+#sheet-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .35rem var(--pad) .6rem;
+  font-size: 1rem; font-weight: 620;
+  border-bottom: 1px solid var(--line-soft); flex: none;
+}
+#sheet-close { color: var(--dim); font-size: 1.1rem; padding: .25rem .4rem; cursor: pointer; }
+#sheet-body { padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---------- THE TAB BAR -------------------------------------------------------------------------
+   Seven tabs across a phone. In rem, so the icons and labels grow with the screen — and because
+   the bar is a percentage of the app width rather than of the window, each tab is the same share
+   of the thumb's reach on every phone.
 --------------------------------------------------------------------------------------------- */
-.t-left   { text-align: left; }
-.t-center { text-align: center; }
-.mb-xs { margin-bottom: 4px; }
-.mb-sm { margin-bottom: 8px; }
-.mb-md { margin-bottom: 12px; }
-.mt-md { margin-top: 14px; }
-.ink-gold   { color: var(--gold); }
-.ink-strong { color: #fff; }
-.card .ink-gold, .card .ink-strong { color: #000; }   /* on paper, ink is black — see CARD TEXT */
+#tabs {
+  bottom: 0; z-index: 40;
+  display: flex; justify-content: center;
+  height: calc(var(--bar) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(0,0,0,.94);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+}
+/* The row of tabs, capped — so on a wide screen the bar reaches both edges and the tabs stay
+   under the content, rather than eight icons spread across a desktop. */
+.tabs-inner { display: flex; width: 100%; }
+.tab {
+  position: relative;
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .16rem;
+  background: none; border: 0; cursor: pointer;
+  color: var(--faint); font: inherit; padding: .35rem .06rem;
+  min-height: max(44px, 2.9rem);
+  transition: color var(--quick) ease;
+}
+.tab .ic { font-size: 1.15rem; line-height: 1; transition: transform var(--quick) ease; }
+.tab .lb { font-size: .54rem; max-width: 100%; overflow: hidden;
+           text-overflow: ellipsis; white-space: nowrap; }
 
-/* A quiet line of explanation. The single commonest thing a card does after its title. */
-.note    { font-size: var(--fs-xs); margin: 6px 0 0; opacity: .7; }
-.note-sm { font-size: var(--fs-sm); margin: 0; opacity: .7; }
-/* Reserves its own height so a card doesn't jump when a status message appears in it. */
-.status-line { min-height: 1em; }
-.cta { margin-top: 6px; font-size: var(--fs-md); }
-.row-gap     { display: flex; gap: 6px; }
-.row-between { display: flex; align-items: center; justify-content: space-between; }
-.center-y    { align-items: center; }
-.grow        { flex: 1; }
-.nowrap      { white-space: nowrap; }
-/* The relabel form, inline under the resource it belongs to. Indented so it reads as belonging
-   to the row above rather than as a new item in the list. */
-.res-edit { margin: 4px 0 10px 14px; padding: 8px 10px; border-left: 2px solid var(--border); }
-.res-edit .pf-group { margin: 0 0 6px; }
-.check-row .res-edit-btn { font-size: var(--fs-xs); margin-left: 8px; opacity: .7; }
-/* Emoji sit slightly small next to digits at the same font-size, and the pencil needs a target
-   big enough to hit on a phone without magnifying the row it sits in. */
-.res-edit-btn, .card-actions .text-action[title^="Edit"] { font-size: 1em; text-decoration: none; }
-.res-edit-btn { padding: 0 4px; }
-/* ---------- ROSTER SLOTS ----------------------------------------------------------------------
-   A fireteam column: fixed-height rectangles, one per person, with an empty one carrying a +.
-   Uniform by construction — every slot is the same height and the same shape whether it holds a
-   family, a tutor or nothing, so a card's roster reads as a list at a glance rather than as a
-   set of differently-sized blocks. All the deciding happens here, which is why there's no
-   dropdown of verb names and no Submit button left on the card.
+/* EIGHT TABS. On a 390px phone that is 48px each, which clears Google's minimum; on a 320px
+   iPhone SE it is 40px, which does not.
+   So below 23rem the LABELS come off. The label is what forces the width — an icon at 40px is
+   perfectly pressable, and eight WORDS at 40px are four letters and an ellipsis, which is worse
+   than no word at all. */
+@media (max-width: 23rem) {
+  .tab .lb { display: none; }
+  .tab .ic { font-size: 1.3rem; }
+  #tabs { height: calc(3rem + var(--safe-bottom)); }
+  body { padding-bottom: calc(3rem + var(--safe-bottom)); }
+}
+
+/* The plus takes a narrower share than the rest — it is a raised circle, not a word, so it does
+   not need a full slot. That gives the other seven their width back and lands the circle within a
+   few pixels of centre. */
+.tab.big .lb { color: var(--gold); }
+.tab:active .ic { transform: scale(.88); }
+.tab.on { color: var(--gold); }
+.tab.on .ic { transform: translateY(-1px); }
+/* A bar above the chosen tab rather than a filled background — it marks the tab without shrinking
+   the target, which a background would. */
+.tab.on::before { content: ''; position: absolute; top: 0;
+                  width: 1.8rem; height: 2.5px; border-radius: 0 0 2px 2px; background: var(--gold); }
+
+/* ---------- THE TOAST ---------------------------------------------------------------------------
+   Above the bar, never over it. A message covering the way out traps somebody inside whatever went
+   wrong.
 --------------------------------------------------------------------------------------------- */
-.slots { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 8px; }
-.slot {
-  display: flex; flex-direction: column; gap: 3px;
-  min-height: 34px; padding: 5px 6px 5px 10px;
-  border: 1px solid rgba(0,0,0,.28); border-radius: 6px;
-  background: rgba(0,0,0,.05);
-  font-size: var(--fs-sm);
+#toast {
+  bottom: calc(var(--bar) + var(--safe-bottom) + .85rem); z-index: 50;
+  width: auto; max-width: calc(var(--app) - 2.5rem);
+  padding: .62rem 1rem; border-radius: 2px;
+  background: #e6e6e6; color: #000;
+  font-size: .88rem; font-weight: 550; text-align: center;
+  box-shadow: 0 .35rem 1.4rem rgba(0,0,0,.45);
+  animation: toast-in .2s ease-out;
 }
-/* Your own slot is the one you look for first, so it gets the only emphasis in the column. */
-.slot-mine { border-color: rgba(0,0,0,.55); background: rgba(0,0,0,.10); font-weight: bold; }
-/* Name, then status, then the buttons hard against the right edge — the same three positions on
-   every row, so the eye finds the controls in one place down the column. */
-.slot-line  { display: flex; align-items: center; gap: 8px; width: 100%; }
-.slot-name  { flex: 1; overflow-wrap: anywhere; }
-.slot-acts  { margin-left: auto; }
-/* What this person last said, on their own row. */
-.slot-said  { font-size: var(--fs-xs); opacity: .75; padding-left: 2px; }
-.slot-say   { width: 100%; font-size: var(--fs-xs); padding: 3px 6px; }
-.slot-state { flex-shrink: 0; }
-.slot-acts  { display: flex; gap: 4px; flex-shrink: 0; }
-/* An empty slot is quieter than a filled one: a faint edge and no fill, so it reads as a space
-   waiting to be used rather than as a row with something in it. Solid — a dashed outline reads as
-   unfinished rather than as empty. */
-.slot-empty { border-color: rgba(0,0,0,.14); background: none; justify-content: flex-start; }
-.slot-hint  { opacity: .55; font-size: var(--fs-xs); }
-/* ✓ ✕ ＋ — square, equal, thumb-sized. Same target whichever one it is. */
-.slot-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; flex-shrink: 0;
-  border: 1px solid rgba(0,0,0,.3); border-radius: 5px;
-  background: rgba(255,255,255,.35);
-  cursor: pointer; line-height: 1; user-select: none;
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, .5rem); } }
+
+/* Somebody who has asked their phone to stop animating things means it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
-.slot-btn:hover { background: rgba(255,255,255,.75); }
-.slot-yes { color: #1c6b2b; }
-.slot-no  { color: #9b2226; }
-.slot-add { color: #000; font-size: 1.1em; }
-/* The label between the two groups of slots. */
-.slot-div {
-  font-size: var(--fs-xs); opacity: .6; margin: 6px 0 0; padding-left: 2px;
-  text-transform: uppercase; letter-spacing: .06em;
-}
-/* The slot buttons are the only controls on a card, so they carry the emoji at a readable size
-   without needing per-button rules. One selector for all of them — ✓ ✕ ＋ 💳 ✏️ are the same
-   target and the same shape, which is the point. */
-.slot-btn { font-size: 0.95em; }
-.slot-pay, .slot-edit { color: #000; }
-/* Page count sits with the resource name, quiet — it's a fact you check before printing, not
-   something to read on every line. */
-.check-pages { font-size: var(--fs-xs); opacity: .55; margin-left: 6px; white-space: nowrap; }
-/* Keycap emoji render a touch smaller and lower than numerals at the same size, so the whole pad
-   is nudged to sit on one line with the operators. */
 
+/* ================================================================================================
+   THE SCREENS. Only what the seven need — every rule here belongs to something you can point at.
+================================================================================================ */
 
-
-
-
-
-
-/* ---------- TAPED-ON PHOTOS -------------------------------------------------------------------
-   Four strips of brown packing tape, one per edge, each running corner to corner and parallel to
-   the edge it covers. Not angled: tape laid along an edge to seal it lies flat against that edge,
-   and rotating the strips left triangles of bare join showing at the corners — the exact contrast
-   the tape is there to hide.
-   Brown and opaque. Translucent tape shows the join through itself, which defeats the point.
+/* ---------- LINK TILES --------------------------------------------------------------------------
+   The one place a grid is right: a link is a destination rather than something to read, and a wall
+   of them is faster to scan than a list. The SHAPE says what kind it is, so the categories need no
+   headings at all.
 --------------------------------------------------------------------------------------------- */
-.taped   { position: relative; display: block; margin: 2px 0 8px; }
-.taped-v { position: relative; display: block; }
-.taped::before, .taped::after, .taped-v::before, .taped-v::after {
-  content: ''; position: absolute; z-index: 2; pointer-events: none;
-  background: #b98a52;
-  box-shadow: 0 0 2px rgba(0,0,0,.22);
-}
-/* Top and bottom, corner to corner: the full width plus the depth of the side strips, so the
-   four meet squarely instead of leaving gaps. */
-.taped::before, .taped::after { left: -9px; width: calc(100% + 18px); height: 9px; }
-.taped::before { top: -5px; }
-.taped::after  { bottom: -5px; }
-/* Left and right, corner to corner. */
-.taped-v::before, .taped-v::after { top: -9px; height: calc(100% + 18px); width: 9px; }
-.taped-v::before { left: -5px; }
-.taped-v::after  { right: -5px; }
-/* Calculator: the emoji ARE the buttons — boxing them in borders and backgrounds was drawing a
-   button around something already shaped like one. Just a grid of glyphs with room to press. */
-.mc-btn {
-  background: none; border: 0; padding: 8px 0; cursor: pointer;
-  font: inherit; font-size: 1.15em; line-height: 1; color: inherit;
-}
-.mc-btn.fn { font-size: .95em; opacity: .75; }
-/* ---------- PRICING CARD (admin) --------------------------------------------------------------
-   Each variable has a colour, used both in the written formula and beside its own row. That's the
-   only reason this card exists: seeing which part of a price a number is responsible for, rather
-   than holding the arithmetic in your head while reading a quote.
+.tile { display: flex; flex-direction: column; align-items: center; gap: .35rem;
+        text-decoration: none; color: var(--ink);
+        transition: transform var(--quick) ease; }
+.tile:active { transform: scale(.93); }
+.tile-name { font-size: .66rem; line-height: 1.2; text-align: center; color: var(--dim);
+             overflow-wrap: anywhere; max-width: 4.6rem; }
+
+.shape { display: flex; align-items: center; justify-content: center; position: relative;
+         color: #fff; font-size: .8rem; font-weight: 700;
+         text-shadow: 0 1px 2px rgba(0,0,0,.35); background: var(--c); }
+
+.shape.sq   { width: 3.15rem; height: 3.15rem; border-radius: 4px; }
+.shape.cart { width: 2.7rem; height: 3.3rem; border-radius: .35rem .35rem .18rem .18rem;
+              border-top: .5rem solid rgba(0,0,0,.3); }
+.shape.cart::after { content: ''; position: absolute; bottom: 0; right: 0;
+                     width: .72rem; height: .6rem; background: var(--bg); border-radius: .18rem 0 0 0; }
+.shape.book { width: 2.6rem; height: 3.3rem; border-radius: .12rem .3rem .3rem .12rem;
+              border-left: .55rem solid rgba(0,0,0,.34); }
+.shape.dl   { width: 3.15rem; height: 3.15rem; border-radius: 50%; }
+.shape.dl::after { content: '↓'; position: absolute; font-size: 1.2rem; }
+.shape.tape { width: 3.3rem; height: 2.3rem; border-radius: .25rem; }
+.shape.tape::after { content: ''; position: absolute; inset: .35rem .5rem auto; height: .8rem;
+                     border-radius: .12rem; background: rgba(0,0,0,.4); }
+.shape.mark { width: 2.6rem; height: 3.15rem;
+              clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%); }
+
+/* ---------- CHESS -------------------------------------------------------------------------------
+   Square by aspect-ratio, and ROWS declared as well as columns — without the rows each one sizes
+   itself to its tallest piece and the board comes out ribbed.
 --------------------------------------------------------------------------------------------- */
-#pricing-card .fx { font-weight: bold; }
-#pricing-card .fx-label { opacity: .65; font-size: var(--fs-xs); }
-#pricing-card .fx-input { width: 5em; text-align: right; padding: 2px 6px; font: inherit; flex-shrink: 0; }
-/* Three items in one value cell — swatch, description, field. Allowed to wrap onto a second line
-   on a narrow card rather than squeezing each other to nothing, which is what produced a column
-   of single letters. */
-#pricing-card .fl-v { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-/* The formula's right-hand side: an expression, not a value, so it reads left-to-right like one
-   rather than being right-aligned like a figure. */
+.chess { container-type: inline-size;
+         display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+         aspect-ratio: 1; width: 100%; margin: .35rem auto .6rem;
+         border: 2px solid #2a2119; border-radius: .25rem; overflow: hidden; }
+.chess .sq { display: flex; align-items: center; justify-content: center;
+             /* Sized against the BOARD, so a piece is the same share of its square on every phone. */
+             font-size: 9cqw; line-height: 1; cursor: pointer;
+             position: relative; min-width: 0; min-height: 0; }
+.chess .lt { background: #e8dcc4; }
+.chess .dk { background: #a9784f; }
+.chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
+.chess .can::after { content: ''; position: absolute; width: 26%; height: 26%;
+                     border-radius: 50%; background: rgba(0,0,0,.3); }
+.chess .take { box-shadow: inset 0 0 0 3px rgba(190,60,50,.8); }
 
-/* The operator column: short, repeated, and the thing you scan down to see how a price is built.
-   Quiet enough not to compete with the expressions beside it. */
-#pricing-card .fl-k { font-weight: normal; opacity: .55; font-size: var(--fs-xs); min-width: 3.4em; }
-#pricing-card .fx-note { opacity: .5; font-size: var(--fs-xs); }
-/* A variable: its letter, then what it means and its value beneath. Reading down the column gives
-   the symbols in the order they appear in the formula, with the explanation next to the box you
-   actually type in rather than across the card from it. */
-#pricing-card .fx-var { margin-top: 8px; text-align: left; }
-#pricing-card .fx-key { font-weight: bold; font-size: var(--fs-md); line-height: 1.2; }
-#pricing-card .fx-row { display: flex; align-items: center; gap: 8px; }
-#pricing-card .fx-row .fx-label { flex: 1; }
-#pricing-card .fx-group { margin-top: 14px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,.2);
-  text-transform: uppercase; letter-spacing: .05em; }
-#pricing-card .fx-fixed { opacity: .4; }
-/* ---------- THE FORMULA -----------------------------------------------------------------------
-   Monospace, because the alignment carries meaning: the multiplication signs stack in a column to
-   show they all act on the same bracket, and V sits outside it.
-   No horizontal scrolling. Each note lives on its own line under the expression rather than
-   beside it — sharing a line is what pushed the block wider than the card in the first place, and
-   a scrollbar on a formula means the shape can't be taken in at a glance, which is the only
-   reason to write it out.
+/* ---------- THE FEED ---------------------------------------------------------------------------- */
+.feed { position: relative; aspect-ratio: 4/5; border-radius: var(--r-sm); overflow: hidden;
+        background: var(--sunk); cursor: pointer; }
+
+/* ---------- THE BOOK TAB, which is a plus ---------------------------------------------------------
+   Dead centre and raised. The middle is where a thumb rests without moving, and the one action the
+   whole app exists for should not be a word among six other words.
 --------------------------------------------------------------------------------------------- */
-.fx-formula { margin: 2px 0 12px; text-align: left; }
-.fx-line code {
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: var(--fs-sm); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere;
+/* FLAT. The raised circle was the loudest thing on the screen and it stuck out of the bar like a
+   button somebody bolted on. It is a plus now — the same size as every other icon, in the accent
+   colour, sitting on the same line as the rest.
+   It still reads as the main action because it is the only coloured thing in the bar, which is a
+   quieter way of saying the same thing. */
+.tab.big .ic {
+  color: var(--gold);
+  font-size: 1.5rem; font-weight: 300; line-height: 1;
 }
-.fx-note-line { font-size: var(--fs-xs); opacity: .5; line-height: 1.4; margin-bottom: 4px; }
-#pricing-card .fx { font-weight: bold; }
-/* Per-option rates, collapsed. Twelve subjects and eleven venues open at once would bury the nine
-   variables the card is really about. */
-.fx-opts { margin-top: 6px; text-align: left; }
-.fx-opts > summary { cursor: pointer; font-size: var(--fs-sm); padding: 3px 0; }
-.fx-opt { padding-left: 14px; }
-.fx-opt .fx-label { flex: 1; font-size: var(--fs-xs); }
-/* While a card is expanded it sits above its neighbours, so the moment between growing and being
-   re-packed shows the card rather than the card underneath it. */
-.card:focus-within { z-index: 4; }
-/* A status reads as a value like every other value: same weight, same ink. It carries no colour
-   at all now — colouring three rows out of fifteen made them a different kind of thing, and
-   "which ones are coloured" became information nobody asked for. */
-/* Status, Possession and Lifecycle carry no styling at all — they're values in rows and they look
-   exactly like every other value. There's deliberately no `.state` rule: the class stays on the
-   markup so those values can be found, but an element that needs no styling needs no ruleset. */
 
-/* Card headings and sub-lines are ink, not gold. Gold belongs on the dark board behind the notes;
-   on paper the only sensible colour for text is the colour of a pen. The section headings and the
-   controls outside the cards keep it. */
-.card h3, .card .sub, .card .gold, .card .cap { color: #000; }
-/* ---------- ROSTER STATUS ---------------------------------------------------------------------
-   These ARE labels, unlike the Status / Possession / Lifecycle rows. A row's value is read in
-   sequence with its label beside it; a slot's status has to be picked out from a column of names
-   at a glance, which is the one place a filled chip earns its keep.
+.tab.big.on { color: var(--gold); }
+.tab.big.on::before { display: none; }      /* the raised circle already says which one it is */
+
+
+/* ---------- THE FINDING CONTROLS ------------------------------------------------------------------
+   Search, filter, group, sort. Four, because they do different jobs — one clever control that
+   tried to be all four would be worse at each.
+
+   They are drawn ONCE and never redrawn with the list, which is what makes them work at all: a
+   select rebuilt on every change loses the value it just took, and the box then disagrees with the
+   list underneath it.
 --------------------------------------------------------------------------------------------- */
-.slot-state .state {
-  display: inline-block; white-space: nowrap;
-  padding: 2px 8px; border-radius: 4px;
-  font: bold var(--fs-xs) Arial; color: #fff;
+/* The search box had no rule of its own, so it sat flush against the row of selects and the four
+   read as one control. */
+.search { margin-bottom: .5rem; }
+.pick-row { display: flex; gap: .4rem; margin-bottom: .6rem; }
+.pick-row select {
+  flex: 1 1 0; min-width: 0;
+  font-size: .78rem; padding: .5rem .4rem; min-height: max(38px, 2.4rem);
+  /* Below the 44px rule deliberately: these sit in a row of three and a full-height control would
+     be a wall. They are refinements rather than the thing you came to press. */
 }
-.slot-state .st-draft       { background: #5c5c5c; }
-.slot-state .st-requested   { background: #8a6d00; }
-.slot-state .st-negotiating { background: #0b5c8a; }
-.slot-state .st-accepted    { background: #4a6b00; }
-.slot-state .st-active      { background: #1f6b5f; }
-.slot-state .st-completed   { background: #555; }
-.slot-state .st-declined    { background: #7a2a2a; }
-/* AN HOUR, as a box you tick with its number on it. One row per day, so these lay out along the
-   value column like any other value — no table, no squashing, and the number is on the control
-   rather than in a header row you have to count across from. */
-/* A DAY ROW gets its own column layout. Eleven hour boxes don't fit the value column the money
-   rows use, and wrapping them onto two lines makes a day look like two days. The percentage and
-   £/h columns are empty on these rows anyway — a day has no rate — so the space they were holding
-   goes to the hours. */
-/* Day rows use the SAME grid as every other row, and every cell stays in its own track.
-   The value cell used to span three tracks to give the hours room — but a spanning cell pushes
-   everything after it along, so the multiplier landed in the £/h column. The hour boxes shrink to
-   fit instead, which they can, and every column lines up with the rows above. */
-.field-line.fl-day { padding: 1px 0; font-size: var(--fs-xs); }
-.field-line.fl-day .fl-r { visibility: hidden; }
-/* A BRACKET around the day figures, drawn down the multiplier column: they are seven terms in one
-   sum, not seven separate operations, and a column of "+ 4" with no grouping leaves that to be
-   inferred. Three borders — top on Monday, left on all, bottom on Sunday — make the shape without
-   any extra markup. */
-.field-line.fl-day .fl-mul { border-left: 1px solid rgba(0,0,0,.35); padding-left: 6px;
-                             margin-left: 6px; }
-.field-line.fl-day-first .fl-mul { border-top: 1px solid rgba(0,0,0,.35); }
-.field-line.fl-day-last .fl-mul  { border-bottom: 1px solid rgba(0,0,0,.35); }
-/* The sum sits outside the bracket, because it is the result of it rather than another term. */
-.field-line.fl-day-sum { font-size: var(--fs-sm); padding-top: 3px; }
-.field-line.fl-day-sum .fl-mul { border: 0; font-weight: bold; margin-left: 6px; padding-left: 6px; }
-.field-line.fl-day-sum .fl-k { font-weight: normal; opacity: .7; }
-/* One line, never wrapped, sized to whatever room the row has.
-   `flex: 1 1 0` with no minimum: the eleven boxes divide the space evenly and shrink together, so
-   a narrow card gets narrow boxes rather than a second line. A day split across two lines reads as
-   two days, which is worse than a small box. */
-.l-slots-day { display: flex; flex-wrap: nowrap; gap: 2px; width: 100%; }
-.hr-box { position: relative; display: flex; align-items: center; justify-content: center;
-          flex: 1 1 0; min-width: 0; max-width: 20px; height: 15px; cursor: pointer; font-size: 8px; }
-/* Below about 16px the number stops being readable, so the box keeps its meaning through position
-   and its tooltip instead of showing a digit it can't fit. */
-@media (max-width: 560px) { .hr-box span { font-size: 0; } }
-.hr-box input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
-.hr-box span { display: block; width: 100%; height: 100%; line-height: 14px; text-align: center;
-               border: 1px solid rgba(0,0,0,.25); }
-.hr-box input:checked + span { background: rgba(0,0,0,.78); color: #fff; border-color: transparent; }
-/* An hour nobody is free for: visible so the row keeps its shape, plainly not on offer. */
-.hr-shut { cursor: default; }
-.hr-shut span { opacity: .2; border-style: dotted; }
-.hr-shut input { cursor: default; }
-.slots-hint-row { padding: 6px 0 2px; }
-/* THE TICK GRID, squashed to fit the value column.
-   It is eleven hours across seven days, and at full size it forced the whole card wider than
-   everything else on the wall. Small cells, tight padding, and a header that repeats only what is
-   needed to read a column. */
-/* Fixed layout and full width of ITS column — not the card. The grid used to sit in a two-column
-   row, so its value cell was everything to the right of the label and the money columns had
-   nowhere to go. It's an ordinary value now, and it fits the space a value gets. */
-.field-line .l-slots { display: block; width: 100%; min-width: 0; overflow: hidden; }
-.field-line .l-slots .slot-grid { border-collapse: collapse; table-layout: fixed; width: 100%;
-                                  font-size: 9px; line-height: 1; }
-.field-line .l-slots .slot-grid th { font-weight: normal; opacity: .55; padding: 0 1px 2px;
-                                     font-size: 9px; }
-.field-line .l-slots .slot-grid td { padding: 0; }
-.field-line .l-slots .slot-grid input[type="checkbox"] {
-  width: 13px; height: 13px; margin: 1px; vertical-align: middle;
-}
-/* An hour nobody is free for: visible, so the grid keeps its shape, but plainly not offered. */
-.field-line .l-slots .slot-grid input:disabled { opacity: .18; }
-.field-line .l-slots .slots-hint { font-size: var(--fs-xs); }
-/* The tick grid, inside a row like every other option. Left-aligned and full width — it's a
-   control, not a value, and right-aligning it the way values are aligned made it read as an
-   answer rather than a question. */
-.field-line .l-slots { display: block; text-align: left; width: 100%; }
-.field-line .l-slots .slot-grid { width: 100%; }
-.field-line .l-slots .slots-hint { margin: 0 0 4px; }
-/* Splitting: one box per person, with a ＋ to add another. The count of people IS the count of
-   boxes — a number chosen separately could disagree with the addresses given. */
-.split-emails { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: flex-end; }
-.split-one { display: inline-flex; align-items: center; gap: 2px; }
-.split-one .split-email { width: 12em; font-size: var(--fs-xs); padding: 2px 6px; }
-.split-drop { font-size: var(--fs-xs); opacity: .45; }
-.split-add { font-size: 1.1em; }
-.split-emails { display: flex; flex-direction: column; gap: 4px; }
-/* The last row of each section, ruled off from the next. The three sections do different things
-   to the price — one multiplies the total, one builds the hourly rate, one discounts the total —
-   and run together as a single list they read as one continuous sum, which they are not. */
-.field-line.fl-group-end { border-bottom: 1px solid rgba(0,0,0,.22); padding-bottom: 8px;
-                           margin-bottom: 4px; }
-/* A choice that no longer fits. Not removed — removing it is what wiped answers — so it stays
-   selected, marked, and the conflict is the client's to resolve rather than the form's to
-   silently "fix". */
-.opt-conflict { outline: 1px solid #9b2226; }
-.opt-warn { display: block; color: #9b2226; font-size: var(--fs-xs); margin-top: 2px; }
-/* An avatar sits where a photo would, taped-free — it's drawn, not stuck on. */
-.av-wrap { display: flex; justify-content: center; margin: 2px 0 6px; }
-.avatar { display: block; }
-/* Icon actions: no underline, and a target big enough to press on a phone. Every control in a
-   card's corner and on a roster slot is a glyph now, so none of them want one. */
-.card-actions .text-action,
-.res-edit-btn,
-#add-lesson-btn,
-.slot-btn { text-decoration: none; }
-.card-actions .text-action { font-size: 1.05em; line-height: 1.2; }
-/* ---------- CALCULATOR ------------------------------------------------------------------------
-   The one card that shouldn't look like paper. A calculator is an object with a case and a screen,
-   and reading it as a note made the keys look like text you could select rather than buttons you
-   press. Dark casing, rounded corners, a recessed display — and the yellow variables overridden so
-   the sticky-note palette doesn't leak into it.
+
+/* ---------- CALCULATOR ---------------------------------------------------------------------------
+   THE CLASS NAMES MATCH THE MARKUP, which they did not before. The screen emits `mc-display`,
+   `mc-grid` and `mc-btn` — the names the carried-over `initMiniCalc` needs — and this file was
+   still styling `calc-read` and `calc-keys`, so the keypad rendered as a bare column of unstyled
+   buttons. Nothing threw; the selectors simply matched nothing.
+   The eighth entry on the list, and the first one that was between the markup and the stylesheet
+   rather than between the markup and the code.
 --------------------------------------------------------------------------------------------- */
-.card.mini-calc {
-  --text: #f2f2f2; --muted: #9aa0a6; --text-muted: #9aa0a6; --gold: #ffd479;
-  background: #23262b;
-  border: 1px solid #35393f;
-  border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
-  color: #f2f2f2;
-  padding: 14px;
-}
-/* It isn't pinned to a wall — it's an object sitting on one. */
-.card.mini-calc::before, .card.mini-calc::after { content: none; }
-.card.mini-calc h3, .card.mini-calc .note { color: #f2f2f2; }
-.card.mini-calc .note { opacity: .55; }
-.mini-calc .mc-display {
-  width: 100%; box-sizing: border-box;
-  background: #14161a; border: 1px solid #0d0f12; border-radius: 10px;
-  color: #f2f2f2; font: 26px/1.3 ui-monospace, Menlo, Consolas, monospace;
-  text-align: right; padding: 10px 12px; margin-bottom: 10px;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,.6);
-}
-.card.mini-calc .mc-btn, .card.mini-calc .mc-display, .card.mini-calc h3, .card.mini-calc p {
-  color: #f2f2f2;
-}
-.mini-calc .mc-btn {
-  border-radius: 10px;
-  background: #2e3238;
-  box-shadow: 0 2px 0 #191c20;
-  transition: background .08s;
-}
-.mini-calc .mc-btn:active { background: #3a3f46; transform: translateY(1px); box-shadow: 0 1px 0 #191c20; }
-.mini-calc .mc-btn.fn { background: #383d44; opacity: 1; }
-.mini-calc .mc-btn.op { background: #4a4038; }
-.mini-calc .mc-btn.eq { background: #3f5a3f; }
-.mini-calc .mc-btn.del { background: #503838; }
-.mini-calc .mc-grid { gap: 6px; }
-/* ---------- TIMER ------------------------------------------------------------------------------
-   A large readable count and two controls, nothing else. The figures carry the card, so they get
-   the size and everything around them gets out of the way. */
-#timer-display {
-  font: 300 44px/1 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  letter-spacing: 2px; text-align: center; margin: 10px 0 12px;
-}
-.card #timer-toggle, .card #timer-reset {
-  background: none; border: 1px solid rgba(0,0,0,.3); border-radius: 8px;
-  color: inherit; font-size: 1.1em; padding: 8px 0;
-}
-.card #timer-toggle:active, .card #timer-reset:active { background: rgba(0,0,0,.08); }
-/* ---------- CALENDAR ---------------------------------------------------------------------------
-   Reads as a month grid: seven even columns, weekday initials set apart from the dates, and today
-   marked by a ring rather than a fill so the number stays legible. */
-.cal-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  gap: 2px; text-align: center; font-size: var(--fs-sm);
-}
-.cal-h {
-  font-size: var(--fs-xs); opacity: .5; padding-bottom: 4px;
-  border-bottom: 1px solid rgba(0,0,0,.15); margin-bottom: 2px;
-}
-.cal-d { padding: 5px 0; border-radius: 50%; line-height: 1.4; }
-.cal-today { box-shadow: inset 0 0 0 1.5px currentColor; font-weight: bold; }
-/* ---------- NOTEPAD ----------------------------------------------------------------------------
-   White paper held on a clipboard: a darker board behind, a clip at the top, and ruled lines on
-   the sheet. The one card where the writing surface should look like something you'd write on. */
-#notepad-card {
-  background: #6d5636; border-radius: 10px; padding: 18px 14px 14px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.45);
-}
-#notepad-card::before {                       /* the clip */
-  content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
-  width: 54px; height: 16px; border-radius: 4px;
-  background: linear-gradient(#d8d8d8, #9a9a9a);
-  box-shadow: 0 2px 4px rgba(0,0,0,.4);
-}
-#notepad-card::after { content: none; }
-#notepad-card h3 { color: #f3ead6; }
-.notepad-area {
-  background: #fffefa; color: #1a1a1a; border: none; border-radius: 3px;
-  width: 100%; box-sizing: border-box; min-height: 190px; padding: 10px 12px;
-  font: 15px/26px 'Patrick Hand', Georgia, serif; resize: vertical;
-  /* Ruled lines, matching the line-height exactly so the writing sits ON them. */
-  background-image: repeating-linear-gradient(#fffefa 0 25px, #cfe0ef 25px 26px);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,.15);
-}
-/* ---------- CHECKLIST TOOL ---------------------------------------------------------------------
-   A line per item, ticked off in place. The remove control only appears on hover, so a list you're
-   reading isn't a row of crosses. */
-.todo-list { margin-bottom: 8px; }
-.todo-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 2px; border-bottom: 1px solid rgba(0,0,0,.10);
-  font-size: var(--fs-sm); cursor: pointer;
-}
-.todo-row span:first-of-type { flex: 1; }
-.todo-done span:first-of-type { text-decoration: line-through; opacity: .45; }
-.todo-x { opacity: 0; font-size: var(--fs-xs); padding: 0 4px; }
-.todo-row:hover .todo-x { opacity: .5; }
-.todo-new { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--fs-sm); padding: 6px 8px; }
-/* ---------- ARCADE CABINETS --------------------------------------------------------------------
-   The two games are DEVICES, not notes. A note with a canvas on it reads as a picture of a game;
-   a case around the screen reads as something you play. Both opt out of the pin and the corner
-   fold for the same reason the calculator does — they're objects on the wall, not paper stuck to it.
+.mc-display { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+              padding: .7rem .8rem; text-align: right; font-size: 1.6rem; margin-bottom: .5rem;
+              overflow-x: auto; white-space: nowrap; }
+.mc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+.mc-btn { min-height: max(44px, 2.9rem); border-radius: var(--r-sm);
+          background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
+          font: 600 .95rem var(--font); cursor: pointer;
+          transition: transform var(--quick) ease; }
+.mc-btn:active { transform: scale(.94); }
+.mc-btn.op { color: var(--gold); }
+.mc-btn.fn { color: var(--dim); font-size: .85rem; }
+.mc-btn.del { color: var(--bad); }
+/* The equals key spans the row it ends — twenty-seven keys into a four-column grid leaves it
+   alone on the last line, and a lone key the width of a quarter looks like a mistake. */
+.mc-btn.eq { background: var(--gold); color: #000; border-color: var(--gold);
+             grid-column: span 4; }
+
+/* ---------- CALENDAR -------------------------------------------------------------------------------
+   Same correction as the calculator: `drawCalendar` writes `cal-h`, `cal-d` and `cal-today`, and
+   this file was styling `dow`, `day` and `today`. The month drew, in the body font, with no grid
+   headings distinguishable from the dates.
 --------------------------------------------------------------------------------------------- */
+.cal-head { display: flex; align-items: center; justify-content: space-between; padding: .2rem 0 .5rem; }
+.cal-arrow { padding: .4rem .8rem; cursor: pointer; color: var(--gold); font-size: 1.2rem; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: .15rem; text-align: center; }
+.cal .cal-h { font-size: .68rem; color: var(--faint); padding: .3rem 0; }
+.cal .cal-d { padding: .45rem 0; font-size: .85rem; border-radius: .4rem; }
+.cal .cal-d.cal-today { background: var(--gold); color: #000; font-weight: 700; }
 
-/* Flappy — a handheld. Pale grey shell, screen inset in a darker well, the label under it. */
-#flappy-card {
-  background: #d7d3ca;
-  border: 1px solid #b9b4a9;
-  border-radius: 14px 14px 34px 14px;      /* one soft corner, as a handheld has */
-  box-shadow: 0 6px 16px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.6);
-  padding: 14px 14px 18px;
-  --text: #2b2b28; --muted: #6d6a63; --gold: #4a4741;
-  color: #2b2b28;
-}
-#flappy-card::before, #flappy-card::after { content: none; }
-#flappy-card h3 { color: #2b2b28; letter-spacing: .06em; }
-#flappy-canvas {
-  border-radius: 6px;
-  border: 10px solid #9e9a91;             /* the bezel */
-  background: #9bbc0f !important;         /* the greenish panel a handheld screen has */
-  box-shadow: inset 0 0 12px rgba(0,0,0,.35);
-}
-#flappy-card .note, #flappy-card p { color: #4a4741; }
-/* Times tables — an arcade cabinet. Dark case, one glowing colour, monospace throughout. */
-#tt-card {
-  background: #14121c;
-  border: 1px solid #2a2740;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.6), inset 0 0 40px rgba(120,60,200,.18);
-  padding: 16px;
-  --text: #e8e3ff; --muted: #9d94c4; --gold: #ff4fd8;
-  color: #e8e3ff;
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-}
-#tt-card::before, #tt-card::after { content: none; }
-#tt-card h3 {
-  color: #ff4fd8; letter-spacing: .18em; text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(255,79,216,.55);
-}
-#tt-card .note, #tt-card p { color: #9d94c4; }
-#tt-question {
-  font: 34px/1.2 ui-monospace, Menlo, Consolas, monospace !important;
-  color: #4dffd2 !important; text-shadow: 0 0 12px rgba(77,255,210,.5);
-  letter-spacing: .08em;
-}
-#tt-answer {
-  background: #0b0912; border: 1px solid #3a3560; border-radius: 4px;
-  color: #e8e3ff; font: 20px ui-monospace, Menlo, Consolas, monospace;
-  text-align: center; padding: 10px;
-}
-#tt-card b { color: #4dffd2; }
-#tt-card .text-action { color: #ff4fd8; text-decoration: none; letter-spacing: .1em; }
-/* ---------- THE FEED ---------------------------------------------------------------------------
-   A phone, and nothing else. It was a phone drawn on a sticky note — two objects standing for one
-   thing, with the note's paper, pin and tilt all belonging to the wrong one. The handset IS the
-   card, so every note-shaped rule is turned off for it.
-   No controls: tap the screen for the next, the left edge for the last. The shape being borrowed
-   has never had a counter or a pair of chevrons under it, and adding them says "this is a slide
-   deck pretending".
+/* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
+#tt-answer { text-align: center; font-size: 1.2rem; }
+.flappy { width: 100%; aspect-ratio: 3/2; border-radius: 2px;
+          background: var(--sunk); display: block; touch-action: none; }
+
+/* ---------- WHAT THE LAWS PAINT -----------------------------------------------------------------
+   One class per colour a law can name. The LAW says "green"; this says what green is — so the
+   palette lives here, where a designer would look, and the spreadsheet holds words rather than
+   hex codes.
+
+   Restraint is still the rule. Five colours, each meaning exactly one thing, and nothing else in
+   the app allowed to use them.
 --------------------------------------------------------------------------------------------- */
-.feed-card { background: none; border: 0; box-shadow: none; padding: 0;
-             transform: none; text-align: center; }
-.feed-card::before, .feed-card::after { content: none; }
+.w-green     { color: var(--green); }                 /* a subject */
+.w-blue      { color: #58a6ff; }                      /* #tag */
+.w-blue-soft { color: #79c0ff; opacity: .85; }        /* @name — the same idea, said quieter */
+.w-purple    { color: var(--purple); }                 /* a venue */
+/* A TUTOR. Deliberately NOT `--bad` — that red means something is wrong, and a person's name in
+   the identical colour to an error message is the one collision here that would actually mislead
+   somebody. This one is a softer coral and is used for nothing else. */
+.w-red       { color: #ff7b72; }                      /* a tutor */
+.w-amber     { color: var(--gold); }
+.w-dim       { color: var(--dim); }
 
-/* The handset. Bigger than it was — it holds a paragraph, and the last one made a reader squint. */
-.phone { position: relative; margin: 0 auto; width: 100%; max-width: 288px;
-  aspect-ratio: 10 / 19.5;
-  background: linear-gradient(160deg, #23262b, #101215);
-  border-radius: 30px; padding: 10px;
-  box-shadow: inset 0 0 0 1.5px #3a3f47, inset 0 0 0 4px #16181c,
-              0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.4); }
-/* The cut-out at the top, which is most of what makes a dark rectangle read as a phone. */
-.phone-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-  width: 78px; height: 17px; background: #101215; border-radius: 0 0 12px 12px; z-index: 3; }
-.phone-screen { position: relative; width: 100%; height: 100%; border-radius: 22px;
-  overflow: hidden; background: #05060a; cursor: pointer; }
+/* ---------- GREEN MEANS A SUBJECT -----------------------------------------------------------------
+   The only place colour carries meaning rather than decoration. A subject name is green wherever
+   it appears — in the Who list, on a booking, in a group heading on Stuff — so the eye learns it
+   once and reads it everywhere without a legend.
 
-/* One card, filling the screen. */
-.feed-slide { position: absolute; inset: 0; display: flex; flex-direction: column;
-  justify-content: flex-end; animation: feed-in .28s cubic-bezier(.2,.7,.3,1); }
-@keyframes feed-in { from { opacity: 0; transform: translateY(14px) scale(.985); } }
-
-/* THREE LAYERS, because one gradient is a colour and three are a picture: a deep base, a light
-   source somewhere off-centre, and a motif belonging to the subject. The hues come from the card's
-   own text, so every card arrives with a look of its own and nobody chooses one. */
-/* The photograph, once it has arrived. It sits ON the drawing rather than replacing it, so a
-   picture with an awkward crop still has colour behind it and the card never flashes empty. */
-.feed-art.has-photo { background-size: cover; background-position: center; }
-.feed-art.has-photo .feed-motif { opacity: 0; }
-.feed-art { transition: background-image .3s;
-  position: absolute; inset: 0; overflow: hidden;
-  background:
-    radial-gradient(90% 60% at 78% 8%, hsl(var(--b) 90% 62% / .85), transparent 62%),
-    radial-gradient(80% 55% at 12% 92%, hsl(var(--a) 85% 48% / .75), transparent 60%),
-    linear-gradient(var(--ang), hsl(var(--a) 72% 30%), hsl(var(--b) 68% 16%)); }
-/* The motif: big, faint, bled off the edges — wallpaper rather than an illustration, so it never
-   competes with the sentence in front of it. */
-.feed-motif { position: absolute; top: -12%; left: -12%; width: 124%; height: 82%;
-  opacity: .14; }
-/* A dark foot, so the words stay legible whatever colours the hash produced. */
-.feed-art::after { content: ''; position: absolute; inset: 0;
-  background: linear-gradient(transparent 28%, rgba(0,0,0,.55) 58%, rgba(0,0,0,.86)); }
-
-.feed-text { position: relative; padding: 0 18px 26px; color: #fff; text-align: left; }
-.feed-tag { display: inline-block; font-size: 9.5px; letter-spacing: .16em;
-  text-transform: uppercase; opacity: .75; margin-bottom: 7px; }
-.feed-text h4 { margin: 0 0 8px; font-size: 19px; line-height: 1.18; color: #fff;
-  letter-spacing: -.01em; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
-.feed-text p { margin: 0; font-size: 13.5px; line-height: 1.5; color: rgba(255,255,255,.9); }
-.feed-src { display: inline-block; margin-top: 12px; font-size: 11px; color: #fff; opacity: .75;
-  text-decoration: underline; text-underline-offset: 3px; }
-
-/* Whose photograph it is. Attribution is the condition these are free under, so it is not
-   optional — but it belongs at the edge, quiet, where a credit belongs. */
-.feed-credit { position: absolute; bottom: 5px; right: 9px; left: 9px;
-  font-size: 8px; line-height: 1.3; color: rgba(255,255,255,.5); text-align: right;
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-/* ---------- WARDROBE ---------------------------------------------------------------------------
-   A slot per row, its options laid out beneath. Locked items are SHOWN rather than hidden, with
-   what they'd take written on them — a list of only what you already own tells you nothing about
-   what's next, which is the entire reason for levelling up.
+   Nothing else may use it. The moment a second thing is green, green stops meaning anything.
 --------------------------------------------------------------------------------------------- */
-#avatar-card .av-wrap { margin: 4px 0 10px; }
-.av-slot { margin: 10px 0 0; }
-.av-slot-name {
-  font-size: var(--fs-xs); opacity: .55; text-transform: uppercase;
-  letter-spacing: .06em; margin-bottom: 4px;
+.subject { color: var(--green); }
+h2 .subject, h3 .subject { color: var(--green); }
+.card.is-subject > h3 { color: var(--green); }
+
+/* ---------- PURPLE IS A VENUE, RED IS A TUTOR -----------------------------------------------------
+   THREE COLOURS, THREE QUESTIONS, and that is the whole set:
+
+       green   WHAT   the subject
+       purple  WHERE  the venue
+       red     WHO    the tutor
+
+   Those are the three facts a booking is assembled from and the three you scan a list for. A
+   fourth would make this a legend, and a legend is what colour is supposed to replace.
+
+   RED WAS THE CLIENT'S. It cannot be both — two lists in one colour is worse than neither being
+   coloured, because the eye learns a rule that is false half the time. A client's name is a
+   private detail inside a caption rather than a category anybody scans for, so it goes dim: still
+   marked as a name, no longer competing with the three things you are actually looking for.
+
+   The list colouring needs rows in the `laws` tab to take effect — the palette is here, the lists
+   are data:
+       kind `list`, match `venues`, colour `purple`, weight 20
+       kind `list`, match `tutors`, colour `red`,    weight 20
+       kind `list`, match `clients`, colour `dim`,   weight 10
+--------------------------------------------------------------------------------------------- */
+.card.is-venue > h3 { color: var(--purple); }
+h2 .venue, h3 .venue { color: var(--purple); }
+.card.is-tutor > h3 { color: #ff7b72; }
+h2 .tutor, h3 .tutor { color: #ff7b72; }
+
+/* A prompt before a heading, because this is a terminal. Two characters, and they do more for the
+   look than any amount of styling on the text itself. */
+.screen h2::before { content: '> '; color: var(--faint); }
+
+/* ---------- A THING WITH A PICTURE ----------------------------------------------------------------
+   A shop item and a resource both look better with the thing itself in view. The picture sits
+   LEFT of the words rather than above them: a phone card is a row, and a picture on top pushes
+   the name below the fold on a list of forty.
+--------------------------------------------------------------------------------------------- */
+.thing { display: flex; gap: .7rem; align-items: flex-start; }
+.thing-pic {
+  flex: none; width: 3.6rem; height: 3.6rem;
+  border: 1px solid var(--line); background: var(--sunk);
+  object-fit: cover; display: block;
 }
-.av-swatches, .av-opts { display: flex; flex-wrap: wrap; gap: 6px; }
-.av-sw {
-  width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+/* No picture: a square with the initials, so the row keeps its rhythm. A list where some rows have
+   a picture and some do not is a list that looks broken. */
+.thing-pic.none {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--faint); font-size: .8rem;
 }
-.av-sw.on { box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 0 0 0 2px #000; }
+.thing-body { min-width: 0; flex: 1; }
+.thing-body h3 { margin: 0 0 .15rem; font-size: .92rem; }
+.thing-body .sub { margin: 0 0 .3rem; }
+
+/* The price. Always shown, even when it is nothing — "0 credits" tells somebody it is free, and a
+   blank space tells them the app forgot. */
+.price { font-size: .8rem; color: var(--dim); }
+.price.free { color: var(--green); }
+.price.can  { color: var(--gold); }
+
+/* Something an admin has switched off — a tutor, a resource, a post. Dimmed rather than hidden:
+   only an admin ever sees these, and an admin needs to find one to switch it back on. Hiding it
+   would make deleting irreversible from the phone. */
+.card.is-off, .post.is-off { opacity: .45; }
+
+/* ---------- POSTS ---------------------------------------------------------------------------------
+   A picture, a heart, a caption. Nothing around it — the photograph is the card, and a border
+   round a photograph is a frame nobody asked for.
+--------------------------------------------------------------------------------------------- */
+.post { padding: 0 0 1.2rem; border-bottom: 1px solid var(--line-soft); margin-bottom: 1.2rem; }
+.post:last-child { border-bottom: 0; }
+/* Edge to edge — the page margin is cancelled, because a photograph inset by 16px on a phone is a
+   photograph with a border. */
+.post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
+            background: var(--sunk); }
+.post-under { display: flex; align-items: center; justify-content: space-between; padding: .55rem 0 .2rem; }
+
+/* THE HEART IS GONE. A like was a reaction with exactly one option, so keeping both meant two
+   counts of the same gesture and a ♥ sitting beside a 👍 asking for the same press — with no way
+   for anybody to say which they had meant. Reactions won because they can say WHICH.
+
+   What is left in that row is sharing, and it is one glyph. */
+.post-act {
+  display: flex; align-items: center; justify-content: center;
+  flex: none; margin-left: auto;
+  background: none; border: 0; padding: .3rem .1rem .3rem .5rem;
+  color: var(--dim); font: inherit; font-size: 1.15rem; cursor: pointer;
+  min-height: max(44px, 2.9rem); min-width: 2.2rem;
+  transition: color var(--quick) ease, transform var(--quick) ease;
+}
+.post-act:active { color: var(--ink); transform: scale(1.2); }
+
+/* ---------- A POST, AS INSTAGRAM ARRANGES ONE -----------------------------------------------------
+   Who, then the picture, then what you can do, then what it says. That order is not fashion — a
+   photograph with no attribution reads as an advert, and the caption goes last because it is the
+   part somebody may not read at all.
+--------------------------------------------------------------------------------------------- */
+.post-by { display: flex; align-items: center; gap: .5rem; padding: .1rem 0 .55rem; }
+.post-face { width: 1.9rem; height: 1.9rem; border-radius: 50%; object-fit: cover;
+             background: var(--sunk); border: 1px solid var(--line); flex: none; }
+.post-face.none { display: flex; align-items: center; justify-content: center;
+                  font-size: .8rem; color: var(--faint); }
+.post-who { font-size: .85rem; font-weight: 600; }
+
+/* The username with the place under it, which is where Instagram puts it and where it reads as a
+   detail about the picture rather than a second heading.
+   ONE rule for this, not two. There was a `margin-left: auto` on `.post-by .post-where` earlier in
+   the file and a `margin: 0` here overriding it — two rules setting the same property on the same
+   element, which works until somebody edits one of them. The right-hand end of that row belongs to
+   the edit control now, so the auto margin is gone rather than overridden. */
+.post-nm { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
+.post-where { color: var(--dim); }
+.post-by .post-where { font-size: .68rem; color: var(--dim); margin: 0; }
+.post-where::before { content: '📍'; font-size: .62rem; margin-right: .15rem; }
+
+/* Where and when, on one line under a photograph. The place first, because it is the thing
+   somebody actually reads — a date is a fact you check, a place is a thing you recognise. */
+.post-meta { display: flex; align-items: baseline; gap: .6rem; font-size: .75rem; }
+
+/* The edit control. At the END of the header row, small — a post is looked at a hundred times for
+   every time it is edited, and a control sized for the rare case is a control in the way for the
+   common one. `margin-left: auto` is what puts it at the end, which is why nothing else in that
+   row may claim it. */
+.post-edit { margin-left: auto; padding: .3rem .5rem; color: var(--faint);
+             font-size: 1.1rem; line-height: 1; cursor: pointer; flex: none; }
+.post-edit:active { color: var(--gold); }
+
+/* The reactions and the share button, on one line under the picture — the place the heart held,
+   which is where the eye already goes and where the thing you can do about a photograph belongs.
+   `align-items: flex-start` because the reactions WRAP: with two rows of faces, a centred share
+   button would float in the middle of them. */
+.post-acts { display: flex; align-items: flex-start; gap: .3rem; padding: .35rem 0 .1rem; }
+.post-acts .reacts { flex: 1 1 auto; margin: 0; min-width: 0; }
+.post-cap { margin: .15rem 0 0; font-size: .88rem; line-height: 1.5; }
+.post-cap b { font-weight: 600; margin-right: .3rem; }
+.post-when { margin: .35rem 0 0; }
+
+/* A post arrived at from a shared link. Marked briefly so it is obvious which one was meant —
+   landing in a feed with no idea which photograph somebody sent you is the failure a deep link
+   exists to prevent. */
+.post-lit { animation: lit 2.6s ease-out; }
+@keyframes lit {
+  0%, 60% { box-shadow: 0 0 0 2px var(--gold); }
+  100%    { box-shadow: 0 0 0 2px transparent; }
+}
+
+/* ---------- WAITING -------------------------------------------------------------------------------
+   The shape of what is coming, not a spinner. A spinner says "wait"; this says "a picture and two
+   lines are about to be here" — so nothing jumps when they arrive.
+--------------------------------------------------------------------------------------------- */
+.sk-box { display: block; background: var(--raised); border-radius: 2px;
+          animation: sk 1.35s ease-in-out infinite; }
+.sk-pic { width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); aspect-ratio: 4/5; }
+.sk .post-by { gap: .5rem; }
+/* Barely there. A skeleton that pulses hard is more distracting than the wait it is covering. */
+@keyframes sk { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* The screen slides back when a swipe is let go without going far enough. Only the transform is
+   animated — animating anything else here would be work on every frame of a gesture. */
+.screen { transition: transform .19s cubic-bezier(.2,.8,.3,1); will-change: transform; }
+
+/* ---------- A POLL --------------------------------------------------------------------------------
+   Rows you can press, and once you have, a bar behind each one. The bar is drawn INSIDE the row
+   rather than under it — a separate bar chart under a list of answers is two things to read where
+   one will do.
+--------------------------------------------------------------------------------------------- */
+.poll { margin: .6rem 0 .2rem; display: flex; flex-direction: column; gap: .3rem; }
+.poll-row {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  width: 100%; min-height: max(44px, 2.7rem); padding: 0 .7rem;
+  background: none; border: 1px solid var(--line); border-radius: 2px;
+  color: var(--ink); font: inherit; font-size: .85rem; text-align: left; cursor: pointer;
+  transition: border-color var(--quick) ease, background var(--quick) ease;
+}
+.poll-row:active { background: var(--raised); }
+.poll-row.mine { border-color: var(--gold); }
+
+/* Behind the text, not over it. `z-index: 0` on the bar and `1` on the words, or a long answer
+   becomes unreadable the moment it wins. */
+.poll-bar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0;
+            background: var(--line); transition: width .35s cubic-bezier(.2,.8,.3,1); }
+.poll-row.mine .poll-bar { background: rgba(255,180,84,.22); }
+.poll-text, .poll-n { position: relative; z-index: 1; }
+.poll-n { font-size: .78rem; color: var(--dim); font-variant-numeric: tabular-nums; }
+.poll-row.mine .poll-n { color: var(--gold); }
+.poll-tot { margin: .25rem 0 0; }
+
+/* Two answers, two buttons — a dropdown for two options is a dropdown nobody opens. The chosen one
+   is filled rather than outlined, so which is active is readable without a tick. */
+.btn-row .btn.on { background: var(--gold); color: #000; border-color: var(--gold); }
+
+/* ---------- REACTIONS -----------------------------------------------------------------------------
+   A row of faces. Wraps rather than scrolls — a sideways scroller inside a vertical feed is a
+   gesture fighting a gesture, and with five or six emoji there is nothing to scroll to anyway.
+
+   With no emoji set in `brand!reactions` there is no row at all, and the markup says so in words
+   for an admin rather than leaving a gap that reads as a styling fault.
+--------------------------------------------------------------------------------------------- */
+.reacts { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0 .2rem; }
+.react {
+  display: flex; align-items: center; gap: .25rem;
+  min-height: max(38px, 2.3rem); padding: 0 .55rem;
+  background: none; border: 1px solid var(--line-soft); border-radius: 2px;
+  color: var(--dim); font: inherit; font-size: .9rem; cursor: pointer;
+  transition: transform var(--quick) ease, border-color var(--quick) ease;
+}
+/* Below the 44px rule on purpose: these sit in a row of five or six and a full-height control
+   would be a wall. They are an aside, not the thing you came to press. */
+.react:active { transform: scale(.9); }
+.react.any { border-color: var(--line); }
+.react.mine { border-color: var(--gold); }
+.react-e { font-size: 1rem; line-height: 1; }
+.react-n { font-size: .72rem; font-variant-numeric: tabular-nums; }
+.react.mine .react-n { color: var(--gold); }
+
+/* THE TOTAL, at the end of the row of faces. Deliberately not a face: it is a number you press to
+   ask a question, not a reaction you can add, and giving it a border like the others would put a
+   seventh button in a row of six. */
+.react-who {
+  min-height: max(38px, 2.3rem); padding: 0 .4rem;
+  background: none; border: 0; color: var(--faint);
+  font: inherit; font-size: .78rem; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.react-who:active { color: var(--ink); }
+
+/* Dropping something from the basket. A small ✕ beside the price rather than a swipe — a swipe
+   here would fight the one that changes tabs. */
+.text-drop { color: var(--bad); cursor: pointer; padding: .2rem .4rem; margin-left: .4rem; }
+
+
+/* ================================================================================================
+   THE THINGS THAT WERE BUILT AFTER THE SCREENS.
+================================================================================================ */
+
+/* ---------- THREE PASSES ------------------------------------------------------------------------
+   A numbered box each, because they are not one tick three times: the number is WHICH pass, and a
+   row of identical boxes could not say that.
+   Right-aligned on their own line rather than beside the name — a phone card is a row, and three
+   44px targets plus a picture plus two lines of text do not fit on one.
+--------------------------------------------------------------------------------------------- */
+.ticks { display: flex; align-items: center; justify-content: flex-end; gap: .3rem;
+         margin: .3rem 0 0; }
+.tick { display: flex; align-items: center; justify-content: center; cursor: pointer;
+        /* The LABEL is the target, not the box: 44px of reach around a 1.6rem square, which is
+           the same trick `.check` uses and for the same reason. */
+        min-width: max(44px, 2.9rem); min-height: max(44px, 2.9rem); }
+.tick input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tick-box {
+  display: flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; border-radius: 2px;
+  border: 1px solid var(--line); background: var(--sunk);
+  font-size: .82rem; color: #1a1409;
+  transition: background var(--quick) ease, border-color var(--quick) ease,
+              transform var(--quick) ease;
+}
+/* A TICK, not a number. Drawn the same way `.check .box` draws one, so a box on this screen and a
+   box on a form are the same object — which is the whole reason a checkbox needs no explaining. */
+.tick.on .tick-box { background: var(--gold); border-color: var(--gold); }
+.tick.on .tick-box::after { content: '✓'; font-weight: 700; }
+.tick:active .tick-box { transform: scale(.9); }
+/* The count in words, at the far end of the row — "twice" is what somebody would say out loud,
+   and two filled boxes out of three is a shape they have to read. */
+.tick-said { margin-right: auto; }
+
+/* ---------- THE DOCKET --------------------------------------------------------------------------
+   A row is a tick, a line of text, and a way to drop it. No card and no border around each one —
+   it is a list you work down, and eight boxes stacked reads as a form rather than as a docket.
+--------------------------------------------------------------------------------------------- */
+.dock-row { display: flex; align-items: center; gap: .7rem; cursor: pointer;
+            padding: .35rem 0; min-height: max(44px, 2.9rem);
+            border-bottom: 1px solid var(--line-soft); }
+.dock-row:last-of-type { border-bottom: 0; }
+.dock-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+.dock-text { flex: 1; min-width: 0; font-size: .88rem; line-height: 1.35;
+             overflow-wrap: anywhere; }
+/* Done: struck through and dimmed, still there. Crossing something out is most of the point of
+   having done it, and a line that vanishes takes the evidence with it. */
+.dock-row.done .dock-text { color: var(--faint); text-decoration: line-through; }
+/* The ✕ only when the row is touched or hovered — a column of them down the side turns a list of
+   things to do into a list of things to delete. */
+.dock-row .text-drop { opacity: 0; transition: opacity var(--quick) ease; }
+.dock-row:hover .text-drop, .dock-row:active .text-drop { opacity: 1; }
+@media (hover: none) { .dock-row .text-drop { opacity: .5; } }
+
+.dock-new { display: flex; gap: .4rem; align-items: stretch; margin-top: .5rem; }
+.dock-new input { flex: 1; min-width: 0; }
+.dock-new .btn { width: auto; flex: 0 0 3rem; font-size: 1.1rem; }
+
+/* ---------- FILTER CHIPS ------------------------------------------------------------------------
+   Each one is a filter that is ON, and pressing it takes it off. The whole chip is the target
+   rather than the ✕ — a 12px cross on a phone is a target you miss.
+   They WRAP rather than scroll sideways: a row that scrolls can hide a filter, and a filter you
+   cannot see narrowing your list is the fault this replaced.
+--------------------------------------------------------------------------------------------- */
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .6rem; }
+.chip {
+  display: flex; align-items: center; gap: .3rem;
+  min-height: max(38px, 2.3rem); padding: 0 .6rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
+  color: var(--ink); font: inherit; font-size: .78rem; cursor: pointer;
+  transition: transform var(--quick) ease, border-color var(--quick) ease;
+}
+.chip:active { transform: scale(.94); }
+/* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
+   information, and with four chips on a line the second one is a puzzle. */
+.chip-k { color: var(--faint); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
+.chip-x { color: var(--faint); margin-left: .15rem; }
+.chip:active .chip-x { color: var(--bad); }
+/* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
+   invitation, not a state. */
+.chip.add { border-color: var(--gold); color: var(--gold); background: none; }
+.chip.clear { border-color: transparent; color: var(--faint); background: none; }
+
+/* ---------- THE CALCULATOR'S CARET --------------------------------------------------------------
+   A block that blinks, because a hairline is invisible in a monospace column of digits at this
+   size — and it has to be findable at a glance or the arrow keys are guesswork.
+--------------------------------------------------------------------------------------------- */
+.mc-display { min-height: max(44px, 2.9rem); display: flex; align-items: center;
+              justify-content: flex-end; overflow-x: auto; white-space: nowrap;
+              cursor: default; user-select: none; }
+.mc-zero { color: var(--faint); }
+.mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold);
+            vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
+@keyframes caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+/* The arrows are dimmer than the operators: they move you around the sum rather than being part
+   of it, and a navigation key weighted like ÷ competes with the arithmetic. */
+.mc-btn.nav { color: var(--dim); font-size: .8rem; }
+.mc-btn.nav:active { color: var(--gold); }
+/* Two of the four arrows share the last row with equals, so it spans two rather than four. */
+.mc-btn.eq { grid-column: span 2; }
+
+/* ---------- THE TIMER ---------------------------------------------------------------------------
+   Four preset lengths, smaller than a real button — they are a choice you make once, not the
+   thing you came to press.
+--------------------------------------------------------------------------------------------- */
+.btn.tiny { min-height: max(38px, 2.3rem); padding: 0 .5rem; font-size: .8rem; }
+
+/* ---------- WHAT IS ON A DAY --------------------------------------------------------------------
+   The dot sits UNDER the number rather than beside it. Beside it the number shifts and the grid
+   stops being a grid.
+--------------------------------------------------------------------------------------------- */
+.cal .cal-d { position: relative; padding: .45rem 0 .55rem; }
+.cal .cal-d.has { cursor: pointer; }
+.cal-dots { position: absolute; left: 0; right: 0; bottom: .18rem;
+            display: flex; justify-content: center; gap: 2px; }
+.dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; }
+.dot.exam     { background: var(--bad); }     /* the day that matters most */
+.dot.mock     { background: var(--dim); }     /* the same shape of day, lower stakes */
+.dot.birthday { background: var(--green); }
+/* Today is already gold, so its dots have to be readable against it. */
+.cal .cal-today .dot { background: #000; opacity: .55; }
+.row .dot { margin-right: .35rem; vertical-align: middle; }
+
+/* ---------- A REEL CARD -------------------------------------------------------------------------
+   The heading is the fact, so it is large; the body is why, so it is small. The gradient exists to
+   give them somewhere to sit rather than to be looked at.
+--------------------------------------------------------------------------------------------- */
+.feed-art { position: absolute; inset: 0; display: flex; flex-direction: column;
+            justify-content: flex-end; padding: 1rem;
+            background: linear-gradient(160deg, var(--a), var(--b));
+            background-size: cover; background-position: center;
+            transition: background-image .3s ease; }
+/* The subject's initial, enormous and barely there. It gives the card a shape at a glance and
+   says which family of facts you are in without a word being read. It goes when a photograph
+   arrives — two things competing for the same corner is one too many. */
+.feed-mark { position: absolute; top: -.5rem; right: .2rem; line-height: 1;
+             font-size: 7rem; font-weight: 700; color: var(--c); opacity: .13;
+             transition: opacity .3s ease; }
+.feed-art.has-photo .feed-mark { opacity: 0; }
+
+/* WORDS OVER A PHOTOGRAPH NEED A FLOOR. White text on an unknown picture is legible until the
+   picture is a snowfield, and then it is gone — so a scrim is laid over the bottom two-thirds
+   once there is something behind it. Only then: over the gradient it would be a shadow over a
+   shadow. */
+.feed-art.has-photo::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(0,0,0,.92) 12%, rgba(0,0,0,.55) 45%, transparent 78%);
+}
+.feed-text { position: relative; z-index: 1; }
+.feed-subject { font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+                color: var(--c); }
+.feed-art.has-photo .feed-subject { color: #fff; opacity: .8; }
+.feed-head { margin: .3rem 0 .45rem; font-size: 1.25rem; line-height: 1.2; font-weight: 640; }
+.feed-body { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--dim); }
+.feed-art.has-photo .feed-body { color: rgba(255,255,255,.86); }
+
+/* WHOSE PICTURE IT IS. Small, top-left, and only there when there is one — Commons images carry
+   a licence that expects the photographer to be named, and a credit that appears before the
+   photograph does is a credit for nothing. */
+.feed-credit { position: absolute; top: .6rem; left: .9rem; right: .9rem; z-index: 1;
+               font-size: .58rem; color: rgba(255,255,255,.55);
+               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed:active .feed-art { transform: scale(.99); transition: transform var(--quick) ease; }
+
+/* ---------- TIMES TABLES ------------------------------------------------------------------------
+   The answer box is the only thing on the card, so it is large and centred. The clock goes red in
+   the last ten seconds, which is the one thing on the screen that should hurry somebody.
+--------------------------------------------------------------------------------------------- */
+.tt input { text-align: center; font-size: 1.4rem; letter-spacing: .1em; }
+
+/* ---------- WIDGETS AS PAGES --------------------------------------------------------------------
+   One widget fills the screen and the next is directly below it. A strip of them slides; only one
+   is ever in view.
+
+   FIXED HEIGHT, and it has to be: a pager whose height comes from its contents is a pager where
+   every page is a different distance away, and the swipe would mean something different on each
+   one. The number below is the viewport minus the two bars and the scroller's own padding, which
+   is exactly the room a screen has.
+
+   `dvh` rather than `vh`, for the same reason the body uses it — vh ignores the browser chrome on
+   a phone, so a page sized in vh is a page whose bottom is under the address bar.
+--------------------------------------------------------------------------------------------- */
+.pager {
+  position: relative; overflow: hidden;
+  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom) - 2.25rem);
+  /* The page margin is cancelled and given back inside each page, so the dots can sit against the
+     true edge of the screen rather than inset from it. */
+  width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
+  /* The turn is what tells you the widgets are on ONE dial rather than being swapped for each
+     other. It needs somewhere to happen in, and a flat stack has nowhere. */
+  perspective: 900px;
+}
+.pages { position: absolute; inset: 0; --drag: 0px; }
+
+/* ---------- ONE DIAL, AND YOU ARE LOOKING AT THE FRONT OF IT -------------------------------------
+   Every widget is on the same spindle. The one at the front is full size and the rest are still
+   there — smaller, dimmer, pushed back — so the shape of the whole screen is visible while you use
+   one part of it. A page that slid in from below showed one thing and gave no hint there was
+   anything else, which is the job the dots were doing on its behalf.
+
+   TWO NUMBERS, set per page in script.js, and CSS does the rest:
+     --o   how far from the front, signed. -1 is the one above, +1 the one below.
+     --a   the same, unsigned — because scale and fade want a distance rather than a direction,
+           and CSS has no abs() that can be relied on.
+
+   80% rather than 100%, which is what makes it a dial: at a full page apart the neighbours sit
+   exactly off-screen and you are back to a slide. A fifth of each showing is enough to read the
+   heading of the next thing without it competing with the one in front.
+--------------------------------------------------------------------------------------------- */
+.page {
+  position: absolute; inset: 0;
+  padding: 0 var(--pad);
+  overflow: hidden;                       /* only the front page scrolls — see .page.on */
+  -webkit-overflow-scrolling: touch;
+  transform-origin: 50% 50%;
+  transform:
+    translateY(calc(var(--o, 0) * 80% + var(--drag)))
+    /* Pushed back rather than only shrunk. A scale alone reads as a smaller copy of the same
+       card; moving it away as well is what makes it read as being BEHIND. */
+    translateZ(calc(var(--a, 0) * -180px))
+    scale(calc(1 - .06 * var(--a, 0)));
+  opacity: calc(1 - .5 * var(--a, 0));
+  z-index: calc(10 - var(--a, 0));
+  /* Everything behind the front is a picture of a widget, not a widget. Without this a tap aimed
+     at the calculator can land on the timer showing behind it — which is worse than useless,
+     because it works. */
+  pointer-events: none;
+  transition: transform .3s cubic-bezier(.2,.8,.3,1), opacity .3s ease;
+  will-change: transform, opacity;
+}
+.page.on { pointer-events: auto; overflow-y: auto; }
+/* Two away is far enough to be scenery and near enough to cost nothing to draw. Beyond that it is
+   off the screen anyway, so it is taken out of the compositor rather than being faded to nothing
+   and left there. */
+.page[style*="--a: 3"], .page[style*="--a: 4"], .page[style*="--a: 5"] { visibility: hidden; }
+
+/* Following a finger. The transition is what makes a released dial settle; while the finger is
+   down it has to be off, or every frame of the drag is chasing the last one. */
+.no-anim .page { transition: none; }
+/* No rule under the last card: a page is one thing, and a hairline across the bottom of a screen
+   reads as a list that has been cut off. */
+.page .card { border-bottom: 0; }
+
+/* ---------- A WIDGET FILLS ITS PAGE --------------------------------------------------------------
+   A card is sized by its contents and a page is a fixed height, so a calculator sat at the top of
+   a screen with half of it empty. On a scrolling list that was right — the next card was under it.
+   On a pager there is nothing under it, and the emptiness reads as something failing to load.
+
+   So each page is a column, its card fills it, and ONE element inside takes whatever is left. Not
+   everything stretches: a chess board must stay square and a row of buttons must stay a row, so
+   what grows is named per widget below rather than applied to everything and then fought.
+
+   `min-height: 0` on every one of them is not optional. A flex item's floor is its content, so
+   without it a grid of four hundred docket lines refuses to shrink, the page grows past the
+   screen, and the pager's fixed height is quietly defeated.
+--------------------------------------------------------------------------------------------- */
+.page { display: flex; flex-direction: column; padding-bottom: .5rem; }
+.page > .card { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0;
+                padding-top: .5rem; }
+/* The heading and its line never grow — they say what the widget is and then get out of the way. */
+.page > .card > h3, .page > .card > .sub, .page > .card > .cal-head { flex: none; }
+
+/* The picture IS the reels card, so it takes everything going. The 4/5 ratio was for a card in a
+   list; on a page the shape is decided by the screen. */
+.page .feed { flex: 1 1 auto; aspect-ratio: auto; min-height: 0; }
+
+/* The keypad grows and its keys grow with it — `1fr` rows rather than content-height ones, so a
+   tall phone gets keys a thumb can hit rather than a keypad floating in a black field.
+   The 44px floor still applies underneath, which is what protects a short screen. */
+.page .mc-grid { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(max(44px, 2.9rem), 1fr); }
+
+/* The clock takes the middle of the screen and sits in the centre of it, which is where you look
+   when you are waiting for a number to change. */
+.page #timer-display { flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+                       margin: 0; font-size: clamp(2.1rem, 14vw, 4rem); }
+
+/* The list scrolls INSIDE the card, so the add-a-line box stays on screen with twenty things on
+   the docket — a control that scrolls away is a control you have to go and find. */
+.page #docket-body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+.page .dock-new { flex: none; }
+
+/* A notepad that is not the height of the screen is a notepad you scroll while writing. */
+.page #notepad { flex: 1 1 auto; min-height: 0; resize: none; }
+
+/* A month with room in it. `1fr` rows spread the weeks down the card instead of leaving the last
+   fortnight of empty space under a squashed grid. */
+.page .cal { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(2rem, 1fr); align-content: stretch; }
+.page .cal .cal-d, .page .cal .cal-h { display: flex; flex-direction: column;
+                                       align-items: center; justify-content: center; }
+
+/* SQUARE, and centred in whatever is left. A board that stretched would be a board where a knight
+   moves further sideways than forwards.
+
+   `width: 100%`, NOT `width: auto`. A grid with an auto width inside a flex column has nothing to
+   measure itself against and collapses — and the pieces are sized in `cqw`, a fraction of that
+   width, so they go with it. The board vanished rather than merely being the wrong size.
+   No max-height either: on any phone a square is limited by the WIDTH, never the height, so a cap
+   on the other axis is a rule that can only ever fire when something else is already wrong. */
+.page .chess { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 1; }
+.page > .card > .btn-row { flex: none; }
+
+/* A SIDE-SCROLLER NEEDS WIDTH, NOT HEIGHT. Filling the page gave it a portrait box — taller than
+   it is wide — where pipes arrive with no room to react to them, and the bird, scaled from the
+   height, came out four times the size it should be. It keeps its shape and floats in the middle,
+   the same as the board.
+   The canvas ELEMENT is still resized in script.js to match its box: a canvas stretched by CSS
+   alone draws at its old resolution and scales, so everything blurs and the collisions stop
+   matching what you can see. */
+.page .flappy { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 3/2; min-height: 0; }
+
+/* The sprint is short, so it centres rather than stretching — there is nothing here that would be
+   better for being taller. */
+.page #tt-idle, .page #tt-over { margin: auto 0; }
+.page #tt-question { display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto;
+                     min-height: 0; }
+
+/* WHERE YOU ARE, and how many there are. Down the right edge, small — it is a map rather than a
+   control, and a column of four dots says "there are four things here", which a scrolling list of
+   cards never managed to say at all. */
+.page-dots { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%);
+             display: flex; flex-direction: column; gap: .45rem; z-index: 2; }
+.page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line);
+            cursor: pointer; transition: background var(--quick) ease, transform var(--quick) ease; }
+.page-dot.on { background: var(--gold); transform: scale(1.35); }
+/* The dot itself is 6px, which nothing could hit. The padding around it is the target. */
+.page-dot::after { content: ''; position: absolute; width: 28px; height: 22px;
+                   margin: -8px 0 0 -11px; }
+
+/* ---------- THE FIGURE, AND THE THINGS IT WEARS ---------------------------------------------------
+   Drawn, not photographed — so it costs nothing to load, never 404s, and is the same on every
+   phone. The one visual on this site that belongs to the person rather than to the business.
+--------------------------------------------------------------------------------------------- */
+.av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
+.av-big { padding: .8rem 0 1rem; }
+.avatar, .av-item { display: block; }
+/* On a card, the figure sits in the same square a photograph would — so a row with a picture and
+   a row with a figure line up rather than one of them being taller. */
+.thing-pic.art { display: flex; align-items: center; justify-content: center;
+                 background: var(--sunk); overflow: hidden; }
+
+.av-slot { margin: 0 0 .7rem; }
+.av-slot-name { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
+                color: var(--faint); margin-bottom: .3rem; }
+
+/* WRAPS, and each option is a drawing with its name under it. A dropdown of item names would ask
+   somebody to know what "goggles" looks like before choosing it, which is the one thing a
+   wardrobe exists to answer. */
+.av-opts { display: flex; flex-wrap: wrap; gap: .4rem; }
 .av-opt {
-  font-size: var(--fs-xs); padding: 4px 9px; border-radius: 6px; cursor: pointer;
-  border: 1px solid rgba(0,0,0,.25); background: rgba(255,255,255,.35);
-  display: inline-flex; align-items: center; gap: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: .1rem;
+  min-width: 4.2rem; min-height: max(44px, 2.9rem); padding: .35rem .3rem .3rem;
+  background: var(--sunk); border: 1px solid var(--line-soft); border-radius: 2px;
+  color: var(--dim); font: inherit; cursor: pointer;
+  transition: border-color var(--quick) ease, transform var(--quick) ease;
 }
-.av-opt.on { background: rgba(0,0,0,.75); color: #fff; border-color: rgba(0,0,0,.75); }
-/* Locked items stay legible: dimmed, not greyed into illegibility, because the point is to read
-   what they'd take. */
-.av-opt.locked { opacity: .55; border-style: dotted; }
-.av-why { font-weight: bold; opacity: .8; font-size: .92em; }
-/* The timer card: the count carries it, so the buttons stay quiet and the rest gets out of the way. */
-#timer-card { text-align: center; }
-#timer-card .row-gap > button { flex: 1; }
-/* A shop item, shown on its own. Centred with room around it so a small object doesn't read as a
-   mistake on a large card. */
-.av-item { display: block; margin: 0 auto; }
-/* ---------- CALENDAR AND TIMER AS OBJECTS ------------------------------------------------------
-   Neither is a note. A calendar is a printed month and a timer is a device — reading both as paper
-   pinned to a wall was the reason they looked like everything else when they shouldn't.
---------------------------------------------------------------------------------------------- */
-#calendar-card, #timer-card {
-  --text: #f0efec; --muted: #a8a49c; --text-muted: #a8a49c; --gold: #f0efec;
-  background: #2f3237; border: 1px solid #43474d; border-radius: 12px;
-  box-shadow: 0 5px 16px rgba(0,0,0,.45);
-  color: #f0efec; padding: 14px;
+.av-opt:active { transform: scale(.94); }
+.av-opt.on { border-color: var(--gold); }
+.av-opt.on .av-name { color: var(--gold); }
+.av-name { font-size: .6rem; line-height: 1.2; text-align: center; }
+/* NOT YOURS YET. Dimmed rather than removed, and it says what it would take — a wardrobe showing
+   only what you own tells you nothing about what is next, which is the entire point of a level. */
+.av-opt.locked { opacity: .45; }
+.av-why { font-size: .55rem; color: var(--gold); letter-spacing: .04em; }
+.av-none { display: flex; align-items: center; justify-content: center;
+           width: 34px; height: 34px; color: var(--faint); font-size: .9rem; }
+
+/* Colours: a row of the colour itself. A swatch that is the thing it selects needs no label. */
+.av-swatches { display: flex; flex-wrap: wrap; gap: .45rem; }
+.av-sw { width: max(30px, 2rem); height: max(30px, 2rem); border-radius: 50%;
+         border: 2px solid transparent; cursor: pointer;
+         transition: border-color var(--quick) ease, transform var(--quick) ease; }
+.av-sw:active { transform: scale(.9); }
+.av-sw.on { border-color: var(--gold); }
+
+/* Somebody who asked their phone to stop animating things meant it. The dial still WORKS — the
+   pages still move and still fade, because that is the layout rather than the decoration — it just
+   arrives rather than travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .mc-caret { animation: none; }
+  .page { transition: none; }
+  .pages { transition: none; }
 }
-#calendar-card::before, #calendar-card::after,
-#timer-card::before, #timer-card::after { content: none; }
-#calendar-card h3, #timer-card h3,
-#calendar-card .text-action, #calendar-card p, #timer-card p { color: #f0efec; }
-#calendar-card .cal-h { color: #a8a49c; border-bottom-color: rgba(255,255,255,.18); }
-#calendar-card .cal-today { box-shadow: inset 0 0 0 1.5px #f0efec; }
-#timer-card #timer-toggle, #timer-card #timer-reset {
-  border-color: rgba(255,255,255,.3); color: #f0efec;
-}
-#timer-card #timer-toggle:active, #timer-card #timer-reset:active { background: rgba(255,255,255,.12); }
-/* An inline editor's fields: two columns when there's room, one when there isn't. The fieldset and
-   legend chrome around six inputs was taller than the inputs themselves, which is what made the
-   form read as a narrow strip on a one-column card. */
-.ed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.ed-grid .pf-field { display: flex; flex-direction: column; gap: 3px; }
-.ed-grid .edit-label { font-size: var(--fs-xs); opacity: .6; text-transform: none; letter-spacing: 0; }
-.ed-grid .edit-input { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--fs-sm); padding: 5px 7px; }
-.ed-grid .pf-check { flex-direction: row; align-items: center; gap: 6px; }
-.res-edit .cl-acts { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
-.shop-delete { color: #9b2226; }
-/* The "I can teach here" tick sits in a row like any other value, so a tutor scanning venue cards
-   sees it in the same place on each one. */
-.venue-here { display: inline-flex; align-items: center; }
-.venue-here input { width: 18px; height: 18px; }
-/* A multi-select in a profile form: tall enough to show its options without scrolling. */
-.role-ms { min-height: 92px; padding: 4px; }
-/* The chosen-subjects label has to wrap. It's the DISPLAY span that fills up, not the dropdown
-   below it — held on one line, three subjects ran into the next column. A list of chosen things is
-   naturally as tall as the list. */
-.l-subject-display, .inline-select.pick {
-  white-space: normal; overflow-wrap: anywhere; line-height: 1.45;
-  display: inline-block; max-width: 100%;
-}
-.field-line .fl-v { min-width: 0; }
-/* A value that's above 1 where a fraction was meant. Stated, not corrected — 1 is a legitimate
-   setting, just very rarely the intended one. */
-.fx-warn { color: #7a2a2a; opacity: 1; }
-.ve-room .res-edit { flex-basis: 100%; }
-/* A room slot in the venue editor. Collapsed when empty, open when it holds something — so a venue
-   with two rooms shows two, and the other four sit out of the way rather than filling the card
-   with blank forms. */
-.ve-slot { margin: 6px 0; border-bottom: 1px solid rgba(0,0,0,.12); padding-bottom: 6px; }
-.ve-slot > summary { cursor: pointer; padding: 4px 0; font-weight: bold; }
-.ve-slot .avail-grid { font-size: var(--fs-xs); }
