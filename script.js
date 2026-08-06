@@ -1440,7 +1440,7 @@ const API = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8
    week's. Nothing said so, and there was no way to ask.
 
    Bumped whenever this file changes. Shown on the You screen and in every failure banner. */
-const SITE_VERSION = '2026-08-06-map';
+const SITE_VERSION = '2026-08-06-open';
 
 /**
  * WHICH STYLESHEET IS RUNNING.
@@ -5696,6 +5696,19 @@ function mapLayout() {
 const MAP_PER_NODE = 5;
 const mapReached = () => Math.floor((Number(USER && USER.xp) || 0) / MAP_PER_NODE) + 1;
 
+/* NOTHING IS SHUT, for now.
+   The progression still runs — the gold node is still where your ticks have carried you, and the
+   road behind it is still the part you have walked — but every node can be opened and looked at.
+   Which is right while the map is new: a thing nobody has seen yet cannot be judged from the one
+   corner of it they have earned, and locking it made the first look a report on somebody's XP
+   rather than a look at the map.
+   ONE WORD PUTS IT BACK. Set this to true and the nodes ahead close again, the `?` returns, and
+   tapping one says how many ticks away it is. Everything for both behaviours is already here. */
+const MAP_LOCKED = false;
+
+/** Is this node open? Its position on the road when locking is on; always, when it is off. */
+const mapOpen = (i, at) => !MAP_LOCKED || i <= at;
+
 function drawOverworld() {
   const host = $('map-board');
   if (!host) return;
@@ -5717,7 +5730,7 @@ function drawOverworld() {
     <path d="${line}" class="map-road"/>
     ${at > 0 ? `<path d="${walked}" class="map-road-done"/>` : ''}
     ${nodes.map((n, i) => {
-      const open = i <= at;
+      const open = mapOpen(i, at);
       const here = i === at;
       return `<g class="map-node${open ? ' open' : ''}${here ? ' here' : ''}"
            data-do="map-node" data-i="${i}" data-name="${esc(n.v.title)}">
@@ -5732,8 +5745,11 @@ function drawOverworld() {
     if (!USER) return 'Sign in to make your way along it.';
     if (at >= nodes.length - 1) return 'Everywhere reached.';
     const need = (at + 1) * MAP_PER_NODE - (Number(USER.xp) || 0);
-    return need + ' more tick' + (need === 1 ? '' : 's') + ' to reach '
+    const next = need + ' more tick' + (need === 1 ? '' : 's') + ' to reach '
       + nodes[at + 1].v.title + '.';
+    /* With nothing shut, that sentence is about where you HAVE got to rather than what is barred —
+       so it says so, instead of reading as a refusal on a map that refuses nothing. */
+    return MAP_LOCKED ? next : next + ' Everywhere is open to look at meanwhile.';
   })()}</p>
   ${nodes.every(n => n.real) ? '' :
     `<p class="faint" style="text-align:center">${
@@ -5749,7 +5765,7 @@ on('map-node', el => {
   const n = nodes[i];
   if (!n) return;
   const at = Math.min(USER ? mapReached() : 1, nodes.length) - 1;
-  if (i > at) {
+  if (!mapOpen(i, at)) {
     const need = i * MAP_PER_NODE - (Number(USER && USER.xp) || 0);
     toast(need + ' more tick' + (need === 1 ? '' : 's') + ' to reach ' + n.v.title);
     return;
