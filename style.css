@@ -15,6 +15,15 @@
 ================================================================================================ */
 
 :root {
+  /* WHICH STYLESHEET THIS IS.
+     script.js can say which version of itself is running and hermes can say which version it is
+     serving; this file could say nothing at all, so "the picture is still cropped" and "the CSS on
+     your phone is three versions old" were indistinguishable — and we spent two rounds on the
+     wrong one of those.
+     Read at run time and shown on the You screen beside the other two. Bump it whenever this file
+     changes, exactly as the other two are bumped. */
+  --css-version: "2026-08-06-map";
+
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
 
@@ -32,7 +41,12 @@
   --faint:     #5e5e5e;
 
   --green:     #3ddc84;   /* a subject. Reserved — nothing else uses it. */
-  --purple:    #b98cff;   /* a venue. The second colour to be given a meaning, and the last. */
+  --purple:    #b98cff;   /* a venue */
+  /* Something you WEAR. Warm rather than cold so it does not read as a second purple — the two sit
+     beside each other on the Stuff list, and a venue and a cape must not look like the same kind
+     of noun. The fourth colour to mean something and the last: a glance can hold four categories
+     and not eight, and past that a palette becomes a legend. */
+  --pink:      #ff8fc4;
   --gold:      #ffb454;   /* the one action */
   --warn:      #ffb454;
   --good:      #3ddc84;
@@ -171,11 +185,79 @@ body {
   max-height: 40dvh; overflow: auto;
 }
 
-/* ---------- THE SCROLLER ------------------------------------------------------------------------ */
-#screen { padding: .75rem var(--pad) 1.5rem; }
-/* No gap. The rules separate things; a gap on top of a rule is a stripe of background showing
-   through, which is the look of a list that has come apart. */
-.screen { display: flex; flex-direction: column; gap: 0; }
+/* ---------- THE GRID ----------------------------------------------------------------------------
+   The scroller is a viewport now rather than a column. Screens lie along X inside it and, on a
+   paged screen, widgets lie along Y inside that — and both are the SAME OBJECT, a cell, placed by
+   how far it is from the one in front.
+
+   That is the whole standardisation: one shape, one transform, one transition, and a gesture that
+   does not care which way it is going.
+--------------------------------------------------------------------------------------------- */
+#screen {
+  position: relative;
+  /* CLIPPED, and it is the only thing that clips. Every cell is a full screen wide and sits one
+     width to the side; without this they are simply drawn there, side by side, and you see three
+     screens at once.
+     `clip` rather than `hidden`: `hidden` makes an element a scroll container, and a scroll
+     container inside a grid that is trying to own the scroll gesture is the fight this whole
+     layout has been having. `clip` cuts and creates nothing. */
+  overflow: clip;
+  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom));
+  /* No perspective. There is nothing to see in three dimensions any more — a cell slides, and that
+     is all it does. */
+}
+
+/* ---------- A CELL --------------------------------------------------------------------------------
+   A screen and a page differ in ONE respect: which axis they lie on. Everything else — the depth,
+   the fade, the easing, the rule that only the front one can be touched — is written once here and
+   read by both. That sameness is the whole point of the grid.
+
+   THE TRANSFORM IS NOT HERE. script.js writes it, finished, as a string. It used to be assembled
+   out of custom properties, and that rested on every variable in the calc resolving: one that does
+   not makes the declaration invalid at computed-value time, and an invalid transform is not a
+   partial transform, it is NO transform. Every cell then sits at zero, in normal flow, stacked on
+   top of the one in front — which is what a screenful of overlapping widgets looks like.
+
+   What is left here is the box and the easing, which have no such failure mode.
+--------------------------------------------------------------------------------------------- */
+.screen, .page {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; gap: 0;
+  padding: .75rem var(--pad) 1.25rem;
+  overflow: hidden;                       /* only the front cell scrolls — see .on below */
+  -webkit-overflow-scrolling: touch;
+  /* Off to the side until placed. A cell that has not been positioned yet must be somewhere
+     harmless — on top of what you are reading is the one place it must not be. */
+  transform: translateX(100%);
+  /* HIDDEN UNTIL PLACED, by visibility rather than opacity. Nothing on this grid is ever
+     part-transparent: a screen you can see through is a screen you cannot tell from a rendering
+     fault, and every screenshot of something genuinely wrong looked exactly like the decoration
+     working as designed. */
+  visibility: hidden;
+  /* Everything behind the front is a picture of a screen rather than a screen. Without this a tap
+     aimed at the calculator can land on the timer showing behind it, which is worse than useless
+     because it works. */
+  pointer-events: none;
+  /* One property animated, because one property moves. */
+  transition: transform .26s cubic-bezier(.2, .8, .3, 1);
+  will-change: transform;
+}
+/* A CELL NEVER SCROLLS. It is exactly one screen, so there is nothing past its bottom edge to
+   reach — and while it could scroll, a wheel or a drag went to it instead of to the grid, which is
+   a few pixels of movement that goes nowhere instead of the next widget.
+   Things INSIDE a cell still scroll where they must: the docket's list, the notepad. They have
+   their own overflow and are untouched. */
+.screen.on, .page.on { pointer-events: auto; }
+
+/* Out of the compositor once it is well off the screen. A CLASS, set in script.js beside the
+   number that decides it — the selector here used to match on the TEXT of the style attribute,
+   which assumed the browser writes `--a: 3` with a space after the colon. Nothing promises that,
+   and a browser writing `--a:3` simply never hid anything. */
+.far { visibility: hidden; }
+
+/* Following a finger. The transition is what makes a released cell settle; while the finger is
+   down it has to be off, or every frame is chasing the last one. */
+.no-anim { transition: none !important; }
 
 /* A SECTION is two lines across the full width with its name between them. Not a heading floating
    above a boxed group — the rules do the separating, so nothing has to be enclosed to be grouped. */
@@ -325,7 +407,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .green { color: var(--green); }
 .mono  { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .link  { color: var(--gold); text-decoration: none; }
-.stack { display: flex; flex-direction: column; gap: var(--gap); }
 .empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
 code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 
@@ -452,8 +533,8 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
         text-decoration: none; color: var(--ink);
         transition: transform var(--quick) ease; }
 .tile:active { transform: scale(.93); }
-.tile-name { font-size: .66rem; line-height: 1.2; text-align: center; color: var(--dim);
-             overflow-wrap: anywhere; max-width: 4.6rem; }
+/* The tile NAME went with the Library wall — a link is a card on Find now, and its name is the
+   card's own heading. The shape survives, because a link card still carries it. */
 
 .shape { display: flex; align-items: center; justify-content: center; position: relative;
          color: #fff; font-size: .8rem; font-weight: 700;
@@ -592,6 +673,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
    the identical colour to an error message is the one collision here that would actually mislead
    somebody. This one is a softer coral and is used for nothing else. */
 .w-red       { color: #ff7b72; }                      /* a tutor */
+.w-pink      { color: var(--pink); }                  /* something you wear */
 .w-amber     { color: var(--gold); }
 .w-dim       { color: var(--dim); }
 
@@ -623,14 +705,18 @@ h2 .subject, h3 .subject { color: var(--green); }
 
    The list colouring needs rows in the `laws` tab to take effect — the palette is here, the lists
    are data:
-       kind `list`, match `venues`, colour `purple`, weight 20
-       kind `list`, match `tutors`, colour `red`,    weight 20
-       kind `list`, match `clients`, colour `dim`,   weight 10
+       kind `list`, match `venues`,    colour `purple`, weight 20
+       kind `list`, match `tutors`,    colour `red`,    weight 20
+       kind `list`, match `wearables`, colour `pink`,   weight 20
+       kind `list`, match `clients`,   colour `dim`,    weight 10
 --------------------------------------------------------------------------------------------- */
 .card.is-venue > h3 { color: var(--purple); }
 h2 .venue, h3 .venue { color: var(--purple); }
 .card.is-tutor > h3 { color: #ff7b72; }
 h2 .tutor, h3 .tutor { color: #ff7b72; }
+/* A cape, a hat, a scarf. The fourth and last of these — the colours are meant to answer "what
+   kind of thing is this" at a glance, and a glance can hold four categories and not eight. */
+.card.is-wear > h3 { color: var(--pink); }
 
 /* A prompt before a heading, because this is a terminal. Two characters, and they do more for the
    look than any amount of styling on the text itself. */
@@ -669,16 +755,78 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .card.is-off, .post.is-off { opacity: .45; }
 
 /* ---------- POSTS ---------------------------------------------------------------------------------
-   A picture, a heart, a caption. Nothing around it — the photograph is the card, and a border
-   round a photograph is a frame nobody asked for.
+   A picture, the reactions, a caption. Nothing around it — the photograph is the card, and a
+   border round a photograph is a frame nobody asked for.
+
+   ONE TO A SCREEN. A feed is where this shape belongs most obviously: a photograph competing with
+   the top of the next photograph is a photograph nobody looks at properly, and scrolling past one
+   by accident is how you never see it again.
 --------------------------------------------------------------------------------------------- */
 .post { padding: 0 0 1.2rem; border-bottom: 1px solid var(--line-soft); margin-bottom: 1.2rem; }
 .post:last-child { border-bottom: 0; }
+/* Inside a page there is nothing under it, so the rule and the gap have nothing to separate — a
+   hairline across the bottom of a screen reads as a feed that has been cut off.
+
+   CENTRED DOWN THE PAGE. A landscape photograph is about half the height of a phone, so the post
+   sat at the top with a screenful of black under it — which reads as a page that failed to finish
+   loading rather than as a picture with room around it. In the middle, the space falls above and
+   below equally and becomes a margin instead of an absence.
+
+   `safe center`, and the plain `center` above it for anything that does not know the keyword.
+   That word is the whole reason this is safe to do: a post TALLER than the screen — a portrait
+   photograph with a long caption — would be centred by overflowing equally at both ends, and the
+   top of it, including who posted it, would be cut off and unreachable, because a cell does not
+   scroll. `safe` says centre it unless that would push content out of reach, in which case start
+   at the top. */
+/* Inside a page there is nothing under it, so the rule and the gap have nothing to separate — a
+   hairline across the bottom of a screen reads as a feed that has been cut off.
+
+   TOP-ALIGNED, as it was. The centring is reverted — and worth a line on why it is not simply
+   gone: the two attempts at it were both sound in themselves and neither could have worked,
+   because the page they were centring inside had no spare height at all. That was a cell set to
+   `position: static`, which is fixed in script.js and stays fixed; it was making the whole page
+   stop where its content stopped, not just the post.
+   So the post fills the page again and starts at the top, which is what it did before any of
+   this. `flex: 1 1 auto` rather than `height: 100%` is the one thing kept: a percentage height on
+   a flex item does not always resolve, and this asks the parent for the space instead of
+   calculating it. Same result, one fewer thing that can quietly not happen. */
+.page .post {
+  border-bottom: 0; margin-bottom: 0; padding-bottom: 0;
+  display: flex; flex-direction: column;
+  flex: 1 1 auto;
+  /* A flex item's floor is its content, so without this a tall post refuses to shrink and pushes
+     out of the page rather than being clipped by it. */
+  min-height: 0;
+}
 /* Edge to edge — the page margin is cancelled, because a photograph inset by 16px on a phone is a
    photograph with a border. */
 .post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
             background: var(--sunk); }
-.post-under { display: flex; align-items: center; justify-content: space-between; padding: .55rem 0 .2rem; }
+/* THE PICTURE IS SHOWN WHOLE. Full width, its own height, and never enlarged past it.
+
+   It used to stretch to fill the page with `object-fit: cover`, which crops — and what a phone
+   camera crops is the top and bottom of a portrait, which is where the person usually is. A
+   photograph of a child's work with the work cut off is worse than a photograph with a gap under
+   it, and this is a feed of things children made rather than a wallpaper.
+
+   So: edge to edge across, natural height down. A landscape photograph leaves room below it for
+   the caption and some black; a tall one runs past the bottom of the screen and the page scrolls,
+   which the pager already allows for — a page that can scroll keeps the gesture until it reaches
+   its end, so reading a long picture and then swiping to the next post is one continuous movement
+   rather than two rules. */
+.page .post-pic {
+  flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
+  height: auto;            /* its own height, from its own proportions */
+  max-height: none;        /* and never capped, which would crop it a second way */
+  max-width: none;
+  /* `fill` is the initial value and, with the box already matching the picture's own aspect,
+     it changes nothing — it is written out so that nobody reintroduces `cover` by reasoning that
+     the property is unset and therefore free. `cover` is what cropped the sides off a landscape
+     photograph and the top off a portrait one. */
+  object-fit: fill;
+}
+.page .post-by, .page .post-acts, .page .post-cap,
+.page .post-when, .page .poll, .page .note { flex: none; }
 
 /* THE HEART IS GONE. A like was a reaction with exactly one option, so keeping both meant two
    counts of the same gesture and a ♥ sitting beside a 👍 asking for the same press — with no way
@@ -720,7 +868,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
 /* Where and when, on one line under a photograph. The place first, because it is the thing
    somebody actually reads — a date is a fact you check, a place is a thing you recognise. */
-.post-meta { display: flex; align-items: baseline; gap: .6rem; font-size: .75rem; }
 
 /* The edit control. At the END of the header row, small — a post is looked at a hundred times for
    every time it is edited, and a control sized for the rare case is a control in the way for the
@@ -749,20 +896,47 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   100%    { box-shadow: 0 0 0 2px transparent; }
 }
 
+/* ---------- CHOOSING A PHOTOGRAPH ALREADY IN THE FOLDER -------------------------------------------
+   A row of what is there, scrolled sideways. Sideways because the alternative is a grid that
+   pushes the caption box off the screen — the picker is one field of a form, not the form.
+--------------------------------------------------------------------------------------------- */
+.pickers { display: flex; gap: .4rem; overflow-x: auto; padding: .1rem 0 .4rem;
+           -webkit-overflow-scrolling: touch; }
+.picker {
+  flex: 0 0 auto; width: 5.2rem;
+  display: flex; flex-direction: column; gap: .2rem;
+  padding: 0; border: 1px solid var(--line-soft); border-radius: 2px;
+  background: var(--sunk); color: var(--dim); font: inherit; cursor: pointer;
+  transition: border-color var(--quick) ease;
+}
+.picker img { width: 100%; height: 4.4rem; object-fit: cover; display: block; background: var(--raised); }
+.picker span { font-size: .58rem; line-height: 1.25; padding: 0 .2rem .2rem;
+               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker.on { border-color: var(--gold); }
+.picker.on span { color: var(--gold); }
+
 /* ---------- WAITING -------------------------------------------------------------------------------
-   The shape of what is coming, not a spinner. A spinner says "wait"; this says "a picture and two
-   lines are about to be here" — so nothing jumps when they arrive.
+   The shape of what is coming, not a spinner. A spinner says "wait"; this says "a face, a
+   photograph and two lines are about to be here" — so nothing jumps when they arrive.
+
+   It sits in the pager and fills it, exactly as the post that replaces it will. A skeleton in the
+   wrong shape is worse than none: the page still jumps, and it jumps at the moment somebody has
+   started reading.
 --------------------------------------------------------------------------------------------- */
 .sk-box { display: block; background: var(--raised); border-radius: 2px;
           animation: sk 1.35s ease-in-out infinite; }
 .sk-pic { width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); aspect-ratio: 4/5; }
+/* The skeleton cannot know how tall the photograph will be, so it holds a portrait ratio — the
+   commonest shape a phone produces, and the one that costs least if it guesses wrong: a real
+   picture slightly shorter than the placeholder settles upwards by a little, where a placeholder
+   that filled the screen would drop the caption half a page. */
+.page .sk-pic { flex: 0 0 auto; aspect-ratio: 4/5; }
 .sk .post-by { gap: .5rem; }
 /* Barely there. A skeleton that pulses hard is more distracting than the wait it is covering. */
 @keyframes sk { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
-
-/* The screen slides back when a swipe is let go without going far enough. Only the transform is
-   animated — animating anything else here would be work on every frame of a gesture. */
-.screen { transition: transform .19s cubic-bezier(.2,.8,.3,1); will-change: transform; }
+/* Somebody who asked for less movement is not helped by a rectangle breathing at them for four
+   seconds. It still holds the shape, which is the part doing the work. */
+@media (prefers-reduced-motion: reduce) { .sk-box { animation: none; opacity: .7; } }
 
 /* ---------- A POLL --------------------------------------------------------------------------------
    Rows you can press, and once you have, a bar behind each one. The bar is drawn INSIDE the row
@@ -1016,151 +1190,309 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    `dvh` rather than `vh`, for the same reason the body uses it — vh ignores the browser chrome on
    a phone, so a page sized in vh is a page whose bottom is under the address bar.
 --------------------------------------------------------------------------------------------- */
-.pager {
-  position: relative; overflow: hidden;
-  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom) - 2.25rem);
-  /* The page margin is cancelled and given back inside each page, so the dots can sit against the
-     true edge of the screen rather than inset from it. */
-  width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
-  /* The turn is what tells you the widgets are on ONE dial rather than being swapped for each
-     other. It needs somewhere to happen in, and a flat stack has nowhere. */
-  perspective: 900px;
-}
-.pages { position: absolute; inset: 0; --drag: 0px; }
+/* THE WRAPPERS ARE GONE. A paged screen was `.screen > .pager > .pages > .page` — four nested
+   absolutely-positioned boxes with negative margins cancelling padding between them, which is four
+   places for a layout to go wrong and no way to tell from the result which one had.
 
-/* ---------- ONE DIAL, AND YOU ARE LOOKING AT THE FRONT OF IT -------------------------------------
-   Every widget is on the same spindle. The one at the front is full size and the rest are still
-   there — smaller, dimmer, pushed back — so the shape of the whole screen is visible while you use
-   one part of it. A page that slid in from below showed one thing and gave no hint there was
-   anything else, which is the job the dots were doing on its behalf.
+   Pages are children of the screen now. One level, no margin arithmetic, and a page is placed
+   against the screen exactly as a screen is placed against the viewport — the same relationship at
+   both scales, which is what the grid was supposed to mean.
 
-   TWO NUMBERS, set per page in script.js, and CSS does the rest:
-     --o   how far from the front, signed. -1 is the one above, +1 the one below.
-     --a   the same, unsigned — because scale and fade want a distance rather than a direction,
-           and CSS has no abs() that can be relied on.
+   The screen gives up its padding so a page can supply its own: a page is positioned against the
+   screen's PADDING box, so a padded screen would inset every page and then let it pad itself
+   again. */
+.screen.paged { padding: 0; }
 
-   80% rather than 100%, which is what makes it a dial: at a full page apart the neighbours sit
-   exactly off-screen and you are back to a slide. A fifth of each showing is enough to read the
-   heading of the next thing without it competing with the one in front.
+
+/* ---------- ONE DIAL, AND THE FRONT OF IT --------------------------------------------------------
+   A second `.page` rule lived here, left over from when a page was placed by CSS out of custom
+   properties. It has been dead since the transform moved into script.js, and it was not harmless:
+
+     · its `transform` read `var(--drag)`, which nothing sets any more and which has no fallback.
+       A declaration containing an undefined variable is invalid at COMPUTED-VALUE TIME, and an
+       invalid declaration is not ignored in part — the whole thing is dropped.
+     · it re-declared padding, overflow, opacity, z-index and the transition over the shared cell
+       rule, so a page was described twice and the two descriptions had already drifted apart.
+
+   A page is a cell. The rule that says what a cell is, above, is the only rule that says it.
 --------------------------------------------------------------------------------------------- */
-.page {
-  position: absolute; inset: 0;
-  padding: 0 var(--pad);
-  overflow: hidden;                       /* only the front page scrolls — see .page.on */
-  -webkit-overflow-scrolling: touch;
-  transform-origin: 50% 50%;
-  transform:
-    translateY(calc(var(--o, 0) * 80% + var(--drag)))
-    /* Pushed back rather than only shrunk. A scale alone reads as a smaller copy of the same
-       card; moving it away as well is what makes it read as being BEHIND. */
-    translateZ(calc(var(--a, 0) * -180px))
-    scale(calc(1 - .06 * var(--a, 0)));
-  opacity: calc(1 - .5 * var(--a, 0));
-  z-index: calc(10 - var(--a, 0));
-  /* Everything behind the front is a picture of a widget, not a widget. Without this a tap aimed
-     at the calculator can land on the timer showing behind it — which is worse than useless,
-     because it works. */
-  pointer-events: none;
-  transition: transform .3s cubic-bezier(.2,.8,.3,1), opacity .3s ease;
-  will-change: transform, opacity;
-}
-.page.on { pointer-events: auto; overflow-y: auto; }
-/* Two away is far enough to be scenery and near enough to cost nothing to draw. Beyond that it is
-   off the screen anyway, so it is taken out of the compositor rather than being faded to nothing
-   and left there. */
-.page[style*="--a: 3"], .page[style*="--a: 4"], .page[style*="--a: 5"] { visibility: hidden; }
-
-/* Following a finger. The transition is what makes a released dial settle; while the finger is
-   down it has to be off, or every frame of the drag is chasing the last one. */
-.no-anim .page { transition: none; }
 /* No rule under the last card: a page is one thing, and a hairline across the bottom of a screen
    reads as a list that has been cut off. */
 .page .card { border-bottom: 0; }
 
-/* ---------- A WIDGET FILLS ITS PAGE --------------------------------------------------------------
-   A card is sized by its contents and a page is a fixed height, so a calculator sat at the top of
-   a screen with half of it empty. On a scrolling list that was right — the next card was under it.
-   On a pager there is nothing under it, and the emptiness reads as something failing to load.
+/* ---------- A WIDGET NO LONGER FILLS A PAGE ------------------------------------------------------
+   Every rule that used to live here made one card grow to the height of its screen — the keypad,
+   the clock, the board, the month, the reel. They were written when Tools and Arcade were tabs and
+   a page held exactly one widget.
 
-   So each page is a column, its card fills it, and ONE element inside takes whatever is left. Not
-   everything stretches: a chess board must stay square and a row of buttons must stay a row, so
-   what grows is named per widget below rather than applied to everything and then fought.
+   Those tabs are gone and the widgets open in the sheet, which scrolls and is sized by what is in
+   it. So the rules had nothing left to stretch — except that `.page > .card { flex: 1 1 auto }`
+   matches ANY card that is a page's direct child, and the Find browse page begins with one: your
+   credits. It grew to the height of the screen and pushed the search box, the sort and the whole
+   list of questions to the bottom, under a screenful of nothing.
 
-   `min-height: 0` on every one of them is not optional. A flex item's floor is its content, so
-   without it a grid of four hundred docket lines refuses to shrink, the page grows past the
-   screen, and the pager's fixed height is quietly defeated.
+   A rule that outlives what it was written for does not sit quietly; it finds something else to
+   apply to. That is the second time in this file — the first was the tile-name rule surviving the
+   Library wall — and both were found by looking at a screen rather than by anything failing.
 --------------------------------------------------------------------------------------------- */
-.page { display: flex; flex-direction: column; padding-bottom: .5rem; }
-.page > .card { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0;
-                padding-top: .5rem; }
-/* The heading and its line never grow — they say what the widget is and then get out of the way. */
-.page > .card > h3, .page > .card > .sub, .page > .card > .cal-head { flex: none; }
+.page { padding-bottom: 1.5rem; }
+/* No rule under the last card: a page is one thing, and a hairline across the bottom of a screen
+   reads as a list that has been cut off. */
+.page .card { border-bottom: 0; }
+/* NOTHING TO SHOW, centred. An empty state pinned to the top of a full-screen page leaves a
+   screenful of nothing under one sentence, which reads as content that failed to load rather than
+   as a list with nothing on it. */
+.page .empty { margin: auto 0; text-align: center; }
 
-/* The picture IS the reels card, so it takes everything going. The 4/5 ratio was for a card in a
-   list; on a page the shape is decided by the screen. */
-.page .feed { flex: 1 1 auto; aspect-ratio: auto; min-height: 0; }
+/* ---------- THE OVERWORLD ------------------------------------------------------------------------
+   Drawn in the app's own ink: a road, nodes on it, and one of them lit. Nothing here is a map tile
+   — it weighs nothing, cannot 404, and looks like the rest of the site rather than like a window
+   cut into somebody else's.
+--------------------------------------------------------------------------------------------- */
+.map { position: relative; width: 100%; aspect-ratio: 3/4; }
+.map-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* The road. Rounded joins so a turn reads as a bend rather than a corner — the one detail that
+   makes a polyline look like a path somebody could walk. */
+.map-road { fill: none; stroke: var(--line); stroke-width: 1.2;
+            stroke-linejoin: round; stroke-linecap: round; }
+/* The part already walked, in the accent. It is the only progress indicator here and it is the
+   road itself, which is better than a bar: it says WHERE you got to, not how far through. */
+.map-road-done { fill: none; stroke: var(--gold); stroke-width: 1.6;
+                 stroke-linejoin: round; stroke-linecap: round; opacity: .75; }
+
+.map-node circle { fill: var(--sunk); stroke: var(--line); stroke-width: 1; cursor: pointer;
+                   transition: fill var(--quick) ease; }
+/* Reached. Filled, because a node you have been to and one you have not must differ at a glance
+   from arm's length, and a colour change alone does not survive that. */
+.map-node.open circle { fill: var(--dim); stroke: var(--dim); }
+/* Where you are. The only gold thing on the board, so the eye finds it without looking. */
+.map-node.here circle { fill: var(--gold); stroke: var(--gold); }
+.map-node:active circle { fill: var(--ink); }
+/* A shut node says so. A question mark rather than a padlock: it is somewhere you have not been,
+   not somewhere you are barred from. */
+.map-lock { fill: var(--faint); font-size: 3.4px; text-anchor: middle; font-family: var(--mono); }
+
+.map-where { text-align: center; margin: .4rem 0 0; font-size: .9rem; font-weight: 620; }
+.map-next { text-align: center; margin: .15rem 0 0; }
+
+/* ---------- MESSAGES ------------------------------------------------------------------------------
+   Yours to the right, theirs to the left, which is the one convention every messaging app shares
+   and the only thing that lets a thread be read without labels on every line.
+--------------------------------------------------------------------------------------------- */
+.msg { padding: .5rem 0; border-bottom: 1px solid var(--line-soft); }
+.msg:last-child { border-bottom: 0; }
+.msg-body { margin: 0; font-size: .88rem; line-height: 1.45; }
+.msg-when { margin: .2rem 0 0; }
+.msg.mine { text-align: right; }
+/* Unread. A rule down the left rather than a dot or a colour: it marks the whole message rather
+   than a point on it, and it reads at a glance down a list without competing with the text. */
+.msg.unread { border-left: 2px solid var(--gold); padding-left: .6rem; }
+
+/* ---------- THE BOOKING CARD --------------------------------------------------------------------
+   Five columns: what it is · what was chosen · the multiplier · what it adds an hour · the running
+   total. A multiplier and a fixed amount are different operations, and sharing one column is what
+   made the old arithmetic unfollowable.
+
+   The last figure in the right-hand column IS the price. That is the whole design: a total on its
+   own is a number you either trust or you don't, and a chain you can read down is one you can
+   check.
+--------------------------------------------------------------------------------------------- */
+.bk { display: flex; flex-direction: column; margin: .4rem 0 .2rem; }
+/* FIVE COLUMNS, and they must feel like five.
+   `auto` on the last three meant each row sized its own figures, so £10.00 and £317.75 started in
+   different places and the card read as rows that happen to contain numbers rather than as a
+   table. Fixed widths in `ch` — the width of a digit in this monospace — so every multiplier sits
+   under every other multiplier and the totals form a straight edge down the right.
+   The value column is the only elastic one, because it is the only one whose content has no
+   natural width. */
+.bk-row {
+  display: grid;
+  /* THE LABEL COLUMN WRAPS. It was `max-content`, which is a promise never to break a line — so
+     "Extra subjects" and "Time interval" held the column open at their full width and every other
+     column was squeezed to pay for it. Given a narrow fixed width they break in two, which costs a
+     line of height and buys the figures the room they need.
+     Both text columns are narrow on purpose: a card of five columns only reads as five if none of
+     them is fighting the others for width. */
+  grid-template-columns: 4.6rem minmax(0, 1fr) 6ch 9.5ch 8.5ch;
+  gap: .5rem; align-items: start;
+  padding: .34rem 0;
+  font-size: .76rem;
+}
+/* Break anywhere rather than overflow. A long venue name has no spaces to break at in the middle,
+   and a column that overflows pushes the numbers off the card. */
+.bk-k, .bk-v { overflow-wrap: anywhere; line-height: 1.35; }
+/* Right-aligned, all three, so the columns are edges rather than ragged starts. A number column
+   aligned left is a column you have to read across to compare. */
+.bk-m, .bk-r, .bk-t { text-align: right; white-space: nowrap; }
+.bk-k { color: var(--dim); }
+/* Aligned to the top rather than the baseline, because these columns now hold several lines each
+   and baseline alignment would line up the FIRST line of a two-line label with the only line of a
+   one-line figure — which reads as the figure belonging to the line above it. */
+.bk-m, .bk-r, .bk-t { padding-top: .05rem; }
+/* The chosen value, right against the figures — and dashed underneath, because that is how the
+   card says "you picked this" as opposed to "this was worked out". */
+.bk-v { text-align: right; overflow-wrap: anywhere; min-width: 0;
+        border-bottom: 1px dashed var(--line); }
+.bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
+   quieter; the running total is the answer, so it is the only one in full ink. */
+.bk-m { font-weight: 650; color: var(--dim); }
+.bk-r { color: var(--faint); }
+.bk-t { color: var(--ink); }
+/* A rule between the sections. They are three different operations on the price — what builds the
+   hourly rate, and what multiplies the finished total — and running them together as one list is
+   what made reading down look like one continuous sum. */
+.bk-end { border-bottom: 1px solid var(--line-soft); padding-bottom: .5rem; margin-bottom: .2rem; }
+/* Rows carrying no money give their value the whole width rather than stopping where the figures
+   would begin — an empty band beside Status reads as figures that failed to draw. */
+.bk-free .bk-v { border-bottom: 0; }
+.bk-dates { font-size: .72rem; line-height: 1.5; color: var(--dim); }
+
+/* A value you picked is a button. No pencil, no edit mode — the dashed underline already says
+   somebody chose this, so it is the obvious thing to press when you want to choose differently. */
+.bk-pick { cursor: pointer; border-bottom-color: var(--gold); }
+.bk-pick:active { color: var(--gold); }
+
+/* A day's hours, inside its row: ticked ones filled, the rest outlined. Small, because this is the
+   card REPORTING what was ticked rather than asking for it. */
+.bk-day .bk-v { border-bottom: 0; text-align: left; }
+/* The same thin columns the picker uses, so a day on the card and a day in the grid are visibly
+   the same row of hours. */
+.bk-hrs { display: flex; gap: 1px; }
+.bk-hr { flex: 1 1 0; min-width: 0; text-align: center; font-size: .55rem; padding: .1rem 0;
+         border: 1px solid var(--line-soft); color: var(--faint); border-radius: 2px; }
+.bk-hr.on { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 700; }
+
+/* The two photographs — the room and the person. A booking is largely about whether you like the
+   look of both, and a card that names them without showing them is a receipt rather than an offer.
+   Square, side by side, taped like every other photo on the site. */
+.bk-photos { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .6rem; }
+.bk-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--sunk);
+                 border: 1px solid var(--line); }
+/* Nobody chosen yet — a drawn figure rather than a caption. It reads as a person nobody has
+   picked, which is what an open booking IS, and it holds the frame so a card with one photograph
+   does not look like a booking with a room and no teacher. */
+.bk-none { display: flex; align-items: center; justify-content: center;
+           aspect-ratio: 1; border: 1px dashed var(--line); color: var(--faint); padding: 18%; }
+.bk-none svg { width: 100%; height: auto; }
+
+/* ---------- WHEN, AS A WEEK YOU TICK -------------------------------------------------------------
+   One row per day, one small button per bookable hour. It replaces three questions — which day,
+   what time, how long — because ticking two adjacent hours says all three at once, and ticking a
+   second day says a thing three questions could not say at all.
+
+   ONLY THE HOURS SOMEBODY CAN TEACH IN are drawn, so a day the tutor does not work has no row
+   rather than a row of refusals. A grid of mostly-disabled buttons is a grid you have to read
+   before you can use.
+--------------------------------------------------------------------------------------------- */
+.slot-grid { display: flex; flex-direction: column; gap: .3rem; margin: .5rem 0 .2rem; }
+.slot-row { display: flex; align-items: center; gap: .5rem; }
+.slot-day { flex: 0 0 2.2rem; font-size: .7rem; color: var(--faint);
+            text-transform: uppercase; letter-spacing: .08em; }
+/* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
+   see is one you will not book. */
+/* THIN AND TALL. Fourteen hours at a 38px square is two lines on any phone, and a day that wraps
+   stops reading as a day. They share the row instead: each takes an equal slice of whatever is
+   left, so a week is seven rows of one line each.
+   The HEIGHT keeps the touch target — a box 22px wide and 38px tall is as easy to hit as a square
+   one, because a thumb landing on a row of them can only be wrong about which COLUMN it hit, and
+   the columns are what the eye is already aiming at. */
+.slot-hours { display: flex; gap: 2px; flex: 1; min-width: 0; }
+.hr {
+  flex: 1 1 0; min-width: 0; padding: 0;
+  min-height: max(38px, 2.4rem);
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--dim); font: inherit; font-size: .78rem; cursor: pointer;
+  transition: transform var(--quick) ease, border-color var(--quick) ease;
+}
+.hr:active { transform: scale(.9); }
+/* Small enough that the number has to be, too — it is a label on a column, not a word. */
+.hr { font-size: .66rem; letter-spacing: -.02em; }
+/* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
+   — which is exactly what it is. */
+.hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
+/* NOT AVAILABLE — greyed, never removed. A grid that changes shape as you choose things cannot be
+   read: you cannot tell a day the tutor does not work from one that was never offered, and the row
+   moving under your thumb as you pick a venue is the fault the dropdowns were fixed for. */
+.hr.shut { opacity: .28; cursor: not-allowed; }
+.hr.shut:active { transform: none; }
+
+/* ---------- A WIDGET THAT IS THE WHOLE PAGE ------------------------------------------------------
+   Choose Tools or Games and there is nothing else on the list, so each one gets a screen of its
+   own and is already running — a game you have to open is not a game.
+
+   These are the rules that used to be here for the Tools and Arcade tabs, back for the case they
+   were always right for: ONE widget, filling ONE screen. The difference is the selector. They were
+   `.page > .card`, which matched any card that happened to be a page's first child — and when the
+   widgets moved out, the credits card on Find inherited it and pushed everything below it off the
+   bottom. `.widget-full` matches only a widget that IS the page, which is a thing that cannot
+   happen by accident. */
+.widget-full { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.widget-full > .card { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0;
+                       padding-top: .5rem; }
+/* The heading and its line never grow — they say what the widget is and then get out of the way. */
+.widget-full > .card > h3, .widget-full > .card > .sub,
+.widget-full > .card > .cal-head, .widget-full > .card > .btn-row { flex: none; }
 
 /* The keypad grows and its keys grow with it — `1fr` rows rather than content-height ones, so a
-   tall phone gets keys a thumb can hit rather than a keypad floating in a black field.
-   The 44px floor still applies underneath, which is what protects a short screen. */
-.page .mc-grid { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(max(44px, 2.9rem), 1fr); }
+   tall phone gets keys a thumb can hit rather than a keypad floating in a black field. The 44px
+   floor still applies underneath, which is what protects a short screen. */
+.widget-full .mc-grid { flex: 1 1 auto; min-height: 0;
+                        grid-auto-rows: minmax(max(44px, 2.9rem), 1fr); }
 
-/* The clock takes the middle of the screen and sits in the centre of it, which is where you look
-   when you are waiting for a number to change. */
-.page #timer-display { flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
-                       margin: 0; font-size: clamp(2.1rem, 14vw, 4rem); }
+/* The clock takes the middle of the screen, which is where you look while waiting for a number to
+   change. */
+.widget-full #timer-display { flex: 1 1 auto; display: flex; align-items: center;
+                              justify-content: center; margin: 0;
+                              font-size: clamp(2.1rem, 14vw, 4rem); }
 
-/* The list scrolls INSIDE the card, so the add-a-line box stays on screen with twenty things on
-   the docket — a control that scrolls away is a control you have to go and find. */
-.page #docket-body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
-.page .dock-new { flex: none; }
+/* The list scrolls INSIDE the card so the add-a-line box stays on screen with twenty things on the
+   docket — a control that scrolls away is a control you have to go and find. */
+.widget-full #docket-body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+.widget-full .dock-new { flex: none; }
 
 /* A notepad that is not the height of the screen is a notepad you scroll while writing. */
-.page #notepad { flex: 1 1 auto; min-height: 0; resize: none; }
+.widget-full #notepad { flex: 1 1 auto; min-height: 0; resize: none; }
 
-/* A month with room in it. `1fr` rows spread the weeks down the card instead of leaving the last
-   fortnight of empty space under a squashed grid. */
-.page .cal { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(2rem, 1fr); align-content: stretch; }
-.page .cal .cal-d, .page .cal .cal-h { display: flex; flex-direction: column;
-                                       align-items: center; justify-content: center; }
+/* A month with room in it. `1fr` rows spread the weeks down the card instead of leaving a fortnight
+   of empty space under a squashed grid. */
+.widget-full .cal { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(2rem, 1fr);
+                    align-content: stretch; }
+.widget-full .cal .cal-d, .widget-full .cal .cal-h { display: flex; flex-direction: column;
+                                                     align-items: center; justify-content: center; }
 
-/* SQUARE, and centred in whatever is left. A board that stretched would be a board where a knight
-   moves further sideways than forwards.
+/* SQUARE, and centred in whatever is left — a board that stretched would be a board where a knight
+   moves further sideways than forwards. `width: 100%`, never `auto`: a grid with an auto width in
+   a flex column has nothing to measure against and collapses, and the pieces are sized in `cqw`,
+   a fraction of that width, so they go with it. */
+.widget-full .chess { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 1; }
 
-   `width: 100%`, NOT `width: auto`. A grid with an auto width inside a flex column has nothing to
-   measure itself against and collapses — and the pieces are sized in `cqw`, a fraction of that
-   width, so they go with it. The board vanished rather than merely being the wrong size.
-   No max-height either: on any phone a square is limited by the WIDTH, never the height, so a cap
-   on the other axis is a rule that can only ever fire when something else is already wrong. */
-.page .chess { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 1; }
-.page > .card > .btn-row { flex: none; }
+/* A SIDE-SCROLLER NEEDS WIDTH, NOT HEIGHT. Filling the page gives it a portrait box where pipes
+   arrive with no room to react to them. It keeps its shape and floats in the middle, like the
+   board. The canvas ELEMENT is resized in script.js to match: a canvas stretched by CSS alone
+   draws at its old resolution, so everything blurs and the collisions stop matching what you see. */
+.widget-full .flappy { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 3/2;
+                       min-height: 0; }
 
-/* A SIDE-SCROLLER NEEDS WIDTH, NOT HEIGHT. Filling the page gave it a portrait box — taller than
-   it is wide — where pipes arrive with no room to react to them, and the bird, scaled from the
-   height, came out four times the size it should be. It keeps its shape and floats in the middle,
-   the same as the board.
-   The canvas ELEMENT is still resized in script.js to match its box: a canvas stretched by CSS
-   alone draws at its old resolution and scales, so everything blurs and the collisions stop
-   matching what you can see. */
-.page .flappy { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 3/2; min-height: 0; }
+/* The picture IS the reel, so it takes everything going. */
+.widget-full .feed { flex: 1 1 auto; aspect-ratio: auto; min-height: 0; }
 
-/* The sprint is short, so it centres rather than stretching — there is nothing here that would be
-   better for being taller. */
-.page #tt-idle, .page #tt-over { margin: auto 0; }
-.page #tt-question { display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto;
-                     min-height: 0; }
+/* The sprint is short, so it centres rather than stretching — nothing here is better for being
+   taller. */
+.widget-full #tt-idle, .widget-full #tt-over { margin: auto 0; }
+.widget-full #tt-question { display: flex; flex-direction: column; justify-content: center;
+                            flex: 1 1 auto; min-height: 0; }
 
-/* WHERE YOU ARE, and how many there are. Down the right edge, small — it is a map rather than a
-   control, and a column of four dots says "there are four things here", which a scrolling list of
-   cards never managed to say at all. */
-.page-dots { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%);
-             display: flex; flex-direction: column; gap: .45rem; z-index: 2; }
-.page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line);
-            cursor: pointer; transition: background var(--quick) ease, transform var(--quick) ease; }
-.page-dot.on { background: var(--gold); transform: scale(1.35); }
-/* The dot itself is 6px, which nothing could hit. The padding around it is the target. */
-.page-dot::after { content: ''; position: absolute; width: 28px; height: 22px;
-                   margin: -8px 0 0 -11px; }
+/* Inside the sheet, the docket's list scrolls and its add-a-line box stays put — a control that
+   scrolls away is a control you have to go and find. */
+#sheet-body #docket-body { max-height: 45dvh; overflow-y: auto; }
+#sheet-body .dock-new { position: sticky; bottom: 0; background: var(--raised); padding-top: .4rem; }
+/* A board is square and a side-scroller is not. Both are sized by width in the sheet, which is the
+   axis that is known. */
+#sheet-body .chess { width: 100%; aspect-ratio: 1; }
+#sheet-body .flappy { width: 100%; aspect-ratio: 3/2; }
+#sheet-body .feed { aspect-ratio: 4/5; }
 
 /* ---------- THE FIGURE, AND THE THINGS IT WEARS ---------------------------------------------------
    Drawn, not photographed — so it costs nothing to load, never 404s, and is the same on every
@@ -1213,6 +1545,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    arrives rather than travelling. */
 @media (prefers-reduced-motion: reduce) {
   .mc-caret { animation: none; }
+  /* A cell still moves — that is the layout, not the decoration. It arrives rather than
+     travelling. */
+  .screen, .page { transition: none; }
   .page { transition: none; }
-  .pages { transition: none; }
+  /* A cell still moves and still fades — that is the layout rather than the decoration. It simply
+     arrives rather than travelling. */
+  .screen, .page { transition: none; }
 }
