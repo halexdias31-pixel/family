@@ -1440,7 +1440,7 @@ const API = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8
    week's. Nothing said so, and there was no way to ask.
 
    Bumped whenever this file changes. Shown on the You screen and in every failure banner. */
-const SITE_VERSION = '2026-08-07-built';
+const SITE_VERSION = '2026-08-07-resize';
 
 /**
  * WHICH STYLESHEET IS RUNNING.
@@ -1736,7 +1736,7 @@ function go(id, remember, instant) {
      happens here, and nothing after it may write innerHTML. */
   paintNeighbours();
   placeCells('x', instant);
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === AT));
+
 
   $('top-title').textContent = tab.title;
 
@@ -1785,10 +1785,15 @@ function arrive(el, which) {
  * the Stuff list only when you can reach it.
  */
 function paintNeighbours() {
-  const at = TABS.findIndex(t => t.id === AT);
-  [at - 1, at + 1].forEach(i => {
-    if (i < 0 || i >= TABS.length) return;
-    const id = TABS[i].id;
+  /* EVERY SCREEN, not the two either side. Four tabs is not many, each is drawn once and never
+     again, and the peek shows whatever has been painted — so a screen nobody has visited is a blank
+     rectangle at the edge of the one you are on, which reads as the app being broken rather than as
+     a tab you have not opened.
+     It was ±1 because only ±1 could ever be revealed by a horizontal drag. A corner is one tab
+     across AND one page down, so it can be a screen two away when the pages are counted. */
+  TABS.forEach((t, i) => {
+    const id = t.id;
+    if (id === AT) return;
     const el = $('s-' + id);
     if (!el || el.innerHTML) return;          // already drawn; redrawing would only cost
     paint(id);
@@ -1843,15 +1848,16 @@ const repaint = () => {
   paintPager(AT, true);
 };
 
-function buildTabs() {
-  /* Wrapped, so the BAR can go edge to edge while the row of tabs stays the width of the
-     content — a bar that stops short of the screen looks like it failed to load, and tabs spread
-     across a desktop look like a website. */
-  $('tabs').innerHTML = '<div class="tabs-inner">' + TABS.map(t =>
-    `<button class="tab${t.big ? ' big' : ''}" data-tab="${t.id}">
-       <span class="ic">${t.icon}</span><span class="lb">${esc(t.label)}</span>
-     </button>`).join('') + '</div>';
-}
+/* THE TAB BAR IS GONE. Four buttons naming the four screens, at the bottom, taking 3.6rem of a
+   phone — and every one of them says something the grid now says better: the screens either side
+   are visible at the edges, and swiping to one is the same gesture as turning a page.
+
+   A bar that duplicates what you can already see is a bar that costs height and teaches nothing.
+
+   WHAT IS LOST, and it is real: you could reach any screen in one press, and now the far one is
+   three swipes. Kept anyway, because three swipes across a grid you can SEE is a different thing
+   from three presses through screens you cannot — and the header still names where you are.
+   `data-tab` is still handled, so anything else that wants to send somebody to a screen can. */
 
 /* ================================================================================================
    ONE GRID. TWO AXES. THE SAME BEHAVIOUR ON BOTH.
@@ -1889,7 +1895,14 @@ const AXES = {
        Only Posts and You lined up by luck, which is precisely the two that ever worked.
        The tab bar is the order. Nothing should have to know how the markup is arranged. */
     cells: () => TABS.map(t => $('s-' + t.id)).filter(Boolean),
-    go:    (n, instant) => go(TABS[n].id, true, instant),
+    /* CLAMPED. The other axis clamps inside `goPage` and this one did not, so a swipe past the
+       last tab asked for `TABS[4]` and read `.id` off nothing. The end resistance made the movement
+       small but the DECISION is taken on the full travel, so a firm flick at the edge threw every
+       time — and a thrown handler leaves the grid mid-drag with no cells placed. */
+    go:    (n, instant) => {
+      const at = Math.max(0, Math.min(TABS.length - 1, n));
+      go(TABS[at].id, true, instant);
+    },
   },
   /* Y — the widgets on a paged screen. Absent on a screen that is not paged, which is what makes
      a vertical drag there fall through to ordinary scrolling. */
@@ -1918,103 +1931,217 @@ const AXES = {
  * `instant` is the difference between arriving and travelling: coming back to a tab has to put you
  * where you left off rather than fly you there, and a boot has to draw rather than animate.
  */
-function placeCells(which, instant, dragPx, id) {
-  const ax = AXES[which];
-  const cells = ax.cells(id);
-  if (!cells.length) return;
-  const n = ax.at(id);
-  cells.forEach((el, i) => showCell_(el, i === n, which, i === n ? (dragPx || 0) : 0));
+/**
+ * PLACE EVERY CELL, ON BOTH AXES AT ONCE.
+ *
+ * There were two placers, one per axis, and a page could only ever be offset by its own. So a page
+ * belonging to another tab had no position on the horizontal — which is why nothing ever peeked at
+ * a corner, and why the seven attempts at a preview each fixed one axis and broke the other.
+ *
+ * ONE PASS OVER EVERY PAGE IN EVERY TAB. A page knows two distances: how many tabs sideways and how
+ * many pages down it is from the one being read. Both are written into one transform, so a corner
+ * is not a special case — it is simply a cell with two non-zero distances.
+ *
+ * THE SCREENS STOPPED MOVING. They are containers now and nothing more: no transform, no offset,
+ * no z-index. Two things moving the same cell is the fault that broke the carousel, and the fix is
+ * that only one of them moves anything.
+ *
+ * EVERY PROPERTY IS WRITTEN EVERY TIME. The oldest lesson in this file: removing an inline value
+ * does not remove the rule beneath it, it REVEALS it — and the stylesheet still says `translateX`
+ * and `visibility: hidden`, because that is what an unplaced cell needs. A cell described in full
+ * looks the same whatever style.css says.
+ */
+/* HOW BIG A CELL IS, AND THE ONE GAP BETWEEN THEM.
 
-  /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which
-     of them exist — so removing a tab leaves a section behind that nothing ever places, keeping
-     whatever the markup last gave it. `s-find` became one of those the moment Find and Stuff
-     merged, and it would have sat on top of Posts.
-     Hidden here rather than by deleting it from index.html, because that is the one file whose URL
-     cannot be dated and so the one that has to be pasted by hand. The grid owning everything in
-     its viewport is also just true: a cell it does not place is a cell it should not show. */
-  if (which === 'x') {
-    const mine = ax.cells();
-    document.querySelectorAll('#screen > .screen').forEach(el => {
-      if ([].indexOf.call(mine, el) === -1) showCell_(el, false, 'x', 0);
-    });
-  }
-}
+   The step used to be a PERCENTAGE — 84% of the viewport, on both axes — and a percentage of the
+   height is not the same distance as a percentage of the width. On a 401 by 929 phone that is a
+   16px gap at the sides and a 37px gap above and below: more than twice as far, for no reason
+   anybody could see, because the two numbers were equal and the axes were not.
+
+   ONE GAP, IN PIXELS. A gap is a distance and belongs in a unit of distance, not in a fraction of
+   whichever edge it happens to sit near. The step is then whatever it has to be:
+
+     step  = cell + gap        where cell is the viewport times the scale
+     peek  = (viewport - cell) / 2 - gap
+
+   Which also means the peek differs per axis, and should: there is more room above a cell on a tall
+   phone than beside it, and pretending otherwise is what produced the uneven gap in the first
+   place. */
+const CELL_SCALE = 0.80;      // how much of the viewport a cell takes
+const CELL_GAP   = 16;        // pixels between one cell and the next, every direction
 
 /**
- * ONE CELL IS SHOWN. THE REST ARE NOT IN THE LAYOUT AT ALL.
+ * HOW FAR APART TWO PANES SIT, so that the gap between what you SEE is `CELL_GAP`.
  *
- * This used to place eight screens side by side, each absolutely positioned, transformed by its
- * distance from the front, culled past a threshold, hidden by two properties at once, ordered by
- * z-index, and repainted as a neighbour so a drag would reveal it. Every one of those was a way of
- * saying "you are looking at this one" — and between them they went wrong six different times, in
- * six ways that all looked the same on a screen: black.
+ * Half of this pane, the gap, half of the one being read. Measured rather than assumed, because a
+ * pane is as tall as whatever is on it and no two are the same — which is the whole reason the
+ * previous version, which spaced the cells, put the neighbour off the screen.
  *
- * `display: none` cannot go wrong. There is no position to be relative to, no transform to be
- * invalidated by a missing variable, no stacking order, no clip, and nothing to be off the side of.
- * The screen you are on is in the document and the other seven are not.
- *
- * WHAT THAT COSTS: a drag no longer reveals the next screen underneath. It slides the one you are
- * on and the next one arrives when you let go. That is a real loss and it is worth it — the
- * preview was the reason for all of the above, and it was never once seen working.
+ * `offsetHeight` rather than `getBoundingClientRect`, because the cells are scaled and the rect
+ * comes back scaled with them: measuring the drawn size and then scaling it again is the error
+ * that makes a neighbour drift further away the smaller it gets.
  */
-function showCell_(el, front, which, dragPx) {
-  if (!front) {
-    /* Out of the layout entirely. One declaration, and there is no state it can be in where it is
-       half-there. */
-    el.style.display = 'none';
-    el.classList.remove('on');
-    /* And put the class back, so a screen is hidden by the markup's own means as well as by the
-       inline style — the same belt-and-braces as the front cell, in the other direction. */
-    el.classList.add('hidden');
-    return;
+function paneStep_(el, frontEl, axis) {
+  const mine = el.querySelector(':scope > .pane');
+  const front = frontEl && frontEl.querySelector(':scope > .pane');
+  const fall = (axis === 'W' ? innerWidth : innerHeight);
+  const size = e => {
+    if (!e) return fall;
+    const n = axis === 'W' ? e.offsetWidth : e.offsetHeight;
+    /* NOT MEASURED YET is not the same as zero. Before the first layout a pane has no size, and
+       falling back to the cell is the old behaviour — wrong, but wrong in the direction of too far
+       apart rather than stacked on top of each other. */
+    return n || fall;
+  };
+  return (size(mine) * CELL_SCALE) / 2 + CELL_GAP + (size(front) * CELL_SCALE) / 2;
+}
+
+/* ---------- WHEN A PANE CHANGES SIZE ---------------------------------------------------------------
+   The grid measures each pane to work out how far apart they sit, and it measures ONCE — at the
+   moment it places them. A photograph has no declared size, so a post pane is measured while its
+   picture is still a zero-height box, placed for that height, and then grows when the image
+   arrives. Nothing tells the grid, so two posts end up overlapping by exactly the height the
+   picture turned out to be.
+
+   That is the whole bug, and it is not specific to images: a pane that gains a row, a widget that
+   fills in, a list that loads — every one of them changes a height the layout has already used.
+
+   SO THE LAYOUT IS RE-RUN WHEN A PANE RESIZES. Once per frame at most, and only when a size really
+   changed, because `placeGrid` reads heights and writing transforms during a resize callback is
+   how a loop starts.
+--------------------------------------------------------------------------------------------- */
+let PANE_WATCH = null, PANE_SIZES = new WeakMap(), PANE_QUEUED = false;
+
+function watchPanes() {
+  if (typeof ResizeObserver !== 'function') return;      // an old browser keeps the first measure
+  if (!PANE_WATCH) {
+    PANE_WATCH = new ResizeObserver(entries => {
+      /* A REAL CHANGE, not a report. An observer fires on the first observation of every element,
+         which would re-place the whole grid once per pane on every repaint. */
+      let moved = false;
+      entries.forEach(e => {
+        const h = Math.round(e.target.offsetHeight);
+        if (PANE_SIZES.get(e.target) !== h) { PANE_SIZES.set(e.target, h); moved = true; }
+      });
+      if (!moved || PANE_QUEUED) return;
+      PANE_QUEUED = true;
+      requestAnimationFrame(() => {
+        PANE_QUEUED = false;
+        /* Instant: the panes have already moved as far as the person is concerned, and animating
+           to where they already are is a second movement nobody asked for. */
+        placeCells('x', true);
+      });
+    });
   }
+  PANE_WATCH.disconnect();
+  document.querySelectorAll('#screen .pane').forEach(el => PANE_WATCH.observe(el));
+}
 
-  /* THE FRONT CELL IS DESCRIBED IN FULL, and every one of these is an OVERRIDE rather than an
-     absence.
-     That distinction is what broke it: the previous version REMOVED inline properties, on the
-     assumption that what was left underneath was nothing. What was left underneath was the
-     stylesheet — which still said `position: absolute`, `transform: translateX(100%)` and
-     `visibility: hidden`, because those are what the old layout needed. Removing an inline value
-     does not remove the rule beneath it; it reveals it. Every screen went off the side and
-     invisible, and nothing in the code said so.
+function placeGrid(instant, drag) {
+  const tabs = TABS.map(t => t.id);
+  const ti = Math.max(0, tabs.indexOf(AT));
+  const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
+  const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
 
-     Written out, the screen you are on looks the same whatever style.css says — the current one,
-     one from last week, or none at all. That is worth six lines: this file and the stylesheet
-     travel separately, and they have been out of step more often than they have been in it. */
-  /* THE ONE CLASS THAT BEATS AN INLINE STYLE.
-     index.html marks seven of the eight sections `class="screen hidden"` so the page is not a wall
-     of every screen before script.js runs — and `.hidden` is `display: none !important`, which
-     outranks anything written on the element. So a screen could be described perfectly, in full,
-     inline, and still not appear: the markup had said no first and said it louder.
-     Taken off here, where the decision about what you are looking at is actually made. */
-  el.classList.remove('hidden');
+  /* The pages of every tab, gathered first — a cell needs to know about the one being READ, which
+     may be in another tab, and that cannot be looked up from inside the loop that is placing it. */
+  const cells = tabs.map(id => {
+    const h = $('s-' + id);
+    return h ? [].slice.call(h.querySelectorAll(':scope > .page')) : [];
+  });
 
-  el.style.display = 'flex';
-  el.style.flexDirection = 'column';
-  /* IT FILLS ITS CONTAINER. This said `position: static; inset: auto` — chosen when the layout was
-     being made independent of the stylesheet, and the wrong value to choose: a static block is as
-     tall as its CONTENTS, so a cell stopped where its content stopped and everything below was the
-     screen behind it showing through.
-     Nothing looked wrong. Every computed style read correctly and the page simply had no spare
-     height, so anything asking to be centred in it had nothing to be centred in — which is why a
-     post stayed at the top through two attempts to centre it, neither of which was addressing the
-     actual cause.
-     Absolute and inset to zero, written out here rather than trusted to the stylesheet, which was
-     the point of doing it inline in the first place. */
-  el.style.position = 'absolute';
-  el.style.top = '0'; el.style.right = '0'; el.style.bottom = '0'; el.style.left = '0';
-  el.style.visibility = 'visible';
-  el.style.opacity = '1';
-  el.style.pointerEvents = 'auto';
-  el.classList.add('on');
-  el.classList.remove('far');
+  /* The pane being read. Everything else is spaced from it. */
+  const front = (cells[ti] || [])[PAGE[AT] || 0] || null;
 
-  /* Following a finger, or at rest. `none` rather than empty: empty would let the stylesheet's
-     own transform back in. */
-  const px = dragPx || 0;
-  el.style.transform = px
-    ? (which === 'x' ? 'translateX(' + px + 'px)' : 'translateY(' + px + 'px)')
-    : 'none';
+  tabs.forEach((id, i) => {
+    const host = $('s-' + id);
+    if (!host) return;
+
+    /* A SCREEN IS A CONTAINER. Written out so nothing it was ever given can survive. */
+    host.classList.remove('hidden');
+    host.style.display = 'block';
+    host.style.position = 'absolute';
+    host.style.top = '0'; host.style.right = '0'; host.style.bottom = '0'; host.style.left = '0';
+    host.style.transform = 'none';
+    host.style.opacity = '1';
+    host.style.visibility = 'visible';
+    host.style.overflow = 'visible';
+    /* Presses reach the page, not the screen — the screen is not a surface anybody touches. */
+    host.style.pointerEvents = 'none';
+    host.classList.toggle('on', id === AT);
+
+    const pages = host.querySelectorAll(':scope > .page');
+    const at = PAGE[id] || 0;
+    pages.forEach((el, p) => {
+      const dx = i - ti;
+      const dy = p - at;
+      /* HOW FAR AWAY, for the fade. Diagonal counts as further than either straight neighbour,
+         which is what makes a corner read as a corner rather than as a third sibling. */
+      const away = Math.hypot(dx, dy);
+
+      el.classList.remove('hidden');
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+      el.style.position = 'absolute';
+      el.style.top = '0'; el.style.right = '0'; el.style.bottom = '0'; el.style.left = '0';
+      /* THE STEP FOLLOWS THE PANE, NOT THE CELL.
+         Every cell is the whole viewport; the pane inside it is only as tall as its content, and
+         the pane is the thing you can see. Spacing the CELLS 16px apart therefore spaced the panes
+         by 16px PLUS whatever height each of them was short by — a 600px pane in an 880px cell put
+         240px between them, which on a phone means the neighbour is off the screen entirely.
+         So the offset is worked out from the two panes it sits between: half of mine, the gap, half
+         of theirs. That is the only arrangement where the gap you see is the gap that was asked
+         for, whatever is on the panes. */
+      /* TWO REFERENCES, BECAUSE THERE ARE TWO QUESTIONS.
+
+         ACROSS is "how far is this column from the one being read", so it is measured against the
+         front pane — every cell in a column moves sideways together.
+
+         DOWN is "how far is this pane from the one above it IN ITS OWN COLUMN", and it was being
+         measured against the front pane too. So a tall tab's pages were spaced by half of a SHORT
+         tab's pane: the stack came out too tight, and the pages of the column beside you overlapped
+         each other and reached across into yours. Exactly what a screenshot of three columns with
+         different-height panes shows.
+         A column is spaced by its own. */
+      const mine = (cells[i] || [])[PAGE[id] || 0] || null;
+      const stepX = paneStep_(el, front, 'W');
+      const stepY = paneStep_(el, mine, 'H');
+      el.style.transform =
+        `translate(${(dx * stepX + dxPx).toFixed(1)}px, ${(dy * stepY + dyPx).toFixed(1)}px)`
+        + ` scale(${(away ? CELL_SCALE * 0.94 : CELL_SCALE).toFixed(3)})`;
+      /* Neighbours are dimmed, not hidden — being able to see them is the point. Not dimmed far,
+         though: a sliver of dark glass at 50% over a dark app is geometrically present and
+         invisible, which is indistinguishable from the peek not working at all. Two steps out is
+         off the screen and does not need drawing. */
+      el.style.opacity = away === 0 ? '1' : away < 1.5 ? '.82' : '.5';
+      el.style.visibility = away > 2.2 ? 'hidden' : 'visible';
+      el.style.pointerEvents = (id === AT && p === at) ? 'auto' : 'none';
+      el.style.zIndex = String(10 - Math.round(away));
+      el.style.transition = instant ? 'none' : '';
+      el.classList.toggle('on', id === AT && p === at);
+    });
+  });
+}
+
+/* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
+   cannot disagree about where a cell is. */
+function placeCells(which, instant, dragPx, id) {
+  placeGrid(instant, dragPx ? { which, px: dragPx } : null);
+
+  /* AND THE OBSERVER FOLLOWS THE PANES THAT EXIST NOW. Attached here because this runs after every
+     repaint — a pane replaced by a redraw is a pane the old observer is still watching and the new
+     one is not, which shows up as the grid never learning that a picture arrived. */
+  watchPanes();
+
+  /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
+     them exist, so removing a tab leaves a section behind that nothing places. */
+  const mine = TABS.map(t => $('s-' + t.id));
+  document.querySelectorAll('#screen > .screen').forEach(el => {
+    if (mine.indexOf(el) === -1) {
+      el.style.display = 'none';
+      el.classList.add('hidden');
+    }
+  });
 }
 
 /* ---------- WIDGETS AS PAGES --------------------------------------------------------------------
@@ -2076,7 +2203,7 @@ function pagerNames(id) {
 /* Which page each paged screen is showing. Kept per screen, so leaving Tools on the calendar and
    coming back puts you on the calendar — a pager that resets is a pager you have to re-navigate
    every time you check something on another tab. */
-const PAGE = { posts: 0, stuff: 0, me: 0, book: 0 };
+const PAGE = { posts: 0, stuff: 0, book: 0 };
 
 const pageCount = id => pagerNames(id).length;
 
@@ -2106,6 +2233,7 @@ function paintPager(id, instant) {
   /* THE SAME PLACER THE TABS USE. There were two of these — one setting `--o` on a page and one
      that did not exist at all for screens — which is precisely why the two axes drifted apart. */
   placeCells('y', instant, 0, id);
+
 
   /* THE HEADER SAYS WHICH WIDGET. It is now the only thing that does, which is why it matters:
      on a screen where every page is a different tool, the name at the top is worth more than a
@@ -2138,8 +2266,26 @@ function goPage(id, to, instant) {
     widget, so the dots were saying the same thing twice in a less readable way. The count they
     also carried is not worth a permanent mark on every screen: you find out by turning the dial,
     which takes one movement. */
+/* A SCREEN'S PAGES, all of them, in one scroller.
+   They used to be eight absolutely-positioned cells with one visible. Now they are a list, and the
+   peek above and below is what a list looks like when its items are shorter than the viewport —
+   which is a fact about the layout rather than something anybody has to maintain. */
+/* THE CELL AND THE GLASS ARE TWO THINGS.
+   A page was both: the box the grid positions AND the pane you look at. A positioned cell is
+   `inset: 0` — the full screen, always — so a post with a picture and two lines of caption sat in a
+   pane the height of the phone with two thirds of it empty glass.
+   `.page` is the cell and is invisible. `.pane` inside it is the glass and is as tall as what is on
+   it. Nothing that styles a page's contents changes: every rule was written as a DESCENDANT
+   (`.page .post`), not a child, so a wrapper between them is not something they can notice. */
 const pages = (id, cards) =>
-  cards.map(c => `<section class="page">${c}</section>`).join('');
+  cards.map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+
+/** The glass inside a page — where content actually goes. */
+const paneOf_ = el => (el && el.querySelector(':scope > .pane')) || el;
+
+/* `watchPages` and its observer lived here — they reported which pane the scroller had centred.
+   Gone with the scroller. Which page is in front is decided by this file again, which is the only
+   way it can be decided once. */
 
 /**
  * BLOCKS INTO PAGES.
@@ -2166,7 +2312,11 @@ function chunk(blocks, per, wrap) {
 /* How many of each thing a phone holds without cutting the last one in half. Different per screen
    because a tile is not a card and a card is not a post — one number for all of them would be
    wrong four times out of five. */
-const PER_PAGE = { library: 12, me: 4, book: 5 };
+/* `me` is not here any more — the You screen is one scrolling page. See `mePages`. */
+/* Book fits more now that a session is a stub rather than a whole receipt — five full receipts was
+   a page you scrolled, and the point of a stub is that a page of them is a page you scan. */
+/* `book` is not here any more — a session is a pane of its own. See `bookPages`. */
+const PER_PAGE = { library: 12 };
 
 /* The dot's handler is registered further down, WITH the other actions. `on()` writes into
    `ACTIONS`, which is a `const` declared after this point — and a const read before its own line
@@ -2722,23 +2872,12 @@ function meBlocks() {
     <div class="card tap" data-do="edit-me"><h3>Edit your details</h3>
       <p class="sub">Name, email, address, availability.</p></div>
 
-    ${/* MESSAGES. Unread first in the count, because that is the only part anybody scans for. */''}
-    <div class="card tap" data-do="messages"><h3>Messages</h3>
-      <p class="sub">${(() => {
-        const ms = DATA.messages || [];
-        const unread = ms.filter(m => !m.mine && !m.read).length;
-        return ms.length
-          ? (unread ? unread + ' unread of ' + ms.length : ms.length + ', all read')
-          : 'Nothing yet';
-      })()}</p></div>
-
-    ${/* Friends moved to Find, where people are looked for. A card here made them a setting about
-          yourself rather than a set of people you can look through — and it was the only list on
-          the site reachable from two places. */''}
-
-    <div class="card tap" data-do="change-pin"><h3>Change your PIN</h3>
-      <p class="sub">You will need the current one.</p></div>
-
+    ${/* MESSAGES AND CHANGE-YOUR-PIN BOTH LEFT THIS SCREEN.
+          Messages is a thing you READ, which is what the widgets are — it sits in Find with the
+          calculator and the calendar, and gets a whole pane instead of a card that says how many
+          are unread.
+          Changing a PIN is part of your details, and was a second card asking for a second sheet to
+          do a thing the first sheet is already for. */''}
     <div class="card tap" data-do="my-referral"><h3>Tell someone</h3>
       <p class="sub">A link only you have. We will know it came from you.</p></div>
 
@@ -2754,7 +2893,14 @@ function meBlocks() {
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
       backend ${esc(DATA.version || '—')}</p>`);}
 
-const mePages = () => chunk(meBlocks(), PER_PAGE.me);
+/* THE YOU SCREEN IS ONE PAGE.
+   It was chunked four cards at a time, which put Messages, Change your PIN, Tell someone and Sign
+   out on a second page — and a pager on a SETTINGS screen is the wrong instrument entirely. Paging
+   is for a list you are working THROUGH: posts, search results, sessions. This is a list you are
+   looking IN, and the thing somebody wants is never on the page they are on, because they do not
+   know which page it is on. Signing out should not require finding it first.
+   One page, scrolled. Longer, and everything is where it looks like it is. */
+const mePages = () => [meBlocks().join('')];
 
 screen('me', () => pages('me', mePages()));
 on('do-signin', () => {
@@ -2763,9 +2909,11 @@ on('do-signin', () => {
   const said = $('in-said');
   if (!name || !pin) { if (said) said.textContent = 'Both, please.'; return; }
   if (said) said.textContent = 'Checking…';
-  api({ action: 'verifyLogin', name, pin })
+  /* Through `send_`, so a phone with no signal says so rather than doing nothing at all. Signing
+     in was one of the five round trips with no failure path: the button simply did not respond. */
+  send_({ action: 'verifyLogin', name, pin }, { where: 'in-said' })
     .then(d => {
-      if (!d || !d.success) { if (said) said.textContent = (d && d.error) || 'That did not work.'; return; }
+      if (!d.success) { if (said) said.textContent = d.error || 'That did not work.'; return; }
       /* THE REPLY, PLUS WHAT WE ALREADY KNEW. This was `USER = d` — the reply wholesale — so any
          field the backend did not send simply did not exist on the person afterwards. Not
          hypothetical: `todo` was missing from this reply for weeks and every docket vanished at
@@ -2961,14 +3109,33 @@ function friendsSave(list, said) {
    `sendMessage` and this can post to it, but there is no picker for WHO — that belongs with the
    roster, where the people you are talking to are already on screen.
 --------------------------------------------------------------------------------------------- */
+/* THE LIST, drawn into the widget's own space. The same markup the sheet used, so a message looks
+   the same whichever way somebody reached it. */
+function fillMessages() {
+  const host = $('msg-body');
+  if (!host) return;
+  const ms = DATA.messages || [];
+  host.innerHTML = !USER
+    ? '<p class="empty">Sign in to see your messages.</p>'
+    : ms.length ? messagesHtml_(ms)
+    : `<p class="empty">Nothing yet.<br><span class="faint">Messages about a session appear
+         here.</span></p>`;
+}
+
+/* One renderer, used by the widget and by anything else that wants to show a thread. */
+const messagesHtml_ = ms => ms.map(m =>
+  `<div class="msg${m.mine ? ' mine' : ''}${!m.mine && !m.read ? ' unread' : ''}">
+    <p class="msg-body-text">${mark(m.body)}</p>
+    <p class="faint msg-when">${esc(m.mine ? 'you' : (m.fromName || 'them'))} · ${esc(m.at || '')}</p>
+  </div>`).join('');
+
 on('messages', () => {
   if (!USER) { toast('Sign in first'); return; }
   const ms = DATA.messages || [];
-  openSheet('Messages', ms.length
-    ? ms.map(m => `<div class="msg${m.mine ? ' mine' : ''}${!m.mine && !m.read ? ' unread' : ''}">
-        <p class="msg-body">${mark(m.body)}</p>
-        <p class="faint msg-when">${esc(m.mine ? 'you' : (m.fromName || 'them'))} · ${esc(m.at || '')}</p>
-      </div>`).join('')
+  /* THE SAME RENDERER the widget uses. This built its own copy of the markup, so a message looked
+     one way in the widget and another in the sheet — and the class it used is the one the widget
+     now needs for its container. */
+  openSheet('Messages', ms.length ? messagesHtml_(ms)
     : `<p class="empty">Nothing yet.<br><span class="faint">Messages about a session appear
          here.</span></p>`);
 });
@@ -2995,34 +3162,236 @@ on('edit-me', () => {
   const p = USER.profile || {};
   const readonly = DATA.profileReadonly || [];
 
-  const field = f => {
-    const v = p[f] ?? '';
-    const ro = readonly.indexOf(f) !== -1;
-    const opts = (DATA.validations || {})[f];
-    if (/^(dbs|active|listed)/.test(f)) {
-      return `<label class="check">
-        <input type="checkbox" data-me="${esc(f)}" ${TRUEish_(v) ? 'checked' : ''} ${ro ? 'disabled' : ''}>
-        <span class="box"></span><span>${esc(fieldLabel(f))}</span></label>`;
-    }
-    if (opts && opts.length) {
-      return `<label class="field"><span>${esc(fieldLabel(f))}</span>
-        <select data-me="${esc(f)}" ${ro ? 'disabled' : ''}>
-          <option value="">${NONE_LABEL}</option>
-          ${opts.map(o => `<option value="${esc(o)}"${String(v) === String(o) ? ' selected' : ''}
-            >${esc(o)}</option>`).join('')}
-        </select></label>`;
-    }
-    return `<label class="field"><span>${esc(fieldLabel(f))}</span>
-      <input data-me="${esc(f)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
-        ${/rate|hours|students|km|years/.test(f) ? 'inputmode="decimal"' : ''}></label>`;
+  openSheet('Your details',
+    fieldsHtml(groups, {
+      attr: 'data-me',
+      value: f => p[f] ?? '',
+      raw: p,
+      readonly: readonly,
+      /* The backend says which fields have a fixed set of answers. */
+      options: f => (DATA.validations || {})[f],
+    })
+    + `<button class="btn" data-do="me-save">Save</button>
+       <p class="faint" id="me-said" style="margin:.6rem 0 0"></p>
+
+       ${/* THE PIN, at the bottom of your own details — which is what it is. It had a card of its
+             own on the You screen opening a sheet of its own, to change one of the things this
+             sheet already exists to change.
+             SAVED SEPARATELY, and that is not an inconsistency: a PIN needs the current one to
+             change it, and folding it into `Save` would mean every change of an address asking for
+             a password. */''}
+       <h2><span>Your PIN</span></h2>
+       <label class="field"><span>current PIN</span>
+         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
+       <label class="field"><span>new PIN</span>
+         <input id="pin-new" type="password" inputmode="numeric" autocomplete="new-password"></label>
+       <label class="field"><span>and again</span>
+         <input id="pin-again" type="password" inputmode="numeric" autocomplete="new-password"></label>
+       <button class="btn quiet" data-do="pin-save">Change my PIN</button>
+       <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>`);
+});
+
+/**
+ * THE HOURS SOMEBODY IS FREE, as a week you tick.
+ *
+ * The same grid the booker uses — because it is the same question, asked of a tutor instead of a
+ * client, and answering it in two different shapes would be two things to learn.
+ *
+ * Each box carries its own hidden checkbox, so `me-save` gathers it exactly like every other field
+ * and nothing about saving had to change. The box is the label; the checkbox is what the form
+ * reads.
+ */
+function availGrid_(codes, p, readonly) {
+  const on = f => TRUEish_(p[f]);
+  const ro = f => readonly.indexOf(f) !== -1;
+
+  /* Grouped back into days, from the flat list the backend sends. The prefix IS the day and the
+     digits ARE the hour, so nothing else has to be looked up. */
+  const days = [['m', 'Mon'], ['tu', 'Tue'], ['w', 'Wed'], ['th', 'Thu'],
+                ['f', 'Fri'], ['sa', 'Sat'], ['su', 'Sun']];
+  const rows = days.map(([prefix, label]) => {
+    const mine = codes.filter(c => c.replace(/\d+$/, '') === prefix)
+                      .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
+    if (!mine.length) return '';
+    return `<div class="slot-row">
+      <span class="slot-day">${esc(label)}</span>
+      <div class="slot-hours">
+        ${mine.map(c => `<label class="hr${on(c) ? ' on' : ''}${ro(c) ? ' shut' : ''}">
+          <input type="checkbox" data-me="${esc(c)}" ${on(c) ? 'checked' : ''}
+                 ${ro(c) ? 'disabled' : ''}>
+          ${Number(c.slice(prefix.length))}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<p class="faint" style="margin:.2rem 0 .4rem">Tap the hours you can teach.</p>
+    <div class="slot-grid">${rows}</div>`;
+}
+
+/**
+ * A ROUND TRIP THAT CANNOT FAIL SILENTLY.
+ *
+ * Twenty-one places send something to the backend, and five of them had no `.catch` — including
+ * `verifyLogin` and `createJob`, which are signing in and asking for a session. With no connection
+ * those produced an unhandled rejection and nothing on the screen: the button did nothing, twice,
+ * and then somebody gave up.
+ *
+ * The three things every one of them wants are the same three: stop the button being pressed
+ * again, say what went wrong where the person is looking, and let the button go afterwards.
+ * `where` is whichever the form has — an element id for a form with a line for messages, and a
+ * toast for anything without one.
+ */
+function send_(body, o) {
+  o = o || {};
+  const btn = o.button;
+  const say = msg => {
+    const el = o.where && $(o.where);
+    if (el) el.textContent = msg; else toast(msg);
   };
 
-  openSheet('Your details',
-    Object.keys(groups).map(g => `<h2><span>${esc(g)}</span></h2>`
-      + groups[g].map(field).join('')).join('')
-    + `<button class="btn" data-do="me-save">Save</button>
-       <p class="faint" id="me-said" style="margin:.6rem 0 0"></p>`);
-});
+  if (btn) { btn.disabled = true; if (o.busy) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
+  if (o.saying) say(o.saying);
+
+  const done = () => {
+    if (!btn) return;
+    btn.disabled = false;
+    if (btn.dataset.was) { btn.textContent = btn.dataset.was; delete btn.dataset.was; }
+  };
+
+  return api(body)
+    .then(d => {
+      /* A REPLY CARRYING AN ERROR IS A FAILURE, and was being treated as success by anything that
+         only checked whether the request went through. */
+      if (!d || d.error) throw new Error((d && d.error) || 'That did not work.');
+      done();
+      return d;
+    })
+    .catch(err => {
+      done();
+      /* THE MESSAGE, NOT THE STACK. And a network failure has none worth reading — `Failed to
+         fetch` tells somebody on a train nothing they can act on. */
+      const msg = String(err && err.message || err);
+      say(/fetch|network|load failed/i.test(msg)
+        ? 'No connection — that has not been sent.'
+        : msg);
+      /* Rethrown so a caller can still react, and marked so a caller that does not care can tell
+         a handled failure from a bug. */
+      err.handled = true;
+      throw err;
+    });
+}
+
+/* ================================================================================================
+   ONE FIELD RENDERER.
+
+   There were two, and they had different powers. The profile editor could draw a SELECT from the
+   backend's validations and could disable a field somebody is not allowed to change. The resource
+   editor could offer a DATALIST of what other rows already say. Neither could do the other's job —
+   so which editor you happened to be in decided what a field was capable of, and adding a third
+   editor meant writing a third renderer and choosing which half of the features to reimplement.
+
+   This is the union. Every editor gets selects, suggestions, checkboxes, read-only and the right
+   keyboard, and a new editor gets all of it by passing a list of names.
+
+   WHAT DECIDES A FIELD'S SHAPE is the field itself, not the form it is on:
+
+     a fixed list of answers  → a select        (validations, from the backend)
+     a list of what others say → a datalist      (suggestions, from the rows)
+     a name that reads true/false → a checkbox
+     anything else            → a text box, with the keyboard its name implies
+
+   `attr` is which data-attribute the form reads on save — `data-me` for a profile, `data-ed` for a
+   resource. That is the only thing the two editors genuinely differ by, so it is the only thing
+   passed in.
+================================================================================================ */
+
+/* Names that hold a yes or a no. Matched rather than listed, because the sheet grows columns and a
+   list has to be remembered — `dbs_checked` and `is_listed` are booleans by their names. */
+const FIELD_IS_BOOL = /^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)/;
+
+/* Names whose keyboard should be a number pad, and which kind. */
+const FIELD_IS_DECIMAL = /rate|price|cost|hours|km|fraction/;
+const FIELD_IS_NUMERIC = /pages|year|students|days|weeks|count|level_required/;
+
+/**
+ * ONE FIELD, drawn from what is known about it.
+ *
+ * @param name      the column
+ * @param value     what it holds now
+ * @param o.attr    the data-attribute the save reads   (default `data-me`)
+ * @param o.options a fixed list — draws a select
+ * @param o.suggest what other rows say — draws a datalist
+ * @param o.readonly whether it may be changed
+ * @param o.label   an override for the label
+ */
+function fieldHtml(name, value, o) {
+  o = o || {};
+  const attr = o.attr || 'data-me';
+  const label = o.label || fieldLabel(name);
+  const ro = !!o.readonly;
+  const v = value ?? '';
+
+  if (FIELD_IS_BOOL.test(name)) {
+    return `<label class="check">
+      <input type="checkbox" ${attr}="${esc(name)}" ${TRUEish_(v) ? 'checked' : ''}
+             ${ro ? 'disabled' : ''}>
+      <span class="box"></span><span>${esc(label)}</span></label>`;
+  }
+
+  /* A FIXED LIST IS A SELECT. Somebody choosing an exam board should not be able to invent one —
+     that is how a sheet ends up with four spellings of Edexcel. */
+  const opts = o.options || [];
+  if (opts.length) {
+    return `<label class="field"><span>${esc(label)}</span>
+      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}>
+        <option value="">${NONE_LABEL}</option>
+        ${opts.map(x => `<option value="${esc(x)}"${
+          String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
+      </select></label>`;
+  }
+
+  /* WHAT OTHERS SAY IS A SUGGESTION, not a rule — a datalist offers them and still lets somebody
+     type a new one, which is right where the list is descriptive rather than decided. */
+  const seen = (o.suggest || []).filter(Boolean);
+  const listId = seen.length > 1 ? 'fl-' + attr.replace(/\W/g, '') + '-' + name : '';
+  const pad = FIELD_IS_DECIMAL.test(name) ? 'decimal'
+            : FIELD_IS_NUMERIC.test(name) ? 'numeric' : '';
+
+  return `<label class="field"><span>${esc(label)}</span>
+    <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+           ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
+    ${listId ? `<datalist id="${listId}">${
+      seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
+}
+
+/**
+ * A WHOLE FORM, from a group table.
+ *
+ * The backend sends `{ 'About you': ['first_name', …], … }` for every editable thing, and every
+ * editor walked it the same way with its own field renderer at the bottom. One walk now, so a group
+ * of hour codes becomes a timetable everywhere rather than only where somebody remembered.
+ */
+function fieldsHtml(groups, o) {
+  o = o || {};
+  const value = o.value || (() => '');
+  return Object.keys(groups).map(g => {
+    const list = groups[g] || [];
+    /* A GROUP OF HOUR CODES IS A TIMETABLE. Recognised by the shape of the names rather than by the
+       group's title, so renaming it in the backend does not turn it back into a column of boxes. */
+    const timetable = list.length > 12
+      && list.every(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+    const body = timetable
+      ? availGrid_(list, o.raw || {}, o.readonly || [])
+      : list.map(f => fieldHtml(f, value(f), {
+          attr: o.attr,
+          options: o.options ? o.options(f) : null,
+          suggest: o.suggest ? o.suggest(f) : null,
+          readonly: (o.readonly || []).indexOf(f) !== -1,
+        })).join('');
+    return `<h2><span>${esc(g)}</span></h2>` + body;
+  }).join('');
+}
 
 /* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
    versions send neither consistently. One reader for all three. */
@@ -3054,16 +3423,8 @@ on('me-save', el => {
       if (said) said.textContent = String(err.message || 'Could not save that');
     });
 });
-on('change-pin',  () => openSheet('Change your PIN', `
-  <label class="field"><span>current PIN</span>
-    <input id="pin-now" type="password" inputmode="numeric"></label>
-  <label class="field"><span>new PIN</span>
-    <input id="pin-new" type="password" inputmode="numeric"></label>
-  <label class="field"><span>and again</span>
-    <input id="pin-again" type="password" inputmode="numeric"></label>
-  <button class="btn" data-do="pin-save">Change it</button>
-  <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>`));
-
+/* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
+   sheet that already exists for changing your details, which a PIN is one of. */
 on('pin-save', () => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
@@ -3080,9 +3441,8 @@ on('pin-save', () => {
 });
 
 on('my-referral', () => {
-  api({ action: 'myReferral', name: USER.name })
+  send_({ action: 'myReferral', name: USER.name })
     .then(d => {
-      if (!d || d.error) { toast((d && d.error) || 'Could not fetch it'); return; }
       const link = location.origin + location.pathname + '?ref=' + encodeURIComponent(d.code);
       openSheet('Tell someone', `
         <p class="note" style="margin-top:0">Send this to a family it would suit. We will know it
@@ -3239,7 +3599,16 @@ screen('posts', () => {
              data-id="${esc(p.id)}">⋯</span>` : ''}
       </header>
 
+      ${/* A SHAPE BEFORE IT LOADS. Without one an image is a zero-height box until the photograph
+             arrives — so the pane is measured short, the grid places the panes for that height, and
+             two posts overlap by exactly the height the picture turned out to be.
+             `aspect-ratio` reserves the room. 4:5 is the portrait most phone photographs are, and
+             the real one replaces it the moment the file's own dimensions are known; the observer
+             below catches that. Reserving the wrong shape briefly is a smaller error than reserving
+             none, which is what the overlap was. */''}
       ${src ? `<img class="post-pic" src="${esc(src)}" alt=""
+           style="aspect-ratio:4/5"
+           onload="this.style.aspectRatio=this.naturalWidth+'/'+this.naturalHeight"
            loading="${i < 2 ? 'eager' : 'lazy'}">` : ''}
 
       ${/* THE ACTIONS ROW, which is now reactions and sharing and nothing else.
@@ -3513,11 +3882,11 @@ on('new-post', () => {
   <p class="faint" id="post-said" style="margin:.6rem 0 0"></p>`);
 
   /* Fetched after the sheet is up, so the form is usable while the folder is being read. */
-  api({ action: 'folderFiles', name: USER.name, adminName: USER.name })
+  send_({ action: 'folderFiles', name: USER.name, adminName: USER.name })
     .then(d => {
       const box = $('post-from-folder');
       if (!box) return;                                   // the sheet was closed
-      if (d.error || !(d.files || []).length) {
+      if (!(d.files || []).length) {
         /* Nothing to choose, or no permission to look. Either way the upload below is the only
            route, and a picker with nothing in it is worse than no picker. */
         box.innerHTML = d.error
@@ -3746,10 +4115,9 @@ on('post-delete', el => {
    somebody uploads outside the app. */
 on('scan-posts', () => {
   toast('Looking in the folder…');
-  api({ action: 'scanPosts',
+  send_({ action: 'scanPosts',
     name: USER.name, adminName: USER.name })
     .then(d => {
-      if (d && d.error) { toast(d.error); return; }
 
       /* EVERYTHING THE SCAN CAN CHANGE, not just what it added.
          This asked `d.added || d.dated` — so a run that took ten captions off ten filenames and
@@ -3803,19 +4171,59 @@ on('scan-posts', () => {
    thing to read, and a wall of them is faster to scan than a list.
    The shape says what kind it is, which is why the categories no longer need headings.
 --------------------------------------------------------------------------------------------- */
-const LINK_SHAPE = [
-  { is: /^apps?$|^applications?$/,          cls: 'sq'   },
-  { is: /^games?$|^gaming$|^arcade$/,       cls: 'cart' },
-  { is: /^books?$|^reading$|^ebooks?$/,     cls: 'book' },
-  { is: /^downloads?$|^files?$|^software$/, cls: 'dl'   },
-  { is: /^videos?$|^watch$|^film$/,         cls: 'tape' },
-];
+/* ---------- A LINK'S OWN LOGO ---------------------------------------------------------------------
+   The site's favicon, which is the mark it has chosen for itself and the one somebody already
+   recognises. A coloured square with "BB" in it is a thing this app invented; the BBC's own logo is
+   the thing on the tab they had open yesterday.
 
-const NAMED_COLOURS = {
-  green:'#25d366', red:'#e23b3b', blue:'#2b6cd4', navy:'#1b3a6b', sky:'#3aa8e0',
-  teal:'#2a9d8f', purple:'#7d4bc3', pink:'#e05a9a', orange:'#f07f2c', amber:'#f2b134',
-  yellow:'#e8c33a', lime:'#7cb342', brown:'#8a5a3c', grey:'#6b6b6b', black:'#2b2b2b',
+   DUCKDUCKGO'S SERVICE, not Google's. Both are free and keyless and Google's has slightly better
+   coverage — but fetching a favicon tells whoever serves it which sites this app links to, and on a
+   site used by children that is ninety small disclosures to an advertising company for a marginally
+   better hit rate. DuckDuckGo's exists to answer exactly this and keeps nothing.
+
+   THE SHAPE STAYS, underneath. A favicon is a request to somebody else's server: it can 404, be
+   blocked, or simply not exist for a link that points at a PDF. The coloured shape is drawn first
+   and the logo sits on top of it, so a failure removes the image and reveals what was already
+   there — no handler, no state, nothing to go wrong. */
+/* WHERE TO ASK SECOND. DuckDuckGo keeps nothing and is the right first choice, and its coverage is
+   not complete — a site it has never seen returns nothing at all. Google's has seen everything and
+   returns a globe rather than a 404, which makes it the right LAST resort: by the time it is asked,
+   the alternative is an empty square.
+   Only the hostname goes either way, and only for the links that fail. */
+const faviconAlt = url => {
+  const host = hostOf_(url);
+  return host ? 'https://www.google.com/s2/favicons?sz=64&domain=' + host : '';
 };
+
+/** The hostname of an address, or nothing if it is not one. */
+const hostOf_ = url => {
+  const m = String(url || '').match(/^\s*[a-z][a-z0-9+.-]*:\/\/([^/?#\s]+)/i);
+  if (!m) return '';
+  const host = m[1].replace(/^[^@]*@/, '').replace(/:\d+$/, '');
+  return /\./.test(host) ? host : '';
+};
+
+const faviconFor = url => {
+  /* READ WITH A PATTERN, not with `new URL`. That constructor is the tidy way and it is not
+     everywhere — it is absent from the sandbox this is tested in and from browsers older than the
+     phones some families are using — and when it is missing every link silently loses its logo
+     rather than throwing somewhere anybody would notice.
+     A hostname is the bit between the scheme and the first slash. That is a small enough job to do
+     honestly. */
+  const host = hostOf_(url);
+  return host ? 'https://icons.duckduckgo.com/ip3/' + host + '.ico' : '';
+};
+
+/* `LINK_SHAPE` picked a shape and a colour per category — a cart for a shop, a card for a bank,
+   a plain square otherwise. It went with the coloured squares: a link wears its own logo now, and
+   a category has no business deciding what a site looks like. */
+
+/* `NAMED_COLOURS` lived here — a word in a link's `colour` column became a hex for the coloured
+   square it filled. Nothing reads it now: a link wears the site's own logo, so the column is a note
+   to whoever keeps the sheet rather than an instruction to the app.
+   Removed rather than left: a table nothing uses is one somebody will fill in expecting it to
+   do something. */
+
 
 /* The Library SCREEN is gone with its tab — every link is a card on Find, searchable and
    filterable, which the tile wall never was. `libraryTiles` and `libraryPages` went with it. */
@@ -4061,6 +4469,172 @@ const STUFF = { q: '', sort: 'name', filters: [] };
    thing, what subject, what level, whose paper, what kind of paper — and a page that reorders
    itself is a page you have to read every time instead of reaching for.
 --------------------------------------------------------------------------------------------- */
+/* ================================================================================================
+   WHAT KINDS OF THING CAN BE FOUND.
+
+   One entry per kind, and every question the app asks about a kind is answered here. Adding a new
+   findable thing was four scattered edits — a branch in the group ternary, a branch in the label
+   ternary, a branch in `stuffCard`, and a case in `stuffItems` — and getting three of the four right
+   produced something that appears in a list, cannot be narrowed down, and renders as a blank card.
+
+   `group` is the first question the funnel asks and `label` the second. Ordering the table puts
+   things in the order they are offered, which is one more thing that used to live somewhere else.
+================================================================================================ */
+const KINDS = {
+  /* A person, a place and a subject already have a card each — written for the Find screen and
+     carrying the class that colours the name. Reused rather than reimplemented: two cards for one
+     tutor is two things to keep looking the same. */
+  tutor:   { group: 'Booking', label: 'Tutors',   card: x => findCard({ kind: x.kind, row: x.row }) },
+  venue:   { group: 'Booking', label: 'Venues',   card: x => findCard({ kind: x.kind, row: x.row }) },
+  subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
+
+  /* A FRIEND. Their figure, their level, and a way to stop being one. */
+  friend: { group: 'Friends', label: 'Friends', card: x => {
+    const f = x.row;
+    const xp = Number(f.xp) || 0;
+    return `<div class="card">
+      <div class="thing">
+        <span class="thing-pic art">${avatarFor(f.handle, 44, f.avatar)}</span>
+        <div class="thing-body">
+          <h3>${esc(x.name)}</h3>
+          <p class="sub">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
+        </div>
+        <span class="text-drop" data-do="friend-drop" data-handle="${esc(f.handle)}">✕</span>
+      </div>
+    </div>`;
+
+  } },
+
+  /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
+  tool: { group: 'Tools & games', label: 'Tools', card: x => widgetCard_(x) },
+  game: { group: 'Tools & games', label: 'Games', card: x => widgetCard_(x) },
+
+  link: { group: 'Learning', label: 'Links', card: x => {
+    const l = x.row;
+
+    /* The colour went with the shape it filled. A link's `colour` column is still read by the
+       editor, and nothing draws with it any more — the site's own logo decides what a link looks
+       like, which is the whole point of using it. */
+    const initials = String(l.title || '').replace(/[^A-Za-z0-9 ]/g, '')
+      .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+    const icon = faviconFor(l.url);
+    const alt = faviconAlt(l.url);
+    return `<a class="card tap" href="${esc(l.url)}" target="_blank" rel="noopener">
+      <div class="thing">
+        <span class="thing-pic art">
+          ${/* THE SITE'S OWN LOGO, AND NOTHING ELSE. The coloured shape with initials used to sit
+                underneath as a fallback — and a fallback that is always drawn is not a fallback, it
+                is the thing you see whenever the logo is slow, and a "W" in a brown square is the
+                app inventing a mark for a site that already has one.
+                Two services, tried in order: DuckDuckGo keeps nothing and is asked first; Google's
+                has seen everything and returns a globe rather than a 404, which is what makes it
+                the right last resort. `onerror` is cleared before the retry, or a second failure
+                loops on the same handler. */''}
+          ${icon ? `<img class="fav" src="${esc(icon)}" alt="" loading="lazy"
+                        onerror="this.onerror=null;${alt ? `this.src='${esc(alt)}'`
+                                                         : 'this.remove()'}">`
+                 : `<span class="fav-none">${esc(initials)}</span>`}
+        </span>
+        <div class="thing-body">
+          <h3>${esc(l.title)}</h3>
+          <p class="sub">${mark(l.category || 'Link')} <span class="faint">· opens elsewhere</span></p>
+        </div>
+      </div>
+    </a>`;
+
+  } },
+
+  /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
+     thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
+  topic: { group: 'Learning', label: 'Resources', card: (x, c) => thingCard_(x, c) },
+  shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
+};
+
+function widgetCard_(x) {
+  return `<div class="card tap" data-do="widget" data-id="${esc(x.row.id)}">
+    <h3>${esc(x.name)}</h3>
+  </div>`;
+
+}
+
+/* The card a resource and a shop row share. Named rather than written twice, because the two
+   entries above genuinely want the same thing and a copy each is a copy to keep in step. */
+function thingCard_(x, credits) {
+  /* One card shape for both, because they are the same kind of thing to a person looking for one:
+     a picture, a name, what it belongs to, and — if it costs anything — what.
+
+     A RESOURCE SHOWS NO PRICE AT ALL. It used to say "0 credits — free", on the argument that a
+     blank where a price should be reads as the app having forgotten. That argument holds for one
+     card among priced ones and collapses when four hundred of the four hundred and ten say it:
+     repeated on every row it stops being information and becomes a line you read past, and the
+     one card that DOES cost something loses the contrast that made its price visible.
+
+     A shop item priced at zero still says free, because there it means something — free among
+     things that cost. A resource is free because it is a resource. */
+  {
+    const free = x.cost === 0;
+    const afford = x.kind === 'shop' && !free && credits >= x.cost;
+    /* WHAT IT TAKES TO HAVE IT. Three answers, and the card used to give one:
+         a level    — earned, not bought. Gold once you are there, faint until then, and it says
+                      WHICH level rather than "locked", because a number you can count towards is
+                      a different thing from a door.
+         credits    — bought. Gold when you can afford it.
+         nothing    — genuinely free, which for a wearable means everybody starts with it. */
+    const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
+    const price = x.kind !== 'shop' ? ''
+      : x.level > 0
+        ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
+      : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
+          free ? 'free' : x.cost + ' credits'}</span>`;
+    /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
+       so it is marked as one and coloured as one, the same way a subject and a venue are. */
+    return `<div class="card tap${x.wearable ? ' is-wear'
+             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}"
+         data-do="${x.kind === 'shop' ? 'shop-item' : 'topic'}" data-key="${esc(x.key)}">
+      <div class="thing">
+        ${/* A WEARABLE DRAWS ITSELF. It has no photograph and never will — the drawing is the
+              object, and a card selling a cape with nothing on it was selling a word.
+              Cropped to the item rather than shown on a figure: a card-sized person wearing a
+              scarf makes the scarf the smallest thing on the card. */''}
+        ${x.wearable && x.artId && itemArt(x.slot, x.artId)
+          ? `<span class="thing-pic art">${itemArt(x.slot, x.artId, 44)}</span>`
+          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy">` : ''}
+        <div class="thing-body">
+          <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
+          ${/* Its own second line: a resource says its subject, a shop item its description. This
+                fell back to the GROUP name when both were empty — which was the card repeating the
+                heading above it, and is now a fallback to nothing, which is honest. */''}
+          ${/* THE YEAR, ON THE CARD. For a past paper it is most of the identity — "Paper 1" is
+                four papers and "Paper 1 · 2024" is one — and it was in the payload, filterable and
+                sortable, and shown nowhere. A thing you can sort by and cannot see is a sort you
+                have to take on trust.
+                Read off the wave when the year itself is blank: "June 2024" carries it, and
+                nobody should have to type the same fact into two columns. */''}
+          <p class="sub">${mark(x.sub || x.subject || '')}${yearOf(x)
+            ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
+            /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
+               says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
+               own is a word. */
+            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>
+          ${price}
+        </div>
+      </div>
+      ${x.kind === 'topic' && x.topic ? tickRow(x.topic) : ''}
+    </div>`;
+  }
+}
+
+
+/* A THING'S ENTRY. Wearables are the one kind decided by a FIELD rather than by `kind` — the shop
+   holds both, and which it is depends on whether the row names a slot to wear it in. That is a
+   genuine exception and is written out here rather than being a tenth entry that `kind` can never
+   select. */
+function kindOf_(x) {
+  if (x && x.wearable) return { group: 'Shop', label: 'Wearables' };
+  return (x && KINDS[x.kind]) || { group: 'Shop', label: 'Things' };
+}
+
 const FACETS = [
   /* What sort of thing, first. It is the one question that changes which of the others make any
      sense at all — a wearable has a slot and no exam board, a paper the reverse. */
@@ -4073,23 +4647,8 @@ const FACETS = [
      this and nothing to keep in step. And `kindLabel` below still asks which one — except where
      the group holds only one kind, in which case the one-answer rule skips it and choosing
      Learning takes you straight to the resources. */
-  { field: 'forLabel',  label: 'What for',    of: x =>
-      (x.kind === 'tutor' || x.kind === 'venue' || x.kind === 'subject') ? 'Booking'
-    : x.kind === 'friend'                                                  ? 'Friends'
-    : (x.kind === 'topic' || x.kind === 'link')                          ? 'Learning'
-    : (x.kind === 'tool' || x.kind === 'game')                           ? 'Tools & games'
-    :                                                                      'Shop' },
-  { field: 'kindLabel', label: 'What kind',   of: x =>
-      x.kind === 'tutor'   ? 'Tutors'
-    : x.kind === 'venue'   ? 'Venues'
-    : x.kind === 'subject' ? 'Subjects'
-    : x.kind === 'friend'  ? 'Friends'
-    : x.kind === 'link'    ? 'Links'
-    : x.kind === 'tool'    ? 'Tools'
-    : x.kind === 'game'    ? 'Games'
-    : x.wearable           ? 'Wearables'
-    : x.kind === 'shop'    ? 'Things'
-    :                        'Resources' },
+  { field: 'forLabel',  label: 'What for',    of: x => kindOf_(x).group },
+  { field: 'kindLabel', label: 'What kind',   of: x => kindOf_(x).label },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to. */
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
@@ -4659,7 +5218,9 @@ function stuffPageHtml(n) {
      card was only ever a door, and there is nothing behind that door which could not be here. */
   if (showingWidgets()) {
     const wgt = items[n] && items[n].row;
-    return wgt ? `<div class="widget-full">${wgt.html}</div>` : '';
+    /* A SOLID WIDGET SAYS SO ON THE PAGE, so the stylesheet can turn the glass off underneath it
+       without knowing which widget it is. */
+    return wgt ? `<div class="widget-full${wgt.solid ? ' solid' : ''}">${wgt.html}</div>` : '';
   }
 
   const per = stuffPerPage();
@@ -4669,125 +5230,24 @@ function stuffPageHtml(n) {
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
    all four hundred around it. */
+/**
+ * THE CARD FOR A THING, whatever kind it is.
+ *
+ * This was a hundred and thirty lines of `if (x.kind === …)` — the same table the funnel already
+ * needed for its groups and labels, written a second time, in a second shape, in a second place.
+ * Adding a kind meant finding both and getting both right; getting one right produced something
+ * that could be narrowed down and drew as a blank card, or the reverse.
+ *
+ * One line now. Everything a kind IS lives in `KINDS`.
+ */
 function stuffCard(x, credits) {
-  /* A person, a place and a subject already have a card each — written for the Find screen and
-     carrying the class that colours the name. Reused rather than reimplemented: two cards for one
-     tutor is two things to keep looking the same. */
-  if (x.kind === 'tutor' || x.kind === 'venue' || x.kind === 'subject') {
-    return findCard({ kind: x.kind, row: x.row });
-  }
-
-  /* A LINK IS AN ANCHOR, not a card that opens a sheet. Everything else here opens something
-     inside the app and a link leaves it — so it is the one card that has to be a real `<a>`, or a
-     long-press cannot copy it and a middle-click cannot open it in a tab. It carries the same
-     coloured shape the Library wall uses, so the same link looks like itself in both places. */
-  /* A FRIEND. Their figure, their level, and a way to stop being one — everything a friend card
-     ever showed, on the tab where people are looked for. */
-  if (x.kind === 'friend') {
-    const f = x.row;
-    const xp = Number(f.xp) || 0;
-    return `<div class="card">
-      <div class="thing">
-        <span class="thing-pic art">${avatarFor(f.handle, 44, f.avatar)}</span>
-        <div class="thing-body">
-          <h3>${esc(x.name)}</h3>
-          <p class="sub">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
-        </div>
-        <span class="text-drop" data-do="friend-drop" data-handle="${esc(f.handle)}">✕</span>
-      </div>
-    </div>`;
-  }
-
-  /* A widget's card is its name and nothing else — there is no picture, no price and no subject,
-     and inventing a line to fill the space would be the card apologising for being short. */
-  if (x.kind === 'tool' || x.kind === 'game') {
-    return `<div class="card tap" data-do="widget" data-id="${esc(x.row.id)}">
-      <h3>${esc(x.name)}</h3>
-    </div>`;
-  }
-
-  if (x.kind === 'link') {
-    const l = x.row;
-    const shape = (LINK_SHAPE.find(y => y.is.test(norm(l.category))) || {}).cls || 'mark';
-    const want = norm(l.colour);
-    const hex = /^#?[0-9a-f]{6}$/.test(want) ? (want[0] === '#' ? want : '#' + want) : null;
-    const col = NAMED_COLOURS[want] || hex || `hsl(${hashOf(l.title || '?') % 360} 48% 46%)`;
-    const initials = String(l.title || '').replace(/[^A-Za-z0-9 ]/g, '')
-      .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
-    return `<a class="card tap" href="${esc(l.url)}" target="_blank" rel="noopener">
-      <div class="thing">
-        <span class="thing-pic art"><span class="shape ${shape}" style="--c:${col}"
-          >${esc(initials)}</span></span>
-        <div class="thing-body">
-          <h3>${esc(l.title)}</h3>
-          <p class="sub">${mark(l.category || 'Link')} <span class="faint">· opens elsewhere</span></p>
-        </div>
-      </div>
-    </a>`;
-  }
-  /* One card shape for both, because they are the same kind of thing to a person looking for one:
-     a picture, a name, what it belongs to, and — if it costs anything — what.
-
-     A RESOURCE SHOWS NO PRICE AT ALL. It used to say "0 credits — free", on the argument that a
-     blank where a price should be reads as the app having forgotten. That argument holds for one
-     card among priced ones and collapses when four hundred of the four hundred and ten say it:
-     repeated on every row it stops being information and becomes a line you read past, and the
-     one card that DOES cost something loses the contrast that made its price visible.
-
-     A shop item priced at zero still says free, because there it means something — free among
-     things that cost. A resource is free because it is a resource. */
-  {
-    const free = x.cost === 0;
-    const afford = x.kind === 'shop' && !free && credits >= x.cost;
-    /* WHAT IT TAKES TO HAVE IT. Three answers, and the card used to give one:
-         a level    — earned, not bought. Gold once you are there, faint until then, and it says
-                      WHICH level rather than "locked", because a number you can count towards is
-                      a different thing from a door.
-         credits    — bought. Gold when you can afford it.
-         nothing    — genuinely free, which for a wearable means everybody starts with it. */
-    const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
-    const price = x.kind !== 'shop' ? ''
-      : x.level > 0
-        ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
-      : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.cost + ' credits'}</span>`;
-    /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
-       so it is marked as one and coloured as one, the same way a subject and a venue are. */
-    return `<div class="card tap${x.wearable ? ' is-wear'
-             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}"
-         data-do="${x.kind === 'shop' ? 'shop-item' : 'topic'}" data-key="${esc(x.key)}">
-      <div class="thing">
-        ${/* A WEARABLE DRAWS ITSELF. It has no photograph and never will — the drawing is the
-              object, and a card selling a cape with nothing on it was selling a word.
-              Cropped to the item rather than shown on a figure: a card-sized person wearing a
-              scarf makes the scarf the smallest thing on the card. */''}
-        ${x.wearable && x.artId && itemArt(x.slot, x.artId)
-          ? `<span class="thing-pic art">${itemArt(x.slot, x.artId, 44)}</span>`
-          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy">` : ''}
-        <div class="thing-body">
-          <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
-          ${/* Its own second line: a resource says its subject, a shop item its description. This
-                fell back to the GROUP name when both were empty — which was the card repeating the
-                heading above it, and is now a fallback to nothing, which is honest. */''}
-          ${/* THE YEAR, ON THE CARD. For a past paper it is most of the identity — "Paper 1" is
-                four papers and "Paper 1 · 2024" is one — and it was in the payload, filterable and
-                sortable, and shown nowhere. A thing you can sort by and cannot see is a sort you
-                have to take on trust.
-                Read off the wave when the year itself is blank: "June 2024" carries it, and
-                nobody should have to type the same fact into two columns. */''}
-          <p class="sub">${mark(x.sub || x.subject || '')}${yearOf(x)
-            ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
-            /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
-               says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
-               own is a word. */
-            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>
-          ${price}
-        </div>
-      </div>
-      ${x.kind === 'topic' && x.topic ? tickRow(x.topic) : ''}
-    </div>`;
-  }
+  /* `credits` is passed IN rather than read from `USER` here, because the page works it out once
+     and hands it to every card — reading it per card would be the same lookup eight times a page.
+     Dropping it while moving these was the one thing the branches needed from their old home, and
+     nothing said so until a shop card asked what it could afford. */
+  /* A kind with no card of its own falls back to the shared one — a new row type appears on the
+     screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
+  return (kindOf_(x).card || thingCard_)(x, credits);
 }
 
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
@@ -4871,12 +5331,15 @@ function fillStuffPages() {
   const items = stuffFiltered();
   for (let i = 1; i < pages.length; i++) {
     const el = pages[i];
+    /* INTO THE PANE, not over it. Writing to the page itself would replace the glass wrapper with
+       bare content — the pane would vanish from every page this filled, which is most of them. */
+    const pane = paneOf_(el);
     const near = Math.abs(i - at) <= 1;
     if (near && el.dataset.filled !== '1') {
-      el.innerHTML = stuffPageHtml(i - 1);
+      pane.innerHTML = stuffPageHtml(i - 1);
       el.dataset.filled = '1';
     } else if (!near && el.dataset.filled === '1') {
-      el.innerHTML = '';
+      pane.innerHTML = '';
       delete el.dataset.filled;
     }
   }
@@ -5322,27 +5785,16 @@ on('topic-edit', el => {
     return uniq(allTopics().map(x => String(x[from] ?? '').trim())).filter(Boolean).sort(cmpText);
   };
 
-  const field = f => {
-    const from = FIELD_FROM[f] || f;
-    const v = t[from];
-    if (FIELD_BOOL.indexOf(f) !== -1) {
-      return `<label class="check">
-        <input type="checkbox" data-ed="${esc(f)}" ${v ? 'checked' : ''}>
-        <span class="box"></span><span>${esc(fieldLabel(f))}</span></label>`;
-    }
-    const opts = known(f);
-    const list = opts.length > 1 ? 'ed-list-' + f : '';
-    return `<label class="field"><span>${esc(fieldLabel(f))}</span>
-      <input data-ed="${esc(f)}" value="${esc(String(v ?? ''))}"
-             ${list ? `list="${list}"` : ''}
-             ${/pages|price|level|year/.test(f) ? 'inputmode="numeric"' : ''}>
-      ${list ? `<datalist id="${list}">${
-        opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : ''}</label>`;
-  };
-
   openSheet('Edit — ' + t.name,
-    Object.keys(groups).map(g => `<h2><span>${esc(g)}</span></h2>`
-      + groups[g].map(field).join('')).join('')
+    fieldsHtml(groups, {
+      attr: 'data-ed',
+      /* A resource's own column names differ from the form's in places — `FIELD_FROM` is the map,
+         and it belongs here rather than in the renderer, which should not need to know that this
+         one editor renames things. */
+      value: f => t[FIELD_FROM[f] || f] ?? '',
+      /* What every other row already says, offered rather than enforced. */
+      suggest: known,
+    })
     + `<button class="btn" data-do="topic-save" data-key="${esc(t.id || t.name)}">Save</button>
        <p class="faint" id="ed-said" style="margin:.6rem 0 0">
          Changing the link clears the page count — it was read off the old file.</p>`);
@@ -6602,7 +7054,25 @@ const WIDGETS = [
     <p class="sub">Something worth knowing. Tap for another.</p>
     <div id="feed-screen" class="feed" data-do="feed-tap"></div>
   </div>` },
-  { id: 'calculator', kind: 'tool', name: 'Calculator', start: () => initMiniCalc?.(),
+  /* `solid` — AN INSTRUMENT, NOT A CARD.
+     The pane is frosted glass because most of what sits on it is CONTENT: a post, a receipt, a list
+     of things to find, and glass says "this is a surface something is written on".
+     A calculator is not written on the surface, it IS the object. Frosted glass with a keypad
+     floating in it reads as a picture of a calculator; an opaque casing reads as one you can press.
+     Declared here beside the widget's own markup rather than in the sheet: the sheet decides
+     WHETHER and WHERE a widget appears, which can differ per deployment, and this cannot — a
+     calculator is an instrument everywhere or the word means nothing. */
+  /* MESSAGES, as a widget. It is a thing you read, which is what these are — and a whole pane
+     shows a conversation where a card on the You screen could only ever say how many were unread.
+     `solid` because it is a device you look INTO rather than a surface something is written on. */
+  { id: 'messages', kind: 'tool', name: 'Messages', solid: true, start: () => fillMessages?.(),
+    into: 'msg-body', what: 'Messages',
+    html: `<div class="card">
+      <h3>Messages</h3>
+      <div id="msg-body" class="msg-body"></div>
+    </div>` },
+
+  { id: 'calculator', kind: 'tool', name: 'Calculator', solid: true, start: () => initMiniCalc?.(),
     into: 'mc-display', what: 'The calculator',
     html: `<div class="card">
     <h3>Calculator</h3>
@@ -6616,7 +7086,7 @@ const WIDGETS = [
       ).join('')}
     </div>
   </div>` },
-  { id: 'timer', kind: 'tool', name: 'Timer', start: () => initTimer?.(),
+  { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => initTimer?.(),
     into: 'timer-display', what: 'The timer',
     html: `<div class="card">
     <h3>Timer</h3>
@@ -6635,7 +7105,7 @@ const WIDGETS = [
         `<button class="btn quiet tiny" data-do="timer-set" data-min="${m}">${m}</button>`).join('')}
     </div>
   </div>` },
-  { id: 'docket', kind: 'tool', name: 'Docket', start: () => paintDocket?.(),
+  { id: 'docket', kind: 'tool', name: 'Docket', solid: true, start: () => paintDocket?.(),
     into: 'docket-body', what: 'The docket',
     html: `<div class="card">
     <h3>Docket</h3>
@@ -6647,7 +7117,7 @@ const WIDGETS = [
     </div>
     <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
   </div>` },
-  { id: 'notepad', kind: 'tool', name: 'Notepad', start: () => initPad?.(),
+  { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, start: () => initPad?.(),
     into: 'notepad', what: 'The notepad',
     html: `<div class="card">
     <h3>Notepad</h3>
@@ -6687,15 +7157,42 @@ function bookBlocks() {
                                     || norm(j.tutor) === norm(USER.name)) : [];
   const open = jobs.filter(j => !mine.includes(j));
 
-  const jobCard = j => `
-    <div class="card tap" data-do="job" data-id="${esc(String(j.id || j.jobId || ''))}">
-      <h3>${esc(j.subject || 'Session')}${j.level ? ' · ' + esc(j.level) : ''}</h3>
-      <p class="sub">${esc([j.venue, j.weekday, j.time].filter(Boolean).join(' · '))}</p>
-      <div class="row">
-        <span class="k">${esc(j.status || 'Open')}</span>
-        <span class="v mono">${j.price ? money(j.price) : ''}</span>
+  /* A STUB ON THE LIST, THE WHOLE RECEIPT ON TAP.
+     The full receipt was drawn for every job — torn ends, twelve numbered lines, a roster and a
+     barcode each — and five of those is a screen you scroll for a minute to find one thing on.
+     A receipt's job is to be COMPLETE. A list's job is to be SCANNABLE. Those pull against each
+     other and the answer is not a compromise between them: it is the stub here and the receipt on
+     tap, each doing the thing it is for.
+     Still on paper, still torn at the ends, so it is recognisably the same document folded up. */
+  const jobCard = j => {
+    const dates = String(j.sessionDates || '').split(/[,\n]/).filter(x => x.trim()).length;
+    const mine = USER && norm(j.tutor) === norm(USER.name);
+    /* WHO IS IN IT. The tutor takes a slot, and every seat asked for takes one — so a session for
+       two has three of its four filled and one going, which is the thing somebody scanning this
+       list actually wants to know. */
+    const seats = Number(j.students || j.maxStudents) || 0;
+    const taken = (j.tutor ? 1 : 0) + seats;
+    return `<div class="rc rc-stub tap" data-do="job"
+        data-id="${esc(String(j.id || j.jobId || ''))}">
+      <div class="rc-stub-top">
+        <span class="rc-stub-what">${esc(j.subject || 'Session')}${
+          j.level ? ' · ' + esc(j.level) : ''}</span>
+        <span class="rc-stub-cost">${money(mine ? (j.tutorPay || 0) : (j.price || 0))}</span>
+      </div>
+      <div class="rc-stub-mid">
+        ${facesFor(j.venue, j.tutor, 'rc-stub-pics')}
+        <div class="rc-stub-said">
+          <span>${esc([j.venue, j.weekday, j.time].filter(Boolean).join(' · ') || 'Not set')}</span>
+          <span class="rc-stub-who">${esc(j.tutor || 'No tutor yet')}</span>
+        </div>
+      </div>
+      <div class="rc-stub-line rc-stub-foot">
+        <span>${esc(j.status || 'Open')}</span>
+        ${rosterPips(seats, taken)}
+        <span>${dates ? dates + ' session' + (dates === 1 ? '' : 's') : 'No dates yet'}</span>
       </div>
     </div>`;
+  };
 
   /* Built as blocks rather than one string, because the pager needs the pieces and this screen's
      pieces are already separate things — the button, the two headings, a card per session. */
@@ -6713,7 +7210,27 @@ function bookBlocks() {
   ].filter(Boolean);
 }
 
-const bookPages = () => chunk(bookBlocks(), PER_PAGE.book);
+/* ONE SESSION, ONE PANE.
+   Eight stubs on a pane made the pane a list, and the whole point of a pane is that it is ONE
+   thing — you swipe to the next rather than scan down. A session is a receipt, and a receipt is a
+   document: it gets a card of its own.
+   The first pane is the asking. Everything after it is one session each, in the order `bookBlocks`
+   already puts them — yours first, then the open ones. */
+function bookPages() {
+  const blocks = bookBlocks();
+  /* The heading rows — "Yours", "Open" — belong with the session under them rather than alone on a
+     pane of their own, so they are carried forward onto the next one. */
+  const out = [];
+  let carry = '';
+  blocks.forEach(b => {
+    if (/^<h2/.test(b)) { carry += b; return; }
+    if (/^<button|^<div class="card"/.test(b) && !out.length) { out.push(carry + b); carry = ''; return; }
+    out.push(carry + b);
+    carry = '';
+  });
+  if (carry) out.push(carry);
+  return out.length ? out : [''];
+}
 
 screen('book', () => pages('book', bookPages()), () => USER ? '' : '<span class="act" data-do="signin">Sign in</span>');
 on('soon', () => toast('Not moved across yet'));
@@ -7143,112 +7660,355 @@ on('book-more', el => {
  * arrived at, when it happens, and only then its state. State last because what a booking IS is
  * what somebody came to read; where it STANDS is what they check afterwards.
  */
-function bookBreakdown(L) {
-  if (!L) return '<p class="note">Not enough answered to price it yet.</p>';
+/**
+ * THE ROWS OF THE RECEIPT, AS DATA.
+ *
+ * Split out of `bookBreakdown` when the same receipt had to be drawn onto a canvas as well as into
+ * HTML. Two renderers walking one list is duplication of PAINTING; two renderers each deciding
+ * which rows exist would be duplication of MEANING, and that is the kind that drifts — a row added
+ * to the card and not to the picture makes a shared receipt that quietly disagrees with the screen.
+ */
+function breakdownRows(L) {
   const fmt = { money, esc, pct: x => x };
+  const rows = [];
+  let line = 0;
+  const push = (k, v, mul, rate, total, opts) => rows.push(Object.assign({
+    n: (opts && opts.free) ? '' : String(++line).padStart(3, '0'),
+    k, v: v || '', mul: mul || '', rate: rate || '', total: total || '',
+  }, opts || {}));
 
-  /* Photographs of the two things chosen — the room and the person. A booking is largely about
-     whether you like the look of both, and a card that names them without showing them is a
-     receipt rather than an offer. */
-  const sp = spaceFor(BOOKING.loc);
-  const venue = (DATA.venues || []).find(x => norm(x.title) === norm(sp ? sp.venue : BOOKING.loc));
-  const tutor = tutorRow_();
-  /* A DRAWN STAND-IN rather than a word. "No tutor yet" in a box is a caption where a picture
-     should be; a vague figure is recognisably a person nobody has chosen, which is what an open
-     booking IS — and it holds the frame so a card with one photograph does not look like a booking
-     with a room and no teacher. */
-  const figure = kind => `<span class="bk-none"><svg viewBox="0 0 64 52" aria-hidden="true">${
-    kind === 'venue'
-      ? `<path d="M14 42V22l18-11 18 11v20z" fill="none" stroke="currentColor" stroke-width="2"/>
-         <rect x="28" y="30" width="8" height="12" fill="currentColor" opacity=".45"/>
-         <rect x="19" y="26" width="6" height="6" fill="currentColor" opacity=".28"/>
-         <rect x="39" y="26" width="6" height="6" fill="currentColor" opacity=".28"/>`
-      : `<circle cx="32" cy="20" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
-         <path d="M16 46a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="2"/>`
-  }</svg></span>`;
-  const frame = (img, kind) => img
-    ? `<img src="${esc(pic(img))}" alt="" loading="lazy">`
-    : figure(kind);
-  const photos = `<div class="bk-photos">
-      ${frame(venue && venue.image, 'venue')}
-      ${frame(tutor && tutor.image, 'tutor')}
-    </div>`;
-
-  /* One row: label, what was chosen, the multiplier, what it adds an hour, and the running total.
-     Five columns because a multiplier and a fixed amount are different operations and sharing a
-     column made the arithmetic impossible to follow. */
-  /* `step` is which question this row's value came from. Given one, the value becomes a button
-     that reopens it — which is the whole of "play with it": no mode to enter, no pencil to find,
-     the number you want to change is the thing you press. */
-  const row = (k, v, mul, rate, run, cls, step) => `<div class="bk-row ${cls || ''}">
-      <span class="bk-k">${esc(k)}</span>
-      <span class="bk-v${step ? ' bk-pick" data-do="book-edit" data-step="' + esc(step) : ''}">${v || ''}</span>
-      <span class="bk-m">${mul || ''}</span>
-      <span class="bk-r">${rate || ''}</span>
-      <span class="bk-t">${run || ''}</span>
-    </div>`;
-
-  const out = [];
   ['rate', 'shape'].forEach(group => {
     const inGroup = PRICE_ROWS.filter(r => r.group === group);
 
-    /* The hour grid sits at the top of the shape section, because ticking it is what produces a
-       session count — so the rows below read as consequences of it rather than promises made
-       before it. */
     if (group === 'shape') {
       bookRuns().forEach(r => {
-        const g = slotGrid();
-        const day = g.rows.find(x => x.prefix === r.day);
-        const hours = (day ? day.hours : []).map(h =>
-          `<span class="bk-hr${(BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}"
-            >${h.h}</span>`).join('');
-        out.push(row(r.dayName, `<span class="bk-hrs">${hours}</span>`, '', '', '', 'bk-day',
-          'slots'));
+        push(r.dayName, r.hour + ':00–' + (r.hour + r.hours) + ':00', '', '', '',
+          { day: true, step: 'slots', hours: r });
       });
       if (L.hoursPerWeek) {
-        out.push(row('Hours a week', '', '× ' + L.hoursPerWeek, '',
-          L.weeksBooked ? money(runningAfter('hoursweek', L)) : '', 'bk-day'));
+        push('Hours a week', '', '× ' + L.hoursPerWeek, '',
+          L.weeksBooked ? money(runningAfter('hoursweek', L)) : '', { day: true });
       }
     }
 
     inGroup.forEach((r, gi) => {
       if (r.show && !r.show(L)) return;
       const c = priceCells(r, L, fmt);
-      /* Which question this row is showing the answer to. The row keys and the step ids are
-         different vocabularies — one describes the price, the other the conversation — so the join
-         is written out rather than assumed. */
-      const asked = { base: 'tutor', subject: 'subjects', level: 'level', students: 'n',
-                      venue: 'loc', host: 'hosting', term: 'interval',
-                      split: 'splitOthers' }[r.key];
-      /* A ROW'S VALUE IS WHAT WAS CHOSEN, and nothing else.
-         Some rows carry an admin annotation in a `note` span — Extra seats explains WHERE its
-         fraction came from, which matters when a tutor's own setting is being ignored. Stripping
-         the tags kept the words, so "1" arrived as "1 config 1.5 + B 0.1" in a column two
-         characters wide. The note is removed WITH its contents; what is left is the answer. */
       const plain = r.value
         ? String(r.value(L)).replace(/<span class="note">[\s\S]*?<\/span>/g, '')
                             .replace(/<[^>]*>/g, '').trim()
         : '';
-      out.push(row(r.label, esc(plain),
-        c.mul, c.rate, c.total, gi === inGroup.length - 1 ? 'bk-end' : '', asked));
+      const asked = { base: 'tutor', subject: 'subjects', level: 'level', students: 'n',
+                      venue: 'loc', host: 'hosting', term: 'interval',
+                      split: 'splitOthers' }[r.key];
+      push(r.label, plain, c.mul, c.rate, c.total,
+        { end: gi === inGroup.length - 1, step: asked, key: r.key });
     });
   });
 
-  /* THE DATES. Not a summary of them — the actual list, because they ARE what is being paid for
-     and a count is something you either believe or you do not. */
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
-  out.push(row('Dates', dates.length ? `<span class="bk-dates">${esc(dates.join(', '))}</span>` : '—',
-    '', '', dates.length ? dates.length + ' dates' : '', 'bk-free'));
+  push('Dates', dates.length ? dates.join(', ') : '—', '', '',
+    dates.length ? dates.length + ' dates' : '', { free: true, dates: true });
+  push('Status', 'Unsent', '', '', '', { free: true });
+  push('Possession', 'Yours', '', '', '', { free: true });
+  push('Lifecycle', 'Uncreated', '', '', '', { free: true });
+  return rows;
+}
 
-  /* Where it stands, last. Three separate facts that were once one word:
-       status      where the negotiation is
-       possession  whose booking this is
-       lifecycle   where the CALENDAR is, which moves on its own as dates pass */
-  out.push(row('Status', 'Unsent', '', '', '', 'bk-free'));
-  out.push(row('Possession', 'Yours', '', '', '', 'bk-free'));
-  out.push(row('Lifecycle', 'Uncreated', '', '', '', 'bk-free'));
+function bookBreakdown(L) {
+  if (!L) return '<p class="note">Not enough answered to price it yet.</p>';
 
-  return photos + '<div class="bk">' + out.join('') + '</div>';
+  /* Photographs of the two things chosen — the room and the person. A booking is largely about
+     whether you like the look of both, and a card that names them without showing them is a receipt
+     rather than an offer.
+     One lookup, shared with the job stub. This was written out here and about to be written again
+     there, which is two ways of finding a venue's photograph and two ways for one of them to stop
+     finding it. */
+  const photos = facesFor(BOOKING.loc, BOOKING.tutor);
+
+  const venueName = BOOKING.loc || 'No venue yet';
+  const now = new Date();
+  const when = fmtDate(now) + ' ' + String(now.getHours()).padStart(2, '0')
+    + ':' + String(now.getMinutes()).padStart(2, '0');
+
+  /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist is
+     decided once, so a row added to the card cannot go missing from the shared picture. */
+  /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist
+     is decided once, so a row added to the card cannot go missing from the shared picture. */
+  /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist
+     is decided once, so a row added to the card cannot go missing from the shared picture. */
+  const out = breakdownRows(L).map(receiptRow);
+
+  const bars = receiptBars(BOOK_STEPS.map(st => {
+    const v = BOOKING[st.id];
+    return st.id + ':' + (Array.isArray(v) ? v.join(',') : String(v ?? ''));
+  }).concat(['slots:' + (BOOKING.slots || []).join(','),
+             'split:' + (BOOKING.splitWith || []).join(',')]).join('|'));
+
+  return receiptHtml({
+    photos,
+    lines: [venueName, BOOKING.tutor || 'No tutor yet', when],
+    rows: out,
+    total: money(L.total),
+    aside: L.W ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
+    /* The tutor, then a seat for each student, then whoever is splitting it. */
+    roster: rosterHtml({
+      tutor: BOOKING.tutor, seats: Number(BOOKING.n) || 0,
+      client: USER && USER.name,
+      names: [USER && USER.name].concat((BOOKING.splitWith || []).filter(Boolean)),
+    }),
+    bars,
+    thanks: 'Nothing is booked until you ask for it.',
+  });
+}
+
+/**
+ * THE RECEIPT ITSELF — paper, head, columns, rows, total, barcode.
+ *
+ * Extracted so a SAVED job can be printed on the same paper as a booking being built. They are the
+ * same document at two moments: one is what you are asking for, the other is what you asked for,
+ * and a client comparing the two should not have to work out whether a difference is real or just
+ * two screens drawn by different code.
+ */
+/* ---------- THE ROSTER ------------------------------------------------------------------------------
+   Four slots: the tutor, and one for each seat. The shape a game lobby uses — Halo's fireteam, a
+   Destiny fireteam, an Xbox party — and it is used here for the reason those use it: it makes the
+   size of the group a PICTURE rather than a number, and it makes an empty slot look like an
+   invitation instead of an absence.
+
+   That second part is the useful one. "Sharing with: 2 other families" is a fact somebody has to
+   read and think about. Two filled slots and two open ones is a thing you look at and immediately
+   understand you could fill — which is exactly what splitting a session is, and it was previously
+   buried in a question most people skipped.
+
+   FOUR UNLESS THERE ARE MORE. Four is the lobby size everybody recognises, and a session of six
+   still has to show six — a roster that hides two of the people in the room is worse than one that
+   is the wrong shape.
+--------------------------------------------------------------------------------------------- */
+/**
+ * THE TWO FACES: the room and the person.
+ *
+ * Pulled out of `bookBreakdown` when a job stub needed them as well — the same lookup was about to
+ * be written a second time, and two ways of finding a venue's photograph is two ways for one of
+ * them to stop finding it.
+ *
+ * Greyed by the stylesheet, because a receipt has one ink.
+ */
+/* WHICH ROOM AND WHICH PERSON. The two rows behind a booking, found once — a venue can be named
+   by one of its rooms, so the room's own venue is what has to be looked up, and getting that wrong
+   means a photograph that is simply never found for half the bookings. */
+function facesOf_(venueName, tutorName) {
+  const sp = spaceFor(venueName);
+  return {
+    venue: (DATA.venues || []).find(x => norm(x.title) === norm(sp ? sp.venue : venueName)),
+    tutor: (DATA.tutors || []).find(x => norm(x.title) === norm(tutorName)),
+  };
+}
+
+function facesFor(venueName, tutorName, cls) {
+  const { venue, tutor } = facesOf_(venueName, tutorName);
+  const figure = kind => `<span class="bk-none"><svg viewBox="0 0 64 52" aria-hidden="true">${
+    kind === 'venue'
+      ? `<path d="M14 42V22l18-11 18 11v20z" fill="none" stroke="currentColor" stroke-width="2"/>
+         <rect x="28" y="30" width="8" height="12" fill="currentColor" opacity=".45"/>`
+      : `<circle cx="32" cy="20" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+         <path d="M16 46a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="2"/>`
+  }</svg></span>`;
+  const one = (img, kind) => img
+    ? `<img src="${esc(pic(img))}" alt="" loading="lazy">` : figure(kind);
+  return `<div class="${cls || 'bk-photos'}">
+      ${one(venue && venue.image, 'venue')}
+      ${one(tutor && tutor.image, 'tutor')}
+    </div>`;
+}
+
+/**
+ * THE ROSTER AS PIPS, small enough for a stub.
+ *
+ * The full roster is four named slots with faces; this is the same fact at a glance — how many
+ * seats are taken and how many are going. On a list, "3 of 4" plus four marks tells you whether
+ * there is room without reading anything.
+ */
+function rosterPips(seats, taken) {
+  const total = Math.max(4, seats + 1);
+  const full = Math.max(0, Math.min(total, taken));
+  let out = '';
+  for (let i = 0; i < total; i++) {
+    out += `<i class="pip${i < full ? ' on' : ''}${i === 0 ? ' tut' : ''}"></i>`;
+  }
+  const open = total - full;
+  return `<span class="rc-stub-slots">${out}<em>${
+    open ? open + ' free' : 'full'}</em></span>`;
+}
+
+function rosterHtml(o) {
+  const tutor = o.tutor || '';
+  const seats = Math.max(0, Number(o.seats) || 0);
+  const names = (o.names || []).filter(Boolean);
+
+  const slots = [];
+  slots.push({ role: 'Tutor', name: tutor, filled: !!tutor, tutor: true });
+  for (let i = 0; i < seats; i++) {
+    /* A SEAT SOMEBODY HAS PAID FOR IS TAKEN, whether or not it has a name on it. A parent booking
+       three seats has three children coming and has told us none of their names — the slot reads
+       "Booked" rather than repeating its own label, which is what happened when the name fell back
+       to the role and every unnamed seat printed "Seat 2 · Seat 2". */
+    slots.push({ role: i === 0 ? 'You' : 'Seat ' + (i + 1),
+                 name: names[i] || (i === 0 ? (o.client || 'You') : 'Booked'),
+                 filled: true });
+  }
+  /* Pad to four. An open slot is drawn as open rather than left off, because the empty ones are
+     the ones that say something. */
+  while (slots.length < 4) slots.push({ role: 'Open', name: '', filled: false });
+
+  return `<div class="rost">
+    ${slots.map(sl => `<div class="rost-slot${sl.filled ? ' on' : ''}${sl.tutor ? ' tut' : ''}">
+      <span class="rost-pic">${sl.filled
+        ? avatarFor(sl.name || sl.role, 34, '')
+        : '<span class="rost-plus">+</span>'}</span>
+      <span class="rost-name">${esc(sl.filled ? (sl.name || sl.role) : 'Open')}</span>
+      <span class="rost-role">${esc(sl.role)}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+function receiptHtml(r) {
+  return `<div class="rc">
+    <div class="rc-head">
+      <h2>@family.</h2>
+      ${(r.lines || []).map(l => `<p>${esc(l)}</p>`).join('')}
+    </div>
+    ${r.photos || ''}
+    <div class="rc-rule"></div>
+    <div class="bk-row rc-cols">
+      <span class="bk-n">#</span><span class="bk-k">Item</span><span class="bk-v"></span>
+      <span class="bk-m">×</span><span class="bk-r">Rate</span><span class="bk-t">Total</span>
+    </div>
+    <div class="rc-rule"></div>
+    <div class="bk">${(r.rows || []).join('')}</div>
+    <div class="rc-rule"></div>
+    <div class="bk-row rc-total">
+      <span class="bk-n"></span>
+      <span class="bk-k">${esc(r.totalLabel || 'To pay')}</span>
+      <span class="bk-v"></span>
+      <span class="bk-m"></span>
+      <span class="bk-r">${esc(r.aside || '')}</span>
+      <span class="bk-t">${esc(r.total || '')}</span>
+    </div>
+    ${r.roster ? `<div class="rc-rule"></div>${r.roster}` : ''}
+    <div class="rc-rule"></div>
+    <div class="rc-bars">${(r.bars || []).join('')}</div>
+    <p class="rc-thanks">${esc(r.thanks || '')}</p>
+  </div>`;
+}
+
+/** One row of a receipt, from the shape `breakdownRows` and `jobRows` both produce. */
+function receiptRow(r) {
+  const cls = [r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '']
+    .filter(Boolean).join(' ');
+  /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so
+     a day on the receipt and a day in the grid are visibly the same thing.
+     Decided here rather than by the caller patching the markup afterwards: this function knows what
+     a row looks like, and a caller that has to reach into the string it was given is a caller doing
+     this function's job badly. */
+  const value = r.hours
+    ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
+        || { hours: [] }).hours).map(h => `<span class="bk-hr${
+          (BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}">${h.h}</span>`).join('')}</span>`
+    : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>`
+    : esc(r.v);
+  return `<div class="bk-row ${cls}">
+    <span class="bk-n">${esc(r.n)}</span>
+    <span class="bk-k">${esc(r.k)}</span>
+    <span class="bk-v${r.step ? ' bk-pick" data-do="book-edit" data-step="' + esc(r.step) : ''}"
+      >${value}</span>
+    <span class="bk-m">${esc(r.mul)}</span>
+    <span class="bk-r">${esc(r.rate)}</span>
+    <span class="bk-t">${esc(r.total)}</span>
+  </div>`;
+}
+
+/** Forty-four bars from a seed. Same booking, same code, for ever. */
+function receiptBars(seedStr) {
+  let seed = hashOf(String(seedStr)) >>> 0;
+  const bars = [];
+  for (let i = 0; i < 44; i++) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    bars.push(`<i style="width:${1 + (seed % 3)}px"></i>`);
+  }
+  return bars;
+}
+
+/**
+ * A SAVED JOB, AS A RECEIPT OF WHAT WAS ASKED FOR.
+ *
+ * Built from what the job ROW actually holds, not by re-pricing it. Re-pricing would produce a
+ * fuller chain of multipliers and would be the wrong document: a receipt records what was agreed,
+ * and rates move. A session asked for in September should still say what September said.
+ */
+function jobRows(j) {
+  const rows = [];
+  let line = 0;
+  const push = (k, v, total, opts) => {
+    /* A ROW WITH NOTHING IN IT IS SKIPPED — a job with no tutor should not print an empty Tutor
+       line. But "nothing in it" means no VALUE and no TOTAL: the money rows carry their figure in
+       the total column and an empty value, and this dropped every one of them, so a client saw a
+       receipt of their booking with no price on it. */
+    if ((v === '' || v == null) && !total) return;
+    rows.push(Object.assign({
+      n: (opts && opts.free) ? '' : String(++line).padStart(3, '0'),
+      k, v: String(v), mul: '', rate: '', total: total || '',
+    }, opts || {}));
+  };
+
+  push('Subject', j.subject || '');
+  push('Level', j.level || '');
+  push('Students', j.students || j.maxStudents || '');
+  push('Venue', j.venue || '');
+  push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
+  push('When', [j.weekday, j.time].filter(Boolean).join(' '));
+  push('Each session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
+  push('Term', j.term || '');
+  push('Sharing with', j.splitEmails || 'Just you');
+  if (j.tutor) push('Tutor', j.tutor);
+
+  const dates = String(j.sessionDates || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean);
+  push('Dates', dates.length ? dates.join(', ') : '—',
+    dates.length ? dates.length + ' dates' : '', { free: true, dates: true });
+
+  /* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor
+     sees what they earn; an admin sees both and the difference. Same receipt, three readings —
+     which is better than three screens that can disagree. */
+  if (j.price) push('Total', '', money(j.price), { free: true });
+  if (isAdmin() || (USER && norm(j.tutor) === norm(USER.name))) {
+    if (j.tutorPay) push('Tutor is paid', '', money(j.tutorPay), { free: true });
+  }
+  if (isAdmin() && j.profit) push('Left over', '', money(j.profit), { free: true });
+
+  push('Status', j.status || 'Open', '', { free: true });
+  if (j.createdAt) push('Asked for', String(j.createdAt), '', { free: true });
+  return rows;
+}
+
+/** A job, on the same paper a booking is drawn on. */
+function jobReceipt(j) {
+  const rows = jobRows(j);
+  const mine = USER && norm(j.tutor) === norm(USER.name);
+  return receiptHtml({
+    lines: [j.venue || 'No venue', j.tutor || 'No tutor yet', j.term || ''].filter(Boolean),
+    rows: rows.map(receiptRow),
+    totalLabel: mine ? 'You earn' : 'To pay',
+    total: money(mine ? (j.tutorPay || 0) : (j.price || 0)),
+    aside: j.status || '',
+    roster: rosterHtml({
+      tutor: j.tutor, seats: Number(j.students || j.maxStudents) || 0,
+      client: j.client,
+      names: [j.client].concat(String(j.splitEmails || '').split(/[,\n]/)
+        .map(x => x.trim()).filter(Boolean)),
+    }),
+    bars: receiptBars([j.id, j.jobId, j.subject, j.venue, j.price].join('|')),
+    thanks: 'Session ' + esc(String(j.id || j.jobId || '')),
+  });
 }
 
 /**
@@ -7276,6 +8036,219 @@ function redrawBooker_(draw) {
 
 /* The one entry point. Everything that changes an answer calls this, and it is the only thing
    that calls `drawBooker_` — so nothing can redraw the sheet without keeping its place. */
+/* ---------- THE RECEIPT AS A PICTURE --------------------------------------------------------------
+   Drawn onto a canvas from the same booking the card is drawn from, then handed to the phone's own
+   share sheet.
+
+   WHY NOT SCREENSHOT THE ELEMENT. There is no way to do it without a library — html2canvas and its
+   kind are a hundred kilobytes and a fourth permanent file — and the SVG-foreignObject trick that
+   avoids them is worse: it silently drops remote images and any font the page did not inline. So
+   the receipt is drawn twice, once in HTML and once here. That is real duplication and the honest
+   cost of not taking a dependency; the ROW DATA is shared, so what differs between them is only
+   how a row is painted.
+
+   THE PHOTOGRAPHS ARE THE HARD PART. Drawing a remote image onto a canvas TAINTS it — the browser
+   refuses `toBlob` afterwards, on the reasoning that a page should not be able to read pixels it
+   was only allowed to display. Drive does not send the header that would allow it. So each photo is
+   attempted with CORS and, when that fails, a drawn frame takes its place: the share always works,
+   and it never half-works.
+--------------------------------------------------------------------------------------------- */
+
+/** Load an image for canvas use, or nothing. Never rejects — a missing photo is not a failed share. */
+function corsImage_(src) {
+  return new Promise(resolve => {
+    if (!src) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+    /* Some hosts neither load nor error — they hang. A share that never happens is worse than one
+       without pictures. */
+    setTimeout(() => resolve(img.complete && img.naturalWidth ? img : null), 2500);
+  });
+}
+
+async function receiptCanvas() {
+  const L = bookPrice();
+  if (!L) return null;
+  const rows = breakdownRows(L);
+
+  /* Drawn at three times the size and scaled down by the device, so it is sharp on a phone and
+     still sharp when somebody opens it on a laptop. */
+  const S = 3, W = 380 * S, PAD = 26 * S;
+  const LINE = 17 * S;
+
+  /* Height has to be known before drawing, so the rows are measured first. Two passes over the same
+     list rather than a guess: a canvas that is too short crops the total off the bottom. */
+  const photoH = 96 * S;
+  const headH = 92 * S;
+  const footH = 118 * S;
+  const H = photoH + headH + rows.length * LINE + footH;
+
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  if (!g) return null;
+
+  const INK = '#2b2620', FAINT = '#8a8175', PAPER = '#f4f1e8';
+  g.fillStyle = PAPER;
+  g.fillRect(0, 0, W, H);
+
+  /* The torn ends. Same zigzag the card has, drawn as triangles cut out of the paper. */
+  const tooth = 10 * S;
+  g.globalCompositeOperation = 'destination-out';
+  for (let x = 0; x < W; x += tooth) {
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x + tooth / 2, tooth); g.lineTo(x + tooth, 0);
+    g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(x, H); g.lineTo(x + tooth / 2, H - tooth); g.lineTo(x + tooth, H);
+    g.closePath(); g.fill();
+  }
+  g.globalCompositeOperation = 'source-over';
+
+  let y = tooth + 8 * S;
+
+  /* ---- the photographs, in grey ---- */
+  const { venue, tutor } = facesOf_(BOOKING.loc, BOOKING.tutor);
+  const shots = await Promise.all([
+    corsImage_(venue && venue.image ? pic(venue.image) : ''),
+    corsImage_(tutor && tutor.image ? pic(tutor.image) : ''),
+  ]);
+  const boxW = (W - PAD * 2 - 8 * S) / 2, boxH = photoH - 14 * S;
+  shots.forEach((img, i) => {
+    const x = PAD + i * (boxW + 8 * S);
+    g.save();
+    g.beginPath(); g.rect(x, y, boxW, boxH); g.clip();
+    if (img) {
+      /* ONE INK. A till roll has no colour in it, and a colour photograph is the one thing that
+         gives away a screen pretending to be paper. */
+      g.filter = 'grayscale(1) contrast(1.18)';
+      const scale = Math.max(boxW / img.width, boxH / img.height);
+      g.drawImage(img, x + (boxW - img.width * scale) / 2, y + (boxH - img.height * scale) / 2,
+                  img.width * scale, img.height * scale);
+      g.filter = 'none';
+    } else {
+      g.fillStyle = '#e6e1d4';
+      g.fillRect(x, y, boxW, boxH);
+      g.fillStyle = FAINT;
+      g.font = `${9 * S}px ui-monospace, monospace`;
+      g.textAlign = 'center';
+      g.fillText(i ? (BOOKING.tutor || 'no tutor') : (BOOKING.loc || 'no venue'),
+                 x + boxW / 2, y + boxH / 2);
+    }
+    g.restore();
+    g.strokeStyle = '#c9c0b0'; g.lineWidth = 1 * S;
+    g.strokeRect(x, y, boxW, boxH);
+  });
+  y += photoH;
+
+  /* ---- the head ---- */
+  g.textAlign = 'center'; g.fillStyle = INK;
+  g.font = `700 ${13 * S}px ui-monospace, monospace`;
+  g.fillText('@family.', W / 2, y); y += 16 * S;
+  g.font = `${9.5 * S}px ui-monospace, monospace`; g.fillStyle = FAINT;
+  [BOOKING.loc || 'venue not chosen', BOOKING.tutor || 'no tutor yet',
+   BOOKING.interval || 'term not chosen'].forEach(t => { g.fillText(t, W / 2, y); y += 13 * S; });
+  y += 6 * S;
+
+  const rule = () => {
+    g.strokeStyle = '#b3aa9c'; g.lineWidth = 1 * S;
+    g.setLineDash([3 * S, 3 * S]);
+    g.beginPath(); g.moveTo(PAD, y); g.lineTo(W - PAD, y); g.stroke();
+    g.setLineDash([]); y += 14 * S;
+  };
+  rule();
+
+  /* ---- the rows. Same six columns as the card, in the same order. ---- */
+  const cols = [PAD, PAD + 26 * S, W - PAD - 150 * S, W - PAD - 96 * S, W - PAD - 56 * S, W - PAD];
+  g.font = `${9.5 * S}px ui-monospace, monospace`;
+  rows.forEach(r => {
+    g.textAlign = 'left';
+    g.fillStyle = '#a99f8f'; g.fillText(r.n || '', cols[0], y);
+    g.fillStyle = r.big ? INK : '#6a6259';
+    g.font = `${r.big ? 700 : 400} ${9.5 * S}px ui-monospace, monospace`;
+    g.fillText(r.k, cols[1], y);
+    g.textAlign = 'right';
+    g.fillStyle = INK;
+    /* Trimmed to what fits. A value that runs into the next column is worse than one cut short. */
+    g.fillText(String(r.v || '').slice(0, 22), cols[3] - 6 * S, y);
+    g.fillStyle = '#6a6259'; g.fillText(r.mul || '', cols[4] - 6 * S, y);
+    g.fillStyle = '#8a8175'; g.fillText(r.rate || '', cols[5] - 46 * S, y);
+    g.fillStyle = INK; g.font = `${r.big ? 700 : 400} ${9.5 * S}px ui-monospace, monospace`;
+    g.fillText(r.total || '', cols[5], y);
+    y += LINE;
+  });
+
+  y += 4 * S; rule();
+
+  /* ---- what it costs ---- */
+  g.textAlign = 'left'; g.fillStyle = INK;
+  g.font = `700 ${11 * S}px ui-monospace, monospace`;
+  g.fillText('TO PAY', PAD, y);
+  g.textAlign = 'right';
+  g.font = `700 ${15 * S}px ui-monospace, monospace`;
+  g.fillText(money(L.total), W - PAD, y);
+  y += 22 * S;
+  rule();
+
+  /* ---- the barcode, from the same seed the card uses ---- */
+  let seed = hashOf(BOOK_STEPS.map(st => {
+    const v = BOOKING[st.id];
+    return st.id + ':' + (Array.isArray(v) ? v.join(',') : String(v ?? ''));
+  }).concat(['slots:' + (BOOKING.slots || []).join(','),
+             'split:' + (BOOKING.splitWith || []).join(',')]).join('|')) >>> 0;
+  let bx = PAD;
+  g.fillStyle = INK;
+  for (let i = 0; i < 44 && bx < W - PAD; i++) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const w = (1 + (seed % 3)) * S;
+    if (seed % 7) g.fillRect(bx, y, w, 34 * S);
+    bx += w + 2 * S;
+  }
+  y += 48 * S;
+
+  g.textAlign = 'center'; g.fillStyle = FAINT;
+  g.font = `${9 * S}px ui-monospace, monospace`;
+  g.fillText('Nothing is booked until you ask for it.', W / 2, y);
+
+  return cv;
+}
+
+on('book-share', async el => {
+  el.disabled = true;
+  const was = el.textContent;
+  el.textContent = 'Drawing…';
+  try {
+    const cv = await receiptCanvas();
+    if (!cv) throw new Error('Not enough answered to print it yet');
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    if (!blob) throw new Error('The picture could not be made');
+    const file = new File([blob], 'family-session.png', { type: 'image/png' });
+
+    /* THE PHONE'S OWN SHARE SHEET where there is one — that is how this reaches WhatsApp, which is
+       where these actually get sent. `canShare` is checked with the FILE, not just for existence:
+       a browser can have `share` and refuse files, and finding that out from a rejected promise
+       means the download never happens. */
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: '@family. session' });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'family-session.png';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('Saved to your downloads');
+    }
+  } catch (err) {
+    /* Somebody dismissing the share sheet is not an error and must not look like one. */
+    if (!/abort/i.test(String(err && err.name))) {
+      toast(String(err && err.message || 'Could not share that'));
+    }
+  }
+  el.disabled = false;
+  el.textContent = was;
+});
+
 function drawBooker() { redrawBooker_(drawBooker_); }
 
 function drawBooker_() {
@@ -7321,6 +8294,10 @@ function drawBooker_() {
       <label class="field"><span>anything else we should know</span>
         <textarea id="book-note" placeholder="Optional"></textarea></label>
       <button class="btn" data-do="book-send">Ask for it</button>
+      ${/* SHARING IT BEFORE SENDING IT. A parent deciding usually shows somebody else first — the
+            other parent, the family they are splitting with — and until now that meant a
+            screenshot, which crops badly and loses the bottom of a long receipt. */''}
+      <button class="btn quiet" data-do="book-share">Share this receipt</button>
       <p class="faint" id="book-said" style="margin:.6rem 0 0">
         Nothing is booked or charged yet — this asks, and we come back to you.</p>`);
     return;
@@ -7414,7 +8391,9 @@ on('book-send', el => {
   if (said) said.textContent = 'Asking…';
 
   const spec = bookSpec();
-  api({ action: 'createJob',
+  /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
+     button did nothing and the request was never sent, and nobody was told either fact. */
+  send_({ action: 'createJob',
     name: USER.name, clientName: USER.name,
     subject: spec.subjects.join(', '), level: spec.level,
     day: spec.day, time: spec.time, location: BOOKING.loc,
@@ -7425,6 +8404,16 @@ on('book-send', el => {
     /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
        sent — so the sheet's profit column stayed empty on every booking made through the app. */
     profit: L ? String(Math.round((L.profitTotal || 0) * 100) / 100) : '',
+    /* THE PRINTED LINES, sent with the request so the backend can keep the receipt AS DRAWN.
+       Regenerating it later from the job would produce a different document the day a rate moves —
+       and a receipt that changes after it is issued is not a receipt. */
+    /* GUARDED, because `bookPrice` returns null until enough is answered to price anything — and
+       `book-send` can be pressed before that, which is exactly what the harness does. An unpriceable
+       booking sends no lines rather than throwing on the way out: the request is the important
+       half, and the paperwork must never be what stops it. */
+    lines: JSON.stringify(((L2) => L2 ? breakdownRows(L2).map(r => ({
+      n: r.n, k: r.k, v: r.v, mul: r.mul, rate: r.rate, total: r.total,
+    })) : [])(bookPrice())),
     service: BOOKING.service || 'Tuition',
     splitOthers: spec.splitOthers,
     /* Who to invite. `createJob` has accepted this since the beginning and nothing ever sent it,
@@ -7452,16 +8441,15 @@ on('book-send', el => {
     });
 });
 
+/* THE WHOLE RECEIPT, on tap. The stub on the list is a fold; this is the paper opened out.
+   It used to build its own six-row summary here — a THIRD rendering of the same booking, after the
+   card and the receipt, and the one that would quietly stop matching them. Six rows where the
+   receipt has fourteen, so tapping a session told you less than the list it was on. */
 on('job', el => {
   const jobs = DATA.liveJobs || DATA.jobs || [];
-  const j = jobs.find(x => String(x.id || x.jobId) === el.dataset.id);
-  if (!j) return;
-  openSheet(j.subject || 'Session', [
-    ['Where', j.venue], ['When', [j.weekday, j.time].filter(Boolean).join(' ')],
-    ['Tutor', j.tutor], ['Level', j.level], ['Status', j.status],
-    ['Price', j.price ? money(j.price) : ''],
-  ].filter(([, v]) => v).map(([k, v]) =>
-    `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join(''));
+  const j = jobs.find(x => String(x.id || x.jobId || '') === String(el.dataset.id));
+  if (!j) { toast('That session is not in this list any more'); return; }
+  openSheet('Session ' + String(j.id || j.jobId || ''), jobReceipt(j));
 });
 
 
@@ -7474,7 +8462,14 @@ let CHESS = null, CHESS_PICK = -1, CHESS_HIST = [], CHESS_BUSY = false;
 let CAL_VIEW = null;
 let ttState = null;
 let timerState = { total: 25*60, left: 25*60, running: false, tick: null };
-const GLYPH = { K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙', k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟' };
+/* THE SOLID GLYPHS FOR BOTH SIDES, and the colour comes from CSS.
+   `♔♕♖` are the white pieces in Unicode and most fonts draw them as OUTLINES — a hollow shape in
+   whatever ink the page happens to use. On this app that is pale text on a pale square, so the
+   white army was a set of faint wireframes and the black one was solid: two different kinds of
+   drawing for two sides of the same game.
+   Filled shapes for everyone, told apart by fill and outline rather than by which glyph. That is
+   what every chess site does, for exactly this reason. */
+const GLYPH = { K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟', k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟' };
 let FEED_DECK = [];
 let FEED_SEEN = [];
 let FEED_PASS = 0;
@@ -7488,6 +8483,54 @@ const FEED_BUILT = {};
    was ever the problem. Only the sticky notes they used to sit on were.
 ================================================================================================ */
 
+/**
+ * SIZE A CANVAS TO ITS BOX, or wait until it has one.
+ *
+ * A canvas has two sizes — the CSS box it occupies and the `width`/`height` it draws into — and a
+ * mismatch does not fail, it STRETCHES. Which is the worst kind: the game runs, the numbers are all
+ * correct, and everything on screen is the wrong shape and in the wrong place.
+ *
+ * Returns false when the box has no size yet and asks to be called back, so a widget that starts
+ * before its pane is laid out starts properly a moment later instead of drawing into a default.
+ */
+function fitCanvas_(canvas, again) {
+  const box = canvas.getBoundingClientRect();
+  if (!box.width || !box.height) {
+    /* NOT AN ERROR, just early. One retry on the next frame, and one more after a beat for the
+       carousel's scroll to settle — after that something is genuinely wrong and retrying for ever
+       would be a loop nobody can see. */
+    if (again && !canvas.dataset.waiting) {
+      canvas.dataset.waiting = '1';
+      requestAnimationFrame(() => {
+        delete canvas.dataset.waiting;
+        again();
+      });
+    }
+    return false;
+  }
+  delete canvas.dataset.waiting;
+
+  /* ON A PHONE THE BOX IS IN CSS PIXELS and the screen has more than that. Drawing at the box size
+     on a 3× display is a third of the resolution the screen can show, which is what made the
+     shapes soft. The context is scaled to match, so every number in the game stays in CSS pixels
+     and nothing above this line has to know. */
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = Math.round(box.width), h = Math.round(box.height);
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  /* Guarded because a context is not guaranteed — a browser with the canvas turned off returns
+     null, and a harness returns a stub with only what it was asked for. Neither should stop the
+     size being right, which is the part that matters. */
+  if (ctx && ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  /* What the game should use for its own maths: the box, not the backing store. */
+  canvas.dataset.w = w;
+  canvas.dataset.h = h;
+  return true;
+}
+
 function initFlappy() {
   const canvas = $('flappy-canvas');
   if (!canvas) return;
@@ -7499,15 +8542,26 @@ function initFlappy() {
      scaled canvas is a game where the collisions do not match what you can see.
      Set here rather than in the markup because the page is a fraction of the screen and the screen
      is not known until it exists. */
-  const box = canvas.getBoundingClientRect();
-  if (box.width && box.height) {
-    canvas.width = Math.round(box.width);
-    canvas.height = Math.round(box.height);
-  }
+  /* MEASURED WHEN IT HAS A SIZE, and measured again when that changes.
+     This measured once, at start. A canvas that is not laid out yet reports nothing, so the
+     `if` fell through and the element kept its DEFAULT 300×150 backing store — which CSS then
+     stretched to whatever the box turned out to be. At 355×236 that is 1.18 across and 1.57 down,
+     so a circle came out an egg standing on end, and every collision was against a bird nobody
+     could see.
+     It fell through more often after the pages became a carousel: a pane that is not the centred
+     one is scaled and clipped, and a widget starting in it is asking about a box the browser has
+     not settled. */
+  if (!fitCanvas_(canvas, () => initFlappy())) return;
 
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const GOLD = '#d4af37', BLUE = '#4f9eff', GREEN = '#3cb043';
+  /* THE BOX, not the backing store. Those differ by the pixel ratio now, and using the backing
+     store would put the bird three times too far right on a phone. */
+  const W = Number(canvas.dataset.w) || canvas.width;
+  const H = Number(canvas.dataset.h) || canvas.height;
+  const GOLD = '#d4af37', GREEN = '#3cb043';
+  /* SKY. The game was drawn on the app's own black, which is right for a terminal and wrong for a
+     bird — the one thing everybody knows about this game is that it happens in the air. */
+  const SKY = '#7ec8f2', SKY_LOW = '#bfe6ff';
 
   // reset any previous loop
   if (flappyState?.raf) cancelAnimationFrame(flappyState.raf);
@@ -7591,18 +8645,49 @@ function initFlappy() {
     }
     if (S.bird.y + S.bird.r > H || S.bird.y - S.bird.r < 0) return gameOver();
     // draw
-    ctx.clearRect(0,0,W,H);
+    sky();
     ctx.fillStyle = GREEN;
     S.pipes.forEach(p => { ctx.fillRect(p.x, 0, PIPE_W, p.top); ctx.fillRect(p.x, p.top+GAP, PIPE_W, H-p.top-GAP); });
-    ctx.fillStyle = GOLD;
-    ctx.beginPath(); ctx.arc(S.bird.x, S.bird.y, S.bird.r, 0, Math.PI*2); ctx.fill();
+    bird();
     S.raf = requestAnimationFrame(loop);
   };
 
+  /* SKY, painted rather than cleared. `clearRect` leaves the canvas transparent and the app's own
+     black shows through — which is what made this a bird in a cave. Lighter towards the horizon,
+     because that is what a sky does and two flat colours would read as a stripe. */
+  function sky() {
+    const g2 = ctx.createLinearGradient(0, 0, 0, H);
+    g2.addColorStop(0, SKY);
+    g2.addColorStop(1, SKY_LOW);
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /* THE BIRD, and it is round. `arc` always draws a circle in canvas coordinates — the egg was the
+     canvas being stretched, not the shape being wrong — so this is the same call it always was,
+     now that the box and the backing store agree. */
+  function bird() {
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.arc(S.bird.x, S.bird.y, S.bird.r, 0, Math.PI * 2);
+    ctx.fill();
+    /* An eye and a beak: three primitives, and the difference between a bird and a dot. */
+    ctx.fillStyle = '#2b2620';
+    ctx.beginPath();
+    ctx.arc(S.bird.x + S.bird.r * 0.35, S.bird.y - S.bird.r * 0.3, S.bird.r * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e8862b';
+    ctx.beginPath();
+    ctx.moveTo(S.bird.x + S.bird.r * 0.8, S.bird.y);
+    ctx.lineTo(S.bird.x + S.bird.r * 1.5, S.bird.y + S.bird.r * 0.18);
+    ctx.lineTo(S.bird.x + S.bird.r * 0.8, S.bird.y + S.bird.r * 0.36);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   // idle draw (bird sitting)
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = GOLD;
-  ctx.beginPath(); ctx.arc(S.bird.x, S.bird.y, S.bird.r, 0, Math.PI*2); ctx.fill();
+  sky();
+  bird();
 
   canvas.onclick = flap;
   // space/arrow to flap (only when arcade canvas exists)
@@ -8030,6 +9115,9 @@ function drawChess() {
     const cls = ['sq', dark ? 'dk' : 'lt'];
     if (i === CHESS_PICK) cls.push('pick');
     if (legal.includes(i)) cls.push(p === '_' ? 'can' : 'take');
+    /* WHOSE PIECE IT IS, as a class. Uppercase is white in this file's board notation, and that
+       is the only thing that decides its colour now — the glyph is the same either way. */
+    if (p !== '_') cls.push(p === p.toUpperCase() ? 'wp' : 'bp');
     return `<span class="${cls.join(' ')}" data-sq="${i}">${p === '_' ? '' : GLYPH[p]}</span>`;
   }).join('');
   say();
@@ -8389,11 +9477,16 @@ function axisFree(target, axis, dir) {
   return true;
 }
 
-/* HOW FAR IS FAR ENOUGH, as a fraction of the axis being travelled rather than a number of pixels.
-   Sideways used to ask for a quarter of the width and vertical an eighth of the height, so the
-   same flick meant different things depending which way it went. One number, and it is the same
-   proportion of the same thumb whichever way it is moving. */
-const THROW = ax => Math.max(56, AXES[ax].span() * 0.16);
+/* HOW FAR IS FAR ENOUGH — one distance, in pixels, whichever way you are going.
+   This was a FRACTION of the axis being travelled, which sounds even-handed and is not: 16% of a
+   401px width is 64px and 16% of a 929px height is 149px, so the same flick meant "next" sideways
+   and "nothing happened" upwards. Two and a third times the travel for the same intent, and it
+   reads as the screen ignoring you.
+   The same mistake as the gap between panes, in the same shape: a distance expressed as a
+   proportion of whichever edge it happens to lie along. A thumb is the same size in both
+   directions. */
+const THROW_PX = 64;
+const THROW = () => THROW_PX;
 
 /* POINTER EVENTS, NOT TOUCH EVENTS.
    The grid listened for `touchstart` and nothing else, so it worked on a phone and did nothing at
@@ -8589,7 +9682,7 @@ addEventListener('error', e => {
    Everything below a boot line is a thing the boot cannot see. So there is nothing below it.
 ================================================================================================ */
 try {
-  buildTabs();
+
   go(AT, false);
 } catch (err) {
   /* Drawing failed. There is no point asking the backend for data to put in a screen that could
