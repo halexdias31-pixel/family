@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-08-06-map";
+  --css-version: "2026-08-07-built";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1250,31 +1250,97 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    cut into somebody else's.
 --------------------------------------------------------------------------------------------- */
 .map { position: relative; width: 100%; aspect-ratio: 3/4; }
-.map-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.map-svg { width: 100%; height: 100%; display: block; overflow: hidden; }
 
-/* The road. Rounded joins so a turn reads as a bend rather than a corner — the one detail that
-   makes a polyline look like a path somebody could walk. */
-.map-road { fill: none; stroke: var(--line); stroke-width: 1.2;
-            stroke-linejoin: round; stroke-linecap: round; }
-/* The part already walked, in the accent. It is the only progress indicator here and it is the
-   road itself, which is better than a bar: it says WHERE you got to, not how far through. */
-.map-road-done { fill: none; stroke: var(--gold); stroke-width: 1.6;
-                 stroke-linejoin: round; stroke-linecap: round; opacity: .75; }
+/* THE PLANE, SEEN AT AN ANGLE. One transform: squash it vertically and slide it down. The oldest
+   trick there is for a third dimension, and it works because the eye reads a squashed circle as a
+   circle seen at an angle rather than as an oval.
+   The two numbers are also in script.js as MAP_TILT and MAP_DROP, which is one place more than
+   ideal — the transform has to be CSS to animate, the maths has to be JS to stand things in the
+   right place, and a custom property cannot be read reliably before the element is in the
+   document. If one changes, both change. */
+/* ---------- THE GROUND ----------------------------------------------------------------------------
+   Green and roads, drawn as a road map draws them. No trees, no landmarks, no fake third
+   dimension — those were detail piled on a floor that was not right, and detail on a wrong floor
+   is what made the board unreadable.
+--------------------------------------------------------------------------------------------- */
+/* The ground itself, filling the frame. */
+.map-land { fill: #10160f; }
 
-.map-node circle { fill: var(--sunk); stroke: var(--line); stroke-width: 1; cursor: pointer;
-                   transition: fill var(--quick) ease; }
-/* Reached. Filled, because a node you have been to and one you have not must differ at a glance
-   from arm's length, and a colour change alone does not survive that. */
-.map-node.open circle { fill: var(--dim); stroke: var(--dim); }
-/* Where you are. The only gold thing on the board, so the eye finds it without looking. */
-.map-node.here circle { fill: var(--gold); stroke: var(--gold); }
-.map-node:active circle { fill: var(--ink); }
-/* A shut node says so. A question mark rather than a padlock: it is somewhere you have not been,
-   not somewhere you are barred from. */
-.map-lock { fill: var(--faint); font-size: 3.4px; text-anchor: middle; font-family: var(--mono); }
+/* GREEN AS A REAL BOUNDARY. Filled and edged, so a common has a shape you could walk round rather
+   than a patch of tint — the edge is what tells you which side of it a road runs down. */
+.map-green { fill: #1c3a22; stroke: #2c5533; stroke-width: .4; stroke-linejoin: round; }
 
-.map-where { text-align: center; margin: .4rem 0 0; font-size: .9rem; font-weight: 620; }
-.map-next { text-align: center; margin: .15rem 0 0; }
+/* WATER, under the roads because the roads bridge it. */
+.map-water { fill: none; stroke: #24405c; stroke-width: 2.6;
+             stroke-linejoin: round; stroke-linecap: round; }
+/* The Wandle is narrower than the Thames because it is, and in Merton it is the one you walk
+   beside. */
+.map-wandle { stroke-width: 1.4; stroke: #2b4a63; }
+/* The Beverley Brook and the Crane: narrower again. They are streams, and a stream drawn as wide
+   as a river makes the river look like nothing in particular. */
+.map-brook { stroke-width: 1; stroke: #2b4a63; opacity: .8; }
+/* A B-road: real, and thinner than an A. */
+.map-road-b { stroke: #403d38; }
+
+/* ROADS ARE CARRIAGEWAYS. A dark casing under a lighter fill, which is how every road map in the
+   world draws a road and the only way one gets EDGES. A one-pixel stroke is a wire diagram.
+   Widths come from the data, so an A-road is visibly bigger than a tram line. */
+.map-case { fill: none; stroke: #05080a; stroke-linejoin: round; stroke-linecap: round; }
+.map-street { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.map-road-a { stroke: #4a4740; }
+/* The tube and the tram are not roads and must not look like them: dashed, thinner, and their
+   own colours. */
+.map-rail { stroke: #3c3c46; stroke-dasharray: 3 1.4; }
+.map-tram { stroke: #5c5230; stroke-dasharray: 2 1.6; }
+
+/* ---------- BUILDINGS ------------------------------------------------------------------------------
+   Footprints seen from above, like everything else on the map. Not every building — a borough is
+   tens of thousands of them and at this size they are grey noise. These are the ones whose NAME
+   locates you: the tower, the station, the shopping centre, the hospital, the stadium.
+--------------------------------------------------------------------------------------------- */
+.map-bld { stroke: #05080a; stroke-width: .3; }
+/* Ordinary built things: pale grey, the colour every map uses, because they are the background a
+   place is made of rather than anything to look at. */
+.map-bld-civic   { fill: #55534e; }
+.map-bld-retail  { fill: #5e564c; }
+/* A station is the one kind anybody looks FOR, so it is the one kind with a colour. */
+.map-bld-station { fill: #7a5a4a; }
+.map-bld-sport   { fill: #33513c; }
+/* The tower stands alone: it is the thing people navigate by round here and it should be findable
+   without reading a label. */
+.map-bld-tower   { fill: #8a8378; stroke: #c9c2b6; stroke-width: .4; }
+
+/* ---------- THE VENUES, which are the only thing here that is not scenery ----------------------- */
+/* A venue is a building too — drawn as a footprint like the rest so it sits IN the world rather
+   than floating over it as a pin — and the only one that is coloured. Everything else on the map is
+   where you are; this is where you are going. */
+.map-venue { fill: var(--gold); stroke: #05080a; stroke-width: .4; }
+.map-node:active .map-venue { fill: var(--ink); }
+.map-node { cursor: pointer; }
+/* `.map-pin` went when a venue became a footprint. `.open` and `.here` went with the progression. */
+/* THE NAME UNDER EACH. A board with no words on it is not a map of anywhere. Outlined in the
+   ground colour so it survives crossing a park or a road — a label that vanishes where the map is
+   busiest is a label for the empty parts. */
+.map-name { fill: var(--ink); font-size: 3.4px; text-anchor: middle; font-family: var(--font);
+            paint-order: stroke; stroke: #10160f; stroke-width: 1.4; stroke-linejoin: round; }
+.map-node.here .map-name { fill: var(--gold); }
+
+/* `.map-road` and `.map-road-done` went with the path between the venues — a line drawn in the
+   order the sheet happened to hold them, and a gold stretch of it showing how far ticked topics
+   had carried you. Neither was true of anything. */
+
+/* WHICH WORLD, in the shape an overworld names them: a number and a place. */
+.map-world { display: flex; align-items: center; justify-content: center; gap: .8rem;
+             margin: .5rem 0 0; }
+.map-world-name { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+                  color: var(--gold); }
+.map-arrow { color: var(--dim); font-size: 1.2rem; padding: .1rem .5rem; cursor: pointer; }
+.map-arrow:active { color: var(--gold); }
+
+/* How many places are on this world's map. `.map-next` — "five more ticks to reach Mitcham" —
+   went with the progression. */
+.map-where { text-align: center; margin: .2rem 0 0; font-size: .82rem; color: var(--dim); }
 
 /* ---------- MESSAGES ------------------------------------------------------------------------------
    Yours to the right, theirs to the left, which is the one convention every messaging app shares
