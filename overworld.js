@@ -224,6 +224,7 @@ const SWIPE = {
   axis: null,          // null until the finger commits: 'x' or 'y'
   live: false,
   cells: null,         // the strip being dragged, held so the release moves the same one
+  id: null,            // which finger this is, so a second one cannot steer it
   /* THE FRAME BOOKED BUT NOT YET DRAWN, and the position it will use when it is. A finger reports
      more often than a screen redraws, so without these the grid was placed twice for every frame
      anybody saw and half of that work was thrown away before it reached the glass. */
@@ -305,6 +306,8 @@ addEventListener('pointerdown', e => {
   SWIPE.live = true;
   SWIPE.target = e.target;
   SWIPE.frame = 0;
+  SWIPE.held = false;
+  SWIPE.id = e.pointerId;
 }, { passive: true });
 
 addEventListener('pointermove', e => {
@@ -343,9 +346,6 @@ addEventListener('pointermove', e => {
   if (!SWIPE.held) {
     SWIPE.held = true;
     SWIPE.cells.forEach(el => el.classList.add('no-anim'));
-    /* The measurements are held still for the length of the drag — see `paneStep_`. Nothing being
-       measured can change while only a transform is moving. */
-    DRAG_SIZES = new Map();
   }
 
   /* ONE PLACEMENT PER FRAME THAT IS ACTUALLY DRAWN.
@@ -378,17 +378,12 @@ addEventListener('pointerup', () => {
   /* A frame booked and not yet run would place the grid mid-drag AFTER the drag had finished,
      putting it back where the finger left it a moment after it had settled somewhere else. */
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
-  /* The held measurements are let go, so the next thing to ask gets a real one. A pane may well
-     be a different size by then — a picture arrives, a list is filtered — and the whole reason
-     that cache is safe is that it does not outlive the gesture. */
-  DRAG_SIZES = null;
   if (!axis || !cells) return;
 
   cells.forEach(el => el.classList.remove('no-anim'));
   const ax = AXES[axis];
-  /* The two sweeps `placeCells` skips during a drag — which panes to watch, which screens nothing
-     points at. Run once, now, which is the first moment their answer can have changed. */
-  watchPanes();
+  /* The sweep `placeCells` skips during a drag — which screens nothing points at — runs once now.
+     There is no pane-watching any more: sizes are fixed, so nothing can change size. */
   if (Math.abs(d) >= THROW(axis)) ax.go(ax.at() + (d < 0 ? 1 : -1));
   else placeCells(axis);          // not far enough: it settles back, and is seen to
 }, { passive: true });
@@ -428,10 +423,17 @@ addEventListener('wheel', e => {
    or it stays shifted sideways for ever. */
 /* A finger interrupted — a call arriving, the app going to the background. Whatever was being
    dragged is put back, on whichever axis it was. */
+/* A CANCELLED POINTER. The browser takes the gesture away — a phone call, a system edge swipe, a
+   second finger — and `pointerup` never comes, so everything a drag sets up has to be undone here
+   as well as there. It was undoing most of it: `held` and the booked frame were not reset, so the
+   NEXT drag skipped its own setup and left a booked frame that placed the grid back where this one
+   had been. */
 addEventListener('pointercancel', () => {
   const axis = SWIPE.axis;
   (SWIPE.cells || []).forEach(el => el.classList.remove('no-anim'));
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
+  SWIPE.held = false;
+  if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
   if (axis) placeCells(axis);
 }, { passive: true });
 

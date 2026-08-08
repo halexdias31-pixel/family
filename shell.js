@@ -117,28 +117,34 @@ function go(id, remember, instant) {
      start, and a `const` read before its own line throws — including through `typeof`, which is
      the one check that cannot see into a temporal dead zone. A function declaration is hoisted,
      so calling it from up here is fine. */
-  /* Immediately when the screen has just been drawn — there is nothing on it yet and no slide to
-     protect. Otherwise after, for the same reason as `goPage`. */
-  if (AT === 'stuff') { if (instant) fillStuffPages(); else afterSlide_(fillStuffPages); }
+  /* WHEN, and it is not simply "after the slide".
+
+     Deferring exists so a rebuild does not run during the animation and eat its frames. That is
+     right when there is already something on the screen — the cards are drawn, the slide moves
+     them, and whatever is newly in range is built once it has settled.
+
+     It is wrong the FIRST time this screen is reached. Nothing is filled, so every pane is empty,
+     so the grid places a column of nothing — and three hundred milliseconds later the content
+     arrives into positions that were worked out for cards that did not exist. Cards on top of
+     cards, until something else moves.
+
+     So: if there is nothing on it yet, fill it now and let the slide be slightly less smooth once.
+     After that, always after. */
+  if (AT === 'stuff') {
+    const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
+    if (instant || !drawn) fillStuffPages(); else afterSlide_(fillStuffPages);
+  }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved.
      INSTANT, because this is arriving rather than travelling: the tab remembers which widget you
      were on, and animating there from the top is the app appearing to lose your place and then
      go and find it. */
-  /* ---------- WHY A SIDEWAYS SWIPE SNAPPED INSTEAD OF SLIDING -----------------------------------
-     `true` used to be written here, and it is the whole fault.
-
-     `placeCells` writes `transition: none` on EVERY cell when it is told `instant`. Twenty lines
-     above, `placeCells('x', instant)` has just started the slide by writing `transition: ''`. So
-     this call — a millisecond later, on the same cells — took the transition straight back off
-     again, and the grid arrived at the new tab by jumping to it.
-
-     `goPage`, which is up and down, places the grid ONCE. That is the entire difference between
-     the two axes, and it is why one has always felt right and the other never has.
-
-     Passing `instant` through means both calls agree: a tab arrived at from a swipe slides, and one
-     restored on boot appears. The reason `true` was written here — that a tab should remember which
-     page you were on rather than travelling there from the top — still holds and costs nothing,
-     because that page is already where it belongs. There is no travel to animate. */
+  /* `true` used to be written here, and it cancelled the slide `placeCells('x', instant)` had
+     started twenty lines above — two correct calls in one turn, disagreeing, which is the fault
+     the scheduler in `placeCells` now exists to make unwriteable. Passing `instant` through was
+     the patch for it; it stays because it is also simply true. A tab arrived at from a swipe
+     slides, and one restored on boot appears.
+     Either way the scheduler settles it now: both asks become one placement, and if either wants
+     the animation, the animation is what happens. */
   paintPager(AT, instant);
 
   /* `scrollTo` was here, putting the window back to the top on every tab change. The window does
@@ -299,7 +305,11 @@ const AXES = {
        neighbour showing. */
     at:    id => PAGE[id || AT] || 0,
     count: id => PAGER[id || AT] ? pageCount(id || AT) : 0,
-    cells: id => $('s-' + (id || AT))?.querySelectorAll(':scope > .page') || [],
+    /* WHAT MOVES, which is the screen — the pages are stacked inside it by CSS and never carry a
+       transform of their own. This returned the pages, and the only thing it is used for is taking
+       the transition off whatever is being dragged; taking it off a page that does not animate did
+       nothing, so a vertical drag was fighting a 260ms ease all the way. */
+    cells: id => [$('s-' + (id || AT))].filter(Boolean),
     go:    (n, instant) => goPage(AT, n, instant),
   },
 };
@@ -373,191 +383,153 @@ const CELL_GAP   = 16;        // pixels between one cell and the next, every dir
  * comes back scaled with them: measuring the drawn size and then scaling it again is the error
  * that makes a neighbour drift further away the smaller it gets.
  */
-/* THE MEASUREMENTS, HELD STILL WHILE A FINGER IS DOWN.
+/* ---------- THE BROWSER STACKS THE COLUMN, NOT THIS FILE -----------------------------------------
+   OVERLAP IS NOW IMPOSSIBLE, and that is the point of the change rather than a happy result of it.
 
-   `offsetWidth` and `offsetHeight` are not reads. Asking for either forces the browser to stop and
-   work out the layout of the page there and then, and `placeGrid` asks for two of them per cell —
-   so a sideways drag across four tabs with eighteen posts on one of them was forcing dozens of full
-   layouts every single frame, and the frames it could not finish in time are the stutter.
+   Every version of this until now worked out where each card should go — a step, then a step times
+   a distance, then a running total — and every version was correct arithmetic that produced wrong
+   answers, because all of them depended on measuring a card at a moment when its contents might
+   not be there yet. On this screen the contents genuinely arrive late: pages are built as you come
+   near them. So there is no moment at which measuring is reliable, and no amount of care in the
+   sum can fix a sum whose inputs are not ready.
 
-   Nothing being measured can change during a drag: no markup is written, no pane is redrawn, the
-   only thing moving is a transform, and a transform does not affect layout. So the answer is the
-   same every frame, and it is worked out on the first frame and kept until the finger lifts.
+   So the sum is gone. The pages are laid out by CSS as an ordinary column with a 16px gap, which
+   is a thing browsers do perfectly and re-do by themselves the instant anything on the page
+   changes size. Two boxes in a column cannot overlap — not late, not early, not ever.
 
-   `DRAG_SIZES` is null except during a drag, which is what makes this a cache with no staleness to
-   manage — it does not exist long enough to go stale. */
-let DRAG_SIZES = null;
-
-function paneStep_(el, frontEl, axis) {
-  const mine = el.querySelector(':scope > .pane');
-  const front = frontEl && frontEl.querySelector(':scope > .pane');
-  /* WHAT AN UNMEASURABLE PANE IS WORTH.
-     A pane that has not been laid out has no height, and so does one that has been deliberately
-     EMPTIED — the Find screen blanks the pages you are far from, so their markup is not held for
-     pages nobody is looking at. Both come back as 0, and both used to fall back to the whole
-     viewport.
-
-     For a page that has not drawn yet, guessing a screen is defensible. For a blanked one it is
-     the fault you can see: every emptied page was pushed a full screen away from its neighbour, so
-     the tools and games sat miles apart while the posts — which are never blanked — sat close.
-     A neighbour is the better guess. An emptied page is going to be filled with something much
-     like the page beside it, so it is spaced like the page beside it, and the moment it is filled
-     it is measured properly anyway. Only when there is nothing at all to compare with does this
-     fall back to the viewport. */
-  const fall = (axis === 'W' ? innerWidth : innerHeight);
-  const frontSize = front ? (axis === 'W' ? front.offsetWidth : front.offsetHeight) : 0;
-  const size = e => {
-    if (!e) return fall;
-    if (DRAG_SIZES) {
-      const hit = DRAG_SIZES.get(e);
-      if (hit && hit[axis] !== undefined) return hit[axis];
-    }
-    const n = (axis === 'W' ? e.offsetWidth : e.offsetHeight) || frontSize || fall;
-    if (DRAG_SIZES) {
-      const box = DRAG_SIZES.get(e) || {};
-      box[axis] = n;
-      DRAG_SIZES.set(e, box);
-    }
-    return n;
-  };
-  return (size(mine) * CELL_SCALE) / 2 + CELL_GAP + (size(front) * CELL_SCALE) / 2;
+   WHAT IS LEFT FOR THIS FILE: sliding the whole column so the page you are reading is in the
+   middle of the screen. One number, from `offsetTop`, which the browser maintains. And if it is
+   ever read at a bad moment the worst that happens is the column sits a little high or low for a
+   frame — never one card on top of another. */
+function columnShift_(host, at) {
+  const pages = host.querySelectorAll(':scope > .page');
+  const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
+  if (!cur) return 0;
+  const boxH = host.clientHeight || innerHeight;
+  return boxH / 2 - (cur.offsetTop + cur.offsetHeight / 2);
 }
 
-/* ---------- WHEN A PANE CHANGES SIZE ---------------------------------------------------------------
-   The grid measures each pane to work out how far apart they sit, and it measures ONCE — at the
-   moment it places them. A photograph has no declared size, so a post pane is measured while its
-   picture is still a zero-height box, placed for that height, and then grows when the image
-   arrives. Nothing tells the grid, so two posts end up overlapping by exactly the height the
-   picture turned out to be.
+/* ACROSS IS A CONSTANT — every card is the same width by rule, so there is nothing to measure. */
+function stepX_() { return innerWidth * CELL_SCALE + CELL_GAP; }
 
-   That is the whole bug, and it is not specific to images: a pane that gains a row, a widget that
-   fills in, a list that loads — every one of them changes a height the layout has already used.
-
-   SO THE LAYOUT IS RE-RUN WHEN A PANE RESIZES. Once per frame at most, and only when a size really
-   changed, because `placeGrid` reads heights and writing transforms during a resize callback is
-   how a loop starts.
---------------------------------------------------------------------------------------------- */
-let PANE_WATCH = null, PANE_SIZES = new WeakMap(), PANE_QUEUED = false;
-
-function watchPanes() {
-  if (typeof ResizeObserver !== 'function') return;      // an old browser keeps the first measure
-  if (!PANE_WATCH) {
-    PANE_WATCH = new ResizeObserver(entries => {
-      /* A REAL CHANGE, not a report. An observer fires on the first observation of every element,
-         which would re-place the whole grid once per pane on every repaint. */
-      let moved = false;
-      entries.forEach(e => {
-        const h = Math.round(e.target.offsetHeight);
-        if (PANE_SIZES.get(e.target) !== h) { PANE_SIZES.set(e.target, h); moved = true; }
-      });
-      if (!moved || PANE_QUEUED) return;
-      PANE_QUEUED = true;
-      requestAnimationFrame(() => {
-        PANE_QUEUED = false;
-        /* Instant: the panes have already moved as far as the person is concerned, and animating
-           to where they already are is a second movement nobody asked for. */
-        placeCells('x', true);
-      });
-    });
-  }
-  PANE_WATCH.disconnect();
-  document.querySelectorAll('#screen .pane').forEach(el => PANE_WATCH.observe(el));
-}
+/* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
+   cannot disagree about where a cell is. */
 
 function placeGrid(instant, drag) {
   const tabs = TABS.map(t => t.id);
   const ti = Math.max(0, tabs.indexOf(AT));
   const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
   const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
-
-  /* The pages of every tab, gathered first — a cell needs to know about the one being READ, which
-     may be in another tab, and that cannot be looked up from inside the loop that is placing it. */
-  const cells = tabs.map(id => {
-    const h = $('s-' + id);
-    return h ? [].slice.call(h.querySelectorAll(':scope > .page')) : [];
-  });
-
-  /* The pane being read. Everything else is spaced from it. */
-  const front = (cells[ti] || [])[PAGE[AT] || 0] || null;
+  const stepX = stepX_();
 
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
     if (!host) return;
 
-    /* A SCREEN IS A CONTAINER. Written out so nothing it was ever given can survive. */
+    /* A SCREEN IS THE COLUMN, and the column is what moves. Every page used to be positioned on
+       its own; they now sit in an ordinary CSS column inside this and the whole thing slides. One
+       transform per screen instead of one per page — and, the reason for the change, two boxes in
+       a column cannot land on top of one another however late their contents arrive. */
     host.classList.remove('hidden');
-    host.style.display = 'block';
+    host.style.display = 'flex';
     host.style.position = 'absolute';
     host.style.top = '0'; host.style.right = '0'; host.style.bottom = '0'; host.style.left = '0';
-    host.style.transform = 'none';
-    host.style.opacity = '1';
-    host.style.visibility = 'visible';
     host.style.overflow = 'visible';
-    /* Presses reach the page, not the screen — the screen is not a surface anybody touches. */
-    host.style.pointerEvents = 'none';
     host.classList.toggle('on', id === AT);
+    /* No transition while a finger is down — the movement is the finger, not an animation. */
+    host.classList.toggle('no-anim', !!drag);
 
-    const pages = host.querySelectorAll(':scope > .page');
+    const dx = i - ti;
     const at = PAGE[id] || 0;
-    pages.forEach((el, p) => {
-      const dx = i - ti;
-      const dy = p - at;
-      /* HOW FAR AWAY, for the fade. Diagonal counts as further than either straight neighbour,
-         which is what makes a corner read as a corner rather than as a third sibling. */
-      const away = Math.hypot(dx, dy);
+    /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen
+       in front; the others have no finger on them. */
+    const shift = columnShift_(host, at) + (id === AT ? dyPx : 0);
 
-      el.classList.remove('hidden');
-      el.style.display = 'flex';
-      el.style.flexDirection = 'column';
-      el.style.position = 'absolute';
-      el.style.top = '0'; el.style.right = '0'; el.style.bottom = '0'; el.style.left = '0';
-      /* THE STEP FOLLOWS THE PANE, NOT THE CELL.
-         Every cell is the whole viewport; the pane inside it is only as tall as its content, and
-         the pane is the thing you can see. Spacing the CELLS 16px apart therefore spaced the panes
-         by 16px PLUS whatever height each of them was short by — a 600px pane in an 880px cell put
-         240px between them, which on a phone means the neighbour is off the screen entirely.
-         So the offset is worked out from the two panes it sits between: half of mine, the gap, half
-         of theirs. That is the only arrangement where the gap you see is the gap that was asked
-         for, whatever is on the panes. */
-      /* TWO REFERENCES, BECAUSE THERE ARE TWO QUESTIONS.
+    host.style.transition = instant ? 'none' : '';
+    host.style.transform =
+      `translate(${(dx * stepX + dxPx).toFixed(1)}px, ${shift.toFixed(1)}px)`;
+    /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
+       something to look at, not something to tap. */
+    host.style.pointerEvents = dx === 0 ? 'auto' : 'none';
+    const across = Math.abs(dx);
+    host.style.opacity = across === 0 ? '1' : across === 1 ? '.55' : '0';
+    host.style.visibility = across > 1 ? 'hidden' : 'visible';
 
-         ACROSS is "how far is this column from the one being read", so it is measured against the
-         front pane — every cell in a column moves sideways together.
-
-         DOWN is "how far is this pane from the one above it IN ITS OWN COLUMN", and it was being
-         measured against the front pane too. So a tall tab's pages were spaced by half of a SHORT
-         tab's pane: the stack came out too tight, and the pages of the column beside you overlapped
-         each other and reached across into yours. Exactly what a screenshot of three columns with
-         different-height panes shows.
-         A column is spaced by its own. */
-      const mine = (cells[i] || [])[PAGE[id] || 0] || null;
-      const stepX = paneStep_(el, front, 'W');
-      const stepY = paneStep_(el, mine, 'H');
-      /* ONE SCALE, NOT TWO. `away ? CELL_SCALE * 0.94 : CELL_SCALE` shrank every cell that was not
-         the one in front, so a card was 6% smaller a moment before you arrived at it and grew into
-         place as you did — a size that depends on where the grid happens to be is a size that is
-         never settled. Distance is already said by the position and by the dimming below; saying it
-         a third time in the width was the one saying that could be felt. */
-      el.style.transform =
-        `translate(${(dx * stepX + dxPx).toFixed(1)}px, ${(dy * stepY + dyPx).toFixed(1)}px)`
-        + ` scale(${CELL_SCALE})`;
-      /* Neighbours are dimmed, not hidden — being able to see them is the point. Not dimmed far,
-         though: a sliver of dark glass at 50% over a dark app is geometrically present and
-         invisible, which is indistinguishable from the peek not working at all. Two steps out is
-         off the screen and does not need drawing. */
-      el.style.opacity = away === 0 ? '1' : away < 1.5 ? '.82' : '.5';
-      el.style.visibility = away > 2.2 ? 'hidden' : 'visible';
-      el.style.pointerEvents = (id === AT && p === at) ? 'auto' : 'none';
-      el.style.zIndex = String(10 - Math.round(away));
-      el.style.transition = instant ? 'none' : '';
+    /* AND EACH PAGE, faded by how far down the column it is. No position — the column does that.
+       This distance is an INDEX, not a measurement, so nothing here can be read at a bad moment. */
+    host.querySelectorAll(':scope > .page').forEach((el, p) => {
+      const d = Math.abs(p - at);
+      el.style.position = 'static';
+      el.style.transform = 'none';
       el.classList.toggle('on', id === AT && p === at);
+      el.classList.toggle('far', d > 2);
+      el.style.opacity = d === 0 ? '1' : d === 1 ? '.5' : d === 2 ? '.25' : '0';
+      el.style.pointerEvents = d === 0 ? 'auto' : 'none';
+      el.style.visibility = d > 3 ? 'hidden' : 'visible';
     });
   });
 }
 
-/* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
-   cannot disagree about where a cell is. */
+/* ==================================================================================================
+   ONE PLACEMENT PER FRAME, AND ANIMATION WINS
+
+   THE BUG THIS EXISTS TO MAKE UNWRITEABLE. `go` started a sideways slide with `placeCells('x')`,
+   and twenty lines later `paintPager(AT, true)` placed the grid again — and `true` means INSTANT,
+   which writes `transition: none` onto every cell. So the slide was cancelled a millisecond after
+   it began and the grid jumped to the new tab instead of moving there. Both calls were correct on
+   their own. Nothing anywhere could see that together they were wrong.
+
+   That is the shape of nearly everything that has gone wrong on this screen: not a wrong call, but
+   two right ones in the same turn, disagreeing. So placing stops being something anybody DOES and
+   becomes something anybody may ASK FOR.
+
+   THE RULES, and they are the whole of it:
+     · asking twice in one turn places once
+     · if ANY asker wants it animated, it animates — an instant placement can cancel an animation,
+       and an animation can never damage an instant one, so animation is the safe side to lose to
+     · a drag places THIS INSTANT, because it is following a thumb and a frame of delay is a frame
+       of lag; and it never batches, because there is nothing to batch with
+
+   What this deletes is the need to know, at every call site, whether anybody else is about to
+   place the grid. Nobody can know that. Now nobody has to.
+================================================================================================== */
+let PLACE_WANT = null;      // { which, instant, id } — what has been asked for this turn
+let PLACED_ONCE = false;    // the very first placement runs now, not next frame
+let PLACE_FRAME = 0;
+
 function placeCells(which, instant, dragPx, id) {
+  /* A DRAG IS NOT A REQUEST. It is already once-per-frame — `pointermove` books its own frame —
+     and it must land now rather than next frame. Straight through. */
+  if (dragPx) return placeNow_(which, instant, dragPx, id);
+
+  /* THE FIRST ONE IS NOT DEFERRED. Until the grid has been placed once, every cell is sitting at
+     the same spot with no transform on it — so a frame's delay is a frame of the whole app stacked
+     on top of itself, which is a flash on boot and on every screen drawn for the first time.
+     After that there is always a previous position to hold, and a frame is invisible. */
+  if (!PLACED_ONCE) { PLACED_ONCE = true; return placeNow_(which, instant, 0, id); }
+
+  if (!PLACE_WANT) {
+    PLACE_WANT = { which, instant: !!instant, id };
+  } else {
+    /* ANIMATION WINS. One asker wanting a slide and another wanting it instant is the exact
+       collision above, and the slide is the one that must survive. */
+    PLACE_WANT.instant = PLACE_WANT.instant && !!instant;
+    if (which) PLACE_WANT.which = which;
+    if (id !== undefined) PLACE_WANT.id = id;
+  }
+
+  if (PLACE_FRAME) return;
+  PLACE_FRAME = requestAnimationFrame(() => {
+    PLACE_FRAME = 0;
+    const w = PLACE_WANT;
+    PLACE_WANT = null;
+    if (w) placeNow_(w.which, w.instant, 0, w.id);
+  });
+}
+
+/* THE PLACEMENT ITSELF. Everything that used to be `placeCells` — nothing about it changed except
+   that it is no longer what the rest of the app calls. */
+function placeNow_(which, instant, dragPx, id) {
   placeGrid(instant, dragPx ? { which, px: dragPx } : null);
 
   /* THE TWO SWEEPS BELOW DO NOT RUN WHILE A FINGER IS DOWN.
@@ -570,11 +542,6 @@ function placeCells(which, instant, dragPx, id) {
      That is most of what made a sideways swipe feel heavy, and none of it was doing anything. They
      run when the drag ends, which is when the answer can have changed. */
   if (dragPx) return;
-
-  /* AND THE OBSERVER FOLLOWS THE PANES THAT EXIST NOW. Attached here because this runs after every
-     repaint — a pane replaced by a redraw is a pane the old observer is still watching and the new
-     one is not, which shows up as the grid never learning that a picture arrived. */
-  watchPanes();
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */
@@ -714,12 +681,26 @@ function goPage(id, to, instant) {
   const was = PAGE[id] || 0;
   if (n === was && !instant) return;
   PAGE[id] = n;
-  /* MOVE FIRST, FILL AFTER. The page being turned to is already filled — `fillStuffPages` keeps
-     two either side ready, which is further than anybody can swipe in one gesture — so there is
-     nothing to build at this moment and nothing to wait for. Whatever has come newly into range is
-     built once the grid has settled. */
+  /* MOVE FIRST, FILL AFTER — as long as the page being turned to is already there.
+
+     `fillStuffPages` keeps two pages ready either side, which is further than anybody can swipe in
+     one gesture, so normally there is nothing to build at this moment and nothing to wait for.
+     Whatever has newly come into range is built once the grid has settled.
+
+     But "normally" is not "always": jumping several pages at once, or arriving before the first
+     fill has run, lands on a page with nothing on it. An empty pane has no height, so the grid
+     places it as though it were nothing and the cards around it come out on top of one another.
+     If the page you are going to is empty, it is filled before anything moves. */
+  /* Page 0 is the question, which is drawn with the screen and never filled lazily — so it has no
+     `filled` mark and must not be mistaken for an empty one. */
+  const bare = id === 'stuff' && n > 0 && (() => {
+    const host = $('s-stuff');
+    const el = host && host.querySelectorAll(':scope > .page')[n];
+    return !el || el.dataset.filled !== '1';
+  })();
+  if (bare) fillStuffPages();
   if (id === AT) placeCells('y', instant);
-  if (id === 'stuff') afterSlide_(fillStuffPages);
+  if (id === 'stuff' && !bare) afterSlide_(fillStuffPages);
   paintPager(id);
 }
 

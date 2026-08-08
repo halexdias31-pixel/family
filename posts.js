@@ -44,9 +44,16 @@ function pic(url) {
  */
 function feedPosts() {
   return [...(DATA.posts || DATA.gallery || [])]
-    /* A deleted post is still on the screen for an admin, greyed. It has to be — something
-       invisible cannot be put back, which is why the tutor switch works the same way. */
-    .filter(p => p.active !== false || isAdmin())
+    /* A DELETED POST IS GONE FROM THE FEED, for everybody including the admin who deleted it.
+       It used to stay, greyed and marked "· deleted", so that it could be switched back on — the
+       same argument the tutor `listed` switch follows. In practice that put every post ever
+       deleted permanently in the way of every post that had not been, on the one screen that is
+       supposed to be a feed.
+       Deleting is still a FLAG and not a removal: the row stays in the sheet, the picture stays in
+       Drive, and the reactions and votes pointing at it stay counted. Putting one back is setting
+       `active` to TRUE on the posts tab. That is the trade — the feed stays clean, and undoing a
+       delete is a cell rather than a tap. */
+    .filter(p => p.active !== false)
     .sort((a, b) => {
       const pin = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
       if (pin) return pin;
@@ -98,15 +105,16 @@ screen('posts', () => {
        about it, then what it says.
        Who first because a photograph with no attribution is an advert; the caption last because it
        is the only part you may not read. */
-    return `<article class="post${p.active === false ? ' is-off' : ''}" data-post="${esc(p.id)}">
+    return `<article class="post" data-post="${esc(p.id)}">
       <header class="post-by">
         ${face
           ? `<img class="post-face" src="${esc(face)}" alt="">`
           : `<span class="post-face none">${esc(initial(who))}</span>`}
         <span class="post-nm">
+          ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
+                 here can be one. */''}
           <span class="post-who">${esc(who)}${p.pinned
-            ? ' <span class="faint">· pinned</span>' : ''}${p.active === false
-            ? ' <span class="faint">· deleted</span>' : ''}</span>
+            ? ' <span class="faint">· pinned</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
         ${/* One glyph, at the end of the row where it does not compete with the picture. A post is
@@ -577,12 +585,16 @@ on('post-edit', el => {
 
     <button class="btn" data-do="post-save" data-id="${esc(p.id)}">Save</button>
     <div class="btn-row" style="margin-top:.5rem">
+      ${/* Only Delete. The button used to say "Restore" on a post that was already deleted — and
+             a deleted post is not in the feed now, so there is no card to open to reach it. A
+             label that cannot be shown is the `arrive()` fault in miniature. */''}
       <button class="btn danger" data-do="post-delete"
-              data-id="${esc(p.id)}" data-on="${p.active === false ? '1' : ''}">
-        ${p.active === false ? 'Restore' : 'Delete'}</button>
+              data-id="${esc(p.id)}" data-on="">Delete</button>
     </div>
     <p class="faint" id="pe-said" style="margin:.6rem 0 0">
-      Deleting switches it off — the picture stays in Drive and the likes stay counted.</p>`);
+      It disappears from the feed. Nothing is destroyed — the picture stays in Drive, the
+      reactions stay counted, and the row stays on the posts tab. To bring one back, set its
+      <code>active</code> cell to TRUE.</p>`);
 });
 
 on('post-save', el => {

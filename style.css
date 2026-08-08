@@ -201,6 +201,19 @@ body {
      layout has been having. `clip` cuts and creates nothing. */
   overflow: clip;
   height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom));
+
+  /* ---------- WHY SWIPING WORKED ON A LAPTOP AND NOT ON A PHONE --------------------------------
+     Nothing in this stylesheet declared `touch-action`, so every element had the default, `auto`.
+
+     `auto` means "the browser may treat a drag here as a scroll", and a phone decides that within
+     the first few pixels — BEFORE any of this app's code has seen the movement. Once it has
+     decided, the touchmove events it sends are no longer cancelable, `preventDefault()` does
+     nothing at all, and the grid never moves. A mouse has no such handover, which is the whole
+     reason this worked on a laptop and not in a hand.
+
+     `none` says: there is nothing here for you to scroll, send me the gesture. Panes that
+     genuinely scroll ask for it back below. */
+  touch-action: none;
   /* The ground the cells float over. Without it the gaps between panes are the page's own black and
      the glass has nothing to be glass ABOUT — a blurred pane over nothing looks like a flat one. */
   background:
@@ -233,32 +246,56 @@ body {
    which is why nothing ever peeked at a corner. One placer writes both distances into one
    transform, so a corner is just a cell with two non-zero distances.
 --------------------------------------------------------------------------------------------- */
-.screen, .page {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; gap: 0;
-  padding: .75rem var(--pad) 1.25rem;
-  overflow: hidden;                       /* only the front cell scrolls — see .on below */
-  -webkit-overflow-scrolling: touch;
-  /* Off to the side until placed. A cell that has not been positioned yet must be somewhere
-     harmless — on top of what you are reading is the one place it must not be. */
-  transform: translateX(100%);
-  /* HIDDEN UNTIL PLACED, by visibility rather than opacity. Nothing on this grid is ever
-     part-transparent: a screen you can see through is a screen you cannot tell from a rendering
-     fault, and every screenshot of something genuinely wrong looked exactly like the decoration
-     working as designed. */
-  visibility: hidden;
-  /* Everything behind the front is a picture of a screen rather than a screen. Without this a tap
-     aimed at the calculator can land on the timer showing behind it, which is worse than useless
-     because it works. */
-  pointer-events: none;
-  /* One property animated, because one property moves. */
-  transition: transform .26s cubic-bezier(.2, .8, .3, 1);
+/* ---------- A SCREEN IS A COLUMN, AND THE COLUMN IS WHAT MOVES ----------------------------------
+   The pages are stacked by the browser — an ordinary flex column with a real gap — and the SCREEN
+   is the thing this app slides. Nothing works out where a page goes any more.
 
-  /* NOTHING INSIDE A CELL AFFECTS ANYTHING OUTSIDE IT. `contain` tells the browser that, so a post
-     arriving and changing its own height cannot make it re-lay-out or repaint the eighteen cells
-     behind it — which is most of what made a swipe stutter on a long feed. It is a promise the
-     layout already keeps; saying so is free. */
-  contain: layout paint style;
+   That is the whole fix for a fault that came back three times over in three different sums. Every
+   version measured a card in order to decide where the next one went, and on the Find screen a
+   card's contents arrive only as you approach it — so there was never a moment when the
+   measurement could be relied on. Two boxes in a column cannot overlap, whenever their contents
+   turn up. */
+.screen {
+  position: absolute; inset: 0;
+  transform: translateX(100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  /* THE GAP BETWEEN CARDS, stated once, here, and nowhere else. */
+  gap: 16px;
+  /* The column is taller than the screen and slides inside it; #screen is what clips. */
+  overflow: visible;
+}
+
+.page {
+  /* NOT POSITIONED. It sits where the column puts it — which is the point. */
+  position: static;
+  flex: 0 0 auto;
+  /* Fixed across, adaptive down: the two rules that have not changed. */
+  width: 90%; height: auto;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 0;
+}
+
+.screen {
+  -webkit-overflow-scrolling: touch;
+  /* Off to the side until placed. */
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform .26s cubic-bezier(.2, .8, .3, 1), opacity .26s ease;
+  /* NO `contain` HERE, and this is the fault that broke the whole layout when the screen became a
+     column. `contain: paint` does not merely hint — it CLIPS the element to its own box, and it
+     beats `overflow: visible`. A screen used to be exactly one viewport, so clipping it changed
+     nothing and the promise was free. The column is deliberately taller than the viewport now, so
+     the same rule cut everything below the fold off and left the pages piled at the top. */
+}
+
+.page {
+  pointer-events: none;
+  transition: opacity .26s ease;
+  /* Containment belongs HERE, where it is still true: a page cannot affect anything outside
+     itself, so a post loading its picture cannot cost a relayout of the pages around it. `layout`
+     and `style` only — `paint` would clip a card to its own box for no gain. */
+  contain: layout style;
 }
 
 /* THE LAYER PROMISE, ONLY WHERE IT IS WORTH KEEPING.
@@ -272,8 +309,9 @@ body {
    `.far` is already set in script.js on every cell well off the screen. So the promise is made
    about the near ones and withdrawn from the rest, which is the same optimisation applied to the
    handful of cells it was ever actually for. */
-.screen:not(.far), .page:not(.far) { will-change: transform; }
-.far { will-change: auto; }
+/* Only screens move, so only screens are worth promising the browser a layer for. A page's
+   position is the column's business and it never gets its own transform. */
+.screen { will-change: transform; }
 /* A CELL NEVER SCROLLS. It is exactly one screen, so there is nothing past its bottom edge to
    reach — and while it could scroll, a wheel or a drag went to it instead of to the grid, which is
    a few pixels of movement that goes nowhere instead of the next widget.
@@ -671,8 +709,10 @@ a { color: inherit; text-decoration: none; }
 .mc-btn.del { color: var(--bad); }
 /* The equals key spans the row it ends — twenty-seven keys into a four-column grid leaves it
    alone on the last line, and a lone key the width of a quarter looks like a mistake. */
+/* How WIDE the equals key is, is set once, further down — `grid-column: span 2`. A `span 4` was
+   written here and never applied. */
 .mc-btn.eq { background: var(--gold); color: #000; border-color: var(--gold);
-             grid-column: span 4; }
+             }
 
 /* ---------- CALENDAR -------------------------------------------------------------------------------
    Same correction as the calculator: `drawCalendar` writes `cal-h`, `cal-d` and `cal-today`, and
@@ -683,14 +723,16 @@ a { color: inherit; text-decoration: none; }
 .cal-arrow { padding: .4rem .8rem; cursor: pointer; color: var(--gold); font-size: 1.2rem; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: .15rem; text-align: center; }
 .cal .cal-h { font-size: .68rem; color: var(--faint); padding: .3rem 0; }
-.cal .cal-d { padding: .45rem 0; font-size: .85rem; border-radius: .4rem; }
+/* The padding is set once, below, where the room for the dots under a date is decided. */
+.cal .cal-d { font-size: .85rem; border-radius: .4rem; }
 .cal .cal-d.cal-today { background: var(--gold); color: #000; font-weight: 700; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
 /* THE SKY IS PAINTED ON THE CANVAS, not behind it — so the element's own background only shows in
    the moment before the first frame. Set to the same blue so that moment is not a black flash. */
-.flappy { width: 100%; aspect-ratio: 4/5; border-radius: 2px; background: #7ec8f2;
+.flappy { width: 100%; aspect-ratio: 4/5; border-radius: 2px; /* The sky colour lives in the canvas, which paints it — see `sky()`. A colour here was a second
+   answer to the same question and it lost to the one below it anyway. */
           background: var(--sunk); display: block; touch-action: none; }
 
 /* ---------- WHAT THE LAWS PAINT -----------------------------------------------------------------
@@ -1293,15 +1335,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    `.page` is the cell and is invisible. `.pane` is the glass and is as tall as what is on it.
 --------------------------------------------------------------------------------------------- */
 .page {
-  /* Centred, so a short pane sits in the middle of the screen rather than clinging to the top. */
-  justify-content: center;
-  /* NO PADDING. The air either side is not padding — it is the cell being 90% of the viewport,
-     which is `CELL_SCALE` in shell.js, and it is the same air that lets the next card peek. Adding
-     a margin here as well took a second bite out of the same edge and left the pane at four fifths
-     of the screen when nine tenths was what was asked for. One thing decides the width. */
-  padding: 0;
-  transform-origin: 50% 50%;
-  transition: transform .3s ease, opacity .3s ease;
+  /* The size and the position are set once, at the top of this file. What is left here is the
+     fade — a page is dimmed by how far down the column it is, and only the screen animates its
+     position now, because only the screen has one. */
+  transition: opacity .26s ease;
 }
 
 .pane {
@@ -1312,15 +1349,33 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      stops a stretch reaching it from the cross axis. Any one of them alone is a rule that a later
      stylesheet, a shorthand, or a browser that treats `auto` differently can undo — and the whole
      point of a pane is that it is the size of what is on it. */
+  /* ONE SIZE, ALWAYS: the whole cell.
+
+     It used to be `height: fit-content` — as tall as whatever was on it — and the grid worked the
+     spacing out from that. Every layout fault on this screen came from there: a pane that had not
+     drawn yet measured nothing and was flung a screen away; an emptied one did the same; two short
+     ones were spaced closer than their own cards were tall and slid behind each other.
+
+     A fixed card and a fixed gap cannot do any of that. The distance between two cards is a number
+     that is always the same, so nothing can overlap and nothing can drift, and a short widget
+     simply has room to spare rather than pulling the whole column in around it. */
+  /* FIXED ACROSS, ADAPTIVE DOWN.
+
+     The width is a rule: every card is the same 90% of the screen, so nothing has to be measured
+     sideways and nothing can be a different width from anything else.
+
+     The height is whatever is on it, capped at the cell. A two-line note is two lines tall; a long
+     list fills the screen and scrolls. `fit-content` states that positively rather than by refusing
+     to grow, which is the version a later shorthand cannot quietly undo. */
   flex: 0 0 auto;
-  height: fit-content;
-  align-self: center;
-  /* AS WIDE AS THE SCREEN, as tall as its contents. `align-self: center` above is about the
-     HORIZONTAL here — this is a column — and on its own it made the pane only as wide as the
-     longest line on it, so a short list sat in a narrow strip down the middle of the phone with
-     black either side. Width is not the thing that should shrink to fit; height is. */
   width: 100%;
-  max-height: 100%;
+  height: fit-content;
+  /* CAPPED AGAINST THE SCREEN, not against the page. A page is `height: auto` now — it is as tall
+     as this pane — so `max-height: 100%` was a percentage of a thing whose height depends on this
+     one, which resolves to no cap at all. A long list would have grown past the bottom of the
+     phone with nothing to stop it. Stated in screen units, which is what was always meant. */
+  max-height: calc(100dvh - var(--bar) - var(--safe-bottom) - 2.5rem);
+  align-self: center;
   min-height: 0;
   display: flex; flex-direction: column;
   /* NO SCROLLBAR ANYWHERE ON THE GLASS. A pane holds what it comfortably holds — it is as tall as
@@ -1329,19 +1384,54 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      overflows; it just does not announce itself. */
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* AND A PANE ASKS FOR VERTICAL BACK — but only vertical.
+
+     `pan-y` is the exact statement of what a pane may do with a finger: it can scroll its own
+     contents up and down, and it can do nothing sideways. So a sideways drag is always the grid's,
+     everywhere, with no decision to make.
+
+     Downward it depends on the pane, and correctly: a pane with more on it than fits scrolls, and
+     the grid keeps out of the way — which is what `axisFree` in script.js already asks for. A pane
+     whose contents fit has nothing to scroll and no scrolling ancestor to hand the gesture to, so
+     the movement stays cancelable and the grid takes it. Nothing has to know which case it is in;
+     the browser works it out from the pane it is on. */
+  touch-action: pan-y;
   padding: 1rem 1rem 1.25rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */
   contain: layout paint style;
-  /* THE GLASS. A translucent fill over a blur of whatever is behind, with a light top edge — the
-     highlight reads as the thickness of the pane catching the light. */
-  background: linear-gradient(160deg, rgb(255 255 255 / .07), rgb(255 255 255 / .02));
-  /* THE EDGE IS WHAT YOU SEE OF A NEIGHBOUR. Only a sliver of one is ever on screen, and a sliver
-     of fill is dark-on-dark — it is the bright top edge and the border that say a pane is there at
-     all, so both are stronger than they would need to be if you only ever saw the whole thing. */
+  /* ---------- A SURFACE FIRST, GLASS SECOND -----------------------------------------------------
+     THE FAULT THIS FIXES, and it is worth writing down because it was invisible for several days
+     and looked like a bug in the search screen.
+
+     This was a 7% white wash and nothing else, on the reasoning that the BLUR behind it is what
+     makes a pane read as a surface. That is true — and the blur was then moved, for speed, onto
+     only the pane in front. A 7% white wash over a black app with no blur behind it is not a faint
+     surface, it is nothing at all. So the card you were reading had glass and every card above and
+     below it had none, and the only screen where you can see several cards at once is the search
+     screen, which is why that is where it showed.
+
+     A pane now has a REAL fill that stands on its own, in the app's own dark, and the blur on the
+     front pane is depth added to something already there rather than the only thing holding it up.
+     Take the blur away entirely — an old browser, a slow phone, a future speed fix — and every card
+     still reads as a card. */
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / .05), rgb(255 255 255 / .015)),
+    #101010;
+  /* THE EDGE, and it is the whole reason a card reads as a card.
+
+     Only a sliver of a neighbour is ever on screen, and a sliver of fill is dark on dark — so the
+     bright top edge and the border are what say a pane is there at all. They were also, until now,
+     the ONLY things doing it: there was no border and no shadow, and the blur was carrying the
+     separation on its own. Move the blur to the front pane for speed and every other card
+     disappears, which is exactly what happened.
+
+     Stated ONCE. There were two `border` declarations and two `box-shadow` declarations in this
+     rule, four lines apart, and the second silently won — so the first pair was dead text that
+     read as though it were doing something. */
   border: 1px solid rgb(255 255 255 / .16);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .45);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .5);
 }
 /* ---------- THE BLUR, ON THE ONE PANE BEING LOOKED AT --------------------------------------------
    A backdrop blur is the most expensive thing on this page by a long way: the browser has to
@@ -1361,6 +1451,9 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   backdrop-filter: blur(16px) saturate(1.5);
   -webkit-backdrop-filter: blur(16px) saturate(1.5);
 }
+/* The fallback is no longer load-bearing — `.pane` has a real fill of its own above — but it stays,
+   because a browser with no backdrop-filter should get the flatter, more solid version rather than
+   the one designed to have a blur under it. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .pane { background: var(--raised); }
 }
@@ -1834,12 +1927,14 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   display: grid; place-items: center;
   user-select: none; -webkit-user-select: none;
   background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
-  color: var(--dim); font: inherit; font-size: .78rem; cursor: pointer;
+  color: var(--dim); font: inherit; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
+  /* Small enough that the number has to be, too — it is a label on a column, not a word. A `.78rem`
+     was set here and again below at `.66rem`; the second won and the first read as though it were
+     the size. */
+  font-size: .66rem; letter-spacing: -.02em;
 }
 .hr:active { transform: scale(.9); }
-/* Small enough that the number has to be, too — it is a label on a column, not a word. */
-.hr { font-size: .66rem; letter-spacing: -.02em; }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
 .hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
@@ -1888,8 +1983,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
 /* The clock takes the middle of the screen, which is where you look while waiting for a number to
    change. */
-.widget-full #timer-display { flex: 1 1 auto; display: flex; align-items: center;
-                              justify-content: center; margin: 0;
+/* The layout of the clock is set ONCE, in the LED block near the foot of this file — it is a grid
+   there, so that the lit numerals and the dead segments behind them share one cell. This rule set
+   `display: flex` and a margin that both lost to it. */
+.widget-full #timer-display { flex: 1 1 auto; align-items: center;
+                              /* The spacing is in the LED block below, which wins. */
+                              justify-content: center;
                               font-size: clamp(2.1rem, 14vw, 4rem); }
 
 /* The list scrolls INSIDE the card so the add-a-line box stays on screen with twenty things on the
@@ -2033,17 +2132,40 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    lost its floor, measured zero, and the grid spaced it out as though it were a whole screen tall.
    That is why the tools and games sat miles apart while the posts sat close. The floor is a fact
    about the page, not about what happens to be on it at this instant. */
-#s-stuff .page > .pane { min-height: 13rem; }
-.page > .pane:has(.widget-full) { max-height: 100%; }
-.widget-full { min-width: 0; max-width: 100%; min-height: 0; }
-.widget-full > .card { min-width: 0; max-width: 100%; min-height: 0; overflow: hidden; }
+/* The floor that used to be here was propping up the measuring — a blanked page had to measure as
+   SOMETHING or it was spaced a screen away. Nothing is measured now, so nothing needs a floor. */
+/* The pane is the whole cell now, so a short widget sits in the middle of it rather than being
+   stretched to fill it — a calculator is the size a calculator is. */
+/* THE CARD IS THE CARD, not something floating in the middle of one.
+
+   A short widget used to sit centred in a full-height pane. Every card was then a different size,
+   so the space you could SEE between one card and the next depended on how tall each happened to
+   be — which is precisely the thing the fixed step was meant to end. The step was fixed; the cards
+   were not, so the gaps were not either.
+
+   The widget fills its pane, so the card is always the same 90% of the screen in both directions
+   and the gap between any two is always the 16px the grid puts there. What is ON the card centres
+   inside it, which is where a short thing should be short. */
+/* A WIDGET IS AS TALL AS IT IS. It filled its pane while panes were a fixed height; now the pane
+   is as tall as the widget, so making the widget fill the pane would be each of them asking the
+   other how big to be. The widget states its size and the pane follows it — which is the same way
+   round as a post and its pane, so there is one rule on this screen rather than two. */
+.widget-full { min-width: 0; max-width: 100%; min-height: 0; flex: 0 0 auto; width: 100%; }
+.widget-full > .card {
+  min-width: 0; max-width: 100%; min-height: 0; overflow: hidden;
+  flex: 0 0 auto;
+}
 
 /* The pane behind a widget adds nothing now — the object has its own edge, and two edges round one
    thing is the doubled card the receipts had. */
 .pane:has(> .widget-full) {
   background: none;
   backdrop-filter: none; -webkit-backdrop-filter: none;
-  border: 0; box-shadow: none; padding: 0;
+  border: 0; box-shadow: none;
+  /* NO PADDING, and none rather than a little: the pane's own is 1rem at the top and 1.25rem at
+     the bottom, so anything inside it sat a few pixels high of centre. With the card filling the
+     pane there is nothing left to pad — the card IS the cell. */
+  padding: 0;
 }
 
 /* ==================================================================================================
@@ -2080,10 +2202,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    across the screen. A calculator is narrow and upright, and it is held.
 --------------------------------------------------------------------------------------------- */
 .widget-full.solid > .card { padding: .75rem; }
-.widget-full.solid:has(.mc-display) {
-  max-width: 19rem;
-  margin: 0 auto;
-}
+/* NO CAP ON THE CASE — narrowing a calculator was the right instinct in the wrong place: it made
+   this one card a different width from every other, on a screen whose whole point is that they are
+   all the same. The KEYS are what wanted narrowing, so they are what is narrowed. */
+.widget-full.solid:has(.mc-display) .mc-grid,
+.widget-full.solid:has(.mc-display) .mc-display { max-width: 19rem; margin-inline: auto; width: 100%; }
 .widget-full.solid .mc-display {
   border-radius: 3px;
   padding: .8rem .7rem;
@@ -2149,8 +2272,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    4:5 gives it room, and the case gives the extra height somewhere to belong.
 --------------------------------------------------------------------------------------------- */
 .widget-full:has(.flappy) > .card {
-  max-width: 17rem;
-  margin: 0 auto;
   /* The case: a warm grey plastic, rounded hard at the bottom the way a handheld is, with the
      highlight of a moulded edge along the top. */
   background: linear-gradient(#c9c6bd, #b6b2a8);
@@ -2167,7 +2288,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .widget-full:has(.flappy) .flappy,
 .widget-full .flappy {
   aspect-ratio: 4/5;
-  width: 100%;
+  /* THE SCREEN IS CAPPED, NOT THE CASE. The case is the card, and every card is the same size — so
+     the handheld keeps its proportions by holding its own screen to a width inside a card that is
+     the same width as all the others. */
+  width: 100%; max-width: 15rem; margin-inline: auto;
   border-radius: 3px;
   border: 5px solid #4a4740;
   box-shadow: inset 0 2px 6px rgb(0 0 0 / .45);
@@ -2190,8 +2314,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    A floor and a ceiling, on the pane rather than on each widget: it can never be shorter than
    something worth looking at, and never taller than the cell it has to fit inside. Whatever the
    contents turn out to be, the object is bounded before they arrive. */
-/* This said the same thing as the block above it, at a different number — two rules setting one
-   pane's floor, and whichever came last won. Said once now, up there. */
 .page > .pane:has(.widget-full) { overflow: hidden; }
 
 /* ---------- MESSAGES IS A CARD, ON A SCREEN OF ROWS ----------------------------------------------
@@ -2363,3 +2485,77 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   line-height: 1.6rem;
   box-shadow: none;
 }
+
+/* ---------- THE TIMER READS LIKE A DIGITAL CLOCK ------------------------------------------------
+   Numerals on a dark panel, in the amber of an LED, with the SEGMENTS SHOWING BEHIND THEM.
+
+   That last part is what makes a digital clock look like one rather than like large text: on a real
+   display every segment of every digit is physically there, and the ones that are off are still
+   faintly visible against the panel. So the figure is drawn twice — a dim `88:88` underneath, and
+   the live time over the top of it. Nothing is measured or positioned by hand; the two sit in the
+   same grid cell, so they line up at any size on any phone.
+
+   `tabular-nums` is what stops the whole thing shuffling sideways once a second: a 1 is narrower
+   than a 0 in almost every font, so 11:11 and 10:00 are different widths without it.
+--------------------------------------------------------------------------------------------- */
+.widget-full:has(#timer-display) > .card {
+  background: linear-gradient(#17181c, #0e0f11);
+  border: 1px solid #2b2e34;
+}
+.widget-full #timer-display {
+  /* THE SIZE COMES FROM THE FIRST RULE for this selector, further up: `clamp(2.1rem, 14vw, 4rem)`,
+     which grows with the phone. A flat 2.6rem was written here and silently beat it — the same
+     selector twice, the later one winning, which is exactly what `check-css.js` now reports.
+     Stated once, in the responsive form, because a clock that does not fit a small screen is worse
+     than one that is not quite as large as it could be on a big one. */
+  /* THE PANEL the numerals sit on — darker than the case, the way the glass of a clock is. */
+  background: #0a0b0d;
+  border: 1px solid #23262c;
+  border-radius: 4px;
+  padding: .5rem .4rem;
+  margin: .5rem 0 .6rem;
+  box-shadow: inset 0 2px 10px rgb(0 0 0 / .7);
+
+  /* One cell, two layers: the dead segments and the live time. */
+  display: grid;
+  grid-template-areas: 'clock';
+  place-items: center;
+
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .06em;
+  line-height: 1.1;
+  color: #ffb648;
+  /* The glow of a lit segment: tight and bright at the edge of the stroke, wide and faint beyond
+     it, which is how light actually leaves a small emitter. */
+  text-shadow: 0 0 6px rgb(255 182 72 / .85), 0 0 20px rgb(255 140 20 / .45);
+}
+.widget-full #timer-display { grid-area: clock; }
+/* THE SEGMENTS THAT ARE OFF. `88:88` is every segment of every digit lit at once, so drawn faintly
+   underneath it is exactly the shape a real display shows when it is dark. `attr` is not used —
+   this never changes, so it is written here rather than kept in step from JavaScript. */
+.widget-full #timer-display::before {
+  content: '88:88';
+  grid-area: clock;
+  color: rgb(255 182 72 / .07);
+  text-shadow: none;
+  pointer-events: none;
+}
+/* The buttons as the panel's own controls rather than as app buttons. */
+.widget-full:has(#timer-display) .btn {
+  background: #16181c;
+  border: 1px solid #2b2e34;
+  color: #d3b489;
+}
+.widget-full:has(#timer-display) .btn:active { background: #101215; }
+
+/* ---------- THE THINGS THAT KEEP THE FINGER FOR THEMSELVES ---------------------------------------
+   `#screen` says `touch-action: none` so the grid gets every gesture by default. These are the
+   exceptions, and they are the same list `axisFree` in script.js names: a control that consumes a
+   drag for its own reasons. Written in both places on purpose — the stylesheet decides whether the
+   browser hands the movement over, the script decides what to do with it once it has, and neither
+   can do the other's half. */
+textarea, select, [data-noswipe],
+.msg-body, #docket-body, #notepad, .feed-text { touch-action: pan-y; }
+
+/* The map is dragged and pinched in both directions by its own code, so it wants the lot. */
+.map, .map-svg { touch-action: none; }

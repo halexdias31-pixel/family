@@ -115,6 +115,15 @@ function meBlocks() {
       </div>
     </div>
 
+    ${/* ---------- END OF THE PROFILE CARD ------------------------------------------------------
+          Everything above is WHO YOU ARE: your name and face, the facts about your account, and
+          your figure. Everything below is what you DO with the account — change your details, see
+          what needs fixing, hand out your link, sign out.
+          Two different questions, so two panes. `ME_SPLIT` is the mark between them; `mePages`
+          cuts on it. A marker rather than counting cards, because the admin card in the second
+          group only exists for an admin — so any count would be right for you and wrong for
+          everybody else. */''}
+    ${ME_SPLIT}
     <div class="card tap" data-do="edit-me"><h3>Edit your details</h3>
       <p class="sub">Name, email, address, availability.</p></div>
 
@@ -178,9 +187,21 @@ function meMessagesCard() {
   </div>`;
 }
 
+/* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
+   built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
+   escapes. */
+const ME_SPLIT = '<!--me-split-->';
+
 const mePages = () => {
-  const pages = [meBlocks().join('')];
-  /* Signed out there is no thread and nobody to have written one, so there is no second page. */
+  const all = meBlocks().join('');
+  /* PROFILE, then ACCOUNT, then MESSAGES. Split on the marker rather than on a card count, so the
+     admin-only card in the second half cannot move the boundary for an admin and not for anybody
+     else. No marker — the signed-out screen — is one page, which is right: there is nothing to
+     settle and nobody to have written to you. */
+  const cut = all.indexOf(ME_SPLIT);
+  const pages = cut < 0
+    ? [all]
+    : [all.slice(0, cut), all.slice(cut + ME_SPLIT.length)];
   if (USER) pages.push(meMessagesCard());
   return pages;
 };

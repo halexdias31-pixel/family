@@ -938,9 +938,81 @@ function paintStuff() {
  * Filled INDIVIDUALLY rather than by rewriting the strip, because rewriting it mid-turn destroys
  * the elements the transition is animating and the dial jumps instead of turning.
  */
+/* ---------- THE ONE RULE THIS SCREEN KEPT BREAKING -----------------------------------------------
+   WHERE A CARD SITS DEPENDS ON HOW TALL THE CARDS ABOVE IT ARE. So anything that changes what is on
+   a card has changed the layout, and has to say so.
+
+   This function is the only place in the app that writes into a pane after the grid has been
+   placed — it fills the pages you are near and empties the ones you are not — and it never said a
+   word. Worse since the fill was moved to AFTER the slide: every position was then worked out
+   against panes that were still empty, so a 400px docket was placed as though it were nothing and
+   landed on top of the game below it.
+
+   No observer, and deliberately not. Watching every pane for a size change was what used to make
+   this screen stutter, and it answered a question nobody needed asked continuously. Content changes
+   here, in one function, on purpose — so the telling belongs here too, once, at the end. */
+/* ==================================================================================================
+   THE LAYOUT DOCTOR — `layout()` in the console, or tap the version line on the You screen.
+
+   WHY THIS EXISTS. Every layout fault on this app has been fixed by somebody reading code and
+   reasoning about what the boxes must be doing, and the boxes have disagreed roughly half the time.
+   Reading cannot tell you that a pane measured 0 because it had not been filled, or that a rule
+   thirty lines further down clipped the column. Only the browser knows, and it will say if asked.
+
+   So this asks. It prints, for the screen you are on, every page's REAL top, height and gap, and
+   the two facts that have actually gone wrong over and over:
+
+     OVERLAP    two cards occupying the same pixels — the fault you can see
+     UNFILLED   a page with nothing in it, which is what makes a card land on another
+
+   Paste what it prints. It is the difference between a fix and a guess.
+================================================================================================== */
+function layout(which) {
+  const id = which || AT;
+  const host = $('s-' + id);
+  if (!host) { console.log('no screen called ' + id); return; }
+  const pages = [].slice.call(host.querySelectorAll(':scope > .page'));
+  const cs = getComputedStyle(host);
+  const rows = [];
+  let overlaps = 0, unfilled = 0;
+
+  const box = el => { const r = el.getBoundingClientRect(); return { top: r.top, bot: r.bottom, h: r.height }; };
+
+  pages.forEach((el, i) => {
+    const pane = el.querySelector(':scope > .pane');
+    const b = box(el);
+    const prev = i ? box(pages[i - 1]) : null;
+    const gap = prev ? +(b.top - prev.bot).toFixed(1) : null;
+    if (gap !== null && gap < -0.5) overlaps++;
+    const filled = el.dataset.filled === '1' || i === 0;
+    if (!filled) unfilled++;
+    rows.push({
+      page: i,
+      at: i === (PAGE[id] || 0) ? '<<' : '',
+      filled: filled ? 'yes' : 'NO',
+      top: +b.top.toFixed(1),
+      height: +b.h.toFixed(1),
+      pane: pane ? +pane.getBoundingClientRect().height.toFixed(1) : 'none',
+      gapAbove: gap === null ? '' : gap,
+      overlap: gap !== null && gap < -0.5 ? 'YES' : '',
+    });
+  });
+
+  console.log('screen        : ' + id + '   pages ' + pages.length + '   at ' + (PAGE[id] || 0));
+  console.log('screen display: ' + cs.display + '  gap ' + cs.gap + '  contain ' + cs.contain
+    + '  overflow ' + cs.overflow);
+  console.log('screen height : ' + host.clientHeight + '   transform ' + cs.transform);
+  console.table(rows);
+  console.log(overlaps ? '*** ' + overlaps + ' OVERLAPPING PAIR(S) — cards are on top of each other'
+                       : 'no overlaps');
+  console.log(unfilled ? unfilled + ' page(s) have nothing in them' : 'every page is filled');
+  return { screen: id, overlaps, unfilled, rows };
+}
+
 function fillStuffPages() {
   const host = $('s-stuff');
   if (!host) return;
+  let changed = false;
   const pages = host.querySelectorAll(':scope > .page');
   const at = PAGE.stuff || 0;
   const items = stuffFiltered();
@@ -958,9 +1030,11 @@ function fillStuffPages() {
     if (near && el.dataset.filled !== '1') {
       pane.innerHTML = stuffPageHtml(i - 1);
       el.dataset.filled = '1';
+      changed = true;
     } else if (!near && el.dataset.filled === '1') {
       pane.innerHTML = '';
       delete el.dataset.filled;
+      changed = true;
     }
   }
 
@@ -972,10 +1046,20 @@ function fillStuffPages() {
      Started again on every fill rather than once. They are all idempotent — a board redraws from
      the position it already holds, a clock from the time it already has — and remembering which
      have been started is a second thing to keep true. */
-  if (!showingWidgets()) { stopWidget_(); return; }
+  if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
   const wgt = items[at - 1] && items[at - 1].row;
-  if (!wgt) { stopWidget_(); return; }
+  if (!wgt) { stopWidget_(); settle_(changed); return; }
   startWidget_(wgt);
+  /* A widget that has just started may have sized itself — a canvas takes its box, a board squares
+     itself off — so the telling comes after that too, not before. */
+  settle_(true);
+}
+
+/** The grid measures the panes again and puts everything where it now belongs. Instant: the cards
+    have not moved as far as anybody is concerned, and animating them to where they already look
+    like they are is a second movement nobody asked for. */
+function settle_(changed) {
+  if (changed) placeCells('y', true, 0, 'stuff');
 }
 
 /**
