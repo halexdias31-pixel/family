@@ -1384,18 +1384,21 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      overflows; it just does not announce itself. */
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* AND A PANE ASKS FOR VERTICAL BACK — but only vertical.
+  /* ---------- WHY THE MIDDLE OF THE SCREEN BEHAVED DIFFERENTLY FROM THE EDGES -------------------
+     THE PANE ASKS FOR NOTHING BY DEFAULT.
 
-     `pan-y` is the exact statement of what a pane may do with a finger: it can scroll its own
-     contents up and down, and it can do nothing sideways. So a sideways drag is always the grid's,
-     everywhere, with no decision to make.
+     This was `pan-y`, on the reasoning that a pane may scroll its own contents and may never do
+     anything sideways. Sound, and wrong in one way that showed up exactly where you found it: a
+     phone decides what a gesture is from the box UNDER THE FINGER, and this box also says
+     `overflow-y: auto`. So on the pane — which is the middle of the screen — it saw something
+     scrollable and claimed the vertical drag before any of this app's code ran. At the EDGES the
+     finger is on the page, which says `touch-action: none`, and the grid got it. Same swipe, two
+     answers, decided by where you happened to put your thumb.
 
-     Downward it depends on the pane, and correctly: a pane with more on it than fits scrolls, and
-     the grid keeps out of the way — which is what `axisFree` in script.js already asks for. A pane
-     whose contents fit has nothing to scroll and no scrolling ancestor to hand the gesture to, so
-     the movement stays cancelable and the grid takes it. Nothing has to know which case it is in;
-     the browser works it out from the pane it is on. */
-  touch-action: pan-y;
+     `none` here, and `pan-y` given back only to a pane that has genuinely overflowed — see
+     `.pane.scrolls`, which script.js adds after measuring. Most panes never get it, so most of the
+     screen behaves like the edges did, which is the half that was always working. */
+  touch-action: none;
   padding: 1rem 1rem 1.25rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
@@ -2559,3 +2562,13 @@ textarea, select, [data-noswipe],
 
 /* The map is dragged and pinched in both directions by its own code, so it wants the lot. */
 .map, .map-svg { touch-action: none; }
+
+/* ---------- THE ONE PANE IN A HUNDRED THAT ACTUALLY SCROLLS ---------------------------------------
+   A pane may hold more than fits — a long thread, a docket with thirty lines. That one has to be
+   scrollable by a finger, and CSS cannot ask whether it overflowed. So script.js measures it after
+   it is filled and adds this class, and only then does the browser get the vertical gesture.
+
+   The measurement is safe in a way the layout measurements were not: it decides a touch rule, not
+   a position. Read at a bad moment the worst case is one swipe going to the grid instead of the
+   list, and the next placement corrects it. Nothing can overlap and nothing can move. */
+.pane.scrolls { touch-action: pan-y; }

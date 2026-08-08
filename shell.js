@@ -466,6 +466,22 @@ function placeGrid(instant, drag) {
       el.style.opacity = d === 0 ? '1' : d === 1 ? '.5' : d === 2 ? '.25' : '0';
       el.style.pointerEvents = d === 0 ? 'auto' : 'none';
       el.style.visibility = d > 3 ? 'hidden' : 'visible';
+
+      /* ---------- DOES THIS PANE ACTUALLY SCROLL? ------------------------------------------
+         A phone decides what a gesture is from the box under the finger, and a box that says
+         `overflow-y: auto` is one it will happily claim — which is why a swipe in the MIDDLE of
+         the screen behaved differently from one at the edge. The pane says `touch-action: none`
+         now, and gets the vertical gesture back only if it has genuinely overflowed.
+
+         CSS cannot ask that question, so it is measured, here, on the one page you are actually
+         on — asking it of forty pages you are not is forty measurements for an answer nobody
+         needs. Safe to be wrong for a frame: it decides a TOUCH RULE, not a position. The worst
+         case is one swipe going to the grid instead of to a list, and the next placement fixes it.
+         Nothing can move and nothing can overlap. */
+      if (d === 0) {
+        const pane = el.querySelector(':scope > .pane');
+        if (pane) pane.classList.toggle('scrolls', pane.scrollHeight > pane.clientHeight + 1);
+      }
     });
   });
 }
