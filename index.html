@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#12100d">
+<title>@family.</title>
+
+<!-- ==================================================================================================
+     NOTHING HERE IS EVER CACHED.
+
+     A fix can be committed, published by GitHub Pages and live on the internet while the phone in
+     your hand is still running last week's script.js — and nothing anywhere says so. That has cost
+     more time on this project than any actual bug, because a stale file and a broken feature look
+     identical from the outside: you change something, you reload, and nothing happens.
+
+     A version number in the URL only works if somebody remembers to change it, which is a step
+     that can be forgotten, which means eventually it is. So the number is the CLOCK. Every load
+     asks for a URL no browser has ever seen, so no browser can be holding an old copy of it.
+
+     THE ONE FILE THIS CANNOT FIX IS ITSELF. index.html is the entry point, so nothing can date its
+     URL — GitHub Pages serves it with its own cache headers and the meta tags below do not
+     override them. That is why one manual clear is needed to pick this file up, and why it is the
+     last one you will need: this file never has to change again. Everything it loads is dated at
+     run time, and everything it does not load is loaded by script.js, which is.
+
+     IF IT IS ON YOUR HOME SCREEN, delete the icon and re-add it after that clear. An iOS webclip
+     caches its start page far harder than Safari does, and clearing Safari does not touch it. The
+     `apple-mobile-web-app-capable` tag that makes it a webclip is deliberately NOT here while this
+     is being edited daily — it is worth adding back when the app settles down.
+
+     WHAT IT COSTS. About 230KB re-downloaded on every load rather than served from cache —
+     noticeable on a slow connection, invisible on wifi. The right trade while this changes several
+     times a day; swap Date.now() for a release string later and the caching comes back.
+
+     document.write, deliberately. It is the one method that keeps these synchronous and in order
+     during parsing: the stylesheet is fetched before anything is painted, and script.js runs after
+     the markup below it exists, which is what it expects. Appending elements instead would make
+     both load asynchronously, and script.js would go hunting for #tabs before the parser had
+     written it.
+================================================================================================== -->
+<script>
+  /* A SERVICE WORKER OUTLIVES EVERYTHING — a reload, a hard reload, and on some browsers clearing
+     history. While one is installed it can serve a copy of any file from months ago whatever the
+     server sends, which is indistinguishable from an edit not saving.
+     Nothing here has ever registered one deliberately. That is not the same as there not being
+     one. Removed first, before a single file is asked for, so it cannot intercept them. */
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) { r.unregister(); });
+      });
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+    }
+  } catch (e) {}
+
+  /* ONE number, used by both — so the stylesheet and the script can never come from different
+     loads. A half-updated pair is a bug that appears sometimes and never reproduces. */
+  /* ---------- WHY THIS IS A VERSION AND NOT THE CLOCK -----------------------------------------
+     IT WAS `Date.now()`, and that is why the app took so long to open.
+
+     Every file is asked for as `name.js?t=<this number>`. With the clock, that number is different
+     on every single load — so every URL is one the browser has never seen, and all twenty files
+     plus the stylesheet are downloaded again from scratch, every time, for ever. Eight hundred
+     kilobytes on a phone on an ordinary connection is a couple of seconds before anything can even
+     start running, and on a poor signal it is closer to eight.
+
+     It was written that way for a real reason: a stale file is the worst kind of bug, because the
+     code you are looking at is not the code that is running. But the cure was permanent — it did
+     not stop caching until a deploy, it stopped caching at all.
+
+     A VERSION STRING DOES THE SAME JOB AND ONLY WHEN IT NEEDS TO. Change it and every URL changes
+     with it, so nobody can be left on an old file. Leave it and the browser keeps what it already
+     has and the app opens instantly.
+
+     BUMP THIS ON EVERY PUSH. That is the whole procedure, and it is the price of the app opening
+     quickly the rest of the time. If you ever see a change not take effect, this is the first
+     thing to check — it is the one line that decides. */
+  var LOAD = '2026-08-09a';
+  /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
+  document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
+</script>
+<noscript><link rel="stylesheet" href="style.css"></noscript>
+
+<!-- THE THREE `no-store` TAGS THAT WERE HERE ARE GONE, for the same reason as the clock above:
+     between them they told the browser never to keep anything, so even with a stable version string
+     every file would have been fetched again on every load. They were belt and braces on a belt
+     that was already too tight.
+     What replaces them is `LOAD` above: a name that changes when the code changes and not
+     otherwise, which is what cache-busting is supposed to mean. -->
+</head>
+<body>
+
+<!-- ==================================================================================================
+     THE SHELL.
+
+     Two fixed parts and one scrolling one:
+
+       a SCROLLER that is the only thing that moves
+       a TAB BAR at the bottom, in the thumb's reach
+       and a SHEET that slides up over all of it for anything that needs full attention
+
+     There was a header. It said where you are, which the tab bar already does.
+
+     The old layout was a wall of notes packed by height — right on a desktop, and a mile of
+     scrolling on a phone. This shows ONE screen at a time, which is the whole change.
+================================================================================================== -->
+
+<!-- THE HEADER WAS HERE. A bar across the top of every screen holding a title that repeated what
+     the tab bar already said, a ＋ that only meant anything on one screen, and a ⟳ that nobody
+     should have had to know existed — three centimetres of every phone, spent saying nothing.
+     Removed, not hidden. Its rules are out of the stylesheet and the code that wrote to it is out
+     of shell.js, so there is nothing left anywhere pointing at an element that is not here. -->
+
+<!-- ==================================================================================================
+     THE SPLASH, AND WHY IT IS IN THE MARKUP RATHER THAN DRAWN BY SCRIPT.
+
+     It has to be on the screen BEFORE script.js has done anything, because the thing it covers is
+     script.js starting up. Written by the parser, it is there the instant the page is parsed;
+     built in JavaScript it would appear after the work it is meant to hide.
+
+     It is also the honest answer to a slow backend. The payload is a dozen sheet reads and can take
+     a couple of seconds on a cold Apps Script instance — and what the app looked like during those
+     seconds was a black rectangle, which reads as broken rather than as busy.
+
+     ONE ELEMENT AND NO SCRIPT. The animation is CSS, so it runs even while the main thread is busy
+     parsing eighteen files — a spinner driven by JavaScript stops exactly when the app is at its
+     slowest, which is the one moment it needed to be moving. It is removed by `load()` when the
+     payload lands, and by the boot handler if that throws, so it cannot outlive what it covers.
+================================================================================================== -->
+<div id="splash">
+  <!-- ============================================================================================
+       TWO OF THEM, AND WHICH ONE YOU GET IS THE TOSS OF A COIN.
+
+       Both are in the markup and CSS shows one, because the splash has to be on the screen before
+       any script has run — that is the whole point of it — and building the chosen one in
+       JavaScript would mean it appeared after the work it exists to hide.
+
+       So the only thing the script does is pick, which is one line and happens during parsing.
+  ============================================================================================ -->
+
+  <!-- ---------- ONE: THE TAG. Sprayed on, by hand. ------------------------------------------- -->
+  <svg id="splash-tag" viewBox="0 0 300 120" aria-hidden="true">
+    <g id="splash-mist">
+      <circle cx="86"  cy="60" r="40" fill="#f0a93c" opacity=".16"/>
+      <circle cx="158" cy="52" r="34" fill="#3ddc84" opacity=".13"/>
+      <circle cx="220" cy="64" r="36" fill="#7de6ff" opacity=".11"/>
+    </g>
+    <!-- Set as TEXT, not drawn as a path. A path is a list of numbers and nothing in it knows what
+         an `m` is meant to look like — which is how the first version of this came out reading
+         "Amifaloy". A font knows. -->
+    <text id="splash-line" x="150" y="76" text-anchor="middle">@family.</text>
+    <text id="splash-fill" x="150" y="76" text-anchor="middle">@family.</text>
+  </svg>
+
+  <!-- ---------- TWO: THE READOUT. A machine from 1974 warming up. ---------------------------- -->
+  <div id="splash-led" aria-hidden="true">
+    <!-- The panel it is set into. A readout of that age is always sunk behind a bezel, and the dark
+         glass is what makes an amber segment look lit rather than painted. -->
+    <div class="led-panel">
+      <div class="led-word">@FAMILY.</div>
+      <!-- THE BAR. Twelve blocks that light in turn — the loading indicator of a decade before
+           anybody had a spinner, because a spinner needs a screen that can draw a circle and these
+           machines could light a square. The dead ones stay faintly visible, which is the thing
+           that makes it read as hardware: on a real display an unlit segment is still there. -->
+      <div class="led-bar">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="led-say">LOADING<span class="led-cur">_</span></div>
+    </div>
+  </div>
+
+  <!-- ---------- THREE: THE TORCH. Finding the name in the dark. ------------------------------
+       The word is already on the wall — painted in something barely lighter than the black around
+       it — and a pool of light passes over and picks it out. So what you are watching is not a
+       thing being drawn, it is a thing being FOUND, which is a different feeling and the reason
+       this one is worth having beside the other two.
+
+       Two copies of the same word, exactly on top of each other: the dark one is the paint, the
+       bright one is the paint with light on it, revealed through a mask that moves. Same text in
+       both, so there is nothing that can be spelt two ways. -->
+  <div id="splash-torch" aria-hidden="true">
+    <div class="tor-pool"></div>
+    <div class="tor-word tor-dim">@family.</div>
+    <div class="tor-word tor-lit">@family.</div>
+  </div>
+
+  <!-- ---------- FOUR: THE PROOF. Pythagoras, built rather than stated. ------------------------
+       A 3-4-5 triangle, and then a square grown on each of its three sides. The two small ones hold
+       9 and 16; the big one holds 25 — and the point is made by the SIZES before anybody reads the
+       numbers, which is the whole reason this theorem is taught with a picture.
+
+       IT REPLACED A COLUMN ADDITION, which was maths and was not worth watching: a sum already done,
+       appearing a digit at a time. Nothing was being worked out, so there was nothing to see. This
+       one builds — the shape first, then what each side is worth — and it is doing the thing the
+       business does, which is show why something is true rather than say that it is.
+
+       THE COORDINATES ARE EXACT, not eyeballed. Right angle at (3,7), legs of 4 and 3, and the
+       square on the hypotenuse worked out from the perpendicular so all four of its sides are
+       exactly 5. A triangle drawn by eye is a triangle that is nearly right, and "nearly" is the
+       one thing a proof cannot be. -->
+  <div id="splash-pyth" aria-hidden="true">
+    <svg class="py-svg" viewBox="-1.2 -1 13.4 13" aria-hidden="true">
+      <!-- The square on the short leg: 3 x 3 = 9. -->
+      <path class="py-sq py-a" d="M3 7 L3 4 L0 4 L0 7 Z"/>
+      <!-- The square on the long leg: 4 x 4 = 16. -->
+      <path class="py-sq py-b" d="M3 7 L7 7 L7 11 L3 11 Z"/>
+      <!-- And on the hypotenuse: 5 x 5 = 25. Every side of it is exactly 5. -->
+      <path class="py-sq py-c" d="M7 7 L3 4 L6 0 L10 3 Z"/>
+
+      <!-- The triangle itself, drawn first and left on top so its edges read as the shared sides. -->
+      <path class="py-tri" d="M3 7 L7 7 L3 4 Z"/>
+      <!-- The right angle, marked the way it is marked on a board. -->
+      <path class="py-right" d="M3 6.3 L3.7 6.3 L3.7 7"/>
+
+      <text class="py-n py-na" x="1.5" y="5.9">9</text>
+      <text class="py-n py-nb" x="5"   y="9.6">16</text>
+      <text class="py-n py-nc" x="6.5" y="4.2">25</text>
+    </svg>
+    <div class="py-say">9 + 16 = 25</div>
+    <!-- THE NAME, signed under the working. Every other splash says it and this one did not — it
+         showed a proof by somebody unnamed, which is a lovely thing to look at and does not tell
+         you whose app you have opened.
+         Under the answer rather than over the picture: that is where a name goes on a piece of
+         work, and it lets the proof land first and take the credit second. -->
+    <div class="py-sig">@family.</div>
+  </div>
+
+  <!-- ---------- FIVE: THE LINE. A roundel, and a journey across Merton. -----------------------
+       You work in Merton and Wandsworth and everybody you teach gets to you on the Northern line or
+       the tram. The roundel is the shape that says "London" faster than any word, and the bar
+       across the middle of it exists to hold a name.
+
+       IN @family.'S OWN COLOURS, not TfL's. The FORM is what anybody recognises — a circle with a
+       bar through it — and the form is a geometric idea rather than somebody's property. Their red
+       and blue with their typeface would be pretending to be them; gold and the app's own ink is a
+       nod to a city, which is what was meant.
+
+       And underneath, the reason this one is a LOADING animation rather than a picture: a line with
+       stops on it and a train running along it. The journey is the progress bar, which is a joke
+       everybody who waits on a platform already knows. -->
+  <div id="splash-tube" aria-hidden="true">
+    <svg class="tube-roundel" viewBox="0 0 200 150" aria-hidden="true">
+      <!-- The circle, drawn on rather than appearing — a ring that is struck looks made. -->
+      <circle class="tube-ring" cx="100" cy="72" r="42"/>
+      <!-- The bar, pulled across after it. -->
+      <rect class="tube-bar" x="26" y="60" width="148" height="24" rx="2"/>
+      <text class="tube-name" x="100" y="76" text-anchor="middle">@family.</text>
+    </svg>
+
+    <!-- THE JOURNEY. Four stops, and a train that visits each one — so the wait has a shape and you
+         can see how much of it is left, which is the entire job of a loading animation. -->
+    <div class="tube-line">
+      <span class="tube-track"></span>
+      <span class="tube-stop"></span>
+      <span class="tube-stop"></span>
+      <span class="tube-stop"></span>
+      <span class="tube-stop"></span>
+      <span class="tube-train"></span>
+    </div>
+    <div class="tube-say">MERTON &amp; WANDSWORTH</div>
+  </div>
+
+  <!-- ---------- SIX: THE COLUMNS. Something enormous, starting up, a long way off. ------------
+       A dark plain with a horizon on it, and columns of light standing up out of the ground one
+       after another — slow, quiet, and much bigger than the screen it is on. Anybody who owned a
+       console around 2000 knows the feeling without being able to say what it was of, which is the
+       point: it is a mood rather than a picture of anything.
+
+       ABSTRACT ON PURPOSE. Light on a dark plain is a shape, not somebody's property, and this
+       borrows the HUSH — the long pauses, the low blue, the sense of a machine thinking — rather
+       than any mark. There is nothing here to mistake for anybody else's. -->
+  <div id="splash-ps" aria-hidden="true">
+    <div class="ps-field">
+      <span class="ps-tower"></span>
+      <span class="ps-tower"></span>
+      <span class="ps-tower"></span>
+      <span class="ps-tower"></span>
+      <span class="ps-tower"></span>
+      <span class="ps-tower"></span>
+      <span class="ps-tower"></span>
+    </div>
+    <!-- The ground they stand on, and the light of them lying along it. -->
+    <div class="ps-floor"></div>
+    <div class="ps-say">@family.</div>
+  </div>
+
+  <!-- ---------- SEVEN: THE BLOCKS. A row of them, bumped from below. --------------------------
+       A side-scrolling platformer, in the sense that everybody who has played one recognises: a
+       hard ground, chunky blocks floating over it, and something popping out when you hit one from
+       underneath. Each block gives up a letter until the row spells the name, and the last one
+       gives up a coin.
+
+       NOTHING BORROWED BUT THE GRAMMAR. There is no character here, no mushroom, no pipe and no
+       plumber — a block that is struck from below and gives something up is a game-design idea
+       forty years old and belongs to nobody. What comes out is this app's own name in its own
+       colours, which is why it can be affectionate without pretending to be anybody else's. -->
+  <div id="splash-blocks" aria-hidden="true">
+    <div class="mb-row">
+      <span class="mb-block"><i>@</i></span>
+      <span class="mb-block"><i>f</i></span>
+      <span class="mb-block"><i>a</i></span>
+      <span class="mb-block"><i>m</i></span>
+      <span class="mb-block"><i>i</i></span>
+      <span class="mb-block"><i>l</i></span>
+      <span class="mb-block"><i>y</i></span>
+      <span class="mb-block"><i>.</i></span>
+    </div>
+    <!-- The coin off the last one, arcing up and away. -->
+    <span class="mb-coin"></span>
+    <!-- The ground. Solid, because in these games it always is. -->
+    <div class="mb-ground"></div>
+  </div>
+
+  <!-- Said, as well as drawn: whichever one is showing, this is what it says. -->
+  <p id="splash-say">@family.</p>
+</div>
+
+<script>
+  /* WHICH ONE, decided here and nowhere else.
+
+     During parsing, so the class is on the element before it is first painted — a pick made after
+     the first frame would show one splash and then swap it, which is worse than having only one.
+
+     `Math.random()` and not a rotation: a rotation needs somewhere to remember what came last, and
+     the thing it would have to remember outlives the page. A coin is honest about it. */
+  (function () {
+    var el = document.getElementById('splash');
+    /* One of three, evenly. An array rather than a chain of ifs, so adding a fourth is adding a
+       word — the chain is where somebody eventually writes `< 0.5` twice and one of them never
+       comes up. */
+    var kinds = ['is-tag', 'is-led', 'is-torch', 'is-pyth', 'is-tube', 'is-ps', 'is-blocks'];
+    if (el) el.className = kinds[Math.floor(Math.random() * kinds.length)];
+  })();
+</script>
+
+<!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a
+     backend older than the site. -->
+<div id="banner" class="hidden"></div>
+
+<main id="screen">
+  <!-- Every screen lives here. Only one is ever un-hidden, so the page is never taller than the
+       thing being looked at.
+
+       EACH ID IS `s-` PLUS ITS TAB ID, and nothing checks that. `go()` reads the tab table and
+       asks for `s-<id>`; a section whose name does not match is a tab that switches to nothing,
+       silently — which is entry four on the list of seven in the notes. `who` became `find`
+       because the screen holds tutors, venues AND subjects, so this had to move with it. -->
+
+  <section class="screen" id="s-posts"></section>
+  <section class="screen hidden" id="s-library"></section>
+  <section class="screen hidden" id="s-stuff"></section>
+  <section class="screen hidden" id="s-arcade"></section>
+  <section class="screen hidden" id="s-tools"></section>
+  <section class="screen hidden" id="s-find"></section>
+  <section class="screen hidden" id="s-book"></section>
+  <section class="screen hidden" id="s-me"></section>
+</main>
+
+<!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,
+     a form — opens in here rather than in a card that pushes the page around. -->
+<div id="sheet-back" class="hidden"></div>
+<div id="sheet" class="hidden">
+  <div id="sheet-grab"></div>
+  <div id="sheet-head">
+    <span id="sheet-title"></span>
+    <span id="sheet-close">✕</span>
+  </div>
+  <div id="sheet-body"></div>
+</div>
+
+<nav id="tabs"></nav>
+
+<!-- Dated with the same number as the stylesheet, and at the END of the body, where script.js
+     expects every element above it to already exist. -->
+<script>
+  /* EIGHTEEN FILES, ONE SCOPE, ONE ORDER.
+
+     script.js was ten thousand lines, which is a file nobody can hold in their head and nobody can
+     paste anywhere. Split at its own section headers into eighteen — and split is all it is: the
+     files concatenated are byte-for-byte what script.js was. Nothing was renamed and nothing moved
+     between them, which is why the split cannot have changed how anything behaves.
+
+     EVERYTHING SITS BESIDE index.html, in one folder, rather than in a js/ one. A folder would be
+     tidier and would cost a path in this list that has to agree with where the files actually are —
+     and a path that disagrees is eighteen 404s and a blank screen, which is a worse failure than
+     an untidy folder. Flat, until there is a reason not to be.
+
+     THEY ARE NOT MODULES, deliberately. Fourteen of the app's own variables are set in one part of
+     it and declared in another — DATA is set by the loader, USER by the sign-in, CHESS and ttState
+     and flappyState by their games. An ES module's import is read-only, so every one of those would
+     have thrown, and the fix would have been rewriting thousands of lines to reach through a state
+     object. Plain scripts share one scope and need none of that.
+
+     WHAT THAT COSTS, and what pays it. A module fails loudly at load when a name is missing; a
+     plain script fails quietly, later, when somebody taps the thing that needed it. So js/check.js
+     does that job instead: it reads all eighteen, and reports any name used and never declared, any
+     name declared twice, and anything read at load before the file declaring it. Run it after every
+     change — `node js/check.js`, two seconds. It is the whole safety net and it is not optional.
+
+     THE ORDER BELOW IS THE PROGRAM. boot.js draws the first screen and asks the backend for data,
+     so it is last, for the same reason the boot lines were last inside the single file. Everything
+     above it must exist before it runs. */
+  /* Collected rather than reported one at a time: a wrong folder means eighteen of these, and
+     eighteen messages is a wall. The check a second later prints the list. */
+  window.__missing = function (f) { (window.__gone = window.__gone || []).push(f); };
+
+  ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
+   'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'games', 'overworld',
+   'boot'].forEach(function (f) {
+    /* `js/` — THE FOLDER THEY ARE ACTUALLY IN. This asked for them flat, beside index.html, and
+       they moved into a folder: twenty requests for files that are one directory up from where
+       they live, twenty 404s, and a blank app.
+       Nothing about that says what happened. A script that does not arrive is not an error the
+       page reports — it simply never runs — so the whole app being missing looks like the app
+       being broken. The banner in overworld.js names a missing file for exactly this reason, and
+       it cannot: it is in one of the files that did not arrive.
+       ONE PLACE DECIDES THE PATH. If they ever move again, this line moves with them. */
+    /* `onerror` NAMES THE FILE THAT DID NOT ARRIVE.
+
+       Without it a missing file is silent, and what you get instead is whatever breaks FIRST as a
+       result — `LOADED is not defined`, thrown by posts.js, when the file that never loaded was
+       me.js. The message names a variable in the wrong file and says nothing about the real fault,
+       and it looks for all the world like a bug in the code you are reading.
+
+       One attribute turns that into the file's own name. */
+    document.write('<scr' + 'ipt src="js/' + f + '.js?t=' + LOAD
+      + '" onerror="__missing(\'' + f + '\')"><\/scr' + 'ipt>');
+  });
+</script>
+
+<script>
+  /* ==============================================================================================
+     DID THE CODE ACTUALLY ARRIVE?
+
+     A SCRIPT THAT DOES NOT LOAD IS SILENT. That is the whole problem and it is worth stating
+     plainly: if the path is wrong, the browser asks for twenty files, gets twenty 404s, and says
+     nothing on the page. No error, no message, no clue. What you see is the app — the markup is all
+     here — and nothing in it responds, because nothing is listening.
+
+     Every symptom of that is a symptom of something else as well. "I cannot click anything" is
+     what a broken handler looks like. "It never finishes loading" is what a slow backend looks
+     like. "The filter does nothing" is what a filter bug looks like. Five separate rounds went on
+     those three, and the cause was a folder name.
+
+     So it is checked, and said. `go` is defined in shell.js and used by boot.js — if it is missing
+     a second after the page has parsed, no script arrived, and the page says so, names the address
+     it looked for, and stops pretending to be an app.
+
+     ONE SECOND, because that is long enough for twenty local files and short enough that nobody
+     sits looking at a dead screen wondering. A slow connection that has not finished will say this
+     wrongly for a moment and then be replaced by the app itself, which is the right way round: a
+     false alarm you can watch disappear costs nothing, and a silence costs an evening.
+  ============================================================================================== */
+  setTimeout(function () {
+    var gone = window.__gone || [];
+
+    /* SOME OF IT ARRIVED AND SOME DID NOT — the worst case, and the one that produces a message
+       about a variable rather than a file. The app may even draw before it throws. */
+    if (gone.length && typeof go === 'function') {
+      var b = document.getElementById('banner');
+      if (b) {
+        b.className = '';
+        b.innerHTML = '<b>' + gone.length + ' file' + (gone.length === 1 ? '' : 's')
+          + ' did not load:</b> ' + gone.join(', ')
+          + '.<br>Anything they hold is missing, so parts of the app will fail with errors that '
+          + 'name something else. Check those names against the files in <code>js/</code>.';
+      }
+      return;
+    }
+    if (typeof go === 'function') return;                 // all here; nothing to say
+
+    var tried = 'js/shell.js?t=' + LOAD;
+    var here = location.href.replace(/[^/]*$/, '');
+    document.body.innerHTML =
+      '<div style="font:14px/1.6 ui-monospace,Menlo,monospace;color:#f4f1e8;padding:2rem;' +
+      'max-width:34rem;margin:0 auto">' +
+      '<p style="color:#f0a93c;font-weight:700;font-size:1.1rem">The app did not load.</p>' +
+      '<p>None of its code arrived, so nothing on this page does anything. The markup is here, ' +
+      'which is why it still looks like the app.</p>' +
+      '<p>It asked for:<br><code style="color:#7de6ff">' + here + tried + '</code></p>' +
+      (gone.length ? '<p>None of these arrived:<br><code style="color:#7de6ff">'
+        + gone.join(', ') + '</code></p>' : '') +
+      '<p>Almost always this is one of two things:</p>' +
+      '<p>1. The files are not in a <code>js/</code> folder beside this page. Either move them ' +
+      'there, or change the one line in index.html that says <code>"js/"</code>.<br>' +
+      '2. One of the eighteen names in that list does not match a file. The list is in order and ' +
+      'the order matters — <code>boot</code> is last on purpose.</p>' +
+      '<p style="color:#8a8175">Open the console and look for 404s: whichever addresses are red ' +
+      'are the ones to fix.</p>' +
+      '</div>';
+  }, 1000);
+</script>
+<noscript>
+  <p style="padding:2rem;text-align:center;color:#9a9a9a;font-family:monospace">
+    @family. needs JavaScript to run.
+  </p>
+</noscript>
+</body>
+</html>
