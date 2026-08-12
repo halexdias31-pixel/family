@@ -4,6 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#12100d">
+
+<!-- ---------- PUTTING IT ON A HOME SCREEN --------------------------------------------------------
+     WHAT AN INSTALLED APP ACTUALLY IS: a manifest saying what it is called and what colour it is,
+     an icon at the sizes a phone asks for, and a link to both from this page. There is no store, no
+     packaging and no review — the page IS the app once these three lines exist.
+
+     `apple-touch-icon` IS NOT OPTIONAL AND IS NOT COVERED BY THE MANIFEST. iOS reads the manifest
+     for the name and the standalone display and then ignores its icons entirely — without this line
+     the home screen shows a blurry screenshot of the page, which looks like a mistake rather than
+     an app. It also must be a PNG: Safari will not use an SVG here.
+
+     `apple-mobile-web-app-capable` is what makes it open without Safari's address bar, which is the
+     difference between "a shortcut to a website" and "an app" as far as anybody using it is
+     concerned. -->
+<!-- THE MANIFEST, WRITTEN INTO THE PAGE rather than kept as a file. It is nine lines of JSON that
+     never change, and a separate file is a separate thing to copy, to forget, and to have go
+     missing — which is the whole reason there were four files here and now there is one.
+
+     THE ICON CANNOT GO THE SAME WAY. It is twelve thousand characters as base64, and more to the
+     point iOS will not accept a data URI for `apple-touch-icon` — it wants a real address it can
+     fetch when somebody taps Add to Home Screen. So `icon.png` stays as the one file, and one
+     512px square covers every size both platforms ask for. -->
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%40family.%22%2C%22short_name%22%3A%22%40family.%22%2C%22description%22%3A%22Tutoring%20in%20Merton%20and%20Wandsworth.%22%2C%22start_url%22%3A%22./index.html%22%2C%22scope%22%3A%22./%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%23000000%22%2C%22theme_color%22%3A%22%2312100d%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/png%22%2C%22purpose%22%3A%22any%22%7D%2C%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/png%22%2C%22purpose%22%3A%22maskable%22%7D%5D%7D">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="@family.">
 <title>@family.</title>
 
 <!-- ==================================================================================================
@@ -78,7 +105,7 @@
      BUMP THIS ON EVERY PUSH. That is the whole procedure, and it is the price of the app opening
      quickly the rest of the time. If you ever see a change not take effect, this is the first
      thing to check — it is the one line that decides. */
-  var LOAD = '2026-08-09a';
+  var LOAD = '2026-08-11x';
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
 </script>
@@ -319,6 +346,39 @@
 </div>
 
 <script>
+  /* ==================================================================================================
+     AND IF THE CODE ARRIVED AND THE DATA NEVER DOES.
+
+     The check above answers one question — did the scripts load — and answers it well. It cannot
+     answer the other one: everything loaded, `load()` is running, and the request never comes back.
+     `go` is a function, so that check returns quietly, and what is left on screen is an animation
+     that will play until the tab is closed.
+
+     A SPINNER IS THE ONLY THING ON A SCREEN THAT CANNOT FAIL. Every other state says something. An
+     animation says "working" for ever and is indistinguishable from working. So it gets a deadline
+     of its own, HERE, in the page itself — not in shell.js, which is one of the files that may be
+     stale, and depending on nothing the app defines.
+  ================================================================================================== */
+  setTimeout(function () {
+    var sp = document.getElementById('splash');
+    if (!sp || sp.classList.contains('done')) return;        // finished, or never started
+    var codeHere = (typeof go === 'function');
+    var dataHere = (typeof DATA !== 'undefined' && DATA && Object.keys(DATA).length > 1);
+    var url = (typeof API !== 'undefined') ? API : '(API not defined — data.js did not load)';
+    sp.classList.add('done');                                // lift it, whatever else is true
+    var b = document.getElementById('banner');
+    if (!b) return;
+    b.className = '';
+    b.innerHTML = '<b>Still loading after 30 seconds.</b><br>'
+      + 'Code: ' + (codeHere ? 'arrived' : 'DID NOT ARRIVE')
+      + ' \u00b7 Data: ' + (dataHere ? 'arrived' : 'not yet')
+      + ' \u00b7 Files: <code>' + LOAD + '</code><br>'
+      + 'It is calling:<br><code>' + url + '</code><br>'
+      + 'Open that address in a tab. JSON means the backend is fine and this is the site; a '
+      + 'sign-in page means the deployment is not shared; a 404 means the address is wrong; a very '
+      + 'long wait means the backend is busy and will finish on its own.';
+  }, 30000);
+
   /* WHICH ONE, decided here and nowhere else.
 
      During parsing, so the class is on the element before it is first painted — a pick made after
