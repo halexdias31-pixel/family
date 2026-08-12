@@ -296,7 +296,7 @@ window.addEventListener('beforeinstallprompt', e => {
      that makes sense instead. */
   e.preventDefault();
   INSTALL_PROMPT = e;
-  try { repaint(); } catch (err) {}
+  try { repaint(); installBar(); } catch (err) {}
 });
 
 /* ALREADY AN APP? `standalone` is how a page knows it was opened from a home screen rather than
@@ -310,6 +310,74 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
   /* An iPad since iPadOS 13 reports itself as a Mac, and the only reliable tell is that it has a
      touchscreen — a desktop Safari does not. */
   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/* AN EARLIER `installBar` STOOD HERE, with its own `#inst-bar` element and its own
+   `on('install-no')` — written in one pass and then written AGAIN in the next, because the first
+   had been forgotten. Both were declared, so JavaScript kept the LAST silently: the first was dead
+   from the moment the second existed, and the stylesheet's `#inst-bar` rules dressed an element
+   nothing produced.
+
+   TWO FUNCTIONS OF ONE NAME IS THE THING `check.js` CANNOT SEE. Both are declared, so nothing is
+   undefined; both are reachable by name, so nothing is unused. It is only visible by reading, or by
+   noticing that a dismissal is remembered under two different keys. */
+
+/* ---------- THE PROMPT EVERYBODY SEES ------------------------------------------------------------
+   A CARD ON THE YOU SCREEN IS NOT A PROMPT. It sat behind a sign-in form and two swipes of a
+   carousel, which means the people who most need it — somebody who has just arrived and has no
+   account — could never see it at all. An install prompt has to find the person; a person does not
+   go looking for an install prompt.
+
+   SO IT IS A BAR, at the bottom, on every screen, signed in or not. It is what every booking site
+   does and the reason they all do it is that it works.
+
+   AND IT GOES AWAY AND STAYS AWAY. Dismissed once, remembered — a bar that comes back after being
+   refused is the thing people leave a site over. Once installed it never appears again, because
+   `isInstalled` is true from then on.
+
+   NOT IMMEDIATELY, EITHER. Three seconds, so it arrives after somebody has seen what the app is
+   rather than over the top of it loading — asking somebody to keep a thing they have not looked at
+   yet is asking too early. */
+const INSTALL_HIDDEN = 'familyInstallHidden';
+
+function installBar() {
+  if (isInstalled()) return;
+  /* SERVED, OR NOT AT ALL. A page opened from a file cannot be installed by either platform, and a
+     bar offering it would be offering something that cannot happen. */
+  if (location.protocol === 'file:') return;
+  try { if (localStorage.getItem(INSTALL_HIDDEN)) return; } catch (err) {}
+  if (document.getElementById('install-bar')) return;
+  if (!INSTALL_PROMPT && !isIOS()) return;          // nothing to offer on this browser
+
+  brandIcon();
+  const el = document.createElement('div');
+  el.id = 'install-bar';
+  el.innerHTML = INSTALL_PROMPT
+    ? `<div class="ib-say"><b>Keep @family. on your phone</b>
+         <span>Opens like an app, no address bar.</span></div>
+       <button class="btn" data-do="install">Add</button>
+       <button class="ib-x" data-do="install-no" aria-label="Not now">✕</button>`
+    /* iOS HAS NO INSTALL API, so the bar can only say where the button is. The share icon is drawn
+       rather than named, because "the share button" is not something everybody can find and the
+       square-with-an-arrow is unmistakable. */
+    : `<div class="ib-say"><b>Keep @family. on your phone</b>
+         <span>Tap <svg viewBox="0 0 24 24" class="ib-share"><path d="M12 3v12M12 3l-4 4M12 3l4 4"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path
+           d="M5 12v8h14v-8" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round"/></svg> below, then <b>Add to Home Screen</b>.</span></div>
+       <button class="ib-x" data-do="install-no" aria-label="Not now">✕</button>`;
+  document.body.appendChild(el);
+  /* Added on the next frame so the slide-up actually animates — an element that is created and
+     shown in the same tick simply appears. */
+  requestAnimationFrame(() => el.classList.add('up'));
+}
+
+on('install-no', () => {
+  /* REMEMBERED, so it is asked once. Somebody who said no is not going to be talked round by being
+     asked again on every page. */
+  try { localStorage.setItem(INSTALL_HIDDEN, '1'); } catch (err) {}
+  const el = document.getElementById('install-bar');
+  if (el) { el.classList.remove('up'); setTimeout(() => el.remove(), 250); }
+});
 
 function installCard() {
   /* Asked here because this is the card that offers the install — so the icon is right by the time
@@ -346,6 +414,8 @@ on('install', el => {
     INSTALL_PROMPT = null;
     el.disabled = false;
     if (r && r.outcome === 'accepted') toast('Added to your home screen');
+    const bar = document.getElementById('install-bar');
+    if (bar) bar.remove();
     repaint();
   }).catch(() => { INSTALL_PROMPT = null; el.disabled = false; });
 });

@@ -431,7 +431,17 @@ addEventListener('pointermove', e => {
      Holding the position and placing it inside `requestAnimationFrame` means exactly one placement
      per drawn frame, using the newest position at the moment the browser is ready to draw. Fewer
      placements, and each one landing where the frame begins. */
-  SWIPE.px = end ? travelled * 0.25 : travelled;
+  /* ---------- AT THE END OF THE RUN, NOTHING MOVES ------------------------------------------------
+     IT WAS `travelled * 0.25` — a quarter of the finger's travel, the rubber-band every list has.
+     That is right for a list, where the give tells you the content continues and you have reached
+     the bottom of it. It is wrong here, because there is nothing beyond the last tab and nothing
+     beyond the last page: the give says "there is more, pull harder" about a place where there is
+     no more, and it is the only movement in the app that leads nowhere.
+
+     ZERO. The screen holds still, which is a stronger statement than a wobble and an honest one —
+     the edge is the edge. Everything else about the gesture is unchanged: it still commits, still
+     settles, still turns a page anywhere that is not the end. */
+  SWIPE.px = end ? 0 : travelled;
   if (SWIPE.frame) return;
   SWIPE.frame = requestAnimationFrame(() => {
     SWIPE.frame = 0;

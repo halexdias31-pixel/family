@@ -631,7 +631,11 @@ function placeGrid(instant, drag) {
        dimmed away, so the card was widened and the gap tightened twice over and neither could
        help. `.92` keeps the sense of something sitting behind without taking the edge with it. */
     host.style.opacity = across === 0 ? '1' : across === 1 ? '.92' : '0';
-    host.style.visibility = across > 1 ? 'hidden' : 'visible';
+    /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
+       hidden until the swipe reached it, and a quick flick across two showed a blank in between.
+       Held to the same 3 as the column, for the same reason and at the same cost: a handful of
+       tabs is a handful of cards, and there is no version of this app where that is expensive. */
+    host.style.visibility = across > 3 ? 'hidden' : 'visible';
 
     /* AND EACH PAGE, faded by how far down the column it is. No position — the column does that.
        This distance is an INDEX, not a measurement, so nothing here can be read at a bad moment. */
@@ -640,7 +644,16 @@ function placeGrid(instant, drag) {
       el.style.position = 'static';
       el.style.transform = 'none';
       el.classList.toggle('on', id === AT && p === at);
-      el.classList.toggle('far', d > 2);
+      /* ---------- HOW MANY PAGES ARE KEPT VISIBLE EITHER SIDE ----------------------------------
+         `.far` is `visibility: hidden`, so this number is exactly how many pages up and down the
+         column are drawable at any moment. It was 2, which is what you see when you swipe quickly:
+         the third one away arrives as a blank and fills in a beat later.
+
+         THREE. One more each way is one more card's worth of work on a screen that is already
+         drawing them all — the cost is the browser compositing a card nobody is looking at, and
+         the gain is that a fast swipe never shows an empty rectangle. Beyond three the cost grows
+         and the gain does not: nobody swipes four pages faster than a frame. */
+      el.classList.toggle('far', d > 3);
       /* DIMMING ON A BLACK SCREEN IS DELETING.
          This was .5 and .25, which reads as "further away" on paper and is not what happens here:
          the card's fill is #101010 on black, so half of it is rgb(8) and a quarter is rgb(4) —
@@ -1527,6 +1540,15 @@ async function load() {
      the thing it is covering has already given up.
      Faded by a class rather than removed from the document, so a retry can put it back. */
   splashOff_();
+
+  /* ---------- AND THE OFFER TO KEEP IT --------------------------------------------------------
+     AFTER THE APP HAS DRAWN, not before. Asking somebody to put a thing on their home screen while
+     they are still looking at a loading animation is asking about something they have not seen.
+     Three seconds is long enough to have looked at the feed and short enough to still be there.
+
+     It decides for itself whether to appear at all — installed already, dismissed before, opened
+     from a file, or a browser that cannot do it — so this is one call and no conditions. */
+  setTimeout(() => { try { installBar(); } catch (err) {} }, 3000);
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW ---------------------------------------
      Every screen but the one in front was drawn before this request came back, so each holds a
