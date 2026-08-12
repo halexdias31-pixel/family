@@ -103,6 +103,16 @@ function meBlocks() {
       ${rows.map(([k, v]) => row(k, v)).join('')}
     </div>
 
+    ${/* SECOND, and that is the whole point of where it is.
+          It was seventh — six swipes across a horizontal carousel from the first thing anybody
+          sees. It was drawn correctly the entire time and nobody was ever going to reach it, which
+          from the outside is exactly the same as it not existing.
+
+          A prompt to install has one moment: while somebody is still deciding whether this is a
+          thing they will come back to. That is near the front or it is nowhere. It costs the space
+          only until it is used — once installed it returns nothing and the pane goes. */''}
+    ${installCard()}
+
     <div class="card tap" data-do="wardrobe">
       <div class="thing">
         <span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>
@@ -152,8 +162,6 @@ function meBlocks() {
           do a thing the first sheet is already for. */''}
     <div class="card tap" data-do="my-referral"><h3>Tell someone</h3>
       <p class="sub">A link only you have. We will know it came from you.</p></div>
-
-    ${installCard()}
 
     <button class="btn quiet" data-do="signout" style="margin-top:.4rem">Sign out</button>
     ${/* BOTH VERSIONS, at the bottom where a version number belongs. It is the answer to the
@@ -247,8 +255,18 @@ const mePages = () => {
    as the business, so filling it in does two jobs and there is no new name to remember. */
 function brandIcon() {
   const b = (DATA && DATA.brand) || {};
-  const url = String(b.logo_square || b.logo_circle || '').trim();
-  if (!url) return;                                  // nothing set: the drawn icon stands
+  /* THROUGH `pic()`, WHICH ALREADY EXISTS FOR EXACTLY THIS. A Google Drive share link — the
+     `/file/d/…/view?usp=sharing` one you get from the Share button — is a PAGE, not a picture.
+     Put it in an `<img>` or an icon and the browser fetches HTML, finds no image, and shows
+     nothing: a broken icon with no error anywhere.
+
+     `pic()` in posts.js turns one into the direct address and passes anything else straight
+     through. Using it here rather than writing a second converter is the whole point — two
+     implementations of one rule is how they come to disagree, and this app has paid for that
+     lesson more than once. A square icon wants a square-ish size rather than the feed's 1200. */
+  const raw = String(b.logo_square || b.logo_circle || '').trim();
+  if (!raw) return;                                  // nothing set: the drawn icon stands
+  const url = pic(raw).replace('=w1200', '=w512');
   try {
     const link = document.querySelector('link[rel="apple-touch-icon"]');
     if (link && link.getAttribute('href') !== url) link.setAttribute('href', url);
