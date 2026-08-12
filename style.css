@@ -3917,3 +3917,175 @@ span[data-do]:active { text-decoration-color: var(--gold); }
           white-space: pre-line; font: 500 12px/1.45 ui-monospace, Menlo, monospace;
           background: #fff8e0; color: #6b2c2c; border: 2px solid #6b2c2c; border-radius: 8px;
           padding: 8px 11px; }
+
+/* ==================================================================================================
+   FOUR OBJECTS. `.rc` is the receipt and it is unchanged — torn, cream, off a till. The other three
+   are different things, drawn as different things, because that is what they are:
+
+     .scr   a terminal being typed into      nothing exists yet
+     .app   an application handed in         asked for, not yet answered
+     .wl    a numbered ticket in a queue     waiting for a seat
+
+   NONE OF THEM TEARS. The ragged edge is what says a till printed this, and a till prints when
+   money has moved. Squaring the ends is not a style choice on three of these; it is the absence of
+   the event the tear commemorates.
+================================================================================================== */
+.rc.scr, .rc.app, .rc.wl { -webkit-mask: none; mask: none; }
+
+/* ---------- THE TERMINAL -------------------------------------------------------------------------
+   Nobody is handed paper when they ask for something. Somebody types it into a screen in front of
+   them, and this is that screen: dark glass in a bezel, green type, a cursor waiting. */
+.rc.scr {
+  background: #0d0f0e;
+  color: var(--green);
+  border-radius: 10px;
+  border: 3px solid #2a2f2c;
+  box-shadow: inset 0 0 0 2px #050706, inset 0 6px 22px rgb(0 0 0 / .9), 0 4px 0 #1a1e1c;
+  position: relative;
+  overflow: hidden;
+}
+.rc.scr::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(to bottom, rgb(255 255 255 / .035) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+/* The cursor. The oldest signal in computing that a machine is waiting for you, and the whole
+   reason this reads as being typed rather than as a dark card. */
+.rc.scr::after {
+  content: '';
+  position: absolute; right: .8rem; bottom: .7rem;
+  width: .55rem; height: 1rem;
+  background: var(--green);
+  animation: scr-blink 1.1s steps(1) infinite;
+  pointer-events: none;
+}
+@keyframes scr-blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+.rc.scr .rc-head h2, .rc.scr .rc-total, .rc.scr .bk-pick { color: var(--green) }
+.rc.scr .rc-head p, .rc.scr .rc-stage, .rc.scr .bk-k, .rc.scr .bk-n { color: #6f8f7c }
+.rc.scr .bk-row, .rc.scr .bk-v { color: #cfe8d8 }
+.rc.scr .rc-rule { border-color: rgb(61 220 132 / .25) }
+
+/* ---------- THE APPLICATION ----------------------------------------------------------------------
+   A FORM THAT HAS BEEN HANDED IN. Everybody knows what one looks like and nobody mistakes one for a
+   receipt: white paper rather than till cream, a hard rule down the left where it would be filed,
+   and a stamp saying it is waiting on somebody.
+
+   THE STAMP IS THE POINT. A form with no stamp has not been dealt with, which is precisely the
+   state this represents — and it is the thing you look for first on any form you have ever handed
+   over. Angled, because a stamp put on by hand is never square. */
+.rc.app {
+  background: #fbfaf7;
+  color: #1e1c19;
+  border-radius: 2px;
+  /* The filing edge. A form is punched and filed; a receipt is torn and pocketed. */
+  border-left: 5px solid #b9312b;
+  box-shadow: 0 1px 0 rgb(0 0 0 / .3), 0 6px 18px rgb(0 0 0 / .35);
+  position: relative;
+  overflow: hidden;
+}
+.rc.app .rc-stage {
+  color: #b9312b;
+  font: 700 .6rem/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  margin: 0 0 .5rem;
+}
+.rc.app::after {
+  content: 'PENDING';
+  position: absolute; top: .9rem; right: -1.4rem;
+  transform: rotate(14deg);
+  font: 800 .82rem/1 var(--mono);
+  letter-spacing: .22em;
+  color: rgb(185 49 43 / .5);
+  border: 2px solid rgb(185 49 43 / .35);
+  border-radius: 3px;
+  padding: .22rem 1.7rem;
+  pointer-events: none;
+}
+/* A stub is three lines tall — a stamp across it would cover the words. The red filing edge is
+   enough at that size, and it is the same signal. */
+.rc.rc-stub.app::after { content: none }
+
+/* ---------- THE QUEUE TICKET ---------------------------------------------------------------------
+   NOT A FORM AND NOT A PURCHASE. It is the numbered ticket you hold at a counter: thin card, a
+   dotted tear line, and the number that is the entire reason you are holding it.
+
+   AMBER because it is the colour of waiting everywhere else on this site, and because it is neither
+   the red of a thing outstanding nor the green of a thing done. */
+.rc.wl {
+  background: #14120d;
+  color: var(--gold);
+  border: 2px dashed rgb(255 180 84 / .55);
+  border-radius: 8px;
+  box-shadow: 0 4px 0 rgb(0 0 0 / .4);
+}
+.rc.wl .rc-head h2, .rc.wl .rc-total { color: var(--gold) }
+.rc.wl .rc-stage {
+  color: var(--gold);
+  font: 700 .62rem/1 var(--mono);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  margin: 0 0 .5rem;
+}
+.rc.wl .rc-head p, .rc.wl .bk-k, .rc.wl .bk-n { color: #a08a5e }
+.rc.wl .bk-row, .rc.wl .bk-v { color: #f0e2c8 }
+.rc.wl .rc-rule { border-color: rgb(255 180 84 / .3) }
+
+/* ---------- AN APPLICATION THAT HAS BEEN ACCEPTED -------------------------------------------------
+   STILL AN APPLICATION. Money has not moved, so it is not a receipt — what has changed is that the
+   business has said yes and the family may now pay. The form is the same form; the stamp is what
+   answers it, which is exactly what a stamp is for.
+
+   Accepting a booking previously changed nothing on screen at all: the card before and after were
+   identical, so the only evidence it had worked was a status cell in a spreadsheet. */
+.rc.app.is-accepted { border-left-color: var(--green) }
+.rc.app.is-accepted .rc-stage { color: var(--green) }
+.rc.app.is-accepted::after {
+  content: 'ACCEPTED';
+  color: rgb(61 220 132 / .55);
+  border-color: rgb(61 220 132 / .4);
+}
+
+/* ==================================================================================================
+   A FESTIVE EVENT IS AN INVITATION.
+
+   Not a receipt, not a form, not a queue ticket — it is the thing that arrives before any of those
+   exist, and it is the only card on this site that goes to every family whether or not they have
+   ever booked anything. So it is drawn as an invitation: the occasion large, the details under it,
+   and a deckle edge rather than a torn one.
+
+   GOLD, WHICH NOTHING ELSE HERE CLAIMS. Green is a subject, purple a venue, red a tutor, pink a
+   level, amber a queue. Gold is the one colour the palette had spare, and an invitation is exactly
+   the thing worth spending it on.
+================================================================================================== */
+.fest {
+  background: linear-gradient(160deg, #1c160c, #12100b);
+  border: 1px solid rgb(255 180 84 / .45);
+  border-radius: 12px;
+  padding: 1.1rem 1rem 1rem;
+  margin: .2rem 0 .4rem;
+  position: relative;
+  overflow: hidden;
+}
+/* A rule of light across the top, the way a card with a foil edge catches it. One gradient, no
+   image, and it costs nothing. */
+.fest::before {
+  content: '';
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgb(255 180 84 / .9), transparent);
+}
+.fest-when {
+  font: 700 .62rem/1 var(--mono);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 .45rem;
+}
+.fest-name { margin: 0 0 .3rem; color: #fff2dc; font-size: 1.15rem; }
+.fest-say { margin: 0 0 .7rem; color: #c9b997; font-size: .86rem; line-height: 1.45; }
+.fest-rows { margin-bottom: .8rem; }
+/* The rows are the shared `row()` markup, so they inherit their layout and only the ink changes. */
+.fest .k { color: #a08a5e; }
+.fest .v { color: #f0e2c8; }
+.fest .btn { width: 100%; background: var(--gold); color: #17130b; font-weight: 700; }
