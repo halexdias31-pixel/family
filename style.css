@@ -4103,21 +4103,45 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 ================================================================================================== */
 #install-bar {
   position: fixed;
-  left: 50%; bottom: calc(3rem + var(--safe-bottom));
+  /* ---------- AT THE TOP -----------------------------------------------------------------------
+     IT WAS AT THE BOTTOM, sitting over the tab bar and the last card of the feed — which on a
+     phone is where the thumb lives and where Safari puts its own furniture, so it was a third bar
+     in a stack of bars competing for the same inch.
+
+     The top is empty on this app: there is no header, the feed starts under the status bar, and
+     nothing is ever tapped up there. A message belongs where nothing else is. */
+  left: 50%; top: 0;
   width: 100%; max-width: var(--app);
-  /* Off the bottom until `.up` is added, so it slides in rather than blinking into place. */
-  transform: translate(-50%, 120%);
+  padding-top: calc(.6rem + var(--safe-top));
+  /* Off the TOP until `.up` is added — the slide comes down now, not up. */
+  transform: translate(-50%, -110%);
   transition: transform .28s ease;
   display: flex; align-items: center; gap: .7rem;
-  padding: .7rem .8rem;
+  padding-right: .8rem; padding-bottom: .6rem; padding-left: .8rem;
   background: #16130e;
-  border-top: 1px solid rgb(255 180 84 / .35);
+  border-bottom: 1px solid rgb(255 180 84 / .35);
   z-index: 40;
 }
 #install-bar.up { transform: translate(-50%, 0); }
-.ib-say { flex: 1 1 auto; min-width: 0; font: 400 .8rem/1.35 var(--mono); color: #c9b997; }
-.ib-say b { display: block; color: var(--gold); font-size: .84rem; }
+
+/* ---------- AND THE APP MOVES DOWN WHILE IT IS THERE --------------------------------------------
+   The bar is `fixed`, so without this it sits ON TOP of the first card — covering the thing
+   somebody is being asked to keep, which is a poor argument for keeping it.
+
+   A class on `<body>` rather than a permanent change to the padding: the bar is temporary, it is
+   dismissed or acted on within a minute, and the app should not carry a gap at the top for ever
+   because of a message that was shown once. `--ib` is set to the bar's own height so the two can
+   never disagree. */
+body.has-ib { padding-top: calc(var(--top) + var(--safe-top) + var(--ib, 3.4rem)); }
+body.has-ib #install-bar { transition: transform .28s ease; }
+/* TIGHT. The two lines are a heading and a sentence, and `1.35` on a message this short left a
+   band of empty above and below it that read as the bar being half full. */
+.ib-say { flex: 1 1 auto; min-width: 0; font: 400 .78rem/1.25 var(--mono); color: #c9b997; }
+.ib-say b { display: block; color: var(--gold); font-size: .82rem; }
 .ib-say span { display: block; }
+/* The bold inside the sentence is part of the sentence — without this it inherits the block from
+   the rule above and "Add to Home Screen" drops onto a line of its own. */
+.ib-say span b { display: inline; }
 /* The share glyph, inline with the words — "the share button" is not a thing everybody can find,
    and the square with an arrow out of it is unmistakable. */
 .ib-share { width: .95em; height: .95em; vertical-align: -.15em; margin: 0 .1em; }
@@ -4125,3 +4149,40 @@ span[data-do]:active { text-decoration-color: var(--gold); }
                     font-weight: 700; }
 .ib-x { flex: 0 0 auto; background: none; border: 0; color: #7a7263; font-size: 1rem;
         padding: .3rem .4rem; cursor: pointer; }
+
+/* ==================================================================================================
+   THE WEEK.
+
+   A grid of hours against days, because that is the shape of the question — "when am I next in" is
+   spatial, and a list of cards makes somebody hold four times in their head to answer it.
+
+   ONE COLUMN PER DAY THAT HAS SOMETHING IN IT, set from the markup, so a week nobody works weekends
+   does not spend a third of a phone on Saturday and Sunday.
+================================================================================================== */
+.wk {
+  display: grid;
+  grid-template-columns: 2.2rem repeat(var(--cols), 1fr);
+  gap: 1px;
+  background: rgb(255 255 255 / .07);
+  border: 1px solid rgb(255 255 255 / .07);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: .5rem;
+}
+.wk-h, .wk-t, .wk-c { background: var(--card, #101010); min-height: 2.1rem; }
+.wk-h { font: 700 .62rem/2.1rem var(--mono); text-align: center; color: #8a8578;
+        letter-spacing: .06em; }
+/* The hour, right-aligned against its row so the numbers form a column the eye can run down. */
+.wk-t { font: 400 .6rem/2.1rem var(--mono); text-align: right; padding-right: .3rem;
+        color: #6a6559; }
+.wk-c { padding: .15rem .2rem; }
+/* A booked hour. Green because a session is a SUBJECT, which is what green means everywhere else
+   here — the palette is already carrying that meaning and a new colour would dilute it. */
+.wk-c.is-on { background: rgb(61 220 132 / .16); cursor: pointer; }
+.wk-c.is-on b { display: block; font: 700 .6rem/1.15 var(--mono); color: var(--green);
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-c.is-on span { display: block; font: 400 .55rem/1.1 var(--mono); color: #7fa98d;
+                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The head of a block gets a brighter top edge, so a two-hour session reads as one thing starting
+   at a moment rather than as two identical hours. */
+.wk-c.is-on.is-head { box-shadow: inset 0 2px 0 var(--green); }
