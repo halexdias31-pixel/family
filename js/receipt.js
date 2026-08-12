@@ -321,7 +321,10 @@ function drawBooker_() {
             <div class="slot-hours">
               ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
                 h.open ? '' : ' shut'}" ${h.open ? '' : 'disabled'}
-                title="${h.h}:00${h.open ? '' : ' — not available'}"
+                ${/* THE REASON, not just "not available". An hour the tutor never works and an hour
+                      they are already teaching are the same grey box, and only the second is worth
+                      trying a different week for. `why` comes off the cell — see `slotGrid`. */''}
+                title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
                 data-do="book-slot" data-code="${esc(h.code)}">${h.h}</button>`).join('')}
             </div>
           </div>`).join('')}

@@ -823,7 +823,68 @@ function pagerNames(id) {
 /* Which page each paged screen is showing. Kept per screen, so leaving Tools on the calendar and
    coming back puts you on the calendar — a pager that resets is a pager you have to re-navigate
    every time you check something on another tab. */
-const PAGE = { posts: 0, stuff: 0, book: 0 };
+/* ---------- WHERE EACH COLUMN OPENS ---------------------------------------------------------------
+   NOT ALWAYS THE TOP, and that is the point. Every column started at page 0, which is the first
+   thing built rather than the first thing worth reading:
+
+     posts  page 0 is the ＋ New post card, added by `unshift` for anybody signed in. So the app
+            opened on a form to make a post rather than on the most recent post — the feed's own
+            front page is the one BELOW it.
+     me     page 0 is the name and role card. The thing somebody actually came for is the one after.
+
+   A DEFAULT IS A JUDGEMENT ABOUT WHAT SOMEBODY CAME FOR, and 0 is only the right answer when the
+   first pane happens to be it. Written per column so it can differ, and so changing one is a number
+   rather than an argument about ordering.
+
+   IT IS ONLY THE OPENING POSITION. `PAGE` is live from then on — leave Tools on the calendar and
+   coming back puts you on the calendar, which is the behaviour that was always here and is worth
+   keeping. This decides where a column stands the first time it is drawn, and never again. */
+/* A FUNCTION, NOT A NUMBER, and the Posts column is why. Its first pane is the ＋ New post card,
+   which is only there for somebody signed IN — so a fixed 1 opens on the newest post for them and
+   on the SECOND newest for a visitor, silently skipping the most recent thing the business posted
+   to the one person most likely to be new.
+   Asked at the moment the column is first drawn, when whether anybody is signed in is known. */
+const PAGE_HOME = {
+  posts: () => (USER ? 1 : 0),      // past the ＋ card when it is there, the newest post either way
+  me:    () => (USER ? 1 : 0),      // past the name card; signed out there is only the sign-in pane
+};
+const PAGE = { posts: 0, stuff: 0, book: 0, me: 0 };
+
+/* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
+   somebody left it, and putting them back at the top every time is a pager they have to
+   re-navigate on every glance at another tab. */
+const PAGE_OPENED = {};
+function pageHome_(id) {
+  if (PAGE_OPENED[id]) return;
+  const home = PAGE_HOME[id];
+  if (!home) { PAGE_OPENED[id] = true; return; }
+
+  /* ---------- NOT UNTIL THE COLUMN IS THE SHAPE IT WILL BE -------------------------------------
+     THIS RAN AT BOOT AND WAS THEREFORE ALWAYS WRONG. `paintPager` fires while the app is drawing
+     its first frame, long before the payload has landed — so `feedPosts()` was empty, the column
+     was one pane long, and `Math.min` clamped the home position to 0. `PAGE_OPENED` then marked it
+     done for ever, and signing in or the posts arriving could never put it right. The ＋ card stayed
+     the front page and looked like the setting had simply been ignored.
+
+     TWO CONDITIONS, and both are about the column being real yet:
+
+       · THE PAGES HAVE TO EXIST. A column of one pane cannot honour a home position of 1, and
+         clamping against a count of nothing is how this failed.
+       · SOMEBODY HAS TO BE SIGNED IN OR NOT, SETTLED. `USER` is null for the whole of the first
+         frame and is filled from localStorage a moment later, and it is the thing that decides
+         whether the ＋ card is there at all — so asking before it is known is asking the wrong
+         question and recording the answer permanently.
+
+     Until both hold, this does nothing AND DOES NOT MARK ITSELF DONE, so the next paint asks
+     again. Once they hold it applies once and never again — which is the original promise: the
+     home position is where a column OPENS, not somewhere it keeps returning to. */
+  if (pageCount(id) < 2) return;
+  if (!LOADED) return;
+
+  PAGE_OPENED[id] = true;
+  const n = home();
+  PAGE[id] = Math.max(0, Math.min(n, Math.max(0, pageCount(id) - 1)));
+}
 
 const pageCount = id => pagerNames(id).length;
 
@@ -868,6 +929,10 @@ function paintPager(id, instant) {
   if (!PAGER[id]) return;
   const host = $('s-' + id);
   if (!host || !host.querySelector(':scope > .page')) return;
+  /* THE HOME POSITION, on first sight of this column only. Here rather than at startup because the
+     pages do not exist until now — a count taken before the screen is built is a count of nothing,
+     and clamping against it would put every column back at 0. */
+  pageHome_(id);
   const n = Math.max(0, Math.min(pageCount(id) - 1, PAGE[id] || 0));
   PAGE[id] = n;
 
@@ -1439,6 +1504,22 @@ async function load() {
         }
       });
       LOAD_FAILED = '';
+
+      /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE ---------------------------------
+         THE PAYLOAD ARRIVED. Whatever the 30-second watchdog in index.html wrote is now a
+         statement about a load that has since finished — "Still loading… Data: not yet" sitting
+         above a screen full of posts, which is the app contradicting itself in the one place
+         somebody looks when they think it is broken.
+
+         NOTHING TOOK IT DOWN. The watchdog writes straight to the element and only `retry` ever
+         cleared it, so a slow load that SUCCEEDED looked exactly like one that never did — and
+         reading that banner is what has sent us both after the wrong thing more than once today.
+
+         CLEARED HERE, first thing, before any of the checks below get their turn to write their
+         own. If one of them has something to say it says it a line later and this has not eaten
+         it; if none of them does, the banner goes, which is the truthful outcome. */
+      if (LOAD_SLOW) banner('');
+
       /* WHAT THE BACKEND CAN DO, against what this site needs. `features` has been in the payload
          since before the rewrite and nothing has ever read it — which is why a stale deploy shows
          up as "That action is not recognised", a sentence written for somebody who did something

@@ -20,6 +20,7 @@
      check-columns  every column the backend reads and writes exists
      check-doors    every handler has a button and every button a handler
      check-dead     functions nothing calls, on both sides
+     check-booking  the state machine folded over real event sequences — where the money is
      check-flow     the app actually boots, draws, and can be pressed
 
    TWO OF THEM REPORT RATHER THAN FAIL. `check-dead` and `check-doors` name things that are
@@ -44,6 +45,7 @@ const SUITE = [
   { file: 'check-columns.js', what: 'every column the backend touches' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
+  { file: 'check-booking.js', what: 'the booking machine, run not read' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
 ];
 

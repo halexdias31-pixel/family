@@ -359,16 +359,28 @@ function installBar() {
     /* iOS HAS NO INSTALL API, so the bar can only say where the button is. The share icon is drawn
        rather than named, because "the share button" is not something everybody can find and the
        square-with-an-arrow is unmistakable. */
+    /* NO FULL STOP AFTER THE BOLD, and no "below".
+       The stop was a single character that could not fit on the line the bold text filled, so it
+       wrapped — and a lone `.` on its own row is the gap under the message.
+       "Below" was a guess about where Safari's address bar is, and it is a guess that is wrong half
+       the time: it sits at the bottom by default and at the top for anybody who has moved it, which
+       this phone has. Naming the icon and not its position is right wherever the bar happens to be. */
     : `<div class="ib-say"><b>Keep @family. on your phone</b>
          <span>Tap <svg viewBox="0 0 24 24" class="ib-share"><path d="M12 3v12M12 3l-4 4M12 3l4 4"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path
            d="M5 12v8h14v-8" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round"/></svg> below, then <b>Add to Home Screen</b>.</span></div>
+           stroke-linecap="round"/></svg> then <b>Add to Home Screen</b></span></div>
        <button class="ib-x" data-do="install-no" aria-label="Not now">✕</button>`;
   document.body.appendChild(el);
-  /* Added on the next frame so the slide-up actually animates — an element that is created and
-     shown in the same tick simply appears. */
-  requestAnimationFrame(() => el.classList.add('up'));
+  /* Added on the next frame so the slide actually animates — an element created and shown in the
+     same tick simply appears. The height is measured once it is in the document and handed to the
+     stylesheet, so the space the app makes is exactly the space the bar takes: a hardcoded number
+     here would be right on one phone and wrong on the next. */
+  requestAnimationFrame(() => {
+    document.documentElement.style.setProperty('--ib', el.offsetHeight + 'px');
+    document.body.classList.add('has-ib');
+    el.classList.add('up');
+  });
 }
 
 on('install-no', () => {
@@ -376,6 +388,9 @@ on('install-no', () => {
      asked again on every page. */
   try { localStorage.setItem(INSTALL_HIDDEN, '1'); } catch (err) {}
   const el = document.getElementById('install-bar');
+  /* The gap goes with it, and goes FIRST — so the app slides up as the bar slides out rather than
+     jumping once it has gone. */
+  document.body.classList.remove('has-ib');
   if (el) { el.classList.remove('up'); setTimeout(() => el.remove(), 250); }
 });
 
@@ -415,6 +430,7 @@ on('install', el => {
     el.disabled = false;
     if (r && r.outcome === 'accepted') toast('Added to your home screen');
     const bar = document.getElementById('install-bar');
+    document.body.classList.remove('has-ib');
     if (bar) bar.remove();
     repaint();
   }).catch(() => { INSTALL_PROMPT = null; el.disabled = false; });

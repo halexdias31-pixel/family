@@ -166,12 +166,86 @@ function bookBlocks() {
    document: it gets a card of its own.
    The first pane is the asking. Everything after it is one session each, in the order `bookBlocks`
    already puts them — yours first, then the open ones. */
+/* ---------- THE WEEK, AS A GRID -------------------------------------------------------------------
+   WHAT A BOOKING LIST CANNOT TELL YOU: whether Tuesday is free. The cards say when each session is,
+   one at a time, and a person holding four of them is doing the arithmetic in their head — which is
+   the thing a timetable exists to stop.
+
+   ONE WEEK, NOT A DATE RANGE. Every session here repeats weekly at the same hour, so the week IS
+   the shape: seven columns, the hours the business runs, and a block where something sits. A
+   calendar spread over a term would say the same thing eleven times.
+
+   WHOSE WEEK IT IS depends on who is looking, and that falls out of what the payload already sends:
+   a client is only sent their own sessions and the open ones, a tutor is sent what they teach, an
+   admin is sent everything. So this draws whatever arrived and needs no rule of its own.
+
+   THE HOURS ARE NOT HARDCODED — the grid runs from the earliest to the latest hour anything is
+   actually booked at, so a week with nothing before four in the afternoon does not draw seven empty
+   morning rows. */
+function weekGrid() {
+  const jobs = (DATA.liveJobs || DATA.jobs || []).filter(j => {
+    /* A session with no day or no time has not been settled yet — a waitlist, or a request nobody
+       has put in the diary. It belongs on the list, not in a grid that says where to be. */
+    return S_(j.day) && S_(j.time);
+  });
+  if (!jobs.length) {
+    return `<div class="card"><h3>Your week</h3>
+      <p class="sub">Nothing in the diary yet. Sessions appear here once a day and a time are
+        settled.</p></div>`;
+  }
+
+  const DAYS = [['Mon','Mon'],['Tue','Tue'],['Wed','Wed'],['Thu','Thu'],
+                ['Fri','Fri'],['Sat','Sat'],['Sun','Sun']];
+  const hourOf = t => Number(String(t).split(':')[0]) || 0;
+  const spans = jobs.map(j => {
+    const h = hourOf(j.time);
+    return { j, from: h, to: h + Math.max(1, Number(j.hours) || 2) };
+  });
+  const first = Math.min.apply(null, spans.map(s => s.from));
+  const last  = Math.max.apply(null, spans.map(s => s.to));
+  const hours = [];
+  for (let h = first; h < last; h++) hours.push(h);
+
+  /* Which days have anything at all. A week where nobody teaches at the weekend should not spend a
+     third of a phone screen on Saturday and Sunday. */
+  const used = DAYS.filter(([d]) => spans.some(s => norm(s.j.day).indexOf(norm(d)) === 0));
+  const days = used.length ? used : DAYS.slice(0, 5);
+
+  const at = (d, h) => spans.find(s =>
+    norm(s.j.day).indexOf(norm(d)) === 0 && h >= s.from && h < s.to);
+
+  return `<div class="card"><h3>Your week</h3>
+    <div class="wk" style="--cols:${days.length}">
+      <div class="wk-h"></div>
+      ${days.map(([, label]) => `<div class="wk-h">${esc(label)}</div>`).join('')}
+      ${hours.map(h => `
+        <div class="wk-t">${String(h).padStart(2, '0')}</div>
+        ${days.map(([d]) => {
+          const hit = at(d, h);
+          if (!hit) return '<div class="wk-c"></div>';
+          /* THE TOP HOUR CARRIES THE WORDS, the rest of the block is the same colour and empty —
+             so a two-hour session reads as one block rather than as the same label twice. */
+          const head = hit.from === h;
+          return `<div class="wk-c is-on${head ? ' is-head' : ''}"
+                       data-do="job" data-id="${esc(String(hit.j.id || hit.j.jobId || ''))}">
+            ${head ? `<b>${esc(hit.j.subject || 'Session')}</b>
+                      <span>${esc(hit.j.location || '')}</span>` : ''}
+          </div>`;
+        }).join('')}
+      `).join('')}
+    </div>
+    <p class="faint">Tap a block to open it.</p>
+  </div>`;
+}
+
 function bookPages() {
   const blocks = bookBlocks();
   /* One block, one pane. The carry-forward that used to be here existed to stick a "Yours" or
      "Open" heading onto the session under it; there are no headings now, so there is nothing to
      carry and nothing that can be left behind at the end. */
-  const out = blocks.slice();
+  /* THE WEEK FIRST, because it is the question somebody opens this column to answer — "when am I
+     next in?" — and the cards below are the detail behind it. */
+  const out = [weekGrid()].concat(blocks);
   return out.length ? out : [''];
 }
 
@@ -291,7 +365,25 @@ function slotGrid() {
   /* NOTHING SET IS NOT THE SAME AS NOTHING FREE. A tutor with no hours in the sheet has not said
      they are unavailable — nobody has said anything — so every hour is offered and the sheet is
      the thing to fix. Refusing everything would be the app inventing a constraint. */
-  const open = code => (!haveT || tAvail[code]) && (!haveV || vAvail[code]);
+  /* ---------- AND WHAT THE TUTOR IS ALREADY TEACHING ---------------------------------------------
+     `avail` says when they CAN work; `busy` says when they already are. Two facts, kept apart on
+     purpose — see `busyHours` in booking.gs for why un-ticking the availability cell would be
+     destructive rather than helpful.
+
+     THE EFFECT IS THE SAME AND THE DAMAGE IS NOT: an hour they are teaching is offered as taken,
+     and the moment that session is cancelled the hour comes back on its own, because nothing was
+     ever removed from anything. */
+  const tBusy = (t && t.busy) || {};
+  const open = code => (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
+  /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
+     already teaching that Tuesday look identical greyed out, and only one of them is worth asking
+     about a different week. */
+  /* `whyShut` rather than `why` — there is already a `why` below for the grid as a WHOLE ("nobody
+     has set any hours yet"), and this is per cell. Two different questions and they were one word
+     apart from being the same variable. */
+  const whyShut = code => tBusy[code] ? 'teaching ' + tBusy[code]
+    : (haveT && !tAvail[code]) ? 'not available'
+    : (haveV && !vAvail[code]) ? 'venue closed' : '';
 
   /* EVERY DAY AND EVERY HOUR, ALWAYS — the ones nobody is free for greyed rather than removed.
      A grid that changes shape as you choose things cannot be read: you cannot tell a Tuesday the
@@ -308,7 +400,10 @@ function slotGrid() {
     prefix, label,
     hours: hours.map(h => {
       const code = prefix + String(h).padStart(2, '0');
-      return { h, code, open: open(code) };
+      /* AND WHY NOT, carried on the cell so the grid can say it rather than just greying out. A
+         tutor who does not work Tuesdays and a tutor already teaching that Tuesday look identical
+         when a box is simply dim, and only one of those is worth trying a different week for. */
+      return { h, code, open: open(code), why: whyShut(code) };
     }),
   }));
   const anyOpen = rows.some(r => r.hours.some(h => h.open));

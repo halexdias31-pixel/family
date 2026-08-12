@@ -152,7 +152,8 @@ function boot(opts) {
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       'card: typeof newPostCard === "function" ? newPostCard : null,' +
-      'bar: typeof installBar === "function" ? installBar : null };');
+      'bar: typeof installBar === "function" ? installBar : null,' +
+      'PAGE: () => PAGE };');
   } catch (e) {
     errs.push('LOAD THREW: ' + e.message);
   }
@@ -415,6 +416,30 @@ check('the install bar reaches somebody who has not signed in', async () => {
   if (!el) return ['no install bar for a signed-out visitor on an iPhone'];
   return /Add to Home Screen/.test(el.textContent) ? []
     : ['the bar is there but does not say how to install on iOS'];
+});
+
+check('each column opens on the page worth reading', async () => {
+  /* THE ＋ CARD IS NOT THE FRONT PAGE. It is pane 0 of the feed because `unshift` puts it there,
+     so opening at 0 opens on a form to make a post rather than on the newest post.
+
+     THIS BROKE ONCE ALREADY AND SILENTLY. The home position was applied on the first `paintPager`,
+     which runs while the app draws its first frame — before the payload, so the column was one pane
+     long and the clamp pulled it back to 0, and the "already opened" flag then made that permanent.
+     It looked exactly like the setting being ignored. Checked here so it cannot happen again. */
+  const { w } = boot();
+  await wait(600);
+  const bad = [];
+  const at = w.__t.PAGE ? w.__t.PAGE() : null;
+  if (!at) return [];                              // only checkable where PAGE is exported
+  const host = w.document.getElementById('s-posts');
+  const pages = host ? host.querySelectorAll(':scope > .page') : [];
+  if (pages.length > 1) {
+    const front = pages[at.posts || 0];
+    if (front && /New post/.test(front.textContent)) {
+      bad.push('the Posts column opens on the ＋ New post card rather than on a post');
+    }
+  }
+  return bad;
 });
 
 check('a backend that never answers does not hang the app for ever', async () => {

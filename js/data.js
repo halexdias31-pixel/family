@@ -143,6 +143,15 @@ let LOADED = false;
    words on that screen were "add a row to the posts tab", which is advice for a problem the person
    does not have and no mention of the one they do. */
 let LOAD_FAILED = '';
+
+/* WHETHER THE 30-SECOND WATCHDOG IN index.html HAS SPOKEN.
+   It writes straight to the banner element, and until now nothing ever took that message down — so
+   a load that was merely SLOW finished with "Still loading… Data: not yet" sitting above a screen
+   full of posts. The app contradicting itself, in the one place somebody looks when they think it
+   is broken, and it has sent us after the wrong thing more than once.
+   Set there, read in `load`, so a payload that arrives late can clear that message AND ONLY THAT
+   ONE. A banner written by anything else is a real warning and has to survive. */
+let LOAD_SLOW = false;
 try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch {}
 
 /* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
