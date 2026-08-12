@@ -4089,3 +4089,39 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .fest .k { color: #a08a5e; }
 .fest .v { color: #f0e2c8; }
 .fest .btn { width: 100%; background: var(--gold); color: #17130b; font-weight: 700; }
+
+/* ==================================================================================================
+   THE OFFER TO KEEP IT.
+
+   A BAR, NOT A CARD. The card version sat on the You screen behind a sign-in form and two swipes of
+   a carousel — so the people who most needed it, somebody who has just arrived with no account,
+   could never reach it. A prompt has to find the person.
+
+   ABOVE THE TABS, because it is a message rather than furniture, and below everything else because
+   it must never be the reason somebody cannot press a thing. It slides up rather than appearing,
+   which is the difference between arriving and interrupting.
+================================================================================================== */
+#install-bar {
+  position: fixed;
+  left: 50%; bottom: calc(3rem + var(--safe-bottom));
+  width: 100%; max-width: var(--app);
+  /* Off the bottom until `.up` is added, so it slides in rather than blinking into place. */
+  transform: translate(-50%, 120%);
+  transition: transform .28s ease;
+  display: flex; align-items: center; gap: .7rem;
+  padding: .7rem .8rem;
+  background: #16130e;
+  border-top: 1px solid rgb(255 180 84 / .35);
+  z-index: 40;
+}
+#install-bar.up { transform: translate(-50%, 0); }
+.ib-say { flex: 1 1 auto; min-width: 0; font: 400 .8rem/1.35 var(--mono); color: #c9b997; }
+.ib-say b { display: block; color: var(--gold); font-size: .84rem; }
+.ib-say span { display: block; }
+/* The share glyph, inline with the words — "the share button" is not a thing everybody can find,
+   and the square with an arrow out of it is unmistakable. */
+.ib-share { width: .95em; height: .95em; vertical-align: -.15em; margin: 0 .1em; }
+#install-bar .btn { flex: 0 0 auto; padding: .45rem 1rem; background: var(--gold); color: #17130b;
+                    font-weight: 700; }
+.ib-x { flex: 0 0 auto; background: none; border: 0; color: #7a7263; font-size: 1rem;
+        padding: .3rem .4rem; cursor: pointer; }
