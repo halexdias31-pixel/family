@@ -900,7 +900,10 @@ on('map-node', el => {
   if (n) ACTIONS.who({ dataset: { kind: 'venue', name: n.v.title } });
 });
 
-function initOverworld() { drawOverworld(); }
+/* `initOverworld()` WAS HERE and did nothing but call `drawOverworld()`. Nothing called it: the
+   widget points at `initOverworldBoard`, and the SVG map is drawn by `drawOverworld` directly.
+   A function that only forwards is a name to maintain and a thing to read; the note below still
+   says which of the two the widget uses, which is the part that was worth keeping. */
 
 const WIDGETS = [
   { id: 'chess', kind: 'game', name: 'Chess', start: () => initChess?.(),

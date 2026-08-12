@@ -29,18 +29,41 @@ const path = require('path');
 
 const dir = path.join(__dirname, '..');
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
-const GS = ['00_constants', '10_core', '20_people', '30_booking', '40_content',
-            '50_setup', '60_doGet', '70_doPost'];
+/* THE BACKEND FILES, IN LOAD ORDER, UNDER WHATEVER THEY ARE CALLED.
+   Apps Script joins these into one scope before anything runs, and the ORDER matters — every
+   top-level `const` lives in the constants file and everything else holds functions only, so the
+   constants file has to come first. The ORDER here is that order, and it is not alphabetical:
+   alphabetically `booking` comes before `constants`, which is the arrangement the headers warn is
+   a dead site with an error nobody can place.
 
-const missing = GS.filter(f => !fs.existsSync(path.join(dir, f + '.gs')));
-if (missing.length) { console.log('missing backend files: ' + missing.join(', ')); process.exit(1); }
+   TWO SPELLINGS ACCEPTED, because the files are called one thing in the Apps Script editor and were
+   once called another here. Numbered names are self-documenting about the order; plain ones are
+   what is actually on disk. Rather than make somebody rename eight files to satisfy a checker, the
+   checker looks for both — a tool that only runs against a naming convention is a tool that does
+   not run. */
+const ORDER_ = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doGet', 'doPost'];
+const NUMBERED = ['00_constants', '10_core', '20_people', '30_booking', '40_content',
+                  '50_setup', '60_doGet', '70_doPost'];
+/* Each name tried in turn: numbered, plain, and plain lower-cased — `doget.gs` and `doGet.gs` are
+   the same file to a person and different to a filesystem. */
+const findGs = (i) => [NUMBERED[i], ORDER_[i], ORDER_[i].toLowerCase()]
+  .map(n => path.join(dir, n + '.gs'))
+  .find(p2 => fs.existsSync(p2));
+const GS_PATHS = ORDER_.map((unused, i) => findGs(i));
 
-const con = strip(fs.readFileSync(path.join(dir, '00_constants.gs'), 'utf8'));
+const missing = ORDER_.filter((unused, i) => !GS_PATHS[i]);
+if (missing.length) {
+  console.log('missing backend files: ' + missing.join(', '));
+  console.log('looked for each as 00_name.gs, name.gs and name.gs lower-cased, in ' + dir);
+  process.exit(1);
+}
+
+const con = strip(fs.readFileSync(GS_PATHS[0], 'utf8'));
 const sch = con.slice(con.indexOf('const SCHEMA = {'), con.indexOf('\n};', con.indexOf('const SCHEMA = {')));
 const cols = new Set([...sch.matchAll(/"([a-z_0-9]+)"/g)].map(m => m[1]));
 const cfg  = new Set([...con.matchAll(/\['([a-z_0-9]+)',/g)].map(m => m[1]));
 
-const gs = strip(GS.map(f => fs.readFileSync(path.join(dir, f + '.gs'), 'utf8')).join('\n'));
+const gs = strip(GS_PATHS.map(p2 => fs.readFileSync(p2, 'utf8')).join('\n'));
 
 /* WRITES. `setCell(t, row, 'field', v)` and the keys of an `addRow` object — both go through the
    headers, and both are dropped in silence when the header is not there. */

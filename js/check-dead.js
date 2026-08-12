@@ -38,8 +38,18 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'seedConfig','seedAvatarItems','seedPostcodes','ensurePersonIds','gallery','landmarks']);
 const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
 const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
-const gsF=['00_constants','10_core','20_people','30_booking','40_content','50_setup','60_doGet','70_doPost']
-  .map(f=>({f:f+'.gs',p:O+f+'.gs'}));
+/* THE BACKEND FILES, UNDER WHATEVER THEY ARE CALLED. Numbered in one place, plain in another, and
+   this refused to run rather than look — so the backend half of this check has never once run
+   against the real project. A checker that only works against a naming convention is a checker
+   that does not work.
+   Anything genuinely absent is skipped rather than fatal: the frontend half is worth having on its
+   own, and half a report beats an exit code. */
+const gsF=['constants','core','people','booking','content','setup','doGet','doPost']
+  .map((n,i)=>{
+    const tries=[['00_','10_','20_','30_','40_','50_','60_','70_'][i]+n, n, n.toLowerCase()];
+    const hit=tries.map(x=>O+x+'.gs').find(p2=>fs.existsSync(p2));
+    return hit?{f:path.basename(hit),p:hit}:null;
+  }).filter(Boolean);
 const scan=(set,label)=>{
   const code=strip(set.map(x=>fs.readFileSync(x.p,'utf8')).join('\n'));
   const d=[...code.matchAll(/^function ([A-Za-z_$][\w$]*)/gm)].map(m=>m[1]);
@@ -49,7 +59,9 @@ const scan=(set,label)=>{
   console.log(label+': '+(dead.length?dead.map(n=>n+' ('+where[n]+')').join(', '):'none'));
   return dead.length;
 };
-const a=scan(jsF,'frontend'), b=scan(gsF,'backend');
+const a=scan(jsF,'frontend');
+const b=gsF.length?scan(gsF,'backend')
+  :(console.log('backend: no .gs files found beside the project — skipped'),0);
 
 /* ==================================================================================================
    AND THE TWO RULES ABOUT HEADINGS, which are not style but structure.

@@ -85,6 +85,36 @@ function cssVersion() {
 
 let DATA = {};
 
+/* ---------- ASKING BY SCRIPT TAG, FOR A PAGE THAT HAS NO ORIGIN ------------------------------------
+   A PAGE OPENED FROM A FILE CANNOT FETCH. Double-click index.html and the browser gives it the
+   origin `null`, and any request to another address is refused before a single byte leaves —
+   instantly, with "Failed to fetch" and no network involved at all. Nothing at the far end is asked,
+   so nothing at the far end can be wrong, and every symptom looks like a dead backend.
+
+   A <script> TAG IS NOT SUBJECT TO THAT. It has been allowed to load from anywhere since the web
+   began, which is what this is: the same reply, wrapped in a call to the function named here,
+   delivered as a script rather than as data. Ancient, and the one thing that works from a file.
+
+   THE NAME IS UNIQUE PER CALL, so two requests in flight cannot land in one another's handler, and
+   it is removed the moment it fires — a global left behind is a global something else will find.
+
+   WHAT IT CANNOT DO: a script tag is a GET. Every action — booking, saving, posting — is a POST, and
+   no trick makes a POST leave a file:// page. So this restores READING from a file, and writing
+   still needs the page served. Worth knowing before somebody tries to book something. */
+function jsonp(url) {
+  return new Promise((ok, no) => {
+    const name = '__fam' + Date.now() + Math.floor(Math.random() * 1000);
+    const tag = document.createElement('script');
+    const done = () => { delete window[name]; tag.remove(); };
+    window[name] = d => { done(); ok({ __jsonp: d }); };
+    /* A script that 404s fires `onerror`, which is the one thing this route can report: it cannot
+       see a status code, so "the address did not load" is all there is to say. */
+    tag.onerror = () => { done(); no(new Error('the backend did not load as a script')); };
+    tag.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + name;
+    document.head.appendChild(tag);
+  });
+}
+
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND.
    Filled by the wrapper around DATA in `load`. Every silent fault this app has had has been one of
    these: a name written on one side and read on the other, with nothing in between able to tell.

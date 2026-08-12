@@ -1402,7 +1402,9 @@ document.addEventListener('input', e => {
   stuffTimer = setTimeout(paintStuff, 180);
 });
 
-on('stuff-set', el => { STUFF[el.dataset.what] = el.value; paintStuff(); });
+/* `on('stuff-set')` WAS HERE, and the dropdown that sent it went when the funnel replaced the
+   filter row. A handler with no door reads as a working feature to anybody looking at the source —
+   which is the whole reason `check-doors` exists. */
 
 /* ---------- THE DOCKET --------------------------------------------------------------------------
    A list of things to do, ticked off. It lives in ONE CELL on the person's row — `todo`, which has

@@ -1347,7 +1347,59 @@ async function load() {
        `no-store` tells the browser not to keep it; `_` makes the URL one it has never seen, which
        is what covers the proxies and the service workers that ignore the header. */
     const bust = (who ? '&' : '?') + '_=' + Date.now();
-    const res = await fetch(API + who + bust, { cache: 'no-store' });
+    /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE -------------
+       `fetch` waits for ever by default, and `splashOff_()` is at the END of this function — the
+       only place the loading screen ever comes off. So a backend that hung left the app behind the
+       roundel indefinitely with the animation still playing, and nothing on screen could tell
+       "still trying" from "will never finish". That is why it survived: every other failure here
+       ends with a message and a Retry.
+
+       A RACE, NOT AN ABORT. `AbortController` is tidier and is one more thing that has to exist on
+       every browser this runs on — and this line is the one every single load goes through, so
+       anything it depends on that is missing takes the whole app down behind a splash that never
+       lifts. A promise that rejects on a timer needs nothing but `setTimeout`.
+
+       THE REQUEST IS NOT CANCELLED, and that is the honest trade: it carries on and its answer is
+       thrown away. For a GET that reads a spreadsheet that costs nothing — no write happens and the
+       work at the server was going to finish anyway. Not waiting for ever was the point.
+
+       SIXTY SECONDS, and the number is not arbitrary: this backend answers in about fifteen. A
+       deadline shorter than the thing it is timing cancels every request and reports it as "no
+       answer", which reads exactly like a dead backend and is one caused by the timeout meant to
+       diagnose it. That happened, at twelve seconds, and cost an afternoon. */
+    let bell;
+    const deadline = new Promise((unused, no) => {
+      bell = setTimeout(() => {
+        const e = new Error('timeout');
+        e.name = 'AbortError';
+        no(e);
+      }, 60000);
+    });
+    let res;
+    try {
+      /* FROM A FILE, ASK A DIFFERENT WAY. `fetch` is refused outright by a page with no origin;
+         a script tag is not. Served properly — Live Server, GitHub Pages — `fetch` is better in
+         every way and this stays out of the way. */
+      res = await Promise.race([
+        location.protocol === 'file:'
+          ? jsonp(API + who + bust)
+          : fetch(API + who + bust, { cache: 'no-store' }),
+        deadline]);
+    } finally {
+      /* Cleared whichever way it went, or a load that answered at 59 seconds leaves a timer running
+         to reject a promise nobody is holding. */
+      clearTimeout(bell);
+    }
+    /* JSONP HANDS BACK THE VALUE ITSELF — a script tag delivers a value, not a reply, so there is
+       nothing to unwrap. Given the shape of a response so the code below need not know which route
+       it came by.
+       HELD IN ITS OWN NAME FIRST: written as `res = { json: () => res.__jsonp }` it reads the
+       variable it is in the middle of replacing, so `json()` returns undefined and the payload is
+       silently dropped — which looks exactly like a backend answering with nothing. */
+    if (res && res.__jsonp) {
+      const got = res.__jsonp;
+      res = { ok: true, status: 200, statusText: 'OK', json: () => got };
+    }
     const d = await res.json();
     if (d && !d.error) {
       /* WHAT WAS ASKED FOR AND NOT SENT.
@@ -1436,8 +1488,23 @@ async function load() {
           + 'it says — “Authorization is required” means the scopes changed and nobody has '
           + 'consented yet: run any function from the Apps Script editor once, accept the prompt, '
           + 'then deploy a new version.'
+        /* ---------- A PAGE OPENED FROM A FILE CANNOT REACH ANYTHING -------------------------------
+           THE COMMONEST CAUSE OF THIS EXACT MESSAGE, and this told people to go and check their
+           deployment instead. Double-click index.html and the browser gives the page the origin
+           `null`, then refuses any request to another address INSTANTLY — no network, no status,
+           "Failed to fetch" in zero seconds. Nothing is wrong with the backend, the deployment or
+           the code, and every minute spent looking at those is a minute wasted.
+
+           IT IS KNOWABLE, WHICH IS WHY IT GOES FIRST. `location.protocol` says outright which
+           situation this is, so the app never has to guess between two faults that produce the
+           same words. */
+        : location.protocol === 'file:'
+        ? 'This page was opened from a file, so the browser blocked the request before it left — '
+          + 'that is what “Failed to fetch” in no time at all means, and nothing is wrong with the '
+          + 'backend. Serve the folder instead: in VS Code, right-click index.html → Open with '
+          + 'Live Server. The address then starts http:// and everything works.'
         : /Failed to fetch|NetworkError|Load failed/.test(msg)
-        /* Nothing arrived at all — so it is the address or the access, not the code. */
+        /* Served properly and still nothing arrived — so now it IS the address or the access. */
         ? 'The reply never arrived, so this URL is not being served. Check Manage deployments: the '
           + 'one under ACTIVE is the only one that answers, an archived id looks exactly like '
           + 'this, and “Only myself” access does too.'

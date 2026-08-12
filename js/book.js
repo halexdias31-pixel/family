@@ -41,7 +41,15 @@ function bookBlocks() {
        list actually wants to know. */
     const seats = Number(j.students || j.maxStudents) || 0;
     const taken = (j.tutor ? 1 : 0) + seats;
-    return `<div class="rc rc-stub tap" data-do="job"
+    /* THE STUB IS THE SAME DOCUMENT FOLDED UP, so it is the same kind of document. Without this
+       the list showed torn receipts for everything while opening one showed a form — and the list
+       is the screen people actually look at. */
+    const st = jobStage_(j);
+    const SK = { application: ' app', waitlist: ' wl', receipt: '' };
+    /* THE STUB SAYS IT TOO. The list is where somebody looks to see whether anything has moved, so
+       an accepted booking that looks identical on the list is an acceptance nobody can see. */
+    const ok = st === 'application' && jobAccepted_(j) ? ' is-accepted' : '';
+    return `<div class="rc rc-stub rc-${esc(st)}${SK[st] || ''}${ok} tap" data-do="job"
         data-id="${esc(String(j.id || j.jobId || ''))}">
       <div class="rc-stub-top">
         <span class="rc-stub-what">${esc(j.subject || 'Session')}${
@@ -75,7 +83,9 @@ function bookBlocks() {
      else's session.
      `data-do="new-booking"` is the same handler the button used, so tapping the paper opens the
      questions exactly as pressing the button did. */
-  const blankJobCard = () => `<div class="rc rc-stub rc-blank tap" data-do="new-booking">
+  /* THE EMPTY ONE IS THE TERMINAL ITSELF — nothing asked for, nothing existing, an invitation to
+     type. It was the most receipt-looking card on the screen. */
+  const blankJobCard = () => `<div class="rc rc-stub rc-blank rc-screen scr tap" data-do="new-booking">
       <div class="rc-stub-top">
         <span class="rc-stub-what">Ask for a session</span>
         <span class="rc-stub-cost">£—</span>
@@ -125,9 +135,28 @@ function bookBlocks() {
        "active" — printed on the document, where somebody reading the document is already looking.
        Two places saying the same thing, and the one on the paper is the one that is right.
        Yours still come before the open ones; that is the order, and it no longer needs announcing. */
+    /* ---------- WHAT THE CALENDAR IS OFFERING, ABOVE THE SESSIONS -----------------------------
+       IT PUTS ITSELF THERE. Nobody publishes these: a holiday has a date, its row says how many
+       days before it should appear, and six weeks before Christmas a card is on every client's
+       screen. The week after, it is gone. A flag somebody sets is a thing to remember twice — once
+       to turn on and once to turn off — and the second one never happens, which is how a business
+       ends up advertising a Christmas party in February.
+
+       ABOVE the sessions, because it is time-limited and they are not. Somebody's own booking will
+       be there next week; the thing with a date on it might not. */
+    ...(DATA.festive || []).map(festiveCard),
     ...mine.map(jobCard),
     ...open.map(jobCard),
-    !jobs.length ? '<p class="empty">No sessions yet.</p>' : '',
+    /* NO "NO SESSIONS YET".
+       It was a pane of its own — a whole screen you swipe to, holding one grey sentence saying
+       there is nothing on it. That is a widget whose entire content is the announcement of its own
+       emptiness, and it takes up the same space as a real session.
+
+       THE BLANK CARD ABOVE ALREADY SAYS IT, and says it usefully: "Ask for a session · Nothing
+       booked · Tap to start" is the same fact plus the thing to do about it. Two things saying
+       nothing-is-here, and only one of them offers a way out of that state.
+
+       An empty list should be empty, not a list containing an apology. */
   ].filter(Boolean);
 }
 
@@ -185,6 +214,9 @@ on('signin', () => toast('Sign-in screen next'));
    They become numbers in `bookSpec`, which is where a number is actually needed. */
 const BOOKING = {
   subjects: [], level: '', n: '', loc: '', hosting: '',
+  /* WHEN A FAMILY ON A WAITING LIST CAN ACTUALLY COME. Only asked of a class — an ordinary session
+     picks exact hours on the grid, which is a stronger answer than any of these. */
+  avail: [],
   /* `m16` codes — Monday at four. One list replaces days, time and length, because ticking two
      adjacent hours says all three at once. */
   slots: [],
@@ -317,15 +349,45 @@ function bookRuns() {
    WHEN, then HOW LONG, then WHO BY. `multi` means several answers are normal rather than an edge
    case — two subjects in one session is a thing people do, one venue is not.
    `why` is what makes an option that does not fit visible instead of absent. */
+/* IS THIS A SHARED CLASS. Asked in one place and read everywhere, because the alternative is the
+   same string comparison written nine times and one of them eventually spelt differently. */
+const isClass_ = () => /shared class/i.test(String(BOOKING.how || ''));
+
 const BOOK_STEPS = [
+  /* ---------- WHICH OF THE TWO THINGS THIS IS -----------------------------------------------------
+     THEY ARE NOT THE SAME PRODUCT AND THE FORM CANNOT PRETEND THEY ARE.
+
+     A session of your own is a negotiation: you pick the subjects, the level, the seats, the venue,
+     the day, the term, and a tutor if you have a view. Everything about it is yours to set, and the
+     price falls out of what you chose.
+
+     A shared class is the opposite of all of that. One seat, Maths and English, no tutor to pick,
+     no day yet — and a price that is FIXED before anybody joins, because four families are buying
+     the same seat and have to be shown the same number. What you choose is the venue and the level,
+     and that is genuinely all.
+
+     SO IT FORKS HERE, at the first question, and every question that belongs only to a session
+     offers nothing when the answer is a class. `nextBookStep` skips a question with no options —
+     the same rule that already hides the children question from somebody with no children — so the
+     fork needs no new machinery and cannot fall out of step with itself. */
+  { id: 'how', label: 'What kind of session?',
+    options: () => ['A session of your own', 'A shared class — join the waiting list'],
+    why: () => '' },
+
+  /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
+     Written into the booking below so the receipt and the backend agree without asking. */
   { id: 'subjects', label: 'What are we working on?', multi: true,
-    options: () => (subjectRows() || []).map(x => x.name) },
+    options: () => isClass_() ? [] : (subjectRows() || []).map(x => x.name) },
 
   { id: 'level', label: 'What level?',
     options: () => ((DATA.dropdowns || {}).levels || []) },
 
+  /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
+     taking two would be buying half the class at a quarter of the cost. */
   { id: 'n', label: 'How many students?',
     options: () => {
+      /* A class is one seat and the seat is the price, so there is nothing to choose. */
+      if (isClass_()) return [];
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
       const out = [];
       for (let i = 1; i <= Math.min(12, lim.max); i++) out.push(String(i));
@@ -358,8 +420,10 @@ const BOOK_STEPS = [
      Locked is what `nextBookStep` already does with a one-answer question — a free venue offers
      only "Yes", so it is filled in and never asked. Nothing special is needed for the lock; it
      falls out of the rule that a question with one answer is not a question. */
+  /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
   { id: 'hosting', label: 'Are you providing the space?',
     options: () => {
+      if (isClass_()) return [];
       const rate = venueRate_();
       /* Nothing to charge means nothing to decide: hosting is already true and asking would be
          the app consulting somebody about a fact. */
@@ -374,11 +438,40 @@ const BOOK_STEPS = [
      fact, which is the mistake the old file had already found and removed: two controls for one
      thing means code whose whole job is making them agree.
      `grid` rather than a list, so it is drawn by hand below rather than as options. */
+  /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
+     nobody has booked, made to four families who have not all joined. */
   { id: 'slots', label: 'When?', grid: true,
-    options: () => slotGrid().rows.length ? ['grid'] : [] },
+    options: () => isClass_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
 
+  /* ---------- WHEN COULD YOU COME? ----------------------------------------------------------------
+     A CLASS HAS NO DAY YET, and that is the whole reason to ask this. An ordinary session picks
+     exact hours off the grid — a stronger answer than any of these, which is why the grid question
+     is the one a class does not get. A waiting list is four families who have not met, and the day
+     is chosen AFTER they have all joined. Somebody has to know what would suit them.
+
+     BROAD, NOT EXACT. Asking a family to tick specific hours for a session that may run in six
+     weeks is asking them to promise something nobody can promise — and four exact grids rarely
+     overlap at all, so the answer would be no class. "Weekday evenings" from four families is
+     something you can actually schedule against.
+
+     SEVERAL ANSWERS, because most families have more than one. And `Flexible` is on the list
+     rather than implied by ticking everything: a parent who means "whatever suits you" should be
+     able to say it in one tap, and it reads differently from six ticks — one is a preference and
+     the other is an offer.
+
+     IT IS NOT STORED ON THE JOB. Four families on one list have four different answers, and the
+     job is one row — so it goes on each family's own JOINING EVENT, where it is theirs by
+     construction and needs no column. See `joinWaitlist`. */
+  { id: 'avail', label: 'When could you come?', multi: true,
+    options: () => isClass_()
+      ? ['Weekday mornings', 'Weekday afternoons', 'Weekday evenings',
+         'Weekends', 'Flexible — whatever suits']
+      : [],
+    why: () => '' },
+
+  /* AND NO TERM, for the same reason as the day. */
   { id: 'interval', label: 'Over what period?',
-    options: () => (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
+    options: () => isClass_() ? [] : (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
 
   /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
      three families in one session each pay a third — and the form never set it, so the feature
@@ -388,8 +481,10 @@ const BOOK_STEPS = [
      chosen separately from the addresses is two statements of one fact, and choosing three while
      naming two leaves neither the price nor the invitation list knowing which is true.
      So there is no number to pick. The count IS how many addresses have been given. */
+  /* SHARING IS THE WHOLE PRODUCT here — there is nobody to invite, because the other three seats
+     are for whoever joins the list. */
   { id: 'split', label: 'Sharing the cost with anyone?', emails: true,
-    options: () => ['emails'] },
+    options: () => isClass_() ? [] : ['emails'] },
 
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? --------------------------------
      ASKED, NEVER ASSUMED, and this is the question the whole join mechanism rests on.
@@ -406,9 +501,15 @@ const BOOK_STEPS = [
 
      DEFAULT IS NO, by being a question with two answers and no preselection. A default of yes on a
      question about who may sit with your child is a default nobody should be handed. */
-  { id: 'openTo', label: 'May another family join this?',
-    options: () => ['Yes — anyone may ask', 'No — just us'],
-    why: () => '' },
+  /* THE JOIN QUESTION WAS HERE, AND IT ASKED SOMETHING THE SEATS ALREADY ANSWER.
+     "May another family join this?" is a checkbox about sharing, and a family who wants the room to
+     itself buys the remaining seats — which is a decision made with money, in the same form, and
+     unambiguous in a way a tick is not. One fewer question between somebody and a booking.
+
+     SO EVERY ORDINARY SESSION IS OPEN, and that is the half worth saying out loud: `open_to_others`
+     still exists and the backend still refuses a join without it, so leaving it FALSE would have
+     switched the whole join mechanism off rather than opening it up. It is written TRUE in
+     `receipt.js`, and the seats decide. */
 
   /* ---------- WHOSE CHILDREN ARE THESE? -----------------------------------------------------
      A parent with three children on their account books three seats, and until now every one of
@@ -434,7 +535,7 @@ const BOOK_STEPS = [
        does not fit is MARKED with the reason and left on the list, because a list that quietly
        drops things seems to have decided for you — and the thing it drops is often the one you
        meant. Removing them here contradicted the rule the next line states. */
-    options: () => (USER && (USER.children || USER.kids) || []).filter(Boolean),
+    options: () => isClass_() ? [] : (USER && (USER.children || USER.kids) || []).filter(Boolean),
     /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
        and tickable the moment you untick one — which is how you change your mind about which two
        of three are coming. */
@@ -445,8 +546,10 @@ const BOOK_STEPS = [
         ? 'that is ' + seats + ' seat' + (seats === 1 ? '' : 's') + ' already' : '';
     } },
 
+  /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
+     what makes the seat cost what it costs. */
   { id: 'tutor', label: 'Anyone in particular?',
-    options: () => ['No preference'].concat(
+    options: () => isClass_() ? [] : ['No preference'].concat(
       (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
     why: v => {
       if (v === 'No preference') return '';
@@ -796,6 +899,9 @@ function bookBreakdown(L) {
       names: (BOOKING.kids || []).filter(Boolean),
     }),
     bars,
+    /* THE TERMINAL. Nothing has been sent, so there is no row anywhere and nothing to be a record
+       OF — which is exactly what a screen is: the entering of a thing, before the thing. */
+    kind: 'screen',
     thanks: 'Nothing is booked until you ask for it.',
   });
 }
@@ -916,8 +1022,47 @@ function rosterHtml(o) {
   </div>`;
 }
 
+/* ==================================================================================================
+   FOUR OBJECTS, NOT ONE OBJECT IN FOUR MOODS.
+
+   A booking passes through four states and each is a DIFFERENT KIND OF PAPER in the real world.
+   Drawing them as one document with the edges changed was the mistake: it said "this is a receipt,
+   slightly" about three things that are not receipts at all.
+
+     screen        the terminal you type into. Nothing exists yet — there is no row, no id, no
+                   record. Somebody at a counter is entering it in front of you.
+     application   you have ASKED. It is a form that has been handed in and not yet answered, which
+                   is a real object with a real name, and nobody mistakes one for a receipt.
+     waitlist      you are in a QUEUE. Not a form and not a purchase — a numbered ticket, the thing
+                   you hold while you wait for a seat.
+     receipt       ACCEPTED. Money has moved and this is the proof. Only now is it paper off a till.
+
+   THE TRANSITION IS ACCEPTANCE, both ways. A regular session becomes a receipt when it is accepted;
+   a waitlist becomes a receipt when the seats fill and it is accepted. Two paths, one destination,
+   and the destination is the only one that is a receipt.
+
+   ONE ROW LIST UNDERNEATH ALL FOUR. The rows, the roster and the arithmetic are built once and
+   walked once — the shared picture reads the same list, and a second layout is how the screen and
+   the picture come to disagree.
+================================================================================================== */
 function receiptHtml(r) {
-  return `<div class="rc">
+  /* `kind` says which of the four this is. Defaulting to a receipt keeps every existing caller
+     drawing exactly what it drew before, so nothing that works today can be changed by this. */
+  const kind = r.kind || 'receipt';
+  const SKIN = { screen: ' scr', application: ' app', waitlist: ' wl', receipt: '' };
+  const STAGE = {
+    screen: 'Asking for a session',
+    application: r.accepted ? 'Accepted — waiting for payment'
+                           : 'Application — waiting to be accepted',
+    waitlist: 'You are on the waiting list',
+    receipt: '',
+  };
+  /* ACCEPTED, on an application, changes the stamp and nothing else — it is the same form, answered.
+     `is-accepted` rather than a different kind, because a different kind would be a different
+     object and this is emphatically the same one. */
+  const okd = kind === 'application' && r.accepted ? ' is-accepted' : '';
+  return `<div class="rc rc-${esc(kind)}${SKIN[kind] || ''}${okd}">
+    ${STAGE[kind] ? `<p class="rc-stage">${esc(STAGE[kind])}</p>` : ''}
     <div class="rc-head">
       <h2>@family.</h2>
       ${(r.lines || []).map(l => `<p>${esc(l)}</p>`).join('')}
@@ -1035,13 +1180,70 @@ function jobRows(j) {
 }
 
 /** A job, on the same paper a booking is drawn on. */
+/* WHICH OF THE FOUR A SAVED BOOKING IS.
+   Read off the ROSTER, which the backend folds out of the events and sends on every seat — so
+   there is no fifth place for this to come from and nothing to keep in step.
+
+     a waitlist that has not filled     a ticket in a queue
+     a waitlist everybody has paid for  a receipt: it was accepted, and that is the whole test
+     a session nobody has paid for      an application, handed in and waiting
+     a session somebody has paid for    a receipt
+
+   ACCEPTANCE IS THE LINE, not payment exactly — but on this system they are the same moment: the
+   only thing that writes `Booked` is the payment coming back confirmed. */
+function jobStage_(j) {
+  const paid = (j.slots || []).filter(sl => /^booked$/i.test(String(sl.status || '')));
+  if (norm(j.kind) === 'waitlist') {
+    const seats = Number(j.maxKids || j.maxStudents) || 4;
+    return paid.length >= seats ? 'receipt' : 'waitlist';
+  }
+  return paid.length ? 'receipt' : 'application';
+}
+
+/* HAS IT BEEN ACCEPTED YET — which is a different question from which of the four it is.
+   AN ACCEPTED APPLICATION IS STILL AN APPLICATION. Money has not moved, so it is not a receipt;
+   what has changed is that the business has said yes and the family may now pay. Both facts are
+   true at once and the widget has to say both, or accepting a booking looks like it did nothing —
+   which is exactly how it looked, because the card was identical before and after.
+
+   AGREED IS THE WORD THE MACHINE USES for "the terms are settled". Everybody in the room has to be
+   at it: one family agreed out of three is a session still being negotiated. */
+function jobAccepted_(j) {
+  /* THE TWO SIDES SPEAK DIFFERENT WORDS, and reading them as one list is why this said "pending"
+     on a session that had been accepted. A client seat carries the machine's own status — Waiting,
+     Agreed, Paying, Booked. A tutor seat carries `Applied` or `Confirmed`, which `doGet` derives
+     before sending. Checking both against the same four words meant every tutor read as not-agreed
+     and no session could ever be accepted.
+     Asked of each side in its own vocabulary. */
+  const seats = j.slots || [];
+  if (!seats.length) return false;
+  const clientsOk = seats.every(sl => /^(agreed|paying|booked)$/i.test(String(sl.status || '')));
+  /* A TUTOR IS OPTIONAL. A session with none yet can still be accepted by the business — the
+     teaching is arranged afterwards — so an empty tutor list is not a reason to withhold it. What
+     must not happen is a tutor sitting at `Applied` while the family is told it is settled. */
+  const tutorsOk = (j.tutorSlots || []).every(sl => /^confirmed$/i.test(String(sl.status || '')));
+  return clientsOk && tutorsOk;
+}
+
 function jobReceipt(j) {
   const rows = jobRows(j);
   const mine = USER && norm(j.tutor) === norm(USER.name);
+  const stage = jobStage_(j);
   return receiptHtml({
+    kind: stage,
+    /* SO THE STAMP CAN SAY WHICH. An application that has been accepted and one that is still
+       waiting are the same object at two moments, and the difference is the whole point of the
+       stamp. */
+    accepted: jobAccepted_(j),
     lines: [j.venue || 'No venue', j.tutor || 'No tutor yet', j.term || ''].filter(Boolean),
     rows: rows.map(receiptRow),
-    totalLabel: mine ? 'You earn' : 'To pay',
+    /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" on an
+       application nobody has accepted is the app telling somebody they owe money for a thing that
+       has not been agreed to. */
+    totalLabel: mine ? 'You earn'
+      : stage === 'application' ? 'It would come to'
+      : stage === 'waitlist' ? 'Your seat'
+      : 'To pay',
     total: money(mine ? (j.tutorPay || 0) : (j.price || 0)),
     aside: j.status || '',
     roster: rosterHtml({
@@ -1067,12 +1269,95 @@ function jobReceipt(j) {
    join; they have not said THIS person may. What this sends is a Request — the same move a tutor
    makes when applying — which lands in the lobby and waits for somebody to say yes. A button
    labelled "Join" would promise something it cannot deliver. */
+/* ---------- THE STEP THAT WAS NOT THERE AT ALL ----------------------------------------------------
+   ACCEPTED, AND THEN NOTHING. The backend has had `createCheckout` and `finalizePayment` since
+   payment was built — Stripe session, verified return leg, the Confirm event that is the only thing
+   in the whole system that reaches `Booked`. The app never offered a way to start it. So a booking
+   could be asked for and accepted and then sat there for ever, and the receipt at the end of it was
+   a document nothing could ever produce.
+
+   ONLY WHEN IT IS THEIRS AND ONLY WHEN IT IS AGREED. The backend checks both again — it charges from
+   the RECEIPT rather than from the job, so what is asked for here cannot change what is charged —
+   but a button offered to somebody who cannot use it is a button that gives an error for a reason
+   they cannot see. */
+function payBlock(j) {
+  if (!j || !USER) return '';
+  if (jobStage_(j) !== 'application' || !jobAccepted_(j)) return '';
+  /* THEIRS. A tutor is paid rather than paying, and another family's booking is not yours to
+     settle — both are refused by the backend, and neither should be offered. */
+  const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
+  if (!mine) return '';
+  return `<div class="join">
+    <p class="join-say">Accepted. ${esc(money(j.price || 0))} to confirm your place.</p>
+    <button class="btn" data-do="job-pay" data-id="${esc(String(j.id || j.jobId || ''))}">
+      Pay and confirm</button>
+    <p class="faint">You are taken to Stripe. Nothing is booked until the payment comes back
+      confirmed — and then this becomes a receipt.</p>
+  </div>`;
+}
+
+/* ---------- A FESTIVE EVENT, AS A CARD ------------------------------------------------------------
+   NOT A RECEIPT, NOT A FORM, NOT A TICKET. It is an invitation — the thing that arrives through a
+   door before any of the others exist. So it is drawn as one: the occasion large, the date and the
+   place under it, what it costs a child, and how many places are left.
+
+   THE PLACES LEFT ARE THE URGENCY and they are real rather than manufactured. "4 of 12 taken" is a
+   fact about a room; a countdown would be a device. If it fills, the card says so and stops asking.
+
+   ANYBODY SIGNED IN CAN SEE IT. That is the entire point of a festive event — it is the one thing
+   on this site that goes to every family whether or not they have ever booked anything. */
+function festiveCard(f) {
+  const full = f.left <= 0;
+  return `<div class="fest">
+    <p class="fest-when">${esc(f.holiday)} · ${esc(f.date)}</p>
+    <h3 class="fest-name">${esc(f.name)}</h3>
+    ${f.blurb ? `<p class="fest-say">${mark(f.blurb)}</p>` : ''}
+    <div class="fest-rows">
+      ${row('Where', f.venue)}
+      ${row('Per child', money(f.price))}
+      ${row('Places', full ? 'Full' : f.left + ' left of ' + f.seats)}
+    </div>
+    ${USER
+      ? (full
+          ? '<p class="faint">This one is full.</p>'
+          : `<button class="btn" data-do="fest-join" data-id="${esc(f.id)}">Come along</button>`)
+      : '<p class="faint">Sign in to come along.</p>'}
+  </div>`;
+}
+
 function joinBlock(j) {
   if (!j || !j.canAsk || !USER) return '';
+
+  /* ---------- TWO KINDS OF JOINING, AND THEY ARE NOT THE SAME ACT --------------------------------
+     A WAITLIST ALREADY SHOWS ITSELF TO EVERYBODY. `joinWaitlist` writes `open_to_others` TRUE, and
+     `doGet` sends any open booking with seats left to every client — no names, just the shape of it.
+     So a class advertises itself the moment somebody starts one, which is exactly right and needed
+     no work.
+
+     WHAT WAS WRONG WAS THE BUTTON. It sent `move`/`Request` for both, which is how you ask to share
+     somebody ELSE'S booking: the family who own it decide, nothing is priced, and you become an
+     ordinary participant. On a class that is the wrong act in every particular — there is no family
+     to ask, the seat has a fixed price, and joining is supposed to write you your own receipt at
+     that price and record when you can come. Two doors onto one list, producing two different kinds
+     of record, and only one of them a real waitlist seat.
+
+     ASKING TO SHARE is a request to strangers who booked something. JOINING A LIST is buying a seat
+     in a thing that exists to be joined. The button says which, and goes where it should. */
+  const isList = norm(j.kind) === 'waitlist';
+  const id = esc(String(j.id || j.jobId || ''));
+
+  if (isList) return `<div class="join">
+    <p class="join-say">${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} left on this
+      class.${j.price ? ' ' + esc(money(j.price)) + ' a seat.' : ''}</p>
+    <button class="btn" data-do="job-take-seat" data-id="${id}">Take a seat</button>
+    <p class="faint">Maths and English, one seat each. Nobody is charged until every seat is
+      taken.</p>
+  </div>`;
+
   return `<div class="join">
     <p class="join-say">${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} going on this one.
       The family who booked it are happy to share.</p>
-    <button class="btn" data-do="job-join" data-id="${esc(String(j.id || j.jobId || ''))}">
+    <button class="btn" data-do="job-join" data-id="${id}">
       Ask to join</button>
     <p class="faint">They will be asked, and you will hear either way. Nothing is charged until it
       is agreed.</p>

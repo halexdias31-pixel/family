@@ -184,10 +184,29 @@ function newPostCard() {
      who was told it gets checked first knows exactly what is going on and waits.
      Nobody is being told off here — "we check them first" is a sentence about the app, not about
      the person reading it. */
-  return `<div class="card tap" data-do="new-post">
-    <h3>＋ New post</h3>
-    <p class="sub">A photograph, a line about it, and a poll if you want one.${
-      isAdmin() ? '' : '<br>We check posts before they go up.'}</p>
+  return `<div class="card">
+    <div class="tap" data-do="new-post">
+      <h3>＋ New post</h3>
+      <p class="sub">A photograph, a line about it, and a poll if you want one.${
+        isAdmin() ? '' : '<br>We check posts before they go up.'}</p>
+    </div>
+    ${/* ---------- THE SCAN, WHICH HAD NO BUTTON AT ALL ------------------------------------------
+          `on('scan-posts')` has existed since posting was built and nothing on any screen carried
+          `data-do="scan-posts"` — so the whole feature was unreachable, while reading in the source
+          exactly like a feature that worked. That is the fault `check-doors` was written to catch,
+          and this is the third of the three it found.
+
+          IT IS A REAL ROUTE AND NOT A FALLBACK. Photographs go into the Drive folder from a phone
+          or a computer; this is what turns them into posts. It also fills in a missing date and
+          records what each file is called, so it is worth pressing after any upload — and it needs
+          only read access, which is why it keeps working on days the in-app upload does not.
+
+          ADMIN ONLY, because it reads the folder — which is a view of your Drive rather than of
+          the site. */''}
+    ${isAdmin() ? `<div class="btn-row" style="margin-top:.7rem">
+        <button class="btn admin" data-do="scan-posts">⟳ Look in the folder</button>
+      </div>
+      <p class="faint">Turns anything you have dropped into the Drive folder into a post.</p>` : ''}
   </div>`;
 }
 

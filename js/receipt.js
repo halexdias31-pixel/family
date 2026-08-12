@@ -397,6 +397,49 @@ on('book-send', el => {
   if (said) said.textContent = 'Asking…';
 
   const spec = bookSpec();
+
+  /* ---------- A CLASS GOES SOMEWHERE ELSE ENTIRELY ------------------------------------------------
+     `createJob` builds a booking out of what somebody chose: their subjects, their seats, their day,
+     their tutor, and a price computed from all of it. A shared class has none of those — one seat,
+     Maths and English, no tutor, no day, and a price fixed before anybody joined.
+
+     SO IT IS `joinWaitlist`, WHICH IS A DIFFERENT HANDLER AND NOT A FLAG ON THIS ONE. It finds the
+     venue's open list or starts one, checks nobody has joined twice, prices the seat from the venue
+     and the seat count, and writes the asker their own receipt at their own price. Everything that
+     makes a class a class is decided there, on the server, where four phones cannot each produce a
+     different number.
+
+     WHAT IS SENT IS WHAT WAS ASKED: the venue and the level. Nothing else on this form was even
+     offered, and sending a subject or a day would be this file inventing an answer to a question
+     nobody was asked. */
+  if (isClass_()) {
+    send_({ action: 'joinWaitlist',
+      name: USER.name, personId: (USER && USER.personId) || '',
+      venue: BOOKING.loc,
+      level: BOOKING.level,
+      /* WHEN THIS FAMILY COULD COME. Sent as the words they ticked rather than as a code — it is
+         read by a person deciding what day to run the class on, and "Weekday evenings, Weekends"
+         is already the sentence they want. */
+      availability: (BOOKING.avail || []).filter(Boolean).join(', '),
+      requestId: 'wl-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    })
+      .then(d => {
+        closeSheet();
+        /* WHERE IT HAS GOT TO, because that is the whole content of a waiting list. "You are on
+           the list" says less than the backend already knows, and it knows it exactly: how many
+           have joined and how many seats there are. */
+        toast(d && d.seats
+          ? 'On the list — ' + d.joined + ' of ' + d.seats + ' seats taken'
+          : 'On the list');
+        resetBooking_();
+        load();
+      })
+      /* `send_` has already said what went wrong and marked the error handled — this stops it
+         reaching the console as an unhandled rejection, and adds nothing a person would read. */
+      .catch(() => { el.disabled = false; });
+    return;
+  }
+
   /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
      button did nothing and the request was never sent, and nobody was told either fact. */
   send_({ action: 'createJob',
@@ -436,7 +479,12 @@ on('book-send', el => {
        that can be derived from a list is a second copy of the list. */
     /* WHETHER A FAMILY YOU HAVE NOT MET MAY ASK TO JOIN. Sent as the plain answer rather than a
        boolean, so the sheet reads as the question was asked. */
-    openToOthers: /^yes/i.test(String(BOOKING.openTo || '')) ? 'TRUE' : 'FALSE',
+    /* ALWAYS TRUE, because the question is gone and the SEATS are the answer now. A family who
+       wants the room to itself buys the remaining seats, which leaves none to ask for — a fuller
+       statement than a checkbox, made with money rather than a tap.
+       Written rather than dropped: `move` refuses a join unless this says so, so leaving it FALSE
+       would have switched the join mechanism off while looking like a question had been tidied. */
+    openToOthers: 'TRUE',
     kids: (BOOKING.kids || []).filter(Boolean).join(', '),
     service: BOOKING.service || 'Tuition',
     /* Who to invite. `createJob` has accepted this since the beginning and nothing ever sent it,
@@ -476,11 +524,48 @@ on('job', el => {
   openSheet('Session ' + id, jobReceipt(j)
     /* The way in, for somebody who is not in it yet. */
     + joinBlock(j)
+    /* AND THE WAY TO PAY, once it has been accepted. */
+    + payBlock(j)
     /* AND, FOR AN ADMIN, THE WAY TO END IT. Under the receipt rather than on the stub: deleting a
        session from a list you are scanning is one mis-tap away from deleting the wrong one, and a
        receipt is the one place you can see exactly which session you are looking at. */
     + (isAdmin()
-      ? `<div class="btn-row" style="margin-top:1rem">
+      ? `${/* ---------- ANSWERING IT, WHICH IS THE THING THAT WAS MISSING ---------------------------
+              A client asks for a session and somebody has to say yes. There was no way to: `move`
+              refused anybody not already in the booking, so a request sat at Waiting until a TUTOR
+              happened to accept it — and on a job with no tutor, nothing could move it at all. The
+              only admin control was Delete, which ends it for everybody.
+
+              ACCEPT AND DECLINE ARE THE TWO HALVES OF ONE DECISION, so they sit together and above
+              Delete — which is a different act: Delete ends a session that was already agreed,
+              Decline turns down one that was never taken up. */''}
+         ${jobStage_(j) === 'application' || jobStage_(j) === 'waitlist'
+           ? `<div class="btn-row" style="margin-top:1rem">
+                <button class="btn" data-do="job-answer" data-id="${esc(id)}"
+                        data-yes="1">Accept this booking</button>
+                <button class="btn danger" data-do="job-answer" data-id="${esc(id)}"
+                        data-yes="">Decline it</button>
+              </div>
+              <p class="faint" style="margin:.5rem 0 0">Accepting settles the terms for everybody in
+                it, and the family can pay. Declining turns the whole booking down and tells them.</p>`
+           : ''}
+         ${/* ---------- MARKING IT PAID, FOR MONEY THAT DID NOT COME THROUGH STRIPE ---------------
+              People pay in cash at the library, or by bank transfer, or settle three sessions at
+              once. None of that reaches the card flow, so a family who had genuinely paid stayed on
+              an accepted application for ever and never got the receipt proving what they bought.
+
+              ONLY ONCE IT IS ACCEPTED. Marking an unagreed booking paid puts somebody on a session
+              whose price and day nobody has settled — the backend refuses it and this does not
+              offer it, so the refusal is never something to run into. */''}
+         ${jobStage_(j) === 'application' && jobAccepted_(j)
+           ? `<div class="btn-row" style="margin-top:1rem">
+                <button class="btn" data-do="job-paid" data-id="${esc(id)}">Mark as paid</button>
+              </div>
+              <p class="faint" style="margin:.5rem 0 0">For cash, a transfer, or anything that did
+                not go through the card page. It is recorded as marked by you, with how they paid —
+                never as though Stripe had confirmed it.</p>`
+           : ''}
+         <div class="btn-row" style="margin-top:1rem">
            <button class="btn danger" data-do="job-delete" data-id="${esc(id)}">Delete this session</button>
          </div>
          <p class="faint" style="margin:.5rem 0 0">Everyone is withdrawn and it disappears from the
@@ -489,8 +574,137 @@ on('job', el => {
       : ''));
 });
 
+/* PAYING. `createCheckout` builds a Stripe session and hands back a URL; nothing about the booking
+   is recorded by it, because a client who opens the payment page and closes the tab has not paid.
+   The return leg — `?paid=1&ref=…` — is what asks Stripe whether it actually happened.
+
+   `requestId` IS THE GUARD. A double tap on this is two checkouts for one booking, and the backend
+   refuses the second because it recognises the id. */
+on('job-pay', el => {
+  el.disabled = true;
+  api({ action: 'createCheckout', jobId: el.dataset.id,
+        name: USER.name, personId: USER.personId || '',
+        requestId: 'pay-' + el.dataset.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      if (!d || !d.url) { toast('Stripe did not give us a payment page.'); return; }
+      /* THE SAME TAB. A payment opened in a new one is a payment somebody loses track of, and the
+         return leg comes back to this site anyway. */
+      location.href = d.url;
+    })
+    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+});
+
+/* ---------- THE BUSINESS ANSWERING A REQUEST ------------------------------------------------------
+   The same `move` everything else uses, so there is one machine and one set of rules — what makes
+   it an admin's answer is that the backend recognises the name as an admin who is not in the job.
+   Nothing here decides that; it is checked on the server, because a button that is not drawn is
+   not a rule.
+
+   ONE HANDLER FOR BOTH, because they are one decision with two answers, and two handlers would be
+   two places for the request to drift out of shape. */
+on('job-answer', el => {
+  const yes = !!el.dataset.yes;
+  /* DECLINING IS ASKED ABOUT. It removes everybody from a booking a family made and sends them an
+     email saying so — one mis-tap from a list of sessions is not a thing to do silently. Accepting
+     is not: it is the ordinary act, and it can be undone by declining afterwards. */
+  if (!yes && !confirm('Turn this booking down? Everybody in it is removed and told.')) return;
+  el.disabled = true;
+  api({ action: 'move', jobId: el.dataset.id, role: 'client',
+        name: USER.name, adminName: USER.name,
+        move: yes ? 'Accept' : 'Decline',
+        requestId: 'ans-' + el.dataset.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast(yes ? 'Accepted' : 'Declined');
+      closeSheet();
+      load();
+    })
+    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+});
+
+/* MARKING IT PAID BY HAND. The one action on this site that says money arrived without a payment
+   processor having said so — which is why it asks HOW, and why the answer goes into the event log
+   rather than being thrown away. "Cash at the library" is the whole audit trail for that payment,
+   and a blank is worse than a guess because a guess can be corrected. */
+on('job-paid', el => {
+  const how = prompt('How was it paid? (cash, bank transfer, …)', 'cash');
+  /* CANCELLED IS NOT AN EMPTY ANSWER. `prompt` gives null when somebody backs out and '' when they
+     press OK on an empty box — the first must do nothing at all, and treating them alike would
+     record a payment nobody meant to record. */
+  if (how === null) return;
+  el.disabled = true;
+  api({ action: 'markPaid', jobId: el.dataset.id,
+        name: USER.name, adminName: USER.name, how: how,
+        requestId: 'paid-' + el.dataset.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast(d && d.alreadyPaid ? 'Already marked paid' : 'Marked paid');
+      closeSheet();
+      load();
+    })
+    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+});
+
 /* ASKING TO JOIN. The same `move` a tutor uses to apply — one machine, one set of rules, and the
    capacity and the family's consent are both checked on the backend rather than trusted from here. */
+/* TAKING A SEAT ON A CLASS SOMEBODY ELSE STARTED. The SAME action the booking form uses, because it
+   is the same act — the venue is read off the job rather than typed, and everything else about a
+   waitlist seat is decided on the server either way.
+
+   IT STILL ASKS WHEN THEY CAN COME. That is the one thing `joinWaitlist` cannot work out for
+   itself and the one thing the day of the class gets chosen from — a seat taken without it is a
+   family nobody can schedule around. */
+/* COMING ALONG. The event is created by the first family to join it — there is no "open the event"
+   step, because an event nobody has joined is a row saying nothing.
+   IT ASKS WHO IS COMING, because a party needs a headcount and a family with three children is
+   three chairs. The answer goes on their own joining event, where it is theirs by construction. */
+on('fest-join', el => {
+  const f = (DATA.festive || []).find(x => String(x.id) === String(el.dataset.id));
+  if (!f) { toast('That has finished.'); return; }
+  const kids = prompt('Who is coming? (names, or how many children)', '');
+  if (kids === null) return;                 // backed out — nobody is put down for it
+  el.disabled = true;
+  api({ action: 'joinFestive', holidayId: f.id,
+        name: USER.name, personId: (USER && USER.personId) || '',
+        kids: kids,
+        requestId: 'fest-' + f.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast(d && d.seats ? 'Coming along — ' + d.joined + ' of ' + d.seats : 'Coming along');
+      load();
+    })
+    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+});
+
+on('job-take-seat', el => {
+  const j = (DATA.liveJobs || DATA.jobs || []).find(x =>
+    String(x.id || x.jobId || '') === String(el.dataset.id));
+  if (!j) { toast('That class has gone.'); return; }
+  const when = prompt('When could you come?\n\nWeekday mornings · afternoons · evenings · '
+    + 'weekends · flexible', 'Weekday evenings');
+  /* Cancelled is not an empty answer — backing out must take a seat for nobody. */
+  if (when === null) return;
+  el.disabled = true;
+  api({ action: 'joinWaitlist',
+        name: USER.name, personId: (USER && USER.personId) || '',
+        venue: j.location || j.venue, level: j.level,
+        availability: when,
+        requestId: 'seat-' + el.dataset.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      closeSheet();
+      toast(d && d.seats ? 'Seat taken — ' + d.joined + ' of ' + d.seats : 'Seat taken');
+      load();
+    })
+    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+});
+
 on('job-join', el => {
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client', name: USER.name,

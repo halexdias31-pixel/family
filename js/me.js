@@ -153,6 +153,8 @@ function meBlocks() {
     <div class="card tap" data-do="my-referral"><h3>Tell someone</h3>
       <p class="sub">A link only you have. We will know it came from you.</p></div>
 
+    ${installCard()}
+
     <button class="btn quiet" data-do="signout" style="margin-top:.4rem">Sign out</button>
     ${/* BOTH VERSIONS, at the bottom where a version number belongs. It is the answer to the
           question that has cost more rounds than any bug: is what I am looking at the thing I
@@ -215,6 +217,121 @@ const mePages = () => {
    screen's markup is in the document — the same reason a widget's `start` runs after its page is
    filled rather than while it is being built. A frame later is enough, and it costs nothing on a
    screen nobody is looking at because there is no `#msg-body` to find. */
+/* ---------- PUTTING IT ON A PHONE'S HOME SCREEN --------------------------------------------------
+   TWO PLATFORMS, TWO COMPLETELY DIFFERENT ANSWERS, and pretending otherwise is why most sites do
+   this badly.
+
+   ANDROID has a real API. The browser decides the site is installable, fires `beforeinstallprompt`,
+   and hands over an object that opens the actual install dialog when asked. One tap, no
+   instructions, nothing to read.
+
+   iOS HAS NO SUCH THING and never has. Safari will not tell a page it is installable and will not
+   let a page ask — the only route is Share, then Add to Home Screen, and the only useful thing an
+   app can do is say so in the right words at the right moment. Any site claiming a one-tap install
+   on an iPhone is showing a button that cannot work.
+
+   SO IT SAYS WHICH. The card knows which phone it is on and gives either the button or the two
+   taps, and it does not appear at all once the thing is installed — a prompt to install something
+   already installed is the app failing to notice where it is running. */
+/* ---------- THE ICON, FROM THE BRAND TAB WHEN THERE IS ONE ----------------------------------------
+   `icon.png` IS THE FALLBACK AND IT ALWAYS WORKS. It has to be a real file: the icon is needed
+   before any payload has arrived, and iOS will not accept a data URI for `apple-touch-icon` — it
+   wants an address it can fetch at the moment somebody taps Add to Home Screen.
+
+   BUT THAT MOMENT IS AFTER THE PAYLOAD LANDS, which is the whole reason this can work at all. iOS
+   reads the DOM when the share sheet is used, not when the page loads — so swapping the href once
+   `brand!logo_square` is known means the home screen gets YOUR mark rather than the drawn one, with
+   nothing to upload and no second file to keep beside the page.
+
+   ONE KEY, THE ONE THAT ALREADY EXISTS. `logo_square` is what the feed already uses for posts made
+   as the business, so filling it in does two jobs and there is no new name to remember. */
+function brandIcon() {
+  const b = (DATA && DATA.brand) || {};
+  const url = String(b.logo_square || b.logo_circle || '').trim();
+  if (!url) return;                                  // nothing set: the drawn icon stands
+  try {
+    const link = document.querySelector('link[rel="apple-touch-icon"]');
+    if (link && link.getAttribute('href') !== url) link.setAttribute('href', url);
+    /* AND THE MANIFEST, rebuilt with the same image. Chrome reads this when it decides whether to
+       offer an install, which is after load — so replacing it here is in time. Written as a data
+       URI for the same reason the original is: one fewer file to keep. */
+    const man = document.querySelector('link[rel="manifest"]');
+    if (man) {
+      const m = {
+        name: '@family.', short_name: '@family.',
+        start_url: './index.html', scope: './',
+        display: 'standalone', orientation: 'portrait',
+        background_color: '#000000', theme_color: '#12100d',
+        icons: [{ src: url, sizes: '512x512', type: 'image/png', purpose: 'any' },
+                { src: url, sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
+      };
+      man.setAttribute('href',
+        'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m)));
+    }
+  } catch (err) { /* an icon that will not swap is the drawn one, which is fine */ }
+}
+
+let INSTALL_PROMPT = null;
+window.addEventListener('beforeinstallprompt', e => {
+  /* HELD, NOT USED. The browser offers this once and only in response to its own judgement; taking
+     it and calling `preventDefault` stops the default bar so the card below can ask at a moment
+     that makes sense instead. */
+  e.preventDefault();
+  INSTALL_PROMPT = e;
+  try { repaint(); } catch (err) {}
+});
+
+/* ALREADY AN APP? `standalone` is how a page knows it was opened from a home screen rather than
+   from a browser — `display-mode` on everything modern, and Safari's own property on iOS, which
+   answers it there and nowhere else. */
+const isInstalled = () =>
+  (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+  || window.navigator.standalone === true;
+
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
+  /* An iPad since iPadOS 13 reports itself as a Mac, and the only reliable tell is that it has a
+     touchscreen — a desktop Safari does not. */
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function installCard() {
+  /* Asked here because this is the card that offers the install — so the icon is right by the time
+     anybody acts on it, and nothing has to run on a screen nobody is looking at. */
+  brandIcon();
+  if (isInstalled()) return '';
+  if (INSTALL_PROMPT) {
+    return `<div class="card"><h3>Put it on your home screen</h3>
+      <p class="sub">It opens like an app, full screen, with no address bar.</p>
+      <button class="btn" data-do="install" style="margin-top:.6rem">Add to home screen</button>
+    </div>`;
+  }
+  if (isIOS()) {
+    /* THE TWO TAPS, NAMED. "Add to Home Screen" is buried far enough down Safari's share sheet that
+       "use the share menu" is not instructions — the icon and the exact words are. */
+    return `<div class="card"><h3>Put it on your home screen</h3>
+      <p class="sub">It opens like an app, full screen, with no address bar.</p>
+      <p class="sub">Tap <b>Share</b> at the bottom of Safari — the square with an arrow out of it
+        — then scroll down and tap <b>Add to Home Screen</b>.</p>
+    </div>`;
+  }
+  /* EVERYWHERE ELSE, say nothing. A desktop browser either offers this in its own address bar or
+     does not do it at all, and a card explaining an install that cannot happen is noise. */
+  return '';
+}
+
+on('install', el => {
+  if (!INSTALL_PROMPT) { toast('Your browser will offer this itself.'); return; }
+  el.disabled = true;
+  INSTALL_PROMPT.prompt();
+  INSTALL_PROMPT.userChoice.then(r => {
+    /* THE OFFER IS SINGLE USE. Once it has been shown the browser will not hand it over again, so
+       holding a spent one would leave a button that does nothing. */
+    INSTALL_PROMPT = null;
+    el.disabled = false;
+    if (r && r.outcome === 'accepted') toast('Added to your home screen');
+    repaint();
+  }).catch(() => { INSTALL_PROMPT = null; el.disabled = false; });
+});
+
 screen('me', () => {
   const html = pages('me', mePages());
   if (USER) requestAnimationFrame(() => { if ($('msg-body')) fillMessages(); });
@@ -430,7 +547,11 @@ function friendsSheet() {
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
       harder to notice than nobody — they simply appear on a list you scroll past.</p>`);
 }
-on('friends', () => { if (!USER) { toast('Sign in first'); return; } friendsSheet(); });
+/* `on('friends')` WAS HERE and nothing on any screen carried `data-do="friends"`. It opened the
+   same sheet `friend-add-open` opens, twenty-six lines below, which IS reachable — so this was a
+   second door onto one room, with no handle on the outside of it.
+   Removed rather than given a button: two ways in is two things to keep in step, and the one that
+   works is the one people use. */
 
 on('friend-add', () => {
   const box = $('fr-add'), said = $('fr-said');
