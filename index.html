@@ -105,7 +105,7 @@
      BUMP THIS ON EVERY PUSH. That is the whole procedure, and it is the price of the app opening
      quickly the rest of the time. If you ever see a change not take effect, this is the first
      thing to check — it is the one line that decides. */
-  var LOAD = '2026-08-12g';
+  var LOAD = '2026-08-15k';
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
 </script>
@@ -157,7 +157,7 @@
      slowest, which is the one moment it needed to be moving. It is removed by `load()` when the
      payload lands, and by the boot handler if that throws, so it cannot outlive what it covers.
 ================================================================================================== -->
-<div id="splash">
+<div id="splash" class="is-tag">
   <!-- ============================================================================================
        TWO OF THEM, AND WHICH ONE YOU GET IS THE TOSS OF A COIN.
 
@@ -324,6 +324,483 @@
        plumber — a block that is struck from below and gives something up is a game-design idea
        forty years old and belongs to nobody. What comes out is this app's own name in its own
        colours, which is why it can be affectionate without pretending to be anybody else's. -->
+  <!-- ==========================================================================================
+       TEN VISUAL PROOFS.
+
+       ALL PUBLIC-DOMAIN MATHEMATICS, drawn from scratch. These are results that have been shown
+       this way for centuries — Nicomachus, Eratosthenes, Archimedes — and the drawing is the
+       argument, which is the point: a loading screen that teaches something is a loading screen
+       nobody minds waiting through.
+
+       EACH ONE FINISHES ITS ARGUMENT AND THEN KEEPS MOVING. That was the fault with the first
+       batch — the proof assembled and then held perfectly still, and a diagram that has stopped
+       moving reads as a page that has stopped working. Every one below has an idle that runs for
+       as long as the splash is up.
+  =========================================================================================== -->
+
+  <!-- ODD NUMBERS MAKE SQUARES. 1+3+5+7 = 16, and you can see why: each odd number is the L you
+       add to grow a square by one. Nicomachus, and still the neatest thing in arithmetic. -->
+  <div id="splash-odds" aria-hidden="true">
+    <svg class="od-svg" viewBox="0 0 100 100">
+      <g class="od-g1"><rect x="10" y="70" width="20" height="20"/></g>
+      <g class="od-g2"><rect x="30" y="70" width="20" height="20"/><rect x="30" y="50" width="20" height="20"/><rect x="10" y="50" width="20" height="20"/></g>
+      <g class="od-g3"><rect x="50" y="70" width="20" height="20"/><rect x="50" y="50" width="20" height="20"/><rect x="50" y="30" width="20" height="20"/><rect x="30" y="30" width="20" height="20"/><rect x="10" y="30" width="20" height="20"/></g>
+      <g class="od-g4"><rect x="70" y="70" width="20" height="20"/><rect x="70" y="50" width="20" height="20"/><rect x="70" y="30" width="20" height="20"/><rect x="70" y="10" width="20" height="20"/><rect x="50" y="10" width="20" height="20"/><rect x="30" y="10" width="20" height="20"/><rect x="10" y="10" width="20" height="20"/></g>
+    </svg>
+    <div class="od-say">1 + 3 + 5 + 7 = 4²</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- TRIANGLE NUMBERS. Two staircases make a rectangle, so 1+2+…+n is n(n+1)/2. The trick a
+       ten-year-old Gauss is said to have found in a minute. -->
+  <div id="splash-tri" aria-hidden="true">
+    <svg class="tn-svg" viewBox="0 0 120 80">
+      <!-- ==========================================================================================
+           THE STAIRCASE: 4 + 3 + 2 + 1 = 10 cells, on a grid four rows tall and five columns wide.
+           The second staircase is its exact complement, so the two together fill 4 x 5 = 20 and
+           the sum is half of that.
+
+           THE FIRST VERSION DID NOT CLOSE. Its twenty cells spanned SIX columns, so the halves
+           never met and the rectangle in the caption was not the rectangle on the screen — a proof
+           whose picture disagrees with its own claim, which is worse than no picture. Counted
+           rather than eyeballed this time: 20 cells, 5 columns, 4 rows, no gaps and no overlaps.
+      =========================================================================================== -->
+      <g class="tn-up">
+        <rect x="10" y="60" width="16" height="16"/><rect x="26" y="60" width="16" height="16"/><rect x="42" y="60" width="16" height="16"/><rect x="58" y="60" width="16" height="16"/>
+        <rect x="10" y="44" width="16" height="16"/><rect x="26" y="44" width="16" height="16"/><rect x="42" y="44" width="16" height="16"/>
+        <rect x="10" y="28" width="16" height="16"/><rect x="26" y="28" width="16" height="16"/>
+        <rect x="10" y="12" width="16" height="16"/>
+      </g>
+      <g class="tn-dn">
+        <rect x="74" y="60" width="16" height="16"/>
+        <rect x="58" y="44" width="16" height="16"/><rect x="74" y="44" width="16" height="16"/>
+        <rect x="42" y="28" width="16" height="16"/><rect x="58" y="28" width="16" height="16"/><rect x="74" y="28" width="16" height="16"/>
+        <rect x="26" y="12" width="16" height="16"/><rect x="42" y="12" width="16" height="16"/><rect x="58" y="12" width="16" height="16"/><rect x="74" y="12" width="16" height="16"/>
+      </g>
+    </svg>
+    <div class="tn-say">1+2+3+4 = 4×5 ÷ 2 = 10</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE UNIT CIRCLE MAKING A SINE WAVE. A dot goes round and its height is traced out beside it —
+       the single most useful picture in trigonometry, and impossible to forget once seen. -->
+  <div id="splash-sine" aria-hidden="true">
+    <svg class="sn-svg" viewBox="0 0 160 80">
+      <!-- ==========================================================================================
+           THE CIRCLE AND THE WAVE, IN STEP.
+
+           THREE THINGS WERE WRONG. The wave had TWO periods while the arm turned ONCE, so they
+           could never agree. The wave was a hand-guessed bezier rather than a sine, so its height
+           was not the arm's height even where the phase happened to line up. And nothing on screen
+           connected them — the dot went round, the curve appeared beside it, and the picture never
+           said that one height IS the other, which is the entire point.
+
+           NOW: one period per rotation, the wave sampled from sin() so it is the function rather
+           than something resembling it, amplitude equal to the radius, and a guide line at the
+           shared height so the correspondence is visible rather than implied.
+
+           (I also suspected the dash reveal would drift, since it advances by arc length and not by
+           x — it does not. A full period is symmetric, so the quarter points land at exactly 25,
+           50 and 75 per cent either way. Worth checking rather than assuming.)
+      =========================================================================================== -->
+      <circle class="sn-ring" cx="34" cy="40" r="26"/>
+      <line class="sn-axis" x1="60" y1="40" x2="150" y2="40"/>
+      <!-- The height both things share, drawn across the whole picture. -->
+      <line class="sn-guide" x1="34" y1="40" x2="150" y2="40"/>
+      <path class="sn-wave" pathLength="100" d="M60.00 40.00 L61.83 36.61 L63.67 33.27 L65.50 30.05 L67.33 27.00 L69.17 24.17 L71.00 21.62 L72.83 19.37 L74.67 17.48 L76.50 15.98 L78.33 14.89 L80.17 14.22 L82.00 14.00 L83.83 14.22 L85.67 14.89 L87.50 15.98 L89.33 17.48 L91.17 19.37 L93.00 21.62 L94.83 24.17 L96.67 27.00 L98.50 30.05 L100.33 33.27 L102.17 36.61 L104.00 40.00 L105.83 43.39 L107.67 46.73 L109.50 49.95 L111.33 53.00 L113.17 55.83 L115.00 58.38 L116.83 60.63 L118.67 62.52 L120.50 64.02 L122.33 65.11 L124.17 65.78 L126.00 66.00 L127.83 65.78 L129.67 65.11 L131.50 64.02 L133.33 62.52 L135.17 60.63 L137.00 58.38 L138.83 55.83 L140.67 53.00 L142.50 49.95 L144.33 46.73 L146.17 43.39 L148.00 40.00"/>
+      <line class="sn-arm" x1="34" y1="40" x2="60" y2="40"/>
+      <circle class="sn-dot" cx="60" cy="40" r="4"/>
+      <circle class="sn-trace" cx="60" cy="40" r="4"/>
+    </svg>
+    <div class="sn-say">sin θ</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A CIRCLE CUT INTO SLICES AND LAID FLAT makes a rectangle of height r and width πr, so the
+       area is πr². Archimedes, roughly, and it still works. -->
+  <div id="splash-area" aria-hidden="true">
+    <svg class="ar-svg" viewBox="0 0 96 92">
+      <!-- ==========================================================================================
+           WHY THE AREA OF A CIRCLE IS pi r SQUARED.
+
+           THE OLD VERSION SHOWED NOTHING. Eight slices fanned apart and closed again, and a box
+           outline pulsed beside them — motion, but no argument: fanning a circle demonstrates
+           nothing about area, and the rectangle was drawn rather than made.
+
+           THE ACTUAL PROOF. Cut the circle into slices, then lay them out alternately point-down
+           and point-up so they interlock. The result is a rectangle: its height is the radius,
+           because that is how long a slice is, and its width is half the circumference — pi r —
+           because half the arcs are along the top and half along the bottom. Area = pi r x r.
+
+           DRAWN AS TWO STATES AND CROSS-FADED, not moved. Ten slices flying to ten computed
+           destinations is ten chances for a transform to be wrong, and the last splash that tried
+           it was broken in a way nothing caught. Both pictures are drawn, both are correct, and the
+           splash simply shows one and then the other.
+
+           The strip really is 69.1 wide against pi x 22 = 69.1 — computed, not eyeballed.
+      =========================================================================================== -->
+      <g class="ar-round">
+        <path class="ar-sl" d="M30 40 L30.00 18.00 A22 22 0 0 1 42.93 22.20 Z"/>
+        <path class="ar-sl" d="M30 40 L42.93 22.20 A22 22 0 0 1 50.92 33.20 Z"/>
+        <path class="ar-sl" d="M30 40 L50.92 33.20 A22 22 0 0 1 50.92 46.80 Z"/>
+        <path class="ar-sl" d="M30 40 L50.92 46.80 A22 22 0 0 1 42.93 57.80 Z"/>
+        <path class="ar-sl" d="M30 40 L42.93 57.80 A22 22 0 0 1 30.00 62.00 Z"/>
+        <path class="ar-sl" d="M30 40 L30.00 62.00 A22 22 0 0 1 17.07 57.80 Z"/>
+        <path class="ar-sl" d="M30 40 L17.07 57.80 A22 22 0 0 1 9.08 46.80 Z"/>
+        <path class="ar-sl" d="M30 40 L9.08 46.80 A22 22 0 0 1 9.08 33.20 Z"/>
+        <path class="ar-sl" d="M30 40 L9.08 33.20 A22 22 0 0 1 17.07 22.20 Z"/>
+        <path class="ar-sl" d="M30 40 L17.07 22.20 A22 22 0 0 1 30.00 18.00 Z"/>
+      </g>
+      <g class="ar-strip">
+        <path class="ar-sl" d="M18.91 78.00 L12.00 56.00 A22 22 0 0 1 25.82 56.00 Z"/>
+        <path class="ar-sl" d="M25.82 56.00 L18.91 78.00 A22 22 0 0 0 32.73 78.00 Z"/>
+        <path class="ar-sl" d="M32.73 78.00 L25.82 56.00 A22 22 0 0 1 39.65 56.00 Z"/>
+        <path class="ar-sl" d="M39.65 56.00 L32.73 78.00 A22 22 0 0 0 46.56 78.00 Z"/>
+        <path class="ar-sl" d="M46.56 78.00 L39.65 56.00 A22 22 0 0 1 53.47 56.00 Z"/>
+        <path class="ar-sl" d="M53.47 56.00 L46.56 78.00 A22 22 0 0 0 60.38 78.00 Z"/>
+        <path class="ar-sl" d="M60.38 78.00 L53.47 56.00 A22 22 0 0 1 67.29 56.00 Z"/>
+        <path class="ar-sl" d="M67.29 56.00 L60.38 78.00 A22 22 0 0 0 74.20 78.00 Z"/>
+        <path class="ar-sl" d="M74.20 78.00 L67.29 56.00 A22 22 0 0 1 81.12 56.00 Z"/>
+        <path class="ar-sl" d="M81.12 56.00 L74.20 78.00 A22 22 0 0 0 88.03 78.00 Z"/>
+      </g>
+      <!-- the two measurements that make the sum -->
+      <line class="ar-h" x1="8" y1="56" x2="8" y2="78"/>
+      <line class="ar-w" x1="12" y1="84" x2="81.1" y2="84"/>
+      <text class="ar-lab ar-lr" x="4" y="69">r</text>
+      <text class="ar-lab ar-lw" x="46" y="91">&#960;r</text>
+    </svg>
+    <div class="ar-say">A = πr²</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE SIEVE OF ERATOSTHENES. Cross out the multiples and what is left are the primes. Two
+       thousand years old and still how it is done. -->
+  <div id="splash-sieve" aria-hidden="true">
+    <div class="sv-grid">
+      <i class="sv-x" style="--i:0">2</i><i class="sv-x" style="--i:1">3</i><i class="sv-o" style="--i:2">4</i><i class="sv-x" style="--i:3">5</i>
+      <i class="sv-o" style="--i:4">6</i><i class="sv-x" style="--i:5">7</i><i class="sv-o" style="--i:6">8</i><i class="sv-o" style="--i:7">9</i>
+      <i class="sv-o" style="--i:8">10</i><i class="sv-x" style="--i:9">11</i><i class="sv-o" style="--i:10">12</i><i class="sv-x" style="--i:11">13</i>
+      <i class="sv-o" style="--i:12">14</i><i class="sv-o" style="--i:13">15</i><i class="sv-o" style="--i:14">16</i><i class="sv-x" style="--i:15">17</i>
+    </div>
+    <div class="sv-say">what is left is prime</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- POWERS OF TWO. Each square doubles the last, so the halves fill the whole: 1/2 + 1/4 + 1/8 …
+       approaches 1 and never quite arrives. The clearest picture of a limit there is. -->
+  <div id="splash-half" aria-hidden="true">
+    <svg class="hf-svg" viewBox="0 0 100 64">
+      <rect class="hf-p" style="--i:0" x="2"  y="2"  width="48" height="60"/>
+      <rect class="hf-p" style="--i:1" x="51" y="2"  width="24" height="60"/>
+      <rect class="hf-p" style="--i:2" x="76" y="2"  width="12" height="60"/>
+      <rect class="hf-p" style="--i:3" x="89" y="2"  width="6"  height="60"/>
+      <rect class="hf-p" style="--i:4" x="96" y="2"  width="3"  height="60"/>
+      <rect class="hf-edge" x="2" y="2" width="97" height="60"/>
+    </svg>
+    <div class="hf-say">½ + ¼ + ⅛ + … → 1</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE ANGLES IN A TRIANGLE. Tear off the three corners, put them together, and they make a
+       straight line. Every child who has done this remembers it. -->
+  <div id="splash-ang" aria-hidden="true">
+    <svg class="ag-svg" viewBox="0 0 120 92">
+      <!-- ==========================================================================================
+           NOTHING MOVES. THAT IS THE FIX.
+
+           The last version tore the three corners off and flew them down to assemble on a line. The
+           maths was right — the wedges summed to exactly 180 and landed edge to edge on paper — and
+           it was broken on screen, because rotating a shape about its own vertex needs
+           `transform-box`, `transform-origin` and the order of rotate-then-translate all correct at
+           once, and any one of them wrong fails silently and looks like nonsense.
+
+           So the corners stay where they are and the half turn is DRAWN, in the same three colours,
+           as a fan below the triangle. Same argument, no moving parts: you see the three angles up
+           there and the same three filling a straight angle down here. Fades only — there is no
+           transform anywhere in this splash and therefore nothing that can silently misbehave.
+      =========================================================================================== -->
+      <path class="ag-tri" d="M20 58 L100 58 L62 14 Z"/>
+
+      <!-- the three corners, marked where they are -->
+      <path class="ag-a" d="M20 58 L31.05 46.43 A16 16 0 0 1 36.00 58.00 Z"/>
+      <path class="ag-b" d="M100 58 L84.00 58.00 A16 16 0 0 1 89.54 45.89 Z"/>
+      <path class="ag-c" d="M62 14 L72.46 26.11 A16 16 0 0 1 50.95 25.57 Z"/>
+
+      <!-- and the same three, side by side, filling a half turn -->
+      <line class="ag-line" x1="30" y1="72" x2="90" y2="72"/>
+      <path class="ag-f ag-f1" d="M60 72 L38.00 72.00 A22 22 0 0 1 44.81 56.09 Z"/>
+      <path class="ag-f ag-f2" d="M60 72 L44.81 56.09 A22 22 0 0 1 62.13 50.10 Z"/>
+      <path class="ag-f ag-f3" d="M60 72 L62.13 50.10 A22 22 0 0 1 82.00 72.00 Z"/>
+    </svg>
+    <div class="ag-say">a + b + c = 180°</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- COUNTING IN BINARY. Eight lamps counting up, which is all a computer ever does. -->
+  <div id="splash-bin" aria-hidden="true">
+    <div class="bn-row">
+      <i style="--b:128"></i><i style="--b:64"></i><i style="--b:32"></i><i style="--b:16"></i>
+      <i style="--b:8"></i><i style="--b:4"></i><i style="--b:2"></i><i style="--b:1"></i>
+    </div>
+    <div class="bn-say">128 64 32 16 8 4 2 1</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- PASCAL'S TRIANGLE. Each number is the two above it added, and the whole of probability falls
+       out of that one rule. -->
+  <div id="splash-pas" aria-hidden="true">
+    <div class="pa-tri">
+      <div class="pa-r" style="--r:0"><i>1</i></div>
+      <div class="pa-r" style="--r:1"><i>1</i><i>1</i></div>
+      <div class="pa-r" style="--r:2"><i>1</i><i>2</i><i>1</i></div>
+      <div class="pa-r" style="--r:3"><i>1</i><i>3</i><i>3</i><i>1</i></div>
+      <div class="pa-r" style="--r:4"><i>1</i><i>4</i><i>6</i><i>4</i><i>1</i></div>
+    </div>
+    <div class="pa-say">each is the two above it</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE GOLDEN SPIRAL, from squares whose sides are the Fibonacci numbers. -->
+  <div id="splash-fib" aria-hidden="true">
+    <svg class="fb-svg" viewBox="0 0 72 48">
+      <!-- ==========================================================================================
+           SIDES 1, 1, 2, 3, 5 — each square laid against the whole of what came before, spiralling
+           right, down, left, up. The bounding box comes out 64 by 40, a ratio of 1.600 against the
+           golden 1.618, which is what makes this the picture of that number rather than a
+           decoration that resembles it.
+
+           THE FIRST VERSION WAS NOT A TILING. Its last "square" was 40 wide and 16 tall — a
+           rectangle — and the others did not sit flush, so the spiral crossed empty space and the
+           ratio was nothing in particular. Laid out by computing the positions rather than nudging
+           them until they looked right.
+      =========================================================================================== -->
+      <rect class="fb-sq" style="--i:0" x="20" y="28" width="8"  height="8"/>
+      <rect class="fb-sq" style="--i:1" x="20" y="36" width="8"  height="8"/>
+      <rect class="fb-sq" style="--i:2" x="4"  y="28" width="16" height="16"/>
+      <rect class="fb-sq" style="--i:3" x="4"  y="4"  width="24" height="24"/>
+      <rect class="fb-sq" style="--i:4" x="28" y="4"  width="40" height="40"/>
+      <!-- A quarter turn in each square, corner to corner, so the curve is continuous. -->
+      <path class="fb-arc" d="M20 36 A8 8 0 0 1 28 28 A8 8 0 0 1 28 44 A16 16 0 0 1 4 44
+                              A24 24 0 0 1 4 4 A40 40 0 0 1 68 4"/>
+    </svg>
+    <div class="fb-say">1 1 2 3 5 8</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A GALTON BOARD. Balls bounce left or right at random and pile up in a bell — chance turning
+       into a shape you can predict. -->
+  <div id="splash-gal" aria-hidden="true">
+    <svg class="gl-svg" viewBox="0 0 100 84">
+      <g class="gl-pegs">
+        <circle cx="50" cy="12" r="1.6"/>
+        <circle cx="42" cy="22" r="1.6"/><circle cx="58" cy="22" r="1.6"/>
+        <circle cx="34" cy="32" r="1.6"/><circle cx="50" cy="32" r="1.6"/><circle cx="66" cy="32" r="1.6"/>
+        <circle cx="26" cy="42" r="1.6"/><circle cx="42" cy="42" r="1.6"/><circle cx="58" cy="42" r="1.6"/><circle cx="74" cy="42" r="1.6"/>
+      </g>
+      <circle class="gl-ball"  cx="50" cy="6" r="3"/>
+      <circle class="gl-ball2" cx="50" cy="6" r="3"/>
+      <circle class="gl-ball3" cx="50" cy="6" r="3"/>
+      <g class="gl-bars">
+        <rect style="--i:0" x="20" y="76" width="10" height="6"/>
+        <rect style="--i:1" x="32" y="66" width="10" height="16"/>
+        <rect style="--i:2" x="44" y="56" width="10" height="26"/>
+        <rect style="--i:3" x="56" y="66" width="10" height="16"/>
+        <rect style="--i:4" x="68" y="76" width="10" height="6"/>
+      </g>
+    </svg>
+    <div class="gl-say">chance has a shape</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- EIGHT MORE. Same rule as the rest: the drawing is the argument, and every one keeps moving
+       after it has made it. -->
+
+  <!-- BALANCING AN EQUATION. Take three off both sides and the scales stay level — which is the
+       only thing algebra ever asks you to believe. -->
+  <div id="splash-bal" aria-hidden="true">
+    <svg class="bl-svg" viewBox="0 0 128 76">
+      <g class="bl-beam">
+        <line class="bl-bar" x1="18" y1="30" x2="102" y2="30"/>
+        <!-- THE BLOCKS HAVE TO MATCH THE CAPTION.
+             IT SAID "x + 3 = 5" OVER THREE BLOCKS AGAINST THREE. The picture read 3 = 3, which is
+             a true statement about nothing and says the opposite of what a balance is for. A child
+             who counts the blocks finds the caption wrong, and the whole point is that the picture
+             IS the equation.
+             LEFT: one x and three units. RIGHT: five units. The three units on the left and three
+             of the five on the right are the red ones — take the same from both sides and what is
+             left is one x against two, which is the answer. -->
+        <g class="bl-l">
+          <rect class="bl-x" x="10" y="14" width="16" height="16" rx="2"/>
+          <rect class="bl-go" x="28" y="16" width="10" height="12"/>
+          <rect class="bl-go" x="39" y="16" width="10" height="12"/>
+          <rect class="bl-go" x="50" y="16" width="10" height="12"/>
+        </g>
+        <g class="bl-r">
+          <rect x="65" y="16" width="10" height="12"/>
+          <rect x="76" y="16" width="10" height="12"/>
+          <rect class="bl-go" x="87" y="16" width="10" height="12"/>
+          <rect class="bl-go" x="98" y="16" width="10" height="12"/>
+          <rect class="bl-go" x="109" y="16" width="10" height="12"/>
+        </g>
+      </g>
+      <path class="bl-post" d="M60 30 L60 62 M44 62 L76 62"/>
+    </svg>
+    <div class="bl-say">x + 3 = 5<em class="bl-then">x = 2</em></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- SORTING. Bars swap into order, over and over — the shape of an algorithm rather than its code. -->
+  <div id="splash-sort" aria-hidden="true">
+    <div class="so-row">
+      <i style="--h:30%;--i:0"></i><i style="--h:70%;--i:1"></i><i style="--h:45%;--i:2"></i>
+      <i style="--h:95%;--i:3"></i><i style="--h:15%;--i:4"></i><i style="--h:60%;--i:5"></i>
+      <i style="--h:80%;--i:6"></i><i style="--h:38%;--i:7"></i>
+    </div>
+    <div class="so-say">sorting</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE TIMES TABLE, filling in square by square. -->
+  <div id="splash-times" aria-hidden="true">
+    <div class="tt-grid">
+      <i style="--i:0">1</i><i style="--i:1">2</i><i style="--i:2">3</i><i style="--i:3">4</i>
+      <i style="--i:4">2</i><i style="--i:5">4</i><i style="--i:6">6</i><i style="--i:7">8</i>
+      <i style="--i:8">3</i><i style="--i:9">6</i><i style="--i:10">9</i><i style="--i:11">12</i>
+      <i style="--i:12">4</i><i style="--i:13">8</i><i style="--i:14">12</i><i style="--i:15">16</i>
+    </div>
+    <div class="tt-say">4 × 4</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A PROTRACTOR, with the arm sweeping through the degrees. -->
+  <!-- ---------- MULTIPLES ON A HUNDRED SQUARE -------------------------------------------------
+       THE ONE THING THE OTHER TWENTY-SIX DO NOT DO: show a pattern EMERGING from a grid. Every
+       other proof here draws a thing; this one lights cells until a shape somebody has seen in a
+       classroom appears out of a hundred numbers — the threes making diagonals, the fives two
+       clean columns, the nines a stripe running the other way.
+       That noticing is the actual lesson, and it is one nobody has to be told. -->
+  <div id="splash-mult" aria-hidden="true">
+    <div class="mu-grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="mu-say">multiples of <b class="mu-n">3</b></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+
+  <!-- BREATHING. A ring that swells and settles, and a word that keeps time with it. Nothing to
+       learn — some loads should just be calm, and a set of twenty-seven proofs is a set that never
+       lets anybody rest. -->
+  <div id="splash-breathe" aria-hidden="true">
+    <div class="br-ring"><i></i><i></i><i></i></div>
+    <div class="br-say">breathe</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- RAIN ON GLASS. Drops running down and pooling at the bottom. A pattern, not a proof, and the
+       one thing on this list a person in London recognises without being told. -->
+  <div id="splash-rain" aria-hidden="true">
+    <div class="rn-glass">
+      <i style="--x:6%;--d:0s;--t:1.4s"></i><i style="--x:17%;--d:.5s;--t:1.9s"></i>
+      <i style="--x:28%;--d:.2s;--t:1.2s"></i><i style="--x:39%;--d:.9s;--t:1.7s"></i>
+      <i style="--x:50%;--d:.35s;--t:1.5s"></i><i style="--x:61%;--d:1.1s;--t:2.1s"></i>
+      <i style="--x:72%;--d:.15s;--t:1.3s"></i><i style="--x:83%;--d:.75s;--t:1.8s"></i>
+      <i style="--x:94%;--d:.45s;--t:1.6s"></i>
+    </div>
+    <div class="rn-say">@family.</div>
+  </div>
+
+  <!-- A WOVEN CHECK. Threads crossing over and under, the way a scarf is made. It is a pattern with
+       a rule in it, which is the nearest thing to maths on this half of the list. -->
+  <div id="splash-weave" aria-hidden="true">
+    <div class="wv-cloth">
+      <i class="wv-h" style="--i:0"></i><i class="wv-h" style="--i:1"></i>
+      <i class="wv-h" style="--i:2"></i><i class="wv-h" style="--i:3"></i>
+      <i class="wv-h" style="--i:4"></i><i class="wv-h" style="--i:5"></i>
+      <i class="wv-v" style="--i:0"></i><i class="wv-v" style="--i:1"></i>
+      <i class="wv-v" style="--i:2"></i><i class="wv-v" style="--i:3"></i>
+      <i class="wv-v" style="--i:4"></i><i class="wv-v" style="--i:5"></i>
+    </div>
+    <div class="wv-say">@family.</div>
+  </div>
+
+  <!-- A PENDULUM WAVE. Fifteen swings of slightly different length, drifting in and out of phase
+       and briefly forming a snake before scattering again. It looks choreographed and is not —
+       nobody times them, they just have different lengths. -->
+  <div id="splash-pend" aria-hidden="true">
+    <div class="pd-rack">
+      <i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i>
+      <i style="--n:4"></i><i style="--n:5"></i><i style="--n:6"></i><i style="--n:7"></i>
+      <i style="--n:8"></i><i style="--n:9"></i><i style="--n:10"></i><i style="--n:11"></i>
+      <i style="--n:12"></i><i style="--n:13"></i><i style="--n:14"></i>
+    </div>
+    <div class="pd-say">@family.</div>
+  </div>
+
+  <div id="splash-prot" aria-hidden="true">
+    <svg class="pr-svg" viewBox="0 0 120 70">
+      <path class="pr-arc" d="M20 62 A40 40 0 0 1 100 62"/>
+      <g class="pr-ticks">
+        <line x1="20" y1="62" x2="26" y2="62"/><line x1="26.9" y1="34.1" x2="31.5" y2="38"/>
+        <line x1="60" y1="22" x2="60" y2="28"/><line x1="93.1" y1="34.1" x2="88.5" y2="38"/>
+        <line x1="100" y1="62" x2="94" y2="62"/>
+      </g>
+      <line class="pr-base" x1="18" y1="62" x2="102" y2="62"/>
+      <path class="pr-fill" pathLength="100" d="M84 62 A24 24 0 0 0 36 62"/>
+      <line class="pr-arm" x1="60" y1="62" x2="100" y2="62"/>
+    </svg>
+    <div class="pr-say">degrees</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- COIN FLIPS, settling towards a half. Chance being unreliable and reliable at once. -->
+  <div id="splash-coin" aria-hidden="true">
+    <div class="cn-flip"><span class="cn-face">H</span></div>
+    <div class="cn-bar"><i></i></div>
+    <div class="cn-say">heads, about half the time</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A NUMBER LINE, with a marker walking along it. -->
+  <div id="splash-line" aria-hidden="true">
+    <svg class="nl-svg" viewBox="0 0 140 44">
+      <line class="nl-axis" x1="10" y1="30" x2="130" y2="30"/>
+      <g class="nl-ticks">
+        <line x1="10" y1="24" x2="10" y2="36"/><line x1="40" y1="26" x2="40" y2="34"/>
+        <line x1="70" y1="24" x2="70" y2="36"/><line x1="100" y1="26" x2="100" y2="34"/>
+        <line x1="130" y1="24" x2="130" y2="36"/>
+      </g>
+      <circle class="nl-dot" cx="10" cy="30" r="5"/>
+    </svg>
+    <div class="nl-say">0 · ¼ · ½ · ¾ · 1</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- TWO OVERLAPPING SETS, and the bit in the middle. -->
+  <div id="splash-venn" aria-hidden="true">
+    <svg class="vn-svg" viewBox="0 0 120 76">
+      <circle class="vn-a" cx="48" cy="38" r="26"/>
+      <circle class="vn-b" cx="72" cy="38" r="26"/>
+      <path class="vn-both" d="M60 15.6 A26 26 0 0 0 60 60.4 A26 26 0 0 0 60 15.6 Z"/>
+    </svg>
+    <div class="vn-say">both</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A CLOCK, because the hands are the first thing anybody is taught to read. -->
+  <div id="splash-clock" aria-hidden="true">
+    <svg class="ck-svg" viewBox="0 0 80 80">
+      <circle class="ck-face" cx="40" cy="40" r="32"/>
+      <g class="ck-ticks">
+        <line x1="40" y1="10" x2="40" y2="16"/><line x1="70" y1="40" x2="64" y2="40"/>
+        <line x1="40" y1="70" x2="40" y2="64"/><line x1="10" y1="40" x2="16" y2="40"/>
+      </g>
+      <line class="ck-h" x1="40" y1="40" x2="40" y2="24"/>
+      <line class="ck-m" x1="40" y1="40" x2="40" y2="16"/>
+      <circle class="ck-pin" cx="40" cy="40" r="2.6"/>
+    </svg>
+    <div class="ck-say">telling the time</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
   <div id="splash-blocks" aria-hidden="true">
     <div class="mb-row">
       <span class="mb-block"><i>@</i></span>
@@ -395,7 +872,40 @@
     /* One of three, evenly. An array rather than a chain of ifs, so adding a fourth is adding a
        word — the chain is where somebody eventually writes `< 0.5` twice and one of them never
        comes up. */
-    var kinds = ['is-tag', 'is-led', 'is-torch', 'is-pyth', 'is-tube', 'is-ps', 'is-blocks'];
+    var kinds = ['is-tag', 'is-led', 'is-torch', 'is-pyth', 'is-tube', 'is-ps', 'is-blocks',
+                 /* ---------- THE VISUAL PROOFS ------------------------------------------------
+                    Public-domain mathematics drawn from scratch: odd numbers making squares,
+                    triangle numbers, the unit circle, the circle unrolled, the sieve, halves,
+                    the angles of a triangle, binary, Pascal, Fibonacci, a Galton board.
+                    A loading screen that teaches something is one nobody minds waiting through. */
+                 'is-odds', 'is-tri', 'is-sine', 'is-area', 'is-sieve', 'is-half',
+                 'is-ang', 'is-bin', 'is-pas', 'is-fib', 'is-gal',
+                 /* ---------- AND EIGHT MORE ---------------------------------------------------
+                    Balancing an equation, sorting, the times table, a protractor, coin flips, a
+                    number line, a Venn diagram, a clock. */
+                 'is-bal', 'is-sort', 'is-times', 'is-prot', 'is-coin',
+                 'is-line', 'is-venn', 'is-clock', 'is-mult',
+                 /* ---------- AND FOUR THAT TEACH NOTHING ------------------------------------
+                    Breathing, rain, a weave, a pendulum wave. Twenty-seven proofs in a row is a
+                    set that never lets anybody just wait — some loads should be calm, or
+                    pretty, and nothing more. */
+                 'is-breathe', 'is-rain', 'is-weave', 'is-pend'];
+    /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
+       THE LIST ABOVE IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `DATA` has not loaded when
+       this runs — the pick happens during parsing so the splash is right on the first frame — so
+       the last known set is read from `localStorage`, which `data.js` writes whenever a payload
+       arrives. A splash retired in the sheet stops appearing from the next load onward.
+
+       AND IF ANYTHING IS MISSING OR EMPTY, EVERY SPLASH STAYS IN. A misspelt row in a spreadsheet
+       must not leave a blank loading screen — the failure mode of this feature is "you see one you
+       had turned off", which nobody minds. */
+    try {
+      var off = JSON.parse(localStorage.getItem('splashOff') || '[]');
+      if (off.length) {
+        var live = kinds.filter(function (k) { return off.indexOf(k) === -1; });
+        if (live.length) kinds = live;
+      }
+    } catch (e) { /* a broken value is the same as no value */ }
     if (el) el.className = kinds[Math.floor(Math.random() * kinds.length)];
   })();
 </script>
@@ -440,7 +950,7 @@
 <!-- Dated with the same number as the stylesheet, and at the END of the body, where script.js
      expects every element above it to already exist. -->
 <script>
-  /* EIGHTEEN FILES, ONE SCOPE, ONE ORDER.
+  /* TWENTY FILES, ONE SCOPE, ONE ORDER.
 
      script.js was ten thousand lines, which is a file nobody can hold in their head and nobody can
      paste anywhere. Split at its own section headers into eighteen — and split is all it is: the
@@ -471,8 +981,10 @@
      eighteen messages is a wall. The check a second later prints the list. */
   window.__missing = function (f) { (window.__gone = window.__gone || []).push(f); };
 
+  /* NINETEEN NOW — `flyer` sits after `receipt` because it uses `money` and `esc` from core and
+     `openSheet` from shell, and before `boot`, which starts everything. */
   ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
-   'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'games', 'overworld',
+   'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld',
    'boot'].forEach(function (f) {
     /* `js/` — THE FOLDER THEY ARE ACTUALLY IN. This asked for them flat, beside index.html, and
        they moved into a folder: twenty requests for files that are one directory up from where
