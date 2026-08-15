@@ -314,6 +314,27 @@ say('A STRAY CLOSING BRACE — the browser discards from here to wherever it can
 say('A BLOCK THAT IS NEVER CLOSED — everything after it is inside it',
     bal.unclosed ? [bal.unclosed + ' unclosed ' + (bal.unclosed === 1 ? 'block' : 'blocks')] : []);
 
+/* ---------- ONE ID, ONE ELEMENT ---------------------------------------------------------------
+   `splash-line` WAS TWO THINGS: the outline text that gets written on inside the tag splash, and
+   the whole number-line splash. Every rule for either landed on both — so the tag's stroked, dashed
+   `tag-write` animation was painting the number line, and the hide-by-default rule could take the
+   outline out of the wordmark. On a phone it showed as text from one splash appearing over another.
+
+   NOTHING CAUGHT IT. `check-doors` matches handlers to `data-do`, `check-css` reads declarations,
+   and a duplicate id is legal HTML that no browser complains about — `getElementById` simply
+   returns the first and everything downstream is quietly wrong.
+
+   The whole page is swept, not just the splashes: an id is a promise of uniqueness and this is the
+   only place that checks it. */
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const seen = {};
+  for (const m of html.matchAll(/id="([^"]+)"/g)) seen[m[1]] = (seen[m[1]] || 0) + 1;
+  say('THE SAME ID ON TWO ELEMENTS — every rule for either lands on both, and '
+      + 'getElementById returns whichever came first',
+      Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' appears ' + seen[k] + ' times'));
+}
+
 say('THE SAME PROPERTY TWICE IN ONE RULE — the first never applies', twice);
 say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
