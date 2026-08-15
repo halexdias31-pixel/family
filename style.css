@@ -1665,7 +1665,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .pane:has(> .rc),
 .pane:has(.slip),
 .pane:has(.pass),
-.pane:has(.paper) {
+.pane:has(.paper),
+/* THE FIFTH, exactly as the comment above said would happen. A coupon inside a glass pane is a
+   ticket sitting on a tray — two containers where the ticket already IS one, and the torn edge
+   loses its whole point against a second border. */
+.pane:has(.cpn) {
   background: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1887,8 +1891,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
 /* The column headings, in the same grid as the rows so they line up with the figures under them —
    a header that does not sit over its own column is worse than none. */
-.rc-cols { font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: #8a8175; }
-.rc-cols .bk-v { border-bottom: 0; }
+/* `.rc-cols` STYLED THE COLUMN HEADINGS — "# Item × Rate Total" — which are gone. The rules went
+   with them rather than being left to sit; `check-css` names an orphan the moment the markup that
+   made it disappears, which is how a stylesheet stays the size of the app rather than the size of
+   its history. */
 
 /* THE BARCODE ENCODES THE BOOKING, so the same session always prints the same code. A decorative
    one would be a lie told in a place where people expect a fact. */
@@ -2815,9 +2821,11 @@ textarea, select, [data-noswipe],
    ink, and the parts that are not filled in yet are the colour of a placeholder. A form with blanks
    in it and a form nobody may touch look nothing alike once the blanks are the thing that is pale. */
 .rc-blank .rc-stub-what { color: #2b2620; }
-.rc-blank .rc-stub-cost,
-.rc-blank .rc-stub-said span,
-.rc-blank .rc-stub-foot span { color: #a49a8c; }
+/* `.rc-stub-cost` AND `.rc-stub-foot span` WERE IN THIS LIST and neither exists on a blank card any
+   more — the "£—" and the "Nothing booked / Tap to start" line were five ways of saying the card is
+   empty, and a card that is visibly empty does not need telling you so. Both selectors still earn
+   their keep on a REAL session card, which is why they stay in the stylesheet and only leave here. */
+.rc-blank .rc-stub-said span { color: #a49a8c; }
 /* Pressed, it does what the button did — so it should say so under a thumb the way a button does. */
 /* Pressed, it does what a button does. `transform` only — dimming on press would be the same
    mistake in miniature. */
@@ -2902,6 +2910,10 @@ textarea, select, [data-noswipe],
 
 /* THE MIST behind it — the overspray. It drifts and breathes, so the still moment before the line
    starts is not a dead screen. */
+/* FIVE SECONDS AND LEFT ALONE. A drifting mist behind a wordmark has no beginning or end to miss —
+   it is a texture, and seeing 40% of a loop that looks the same throughout is seeing all of it.
+   The measure flags it because it is the longest animation on the splash; the measure is a rule of
+   thumb and this is the case it does not fit. */
 #splash-mist { animation: tag-drift 5s ease-in-out infinite; transform-origin: 50% 50%; }
 @keyframes tag-drift {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: .9; }
@@ -2948,8 +2960,15 @@ textarea, select, [data-noswipe],
 /* ONE SHOWS, THE OTHERS ARE NOT DRAWN. Stated as "hide unless chosen" rather than as a rule per
    pair — three splashes is three pairs and four would be six, and the pair version is where one
    combination eventually gets missed and two of them stack. */
-#splash-tag, #splash-led, #splash-torch, #splash-pyth, #splash-tube, #splash-ps, #splash-blocks { display: none; }
-#splash.is-tag   #splash-tag   { display: block; }
+/* HIDDEN BY DEFAULT, ALL OF THEM. This list is also what `check-css` reads to know which elements
+   ARE splashes — so a new one left out of here is not merely visible when it should not be, it is
+   also invisible to the checker that would have said so. Both faults at once, from one omission. */
+#splash-tag, #splash-led, #splash-torch, #splash-pyth, #splash-tube, #splash-ps, #splash-blocks,
+#splash-odds, #splash-tri, #splash-sine, #splash-area, #splash-sieve, #splash-half,
+#splash-ang, #splash-bin, #splash-pas, #splash-fib, #splash-gal,
+#splash-bal, #splash-sort, #splash-times, #splash-prot, #splash-coin, #splash-mult,
+#splash-breathe, #splash-rain, #splash-weave, #splash-pend,
+#splash-line, #splash-venn, #splash-clock { display: none; }
 #splash.is-led   #splash-led   { display: block; }
 /* `grid`, not `block` — the two copies of the word sit in one grid cell so they are on top of each
    other by construction. The display value belongs to the rule that decides it is visible, so
@@ -2959,8 +2978,40 @@ textarea, select, [data-noswipe],
 #splash.is-tube  #splash-tube  { display: block; }
 #splash.is-ps    #splash-ps    { display: block; }
 #splash.is-blocks #splash-blocks { display: block; }
-/* Before the picker has run — or with scripting off — the tag shows, rather than none of them. */
-#splash:not(.is-led):not(.is-torch):not(.is-pyth):not(.is-tube):not(.is-ps):not(.is-blocks) #splash-tag { display: block; }
+/* ---------- AND THE ELEVEN PROOFS -------------------------------------------------------------- */
+#splash.is-odds  #splash-odds  { display: block; }
+#splash.is-tri   #splash-tri   { display: block; }
+#splash.is-sine  #splash-sine  { display: block; }
+#splash.is-area  #splash-area  { display: block; }
+#splash.is-sieve #splash-sieve { display: grid; place-items: center; }
+#splash.is-half  #splash-half  { display: block; }
+#splash.is-ang   #splash-ang   { display: block; }
+#splash.is-bin   #splash-bin   { display: grid; place-items: center; }
+#splash.is-pas   #splash-pas   { display: grid; place-items: center; }
+#splash.is-fib   #splash-fib   { display: block; }
+#splash.is-gal   #splash-gal   { display: block; }
+#splash.is-bal   #splash-bal   { display: block; }
+#splash.is-sort  #splash-sort  { display: grid; place-items: center; }
+#splash.is-times #splash-times { display: grid; place-items: center; }
+#splash.is-prot  #splash-prot  { display: block; }
+#splash.is-coin  #splash-coin  { display: block; }
+#splash.is-line  #splash-line  { display: block; }
+#splash.is-venn  #splash-venn  { display: block; }
+#splash.is-clock #splash-clock { display: block; }
+#splash.is-mult  #splash-mult  { display: block; }
+/* THE FOUR NEW ONES ARE FLEX COLUMNS, set below with their centring — a `display: block` here
+   would win or lose on source order depending on where somebody adds the next rule. */
+
+/* ---------- THE FALLBACK, AND WHY IT IS NOW A CLASS RATHER THAN A CHAIN OF `:not` ---------------
+   THIS WAS EIGHTEEN `:not()` CLAUSES BY THE END and would have been twenty-nine. Every splash added
+   had to be added twice — once to say when it shows and once to the chain that stops the tag
+   showing with it — and forgetting the second is invisible until two splashes are drawn at once,
+   which is a fault this stylesheet has had before.
+
+   `.is-tag` IS SET BY THE PICKER LIKE ANY OTHER, and the tag now shows only when it is chosen. The
+   no-script case is handled by putting `is-tag` in the markup, so the default is stated where it is
+   read rather than derived from the absence of everything else. */
+#splash.is-tag #splash-tag { display: block; }
 
 #splash-led { width: min(80vw, 21rem); }
 
@@ -3331,6 +3382,8 @@ textarea, select, [data-noswipe],
   background: linear-gradient(90deg, transparent,
     rgb(140 190 255 / .5) 20%, rgb(180 215 255 / .8) 50%, rgb(140 190 255 / .5) 80%, transparent);
   box-shadow: 0 0 18px rgb(110 170 255 / .45);
+  /* SIX SECONDS AND DELIBERATE. A slow breath under the floor line has no payoff to miss — seeing
+     part of it is seeing it, and speeding it up would make the calm thing restless. */
   animation: ps-breathe 6s ease-in-out infinite;
 }
 @keyframes ps-breathe {
@@ -3396,8 +3449,19 @@ textarea, select, [data-noswipe],
   border-left: 3px solid #f0b45f;
   border-right: 3px solid #8a5312;
   border-bottom: 3px solid #8a5312;
-  /* Bumped upward and dropped back, once, when its turn comes. */
-  animation: mb-bump .34s steps(4, end) both;
+  /* Bumped upward and dropped back, once, when its turn comes — and then a slow breath for as long
+     as the splash is up.
+
+     THE ENTRANCE IS NOT THE PROBLEM AND MUST NOT LOOP. A block that bumps over and over is a block
+     being hit repeatedly, which says something different and quickly becomes irritating. What was
+     wrong is the SILENCE AFTER: the bump takes a third of a second, the splash can be up for eight,
+     and the seven seconds of held stillness read as the page having frozen rather than as a pause.
+
+     So the loop is a second animation, layered after the first, and it is deliberately almost
+     nothing — a hair of vertical drift. Enough that the pixels are never identical two frames
+     running, which is all the eye needs to believe something is still working. */
+  animation: mb-bump .34s steps(4, end) both,
+             mb-idle 1.6s ease-in-out .34s infinite;
 }
 /* THE LETTER, behind the block until it is hit, then rising clear of it and staying. `overflow` is
    not used to hide it — the block would then clip the letter as it rose. It starts UNDER the block
@@ -3411,6 +3475,12 @@ textarea, select, [data-noswipe],
   text-align: center;
   opacity: 0;
   animation: mb-letter .5s cubic-bezier(.2, .9, .3, 1) both;
+}
+/* THE HOVER. Two pixels was the same mistake as the fade — technically animated and visually
+   still. Six pixels and a faint glow reads as a block waiting to be hit, which is what it is. */
+@keyframes mb-idle {
+  0%, 100% { transform: translateY(0);     box-shadow: 0 0 0 rgb(240 180 95 / 0); }
+  50%      { transform: translateY(-6px);  box-shadow: 0 6px 14px rgb(240 180 95 / .35); }
 }
 @keyframes mb-bump {
   0%   { transform: translateY(0); }
@@ -3503,13 +3573,32 @@ textarea, select, [data-noswipe],
   fill: none; stroke: #f4f1e8; stroke-width: .18;
   stroke-linejoin: round;
   stroke-dasharray: 12; stroke-dashoffset: 12;
-  animation: py-draw .8s ease-out .1s forwards;
+  /* DRAWN ONCE, THEN BREATHING. The proof assembles over about three and a half seconds and then
+     held perfectly still for however long the load took — and a diagram that has stopped moving
+     looks like a diagram that has stopped working.
+     The idle is on the stroke rather than on the shape: brightening and dimming keeps the geometry
+     exactly where it was drawn, which matters here because the drawing IS the content. */
+  animation: py-draw .8s ease-out .1s forwards,
+             py-idle 2.6s ease-in-out 1s infinite;
 }
 @keyframes py-draw { to { stroke-dashoffset: 0; } }
+/* A TRAVELLING GLINT ALONG THE SIDES, not a fade.
+
+   THE FADE WAS THE WRONG IDEA. Dimming a thin cream stroke from full to seven-tenths is a change of
+   about three shades — running, and invisible, which is the worst outcome: the code says it is
+   animated and the eye says the page has died.
+
+   The dash pattern moves instead. The triangle is already drawn with `stroke-dasharray`, so
+   shifting the offset walks a break around the outline like light running along a wire — motion
+   ON the thing rather than a change of its colour, and unmistakable at a glance. */
+@keyframes py-idle {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -24; }
+}
 
 .py-right {
   fill: none; stroke: rgb(244 241 232 / .5); stroke-width: .12;
-  opacity: 0; animation: py-in .3s ease-out .8s forwards;
+  opacity: 0; animation: py-in .3s ease-out .6s forwards;
 }
 
 /* THE SQUARES. Each grows out of the side it belongs to, which is what makes it read as being built
@@ -3550,7 +3639,11 @@ textarea, select, [data-noswipe],
   margin-top: .7rem;
   font-family: var(--mono); font-size: .82rem; letter-spacing: .1em;
   color: rgb(244 241 232 / .75);
-  opacity: 0; animation: py-in .5s ease-out 2.7s forwards;
+  /* THE CAPTION AND THE SIGNATURE WERE ARRIVING AT 3.2 AND 3.7 SECONDS, and a load is often over
+     in two — so the line that states the result, which is the whole point of the drawing, was the
+     part most often never reached. Brought forward to land with the squares rather than after
+     them. */
+  opacity: 0; animation: py-in .5s ease-out 1.9s forwards;
 }
 
 /* AND THE NAME UNDER IT, last of all — the signature at the foot of a worked answer.
@@ -3561,7 +3654,7 @@ textarea, select, [data-noswipe],
   font-family: var(--font);
   font-size: 1rem; font-weight: 700; letter-spacing: -.01em;
   color: #f4f1e8;
-  opacity: 0; animation: py-in .6s ease-out 3.1s forwards;
+  opacity: 0; animation: py-in .6s ease-out 2.2s forwards;
 }
 
 /* LESS MOVEMENT: the finished figure, standing. */
@@ -3897,26 +3990,47 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    collapses to nothing, the renderer is sized to zero, and the card looks like a feature that did
    not load rather than one that has no room. `position:relative` is what the name plate and the
    warning box are positioned against — they used to be fixed to a page that no longer exists. */
-.map.ow { position: relative; height: 62vh; min-height: 280px; overflow: hidden;
-          border-radius: var(--r); background: #8fd6ef; }
-.map.ow canvas { display: block; width: 100%; height: 100%; }
+/* ---------- THE FRAME, WHICH SCROLLS SIDEWAYS ----------------------------------------------------
+   A STREET IS LONGER THAN A PHONE IS WIDE, and the first version dealt with that by scaling the
+   whole town down to the width of the card — which turned a board into a strip a finger tall with
+   buildings a few pixels across. Correct arithmetic, unreadable result.
 
-/* THE PLATE, naming whatever he is standing on. Same paper and ink as everything else the app says
-   in words, so a label never reads as part of the world it is labelling. */
-.ow-name { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 3;
-           max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis;
-           white-space: nowrap; font: 600 14px/1 ui-monospace, Menlo, monospace;
-           letter-spacing: .03em; background: #fff8e0; color: #3a2a12; border: 2px solid #3a2a12;
-           border-radius: 9px; padding: 9px 15px; box-shadow: 0 3px 0 #3a2a12;
-           pointer-events: none; opacity: 1; transition: opacity .16s linear; }
-.ow-name.go { opacity: .32; }
-.ow-name.off { opacity: 0; }
+   So the board is drawn at a fixed scale and this scrolls to it, the way every map on a phone
+   works. `overflow-x: auto` and nothing else: the SVG states its own width in pixels, so there is
+   no aspect ratio to negotiate and nothing to recompute when the card resizes.
 
-/* A LANDMARK THAT WOULD NOT FIT, said on the board rather than in the console. */
-.ow-say { position: absolute; top: 10px; left: 10px; z-index: 4; max-width: calc(100% - 20px);
-          white-space: pre-line; font: 500 12px/1.45 ui-monospace, Menlo, monospace;
-          background: #fff8e0; color: #6b2c2c; border: 2px solid #6b2c2c; border-radius: 8px;
-          padding: 8px 11px; }
+   `overscroll-behavior-x: contain` STOPS THE SWIPE ESCAPING. Without it, reaching the end of the
+   board hands the gesture to the tab carousel underneath and somebody scrolling the street lands on
+   a different screen — which is the one thing that would make this feel broken. */
+.map.ow {
+  position: relative;
+  /* `.map` SETS `aspect-ratio: 3/4` — A PORTRAIT BOX, for the old flat map that filled it. This
+     board is a street: it is 460px tall whatever the town, and its width is however wide the town
+     is. Inheriting a 3:4 box meant the container was tall and narrow while the board inside it was
+     short and wide, which is the other half of why it looked lost in the middle of the card.
+     The height is the board's own, stated once here so the card is exactly as tall as what is in
+     it — no gap above, no gap below. */
+  /* `.map` SETS `aspect-ratio: 3/4` for the flat map. The board is a view through a camera, so it
+     wants a landscape window — a tall thin one shows a strip of street and a lot of sky. */
+  aspect-ratio: 4/3;
+  height: auto;
+  overflow: hidden;
+  /* THE FINGER BELONGS TO THE BOARD. Without this a hold-and-drag to walk is read as a scroll and
+     the tab carousel takes it — which is the one thing that would make walking feel broken. */
+  touch-action: none;
+  border-radius: var(--r);
+  background: #0e1420;
+}
+/* No scrollbar on a board — the content going off the edge is the affordance, and a bar across the
+   bottom of a picture is furniture. */
+.map.ow::-webkit-scrollbar { display: none; }
+.map.ow { scrollbar-width: none; }
+
+/* `.ow-name` AND `.ow-say` STOOD HERE — a floating plate naming whatever the walker was standing
+   on, and a red box for a landmark that would not fit. Both belonged to the three.js board: there
+   is no walker now and nothing to fail to fit, because every landmark is drawn where the sheet says
+   it is. Deleted rather than left: a rule styling an element nothing produces is a rule somebody
+   reads and assumes is doing something. */
 
 /* ==================================================================================================
    FOUR OBJECTS. `.rc` is the receipt and it is unchanged — torn, cream, off a till. The other three
@@ -4186,3 +4300,1544 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* The head of a block gets a brighter top edge, so a two-hour session reads as one thing starting
    at a moment rather than as two identical hours. */
 .wk-c.is-on.is-head { box-shadow: inset 0 2px 0 var(--green); }
+
+/* ==================================================================================================
+   THE OVERWORLD.
+
+   ONE STREET, SEEN FROM THE SIDE, drawn as SVG. It replaced a three.js scene that fetched 600KB to
+   draw a dozen buildings at a camera angle that never moved — nothing here rotates, nothing is lit,
+   and none of it needed a depth buffer. What makes it read as depth is the draw order and a shade,
+   both of which cost nothing.
+================================================================================================== */
+/* ---------- THE SVG KEEPS ITS OWN SIZE ------------------------------------------------------------
+   `width: 100%; height: auto` WAS HERE AND IT UNDID THE WHOLE THING. The board states its width in
+   pixels — 760 for Colliers Wood — and this forced it back to the card's width, about 360 on a
+   phone. `height: auto` then scaled the height to match, so a board 460px tall drew at 218px: a
+   third of the card, everything half size, and nothing to scroll because it had been made to fit.
+
+   That rule was left over from the version before this one, where the SVG was meant to scale. It is
+   the exact opposite of what this board needs, and it survived because a stylesheet rule that
+   shrinks something is invisible unless you know what size it should have been.
+
+   `flex: none` MATTERS TOO: inside a flex container an SVG will otherwise be squeezed to fit no
+   matter what its width attribute says, which is the same fault wearing different clothes. */
+/* THE CANVAS FILLS THE FRAME. Unlike the SVG version there is nothing to scroll — the camera moves
+   through the world instead, which is what 3D is for. */
+.ow-c { display: block; width: 100%; height: 100%; }
+/* One line, once, over the bottom of the board. Somebody who has walked once does not need telling
+   again, and a button over a picture is a button in the way of the picture. */
+.ow-hint {
+  position: absolute; left: 0; right: 0; bottom: 8px;
+  text-align: center; margin: 0;
+  font: 500 .68rem var(--mono); color: rgb(255 255 255 / .38);
+  pointer-events: none;
+}
+.ow {
+  display: block;
+  flex: none;
+  /* Dusk, because the windows are lit and a lit window at noon is a smudge. The gradient is the sky
+     meeting the ground rather than a decoration — it is what puts a horizon behind the buildings
+     without drawing one. */
+  background: linear-gradient(#141b2a 0%, #24242a 62%, #17150f 100%);
+  touch-action: pan-x;
+}
+/* THE SVG BOARD'S RULES STOOD HERE — `.ow-b` for a wall, `.ow-w` for a lit window band, `.ow-n`
+   for a node on the street, `.ow-leg` for the walker's legs. None of them exist any more: the board
+   is a canvas, and every colour in it is computed when the mesh is built and handed to the GPU as a
+   vertex attribute. There is no element for CSS to reach.
+   Deleted rather than kept — a rule styling something nothing produces is a rule somebody reads and
+   believes is doing work. */
+/* The windows are lit rather than drawn — a fill would be a rectangle on a wall, and a glow is a
+   room with somebody in it. */
+
+/* ---------- THE NAMES ON THE BOARD ---------------------------------------------------------------
+   HTML over the canvas, positioned by the same camera matrix that draws the buildings. Text in
+   WebGL means a font atlas and a quad per glyph; this is the browser's own type, at the phone's own
+   size, and it took one projection rather than a rendering subsystem.
+
+   `pointer-events: none` ON THE LAYER and `auto` on the labels — so the empty space between them
+   passes the finger through to the board underneath and holding there still walks. A transparent
+   div over a game that eats every touch is the classic version of this bug. */
+.ow-tags { position: absolute; inset: 0; pointer-events: none; }
+.ow-tag {
+  position: absolute; left: 0; top: 0;
+  pointer-events: auto;
+  white-space: nowrap;
+  font: 700 .66rem/1 var(--mono);
+  letter-spacing: .02em;
+  color: #f4ecd8;
+  background: rgb(20 24 18 / .72);
+  border: 1px solid rgb(255 255 255 / .16);
+  border-radius: 5px;
+  padding: .22rem .45rem;
+  /* A label is a thing on top of a board, and a shadow is what says so — without it the type sits
+     inside the picture and reads as painted on the roof. */
+  box-shadow: 0 2px 0 rgb(0 0 0 / .35);
+  transition: opacity .12s linear;
+}
+/* A venue is somewhere you can be taught, which is the one thing on this board worth acting on. */
+.ow-tag.is-venue { color: #17130b; background: var(--gold); border-color: rgb(0 0 0 / .3); }
+
+/* ==================================================================================================
+   ELEVEN VISUAL PROOFS, as loading screens.
+
+   PUBLIC-DOMAIN MATHEMATICS, DRAWN FROM SCRATCH. Nicomachus on odd numbers, Eratosthenes on primes,
+   Archimedes on the circle — results that have been shown this way for centuries, where the drawing
+   IS the argument. A loading screen that teaches something is one nobody minds waiting through.
+
+   EVERY ONE FINISHES ITS ARGUMENT AND THEN KEEPS MOVING. That was the fault with the earlier batch:
+   the proof assembled in two seconds, the load took eight, and six seconds of held stillness reads
+   as a page that has died rather than one that is working. Each has an idle below, and each idle
+   MOVES something rather than fading it — a dimmed stroke is technically animated and visually
+   still, which is the worst of both.
+================================================================================================== */
+.sp-sig { margin-top: .7rem; font: 600 .72rem/1 var(--mono); letter-spacing: .16em;
+          color: rgb(240 236 224 / .38); text-align: center; }
+
+/* ---------- ODD NUMBERS MAKE SQUARES ------------------------------------------------------------ */
+#splash-odds .od-svg { width: min(60vw, 13rem); height: auto; }
+.od-svg rect { fill: #f0b45f; stroke: #1b1a17; stroke-width: 1.5; }
+.od-g1 rect { fill: #f0b45f; } .od-g2 rect { fill: #e08b3c; }
+.od-g3 rect { fill: #c9832f; } .od-g4 rect { fill: #a86a26; }
+/* WRITTEN ONCE, WITH BOTH ANIMATIONS. This was two passes — the entrance, then the idle added
+   below it — and the second silently replaced the first: `animation` is a shorthand, so restating
+   it does not add to it. `check-css` caught all five, which is exactly the fault it exists for.
+   The idle is each L brightening in turn, so the argument keeps re-making itself. */
+.od-svg g { opacity: 0;
+            animation: od-in .5s ease-out both, od-glow 3.2s ease-in-out infinite; }
+/* ---------- THE ENTRANCES FINISH BY TWO SECONDS -------------------------------------------
+   THEY WERE TAKING THREE TO FIVE, and a load is often over in two — so the proof was being
+   interrupted halfway through more often than it was being seen. An argument nobody reaches the
+   end of is worse than no argument: the screen looks like it was doing something and stopped.
+   Steps at 0.42s rather than 0.6s. Still readable, and it lands before the app does. */
+.od-g1 { animation-delay: .15s, 1.9s; } .od-g2 { animation-delay: .57s, 2.1s; }
+.od-g3 { animation-delay: .99s, 2.3s; } .od-g4 { animation-delay: 1.41s, 2.5s; }
+@keyframes od-in { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes od-glow { 0%,100% { filter: none; } 50% { filter: brightness(1.35); } }
+.od-say { margin-top: .8rem; font: 700 .95rem var(--mono); color: #f4f1e8; text-align: center;
+          opacity: 0; animation: od-in .5s ease-out 1.9s forwards; }
+
+/* ---------- TRIANGLE NUMBERS -------------------------------------------------------------------- */
+#splash-tri .tn-svg { width: min(64vw, 15rem); height: auto; }
+.tn-svg rect { stroke: #1b1a17; stroke-width: 1.4; }
+.tn-up rect { fill: #6fa8dc; } .tn-dn rect { fill: #d98c3a; }
+.tn-up { animation: tn-up 1s cubic-bezier(.2,.9,.3,1) .2s both; }
+/* The second staircase slides in to complete the rectangle — the move IS the proof, so it repeats. */
+.tn-dn { animation: tn-slide 3.4s cubic-bezier(.45,0,.55,1) .7s infinite; }
+@keyframes tn-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+@keyframes tn-slide {
+  0%       { opacity: 0; transform: translate(26px, -14px); }
+  22%, 70% { opacity: 1; transform: none; }
+  92%,100% { opacity: 0; transform: translate(26px, -14px); }
+}
+.tn-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+
+/* ---------- THE UNIT CIRCLE AND THE SINE WAVE --------------------------------------------------- */
+#splash-sine .sn-svg { width: min(70vw, 17rem); height: auto; }
+.sn-ring, .sn-axis { fill: none; stroke: rgb(244 241 232 / .3); stroke-width: 1.2; }
+/* ---------- `pathLength`, NOT A GUESSED NUMBER ------------------------------------------------
+   THE DASH VALUE WAS 210 AND THE PATH IS 141 UNITS LONG. The reveal therefore took half as long
+   again as the rotation, and the wave lagged the dot by about half a turn — which is the desync,
+   and it survived my last check because I verified the two DOTS against each other and never
+   measured the line they were meant to be drawing.
+
+   `pathLength="100"` tells the browser to treat the path as being exactly 100 units whatever its
+   real length, so the dash numbers become percentages and cannot fall out of step again. The old
+   way needed the geometry and the stylesheet to agree about a number neither of them computed —
+   a number I had eyeballed, and eyeballing a bezier's arc length is not a thing anybody can do. */
+.sn-wave { fill: none; stroke: #6fd8c4; stroke-width: 2;
+           stroke-dasharray: 100; stroke-dashoffset: 100;
+           animation: sn-draw 3s linear infinite; }
+.sn-arm { stroke: #f0b45f; stroke-width: 1.6; transform-origin: 34px 40px;
+          animation: sn-spin 3s linear infinite; }
+.sn-dot { fill: #f0b45f; transform-origin: 34px 40px;
+          animation: sn-spin 3s linear infinite; }
+/* ---------- THE CIRCLE AND THE WAVE, REBUILT IN STEP -------------------------------------------
+   Everything here runs on one 3s clock so nothing can drift: the arm turns once, the wave is
+   revealed once, the tracer crosses once. */
+.sn-guide { stroke: rgb(240 180 95 / .35); stroke-width: 1; stroke-dasharray: 3 3;
+            animation: sn-height 3s linear infinite; }
+.sn-trace { fill: #6fd8c4; animation: sn-trace 3s linear infinite; }
+@keyframes sn-trace {
+  0% { transform: translate(0.00px, -0.00px); }
+  4.167% { transform: translate(3.67px, -6.73px); }
+  8.333% { transform: translate(7.33px, -13.00px); }
+  12.5% { transform: translate(11.00px, -18.38px); }
+  16.67% { transform: translate(14.67px, -22.52px); }
+  20.83% { transform: translate(18.33px, -25.11px); }
+  25% { transform: translate(22.00px, -26.00px); }
+  29.17% { transform: translate(25.67px, -25.11px); }
+  33.33% { transform: translate(29.33px, -22.52px); }
+  37.5% { transform: translate(33.00px, -18.38px); }
+  41.67% { transform: translate(36.67px, -13.00px); }
+  45.83% { transform: translate(40.33px, -6.73px); }
+  50% { transform: translate(44.00px, -0.00px); }
+  54.17% { transform: translate(47.67px, 6.73px); }
+  58.33% { transform: translate(51.33px, 13.00px); }
+  62.5% { transform: translate(55.00px, 18.38px); }
+  66.67% { transform: translate(58.67px, 22.52px); }
+  70.83% { transform: translate(62.33px, 25.11px); }
+  75% { transform: translate(66.00px, 26.00px); }
+  79.17% { transform: translate(69.67px, 25.11px); }
+  83.33% { transform: translate(73.33px, 22.52px); }
+  87.5% { transform: translate(77.00px, 18.38px); }
+  91.67% { transform: translate(80.67px, 13.00px); }
+  95.83% { transform: translate(84.33px, 6.73px); }
+  100% { transform: translate(88.00px, 0.00px); }
+}
+@keyframes sn-height {
+  0% { transform: translateY(-0.00px); }
+  4.167% { transform: translateY(-6.73px); }
+  8.333% { transform: translateY(-13.00px); }
+  12.5% { transform: translateY(-18.38px); }
+  16.67% { transform: translateY(-22.52px); }
+  20.83% { transform: translateY(-25.11px); }
+  25% { transform: translateY(-26.00px); }
+  29.17% { transform: translateY(-25.11px); }
+  33.33% { transform: translateY(-22.52px); }
+  37.5% { transform: translateY(-18.38px); }
+  41.67% { transform: translateY(-13.00px); }
+  45.83% { transform: translateY(-6.73px); }
+  50% { transform: translateY(-0.00px); }
+  54.17% { transform: translateY(6.73px); }
+  58.33% { transform: translateY(13.00px); }
+  62.5% { transform: translateY(18.38px); }
+  66.67% { transform: translateY(22.52px); }
+  70.83% { transform: translateY(25.11px); }
+  75% { transform: translateY(26.00px); }
+  79.17% { transform: translateY(25.11px); }
+  83.33% { transform: translateY(22.52px); }
+  87.5% { transform: translateY(18.38px); }
+  91.67% { transform: translateY(13.00px); }
+  95.83% { transform: translateY(6.73px); }
+  100% { transform: translateY(0.00px); }
+}
+
+@keyframes sn-draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+/* ---------- ANTICLOCKWISE, BECAUSE SVG'S Y AXIS POINTS DOWN ------------------------------------
+   THE ARM WAS TURNING THE WRONG WAY. `rotate(360deg)` is CLOCKWISE on screen — positive angles go
+   clockwise in CSS precisely because y increases downward — while the wave is drawn as
+   `y = 40 - 26 sin`, which rises first. So a quarter of the way through, the dot was at the bottom
+   of the circle and the tracer was at the top: in step, and exactly half a turn apart.
+
+   Everywhere else in mathematics the angle increases anticlockwise and sin goes positive first, so
+   the wave is right and the arm was wrong. Negative rotation puts them together and puts the
+   picture back in agreement with every textbook it is meant to remind somebody of. */
+@keyframes sn-spin { to { transform: rotate(-360deg); } }
+.sn-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #6fd8c4; text-align: center; }
+
+/* ---------- THE CIRCLE, UNROLLED ---------------------------------------------------------------- */
+#splash-area .ar-svg { width: min(66vw, 16rem); height: auto; }
+/* ---------- TWO PICTURES, CROSS-FADED ----------------------------------------------------------
+   Both states are drawn and correct; the splash shows the circle, then the same slices laid out
+   as a rectangle, then back. Nothing travels, so nothing can arrive in the wrong place. */
+.ar-sl { fill: #d98c3a; stroke: #1b1a17; stroke-width: .8; }
+.ar-round .ar-sl:nth-child(even), .ar-strip .ar-sl:nth-child(even) { fill: #c9752a; }
+/* ---------- THE PAYOFF HAS TO LAND INSIDE THE SPLASH ---------------------------------------------
+   SIX SECONDS WITH A ONE-SECOND DELAY meant a splash showed the circle and the first stirrings of
+   the cross-fade and nothing else — Archimedes' proof reduced to a picture of a circle. The strip
+   IS the proof; a version that never reaches it is a decoration.
+   Three seconds, and the delay drops to .3 so the change starts almost at once. */
+.ar-round { animation: ar-a 3s ease-in-out .3s infinite; }
+.ar-strip { opacity: 0; animation: ar-b 3s ease-in-out .3s infinite; }
+/* THE HOLDS WERE TOO LONG AT BOTH ENDS. Twenty-eight per cent flat, then a fade — so a load that
+   catches the start shows a circle sitting still, and Archimedes' proof looks like a logo. The
+   cross-fade starts almost immediately now and the holds are shorter, so whenever somebody arrives
+   something is changing. */
+@keyframes ar-a { 0%, 8% { opacity: 1; } 40%, 68% { opacity: 0; } 96%, 100% { opacity: 1; } }
+@keyframes ar-b { 0%, 8% { opacity: 0; } 40%, 68% { opacity: 1; } 96%, 100% { opacity: 0; } }
+/* THE TWO MEASUREMENTS, shown only while the rectangle is — they mean nothing against a circle. */
+.ar-h, .ar-w { stroke: #6fd8c4; stroke-width: 1.4; opacity: 0;
+               animation: ar-b 3s ease-in-out .3s infinite; }
+.ar-lab { fill: #6fd8c4; font: 700 8px var(--mono); text-anchor: middle; opacity: 0;
+          animation: ar-b 3s ease-in-out .3s infinite; }
+.ar-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #6fd8c4; text-align: center; }
+
+/* ---------- THE SIEVE, WHICH IS NOT A GRID -------------------------------------------------------
+   IT WAS A FOUR-BY-FOUR BOX OF TILES, and a sieve is not a shape — it is a RUN of numbers you walk
+   along striking things out. Wrapping 2 to 17 into four rows puts 5 under 2 and 9 under 6, which
+   implies a relationship down the columns that is not there and is the one thing a 100-square is
+   good for and this is not. In four rows the crossings jump about; in a line they sweep left to
+   right, which is the direction counting goes.
+
+   AND THE CROSSED-OUT ONES ARE STRUCK THROUGH rather than dimmed. Dimming says "this one is quiet";
+   a line through it says "this one is out", which is what the sieve does and what the pencil does
+   when a child works one. The number stays readable under the stroke, because seeing WHICH numbers
+   went is the whole lesson. */
+/* ONE LINE, OR IT IS NOT A RUN. At 1.05rem it wrapped with 17 alone underneath — an orphan that
+   reads as a mistake and breaks the left-to-right sweep the line was chosen for. Sized in `vw` so
+   it shrinks to fit rather than wrapping, with `nowrap` to make that the only option. */
+#splash-sieve .sv-grid { display: flex; flex-wrap: nowrap; justify-content: center;
+                         gap: 0 min(1.6vw, .34rem); max-width: 94vw; }
+.sv-grid i { position: relative; font-style: normal; color: #f4f1e8;
+             font: 700 min(4.4vw, 1.05rem)/1.7 var(--mono); }
+/* THE STROKE IS A PSEUDO-ELEMENT that grows across the digit — drawn rather than a text-decoration,
+   because a decoration appears all at once and a pencil line travels. */
+.sv-o::after { content: ""; position: absolute; left: -8%; top: 52%; height: 2px; width: 0;
+               background: #d9534f; border-radius: 2px;
+               animation: sv-strike .26s ease-out both;
+               /* THE LAST STRIKE LANDED AT 1.84s of a two-second splash — the sieve only just
+                  finished, and on a fast load somebody saw half a sieve and a caption claiming the
+                  rest were prime. At .07s a step the last one lands at 1.15s, leaving the primes
+                  most of a second to breathe on their own, which is the part worth seeing. */
+               animation-delay: calc(.15s + var(--i) * .07s); }
+@keyframes sv-strike { to { width: 116%; } }
+.sv-o { animation: sv-fade .26s ease-out both; animation-delay: calc(.15s + var(--i) * .07s); }
+@keyframes sv-fade { to { color: #6a6b63; } }
+/* WHAT IS LEFT KEEPS BREATHING, so the answer is the thing still alive on the line. */
+.sv-x { animation: sv-keep 2.2s ease-in-out infinite; animation-delay: calc(1.1s + var(--i) * .05s); }
+@keyframes sv-keep { 0%,100% { color: #f4f1e8; text-shadow: none; }
+                     50%     { color: #6fd8a0; text-shadow: 0 0 10px rgb(111 216 160 / .5); } }
+.sv-say { margin-top: .8rem; font: 600 .8rem var(--mono); color: #6fd8a0; text-align: center; }
+
+/* ---------- HALVES ------------------------------------------------------------------------------ */
+#splash-half .hf-svg { width: min(64vw, 15rem); height: auto; }
+.hf-p { fill: #6fa8dc; stroke: #1b1a17; stroke-width: 1.2; opacity: 0;
+        animation: hf-in .4s ease-out both, hf-breathe 3s ease-in-out infinite;
+        animation-delay: calc(.2s + var(--i) * .3s), calc(1.8s + var(--i) * .18s); }
+.hf-p:nth-child(2) { fill: #5b93c7; } .hf-p:nth-child(3) { fill: #4a7fb0; }
+.hf-p:nth-child(4) { fill: #3c6b98; } .hf-p:nth-child(5) { fill: #2f5880; }
+.hf-edge { fill: none; stroke: #f0b45f; stroke-width: 2; }
+@keyframes hf-in { from { opacity: 0; transform: scaleX(0); transform-origin: left; }
+                   to   { opacity: 1; } }
+@keyframes hf-breathe { 0%,100% { filter: none; } 50% { filter: brightness(1.3); } }
+.hf-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+
+/* ---------- THE ANGLES IN A TRIANGLE ------------------------------------------------------------ */
+#splash-ang .ag-svg { width: min(66vw, 16rem); height: auto; }
+.ag-tri { fill: rgb(111 168 220 / .18); stroke: #6fa8dc; stroke-width: 2;
+          stroke-dasharray: 200; stroke-dashoffset: 200;
+          animation: ag-draw 1.1s ease-out .2s forwards; }
+.ag-c { stroke: none; }
+/* THE THREE WEDGES, ONE COLOUR EACH. `.ag-c` is the class every wedge shares AND the name of the
+   third corner — an unlucky collision, so the third is given its fill through the shared class and
+   the other two override it. `.ag-c-c` stood here as a third name that nothing ever produced;
+   `check-css` found it, which is what that check is for. */
+.ag-c { fill: #6fd8c4; }
+.ag-a { fill: #f0b45f; }
+.ag-b { fill: #d98c3a; }
+/* THE CORNERS TEAR OFF AND LINE UP, over and over — the move is the whole argument. */
+/* ---------- FADES ONLY ---------------------------------------------------------------------------
+   No transform, no transform-origin, no transform-box. The corners are marked in place and the fan
+   below fills in behind them, one sector at a time, in the matching colour — so the eye pairs them
+   without anything having to travel. */
+.ag-a { fill: #f0b45f; }
+.ag-b { fill: #d98c3a; }
+.ag-c { fill: #6fd8c4; }
+.ag-a, .ag-b, .ag-c { opacity: 0; animation: ag-show .4s ease-out both; }
+.ag-a { animation-delay: .5s; } .ag-b { animation-delay: .7s; } .ag-c { animation-delay: .9s; }
+
+.ag-f { opacity: 0; animation: ag-show .45s ease-out both, ag-lit 3.6s ease-in-out infinite; }
+.ag-f1 { fill: #f0b45f; animation-delay: 1.3s, 2.6s; }
+.ag-f2 { fill: #d98c3a; animation-delay: 1.5s, 2.8s; }
+.ag-f3 { fill: #6fd8c4; animation-delay: 1.7s, 3.0s; }
+@keyframes ag-show { to { opacity: 1; } }
+/* THE IDLE: each sector brightens in turn, so the fan keeps re-stating itself for as long as the
+   splash is up rather than assembling once and going dead. */
+@keyframes ag-lit { 0%, 100% { filter: none; } 50% { filter: brightness(1.4); } }
+
+.ag-line { stroke: rgb(244 241 232 / .35); stroke-width: 1.6; }
+@keyframes ag-draw { to { stroke-dashoffset: 0; } }
+/* THREE ORPHANED LINES SAT HERE — the tail of the old `ag-tear` keyframe, left behind when its
+   opening line was removed by a regex that matched the header and not the body. A stray `}` and two
+   declarations with no rule around them: the browser discards from the error to the next brace it
+   can make sense of, which can silently take the rules after it as well.
+   `check-css` reads declarations rather than parsing the file as a browser would, so it saw nothing
+   wrong — worth knowing about that checker, and the reason to count `{` against `}` by hand when
+   deleting a block. */
+.ag-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #f0b45f; text-align: center; }
+
+/* ---------- BINARY ------------------------------------------------------------------------------ */
+#splash-bin .bn-row { display: flex; gap: .42rem; }
+.bn-row i { width: 1.7rem; height: 2.4rem; border-radius: 5px; background: #241f18;
+            border: 2px solid #4a3f2c; font-style: normal;
+            animation: bn-count 1.44s steps(1, end) infinite; }
+/* EACH LAMP DOUBLES THE PERIOD OF THE ONE BESIDE IT, which is what counting in binary IS —
+   the rightmost flickers, the leftmost barely moves, and the pattern never repeats within a load. */
+/* ---------- THE DOUBLING IS RIGHT AND THE BASE WAS TOO SLOW --------------------------------------
+   EIGHT BITS DOUBLING FROM .6s PUTS THE TOP ONE AT 76.8 SECONDS. A splash is up for about two, so
+   four of the eight lamps never changed at all — the half of the row that carries the counting
+   looked painted on, and what somebody saw was three flickering lights and a decoration.
+
+   THE HALVING IS THE WHOLE IDEA, so it is kept exactly. The base drops to .18s, which puts the top
+   bit at 23 seconds — still slow, but now the fourth and fifth lamps turn over while you watch and
+   the row plainly counts rather than flickers. A binary counter you cannot see counting is a row
+   of lights. */
+/* AND ONCE MORE, because `steps(1)` means a lamp holds its state for half its period — two sample
+   frames can land inside one step and come out identical even though the row is counting. The
+   fastest lamp now flips every 60ms, which is at the edge of a flicker and is what the least
+   significant bit of a counter actually does. The doubling is untouched. */
+.bn-row i:nth-child(8) { animation-duration: .12s; }
+.bn-row i:nth-child(7) { animation-duration: .24s; }
+.bn-row i:nth-child(6) { animation-duration: .48s; }
+.bn-row i:nth-child(5) { animation-duration: .96s; }
+.bn-row i:nth-child(4) { animation-duration: 1.92s; }
+.bn-row i:nth-child(3) { animation-duration: 3.84s; }
+.bn-row i:nth-child(2) { animation-duration: 7.68s; }
+.bn-row i:nth-child(1) { animation-duration: 15.36s; }
+@keyframes bn-count {
+  0%, 49.9%   { background: #241f18; border-color: #4a3f2c; box-shadow: none; }
+  50%, 100%   { background: #f0b45f; border-color: #ffd48a;
+                box-shadow: 0 0 12px rgb(240 180 95 / .55); }
+}
+.bn-say { margin-top: .8rem; font: 600 .7rem var(--mono); letter-spacing: .1em;
+          color: rgb(240 236 224 / .5); text-align: center; }
+
+/* ---------- PASCAL ------------------------------------------------------------------------------ */
+#splash-pas .pa-tri { display: flex; flex-direction: column; align-items: center; gap: .28rem; }
+.pa-r { display: flex; gap: .28rem; opacity: 0;
+        animation: pa-in .45s ease-out both; animation-delay: calc(.2s + var(--r) * .26s); }
+.pa-r i { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%;
+          background: #2a2c27; border: 2px solid #3c4038; font: 700 .82rem var(--mono);
+          font-style: normal; color: #f4f1e8;
+          animation: pa-pulse 2.8s ease-in-out infinite;
+          animation-delay: calc(1.6s + var(--r) * .16s); }
+@keyframes pa-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; } }
+@keyframes pa-pulse { 0%,100% { border-color: #3c4038; }
+                      50%     { border-color: #6fa8dc; color: #cfe6ff; } }
+.pa-say { margin-top: .8rem; font: 600 .78rem var(--mono); color: rgb(240 236 224 / .5);
+          text-align: center; }
+
+/* ---------- FIBONACCI --------------------------------------------------------------------------- */
+#splash-fib .fb-svg { width: min(62vw, 15rem); height: auto; }
+.fb-sq { fill: none; stroke: #6fa8dc; stroke-width: 1.4; opacity: 0;
+         animation: fb-in .45s ease-out both, fb-glow 3.4s ease-in-out infinite;
+         animation-delay: calc(.2s + var(--i) * .28s), calc(1.7s + var(--i) * .2s); }
+.fb-arc { fill: none; stroke: #f0b45f; stroke-width: 2.2; stroke-linecap: round;
+          stroke-dasharray: 190; stroke-dashoffset: 190;
+          animation: fb-draw 3.2s ease-in-out 1.6s infinite; }
+@keyframes fb-in { from { opacity: 0; transform: scale(.8); } to { opacity: 1; } }
+@keyframes fb-glow { 0%,100% { stroke: #6fa8dc; } 50% { stroke: #a8d4ff; } }
+@keyframes fb-draw { 0% { stroke-dashoffset: 190; } 55%,100% { stroke-dashoffset: 0; } }
+.fb-say { margin-top: .8rem; font: 700 .9rem var(--mono); letter-spacing: .18em;
+          color: #f0b45f; text-align: center; }
+
+/* ---------- THE GALTON BOARD -------------------------------------------------------------------- */
+#splash-gal .gl-svg { width: min(58vw, 14rem); height: auto; }
+.gl-pegs circle { fill: rgb(244 241 232 / .34); }
+/* THREE BALLS ON THREE PATHS, staggered.
+
+   ONE BALL FALLING THE SAME WAY EVERY TIME IS NOT CHANCE, and the caption says "chance has a
+   shape" — so a single fixed path was the animation flatly contradicting the words under it. Three
+   balls taking visibly different routes, at different times, is the least that makes the point:
+   each one goes somewhere unpredictable and the pile underneath is always the same shape. */
+.gl-ball { fill: #f0b45f; animation: gl-dropA 2.4s cubic-bezier(.4,0,.7,1) infinite; }
+.gl-ball2 { fill: #f0b45f; animation: gl-dropB 2.4s cubic-bezier(.4,0,.7,1) .8s infinite; }
+.gl-ball3 { fill: #f0b45f; animation: gl-dropC 2.4s cubic-bezier(.4,0,.7,1) 1.6s infinite; }
+/* THE BALL FALLS FOR EVER and the bars grow underneath — the point being that one ball is random
+   and a thousand are not. */
+@keyframes gl-dropA {
+  0% { transform: none; opacity: 1; } 30% { transform: translate(-8px, 26px); }
+  60% { transform: translate(-16px, 46px); } 85% { transform: translate(-12px, 66px); opacity: 1; }
+  100% { transform: translate(-12px, 74px); opacity: 0; }
+}
+@keyframes gl-dropB {
+  0% { transform: none; opacity: 1; } 30% { transform: translate(8px, 26px); }
+  60% { transform: translate(2px, 46px); } 85% { transform: translate(0, 66px); opacity: 1; }
+  100% { transform: translate(0, 74px); opacity: 0; }
+}
+@keyframes gl-dropC {
+  0% { transform: none; opacity: 1; } 30% { transform: translate(-6px, 26px); }
+  60% { transform: translate(10px, 46px); } 85% { transform: translate(14px, 66px); opacity: 1; }
+  100% { transform: translate(14px, 74px); opacity: 0; }
+}
+.gl-bars rect { fill: #6fd8c4; transform-origin: 50% 100%;
+                animation: gl-grow 2.2s ease-out infinite;
+                animation-delay: calc(var(--i) * .12s); }
+@keyframes gl-grow { 0% { transform: scaleY(.25); } 55%,100% { transform: scaleY(1); } }
+.gl-say { margin-top: .7rem; font: 600 .78rem var(--mono); color: #6fd8c4; text-align: center; }
+
+/* THE WHOLE SET, STILL, for anybody who has asked for that. */
+@media (prefers-reduced-motion: reduce) {
+  /* `.ar-wheel` and `.ar-box` stood in this list after the elements themselves were replaced —
+     a still-motion rule for something that no longer exists, which is harmless and misleading in
+     equal measure. `check-css` found them; the new names are `.ar-round` and `.ar-strip`. */
+  .od-svg g, .od-say, .tn-up, .tn-dn, .sn-wave, .sn-arm, .sn-dot, .sn-trace, .sn-guide,
+  .ar-round, .ar-strip, .ar-h, .ar-w, .ar-lab,
+  .sv-o, .sv-x, .hf-p, .ag-tri, .ag-c, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
+  .gl-ball, .gl-bars rect { animation: none; opacity: 1; transform: none; }
+  .sn-wave, .ag-tri, .fb-arc { stroke-dashoffset: 0; }
+  /* with motion off, show the rectangle — it is the half of the picture that carries the result. */
+  .ar-round { opacity: 0; } .ar-strip, .ar-h, .ar-w, .ar-lab { opacity: 1; }
+  .bn-row i:nth-child(2n) { background: #f0b45f; border-color: #ffd48a; }
+}
+
+/* ---------- WHEN THE FAMILIES ON A WAITING LIST CAN COME ------------------------------------------
+   A tally, not a timetable. Each family answered for themselves and the class has no day yet — so
+   this shows how many offered each slot, longest bar first, with the one everybody offered marked.
+   Read by a tutor deciding what day to run it on, which is the only open question a waiting list
+   has. */
+.wc { margin: .5rem 0 .7rem; }
+.wc-say { margin: 0 0 .35rem; font-size: .68rem; color: #8a8175;
+          text-transform: uppercase; letter-spacing: .07em; }
+.wc-row { position: relative; display: flex; align-items: center; gap: .5rem;
+          padding: .28rem .45rem; border-radius: 5px; background: rgb(0 0 0 / .16);
+          margin-bottom: .22rem; overflow: hidden; }
+/* THE BAR IS BEHIND THE WORDS, not beside them — a row that is both a label and a measurement
+   reads faster than a label with a chart next to it, and takes half the width. */
+.wc-row i { position: absolute; inset: 0 auto 0 0; width: var(--f);
+            background: rgb(111 216 196 / .18); }
+.wc-row.is-all i { background: rgb(111 216 160 / .3); }
+.wc-n { position: relative; font-variant-numeric: tabular-nums; font-weight: 700;
+        font-size: .72rem; color: #6fd8c4; min-width: 2.1rem; }
+.wc-row.is-all .wc-n { color: #7fe0a8; }
+.wc-slot { position: relative; font-size: .76rem; }
+
+/* ==================================================================================================
+   EIGHT MORE. Same rule as the rest: the drawing is the argument, and each keeps moving after it
+   has made it. Entrances land inside two seconds, because a load often does.
+================================================================================================== */
+
+/* ---------- BALANCING AN EQUATION ---------------------------------------------------------------- */
+#splash-bal .bl-svg { width: min(64vw, 15rem); height: auto; }
+.bl-bar { stroke: #f0b45f; stroke-width: 2.4; stroke-linecap: round; }
+.bl-post { stroke: rgb(244 241 232 / .4); stroke-width: 2; fill: none; }
+.bl-svg rect { fill: #6fa8dc; stroke: #1b1a17; stroke-width: 1.2; }
+/* THE THREE THAT COME OFF BOTH SIDES, together — the beam never tips, which IS the proof. */
+/* THE SAME ONE-SECOND DELAY THE BEAM HAD, and I fixed the beam and left this. The red blocks are
+   the point of the picture — taking three off each side is what "x + 3 = 5" becomes "x = 2" MEANS —
+   and for the first second of a two-second splash they simply sat there.
+   Negative, like the beam's, so the removal is already under way on the first frame and the two
+   stay in step with each other. */
+.bl-go { fill: #d9534f; animation: bl-off 3.4s ease-in-out -.9s infinite; }
+/* ---------- A ONE-SECOND DELAY ON A TWO-SECOND SPLASH ---------------------------------------------
+   THE BEAM HAD NO TRANSFORM AT ALL for the first second — half the time anybody sees it. Widening
+   the swing and reshaping the keyframes changed nothing, because the animation had not started; I
+   spent two attempts on the motion when the fault was that there was no motion yet.
+   A NEGATIVE DELAY STARTS IT MID-SWING instead: the beam is already moving on the first frame, and
+   the cycle keeps its timing. That is what a delay is for on something meant to be caught partway. */
+.bl-beam { animation: bl-tip 3.4s ease-in-out -.9s infinite; transform-origin: 60px 30px; }
+@keyframes bl-off { 0%,22% { opacity: 1; transform: none; }
+                    46%,88% { opacity: 0; transform: translateY(-14px); }
+                    100% { opacity: 1; transform: none; } }
+/* ONE AND A HALF DEGREES IS NOT A TILT, it is a rendering rounding error — across a beam this size
+   it moves the ends by about a pixel, and three frames of a load came out identical. A balance that
+   does not visibly tip is a picture of a balance.
+   Four degrees, which reads as weighing without turning it into a seesaw, and the pause at the ends
+   is shortened so the movement is happening rather than waiting. */
+/* AND THE POSE MUST NOT REPEAT MID-CYCLE. Returning to 0° at the halfway mark meant two sample
+   frames landed on the same angle — the beam WAS moving and two moments of it looked identical,
+   which on a three-frame check is indistinguishable from a still picture and to an eye reads as a
+   hesitation. It swings straight through: down, up, back, with no pause at level. */
+@keyframes bl-tip { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); }
+                    100% { transform: rotate(-4deg); } }
+/* THE X BLOCK IS THE UNKNOWN, so it is a different colour and a different size — a picture where
+   the unknown looks like the units is a picture where nothing is unknown.
+    IS ONE CLASS PLUS AN ELEMENT and beats a bare class, so `.bl-x` alone lost and the
+   unknown came out the same blue as the units. Matched at the same shape to win on order. */
+.bl-svg rect.bl-x { fill: #6fd8c4; }
+.bl-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #f0b45f; text-align: center;
+          position: relative; }
+/* AND THE ANSWER ARRIVES AS THE BLOCKS LEAVE. The equation is what you start with; "x = 2" is what
+   the picture has just done, and showing it at the moment the reds vanish is what joins the two.
+   Same timing and same negative delay as the blocks, so they cannot drift apart. */
+.bl-then { display: block; font-style: normal; font-size: .8rem; color: #6fd8c4; opacity: 0;
+           animation: bl-then 3.4s ease-in-out -.9s infinite; }
+@keyframes bl-then { 0%,30% { opacity: 0; } 50%,84% { opacity: 1; } 96%,100% { opacity: 0; } }
+
+/* ---------- SORTING ------------------------------------------------------------------------------ */
+#splash-sort .so-row { display: flex; align-items: flex-end; gap: .3rem; height: 6rem; }
+.so-row i { width: 1.5rem; height: var(--h); border-radius: 3px 3px 0 0; background: #6fa8dc;
+            animation: so-swap 3.2s cubic-bezier(.5,0,.5,1) infinite;
+            animation-delay: calc(var(--i) * .09s); }
+/* EACH BAR RISES TO ITS SORTED HEIGHT AND FALLS BACK. The pattern is the point: a jumble becoming
+   a staircase, which is what every sort looks like from far enough away. */
+/* ---------- THE HOLDS WERE LONGER THAN THE MOVES -------------------------------------------------
+   `46%` TO `74%` IS 900 MILLISECONDS OF STILLNESS in a 3.2s cycle, and `0%` to `16%` another 500 at
+   the start — so more than half the animation was a pause and two sample frames landed inside the
+   same one. Sorting is a thing that keeps going until it is done; a bar chart that settles for a
+   second in the middle reads as finished and then inexplicably starts again.
+   The holds are trimmed to a beat each, which is enough to see the order arrive without the run
+   stopping to admire it. */
+@keyframes so-swap {
+  0%, 6%    { height: var(--h); background: #6fa8dc; }
+  44%, 60%  { height: calc(12% + var(--i) * 11%); background: #6fd8a0; }
+  98%, 100% { height: var(--h); background: #6fa8dc; }
+}
+.so-say { margin-top: .8rem; font: 600 .76rem var(--mono); letter-spacing: .14em;
+          color: rgb(240 236 224 / .5); text-align: center; }
+
+/* ---------- THE TIMES TABLE ---------------------------------------------------------------------- */
+#splash-times .tt-grid { display: grid; grid-template-columns: repeat(4, 2.5rem); gap: .28rem; }
+.tt-grid i { display: grid; place-items: center; height: 2.5rem; border-radius: 6px;
+             background: #2a2c27; border: 2px solid #3c4038; color: #f4f1e8;
+             font: 700 .84rem var(--mono); font-style: normal; opacity: 0;
+             animation: tt-in .4s ease-out both, tt-lit 3.4s ease-in-out infinite;
+             animation-delay: calc(.15s + var(--i) * .09s), calc(1.9s + var(--i) * .06s); }
+@keyframes tt-in { from { opacity: 0; transform: scale(.6); } to { opacity: 1; } }
+@keyframes tt-lit { 0%,100% { border-color: #3c4038; } 50% { border-color: #e8862c; color: #ffd9a8; } }
+.tt-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: #e8862c; text-align: center; }
+
+/* ---------- THE PROTRACTOR ----------------------------------------------------------------------- */
+#splash-prot .pr-svg { width: min(66vw, 16rem); height: auto; }
+.pr-arc { fill: none; stroke: rgb(244 241 232 / .3); stroke-width: 1.6; }
+.pr-ticks line, .pr-base { stroke: rgb(244 241 232 / .4); stroke-width: 1.4; }
+/* ---------- THE ARM SWEEPS, AND NOW THE ANGLE IT MAKES IS FILLED IN ------------------------------
+   ONE MOVING PART AND FOUR SECONDS: a splash is up for about two, so the arm got halfway and
+   stopped, and what somebody saw was a protractor with a line across it at a random angle.
+
+   TWO AND A HALF SECONDS for the full sweep and back, so the whole gesture lands. And the wedge
+   between the base and the arm fills as it goes — a sweeping line is a moving line, whereas a
+   growing angle is the thing a protractor is FOR. `transform-box: fill-box` is deliberately not
+   used: the origin is in viewBox units, which is what an SVG transform wants by default. */
+.pr-arm { stroke: #f0b45f; stroke-width: 2.4; stroke-linecap: round; transform-origin: 60px 62px;
+          animation: pr-sweep 2.5s cubic-bezier(.45,0,.55,1) infinite; }
+@keyframes pr-sweep { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-180deg); } }
+/* THE ARC OF THE ANGLE, drawn by dash offset — the same trick the sine wave uses, and the reason
+   `pathLength` is set: a dash length in user units has to be recomputed whenever the path changes,
+   and one in hundredths never does. */
+/* ---------- THE SWEEP FLAG WAS 1 AND HAD TO BE 0 -------------------------------------------------
+   SVG's y GROWS DOWNWARD, so the "clockwise" flag on an arc from the right end of the baseline to
+   the left end takes it UNDER the line. The wedge hung below the protractor as a stray block — an
+   element that plainly moved and was plainly wrong, which is exactly what a check for "does it
+   animate" cannot catch. Only looking at it does.
+   `fill: none` matters too: an arc with a fill would close itself across the chord. */
+.pr-fill { stroke: rgb(240 180 95 / .55); stroke-width: 7; fill: none;
+           stroke-dasharray: 100; stroke-dashoffset: 100;
+           animation: pr-fill 2.5s cubic-bezier(.45,0,.55,1) infinite; }
+@keyframes pr-fill { 0%,100% { stroke-dashoffset: 100; } 50% { stroke-dashoffset: 0; } }
+/* I WROTE A `content` ANIMATION ON `.pr-num` — a real element, not a pseudo — where `content` does
+   nothing at all. It would have animated an empty rule forever and looked like a considered choice
+   in the stylesheet. The label stays a word; the arc is what carries the reading. */
+.pr-say { margin-top: .7rem; font: 600 .8rem var(--mono); letter-spacing: .1em;
+          color: #f0b45f; text-align: center; }
+
+/* ---------- COIN FLIPS --------------------------------------------------------------------------- */
+#splash-coin .cn-flip { width: 3.4rem; height: 3.4rem; margin: 0 auto; border-radius: 50%;
+        background: #e8c15f; border: 3px solid #a8873a; display: grid; place-items: center;
+        animation: cn-spin 1.4s cubic-bezier(.4,0,.6,1) infinite; }
+.cn-face { font: 700 1.2rem var(--mono); color: #6b5420; }
+@keyframes cn-spin { 0%,100% { transform: rotateX(0deg); } 50% { transform: rotateX(180deg); } }
+/* AND THE RUNNING TALLY, wobbling in towards a half and never quite settling — which is what a
+   proportion actually does, and the opposite of the tidy answer a bar usually implies. */
+.cn-bar { width: min(58vw, 13rem); height: .55rem; margin: 1rem auto 0; border-radius: 4px;
+          background: #2a2c27; overflow: hidden; }
+.cn-bar i { display: block; height: 100%; background: #6fd8c4;
+            /* THE BAR SETTLING ON A HALF IS THE IDEA, and at six seconds a splash showed it
+               drifting and stopping partway — which says a coin lands wherever, the opposite of
+               what converging means. Three seconds and it arrives. */
+            animation: cn-settle 3s ease-in-out infinite; }
+@keyframes cn-settle { 0% { width: 100%; } 14% { width: 30%; } 30% { width: 66%; }
+                       48% { width: 42%; } 66% { width: 56%; } 82% { width: 47%; }
+                       100% { width: 51%; } }
+.cn-say { margin-top: .7rem; font: 600 .76rem var(--mono); color: #6fd8c4; text-align: center; }
+
+/* ---------- THE NUMBER LINE ---------------------------------------------------------------------- */
+#splash-line .nl-svg { width: min(70vw, 17rem); height: auto; }
+.nl-axis, .nl-ticks line { stroke: rgb(244 241 232 / .4); stroke-width: 1.6; }
+/* STEPS RATHER THAN A GLIDE. A marker sliding smoothly along a number line says the numbers between
+   the ticks are where you might land; stepping says they are the places there are. */
+/* FOUR SECONDS FOR FIVE HOPS meant a splash showed two of them and stopped — a marker sitting
+   between two ticks, which is the exact thing the stepping was chosen to deny. Two seconds puts the
+   whole walk on screen.
+   AND THE TICK IT LANDS ON LIGHTS UP, so a hop is arriving somewhere rather than only leaving. */
+.nl-dot { fill: #6fd8a0; animation: nl-hop 2s steps(1, end) infinite; }
+.nl-ticks line { animation: nl-lit 2s steps(1, end) infinite; }
+.nl-ticks line:nth-child(1) { animation-delay: 0s; }
+.nl-ticks line:nth-child(2) { animation-delay: -1.6s; }
+.nl-ticks line:nth-child(3) { animation-delay: -1.2s; }
+.nl-ticks line:nth-child(4) { animation-delay: -.8s; }
+.nl-ticks line:nth-child(5) { animation-delay: -.4s; }
+@keyframes nl-lit {
+  0%, 19%  { stroke: #6fd8a0; stroke-width: 2.6; }
+  20%, 100% { stroke: rgb(244 241 232 / .4); stroke-width: 1.6; }
+}
+@keyframes nl-hop {
+  0%, 19%   { transform: translateX(0); }
+  20%, 39%  { transform: translateX(30px); }
+  40%, 59%  { transform: translateX(60px); }
+  60%, 79%  { transform: translateX(90px); }
+  80%, 100% { transform: translateX(120px); }
+}
+.nl-say { margin-top: .8rem; font: 700 .86rem var(--mono); letter-spacing: .1em;
+          color: #6fd8a0; text-align: center; }
+
+/* ---------- THE VENN ----------------------------------------------------------------------------- */
+#splash-venn .vn-svg { width: min(62vw, 15rem); height: auto; }
+/* ---------- THE CIRCLES MOVE INTO EACH OTHER -----------------------------------------------------
+   ONLY THE OVERLAP WAS ANIMATED, and it faded in over two crossed circles that never moved — one
+   moving part on the whole splash, and it read as a lit patch on a diagram rather than as two sets
+   meeting. The overlap only means something if you see it come into being.
+   They slide together and apart, and the middle lights as they meet. Delays are set so the fade
+   peaks when the circles are closest, which is the whole point of the picture and was previously
+   true only by accident. */
+.vn-a, .vn-b { fill: rgb(111 168 220 / .3); stroke: #6fa8dc; stroke-width: 1.8;
+               animation: vn-slide 3.4s ease-in-out infinite; }
+.vn-b { fill: rgb(232 134 44 / .3); stroke: #e8862c; animation-name: vn-slide-b; }
+@keyframes vn-slide   { 0%,100% { transform: translateX(-9px); } 50% { transform: translateX(0); } }
+@keyframes vn-slide-b { 0%,100% { transform: translateX(9px); }  50% { transform: translateX(0); } }
+/* THE OVERLAP, LIT ON ITS OWN. Two circles crossing is a picture; the middle picked out is an idea. */
+.vn-both { fill: #f4f1e8; opacity: 0; animation: vn-mid 3.4s ease-in-out infinite; }
+@keyframes vn-mid { 0%,22% { opacity: 0; } 45%,58% { opacity: .6; } 80%,100% { opacity: 0; } }
+.vn-say { margin-top: .7rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+
+/* ---------- THE CLOCK ---------------------------------------------------------------------------- */
+#splash-clock .ck-svg { width: min(46vw, 11rem); height: auto; }
+.ck-face { fill: #22251f; stroke: rgb(244 241 232 / .35); stroke-width: 2; }
+.ck-ticks line { stroke: rgb(244 241 232 / .45); stroke-width: 2; }
+.ck-pin { fill: #f0b45f; }
+/* TWELVE TO ONE IN THE TIME THE MINUTE HAND TAKES TO GO ROUND — the two hands geared to each other
+   the way they are on a real clock, because a minute hand racing an hour hand that stands still is
+   the thing children notice is wrong. */
+/* ---------- THE RATIO IS RIGHT AND THE SPEED WAS NOT ---------------------------------------------
+   TWELVE TO ONE IS CORRECT and 48 SECONDS IS INVISIBLE. A splash is on screen for about two, so the
+   hour hand turned four per cent of a revolution and looked painted on — the geared pair, which is
+   the entire point of the drawing, read as one moving hand and one stuck one.
+   The ratio is kept exactly; both are twelve times faster. The minute hand sweeps in a third of a
+   second and the hour hand makes a visible quarter-turn in the time anybody watches. */
+.ck-m { stroke: #f4f1e8; stroke-width: 2; stroke-linecap: round; transform-origin: 40px 40px;
+        animation: ck-turn 1.2s linear infinite; }
+.ck-h { stroke: #f0b45f; stroke-width: 3; stroke-linecap: round; transform-origin: 40px 40px;
+        animation: ck-turn 14.4s linear infinite; }
+@keyframes ck-turn { to { transform: rotate(360deg); } }
+.ck-say { margin-top: .8rem; font: 600 .78rem var(--mono); color: rgb(240 236 224 / .5);
+          text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-go, .bl-beam, .bl-then, .so-row i, .tt-grid i, .pr-arm, .cn-flip, .cn-bar i, .nl-dot,
+  .vn-a, .vn-b, .vn-both, .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
+  .cn-bar i { width: 51%; } .vn-both { opacity: .55; }
+}
+
+/* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS ---------------------------------------------
+   The multiplier, rate and total are a fixed 151px plus gaps on every row, reserved whether or not
+   there is anything to put in them — so "Status · unconfirmed" had 59px for a word needing 74 and
+   the two ran together. A row with no figures lets the value have that space instead.
+   The columns still line up down the card: a row that spans has no figures to line up with. */
+.bk-row.is-bare { grid-template-columns: 3ch 4.4rem minmax(0, 1fr); }
+.bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r, .bk-row.is-bare .bk-t { display: none; }
+
+/* ==================================================================================================
+   AN OPEN WAITING LIST — A TICKET, NOT A CARD.
+
+   It was the same grey stub as a booking you already own, which is the right treatment for a thing
+   you have and the wrong one for a thing being offered. Two different kinds of object, drawn alike.
+
+   THE TORN EDGE IS THE WHOLE DEVICE. A row of half-circles bitten out of the left side, in the page
+   colour, so it reads as something detached from a sheet. One gradient, no images, and it is the
+   difference between a card and a coupon.
+================================================================================================== */
+.cpn {
+  display: flex; align-items: stretch; gap: 0;
+  background: var(--raised); border: 1px solid var(--gold);
+  border-radius: var(--r); overflow: hidden; position: relative;
+  margin-bottom: .55rem;
+}
+/* The bite marks. `--bg` so they read as holes rather than as dots. */
+.cpn::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
+  background: radial-gradient(circle at 0 50%, var(--bg) 3.5px, transparent 3.6px) 0 0 / 7px 12px repeat-y;
+}
+.cpn-l { flex: 1; min-width: 0; padding: .7rem .8rem .7rem 1rem; }
+.cpn-kind {
+  display: inline-block; font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--bg); background: var(--gold); padding: .12rem .38rem; border-radius: 2px;
+  font-weight: 700;
+}
+.cpn-l h3 { margin: .4rem 0 .15rem; font-size: .92rem; font-weight: 700; color: var(--ink); }
+.cpn-l p  { margin: 0; font-size: .72rem; color: var(--dim); }
+/* THE SCARCITY, and it is the only thing on the card allowed to be loud besides the price. */
+.cpn-left {
+  display: inline-block; margin-top: .45rem; font-size: .68rem; font-weight: 700;
+  color: var(--gold); letter-spacing: .02em;
+}
+/* THE STUB, divided by a dashed line — the part you tear off, which is where the price lives. */
+.cpn-r {
+  flex: none; width: 6.2rem; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: .1rem;
+  padding: .7rem .4rem; border-left: 1px dashed var(--gold);
+  background: rgb(255 180 84 / .07);
+}
+.cpn-r b { font-size: 1.32rem; font-weight: 700; color: var(--gold); line-height: 1;
+           font-variant-numeric: tabular-nums; }
+.cpn-r span { font-size: .6rem; color: var(--dim); letter-spacing: .06em; }
+.cpn-r i {
+  margin-top: .4rem; font-style: normal; font-size: .62rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--bg); background: var(--gold); padding: .22rem .5rem; border-radius: 2px;
+}
+.cpn:active { transform: scale(.99); }
+@media (prefers-reduced-motion: reduce) { .cpn:active { transform: none; } }
+
+/* ---------- THE FAVOURITE STAR ---------------------------------------------------------------------
+   `.favwrap` HAD NO RULES AT ALL and the button was called `.fav`, which was already the FAVICON on
+   a link card — absolutely positioned, eighty per cent of the card, with a solid background. Every
+   star came out as a black rectangle over the thing it was meant to mark.
+
+   The wrapper only exists to give the button something to be positioned against, so it does the
+   least a wrapper can: it becomes the containing block and changes nothing else. */
+.favwrap { position: relative; }
+.star {
+  position: absolute; top: .4rem; right: .4rem;
+  width: 1.6rem; height: 1.6rem; padding: 0;
+  display: grid; place-items: center;
+  font-size: .95rem; line-height: 1;
+  background: rgb(0 0 0 / .45); color: var(--faint);
+  border: 0; border-radius: 50%; cursor: pointer;
+  /* ABOVE THE CARD, BELOW A SHEET. A star that sits over an open sheet is worse than one that is
+     hard to see. */
+  z-index: 2;
+}
+.favwrap.is-fav .star { color: var(--gold); background: rgb(0 0 0 / .55); }
+.star:active { transform: scale(.9); }
+@media (prefers-reduced-motion: reduce) { .star:active { transform: none; } }
+
+/* ==================================================================================================
+   THE FLYER MAKER — every rule under `.fm`, and every colour `--fly-` prefixed.
+
+   IT LIVED IN A SECOND FILE and the reasons were real: a print tool wants a fixed 210mm page and
+   this app is fluid and phone-first. Two things made it worth solving here instead — a second file
+   is a second thing to deploy and remember, and it carried its own copy of the brand and the venue
+   rates, which drift from the sheet the first time a price changes.
+
+   THE COLOURS ARE PREFIXED BECAUSE THEY WOULD OTHERWISE REPAINT THE APP. A flyer sets its own ink,
+   accent and ground; written as `--ink` they would land on the same custom property this stylesheet
+   uses everywhere and take the whole interface with them. Uglier names, and nothing to go wrong.
+================================================================================================== */
+/* ---------- THE CONTROLS, PACKED --------------------------------------------------------------
+   AS A WRAPPING FLEX ROW THEY FILLED A PHONE SCREEN before any paper was visible — five labels,
+   each on its own line, and the flyer somewhere below the fold. The point of drawing it underneath
+   is that you see the change as you make it, and that is lost if you have to scroll to find it.
+   A grid of even columns instead: three across on a phone, more on anything wider. */
+.fm-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+          gap: .4rem .5rem; margin-bottom: .45rem; }
+.fm-bar label { display: flex; flex-direction: column; gap: .1rem; min-width: 0;
+                font-size: .54rem; letter-spacing: .09em; text-transform: uppercase;
+                color: var(--faint); }
+.fm-bar select { font: inherit; font-size: .78rem; background: var(--sunk); color: var(--ink);
+                 border: 1px solid var(--line); border-radius: var(--r); padding: .3rem .4rem; }
+/* A NATIVE COLOUR INPUT is a real picker on every platform, and a hex field is six characters of
+   typing to find out you wanted a different green. */
+.fm-bar input[type=color] { width: 2.4rem; height: 1.7rem; padding: 0; cursor: pointer;
+                            background: none; border: 1px solid var(--line); border-radius: var(--r); }
+
+.fm-adds { display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center;
+           font-size: .68rem; color: var(--dim); margin-bottom: .3rem; }
+.fm-adds label { display: flex; gap: .25rem; align-items: center; cursor: pointer; }
+/* ---------- A TICKBOX HAS TO BE VISIBLE ON A BLACK SCREEN --------------------------------------
+   `accent-color` ONLY COLOURS A TICKED ONE. An unticked native checkbox on this theme is a dark
+   square on a dark background — every switch looked off, including the seven that were on, so the
+   one control that says what is on the flyer said nothing at all.
+   Given a border and a lighter ground it reads either way. */
+/* DRAWN, NOT STYLED. Giving a native checkbox a background is what killed it: the browser stops
+   drawing its own control and there is nothing to replace the tick, so a ticked box and an unticked
+   one looked identical — every switch appeared off, including the seven that were on.
+   `appearance: none` takes it over completely, and the tick is a rotated L drawn in the box. */
+.fm-adds input {
+  appearance: none; -webkit-appearance: none;
+  /* `min-height: max(44px, 2.9rem)` IS SET ON EVERY INPUT in this stylesheet — the touch-target
+     rule, and right for a field somebody types in. A tickbox is not that: it stretched to 44px tall
+     and 16px wide, so every switch was a coloured domino. `min-height` has to be unset by name,
+     because `height` alone loses to it. The touch target is kept on the LABEL instead, which is
+     what a thumb actually lands on. */
+  width: 1.05rem; height: 1.05rem; min-height: 0; padding: 0; margin: 0;
+  position: relative; flex: none; align-self: center;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 2px; cursor: pointer;
+}
+.fm-adds label { min-height: 2rem; }
+.fm-adds input:checked { background: var(--gold); border-color: var(--gold); }
+.fm-adds input:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1px;
+  width: 4px; height: 8px; border: solid var(--bg);
+  border-width: 0 2px 2px 0; transform: rotate(43deg);
+}
+.fm-sep { width: 1px; height: 14px; background: var(--line); }
+/* PRESETS ONLY TICK BOXES, and you watch it happen — one that hid what it did would be a mode. */
+.fm-pre { font: inherit; font-size: .66rem; background: var(--sunk); color: var(--dim);
+          border: 1px solid var(--line); border-radius: var(--r); padding: .2rem .45rem;
+          cursor: pointer; }
+.fm-pre:active { color: var(--gold); border-color: var(--gold); }
+
+/* ---------- THE PAPER --------------------------------------------------------------------------
+   Sized in millimetres, because that is what it is. Scaled to the screen by `flyFit`, which sets
+   the transform — the origin is top left so the scaled sheet does not drift off to one side. */
+/* THE PAPER SITS DIRECTLY UNDER THE PRINT BUTTON, close enough that a change is visible without
+   scrolling — which is the whole reason for drawing it here rather than in a second file. */
+.fm-out { overflow: hidden; margin-top: .5rem; }
+.fm-sheet { width: 210mm; height: 297mm; background: #fff; display: grid;
+            transform-origin: 0 0; overflow: hidden; }
+.fm-z-a5 { grid-template: 148.5mm 148.5mm / 210mm; }
+.fm-z-a6 { grid-template: 148.5mm 148.5mm / 105mm 105mm; }
+.fm-z-sq { grid-template: repeat(3, 99mm) / repeat(3, 70mm); }
+
+.fm-fly { padding: 16mm; display: flex; flex-direction: column; position: relative;
+          overflow: hidden; background: var(--fly-ground); color: var(--fly-ink);
+          font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+          border-right: 1px dashed rgb(0 0 0 / .18); border-bottom: 1px dashed rgb(0 0 0 / .18); }
+.fm-code { font: 400 7.5pt/1 var(--mono); letter-spacing: .16em; opacity: .55; }
+.fm-mark { font: 700 16pt/1 inherit; letter-spacing: -.01em; }
+.fm-head { margin: 9mm 0 0; letter-spacing: -.028em; max-width: 150mm; }
+.fm-say { margin: 5mm 0 0; font: 400 10pt/1.5 inherit; max-width: 108mm; opacity: .82; }
+.fm-slogan { margin: 4mm 0 0; font: 400 11pt/1.35 inherit; font-style: italic;
+             color: var(--fly-accent); }
+.fm-facts { margin-top: auto; padding-top: 5mm; border-top: .8pt solid currentColor; }
+.fm-facts div { font: 400 8.5pt/1.7 var(--mono); }
+.fm-facts b { color: var(--fly-accent); }
+.fm-foot { margin-top: 5mm; display: flex; justify-content: space-between; align-items: baseline;
+           font: 400 7.5pt/1 var(--mono); letter-spacing: .05em; opacity: .6; }
+.fm-foot b { opacity: 1; }
+
+/* ---------- THE FOUR STYLES --------------------------------------------------------------------
+   They differ in how much the page says and how loudly, which is the only distinction worth four
+   options. Anything more would be four arrangements of one idea. */
+.fm-s-minimal .fm-head { font: 700 34pt/1.03 inherit; }
+
+/* ELEGANT — a serif and wider leading, for campaigns about a decision rather than a deadline. */
+.fm-s-elegant { font-family: Georgia, "Times New Roman", serif; padding: 18mm 18mm 13mm; }
+.fm-s-elegant .fm-head { font: 400 33pt/1.14 Georgia, "Times New Roman", serif;
+                         letter-spacing: -.012em; }
+.fm-s-elegant .fm-say { font: 400 10.5pt/1.62 Georgia, "Times New Roman", serif; max-width: 100mm; }
+.fm-s-elegant .fm-code, .fm-s-elegant .fm-facts div, .fm-s-elegant .fm-foot {
+  font-family: var(--mono); }
+.fm-rule { width: 22mm; height: 1.4pt; background: var(--fly-accent); margin: 6mm 0 0; }
+
+/* DETAILED — for a noticeboard, where somebody stands and takes a decision without asking. */
+.fm-s-detailed .fm-head { font: 700 25pt/1.06 inherit; }
+.fm-s-detailed .fm-say { font-size: 9.5pt; max-width: 96mm; }
+.fm-spec { margin: 5mm 0 0; display: flex; gap: 6mm; flex-wrap: wrap; }
+.fm-spec div { font: 400 8pt/1.5 var(--mono); }
+.fm-spec span { display: block; font-size: 6.5pt; letter-spacing: .1em; text-transform: uppercase;
+                opacity: .55; }
+.fm-spec b { color: var(--fly-accent); font-size: 10pt; }
+
+/* LOUD — the cheap advert. The joke is the format, so the format has to be right: yellow ground,
+   black bars, everything shouting, a number set larger than it has any right to be. It reads as a
+   gag because it is doing the opposite of the other three, and a parody of restraint is only funny
+   next to restraint. The genre is borrowed — every minicab card through a letterbox — not any
+   particular thing. */
+.fm-s-loud { padding: 10mm 12mm; border-top: 4mm solid var(--fly-ink);
+             border-bottom: 4mm solid var(--fly-ink); }
+.fm-s-loud .fm-head { font: 900 33pt/.98 inherit; letter-spacing: -.035em; font-style: italic;
+                      text-transform: uppercase; margin: 5mm 0 0; }
+.fm-s-loud .fm-say { font-weight: 700; font-size: 9.5pt; opacity: 1; margin-top: 3mm; }
+.fm-s-loud .fm-slogan { font: 900 13pt/1.1 inherit; font-style: italic; text-transform: uppercase;
+                        color: var(--fly-ink); }
+.fm-ring { margin: 4mm 0 0; text-align: center; }
+.fm-ring span { display: block; font: 700 8pt/1 inherit; letter-spacing: .18em;
+                text-transform: uppercase; margin-bottom: 1.5mm; }
+.fm-ring b { display: block; font: 900 30pt/1 inherit; letter-spacing: -.03em; font-style: italic; }
+.fm-s-loud .fm-facts { border-top-width: 1.4pt; }
+.fm-s-loud .fm-facts div { font-weight: 700; }
+
+/* ---------- SMALLER SIZES ARE NOT THE SAME FLYER SHRUNK ----------------------------------------
+   Scaling everything by a third gives 5pt facts nobody reads and a headline that stops looking
+   deliberate. Each size gets its own padding and headline, so an A6 is a small flyer and a sticker
+   is a different object. */
+.fm-z-a6 .fm-fly { padding: 9mm; }
+.fm-z-a6 .fm-head { font-size: 19pt; }
+.fm-z-a6 .fm-say { font-size: 8pt; max-width: none; }
+.fm-z-a6 .fm-facts div { font-size: 7pt; line-height: 1.55; }
+.fm-z-a6 .fm-slogan { font-size: 8.5pt; }
+.fm-z-a6 .fm-ring b { font-size: 19pt; }
+
+.fm-z-sq .fm-fly { padding: 7mm; }
+.fm-z-sq .fm-head { font-size: 15pt; line-height: 1.05; }
+.fm-z-sq .fm-say { font-size: 7pt; max-width: none; }
+.fm-z-sq .fm-facts { padding-top: 3mm; }
+.fm-z-sq .fm-facts div { font-size: 6.2pt; line-height: 1.5; }
+.fm-z-sq .fm-slogan { font-size: 7.5pt; margin-top: 2mm; }
+.fm-z-sq .fm-code, .fm-z-sq .fm-foot { font-size: 5.6pt; }
+.fm-z-sq .fm-spec { display: none; }
+/* A 70MM SQUARE CANNOT HOLD A SHOUT. Shrinking the loud one until it fits gives a quiet advert in a
+   loud style, which is the worst of both — so the paragraph goes and the rest is cut down. */
+.fm-z-sq .fm-s-loud { padding: 6mm 7mm; border-top-width: 2.5mm; border-bottom-width: 2.5mm; }
+.fm-z-sq .fm-s-loud .fm-head { font-size: 13pt; margin-top: 3mm; }
+.fm-z-sq .fm-s-loud .fm-say { display: none; }
+.fm-z-sq .fm-s-loud .fm-ring b { font-size: 14pt; }
+.fm-z-sq .fm-s-loud .fm-ring span { font-size: 5.6pt; margin-bottom: .8mm; }
+
+/* ---------- THE QR, AND WHAT HAPPENS WITH NO SIGNAL --------------------------------------------
+   The code is drawn by a public service, so offline the image fails — and a failed image prints an
+   empty box with a broken-picture icon in it. `onerror` marks the flyer and the whole block goes,
+   padding included, so an offline flyer is simply one without a QR: a complete object. */
+.fm-qr { position: absolute; right: 16mm; bottom: 12mm; width: 22mm; height: 22mm;
+         background: #fff; padding: 1.2mm; }
+.fm-qr img { width: 100%; height: 100%; display: block; }
+.fm-fly.has-qr .fm-facts, .fm-fly.has-qr .fm-foot { padding-right: 26mm; }
+.fm-fly.qr-off .fm-qr { display: none; }
+.fm-fly.qr-off .fm-facts, .fm-fly.qr-off .fm-foot { padding-right: 0; }
+.fm-z-sq .fm-qr { right: 7mm; bottom: 7mm; width: 15mm; height: 15mm; }
+.fm-z-sq .fm-fly.has-qr .fm-facts, .fm-z-sq .fm-fly.has-qr .fm-foot { padding-right: 17mm; }
+
+/* ---------- WITH ALMOST NOTHING ON IT, IT CENTRES ----------------------------------------------
+   A name and a QR pushed to the top left looks like something that failed to load. Centred, the
+   little that is left reads as deliberate, which is the difference between a sticker and an
+   accident. */
+.fm-fly.bare { align-items: center; justify-content: center; text-align: center; }
+.fm-fly.bare .fm-mark { font-size: 21pt; margin-bottom: 4mm; }
+.fm-fly.bare .fm-facts { margin-top: 3mm; border-top: 0; padding-top: 0; }
+/* SIDE BY SIDE THE ADDRESS NEEDS A WIDTH A STICKER HAS NOT GOT — both halves wrapped and read as
+   four lines of nothing. Stacked, they are two lines that mean something. */
+.fm-fly.bare .fm-foot { flex-direction: column; align-items: center; gap: .8mm; }
+.fm-fly.bare .fm-qr { position: static; margin: 0 auto 3mm; }
+.fm-fly.bare.has-qr .fm-facts, .fm-fly.bare.has-qr .fm-foot { padding-right: 0; }
+.fm-z-sq .fm-fly.bare .fm-mark { font-size: 14pt; }
+
+/* ==================================================================================================
+   PRINTING FROM INSIDE THE APP.
+
+   A BROWSER PRINTS THE WHOLE DOCUMENT. Without this, printing would put the column, the tab bar and
+   the sheet's own chrome on the paper — which is the real reason this lived in a separate file.
+
+   `printing-fly` IS SET ONLY WHILE PRINTING, so a print started anywhere else in the app is
+   untouched. Everything is hidden, then the paper alone is lifted out of the flow at the top left
+   of the page at its true size.
+================================================================================================== */
+@media print {
+  body.printing-fly * { visibility: hidden !important; }
+  body.printing-fly .fm-out,
+  body.printing-fly .fm-out * { visibility: visible !important; }
+  body.printing-fly .fm-out {
+    position: absolute; left: 0; top: 0; margin: 0; padding: 0;
+    /* THE SCALED HEIGHT IS SET IN JAVASCRIPT AND MUST BE UNDONE, or the page prints into a box the
+       size of a phone screen and the second flyer is cut off. */
+    height: auto !important; overflow: visible !important;
+  }
+  body.printing-fly .fm-sheet { transform: none !important; box-shadow: none; }
+  body.printing-fly .fm-fly { border: 0; }
+  @page { size: A4 portrait; margin: 0; }
+}
+
+/* ==================================================================================================
+   THE MATHS MAT — every rule prefixed `mat-`, and every colour its own.
+
+   THE SHEET IS A PIECE OF PAPER INSIDE A DARK APP, so it sets its own ink and ground rather than
+   inheriting. Prefixed names because `.hun`, `.tt` and `.nl` are the kind of short class that will
+   collide with something eventually — and the flyer maker already taught this lesson, where `.fav`
+   was a favicon and a star button at the same time and every star came out as a black rectangle.
+================================================================================================== */
+.mat-lev { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .5rem; }
+.mat-lev button { font: 600 .68rem/1 var(--mono); background: var(--sunk); color: var(--dim);
+                  border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .5rem;
+                  cursor: pointer; }
+.mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+            gap: .1rem .6rem; margin-bottom: .5rem; }
+.mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 2rem;
+                  font-size: .72rem; color: var(--ink); cursor: pointer; }
+.mat-list label.off { display: none; }
+/* DRAWN, NOT STYLED — a background on a native checkbox stops the browser drawing its own control
+   and there is nothing left to replace the tick. And `min-height` must be unset by name, or the
+   touch-target rule on every input stretches it into a domino. */
+.mat-list input { appearance: none; -webkit-appearance: none; flex: none; position: relative;
+                  width: 1rem; height: 1rem; min-height: 0; padding: 0; margin: 0;
+                  background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
+                  cursor: pointer; }
+.mat-list input:checked { background: var(--gold); border-color: var(--gold); }
+.mat-list input:checked::after { content: ""; position: absolute; left: 5px; top: 1px;
+  width: 4px; height: 8px; border: solid var(--bg); border-width: 0 2px 2px 0;
+  transform: rotate(43deg); }
+.mat-list u { margin-left: auto; font-size: .62rem; color: var(--faint); text-decoration: none; }
+/* THE GAUGE turns red at 100%, not at 90% — a warning that fires early is one people learn to
+   ignore, and then ignore when it matters. */
+.mat-gauge { height: .45rem; background: var(--sunk); border-radius: 3px; overflow: hidden; }
+.mat-gauge i { display: block; height: 100%; background: var(--good); transition: width .15s; }
+.mat-gauge.over i { background: var(--bad); }
+.mat-said { margin: .35rem 0 .6rem; font-size: .72rem; color: var(--dim); }
+.mat-said b { color: var(--ink); }
+.mat-said.over b { color: var(--bad); }
+
+/* ---------- THE PAPER --------------------------------------------------------------------------- */
+.mat-out { overflow: hidden; margin-top: .6rem; }
+.mat-sheet { width: 210mm; height: 297mm; background: #fff; color: #14140f; position: relative;
+             padding: 6mm 6mm 5mm 20mm; transform-origin: 0 0; overflow: hidden;
+             display: flex; flex-direction: column; gap: 2.8mm;
+             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+/* THE RULER AT THE EDGE, because that is where a ruler is used — you lay the paper against the
+   thing you are measuring, and one in the middle of a sheet cannot reach anything. */
+.mat-rule { position: absolute; left: 0; top: 6mm; bottom: 5mm; width: 20mm;
+            border-right: .3mm solid #bbb; }
+.mat-rule i { position: absolute; left: 0; height: .25mm; background: #14140f; }
+.mat-rule b { position: absolute; left: 8mm; font: 700 3.4mm/1 var(--mono);
+              transform: translateY(-1.7mm); }
+.mat-head { display: flex; justify-content: space-between; align-items: baseline;
+            border-bottom: .5mm solid #14140f; padding-bottom: 1.5mm; }
+.mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: #14140f; letter-spacing: -.02em; }
+.mat-head span { font: 400 3mm/1 var(--mono); color: #77776c; }
+.mat-cols { display: flex; flex-direction: column; gap: 2.8mm; }
+.mat-two-up { display: flex; gap: 4mm; }
+.mat-two-up > * { flex: 1; min-width: 0; }
+.mat-box h4 { margin: 0 0 1.2mm; font: 700 3.2mm/1 var(--mono); letter-spacing: .1em;
+              text-transform: uppercase; color: #77776c; }
+.mat-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline;
+            border-top: .3mm solid #c9c3b2; padding-top: 1.5mm;
+            font: 400 2.7mm/1 var(--mono); color: #77776c; }
+.mat-foot b { color: #14140f; }
+
+/* ---------- THE COMPONENTS ---------------------------------------------------------------------- */
+.mat-hun { display: grid; grid-template-columns: repeat(10, 1fr); border: .3mm solid #14140f; }
+.mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.9mm/1 inherit;
+             border-right: .15mm solid #c9c3b2; border-bottom: .15mm solid #c9c3b2; }
+.mat-hun i:nth-child(10n) { border-right: 0; }
+.mat-hun i.five { background: #f0efe6; }
+.mat-hun i.ten { background: #dfe7ef; font-weight: 700; }
+.mat-tt { display: grid; grid-template-columns: repeat(13, 1fr); border: .3mm solid #14140f; }
+.mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.5mm/1 inherit;
+            border-right: .15mm solid #c9c3b2; border-bottom: .15mm solid #c9c3b2; }
+.mat-tt i:nth-child(13n) { border-right: 0; }
+.mat-tt i.h { background: #14140f; color: #fff; font-weight: 700; }
+.mat-tt i.sq { background: #f7e6c8; font-weight: 700; }
+/* FRACTIONS ABOVE AND DECIMALS BELOW ON ONE LINE, because they are the same thing and showing them
+   apart is most of why they stay separate ideas. */
+.mat-nl { position: relative; height: 16mm; }
+.mat-nl::before { content: ""; position: absolute; left: 0; right: 0; top: 8mm; height: .4mm;
+                  background: #14140f; }
+.mat-nl i { position: absolute; top: 4mm; width: .4mm; height: 4mm; background: #14140f; }
+.mat-nl b { position: absolute; top: 0; font: 700 3.4mm/1 inherit; transform: translateX(-50%); }
+.mat-nl u { position: absolute; top: 8mm; width: .25mm; height: 2.5mm; background: #77776c; }
+.mat-nl s { position: absolute; top: 11.5mm; font: 400 2.6mm/1 var(--mono); color: #77776c;
+            text-decoration: none; transform: translateX(-50%); }
+.mat-pv { display: grid; grid-template-columns: repeat(7, 1fr); border: .3mm solid #14140f; }
+.mat-pv i { display: grid; place-items: center; padding: 1.4mm 0;
+            border-right: .15mm solid #c9c3b2; }
+.mat-pv i:last-child { border-right: 0; }
+.mat-pv i.dot { background: #f7e6c8; }
+.mat-pv b { font: 700 3.4mm/1 inherit; }
+.mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: #77776c; margin-top: .6mm; }
+.mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
+.mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: #77776c; }
+.mat-meas i { display: block; font: 400 2.8mm/1.5 inherit; font-style: normal; }
+/* THE NOTE UNDER THE NAME, NOT UNDER THE ICON. Three children in a two-column grid put the note in
+   the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
+.mat-ang { display: grid; grid-template-columns: 1fr 1fr; gap: .8mm 2mm; align-content: start; }
+.mat-ang div { display: grid; grid-template-columns: 7mm 1fr; align-items: center; gap: 0 1.2mm; }
+.mat-ang svg { width: 7mm; grid-row: span 2; align-self: center; }
+.mat-ang span { grid-column: 2; font: 600 2.8mm/1.1 inherit; }
+.mat-ang em { grid-column: 2; font: 400 2.2mm/1.2 var(--mono); font-style: normal; color: #77776c; }
+.mat-prot { text-align: center; }
+.mat-prot svg { display: block; margin: 0 auto; width: 90mm; }
+.mat-shapes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1.5mm; text-align: center; }
+.mat-shapes svg { width: 100%; height: auto; }
+.mat-shapes span { display: block; font: 400 2.4mm/1.2 inherit; margin-top: .6mm; }
+.mat-shapes em { display: block; font: 400 2.1mm/1 var(--mono); font-style: normal; color: #77776c; }
+.mat-rom { display: flex; flex-wrap: wrap; gap: 1mm 2mm; }
+.mat-rom i { font: 400 2.8mm/1.2 inherit; font-style: normal; }
+.mat-rom i b { font-weight: 700; margin-right: .8mm; }
+.mat-rom i.wide { flex-basis: 100%; color: #77776c; font-size: 2.5mm; }
+.mat-fdp { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1mm; text-align: center; }
+.mat-fdp i { font-style: normal; }
+.mat-fdp b { display: block; font: 700 3.4mm/1.2 inherit; }
+.mat-fdp em { display: block; font: 400 2.2mm/1.3 var(--mono); font-style: normal; color: #77776c; }
+.mat-two { display: grid; grid-template-columns: 1fr 1fr; gap: .6mm 3mm; }
+.mat-two i { font: 400 2.7mm/1.35 inherit; font-style: normal; }
+.mat-two i b { display: inline-block; min-width: 17mm; font-weight: 700; }
+.mat-two i em { font-style: normal; color: #44443c; }
+.mat-trig { display: grid; grid-template-columns: repeat(6, 1fr); border: .3mm solid #14140f; }
+.mat-trig i { display: grid; place-items: center; padding: 1mm 0; font: 400 2.7mm/1 inherit;
+              font-style: normal; border-right: .15mm solid #c9c3b2;
+              border-bottom: .15mm solid #c9c3b2; }
+.mat-trig i:nth-child(6n) { border-right: 0; }
+.mat-trig i.h { background: #14140f; color: #fff; font-weight: 700; }
+/* AN SVG WITH NO WIDTH IS NOT A SMALL PICTURE, it is as large as you let it be — these filled the
+   column and the block came out 744mm, nearly three sheets from one component. */
+.mat-graphs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; text-align: center; }
+.mat-graphs svg { width: 100%; height: auto; }
+.mat-graphs span { display: block; font: 400 2.5mm/1.2 inherit; margin-top: .5mm; }
+.mat-graphs em { display: block; font: 400 2.2mm/1 var(--mono); font-style: normal; color: #77776c; }
+/* THE ROOT IS DRAWN, NOT TYPED. A √ character sits beside the numbers at whatever size the font
+   makes it, and its bar covers only the first — so it reads as the root of one number rather than
+   of the row, which is the one thing the trick depends on saying. */
+.mat-tk { font-size: 3mm; }
+.mat-tk-row { display: flex; align-items: stretch; gap: 1.5mm; }
+.mat-tk-row > b { width: 7mm; font: 700 3.2mm/1 var(--mono); align-self: center; }
+.mat-tk-surd { flex: 1; display: flex; align-items: stretch; }
+.mat-tk-rad { position: relative; width: 3.4mm; align-self: stretch; }
+.mat-tk-rad::before { content: ""; position: absolute; left: 1.6mm; top: 0; bottom: 1.2mm;
+                      border-left: .5mm solid #14140f; transform: skewX(-11deg); }
+.mat-tk-rad::after { content: ""; position: absolute; left: 0; bottom: 2.6mm; width: 2mm;
+                     border-top: .45mm solid #14140f; transform: rotate(52deg);
+                     transform-origin: left; }
+.mat-tk-row:first-child .mat-tk-rad::before,
+.mat-tk-row:first-child .mat-tk-rad::after { display: none; }
+.mat-tk-nums { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr);
+               border-top: .4mm solid #14140f; padding-top: .8mm; }
+.mat-tk-row:first-child .mat-tk-nums { border-top: 0; }
+.mat-tk-nums i { text-align: center; font: 700 4.2mm/1.1 inherit; font-style: normal; }
+.mat-tk-nums em { text-align: center; font: 400 2.6mm/1.1 var(--mono); font-style: normal;
+                  color: #77776c; }
+.mat-tk-nums u { text-align: center; font: 400 2.7mm/1.1 var(--mono); text-decoration: none;
+                 color: #9b2d22; }
+.mat-tk-simp { display: flex; gap: 1.5mm; margin: .4mm 0 1.5mm; }
+.mat-tk-simp > b { width: 7mm; }
+.mat-tk-simp .mat-tk-nums { border-top: 0; padding-top: 0; }
+.mat-tk-say { margin: .5mm 0 0; font: 400 2.6mm/1.4 inherit; color: #77776c; }
+.mat-tk-say b { color: #14140f; }
+
+/* ---------- PRINTING FROM INSIDE THE APP -------------------------------------------------------
+   A browser prints the whole document, so without this the column, the tab bar and the card's own
+   chrome go on the paper. Set only while printing, so a print started anywhere else is untouched. */
+@media print {
+  body.printing-mat * { visibility: hidden !important; }
+  body.printing-mat .mat-out, body.printing-mat .mat-out * { visibility: visible !important; }
+  body.printing-mat .mat-out { position: absolute; left: 0; top: 0; margin: 0; padding: 0;
+    height: auto !important; overflow: visible !important; }
+  body.printing-mat .mat-sheet { transform: none !important; box-shadow: none; }
+  @page { size: A4 portrait; margin: 0; }
+}
+
+/* ---------- MULTIPLES ON A HUNDRED SQUARE --------------------------------------------------------
+   THE ONE THING THE OTHER TWENTY-SIX DO NOT DO: show a pattern emerging from a grid rather than
+   drawing a picture of one. Threes make diagonals, fives two clean columns, nines a stripe running
+   the other way — and a child notices that before anybody explains it, which is the reason to put
+   it on a screen somebody is already staring at.
+
+   THE CELL LISTS ARE COMPUTED, NOT TYPED. Thirty-three nth-child selectors written by hand is
+   thirty-three chances to put 27 where 24 goes, and the fault would look like a pattern rather than
+   a typo — the worst kind, on a splash whose whole job is showing a true pattern.
+
+   SIX SECONDS, THREE TABLES, and each holds long enough to be seen. A splash is up for about two,
+   so most loads show one table completely rather than three partially: one clear pattern beats
+   three half-drawn ones, which was the fault in half the splashes here before today. */
+#splash-mult { text-align: center; }
+.mu-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;
+           width: min(62vw, 15rem); margin: 0 auto; }
+.mu-grid i { aspect-ratio: 1; border-radius: 2px; background: rgb(244 241 232 / .07); }
+.mu-say { margin-top: .8rem; font: 600 .8rem var(--mono); letter-spacing: .06em;
+          color: rgb(240 236 224 / .55); text-align: center; }
+.mu-say b { color: #f0b45f; animation: mu-n 6s steps(1) infinite; }
+/* THE LABEL IS A PSEUDO-ELEMENT so `content` can be animated — on a real element it does nothing,
+   which is a rule that looks considered and has no effect. */
+.mu-n { font-size: 0; }
+.mu-n::after { font-size: .8rem; content: "3"; animation: mu-n 6s steps(1) infinite; }
+@keyframes mu-n { 0%,33% { content: "3"; } 34%,66% { content: "5"; } 67%,100% { content: "9"; } }
+/* THE CELLS LIT AND THEN HELD, so the middle of each table's third was three identical frames — the
+   pattern appeared and then sat there, which is a picture of a pattern rather than one emerging.
+   They now come up in a stagger and breathe while lit, so the grid is alive for the whole third
+   rather than for the moment it arrives. The stagger is per-cell via the delays below. */
+
+@media (prefers-reduced-motion: reduce) {
+  .mu-grid i, .mu-n::after, .mu-say b { animation: none; }
+  /* STILL A PATTERN, not a blank grid. With motion off the threes stay lit, so the splash says the
+     same thing without moving — which is what reduced motion is for and not an excuse to show
+     nothing. */
+  .mu-grid i:nth-child(3), .mu-grid i:nth-child(6), .mu-grid i:nth-child(9), .mu-grid i:nth-child(12), .mu-grid i:nth-child(15), .mu-grid i:nth-child(18), .mu-grid i:nth-child(21), .mu-grid i:nth-child(24), .mu-grid i:nth-child(27), .mu-grid i:nth-child(30), .mu-grid i:nth-child(33), .mu-grid i:nth-child(36), .mu-grid i:nth-child(39), .mu-grid i:nth-child(42), .mu-grid i:nth-child(45), .mu-grid i:nth-child(48), .mu-grid i:nth-child(51), .mu-grid i:nth-child(54), .mu-grid i:nth-child(57), .mu-grid i:nth-child(60), .mu-grid i:nth-child(63), .mu-grid i:nth-child(66), .mu-grid i:nth-child(69), .mu-grid i:nth-child(72), .mu-grid i:nth-child(75), .mu-grid i:nth-child(78), .mu-grid i:nth-child(81), .mu-grid i:nth-child(84), .mu-grid i:nth-child(87), .mu-grid i:nth-child(90), .mu-grid i:nth-child(93), .mu-grid i:nth-child(96), .mu-grid i:nth-child(99) {
+    background: #f0b45f;
+  }
+}
+
+
+/* THE THREE TABLES AS THREE NAMED ANIMATIONS rather than three delays. The per-cell stagger above
+   IS a delay, and one delay cannot mean two things — using it for both would have made the fives
+   and nines land on top of the threes. Each table lights in its own third of the cycle. */
+
+/* ==================================================================================================
+   FOUR THAT TEACH NOTHING.
+
+   TWENTY-SEVEN PROOFS IN A ROW IS A SET THAT NEVER LETS ANYBODY WAIT. Every splash so far explains
+   something, and a loading screen that always wants to teach is a loading screen that never lets a
+   tired parent at eleven at night just look at it. These four are calm or pretty and nothing more,
+   and the set is better for having somewhere to land.
+================================================================================================== */
+
+/* ---------- BREATHING ----------------------------------------------------------------------------
+   Three rings swelling and settling out of phase, and a word keeping time. Four seconds in and four
+   out is the pace people are actually taught, and matching it means somebody who notices is
+   breathing at the right rate without being asked to. */
+/* ---------- A FLEX ITEM DOES NOT CENTRE WITH `margin: 0 auto` ------------------------------------
+   `#splash` IS A FLEX COLUMN, and `margin: 0 auto` centres a BLOCK in its containing block — in a
+   flex column the item is stretched or aligned by the parent, and the auto margin has nothing to
+   divide. All four new splashes drew hard against the left edge while every earlier one, built
+   before I forgot this, sets `align-self` or lives inside a centred wrapper.
+   Each of the four is a flex item, so each says so. */
+#splash-breathe, #splash-rain, #splash-weave, #splash-pend {
+  display: none;                 /* shown by the `.is-` rule below */
+  /* `align-items` CENTRES THE CHILDREN; `align-self` centres THIS. I set the first and the splash
+     still drew hard left — the ring was neatly centred inside a box that was itself against the
+     edge. Two properties one word apart, and only one of them was the question being asked. */
+  flex-direction: column; align-items: center; align-self: center; text-align: center;
+}
+/* ONE RULE EACH, NOT ONE RULE FOR FOUR. `check-css` looks for a `.is-` rule naming each splash and
+   a combined selector hid three of them from it — the check was right to complain: a grouped rule
+   is one edit away from dropping a splash from the pool silently, and nothing would show it. */
+#splash.is-breathe #splash-breathe { display: flex; }
+#splash.is-rain    #splash-rain    { display: flex; }
+#splash.is-weave   #splash-weave   { display: flex; }
+#splash.is-pend    #splash-pend    { display: flex; }
+.br-ring { position: relative; width: min(46vw, 9rem); aspect-ratio: 1; margin: 0 auto; }
+.br-ring i { position: absolute; inset: 0; border-radius: 50%;
+             border: 2px solid rgb(111 216 196 / .5);
+             animation: br-swell 8s cubic-bezier(.4,0,.5,1) infinite; }
+.br-ring i:nth-child(2) { animation-delay: -.55s; border-color: rgb(111 216 196 / .3); }
+.br-ring i:nth-child(3) { animation-delay: -1.1s; border-color: rgb(111 216 196 / .16); }
+@keyframes br-swell {
+  0%   { transform: scale(.42); opacity: .25; }
+  50%  { transform: scale(1);   opacity: .95; }
+  100% { transform: scale(.42); opacity: .25; }
+}
+.br-say { margin-top: 1rem; font: 600 .82rem var(--mono); letter-spacing: .22em;
+          text-transform: lowercase; color: #6fd8c4;
+          animation: br-word 8s cubic-bezier(.4,0,.5,1) infinite; }
+@keyframes br-word { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
+/* ---------- RAIN ON GLASS ------------------------------------------------------------------------
+   NINE DROPS, EACH WITH ITS OWN SPEED AND START, given as custom properties in the markup rather
+   than as nine rules here — one rule and nine sets of numbers, so a tenth drop is one element.
+   The speeds are deliberately not multiples of each other: drops that share a rhythm read as a
+   machine, and rain is the opposite of that. */
+.rn-glass { position: relative; width: min(56vw, 12rem); height: 9rem; margin: 0 auto;
+            overflow: hidden; border-radius: 6px;
+            background: linear-gradient(180deg, rgb(111 168 220 / .06), rgb(111 168 220 / .12)); }
+.rn-glass i { position: absolute; top: -12%; left: var(--x); width: 2px; height: 14%;
+              border-radius: 2px;
+              background: linear-gradient(180deg, transparent, rgb(190 220 250 / .85));
+              animation: rn-fall var(--t) linear var(--d) infinite; }
+@keyframes rn-fall { to { transform: translateY(820%); } }
+/* THE POOL AT THE FOOT, which is what makes it glass rather than a screensaver — rain that vanishes
+   at the bottom edge is rain nobody has watched. */
+.rn-glass::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 8%;
+                   background: linear-gradient(180deg, transparent, rgb(190 220 250 / .3));
+                   animation: rn-pool 2.6s ease-in-out infinite; }
+@keyframes rn-pool { 0%,100% { opacity: .45; } 50% { opacity: .9; } }
+.rn-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
+          color: rgb(240 236 224 / .45); text-align: center; }
+
+/* ---------- A WOVEN CHECK ------------------------------------------------------------------------
+   Six threads each way, sliding across one another. The over-and-under is done with opacity rather
+   than z-index: a thread cannot be both above and below another in one stacking order, and faking
+   the crossing with alternating alpha is what makes it read as cloth. */
+.wv-cloth { position: relative; width: min(52vw, 11rem); aspect-ratio: 1; margin: 0 auto;
+            align-self: center;
+            overflow: hidden; border-radius: 4px; }
+.wv-cloth i { position: absolute; }
+.wv-h { left: -20%; width: 140%; height: 9%; top: calc(var(--i) * 16.6%);
+        background: rgb(240 180 95 / .55);
+        animation: wv-slide 5.5s ease-in-out infinite alternate;
+        animation-delay: calc(var(--i) * -.4s); }
+.wv-v { top: -20%; height: 140%; width: 9%; left: calc(var(--i) * 16.6%);
+        background: rgb(111 168 220 / .5);
+        animation: wv-slide-v 5.5s ease-in-out infinite alternate;
+        animation-delay: calc(var(--i) * -.4s); }
+/* EVERY OTHER CROSSING GOES UNDER, which is the whole difference between cloth and a grid. */
+.wv-v:nth-child(odd) { mix-blend-mode: screen; }
+/* ---------- A STRIPE SLIDING ALONG ITS OWN LENGTH DOES NOT MOVE -----------------------------------
+   THE HORIZONTAL THREADS TRANSLATED IN X and the verticals in Y — each along its own axis. Every
+   animation was running, 44 pixels of travel each, and four sample frames came out identical:
+   a uniform bar shifted parallel to itself is pixel-for-pixel the same picture.
+   It is the one kind of motion that a "does it animate" check can never catch, because it does.
+   Horizontals move ACROSS themselves in Y, verticals in X, and the cloth breathes. */
+@keyframes wv-slide   { from { transform: translateY(-42%); } to { transform: translateY(42%); } }
+@keyframes wv-slide-v { from { transform: translateX(42%); }  to { transform: translateX(-42%); } }
+.wv-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
+          color: rgb(240 236 224 / .45); }
+
+/* ---------- A PENDULUM WAVE ----------------------------------------------------------------------
+   FIFTEEN SWINGS OF SLIGHTLY DIFFERENT PERIOD. They start together, drift apart, briefly form a
+   travelling snake and a double helix, and come back together — and nothing coordinates them. That
+   is the actual thing worth looking at: it appears choreographed and is only fifteen lengths.
+   The period is `2.4s + n × .06s`, computed in the CSS from `--n`, so fifteen bobs are one rule. */
+.pd-rack { display: flex; justify-content: center; gap: 3px;
+           width: min(60vw, 13rem); height: 8rem; margin: 0 auto; }
+.pd-rack i { position: relative; width: 6px; height: 100%;
+             transform-origin: 50% 0;
+             animation: pd-swing calc(2.4s + var(--n) * .06s) cubic-bezier(.37,0,.63,1)
+                        infinite alternate; }
+.pd-rack i::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; bottom: 14%;
+                     margin-left: -.5px; background: rgb(244 241 232 / .22); }
+.pd-rack i::after { content: ""; position: absolute; left: 0; bottom: 0; width: 6px; height: 6px;
+                    border-radius: 50%; background: #f0b45f;
+                    box-shadow: 0 0 6px rgb(240 180 95 / .5); }
+@keyframes pd-swing { from { transform: rotate(-19deg); } to { transform: rotate(19deg); } }
+.pd-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
+          color: rgb(240 236 224 / .45); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* STILL SOMETHING TO LOOK AT, not four blank boxes. Reduced motion means no movement, not no
+     picture — the rings sit at their widest, the weave holds still as cloth, the pendulums hang in
+     the fan they make halfway through a cycle. */
+  .br-ring i, .br-say, .rn-glass i, .rn-glass::after,
+  .wv-h, .wv-v, .pd-rack i { animation: none; }
+  .br-ring i { transform: scale(1); opacity: .8; }
+  .br-say { opacity: 1; }
+  .rn-glass i { top: 30%; }
+  .pd-rack i:nth-child(odd) { transform: rotate(-12deg); }
+  .pd-rack i:nth-child(even) { transform: rotate(12deg); }
+}
+
+
+/* ---------- ONE ANIMATION PER CELL, WITH ITS OWN KEYFRAMES ---------------------------------------
+   TWO ANIMATIONS ON ONE ELEMENT BOTH SETTING `background` DO NOT COMBINE — the later one in the list
+   wins for as long as both are running, and all three run the whole six seconds (each simply holds
+   dark outside its own third). So `mu-lit5`, holding dark through the first third, painted over
+   `mu-lit` lighting: cell 15 carried both animations, resolved correctly in the computed style, and
+   still never lit with the threes.
+   That is the second time this splash has been wrong in the same place. Listing both animations
+   fixed WHICH ones apply and not which one is seen.
+
+   THE ANSWER IS ONE ANIMATION PER CELL whose keyframes light in exactly the thirds that cell
+   belongs to. Nothing overlaps, so nothing can overwrite. Only five combinations occur, so it is
+   five keyframe sets rather than a hundred.
+
+   AND THE GLOW DIPS MID-HOLD. The pattern has to stay complete long enough to be seen, which is
+   760ms of the same cells lit — the longest still stretch of any splash here. Pulsing the SHADOW
+   rather than the fill keeps every cell lit, so the shape is unbroken while the screen is not
+   frozen: the two requirements looked opposed and only the fill was ever load-bearing. */
+/* cells in the 3 times table — 18 of them */
+@keyframes mu-3 {
+  0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  1.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  4.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  15.5% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  27.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  31.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  100% { background: rgb(244 241 232 / .07); box-shadow: none; }
+}
+.mu-grid i:nth-child(3), .mu-grid i:nth-child(6), .mu-grid i:nth-child(12), .mu-grid i:nth-child(21), .mu-grid i:nth-child(24), .mu-grid i:nth-child(33), .mu-grid i:nth-child(39), .mu-grid i:nth-child(42), .mu-grid i:nth-child(48), .mu-grid i:nth-child(51), .mu-grid i:nth-child(57), .mu-grid i:nth-child(66), .mu-grid i:nth-child(69), .mu-grid i:nth-child(78), .mu-grid i:nth-child(84), .mu-grid i:nth-child(87), .mu-grid i:nth-child(93), .mu-grid i:nth-child(96) { animation: mu-3 6s ease-in-out infinite; }
+.mu-grid i:nth-child(3) { animation-delay: -0.022s; }
+.mu-grid i:nth-child(6) { animation-delay: -0.055s; }
+.mu-grid i:nth-child(12) { animation-delay: -0.022s; }
+.mu-grid i:nth-child(21) { animation-delay: -0.022s; }
+.mu-grid i:nth-child(24) { animation-delay: -0.055s; }
+.mu-grid i:nth-child(33) { animation-delay: -0.055s; }
+.mu-grid i:nth-child(39) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(42) { animation-delay: -0.055s; }
+.mu-grid i:nth-child(48) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(51) { animation-delay: -0.055s; }
+.mu-grid i:nth-child(57) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(66) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(69) { animation-delay: -0.154s; }
+.mu-grid i:nth-child(78) { animation-delay: -0.154s; }
+.mu-grid i:nth-child(84) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(87) { animation-delay: -0.154s; }
+.mu-grid i:nth-child(93) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(96) { animation-delay: -0.154s; }
+/* cells in the 3 and 5 times tables — 4 of them */
+@keyframes mu-35 {
+  0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  1.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  4.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  15.5% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  27.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  31.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  34.3% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  37.3% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  48.8% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  60.3% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  64.3% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  100% { background: rgb(244 241 232 / .07); box-shadow: none; }
+}
+.mu-grid i:nth-child(15), .mu-grid i:nth-child(30), .mu-grid i:nth-child(60), .mu-grid i:nth-child(75) { animation: mu-35 6s ease-in-out infinite; }
+.mu-grid i:nth-child(15) { animation-delay: -0.055s; }
+.mu-grid i:nth-child(30) { animation-delay: -0.121s; }
+.mu-grid i:nth-child(60) { animation-delay: -0.154s; }
+.mu-grid i:nth-child(75) { animation-delay: -0.121s; }
+/* cells in the 3 and 5 and 9 times tables — 2 of them */
+@keyframes mu-359 {
+  0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  1.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  4.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  15.5% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  27.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  31.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  34.3% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  37.3% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  48.8% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  60.3% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  64.3% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  67.6% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  70.6% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  82.1% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  93.6% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  97.6% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  100% { background: rgb(244 241 232 / .07); box-shadow: none; }
+}
+.mu-grid i:nth-child(45), .mu-grid i:nth-child(90) { animation: mu-359 6s ease-in-out infinite; }
+.mu-grid i:nth-child(45) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(90) { animation-delay: -0.187s; }
+/* cells in the 3 and 9 times tables — 9 of them */
+@keyframes mu-39 {
+  0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  1.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  4.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  15.5% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  27.0% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  31.0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  67.6% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  70.6% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  82.1% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  93.6% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  97.6% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  100% { background: rgb(244 241 232 / .07); box-shadow: none; }
+}
+.mu-grid i:nth-child(9), .mu-grid i:nth-child(18), .mu-grid i:nth-child(27), .mu-grid i:nth-child(36), .mu-grid i:nth-child(54), .mu-grid i:nth-child(63), .mu-grid i:nth-child(72), .mu-grid i:nth-child(81), .mu-grid i:nth-child(99) { animation: mu-39 6s ease-in-out infinite; }
+.mu-grid i:nth-child(9) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(18) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(27) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(36) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(54) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(63) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(72) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(81) { animation-delay: -0.088s; }
+.mu-grid i:nth-child(99) { animation-delay: -0.187s; }
+/* cells in the 5 times table — 14 of them */
+@keyframes mu-5 {
+  0% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  34.3% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  37.3% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  48.8% { background: #f0b45f; box-shadow: 0 0 5px rgb(240 180 95 / .3); }
+  60.3% { background: #f0b45f; box-shadow: 0 0 12px rgb(240 180 95 / .65); }
+  64.3% { background: rgb(244 241 232 / .07); box-shadow: none; }
+  100% { background: rgb(244 241 232 / .07); box-shadow: none; }
+}
+.mu-grid i:nth-child(5), .mu-grid i:nth-child(10), .mu-grid i:nth-child(20), .mu-grid i:nth-child(25), .mu-grid i:nth-child(35), .mu-grid i:nth-child(40), .mu-grid i:nth-child(50), .mu-grid i:nth-child(55), .mu-grid i:nth-child(65), .mu-grid i:nth-child(70), .mu-grid i:nth-child(80), .mu-grid i:nth-child(85), .mu-grid i:nth-child(95), .mu-grid i:nth-child(100) { animation: mu-5 6s ease-in-out infinite; }
+.mu-grid i:nth-child(5) { animation-delay: -0.044s; }
+.mu-grid i:nth-child(10) { animation-delay: -0.099s; }
+.mu-grid i:nth-child(20) { animation-delay: -0.110s; }
+.mu-grid i:nth-child(25) { animation-delay: -0.066s; }
+.mu-grid i:nth-child(35) { animation-delay: -0.077s; }
+.mu-grid i:nth-child(40) { animation-delay: -0.132s; }
+.mu-grid i:nth-child(50) { animation-delay: -0.143s; }
+.mu-grid i:nth-child(55) { animation-delay: -0.099s; }
+.mu-grid i:nth-child(65) { animation-delay: -0.110s; }
+.mu-grid i:nth-child(70) { animation-delay: -0.165s; }
+.mu-grid i:nth-child(80) { animation-delay: -0.176s; }
+.mu-grid i:nth-child(85) { animation-delay: -0.132s; }
+.mu-grid i:nth-child(95) { animation-delay: -0.143s; }
+.mu-grid i:nth-child(100) { animation-delay: -0.198s; }
+
+/* ==================================================================================================
+   QUESTIONS IN THE FUNNEL.
+
+   A CARD IS SCANNED, NOT READ. A list of ninety parts is something somebody runs an eye down, so
+   the card carries a reference, the marks and the first line — and the question itself opens on a
+   tap. Showing the whole thing on every card would be ninety pages in a list.
+================================================================================================== */
+.qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
+         padding: .7rem .8rem; margin-bottom: .5rem; }
+.qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+.qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
+.qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
+.qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
+/* THE PEEK IS ONE LINE AND CLIPPED. Two lines of question on every card and the list stops being
+   a list — the point is to find the one you want, not to read them all here. */
+.qcard-peek { margin: .4rem 0 0; font: 400 .78rem/1.4 Georgia, "Times New Roman", serif;
+              color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qcard:active { transform: scale(.99); }
+
+/* ---------- THE OPENED QUESTION ------------------------------------------------------------------
+   Stem, then lead, then the part, in the order it is printed. The stem is dimmed because it is
+   context — somebody who opened 2c wants to find 2c, not read three paragraphs first. */
+.qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
+.qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
+               padding-bottom: .7rem; margin-bottom: .9rem; }
+.qsheet-lead { opacity: .9; margin-bottom: .6rem; }
+.qsheet-part { display: flex; gap: .6rem; }
+.qsheet-pn { font-weight: 700; color: var(--gold); }
+.qsheet-pb { flex: 1; min-width: 0; }
+.qsheet-marks { display: block; text-align: right; font-weight: 700; font-size: .86rem; }
+.qsheet p:first-child { margin-top: 0; }
+.qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
+.qsheet ol.roman { list-style: lower-roman; }
+.qsheet ul { padding-left: 1.2rem; }
+.qsheet .stat { text-align: center; margin: .9rem 0; }
+.qsheet table { border-collapse: collapse; margin: .9rem auto; }
+.qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+/* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
+   on this black screen without a second copy of it. */
+.qsheet figure { margin: 1rem 0; text-align: center; }
+.qsheet figure svg { width: min(100%, 20rem); height: auto; }
+.qsheet .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .ax { font: italic 9px serif; fill: currentColor; }
+.qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
+.qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+.qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
