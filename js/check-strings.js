@@ -29,7 +29,7 @@ const fs = require('fs'), path = require('path');
 const acorn = require('acorn');
 const dir = __dirname;
 const ORDER = ['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-               'resource','arcade','map','book','receipt','games','overworld','boot'];
+               'resource','arcade','map','book','receipt','flyer','mat','games','overworld','boot'];
 
 const hits = [];
 

@@ -21,7 +21,7 @@
 const fs = require('fs'), path = require('path');
 const dir = __dirname;
 const ORDER = ['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-               'resource','arcade','map','book','receipt','games','overworld','boot'];
+               'resource','arcade','map','book','receipt','flyer','mat','games','overworld','boot'];
 
 const files = ORDER.map(n => ({ n, src: fs.readFileSync(path.join(dir, n + '.js'), 'utf8') }));
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -43,6 +43,18 @@ files.forEach(({ n, src }) => {
   }
   /* data-do set from a variable rather than written out — the audit cannot follow these, so they
      are listed rather than judged. */
+  /* ---------- A DOOR MADE IN JAVASCRIPT IS STILL A DOOR --------------------------------------
+     `setAttribute('data-do', 'ow-tap')` reaches the same handler as `data-do="ow-tap"` written in
+     markup, and this only read the markup — so a door built on an element created in code looked
+     like no door at all, and its handler was reported as unreachable.
+
+     It found a real fault the first time it fired that way and then went on reporting it after the
+     fault was fixed, which is the shape of alarm people learn to skip. */
+  for (const m of code.matchAll(/setAttribute\(\s*['"]data-do['"]\s*,\s*['"]([a-z0-9-]+)['"]/g)) {
+    if (!doors.has(m[1])) doors.set(m[1], new Set());
+    doors.get(m[1]).add(n);
+  }
+
   for (const m of code.matchAll(/data-do="\$\{([^}]+)\}"/g)) {
     if (!doors.has('${…}')) doors.set('${…}', new Set());
     doors.get('${…}').add(n + ': ' + m[1].trim().slice(0, 40));

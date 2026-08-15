@@ -63,7 +63,12 @@ const API = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8
    week's. Nothing said so, and there was no way to ask.
 
    Bumped whenever this file changes. Shown on the You screen and in every failure banner. */
-const SITE_VERSION = '2026-08-08-wiring';
+/* THIS SAID `2026-08-08-wiring` FOR A WEEK OF CHANGES. `index.html` has a `LOAD` string that I have
+   been bumping all along, and it is a cache-buster, not a version — so the You screen went on
+   reporting a build from six days ago while everything under it changed. Which makes the one place
+   you look to answer "is my frontend current" answer it wrongly, and that is worse than not
+   showing it at all: twice today we chased a fault that was a file not yet pasted in. */
+const SITE_VERSION = '2026-08-15k';
 
 /**
  * WHICH STYLESHEET IS RUNNING.

@@ -1223,6 +1223,21 @@ function api(body) {
 /** The same request, refusing to resolve on a refusal — for callers that would rather catch. */
 function send(body) {
   return api(body).then(d => {
+    /* ---------- AN ACTION THE LIVE BACKEND HAS NEVER HEARD OF -------------------------------------
+       "THAT ACTION IS NOT RECOGNISED" IS THE WRONG SENTENCE. It reads as "you did something wrong",
+       and nine times out of ten it means "the .gs file has not been pasted in yet" — a fault in a
+       deploy step, not in anything the person just pressed. The payload has advertised `features`
+       since before the rewrite and nothing ever read it, so the app had the answer all along and
+       never used it.
+       Now it says which, and which version is live, so the next move is obvious. */
+    if (d && d.error && /unknown action|not recognis/i.test(String(d.error))) {
+      const act = (String(d.error).match(/:\s*(\w+)/) || [])[1] || 'that action';
+      const has = (DATA.features || []).indexOf(act) !== -1;
+      throw new Error(has
+        ? act + ' is not working — the backend knows it but returned an error'
+        : 'The backend does not have `' + act + '` yet. Paste the newest .gs files into Apps '
+          + 'Script and deploy. Live version: ' + (DATA.version || 'unknown'));
+    }
     if (d && d.error) throw new Error(d.error);
     return d;
   });
@@ -1492,6 +1507,16 @@ async function load() {
          the console says what they were.
 
          Costs nothing. A Proxy is only consulted on a property that is not there. */
+      /* REMEMBERED FOR THE NEXT LOAD. The splash is chosen while the page is still parsing — that
+         is what makes it right on the first frame — so it cannot ask DATA which have been retired.
+         It reads what the last visit left here instead: one load behind, which for a decorative
+         choice nobody will notice, and the alternative is a splash that changes after it appears. */
+      try { localStorage.setItem('splashOff', JSON.stringify(d.splashOff || [])); } catch (e) {}
+      /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
+         `find.js` because this is the moment a payload becomes DATA, and a favourite read before
+         that is the last device's guess. */
+      try { adoptFavourites_(); } catch (e) {}
+
       DATA = new Proxy(d, {
         get(t, k) {
           /* `then` is asked for by anything that awaits an object, to find out whether it is a

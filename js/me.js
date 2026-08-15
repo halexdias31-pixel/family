@@ -138,7 +138,39 @@ function meBlocks() {
           cuts on it. A marker rather than counting cards, because the admin card in the second
           group only exists for an admin — so any count would be right for you and wrong for
           everybody else. */''}
+    ${/* ---------- THE WEEK, ON A PANE OF ITS OWN ------------------------------------------------
+          IT WAS A CARD IN THE MIDDLE OF THE ACCOUNT LIST, between your details and the admin
+          things — which made a timetable look like another setting to press. It is not: it is the
+          one thing on this column you READ rather than act on, and it needs the width.
+          `ME_SPLIT` already makes separate panes, so it gets one. */''}
     ${ME_SPLIT}
+    ${weekGrid()}
+    ${ME_SPLIT}
+    ${/* ---------- SOMEBODY WANTS TO ADD YOU TO THEIR FAMILY -----------------------------------
+          FIRST, ABOVE EVERYTHING. A claim is somebody saying they are your parent, and it sits
+          unanswered until you say. Putting it below the fold would be putting the one thing that
+          needs a decision underneath the things that do not. */''}
+    ${(DATA.claims || []).map(c => `<div class="card">
+      <h3>${esc(c.from)} says they are your parent</h3>
+      <p class="sub">Say yes and they will be able to book sessions for you and see how you are
+        getting on. Say no and nothing happens.</p>
+      <div class="row" style="border:0;gap:.5rem">
+        <button class="btn" data-do="claim-yes" data-row="${esc(c.rowIndex)}">Yes, that is my parent</button>
+        <button class="btn quiet" data-do="claim-no" data-row="${esc(c.rowIndex)}">No</button>
+      </div>
+    </div>`).join('')}
+
+    ${/* ---------- AND THE OTHER END OF IT -------------------------------------------------------
+          A PARENT ASKS BY NAME. The backend matches on first and last name and refuses politely
+          when there are none or more than one — so this asks for exactly those two things and lets
+          it answer. Shown to a parent or client; a student has nobody to add. */''}
+    ${(heldRoles().indexOf('client') !== -1 || heldRoles().indexOf('parent') !== -1
+       || heldRoles().indexOf('admin') !== -1)
+      ? `<div class="card tap" data-do="add-child"><h3>Add your child</h3>
+           <p class="sub">Search their name. They will be asked to say yes before you are
+             linked.</p></div>`
+      : ''}
+
     <div class="card tap" data-do="edit-me"><h3>Edit your details</h3>
       <p class="sub">Name, email, address, availability.</p></div>
 
@@ -150,6 +182,10 @@ function meBlocks() {
           staring at a spreadsheet, and the system already knew all of it.
           Admin only, because it is a list of what needs fixing rather than anything a client
           would act on. */
+      /* THE FLYER CARD MOVED TO TOOLS. It was here because this is where admin things had
+         accumulated, not because it belonged — a tool that makes something, in a column of
+         settings, between your email address and Sign out. Two doors to one thing is how the
+         "Open a waiting list" card survived after the booking flow replaced it. */
       isAdmin() ? `<div class="card tap" data-do="health"><h3>What needs fixing</h3>
         <p class="sub">Terms, tutors, prices, permissions — everything the sheet already knows is
           wrong.</p></div>` : ''}
@@ -173,7 +209,36 @@ function meBlocks() {
           changed — and the CSS was the one that could not be asked. */''}
     <p class="faint" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
-      backend ${esc(DATA.version || '—')}</p>`);}
+      backend ${esc(DATA.version || '—')}</p>
+      ${/* ---------- EVERY FILE, WHEN THEY DISAGREE ------------------------------------------------
+            ONE NUMBER FOR SIX FILES IS A NUMBER THAT LIES. Apps Script is pasted a file at a time,
+            and `BACKEND_VERSION` lives in constants.gs — so pasting that one alone moves the figure
+            above while every handler stays where it was. This screen said `2026-08-14-features`
+            while the backend had no `openWaitlist` in it, and the version is the first thing you
+            check to rule the deploy out.
+            Shown ONLY when they disagree, because four identical strings is noise on every load. */''}
+      ${(() => {
+        const f = DATA.fileVersions || {};
+        const names = Object.keys(f);
+        if (names.length < 2) return '';
+        /* COMPARED BY DATE, NOT BY THE WHOLE STRING. Sorting `2026-08-14-easter` against
+           `2026-08-14-seatprice` sorts on the WORD after the date, so "seatprice" came out newest
+           and the three up-to-date files were reported as the stale ones — a warning that named
+           everything except the file actually missing. Only the date part means anything. */
+        /* THE WHOLE STAMP, NOT JUST THE DATE. Comparing dates was right while I bumped only the
+           file I had edited — and that made an untouched file look permanently undeployed, so the
+           warning was always on, which is the one thing a warning must never be.
+           Every backend file now carries the SAME stamp, moved together on every ship. So the
+           stamps either all match, meaning one paste, or they do not, meaning one file was
+           missed — which is exactly the question this is asking. */
+        const newest = names.map(k => f[k]).sort().pop();
+        const stale = names.filter(k => f[k] !== newest);
+        return stale.length
+          ? `<p class="sub" style="color:#c8853c">Not deployed: ${stale
+              .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
+              ? 'that file' : 'those files'} into Apps Script.</p>`
+          : '';
+      })()}`);}
 
 /* THE YOU SCREEN IS ONE PAGE.
    It was chunked four cards at a time, which put Messages, Change your PIN, Tell someone and Sign
@@ -213,12 +278,14 @@ const mePages = () => {
      admin-only card in the second half cannot move the boundary for an admin and not for anybody
      else. No marker — the signed-out screen — is one page, which is right: there is nothing to
      settle and nobody to have written to you. */
-  const cut = all.indexOf(ME_SPLIT);
-  const pages = cut < 0
-    ? [all]
-    : [all.slice(0, cut), all.slice(cut + ME_SPLIT.length)];
+  /* SPLIT ON EVERY MARKER, NOT THE FIRST. This took `indexOf` and cut once, which was right while
+     there was one marker and silently wrong the moment I added a second: the extra one would have
+     been left sitting in the page as a literal HTML comment, and the week would have shared a pane
+     with the account list anyway. Splitting on all of them means adding a pane is adding a marker.
+     Empty pieces are dropped, so a marker at the very start or two in a row costs nothing. */
+  const pages = all.split(ME_SPLIT).map(x => x.trim()).filter(Boolean);
   if (USER) pages.push(meMessagesCard());
-  return pages;
+  return pages.length ? pages : [all];
 };
 
 /* Drawn, then filled. `fillMessages` looks for `#msg-body` by id, so it can only run once this
@@ -768,6 +835,57 @@ const messagesHtml_ = ms => ms.map(m =>
    the allow-list the server checks writes against, so a form built from it cannot offer a field
    the server will refuse or miss one it would accept.
 --------------------------------------------------------------------------------------------- */
+/* ---------- ADDING A CHILD, AND ANSWERING WHEN SOMEBODY ADDS YOU ----------------------------------
+   THE BACKEND FOR THIS WAS ALREADY WRITTEN AND UNREACHABLE. `claimChild` and `answerClaim` both
+   existed, both correct, and nothing in the app called either — so a parent could not ask and a
+   child could not have been asked. `check-doors` names an unreachable handler the moment a door
+   appears for it; there had never been a door, so there was nothing to name.
+
+   TWO NAMES, NOT ONE. The backend matches on first AND last name and refuses when it finds none or
+   more than one — asking for a single field would send it a string it cannot split reliably, and
+   "Mary Anne Smith" is where that goes wrong. */
+on('add-child', () => {
+  if (!USER) { toast('Sign in first'); return; }
+  openSheet('Add your child', `
+    <p class="sub">Their name as it is on their account. They will be asked to say yes before
+      anything is linked.</p>
+    <label class="fld"><span>First name</span><input id="kid-first" autocomplete="off"></label>
+    <label class="fld"><span>Last name</span><input id="kid-last" autocomplete="off"></label>
+    <button class="btn" data-do="add-child-go">Ask them</button>
+    <p class="faint">Nothing changes until they accept. If they say no, nothing happens and we do
+      not tell them off.</p>`);
+});
+
+on('add-child-go', () => {
+  const first = (document.getElementById('kid-first') || {}).value || '';
+  const last = (document.getElementById('kid-last') || {}).value || '';
+  if (!first.trim() || !last.trim()) { toast('Both names, please'); return; }
+  send('claimChild', {
+    name: USER.name, personId: (USER && USER.personId) || '',
+    firstName: first.trim(), lastName: last.trim(),
+  }).then(d => {
+    if (d && d.error) { toast(d.error); return; }
+    closeSheet();
+    toast('Asked. They will see it when they next sign in.');
+    load();
+  });
+});
+
+/* YES AND NO ARE ONE HANDLER WITH A FLAG. Two handlers doing the same call with one word different
+   is two places to fix when the call changes, and the second one is always the one forgotten. */
+const answerClaim_ = (el, accept) => {
+  send('answerClaim', {
+    name: USER.name, personId: (USER && USER.personId) || '',
+    rowIndex: el.getAttribute('data-row'), accept: accept,
+  }).then(d => {
+    if (d && d.error) { toast(d.error); return; }
+    toast(accept ? 'Linked. They can book for you now.' : 'Turned down.');
+    load();
+  });
+};
+on('claim-yes', el => answerClaim_(el, true));
+on('claim-no', el => answerClaim_(el, false));
+
 on('edit-me', () => {
   if (!USER) { toast('Sign in first'); return; }
   const role = roleOf(USER.role || '');

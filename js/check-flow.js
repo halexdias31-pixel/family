@@ -37,7 +37,7 @@ const { JSDOM } = require('jsdom');
 
 const dir = __dirname;
 const ORDER = ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
-               'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'games', 'overworld', 'boot'];
+               'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld', 'boot'];
 
 /* ---------- THE PAYLOAD, IN THE SHAPE THE BACKEND SENDS ------------------------------------------
    Small but real: two tutors, two venues, an interval, and one job of each kind. Anything the app
@@ -153,7 +153,19 @@ function boot(opts) {
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       'card: typeof newPostCard === "function" ? newPostCard : null,' +
       'bar: typeof installBar === "function" ? installBar : null,' +
-      'PAGE: () => PAGE };');
+      'PAGE: () => PAGE,' +
+      /* A landmark rasterised at one bearing, so the test above can compare four of them. */
+      'tiles: (ring, bearing) => {' +
+      '  if (typeof owWorld !== "function") return 0;' +
+      '  const was = DATA.landmarks;' +
+      '  DATA.landmarks = [{ name: "t", kind: "retail", lat: 51.4174, lng: -0.1784,' +
+      '    plots: 6, bearing, outline: ring,' +
+      '    parts: [{ kind: "building", outline: ring, height: 10, x: 0, z: 0, w: 1, d: 1 }] }];' +
+      '  const wd = owWorld();' +
+      '  const n = wd ? owTilesOf(wd.items[0], wd.items[0].l.parts[0], owSiteBox(wd.items[0].l)).length : 0;' +
+      '  DATA.landmarks = was;' +
+      '  return n;' +
+      '} };');
   } catch (e) {
     errs.push('LOAD THREW: ' + e.message);
   }
@@ -440,6 +452,26 @@ check('each column opens on the page worth reading', async () => {
     }
   }
   return bad;
+});
+
+check('a landmark is the same shape whichever way it is turned', async () => {
+  /* THE FAULT THIS PREVENTS. Turning a site used to rotate the POLYGON and re-sample it against the
+     tile grid — and re-sampling a shape at a different angle gives a different set of tiles. A T
+     flattened into a line, and a ten-metre gap between a car park and a building closed. It looked
+     like a rendering bug and it was an arithmetic one.
+
+     Now the site is squared, measured, and rasterised ONCE, and the bearing turns the finished
+     tiles a quarter at a time. That is a relabelling rather than a measurement, so the shape cannot
+     change — and this checks that it does not, because "cannot" is a claim worth testing. */
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.__t.tiles !== 'function') return [];     // only checkable where it is exported
+  const ring = [[51.4174, -0.1781], [51.4173, -0.1782], [51.4174, -0.1787], [51.4175, -0.1786]];
+  const counts = [0, 90, 180, 270].map(b => w.__t.tiles(ring, b));
+  const same = counts.every(c => c === counts[0]);
+  return same ? []
+    : ['a landmark covers ' + counts.join('/') + ' tiles at 0/90/180/270 — turning it changes '
+       + 'its shape, which means the polygon is being re-sampled rather than the tiles turned'];
 });
 
 check('a backend that never answers does not hang the app for ever', async () => {

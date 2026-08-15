@@ -697,1214 +697,1071 @@ addEventListener('error', e => {
           + 'than from a web address. The console has the real one.'
         : ''));
 });
-
-
 /* ==================================================================================================
-   THE OVERWORLD — the board itself, moved in from overworld.html.
+   THE BOARD — TILES, THE WAY POLYTOPIA DOES IT.
 
-   IT WAS A PAGE OF ITS OWN AND NOW IT IS NOT. overworld.html carried its own doctype, its own
-   stylesheet, its own error box and its own copy of the loading banner — a second small site beside
-   this one, kept in step by hand. Everything it did that this app does not already do is the board;
-   everything else was scaffolding for being a page.
+   A grid of square slabs. Each one is a terrain — grass, water, park, road, or a plot with a
+   building standing on it — and the buildings are chunky blocks, not surveyed outlines.
 
-   THIS FILE WAS NAMED FOR IT AND CONTAINED NONE OF IT. `overworld.js` held the feed pictures, the
-   swipe engine and `bootFailed` — the split of script.js took its section headers as file names and
-   this one landed on the wrong section. The name has been right the whole time and now the contents
-   are too.
+   ---------------------------------------------------------------------------------------------
+   WHY THE SURVEYED POLYGONS WENT, AFTER ALL THAT WORK ON THEM.
 
-   EVERYTHING IS LOCAL TO ONE FUNCTION, deliberately. The board declares `add`, `merge`, `tiles`,
-   `route`, `place`, `posts` and eighty more; at the top level every one of those would be a second
-   declaration of a name this app already uses, and `check.js` would say so eighteen times. Inside a
-   function they are the board's own and cannot reach anything.
+   The version before this extruded the real footprints: Sainsbury's as its actual thirty-seven
+   vertices, ear-clipped and lit. It was accurate and it looked nothing like Polytopia, because
+   Polytopia is not accurate — it is deliberately, aggressively simple. A building there is a box
+   with a roof. A forest is a cone on a tile. The whole style is the REFUSAL of detail, and a
+   thirty-seven-vertex supermarket is exactly the kind of detail it refuses.
 
-   THREE.JS IS FETCHED WHEN THE BOARD IS OPENED, not when the app starts. It is most of a megabyte
-   for one widget in a list, and somebody who never opens the map should never pay for it.
+   SO THE OUTLINES STILL DO THE WORK, just a different job: they decide WHICH TILES a landmark
+   covers. The sheet's vertices are what makes the bus garage nine tiles long and Britannia Point
+   one tile square — the shape informs the footprint on the grid, and the grid is what gets drawn.
+   Nothing measured is wasted; it is used at the resolution the style wants.
+
+   ---------------------------------------------------------------------------------------------
+   WHAT MAKES A TILE READ AS A TILE.
+
+   THICKNESS. A flat quad is a coloured rectangle; a slab with a visible side is a piece of the
+   world. Every tile is drawn as a top face and two sides — the two that face the camera — and the
+   sides are a darker shade of the top. That one thing is most of the look.
+
+   A GAP BETWEEN THEM, so the grid is visible without a single line being drawn. Ninety per cent of
+   the tile size, which leaves a dark seam that reads as edges rather than as gaps.
 ================================================================================================== */
 
-/* THE LOADER. A classic script cannot `import`, but it can WRITE a module script that does — so the
-   module build is fetched by URL and hung on `window`, and everything below carries on as ordinary
-   script. No importmap, no build step, and no second copy of three.js if the board is opened twice.
-   The version is pinned: `latest` is a promise that somebody else's breaking change becomes yours. */
-const THREE_URL = 'https://unpkg.com/three@0.160.0/build/three.module.js';
-let threePromise = null;
-function loadThree() {
-  if (window.THREE) return Promise.resolve(window.THREE);
-  if (threePromise) return threePromise;
-  threePromise = new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.type = 'module';
-    s.textContent = 'import * as T from "' + THREE_URL + '";'
-                  + 'window.THREE = T; window.dispatchEvent(new Event("three-ok"));';
-    window.addEventListener('three-ok', () => ok(window.THREE), { once: true });
-    /* A MODULE SCRIPT WRITTEN THIS WAY DOES NOT FIRE `onerror` when the import inside it fails, so
-       a dead CDN would leave this pending for ever and the card would sit empty with no reason
-       given. A deadline is the only thing that catches it. */
-    setTimeout(() => { if (!window.THREE) no(new Error('three.js did not load from unpkg.com')); }, 12000);
-    document.head.appendChild(s);
+const OW_WORLD = 'Merton';
+
+const OW = {
+  tile: 9,            // metres a side. Small enough for a building to span several
+  lift: 2.6,          // how thick a slab is
+  gap: 0.9,           // how much of the tile the top face fills — the rest is the seam
+  /* THE CAMERA. Looking DOWN at the board, which is the Polytopia angle and the thing the last
+     version had wrong: it looked along the street, so the grid was edge-on and invisible. */
+  /* ---------- WHERE THE BOARD SITS IN THE FRAME --------------------------------------------------
+     THE CAMERA AIMS ABOVE THE GROUND, not at it. Aiming at `look: 0` put the street through the
+     middle of the picture with as much empty sky above as board below — and the sky is the half
+     with nothing in it.
+
+     RAISING WHAT IT LOOKS AT pushes the whole board DOWN the frame, which leaves the empty space
+     under it rather than over it. That is the right way round: a board with room beneath reads as
+     standing on something, and the labels have somewhere to go that is not on top of a roof. */
+  eyeH: 66,
+  back: 70,
+  look: 26,
+  fov: 42,
+  speed: 26,
+  sun: [-0.35, 0.86, 0.36],
+};
+
+/* THE PALETTE. Bright and flat, because that is the style — the survey colours in the sheet are
+   muted greys and browns for drawing a map, and a map is not what this is. The sheet's `kind`
+   column already says what each thing IS, so it picks the colour and nobody has to re-enter one. */
+const OW_TERRAIN = {
+  grass:  '#6ab04c',
+  park:   '#4e9b3c',
+  water:  '#3aa8d8',
+  road:   '#8d8579',
+  plot:   '#b8a68c',
+  farm:   '#c4b454',
+};
+const OW_KIND = {
+  park: 'park', farm: 'farm', river: 'water', water: 'water',
+};
+/* And what a building looks like, by what it is. Two colours — walls and roof — and nothing else,
+   which is the whole vocabulary Polytopia gives a structure. */
+const OW_BUILD = {
+  resi:   ['#e8dcc4', '#c0504d'],
+  civic:  ['#e0d6c2', '#8e5572'],
+  retail: ['#dfd3bb', '#d98c3a'],
+  indust: ['#cfc7b8', '#5a6b7a'],
+  farm:   ['#e3d9a8', '#7a8b3a'],
+};
+
+const OW_VS = `
+attribute vec3 pos;
+attribute vec3 col;
+uniform mat4 mvp;
+varying vec3 vcol;
+void main() { vcol = col; gl_Position = mvp * vec4(pos, 1.0); }`;
+
+const OW_FS = `
+precision mediump float;
+varying vec3 vcol;
+void main() { gl_FragColor = vec4(vcol, 1.0); }`;
+
+function owPerspective(fovDeg, aspect, near, far) {
+  const f = 1 / Math.tan(fovDeg * Math.PI / 360), d = near - far;
+  return [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) / d, -1, 0, 0, 2 * far * near / d, 0];
+}
+function owLookAt(eye, at, up) {
+  const s = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const x3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const d3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const n3 = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  const z = n3(s(eye, at)), x = n3(x3(up, z)), y = x3(z, x);
+  return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0,
+          -d3(x, eye), -d3(y, eye), -d3(z, eye), 1];
+}
+function owMul(a, b) {
+  const o = new Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1]
+                   + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+    }
+  }
+  return o;
+}
+
+/* `owInside` — POINT IN POLYGON — STOOD HERE. It decided which tiles a landmark's surveyed outline
+   covered, back when the board was laid out geographically. A plot is a run of tiles now, chosen by
+   how much room the thing needs rather than by where it really is, so there is nothing to test a
+   point against. Deleted rather than kept for later: `check-dead` found it the moment it stopped
+   being called, which is the whole reason that checker exists. */
+
+
+/* ---------- THE WORLD, IN METRES, ON A GRID -------------------------------------------------------
+   Degrees to metres, then metres to tiles. The grid is the unit everything below works in. */
+/* ---------- THE BOARD IS A PATH, NOT A MAP --------------------------------------------------------
+   NOTHING IS TO SCALE AND THAT IS THE POINT. The version before this laid every landmark at its real
+   position, which is honest and produces exactly what a real town produces: three buildings bunched
+   at one end, four hundred metres of nothing, then two more. A map has to do that. A BOARD does not.
+
+   SO EACH LANDMARK GETS A PLOT OF ITS OWN, in order along the path, and the next one starts where
+   the last finishes. A bus garage takes four tiles because a bus garage needs four to look like one;
+   a house takes one. The gap between them is the same everywhere, because the gap is a step along a
+   path rather than a distance.
+
+   THE ORDER IS STILL THE REAL ONE — west to east by longitude — so walking the board walks the town
+   in the order you would actually meet it. Position decides the SEQUENCE and nothing else, which is
+   the one thing about geography worth keeping. */
+function owWorld() {
+  const rows = (DATA.landmarks || [])
+    .filter(l => !S_(l.world) || norm(l.world) === norm(OW_WORLD))
+    .filter(l => Number(l.lat) && Number(l.lng));
+  if (!rows.length) return null;
+
+  /* West to east. `sort_order` is not a column and does not need to be: longitude already says
+     which order these stand in, and it cannot drift out of step with itself. */
+  const order = rows.slice().sort((a, b) => Number(a.lng) - Number(b.lng));
+
+  /* HOW MANY TILES EACH ONE NEEDS. From the sheet where somebody has said, and from the form where
+     they have not — a shed is long by nature and a house is not, so the default follows the shape
+     rather than being one number for everything. */
+  const WIDE = { shed: 4, hall: 3, tower: 1, house: 1, dome: 2, slab: 2 };
+  const items = [];
+  let cx = 2;
+  order.forEach(l => {
+    const form = norm(l.form) || (Number(l.height) >= 30 ? 'tower'
+      : Number(l.height) > 0 ? 'slab' : 'park');
+    /* HOW WIDE THE PLOT IS. The sheet's `plots` where somebody has said, the form's own habit where
+       they have not — AND at least as wide as the parts standing on it, because a part placed at
+       x=4 on a two-tile plot would otherwise hang over the neighbour. The parts decide the minimum
+       and nobody has to keep two numbers in step by hand. */
+    const need = (l.parts || []).reduce((m, p) => Math.max(m, (Number(p.x)||0) + (Number(p.w)||1)), 0);
+    /* THE WIDTH, FROM `plots` — how much room this landmark needs to look like itself, not how big
+       it really is.
+
+       TRUE SCALE WAS TRIED AND PUT BACK. Ten metres a tile made every landmark honestly sized and
+       the board two hundred tiles long — thirty screens of walking, with the farm a speck and the
+       rec ground a field you cross in silence. Accurate, and not a board: the whole point of one is
+       that each thing gets the room it needs and the next one starts. */
+    /* ---------- THE PLOT KEEPS THE SITE'S PROPORTIONS, WHATEVER ANGLE IT IS TURNED TO -------------
+       `plots` MEANT WIDTH, AND THAT BROKE EVERY ROTATION. Britannia Point is 71 metres wide and
+       106 deep; six tiles across fitted it, and turning it a quarter made it 106 wide and 71 deep
+       — still squeezed into six. Everything compressed sideways: the T flattened into a line, and
+       the ten-metre gap between the car park and the building fell below one tile and closed.
+
+       IT NOW MEANS THE LONGEST SIDE, and the other one follows from the site's own shape. Turn the
+       site and the two swap, because the box they are measured from has swapped — so the number of
+       metres a tile stands for never changes, and neither does the shape. A T is a T at every
+       bearing, and a gap that is a tile wide stays a tile wide.
+
+       THAT IS THE GENERAL ANSWER to "how do I stop this happening": nothing is measured in tiles
+       and then rotated. The rotation happens first, and everything is measured after — so there is
+       no number left over from before the turn that could disagree with it. */
+    /* MEASURED ONCE, IN THE SQUARED FRAME, BEFORE ANY TURN. `plots` is the longest side and the
+       other follows the site's own proportion — and because this happens before the bearing is
+       applied, the numbers here describe the site itself rather than a particular view of it. */
+    const sb0 = owSiteBox(l);
+    const asked = Math.max(1, Math.min(8, Number(l.plots) || WIDE[form] || 2));
+    let w = asked, depth = asked;
+    if (sb0) {
+      const bw = Math.max(1, sb0.maxX - sb0.minX), bd = Math.max(1, sb0.maxZ - sb0.minZ);
+      if (bw >= bd) { w = asked; depth = Math.max(1, Math.round(asked * bd / bw)); }
+      else { depth = asked; w = Math.max(1, Math.round(asked * bw / bd)); }
+    }
+    w = Math.max(w, need);
+    /* AND THE TURN, IN QUARTERS. Anything else would need the polygon re-sampled, which is the
+       fault this whole arrangement exists to prevent — so a bearing is rounded to the nearest
+       quarter and nobody loses anything, because 0, 90, 180 and 270 are the only useful answers. */
+    const quarters = ((Math.round((Number(l.bearing) || 0) / 90) % 4) + 4) % 4;
+    if (quarters === 1 || quarters === 3) { const t = w; w = depth; depth = t; }
+    /* HOW DEEP THE PLOT IS. From the sheet where somebody has said, and otherwise from the SITE'S
+       OWN PROPORTION — a site half as wide as it is deep gets a plot half as wide as it is deep, so
+       a long thin building stays long and thin. Capped, because a board four tiles deep is a board
+       you look down on rather than along. */
+    /* ---------- HOW DEEP THE PLOT IS, AND WHY THE CAP WAS WRONG ---------------------------------
+       IT WAS CAPPED AT FOUR, and Britannia Point is 71 metres wide by 106 deep. Squeezing a site
+       half again as deep as it is wide into a plot the same shape as a square one distorts every
+       part on it — and it is what made the northern block, which is a genuinely different size and
+       position from the southern one, land on no tile at all.
+
+       THE PROPORTION IS THE POINT. A plot as many times deeper than it is wide as the real site is:
+       so a T stays a T, and a long site stays long. Eight is the new ceiling, which is deep enough
+       for anything in Colliers Wood and shallow enough that the back row is still visible past the
+       front one at this camera angle. */
+    /* THE SHEET STILL OVERRIDES the depth, for a site whose proportions are not what you want on
+       the board — but it is no longer where the depth comes from, because a hand-set depth is a
+       number that cannot survive a rotation either. */
+    if (Number(l.depth)) depth = Math.max(1, Math.min(10, Number(l.depth)));
+    depth = Math.max(1, Math.min(10, depth));
+    items.push({ l, form, x0: cx, w, depth, quarters, mid: cx + w / 2 });
+    /* ONE EMPTY TILE BETWEEN PLOTS. Without it two buildings share an edge and read as one long
+       building; with more than one the board becomes a row of islands. */
+    cx += w + 1;
   });
-  return threePromise;
+
+  /* ROWS ARE COUNTED BACK FROM THE PATH, and that is the fix for the landmarks being on the wrong
+     side. The camera sits at POSITIVE z looking toward negative — so a bigger z is nearer the
+     viewer and a smaller one is further away. Plots were at `+z`, which put every building in FRONT
+     of its node, between the walker and the path.
+     Row 0 is the path. Row 1 and up go BACKWARDS, away from the camera, which is where a landmark
+     behind its node belongs. One rule, and the sign cannot be got wrong by accident again. */
+  return { items, cols: cx + 2, rows: 6, length: (cx + 2) * OW.tile };
 }
 
-/* WHAT IS RUNNING, so opening the board twice does not leave two of them drawing into one card and
-   two sets of key handlers fighting over the walker. */
-let OW = null;
+/* ---------- THE MESH -----------------------------------------------------------------------------
+   Built once. Every tile classified, every tile drawn as a slab, and a block on the ones a building
+   covers. */
+function owMesh(world) {
+  const pos = [], col = [];
+  const rgb = hex => {
+    const c = String(hex || '#6ab04c').replace('#', '');
+    const n = parseInt(c.length === 3 ? c.split('').map(x => x + x).join('') : c, 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  };
+  const tri = (a, b, c, base, k) => [a, b, c].forEach(p => {
+    pos.push(p[0], p[1], p[2]);
+    col.push(base[0] * k, base[1] * k, base[2] * k);
+  });
+  /* A BOX — top and the two sides that face the camera. The other three are never seen from a fixed
+     angle, and not building them is a third of the triangles saved on every single thing here. */
+  /* ---------- EVERY SIDE, NOT THREE OF THEM ------------------------------------------------------
+     THIS DREW TOP, FRONT AND RIGHT ONLY — and that was a bug, not an optimisation. Culling the
+     other three is right for a camera that never moves, and this camera walks the whole length of
+     the street: anything to the LEFT of where you are standing shows you its left face, and the
+     left face was never built. So half the town had a wall missing, and which half changed as you
+     walked, which is exactly what a glitch looks like.
 
-function stopOverworld() {
-  if (!OW) return;
-  OW.off.forEach(([t, n, f]) => t.removeEventListener(n, f));
-  if (OW.frame) cancelAnimationFrame(OW.frame);
-  try { OW.renderer.dispose(); } catch (e) {}
-  OW = null;
+     ALL FOUR SIDES NOW. The bottom is still skipped — nothing on this board is ever seen from
+     underneath, and that one is safe because the ground is under every box by construction. Four
+     more triangles a box; the depth buffer was already doing the hiding. */
+  const box = (x0, x1, y0, y1, z0, z1, c) => {
+    tri([x0,y1,z0],[x1,y1,z0],[x1,y1,z1], c, 1);        // the roof, full light
+    tri([x0,y1,z0],[x1,y1,z1],[x0,y1,z1], c, 1);
+    tri([x0,y0,z1],[x1,y0,z1],[x1,y1,z1], c, 0.74);     // the front, toward the walker
+    tri([x0,y0,z1],[x1,y1,z1],[x0,y1,z1], c, 0.74);
+    tri([x1,y0,z0],[x1,y0,z1],[x1,y1,z1], c, 0.56);     // the right
+    tri([x1,y0,z0],[x1,y1,z1],[x1,y1,z0], c, 0.56);
+    /* THE TWO THAT WERE MISSING. The left is lit like the right — a flat-shaded box with three
+       shades reads as solid, and giving the fourth side a fourth shade would make it read as a
+       different building. The back is darkest, because it faces away from the sun. */
+    tri([x0,y0,z0],[x0,y1,z1],[x0,y0,z1], c, 0.56);     // the left
+    tri([x0,y0,z0],[x0,y1,z0],[x0,y1,z1], c, 0.56);
+    tri([x0,y0,z0],[x1,y0,z0],[x1,y1,z0], c, 0.44);     // and the back
+    tri([x0,y0,z0],[x1,y1,z0],[x0,y1,z0], c, 0.44);
+  };
+  /* A PITCHED ROOF — two sloping faces meeting at a ridge, and the gable triangle at each end.
+     This one shape is most of what separates a house from a warehouse. */
+  const pitch = (x0, x1, y0, h, z0, z1, c) => {
+    const mz = (z0 + z1) / 2, y1 = y0 + h;
+    tri([x0,y0,z1],[x1,y0,z1],[x1,y1,mz], c, 0.92);
+    tri([x0,y0,z1],[x1,y1,mz],[x0,y1,mz], c, 0.92);
+    tri([x0,y0,z0],[x0,y1,mz],[x1,y1,mz], c, 0.6);
+    tri([x0,y0,z0],[x1,y1,mz],[x1,y0,z0], c, 0.6);
+    tri([x1,y0,z0],[x1,y1,mz],[x1,y0,z1], c, 0.5);
+  };
+
+  const T = OW.tile, g = OW.gap, inset = T * (1 - g) / 2;
+
+  /* ---------- THE GROUND ---------------------------------------------------------------------------
+     Every tile is grass, the row the walker uses is path, and the tiles a landmark stands on are its
+     own plot. No point-in-polygon any more: a plot is a run of tiles, which is what makes this a
+     board rather than a survey. */
+  const plotOf = new Array(world.cols).fill(null);
+  world.items.forEach(it => {
+    for (let i = 0; i < it.w; i++) plotOf[it.x0 + i] = it;
+  });
+
+  for (let cx = 0; cx < world.cols; cx++) {
+    for (let cz = 0; cz < world.rows; cz++) {
+      const x0 = cx * T + inset, x1 = (cx + 1) * T - inset;
+      /* ROW 0 SITS AT z = 0 AND EVERY ROW AFTER IT GOES BACK. So `cz` IS the distance from the
+         path in tiles, which is what the two tests below can then say plainly. */
+      const z1 = -cz * T - inset, z0 = -(cz + 1) * T + inset;
+      const mz = (z0 + z1) / 2;
+      /* THE PATH IS ONE TILE. It was `mz > -T*0.6 && mz < T*0.6` — a window a tile and a fifth
+         wide, straddling two rows, so it drew as a two-tile road wherever the rounding fell. */
+      const onPath = cz === 0;
+      const it = plotOf[cx];
+      /* AND THE PLOT IS THE TWO ROWS BEHIND IT. */
+      const onPlot = it && cz >= 1 && cz <= 2;
+
+      let colour = OW_TERRAIN.grass;
+      let top = OW.lift;
+      if (onPath) colour = OW_TERRAIN.road;
+      else if (onPlot) colour = OW_KIND[norm(it.l.kind)] === 'water' ? OW_TERRAIN.water
+        : OW_KIND[norm(it.l.kind)] === 'park' ? OW_TERRAIN.park
+        : OW_TERRAIN.plot;
+      if (colour === OW_TERRAIN.water) top = OW.lift * 0.45;
+
+      box(x0, x1, 0, top, z0, z1, rgb(colour));
+
+      /* A TREE ON A PARK PLOT. Every other tile, so it reads as trees rather than as a pattern. */
+      if (colour === OW_TERRAIN.park && (cx + cz) % 2 === 0) {
+        const tx = (x0 + x1) / 2;
+        box(tx - 0.5, tx + 0.5, top, top + 2, mz - 0.5, mz + 0.5, rgb('#6b4f2a'));
+        box(tx - 2.4, tx + 2.4, top + 2, top + 6.5, mz - 2.4, mz + 2.4, rgb('#2f7d33'));
+      }
+    }
+  }
+
+  /* ---------- WHAT STANDS ON EACH PLOT ---------------------------------------------------------
+     A LANDMARK IS NOT ONE THING. Priory Retail Park is a store AND a car park; a farm is a barn and
+     paddocks and a fence. So the sheet holds PARTS — a row each, placed in tiles on the landmark's
+     own plot — and this draws whatever it is given.
+
+     NO PARTS IS THE ORDINARY CASE and it draws exactly what it drew before: one block, from the
+     landmark's own `form`. Detail is for the landmarks worth the trouble, and nothing has to be
+     filled in for the rest. */
+  world.items.forEach(it => {
+    const l = it.l;
+    const parts = (l.parts && l.parts.length) ? l.parts : [{
+      /* THE WHOLE PLOT, AS ONE PART. Written as a part rather than as a separate branch, so there
+         is one drawing path and a landmark with parts and one without cannot drift apart. */
+      kind: (it.form === 'park' || norm(l.kind) === 'river' || norm(l.kind) === 'water')
+        ? (norm(l.kind) === 'river' || norm(l.kind) === 'water' ? 'water' : 'trees')
+        : 'building',
+      x: 0, z: 0, w: it.w, d: 2,
+      height: Number(l.height) || 0,
+      form: it.form, roofShape: norm(l.roofShape),
+      wall: '', roof: l.roof || '', feature: norm(l.feature),
+    }];
+
+    /* THE SITE, MEASURED ONCE for all its parts together — which is what makes them line up. Each
+       part measured against its own extent would centre every one on the same spot and a C would
+       close into a rectangle. */
+    const site = owSiteBox(l);
+    parts.forEach(pt => owPart(it, pt, { box, pitch, rgb, T, site }));
+  });
+
+  /* ---------- THE NODES ON THE PATH ----------------------------------------------------------------
+     One per landmark, in front of its plot — the Mario board's whole grammar. A venue is a bigger,
+     gold one, because a venue is a place you can actually be taught. */
+  world.items.forEach(it => {
+    const mx = it.mid * T;
+    const venue = norm(it.l.role) === 'venue';
+    const r = venue ? 2.6 : 1.7;
+    const c = rgb(venue ? '#ffb454' : '#e8e2d4');
+    /* ON THE PATH, which is row 0 — so the node is between the walker and the landmark, which is
+       the whole grammar of a board like this. */
+    box(mx - r, mx + r, OW.lift, OW.lift + 1.1, -T / 2 - r, -T / 2 + r, c);
+  });
+
+  return { pos: new Float32Array(pos), col: new Float32Array(col), count: pos.length / 3 };
 }
 
-/* THE ENTRY POINT, and the only name this section adds to the app. */
+/* ---------- HEIGHT IS TO SCALE, AND IT WAS NOT --------------------------------------------------
+   IT WAS `sqrt(height) * 3.4`, WHICH IS A LIE ABOUT EVERY BUILDING. The square root pulls the range
+   together so a tower and a shed both fit comfortably on one board — and the price is that Britannia
+   Point, six and a half times the height of the bus garage, drew two and a half times its height.
+   Everything looked like the same sort of building because everything nearly was.
+
+   LINEAR. A metre is a metre, so the tower really is four times the northern block beside it and
+   six times the garage down the road. That is the thing you actually notice on a board — a landmark
+   is a landmark because it is taller than what is round it, and flattening the range takes away the
+   only reason to look at it.
+
+   THE FACTOR IS 0.62, chosen so the tallest thing here — 59.5m — draws about 37 units, which stands
+   clear against a 4-tile-deep plot without leaving the top of the frame. A taller town would want a
+   smaller number, and that is one number in one place. */
+const OW_HEIGHT = 0.62;
+const owHeight = m => Math.max(3.5, (Number(m) || 0) * OW_HEIGHT);
+
+/* ---------- A REAL SHAPE, ONTO THIS LANDMARK'S TILES ------------------------------------------------
+   THE BOUNDING BOX IS WHY EVERY BUILDING LOOKED THE SAME. A part drawn from `w` and `d` is a
+   rectangle, so Tandem Centre — a C of shops round a car park — and Priory Retail Park came out as
+   the same block, and the plan somebody walked round was thrown away at the last step.
+
+   SO THE POLYGON IS RASTERISED. The landmark's whole site is measured, mapped onto its own plot of
+   tiles, and every tile whose centre falls inside a part's outline belongs to that part. A C stays a
+   C because the tiles in the middle are simply not in it.
+
+   SCALED TO THE SITE, NOT TO THE BOARD. Within a landmark the shape is true — the car park really
+   does wrap round the building in the proportion it does in life. Between landmarks nothing is to
+   scale, because a board where Tandem Centre is forty times a corner shop is a board you cannot
+   read. True shape, chosen size: the two decisions kept apart.
+
+   `siteBox` IS COMPUTED FROM EVERY PART TOGETHER, which is the thing that makes them line up. Each
+   part measured against its own extent would centre all of them on the same spot and the C would
+   close.
+--------------------------------------------------------------------------------------------- */
+/* THE ANGLE THAT PUTS A SITE SQUARE ON THE GRID.
+   The longest edge of the outline decides it — for a building that is the long wall, and a long
+   wall running along the tiles is what makes the footprint a clean block rather than a staircase.
+
+   TO THE NEAREST NINETY IS THE SAME ANSWER. Turning a rectangle by 105 degrees and by 15 gives the
+   same tiling, so the smallest turn is taken: fifteen degrees rather than a hundred and five, which
+   also keeps the site pointing roughly the way it really does. */
+function owSquareAngle(pts, mLng) {
+  if (pts.length < 3) return 0;
+  let best = 0, longest = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const dx = (b[1] - a[1]) * mLng, dz = (b[0] - a[0]) * 111320;
+    const len = Math.hypot(dx, dz);
+    if (len <= longest) continue;
+    longest = len;
+    best = Math.atan2(dx, dz) * 180 / Math.PI;
+  }
+  /* HOW FAR THAT EDGE IS FROM THE NEAREST QUARTER TURN — which is how far the site has to turn to
+     be square, and never more than forty-five degrees either way. */
+  const off = ((best % 90) + 90) % 90;
+  return off > 45 ? 90 - off : -off;
+}
+
+function owSiteBox(l) {
+  const pts = [];
+  (l.parts || []).forEach(p => (p.outline || []).forEach(q => pts.push(q)));
+  if (!pts.length && (l.outline || []).length) (l.outline || []).forEach(q => pts.push(q));
+  if (pts.length < 3) return null;
+  const lat0 = pts.reduce((a, q) => a + q[0], 0) / pts.length;
+  const mLng = 111320 * Math.cos(lat0 * Math.PI / 180);
+
+  /* ---------- WHICH WAY ROUND IT STANDS ----------------------------------------------------------
+     `bearing` HAS BEEN ON THE LANDMARKS TAB SINCE IT WAS MADE and nothing has ever read it. It is
+     the answer to "Priory is facing the wrong way": a plan is surveyed north-up, and the side you
+     want to be looking at is whichever side you would actually walk up to.
+
+     WHAT THE NUMBER MEANS. Degrees to turn the site clockwise before it is drawn:
+       0    as surveyed — you see its south side, which is right for anything on a north-side street
+       90   turned a quarter — you see its EAST side, which is Priory: standing east, looking west
+       180  you see its north side
+       270  you see its west side
+
+     THE WHOLE SITE TURNS TOGETHER, parts and all, about its own centre — so the car park stays on
+     the same side of the building it is really on. Rotating each part separately would spin them
+     into each other, which is the mistake that makes this look like a bug rather than a view. */
+  /* ---------- SQUARE TO THE GRID FIRST, WHATEVER ANGLE IT WAS BUILT AT --------------------------
+     THIS IS WHY BRITANNIA POINT CAME OUT L-SHAPED. Its blocks stand at 105 degrees — fifteen off
+     the compass — and a rectangle at fifteen degrees rasterised onto a square grid is a STAIRCASE:
+     two tiles, then one across, then two more. At a glance that is an L, and no amount of extra
+     resolution fixes it. Finer tiles make a smoother staircase, which is why cutting them into
+     sixteenths did not help either.
+
+     SO THE SITE IS TURNED SQUARE BEFORE IT IS RASTERISED. The longest edge of the biggest part is
+     found, and the whole site rotated until that edge runs along the grid. A rectangle then covers
+     a clean block of tiles, because it is finally parallel to them.
+
+     AND IT IS AUTOMATIC. Nobody should have to protract a satellite photograph to fill in a
+     spreadsheet — the corners already say what angle the building stands at, so the number is
+     derivable and deriving it is the whole job. `bearing` still overrides, for the cases where the
+     view matters more than the tiling: a quarter turn on top of square is still square. */
+  /* ---------- ONLY THE SQUARING HAPPENS HERE, NOT THE TURN ---------------------------------------
+     THE BEARING USED TO BE ADDED IN AT THIS POINT, and that is why turning a site changed its
+     shape: the polygon was rotated and then re-sampled against the tile grid, and re-sampling a
+     shape at a different angle gives a different set of tiles. The T flattened, gaps closed, and no
+     amount of care about plot sizes could fix it, because the shape was being recomputed each time.
+
+     SO THE SITE IS ONLY SQUARED HERE — turned until its own right angles line up with the grid,
+     which is the thing that has to happen before any tile is decided. The BEARING is applied
+     afterwards, to the FINISHED TILES, by turning the grid a quarter at a time.
+
+     ROTATING A GRID OF TILES CANNOT CHANGE WHAT IS ON IT. Four tiles in an L are four tiles in an L
+     whichever way up you hold them — it is a transposition, not a measurement — so the shape is
+     guaranteed identical at every bearing rather than merely observed to be. */
+  const rot = owSquareAngle(pts, mLng) * Math.PI / 180;
+  const cx = pts.reduce((a, q) => a + q[1] * mLng, 0) / pts.length;
+  const cz = pts.reduce((a, q) => a - q[0] * 111320, 0) / pts.length;
+  const cosR = Math.cos(rot), sinR = Math.sin(rot);
+  const put = q => {
+    const x = q[1] * mLng - cx, z = -q[0] * 111320 - cz;
+    return { x: x * cosR - z * sinR, z: x * sinR + z * cosR };
+  };
+
+  const all = pts.map(put);
+  return {
+    mLng, put,
+    minX: Math.min.apply(null, all.map(q => q.x)),
+    maxX: Math.max.apply(null, all.map(q => q.x)),
+    minZ: Math.min.apply(null, all.map(q => q.z)),
+    maxZ: Math.max.apply(null, all.map(q => q.z)),
+  };
+}
+
+/* Point in polygon — ray casting. Odd number of crossings means inside. */
+function owIn(x, z, ring) {
+  let hit = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i], b = ring[j];
+    if ((a.z > z) !== (b.z > z)
+        && x < (b.x - a.x) * (z - a.z) / ((b.z - a.z) || 1e-9) + a.x) hit = !hit;
+  }
+  return hit;
+}
+
+/* WHICH TILES A PART COVERS. Returns a list of `{a, b}` tile coordinates on the landmark's plot —
+   `a` across, `b` back — which is what the drawing below then puts something on. */
+/* HOW MANY PIECES A TILE IS CUT INTO for the purpose of shape.
+
+   IT WAS FOUR, AND FOUR WAS WRONG. Sixteen times the resolution meant a building followed its real
+   outline closely — tapered ends, notches, a cut corner — and that is precisely what a board is not
+   for. The whole style is the REFUSAL of detail: a chunky shape you read at a glance beats an
+   accurate one you have to look at. At four, Priory stopped being a shape and became a survey.
+
+   ONE. A part covers whole tiles, which is what makes it read as a piece of a board rather than as
+   a plan. The shape still comes from the real corners — a C is still a C, because the tiles in the
+   middle are still not in it — it is simply rounded to the grid, which is the point of a grid. */
+/* ---------- THE GRID IS AS FINE AS THE SMALLEST THING ON THE SITE --------------------------------
+   A FIXED NUMBER OF CELLS PER TILE WAS ALWAYS WRONG FOR SOMETHING. One meant a bridge disappeared;
+   four meant a supermarket became a survey of itself. The number was never the problem — using ONE
+   number for a 250-metre site and an 8-metre bridge was.
+
+   SO IT IS DERIVED, PER SITE, from the smallest part standing on it: fine enough that the smallest
+   part is about three cells across, and no finer. Sainsbury's has a footbridge on it, so its cells
+   come out about three metres; Britannia Point has nothing smaller than a 13-metre wall, so its
+   cells are coarser and its blocks stay chunky.
+
+   AND A FINE GRID DOES NOT OVER-RESOLVE A BIG BUILDING. A 168-metre store at three-metre cells is
+   still a big solid block — it reads chunky because it IS chunky, not because the grid was coarse.
+   The only thing extra resolution buys on a large simple shape is a less jagged edge, which is the
+   one kind of detail that never hurts.
+
+   `MIN_CELLS` IS WHY THREE. Two cells across is a line with a width; three is the fewest that can
+   have a middle, and a thing with no middle cannot read as a shape. */
+const OW_MIN_CELLS = 3;
+/* AND A CEILING, because one traced doorstep should not drag a whole site to a four-hundred-cell
+   grid. Anything below `OW_OBJECT_FRAC` of the site's long side is not rasterised at all — see
+   `owPart`, which drops a standard object on one cell instead. Its shape carries nothing; its
+   presence carries everything. */
+const OW_MAX_CELLS = 120;
+const OW_OBJECT_FRAC = 0.05;
+
+/* TURNING A FINISHED GRID OF TILES, a quarter at a time.
+
+   THIS IS THE WHOLE POINT OF THE ARRANGEMENT. Rotating a polygon and re-sampling it gives a
+   different set of tiles every time — that is what flattened the T and closed the gap. Rotating the
+   TILES is a relabelling: the same cells, at different coordinates. Four in an L are four in an L
+   whichever way up the grid is held.
+
+   THE PLOT'S OWN WIDTH AND DEPTH SWAP on an odd quarter, which is why they were swapped when the
+   plot was measured — the two have to agree or a tile lands outside its own plot. */
+function owTurn(t, quarters, w, d) {
+  if (!quarters) return t;
+  if (quarters === 1) return { a: d - 1 - t.b, b: t.a };        // a quarter clockwise
+  if (quarters === 2) return { a: w - 1 - t.a, b: d - 1 - t.b }; // a half turn
+  return { a: t.b, b: w - 1 - t.a };                            // three quarters
+}
+
+function owTilesOf(it, pt, box) {
+  const out = [];
+  if (!box || !(pt.outline || []).length) return out;
+  /* THE SAME ROTATION THE SITE GOT. Using the raw corners here would rasterise the unturned shape
+     into a turned box — the part would be the right shape and in the wrong place, which is worse
+     than either fault alone. */
+  const ring = pt.outline.map(box.put);
+  const w = Math.max(1, box.maxX - box.minX), d = Math.max(1, box.maxZ - box.minZ);
+  /* THE GRID IS SAMPLED IN THE SITE'S OWN FRAME — the plot as it was measured, before the bearing
+     swapped its sides. So `cols` and `rows` here are the UNTURNED plot, and the turn is applied to
+     each tile as it comes out. */
+  const q = it.quarters || 0;
+  const pw = (q === 1 || q === 3) ? it.depth : it.w;
+  const pd = (q === 1 || q === 3) ? it.w : it.depth;
+  /* THE SUBDIVISION THE SITE ASKED FOR, worked out once in `owWorld` from the smallest part on it —
+     so every part of one landmark is sampled on the same grid, which is what keeps them lined up. */
+  const sub = it.sub || 1;
+  const cols = pw * sub, rows = pd * sub;
+  for (let a = 0; a < cols; a++) {
+    for (let b = 0; b < rows; b++) {
+      /* THE MIDDLE OF THE SUB-TILE, mapped back into metres on the real site. Testing the centre
+         rather than a corner is what stops a cell counting as covered because one edge grazed it. */
+      const x = box.minX + ((a + 0.5) / cols) * w;
+      const z = box.minZ + ((b + 0.5) / rows) * d;
+      if (owIn(x, z, ring)) out.push(owTurn({ a, b }, q, cols, rows));
+    }
+  }
+  return out;
+}
+
+/* ---------- ONE PART OF A LANDMARK -----------------------------------------------------------------
+   A rectangle of the plot with a nature. Everything the board can put on the ground goes through
+   here, so a car park and a barn are the same call with different rows behind them.
+
+   THE PLOT'S FRONT-LEFT CORNER IS THE ORIGIN. `x` and `z` in the sheet are tiles from there, which
+   is a thing somebody can count on the screen while filling the row in — a metre offset would be a
+   number nobody can check.
+--------------------------------------------------------------------------------------------- */
+function owPart(it, pt, draw) {
+  const { box, pitch, rgb, T, site } = draw;
+
+  /* ---------- A PART WITH REAL CORNERS IS DRAWN TILE BY TILE ------------------------------------
+     AND THAT IS THE WHOLE DIFFERENCE. One box over the bounding rectangle turns a C-shaped shopping
+     centre into a block — which is exactly what made Tandem Centre and Priory indistinguishable. A
+     box per covered tile keeps the hole in the middle, because the tiles in the middle were never
+     covered.
+
+     ADJACENT TILES MERGE ON SCREEN. Two boxes sharing a face read as one building, so a run of six
+     tiles is a long shed and an L of them is an L — no logic needed for the shape beyond knowing
+     which tiles are in. */
+  const tiles = owTilesOf(it, pt, site);
+  if (tiles.length) {
+    tiles.forEach(t => owPartTile(it, pt, t, draw));
+    return;
+  }
+
+  /* ---------- A PART THAT COVERS NO TILES AT ALL --------------------------------------------------
+     IT HAPPENS, AND IT HAPPENS SILENTLY. A small building on a large plot can fall entirely between
+     tile centres — Britannia Point's northern block does exactly that at four plots wide and not at
+     three. Nothing throws; the part is simply not drawn, and the only way to notice is to know it
+     should be there.
+
+     SO IT IS DRAWN ANYWAY, one tile at the middle of where it really is. A building in roughly the
+     right place is a fault somebody can see and fix by widening the plot; a building that is not
+     there at all is a fault that gets filed as "the board looks wrong" a month later. */
+  if ((pt.outline || []).length >= 3 && site) {
+    const ring = pt.outline.map(site.put);
+    const mx = ring.reduce((a, q) => a + q.x, 0) / ring.length;
+    const mz = ring.reduce((a, q) => a + q.z, 0) / ring.length;
+    const a = Math.max(0, Math.min(it.w - 1, Math.floor(
+      ((mx - site.minX) / Math.max(1, site.maxX - site.minX)) * it.w)));
+    const b = Math.max(0, Math.min(it.depth - 1, Math.floor(
+      ((mz - site.minZ) / Math.max(1, site.maxZ - site.minZ)) * it.depth)));
+    owPartTile(it, pt, { a, b }, draw);
+    return;
+  }
+  /* THE PLOT starts one tile behind the path and runs back. `z` counts backwards from there, which
+     is the same direction the rows go, so a part at z=0 is against the path and z=1 is behind it. */
+  const px = (it.x0 + pt.x) * T;
+  const pz = -(1 + pt.z) * T;
+  const pad = T * 0.12;
+  const x0 = px + pad, x1 = px + pt.w * T - pad;
+  const z1 = pz - pad, z0 = pz - pt.d * T + pad;
+  const base = OW.lift;
+
+  /* THE FLAT ONES. A surface laid on the plot — no walls, no roof, and a height that is a hair
+     above the tile so it reads as a surface rather than z-fighting with the ground under it. */
+  const FLAT = {
+    tarmac: '#3a3a3d',
+    grass:  '#6ab04c',
+    water:  '#3aa8d8',
+    trees:  '#4e9b3c',
+    path:   '#b9b0a0',
+  };
+  if (FLAT[pt.kind]) {
+    const c = rgb(pt.wall || FLAT[pt.kind]);
+    const top = pt.kind === 'water' ? base - OW.lift * 0.55 : base + 0.12;
+    box(x0, x1, base - OW.lift, top, z0, z1, c);
+    /* TREES ON A TREED PART, every other tile — a cone on every one reads as a pattern rather than
+       as a wood. */
+    if (pt.kind === 'trees') {
+      for (let a = 0; a < pt.w; a++) {
+        for (let b = 0; b < pt.d; b++) {
+          if ((a + b) % 2) continue;
+          const tx = px + (a + 0.5) * T, tz = pz - (b + 0.5) * T;
+          box(tx - 0.5, tx + 0.5, top, top + 2, tz - 0.5, tz + 0.5, rgb('#6b4f2a'));
+          box(tx - 2.4, tx + 2.4, top + 2, top + 6.5, tz - 2.4, tz + 2.4, rgb('#2f7d33'));
+        }
+      }
+    }
+    /* AND THE WHITE LINES ON TARMAC, which is the one thing that makes a dark rectangle read as a
+       car park rather than as a hole in the board. */
+    if (pt.kind === 'tarmac') {
+      const bays = Math.max(2, Math.round((x1 - x0) / 3.2));
+      for (let i = 1; i < bays; i++) {
+        const lx = x0 + (x1 - x0) * i / bays;
+        box(lx - 0.16, lx + 0.16, top, top + 0.08, z0 + 1.2, z1 - 1.2, rgb('#c9c4b4'));
+      }
+    }
+    return;
+  }
+
+  /* A FENCE — a low rail round the edge of the tiles it covers. Four thin boxes, and it is what
+     turns a green rectangle into a paddock. */
+  if (pt.kind === 'fence') {
+    const c = rgb(pt.wall || '#8a6a48'), t = 0.35, hgt = 1.8;
+    box(x0, x1, base, base + hgt, z1 - t, z1, c);
+    box(x0, x1, base, base + hgt, z0, z0 + t, c);
+    box(x0, x0 + t, base, base + hgt, z0, z1, c);
+    box(x1 - t, x1, base, base + hgt, z0, z1, c);
+    return;
+  }
+
+  /* ---------- AND A BUILDING ------------------------------------------------------------------
+     The same six silhouettes as before, now per part rather than per landmark — so a retail park
+     can be a shed AND a car park, which is the whole point of this. */
+  const pal = OW_BUILD[norm(it.l.kind)] || OW_BUILD.retail;
+  const wall = rgb(pt.wall || pal[0]);
+  const roofC = rgb(pt.roof || pal[1]);
+  const form = pt.form || 'slab';
+
+  let h = 13, roofH = 2;
+  if (form === 'tower') { h = 34; roofH = 2; }
+  else if (form === 'shed') { h = 8; roofH = 3; }
+  else if (form === 'hall') { h = 11; roofH = 6; }
+  else if (form === 'house') { h = 8; roofH = 5; }
+  else if (form === 'dome') { h = 10; roofH = 5; }
+  /* A HEIGHT IN THE SHEET WINS. The form gives a shape; a number gives a specific building, and
+     somebody who has typed one meant it. Squashed the same way as everything else so a tower and a
+     shed are both readable on one board. */
+  if (pt.height > 0) h = owHeight(pt.height);
+
+  let bx0 = x0, bx1 = x1;
+  if (form === 'tower') {
+    const wdt = Math.min(bx1 - bx0, T * 0.7), mx = (bx0 + bx1) / 2;
+    bx0 = mx - wdt / 2; bx1 = mx + wdt / 2;
+  }
+
+  box(bx0, bx1, base, base + h, z0, z1, wall);
+
+  const shape = pt.roofShape || (form === 'house' || form === 'hall' ? 'pitch' : 'flat');
+  if (shape === 'pitch') {
+    pitch(bx0 - 0.5, bx1 + 0.5, base + h, roofH, z0 - 0.5, z1 + 0.5, roofC);
+  } else if (shape === 'dome') {
+    for (let i = 0; i < 3; i++) {
+      const k = 1 - i * 0.28, wd = (bx1 - bx0) / 2 * k, dp = (z1 - z0) / 2 * k;
+      const mx = (bx0 + bx1) / 2, mz = (z0 + z1) / 2;
+      box(mx - wd, mx + wd, base + h + i * roofH / 3, base + h + (i + 1) * roofH / 3,
+          mz - dp, mz + dp, roofC);
+    }
+  } else if (shape === 'saw') {
+    const n = Math.max(2, Math.round((bx1 - bx0) / (T * 0.5)));
+    for (let i = 0; i < n; i++) {
+      pitch(bx0 + (bx1 - bx0) * i / n, bx0 + (bx1 - bx0) * (i + 1) / n,
+            base + h, roofH, z0, z1, roofC);
+    }
+  } else {
+    box(bx0 - 0.6, bx1 + 0.6, base + h, base + h + roofH, z0 - 0.6, z1 + 0.6, roofC);
+  }
+
+  const mx = (bx0 + bx1) / 2, mz = (z0 + z1) / 2, topY = base + h + roofH;
+  if (pt.feature === 'chimney') {
+    box(bx1 - 2.4, bx1 - 0.6, base + h, topY + 9, mz - 0.9, mz + 0.9, rgb('#8a5a3c'));
+  } else if (pt.feature === 'spire') {
+    box(mx - 0.8, mx + 0.8, topY, topY + 10, mz - 0.8, mz + 0.8, roofC);
+  } else if (pt.feature === 'mast') {
+    box(mx - 0.35, mx + 0.35, topY, topY + 12, mz - 0.35, mz + 0.35, rgb('#9aa0a6'));
+  } else if (pt.feature === 'clock') {
+    box(mx - 1.8, mx + 1.8, base + h - 5, base + h - 1.4, z1 - 0.4, z1 + 0.5, rgb('#f4ecd8'));
+  } else if (pt.feature === 'sign') {
+    box(bx0 + 0.5, bx1 - 0.5, topY, topY + 2.6, z1 - 0.3, z1 + 0.4, roofC);
+  }
+}
+
+/* THE WALKER. Two boxes, which is as much as anybody on a board like this ever is. */
+function owFigure() {
+  const pos = [], col = [];
+  const tri = (a, b, c, base, k) => [a, b, c].forEach(p => {
+    pos.push(p[0], p[1], p[2]);
+    col.push(base[0] * k, base[1] * k, base[2] * k);
+  });
+  /* THE SAME FOUR SIDES. The walker turns round — walk left and you are looking at what was the
+     back of them — so three faces here is the same fault as it was on a building, just smaller and
+     harder to see. */
+  const box = (r, y0, y1, c) => {
+    tri([-r,y1,-r],[r,y1,-r],[r,y1,r], c, 1);
+    tri([-r,y1,-r],[r,y1,r],[-r,y1,r], c, 1);
+    tri([-r,y0,r],[r,y0,r],[r,y1,r], c, 0.72);
+    tri([-r,y0,r],[r,y1,r],[-r,y1,r], c, 0.72);
+    tri([r,y0,-r],[r,y0,r],[r,y1,r], c, 0.55);
+    tri([r,y0,-r],[r,y1,r],[r,y1,-r], c, 0.55);
+    tri([-r,y0,-r],[-r,y1,r],[-r,y0,r], c, 0.55);
+    tri([-r,y0,-r],[-r,y1,-r],[-r,y1,r], c, 0.55);
+    tri([-r,y0,-r],[r,y0,-r],[r,y1,-r], c, 0.44);
+    tri([-r,y0,-r],[r,y1,-r],[-r,y1,-r], c, 0.44);
+  };
+  box(1.1, 0, 3.2, [1, 0.71, 0.33]);
+  box(0.85, 3.2, 4.7, [0.96, 0.86, 0.66]);
+  return { pos: new Float32Array(pos), col: new Float32Array(col), count: pos.length / 3 };
+}
+
+/* ---------- THE RENDERER --------------------------------------------------------------------------- */
+let OW_GL = null;
+
+function owStop() {
+  if (!OW_GL) return;
+  cancelAnimationFrame(OW_GL.frame);
+  OW_GL.off.forEach(([t, n, f]) => t.removeEventListener(n, f));
+  OW_GL = null;
+}
+
 function initOverworldBoard() {
   const mount = document.getElementById('map-board');
   if (!mount) return;
-  stopOverworld();
-  mount.textContent = 'Loading the map…';
-  loadThree().then(() => {
-    mount.textContent = '';
-    buildOverworld(mount);
-  }).catch(err => {
-    mount.textContent = String(err.message || err);
+  owStop();
+
+  const world = owWorld();
+  if (!world) {
+    mount.innerHTML = `<p class="faint">No landmarks yet. Add rows to the <b>landmarks</b> tab — a
+      name, a lat and a lng puts something there, and a <b>points</b> cell of
+      <code>lat lng, lat lng, …</code> gives it a footprint. Any number of vertices.</p>`;
+    return;
+  }
+
+  /* ---------- THE NAMES ARE HTML, OVER THE CANVAS -------------------------------------------------
+     TEXT IN WEBGL IS A WHOLE SUBSYSTEM — a font atlas, a texture, a quad per glyph, and kerning done
+     by hand. For six labels that is a fortnight of work to end up with worse type than the browser
+     already has.
+
+     SO THE LABEL IS AN ORDINARY ELEMENT and the 3D only decides WHERE it goes: the landmark's
+     position is run through the same camera matrix the buildings use, which gives a point on the
+     screen, and the element is moved there each frame. Real text, real font, selectable, and it
+     scales with the phone's own type size — none of which a texture atlas would give.
+
+     ONE ELEMENT PER LANDMARK, made once. Moving them is a transform per frame; making them would be
+     a layout per frame, and that is the difference between smooth and not. */
+  mount.innerHTML = '<canvas class="ow-c"></canvas><div class="ow-tags"></div>'
+    + '<p class="ow-hint">Hold either side to walk</p>';
+  const cv = mount.querySelector('canvas');
+  const gl = cv.getContext('webgl', { antialias: true, alpha: false });
+  if (!gl) {
+    mount.innerHTML = '<p class="faint">This browser cannot draw the board — it needs WebGL. '
+      + 'Everything else in the app works without it.</p>';
+    return;
+  }
+
+  const prog = gl.createProgram();
+  const add = (type, src) => {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    gl.attachShader(prog, sh);
+  };
+  add(gl.VERTEX_SHADER, OW_VS);
+  add(gl.FRAGMENT_SHADER, OW_FS);
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const mesh = owMesh(world);
+  const figure = owFigure();
+  const buf = data => {
+    const b = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    return b;
+  };
+  const bufs = {
+    town: { pos: buf(mesh.pos), col: buf(mesh.col), n: mesh.count },
+    me: { pos: buf(figure.pos), col: buf(figure.col), n: figure.count },
+  };
+  const aPos = gl.getAttribLocation(prog, 'pos');
+  const aCol = gl.getAttribLocation(prog, 'col');
+  const uMvp = gl.getUniformLocation(prog, 'mvp');
+  gl.enableVertexAttribArray(aPos);
+  gl.enableVertexAttribArray(aCol);
+  gl.enable(gl.DEPTH_TEST);
+  /* Sky. One colour, because a gradient behind a flat-shaded board is the only soft thing in it. */
+  gl.clearColor(0.42, 0.68, 0.85, 1);
+
+  /* THE LABELS, one per landmark, built once and moved thereafter. A venue is gold because a venue
+     is a place somebody can actually be taught — the same meaning the colour carries everywhere
+     else in the app. */
+  const tags = mount.querySelector('.ow-tags');
+  world.items.forEach(it => {
+    const el = document.createElement('span');
+    el.className = 'ow-tag' + (norm(it.l.role) === 'venue' ? ' is-venue' : '');
+    el.textContent = S_(it.l.label) || S_(it.l.name);
+    el.setAttribute('data-do', 'ow-tap');
+    el.setAttribute('data-name', S_(it.l.name));
+    tags.appendChild(el);
+    it.el = el;
+  });
+
+  const state = { x: world.length / 2, dir: 0, last: 0, frame: 0, off: [] };
+  OW_GL = state;
+
+  const draw = now => {
+    if (OW_GL !== state) return;
+    const dt = state.last ? Math.min(0.05, (now - state.last) / 1000) : 0;
+    state.last = now;
+    if (state.dir) {
+      state.x = Math.max(0, Math.min(world.length, state.x + state.dir * OW.speed * dt));
+    }
+
+    const w = cv.clientWidth || 1, h = cv.clientHeight || 1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(w * dpr)) { cv.width = w * dpr; cv.height = h * dpr; }
+    gl.viewport(0, 0, cv.width, cv.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    /* LOOKING DOWN AT THE BOARD, which is the whole difference from the last attempt — it looked
+       ALONG the street, so the grid was edge-on and might as well not have been there. */
+    const eye = [state.x, OW.eyeH, OW.back];
+    const at = [state.x, OW.look, -14];
+    const mvp = owMul(owPerspective(OW.fov, w / h, 1, 900), owLookAt(eye, at, [0, 1, 0]));
+    gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));
+
+    const drawIt = b => {
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.pos);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.col);
+      gl.vertexAttribPointer(aCol, 3, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, b.n);
+    };
+    drawIt(bufs.town);
+
+    const move = [1,0,0,0, 0,1,0,0, 0,0,1,0, state.x, OW.lift, -OW.tile / 2, 1];
+    gl.uniformMatrix4fv(uMvp, false, new Float32Array(owMul(mvp, move)));
+    drawIt(bufs.me);
+
+    /* ---------- AND THE NAMES, PUT WHERE THE 3D SAYS -----------------------------------------------
+       The same matrix that drew the buildings, applied to one point above each of them. The divide
+       by `w` is the perspective divide — the step that makes a thing further away appear smaller and
+       nearer the middle, and the reason a label tracks its building rather than sliding off it.
+
+       BEHIND THE CAMERA IS NOT "OFF TO ONE SIDE". A point behind gives a negative `w` and the
+       arithmetic mirrors it back onto the screen, so a label from the far end of the street would
+       appear over the near end. Hidden by the sign test rather than by clamping. */
+    world.items.forEach(it => {
+      /* WELL ABOVE THE ROOFS. Twenty-two metres put the label at about the height of a building, so
+         a name sat across whatever it was naming — and the one thing a label must never do is hide
+         the thing it points at. Forty-eight clears the tallest silhouette on the board (a tower
+         draws about thirty-four) with room to spare.
+
+         AND FURTHER BACK, over the plot rather than over the path — so a label belongs to the
+         building behind the node instead of floating above the walker. */
+      const wx = it.mid * OW.tile, wy = OW.lift + 48, wz = -2.2 * OW.tile;
+      const cw = mvp[3] * wx + mvp[7] * wy + mvp[11] * wz + mvp[15];
+      if (cw <= 0.01) { it.el.style.opacity = '0'; return; }
+      const nx = (mvp[0] * wx + mvp[4] * wy + mvp[8] * wz + mvp[12]) / cw;
+      const ny = (mvp[1] * wx + mvp[5] * wy + mvp[9] * wz + mvp[13]) / cw;
+      /* OFF THE SIDES, HIDDEN. Six labels is nothing to compute, and a label pinned to the edge of
+         the screen for a building nobody can see is a label that lies about where something is. */
+      if (nx < -1.25 || nx > 1.25) { it.el.style.opacity = '0'; return; }
+      it.el.style.opacity = '1';
+      it.el.style.transform = 'translate(-50%,-50%) translate('
+        + ((nx * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((0.5 - ny * 0.5) * h).toFixed(1) + 'px)';
+    });
+
+    state.frame = requestAnimationFrame(draw);
+  };
+  state.frame = requestAnimationFrame(draw);
+
+  const on_ = (t, n, f) => { t.addEventListener(n, f); state.off.push([t, n, f]); };
+  const go = ev => {
+    const box = mount.getBoundingClientRect();
+    const at = (ev.touches ? ev.touches[0].clientX : ev.clientX) - box.left;
+    state.dir = at < box.width / 2 ? -1 : 1;
+  };
+  on_(mount, 'pointerdown', go);
+  on_(mount, 'pointermove', ev => { if (state.dir) go(ev); });
+  on_(window, 'pointerup', () => { state.dir = 0; });
+  on_(window, 'pointercancel', () => { state.dir = 0; });
+  on_(window, 'keydown', ev => {
+    if (ev.key === 'ArrowLeft') state.dir = -1;
+    if (ev.key === 'ArrowRight') state.dir = 1;
+  });
+  on_(window, 'keyup', ev => {
+    if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') state.dir = 0;
   });
 }
 
-function buildOverworld(mount) {
-  const THREE = window.THREE;
-  /* Every listener is written down as it is added, so leaving the screen can take them all off
-     again. A board that has been closed still answering the arrow keys is the sort of fault that
-     only shows up as "the map moved while I was typing". */
-  const off = [];
-  const on_ = (target, name, fn) => { target.addEventListener(name, fn); off.push([target, name, fn]); };
+/* ---------- TAPPING A NAME -------------------------------------------------------------------------
+   The label carries `data-do="ow-tap"`, and the handler for it was lost in one of the rewrites of
+   this board — leaving a door onto nothing. `check-doors` did not catch it, because the attribute is
+   set in JavaScript rather than written into markup, and that checker reads markup. Worth knowing:
+   a door made with `setAttribute` is outside what it can see.
 
+   A VENUE SAYS WHERE IT IS, because that is a thing somebody can act on. Anything else says its
+   address, because a landmark on this board is something you navigate by rather than book. */
+on('ow-tap', el => {
+  const name = el.getAttribute('data-name') || '';
+  const l = (DATA.landmarks || []).find(x => S_(x.name) === name);
+  if (!l) return;
+  const venue = (DATA.venues || []).find(v => norm(v.title) === norm(name));
+  toast(venue ? name + ' — ' + (venue.borough || 'a venue you can book')
+              : name + (l.address ? ' · ' + S_(l.address) : ''));
+});
 
-  window.__ok = true;
+/* ONE TILE OF A PART. The same vocabulary as a whole part — a surface, a fence, or a building — at
+   the size of a single tile, so a rasterised shape is built out of these and a hand-placed
+   rectangle is built out of one big one. Same look either way. */
+function owPartTile(it, pt, t, draw) {
+  const { box, pitch, rgb, T } = draw;
+  /* ---------- ONE CELL IS ONE WHOLE TILE ---------------------------------------------------------
+     `OW_SUB` WAS USED HERE AND DECLARED NOWHERE, and this would have thrown the moment anybody
+     opened the map with a rasterised part on it — a plain ReferenceError, no board at all.
 
-  /* ==================================================================================================
-     THE LANDMARKS TAB — VERTICES, AND EVERYTHING ELSE DERIVED
+     It is left over from the four-by-four sub-tile experiment: when that was reverted the constant
+     went and two uses of it stayed. `check-dead` and `check.js` both found it, which is the whole
+     reason those checkers exist — a name used but never declared is invisible until it runs.
 
-     `shape: 'poly'` with a `points` cell, which your schema already had a column for.
+     ONE, WRITTEN OUT, rather than a constant nobody else needs. A part covers whole tiles now, so
+     the divisor is not a setting; reintroducing it as a variable would invite somebody to change
+     it and put the staircase back. */
+  const u = T;
+  const px = it.x0 * T + t.a * u, pz = -T - t.b * u;
+  /* NO PADDING BETWEEN THE PIECES OF ONE PART. A gap here would draw a shed as a row of separate
+     huts — the seam belongs between tiles of the GROUND, not through the middle of a building. */
+  const x0 = px, x1 = px + u, z1 = pz, z0 = pz - u;
+  const base = OW.lift;
 
-     WIDTH AND DEPTH ARE NOT ENOUGH, and the reason is measurable on these five. A rectangle cannot say
-     what an L-shaped building is: Britannia Point fills 48% of its bounding box and the Premier Inn
-     46%, so a rectangle round either claims twice the ground the building stands on. Even the simple
-     ones are notched — the bus garage 65%, Sainsbury's 68%. Not one of the five is a rectangle.
+  const FLAT = { tarmac: '#3a3a3d', grass: '#6ab04c', water: '#3aa8d8',
+                 trees: '#4e9b3c', path: '#b9b0a0', bridge: '#9a8b74' };
+  if (FLAT[pt.kind]) {
+    const c = rgb(pt.wall || FLAT[pt.kind]);
+    /* ---------- A BRIDGE IS THE ONE FLAT THING THAT DOES NOT LIE ON THE GROUND -------------------
+       Water sits BELOW the tile, which is what makes a river read as a river rather than as a blue
+       floor. A bridge has to sit ABOVE it — over the water, with a gap you can see under — or it is
+       just a differently coloured stretch of river.
 
-     AND IT IS THE FOOTPRINT THAT MATTERS, NOT THE AREA. On a tiled board what a building occupies is
-     the set of tiles it covers, and a concave building covers tiles it has no floor area in — the notch
-     is inside the outline even where there is nothing built. Area cannot express that; vertices can.
-
-     SO ONE COLUMN CARRIES THE SHAPE and the rest fall out of it:
-       area       the shoelace formula over the vertices
-       perimeter  the sum of the edges
-       bearing    no longer needed — the polygon is already at its real angle
-       tiles      the polygon rasterised onto the grid
-     Stored separately, each is a column that can disagree with the shape and with the others.
-
-     WHAT STAYS: height and storeys, which an outline genuinely does not know; colour; and lat/lng as a
-     convenience, being the middle of the vertices.
-
-     THE POINTS CELL is `lat lng;lat lng;…` — 683 characters for Sainsbury's, which is thirty-eight
-     corners and the largest here. A spreadsheet cell holds 32,767.
-  ================================================================================================== */
-  const LANDMARKS = [{"name": "River Wandle", "kind": "river", "lat": 51.4172, "lng": -0.178, "height_m": 0, "storeys": 0, "colour": "#4aa8d8", "points": [[51.42049, -0.17561], [51.41963, -0.17612], [51.41881, -0.17679], [51.41808, -0.17742], [51.41744, -0.17812], [51.41686, -0.17879], [51.41623, -0.17944], [51.4156, -0.18002], [51.41491, -0.18055], [51.41419, -0.18098], [51.41345, -0.18131]], "ground": true, "line": true, "width_m": 14, "label": "The Wandle", "icon": "water"}, {"name": "Merton Bus Garage", "kind": "indust", "lat": 51.41734, "lng": -0.18152, "height_m": 9.0, "storeys": 1, "colour": "#c2bcae", "points": [[51.41837, -0.1819], [51.41839, -0.18147], [51.41841, -0.18124], [51.41774, -0.18113], [51.41772, -0.18142], [51.41705, -0.1813], [51.41684, -0.18118], [51.41662, -0.18118], [51.41655, -0.18113], [51.41652, -0.18124], [51.41648, -0.18138], [51.41654, -0.18142], [51.41677, -0.18143], [51.41702, -0.18158], [51.41699, -0.18196], [51.41716, -0.18198], [51.41783, -0.182], [51.4181, -0.18195], [51.41837, -0.1819]], "venue": true, "node": "start", "label": "Bus Garage", "icon": "bus", "roof": "#5a6b7a", "address": "18 Merton High St, SW19 1DN"}, {"name": "Priory Retail Park", "kind": "retail", "lat": 51.41586, "lng": -0.17899, "height_m": 8.0, "storeys": 1, "colour": "#cfc7b8", "points": [[51.41641, -0.17906], [51.41628, -0.17908], [51.41616, -0.17911], [51.41601, -0.17913], [51.41586, -0.17916], [51.4158, -0.17917], [51.41571, -0.17918], [51.41558, -0.1792], [51.41546, -0.17923], [51.41538, -0.17924], [51.41525, -0.17901], [51.41524, -0.17896], [51.41522, -0.1786], [51.41623, -0.17842], [51.41625, -0.17861], [51.41638, -0.17859], [51.41641, -0.17906]], "venue": true, "label": "Priory Retail Park", "icon": "cart", "roof": "#8a5a3c", "address": "131 High St, SW19 2PP"}, {"name": "Britannia Point", "kind": "resi", "lat": 51.41744, "lng": -0.1784, "height_m": 59.5, "storeys": 17, "colour": "#d8d2c4", "points": [[51.41736, -0.17873], [51.41749, -0.17867], [51.41746, -0.17848], [51.41749, -0.17846], [51.41765, -0.17839], [51.41761, -0.17822], [51.41743, -0.1783], [51.41739, -0.17812], [51.41739, -0.1781], [51.41726, -0.17816], [51.41736, -0.17873]], "venue": true, "label": "Britannia Point", "icon": "tower", "roof": "#33485a", "address": "7-9 Christchurch Rd, SW19 2FF"}, {"name": "Premier Inn", "kind": "civic", "lat": 51.41398, "lng": -0.18042, "height_m": 22.0, "storeys": 7, "colour": "#e0d6c2", "points": [[51.41359, -0.18067], [51.4137, -0.18075], [51.41374, -0.18079], [51.41383, -0.18085], [51.41388, -0.18089], [51.41395, -0.18065], [51.41402, -0.18041], [51.41404, -0.18042], [51.41402, -0.18066], [51.41407, -0.18071], [51.4141, -0.18072], [51.41411, -0.18065], [51.41417, -0.18066], [51.41426, -0.17971], [51.41417, -0.17969], [51.41412, -0.17967], [51.41411, -0.1797], [51.4141, -0.17973], [51.41359, -0.18067]], "venue": true, "node": "castle", "label": "Premier Inn", "icon": "bed", "roof": "#6d3350", "address": "27 Chapter Way, SW19 2RF"}, {"name": "Sainsbury's", "kind": "retail", "lat": 51.41521, "lng": -0.18175, "height_m": 10.0, "storeys": 1, "colour": "#d6cdbd", "points": [[51.4147, -0.18252], [51.41471, -0.18246], [51.41472, -0.18243], [51.41475, -0.18222], [51.41475, -0.18219], [51.41443, -0.18204], [51.41446, -0.18187], [51.4145, -0.18165], [51.4145, -0.18163], [51.41454, -0.18142], [51.41458, -0.18119], [51.41461, -0.18097], [51.41466, -0.18074], [51.41469, -0.18052], [51.41472, -0.18034], [51.41496, -0.18045], [51.41513, -0.18052], [51.41565, -0.18074], [51.41591, -0.18086], [51.41588, -0.18102], [51.41584, -0.18127], [51.41581, -0.18147], [51.41577, -0.1817], [51.41582, -0.18172], [51.41582, -0.18174], [51.41579, -0.18189], [51.41577, -0.182], [51.41585, -0.18203], [51.41583, -0.18216], [51.41581, -0.18228], [51.41573, -0.18225], [51.4157, -0.18241], [51.41551, -0.18255], [51.41543, -0.18261], [51.41539, -0.18261], [51.41534, -0.18259], [51.41531, -0.18278], [51.4147, -0.18252]], "label": "Sainsbury's", "icon": "basket", "roof": "#c8752a", "address": "1 Merton High St, SW19 1DD"}, {"name": "Colliers Wood Recreation Ground", "kind": "park", "lat": 51.41789, "lng": -0.17268, "height_m": 0, "storeys": 0, "colour": "#5f9c39", "points": [[51.41809, -0.17433], [51.41811, -0.17413], [51.41824, -0.17306], [51.41825, -0.17306], [51.41836, -0.17245], [51.41842, -0.1722], [51.41842, -0.17215], [51.41844, -0.17206], [51.41847, -0.17199], [51.41842, -0.17192], [51.41827, -0.17182], [51.41839, -0.17169], [51.41838, -0.17168], [51.41831, -0.17155], [51.41825, -0.17158], [51.41819, -0.17163], [51.41813, -0.1716], [51.41811, -0.17171], [51.41772, -0.1715], [51.41764, -0.17185], [51.41758, -0.17205], [51.41748, -0.17202], [51.41736, -0.17197], [51.41731, -0.17196], [51.4173, -0.17207], [51.41729, -0.17212], [51.41733, -0.17214], [51.41754, -0.17223], [51.4174, -0.17311], [51.41733, -0.17381], [51.41729, -0.17411], [51.41727, -0.17429], [51.41756, -0.17432], [51.41766, -0.17434], [51.41772, -0.17433], [51.4178, -0.17434], [51.41805, -0.17435], [51.41809, -0.17433]], "ground": true, "label": "Rec Ground", "icon": "tree", "address": "21 South Gardens, SW19 2NT"}, {"name": "Wandle Park", "kind": "park", "lat": 51.41907, "lng": -0.17947, "height_m": 0, "storeys": 0, "colour": "#5f9c39", "points": [[51.42047, -0.1796], [51.42048, -0.1795], [51.42048, -0.17944], [51.42046, -0.17939], [51.42029, -0.17913], [51.42012, -0.17887], [51.42008, -0.1789], [51.42, -0.17904], [51.41998, -0.17906], [51.41977, -0.1789], [51.41959, -0.17877], [51.41959, -0.17879], [51.41943, -0.17867], [51.41933, -0.17859], [51.41934, -0.17852], [51.41934, -0.17847], [51.4194, -0.1782], [51.41898, -0.17836], [51.41892, -0.17828], [51.41871, -0.1785], [51.41848, -0.17874], [51.41827, -0.17895], [51.41823, -0.17899], [51.41817, -0.17906], [51.41802, -0.17922], [51.41787, -0.17934], [51.41788, -0.17936], [51.41769, -0.17953], [51.41768, -0.17982], [51.41765, -0.17986], [51.41729, -0.17933], [51.41722, -0.17946], [51.41721, -0.17949], [51.41718, -0.17953], [51.41703, -0.17982], [51.41705, -0.17987], [51.41693, -0.18022], [51.41681, -0.18062], [51.4194, -0.18111], [51.41945, -0.18053], [51.41948, -0.18051], [51.41956, -0.18052], [51.41969, -0.18055], [51.41997, -0.1806], [51.42002, -0.18035], [51.42003, -0.18029], [51.4199, -0.18013], [51.41998, -0.17997], [51.42011, -0.18009], [51.42014, -0.18004], [51.42038, -0.1798], [51.42045, -0.17971], [51.42047, -0.1796]], "ground": true, "label": "Wandle Park", "icon": "tree", "address": "SW19 2BL"}, {"name": "Tandem Centre car park", "kind": "retail", "lat": 51.41415, "lng": -0.17739, "height_m": 9, "storeys": 1, "colour": "#7c7a75", "points": [[51.41366, -0.17523], [51.41327, -0.17722], [51.4132, -0.17752], [51.41304, -0.17832], [51.41323, -0.17839], [51.41332, -0.17838], [51.41362, -0.17847], [51.41373, -0.17851], [51.41425, -0.17861], [51.41428, -0.1786], [51.4143, -0.17857], [51.41431, -0.17851], [51.4143, -0.1784], [51.41449, -0.1783], [51.41444, -0.17813], [51.41437, -0.17798], [51.41453, -0.17775], [51.41456, -0.1777], [51.41458, -0.17761], [51.41471, -0.17673], [51.41477, -0.17627], [51.41485, -0.17574], [51.41494, -0.17523], [51.41478, -0.17515], [51.41469, -0.17564], [51.41366, -0.17523]], "ground": true, "icon": "car"}, {"name": "Priory Retail Park (site)", "kind": "retail", "lat": 51.416, "lng": -0.17931, "height_m": 8, "storeys": 1, "colour": "#7c7a75", "points": [[51.41651, -0.18007], [51.4165, -0.18016], [51.41647, -0.18025], [51.41642, -0.18032], [51.41636, -0.18034], [51.41623, -0.18018], [51.41622, -0.18014], [51.41621, -0.18009], [51.41619, -0.18004], [51.41615, -0.18003], [51.41609, -0.18003], [51.41582, -0.17999], [51.41555, -0.17981], [51.41541, -0.17945], [51.41539, -0.17931], [51.41538, -0.17924], [51.41525, -0.17901], [51.41524, -0.17896], [51.41506, -0.17899], [51.41501, -0.17898], [51.41496, -0.17894], [51.41493, -0.17887], [51.41492, -0.17879], [51.41493, -0.17871], [51.41496, -0.17863], [51.41511, -0.17857], [51.41526, -0.1785], [51.41574, -0.1784], [51.41606, -0.17833], [51.41615, -0.17832], [51.41622, -0.17834], [51.41632, -0.17839], [51.41636, -0.17844], [51.41639, -0.17848], [51.41642, -0.17853], [51.41645, -0.17858], [51.41649, -0.17872], [51.41655, -0.17906], [51.41677, -0.17951], [51.41679, -0.17957], [51.41678, -0.17964], [51.41676, -0.17971], [51.41671, -0.17978], [51.41666, -0.17983], [51.4166, -0.17983], [51.41655, -0.17982], [51.41651, -0.18007]], "ground": true, "icon": "car"}, {"name": "Tandem Centre", "kind": "retail", "lat": 51.4139, "lng": -0.17686, "height_m": 9, "storeys": 1, "colour": "#cfc3b0", "points": [[51.41366, -0.17746], [51.41368, -0.17746], [51.41367, -0.17751], [51.41366, -0.17753], [51.41357, -0.1775], [51.41357, -0.17752], [51.41346, -0.17748], [51.41337, -0.17742], [51.41338, -0.17734], [51.41328, -0.1773], [51.41337, -0.17673], [51.41345, -0.17676], [51.41359, -0.17582], [51.41369, -0.17586], [51.41375, -0.17542], [51.41472, -0.17582], [51.41466, -0.17625], [51.41471, -0.17628], [51.41465, -0.1767], [51.41471, -0.17673], [51.41458, -0.17761], [51.41431, -0.17749], [51.41451, -0.17618], [51.4139, -0.17593], [51.41366, -0.17746]], "venue": true, "label": "Tandem Centre", "icon": "bag", "roof": "#4a6b52", "address": "High St, SW19 2TY"}, {"name": "Merton Abbey Mills", "kind": "retail", "lat": 51.41302, "lng": -0.18329, "height_m": 8, "storeys": 1, "colour": "#c9b79c", "points": [], "venue": true, "post": true, "label": "Merton Abbey Mills", "icon": "market", "roof": "#8a6a4a", "address": "Watermill Way, SW19 2RD"}, {"name": "Deen City Farm", "kind": "farm", "lat": 51.40835, "lng": -0.1854, "height_m": 5, "storeys": 1, "colour": "#a8b56a", "points": [], "venue": true, "post": true, "label": "Deen City Farm", "icon": "farm", "roof": "#6b7a3a", "address": "39 Windsor Ave, SW19 2RR"}];
-
-  /* ---------- WHAT THE VERTICES TELL US ------------------------------------------------------------
-     Computed once, on load, from the only column that carries shape.
-
-     THE SHOELACE FORMULA for area: walk the outline summing the cross products of consecutive corners,
-     halve it, take the size. It works for any simple polygon, concave included, which is exactly why
-     the vertices are the thing worth storing. */
-  const M_LAT = 111320;
-  const MID = {
-    lat: (Math.min(...LANDMARKS.map(l => l.lat)) + Math.max(...LANDMARKS.map(l => l.lat))) / 2,
-    lng: (Math.min(...LANDMARKS.map(l => l.lng)) + Math.max(...LANDMARKS.map(l => l.lng))) / 2,
-  };
-  const M_LNG = M_LAT * Math.cos(MID.lat * Math.PI / 180);
-  /* Metres from the middle. A degree of latitude is about 111,320m everywhere; a degree of longitude is
-     that times the cosine of the latitude, because the meridians converge. */
-  const mx = lng => (lng - MID.lng) * M_LNG;
-  const mz = lat => -(lat - MID.lat) * M_LAT;
-
-  LANDMARKS.forEach(l => {
-    /* A POST HAS NO OUTLINE, only a point. Everything downstream that walks a ring has to cope with
-       an empty one rather than crash on it — a place we know the location of but not the shape of is
-       a normal thing for the table to hold, not an error. */
-    l.ring = l.points.map(p => [mx(p[1]), mz(p[0])]);
-    if (!l.ring.length) { l.area = 0; l.perimeter = 0; l.post = true; return; }
-    let a = 0, per = 0;
-    for (let i = 0, j = l.ring.length - 1; i < l.ring.length; j = i++) {
-      a += l.ring[j][0] * l.ring[i][1] - l.ring[i][0] * l.ring[j][1];
-      per += Math.hypot(l.ring[i][0] - l.ring[j][0], l.ring[i][1] - l.ring[j][1]);
-    }
-    l.area = Math.abs(a / 2);
-    l.perimeter = per;
-  });
-
-  /* ==================================================================================================
-     THE BOARD
-
-     A TILE HAS TO BE SMALLER THAN THE SMALLEST THING YOU WANT TO SEE. At fifty metres Britannia Point —
-     a forty by fifteen slab — falls between tile centres and claims nothing at all: it simply is not on
-     the board. Twenty metres holds every one of the five.
-  ================================================================================================== */
-  /* THIRTY-TWO METRES A TILE, not twenty.
-
-     TWENTY WAS TOO FINE FOR THE BUILDINGS. Sainsbury's is 165 metres deep and the bus garage is 215 —
-     at twenty metres a tile those need nine and eleven rows of land, and the board has seven north of
-     the street. Two of the five had nowhere to stand, which is not a placement problem: the board was
-     simply smaller than the things on it.
-
-     At thirty-two the deepest needs seven rows and fits, and the board covers 1.1km rather than 0.7 —
-     the town rather than one street. The buildings did not change; the ruler did. */
-  /* SIXTEEN METRES A TILE, which is the thirty-two split into four.
-
-     THIRTY-TWO COULD NOT DRAW A BUILDING. Britannia Point came out as a single tile and the Premier
-     Inn as two — at that size a footprint is not a shape, it is a lump, and the notch that made the
-     vertices worth storing in the first place cannot survive being rounded to one square. The Priory
-     car park got two tiles of the fifteen it covers.
-
-     AT SIXTEEN THE SAME BUILDINGS ARE 4, 10 AND 25. Nothing about them changed and the board is the
-     same 1,632 by 384 metres — the ruler got finer, which is the whole of it. Four times the tiles,
-     2,448 rather than 612, and every one of them still merges into the same handful of meshes.
-
-     THE EARLIER NOTE SAYING TWENTY WAS TOO FINE NO LONGER APPLIES, and it is worth saying why rather
-     than deleting it. Twenty failed because COLS and ROWS were typed in, so a finer tile meant a
-     physically smaller board and the deep buildings fell off the back of it. Both are computed now,
-     and the board grows rows to hold whatever the deepest thing is. The fault was never the tile. */
-  /* EIGHT METRES A TILE. At sixteen, Britannia Point was 2.7 tiles across — a seventeen-storey tower
-     rendered as a three-tile stub, which is the smallest building on the board and the one whose shape
-     matters most. At eight it is 5.5 across and reads as a tower. Sainsbury's goes from 10 tiles wide
-     to 21, and the notch in its outline finally survives rasterising.
-
-     THE COST IS 28,000 TILES, four times 7,081. They merge into a handful of meshes so the frame rate
-     is unaffected, but building them takes a second or so on a phone. IF IT FEELS SLOW, PUT THIS BACK
-     TO 16 — it is one number and everything else on the board is derived from it. */
-  const TILE_M = 8;                       // metres of real ground a tile covers
-  /* ---------- THE BOARD IS AS BIG AS WHAT IS ON IT ---------------------------------------------------
-     COLS AND ROWS WERE TYPED IN, and everything had to fit into them — which is backwards. Add a
-     landmark and it had nowhere to go; take one away and there was a stretch of empty terraces.
-
-     NOW THEY ARE COMPUTED. Every node gets its own stretch of street, so the world grows by a fixed
-     amount per place you can visit: five landmarks make a short board and fifteen make a long one, and
-     nothing has to be retyped for either.
-
-     THE DEPTH COMES FROM THE DEEPEST THING ON IT. Sainsbury's runs 165 metres back and the bus garage
-     215 — the board has to be deeper than the deepest, or the biggest building has nowhere to stand,
-     which is exactly the fault that forced the tile from twenty metres to thirty-two.
-
-     BOTH ARE WORKED OUT BEFORE ANYTHING IS DRAWN, from the table, so the only way to change the size
-     of the world is to change what is in it. */
-  /* ---------- THE STREET, AND A NODE IN FRONT OF EVERY LANDMARK ------------------------------------
-     THE STRAIGHT PATH IS THE POINT. A world map is a line of places you choose between, each one
-     standing behind its own mark, and the order along the line is the thing that carries meaning.
-     Real coordinates cannot give you that: the four town-centre landmarks fall within a hundred metres
-     of each other and collapse into one another, and the recreation ground sits four hundred metres
-     east of everything with nothing between. THE ORDER IS TRUE AND THE SPACING IS NOT — that is the
-     trade every one of these maps has ever made, and nobody has read a distance off one.
-
-     EVERY LANDMARK GETS A NODE, NOT JUST THE BUILDINGS. The parks used to keep their real coordinates
-     while the buildings were spread along the street, so the board was half arranged and half true and
-     the two halves disagreed — Wandle Park was drawn correctly, four hundred metres from anything you
-     could walk to, which is indistinguishable from not being drawn at all. A park on the street with a
-     node in front of it is findable, and findable is the whole job.
-
-     THE SPACING FITS THE WIDEST THING ON THE BOARD rather than being a number somebody picked. The
-     Tandem Centre car park is 240 metres across; a 160-metre slot means it overlaps its neighbour and
-     the placement loop below has to shove them apart, which loses the even spacing it was given for. */
-  const NODES = LANDMARKS.filter(l => !l.line).sort((a, b) => mx(a.lng) - mx(b.lng));
-  const STOPS = NODES.filter(l => l.venue);
-  const GROUND = LANDMARKS.filter(l => l.ground || l.line);
-
-  const WIDEST_M = Math.max(...NODES.map(l =>
-    l.ring.length ? Math.max(...l.ring.map(p => p[0])) - Math.min(...l.ring.map(p => p[0])) : 0));
-  const DEEPEST_M = Math.max(...NODES.map(l =>
-    l.ring.length ? Math.max(...l.ring.map(p => p[1])) - Math.min(...l.ring.map(p => p[1])) : 0));
-
-  const PER_NODE_M = WIDEST_M + 64;        // widest footprint plus a gap, so nothing starts overlapping
-  const FRONT_M    = 96;                   // ground in front of the street, toward the camera
-  const SIDE_M     = 192;                  // margin at the two ends of the street
-  const BACK_M     = 64;                   // margin behind the deepest thing
-
-  const per = m => Math.max(1, Math.round(m / TILE_M));
-  const PER_NODE = per(PER_NODE_M);
-  const FRONT_ROWS = per(FRONT_M);
-  const COLS = NODES.length * PER_NODE + per(SIDE_M);
-  const ROWS = Math.ceil(DEEPEST_M / TILE_M) + FRONT_ROWS + per(BACK_M);
-  const STREET_ROW = ROWS - 1 - FRONT_ROWS;
-
-  /* THE SCALE IS THE FIXED THING, NOT THE TILE. Board units per real metre — hold it steady and a
-     finer tile gives more tiles over the same ground rather than a smaller world. */
-  const SCALE = 0.6875;
-  const TILE = TILE_M * SCALE, GAP = TILE * 0.082, STEP = TILE + GAP;
-  const W = COLS * STEP, D = ROWS * STEP;
-  const tx = c => -W / 2 + c * STEP + STEP / 2;
-  const tz = r => -D / 2 + r * STEP + STEP / 2;
-  /* Real metres to a column and row. */
-  const colOf = x => Math.round((x * SCALE + W / 2 - STEP / 2) / STEP);
-  const rowOf = z => Math.round((z * SCALE + D / 2 - STEP / 2) / STEP);
-
-  /* ---------- THE BIOMES ---------------------------------------------------------------------------
-     Colliers Wood is a town centre, not a forest. Counted off the survey: 127 residential areas, 14
-     retail, 11 parks, 11 commercial, 6 industrial. `top` is where a tile's surface sits, which is what
-     makes tiled ground feel like ground rather than a chessboard. */
-  const BIOME = {
-    /* A RIVER, not a sea. Three units down rather than nine: the Wandle sits a few feet below the
-       towpath, and a channel nine deep reads as a canyon with a stream in it. */
-    water:  { colour: 0x4aa8d8, top: -3  },
-    park:   { colour: 0x63b03a, top: -1 },
-    grass:  { colour: 0x7ab648, top: 0  },
-    resi:   { colour: 0xc8b48a, top: 0  },
-    retail: { colour: 0xb9a898, top: 0  },
-    indust: { colour: 0x9a9a92, top: 0  },
-    street: { colour: 0x8c8578, top: 1  },
-  };
-  /* One character a tile. Written rather than generated: Colliers Wood has a shape, and a rule that
-     produced it by accident would be a rule nobody could correct. The middle row is the high street,
-     which is where the path runs — the path is not drawn on the ground, it IS a street. */
-  /* NOT AN ISLAND, AND THAT WAS A LOOK COPIED INSTEAD OF A PLACE.
-     Earlier versions ringed the whole board in sea. Colliers Wood is a town centre in south London;
-     the only water in it is the RIVER WANDLE, running north to south down the west side with the
-     Pickle Ditch beside it — which is what the survey says and what is here now.
-
-     THE LAND RUNS TO THE EDGE OF THE BOARD, because it does. A world that stops in sea claims there
-     is nothing beyond it, and there is: Tooting one way, Morden the other.
-
-     THE RIVER CROSSES THE HIGH STREET, which is true, and is the one place the two lines meet. The
-     street carries over it — that is what a bridge is.
-
-       ~ river   p park   g grass   r residential   R retail   i industrial   H high street */
-  /* NOT AN ISLAND, AND THAT WAS A LOOK COPIED RATHER THAN A PLACE OBSERVED.
-
-     Earlier versions ringed the whole board in sea. Colliers Wood is a town centre in south London and
-     the only water in it is the RIVER WANDLE, running north to south down the west side with the Pickle
-     Ditch beside it. That is what the survey says and it is what is here.
-
-     THE LAND RUNS TO THE EDGE OF THE BOARD, because it does. A world that stops in sea is claiming
-     there is nothing beyond it, and there is: Tooting one way, Morden the other.
-
-     THE RIVER WANDERS, and that matters more than it sounds. A channel running dead straight down one
-     column is a canal; a river bends, and the bend is most of how you know which one it is at a glance.
-     Green either side of it the whole way, because there is — Wandle Park, the Mills, and the path.
-
-     AND IT CROSSES THE HIGH STREET, which is true, and is the one point where the two lines meet. The
-     street carries over it, which is what a bridge is.
-
-       ~ river   p park   g grass   r residential   R retail   i industrial   H high street */
-  /* THE STREET SITS NEAR THE FRONT, four rows from the bottom edge.
-
-     IT WAS IN THE MIDDLE, which split the board in half and left seven rows for everything behind it —
-     not enough for Wandle Park, which runs four hundred metres north to south. Moving it forward gives
-     eleven rows behind and four in front, and behind is where the parks, the retail sites and the big
-     sheds are.
-
-     IT IS ALSO WHERE IT LOOKS RIGHT. The camera is low and in front; a path near the front of the board
-     is close to the eye and everything else is laid out beyond it, which is the arrangement in the
-     reference and the reason the route reads as the thing you are ON rather than a line across a
-     picture.
-
-       ~ river   p park   g grass   r residential   R retail   i industrial   H high street */
-  /* ---------- THE GROUND, WORKED OUT RATHER THAN DRAWN ---------------------------------------------
-     The map used to be a picture typed out one character a tile, which was readable and correctable
-     and could not survive the board changing size. It is derived now, in this order:
-
-       RESIDENTIAL EVERYWHERE, because that is what most of Colliers Wood is — a hundred and twenty-seven
-       residential areas against fourteen retail in the survey.
-       THE STREET, one row across.
-       THE RIVER, wherever its real line falls — see below; it is a landmark like any other now.
-       THE PARKS AND SITES, painted from their real outlines by `paintGround`.
-
-     EACH STEP OVERWRITES THE ONE BEFORE, which is the order things actually take precedence in: a park
-     beats the terraces it replaced, and the street beats everything because you can walk it. */
-  /* NO STREET ROW. It was one line of 'H' across the middle of the map and it was a claim about where
-     you can go — the one kind of invention this file had ruled out everywhere else. The real high
-     street is a shape somebody would have to trace, the same as every other outline here; until it is
-     traced there is no street, rather than a made-up one.
-
-     EVERYTHING STARTS AS TERRACES and the table paints over it. That is what Colliers Wood mostly is,
-     and every tile that ends up being something else ends up that way because a row said so. */
-  const OF = { '~': 'water', p: 'park', g: 'grass', r: 'resi', R: 'retail', i: 'indust', H: 'street' };
-
-
-  const GRID = [];
-  for (let c = 0; c < COLS; c++) {
-    GRID[c] = [];
-    for (let r = 0; r < ROWS; r++) {
-      GRID[c][r] = { c, r, type: r === STREET_ROW ? 'street' : 'resi', x: tx(c), z: tz(r) };
-    }
-  }
-
-  /* ---------- RASTERISING A POLYGON ONTO THE TILES --------------------------------------------------
-     For every tile whose bounding box the outline touches, ask whether the tile's centre is inside the
-     outline. If it is, the building occupies that tile.
-
-     CROSSING COUNT for "inside": a ray from the point, and an odd number of edges crossed means inside.
-     Ten lines, it handles concave shapes without knowing it is doing anything special, and that is the
-     whole reason vertices beat a width and a depth.
-
-     ANYTHING TOO SMALL TO CLAIM A TILE STILL CLAIMS ONE. A building narrower than a tile can fall
-     between two centres and rasterise to nothing — which is not "small", it is absent, and absent is a
-     worse answer than approximate. */
-
-
-
-  /* ---------- EVERY LANDMARK STANDS BEHIND ITS NODE -------------------------------------------------
-     THE NODE IS IN FRONT OF THE THING. That is how these maps have always worked — the castle is behind
-     its node and the two read as one: you press the mark and you go into what stands over it.
-
-     THE SHAPE STAYS AND THE POSITION MOVES. The ring keeps its real outline and its real angle — the
-     Premier Inn is still the shape it is, courtyard and all — and the whole outline is carried so that
-     it stands behind its node. What is kept from the coordinates is the ORDER along the street, which
-     is the part that means anything: Sainsbury's really is west of Britannia Point, and the board says
-     so.
-
-     BEHIND MEANS THE FAR SIDE, away from the camera, set back by half its own depth plus a pavement, so
-     a shop stands close to the road and a deep shed sits back off it — which is what they do.
-
-     AND NOTHING STANDS IN THE RIVER OR OFF THE BOARD. Each is offered its own column first, then one
-     either side, then two, until the whole outline is on dry land. The order survives; the even spacing
-     does not, and of the two only the order was ever carrying information.
-
-     A LANDMARK THAT WILL NOT FIT IS SAID OUT LOUD. Quietly dropping one is the sort of fault that looks
-     like a rendering bug for a week. */
-  const PLACED = [];
-  NODES.forEach((l, i) => {
-    const want = per(SIDE_M) / 2 + Math.round((i + 0.5) * (COLS - per(SIDE_M)) / NODES.length);
-
-    /* A POST HAS NO OUTLINE, so there is nothing to carry — it takes its column and stands on it. */
-    if (!l.ring.length) {
-      l.nodeCol = Math.max(1, Math.min(COLS - 2, want));
+       So it is a deck on two piers rather than a surface: raised, with the water visible either
+       side of the supports. Three boxes, and it is the only thing on this board that is off the
+       ground. */
+    if (pt.kind === 'bridge') {
+      const deck = base + 2.4;
+      box(x0, x1, deck, deck + 0.5, z0, z1, c);
+      /* THE PIERS, at each end, down into whatever is underneath. */
+      const pier = rgb('#6f6353'), t = (x1 - x0) * 0.18;
+      box(x0, x0 + t, base - OW.lift, deck, z0, z1, pier);
+      box(x1 - t, x1, base - OW.lift, deck, z0, z1, pier);
+      /* AND A RAIL DOWN THE NEAR SIDE, which is what says "you can walk on this". */
+      box(x0, x1, deck + 0.5, deck + 1.6, z1 - 0.3, z1, rgb('#c4b8a2'));
       return;
     }
-
-    const xs = l.ring.map(p => p[0]), zs = l.ring.map(p => p[1]);
-    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-    const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-    const depth = Math.max(...zs) - Math.min(...zs);
-
-    /* Would it stand clear if its node were at column `c`? */
-    const fits = c => {
-      const wantX = tx(c) / SCALE;
-      const wantZ = (tz(STREET_ROW) - STEP * 0.55) / SCALE - depth / 2;
-      const dx = wantX - cx, dz = wantZ - cz;
-      let c0 = Infinity, c1 = -Infinity, r0 = Infinity, r1 = -Infinity;
-      l.ring.forEach(p => {
-        const gc = colOf(p[0] + dx), gr = rowOf(p[1] + dz);
-        c0 = Math.min(c0, gc); c1 = Math.max(c1, gc);
-        r0 = Math.min(r0, gr); r1 = Math.max(r1, gr);
-      });
-      /* Off the board is as bad as in the water — half a building past the edge is half a building. */
-      if (c0 < 0 || c1 > COLS - 1 || r0 < 0 || r1 > ROWS - 1) return null;
-      for (let gc = c0; gc <= c1; gc++) {
-        for (let gr = r0; gr <= r1; gr++) {
-          const g = (GRID[gc] || [])[gr];
-          if (!g) return null;
-          if (g.type === 'water') return null;
-          if (g.resv) return null;                  // something already spoken for is not free ground
-        }
-      }
-      return { dx, dz, c0, c1, r0, r1 };
-    };
-
-    let put = null, col = want;
-    for (let step = 0; step <= COLS && !put; step++) {
-      for (const c of (step ? [want - step, want + step] : [want])) {
-        if (c < 1 || c > COLS - 2) continue;
-        const f = fits(c);
-        if (f) { put = f; col = c; break; }
-      }
+    const top = pt.kind === 'water' ? base - OW.lift * 0.55 : base + 0.12;
+    box(x0, x1, base - OW.lift, top, z0, z1, c);
+    /* A TREE EVERY FOURTH SUB-TILE, which is one per tile — at sixteen times the resolution, one
+       per cell would be a hedge rather than a wood. */
+    /* A TREE ON EVERY TREED TILE. At sub-tile resolution this only fired on one cell in sixteen,
+       which was right then and wrong now — with whole tiles, skipping fifteen out of sixteen means
+       almost no trees at all. */
+    if (pt.kind === 'trees') {
+      const tx = px + u / 2, tz = pz - u / 2;
+      box(tx - 0.5, tx + 0.5, top, top + 2, tz - 0.5, tz + 0.5, rgb('#6b4f2a'));
+      box(tx - 2.4, tx + 2.4, top + 2, top + 6.5, tz - 2.4, tz + 2.4, rgb('#2f7d33'));
     }
-
-    if (!put) {
-      PLACED.push(l.name + ' has nowhere to stand — it is wider than the dry land on this row.');
-      return;
+    /* ONE BAY LINE PER SUB-TILE COLUMN. At this resolution a sub-tile is about the width of a
+       parking space, which is a happy accident worth using rather than fighting. */
+    if (pt.kind === 'tarmac' && t.a % 2 === 0) {
+      box(x0 - 0.12, x0 + 0.12, top, top + 0.08, z0 + u * 0.2, z1 - u * 0.2, rgb('#c9c4b4'));
     }
-    l.nodeCol = col;
-    l.ring = l.ring.map(p => [p[0] + put.dx, p[1] + put.dz]);
-
-    /* ---- THE RESERVATION IS NOT THE BUILDING -------------------------------------------------------
-       THIS USED TO WRITE `owner` AND NEVER TAKE IT BACK. `owner` means "a building stands on this
-       tile"; the rectangle claimed here is a BOUNDING BOX, which is a much larger thing, and it was
-       never cleared once the building was placed. Two thirds of the occupied board was empty air — 229
-       tiles of 405 — and every one of them blocked the ground paint and, later, blocked the walker.
-       The Priory car park lost thirteen of its fifteen tiles to its own building's reservation.
-
-       So the reservation lives in `resv`, which only this loop reads, and `owner` is written later
-       from the real footprint. Two facts, two fields, and the temporary one stops pretending to be
-       the permanent one. */
-    for (let gc = put.c0; gc <= put.c1; gc++)
-      for (let gr = put.r0; gr <= put.r1; gr++)
-        if (GRID[gc] && GRID[gc][gr]) GRID[gc][gr].resv = l;
-  });
-  /* SAID ON THE SCREEN, WITHOUT STOPPING THE BOARD. A landmark that will not fit is worth knowing about
-     and is not worth losing the other twelve over, so this warns into the same box the fatal handler
-     uses rather than throwing. */
-  function say(msg) {
-    let d = mount.querySelector('.ow-say');
-    if (!d) { d = document.createElement('div'); d.className = 'ow-say'; mount.appendChild(d); }
-    d.textContent = (d.textContent ? d.textContent + '\n' : '') + msg;
+    return;
   }
-  if (PLACED.length) say(PLACED.join('\n'));
-
-  /* ---------- WHICH TILES A LANDMARK COVERS ---------------------------------------------------------
-     GROUND IS NOT IN THIS LOOP, AND THAT WAS THE FAULT. `owner` means "a building stands here" — it is
-     what stops a second building being placed on top and what keeps the street props off. Ground was
-     claiming it too, and `paintGround` skips any tile with an owner, so every park claimed its tiles
-     and was then refused permission to paint them. Four ground landmarks, nought tiles painted between
-     them: no parks, no Tandem Centre, no Priory car park, and a river reduced to the tiles just
-     outside its own outline.
-
-     Nothing downstream wanted those tiles anyway — `landmarks()` already filters ground out before
-     extruding, so `l.tiles` on a park was written, never read, and cost the park its colour. Ground
-     gets its tiles from `paintGround` instead, as `g.ground`, which is the field that means "this
-     tile IS the park" rather than "something stands on it". */
-  LANDMARKS.filter(l => !l.ground && !l.post).forEach(l => {
-    const xs = l.ring.map(p => p[0]), zs = l.ring.map(p => p[1]);
-    const c0 = colOf(Math.min(...xs)), c1 = colOf(Math.max(...xs));
-    const r0 = rowOf(Math.min(...zs)), r1 = rowOf(Math.max(...zs));
-    l.tiles = [];
-    for (let c = c0; c <= c1; c++) {
-      for (let r = r0; r <= r1; r++) {
-        const g = (GRID[c] || [])[r];
-        if (!g || g.type === 'water') continue;
-        if (!inside(l.ring, g.x / SCALE, g.z / SCALE)) continue;
-        g.owner = l;
-        l.tiles.push(g);
-      }
-    }
-    if (!l.tiles.length) {
-      const g = (GRID[colOf(mx(l.lng))] || [])[rowOf(mz(l.lat))];
-      if (g && g.type !== 'water') { g.owner = l; l.tiles.push(g); }
-    }
-  });
-  function inside(ring, x, z) {
-    let yes = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const a = ring[i], b = ring[j];
-      if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) yes = !yes;
-    }
-    return yes;
+  if (pt.kind === 'fence') {
+    const c = rgb(pt.wall || '#8a6a48');
+    box(x0, x1, base, base + 1.8, z1 - 0.35, z1, c);
+    return;
   }
 
-
-
-  /* And the node itself, on the street, in front of what it belongs to. */
-  LANDMARKS.forEach(l => { if (GRID[l.nodeCol]) GRID[l.nodeCol][STREET_ROW].node = l; });
-
-  const ROUTE = [];
-  for (let c = 1; c < COLS - 1; c++) { ROUTE.push([c, STREET_ROW]); GRID[c][STREET_ROW].route = true; }
-
-  /* ==================================================================================================
-     THE SCENE
-  ================================================================================================== */
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x8fd6ef);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(mount.clientWidth, mount.clientHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  mount.appendChild(renderer.domElement);
-
-  /* Fixed and low — thirty degrees, square to the board. No orbit, no zoom: a world map is laid out in
-     front of you all at once, and the viewpoint is a decision made once rather than handed over. */
-  const camera = new THREE.PerspectiveCamera(30, mount.clientWidth / mount.clientHeight, 1, 8000);
-  const ANGLE = 30 * Math.PI / 180;
-  /* ---------- THE CAMERA FOLLOWS THE WALKER ---------------------------------------------------------
-     IT USED TO FRAME THE WHOLE BOARD, which was right while the board was small and stopped being right
-     the moment the board grew with the table. Fifty-one columns seen all at once is a strip of confetti;
-     the buildings are correct and none of them is legible.
-
-     SO IT SITS A FIXED DISTANCE BEHIND AND ABOVE HIM AND GOES WHERE HE GOES. Same angle as before —
-     about thirty degrees, low, looking across the ground rather than down on it — and the board can now
-     be any length at all, because you are never looking at more than a few nodes of it.
-
-     IT LAGS, DELIBERATELY. The camera eases toward where it should be rather than snapping there, so
-     starting to walk moves him first and the world follows a beat later. Snapped, the world jerks and he
-     appears not to move at all — it is the lag that makes it read as him walking rather than the ground
-     sliding underneath him. */
-  /* ---------- HOW MUCH OF THE TOWN IS IN FRAME ------------------------------------------------------
-     MEASURED IN TILES, NOT UNITS. 210 back and 130 up was framed for a board 24 rows deep; on one 97
-     rows deep it shows about a dozen tiles and the town might as well not be there — which is what
-     "I can't see the parks" was actually describing. Wandle Park is 154 tiles and was simply outside
-     the frame.
-
-     THIRTY TILES BACK. Far enough that a park reads as a park and you can see which way the river
-     runs, close enough that the walker is still a person rather than a dot. Written as a multiple of
-     TILE so it survives the tile size changing again. */
-  const CAM_BACK = TILE * 30, CAM_UP = TILE * 20;
-  function place() {
-    if (!mount.clientWidth || !mount.clientHeight) return;
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    camera.aspect = mount.clientWidth / mount.clientHeight;
-    camera.updateProjectionMatrix();
-  }
-  function followCam(instant) {
-    const want = new THREE.Vector3(WALK.x, CAM_UP, WALK.z + CAM_BACK);
-    if (instant) camera.position.copy(want);
-    else camera.position.lerp(want, 0.09);
-    camera.lookAt(WALK.x, TILE, WALK.z - TILE * 4);
-  }
-
-
-  scene.add(new THREE.HemisphereLight(0xe8f6ff, 0x8a8a76, 0.95));
-  const sun = new THREE.DirectionalLight(0xfff6e2, 1.5);
-  sun.position.set(-W * 0.5, W * 0.7, W * 0.45);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  {
-    const s = sun.shadow.camera;
-    s.left = -W; s.right = W; s.top = W * 0.6; s.bottom = -W * 0.6;
-    s.near = 1; s.far = W * 3;
-    s.updateProjectionMatrix();
-  }
-  scene.add(sun, sun.target);
-  const world = new THREE.Group();
-  scene.add(world);
-
-  /* ---------- THE TILES -----------------------------------------------------------------------------
-     One block per tile: a top at the biome's height, sides all the way down. The sides are why this
-     works — a tile with no sides is a square of colour; a tile with sides is a piece of land. */
-  /* SHALLOW, because there is no island edge left to show the thickness of. The tiles still have
-     sides — that is what makes them tiles — but the sides are a kerb now rather than a cliff, which is
-     what ground in a town actually looks like. */
-  const FLOOR = -9;
-  function tiles() {
-    const byType = {};
-    for (let c = 0; c < COLS; c++) {
-      for (let r = 0; r < ROWS; r++) {
-        const t = GRID[c][r], h = BIOME[t.type].top - FLOOR;
-        const g = new THREE.BoxGeometry(TILE, h, TILE);
-        g.translate(t.x, FLOOR + h / 2, t.z);
-        /* THE ROW'S OWN COLOUR IF IT HAS ONE. The biome says how high a tile sits and what it is like
-           to walk on; the landmark says what colour it is. Those had been the same thing, so the
-           Priory car park came out #b9a898 against #c8b48a ground — twenty-five tiles of tarmac
-           painted almost exactly the tan of the houses around it, present and invisible. Keyed by
-           type AND colour so the merge still collapses them into one mesh per shade. */
-        const key = t.ground && t.ground.colour ? t.type + '|' + t.ground.colour : t.type;
-        (byType[key] = byType[key] || []).push(g);
-      }
-    }
-    Object.keys(byType).forEach(k => {
-      const [type, colour] = k.split('|');
-      add(merge(byType[k]), colour ? parseInt(colour.slice(1), 16) : BIOME[type].colour, true);
-    });
-  }
-
-  /* ---------- THE LANDMARKS -------------------------------------------------------------------------
-     Extruded from the real outline, not from a box.
-
-     THE POLYGON IS ALREADY AT ITS REAL ANGLE, which is why `bearing` is gone: a bearing exists only to
-     tell a rectangle which way to face, and an outline knows. Britannia Point's slab runs at
-     seventy-four degrees because its corners do.
-
-     `-z` because Extrude builds in the XY plane and is then laid down, and the sign has to be undone or
-     every building is mirrored east-west while the ground is not. */
-  /* GROUND IS PAINTED ONTO THE TILES IT COVERS, rather than built as a block. A park is not a thing
-     standing on the ground — it IS the ground — so the tiles under it change what they are, and the
-     biome does the rest: grass where the park is, tarmac where the retail site is.
-
-     WHICH IS WHY IT COMES BEFORE THE BUILDINGS: a building placed afterwards can stand on a park tile
-     and know it, and the park cannot paint over a building that is already there. */
-  /* HOW FAR A POINT IS FROM A LINE — the nearest distance to any of its segments.
-
-     CLAMPED TO EACH SEGMENT'S ENDS, so a point beyond the end of one measures to that end rather than
-     to an imaginary continuation of it. Without the clamp a river bends and the water appears in a
-     straight line carrying on past the bend, which looks like a canal somebody forgot to finish. */
-  function distToLine(pts, x, z) {
-    let best = Infinity;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
-      const dx = b[0] - a[0], dz = b[1] - a[1];
-      const len2 = dx * dx + dz * dz;
-      let t = len2 ? ((x - a[0]) * dx + (z - a[1]) * dz) / len2 : 0;
-      t = Math.max(0, Math.min(1, t));
-      best = Math.min(best, Math.hypot(x - (a[0] + dx * t), z - (a[1] + dz * t)));
-    }
-    return best;
-  }
-
-  function paintGround() {
-    let n = 0;
-
-    /* ---------- A RIVER IS A LINE, NOT AN AREA ------------------------------------------------------
-       Everything else on the ground is a polygon and is painted by asking whether a tile's centre is
-       inside it. A river has no inside — it is a line with a width — so the question is different: how
-       far is this tile from the line, and is that less than half the river's width.
-
-       WHICH IS WHY IT IS A LANDMARK LIKE ANY OTHER now rather than a stripe drawn down a column of the
-       map. It has a name, a real course, a width and a colour, and it sits in the table with the rest.
-       A river that lives in the terrain-drawing code is a river nobody can move; one in the table is a
-       row somebody can correct.
-
-       IT CROSSES THE STREET AND THE STREET WINS. That is a bridge, and it is the one place on the board
-       where two things share a tile and the right answer is "you can walk it". */
-    GROUND.filter(l => l.line).forEach(l => {
-      const half = (l.width_m || 12) / 2 + TILE_M * 0.35;
-      for (let c = 0; c < COLS; c++) {
-        for (let r = 0; r < ROWS; r++) {
-          const g = GRID[c][r];
-          if (g.owner) continue;
-          if (distToLine(l.ring, g.x / SCALE, g.z / SCALE) > half) continue;
-          g.type = 'water';
-          g.ground = l;
-          n++;
-        }
-      }
-    });
-
-    GROUND.filter(l => !l.line).forEach(l => {
-      const biome = l.kind === 'park' ? 'park' : 'retail';
-      for (let c = 0; c < COLS; c++) {
-        for (let r = 0; r < ROWS; r++) {
-          const g = GRID[c][r];
-          if (g.type === 'water' || g.owner) continue;
-          if (!inside(l.ring, g.x / SCALE, g.z / SCALE)) continue;
-          g.type = biome;
-          g.ground = l;
-          n++;
-        }
-      }
-    });
-    return n;
-  }
-
-  /* ---------- BUILDINGS ARE BUILT FROM THE TILES THEY COVER ------------------------------------------
-     AND NOT FROM THEIR OUTLINE, which is the change that makes them sit square to the board.
-
-     Extruding the real polygon gave a building at its real angle — Britannia Point at seventy-four
-     degrees, the bus garage at one — and on a tiled board that reads as wrong even though it is right.
-     Everything else is square: the tiles, the street, the river's steps. One building at an angle looks
-     like a mistake, and five of them look like the grid is broken.
-
-     SO THE OUTLINE DECIDES WHICH TILES, and the TILES are what gets built. The footprint still comes
-     from the survey — its size, its position, which squares it covers — and what stands there is a
-     block per tile, square to everything else. That is how a tiled world works: the grid is the unit of
-     the world, and a thing that ignores it is not in the world, it is on top of it.
-
-     AND IT GIVES THE C SHAPE FOR FREE. The Tandem Centre wraps its car park; rasterised, the tiles it
-     covers are C-shaped and the tiles it does not are the car park. Nothing had to be drawn — the
-     survey already knew, and the grid just had to be allowed to show it. */
-  /* ---------- A POST FOR A PLACE WITH NO OUTLINE ----------------------------------------------------
-     MERTON ABBEY MILLS AND DEEN CITY FARM ARE REAL AND UNTRACED. Their centre points are right and
-     their footprints do not exist yet, and the choice was between leaving them off the map or drawing
-     an invented shape. Both are wrong. A post is the third answer: it stands exactly where the place
-     is, it claims nothing about the shape of it, and it looks like what it is — a marker, not a
-     building. When somebody traces the outline the post becomes a building and nothing else changes. */
-  function posts() {
-    const stems = [], signs = [];
-    LANDMARKS.filter(l => l.post).forEach(l => {
-      const c = colOf(mx(l.lng)), r = rowOf(mz(l.lat));
-      const t = (GRID[c] || [])[r];
-      if (!t) return;
-      const y = BIOME[t.type].top;
-      const stem = new THREE.CylinderGeometry(TILE * 0.07, TILE * 0.07, TILE * 1.6, 8);
-      stem.translate(t.x, y + TILE * 0.8, t.z);
-      stems.push(stem);
-      const sign = new THREE.BoxGeometry(TILE * 0.9, TILE * 0.5, TILE * 0.12);
-      sign.translate(t.x, y + TILE * 1.75, t.z);
-      signs.push(sign);
-      t.ground = l;                                  // so the plate names it when he stands there
-    });
-    if (stems.length) add(merge(stems), 0x6b4a2a, true);
-    if (signs.length) add(merge(signs), 0xf2e6c8, true);
-  }
-
-  /* ---------- THE NAMES, ON THE MAP -----------------------------------------------------------------
-     A BUILDING YOU CANNOT NAME IS A GREY BLOCK. The plate at the bottom of the screen names one thing —
-     whatever he is standing on — and everything else on the board is anonymous until you walk to it.
-     On a board of 28,000 tiles that means the town is a shape you have to explore to read, when the
-     whole reason for storing real outlines and real heights was to make it recognisable at a glance.
-
-     DRAWN ON A CANVAS, NOT LOADED AS A FONT. Text in three.js normally wants a font file fetched from
-     somewhere; a 2D canvas is already in the browser, renders the same monospace as the rest of the
-     page, and costs one texture per name. Thirteen textures.
-
-     A SPRITE, so it turns to face you as the camera moves and never ends up edge-on and unreadable.
-     depthTest off so a name is never swallowed by the building it belongs to. */
-
-
-  function nameTexture(text, swatch) {
-    const pad = 26, fs = 30;
-    const c = document.createElement('canvas');
-    let g = c.getContext('2d');
-    g.font = `bold ${fs}px ui-monospace, Menlo, monospace`;
-    const tw = g.measureText(text).width;
-    const dot = swatch ? 34 : 0;
-    c.width = Math.ceil(tw + dot + pad * 2);
-    c.height = fs + pad;
-    g = c.getContext('2d');                          // resizing resets the context, so set up again
-    g.font = `bold ${fs}px ui-monospace, Menlo, monospace`;
-    g.textBaseline = 'middle';
-    const r = 12, w = c.width, h = c.height;
-    g.beginPath();
-    g.moveTo(r, 0); g.lineTo(w - r, 0); g.quadraticCurveTo(w, 0, w, r);
-    g.lineTo(w, h - r); g.quadraticCurveTo(w, h, w - r, h);
-    g.lineTo(r, h); g.quadraticCurveTo(0, h, 0, h - r);
-    g.lineTo(0, r); g.quadraticCurveTo(0, 0, r, 0);
-    g.closePath();
-    g.fillStyle = '#fff8e0'; g.fill();
-    g.lineWidth = 5; g.strokeStyle = '#3a2a12'; g.stroke();
-    let x = pad;
-    if (swatch) {
-      g.beginPath(); g.arc(x + 11, h / 2, 11, 0, Math.PI * 2);
-      g.fillStyle = swatch; g.fill();
-      g.lineWidth = 3; g.strokeStyle = '#3a2a12'; g.stroke();
-      x += dot;
-    }
-    g.fillStyle = '#3a2a12';
-    g.fillText(text, x, h / 2 + 1);
-    const tex = new THREE.CanvasTexture(c);
-    tex.minFilter = THREE.LinearFilter;
-    return { tex, ratio: c.width / c.height };
-  }
-
-  function signs() {
-    LANDMARKS.filter(l => l.label).forEach(l => {
-      /* WHERE THE NAME SITS. Over the middle of what it names — the centre of the footprint for a
-         building, the real centre point for ground and posts, since a park's tiles average out to
-         roughly where the park is. Height clears the roof so the name never sinks into it. */
-      let x, z, top;
-      if (l.tiles && l.tiles.length) {
-        x = l.tiles.reduce((a, t) => a + t.x, 0) / l.tiles.length;
-        z = l.tiles.reduce((a, t) => a + t.z, 0) / l.tiles.length;
-        top = BIOME[l.tiles[0].type].top + l.height_m * SCALE * 1.7;
-      } else {
-        const t = (GRID[colOf(mx(l.lng))] || [])[rowOf(mz(l.lat))];
-        if (!t) return;
-        x = t.x; z = t.z;
-        top = BIOME[t.type].top + (l.post ? TILE * 2.1 : TILE * 0.4);
-      }
-      const { tex, ratio } = nameTexture(l.label, l.roof || l.colour);
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: tex, transparent: true, depthTest: false, depthWrite: false,
-      }));
-      const hgt = TILE * 1.5;
-      sp.scale.set(hgt * ratio, hgt, 1);
-      sp.position.set(x, top + hgt * 0.9, z);
-      sp.renderOrder = 999;
-      scene.add(sp);
-    });
-  }
-
-
-  /* ---------- THE PATH, AND A MARK FOR EVERY PLACE --------------------------------------------------
-     A DISC AND A RING ON EVERY NODE. The disc is the standing place and the ring is what makes it read
-     as a stop rather than a paving slab — the same two shapes these maps have used since the first one.
-     The start gets a pipe and the castle gets battlements, because those two are not just stops. */
-  function route() {
-    const dots = [], discs = [], rings = [], props = [];
-    ROUTE.forEach(([c, r]) => {
-      const t = GRID[c][r], y = BIOME[t.type].top;
-      if (t.node) {
-        const d = new THREE.CylinderGeometry(TILE * 0.72, TILE * 0.72, TILE * 0.14, 20);
-        d.translate(t.x, y + TILE * 0.11, t.z);
-        discs.push(d);
-        const ring = new THREE.TorusGeometry(TILE * 0.84, TILE * 0.13, 8, 22);
-        ring.rotateX(Math.PI / 2);
-        ring.translate(t.x, y + TILE * 0.12, t.z);
-        rings.push(ring);
-        if (t.node.node === 'start') {
-          const pipe = new THREE.CylinderGeometry(TILE * 0.49, TILE * 0.49, TILE * 1.1, 14);
-          pipe.translate(t.x, y + TILE * 0.55, t.z);
-          props.push({ g: pipe, c: 'pipe' });
-          const lip = new THREE.CylinderGeometry(TILE * 0.6, TILE * 0.6, TILE * 0.29, 14);
-          lip.translate(t.x, y + TILE * 1.18, t.z);
-          props.push({ g: lip, c: 'pipe' });
-        } else if (t.node.node === 'castle') {
-          /* BATTLEMENTS ON THE CASTLE NODE. The table has said `castle` on the Premier Inn since the
-             first version and nothing had ever drawn it — a marker written and never read, which is
-             the same class of fault as `venue` was. Four merlons and a base: enough that the node
-             reads as the destination rather than another stop. */
-          const base = new THREE.BoxGeometry(TILE * 1.1, TILE * 0.5, TILE * 1.1);
-          base.translate(t.x, y + TILE * 0.25, t.z);
-          props.push({ g: base, c: 'castle' });
-          for (let k = 0; k < 4; k++) {
-            const m = new THREE.BoxGeometry(TILE * 0.22, TILE * 0.26, TILE * 0.22);
-            m.translate(t.x + (k % 2 ? 1 : -1) * TILE * 0.38,
-                        y + TILE * 0.63,
-                        t.z + (k < 2 ? 1 : -1) * TILE * 0.38);
-            props.push({ g: m, c: 'castle' });
-          }
-        }
-      } else {
-        /* THE PATH BETWEEN, as a line of small dots — enough to read as a route without competing with
-           the marks that mean something. */
-        const dot = new THREE.CylinderGeometry(TILE * 0.17, TILE * 0.17, TILE * 0.08, 10);
-        dot.translate(t.x, y + TILE * 0.06, t.z);
-        dots.push(dot);
-      }
-    });
-    if (dots.length) add(merge(dots), 0xf0e2c0, true);
-    if (discs.length) add(merge(discs), 0x2a2a2a, true);
-    if (rings.length) add(merge(rings), 0xe8c34a, true);
-    const pipes = props.filter(p => p.c === 'pipe').map(p => p.g);
-    if (pipes.length) add(merge(pipes), 0x3fa64a, true);
-    const cast = props.filter(p => p.c === 'castle').map(p => p.g);
-    if (cast.length) add(merge(cast), 0xb04a3a, true);
-  }
-
-  function landmarks() {
-    const byColour = {}, byRoof = {};
-    LANDMARKS.filter(l => !l.ground && !l.post).forEach(l => {
-      if (!l.tiles || !l.tiles.length) return;
-      /* Upright a little, or a nine-metre shed at this scale is a mark on the floor. */
-      const h = l.height_m * SCALE * 1.7;
-      l.tiles.forEach(t => {
-        /* ONE BLOCK PER TILE, filling it. They merge into a single mesh below, so the seams between
-           them never show — what you see is the shape of the whole footprint, in tiles. */
-        const g = new THREE.BoxGeometry(TILE, h, TILE);
-        g.translate(t.x, BIOME[t.type].top + h / 2, t.z);
-        (byColour[l.colour] = byColour[l.colour] || []).push(g);
-
-        /* A cap a touch wider, so the top reads as a roof and throws a line of shadow down the side —
-           which is what says the thing has a top at all.
-
-           AND EVERY BUILDING'S ROOF IS ITS OWN COLOUR. One grey cap on everything meant the only thing
-           telling two buildings apart from above was their outline, and from the low camera you mostly
-           see roofs. The Premier Inn purple, the Sainsbury's orange — the roof is the fastest thing to
-           read at a distance, and it costs one more key in the merge. */
-        const cap = new THREE.BoxGeometry(TILE + TILE * 0.18, TILE * 0.2, TILE + TILE * 0.18);
-        cap.translate(t.x, BIOME[t.type].top + h + TILE * 0.1, t.z);
-        (byRoof[l.roof || '#8a8378'] = byRoof[l.roof || '#8a8378'] || []).push(cap);
-      });
-    });
-    Object.keys(byColour).forEach(c => add(merge(byColour[c]), new THREE.Color(c), true));
-    Object.keys(byRoof).forEach(c => add(merge(byRoof[c]), new THREE.Color(c), true));
-  }
-
-  /* ---------- THE PATH AND THE NODES ---------------------------------------------------------------
-     Pale dots along the street, and a dark disc with a gold ring where a venue is. Dots rather than a
-     line: a line reads as a road you travel along, dots read as a CONNECTION between places. */
-
-  /* ---------- THE ORDINARY TOWN ---------------------------------------------------------------------
-     Blocks on the residential, retail and industrial tiles; trees only in the park.
-
-     INVENTED AT THE LEVEL OF A BIOME, not a building: the tile says "terraces here" and something
-     terrace-shaped appears. That is not a claim about any particular house, which is why it is safe
-     where inventing a street was not — a street is a claim about where you can GO. */
-  /* HOW MANY PROPS, PER HECTARE RATHER THAN PER TILE. A fixed threshold means a finer tile puts four
-     times as many houses on the same ground — which is what turned the board into a field of lumps
-     when the tile last halved. Scaling by tile AREA holds the real density steady: about one block per
-     1,070 square metres, whatever the tile size happens to be. */
-  const PROP_RATE = Math.min(0.9, 0.24 * (TILE_M * TILE_M) / (16 * 16));
-  function seeded(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
-  function town() {
-    const blocks = [], trunks = [], leaves = [];
-    for (let c = 0; c < COLS; c++) {
-      for (let r = 0; r < ROWS; r++) {
-        const t = GRID[c][r];
-        if (t.owner) continue;
-        const y = BIOME[t.type].top, s = seeded(c * 41 + r * 7 + 3);
-        /* FEWER, AND SIZED IN TILES. At a 32m tile 'every resi tile above 0.22' was a few hundred
-           blocks; at 16m the same threshold is nearly two thousand, and because the heights were
-           absolute rather than a fraction of a tile they also doubled in apparent size when the tile
-           halved. The board stopped being a town and became a field of identical lumps, and the
-           landmarks — the things the whole table exists to show — were lost among them.
-           A quarter of the tiles now, and every dimension a fraction of TILE, so this holds at any
-           tile size rather than needing retuning each time. */
-        if (t.type === 'resi' && s > 1 - PROP_RATE) {
-          const h = TILE * (0.5 + s * 0.28);
-          const g = new THREE.BoxGeometry(TILE * 0.62, h, TILE * (0.3 + s * 0.12));
-          g.translate(t.x, y + h / 2, t.z + (seeded(c * 3 + r * 19) - 0.5) * TILE * 0.28);
-          blocks.push({ g, k: 'resi' });
-        } else if (t.type === 'retail' && s > 1 - PROP_RATE * 0.5) {
-          const h = TILE * (0.4 + s * 0.2);
-          const g = new THREE.BoxGeometry(TILE * 0.62, h, TILE * 0.5);
-          g.translate(t.x, y + h / 2, t.z);
-          blocks.push({ g, k: 'retail' });
-        } else if (t.type === 'indust' && s > 1 - PROP_RATE * 0.6) {
-          const h = TILE * (0.45 + s * 0.22);
-          const g = new THREE.BoxGeometry(TILE * 0.7, h, TILE * 0.56);
-          g.translate(t.x, y + h / 2, t.z);
-          blocks.push({ g, k: 'indust' });
-        } else if (t.type === 'park' && s > 0.5) {
-          const tr = new THREE.CylinderGeometry(0.9, 1.2, 5, 6);
-          tr.translate(t.x, y + 2.5, t.z);
-          trunks.push(tr);
-          const cone = new THREE.ConeGeometry(3.9, 8.5, 7);
-          cone.translate(t.x, y + 8.8, t.z);
-          leaves.push(cone);
-        }
-      }
-    }
-    const by = {};
-    blocks.forEach(({ g, k }) => (by[k] = by[k] || []).push(g));
-    const C = { resi: 0xd9c6a2, retail: 0xc4bcae, indust: 0xa8a49a };
-    Object.keys(by).forEach(k => add(merge(by[k]), C[k], true));
-    if (trunks.length) { add(merge(trunks), 0x7a4f26, true); add(merge(leaves), 0x3f8f27, true); }
-  }
-
-  function add(geo, colour, shadow) {
-    const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: colour }));
-    m.castShadow = !!shadow; m.receiveShadow = true;
-    world.add(m);
-    return m;
-  }
-
-  /* MERGING. FLATTENED FIRST, THEN MEASURED: a box, cone or extrusion is INDEXED — vertices plus a list
-     of indices pointing at them — and `toNonIndexed` writes one vertex per index. Measuring the indexed
-     count and filling with the non-indexed one gives a buffer a third too small, and the write past the
-     end throws "offset is out of bounds", which names an offset and explains nothing. */
-  function merge(geos) {
-    const fl = geos.map(g => {
-      const p = g.index ? g.toNonIndexed() : g;
-      if (!p.attributes.normal) p.computeVertexNormals();
-      return p;
-    });
-    let total = 0;
-    fl.forEach(p => { total += p.attributes.position.count; });
-    const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3);
-    let at = 0;
-    fl.forEach((p, i) => {
-      pos.set(p.attributes.position.array, at * 3);
-      nor.set(p.attributes.normal.array, at * 3);
-      at += p.attributes.position.count;
-      if (fl[i] !== geos[i]) geos[i].dispose();
-      p.dispose();
-    });
-    const out = new THREE.BufferGeometry();
-    out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-    return out;
-  }
-
-  /* ==================================================================================================
-     GOING
-  ================================================================================================== */
-  /* ==================================================================================================
-     THE WALKER
-
-     A small figure on a tile, who moves one tile at a time in four directions and takes the camera.
-
-     HE USED TO MOVE BETWEEN NODES ONLY, and the note here argued that was the point — that a world map
-     is a countable set of choices and free movement makes it a game level. That was a real argument
-     and it is being overruled deliberately, not forgotten. What it did not survive was the board
-     getting four times finer: at a sixteen metre tile there are 2,448 tiles and four places to stand,
-     so the great majority of a carefully built town could only ever be looked at from the street.
-     Wandle Park, the recreation ground, the Priory car park — all drawn, none reachable.
-
-     SO HE WALKS THE BOARD. Four directions, one tile a press, and the places are still marked; they
-     are somewhere to go rather than the only somewhere.
-
-     WHAT HE CANNOT WALK THROUGH: water, and any tile a building stands on. Those are the two things
-     that are solid. Ground — parks, car parks, the recreation ground — is walked on, which is the
-     whole reason for painting it.
-  ================================================================================================== */
-  /* WHERE HE IS is a tile now, not an index into a list of four. c/r is the truth; x/z is where the
-     model has got to while it eases toward it. */
-  const WALK = { c: 0, r: 0, x: 0, z: 0, tx: 0, tz: 0, moving: false, bump: 0, bx: 0, bz: 0 };
-  let walker = null;
-
-  function makeWalker() {
-    const g = new THREE.Group();
-    const skin = 0xf0c9a0, cloth = 0x3f6fb5, boot = 0x6b4a2a;
-    const put = (geo, colour, y) => {
-      geo.translate(0, y, 0);
-      const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: colour }));
-      m.castShadow = true;
-      g.add(m);
-    };
-    /* CHUNKY AND FEW PARTS. At the size he is on screen a detailed figure is a smudge; what reads is a
-       silhouette — round head, square body, two legs — which is exactly how these have always been drawn
-       and why they survive being twenty pixels tall. */
-    put(new THREE.CylinderGeometry(3.4, 3.4, 7, 10), cloth, 7.5);       // body
-    put(new THREE.SphereGeometry(3.6, 12, 10), skin, 14);               // head
-    put(new THREE.CylinderGeometry(4.2, 4.2, 1.6, 12), 0xd9433a, 16.6); // cap
-    put(new THREE.BoxGeometry(2.2, 4, 2.2), boot, 2);                   // legs, as one block
-    return g;
-  }
-
-  /* CAN HE STAND HERE? Off the board, in the river, or on a tile a building occupies — those are the
-     three noes. Everything else, including every kind of painted ground, is walkable. */
-  function walkable(c, r) {
-    const g = (GRID[c] || [])[r];
-    if (!g) return false;
-    if (g.type === 'water') return false;
-    if (g.owner) return false;
-    return true;
-  }
-
-  /* WHAT HE IS STANDING ON, OR NEXT TO. Ground is underfoot, so the tile knows it. A building is never
-     underfoot — you cannot stand inside Sainsbury's — so the plate reads the eight tiles around him
-     and names the building he is against. Standing in open street it says nothing rather than lying
-     about the nearest thing, and an empty plate is hidden rather than left blank. */
-  /* THE PLATE IS BUILT, NOT FOUND. It was a `<div id="n">` in overworld.html; there is no such
-     page any more, and an id that global would collide the moment anything else wanted it. */
-    const nameEl = document.createElement('div');
-    nameEl.className = 'ow-name';
-    mount.appendChild(nameEl);
-  function placeAt(c, r) {
-    const g = (GRID[c] || [])[r];
-    if (!g) return null;
-    if (g.ground) return g.ground.name;
-    for (let dc = -1; dc <= 1; dc++) {
-      for (let dr = -1; dr <= 1; dr++) {
-        const n = (GRID[c + dc] || [])[r + dr];
-        if (n && n.owner) return n.owner.name;
-      }
-    }
-    return null;
-  }
-  function showName() {
-    if (!nameEl) return;
-    const name = placeAt(WALK.c, WALK.r);
-    nameEl.textContent = name || '';
-    nameEl.classList.toggle('off', !name);
-    nameEl.classList.toggle('go', WALK.moving);
-  }
-
-  /* ONE TILE PER PRESS, EXCEPT ALONG THE PATH.
-
-     THE PATH IS A FAST LANE AND THAT IS WHAT A PATH IS FOR. Slots are three hundred metres wide because
-     the widest thing on the board is a 240-metre car park, which at an eight-metre tile is thirty-eight
-     presses of empty terrace between one landmark and the next. Stepping that tile by tile is not
-     exploring, it is commuting.
-
-     SO ON THE STREET, LEFT AND RIGHT GO TO THE NEXT NODE — one press, one place, which is the world-map
-     move and the reason the marks are there. Step off the street and it is one tile at a time again,
-     because that is when you are actually looking at something. The two modes are told apart by the row
-     he is standing on, so there is nothing to learn and no button.
-
-     AND A REFUSED PRESS HAS TO SHOW. Walking into the side of the bus garage did exactly nothing, which
-     is indistinguishable from the controls not working, and that is how it was read. He leans into it
-     and comes back instead. */
-  function nextNode(from, dir) {
-    for (let c = from + dir; c > 0 && c < COLS - 1; c += dir) {
-      if (GRID[c][STREET_ROW].node) return c;
-    }
-    return null;
-  }
-  function stepBy(dc, dr) {
-    if (WALK.moving) return;
-    if (dr === 0 && WALK.r === STREET_ROW) {
-      const n = nextNode(WALK.c, dc);
-      if (n === null) { WALK.bx = dc; WALK.bz = 0; WALK.bump = 1; return; }
-      WALK.c = n;
-      const t = GRID[n][STREET_ROW];
-      WALK.tx = t.x; WALK.tz = t.z; WALK.moving = true;
-      showName();
-      return;
-    }
-    const c = WALK.c + dc, r = WALK.r + dr;
-    if (!walkable(c, r)) { WALK.bx = dc; WALK.bz = dr; WALK.bump = 1; return; }
-    WALK.c = c; WALK.r = r;
-    const t = GRID[c][r];
-    WALK.tx = t.x; WALK.tz = t.z;
-    WALK.moving = true;
-    showName();
-  }
-
-  /* Eased toward the next tile, and he is only "there" when he is close enough that another press
-     would not look like an interruption. */
-  function moveWalker() {
-    if (!walker) return;
-    if (WALK.moving) {
-      WALK.x += (WALK.tx - WALK.x) * 0.14;
-      WALK.z += (WALK.tz - WALK.z) * 0.14;
-      if (Math.hypot(WALK.tx - WALK.x, WALK.tz - WALK.z) < 0.6) {
-        WALK.x = WALK.tx; WALK.z = WALK.tz; WALK.moving = false;
-        showName();                                   // arrived — the plate comes up to full
-      }
-      /* A HOP RATHER THAN A GLIDE. Sliding along the ground reads as a piece being dragged; a bounce
-         reads as somebody walking, and it costs one sine. Tied to STEP so it stays one hop per tile
-         however fine the tile gets. */
-      const left = Math.hypot(WALK.tx - WALK.x, WALK.tz - WALK.z);
-      walker.position.y = Math.abs(Math.sin(left / STEP * Math.PI)) * TILE * 0.22;
-    } else {
-      walker.position.y = 0;
-    }
-    /* THE LEAN. A fifth of a tile toward whatever refused him, decaying over about a dozen frames.
-       Enough to read as "he tried", not enough to look like a step. */
-    let lx = 0, lz = 0;
-    if (WALK.bump > 0) {
-      WALK.bump -= 0.09;
-      if (WALK.bump < 0) WALK.bump = 0;
-      const lean = Math.sin(WALK.bump * Math.PI) * TILE * 0.2;
-      lx = WALK.bx * lean; lz = WALK.bz * lean;
-    }
-    walker.position.x = WALK.x + lx;
-    walker.position.z = WALK.z + lz;
-  }
-
-  on_(window, 'keydown', e => {
-    const k = e.key;
-    if (k === 'ArrowRight' || k === 'd') { stepBy(1, 0);  e.preventDefault(); }
-    if (k === 'ArrowLeft'  || k === 'a') { stepBy(-1, 0); e.preventDefault(); }
-    /* UP THE SCREEN IS AWAY FROM THE CAMERA, which is a decreasing row — the camera sits south of him
-       looking north, so a smaller row number is further up the screen. */
-    if (k === 'ArrowUp'    || k === 'w') { stepBy(0, -1); e.preventDefault(); }
-    if (k === 'ArrowDown'  || k === 's') { stepBy(0, 1);  e.preventDefault(); }
-  });
-  /* AND A TAP, because most of the people who will ever see this are holding a phone and there is no
-     keyboard on it. FOUR WEDGES FROM THE MIDDLE OF THE SCREEN rather than four corners: whichever of
-     left/right/up/down your thumb landed furthest towards is the way he goes, so there is no dead
-     zone and no need to hit a target. */
-  on_(renderer.domElement, 'pointerdown', e => {
-    /* MEASURED FROM THE MIDDLE OF THE BOARD, not the middle of the window. The board is a card in
-       a screen now rather than the whole page, so a tap in the lower half of the PHONE can easily be
-       the upper half of the BOARD — and the walker would go the opposite way to the one your thumb
-       meant. */
-    const b = renderer.domElement.getBoundingClientRect();
-    const dx = e.clientX - (b.left + b.width / 2);
-    const dy = e.clientY - (b.top + b.height / 2);
-    if (Math.abs(dx) > Math.abs(dy)) stepBy(dx > 0 ? 1 : -1, 0);
-    else stepBy(0, dy > 0 ? 1 : -1);
-  });
-
-  let raf = 0;
-  try {
-    paintGround();
-    tiles();
-    town();
-    route();
-    landmarks();
-    posts();
-    signs();
-    place();
-    walker = makeWalker();
-    world.add(walker);
-    /* HE STARTS ON THE FIRST STOP — the bus garage, which is the row marked `start`. The stops are
-       still where the map begins even though they no longer bound where it goes. */
-    /* HE STARTS ON THE NODE MARKED `start`, which is the bus garage, and only falls back to the first
-       stop if no row claims it. Sorting is by longitude, so "first stop" is whatever happens to be
-       furthest west — currently Deen City Farm — and starting him there while the green pipe stands a
-       mile east is the board contradicting itself. */
-    const first = LANDMARKS.find(l => l.node === 'start') || STOPS[0] || NODES[0];
-    WALK.c = first && first.nodeCol != null ? first.nodeCol : Math.floor(COLS / 2);
-    WALK.r = STREET_ROW;
-    const start = GRID[WALK.c] && GRID[WALK.c][WALK.r];
-    WALK.x = WALK.tx = start ? start.x : 0;
-    WALK.z = WALK.tz = start ? start.z : 0;
-    moveWalker();
-    showName();                                       // the first place, before a key is ever pressed
-    followCam(true);
-
-    const tick = () => {
-      raf = requestAnimationFrame(tick);
-      moveWalker();
-      followCam(false);
-      renderer.render(scene, camera);
-    };
-    tick();
-  } catch (err) {
-    /* SAID ON THE SCREEN. A 3D page that fails after one frame looks exactly like one that is working. */
-    const d = document.createElement('div'); d.className = 'ow-say';
-    d.textContent = 'Could not build the board.\n' + String(err.message || err);
-    mount.appendChild(d);
-    console.error(err);
-  }
-
-  on_(window, 'resize', place);
-  addEventListener('pagehide', () => {
-    cancelAnimationFrame(raf);
-    world.traverse(o => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
-    });
-    renderer.dispose();
-  });
-
+  /* A BUILDING TILE. The height comes from the part, so every tile of one building is the same
+     height and they read as one solid — which is what makes a rasterised C look like a building
+     rather than like a row of blocks that happen to touch. */
+  const pal = OW_BUILD[norm(it.l.kind)] || OW_BUILD.retail;
+  const wall = rgb(pt.wall || pal[0]);
+  const roofC = rgb(pt.roof || pal[1]);
+  const h = pt.height > 0 ? owHeight(pt.height) : 13;
+  box(x0, x1, base, base + h, z0, z1, wall);
+  const shape = pt.roofShape || 'flat';
+  if (shape === 'pitch') pitch(x0, x1, base + h, 3, z0, z1, roofC);
+  else box(x0, x1, base + h, base + h + 1.6, z0, z1, roofC);
 }

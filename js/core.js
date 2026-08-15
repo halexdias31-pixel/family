@@ -629,7 +629,21 @@ function priceFrom(spec) {
      second, not the first. */
   // Days a week, not blocks a week — for the same reason the dates are per day.
   const runsPerWeek = Math.max(1, bookedDays.length || 1);
-  const weeksBooked = weeksLeft || (slots ? Math.round(slots / runsPerWeek) : 0);
+  /* ---------- BILLED BY THE SESSIONS THAT EXIST, NOT THE WEEKS THAT REMAIN ------------------------
+     THIS PREFERRED `weeksLeft` AND THAT IS A DIFFERENT NUMBER. `weeksLeft` is how many weeks are
+     left in the interval; `slots` is how many session dates were actually found in it. They agree
+     most of the time, which is why this survived — and when they differ the card contradicts
+     itself in public: the multiplier row said "x 3" while the line under it listed two dates, and
+     the total charged for the three.
+
+     A booking cannot cost more than the sessions it contains. `slots` is the count of real dates,
+     so the arithmetic and the list of dates now come from one number instead of two.
+
+     THE DIVISION STAYS, for a booking that has slots but no dates yet — two days a week over
+     eleven weeks is twenty-two sessions and eleven weeks, and hours-a-week multiplies the second. */
+  const weeksBooked = sessionDates.length
+    ? Math.max(1, Math.round(sessionDates.length / runsPerWeek))
+    : (slots ? Math.round(slots / runsPerWeek) : 0);
   const hoursTotal = (num(spec.hoursPerWeek) || 0) * weeksBooked;
   /* The per-hour figure is real as soon as a rate is known — it does not need a length or a term.
      The TOTAL does: without hours there is nothing to total, and showing £0.00 there reads as a

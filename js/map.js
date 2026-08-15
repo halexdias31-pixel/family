@@ -959,6 +959,8 @@ const WIDGETS = [
      came out of overworld.html is the tiled one with the real Colliers Wood outlines on it, and it
      goes in the same card through the same id. The SVG one is still here and still works — see the
      note beside `drawOverworld` — so putting this back is changing one word. */
+  /* THE BOARD, which is SVG now rather than three.js — so it draws immediately, needs no loader,
+     and leaves nothing running when the widget closes. */
   { id: 'overworld', kind: 'game', name: 'The Overworld', start: () => initOverworldBoard?.(),
     into: 'map-board', what: 'The map',
     html: `<div class="card">
@@ -1007,6 +1009,31 @@ const WIDGETS = [
         `<button type="button" class="mc-btn ${cls}" data-mc="${esc(v)}">${esc(label)}</button>`
       ).join('')}
     </div>
+  </div>` },
+  /* THE FLYER MAKER. `admin: true` — it prices your classes and prints your advertising, and a
+     family finding it in Tools would be finding the inside of the business.
+     It was a card on the You screen, which worked and put a making-things tool in a column of
+     settings. Tools is where it belongs, and the role flag is what makes that safe. */
+  { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
+    start: () => initFlyer?.(),
+    into: 'fm-wrap', what: 'The flyer',
+    html: `<div class="card">
+    <h3>Make a flyer</h3>
+    <p class="sub">Campaign, style, colours and size. Two to a sheet, or nine stickers. Prices come
+      from the venue you pick.</p>
+    <div id="fm-wrap"></div>
+  </div>` },
+
+  /* THE MATHS MAT. A tool rather than a game, and `solid` like the others in this section, so it
+     is listed and searchable with everything else — somebody typing "protractor" finds it, which
+     is how it ought to be found and never would be from a menu. */
+  { id: 'mat', kind: 'tool', name: 'Maths mat', solid: true, start: () => initMat?.(),
+    into: 'mat-box', what: 'The mat',
+    html: `<div class="card">
+    <h3>Maths mat</h3>
+    <p class="sub">One sheet of A4. Tick what goes on it — the ruler down the edge and the
+      protractor print at true size.</p>
+    <div id="mat-box"></div>
   </div>` },
   { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => initTimer?.(),
     into: 'timer-display', what: 'The timer',

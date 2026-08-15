@@ -50,20 +50,47 @@ function corsImage_(src) {
   });
 }
 
-async function receiptCanvas() {
+/* ---------- THE PICTURE IS OF WHATEVER YOU SHARED ------------------------------------------------
+   IT ALWAYS DREW A RECEIPT. Whatever was on screen — a blank screen card, an application waiting to
+   be accepted, a place on a waiting list — the shared image came out as a finished receipt, headed
+   with the same three lines and stamped with nothing.
+
+   THE SCREEN SHOWS FOUR DIFFERENT DOCUMENTS and they are different on purpose: an application is
+   not a receipt, and sharing one as though it were is telling somebody a thing has been paid for
+   when it has not. The stage is what the card already knows about itself; the picture just never
+   asked. */
+async function receiptCanvas(stage) {
   const L = bookPrice();
   if (!L) return null;
   const rows = breakdownRows(L);
+  /* THE SAME WORDS THE CARD USES, so a shared picture and the screen it came from cannot say
+     different things about the same booking. */
+  const STAGE_SAY = {
+    screen: 'Asking for a session',
+    application: 'Waiting to be accepted',
+    waitlist: 'On the waiting list',
+    receipt: '',
+  };
+  const stageLine = STAGE_SAY[stage] !== undefined ? STAGE_SAY[stage] : '';
 
   /* Drawn at three times the size and scaled down by the device, so it is sharp on a phone and
      still sharp when somebody opens it on a laptop. */
-  const S = 3, W = 380 * S, PAD = 26 * S;
+  /* ---------- WIDE ENOUGH FOR WHAT IS ON IT ------------------------------------------------------
+     380 WAS THE PHONE-CARD WIDTH and this is not a phone card, it is a picture somebody opens in
+     WhatsApp and pinches to read. Sized to the columns instead: a 14-character label, a value worth
+     reading, and three numeric columns that cannot be squeezed. At 380 the value column came out
+     eight characters — "Summer Holiday" arriving as "Summer H", which is a clash solved by
+     destroying the content, and no better than the clash. */
+  const S = 3, W = 540 * S, PAD = 26 * S;
   const LINE = 17 * S;
 
   /* Height has to be known before drawing, so the rows are measured first. Two passes over the same
      list rather than a guess: a canvas that is too short crops the total off the bottom. */
   const photoH = 96 * S;
-  const headH = 92 * S;
+  /* THE HEADER GROWS WITH THE STAMP. A fixed height plus a new line is a new line drawn over the
+     first row of the table — the sort of fault that only appears on the one stage that has a
+     stamp, which is not the one anybody tests. */
+  const headH = (stageLine ? 106 : 92) * S;
   const footH = 118 * S;
   const H = photoH + headH + rows.length * LINE + footH;
 
@@ -72,20 +99,58 @@ async function receiptCanvas() {
   const g = cv.getContext('2d');
   if (!g) return null;
 
-  const INK = '#2b2620', FAINT = '#8a8175', PAPER = '#f4f1e8';
+  /* ---------- AND THE PAPER ITSELF, NOT JUST THE STAMP -------------------------------------------
+     A STAMP ON RECEIPT PAPER IS STILL RECEIPT PAPER. The last pass added a line saying "ASKING FOR
+     A SESSION" and left the picture cream, torn-edged and pocketable — so a booking nobody has
+     agreed to still arrived on WhatsApp looking exactly like something paid for, with a caveat
+     written on it. Text does not undo a shape; the paper is what somebody sees before they read.
+
+     THE SCREEN ALREADY HAS THREE DIFFERENT PAPERS and they were chosen for reasons worth keeping:
+
+       SCREEN       a dark terminal. Nothing has been asked for yet — it is the thing you are
+                    typing INTO, and it should look like a device rather than a document.
+       APPLICATION  a white form with a red filing edge. A form is punched and filed; a receipt is
+                    torn and pocketed, and the edge is the difference.
+       WAITLIST     the same form, blue, because waiting is a different sort of pending from
+                    waiting to be accepted.
+       RECEIPT      cream, torn, and the only one of the four that means the money moved.
+
+     These are the same colours the stylesheet uses, restated here because a canvas cannot read
+     CSS — the one honest duplication in this file, and the reason both lists name the stage. */
+  const SKINS = {
+    screen:      { paper: '#0d0f0e', ink: '#7fd6a4', faint: '#6f8f7c', edge: '#2a2f2c', torn: false },
+    application: { paper: '#fbfaf7', ink: '#1e1c19', faint: '#7a7469', edge: '#b9312b', torn: false },
+    waitlist:    { paper: '#fbfaf7', ink: '#1e1c19', faint: '#7a7469', edge: '#2f6fb0', torn: false },
+    receipt:     { paper: '#f4f1e8', ink: '#2b2620', faint: '#8a8175', edge: '',        torn: true },
+  };
+  const skin = SKINS[stage] || SKINS.receipt;
+  const INK = skin.ink, FAINT = skin.faint, PAPER = skin.paper;
   g.fillStyle = PAPER;
   g.fillRect(0, 0, W, H);
+  /* THE FILING EDGE, down the left, on the two that are forms. */
+  if (skin.edge) { g.fillStyle = skin.edge; g.fillRect(0, 0, 5 * S, H); }
 
-  /* The torn ends. Same zigzag the card has, drawn as triangles cut out of the paper. */
+  /* THE TORN ENDS, AND ONLY ON THE ONE THAT IS TORN. This ran unconditionally, so a form arrived
+     with a receipt's ragged edges — the same contradiction as the cream paper, in the shape rather
+     than the colour. A receipt is torn off a roll; a form is punched and filed and has straight
+     edges because it lives in a drawer. */
+  /* THE TOOTH SIZE IS DECLARED OUT HERE, not inside the `if`. It sets where the content starts as
+     well as how deep the tear is — line 143 below uses it to leave room at the top — so scoping it
+     to the torn branch made every share of a non-torn document throw `tooth is not defined`, which
+     is to say every share of a booking, which is the thing I had just changed. A `const` moved
+     inside a block it is used outside of: the same shape of fault as `day` in the backend earlier
+     tonight, and neither checker looks at scope. */
   const tooth = 10 * S;
-  g.globalCompositeOperation = 'destination-out';
-  for (let x = 0; x < W; x += tooth) {
-    g.beginPath(); g.moveTo(x, 0); g.lineTo(x + tooth / 2, tooth); g.lineTo(x + tooth, 0);
-    g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(x, H); g.lineTo(x + tooth / 2, H - tooth); g.lineTo(x + tooth, H);
-    g.closePath(); g.fill();
+  if (skin.torn) {
+    g.globalCompositeOperation = 'destination-out';
+    for (let x = 0; x < W; x += tooth) {
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x + tooth / 2, tooth); g.lineTo(x + tooth, 0);
+      g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x, H); g.lineTo(x + tooth / 2, H - tooth); g.lineTo(x + tooth, H);
+      g.closePath(); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
   }
-  g.globalCompositeOperation = 'source-over';
 
   let y = tooth + 8 * S;
 
@@ -109,7 +174,7 @@ async function receiptCanvas() {
                   img.width * scale, img.height * scale);
       g.filter = 'none';
     } else {
-      g.fillStyle = '#e6e1d4';
+      g.fillStyle = skin.torn ? '#e6e1d4' : (stage === 'screen' ? '#1c2320' : '#e8e4da');
       g.fillRect(x, y, boxW, boxH);
       g.fillStyle = FAINT;
       g.font = `${9 * S}px ui-monospace, monospace`;
@@ -127,6 +192,17 @@ async function receiptCanvas() {
   g.textAlign = 'center'; g.fillStyle = INK;
   g.font = `700 ${13 * S}px ui-monospace, monospace`;
   g.fillText('@family.', W / 2, y); y += 16 * S;
+  /* WHAT THIS IS, above the details. A picture with no stamp reads as settled, which is exactly
+     wrong for the three stages that are not. */
+  if (stageLine) {
+    g.font = `700 ${8.5 * S}px ui-monospace, monospace`;
+    /* THE STAMP IN THE SKIN'S OWN INK. Brown on a dark terminal is very nearly the background —
+       the one line whose whole job is to say what this is, unreadable on the one stage that most
+       needs it. */
+    g.fillStyle = stage === 'screen' ? skin.ink : '#8a6a3c';
+    g.fillText(stageLine.toUpperCase(), W / 2, y);
+    y += 14 * S;
+  }
   g.font = `${9.5 * S}px ui-monospace, monospace`; g.fillStyle = FAINT;
   [BOOKING.loc || 'venue not chosen', BOOKING.tutor || 'no tutor yet',
    BOOKING.interval || 'term not chosen'].forEach(t => { g.fillText(t, W / 2, y); y += 13 * S; });
@@ -141,20 +217,49 @@ async function receiptCanvas() {
   rule();
 
   /* ---- the rows. Same six columns as the card, in the same order. ---- */
-  const cols = [PAD, PAD + 26 * S, W - PAD - 150 * S, W - PAD - 96 * S, W - PAD - 56 * S, W - PAD];
+  /* ---------- COLUMNS MEASURED FROM WHAT GOES IN THEM ---------------------------------------------
+     THE RATE COLUMN RAN INTO THE MULTIPLIER BY UP TO A HUNDRED UNITS on every row that had both —
+     "x 1.01" and "+ £0.10/h" drawn over each other, which is the clash. The positions were picked
+     by eye and each is right-aligned, so a column has no idea how wide the one before it grew.
+
+     WIDTHS FROM THE LONGEST THING EACH COLUMN ACTUALLY HOLDS, at this font, with a gap that cannot
+     be eaten:
+
+       total   "£1,234.56"   9 chars
+       rate    "+ £10.00/h"  10 chars
+       mul     "x 1.01"      6 chars
+
+     Monospace makes this exact rather than approximate: every glyph is 0.6em, so the width of a
+     column is its longest string and no measurement is a guess. A proportional font would need
+     `measureText` and a fallback when it lies. */
+  const CH = 9.5 * S * 0.6;                    /* one character, at the table's font */
+  const GAP = 8 * S;                           /* the least space that still reads as a gap */
+  const totW = 9 * CH, rateW = 10 * CH, mulW = 6 * CH;
+  const totR = W - PAD;
+  const rateR = totR - totW - GAP;
+  const mulR = rateR - rateW - GAP;
+  const valR = mulR - mulW - GAP;
+  const cols = [PAD, PAD + 26 * S, valR, valR, mulR, totR];
   g.font = `${9.5 * S}px ui-monospace, monospace`;
   rows.forEach(r => {
     g.textAlign = 'left';
-    g.fillStyle = '#a99f8f'; g.fillText(r.n || '', cols[0], y);
+    g.fillStyle = FAINT; g.fillText(r.n || '', cols[0], y);
     g.fillStyle = r.big ? INK : '#6a6259';
     g.font = `${r.big ? 700 : 400} ${9.5 * S}px ui-monospace, monospace`;
     g.fillText(r.k, cols[1], y);
     g.textAlign = 'right';
     g.fillStyle = INK;
     /* Trimmed to what fits. A value that runs into the next column is worse than one cut short. */
-    g.fillText(String(r.v || '').slice(0, 22), cols[3] - 6 * S, y);
-    g.fillStyle = '#6a6259'; g.fillText(r.mul || '', cols[4] - 6 * S, y);
-    g.fillStyle = '#8a8175'; g.fillText(r.rate || '', cols[5] - 46 * S, y);
+    /* TRIMMED TO WHAT THE COLUMN HOLDS, not to a number somebody typed. 22 was a guess and the
+       room is whatever is left between the label and the multiplier — computed, so it stays true
+       if any of the widths above change. */
+    /* AGAINST THE LONGEST LABEL, not against a guess. Reserving 15 characters when the longest
+       label is 14 leaves the value one character of margin on the widest row and lies about the
+       rest — measuring the label actually on this row gives each one the room it really has. */
+    const valRoom = Math.max(6, Math.floor((valR - (cols[1] + (r.k || '').length * CH + GAP)) / CH));
+    g.fillText(String(r.v || '').slice(0, valRoom), valR, y);
+    g.fillStyle = FAINT; g.fillText(r.mul || '', mulR, y);
+    g.fillStyle = FAINT; g.fillText(r.rate || '', rateR, y);
     g.fillStyle = INK; g.font = `${r.big ? 700 : 400} ${9.5 * S}px ui-monospace, monospace`;
     g.fillText(r.total || '', cols[5], y);
     y += LINE;
@@ -200,7 +305,9 @@ on('book-share', async el => {
   const was = el.textContent;
   el.textContent = 'Drawing…';
   try {
-    const cv = await receiptCanvas();
+    /* WHICH DOCUMENT IS ON SCREEN. Read off the button rather than worked out again here — the card
+       that drew the button already decided, and deciding twice is two answers waiting to differ. */
+    const cv = await receiptCanvas(el.getAttribute('data-stage') || '');
     if (!cv) throw new Error('Not enough answered to print it yet');
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     if (!blob) throw new Error('The picture could not be made');
@@ -275,13 +382,24 @@ function drawBooker_() {
      So the one case that is a GAP rather than a decision says so. A client with no children on
      their account is a real state and the fix is a person's, not a form's — the line names it and
      says who can fix it. Everyone else never sees it. */
-  const noKids = USER && !bookStep_('kids').options().length
-    && !(USER.children || USER.kids || []).length
+  /* AND THE NOTE HAS TO NAME THE RIGHT ACCOUNT. "No children are on YOUR account" is wrong when an
+     admin has booked for somebody else — it is that family's account with nobody on it, and telling
+     the admin to add their own children is advice for a problem they do not have. */
+  const forWhom = BOOKING.client === NOBODY ? '' : (BOOKING.client || (USER && USER.name) || '');
+  const mine = !USER || !forWhom || norm(forWhom) === norm(USER.name);
+  /* AND NO CHILDREN NOTE AT ALL WHEN THERE IS NO CLIENT. "No children are on Nobody yet — just
+     open it's account" is what happens when a placeholder is handed to a sentence expecting a
+     name. A waiting list being opened empty has no family to have children, and the note has
+     nothing to tell anybody. */
+  const noKids = USER && forWhom && !isWaiting_()
+    && !bookStep_('kids').options().length
     && norm(USER.role) !== 'tutor' && norm(USER.role) !== 'kid';
   const kidsNote = noKids
-    ? `<p class="note" style="margin:.2rem 0 .6rem">No children are on your account, so we cannot
-         ask which of them this is for — the seats will just say <b>Child</b>.
-         <span class="faint">Ask us to add them and the next booking will name them.</span></p>`
+    ? `<p class="note" style="margin:.2rem 0 .6rem">No children are on
+         ${mine ? 'your account' : esc(forWhom) + '&rsquo;s account'}, so we cannot ask which of
+         them this is for — the seats will just say <b>Child</b>.
+         <span class="faint">${mine ? 'Ask us to add them and the next booking will name them.'
+           : 'Add them to that account and the next booking will name them.'}</span></p>`
     : '';
 
   /* THE RUNNING BREAKDOWN. Every row says what it did to the price and what the price is with it
@@ -300,7 +418,11 @@ function drawBooker_() {
       ${/* SHARING IT BEFORE SENDING IT. A parent deciding usually shows somebody else first — the
             other parent, the family they are splitting with — and until now that meant a
             screenshot, which crops badly and loses the bottom of a long receipt. */''}
-      <button class="btn quiet" data-do="book-share">Share this receipt</button>
+      ${/* AND IT IS NOT A RECEIPT YET, which is the whole point of the fix below it: this button
+            sits under "Ask for it", on a booking nobody has agreed to and nothing has been paid
+            for. Calling the picture a receipt — and drawing one — told whoever it was sent to that
+            the thing was settled. */''}
+      <button class="btn quiet" data-do="book-share" data-stage="screen">Share this</button>
       <p class="faint" id="book-said" style="margin:.6rem 0 0">
         Nothing is booked or charged yet — this asks, and we come back to you.</p>`);
     return;
@@ -369,7 +491,17 @@ function drawBooker_() {
   openSheet(step.label, `
     ${BOOKING.editing ? '<button class="btn quiet" data-do="book-back">Leave it as it is</button>' : ''}
     ${opts.map(v => {
+      /* ---------- A REFUSAL AND A NOTE ARE NOT THE SAME THING -------------------------------------
+         `why` MEANS "THIS DOES NOT FIT" — it draws the option at 45% and, on a multi-select,
+         refuses the tick. I then used it for HELPFUL NOTES on three questions today, so six of
+         eight options came out looking disabled: "It happens. Yours from the moment you pay" is an
+         encouragement, and it was greying out the button it was encouraging.
+
+         `note` IS THE SAME TEXT WITHOUT THE VERDICT. Both print under the option; only `why` marks
+         it. Two functions rather than a flag, because at the point of writing one you know which
+         you mean, and a flag is something to forget. */
       const why = step.why ? step.why(v) : '';
+      const note = why || (step.note ? step.note(v) : '');
       const on = chosen.indexOf(v) !== -1;
       /* NOT REMOVED, MARKED. An option that does not fit is shown with the reason, because a list
          that quietly drops things is a list that seems to have decided for you — and because the
@@ -378,7 +510,7 @@ function drawBooker_() {
            data-do="book-pick" data-step="${esc(step.id)}" data-value="${esc(v)}">
         <div class="row" style="border:0;padding:0">
           <span class="k">${on ? '✓ ' : ''}${mark(step.label_ ? step.label_(v) : v)}</span>
-          ${why ? `<span class="v faint">${esc(why)}</span>` : ''}
+          ${note ? `<span class="v faint">${esc(note)}</span>` : ''}
         </div>
       </div>`;
     }).join('')}
@@ -415,8 +547,16 @@ on('book-send', el => {
      WHAT IS SENT IS WHAT WAS ASKED: the venue and the level. Nothing else on this form was even
      offered, and sending a subject or a day would be this file inventing an answer to a question
      nobody was asked. */
-  if (isClass_()) {
-    send_({ action: 'joinWaitlist',
+  if (isWaiting_()) {
+    /* ---------- OPENING ONE IS A DIFFERENT ACTION FROM JOINING ONE --------------------------------
+       `joinWaitlist` SEATS WHOEVER CALLS IT. That is right for a family and wrong for an admin who
+       has just answered "nobody yet" — they would become the first person on the list they were
+       trying to open empty, which is the one thing the answer exists to avoid.
+
+       So the answer to "who is this for" chooses the verb: nobody means `openWaitlist`, anybody
+       means `joinWaitlist`. One question, two doors, and the form does not need a second button. */
+    const forNobody = BOOKING.client === NOBODY;
+    send_({ action: forNobody ? 'openWaitlist' : 'joinWaitlist',
       name: USER.name, personId: (USER && USER.personId) || '',
       venue: BOOKING.loc,
       level: BOOKING.level,

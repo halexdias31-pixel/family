@@ -4,7 +4,7 @@
 
    ONE COMMAND, ONE VERDICT.
 
-   There are seven checkers and running them meant seven commands, which in practice meant running
+   There are eleven checkers and running them by hand meant eleven commands, which in practice meant running
    the two you remembered. A safety net you have to assemble by hand each time is a safety net with
    holes in it wherever your memory has them — and the two that got skipped were reliably the slow
    ones, which are the ones that check the most.
@@ -42,7 +42,16 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet' },
+  /* ---------- IT EXISTED AND NEVER RAN -------------------------------------------------------
+     `check-scope.js` was written for the two faults that got past all the others — a name declared
+     inside a block and read outside it, which throws the moment that line runs. It was never added
+     to this list, so the one checker built for the faults nothing else can see has never been part
+     of the safety net it belongs to.
+     A checker that is not in the suite is a checker that does not run, and this file IS the suite. */
+  { file: 'check-scope.js',   what: 'names declared in a block, used outside it' },
+  { file: 'check-canvas.js', what: 'the shared picture, column by column' },
   { file: 'check-columns.js', what: 'every column the backend touches' },
+  { file: 'check-access.js', what: 'every action past the permissions gate' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },

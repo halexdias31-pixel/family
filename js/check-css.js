@@ -46,6 +46,33 @@ const code = fs.readdirSync(path.join(dir, 'js'))
   .map(f => fs.readFileSync(path.join(dir, 'js', f), 'utf8')).join('\n')
   + (fs.existsSync(path.join(dir, 'index.html')) ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8') : '');
 
+
+/* ---------- IS IT EVEN A STYLESHEET ---------------------------------------------------------------
+   EVERY OTHER CHECK IN THIS FILE READS DECLARATIONS. That is the right shape for asking whether a
+   rule does what it says — and it means the file can be structurally broken and every check still
+   passes, because a stray `}` is not a declaration.
+
+   IT HAPPENED TWICE. A regex deleting `@keyframes X { … }` used `[^}]*`, which stops at the first
+   closing brace — the end of the first STOP, not of the block — so the header and one stop went and
+   four stops and a `}` stayed. A browser discards from an error to the next brace it can resync on,
+   which can silently take the rules AFTER the orphan with it. So the damage is never confined to
+   the thing that was broken, and nothing on screen points at it.
+
+   COUNTING BRACES IS THE WHOLE CHECK. Comments are blanked first, keeping newlines, because a `}`
+   inside a comment is not a brace — I wrote this counter without that and it reported a fault in a
+   paragraph of prose. */
+function bracesBalance(css) {
+  const clean = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+  let depth = 0, line = 1;
+  const stray = [];
+  for (const ch of clean) {
+    if (ch === '\n') line++;
+    else if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth < 0) { stray.push(line); depth = 0; } }
+  }
+  return { stray, unclosed: depth };
+}
+
 /* ---------- strip comments, then read the rules ------------------------------------------------ */
 /* COMMENTS BLANKED, NOT DELETED — each one replaced by the same number of newlines it occupied.
 
@@ -277,6 +304,16 @@ const tapBad = [];
 const hollow = rules.filter(r => !r.decls.length)
   .map(r => 'line ' + r.line + '  ' + r.sel + '  is empty — delete it rather than leave it');
 
+/* FIRST, because everything below it reads a file it assumes is well formed. A stylesheet with a
+   stray brace is not a stylesheet with a fault in it; it is a stylesheet whose later rules the
+   browser may have thrown away, and no amount of checking declarations will say so. */
+const bal = bracesBalance(css);
+say('A STRAY CLOSING BRACE — the browser discards from here to wherever it can resync, '
+    + 'which can take the rules after it too',
+    bal.stray.map(n => 'style.css line ' + n));
+say('A BLOCK THAT IS NEVER CLOSED — everything after it is inside it',
+    bal.unclosed ? [bal.unclosed + ' unclosed ' + (bal.unclosed === 1 ? 'block' : 'blocks')] : []);
+
 say('THE SAME PROPERTY TWICE IN ONE RULE — the first never applies', twice);
 say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
@@ -310,8 +347,12 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 
          Found by breaking a splash on purpose and watching the check not notice. Worth doing to
          every check at least once. */
-      let body = part.split('<!-- ----------')[0];
-      body = body.replace(/<!--[\s\S]*?-->/g, '');
+      /* COMMENTS OUT FIRST, THEN THE SPLIT. This cut at the first `<!-- ----------` and then stripped
+         comments — so a divider-styled comment INSIDE a splash truncated the body before its own
+         signature, and the check reported a missing `@family.` that was plainly in the markup. A
+         check that cries wolf about a fault that is not there is a check people learn to skip.
+         Stripping comments first means no comment of any shape can split a splash in half. */
+      let body = part.replace(/<!--[\s\S]*?-->/g, '');
 
       /* Case-insensitively: the readout says it in capitals, and a check that flagged that would be
          reporting a fault that is not there — which is how a report stops being read. */

@@ -163,6 +163,16 @@ const KINDS = {
   /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
      thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
   topic: { group: 'Learning', label: 'Resources', card: (x, c) => thingCard_(x, c) },
+  /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER ------------------------
+     I GAVE IT ITS OWN LABEL — "Questions" beside "Resources" — and that is two cupboards where
+     there is one thing. Somebody after question 5b would have had to know which to open, and
+     narrowing to Past paper would have hidden every question in it.
+
+     SAME GROUP AND SAME LABEL AS A RESOURCE, so "Learning → Resources → Past paper" holds the
+     paper AND its parts, and the Question and Part facets narrow from there. One funnel, which is
+     the argument I made for the two extra rungs and then failed to build. Only the CARD differs,
+     because a part is drawn differently from a paper. */
+  question: { group: 'Learning', label: 'Resources', card: x => questionCard_(x) },
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
 
@@ -303,6 +313,14 @@ const FACETS = [
   /* A yes-or-no, phrased as the two answers rather than as the question. "Printed / Digital" is a
      choice; "Print required: true" is a database column somebody left showing. */
   { field: 'paper',     label: 'Printed?',    of: x => x.paper ? 'Printed' : 'Digital' },
+  /* ---------- TWO MORE RUNGS ON THE SAME LADDER ------------------------------------------------
+     A QUESTION IS NOT A NEW KIND OF SEARCH, it is level → year → paper carried two steps further.
+     These sit after the paper facets so the funnel narrows in the order somebody thinks in: which
+     paper, then which question, then which part.
+     Blank on everything that is not a question, so they only appear once the list is questions —
+     which is what every other facet here already does. */
+  { field: 'qNumber',   label: 'Question',    of: x => x.qNumber || '' },
+  { field: 'qPart',     label: 'Part',        of: x => x.qPart || '' },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* Last, because it is the one somebody asks when they already know what they want. */
   { field: 'afford',    label: 'Price',       of: x => x.cost === 0 ? 'Free'
@@ -391,6 +409,107 @@ function nextFacet(items) {
    lookup. Each call rebuilt all four hundred objects. Cached against the payload itself, so it is
    rebuilt exactly when the data changes and never otherwise. */
 let TOPICS_MEMO = { from: null, list: null };
+
+/* ---------- QUESTIONS AS SEARCHABLE PARTS --------------------------------------------------------
+   ONE ITEM PER PART, never per stem. A stem is the context a part needs, not a thing anybody looks
+   for — searching "1825 employees" should land on question 5's parts, not on a stem card that asks
+   nothing.
+
+   THE PAPER'S FIELDS ARE COPIED ONTO EVERY PART, so a question answers the same facets its paper
+   does. Filtering to A-Level, Edexcel, 2022 narrows questions exactly as it narrows papers, and
+   nothing downstream has to know which it is holding — which is the same reason `allTopics` copies
+   them onto a resource.
+
+   THE STEM IS FOUND ONCE PER PART and carried along. Looking it up when the card is drawn would be
+   a scan of every question row per card, which on a list of ninety is ninety scans. */
+/* ---------- THE CLASSES THAT LIVE IN THE SHEET ---------------------------------------------------
+   `check-css` REPORTS A RULE IT CANNOT FIND A USE FOR, and question HTML is stored in the sheet
+   where it cannot look. `ol.roman` and the SVG label classes appear only there, so the check saw
+   rules styling nothing and said so — correctly, given what it can see.
+   Naming them here is not a trick to quiet it: it is the only place in the source that records
+   which classes a question's HTML is allowed to use, which is what makes them safe to style and
+   unsafe to rename. Any question using a class not on this list will be unstyled.
+
+   used by stored question HTML: roman  lbl  num  ax  axis  grid  pt  stat  marks  parts */
+const QUESTION_CLASSES = ['roman', 'lbl', 'num', 'ax', 'axis', 'grid', 'pt',
+                          'stat', 'marks', 'parts'];
+
+/* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of
+   ninety parts is scanned rather than read. The whole thing opens on a tap. */
+function questionCard_(x) {
+  /* THE FIRST SENTENCE, with the tags stripped. A card showing raw HTML would show angle brackets;
+     one showing the whole question would be a page per row. */
+  const plain = String(x.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const peek = plain.length > 96 ? plain.slice(0, 96).replace(/\s\S*$/, '') + '…' : plain;
+  return `<div class="qcard tap" data-do="question" data-key="${esc(x.key)}">
+    <div class="qcard-top">
+      <b>${esc(x.name)}</b>
+      <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
+    </div>
+    <p class="qcard-sub">${esc(x.sub)}</p>
+    <p class="qcard-peek">${esc(peek)}</p>
+  </div>`;
+}
+
+/* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it
+   is printed and because a part without them cannot be answered. This is the whole reason the stem
+   is a row of its own rather than a copy on each part. */
+on('question', el => {
+  const key = el.getAttribute('data-key');
+  const x = questionItems().find(q => q.key === key);
+  if (!x) { toast('That question is not in the sheet'); return; }
+  openSheet(x.name + ' · ' + x.sub, `
+    <div class="qsheet">
+      ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}</div>` : ''}
+      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
+      <div class="qsheet-part">
+        <span class="qsheet-pn">${esc(x.qPart || '')}${x.qPart ? ')' : ''}</span>
+        <div class="qsheet-pb">${x.html}
+          <span class="qsheet-marks">(${esc(x.marks)})</span></div>
+      </div>
+    </div>`);
+});
+
+function questionItems() {
+  const all = DATA.questions || [];
+  if (!all.length) return [];
+
+  /* THE PAPER EACH QUESTION BELONGS TO, indexed once rather than searched per part. */
+  const papers = {};
+  (allTopics() || []).forEach(t => { if (t.id) papers[t.id] = t; });
+
+  const stems = {};
+  all.forEach(r => { if (r.kind === 'stem') stems[r.paper + '|' + r.q] = r; });
+
+  return all.filter(r => r.kind !== 'stem').map(r => {
+    const p = papers[r.paper] || {};
+    const stem = stems[r.paper + '|' + r.q] || null;
+    return {
+      kind: 'question',
+      /* "Q5b" IS THE NAME, and the paper is the subtitle. A list of parts all called
+         "Paper 31: Statistics" would be a list nobody can read down. */
+      name: 'Q' + r.q + (r.part || ''),
+      key: 'q:' + r.id,
+      sub: p.name || '',
+      image: '', cost: 0, slot: '', off: false,
+      subject: p.subject || '', grade: p.grade || '',
+      /* the paper's own facets, so a question filters like its paper */
+      bandType: p.bandType || '', bandValue: p.bandValue || '',
+      keystage: p.keystage || '', tier: p.tier || '',
+      examBoard: p.examBoard || '', company: p.company || '',
+      /* THE PAPER'S OWN TYPE, so filtering to "Past paper" keeps its questions rather than
+         dropping them — a part of a past paper IS a past paper. */
+      resourceType: p.resourceType || '', examWave: p.examWave || '',
+      year: p.year || '', paper: p.paper || '',
+      /* and its own two */
+      qNumber: r.q, qPart: r.part || '',
+      marks: r.marks, section: r.section,
+      lead: r.lead, html: r.html,
+      stemHtml: stem ? stem.html : '',
+      row: r,
+    };
+  });
+}
 
 function allTopics() {
   const by = (DATA.dropdowns || {}).checklists || {};
@@ -593,9 +712,16 @@ function stuffItems() {
        which is the right way to SCAN ninety of them — and it was reachable no other way, so
        somebody who half-remembers "that BBC one" had to know which tab to go to before they could
        search for it. Here it is searchable and filterable like everything else. */
-    /* The nine widgets, findable like everything else. Searching "timer" now finds the timer,
-       which on a tab it never could. */
-    ...WIDGETS.map(wgt => ({
+    /* The widgets, findable like everything else. Searching "timer" now finds the timer, which on
+       a tab it never could.
+
+       ---------- AND SOME ARE NOT FOR EVERYBODY ---------------------------------------------------
+       THE WIDGETS TAB HAS A `roles` COLUMN and nothing has ever read it — every widget has been
+       shown to every person since the tab was made. That did not matter while they were all games
+       and a calculator; it matters the moment one of them prints your flyers.
+       `admin` on a widget means admins only. Anything without it is for everybody, which is what
+       the other nine are. */
+    ...WIDGETS.filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
       kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
       cost: 0, slot: '', subject: '', grade: '', off: false, row: wgt,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
@@ -646,6 +772,16 @@ function stuffItems() {
     })),
     /* A resource costs nothing, and the zero is written here rather than left undefined — so
        every sort, filter and label downstream sees a number and not a hole. */
+    /* ---------- QUESTIONS, AS PARTS ----------------------------------------------------------
+       ONE ITEM PER PART. The stem rows are not items — a stem is not something anybody searches
+       for, it is the context a part needs — so they are looked up when a part is drawn and never
+       listed in their own right.
+
+       EVERY PAPER FIELD IS COPIED ONTO THE PART from its resource row, so a question answers the
+       same facets its paper does: filtering to A-Level, Edexcel, 2022 narrows questions exactly
+       as it narrows papers, and the funnel does not have to know it is looking at either. */
+    ...questionItems(),
+
     ...allTopics()
       /* A deleted resource is still on the screen for an admin, greyed. It has to be: something
          invisible cannot be put back, which is the whole reason the tutor switch works this way. */
@@ -902,6 +1038,80 @@ function stuffPageHtml(n) {
  *
  * One line now. Everything a kind IS lives in `KINDS`.
  */
+/* ==================================================================================================
+   FAVOURITES.
+
+   ONE STAR FOR EVERY KIND, and that is only possible because every item in this list already
+   carries a `key` — a tutor is `t.title`, a widget is `w:timer`, a link is `link:…`. Nothing had to
+   be added to eight card builders; the star wraps the card they all come out of.
+
+   KEPT ON THE PERSON, NOT IN THE BROWSER. A favourite is a small statement about what somebody is
+   looking for, and it should survive a new phone — `saveProfile` already carries arbitrary profile
+   fields, so this rides on the one that exists rather than inventing a tab for a comma-separated
+   list. `localStorage` holds the last known set so the star is right on the first frame, before any
+   payload has arrived, the same trick the splash picker uses.
+================================================================================================== */
+let FAVS = (() => {
+  try { return new Set(JSON.parse(localStorage.getItem('favs') || '[]')); }
+  catch (e) { return new Set(); }
+})();
+
+/* AND WHAT THE SHEET SAYS, once a payload has arrived. `localStorage` is right for the first frame
+   and wrong on a new phone — it is a cache of this device, not a record of the person. The sheet
+   wins when it answers, which is what makes a star survive changing phone: the thing that was
+   broken here for as long as favourites have existed. */
+function adoptFavourites_() {
+  if (!DATA || !DATA.favourites) return;
+  FAVS = new Set(DATA.favourites.map(String));
+  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
+}
+
+const isFav = k => FAVS.has(String(k));
+
+function toggleFav(k, kind) {
+  const key = String(k);
+  if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
+  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
+  /* SAVED QUIETLY. A star is not worth a toast or a spinner — and if the save fails the star is
+     still right on this device, which is the part that matters in the moment. */
+  if (USER) {
+    /* ---------- `saveProfile` DOES NOT EXIST, AND NEVER HAS ---------------------------------------
+       EVERY STAR ON THIS SITE HAS BEEN DEVICE-ONLY. The action is `updateProfile`; this called
+       `saveProfile`, the backend refused it, and `.catch(() => {})` threw the complaint away — so
+       favourites worked perfectly until somebody changed phone, and then quietly did not. Nothing
+       could have reported it: the star was already right on screen, and the only evidence was an
+       error nobody was catching.
+
+       AND IT SENDS ONE FAVOURITE, NOT THE WHOLE LIST. Writing "a,b,c" back to a profile field is
+       the read-modify-write that loses one of two taps made at once, and this was doing it across
+       two tabs of the same account. `favourite` appends or deletes a single row instead — nothing
+       is read first, so nothing can be overwritten. */
+    /* THE KEY IS NOT SPLITTABLE, so it is not split. Some are a bare title — `key: t.title` for a
+       tutor — and some are prefixed, `w:123` for a widget. Splitting on the colon would turn
+       "Colliers Wood Library" into kind "Colliers Wood Library" and lose the rest, and would give
+       a tutor called "Smith: Maths" a kind of "Smith". The kind is passed separately by the caller,
+       which knows it for certain, and the key goes across whole. */
+    send('favourite', {
+      name: USER.name, personId: (USER && USER.personId) || '',
+      kind: kind || 'item', itemId: key,
+      on: FAVS.has(key) ? 'TRUE' : '',
+    }).catch(() => {});
+  }
+}
+
+on('fav', el => {
+  toggleFav(el.getAttribute('data-key'), el.getAttribute('data-kind'));
+  /* THE ONE CARD, not the whole list. Redrawing the page would lose the scroll position, and
+     somebody starring their way down a list of ninety would be thrown back to the top each time. */
+  /* THE WRAPPER, WHICH IS WHAT THE STYLE READS. This toggled `is-fav` on the CARD — `.thing`,
+     `.card`, `.paper` — while the rule that colours a starred star is `.favwrap.is-fav .star`. So
+     the class landed on an element no rule was watching and the star never lit. The wrapper is also
+     the only element guaranteed to exist here; the card is whichever of four builders drew it. */
+  const wrap = el.closest('.favwrap');
+  if (wrap) wrap.classList.toggle('is-fav', isFav(el.getAttribute('data-key')));
+  el.textContent = isFav(el.getAttribute('data-key')) ? '★' : '☆';
+});
+
 function stuffCard(x, credits) {
   /* `credits` is passed IN rather than read from `USER` here, because the page works it out once
      and hands it to every card — reading it per card would be the same lookup eight times a page.
@@ -909,7 +1119,21 @@ function stuffCard(x, credits) {
      nothing said so until a shop card asked what it could afford. */
   /* A kind with no card of its own falls back to the shared one — a new row type appears on the
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
-  return (kindOf_(x).card || thingCard_)(x, credits);
+  const html = (kindOf_(x).card || thingCard_)(x, credits);
+  if (!x.key) return html;
+  /* THE STAR SITS ON TOP OF WHATEVER THE CARD IS. Wrapping rather than editing eight builders means
+     a kind added later gets a star without anybody remembering to add one — the same reason
+     `stuffCard` has a fallback card at all. */
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}
+    ${/* `star`, NOT `fav`. `.fav` was already the FAVICON on a link card — absolutely positioned at
+          inset 10%, eighty per cent wide and tall, with a solid background — so every star button
+          became a black rectangle covering the card it was supposed to sit on. Two features, three
+          letters apart, and the older one silently swallowed the newer.
+          Named for the shape rather than the meaning, because "fav" was ambiguous the moment a
+          second thing wanted it. */''}
+    <button class="star" data-do="fav" data-key="${esc(x.key)}" data-kind="${esc(x.kind || 'item')}"
+      aria-label="Favourite">${isFav(x.key) ? '★' : '☆'}</button>
+  </div>`;
 }
 
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above

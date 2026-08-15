@@ -33,6 +33,38 @@ function bookBlocks() {
      other and the answer is not a compromise between them: it is the stub here and the receipt on
      tap, each doing the thing it is for.
      Still on paper, still torn at the ends, so it is recognisably the same document folded up. */
+  /* ---------- AN OPEN CLASS IS AN OFFER, AND LOOKED LIKE ADMIN -------------------------------------
+     IT WAS THE SAME GREY STUB AS A SESSION ALREADY BOOKED, with "4 free" tucked in a corner. That
+     is the right treatment for a thing you own and the wrong one for a thing being offered to you:
+     in a list of your own bookings, an invitation drawn like a receipt reads as somebody else's
+     business and gets scrolled past.
+
+     A TICKET, NOT A CARD. The seat price large enough to read across a room, the seats left stated
+     as a count, and a torn edge down the side. That is the whole of what makes a coupon work —
+     scarcity said plainly and a number you do not have to squint at. */
+  const openClassCard = j => {
+    const seats = Number(j.seatsGoing) || 0;
+    const cap = Number(j.capacity) || seats || 4;
+    /* `job`, THE SAME DOOR THE ORDINARY CARD USES. I wrote `job-open`, which no handler answers —
+       a coupon that looks pressable and does nothing, which `check-doors` named immediately. The
+       card looks different; what it opens is the same thing. */
+    return `<div class="cpn tap" data-do="job" data-id="${esc(j.id)}">
+      <div class="cpn-l">
+        <span class="cpn-kind">Waiting list class</span>
+        <h3>${esc(j.subject || 'Maths and English')}</h3>
+        <p>${esc([j.location || j.venue, j.term].filter(Boolean).join(' · ') || 'Colliers Wood')}</p>
+        ${/* A COUNT, NOT A BAR. "2 of 4 seats left" is a fact; a progress bar of how full somebody
+              else's booking is would be decoration pretending to be information. */''}
+        <span class="cpn-left">${seats} of ${cap} seat${cap === 1 ? '' : 's'} left</span>
+      </div>
+      <div class="cpn-r">
+        <b>${esc(money(j.price || 0))}</b>
+        <span>a seat</span>
+        <i>Take one</i>
+      </div>
+    </div>`;
+  };
+
   const jobCard = j => {
     const dates = String(j.sessionDates || '').split(/[,\n]/).filter(x => x.trim()).length;
     const mine = USER && norm(j.tutor) === norm(USER.name);
@@ -85,26 +117,28 @@ function bookBlocks() {
      questions exactly as pressing the button did. */
   /* THE EMPTY ONE IS THE TERMINAL ITSELF — nothing asked for, nothing existing, an invitation to
      type. It was the most receipt-looking card on the screen. */
+  /* ---------- THE BLANK CARD --------------------------------------------------------------------
+     ONE INVITATION, NOT FIVE. It said "Ask for a session", then "£—", then "Subject · where ·
+     when", then "No tutor yet", then "Nothing booked", then "Tap to start" — six pieces of text
+     all making the same point, which is that nothing has been filled in yet. Six ways of saying
+     nothing is worse than one, because the eye has to read all six before it can be sure they do
+     not differ.
+
+     What is left is the two outlines — a building and a person, the same drawings a real session
+     shows before it has a venue or a tutor — one line of prompt, and the pips. A card that is
+     visibly empty does not also need telling you it is empty. */
   const blankJobCard = () => `<div class="rc rc-stub rc-blank rc-screen scr tap" data-do="new-booking">
       <div class="rc-stub-top">
         <span class="rc-stub-what">Ask for a session</span>
-        <span class="rc-stub-cost">£—</span>
       </div>
       <div class="rc-stub-mid">
-        ${/* THE SAME TWO OUTLINES a real stub draws when it has no photographs — a building and a
-              person. Built by `facesFor` with nothing to find, so the blank card and a session
-              with no venue or tutor yet look identical, which they should: they are the same
-              state at two moments. Written out here would be a second copy of those drawings. */''}
         ${facesFor('', '', 'rc-stub-pics')}
         <div class="rc-stub-said">
           <span>Subject · where · when</span>
-          <span class="rc-stub-who">No tutor yet</span>
         </div>
       </div>
       <div class="rc-stub-line rc-stub-foot">
-        <span>Nothing booked</span>
         ${rosterPips(0, 0)}
-        <span>Tap to start</span>
       </div>
     </div>`;
 
@@ -146,7 +180,9 @@ function bookBlocks() {
        be there next week; the thing with a date on it might not. */
     ...(DATA.festive || []).map(festiveCard),
     ...mine.map(jobCard),
-    ...open.map(jobCard),
+    /* THE OPEN ONES AS COUPONS, the owned ones as cards — they are two different kinds of thing
+       and were drawn identically. */
+    ...open.map(openClassCard),
     /* NO "NO SESSIONS YET".
        It was a pane of its own — a whole screen you swipe to, holding one grey sentence saying
        there is nothing on it. That is a widget whose entire content is the announcement of its own
@@ -243,9 +279,12 @@ function bookPages() {
   /* One block, one pane. The carry-forward that used to be here existed to stick a "Yours" or
      "Open" heading onto the session under it; there are no headings now, so there is nothing to
      carry and nothing that can be left behind at the end. */
-  /* THE WEEK FIRST, because it is the question somebody opens this column to answer — "when am I
-     next in?" — and the cards below are the detail behind it. */
-  const out = [weekGrid()].concat(blocks);
+  /* THE WEEK IS NOT IN THIS COLUMN ANY MORE — it is on You, the last of the four. It moved to the
+     end of Book first, which was the right instinct in the wrong column: Book is where you MAKE a
+     session, and a grid of ones already settled is a different question from the one this column
+     asks. `weekGrid` still lives in this file because it is built from the same job data as the
+     cards above; only where it is drawn has changed. */
+  const out = blocks;
   return out.length ? out : [''];
 }
 
@@ -446,7 +485,26 @@ function bookRuns() {
    `why` is what makes an option that does not fit visible instead of absent. */
 /* IS THIS A SHARED CLASS. Asked in one place and read everywhere, because the alternative is the
    same string comparison written nine times and one of them eventually spelt differently. */
-const isClass_ = () => /shared class/i.test(String(BOOKING.how || ''));
+/* ---------- WHICH BRANCH, AND WHY THE NAME CHANGED -----------------------------------------------
+   IT WAS CALLED `isClass_` AND IT MEANT THE WAITING LIST. That was survivable while the button said
+   "a shared class", and it is actively misleading now the two are called "start a class" and "join
+   a waiting list" — because under the old name, the branch for STARTING a class was the one where
+   `isWaiting_()` returned FALSE. A reader would have to test it to believe it.
+
+   The real difference is waiting, so the name is `isWaiting_` and the test looks for "wait".
+   Matched as a substring rather than the whole string, so rewording the button again cannot
+   silently send every booking down the wrong branch. */
+/* THE ANSWER FOR A SEAT NOBODY HAS DECIDED ABOUT. Named once so the option, the check that exempts
+   it from the seat cap, and the roster that turns it into "Child" all mean the same string — three
+   copies of a literal is two chances to change one and not the others. */
+const UNNAMED = 'Someone else';
+
+/* THE ANSWER THAT MEANS THE LIST HAS NOBODY ON IT YET. Named once, because the option, the refusal
+   on the session branch and the send that turns it into `openWaitlist` all have to mean one
+   string. */
+const NOBODY = 'Nobody yet — just open it';
+
+const isWaiting_ = () => /wait/i.test(String(BOOKING.how || ''));
 
 const BOOK_STEPS = [
   /* ---------- WHICH OF THE TWO THINGS THIS IS -----------------------------------------------------
@@ -465,34 +523,113 @@ const BOOK_STEPS = [
      offers nothing when the answer is a class. `nextBookStep` skips a question with no options —
      the same rule that already hides the children question from somebody with no children — so the
      fork needs no new machinery and cannot fall out of step with itself. */
-  { id: 'how', label: 'What kind of session?',
-    options: () => ['A session of your own', 'A shared class — join the waiting list'],
-    why: () => '' },
+  /* ---------- THE TRADE-OFF, SAID PLAINLY ---------------------------------------------------------
+     THE TWO OPTIONS SAID "A session of your own" AND "A shared class — join the waiting list",
+     which describes the paperwork and not the choice. Somebody reading that has no idea which one
+     costs more, which one is certain, or what they are giving up either way — and it is the only
+     question in the form where the two answers lead to genuinely different bargains.
+
+     WHAT THE CHOICE ACTUALLY IS:
+
+       BOOK IT YOURSELF — certain, and you carry the cost. The time is yours from the moment you
+       pay. Take every seat and it is private; take one and the rest may fill up later, which
+       brings the price down for everybody. You do not have to wait to find out.
+
+       JOIN A CLASS — cheaper, and it is a gamble. One seat, a fixed price per child, and it only
+       runs if enough others take a seat too. Nothing is charged until it does.
+
+     `why` CARRIES THE DETAIL rather than the label, because a label long enough to explain a
+     bargain is a label nobody finishes reading. The short version is on the button and the reason
+     sits under it. */
+  /* ---------- THE TRADE-OFF, IN ONE LINE EACH -----------------------------------------------------
+     `why` IS CALLED ONCE PER OPTION, WITH THAT OPTION. I ignored the argument and returned the same
+     two paragraphs both times — so each button carried the full explanation of BOTH choices,
+     including the one it was not. Every word on the screen twice, and half of it describing the
+     button next to it.
+
+     ONE SHORT LINE EACH, and it names the thing that differs rather than everything that is true.
+     What separates these two is certainty against price: one is yours the moment you pay, the other
+     is cheaper and might not happen. That is the whole decision, and it fits on a line. */
+  { id: 'how', label: 'How would you like to book?',
+    /* BOTH ARE "START", because both are things you set going — the difference is whether it runs
+       now or waits for company. "Join a waiting list" was wrong twice over: there may be no list to
+       join, and you are the one opening it. */
+    /* THE TWO KINDS, NAMED. "Start a class" and "Start a waiting list" describe the ACT; what a
+       family ends up with is an INSTANT CLASS or a WAITING LIST CLASS, and those are the words that
+       belong on the card afterwards too. Naming the thing rather than the button lets the form, the
+       receipt and the saved job all say the same noun.
+       `isWaiting_` still matches on "wait", which both old and new wording contain. */
+    options: () => ['Instant class', 'Waiting list class'],
+    /* A NOTE, NOT A REFUSAL — both of these are things you may pick. */
+    note: v => /wait/i.test(String(v))
+      ? 'Cheaper, but it waits — it runs once enough others take a seat.'
+      : 'It happens. Yours from the moment you pay, and others can join later.' },
 
   /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
      Written into the booking below so the receipt and the backend agree without asking. */
   { id: 'subjects', label: 'What are we working on?', multi: true,
-    options: () => isClass_() ? [] : (subjectRows() || []).map(x => x.name) },
+    options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name) },
 
   { id: 'level', label: 'What level?',
     options: () => ((DATA.dropdowns || {}).levels || []) },
 
   /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
      taking two would be buying half the class at a quarter of the cost. */
-  { id: 'n', label: 'How many students?',
+  /* ---------- HOW MANY SEATS, AND WHAT THE REST OF THEM COST YOU ---------------------------------
+     THE NUMBER IS NOT JUST A HEAD COUNT. Take every seat and the session is private and you pay for
+     all of it; take fewer and the empty ones may fill later, which brings the price down for
+     everybody who is in it. That is the second half of the bargain the fork above offered, and the
+     question asked it as though it were only arithmetic. */
+  /* ---------- HOW MANY EXTRA, NOT HOW MANY IN TOTAL -----------------------------------------------
+     "HOW MANY SEATS" MADE SOMEBODY COUNT THEMSELVES IN. A parent booking for one child had to work
+     out that the answer was 1, and a parent wanting one other family had to work out that it was 2
+     — arithmetic in a question that should not need any.
+
+     THE VALUE IS STILL THE TOTAL. `n` is read by the pricing, the room capacity and the roster, and
+     changing what the number MEANS would put every one of them out by one. `label_` changes only
+     what is written on the option, so the question reads in extras and the booking still stores the
+     count everything downstream expects. Presentation moved; the data did not. */
+  { id: 'n', label: 'How many extra seats?',
+    label_: v => Number(v) === 1 ? 'Just mine'
+      : Number(v) === 2 ? 'One more seat'
+      : (Number(v) - 1) + ' more seats',
     options: () => {
       /* A class is one seat and the seat is the price, so there is nothing to choose. */
-      if (isClass_()) return [];
+      if (isWaiting_()) return [];
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
       const out = [];
       for (let i = 1; i <= Math.min(12, lim.max); i++) out.push(String(i));
       return out;
     },
+    /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. */
     why: v => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
       if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
       if (Number(v) < lim.min) return (lim.why.min || 'the minimum') + ' needs ' + lim.min;
       return '';
+    },
+    /* AND WHAT EACH NUMBER MEANS, which is a note — every one of these is pickable. */
+    note: v => {
+      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
+      if (Number(v) > lim.max || Number(v) < lim.min) return '';
+      /* SAID AGAINST THE NUMBER THEY HAVE PICKED, not as general advice. "Others may join" means
+         nothing until you know whether you have left room for them, and the answer is different
+         for every number on this list. */
+      /* THE TOP OPTION READS AS A CONTRADICTION OTHERWISE. Labelled "3 more seats" and noted "the
+         whole session, privately" — more people and private at once. It IS private, because the
+         extra seats are yours and nobody else can take them, and that is the thing to say. */
+      if (Number(v) >= lim.max) return 'the room is yours — nobody else can join';
+      /* THE VERB HAS TO AGREE TOO. "the other 1 seat stay open" — I pluralised the noun and left
+         the verb, which is the half-done version of this fix and reads worse than not bothering.
+         And "1" written as a numeral where a word belongs: "the last seat" is what a person says. */
+      /* THE TAIL WAS THE SAME ON EVERY OPTION — "if somebody takes one, everybody pays less" under
+         all four, which is three repetitions of a fact that only needs stating once. What differs
+         is the number of seats left, so that is all each line says now. */
+      const left = lim.max - Number(v);
+      return left === 1 ? 'one seat left open for somebody else'
+                        : left + ' seats left open — a cheaper session if they fill';
+      /* THE WHY STILL COUNTS IN SEATS REMAINING, which is the same fact either way — how many are
+         left does not depend on whether you counted yourself in. */
     } },
 
   { id: 'loc', label: 'Where?',
@@ -518,7 +655,7 @@ const BOOK_STEPS = [
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
   { id: 'hosting', label: 'Are you providing the space?',
     options: () => {
-      if (isClass_()) return [];
+      if (isWaiting_()) return [];
       const rate = venueRate_();
       /* Nothing to charge means nothing to decide: hosting is already true and asking would be
          the app consulting somebody about a fact. */
@@ -536,7 +673,7 @@ const BOOK_STEPS = [
   /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
      nobody has booked, made to four families who have not all joined. */
   { id: 'slots', label: 'When?', grid: true,
-    options: () => isClass_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
+    options: () => isWaiting_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
 
   /* ---------- WHEN COULD YOU COME? ----------------------------------------------------------------
      A CLASS HAS NO DAY YET, and that is the whole reason to ask this. An ordinary session picks
@@ -558,7 +695,7 @@ const BOOK_STEPS = [
      job is one row — so it goes on each family's own JOINING EVENT, where it is theirs by
      construction and needs no column. See `joinWaitlist`. */
   { id: 'avail', label: 'When could you come?', multi: true,
-    options: () => isClass_()
+    options: () => isWaiting_()
       ? ['Weekday mornings', 'Weekday afternoons', 'Weekday evenings',
          'Weekends', 'Flexible — whatever suits']
       : [],
@@ -566,7 +703,7 @@ const BOOK_STEPS = [
 
   /* AND NO TERM, for the same reason as the day. */
   { id: 'interval', label: 'Over what period?',
-    options: () => isClass_() ? [] : (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
+    options: () => isWaiting_() ? [] : (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
 
   /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
      three families in one session each pay a third — and the form never set it, so the feature
@@ -579,7 +716,7 @@ const BOOK_STEPS = [
   /* SHARING IS THE WHOLE PRODUCT here — there is nobody to invite, because the other three seats
      are for whoever joins the list. */
   { id: 'split', label: 'Sharing the cost with anyone?', emails: true,
-    options: () => isClass_() ? [] : ['emails'] },
+    options: () => isWaiting_() ? [] : ['emails'] },
 
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? --------------------------------
      ASKED, NEVER ASSUMED, and this is the question the whole join mechanism rests on.
@@ -630,21 +767,91 @@ const BOOK_STEPS = [
        does not fit is MARKED with the reason and left on the list, because a list that quietly
        drops things seems to have decided for you — and the thing it drops is often the one you
        meant. Removing them here contradicted the rule the next line states. */
-    options: () => isClass_() ? [] : (USER && (USER.children || USER.kids) || []).filter(Boolean),
+    /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS -----------------------------------------
+       THIS READ `USER.children` AND ONLY EVER THAT. An admin who had just chosen a client on the
+       question above was still offered their own children — or told there were none — because
+       choosing a client changed the booking and this was reading the account. Two different people
+       and the form only knew about one of them.
+
+       THE CLIENT'S CHILDREN WHEN ONE HAS BEEN CHOSEN, and yours otherwise, which is the ordinary
+       case and unchanged. */
+    options: () => {
+      if (isWaiting_()) return [];
+      const forWhom = BOOKING.client || (USER && USER.name) || '';
+      if (USER && norm(forWhom) !== norm(USER.name)) {
+        const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
+        return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
+      }
+      return (USER && (USER.children || USER.kids) || []).filter(Boolean).concat([UNNAMED]);
+    },
+    /* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED -----------------------------------------------
+       THE NAMED CHILDREN WERE THE ONLY ANSWERS, and that forced a family to know things they often
+       do not. Two seats and three children: which two are coming may be Sunday's problem. A cousin
+       is staying that week. A friend is being brought along. All of those are ordinary, and none of
+       them could be said — the form insisted on a name for every seat it was about to charge for.
+
+       "SOMEONE ELSE" IS APPENDED RATHER THAN REPLACING ANYTHING, and it can be ticked more than
+       once by ticking it and picking another seat: it is the answer for a seat nobody has decided
+       about yet, so the receipt says `Child` for that one and everything else proceeds. */
+
     /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
        and tickable the moment you untick one — which is how you change your mind about which two
        of three are coming. */
     why: v => {
       const seats = Number(BOOKING.n) || 0;
       const on = (BOOKING.kids || []).length;
+      /* THE UNNAMED SEAT IS NEVER THE ONE THAT IS FULL. It is what you tick BECAUSE you cannot
+         name somebody, so refusing it for want of a free seat would refuse the only answer left —
+         and its explanation is a NOTE, below, because it is an option you may take. */
+      if (v === UNNAMED) return '';
       return (seats && on >= seats && (BOOKING.kids || []).indexOf(v) === -1)
         ? 'that is ' + seats + ' seat' + (seats === 1 ? '' : 's') + ' already' : '';
-    } },
+    },
+    note: v => v === UNNAMED ? 'the seat is booked, the name can wait' : '' },
 
   /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
      what makes the seat cost what it costs. */
+  /* ---------- WHOSE BOOKING IT IS ------------------------------------------------------------------
+     ADMIN ONLY, AND IT SKIPS ITSELF FOR EVERYBODY ELSE. A client has exactly one answer to this and
+     being asked it is being asked to confirm they are themselves — so the options list comes back
+     empty and `nextBookStep` passes over it, which is the same rule that already hides the children
+     question from somebody with no children. No new machinery, and nothing to keep in step.
+
+     WHY AN ADMIN NEEDS IT: somebody rings up and you book it for them. Without this the receipt
+     says the booking belongs to whoever was holding the phone, which is you. */
+  { id: 'client', label: 'Who is this for?',
+    options: () => {
+      if (!isAdmin()) return [];
+      const me = (USER && USER.name) || '';
+      /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a
+         codebase like this usually has. The payload sends `tutors` and `students` and now
+         `clients`, filtered server-side to admins, which is the right place for that decision:
+         a list the browser has to be trusted not to show is a list that has already been sent. */
+      const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
+      /* ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED ---------------------------------
+         EVERY OPTION WAS A PERSON, so an admin could not say "this is for nobody yet" — and that is
+         exactly what opening a waiting list before a campaign IS. The list has to exist with zero
+         families on it, so the first person who arrives finds one to join rather than one to start.
+
+         FIRST IN THE LIST ON A WAITING LIST, LAST OTHERWISE. On the waiting-list branch it is the
+         likely answer; on an ordinary booking it is a strange one, and the order should say which.
+
+         A SESSION FOR NOBODY IS STILL REFUSED — see `why` below. Nobody sits in the chair at a
+         session somebody booked outright, and offering it there would be offering a booking that
+         cannot happen. */
+      const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
+      return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
+    },
+
+    /* A SESSION FOR NOBODY IS REFUSED — nobody sits in the chair at a session somebody booked
+       outright, so offering it there would be offering a booking that cannot happen. */
+    why: v => (v === NOBODY && !isWaiting_())
+      ? 'a session needs somebody in it — this opens a waiting list' : '',
+    note: v => v === NOBODY ? 'the list opens empty, and families join it'
+      : (norm(v) === norm((USER && USER.name) || '') ? 'your own booking' : '') },
+
   { id: 'tutor', label: 'Anyone in particular?',
-    options: () => isClass_() ? [] : ['No preference'].concat(
+    options: () => isWaiting_() ? [] : ['No preference'].concat(
       (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
     why: v => {
       if (v === 'No preference') return '';
@@ -761,7 +968,47 @@ function bookSpec() {
 
 /* The price so far, or nothing. Shown from the moment it can be worked out rather than at the end
    — the whole point of asking in this order is that somebody can stop when it gets too dear. */
+/* ---------- A WAITING LIST IS PRICED A DIFFERENT WAY, AND WAS NOT PRICED AT ALL ------------------
+   `if (!BOOKING.subjects.length) return null` KILLED IT. A waiting list never asks for subjects —
+   it is Maths and English by definition, which is why the question is skipped — so `subjects` is
+   always empty on that branch and the card said "not enough answered to price it yet" no matter how
+   much had been answered. It could never have priced one.
+
+   THE SUM IS THE ONE THE BACKEND ALREADY USES, restated here rather than invented: the room's hourly
+   cost plus the open tutor rate, plus the extra-seat charge for the seats beyond the first, all
+   divided by the number of seats. Four families splitting one room and one tutor.
+
+   ROUNDED AT THE SEAT, NOT AT THE TOTAL, for the same reason `waitlistPrice` does it: the seat is
+   what somebody is charged, and rounding the total first leaves four seats that do not add up to
+   it. The two must agree to the penny or the card and the receipt disagree in public. */
+function waitPrice_() {
+  /* ---------- THE ANSWER, NOT THE INGREDIENTS ---------------------------------------------------
+     THIS DID THE SUM ITSELF from three config numbers, and two of the three did not exist on the
+     phone — `DATA.config` is not a thing the payload sends, and the venue rate is `bestRate` rather
+     than either name I guessed. Both would have come back undefined and priced every room at zero:
+     a seat price that looks plausible and is wrong by the whole cost of the room, which is worse
+     than no price because nothing about it looks like a fault.
+
+     AND EVEN WITH THE RIGHT NAMES IT WAS THE WRONG SHAPE. `waitlistPrice` in the backend is what a
+     seat is actually charged at; a second copy of that arithmetic here is one sum in two languages,
+     free to drift the first time either is touched. The backend now sends the figure per venue. */
+  const w = (DATA.waitlistSeat || {})[BOOKING.loc];
+  if (!w || !(w.perHour > 0)) return null;
+  return {
+    chargePerHour: w.perHour,
+    perSeatSession: w.perSession,
+    seats: w.seats, hours: w.hours,
+  };
+}
+
 function bookPrice() {
+  if (isWaiting_()) {
+    /* THE VENUE IS THE ONLY ANSWER IT NEEDS. Level does not change what a seat costs, and the day
+       is not settled until the list fills — so a list can be priced the moment somebody says where. */
+    if (!BOOKING.loc) return null;
+    const w = waitPrice_();
+    return (w && w.chargePerHour > 0) ? w : null;
+  }
   if (!BOOKING.subjects.length) return null;
   const L = priceFrom(bookSpec());
   return (L && L.chargePerHour > 0) ? L : null;
@@ -910,6 +1157,95 @@ function breakdownRows(L) {
     k, v: v || '', mul: mul || '', rate: rate || '', total: total || '',
   }, opts || {}));
 
+  /* ---------- WHO IT IS FOR, AT THE TOP ----------------------------------------------------------
+     THE RECEIPT NEVER SAID WHOSE IT WAS. The client is stored on the booking and shown in the
+     roster at the foot, and the breakdown itself — the part somebody reads to check the money is
+     right — never named them. On a card with one booking on it that is survivable; on a screen an
+     admin is scrolling through it means every receipt looks like everybody else's.
+
+     FIRST ROW, and marked `free` so it takes no line number: it is not a charge, it is who the
+     charges are for. A numbered row that costs nothing reads as a mistake in the arithmetic. */
+  /* READ FROM THE BOOKING, NOT FROM `L`. `L` is the PRICING — rates, multipliers, a total — and it
+     has no idea who the booking is for. I reached for `L.client` because it was the object to hand,
+     which is the same mistake as reading the receipt's stage where the job's kind belonged: two
+     objects in scope, one of them plausible, and the wrong one fails silently as an empty string.
+     `BOOKING.client` is where an admin's change lands, so it is what has to be read. */
+  /* ---------- "NOBODY YET" IS AN ANSWER, NOT A NAME -----------------------------------------------
+     IT WENT STRAIGHT ONTO THE RECEIPT: "For Nobody yet — just open it", and worse, the children
+     note read "No children are on Nobody yet — just open it's account". The option is a way of
+     saying there is no client, and every line that then treated it as one produced a sentence
+     nobody could take seriously.
+
+     SO THE ROW IS OMITTED. A list with nobody on it has nobody to name, and a "For" line saying so
+     at length is worse than no line — the empty seats already say it. */
+  const forWhom = BOOKING.client === NOBODY ? '' : (BOOKING.client || (USER && USER.name) || '');
+  if (forWhom) push('For', esc(forWhom), '', '', '', { free: true, who: true });
+
+  /* ---------- A WAITING LIST HAS A DIFFERENT BREAKDOWN, AND WAS SHOWN THE WRONG ONE ---------------
+     IT PRINTED THE WHOLE SESSION TABLE AT ZERO: "Tuition · No preference · £0.00", "Subject" with
+     nothing beside it, "Extra seats 0", "Venue £0.00" — twelve rows describing a sum that is not
+     how a seat is priced, every one of them empty because none of those questions was asked.
+
+     A SEAT IS ONE FIGURE. The room and the tutor, split four ways — so the breakdown is those three
+     facts and nothing else. Rows that describe a calculation nobody performed are worse than no
+     rows: they look like a price that came out at zero. */
+  if (isWaiting_()) {
+    const w = bookPrice();
+    if (!w) return rows;
+    /* WHAT KIND OF THING THIS IS, FIRST. Nothing on the card said it was a waiting list — you had
+       to infer it from "Not open yet" three rows down, or from the absence of a date. The one fact
+       that changes what somebody is agreeing to should not be the one they work out. */
+    push('Kind', 'Waiting list class', '', '', '', { free: true });
+    push('A seat', esc(BOOKING.loc || 'no venue'), '', money(w.chargePerHour) + '/h',
+      money(w.perSeatSession), { end: true, step: 'loc' });
+    push('Shared between', esc(w.seats) + ' families', '', '', '', { free: true });
+    push('Each session', esc(w.hours) + ' hours', '', '', '', { free: true });
+
+    /* ---------- WHICH TERM, AND WHEN IT RUNS ------------------------------------------------------
+       THE FORM SHOWED NEITHER. The waiting-list branch skips the "over what period" question on
+       purpose — a list has no dates until it fills and somebody sets a day — and the card then said
+       nothing about WHEN at all, which reads as "this might be for any time" on the one decision a
+       family is making in August.
+
+       THE TERM IS A DATE LOOKUP, not a question. A list opened now is for the term running now, or
+       the next to start if today is a holiday: nobody opens a list for a term already half gone.
+       `DATA.intervals` is already on the phone with every term's dates on it, so this is a find
+       rather than a second copy of the school year. */
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const terms = (DATA.intervals || []).filter(t => norm(t.kind) !== 'holiday');
+    const dt = v => { const d = new Date(v); return isNaN(d) ? null : d; };
+    const running = terms.find(t => dt(t.opensOn) && dt(t.closesOn)
+      && now >= dt(t.opensOn) && now <= dt(t.closesOn));
+    const next = terms.filter(t => dt(t.opensOn) && dt(t.opensOn) > now)
+      .sort((a, b) => dt(a.opensOn) - dt(b.opensOn))[0];
+    const term = running || next;
+    if (term) {
+      push('For', esc(term.label || term.term), '', '', '', { free: true });
+      /* THE DATES IT COVERS, because "Autumn 1" is a name and a family wants the weeks. */
+      if (term.opensOn && term.closesOn) {
+        push('Running', esc(fmtDate(term.opensOn)) + ' to ' + esc(fmtDate(term.closesOn)),
+          '', '', '', { free: true });
+      }
+      /* ---------- AND WHAT THE TERM WOULD COME TO ---------------------------------------------
+         A PER-SESSION FIGURE IS NOT WHAT ANYBODY IS DECIDING. "£19.00 a seat" answers a question
+         nobody asked; "seven weeks, so about £133" is the number a family weighs against the month.
+         The card had every part of that sum on it — the seat price, the weeks — and left the
+         multiplication to the reader.
+
+         "ABOUT", AND SAID SO. The weeks are what is LEFT in the term, so a list opened halfway
+         through is honestly cheaper; and nothing runs until the seats fill, so the real figure
+         depends on when that happens. A precise-looking total would be a promise this cannot keep. */
+      if (term.weeks) {
+        push('Weeks left', esc(term.weeks), '', '', '', { free: true });
+        push('About', esc(term.weeks) + ' × ' + money(w.perSeatSession),
+          '', '', money(w.perSeatSession * term.weeks), { est: true });
+      }
+    }
+
+    push('Status', 'Not open yet', '', '', '', { free: true });
+    return rows;
+  }
+
   ['rate', 'shape'].forEach(group => {
     const inGroup = PRICE_ROWS.filter(r => r.group === group);
 
@@ -981,6 +1317,9 @@ function bookBreakdown(L) {
   return receiptHtml({
     photos,
     lines: [venueName, BOOKING.tutor || 'No tutor yet', when],
+    /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
+       from the booking rather than assumed to be whoever is looking. */
+    client: BOOKING.client || (USER && USER.name) || '',
     rows: out,
     total: money(L.total),
     aside: L.W ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
@@ -1098,8 +1437,12 @@ function rosterHtml(o) {
        not the person paying. So the seats take the names actually given — the children ticked at
        booking — and anything left over says "Child", which is true and admits what it does not
        know. It used to say "Booked", which describes the seat rather than who is in it. */
+    /* "SOMEONE ELSE" IS AN ANSWER, NOT A NAME. It is what a family ticks when they do not yet know
+       who is coming, so on the roster it reads the same as an empty seat: `Child`. Printing the
+       option back at them would be the form repeating their own words as though it had learned
+       something. */
     slots.push({ role: 'Seat ' + (i + 1),
-                 name: names[i] || 'Child',
+                 name: (names[i] && names[i] !== UNNAMED) ? names[i] : 'Child',
                  filled: true });
   }
   /* Pad to four. An open slot is drawn as open rather than left off, because the empty ones are
@@ -1150,7 +1493,16 @@ function receiptHtml(r) {
     application: r.accepted ? 'Accepted — waiting for payment'
                            : 'Application — waiting to be accepted',
     waitlist: 'You are on the waiting list',
-    receipt: '',
+    /* ---------- A PAID RECEIPT STILL SAYS WHICH IT WAS -------------------------------------------
+       IT SAID NOTHING, AND THAT LOST A FACT WORTH KEEPING. Once a waiting list fills it becomes a
+       receipt like any other, and a blank stage made a class that four families waited weeks to
+       fill look identical to one somebody booked outright on a Tuesday.
+
+       The two were paid for on different terms — a fixed seat price against a whole session — so a
+       receipt that does not say which cannot be checked against what was actually agreed. The
+       `kind` column has recorded it correctly all along; nothing was reading it back out at this
+       point. */
+    receipt: r.was === 'waitlist' ? 'A shared class — one seat' : '',
   };
   /* ACCEPTED, on an application, changes the stamp and nothing else — it is the same form, answered.
      `is-accepted` rather than a different kind, because a different kind would be a different
@@ -1160,20 +1512,23 @@ function receiptHtml(r) {
     ${STAGE[kind] ? `<p class="rc-stage">${esc(STAGE[kind])}</p>` : ''}
     <div class="rc-head">
       <h2>@family.</h2>
-      ${(r.lines || []).map(l => `<p>${esc(l)}</p>`).join('')}
+      ${/* THE THREE LINES ON ONE LINE. Venue, tutor and term were a paragraph each, three deep at
+           the top of every card — and they are one fact, not three: where and with whom and when.
+           Joined with a middot, they read at a glance and give back two lines of height. */''}
+      ${(r.lines || []).filter(Boolean).length
+        ? `<p>${(r.lines || []).filter(Boolean).map(esc).join(' · ')}</p>` : ''}
     </div>
     ${r.photos || ''}
     <div class="rc-rule"></div>
-    <div class="bk-row rc-cols">
-      <span class="bk-n">#</span><span class="bk-k">Item</span><span class="bk-v"></span>
-      <span class="bk-m">×</span><span class="bk-r">Rate</span><span class="bk-t">Total</span>
-    </div>
-    <div class="rc-rule"></div>
+    ${/* THE COLUMN HEADINGS ARE GONE. "# Item × Rate Total" over four rows that are plainly a
+         number, a thing, a multiplier and a price — six words explaining a layout nobody was
+         confused by, and the widest band of text on the card. A receipt is read by shape rather
+         than by heading, and the shape was already doing the work. */''}
     <div class="bk">${(r.rows || []).join('')}</div>
     <div class="rc-rule"></div>
     <div class="bk-row rc-total">
       <span class="bk-n"></span>
-      <span class="bk-k">${esc(r.totalLabel || 'To pay')}</span>
+      <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
       <span class="bk-v"></span>
       <span class="bk-m"></span>
       <span class="bk-r">${esc(r.aside || '')}</span>
@@ -1201,7 +1556,17 @@ function receiptRow(r) {
           (BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}">${h.h}</span>`).join('')}</span>`
     : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>`
     : esc(r.v);
-  return `<div class="bk-row ${cls}">
+  /* ---------- A ROW WITH NO FIGURES DOES NOT NEED THE FIGURE COLUMNS ------------------------------
+     "STATUS · UNCONFIRMED" AND "YOUR SEAT · UNCONFIRMED" CLASHED, and the grid is why: the
+     multiplier, rate and total columns are a fixed 151 pixels plus their gaps, reserved on EVERY
+     row — including the ones that have nothing to put in them. On a phone card that left 59 pixels
+     for the value, and "unconfirmed" needs about 74.
+
+     So a row carrying no numbers says so, and the value runs to the end of the card. Nothing moves
+     on the rows that do have figures; the columns still line up down the card, because a row that
+     spans has no figures to line up with. */
+  const bare = !S_(r.mul) && !S_(r.rate) && !S_(r.total);
+  return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
     <span class="bk-k">${esc(r.k)}</span>
     <span class="bk-v${r.step ? ' bk-pick" data-do="book-edit" data-step="' + esc(r.step) : ''}"
@@ -1253,7 +1618,35 @@ function jobRows(j) {
   push('When', [j.weekday, j.time].filter(Boolean).join(' '));
   push('Each session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
   push('Term', j.term || '');
-  push('Sharing with', j.splitEmails || 'Just you');
+  /* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: the whole
+     point is that other families join. `splitEmails` is for a session somebody splits with people
+     they know; a list is shared with whoever turns up, which is a different fact and wants
+     different words. */
+  push('Sharing with', norm(j.kind) === 'waitlist'
+    ? (Number(j.seatsGoing) > 0 ? 'Open — ' + j.seatsGoing + ' seat'
+        + (Number(j.seatsGoing) === 1 ? '' : 's') + ' free' : 'Full')
+    : (j.splitEmails || 'Just you'));
+  /* ---------- WHEN IT RUNS, AND WHAT THE TERM WOULD COME TO ---------------------------------------
+     THE SAVED CARD SHOWED NONE OF IT. The booking form works out the term, its dates and an
+     estimate; the card the same list turns into showed "Dates —" and a per-session figure, so the
+     one screen a family comes BACK to knew less than the screen they filled in.
+
+     THE TERM IS ON THE JOB — `term_name`, written when the list was opened — and its dates come off
+     `DATA.intervals` by name. So this is a lookup rather than a second copy of the school year. */
+  if (norm(j.kind) === 'waitlist') {
+    const iv = (DATA.intervals || []).find(x => norm(x.label || x.term) === norm(j.term)) || null;
+    if (j.term) push('For', j.term);
+    if (iv && iv.opensOn && iv.closesOn) {
+      push('Running', fmtDate(iv.opensOn) + ' to ' + fmtDate(iv.closesOn));
+    }
+    if (iv && iv.weeks) {
+      push('Weeks left', String(iv.weeks));
+      /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
+         precise total here would be a promise the list cannot keep. */
+      push('About', iv.weeks + ' × ' + money(j.price || 0), money((j.price || 0) * iv.weeks));
+    }
+  }
+
   if (j.tutor) push('Tutor', j.tutor);
 
   const dates = String(j.sessionDates || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean);
@@ -1326,19 +1719,32 @@ function jobReceipt(j) {
   const stage = jobStage_(j);
   return receiptHtml({
     kind: stage,
+    /* THE JOB'S OWN KIND, WHICH IS NOT THE STAGE. `kind` above is which of the four documents this
+       is — screen, application, waitlist, receipt — and it changes as the booking moves. `was` is
+       what the job IS, and never changes: a shared class stays a shared class after it fills.
+       Passed separately because the paid receipt needs both, and reading one for the other is the
+       mistake I made writing this — `r.kind` at the stamp was the stage, so the line meant to say
+       "a shared class" could never have fired. */
+    was: norm(j.kind) || 'session',
     /* SO THE STAMP CAN SAY WHICH. An application that has been accepted and one that is still
        waiting are the same object at two moments, and the difference is the whole point of the
        stamp. */
     accepted: jobAccepted_(j),
-    lines: [j.venue || 'No venue', j.tutor || 'No tutor yet', j.term || ''].filter(Boolean),
+    /* `location` IS WHAT THE PAYLOAD SENDS FOR A CLASS, and this read `venue` — which the jobs list
+       uses and `clientClasses` does not. So every waiting list said "No venue" while the sheet held
+       one, and the venue is the single most useful thing on a waiting-list card: it is the whole of
+       what somebody is deciding about. Both names are tried, because two lists genuinely use two. */
+    lines: [j.venue || j.location || 'No venue', j.tutor || 'No tutor yet', j.term || '']
+      .filter(Boolean),
     rows: rows.map(receiptRow),
-    /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" on an
-       application nobody has accepted is the app telling somebody they owe money for a thing that
-       has not been agreed to. */
+    /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" was the default
+       everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to
+       yet — and even on a settled receipt it is a demand where a statement of fact would do.
+       "Cost" says what the number IS without saying what anybody should do about it. */
     totalLabel: mine ? 'You earn'
       : stage === 'application' ? 'It would come to'
       : stage === 'waitlist' ? 'Your seat'
-      : 'To pay',
+      : 'Cost',
     total: money(mine ? (j.tutorPay || 0) : (j.price || 0)),
     aside: j.status || '',
     roster: rosterHtml({
@@ -1420,6 +1826,29 @@ function festiveCard(f) {
   </div>`;
 }
 
+
+/* ---------- WHEN THE FAMILIES ON A LIST CAN COME --------------------------------------------------
+   EACH ANSWER BELONGS TO THE FAMILY WHO GAVE IT, not to the class. Somebody joining says when THEY
+   could come; the class has no day and will not have one until enough people have said. So this is
+   a tally of separate answers rather than a property of the session — and the backend keeps it that
+   way, logging each against that family's own join event.
+
+   WHAT IT IS FOR: the tutor has one question to answer, which is what day suits everybody, and
+   until now the only way to answer it was to read the event log by hand. The slot everybody offered
+   is marked, because that is the answer when there is one. */
+function whenCouldHtml(j) {
+  const w = j.whenCould;
+  if (!w || !w.slots || !w.slots.length) return '';
+  return `<div class="wc">
+    <p class="wc-say">When the ${w.people} of them can come</p>
+    ${w.slots.map(s => `<div class="wc-row${s.all ? ' is-all' : ''}">
+      <span class="wc-n">${esc(s.n)}/${esc(w.people)}</span>
+      <span class="wc-slot">${esc(s.slot)}</span>
+      <i style="--f:${(s.n / w.people * 100).toFixed(0)}%"></i>
+    </div>`).join('')}
+  </div>`;
+}
+
 function joinBlock(j) {
   if (!j || !j.canAsk || !USER) return '';
 
@@ -1444,6 +1873,7 @@ function joinBlock(j) {
   if (isList) return `<div class="join">
     <p class="join-say">${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} left on this
       class.${j.price ? ' ' + esc(money(j.price)) + ' a seat.' : ''}</p>
+    ${whenCouldHtml(j)}
     <button class="btn" data-do="job-take-seat" data-id="${id}">Take a seat</button>
     <p class="faint">Maths and English, one seat each. Nobody is charged until every seat is
       taken.</p>

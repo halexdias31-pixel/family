@@ -27,7 +27,7 @@ const acorn=require('acorn');
 const {freeVars,eagerFree}=require('./_scope.js');
 
 const ORDER=['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-             'resource','arcade','map','book','receipt','games','overworld','boot'];
+             'resource','arcade','map','book','receipt','flyer','mat','games','overworld','boot'];
 
 const GLOBALS=new Set(('window document navigator localStorage sessionStorage console Math JSON Date '+
 'Array Object String Number Boolean Set Map WeakMap WeakSet Promise RegExp Error TypeError Symbol '+

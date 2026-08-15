@@ -361,6 +361,10 @@ function on_openCart() {
     ${/* THE CLASS IS COMPUTED — gold when you can afford it, red when you cannot. That is a
           decision about the value and belongs in the third argument, which is what it is for. */''}
     ${due ? row('Credits', due, 'big') + row('You have', credits, short ? 'bad' : '') : ''}
+    ${/* LEFT AS "To pay". This one is a basket with a Send button under it — money genuinely is
+          about to change hands, and "Cost" beside a thing you are buying reads as a price tag
+          rather than the amount you are about to hand over. The booking card is the one that was
+          wrong: it says "To pay" on things nobody has agreed to. */''}
     ${cash ? row('To pay', money(cash), 'big gold') : ''}
 
     <button class="btn" style="margin-top:.85rem" ${short ? 'disabled' : ''} data-do="cart-send">

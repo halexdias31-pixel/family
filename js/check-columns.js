@@ -69,6 +69,22 @@ const gs = strip(GS_PATHS.map(p2 => fs.readFileSync(p2, 'utf8')).join('\n'));
    headers, and both are dropped in silence when the header is not there. */
 const writes = new Set([...gs.matchAll(/setCell\([^,]+,[^,]+,\s*'([a-z_0-9]+)'/g)].map(m => m[1]));
 
+/* AND THE KEYS OF AN `addRow` OBJECT, which the comment above has always claimed and the code did
+   not do. `openWaitlist` wrote `term`, `client` and `note` — none of which the jobs tab has — and
+   this passed clean, because every one of them arrived as an object key rather than a `setCell`
+   argument. Three values dropped on every waiting list opened, reported only by a warning in the
+   sheet that nobody was reading at the time.
+   The block is found by walking braces from `addRow(`, so a nested object inside the row does not
+   end the search early. */
+for (const m of gs.matchAll(/addRow\([^,]+,\s*\{/g)) {
+  let i = gs.indexOf('{', m.index), depth = 0, end = i;
+  do { if (gs[end] === '{') depth++; else if (gs[end] === '}') depth--; end++; }
+  while (depth > 0 && end < gs.length);
+  for (const k of gs.slice(i, end).matchAll(/(?:^|[{,])\s*([a-z][a-z_0-9]*)\s*:/g)) {
+    writes.add(k[1]);
+  }
+}
+
 /* READS, and only off the names this file gives a sheet row. */
 const reads = new Set([...gs.matchAll(/\b(r|x|j|row|owner|child|parent|me|who|post)\.([a-z][a-z_0-9]{2,})\b/g)]
   .map(m => m[2]));
