@@ -2968,7 +2968,7 @@ textarea, select, [data-noswipe],
 #splash-ang, #splash-bin, #splash-pas, #splash-fib, #splash-gal,
 #splash-bal, #splash-sort, #splash-times, #splash-prot, #splash-coin, #splash-mult,
 #splash-breathe, #splash-rain, #splash-weave, #splash-pend,
-#splash-line, #splash-venn, #splash-clock { display: none; }
+#splash-nline, #splash-venn, #splash-clock { display: none; }
 #splash.is-led   #splash-led   { display: block; }
 /* `grid`, not `block` — the two copies of the word sit in one grid cell so they are on top of each
    other by construction. The display value belongs to the rule that decides it is visible, so
@@ -2995,7 +2995,7 @@ textarea, select, [data-noswipe],
 #splash.is-times #splash-times { display: grid; place-items: center; }
 #splash.is-prot  #splash-prot  { display: block; }
 #splash.is-coin  #splash-coin  { display: block; }
-#splash.is-line  #splash-line  { display: block; }
+#splash.is-line  #splash-nline { display: block; }
 #splash.is-venn  #splash-venn  { display: block; }
 #splash.is-clock #splash-clock { display: block; }
 #splash.is-mult  #splash-mult  { display: block; }
@@ -4923,7 +4923,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .cn-say { margin-top: .7rem; font: 600 .76rem var(--mono); color: #6fd8c4; text-align: center; }
 
 /* ---------- THE NUMBER LINE ---------------------------------------------------------------------- */
-#splash-line .nl-svg { width: min(70vw, 17rem); height: auto; }
+#splash-nline .nl-svg { width: min(70vw, 17rem); height: auto; }
 .nl-axis, .nl-ticks line { stroke: rgb(244 241 232 / .4); stroke-width: 1.6; }
 /* STEPS RATHER THAN A GLIDE. A marker sliding smoothly along a number line says the numbers between
    the ticks are where you might land; stepping says they are the places there are. */
