@@ -355,7 +355,7 @@ function doGet(e) {
          a thing can appear and disappear on its own without anybody remembering. */
       festive: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
-      questions: [],
+      questions: [], boxers: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one
@@ -1105,9 +1105,42 @@ function doGet(e) {
           q: S(r.question), part: S(r.part), kind: norm(r.kind) || 'part',
           section: S(r.section), marks: N(r.marks),
           figure: S(r.figure), lead: S(r.lead), html: S(r.html),
+          /* BLANK ON A PART, filled on a paper row. Ten empty strings per part is the price of a
+             paper that needs no resource row — and the phone throws them away in one pass. */
+          name: S(r.name), subject: S(r.subject),
+          resourceType: S(r.resource_type), keystage: S(r.key_stage),
+          bandType: S(r.band_type), bandValue: S(r.band_value),
+          tier: S(r.tier), examBoard: S(r.exam_board),
+          examWave: S(r.exam_wave), year: S(r.year),
         });
       });
     } catch (err) { payload.questions = []; }
+
+    /* --- boxers ---------------------------------------------------------------------------------
+       SAME GUARD AS THE QUESTIONS TAB. A sheet that has not had `?setup=1` run on it has no boxers
+       tab, and `read` on a missing tab throws — which would take the whole payload down over a
+       feature nobody has switched on yet. */
+    try {
+      read(TAB.boxers).rows.forEach(r => {
+        if (!S(r.name) || !ON_(r.active)) return;
+        payload.boxers.push({
+          id: S(r.boxer_id), name: S(r.name), nickname: S(r.nickname),
+          sex: S(r.sex), country: S(r.country), bornIn: S(r.born_in), stance: S(r.stance),
+          dob: S(r.dob), dod: S(r.dod),
+          heightCm: N(r.height_cm), reachCm: N(r.reach_cm),
+          divisions: S(r.divisions), bestDivision: S(r.best_division),
+          activeFrom: S(r.active_from), activeTo: S(r.active_to), status: S(r.status),
+          wins: N(r.wins), winsKo: N(r.wins_ko),
+          losses: N(r.losses), lossesKo: N(r.losses_ko),
+          draws: N(r.draws), noContests: N(r.no_contests), recordAsOf: S(r.record_as_of),
+          worldTitles: S(r.world_titles), lineal: ON_(r.lineal), hallOfFame: ON_(r.hall_of_fame),
+          ringRank: S(r.ring_rank),
+          promoter: S(r.promoter), trainer: S(r.trainer),
+          notableWins: S(r.notable_wins), notableLosses: S(r.notable_losses),
+          image: S(r.image), notes: S(r.notes),
+        });
+      });
+    } catch (err) { payload.boxers = []; }
 
     // --- resources -> checklists --------------------------------------------------------------
     /* The nest the checklist needs: subject, then band, then topics. The SHOP screen wants them
