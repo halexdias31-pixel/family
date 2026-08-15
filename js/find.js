@@ -108,6 +108,10 @@ const KINDS = {
   } },
 
   /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
+  /* ITS OWN GROUP. A boxer is not something you book, learn from or buy — and folding him into
+     Learning would put a dead heavyweight in the same list as a past paper. */
+  boxer: { group: 'Boxing', label: 'Boxers', card: x => boxerCard_(x) },
+
   tool: { group: 'Tools & games', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Tools & games', label: 'Games', card: x => widgetCard_(x) },
 
@@ -436,6 +440,26 @@ const QUESTION_CLASSES = ['roman', 'lbl', 'num', 'ax', 'axis', 'grid', 'pt',
 
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of
    ninety parts is scanned rather than read. The whole thing opens on a tap. */
+/* THE RECORD IS THE FACE OF IT. W-L-D first, KOs under it, and the date the count was taken —
+   because a record with no date is the one number on the card that can quietly go wrong. */
+function boxerCard_(x) {
+  const b = x.row;
+  const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
+  const years = [b.activeFrom, b.activeTo].filter(Boolean).join('–');
+  return `<div class="card">
+    <div class="thing">
+      <div class="thing-body">
+        <h3>${esc(x.name)}${b.nickname ? ' <span class="boxer-nick">“' + esc(b.nickname) + '”</span>' : ''}</h3>
+        <p class="sub">${esc([b.bestDivision, b.country, years].filter(Boolean).join(' · '))}</p>
+      </div>
+      <span class="boxer-rec">
+        <b>${esc(rec)}</b>
+        <span>${esc(b.winsKo)} KO</span>
+      </span>
+    </div>
+  </div>`;
+}
+
 function questionCard_(x) {
   /* THE FIRST SENTENCE, with the tags stripped. A card showing raw HTML would show angle brackets;
      one showing the whole question would be a page per row. */
@@ -463,12 +487,54 @@ on('question', el => {
       ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}</div>` : ''}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
-        <span class="qsheet-pn">${esc(x.qPart || '')}${x.qPart ? ')' : ''}</span>
+        <span class="qsheet-pn">${esc(qPartShow_(x.qPart))}</span>
         <div class="qsheet-pb">${x.html}
           <span class="qsheet-marks">(${esc(x.marks)})</span></div>
       </div>
     </div>`);
 });
+
+/* ---------- WHAT A PART IS CALLED ------------------------------------------------------------
+   THREE HABITS, ONE COLUMN. Edexcel letters its parts (5b) and nests roman numerals inside them
+   (5a i); AQA numbers them (01.1). All of it arrives in `part` as the bare token — b, ai, 1 —
+   because the sheet stores what the paper says and not how to print it.
+
+   SO THE JOINING IS DONE HERE, and it cannot be a concatenation: "Q5" + "ai" is Q5ai, which reads
+   as one word and is what no paper calls it, and "Q1" + "1" is Q11, which is a different question
+   altogether.
+
+   A LONE i, v OR x IS A NUMERAL, NOT A LETTER. Both are possible and only one has ever happened —
+   lettering reaches i at the ninth part and no paper here has more than six. */
+/* WHOLE NUMERAL FIRST, so "iv" is four and not letter i followed by v. Trying letter-then-numeral
+   first would match that greedily and be wrong on exactly the parts nobody checks. */
+const ROMAN_ONLY = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
+const LETTER_ROMAN = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
+
+function qPartBits_(part) {
+  const s = String(part == null ? '' : part).trim();
+  if (!s) return null;
+  if (ROMAN_ONLY.test(s)) return { letter: '', roman: s };
+  const m = s.match(LETTER_ROMAN);
+  return m ? { letter: m[1], roman: m[2] } : null;
+}
+
+/* The name on a card: Q1.1 · Q5b · Q5a(i) */
+function qPartName_(part) {
+  const s = String(part == null ? '' : part).trim();
+  if (!s) return '';
+  if (/^\d+$/.test(s)) return '.' + s;
+  const b = qPartBits_(s);
+  return b ? b.letter + '(' + b.roman + ')' : s;
+}
+
+/* The marker down the left of an open question, where the paper's own bracket belongs:
+   1) · b) · a(i) */
+function qPartShow_(part) {
+  const s = String(part == null ? '' : part).trim();
+  if (!s) return '';
+  const b = qPartBits_(s);
+  return b ? b.letter + '(' + b.roman + ')' : s + ')';
+}
 
 function questionItems() {
   const all = DATA.questions || [];
@@ -481,14 +547,14 @@ function questionItems() {
   const stems = {};
   all.forEach(r => { if (r.kind === 'stem') stems[r.paper + '|' + r.q] = r; });
 
-  return all.filter(r => r.kind !== 'stem').map(r => {
+  return all.filter(r => r.kind !== 'stem' && r.kind !== 'paper').map(r => {
     const p = papers[r.paper] || {};
     const stem = stems[r.paper + '|' + r.q] || null;
     return {
       kind: 'question',
       /* "Q5b" IS THE NAME, and the paper is the subtitle. A list of parts all called
          "Paper 31: Statistics" would be a list nobody can read down. */
-      name: 'Q' + r.q + (r.part || ''),
+      name: 'Q' + r.q + qPartName_(r.part),
       key: 'q:' + r.id,
       sub: p.name || '',
       image: '', cost: 0, slot: '', off: false,
@@ -515,7 +581,7 @@ function allTopics() {
   const by = (DATA.dropdowns || {}).checklists || {};
   /* Keyed on the object IDENTITY of the payload's own branch. A new payload is a new object, so
      this cannot go stale — and it costs one comparison rather than hashing four hundred rows. */
-  if (TOPICS_MEMO.from === by) return TOPICS_MEMO.list;
+  if (TOPICS_MEMO.from === by && TOPICS_MEMO.fromQ === DATA.questions) return TOPICS_MEMO.list;
   const out = [];
   Object.keys(by).forEach(subject => {
     Object.keys(by[subject] || {}).forEach(band => {
@@ -547,7 +613,33 @@ function allTopics() {
       });
     });
   });
-  TOPICS_MEMO = { from: by, list: out };
+  /* ---------- AND THE PAPERS THAT HAVE NO RESOURCE ROW ---------------------------------------
+     A paper written as HTML is described by one `kind: paper` row in the questions tab and
+     nothing else. It joins the topic list here on purpose: this one function is what the funnel
+     indexes, what the cards are drawn from, and what a question looks its own paper up in — so a
+     paper added here is a paper everywhere, with no second path to keep in step.
+
+     ITS OWN ROW WINS. If a resource row with the same id also exists — a paper part-way through
+     being moved off its PDF — the questions row is the newer truth and replaces it. */
+  (DATA.questions || []).filter(r => r.kind === 'paper').forEach(r => {
+    const t = {
+      id: r.id, name: r.name, subject: r.subject,
+      grade: r.bandType === 'grade' ? r.bandValue : '',
+      link: '', type: r.resourceType, board: r.examBoard, image: '',
+      bandType: r.bandType, bandValue: r.bandValue,
+      keystage: r.keystage, tier: r.tier,
+      examBoard: r.examBoard, company: '',
+      resourceType: r.resourceType, examWave: r.examWave, year: r.year,
+      /* NOT PRINTED, NO PAGES. There is no PDF to print — which is the whole point of it — so it
+         is Digital in the funnel and the print price never offers itself. */
+      paper: false, pages: 0, printable: false,
+      active: true, trackable: true, rowIndex: 0,
+      ticks: ['', '', ''],
+    };
+    const at = out.findIndex(x => x.id && x.id === t.id);
+    if (at >= 0) out[at] = t; else out.push(t);
+  });
+  TOPICS_MEMO = { from: by, fromQ: DATA.questions, list: out };
   return out;
 }
 
@@ -781,6 +873,19 @@ function stuffItems() {
        same facets its paper does: filtering to A-Level, Edexcel, 2022 narrows questions exactly
        as it narrows papers, and the funnel does not have to know it is looking at either. */
     ...questionItems(),
+
+    /* A FIGHTER ANSWERS THE FUNNEL'S QUESTIONS IN HIS OWN WORDS. Division goes in `subject`, the
+       one column every facet already knows how to group by, so Boxers narrows by division without
+       a facet of its own. The exam fields stay blank, and blank is what keeps a boxer out of a
+       list of past papers. */
+    ...(DATA.boxers || []).filter(b => b.name).map(b => ({
+      kind: 'boxer', name: b.name, key: 'bx:' + (b.id || b.name),
+      sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: b.image,
+      cost: 0, slot: '', subject: b.bestDivision || '', grade: '',
+      off: false, row: b,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: b.activeTo || '', paper: false,
+    })),
 
     ...allTopics()
       /* A deleted resource is still on the screen for an admin, greyed. It has to be: something
