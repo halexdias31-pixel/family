@@ -100,6 +100,8 @@ const TAB = {
   favourites: 'favourites',
   /* One row per exam question — see SCHEMA.questions. */
   questions: 'questions',
+  /* Every professional boxer worth a row — see SCHEMA.boxers. */
+  boxers: 'boxers',
   /* Which loading splashes are in the pool — see SCHEMA.splashes. */
   splashes: 'splashes',
   posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
@@ -844,6 +846,40 @@ const SCHEMA = {
   questions: [
     "row_id", "paper_id", "question", "part", "kind", "section",
     "marks", "figure", "lead", "html", "active",
+    /* ---------- THE PAPER DESCRIBING ITSELF ----------------------------------------------------
+       Blank on every part row. Filled only on the one `kind: paper` row per paper, whose `row_id`
+       IS the paper id the parts point at.
+
+       These are the resource row's columns, moved to where the questions are — because a paper
+       that exists only as HTML has no resource row to carry them, and a question with no subject
+       is a question no filter can find. */
+    "name", "subject", "resource_type", "key_stage",
+    "band_type", "band_value", "tier", "exam_board", "exam_wave", "year",
+  ],
+
+  /* ---------- ONE ROW PER FIGHTER --------------------------------------------------------------
+     A RECORD IS A READING, NOT A FACT. 50-6 is true of Tyson for ever and true of a working
+     fighter only until Saturday — so `record_as_of` sits beside the counts and says which. A row
+     without it is a number nobody can date, which is the same as a number nobody can trust.
+
+     COUNTS, NOT PERCENTAGES. `wins_ko` over `wins` is one division away whenever anybody wants
+     it; a stored KO percentage cannot be added up, recounted, or corrected by one bout.
+
+     TWO COLUMNS FOR DIVISION, for the same reason band_type and band_value are two: `divisions`
+     is the list he actually fought at and `best_division` is the one value a filter can group by.
+     Pacquiao held eight and is remembered at one.
+
+     AND WHAT HE BEAT, not just how often. `notable_wins` is the argument every boxing conversation
+     is actually having — the resume, not the record. Free text for now, and the seed of a `bouts`
+     tab keyed on boxer_id the day the counts should be derived rather than typed. */
+  boxers: [
+    "boxer_id", "name", "nickname", "sex", "country", "born_in", "stance",
+    "dob", "dod", "height_cm", "reach_cm",
+    "divisions", "best_division", "active_from", "active_to", "status",
+    "wins", "wins_ko", "losses", "losses_ko", "draws", "no_contests", "record_as_of",
+    "world_titles", "lineal", "hall_of_fame", "ring_rank",
+    "promoter", "trainer", "notable_wins", "notable_losses",
+    "image", "notes", "active",
   ],
 
   favourites: [
