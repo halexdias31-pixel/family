@@ -104,6 +104,8 @@ const TAB = {
   boxers: 'boxers',
   /* Which loading splashes are in the pool — see SCHEMA.splashes. */
   splashes: 'splashes',
+  /* What may go on a printed cheat sheet, and at which level — see SCHEMA.cheatsheet. */
+  cheatsheet: 'cheatsheet',
   posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
   post_reactions: 'post_reactions', laws: 'laws', brand: 'brand',
   family: 'family'
@@ -800,6 +802,37 @@ const SCHEMA = {
     "splash_id", "name", "kind", "shows", "note", "active",
   ],
 
+  /* ---------- THE CHEAT SHEET COMPONENTS -----------------------------------------------------------
+     WHAT MAY GO ON A PRINTED SHEET, AND AT WHICH LEVEL. The same bargain as the splashes above, and
+     for the same reason: each component is DRAWN in code — `MAT_HTML` in js/mat.js holds a function
+     per `part_id`, and a hundred-square, a protractor and a set of curves are not things a spreadsheet
+     can express. So this tab cannot invent a component or change how one looks.
+
+     WHAT IT DOES OWN IS EVERYTHING ELSE, and that turns out to be most of what gets edited:
+
+       name         what it is called in the picker and above the block
+       levels       which levels offer it, comma-separated, in the sheet's own words
+       tier         `Higher` where a component is Higher-only. Blank means both papers
+       height_mm    what it costs on the page, for the picker's label
+       half_width   TRUE if two of them pair up in a row
+       sort_order   where it comes on the sheet. THIS IS THE ONE THAT WAS IMPOSSIBLE BEFORE:
+                    the order was the order of an array in a file, so moving the times tables
+                    above the number line was a code edit and a deploy
+       active       FALSE retires it without deleting the row
+
+     IT IS A LIST OF OVERRIDES, NOT A WHITELIST. A component in the code and absent from this tab
+     still appears, with the code's own tags — the same rule the splashes follow, and the reason a
+     component added in code works on the day it ships rather than on the day somebody remembers to
+     type a row for it. An empty cell means "no opinion", so filling in `levels` alone leaves the
+     name, height and order exactly as the code has them.
+
+     A ROW WHOSE `part_id` HAS NO DRAWING IS IGNORED, because there is nothing to render and a blank
+     box with a heading is worse than an absent one. `check-mat` is what tells you it is there. */
+  cheatsheet: [
+    "part_id", "name", "levels", "tier", "height_mm", "half_width",
+    "sort_order", "active", "notes",
+  ],
+
   /* ---------- FAVOURITES ---------------------------------------------------------------------------
      ONE ROW PER FAVOURITE, not a column on every table.
 
@@ -1038,6 +1071,71 @@ const OPTION_DEFAULTS = {
   // First wave sits in May/June, second in November for resits and absentees.
   exam_wave: ['First wave', 'Second wave'],
 };
+
+/* ---------- THE CHEAT SHEET COMPONENTS, AS ROWS ---------------------------------------------------
+   THE SEVENTEEN THAT EXIST IN CODE, so the tab arrives filled in rather than empty. An empty tab
+   with nine headers tells you nothing about what may be typed in it; a tab with the real rows in it
+   is its own documentation, and editing one is safer than inventing one.
+
+   `part_id` MATCHES A DRAWING IN js/mat.js. That is the join, and it is the reason these ids are
+   dull: M02 is a name for a function, not for a hundred-square, and renaming the component in the
+   sheet must not move the wire.
+
+   THE TIERS ARE THE COMPONENT-WIDE ONES ONLY. Sphere and cone inside the formulae block, negative
+   and fractional indices, perpendicular gradients, three of the five curves — those are Higher-only
+   ROWS INSIDE a component, and a row of this tab cannot say so. They stay tagged where they are
+   drawn. This column is for a whole component that belongs to one paper.
+
+   Order, name, levels, tier, height, half. */
+const CHEATSHEET_DEFAULTS = [
+  ['M02', 'Number square',          'SATs, 11+, Y1 Mocks, Y2 Mocks',      '',      94,  true],
+  ['M03', 'Times tables',           'SATs, 11+, Y1 Mocks, Y2 Mocks',      '',      100, true],
+  ['M04', 'Number line',            'SATs, 11+, Y1 Mocks, Y2 Mocks',      '',      20,  false],
+  ['M05', 'Place value',            'SATs, 11+, Y1 Mocks, Y2 Mocks',      '',      15,  true],
+  ['M06', 'Measures',               'SATs, 11+, Y9 Mocks, GCSE, B-TEC',   '',      39,  true],
+  ['M07', 'Angles named',           'SATs, 11+, Y9 Mocks, GCSE',          '',      28,  true],
+  ['M08', 'Protractor',             'SATs, 11+, Y9 Mocks, GCSE',          '',      54,  true],
+  ['M09', '2D shapes',              'SATs, 11+, Y2 Mocks',                '',      35,  false],
+  ['M10', 'Roman numerals',         'SATs, 11+',                          '',      13,  true],
+  ['M11', 'Fraction = decimal',     'SATs, 11+, Y9 Mocks, GCSE, B-TEC',   '',      15,  true],
+  ['M12', 'Formulae not given',     'Y9 Mocks, GCSE, B-TEC',              '',      49,  true],
+  ['M13', 'Exact trig values',      'GCSE, AS, Alevel',                   'Higher',33,  true],
+  ['M14', 'The trig trick',         'GCSE, AS, Alevel',                   'Higher',33,  true],
+  ['M15', 'Index laws',             'Y9 Mocks, GCSE, AS, Alevel, B-TEC',  '',      21,  true],
+  ['M16', 'Graph shapes',           'Y9 Mocks, GCSE, AS, Alevel',         '',      40,  false],
+  ['M17', 'Straight line',          'Y9 Mocks, GCSE, AS, Alevel, B-TEC',  '',      29,  true],
+  ['M18', 'Averages',               'SATs, 11+, Y9 Mocks, GCSE, B-TEC',   '',      24,  true],
+  ['M19', 'Pythagoras & trig',      'Y9 Mocks, GCSE, B-TEC',              '',      28,  true],
+  ['M20', 'Angle rules',            'SATs, 11+, Y9 Mocks, GCSE',          '',      35,  true],
+  ['M21', 'Area & perimeter',       'SATs, 11+, Y9 Mocks, GCSE, B-TEC',   '',      23,  true],
+  ['M22', 'Percentages',            '11+, Y9 Mocks, GCSE, B-TEC',         '',      23,  true],
+  ['M23', 'Rounding & bounds',      'SATs, 11+, Y9 Mocks, GCSE, B-TEC',   '',      35,  true],
+  ['M24', 'Standard form',          'Y9 Mocks, GCSE, AS, Alevel, B-TEC',  '',      35,  true],
+  ['M25', 'Sequences',              '11+, Y9 Mocks, GCSE',                '',      41,  true],
+  ['M26', 'Quadratics',             'Y9 Mocks, GCSE, AS, Alevel',         '',      23,  false],
+  ['M27', 'Probability',            'Y9 Mocks, GCSE, B-TEC',              '',      28,  true],
+  ['M28', 'Primes, HCF & LCM',      'SATs, 11+, Y9 Mocks, GCSE',          '',      23,  false],
+  ['M29', 'Sine & cosine rule',     'GCSE, AS, Alevel',                   'Higher',18,  false],
+  ['M30', 'Circle theorems',        'GCSE',                               'Higher',28,  false],
+  ['M31', 'Fractions',              'SATs, 11+, Y9 Mocks, GCSE, B-TEC',   '',      35,  true],
+  ['M32', 'Differentiation',        'AS, Alevel',                         '',      40,  true],
+  ['M33', 'Differentiation rules',  'Alevel',                             '',      29,  true],
+  ['M34', 'Integration',            'AS, Alevel',                         '',      40,  true],
+  ['M35', 'Integration methods',    'Alevel',                             '',      35,  true],
+  ['M36', 'Logs & exponentials',    'AS, Alevel',                         '',      23,  true],
+  ['M37', 'Binomial expansion',     'AS, Alevel',                         '',      17,  true],
+  ['M38', 'Trig identities',        'AS, Alevel',                         '',      23,  true],
+  ['M39', 'Double & addition',      'Alevel',                             '',      23,  false],
+  ['M40', 'Radians',                'Alevel',                             '',      23,  true],
+  ['M41', 'Series',                 'Alevel',                             '',      23,  false],
+  ['M42', 'Circles & points',       'AS, Alevel',                         '',      23,  false],
+  ['M43', 'Vectors',                'AS, Alevel',                         '',      29,  true],
+  ['M44', 'SUVAT & forces',         'AS, Alevel',                         '',      29,  true],
+  ['M45', 'Binomial distribution',  'AS, Alevel',                         '',      35,  true],
+  ['M46', 'Normal distribution',    'Alevel',                             '',      29,  true],
+  ['M47', 'Hypothesis testing',     'AS, Alevel',                         '',      23,  true],
+  ['M48', 'Numerical methods',      'Alevel',                             '',      23,  false],
+];
 
 /**
  * RENAME A VALUE EVERYWHERE IT IS USED.
