@@ -456,7 +456,14 @@ function landmarks() {
       id: S(r.landmark_id), name: S(r.name), world: S(r.world), kind: S(r.kind) || 'building',
       lat: lat, lng: lng, bearing: N(r.bearing),
       height: height, storeys: N(r.storeys),
-      width: N(r.width_m), depth: N(r.depth_m),
+      /* ---------- TWO DIFFERENT DEPTHS, AND THEY WERE THE SAME KEY --------------------------------
+         `depth` WAS WRITTEN TWICE IN THIS OBJECT. Here from `depth_m` — the surveyed metres — and
+         again forty lines down from `plot_depth`, the hand-set number of tiles. A repeated key in an
+         object literal is not an error in JavaScript: the last one silently wins. So every landmark's
+         real depth was thrown away before it left the server, and the board received a zero.
+         NOTHING LOOKED WRONG, which is what makes it worth the words. Plots fell back to the hand-set
+         `plots` column, which was filled in, so the board drew — just never from the measurement. */
+      widthM: N(r.width_m), depthM: N(r.depth_m),
       colour: S(r.colour), note: S(r.note),
       /* THE FOUR COLUMNS THE TAB HAS AND THE PAYLOAD WAS NOT SENDING. `label`, `icon`, `role` and
          `roof` have been on the landmarks tab since it was made, and the board could not see any of
