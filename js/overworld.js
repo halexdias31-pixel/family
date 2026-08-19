@@ -79,10 +79,15 @@ function feedPicture(query) {
       FEED_PICS[q] = out && out.src ? out : null;
       return FEED_PICS[q];
     })
-    /* Remembered as NOTHING rather than left unknown. A term the service cannot answer would
-       otherwise be asked again every time the card came round, which on a deck that repeats is a
-       request per tap for an answer already given. */
-    .catch(() => { FEED_PICS[q] = null; return null; });
+    /* A TERM THE SERVICE ANSWERED WITH NOTHING is remembered as nothing, so a deck that repeats
+       does not ask again for an answer already given.
+       A REQUEST THAT FAILED IS NOT AN ANSWER. This used to remember those the same way, and one
+       hiccup — a dropped connection, a rate limit, a fetch fired while the page was still loading
+       — blanked that fact for the rest of the tab with no way to retry but a reload. It matters
+       more now than it did: pages are built five ahead, so these go out in bursts as you swipe
+       rather than one at a time, and a burst is exactly when a service says no. Left unknown, it
+       is asked again the next time the card comes round. */
+    .catch(() => null);
 }
 
 function drawFeed() {
@@ -834,6 +839,43 @@ function owMul(a, b) {
    THE ORDER IS STILL THE REAL ONE — west to east by longitude — so walking the board walks the town
    in the order you would actually meet it. Position decides the SEQUENCE and nothing else, which is
    the one thing about geography worth keeping. */
+/* ---------- METRES TO TILES, ONCE, FOR EVERYTHING ------------------------------------------------
+   THE ONE FORMULA THE BOARD RUNS ON. Every measurement that has to become board space goes through
+   here, so adding a landmark is adding a surveyed row and nothing else — no judgement call about how
+   many tiles it "should" be, and no drift between one made in March and one made in August.
+
+       tiles = 0.55 × √metres,  held between 2 and 8
+
+   WHY A SQUARE ROOT AND NOT A DIVISION. True scale was tried and put back — at ten metres a tile the
+   bus garage is twenty-two tiles and the board is thirty screens of walking. But a flat cap is worse:
+   clamp everything to eight and Sainsbury's, the retail park and the bus garage all come out the same
+   size, which is a board where nothing is bigger than anything else. A root keeps the ORDER and
+   compresses the RANGE — 215m is still the biggest thing on the board, but it is twice the tower
+   rather than five times it. That is what a game map does to a real place, and doing it with one
+   exponent means it does the same thing to every landmark.
+
+   THE FLOOR IS TWO, because a one-tile plot cannot show a shape — a building on it is a cube and
+   every small site would look identical. The ceiling is eight, which is the deepest the camera can
+   see the back row of at this angle.
+
+   BOTH SIDES GO THROUGH IT SEPARATELY, so proportion survives: 215×60 becomes 8×4 and stays long,
+   147×153 becomes 7×7 and stays square. Nothing is measured in tiles and then adjusted. */
+const OW_TILE_K = 0.55;
+const OW_TILE_P = 0.5;
+/* EIGHT IS THE CEILING FOR A BUILDING AND FOURTEEN FOR OPEN GROUND, and the difference is what the
+   ceiling is FOR. Depth is capped because the camera has to see the back row past the front one —
+   that is a fact about the angle and applies to everything. Width is capped because a building
+   forty tiles long is a wall you walk beside for a minute; but a PARK forty tiles long is a park,
+   and walking through one is not the same as walking past a shed.
+   IT IS KEYED OFF `kind`, WHICH THE SHEET ALREADY SAYS. Still no judgement call per landmark: a
+   river and a rec ground get the wider ceiling because of what they are, not because somebody
+   decided they were special. */
+const OW_SPAN_BUILT = 8;
+const OW_SPAN_OPEN = 14;
+const OW_OPEN_KINDS = { park: 1, farm: 1, river: 1, water: 1, green: 1, common: 1 };
+const owTiles = (m, max) => Math.max(2, Math.min(max || OW_SPAN_BUILT,
+  Math.round(OW_TILE_K * Math.pow(Math.max(0, Number(m) || 0), OW_TILE_P))));
+
 function owWorld() {
   const rows = (DATA.landmarks || [])
     .filter(l => !S_(l.world) || norm(l.world) === norm(OW_WORLD))
@@ -883,12 +925,34 @@ function owWorld() {
        other follows the site's own proportion — and because this happens before the bearing is
        applied, the numbers here describe the site itself rather than a particular view of it. */
     const sb0 = owSiteBox(l);
-    const asked = Math.max(1, Math.min(8, Number(l.plots) || WIDE[form] || 2));
-    let w = asked, depth = asked;
-    if (sb0) {
-      const bw = Math.max(1, sb0.maxX - sb0.minX), bd = Math.max(1, sb0.maxZ - sb0.minZ);
-      if (bw >= bd) { w = asked; depth = Math.max(1, Math.round(asked * bd / bw)); }
-      else { depth = asked; w = Math.max(1, Math.round(asked * bw / bd)); }
+    /* ---------- HOW BIG IT IS ON THE BOARD, WORKED OUT RATHER THAN DECIDED -------------------------
+       `owTiles` IS THE FORMULA AND IT IS THE POINT OF THIS. Every landmark used to need a person to
+       look at it and type a `plots` number, so a board of forty was forty judgement calls and no two
+       of them made on the same day agreed. The metres are already surveyed — `width_m` and `depth_m`
+       are on the tab for every row — so the number of tiles is not a decision, it is a conversion,
+       and a conversion belongs in one function that every landmark goes through.
+
+       THE SHEET STILL WINS if `plots` is filled in. It is an override for the one site whose real
+       proportions are not what you want on the board, not the place the number comes from. */
+    /* THE SURVEYED METRES, under the names that mean metres. `l.depth` is the hand-set PLOT depth in
+       tiles and always was — the two shared a key in the payload until today, and the measurement
+       lost. Reading `depthM` is what makes the conversion above run on real numbers. */
+    const real = { w: Number(l.widthM) || 0, d: Number(l.depthM) || 0 };
+    let w, depth;
+    if (!Number(l.plots) && real.w && real.d) {
+      /* OPEN GROUND MAY RUN LONG ALONG THE PATH; nothing may run deep, because the camera cannot
+         see past it. One rule, read off the kind the sheet already holds. */
+      const open = OW_OPEN_KINDS[norm(l.kind)] ? OW_SPAN_OPEN : OW_SPAN_BUILT;
+      w = owTiles(real.w, open);
+      depth = owTiles(real.d, OW_SPAN_BUILT);
+    } else {
+      const asked = Math.max(1, Math.min(8, Number(l.plots) || WIDE[form] || 2));
+      w = asked; depth = asked;
+      if (sb0) {
+        const bw = Math.max(1, sb0.maxX - sb0.minX), bd = Math.max(1, sb0.maxZ - sb0.minZ);
+        if (bw >= bd) { w = asked; depth = Math.max(1, Math.round(asked * bd / bw)); }
+        else { depth = asked; w = Math.max(1, Math.round(asked * bw / bd)); }
+      }
     }
     w = Math.max(w, need);
     /* AND THE TURN, IN QUARTERS. Anything else would need the polygon re-sampled, which is the

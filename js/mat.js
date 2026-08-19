@@ -1,7 +1,13 @@
 /* ==================================================================================================
    @family. — js/mat.js   (19 of 20)
 
-   THE MATHS MAT — one sheet of A4, built from components you tick, printed from the app.
+   THE CHEAT SHEET MAKER — one sheet of A4, built from components you tick, printed from the app.
+
+   IT IS STILL `mat.js`, AND THE IDS ARE STILL `mat-`. The name on the screen changed; the filename
+   is listed in `index.html` and in six checkers, and the ids are matched by `check-css` and
+   `check-scope`, so renaming the file to match the label would be a rename in nine places to fix
+   nothing a person can see. What the tool is called and what the file is called are allowed to be
+   different things.
 
    IT WAS A SEPARATE FILE and the reason to bring it in is the same as the flyers: a second file is
    a second thing to deploy, and its list of levels was a copy of the one already in the sheet.
@@ -21,29 +27,124 @@
    whatever the font makes it. */
 const MAT_ROOM = 262;
 
+/* ---------- THE SECOND FILTER, AND WHY LEVEL ALONE WAS NOT ENOUGH -------------------------------
+   HALF THE GCSE COMPONENTS ARE HIGHER-ONLY. Exact trig values, negative and fractional indices,
+   sphere and cone, perpendicular gradients, cubic and reciprocal graphs — a Foundation student
+   handed a sheet carrying those gets a page of things that cannot come up, at the cost of the room
+   the things that can would have taken. Tagging them 'GCSE' and stopping was the whole problem:
+   the level says which exam, and nothing said which paper.
+
+   ONLY SOME LEVELS ARE TIERED, which is why this is a list and not a flag on every level. A tier
+   picker showing on SATs is a question with no answer, so it appears for these and nowhere else.
+
+   AND HIGHER CONTAINS FOUNDATION. That is what makes two buttons enough rather than three: Higher
+   is already the everything view, so 'H' is the default and the opening sheet is what it always
+   was. Foundation is the one that takes things away. */
+const MAT_TIERED = ['Y9 Mocks', 'GCSE'];
+
+/* WHICH BUTTON IS PRESSED, and separately WHICH TIER IS BEING DRAWN. They are not the same: on an
+   untiered level nothing should be filtered, so the drawn tier is 'H' whatever the button says —
+   and the button has to keep saying what it said, or choosing Foundation, looking at A-level and
+   coming back would silently promote the sheet. */
+let MAT_TIER = 'H';
+let MAT_SHOW = 'H';
+
+/* Does this row survive the tier being drawn? A flag of 'H' means Higher only; anything else — and
+   that is most rows — means it is on both papers. */
+const matKeep = flag => flag !== 'H' || MAT_SHOW === 'H';
+
 /* Each component: what it is called, which levels it suits, what it costs in millimetres, and
    whether it sits half-width so it can pair with the next one.
    THE HEIGHTS ARE MEASURED. The first set were estimates and the gauge was wrong by 300mm — a
    gauge that lies is worse than none, since it is the only thing between a tickbox and a wasted
    sheet. Each was rendered alone and measured. */
+/* WHAT PUTS A COMPONENT UNDER A LEVEL, since the first set were tagged by which exam the topic
+   belongs to and that is the wrong question. The right one: would somebody sitting THAT exam still
+   be getting this wrong? A level therefore inherits what it has not yet stopped forgetting, and
+   drops what it has — which is why exact trig values reach A-level and times tables do not.
+
+   AND THE TAGS HAVE TO MATCH THE SHEET'S WORDS EXACTLY. `matLevels()` reads the option list from
+   the sheet and these are compared with `indexOf`, so a level written "A-Level" there and 'Alevel'
+   here is not a mismatch anybody sees — it is a picker that comes up empty, which reads as a level
+   nothing was ever built for.
+
+   THIS IS NOW THE FALLBACK, NOT THE SOURCE. The `cheatsheet` tab owns the name, the levels, the
+   tier, the height, the pairing and the order; `matParts()` merges its rows over this list. What is
+   written here is what a component looks like to somebody who has never opened the sheet — which is
+   also what it looks like before `?setup=1` has been run, so it has to be right rather than blank.
+   THE DRAWINGS STAY IN CODE, in `MAT_HTML` below, keyed by these ids. An id is the join between a
+   row and a function, which is why they are dull: M02 names a function, not a hundred-square. */
 const MAT_PARTS = [
-  { id: 'M02', name: 'Number square',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],            h: 94,  half: true },
-  { id: 'M03', name: 'Times tables',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],            h: 100, half: true },
-  { id: 'M04', name: 'Number line',         lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],            h: 20,  half: false },
-  { id: 'M05', name: 'Place value',         lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],            h: 15,  half: true },
-  { id: 'M06', name: 'Measures',            lv: ['SATs','11+','Y9 Mocks','GCSE'],                h: 39,  half: true },
-  { id: 'M07', name: 'Angles named',        lv: ['SATs','11+','Y9 Mocks','GCSE'],                h: 28,  half: true },
-  { id: 'M08', name: 'Protractor',          lv: ['SATs','11+','Y9 Mocks','GCSE'],                h: 54,  half: true },
-  { id: 'M09', name: '2D shapes',           lv: ['SATs','11+','Y2 Mocks'],                       h: 35,  half: false },
-  { id: 'M10', name: 'Roman numerals',      lv: ['SATs','11+'],                                  h: 13,  half: true },
-  { id: 'M11', name: 'Fraction = decimal',  lv: ['SATs','11+','Y9 Mocks','GCSE'],                h: 15,  half: true },
-  { id: 'M12', name: 'Formulae not given',  lv: ['GCSE','AS','Alevel'],                          h: 49,  half: true },
-  { id: 'M13', name: 'Exact trig values',   lv: ['GCSE','AS','Alevel'],                          h: 33,  half: true },
-  { id: 'M14', name: 'The trig trick',      lv: ['GCSE','AS','Alevel'],                          h: 33,  half: true },
-  { id: 'M15', name: 'Index laws',          lv: ['GCSE','AS','Alevel','B-TEC'],                  h: 21,  half: true },
-  { id: 'M16', name: 'Graph shapes',        lv: ['GCSE','AS','Alevel'],                          h: 40,  half: false },
-  { id: 'M17', name: 'Straight line',       lv: ['Y9 Mocks','GCSE','AS'],                        h: 29,  half: true },
-  { id: 'M18', name: 'Averages',            lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],        h: 24,  half: true },
+  { id: 'M02', name: 'Number square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
+  { id: 'M03', name: 'Times tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
+  { id: 'M04', name: 'Number line',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
+  { id: 'M05', name: 'Place value',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 15,  half: true },
+  /* MEASURES AND FRACTION=DECIMAL REACH B-TEC. Unit conversion and percentages are most of what an
+     applied course asks arithmetically, and it was tagged as though B-TEC were a level above them
+     rather than the one course that uses them every week. */
+  { id: 'M06', name: 'Measures',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 39,  half: true },
+  { id: 'M07', name: 'Angles named',       lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 28,  half: true },
+  { id: 'M08', name: 'Protractor',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true },
+  { id: 'M09', name: '2D shapes',          lv: ['SATs','11+','Y2 Mocks'],                    h: 35,  half: false },
+  { id: 'M10', name: 'Roman numerals',     lv: ['SATs','11+'],                               h: 13,  half: true },
+  { id: 'M11', name: 'Fraction = decimal', lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 15,  half: true },
+  /* NOT AN A-LEVEL BLOCK, WHICH IS WHAT ITS NAME SAYS. "Formulae not given" names a GCSE exam
+     convention, and every line in it — circle, sphere, cone, prism, compound measures, percentage
+     change, compound interest — is GCSE content that Y9 mocks and B-TEC both examine. An A-level
+     student has a different booklet and does not consult this one. */
+  { id: 'M12', name: 'Formulae not given', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 49,  half: true },
+  { id: 'M13', name: 'Exact trig values',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H' },
+  { id: 'M14', name: 'The trig trick',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H' },
+  /* INDEX LAWS AND GRAPH SHAPES START AT Y9. Both are Y8/Y9 teaching, and both were tagged from
+     GCSE up while the straight line beside them started at Y9 — the same year, three rows apart,
+     disagreeing about when algebra begins. */
+  { id: 'M15', name: 'Index laws',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 21,  half: true },
+  { id: 'M16', name: 'Graph shapes',       lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 40,  half: false },
+  /* AS BUT NOT ALEVEL was the clearest error in the table: A-level contains everything AS does, so
+     a component offered to the first year and withheld from the second cannot be right either way
+     round. B-TEC too — gradient is how every rate-of-change task on an applied course is read. */
+  { id: 'M17', name: 'Straight line',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 29,  half: true },
+  { id: 'M18', name: 'Averages',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 24,  half: true },
+  /* THE HEIGHTS BELOW ARE MODELLED, NOT MEASURED, and they are the weakest numbers in this file.
+     A wrap model calibrated on the four hand-measured pair blocks still came out between 15% and
+     70% low, because how far a row wraps depends on the exact string. They are scaled up from it
+     and should be read as indicative — the gauge measures the real column, so a sheet cannot
+     overrun on the strength of a wrong label, but a label can still tell you 28mm and cost 40. */
+  { id: 'M19', name: 'Pythagoras & trig',  lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true },
+  { id: 'M20', name: 'Angle rules',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true },
+  { id: 'M21', name: 'Area & perimeter',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true },
+  { id: 'M22', name: 'Percentages',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 23,  half: true },
+  { id: 'M23', name: 'Rounding & bounds',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true },
+  { id: 'M24', name: 'Standard form',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 35,  half: true },
+  { id: 'M25', name: 'Sequences',          lv: ['11+','Y9 Mocks','GCSE'],                    h: 41,  half: true },
+  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 23,  half: false },
+  { id: 'M27', name: 'Probability',        lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true },
+  { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: false },
+  /* HIGHER, AND WHOLLY SO — both of these are Higher-only content top to bottom, which is what makes
+     them component-wide tiers rather than the row-level ones inside M22, M23, M25 and M26. */
+  { id: 'M29', name: 'Sine & cosine rule', lv: ['GCSE','AS','Alevel'],                       h: 18,  half: false, tier: 'H' },
+  { id: 'M30', name: 'Circle theorems',    lv: ['GCSE'],                                     h: 28,  half: false, tier: 'H' },
+  { id: 'M31', name: 'Fractions',          lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true },
+  /* YEAR ONE IS 'AS','Alevel' AND YEAR TWO IS 'Alevel' ALONE. The pair of them is the only place in
+     this table where one level contains another, which is why it is the only place a component is
+     deliberately withheld from the lower of the two rather than shared upward. */
+  { id: 'M32', name: 'Differentiation',    lv: ['AS','Alevel'],                              h: 40,  half: true },
+  { id: 'M33', name: 'Differentiation rules', lv: ['Alevel'],                                h: 29,  half: true },
+  { id: 'M34', name: 'Integration',        lv: ['AS','Alevel'],                              h: 40,  half: true },
+  { id: 'M35', name: 'Integration methods', lv: ['Alevel'],                                  h: 35,  half: true },
+  { id: 'M36', name: 'Logs & exponentials', lv: ['AS','Alevel'],                             h: 23,  half: true },
+  { id: 'M37', name: 'Binomial expansion', lv: ['AS','Alevel'],                              h: 17,  half: true },
+  { id: 'M38', name: 'Trig identities',    lv: ['AS','Alevel'],                              h: 23,  half: true },
+  { id: 'M39', name: 'Double & addition',  lv: ['Alevel'],                                   h: 23,  half: false },
+  { id: 'M40', name: 'Radians',            lv: ['Alevel'],                                   h: 23,  half: true },
+  { id: 'M41', name: 'Series',             lv: ['Alevel'],                                   h: 23,  half: false },
+  { id: 'M42', name: 'Circles & points',   lv: ['AS','Alevel'],                              h: 23,  half: false },
+  { id: 'M43', name: 'Vectors',            lv: ['AS','Alevel'],                              h: 29,  half: true },
+  { id: 'M44', name: 'SUVAT & forces',     lv: ['AS','Alevel'],                              h: 29,  half: true },
+  { id: 'M45', name: 'Binomial distribution', lv: ['AS','Alevel'],                           h: 35,  half: true },
+  { id: 'M46', name: 'Normal distribution', lv: ['Alevel'],                                  h: 29,  half: true },
+  { id: 'M47', name: 'Hypothesis testing', lv: ['AS','Alevel'],                              h: 23,  half: true },
+  { id: 'M48', name: 'Numerical methods',  lv: ['Alevel'],                                   h: 23,  half: false },
 ];
 
 /* IT OPENS ON A MAT THAT FITS. Ticking everything by default opened it far over with the print
@@ -64,6 +165,120 @@ function matLevels() {
   const got = ((DATA.dropdowns || {}).levels || []).filter(Boolean);
   return got.length ? got
     : ['SATs', '11+', 'Y1 Mocks', 'Y2 Mocks', 'Y9 Mocks', 'GCSE', 'AS', 'Alevel', 'B-TEC'];
+}
+
+/* THE BRAND, READ THE WAY THE FLYER READS IT. Not a second copy of the fallbacks — a cheat sheet
+   and a flyer printed the same afternoon carrying two different site addresses is exactly the drift
+   that brought the flyer in from its own file. `brand()` alone was not enough: it falls back to
+   whatever the caller passes, and this file passed '' for the site, so the footer printed a blank
+   where the address goes on every sheet where the brand tab has no `site` row.
+   The guard is for the case where flyer.js is not loaded; the fallbacks below are the same ones. */
+const matBrand = () => (typeof flyBrand === 'function' ? flyBrand() : {
+  name:  brand('name', '@family.'),
+  area:  brand('area', 'Merton & Wandsworth'),
+  site:  brand('site', 'halexdias31-pixel.github.io/family/'),
+  phone: brand('phone', ''),
+});
+
+/* ---------- WHERE THE COMPONENTS COME FROM ------------------------------------------------------
+   THE DRAWINGS ARE IN CODE AND THE TAGS ARE IN THE SHEET, which is the only split that works: a
+   protractor's 181 ticks and a set of plotted curves are not things a spreadsheet can hold, and the
+   levels a component suits are edited far more often than the way it looks.
+
+   THE SHEET OVERRIDES; IT DOES NOT REPLACE. Every component below still exists with its own tags if
+   the `cheatsheet` tab is missing, empty, or has no row for it — so this works before `?setup=1` has
+   ever been run, and a component added in code works on the day it ships rather than on the day
+   somebody remembers to type a row.
+
+   AN EMPTY CELL MEANS "NO OPINION", which is why the backend sends blanks as `null` rather than as
+   '' or 0 or FALSE: a blank `half_width` read as FALSE would turn every paired block full-width, and
+   a blank `sort_order` read as 0 would move it to the top. Those are the two cells most likely to be
+   left alone, so getting this wrong would break the ordinary case rather than an edge one. */
+/* THE SHEET SAYS `Higher` AND THE CODE SAYS 'H'. The full word is what the resources tab already
+   stores against all 78 past papers, so that is the word to type; this is the one place the two
+   vocabularies meet, rather than every row of every table having to pick one. */
+const matTierFlag = v => /^h/i.test(String(v || '').trim()) ? 'H'
+                       : (/^f/i.test(String(v || '').trim()) ? 'F' : '');
+
+function matParts() {
+  const rows = DATA.cheatsheet || [];
+  const by = {};
+  rows.forEach(r => { if (r && r.id) by[String(r.id).toUpperCase()] = r; });
+
+  /* THE FLYERS COME AFTER THE COMPONENTS, at a thousand and up, so a sheet that has never been
+     touched lists the maths first and the flyers under it — and one `sort_order` cell still moves
+     any piece anywhere, because they are all in one list by the time they are sorted. */
+  const all = MAT_PARTS.concat(matFlyerParts().map((f, k) => Object.assign({}, f, { at0: 1000 + k * 10 })));
+
+  const out = all.map((c, i) => {
+    const r = by[c.id];
+    /* IN THE CODE AND NOT IN THE SHEET is not the same as switched off. The backend only sends rows
+       whose `active` is on, so a component with no row here is one the sheet has never been told
+       about — and it keeps everything the code says about it. */
+    if (!r) return Object.assign({}, c, { at: c.at0 || (i + 1) * 10 });
+    const levels = String(r.levels || '').split(/[,\n|]/).map(s => s.trim()).filter(Boolean);
+    return Object.assign({}, c, {
+      name:  r.name || c.name,
+      lv:    levels.length ? levels : c.lv,
+      /* THE SHEET CAN ADD A TIER AND IT CAN TAKE ONE AWAY. `'-'` is how you say "both papers" about
+         a component the code calls Higher-only, since an empty cell already means "no opinion" and
+         one value cannot mean both. */
+      tier:  r.tier === '-' ? '' : (matTierFlag(r.tier) || c.tier),
+      h:     r.heightMm === null || r.heightMm === undefined ? c.h : r.heightMm,
+      half:  r.half === null || r.half === undefined ? c.half : r.half,
+      at:    r.order === null || r.order === undefined ? (c.at0 || (i + 1) * 10) : r.order,
+    });
+  });
+
+  /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a column
+     of blank `sort_order` cells leaves the sheet exactly as it prints today, and filling in one cell
+     moves one component. */
+  return out.sort((a, b) => a.at - b.at);
+}
+
+/* ---------- THE OTHER KIND OF PIECE ---------------------------------------------------------------
+   A FLYER IS A PIECE, AND A5 IS HALF OF A4. That is the whole of the merge and it is not a joke:
+   the flyer maker's "2 up / 4 up / 9 up" was never three modes, it was one design at three sizes —
+   148.5mm, a quarter page, a ninth — and this tool has placed pieces by their share of the page
+   since the first component. The two tools were the same tool with different libraries.
+
+   SO THE SHEET STOPS BEING A MATHS SHEET. It is a piece of A4 and you tick what goes on it. A
+   flyer and a times table on one page is a strange thing to want until the week you are running a
+   revision session and want the sheet the student takes home to also say when the next one is.
+
+   WHAT A FLYER PIECE IS: one campaign from `FLY_ROWS`, drawn by `flyOne`, at whichever size is
+   ticked. It carries the campaign's own recipe — style, ink, accent, paper — so ticking one is a
+   whole finished thing rather than four more decisions. The flyer maker keeps the colour pickers
+   and the venue and hours; this places what that tool designs.
+
+   NO LEVEL. A flyer is not GCSE or SATs, so these carry an empty `lv` — which `matParts` and the
+   picker both read as "shown at every level" rather than "shown at none". */
+const MAT_FLY_SIZES = {
+  a5: { name: 'A5 · half a page', cls: 'mat-p-a5', mm: 148, half: false, fills: 1 },
+  a6: { name: 'A6 · a quarter',   cls: 'mat-p-a6', mm: 105, half: true,  fills: 2 },
+  sq: { name: 'Sticker',          cls: 'mat-p-sq', mm: 99,  half: true,  fills: 2 },
+};
+
+/* ONE FLYER PIECE, NOT ONE PER CAMPAIGN. Eleven ticks was the wrong shape twice over: only one A5
+   flyer fits beside anything else on a 262mm column, so ten of them could never be ticked — and the
+   campaign is not what a flyer IS, it is what a flyer is SET TO. So the piece is "Flyer" and the
+   campaign is the first of its controls, which is also what makes the eleven behave as presets:
+   choosing one sets the style, the three colours and the blocks, and you carry on from there.
+   ADMIN ONLY. It prices your classes and prints your advertising. */
+function matFlyerParts() {
+  if (typeof FLY_ROWS === 'undefined') return [];
+  if (typeof isAdmin === 'function' && !isAdmin()) return [];
+  return [{ id: 'F01', name: 'Flyer', lv: [], h: matFlySize().mm, half: matFlySize().half,
+            bare: true, fly: true }];
+}
+
+/* WHICH SIZE IS SET, and what that means in millimetres and in width. A5 is half a page and takes
+   the full column; A6 is a quarter, so two sit side by side exactly as two half-width components
+   do; a sticker is a ninth. The sizes are the paper's own fractions, which is why the gauge can
+   speak about them at all. */
+function matFlySize() {
+  const z = ($('fm-z') || {}).value || 'a5';
+  return (MAT_FLY_SIZES[z] || MAT_FLY_SIZES.a5);
 }
 
 /* ---------- THE BLOCKS ---------------------------------------------------------------------------
@@ -115,30 +330,204 @@ const MAT_HTML = {
       .map(([a, b]) => `<i><b>${a}</b>${b}</i>`).join('')}
     <i class="wide">4 = IV · 9 = IX · 40 = XL · 90 = XC · 2026 = MMXXVI</i></div>`,
   M11: () => `<div class="mat-fdp">${
-    [['½','0.5','50%'],['¼','0.25','25%'],['¾','0.75','75%'],['⅓','0.33','33⅓%'],
-     ['⅕','0.2','20%'],['⅒','0.1','10%'],['⅛','0.125','12.5%'],['1','1.0','100%']]
+    [[fr('1','2'),'0.5','50%'], [fr('1','4'),'0.25','25%'], [fr('3','4'),'0.75','75%'],
+     [fr('1','3'),'0.33','33⅓%'], [fr('1','5'),'0.2','20%'], [fr('1','10'),'0.1','10%'],
+     [fr('1','8'),'0.125','12.5%'], ['1','1.0','100%']]
       .map(([f, d, p]) => `<i><b>${f}</b><em>${d}</em><em>${p}</em></i>`).join('')}</div>`,
+  /* THE THIRD ENTRY IS THE TIER. Sphere and cone are Higher-only content; the rest of this block is
+     on both papers, so tagging the whole component 'H' would have taken the circle away from a
+     Foundation student to keep a sphere they will never be asked for. */
   M12: () => matPairs([
-    ['Circle','A = πr² · C = 2πr'], ['Arc, sector','(θ/360) × 2πr · × πr²'],
-    ['Sphere','V = 4/3 πr³ · A = 4πr²'], ['Cone','V = 1/3 πr²h · πrl'],
+    ['Circle','A = πr² · C = 2πr'], ['Arc, sector', fr('θ','360') + ' × 2πr · × πr²'],
+    ['Sphere', 'V = ' + fr('4','3') + 'πr³ · A = 4πr²', 'H'], ['Cone', 'V = ' + fr('1','3') + 'πr²h · πrl', 'H'],
     ['Prism','V = cross-section × length'], ['Compound','speed = d/t · density = m/v'],
-    ['% change','(new − old) ÷ old × 100'], ['Interest','P(1 + r)ⁿ']]),
+    ['% change', fr('new − old','old') + ' × 100'], ['Interest','P(1 + r)ⁿ']]),
+  /* EVERY VALUE AS √n ÷ 2, INCLUDING THE ONES THAT SIMPLIFY. The table used to read 0, ½, √2/2,
+     √3/2, 1 — five values with nothing in common, which is five things to memorise and no way to
+     rebuild any of them once one has gone. Written unsimplified they are one thing: n counts 0 1 2
+     3 4 across for sine and back down for cosine, and a student who has the counting has the row.
+     THE NUMBERS ARE COUNTED, NOT TYPED, so the pattern is in the code as well as on the paper and
+     the two cannot disagree.
+     TAN IS NOT OF THAT FORM and is left as it is. It is a table of exact values and dropping the
+     row to keep the pattern tidy would be losing the third of them people look up most. */
   M13: () => {
-    const rows = [['sin','0','½','√2/2','√3/2','1'], ['cos','1','√3/2','√2/2','½','0'],
-                  ['tan','0','√3/3','1','√3','—']];
-    let h = ['', '0°','30°','45°','60°','90°'].map(x => `<i class="h">${x}</i>`).join('');
-    rows.forEach(r => { h += `<i class="h">${r[0]}</i>` + r.slice(1).map(v => `<i>${v}</i>`).join(''); });
+    const surd = n => fr('√' + n, '2');
+    const rows = [['sin', [0, 1, 2, 3, 4].map(surd)],
+                  ['cos', [4, 3, 2, 1, 0].map(surd)],
+                  ['tan', ['0', '√3/3', '1', '√3', '—']]];
+    let h = ['', '0°', '30°', '45°', '60°', '90°'].map(x => `<i class="h">${x}</i>`).join('');
+    rows.forEach(([name, vs]) => {
+      h += `<i class="h">${name}</i>` + vs.map(v => `<i>${v}</i>`).join('');
+    });
     return `<div class="mat-trig">${h}</div>`;
   },
   M14: () => matTrick(),
+  /* POSITIVE POWERS AND THE ZERO INDEX ARE ON BOTH PAPERS. Negative and fractional indices are
+     Higher, and they are the two rows a Foundation student would spend the longest reading. */
   M15: () => matPairs([['aᵐ × aⁿ','aᵐ⁺ⁿ'],['aᵐ ÷ aⁿ','aᵐ⁻ⁿ'],['(aᵐ)ⁿ','aᵐⁿ'],
-                       ['a⁰','1'],['a⁻ⁿ','1/aⁿ'],['a^½','√a']]),
+                       ['a⁰','1'],['a⁻ⁿ', fr('1','aⁿ'), 'H'],['a^½','√a','H']]),
   M16: () => matGraphs(),
+  /* PARALLEL IS ON BOTH PAPERS AND PERPENDICULAR IS NOT — the one distinction in this block, and
+     the reason it could not be tiered as a whole. */
   M17: () => matPairs([['y = mx + c','m is the gradient, c the crossing'],
-                       ['gradient','(y₂ − y₁) ÷ (x₂ − x₁)'],
-                       ['parallel','same m'], ['perpendicular','m₁ × m₂ = −1']]),
+                       ['gradient', fr('y₂ − y₁','x₂ − x₁')],
+                       ['parallel','same m'], ['perpendicular','m₁ × m₂ = −1', 'H']]),
   M18: () => matPairs([['mean','add up, divide by how many'], ['median','in order, take the middle'],
                        ['mode','the one that appears most'], ['range','biggest minus smallest']]),
+
+  /* ---------- THE SECONDARY SET -------------------------------------------------------------------
+     WHAT A Y7-TO-11 STUDENT ACTUALLY FORGETS. The first eighteen were built outward from primary and
+     stopped at whatever the tutor had to hand, which left the middle of the school with a protractor,
+     a times table and five GCSE fragments. Nothing here is new maths — it is the set of things that
+     get looked up in the back of a book mid-question, which is the only test of what belongs on a
+     sheet you are allowed to take in.
+
+     THE TEXT IS KEPT SHORT ON PURPOSE. `.mat-two` is a two-column grid inside a block that is often
+     half the sheet wide, so a value much past twenty characters wraps — and a wrapped row costs
+     three times its height. That is the whole difference between M15's six rows at 21mm and M12's
+     eight at 49mm. Where the wording genuinely cannot be short, the block is full width instead. */
+  M19: () => matPairs([['a² + b² = c²','c is the longest side'], ['a shorter side','c² − a²'],
+                       ['sin', fr('opp','hyp')], ['cos', fr('adj','hyp')], ['tan', fr('opp','adj')],
+                       ['an angle','sin⁻¹ cos⁻¹ tan⁻¹']]),
+
+  M20: () => matPairs([['straight line','180°'], ['at a point','360°'], ['triangle','180°'],
+                       ['quadrilateral','360°'], ['vertically opposite','equal'],
+                       ['alternate (Z)','equal'], ['corresponding (F)','equal'],
+                       ['co-interior (C)','180°'], ['exterior sum','360°'],
+                       ['interior sum','(n − 2) × 180°']]),
+
+  M21: () => matPairs([['rectangle','bh'], ['triangle','½bh'], ['parallelogram','bh'],
+                       ['trapezium','½(a + b)h'], ['circle','πr²'], ['compound','split it, add up']]),
+
+  /* REVERSE PERCENTAGE IS THE HIGHER LINE. Finding the original amount is the one thing in this
+     block a Foundation paper does not ask for, and it is also the one people get wrong by doing the
+     obvious thing instead. */
+  M22: () => matPairs([['15% of 40','0.15 × 40'], ['up 15%','× 1.15'], ['down 15%','× 0.85'],
+                       ['reverse','÷ the multiplier','H'], ['change', fr('new − old','old')],
+                       ['compound','P(1 + r)ⁿ']]),
+
+  M23: () => matPairs([['3 s.f.','from the first non-zero'], ['2 d.p.','after the point'],
+                       ['5 or more','rounds up'], ['estimating','1 s.f. each first'],
+                       ['error interval','± half the unit','H'], ['bounds of a sum','max + max','H']]),
+
+  M24: () => matPairs([['a × 10ⁿ','1 ≤ a < 10'], ['big','n positive'], ['small','n negative'],
+                       ['×','× the a, add the n'], ['÷','÷ the a, take the n']]),
+
+  M25: () => matPairs([['linear nth term','difference × n, adjust'],
+                       ['term-to-term','what gets the next one'],
+                       ['quadratic','2nd difference ÷ 2','H'], ['geometric','× a common ratio'],
+                       ['triangular','1 3 6 10 15 21'], ['Fibonacci','add the two before']]),
+
+  /* FULL WIDTH, because two of these values are twenty-four characters of algebra that cannot be
+     said any shorter and would wrap to three lines in a half-width column. */
+  M26: () => matPairs([['factorising','× to c, + to b'], ['two squares','x² − a² = (x + a)(x − a)'],
+                       ['the formula', fr('−b ± √(b² − 4ac)','2a'), 'H'],
+                       ['completing the square','(x + b/2)² − (b/2)² + c','H'],
+                       ['discriminant','b² − 4ac','H']]),
+
+  M27: () => matPairs([['all outcomes','add to 1'], ['not A','1 − P(A)'],
+                       ['A and B','× along branches'], ['A or B','+ the branches'],
+                       ['expected number','P × trials'], ['relative frequency', fr('successes','trials')]]),
+
+  M28: () => matPairs([['prime','exactly two factors'], ['primes to 30','2 3 5 7 11 13 17 19 23 29'],
+                       ['product of primes','divide by the smallest'], ['HCF','the shared primes'],
+                       ['LCM','every prime, shared once'], ['BIDMAS','brackets, indices, ÷×, +−']]),
+
+  M29: () => matPairs([['sine rule', fr('a','sin A') + ' = ' + fr('b','sin B')],
+                       ['cosine rule','a² = b² + c² − 2bc cos A'], ['area','½ab sin C'],
+                       ['which one','angle between → cosine']]),
+
+  M30: () => matPairs([['semicircle','angle is 90°'], ['at the centre','twice the edge'],
+                       ['same segment','equal angles'], ['cyclic quad','opposite add to 180°'],
+                       ['tangent & radius','90°'], ['two tangents','equal length'],
+                       ['alternate segment','equal to the other'], ['centre to chord','bisects it']]),
+
+  M31: () => matPairs([['adding','same denominator first'], ['multiplying','tops × tops'],
+                       ['dividing','flip and multiply'], ['of','× the fraction'],
+                       ['mixed → improper','whole × bottom, + top'], ['simplifying','÷ both by the HCF']]),
+
+  /* ---------- A-LEVEL ------------------------------------------------------------------------------
+     AS MEANS YEAR ONE AND `Alevel` MEANS YEAR TWO AS WELL. Every other level in this file is a
+     different exam; these two are the same course a year apart, so the split is by WHEN A THING IS
+     TAUGHT rather than by what it belongs to. Differentiating xⁿ is Year 1 and the chain rule is
+     Year 2, so they are two blocks — an AS student offered the product rule in January is being
+     offered clutter, and one denied it in Year 2 is being denied the thing they came for.
+
+     THE IDS STAY IN THE M SERIES. They are the join to a drawing and nothing else — an `A` prefix
+     would look like it meant A-level, and then M13 appearing at A-level would be the exception that
+     makes the naming a lie. A dull id cannot mislead.
+
+     NOTHING HERE IS TIERED, since tiers are a GCSE idea; `MAT_TIERED` lists Y9 and GCSE only, so the
+     picker never asks the question on these. */
+  M32: () => matPairs([['xⁿ','nxⁿ⁻¹'], ['gradient there','put x into f′(x)'],
+                       ['tangent','y − y₁ = m(x − x₁)'], ['normal', 'gradient −' + fr('1','m')],
+                       ['stationary','f′(x) = 0'], ['max or min','f″(x) < 0 is a max']]),
+
+  M33: () => matPairs([['chain','f′(g) × g′'], ['product','u′v + uv′'],
+                       ['quotient', fr('u′v − uv′','v²')], ['sin x','cos x'], ['cos x','−sin x'],
+                       ['eˣ','eˣ'], ['ln x', fr('1','x')], ['dy/dx', fr('1','dx/dy')]]),
+
+  M34: () => matPairs([['xⁿ', fr('xⁿ⁺¹','n + 1') + ' + c'], ['the + c','indefinite only'],
+                       ['definite','F(b) − F(a)'], ['area under a curve','∫ between the limits'],
+                       ['below the axis','comes out negative']]),
+
+  M35: () => matPairs([['by parts','∫u dv = uv − ∫v du'], ['substitution','change the limits too'],
+                       [fr('1','x'), 'ln |x| + c'], ['eˣ','eˣ + c'], ['sin x','−cos x + c'],
+                       ['cos x','sin x + c'], [fr('f′(x)','f(x)'), 'ln |f(x)| + c']]),
+
+  M36: () => matPairs([['log a + log b','log ab'], ['log a − log b', 'log ' + fr('a','b')],
+                       ['n log a','log aⁿ'], ['log 1','0'], ['aˣ = b', 'x = ' + fr('log b','log a')],
+                       ['ln and eˣ','undo each other']]),
+
+  M37: () => matPairs([['(a + b)ⁿ','ⁿCr aⁿ⁻ʳ bʳ'], ['ⁿCr', fr('n!','r!(n − r)!')],
+                       ['the terms','r counts from 0'], ['(1 + x)ⁿ, any n','|x| < 1']]),
+
+  M38: () => matPairs([['sin² + cos²','1'], ['tan', fr('sin','cos')], ['1 + tan²','sec²'],
+                       ['1 + cot²','cosec²'], ['sin(−x)','−sin x'], ['cos(−x)','cos x']]),
+
+  /* FULL WIDTH — these are the longest values in the file and there is no shorter way to write an
+     addition formula that is still the formula. */
+  M39: () => matPairs([['sin(A ± B)','sinA cosB ± cosA sinB'],
+                       ['cos(A ± B)','cosA cosB ∓ sinA sinB'], ['sin 2A','2 sinA cosA'],
+                       ['cos 2A','1 − 2sin²A'], ['tan 2A', fr('2 tanA','1 − tan²A')],
+                       ['a sinx + b cosx','R sin(x + α)']]),
+
+  M40: () => matPairs([['180°','π radians'], ['arc','rθ'], ['sector','½r²θ'],
+                       ['sin θ ≈','θ'], ['tan θ ≈','θ'], ['cos θ ≈', '1 − ' + fr('θ²','2')]]),
+
+  M41: () => matPairs([['arithmetic nth','a + (n − 1)d'],
+                       ['arithmetic sum','½n(2a + (n − 1)d)'], ['geometric nth','arⁿ⁻¹'],
+                       ['geometric sum', fr('a(1 − rⁿ)','1 − r')], ['to infinity', fr('a','1 − r')],
+                       ['it converges when','|r| < 1']]),
+
+  M42: () => matPairs([['circle','(x − a)² + (y − b)² = r²'], ['centre','(a, b)'],
+                       ['tangent','perpendicular to the radius'], ['semicircle','angle is 90°'],
+                       ['midpoint','average the ends'], ['distance','√((x₂−x₁)² + (y₂−y₁)²)']]),
+
+  M43: () => matPairs([['magnitude','√(x² + y²)'], ['unit vector','÷ its magnitude'],
+                       ['i and j','across and up'], ['parallel','one is a multiple'],
+                       ['position vector','from the origin']]),
+
+  M44: () => matPairs([['v','u + at'], ['s','ut + ½at²'], ['v²','u² + 2as'],
+                       ['s (average)','½(u + v)t'], ['F','ma'], ['weight','mg'],
+                       ['friction','F ≤ μR'], ['g','9.8 m s⁻²']]),
+
+  M45: () => matPairs([['when','fixed n, two outcomes'], ['X ~','B(n, p)'],
+                       ['P(X = r)','ⁿCr pʳ (1 − p)ⁿ⁻ʳ'], ['mean','np'],
+                       ['P(X ≤ r)','tables or calculator']]),
+
+  M46: () => matPairs([['X ~','N(μ, σ²)'], ['standardise', 'Z = ' + fr('x − μ','σ')], ['Z ~','N(0, 1)'],
+                       ['within 1σ','about 68%'], ['within 2σ','about 95%'],
+                       ['inverse normal','from a probability']]),
+
+  M47: () => matPairs([['H₀','the assumption'], ['H₁','what you suspect'],
+                       ['one tail','5% at one end'], ['two tail','2.5% each end'],
+                       ['reject H₀','p < the level'], ['then say it','in context']]),
+
+  M48: () => matPairs([['sign change','a root lies between'],
+                       ['Newton–Raphson', 'x − ' + fr('f(x)','f′(x)')],
+                       ['trapezium','½h[(y₀ + yₙ) + 2(rest)]'], ['h', fr('b − a','n')],
+                       ['iteration','xₙ₊₁ = g(xₙ)']]),
 };
 
 const matGrid = (cls, n, cell) => {
@@ -146,8 +535,25 @@ const matGrid = (cls, n, cell) => {
   for (let k = 1; k <= n; k++) h += cell(k);
   return `<div class="${cls}">${h}</div>`;
 };
+/* EVERY PAIRS BLOCK IS TIER-FILTERED HERE, once, rather than in each of the four that use it — so a
+   row tagged 'H' anywhere disappears on Foundation without its block having to know about tiers. */
+/* ---------- A FRACTION, DRAWN AS ONE -------------------------------------------------------------
+   `(−b ± √(b² − 4ac)) ÷ 2a` IS THE QUADRATIC FORMULA TYPED SIDEWAYS. It is correct, and it is not
+   what anybody has ever seen on a board or in a book — so the eye has to parse the brackets to work
+   out what is over what, which is exactly the work a cheat sheet exists to save. Every ÷ standing
+   between two whole expressions is a fraction that was flattened to fit in a string.
+
+   SPANS, NOT `<b>` AND `<i>`. Both of those are already claimed inside these blocks — `.mat-two i`
+   is a grid item and `.mat-two i b` is the label — so a fraction built from them would be restyled
+   and, in the `i` case, unwrapped by `display: contents` and lose its bar.
+
+   THE BAR IS `currentColor`, so a fraction inside a grey label is grey and inside black text is
+   black, without this needing to know which it is in. */
+const fr = (top, bottom) =>
+  `<span class="mat-fr"><span>${top}</span><span>${bottom}</span></span>`;
+
 const matPairs = rows => `<div class="mat-two">${
-  rows.map(([a, b]) => `<i><b>${a}</b><em>${b}</em></i>`).join('')}</div>`;
+  rows.filter(r => matKeep(r[2])).map(([a, b]) => `<i><b>${a}</b><em>${b}</em></i>`).join('')}</div>`;
 
 /* ---------- THE DRAWN PIECES ---------------------------------------------------------------------
    A regular polygon from its own definition rather than eight hand-typed paths that disagree with
@@ -234,7 +640,7 @@ function matTrick() {
       <div class="mat-tk-nums">${angs.map(a => `<em>${a}</em>`).join('')}</div></div></div>
     ${row('sin', ['0','1','2','3','4'], ['0','½','√2/2','√3/2','1'])}
     ${row('cos', ['4','3','2','1','0'], ['1','√3/2','√2/2','½','0'])}
-    <p class="mat-tk-say">Every one is <b>√n ÷ 2</b>. Count up for sine, down for cosine.
+    <p class="mat-tk-say">Every one is <b>√n over 2</b>. Count up for sine, down for cosine.
       tan = sin ÷ cos.</p></div>`;
 }
 
@@ -255,11 +661,13 @@ function matGraphs() {
     }
     return pts.join(' ');
   };
+  /* FOUNDATION RECOGNISES LINEAR AND QUADRATIC. Cubic, reciprocal and exponential are Higher, and
+     the tier is the fourth entry rather than the third because the third is the function. */
   const kinds = [['linear','y = x', x => x], ['quadratic','y = x²', x => x * x],
-                 ['cubic','y = x³', x => x ** 3],
-                 ['reciprocal','y = 1/x', x => Math.abs(x) > .28 ? 1 / x : 9],
-                 ['exponential','y = 2ˣ', x => Math.pow(2, x) - 1]];
-  return `<div class="mat-graphs">${kinds.map(([n, eq, f]) =>
+                 ['cubic','y = x³', x => x ** 3, 'H'],
+                 ['reciprocal','y = 1/x', x => Math.abs(x) > .28 ? 1 / x : 9, 'H'],
+                 ['exponential','y = 2ˣ', x => Math.pow(2, x) - 1, 'H']];
+  return `<div class="mat-graphs">${kinds.filter(k => matKeep(k[3])).map(([n, eq, f]) =>
     `<div><svg viewBox="0 0 ${W} ${H}">
       <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#c9c3b2" stroke-width=".5"/>
       <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#c9c3b2" stroke-width=".5"/>
@@ -288,10 +696,19 @@ function initMat() {
   if (!box) return;
   box.innerHTML = `
     <div class="mat-lev" id="mat-lev"></div>
+    ${/* THE SAME CLASS AS THE LEVEL ROW, deliberately. Two rows of pills that are the same kind of
+          choice should look the same, and reusing the class is what guarantees they cannot drift
+          apart in the stylesheet. It is hidden on an untiered level rather than emptied — an empty
+          row still holds its gap and reads as something that failed to load. */''}
+    <div class="mat-lev" id="mat-tier"></div>
     <div class="mat-list" id="mat-list"></div>
+    ${/* THE FLYER'S OWN CONTROLS, and only when a flyer is on the sheet. A campaign picker, three
+          colours and ten switches sitting above a maths sheet nobody is putting a flyer on is a
+          screenful of somebody else's job. Empty otherwise, so it takes no room at all. */''}
+    <div class="mat-fly" id="mat-fly"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
-    <button class="btn" data-do="mat-print" id="mat-go">Print the mat</button>
+    <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>
     <div class="mat-out" id="mat-out"></div>`;
 
   const levels = matLevels();
@@ -299,16 +716,31 @@ function initMat() {
   $('mat-lev').innerHTML = levels.map(l =>
     `<button data-do="mat-level" data-l="${esc(l)}">${esc(l)}</button>`).join('')
     + '<button data-do="mat-level" data-l="all">Everything</button>';
-  $('mat-list').innerHTML = MAT_PARTS.map(c =>
-    `<label data-l="${esc(c.lv.join('|'))}"><input type="checkbox" data-do="mat-tick"
+  $('mat-tier').innerHTML = [['F', 'Foundation'], ['H', 'Higher']].map(([t, label]) =>
+    `<button data-do="mat-tier" data-t="${t}">${label}</button>`).join('');
+  /* THE TIER IS ON THE COMPONENT ROW TOO, so switching tier hides the same way switching level
+     does and neither has to know what the other did. */
+  /* ONE LIST, WITH A LINE WHERE THE LIBRARY CHANGES. Fifty-eight ticks in an undivided column is a
+     column nobody reads to the bottom of, and the two kinds are not the same question: a component
+     is part of a sheet, a flyer IS a sheet. The heading is written where the kind changes rather
+     than by looping twice, so a third kind — a coupon, a booking slip — needs no new loop. */
+  let was = null;
+  $('mat-list').innerHTML = matParts().map(c => {
+    const kind = c.fly !== undefined ? 'Flyers' : 'Components';
+    const head = kind === was ? '' : `<h5 class="mat-kind">${kind}</h5>`;
+    was = kind;
+    return head + `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"><input
+       type="checkbox" data-do="mat-tick"
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
-     ${esc(c.name)}<u>${c.h}mm</u></label>`).join('');
+     ${esc(c.name)}<u>${c.h}mm</u></label>`;
+  }).join('');
   matPaint();
 }
 
 /* SWITCHING LEVEL HIDES WHAT DOES NOT APPLY; it does not untick it. Somebody who set up a SATs mat,
    looked at GCSE and came back should find their mat as they left it. */
 on('mat-level', el => { MAT_LEVEL = el.getAttribute('data-l'); matPaint(); });
+on('mat-tier', el => { MAT_TIER = el.getAttribute('data-t'); matPaint(); });
 on('mat-tick', el => {
   const id = el.getAttribute('data-id');
   const at = MAT_ON.indexOf(id);
@@ -317,29 +749,106 @@ on('mat-tick', el => {
   matPaint();
 });
 
+/* WHAT DRAWS A PIECE. Two libraries, one lookup: a component is a function in `MAT_HTML` keyed by
+   its id, and a flyer is `flyOne` handed the campaign row it names. Every caller asks this rather
+   than reaching into `MAT_HTML` itself, so a third kind of piece — a coupon, a booking slip — is a
+   line here and a row in the list, and nothing else in the file has to learn about it.
+   A PIECE WHOSE DRAWING IS MISSING SAYS SO on the paper. Silence would print a gap, and a gap on a
+   sheet you are about to photocopy thirty times is worth a sentence. */
+function matDraw(c) {
+  /* THE CAMPAIGN COMES FROM THE CONTROL, not from the piece. `FLY_AT` is what the campaign picker
+     last set, and it is the same variable the colour inputs write through — so what is drawn here
+     and what those controls say cannot disagree. */
+  if (c.fly) {
+    return typeof flyOne === 'function' && FLY_ROWS[FLY_AT || 0]
+      ? flyOne(FLY_ROWS[FLY_AT || 0]) : '';
+  }
+  return MAT_HTML[c.id] ? MAT_HTML[c.id]()
+    : `<p class="mat-gone">${esc(c.name)} has nothing to draw it.</p>`;
+}
+
 function matPaint() {
-  const lev = $('mat-lev'), list = $('mat-list'), out = $('mat-out');
+  const lev = $('mat-lev'), tierBar = $('mat-tier'), list = $('mat-list'), out = $('mat-out');
   if (!out) return;
   if (lev) lev.querySelectorAll('button').forEach(b =>
     b.classList.toggle('on', b.getAttribute('data-l') === MAT_LEVEL));
+
+  /* WHETHER THIS LEVEL HAS TIERS AT ALL, and therefore whether the row is offered. `all` is not a
+     level anybody sits, so it shows everything: filtering the Everything view by tier would make
+     "Everything" mean less than it says.
+     MAT_SHOW IS SET BEFORE ANYTHING IS DRAWN, because every block reads it through `matKeep` while
+     rendering — setting it afterwards would tier the sheet one repaint late. */
+  const tiered = MAT_TIERED.indexOf(MAT_LEVEL) !== -1;
+  MAT_SHOW = tiered ? MAT_TIER : 'H';
+  if (tierBar) {
+    tierBar.style.display = tiered ? '' : 'none';
+    tierBar.querySelectorAll('button').forEach(b =>
+      b.classList.toggle('on', b.getAttribute('data-t') === MAT_TIER));
+  }
+
   /* SHOWN WHEN THE COMPONENT LISTS THIS LEVEL — a component belongs to several, so this is a
-     membership test rather than an equality one. */
+     membership test rather than an equality one. A Higher-only component is hidden on Foundation
+     the same way, and hidden rather than unticked: coming back to Higher should find the sheet as
+     it was left. */
   if (list) list.querySelectorAll('label').forEach(el => {
-    const has = el.getAttribute('data-l').split('|').indexOf(MAT_LEVEL) !== -1;
-    el.classList.toggle('off', MAT_LEVEL !== 'all' && !has);
+    const lv = el.getAttribute('data-l');
+    const has = !lv || lv.split('|').indexOf(MAT_LEVEL) !== -1;
+    const fits = matKeep(el.getAttribute('data-t'));
+    el.classList.toggle('off', (MAT_LEVEL !== 'all' && !has) || !fits);
   });
 
-  const on_ = MAT_PARTS.filter(c => MAT_ON.indexOf(c.id) !== -1
-    && (MAT_LEVEL === 'all' || c.lv.indexOf(MAT_LEVEL) !== -1));
+  /* THE CONTROLS APPEAR AND DISAPPEAR WITH THE PIECE. Built once and left alone while it stays
+     ticked — rebuilding them on every repaint would throw away a half-picked colour on every
+     keystroke, and would put the focus back to the top of the list as you used it. */
+  const fly = $('mat-fly');
+  if (fly) {
+    const want = MAT_ON.indexOf('F01') !== -1 && matParts().some(c => c.id === 'F01');
+    if (want && !fly.dataset.built) {
+      fly.innerHTML = flyControls();
+      fly.dataset.built = '1';
+      flyBind(fly, matPaint);
+    } else if (!want && fly.dataset.built) {
+      fly.innerHTML = '';
+      delete fly.dataset.built;
+    }
+  }
+
+  const on_ = matParts().filter(c => MAT_ON.indexOf(c.id) !== -1
+    /* NO LEVEL MEANS EVERY LEVEL. A flyer is not GCSE or SATs, and reading an empty list as
+       "belongs to nothing" would have hidden every flyer at every level — which looks exactly like
+       a feature that failed to load. */
+    && (MAT_LEVEL === 'all' || !c.lv.length || c.lv.indexOf(MAT_LEVEL) !== -1)
+    && matKeep(c.tier));
+
+  /* FILL THE SHEET is the old "2 up · 4 up · 9 up", and it is a COUNT rather than a size now. The
+     old tool tied the two together, so asking for stickers asked for nine of them whether or not
+     you wanted nine — and there was no way to put one sticker on a page with anything else.
+     EXPANDED HERE, INTO THE LIST, rather than by repeating the markup: everything downstream —
+     the pairing of half-width pieces, the gauge, the print — then treats four flyers exactly as it
+     treats four components, and none of it has to know this happened. */
+  const pieces = [];
+  on_.forEach(c => {
+    if (!c.fly || (($('fm-rep') || {}).value || '1') !== 'fill') { pieces.push(c); return; }
+    const size = matFlySize();
+    const room = MAT_ROOM - on_.filter(x => !x.fly).reduce((n, x) => n + x.h, 0);
+    const rows = Math.max(1, Math.floor(room / size.mm));
+    for (let i = 0; i < rows * (size.fills || 1); i++) pieces.push(c);
+  });
 
   /* HALF-WIDTH BLOCKS PAIR UP, full ones take a row. Walked in list order rather than sorted, so
      moving something on the mat is moving one line here. */
   let h = '', hold = null;
   /* ONE FUNCTION, CALLED ONCE PER BLOCK. The first version had a ternary that invoked `MAT_HTML`
      twice for the same component — drawing a protractor's 181 ticks and throwing one copy away. */
-  const cell = c => `<div class="mat-box"><h4>${esc(c.name)}</h4>${MAT_HTML[c.id]()}</div>`;
+  /* A PIECE THAT IS ALREADY A FINISHED THING GETS NO HEADING AND NO RULE. A flyer carries its own
+     name, its own colour and its own edge — putting "FLYER — BACK TO SCHOOL" in small capitals above
+     it would be labelling a poster with the word poster. `bare` says so, and the stylesheet takes
+     the heading, the hairline and the padding off. */
+  const cell = c => c.bare
+    ? `<div class="mat-box bare ${matFlySize().cls}">${matDraw(c)}</div>`
+    : `<div class="mat-box"><h4>${esc(c.name)}</h4>${matDraw(c)}</div>`;
   const pair = (a, b) => `<div class="mat-two-up">${cell(a)}${b ? cell(b) : '<div></div>'}</div>`;
-  on_.forEach(c => {
+  pieces.forEach(c => {
     if (!c.half) {
       if (hold) { h += pair(hold); hold = null; }
       h += cell(c);
@@ -348,11 +857,21 @@ function matPaint() {
   });
   if (hold) h += pair(hold);
 
+  /* THE LEVEL IS ON THE PAPER. Six sheets in a folder all headed "Cheat sheet" are six sheets you
+     have to read to tell apart, and the one thing that distinguishes them is already known here.
+     `all` is not a level anybody is at, so it prints as the plain title. */
+  const B = matBrand();
+  const tierWord = MAT_TIERED.indexOf(MAT_LEVEL) !== -1
+    ? (MAT_TIER === 'F' ? ' Foundation' : ' Higher') : '';
+  const title = MAT_LEVEL === 'all' ? 'Cheat sheet' : 'Cheat sheet — ' + MAT_LEVEL + tierWord;
+  /* PHONE ONLY IF THE TAB HAS ONE — a separator with nothing after it reads as something missing
+     rather than something not offered. */
+  const foot = [B.area, B.phone].filter(Boolean).join('  ·  ');
   out.innerHTML = `<div class="mat-sheet"><div class="mat-rule">${matRuler(285)}</div>
-    <div class="mat-head"><h3>Maths mat</h3><span>${esc(brand('name', '@family.'))}</span></div>
+    <div class="mat-head"><h3>${esc(title)}</h3><span>${esc(B.name)}</span></div>
     <div class="mat-cols">${h}</div>
-    <div class="mat-foot"><span>${esc(brand('area', 'Merton & Wandsworth'))}</span>
-      <b>${esc(brand('site', ''))}</b></div></div>`;
+    <div class="mat-foot"><span>${esc(foot)}</span>
+      <b>${esc(B.site)}</b></div></div>`;
 
   /* MEASURED, NOT ADDED UP. The heights in the list are what each costs ALONE; two halves in a row
      cost the taller of them, and no table of numbers can know which pairs got ticked. Reading the
@@ -366,7 +885,7 @@ function matPaint() {
   $('mat-said').innerHTML = over
     ? `<b>${used - MAT_ROOM}mm too much</b> — untick something, or the bottom is cut off.`
     : `<b>${MAT_ROOM - used}mm</b> of paper left.`;
-  $('mat-go').disabled = over || !on_.length;
+  $('mat-go').disabled = over || !pieces.length;
   matFit();
 }
 
@@ -396,10 +915,23 @@ function matFit() {
    exactly like a crash. */
 on('mat-print', () => {
   const sheet = document.querySelector('.mat-out .mat-sheet');
-  if (sheet) sheet.style.transform = 'scale(1)';
+  if (!sheet) return;
+  /* A COPY, PRINTED FROM THE END OF THE BODY, rather than the sheet where it sits.
+     Undoing the scale was never the whole job. `body` is a centred 26.5rem column — 115mm — with
+     `overflow-x: clip` and `position: relative`, so a 210mm sheet positioned `absolute; left: 0`
+     inside it starts where the COLUMN starts, not where the paper does, and everything past 115mm
+     is clipped off the page. What came out was a sheet shifted right by half the margin with its
+     right-hand half missing, a ruler that stopped at 12cm and a trig table with no 90° column.
+     THE CLONE IS WHY THIS IS A COPY AND NOT A MOVE. Moving the real sheet out and back leaves the
+     tool broken if the print throws between the two; a copy that is deleted afterwards cannot. */
+  const paper = document.createElement('div');
+  paper.className = 'mat-paper';
+  paper.appendChild(sheet.cloneNode(true));
+  document.body.appendChild(paper);
   document.body.classList.add('printing-mat');
   const done = () => {
     document.body.classList.remove('printing-mat');
+    paper.remove();
     matFit();
     window.removeEventListener('afterprint', done);
   };

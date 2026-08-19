@@ -105,7 +105,7 @@
      BUMP THIS ON EVERY PUSH. That is the whole procedure, and it is the price of the app opening
      quickly the rest of the time. If you ever see a change not take effect, this is the first
      thing to check — it is the one line that decides. */
-  var LOAD = '2026-08-15m';
+  var LOAD = '2026-08-18e';
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
 </script>
@@ -708,20 +708,6 @@
     <div class="rn-say">@family.</div>
   </div>
 
-  <!-- A WOVEN CHECK. Threads crossing over and under, the way a scarf is made. It is a pattern with
-       a rule in it, which is the nearest thing to maths on this half of the list. -->
-  <div id="splash-weave" aria-hidden="true">
-    <div class="wv-cloth">
-      <i class="wv-h" style="--i:0"></i><i class="wv-h" style="--i:1"></i>
-      <i class="wv-h" style="--i:2"></i><i class="wv-h" style="--i:3"></i>
-      <i class="wv-h" style="--i:4"></i><i class="wv-h" style="--i:5"></i>
-      <i class="wv-v" style="--i:0"></i><i class="wv-v" style="--i:1"></i>
-      <i class="wv-v" style="--i:2"></i><i class="wv-v" style="--i:3"></i>
-      <i class="wv-v" style="--i:4"></i><i class="wv-v" style="--i:5"></i>
-    </div>
-    <div class="wv-say">@family.</div>
-  </div>
-
   <!-- A PENDULUM WAVE. Fifteen swings of slightly different length, drifting in and out of phase
        and briefly forming a snake before scattering again. It looks choreographed and is not —
        nobody times them, they just have different lengths. -->
@@ -885,11 +871,16 @@
                     number line, a Venn diagram, a clock. */
                  'is-bal', 'is-sort', 'is-times', 'is-prot', 'is-coin',
                  'is-line', 'is-venn', 'is-clock', 'is-mult',
-                 /* ---------- AND FOUR THAT TEACH NOTHING ------------------------------------
-                    Breathing, rain, a weave, a pendulum wave. Twenty-seven proofs in a row is a
-                    set that never lets anybody just wait — some loads should be calm, or
-                    pretty, and nothing more. */
-                 'is-breathe', 'is-rain', 'is-weave', 'is-pend'];
+                 /* ---------- AND THREE THAT TEACH NOTHING -----------------------------------
+                    Breathing, rain, a pendulum wave. Twenty-seven proofs in a row is a set that
+                    never lets anybody just wait — some loads should be calm, or pretty, and
+                    nothing more.
+                    THE WEAVE WAS THE FOURTH AND IS GONE. Six threads each way sliding across
+                    themselves: it read as a tartan square holding still, which is a picture rather
+                    than an animation, and a loading screen that looks frozen reads as an app that
+                    has. Its markup, its rules and its keyframes went with it — a splash left in the
+                    file but out of the pool is dead code that still has to be maintained. */
+                 'is-breathe', 'is-rain', 'is-pend'];
     /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
        THE LIST ABOVE IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `DATA` has not loaded when
        this runs — the pick happens during parsing so the splash is right on the first frame — so

@@ -1444,6 +1444,10 @@ function layout(which) {
   return { screen: id, overlaps, unfilled, rows };
 }
 
+/* HOW MANY PAGES EITHER SIDE OF THE ONE YOU ARE ON GET BUILT AHEAD. Raise it if a fast flick still
+   lands on a blank page; lower it if holding the markup ever starts to cost something. */
+const STUFF_NEAR = 5;
+
 function fillStuffPages() {
   const host = $('s-stuff');
   if (!host) return;
@@ -1462,16 +1466,33 @@ function fillStuffPages() {
        said out loud rather than filled wrongly. */
     /* `paneOf_` makes one if the page has not got one, so there is nothing to check here. */
     const pane = paneOf_(el);
-    /* TWO EITHER SIDE, not one. One meant the page you turned to was built at the moment you
-       turned to it, every single time — so the one screen whose pages are filled lazily was also
-       the one screen whose swipe stuttered. Two is further than a single gesture can travel, so
-       the page is always already there and the turn is pure movement, like every other column.
-       The cost is two more pages of markup held. That is a few kilobytes against the frames. */
-    const near = Math.abs(i - at) <= 2;
+    /* FIVE EITHER SIDE. This was one, then two, and each widening was bought for the same reason:
+       a page built at the moment you turn to it is a page that stutters as you turn to it, and the
+       only screen filled lazily was the only screen whose swipe was not smooth.
+
+       TWO COVERED A SINGLE GESTURE and nothing more. A flick that carries three or four pages —
+       which is most of how anybody moves through a list of this length — outruns it and lands on
+       an empty page while the fill catches up.
+
+       WHAT IT COSTS IS MARKUP HELD, eleven pages instead of five, and nothing else: the widgets are
+       not started on the pages either side, only on the one being looked at, so nothing is running
+       out of sight. Pictures on those pages are `loading="lazy"` and the browser decides for itself
+       whether to fetch them.
+
+       ONE PLACE TO CHANGE IT, because the number appears in the test above and in the clearing
+       below, and two comparisons that are supposed to be the same number are two comparisons that
+       will eventually disagree. */
+    const near = Math.abs(i - at) <= STUFF_NEAR;
     if (near && el.dataset.filled !== '1') {
       pane.innerHTML = stuffPageHtml(i - 1);
       el.dataset.filled = '1';
       changed = true;
+      /* AND DRAWN WHILE IT IS BUILT, if it is one of the ten that do not loop. This is the whole of
+         the fix for widgets popping open: the markup and its contents now arrive together, five
+         pages before anybody sees either. It happens before `settle_` below, so the grid measures
+         panes that are already their final height rather than measuring them and being wrong. */
+      const w = showingWidgets() && items[i - 1] && items[i - 1].row;
+      if (w && !w.stop) drawWidget_(w);
     } else if (!near && el.dataset.filled === '1') {
       pane.innerHTML = '';
       delete el.dataset.filled;
@@ -1479,20 +1500,27 @@ function fillStuffPages() {
     }
   }
 
-  /* AND START THE ONE YOU ARE LOOKING AT.
-     Only that one: a canvas measures itself from its box, and a page that is not the front one has
-     no box worth measuring — the bird would draw into whatever size it happened to have while off
-     to the side. Every widget finds its parts by id, so this has to come after the markup is in
-     the document, which is why it is here rather than anywhere earlier.
-     Started again on every fill rather than once. They are all idempotent — a board redraws from
-     the position it already holds, a clock from the time it already has — and remembering which
-     have been started is a second thing to keep true. */
+  /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs.
+     THE CANVAS IS WHY THIS STAYS LATE FOR THOSE TWO. A canvas measures itself from its box, and the
+     bird drawn while its page is off to the side takes whatever size it happens to have there. The
+     ten that draw with markup have no such problem, which is the other half of why they are safe to
+     build ahead.
+     Started again on every fill rather than once. They are idempotent — a board redraws from the
+     position it already holds, a clock from the time it already has — and remembering which have
+     been started is a second thing to keep true. */
   if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
   const wgt = items[at - 1] && items[at - 1].row;
   if (!wgt) { stopWidget_(); settle_(changed); return; }
+  if (!wgt.stop) {
+    /* Already drawn with its page. Landing on a still widget still has to stop whatever was running
+       on the page you came from, or Flabby Pird goes on drawing behind the calendar. */
+    stopWidget_();
+    settle_(changed);
+    return;
+  }
   startWidget_(wgt);
-  /* A widget that has just started may have sized itself — a canvas takes its box, a board squares
-     itself off — so the telling comes after that too, not before. */
+  /* A widget that has just started may have sized itself — a canvas takes its box — so the telling
+     comes after that too, not before. */
   settle_(true);
 }
 
@@ -1533,13 +1561,22 @@ function stopWidget_() {
   try { if (was.stop) was.stop(); } catch (e) { console.warn('[widget stop]', was.id, e); }
 }
 
-function startWidget_(wgt) {
-  /* The same one again is already running — restarting would throw away a game in progress and a
-     clock somebody is watching. */
-  if (WIDGET_ON && WIDGET_ON.id === wgt.id) return;
-  stopWidget_();
-  WIDGET_ON = wgt;
+/* ---------- DRAWING ONE IS NOT THE SAME AS RUNNING ONE -------------------------------------------
+   THIS USED TO BE ONE FUNCTION AND THAT IS WHY WIDGETS POPPED OPEN. Because only one widget may be
+   RUNNING at a time, only one was ever DRAWN — so a page you had already swiped past built its own
+   contents at the moment you arrived, and you watched the calendar appear in a card that was
+   already on the screen.
 
+   ONLY TWO OF THE TWELVE ACTUALLY RUN. `tables` holds an interval and `flabby` holds an animation
+   frame, and those two declare a `stop`. The other ten — the calendar, the calculator, the docket,
+   the notepad, the chess board, the cheat sheet maker — draw once and then sit there. Nothing was
+   ever bought by drawing those late.
+
+   SO A `stop` IS THE TEST. A widget that declares one is held to the old rule: started on arrival,
+   stopped on leaving, one at a time. A widget without one is drawn as its page is built, five
+   pages ahead of being looked at, and is simply there when you get to it. No new flag, no list to
+   keep in step — the thing that says a widget loops is the thing that stops it looping. */
+function drawWidget_(wgt) {
   let err = null;
   try { wgt.start(); } catch (e) { err = e; console.warn('[widget]', wgt.id, e); }
 
@@ -1551,6 +1588,15 @@ function startWidget_(wgt) {
   into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
     ${esc(wgt.what)} did not start.<br>
     <span class="faint">${esc(err ? String(err.message || err) : 'It drew nothing.')}</span></p>`;
+}
+
+function startWidget_(wgt) {
+  /* The same one again is already running — restarting would throw away a game in progress and a
+     clock somebody is watching. */
+  if (WIDGET_ON && WIDGET_ON.id === wgt.id) return;
+  stopWidget_();
+  WIDGET_ON = wgt;
+  drawWidget_(wgt);
 }
 
 /**
@@ -1593,11 +1639,14 @@ function stuffQuestion() {
   }
 
   const values = facetValues(items, facet);
-  /* The count beside each value is what makes this a choice rather than a guess — a value that
-     would leave three things and one that would leave three hundred look identical without it,
-     and the difference is whether the next tap is worth making. */
-  return `<h2><span>${esc(facet.label)}</span><span class="faint">${values.length}</span></h2>`
-    + values.map(v => `<div class="row tap" data-do="facet-pick"
+  /* THE HEADING IS GONE — it read `> WHAT FOR   5` above five rows that were about to say the same
+     thing. The label named a question whose answers were already on the screen, and the number
+     counted rows you could see: a caption on a photograph of itself.
+     THE COUNT BESIDE EACH VALUE STAYS, and is the one that was doing work. It is not how many
+     choices there are, it is how many THINGS are behind each one — a value leaving three and a
+     value leaving three hundred look identical without it, and the difference is whether the next
+     tap is worth making. */
+  return values.map(v => `<div class="row tap" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
         <span class="k">${mark(v.value)}</span>
         <span class="v mono">${v.n}</span>

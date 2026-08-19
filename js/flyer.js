@@ -30,27 +30,38 @@
    ones warm, January cold, the exam ones plain. */
 const FLY_ROWS = [
   ['Back to School',   'minimal',  '#16160f', '#c8452f', '#ffffff', 'Back to school,|back to the table.',
-   'Sessions start the week schools go back. Maths and English, the same slot every week so it becomes a habit rather than a decision.'],
+   'Sessions start the week schools go back. Maths and English, the same slot every week so it becomes a habit rather than a decision.',
+   'code head slogan say facts price foot'],
   ['Results Day',      'minimal',  '#16160f', '#c8452f', '#ffffff', 'Not the grade|you wanted?',
-   'Resits open in November and the work starts now. We will look at the paper with you and say plainly whether a resit is worth it.'],
+   'Resits open in November and the work starts now. We will look at the paper with you and say plainly whether a resit is worth it.',
+   'code head say facts price foot'],
   ['New Year',         'elegant',  '#16233a', '#3f7fa8', '#f4f6f8', 'Six weeks|to the mocks.',
-   'January is when it stops being far away. A weekly session between now and February is the difference for most students.'],
+   'January is when it stops being far away. A weekly session between now and February is the difference for most students.',
+   'code head slogan say facts price foot'],
   ['Mocks',            'detailed', '#16160f', '#c8452f', '#ffffff', 'Mocks are|the rehearsal.',
-   'They are also the first honest mark most students get. We work through the ones that came back, question by question.'],
+   'They are also the first honest mark most students get. We work through the ones that came back, question by question.',
+   'code head say facts price foot'],
   ['Before Christmas', 'elegant',  '#1e2a20', '#a8452f', '#f7f4ec', 'A quiet fortnight|is worth a term.',
-   'Two weeks with nothing in the diary. An hour a week keeps the thread, and January starts from where December left off.'],
+   'Two weeks with nothing in the diary. An hour a week keeps the thread, and January starts from where December left off.',
+   'code head slogan say facts foot'],
   ['Exam Season',      'detailed', '#16160f', '#2f6f4f', '#ffffff', 'The last|few weeks.',
-   'Past papers, marked, and gone through properly. The most useful thing left to do, and the thing students are least likely to do alone.'],
+   'Past papers, marked, and gone through properly. The most useful thing left to do, and the thing students are least likely to do alone.',
+   'code head say facts price foot'],
   ['Half Term',        'minimal',  '#1a1a14', '#d08a2c', '#fdfaf2', 'A week off|is a week gained.',
-   'Three sessions across the week so nobody comes back behind. Mornings, so the day is still free.'],
+   'Three sessions across the week so nobody comes back behind. Mornings, so the day is still free.',
+   'code head slogan say facts price foot'],
   ['Easter Revision',  'detailed', '#241a2c', '#7a5aa8', '#faf7fb', 'Easter is|the last run.',
-   'Two weeks, and then it is the real thing. This is where a plan beats effort.'],
+   'Two weeks, and then it is the real thing. This is where a plan beats effort.',
+   'code head say facts price foot'],
   ['Summer Holiday',   'elegant',  '#1c2620', '#3f8f6a', '#f6f8f4', 'Six weeks is a long time|to forget.',
-   'Not school in the holidays. An hour or two a week to keep the thread.'],
+   'Not school in the holidays. An hour or two a week to keep the thread.',
+   'code head slogan say facts price foot'],
   ['Better Call Halex','loud',     '#141208', '#c8452f', '#ffd227', 'Better|call Halex.',
-   'Maths gone wrong? English gone worse? You have a mock in six weeks and nobody has looked at the paper with you.'],
+   'Maths gone wrong? English gone worse? You have a mock in six weeks and nobody has looked at the paper with you.',
+   'name head slogan facts price phone foot'],
   ['Open Evening',     'minimal',  '#16160f', '#c8452f', '#ffffff', 'Come and|meet us first.',
-   'An evening at the community centre. Meet the tutors, see the rooms, ask what you like.'],
+   'An evening at the community centre. Meet the tutors, see the rooms, ask what you like.',
+   'code name head say facts foot qr'],
 ];
 
 /* THE STYLE CLASSES, WRITTEN OUT — same reason as the sizes above. `fm-s-${style}` is a name no
@@ -94,7 +105,22 @@ const flyInstant = room => Math.round((room + FLY_RATES.baseTutor) * flyHrs() * 
 const flyHoursSay = () => { const h = flyHrs();
   return h === 1 ? 'An hour' : h === 1.5 ? 'An hour and a half' : h + ' hours'; };
 
-const flyOn = id => { const el = $(id); return !!(el && el.checked); };
+/* IS THIS BLOCK SWITCHED ON? `dflt` IS FOR WHEN THE SWITCH IS NOT THERE AT ALL. A flyer is drawn in
+   two places now — its own tool, where every checkbox exists, and the paper maker, where a flyer is
+   one piece among forty and has no checkboxes of its own. Without a default, `flyOn` read a missing
+   control as OFF and a flyer placed on a mixed sheet came out as an empty coloured rectangle: every
+   block switched off by a switch that was never on the screen.
+   THE DEFAULTS ARE THE FLYER TOOL'S OWN. Whatever a checkbox starts as when you open the flyer
+   maker is what a flyer piece draws without being asked, so the two agree without either knowing
+   about the other. */
+const FLY_DEFAULT = {
+  'fm-code': true, 'fm-name': true, 'fm-head': true, 'fm-slogan': true, 'fm-say': true,
+  'fm-facts': true, 'fm-price': true, 'fm-phone': false, 'fm-foot': true, 'fm-qr': false,
+};
+const flyOn = id => {
+  const el = $(id);
+  return el ? !!el.checked : !!FLY_DEFAULT[id];
+};
 
 /* THE BRAND, FROM THE SHEET. No copy kept here — this is inside the app now, so `DATA.brand` is
    the live thing and the reason the separate file was worth retiring. */
@@ -119,8 +145,15 @@ function flyOne(r) {
   const H = head.split('|').map(x => x.trim()).map(esc).join('<br>');
   const qr = flyOn('fm-qr');
   const vsel = $('fm-v');
-  const room = Number(vsel && vsel.value) || 0;
-  const venue = (vsel && vsel.selectedOptions[0] && vsel.selectedOptions[0].text) || B.venueMain;
+  /* NO VENUE PICKER MEANS THE MAIN VENUE, NOT A FREE ROOM. Drawn inside the paper maker there is no
+     `fm-v` on the screen, and reading a missing control as zero priced every seat as though the
+     hall cost nothing — a flyer quoting a price that is not the price, printed thirty times. The
+     fallback is the same one `initFlyer` uses when the venues tab is empty. */
+  const venues = (DATA.venues || []).filter(v => v.title);
+  const main = venues.find(v => norm(v.title) === norm(B.venueMain)) || venues[0] || null;
+  const room = vsel ? (Number(vsel.value) || 0) : (main ? Number(main.bestRate) || 15 : 15);
+  const venue = vsel && vsel.selectedOptions[0] ? vsel.selectedOptions[0].text
+              : (main ? main.title : B.venueMain);
   const ad = ($('fm-ad') || {}).value || 'wait';
   const seat = money(flySeatPrice(room));
   const priv = money(flyInstant(room));
@@ -200,82 +233,105 @@ const flyQr = url => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&m
    A WIDGET RENDERS INTO ITS OWN BOX rather than opening over the app, which is what every other
    tool here does and what makes the section coherent. The markup is unchanged; only where it lands
    is different. */
-function initFlyer() {
-  const wrap = $('fm-wrap');
-  if (!wrap) return;
+/* ---------- THE CONTROLS, WHICH NOW LIVE SOMEWHERE ELSE -------------------------------------------
+   THIS WAS `initFlyer`, AND IT BUILT A WHOLE SECOND TOOL. The flyer maker had its own page, its own
+   sheet, its own print button and these controls; the paper maker has all four of those already and
+   places a flyer as one piece among fifty-eight. Two tools that both cut A4 is one tool and a
+   duplicate.
+
+   IT HAD TO GO RATHER THAN SIT BESIDE IT. Every control here has an id — `fm-c`, `fm-k1`, `fm-h` —
+   and pages are now built five ahead, so the flyer page and the paper maker page are in the
+   document AT THE SAME TIME. Two elements with one id is not a style problem: `$('fm-h')` returns
+   the first one in the document, so the paper maker would have read the hours off a page nobody
+   was looking at. `check-css` sweeps for exactly this.
+
+   WHAT IS LEFT IS THE MARKUP AND THE BINDING, called by whoever is hosting the flyer. */
+function flyControls() {
   const B = flyBrand();
   const venues = (DATA.venues || []).filter(v => v.title);
-  const opt = (v, sel) => `<option value="${esc(v[1])}"${sel ? ' selected' : ''}>${esc(v[0])}</option>`;
   const list = venues.map(v => [v.title, Number(v.bestRate) || 0]);
   if (!list.length) list.push([B.venueMain, 15]);
+  const opt = (v, sel) => `<option value="${esc(v[1])}"${sel ? ' selected' : ''}>${esc(v[0])}</option>`;
 
-  wrap.innerHTML = `
-    <div class="fm">
-      <div class="fm-bar">
-        <label>Campaign<select id="fm-c">${FLY_ROWS
-          .map((r, i) => `<option value="${i}">${esc(r[0])}</option>`).join('')}</select></label>
-        <label>Style<select id="fm-s">${FLY_STYLES
-          .map(s => `<option>${s}</option>`).join('')}</select></label>
-        <label>Ink<input type="color" id="fm-k1"></label>
-        <label>Accent<input type="color" id="fm-k2"></label>
-        <label>Paper<input type="color" id="fm-k3"></label>
-      </div>
-      <div class="fm-bar">
-        <label>Advertising<select id="fm-ad">
-          <option value="wait">Waiting list classes</option>
-          <option value="inst">Instant classes</option>
-          <option value="both">Both</option>
-          <option value="none">Neither</option></select></label>
-        <label>Venue<select id="fm-v">${list
-          .map(v => opt(v, norm(v[0]) === norm(B.venueMain))).join('')}</select></label>
-        <label>Hours<select id="fm-h">
-          <option>1</option><option>1.5</option><option selected>2</option>
-          <option>2.5</option><option>3</option></select></label>
-        <label>To a class<select id="fm-n">
-          <option>2</option><option>3</option><option selected>4</option>
-          <option>5</option><option>6</option></select></label>
-        <label>Size<select id="fm-z">
-          <option value="a5">A5 · 2 up</option>
-          <option value="a6">A6 · 4 up</option>
-          <option value="sq">Sticker · 9 up</option></select></label>
-      </div>
-      <div class="fm-adds">
-        ${[['fm-code', 'Header', 1], ['fm-name', 'Name', 1], ['fm-head', 'Headline', 1],
-           ['fm-slogan', 'Slogan', 1], ['fm-say', 'Paragraph', 1], ['fm-facts', 'Facts', 1],
-           ['fm-price', 'Price', 1], ['fm-phone', 'Phone', 0], ['fm-foot', 'Address', 1],
-           ['fm-qr', 'QR', 0]]
-          .map(([id, lab, on]) => `<label><input type="checkbox" id="${id}"${
-            on ? ' checked' : ''}> ${lab}</label>`).join('')}
-        <span class="fm-sep"></span>
-        ${['flyer', 'sticker', 'poster'].map(p =>
-          `<button class="fm-pre" data-do="fm-preset" data-p="${p}">${p}</button>`).join('')}
-      </div>
-      <p class="faint" style="margin:.4rem 0 .6rem">Ink is what it is set in · Accent marks the one
-        thing to look at · Paper is the ground. Wording comes from the <b>brand</b> tab.</p>
-      <button class="btn" data-do="fm-print">Print</button>
-      <div class="fm-out" id="fm-out"></div>
-    </div>`;
+  return `
+    <div class="fm-bar">
+      <label>Campaign<select id="fm-c">${FLY_ROWS
+        .map((r, i) => `<option value="${i}">${esc(r[0])}</option>`).join('')}</select></label>
+      <label>Style<select id="fm-s">${FLY_STYLES
+        .map(s => `<option>${s}</option>`).join('')}</select></label>
+      <label>Ink<input type="color" id="fm-k1"></label>
+      <label>Accent<input type="color" id="fm-k2"></label>
+      <label>Paper<input type="color" id="fm-k3"></label>
+    </div>
+    <div class="fm-bar">
+      <label>Advertising<select id="fm-ad">
+        <option value="wait">Waiting list classes</option>
+        <option value="inst">Instant classes</option>
+        <option value="both">Both</option>
+        <option value="none">Neither</option></select></label>
+      <label>Venue<select id="fm-v">${list
+        .map(v => opt(v, norm(v[0]) === norm(B.venueMain))).join('')}</select></label>
+      <label>Hours<select id="fm-h">
+        <option>1</option><option>1.5</option><option selected>2</option>
+        <option>2.5</option><option>3</option></select></label>
+      <label>To a class<select id="fm-n">
+        <option>2</option><option>3</option><option selected>4</option>
+        <option>5</option><option>6</option></select></label>
+      <label>Size<select id="fm-z">
+        <option value="a5">A5 · half a page</option>
+        <option value="a6">A6 · a quarter</option>
+        <option value="sq">Sticker</option></select></label>
+      ${/* HOW MANY OF IT. One flyer on a mixed sheet, or the sheet filled with the same one to be
+            guillotined — which is what the old tool's "2 up / 4 up / 9 up" was, kept as a choice
+            rather than as three sizes that each secretly meant a count. */''}
+      <label>How many<select id="fm-rep">
+        <option value="1">One</option>
+        <option value="fill">Fill the sheet</option></select></label>
+    </div>
+    <div class="fm-adds">
+      ${[['fm-code', 'Header', 1], ['fm-name', 'Name', 1], ['fm-head', 'Headline', 1],
+         ['fm-slogan', 'Slogan', 1], ['fm-say', 'Paragraph', 1], ['fm-facts', 'Facts', 1],
+         ['fm-price', 'Price', 1], ['fm-phone', 'Phone', 0], ['fm-foot', 'Address', 1],
+         ['fm-qr', 'QR', 0]]
+        .map(([id, lab, on]) => `<label><input type="checkbox" id="${id}"${
+          on ? ' checked' : ''}> ${lab}</label>`).join('')}
+      <span class="fm-sep"></span>
+      ${['flyer', 'sticker', 'poster'].map(p =>
+        `<button class="fm-pre" data-do="fm-preset" data-p="${p}">${p}</button>`).join('')}
+    </div>
+    <p class="faint" style="margin:.4rem 0 .6rem">Ink is what it is set in · Accent marks the one
+      thing to look at · Paper is the ground. Wording comes from the <b>brand</b> tab.</p>`;
+}
 
-  /* EVERY CONTROL REDRAWS. Collected from the markup rather than listed, so adding a switch is
-     adding a checkbox and nothing else — a list kept in two places is a list that drifts. */
-  const box = document.querySelector('.fm');
-  if (!box) return;
-  box.querySelectorAll('select, input').forEach(el => {
+/* EVERY CONTROL REDRAWS. Collected from the markup rather than listed, so adding a switch is adding
+   a checkbox and nothing else — a list kept in two places is a list that drifts.
+   `redraw` IS PASSED IN because the flyer no longer owns the paper it is drawn on. */
+function flyBind(scope, redraw) {
+  if (!scope) return;
+  scope.querySelectorAll('select, input').forEach(el => {
     el[el.type === 'color' ? 'oninput' : 'onchange'] = () => {
       if (el.id === 'fm-c') flyLoad();
       if (el.id === 'fm-s') FLY_ROWS[FLY_AT][1] = el.value;
       if (el.id === 'fm-k1') FLY_ROWS[FLY_AT][2] = el.value;
       if (el.id === 'fm-k2') FLY_ROWS[FLY_AT][3] = el.value;
       if (el.id === 'fm-k3') FLY_ROWS[FLY_AT][4] = el.value;
-      flyDraw();
+      redraw();
     };
   });
   flyLoad();
-  flyDraw();
+  redraw();
 }
 
-/* CHOOSING A CAMPAIGN LOADS ITS WHOLE RECIPE — style and colours too — so it is a starting point
-   rather than one more thing to set. Departing from it afterwards is the point of a preset. */
+/* CHOOSING A CAMPAIGN SETS EVERY OPTION AND THEN GETS OUT OF THE WAY. It set the style and the
+   three colours and stopped there, which meant "Better Call Halex" arrived as the right colours
+   round the wrong flyer — a shouting yellow poster still carrying a header code and a paragraph,
+   because those were whatever the last campaign had left ticked. A recipe that sets four of eleven
+   things is not a recipe.
+   THE EIGHTH COLUMN IS THE REST OF IT: which blocks that campaign wants. Applied to the tickboxes
+   exactly as the shape presets below do it, so there is one idea here and not two — a campaign is
+   a preset that also brings colours.
+   IT OVERWRITES WHAT YOU HAD TICKED, and that is the point: pressing a preset is asking for its
+   look. Departing from it afterwards is the next thing you do, and nothing here stops you. */
 function flyLoad() {
   FLY_AT = Number(($('fm-c') || {}).value) || 0;
   const r = FLY_ROWS[FLY_AT];
@@ -283,34 +339,23 @@ function flyLoad() {
   if ($('fm-k1')) $('fm-k1').value = r[2];
   if ($('fm-k2')) $('fm-k2').value = r[3];
   if ($('fm-k3')) $('fm-k3').value = r[4];
+  flyTicks(r[7]);
 }
 
-function flyDraw() {
-  const out = $('fm-out');
-  if (!out) return;
-  const z = ($('fm-z') || {}).value || 'a5';
-  const size = FLY_PER[z] || FLY_PER.a5;
-  out.innerHTML = `<div class="fm-sheet ${size.cls}">`
-    + flyOne(FLY_ROWS[FLY_AT]).repeat(size.per) + '</div>';
-  flyFit();
+/* THE TICKBOXES, FROM A LIST OF NAMES. Written as `head slogan qr` rather than as `fm-head` and the
+   rest, because the eleven campaign rows are read by a person far more often than by this. */
+function flyTicks(list) {
+  if (!list) return;
+  const want = String(list).split(/\s+/).filter(Boolean).map(x => 'fm-' + x);
+  Object.keys(FLY_DEFAULT).forEach(id => {
+    const el = $(id);
+    if (el) el.checked = want.indexOf(id) !== -1;
+  });
 }
 
-/* ---------- THE PAPER IS SCALED TO FIT THE SCREEN ------------------------------------------------
-   A4 IS 210MM AND A PHONE IS NOT. Scaled down to whatever the sheet is wide, so what you see is the
-   SHAPE of the page rather than a phone-sized guess at it — and reset to 1 for printing, where the
-   paper really is 210mm. Measured rather than assumed, because the sheet width changes with the
-   screen and a hard-coded factor would be right on one device. */
-function flyFit() {
-  const out = $('fm-out'), sheet = out && out.firstElementChild;
-  if (!sheet) return;
-  const room = out.clientWidth || 320;
-  const paper = 210 * 3.7795;                     /* mm to px at 96dpi */
-  const k = Math.min(1, room / paper);
-  sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
-  /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full height, so without this
-     the sheet sits in a column of empty space taller than the phone. */
-  out.style.height = (297 * 3.7795 * k) + 'px';
-}
+/* `flyDraw` AND `flyFit` ARE GONE. They drew a second A4 sheet and scaled it to the screen — which
+   is what `matPaint` and `matFit` do, measured against the same 262mm and shown by the same gauge.
+   Keeping both would have been two answers to "how big is the paper", and they would have drifted. */
 
 /* ---------- PRESETS, WHICH ONLY TICK BOXES -------------------------------------------------------
    A sticker is not a mode — it is most of the switches off and a smaller size, and you can watch it
@@ -328,28 +373,14 @@ on('fm-preset', el => {
   document.querySelectorAll('.fm-adds input[type=checkbox]')
     .forEach(x => { x.checked = p.on.indexOf(x.id) !== -1; });
   if ($('fm-z')) $('fm-z').value = p.z;
-  flyDraw();
+  /* THE HOST REDRAWS, not this. The flyer is a piece on somebody else's paper now. */
+  if (typeof matPaint === 'function') matPaint();
 });
 
-/* ---------- PRINTING ------------------------------------------------------------------------------
-   THE BROWSER PRINTS THE WHOLE DOCUMENT, so without the `@media print` rules in the stylesheet this
-   would put the column, the tab bar and the sheet's own chrome on the paper. The class is set here
-   rather than left on, so a print started from anywhere else in the app is unaffected. */
-on('fm-print', () => {
-  const sheet = document.querySelector('.fm-out .fm-sheet');
-  if (sheet) sheet.style.transform = 'scale(1)';   /* full size on paper */
-  document.body.classList.add('printing-fly');
-  const done = () => {
-    document.body.classList.remove('printing-fly');
-    flyFit();
-    window.removeEventListener('afterprint', done);
-  };
-  window.addEventListener('afterprint', done);
-  /* AND A TIMER AS WELL AS THE EVENT. Some browsers never fire `afterprint` when the dialogue is
-     cancelled, and the app would be left in printing mode with everything hidden — a blank screen
-     that looks like a crash. */
-  setTimeout(done, 4000);
-  window.print();
-});
+/* THE PRINT HANDLER AND THE RESIZE HOOK ARE GONE TOO. `mat-print` prints the paper, from a copy
+   lifted out of the app column, and `matFit` answers the resize — one path to paper for everything
+   this app puts on paper. `printing-fly` and the `.fm-out` rules in the stylesheet went with them.
 
-window.addEventListener('resize', () => { if ($('fm-out')) flyFit(); });
+   WHAT SURVIVES OF THIS FILE is the part that was always the interesting bit: the campaigns, the
+   sum that prices a seat, the brand read, and `flyOne` — which draws one flyer and does not care
+   what it is drawn onto. */

@@ -992,10 +992,19 @@ function initFlappy() {
      store would put the bird three times too far right on a phone. */
   const W = Number(canvas.dataset.w) || canvas.width;
   const H = Number(canvas.dataset.h) || canvas.height;
-  const GOLD = '#d4af37', GREEN = '#3cb043';
-  /* SKY. The game was drawn on the app's own black, which is right for a terminal and wrong for a
-     bird — the one thing everybody knows about this game is that it happens in the air. */
-  const SKY = '#7ec8f2', SKY_LOW = '#bfe6ff';
+  /* ---------- FOUR COLOURS, WHICH IS WHAT MAKES IT A HANDHELD ------------------------------------
+     THE SHELL WAS NEVER THE THING. A grey plastic case round a sky-blue game is fancy dress; the
+     screen is what anybody actually recognises, and that screen could only ever show four shades of
+     the same olive green — the panel had two bits per pixel and no backlight, so everything drawn
+     on it, sky and bird and score alike, came out of these four.
+     WHICH IS ALSO WHY IT SUITS THIS APP. A blue gradient was the brightest thing on a black screen;
+     an olive LCD is dim by nature and sits beside a terminal without shouting. */
+  const LCD = {
+    off:  '#9bbc0f',   // the panel with nothing on it — the lightest a pixel gets
+    pale: '#8bac0f',   // one shade down, for the ground and the edges
+    mid:  '#306230',   // pipes
+    ink:  '#0f380f',   // the bird, the score, anything that must read as ON
+  };
 
   // reset any previous loop
   if (flappyState?.raf) cancelAnimationFrame(flappyState.raf);
@@ -1080,37 +1089,69 @@ function initFlappy() {
     if (S.bird.y + S.bird.r > H || S.bird.y - S.bird.r < 0) return gameOver();
     // draw
     sky();
-    ctx.fillStyle = GREEN;
-    S.pipes.forEach(p => { ctx.fillRect(p.x, 0, PIPE_W, p.top); ctx.fillRect(p.x, p.top+GAP, PIPE_W, H-p.top-GAP); });
+    /* PIPES IN THE MID SHADE, with a darker lip at the mouth of each. A flat rectangle is a block;
+       a block with a rim is a pipe, and a rim is the only detail four colours will pay for. */
+    S.pipes.forEach(p => {
+      ctx.fillStyle = LCD.mid;
+      ctx.fillRect(p.x, 0, PIPE_W, p.top);
+      ctx.fillRect(p.x, p.top + GAP, PIPE_W, H - p.top - GAP);
+      ctx.fillStyle = LCD.ink;
+      const lip = Math.max(3, PIPE_W * 0.12);
+      ctx.fillRect(p.x, p.top - lip, PIPE_W, lip);
+      ctx.fillRect(p.x, p.top + GAP, PIPE_W, lip);
+    });
     bird();
+    hud();
     S.raf = requestAnimationFrame(loop);
   };
 
-  /* SKY, painted rather than cleared. `clearRect` leaves the canvas transparent and the app's own
-     black shows through — which is what made this a bird in a cave. Lighter towards the horizon,
-     because that is what a sky does and two flat colours would read as a stripe. */
+  /* THE PANEL, painted rather than cleared — `clearRect` leaves the canvas transparent and the app's
+     black shows through, which is what once made this a bird in a cave.
+     FLAT, NOT A GRADIENT. The gradient was right for a sky and is wrong for this: an LCD cannot
+     shade, and a graded background is the one detail that would give the whole thing away. */
   function sky() {
-    const g2 = ctx.createLinearGradient(0, 0, 0, H);
-    g2.addColorStop(0, SKY);
-    g2.addColorStop(1, SKY_LOW);
-    ctx.fillStyle = g2;
+    ctx.fillStyle = LCD.off;
     ctx.fillRect(0, 0, W, H);
+    /* A band of the next shade down along the foot — the ground. Two shades is all it takes to say
+       which way is down, and it is the only depth cue a four-colour panel can give. */
+    ctx.fillStyle = LCD.pale;
+    ctx.fillRect(0, H - Math.max(6, H * 0.03), W, H);
+  }
+
+  /* THE SCORE, ON THE SCREEN. It was two rows underneath in the app's own settings styling, which is
+     the detail that made the case look like a costume: no handheld has ever kept its score on a
+     shelf beside itself.
+     THE BEST COMES OUT OF THE ROW THAT ALREADY HOLDS IT rather than a second variable — that row is
+     written by the code that decides what a best is, and two places holding one number is the pair
+     that disagrees. */
+  function hud() {
+    const px = Math.max(9, Math.round(W / 22));
+    ctx.font = `700 ${px}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    ctx.fillStyle = LCD.ink;
+    ctx.textAlign = 'left';
+    ctx.fillText(String(S.score), px * 0.8, px * 1.8);
+    const best = ($('flappy-best') || {}).textContent || '0';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = LCD.mid;
+    ctx.fillText('BEST ' + best, W - px * 0.8, px * 1.8);
   }
 
   /* THE BIRD, and it is round. `arc` always draws a circle in canvas coordinates — the egg was the
      canvas being stretched, not the shape being wrong — so this is the same call it always was,
      now that the box and the backing store agree. */
   function bird() {
-    ctx.fillStyle = GOLD;
+    ctx.fillStyle = LCD.ink;
     ctx.beginPath();
     ctx.arc(S.bird.x, S.bird.y, S.bird.r, 0, Math.PI * 2);
     ctx.fill();
-    /* An eye and a beak: three primitives, and the difference between a bird and a dot. */
-    ctx.fillStyle = '#2b2620';
+    /* An eye and a beak: three primitives, and the difference between a bird and a dot. The eye is
+       the PANEL colour rather than a colour of its own — on a screen with four shades you make a
+       highlight by switching a pixel off, not by finding a lighter ink. */
+    ctx.fillStyle = LCD.off;
     ctx.beginPath();
     ctx.arc(S.bird.x + S.bird.r * 0.35, S.bird.y - S.bird.r * 0.3, S.bird.r * 0.16, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#e8862b';
+    ctx.fillStyle = LCD.mid;
     ctx.beginPath();
     ctx.moveTo(S.bird.x + S.bird.r * 0.8, S.bird.y);
     ctx.lineTo(S.bird.x + S.bird.r * 1.5, S.bird.y + S.bird.r * 0.18);
@@ -1119,9 +1160,10 @@ function initFlappy() {
     ctx.fill();
   }
 
-  // idle draw (bird sitting)
+  // idle draw (bird sitting) — with the score, so the panel never shows a blank corner
   sky();
   bird();
+  hud();
 
   canvas.onclick = flap;
   // space/arrow to flap (only when arcade canvas exists)

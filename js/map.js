@@ -1010,27 +1010,26 @@ const WIDGETS = [
       ).join('')}
     </div>
   </div>` },
-  /* THE FLYER MAKER. `admin: true` — it prices your classes and prints your advertising, and a
-     family finding it in Tools would be finding the inside of the business.
-     It was a card on the You screen, which worked and put a making-things tool in a column of
-     settings. Tools is where it belongs, and the role flag is what makes that safe. */
-  { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
-    start: () => initFlyer?.(),
-    into: 'fm-wrap', what: 'The flyer',
-    html: `<div class="card">
-    <h3>Make a flyer</h3>
-    <p class="sub">Campaign, style, colours and size. Two to a sheet, or nine stickers. Prices come
-      from the venue you pick.</p>
-    <div id="fm-wrap"></div>
-  </div>` },
+  /* THE FLYER MAKER IS THE CHEAT SHEET MAKER NOW. It was a widget of its own here — its own page,
+     its own A4 sheet, its own print button — and the paper maker below already had every one of
+     those. A flyer is a piece you tick, at whichever size, on the same sheet as everything else,
+     so what is left of `flyer.js` is the flyer itself and the sum that prices a seat.
+     `admin` MOVED WITH IT rather than being dropped: the controls price your classes and print
+     your advertising, so they appear on the paper maker for an admin and for nobody else. */
 
-  /* THE MATHS MAT. A tool rather than a game, and `solid` like the others in this section, so it
-     is listed and searchable with everything else — somebody typing "protractor" finds it, which
-     is how it ought to be found and never would be from a menu. */
-  { id: 'mat', kind: 'tool', name: 'Maths mat', solid: true, start: () => initMat?.(),
-    into: 'mat-box', what: 'The mat',
+  /* THE CHEAT SHEET MAKER. A tool rather than a game, and `solid` like the others in this section,
+     so it is listed and searchable with everything else.
+     IT WAS "Maths mat", which is what a tutor calls it and not what a student searching for one
+     would type. The id stays `mat` — it is written into `mat-box`, into every `mat-` handler and
+     into the checkers, and an id is a wire rather than a label.
+     SEARCH MATCHES THE NAME AND NOTHING ELSE for a widget (`find.js` gives them an empty `sub`),
+     so the old word has to be IN the name or it stops being findable — which is why this reads
+     "maths mat" at the end rather than dropping it. */
+  { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
+    start: () => initMat?.(),
+    into: 'mat-box', what: 'The cheat sheet',
     html: `<div class="card">
-    <h3>Maths mat</h3>
+    <h3>Cheat sheet maker</h3>
     <p class="sub">One sheet of A4. Tick what goes on it — the ruler down the edge and the
       protractor print at true size.</p>
     <div id="mat-box"></div>

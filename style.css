@@ -782,7 +782,15 @@ a { color: inherit; text-decoration: none; }
 .post-body a, .msg-body a, .note a { color: var(--gold); text-decoration: underline; }
 
 /* ---------- THE FEED ---------------------------------------------------------------------------- */
-.feed { position: relative; aspect-ratio: 4/5; border-radius: var(--r-sm); overflow: hidden;
+/* THE SHAPE OF A REEL, not of a thumbnail. This was 4/5 — a box a fifth taller than it is wide,
+   which on a page of its own reads as a small picture somebody put in the middle of an empty card
+   rather than as the thing the page is for. 9/16 is the shape every full-bleed card format uses,
+   and it is the one that nearly fills a phone.
+   AN ASPECT RATIO RATHER THAN A STRETCH, deliberately. Making it fill would mean making the pane
+   fill too, and a rule that stretches whatever a page's first card happens to be is exactly what
+   put the credits card over a screenful of nothing — see the note by `.page .card`. A ratio cannot
+   reach anything it was not written for. */
+.feed { position: relative; aspect-ratio: 9/16; border-radius: var(--r-sm); overflow: hidden;
         background: var(--sunk); cursor: pointer; }
 
 /* ---------- THE BOOK TAB, which is a plus ---------------------------------------------------------
@@ -2248,8 +2256,17 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    3/2 — a landscape letterbox for a game that is entirely vertical. */
 .widget-full .flappy { flex: 0 0 auto; margin: auto; width: 100%; min-height: 0; }
 
-/* The picture IS the reel, so it takes everything going. */
-.widget-full .feed { flex: 1 1 auto; aspect-ratio: auto; min-height: 0; }
+/* THE REEL STATES ITS OWN SIZE, like the board and the game either side of it. This said
+   `flex: 1 1 auto; aspect-ratio: auto` — take everything going, and never mind the ratio — which
+   was right when a widget WAS the page and the card stretched to the screen. That stretch is gone
+   (see the note by `.widget-full > .card`), so what was left was a box told to fill a parent that
+   no longer grows, with its ratio removed: nothing to give it height. And EVERY part of a reel is
+   absolutely positioned inside it, so the contents could not give it height either. The card ended
+   at the sub-heading and the reel was a nought-pixel strip under it.
+   THE RATIO IS THE HEIGHT NOW, 9/16 from the base rule, exactly as the board is square from its own
+   width. `max-height` is the one thing a ratio cannot know: a 9/16 box off a full-width card is
+   taller than a short phone, and the pane behind a widget clips rather than scrolls. */
+.widget-full .feed { flex: 0 0 auto; max-height: 60vh; }
 
 /* The sprint is short, so it centres rather than stretching — nothing here is better for being
    taller. */
@@ -2493,46 +2510,77 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .widget-full:has(.cal-head) .cal-arrow { color: #6a6259; }
 
 /* ---------- THE HANDHELD ------------------------------------------------------------------------
-   Flappy in a case, because a bare blue rectangle is a canvas and a canvas in a shell is a GAME.
+   A DARK SHELL, NOT A CREAM ONE. The first attempt was warm grey plastic, and it was the brightest
+   object in a black app — a toy sitting on a terminal. The console this is quoting was sold in
+   charcoal too, and charcoal is the version of it that belongs here: the same object, in the room
+   it is actually in.
 
-   TALLER, which is the point of the shell as much as the look: the screen was 3:2 — a landscape
-   letterbox — and the whole of that game is vertical. A bird has nowhere to fall in a letterbox.
-   4:5 gives it room, and the case gives the extra height somewhere to belong.
+   THE CUES ARE SMALL AND THERE ARE FOUR. A bezel much darker than the screen and much bigger below
+   it than above; a power light to the left; a line of tiny type under the panel; a raked speaker
+   grille at the foot. Every one of those is on the real thing, none of them is a control that does
+   nothing, and together they are about thirty lines. The plastic case was twice that and read as
+   fancy dress, because it was ALL case: a shell round a sky-blue game is a costume, while a shell
+   round an olive panel is the object itself.
+
+   WHAT DOES THE MOST WORK IS NOT HERE AT ALL. It is the four-shade palette in `initFlappy` — see
+   `LCD` there. The screen is what anybody recognises. This is the part you hold.
 --------------------------------------------------------------------------------------------- */
 .widget-full:has(.flappy) > .card {
-  /* The case: a warm grey plastic, rounded hard at the bottom the way a handheld is, with the
-     highlight of a moulded edge along the top. */
-  background: linear-gradient(#c9c6bd, #b6b2a8);
-  border: 0;
-  border-radius: 12px 12px 34px 12px;
-  padding: .9rem .9rem 2.4rem;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .55), 0 16px 36px rgb(0 0 0 / .55);
+  /* TWO LAYERS: the raked speaker grille at the foot, then the shell itself. Six lines at 115deg,
+     dark on dark — visible when you look for it and not before, which is how it is on the object.
+     A background rather than an element, because it is a marking and not a thing. */
+  background:
+    repeating-linear-gradient(115deg, #35352f 0 2px, transparent 2px 7px)
+      bottom .95rem right 1.05rem / 44px 26px no-repeat,
+    linear-gradient(#2a2a28, #1d1d1b);
+  border: 1px solid #34342f;
+  /* Square at three corners and turned at the fourth, which is the shape of the thing. Softer than
+     the first attempt — 34px was a cartoon of it. */
+  border-radius: 10px 10px 22px 10px;
+  padding: .85rem .85rem 2.6rem;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .06), 0 14px 30px rgb(0 0 0 / .5);
   position: relative;
 }
-.widget-full:has(.flappy) h3 { color: #3a372f; margin: 0 0 .1rem; font-size: .9rem; }
-.widget-full:has(.flappy) .sub { color: #6a665c; font-size: .7rem; margin: 0 0 .6rem; }
-/* THE SCREEN, recessed into the case — a dark bezel with the picture inside it, which is what
-   makes a screen look like a screen rather than a sticker. */
-.widget-full:has(.flappy) .flappy,
-.widget-full .flappy {
-  aspect-ratio: 4/5;
-  /* THE SCREEN IS CAPPED, NOT THE CASE. The case is the card, and every card is the same size — so
-     the handheld keeps its proportions by holding its own screen to a width inside a card that is
-     the same width as all the others. */
-  width: 100%; max-width: 15rem; margin-inline: auto;
-  border-radius: 3px;
-  border: 5px solid #4a4740;
-  box-shadow: inset 0 2px 6px rgb(0 0 0 / .45);
+.widget-full:has(.flappy) h3 { color: #cfcabb; margin: 0 0 .1rem; font-size: .9rem; }
+.widget-full:has(.flappy) .sub { color: #7d786c; font-size: .7rem; margin: 0 0 .7rem; }
+
+/* THE BEZEL, which is most of what says "screen". Deeper at the foot than at the head, because on
+   the real panel it is — and that asymmetry is the detail the eye reads without naming. */
+.widget-full:has(.flappy) .flappy {
+  display: block;
+  background: #12130f;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: 0 0 0 .55rem #12130f, 0 0 0 calc(.55rem + 1px) #0a0a08,
+              inset 0 2px 8px rgb(0 0 0 / .5);
+  margin-bottom: .55rem;
 }
-/* The maker's mark along the bottom of the case, where every handheld has one. */
+/* THE POWER LIGHT, left of the panel where it has always been. Not centred, not a row of them. */
+.widget-full:has(.flappy) > .card::before {
+  content: '';
+  position: absolute; left: 1.45rem; top: 50%;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #d0453a;
+  box-shadow: 0 0 6px rgb(208 69 58 / .55);
+}
+/* THE LINE OF TINY TYPE under the panel, and the maker's mark. One line, not two, and set in the
+   app's own mono so it reads as belonging to this app rather than to the one it is quoting. */
 .widget-full:has(.flappy) > .card::after {
-  content: '@family.';
-  position: absolute; left: 0; right: 0; bottom: .8rem;
+  content: 'DOT MATRIX  ·  @family.';
+  position: absolute; left: 0; right: 0; bottom: 1.5rem;
   text-align: center;
   font-family: var(--mono);
-  font-size: .6rem; letter-spacing: .18em;
-  color: #7d7a70;
+  font-size: .52rem; letter-spacing: .22em;
+  color: #57544c;
 }
+/* THE SPEAKER, raked. Six lines at an angle, dark on dark — visible when you look for it and not
+   before, which is how it is on the object. */
+.widget-full:has(.flappy) .note { color: #8a8578; }
+/* `rowLive` DRAWS `.row` WITH `.k` AND `.v` — the score rows are the app's ordinary rows, so they
+   are toned to the shell rather than restyled into something else. */
+.widget-full:has(.flappy) .row { border-color: #34342f; }
+.widget-full:has(.flappy) .row .k { color: #7d786c; }
+.widget-full:has(.flappy) .row .v { color: #cfcabb; }
 
 /* ---------- AND NOTHING MAY BE UNBOUNDED --------------------------------------------------------
    A widget that draws itself — a canvas, a board, a map — has no size until it has drawn, so a pane
@@ -2967,7 +3015,7 @@ textarea, select, [data-noswipe],
 #splash-odds, #splash-tri, #splash-sine, #splash-area, #splash-sieve, #splash-half,
 #splash-ang, #splash-bin, #splash-pas, #splash-fib, #splash-gal,
 #splash-bal, #splash-sort, #splash-times, #splash-prot, #splash-coin, #splash-mult,
-#splash-breathe, #splash-rain, #splash-weave, #splash-pend,
+#splash-breathe, #splash-rain, #splash-pend,
 #splash-nline, #splash-venn, #splash-clock { display: none; }
 #splash.is-led   #splash-led   { display: block; }
 /* `grid`, not `block` — the two copies of the word sit in one grid cell so they are on top of each
@@ -3743,9 +3791,17 @@ textarea, select, [data-noswipe],
    anything you can follow has been underlined since the first web page.
 
    Dotted rather than solid: solid is a link to somewhere else, dotted is a thing that acts here.
-   That is a distinction people read without being taught it. */
-span[data-do]:not(.act):not(.chip):not(.react),
-.text-action, .text-drop, .post-edit {
+   That is a distinction people read without being taught it.
+
+   NOT ON A GLYPH, THOUGH, AND `⋯` IS WHY. This underlines WORDS — a dotted line under a word reads
+   as an invitation because the word is above it and the line is not part of it. Under a row of
+   three dots it reads as three more dots, slightly lower and slightly apart: the control looked
+   duplicated, as though it had been drawn twice and misaligned. It was matched twice over, by the
+   `span[data-do]` rule and by name, so both had to say no.
+   ANY SINGLE-GLYPH CONTROL WOULD HAVE THE SAME PROBLEM. A chevron, an arrow, a cross — an
+   underline under a mark that small is not an affordance, it is a second mark. */
+span[data-do]:not(.act):not(.chip):not(.react):not(.post-edit):not(.map-arrow):not(.cal-arrow),
+.text-action, .text-drop {
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
@@ -5160,6 +5216,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .fm-z-a6 { grid-template: 148.5mm 148.5mm / 105mm 105mm; }
 .fm-z-sq { grid-template: repeat(3, 99mm) / repeat(3, 70mm); }
 
+/* ---------- THE ONE PLACE A BACKGROUND MUST SURVIVE THE PRINTER ----------------------------------
+   EVERYWHERE ELSE ON THIS SHEET A FILL WAS REMOVED, because a browser drops backgrounds when it
+   prints and a mark that only exists on screen is a mark that lies. A flyer is the exception and
+   the opposite: the ground colour IS the flyer. Dropped, a loud one prints as pale ink on white
+   paper — which is not a plainer flyer, it is an unreadable one.
+   SO IT IS ASKED FOR EXPLICITLY, on the flyer and nothing else. It inherits, so the rule, the QR
+   panel and anything else inside come with it, and no cheat sheet component is affected. This costs
+   ink on purpose and only when a flyer is on the paper. */
+.fm-fly { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .fm-fly { padding: 16mm; display: flex; flex-direction: column; position: relative;
           overflow: hidden; background: var(--fly-ground); color: var(--fly-ink);
           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -5311,6 +5376,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                   border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .5rem;
                   cursor: pointer; }
 .mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+/* THE HEADING SPANS THE WHOLE PICKER. The list is an auto-fit grid, so without `grid-column: 1/-1`
+   a heading takes one cell and sits in the middle of a row of tickboxes as though it were one. */
+.mat-kind { grid-column: 1 / -1; margin: .5rem 0 0; font-size: .62rem; letter-spacing: .12em;
+            text-transform: uppercase; color: var(--faint); font-weight: 700; }
+.mat-kind:first-child { margin-top: 0; }
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
             gap: .1rem .6rem; margin-bottom: .5rem; }
 .mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 2rem;
@@ -5346,8 +5416,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE RULER AT THE EDGE, because that is where a ruler is used — you lay the paper against the
    thing you are measuring, and one in the middle of a sheet cannot reach anything. */
 .mat-rule { position: absolute; left: 0; top: 6mm; bottom: 5mm; width: 20mm;
-            border-right: .3mm solid #bbb; }
-.mat-rule i { position: absolute; left: 0; height: .25mm; background: #14140f; }
+            border-right: .3mm solid #c9c3b2; }
+/* ---------- A LINE ON PAPER IS A BORDER, NEVER A BACKGROUND --------------------------------------
+   THE RULER'S TICKS WERE FILLED DIVS, and a browser drops background fills when it prints. So the
+   one component whose whole job is to be measured against printed as twenty-eight numbers down the
+   edge of an empty margin — every tick gone, and nothing on the screen to say so, because on the
+   screen they are there.
+   A BORDER PRINTS. It is the same hairline, the same colour, the same place; the box is flattened
+   to nothing and the border is the mark. Same for the number line below, which is a rule and two
+   sets of ticks and would otherwise have printed as a row of fractions floating in white. */
+.mat-rule i { position: absolute; left: 0; height: 0; border-top: .25mm solid #14140f; }
 .mat-rule b { position: absolute; left: 8mm; font: 700 3.4mm/1 var(--mono);
               transform: translateY(-1.7mm); }
 .mat-head { display: flex; justify-content: space-between; align-items: baseline;
@@ -5357,41 +5435,75 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-cols { display: flex; flex-direction: column; gap: 2.8mm; }
 .mat-two-up { display: flex; gap: 4mm; }
 .mat-two-up > * { flex: 1; min-width: 0; }
-.mat-box h4 { margin: 0 0 1.2mm; font: 700 3.2mm/1 var(--mono); letter-spacing: .1em;
+/* WHERE ONE COMPONENT ENDS AND THE NEXT BEGINS — a hairline ABOVE the block, not under its heading.
+   Under the heading it separated a heading from its own content, which is the one boundary that did
+   not need marking; the boundary that did was invisible, and 2.8mm of gap between two blocks of
+   dense small type is not enough to find it.
+
+   ABOVE, IT COSTS NO HEIGHT, because it replaces the rule that was already there. On a 262mm budget
+   that matters more than it sounds: space is the obvious separator and the one thing this sheet
+   cannot spend.
+
+   IT ALSO LINES UP ACROSS A PAIR. Two half-width blocks side by side each take the rule at the same
+   height, so it reads as one line drawn across the sheet rather than as two decorations.
+
+   NOT ON THE FIRST ONE, which already has the heavy rule under the title above it. Two lines 2mm
+   apart is a mistake that looks deliberate. */
+.mat-box { border-top: .25mm solid #d8d2c2; padding-top: 1.6mm; }
+.mat-cols > .mat-box:first-child,
+.mat-cols > :first-child .mat-box { border-top: 0; padding-top: 0; }
+.mat-box h4 { margin: 0 0 1.4mm; font: 700 2.9mm/1 var(--mono); letter-spacing: .12em;
               text-transform: uppercase; color: #77776c; }
 .mat-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline;
             border-top: .3mm solid #c9c3b2; padding-top: 1.5mm;
             font: 400 2.7mm/1 var(--mono); color: #77776c; }
 .mat-foot b { color: #14140f; }
 
-/* ---------- THE COMPONENTS ---------------------------------------------------------------------- */
+/* ---------- THE COMPONENTS ----------------------------------------------------------------------
+   NOTHING HERE IS SAID WITH A BACKGROUND. A browser DROPS background fills when it prints — that is
+   the default, everywhere, and it is why the trig header came out as white text on nothing and the
+   shaded columns came out blank. Every fill in these blocks was carrying meaning that only existed
+   on screen.
+
+   SO THE MEANING IS CARRIED BY WEIGHT AND BY RULES, both of which print. It is also the plainer
+   thing to look at: five decorative colours across nine blocks — cream, pale blue, sand, black, red
+   — read as five unrelated ideas, and a reference sheet has one idea. Ink, a grey for what is
+   secondary, and a hairline. */
 .mat-hun { display: grid; grid-template-columns: repeat(10, 1fr); border: .3mm solid #14140f; }
 .mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.9mm/1 inherit;
              border-right: .15mm solid #c9c3b2; border-bottom: .15mm solid #c9c3b2; }
 .mat-hun i:nth-child(10n) { border-right: 0; }
-.mat-hun i.five { background: #f0efe6; }
-.mat-hun i.ten { background: #dfe7ef; font-weight: 700; }
+.mat-hun i.five { color: #77776c; }
+.mat-hun i.ten { font-weight: 700; }
 .mat-tt { display: grid; grid-template-columns: repeat(13, 1fr); border: .3mm solid #14140f; }
 .mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.5mm/1 inherit;
             border-right: .15mm solid #c9c3b2; border-bottom: .15mm solid #c9c3b2; }
 .mat-tt i:nth-child(13n) { border-right: 0; }
-.mat-tt i.h { background: #14140f; color: #fff; font-weight: 700; }
-.mat-tt i.sq { background: #f7e6c8; font-weight: 700; }
+.mat-tt i.h { font-weight: 700; }
+/* THE HEADER ROW AND COLUMN, RULED OFF. A heavier line on the thirteenth boundary does the work the
+   black band did, and it is the line a printed table would have had anyway. */
+.mat-tt i:nth-child(-n+13) { border-bottom: .3mm solid #14140f; }
+.mat-tt i:nth-child(13n+1) { border-right: .3mm solid #14140f; }
+/* THE SQUARE NUMBERS DOWN THE DIAGONAL, boxed rather than filled. An outline is drawn on top of the
+   cell instead of inside its border, so it marks the square without moving anything. */
+.mat-tt i.sq { font-weight: 700; outline: .3mm solid #14140f; outline-offset: -.3mm; }
 /* FRACTIONS ABOVE AND DECIMALS BELOW ON ONE LINE, because they are the same thing and showing them
    apart is most of why they stay separate ideas. */
 .mat-nl { position: relative; height: 16mm; }
-.mat-nl::before { content: ""; position: absolute; left: 0; right: 0; top: 8mm; height: .4mm;
-                  background: #14140f; }
-.mat-nl i { position: absolute; top: 4mm; width: .4mm; height: 4mm; background: #14140f; }
+.mat-nl::before { content: ""; position: absolute; left: 0; right: 0; top: 8mm; height: 0;
+                  border-top: .4mm solid #14140f; }
+.mat-nl i { position: absolute; top: 4mm; width: 0; height: 4mm; border-left: .4mm solid #14140f; }
 .mat-nl b { position: absolute; top: 0; font: 700 3.4mm/1 inherit; transform: translateX(-50%); }
-.mat-nl u { position: absolute; top: 8mm; width: .25mm; height: 2.5mm; background: #77776c; }
+.mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid #77776c; }
 .mat-nl s { position: absolute; top: 11.5mm; font: 400 2.6mm/1 var(--mono); color: #77776c;
             text-decoration: none; transform: translateX(-50%); }
 .mat-pv { display: grid; grid-template-columns: repeat(7, 1fr); border: .3mm solid #14140f; }
 .mat-pv i { display: grid; place-items: center; padding: 1.4mm 0;
             border-right: .15mm solid #c9c3b2; }
 .mat-pv i:last-child { border-right: 0; }
-.mat-pv i.dot { background: #f7e6c8; }
+/* THE POINT COLUMN IS RULED ON BOTH SIDES, which is where a decimal point actually sits — between
+   two places — and says it without a colour. */
+.mat-pv i.dot { border-left: .3mm solid #14140f; border-right: .3mm solid #14140f; }
 .mat-pv b { font: 700 3.4mm/1 inherit; }
 .mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: #77776c; margin-top: .6mm; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
@@ -5418,16 +5530,83 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-fdp i { font-style: normal; }
 .mat-fdp b { display: block; font: 700 3.4mm/1.2 inherit; }
 .mat-fdp em { display: block; font: 400 2.2mm/1.3 var(--mono); font-style: normal; color: #77776c; }
-.mat-two { display: grid; grid-template-columns: 1fr 1fr; gap: .6mm 3mm; }
-.mat-two i { font: 400 2.7mm/1.35 inherit; font-style: normal; }
-.mat-two i b { display: inline-block; min-width: 17mm; font-weight: 700; }
-.mat-two i em { font-style: normal; color: #44443c; }
+/* THE FLYER'S CONTROLS, INSIDE THE PICKER. Ruled off above so the bars read as belonging to the
+   piece that was just ticked rather than as a second toolbar for the whole sheet. Empty and gone
+   when no flyer is on the paper — an empty div with margins is a gap nobody can explain. */
+.mat-fly:empty { display: none; }
+.mat-fly { margin: .6rem 0 .2rem; padding-top: .6rem; border-top: 1px solid var(--line); }
+
+/* ---------- A PIECE THAT IS ALREADY A FINISHED THING ---------------------------------------------
+   A FLYER ON THE SHEET IS THE FLYER, not a block about one. No heading, no hairline above it, and
+   no gutter: it has its own edge, its own paper colour and its own name in it already.
+   THE SIZES ARE THE PAPER'S OWN FRACTIONS, the same three the flyer maker cuts to — A5 is half of
+   A4 at 148mm, A6 a quarter, a sticker a ninth. That is why two A5 pieces fill a sheet exactly and
+   the gauge can say so: a piece's height here is a fact about paper rather than a guess. */
+.mat-box.bare { border-top: 0; padding-top: 0; }
+.mat-box.bare > h4 { display: none; }
+.mat-p-a5, .mat-p-a6, .mat-p-sq { overflow: hidden; }
+.mat-p-a5 { height: 148mm; }
+.mat-p-a6 { height: 105mm; }
+.mat-p-sq { height: 99mm; }
+/* THE FLYER FILLS THE PIECE. Inside its own tool it is a cell of a 210mm grid; here it is whatever
+   the piece is, and the dashed trim edges belong to a sheet being guillotined into flyers rather
+   than to one flyer sitting on a mixed page. */
+.mat-p-a5 > .fm-fly, .mat-p-a6 > .fm-fly, .mat-p-sq > .fm-fly {
+  width: 100%; height: 100%; border-right: 0; border-bottom: 0; }
+.mat-p-a6 > .fm-fly, .mat-p-sq > .fm-fly { padding: 9mm; }
+/* A piece with no drawing behind it says so rather than printing a gap. */
+.mat-gone { margin: 0; font: 400 2.7mm/1.4 var(--mono); color: #77776c; }
+
+/* ---------- THE PAIR BLOCKS, WHICH ARE MOST OF THE SHEET ------------------------------------------
+   THIRTY-FOUR OF THE FORTY-SEVEN COMPONENTS ARE THIS ONE LAYOUT, so whatever it does wrong, the
+   sheet does wrong everywhere. What it did wrong was `min-width: 17mm` on an inline-block label: a
+   label SHORTER than 17mm left the value starting at 17mm, a label LONGER pushed its value out to
+   wherever it happened to end, and a value that wrapped came back to the far left underneath the
+   label. So no two rows in a block began in the same place and the wrapped ones ran under the wrong
+   thing. That is the ragged look, and it was one declaration.
+
+   `display: contents` IS WHAT FIXES IT. The `i` stops being a box and its label and value become
+   cells of the block's own grid, so every label in a block shares one column and every value shares
+   the next — real alignment rather than each row guessing. Fewer declarations than before, and no
+   arithmetic to keep in step.
+
+   `fit-content(40%)` CAPS THE LABEL COLUMN — as a share of the block, not a fixed width. Plain
+   `max-content` would let one long label ('completing the square') set the width for every row
+   beneath it and squeeze the values into nothing. A FIXED cap does the same thing in half the
+   cases: 24mm of a full-width block is a third of it and reasonable, but 24mm of a half-width
+   block is most of it, leaving 15mm for the value — a ribbon of wrapped fragments. One number
+   cannot be right for two widths, and a share of the space is right for both.
+
+   THE VALUE IS THE INK AND THE LABEL IS THE GREY, which is the way round they were not. You come to
+   a sheet like this knowing what you are looking for and needing what it equals. */
+/* A FRACTION. Two spans stacked by a one-column grid, with the bar as the top border of the lower —
+   so the bar is exactly as wide as the wider half and never needs a width setting.
+   IT IS SET SMALLER THAN ITS LINE, at .9em, because a full-size stacked fraction is two lines tall
+   and would open a gap in every row it appears in. `vertical-align` sits the bar on the baseline of
+   the text around it, which is where a reader expects to find it. */
+.mat-fr { display: inline-grid; justify-items: center; vertical-align: -.42em;
+          font-size: .9em; line-height: 1.12; }
+.mat-fr span { padding: 0 .5mm; }
+.mat-fr span + span { border-top: .25mm solid currentColor; padding-top: .25mm; }
+.mat-two { display: grid; grid-template-columns: fit-content(40%) 1fr fit-content(40%) 1fr;
+           gap: 1mm 3mm; align-items: baseline; }
+.mat-two i { display: contents; }
+.mat-two i b { font: 600 2.7mm/1.3 inherit; color: #66665c; }
+.mat-two i em { font: 400 2.7mm/1.3 inherit; font-style: normal; color: #14140f; }
+/* A LITTLE AIR BETWEEN THE TWO HALVES, put on the first value column rather than as a gap, because
+   one gap value would have to space the label from its value too — and those belong together.
+   THE 3mm GAP ABOVE IS A FLOOR, NOT A PREFERENCE. At 2.7mm type a 1.6mm gap is half a character
+   wide, and where a label fills its column — 'completing the square' does — half a character reads
+   as no gap at all. Three is the width of a space you would notice missing. */
+.mat-two i:nth-child(odd) em { padding-right: 4mm; }
 .mat-trig { display: grid; grid-template-columns: repeat(6, 1fr); border: .3mm solid #14140f; }
 .mat-trig i { display: grid; place-items: center; padding: 1mm 0; font: 400 2.7mm/1 inherit;
               font-style: normal; border-right: .15mm solid #c9c3b2;
               border-bottom: .15mm solid #c9c3b2; }
 .mat-trig i:nth-child(6n) { border-right: 0; }
-.mat-trig i.h { background: #14140f; color: #fff; font-weight: 700; }
+.mat-trig i.h { font-weight: 700; color: #44443c; }
+.mat-trig i:nth-child(-n+6) { border-bottom: .3mm solid #14140f; }
+.mat-trig i:nth-child(6n+1) { border-right: .3mm solid #14140f; }
 /* AN SVG WITH NO WIDTH IS NOT A SMALL PICTURE, it is as large as you let it be — these filled the
    column and the block came out 744mm, nearly three sheets from one component. */
 .mat-graphs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; text-align: center; }
@@ -5456,7 +5635,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-tk-nums em { text-align: center; font: 400 2.6mm/1.1 var(--mono); font-style: normal;
                   color: #77776c; }
 .mat-tk-nums u { text-align: center; font: 400 2.7mm/1.1 var(--mono); text-decoration: none;
-                 color: #9b2d22; }
+                 color: #66665c; }
 .mat-tk-simp { display: flex; gap: 1.5mm; margin: .4mm 0 1.5mm; }
 .mat-tk-simp > b { width: 7mm; }
 .mat-tk-simp .mat-tk-nums { border-top: 0; padding-top: 0; }
@@ -5466,12 +5645,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- PRINTING FROM INSIDE THE APP -------------------------------------------------------
    A browser prints the whole document, so without this the column, the tab bar and the card's own
    chrome go on the paper. Set only while printing, so a print started anywhere else is untouched. */
+/* THE PAPER IS A COPY AT THE END OF THE BODY, not the sheet inside the card. `body` is a centred
+   26.5rem column that clips what overflows it sideways, so a 210mm sheet positioned against the
+   column is positioned against the wrong box AND cut off at 115mm — which is a right-hand half
+   missing from every print, with nothing wrong on screen to say so.
+   THE BODY'S OWN RULES HAVE TO GO WITH IT. A copy at the end of the body is still inside the body,
+   so its width, its centring and its clip all still apply until they are turned off — which is
+   what these three lines do, and only while printing. */
 @media print {
+  body.printing-mat { max-width: none !important; margin: 0 !important; padding: 0 !important;
+    overflow: visible !important; }
   body.printing-mat * { visibility: hidden !important; }
-  body.printing-mat .mat-out, body.printing-mat .mat-out * { visibility: visible !important; }
-  body.printing-mat .mat-out { position: absolute; left: 0; top: 0; margin: 0; padding: 0;
-    height: auto !important; overflow: visible !important; }
-  body.printing-mat .mat-sheet { transform: none !important; box-shadow: none; }
+  body.printing-mat .mat-paper, body.printing-mat .mat-paper * { visibility: visible !important; }
+  body.printing-mat .mat-paper { position: absolute; left: 0; top: 0; margin: 0; padding: 0;
+    width: 210mm; height: auto !important; overflow: visible !important; }
+  body.printing-mat .mat-paper .mat-sheet { transform: none !important; box-shadow: none; }
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -5539,7 +5727,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    divide. All four new splashes drew hard against the left edge while every earlier one, built
    before I forgot this, sets `align-self` or lives inside a centred wrapper.
    Each of the four is a flex item, so each says so. */
-#splash-breathe, #splash-rain, #splash-weave, #splash-pend {
+#splash-breathe, #splash-rain, #splash-pend {
   display: none;                 /* shown by the `.is-` rule below */
   /* `align-items` CENTRES THE CHILDREN; `align-self` centres THIS. I set the first and the splash
      still drew hard left — the ring was neatly centred inside a box that was itself against the
@@ -5551,7 +5739,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    is one edit away from dropping a splash from the pool silently, and nothing would show it. */
 #splash.is-breathe #splash-breathe { display: flex; }
 #splash.is-rain    #splash-rain    { display: flex; }
-#splash.is-weave   #splash-weave   { display: flex; }
 #splash.is-pend    #splash-pend    { display: flex; }
 .br-ring { position: relative; width: min(46vw, 9rem); aspect-ratio: 1; margin: 0 auto; }
 .br-ring i { position: absolute; inset: 0; border-radius: 50%;
@@ -5591,35 +5778,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .rn-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
           color: rgb(240 236 224 / .45); text-align: center; }
 
-/* ---------- A WOVEN CHECK ------------------------------------------------------------------------
-   Six threads each way, sliding across one another. The over-and-under is done with opacity rather
-   than z-index: a thread cannot be both above and below another in one stacking order, and faking
-   the crossing with alternating alpha is what makes it read as cloth. */
-.wv-cloth { position: relative; width: min(52vw, 11rem); aspect-ratio: 1; margin: 0 auto;
-            align-self: center;
-            overflow: hidden; border-radius: 4px; }
-.wv-cloth i { position: absolute; }
-.wv-h { left: -20%; width: 140%; height: 9%; top: calc(var(--i) * 16.6%);
-        background: rgb(240 180 95 / .55);
-        animation: wv-slide 5.5s ease-in-out infinite alternate;
-        animation-delay: calc(var(--i) * -.4s); }
-.wv-v { top: -20%; height: 140%; width: 9%; left: calc(var(--i) * 16.6%);
-        background: rgb(111 168 220 / .5);
-        animation: wv-slide-v 5.5s ease-in-out infinite alternate;
-        animation-delay: calc(var(--i) * -.4s); }
-/* EVERY OTHER CROSSING GOES UNDER, which is the whole difference between cloth and a grid. */
-.wv-v:nth-child(odd) { mix-blend-mode: screen; }
-/* ---------- A STRIPE SLIDING ALONG ITS OWN LENGTH DOES NOT MOVE -----------------------------------
-   THE HORIZONTAL THREADS TRANSLATED IN X and the verticals in Y — each along its own axis. Every
-   animation was running, 44 pixels of travel each, and four sample frames came out identical:
-   a uniform bar shifted parallel to itself is pixel-for-pixel the same picture.
-   It is the one kind of motion that a "does it animate" check can never catch, because it does.
-   Horizontals move ACROSS themselves in Y, verticals in X, and the cloth breathes. */
-@keyframes wv-slide   { from { transform: translateY(-42%); } to { transform: translateY(42%); } }
-@keyframes wv-slide-v { from { transform: translateX(42%); }  to { transform: translateX(-42%); } }
-.wv-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
-          color: rgb(240 236 224 / .45); }
-
 /* ---------- A PENDULUM WAVE ----------------------------------------------------------------------
    FIFTEEN SWINGS OF SLIGHTLY DIFFERENT PERIOD. They start together, drift apart, briefly form a
    travelling snake and a double helix, and come back together — and nothing coordinates them. That
@@ -5645,7 +5803,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      picture — the rings sit at their widest, the weave holds still as cloth, the pendulums hang in
      the fan they make halfway through a cycle. */
   .br-ring i, .br-say, .rn-glass i, .rn-glass::after,
-  .wv-h, .wv-v, .pd-rack i { animation: none; }
+  .pd-rack i { animation: none; }
   .br-ring i { transform: scale(1); opacity: .8; }
   .br-say { opacity: 1; }
   .rn-glass i { top: 30%; }
