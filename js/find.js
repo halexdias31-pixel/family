@@ -918,7 +918,36 @@ function stuffItems() {
  */
 function yearOf(x) {
   const own = String((x && x.year) || '').trim();
-  if (own) return own;
+
+  /* ---------- THE COLUMN HOLDS DATES, NOT YEARS ------------------------------------------------
+     THE YEAR FILTER READ AS SEVEN LINES OF NONSENSE and this is why. A cell typed as 01/06/2018 is
+     a DATE to the sheet, so what arrives here is not "2018" but the whole of
+
+         Fri Jun 01 2018 08:00:00 GMT+0100 (British Summer Time)
+
+     — and this returned it untouched. Every symptom followed from that one line. The funnel groups
+     by whatever comes back, so seven sittings became seven separate chips instead of seven years;
+     each chip was sixty characters of clock and timezone; and picking one filtered to that exact
+     instant rather than to a year. The filter was not broken so much as filtering by the wrong
+     thing entirely, and doing it in a way nobody could read.
+
+     THE FOUR DIGITS ARE TAKEN OUT OF WHATEVER IT IS, which is the same thing already done to the
+     wave on the line below — the rule was right, it was only being applied to one of the two
+     places a year can hide. It costs nothing when the cell holds a plain 2018, since a plain 2018
+     matches itself.
+
+     WORTH FIXING IN THE SHEET AS WELL. This makes the app read the column correctly; it does not
+     make the column right. A year stored as a date is a year that will keep arriving as a
+     timestamp, and any other thing that ever reads it will need this same repair. Formatting that
+     column as plain text is the actual cure. */
+  const inOwn = own.match(/\b(19|20)\d{2}\b/);
+  if (inOwn) return inOwn[0];
+
+  /* A short label that is not a date and not a year — "Spec", "Sample" — is somebody being
+     deliberate, so it is kept. Anything long enough to be a sentence is not a year, and passing it
+     through is what produced the mess above. */
+  if (own && own.length <= 9 && !/\s/.test(own)) return own;
+
   const m = String((x && x.examWave) || '').match(/\b(19|20)\d{2}\b/);
   return m ? m[0] : '';
 }
