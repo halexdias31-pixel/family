@@ -274,6 +274,8 @@ function doGet(e) {
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       links: [], shop: [], promotions: [], intervals: [], landmarks: [],
       campaigns: [],
+      /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
+      facets: [],
       gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
@@ -564,6 +566,22 @@ function doGet(e) {
     read(TAB.brand).rows.forEach(r => {
       const k = S(r.key).trim();
       if (k) payload.brand[k] = S(r.value);
+    });
+
+    /* THE FUNNEL'S QUESTIONS. To EVERY phone, not just an admin's — this decides what the search
+       asks, and search is the thing everybody uses. A row for a field the code does not know is
+       passed through rather than dropped: the phone ignores it, and a tab that quietly deleted
+       rows it did not recognise would be impossible to debug from the sheet end. */
+    read(TAB.facets).rows.forEach(r => {
+      const field = S(r.field).trim();
+      if (!field) return;
+      payload.facets.push({
+        field: field,
+        label: S(r.label),
+        order: S(r.sort_order) === '' ? null : Number(r.sort_order),
+        minCoverage: S(r.min_coverage) === '' ? null : Number(r.min_coverage),
+        active: ON_(r.active),
+      });
     });
 
     /* ---------- THE CAMPAIGNS, AND THE WORDS THEY SAY -------------------------------------------
