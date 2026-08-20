@@ -256,7 +256,19 @@ function matParts() {
          a component the code calls Higher-only, since an empty cell already means "no opinion" and
          one value cannot mean both. */
       tier:  r.tier === '-' ? '' : (matTierFlag(r.tier) || c.tier),
-      h:     r.heightMm === null || r.heightMm === undefined ? c.h : r.heightMm,
+      /* ---------- AN EDGE PIECE'S HEIGHT IS NOT A SETTING -------------------------------------
+         THE SHEET SAID 0 AND THE SHEET WON. The code was corrected to 262 and the picker still
+         printed 0cm², because a row in the tab overrides the code — and that row still held the
+         0 written back when an edge piece had to be free to keep the old height-based gauge happy.
+         Two places holding the same fact, and the wrong one had the last word.
+
+         BUT IT IS NOT REALLY TWO PLACES. A strip down the margin runs the full height of the page;
+         that is what "down the edge" MEANS. There is no version of it that is 40mm tall, so there
+         is nothing here for anybody to set — and a setting with one correct value is a way to be
+         wrong, not a way to choose. The gauge already worked this out for itself, which is why the
+         bar charged 52cm² while the list said nothing. Now the list asks the same question. */
+      h:     c.edge ? MAT_ROOM
+               : (r.heightMm === null || r.heightMm === undefined ? c.h : r.heightMm),
       half:  r.half === null || r.half === undefined ? c.half : r.half,
       /* WHETHER THE EXAM GIVES YOU THIS. Only the sheet knows — nothing in the code has an opinion,
          and null stays null so "nobody has checked" survives all the way to the screen. */
