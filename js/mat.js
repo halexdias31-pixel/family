@@ -168,11 +168,22 @@ const MAT_START = ['M01', 'M02', 'M03', 'M04', 'M05', 'M08', 'M09'];
    before the payload lands. Falling back to a working example rather than to nothing is the whole
    reason that list exists — see the note above it. */
 function matStart() {
-  const said = (DATA.cheatsheet || []).filter(r => r && r.startOn).map(r => r.id);
-  return said.length ? said : MAT_START.slice();
+  const rows = DATA.cheatsheet || [];
+  /* NONE TICKED IS AN ANSWER, NOT AN ABSENCE. This asked whether anything was ticked and fell back
+     to the hard-coded seven when nothing was — so "I want an empty sheet" was impossible to say:
+     untick every row and they all came back. The question is whether the TAB ARRIVED. If it did,
+     it is the answer, including the answer "none". Only a missing tab falls back. */
+  if (rows.length) return rows.filter(r => r && r.startOn).map(r => r.id);
+  return MAT_START.slice();
 }
 
-let MAT_LEVEL = 'SATs';
+/* ---------- NOTHING IS CHOSEN FOR YOU --------------------------------------------------------------
+   THIS OPENED ON 'SATs', which is one of nine levels and was picked by being first to mind when the
+   line was typed. For anybody teaching GCSE it is simply the wrong sheet, silently — the list is
+   already filtered before they have touched anything, and there is no sign that a filter is on.
+   `all` IS THE ONLY NON-ANSWER. It shows every component and privileges no level, so the first
+   choice on the screen is still the user's to make. */
+let MAT_LEVEL = 'all';
 let MAT_ON = MAT_START.slice();   /* replaced by matStart() once the payload has landed */
 /* WHETHER ANYBODY HAS CHOSEN ANYTHING YET. Without this, opening the tool a second time would
    silently undo the sheet somebody had just built. */
