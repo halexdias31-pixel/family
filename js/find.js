@@ -323,6 +323,9 @@ const FACETS = [
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
      else — the same rule that hides `borough` unless you are looking at venues. */
+  /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
+     are two answers to it, not twenty. */
+  { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
   /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
      revising and somebody sitting a mock are not looking for the same thing — so it is the
@@ -560,6 +563,20 @@ function fightCard_(x) {
        rel="noopener">Watch it</a></p>` : ''}
     ${f.verified ? '' : '<p class="note faint">Not checked yet</p>'}
   </div>`;
+}
+
+/* ---------- ONE DIVISION, HOWEVER IT WAS TYPED ----------------------------------------------------
+   THE FUNNEL LISTED "Light heavyweight" (6) AND "Light Heavyweight" (5) as two different divisions,
+   and did the same to Super bantamweight, Super middleweight, Light welterweight and Light
+   middleweight. They are one division each, typed by hand on different days.
+
+   A FILTER GROUPS BY THE EXACT STRING, so two spellings are two buttons — and worse than untidy,
+   each one hides half the fighters from somebody who picked the other. Folded to one shape here:
+   first letter up, the rest down, so whatever is in the cell arrives as one answer. */
+function divisionOf_(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
 function boxerCard_(x) {
@@ -1008,7 +1025,12 @@ function stuffItems() {
          Welterweight in one list — two vocabularies pretending to be one, with "Boxing" itself
          nowhere in it, which is the thing anybody would look for first.
          SO THE SUBJECT IS BOXING and the division is its own field. */
-      cost: 0, slot: '', subject: 'Boxing', division: b.bestDivision || '', grade: '',
+      /* WHICH OF THE TWO, asked before the weight. Boxers and fights are both resources about
+         boxing — that is why they share a label — but they are not interchangeable, and a funnel
+         that goes from Boxing straight to twenty weight classes has skipped the question anybody
+         actually has first. */
+      boxKind: 'Boxers',
+      cost: 0, slot: '', subject: 'Boxing', division: divisionOf_(b.bestDivision), grade: '',
       off: false, row: b,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: b.activeTo || '', paper: false,
@@ -1022,7 +1044,8 @@ function stuffItems() {
       key: 'ft:' + (f.id || f.a + f.b + f.date),
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
-      cost: 0, slot: '', subject: 'Boxing', division: f.division || '', grade: '',
+      boxKind: 'Fights',
+      cost: 0, slot: '', subject: 'Boxing', division: divisionOf_(f.division), grade: '',
       off: false, row: f,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: (f.date || '').slice(0, 4), paper: false,
