@@ -168,17 +168,8 @@ const MAT_START = ['M01', 'M02', 'M03', 'M04', 'M05', 'M08', 'M09'];
    before the payload lands. Falling back to a working example rather than to nothing is the whole
    reason that list exists — see the note above it. */
 function matStart() {
-  const rows = DATA.cheatsheet || [];
-  /* ---------- NONE TICKED IS AN ANSWER, NOT AN ABSENCE ---------------------------------------------
-     THIS RETURNED THE HARD-CODED SEVEN WHENEVER NOTHING WAS TICKED, which made "I want an empty
-     sheet" impossible to say: untick every row and the fallback puts them all back, so the sheet
-     appears to ignore you.
-
-     THE QUESTION IS WHETHER THE TAB ARRIVED, not whether anything in it is on. If there are rows,
-     they are the answer — including the answer "none of them". Only a tab that is not here at all,
-     which means a payload that has not landed yet, falls back to the list below. */
-  if (rows.length) return rows.filter(r => r && r.startOn).map(r => r.id);
-  return MAT_START.slice();
+  const said = (DATA.cheatsheet || []).filter(r => r && r.startOn).map(r => r.id);
+  return said.length ? said : MAT_START.slice();
 }
 
 let MAT_LEVEL = 'SATs';
@@ -550,13 +541,34 @@ const matPairs = rows => `<div class="mat-two">${
    as a pentagon, because a fifth entry met a five-sided drawing.
    THE SQUARE IS TURNED HALF A STEP. Every polygon starting with a vertex at the top gives a
    triangle pointing up, which is right, and a square on its corner, which reads as a diamond. */
+/* ---------- EVERY SHAPE THE SAME SIZE ON THE PAGE -------------------------------------------------
+   ALL EIGHT WERE DRAWN ON A CIRCLE OF RADIUS 17, which is the obvious way and makes the triangle
+   look half the size of the decagon. It is not an illusion: a triangle inscribed in a circle covers
+   about 41% of it and a decagon covers 94%, so drawing them on the same circle really does put less
+   than half as much ink on the page for the first one.
+
+   THE EFFECT IS TO TEACH THE WRONG THING. A row comparing shapes should differ in the number of
+   sides and in nothing else; if the triangle is also the smallest, size reads as part of what a
+   triangle IS.
+
+   SO EACH IS SCALED TO FILL THE SAME BOX. Points are generated on a unit circle, measured, and
+   stretched to a fixed width — which makes them equal on the page rather than equal in the
+   construction, and the page is where they are looked at. */
 function matPoly(n) {
   const off = n === 4 ? Math.PI / n : 0;
-  const pts = [];
+  const raw = [];
   for (let k = 0; k < n; k++) {
     const a = -Math.PI / 2 + off + 2 * Math.PI * k / n;
-    pts.push((20 + 17 * Math.cos(a)).toFixed(1) + ',' + (20 + 17 * Math.sin(a)).toFixed(1));
+    raw.push([Math.cos(a), Math.sin(a)]);
   }
+  const xs = raw.map(p => p[0]), ys = raw.map(p => p[1]);
+  const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+  /* THE LARGER DIMENSION DECIDES, so a tall shape and a wide one both fit and neither is cropped. */
+  const k = 32 / Math.max(w, h);
+  const midX = (Math.max(...xs) + Math.min(...xs)) / 2;
+  const midY = (Math.max(...ys) + Math.min(...ys)) / 2;
+  const pts = raw.map(([x, y]) =>
+    (20 + (x - midX) * k).toFixed(1) + ',' + (20 + (y - midY) * k).toFixed(1));
   return `<svg viewBox="0 0 40 40"><polygon points="${pts.join(' ')}" fill="none"
     stroke="currentColor" stroke-width="1.4"/></svg>`;
 }
@@ -566,27 +578,59 @@ function matPoly(n) {
    millimetre. Both scales, inner and outer, running opposite ways, because that is what a plastic
    protractor does and the thing every child gets wrong. */
 function matProtractor() {
+  /* ==================================================================================================
+     A PROTRACTOR YOU CAN ACTUALLY READ AT THE ENDS.
+
+     THE NUMBERS WERE PRINTED UPRIGHT, all of them, which is fine at the top of the arc and falls
+     apart at the ends: at 0 and 180 the outer and inner labels are a few millimetres apart on the
+     same horizontal line, so `0 180` and `170 10` ran into each other and the last four readings
+     were a smudge. Every real protractor rotates its numbers, and this is why — not decoration, but
+     the only way two scales fit in the same place.
+
+     SO EACH LABEL TURNS WITH ITS OWN RADIUS. Upright at 90, lying on their sides at the ends, and
+     the two scales stay legibly apart the whole way round because they are never parallel to each
+     other along the same line.
+
+     THE TICKS ARE THREE WEIGHTS, not two. Degrees, fives and tens were drawn at two thicknesses, so
+     counting in fives meant counting single degrees and hoping. A five now sits between the two,
+     which is what the eye uses to land on 35 without counting from 30.
+
+     AND THE COLOURS ARE THE SHEET'S. #111 and #333 were near-black on a page whose grids had just
+     been lightened to grey; the protractor was left as the heaviest thing on it. */
   const R = 41, cx = R + 4, cy = R + 4;
-  let p = `<path d="M${cx - R} ${cy} A${R} ${R} 0 0 1 ${cx + R} ${cy} Z" fill="none"
-    stroke="#333" stroke-width=".4"/>`;
+  const INK = '#14140f', MID = '#8d8878', FAINT = '#b4ae9c', RED = '#9b2d22';
+  const at = (r, t) => [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)];
+
+  let p = `<path d="M${cx - R} ${cy} A${R} ${R} 0 0 1 ${cx + R} ${cy}" fill="none"
+    stroke="${MID}" stroke-width=".4"/>`;
+
   for (let a = 0; a <= 180; a++) {
     const t = Math.PI * (180 - a) / 180;
-    const long = a % 10 === 0, mid = a % 5 === 0;
-    const r1 = long ? R - 6 : (mid ? R - 4 : R - 2.4);
-    p += `<line x1="${(cx + r1 * Math.cos(t)).toFixed(2)}" y1="${(cy - r1 * Math.sin(t)).toFixed(2)}"
-      x2="${(cx + R * Math.cos(t)).toFixed(2)}" y2="${(cy - R * Math.sin(t)).toFixed(2)}"
-      stroke="#111" stroke-width="${long ? .45 : .2}"/>`;
-    if (long) {
-      const ro = R - 9.5, ri = R - 15.5;
-      p += `<text x="${(cx + ro * Math.cos(t)).toFixed(2)}" y="${(cy - ro * Math.sin(t) + 1.3).toFixed(2)}"
-        text-anchor="middle" font-size="3.1" fill="#111">${a}</text>`;
-      p += `<text x="${(cx + ri * Math.cos(t)).toFixed(2)}" y="${(cy - ri * Math.sin(t) + 1.3).toFixed(2)}"
-        text-anchor="middle" font-size="3.1" fill="#9b2d22">${180 - a}</text>`;
-    }
+    const ten = a % 10 === 0, five = a % 5 === 0;
+    const [x1, y1] = at(ten ? R - 6.5 : (five ? R - 4.5 : R - 2.4), t);
+    const [x2, y2] = at(R, t);
+    p += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+      stroke="${ten ? INK : (five ? MID : FAINT)}" stroke-width="${ten ? .45 : (five ? .3 : .18)}"/>`;
+
+    if (!ten) continue;
+    /* ROTATED WITH THE RADIUS. `a - 90` is upright at the top and a quarter turn at either end,
+       which is exactly how the two scales stop overlapping down there. */
+    const turn = a - 90;
+    const [ox, oy] = at(R - 10.5, t);
+    const [ix, iy] = at(R - 16, t);
+    p += `<text x="${ox}" y="${oy}" text-anchor="middle" dominant-baseline="middle"
+      font-size="2.9" fill="${INK}" transform="rotate(${turn} ${ox} ${oy})">${a}</text>`;
+    p += `<text x="${ix}" y="${iy}" text-anchor="middle" dominant-baseline="middle"
+      font-size="2.9" fill="${RED}" transform="rotate(${turn} ${ix} ${iy})">${180 - a}</text>`;
   }
-  p += `<line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="#111" stroke-width=".5"/>
-    <line x1="${cx - 5}" y1="${cy}" x2="${cx + 5}" y2="${cy}" stroke="#9b2d22" stroke-width=".6"/>
-    <line x1="${cx}" y1="${cy - 5}" x2="${cx}" y2="${cy + 5}" stroke="#9b2d22" stroke-width=".6"/>`;
+
+  /* THE BASELINE, AND THE CROSS YOU LINE UP WITH THE VERTEX. The cross is the one part of a
+     protractor that is used rather than read, so it stays the strongest mark on it. */
+  p += `<line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="${INK}" stroke-width=".5"/>
+    <line x1="${cx - 5}" y1="${cy}" x2="${cx + 5}" y2="${cy}" stroke="${RED}" stroke-width=".6"/>
+    <line x1="${cx}" y1="${cy - 5}" x2="${cx}" y2="${cy + 5}" stroke="${RED}" stroke-width=".6"/>
+    <circle cx="${cx}" cy="${cy}" r="1.1" fill="none" stroke="${RED}" stroke-width=".4"/>`;
+
   return `<div class="mat-prot"><svg viewBox="0 0 ${2 * (R + 4)} ${R + 8}">${p}</svg></div>`;
 }
 
@@ -600,7 +644,7 @@ function matAngles() {
     const arc = deg === 180 ? '' :
       `<path d="M 27 22 A 7 7 0 ${deg > 180 ? 1 : 0} 0
         ${(20 + 7 * Math.cos(t)).toFixed(1)} ${(22 - 7 * Math.sin(t)).toFixed(1)}"
-        fill="none" stroke="#9b2d22" stroke-width="1"/>`;
+        fill="none" stroke="#9b2d22" stroke-width=".7"/>`;
     return `<div><svg viewBox="0 0 40 30">
       <line x1="20" y1="22" x2="36" y2="22" stroke="currentColor" stroke-width="1.4"/>
       <line x1="20" y1="22" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"
@@ -658,8 +702,11 @@ function matGraphs() {
                  ['exponential','y = 2ˣ', x => Math.pow(2, x) - 1, 'H']];
   return `<div class="mat-graphs">${kinds.filter(k => matKeep(k[3])).map(([n, eq, f]) =>
     `<div><svg viewBox="0 0 ${W} ${H}">
-      <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#c9c3b2" stroke-width=".5"/>
-      <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#c9c3b2" stroke-width=".5"/>
+      ${/* AXES IN THE SHEET'S GREY. They were a shade of their own — one more colour in a document
+            that had just been reduced to three. An axis is scaffolding: it has to be there and it
+            must not compete with the curve, which is the thing being looked at. */''}
+      <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#b4ae9c" stroke-width=".4"/>
+      <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#b4ae9c" stroke-width=".4"/>
       <polyline points="${curve(f)}" fill="none" stroke="currentColor" stroke-width="1.2"/>
     </svg><span>${n}</span><em>${eq}</em></div>`).join('')}</div>`;
 }
