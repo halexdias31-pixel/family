@@ -136,8 +136,21 @@ const KINDS = {
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
 
-  tool: { group: 'Tools & games', label: 'Tools', card: x => widgetCard_(x) },
-  game: { group: 'Tools & games', label: 'Games', card: x => widgetCard_(x) },
+  /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN ---------------------------
+     `Tools & games` WAS ONE ANSWER THAT IMMEDIATELY ASKED ITSELF. Choosing it led to a second
+     question whose two answers were the two halves of the name you had just read — so the name
+     posed the choice and the tap did not make it. Two taps to say a thing you had already decided
+     before the first one.
+
+     AND THEY ARE NOT ONE ERRAND. A protractor and Flabby Pird are not near neighbours: somebody
+     reaching for a timer in the middle of a session and somebody killing ten minutes want opposite
+     things, and grouping them says they are variations of each other.
+
+     SEPARATE, EACH GROUP HOLDS ONE KIND, so the second question is skipped by the one-answer rule
+     and Games goes straight to the games. Same number of taps to reach a game, one fewer to reach
+     a tool, and the first question now reads as five errands rather than four and a category. */
+  tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
+  game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
 
   link: { group: 'Learning', label: 'Links', card: x => {
     const l = x.row;
