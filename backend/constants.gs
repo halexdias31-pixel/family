@@ -98,14 +98,14 @@ const TAB = {
   campaigns: 'campaigns',
   /* The words those campaigns say, one line per row — see SCHEMA.copy. */
   copy: 'copy',
-  /* What the search funnel asks, in what order, and what it calls things — see SCHEMA.facets. */
-  facets: 'facets',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
   /* One row per exam question — see SCHEMA.questions. */
   questions: 'questions',
   /* Every professional boxer worth a row — see SCHEMA.boxers. */
   boxers: 'boxers',
+  /* The bouts themselves. `boxers` is who; this is what happened — see SCHEMA.fights. */
+  fights: 'fights',
   /* Which loading splashes are in the pool — see SCHEMA.splashes. */
   splashes: 'splashes',
   /* What may go on a printed cheat sheet, and at which level — see SCHEMA.cheatsheet. */
@@ -919,6 +919,33 @@ const SCHEMA = {
     "image", "notes", "active",
   ],
 
+  /* ---------- THE BOUTS ------------------------------------------------------------------------
+     `boxers` HOLDS A RECORD AND THIS HOLDS THE FIGHTS THAT MADE IT. A win count is a summary of
+     rows like these, and the day the counts should be derived rather than typed, this is the tab
+     they are derived from.
+
+     TWO NAMES AND TWO IDS FOR EACH CORNER, deliberately. The id links to `boxers` and is what a
+     card follows; the name is what the row SAYS, and it survives a fighter who has no row yet.
+     Half these bouts are from before the roster existed, so a tab that could only name people it
+     already knew would have been empty of exactly the fights worth reading about.
+
+     `rivalry_id`, `bout_no` AND `bout_total` ARE WHAT MAKE A TRILOGY ONE THING. Three separate
+     rows about Ali and Frazier are three fights; the same three carrying the same rivalry are a
+     story with an order, and the third one means nothing without the first two.
+
+     `result` IS THE SENTENCE AND `winner` IS THE FACT. One is for reading and one is for counting,
+     and a tab that only had the sentence could never total anything. */
+  fights: [
+    "fight_id", "rivalry_id", "bout_no", "bout_total", "series", "event_name",
+    "boxer_a_id", "boxer_a", "boxer_b_id", "boxer_b",
+    "date", "venue", "city", "country",
+    "division", "titles", "scheduled_rounds",
+    "result", "winner_id", "winner", "method", "end_round",
+    "scorecards", "attendance", "notes",
+    "video_url", "video_search_url",
+    "verified", "active",
+  ],
+
   favourites: [
     "fav_id", "person_id",
     /* resource · venue · tutor · shop · subject · topic · link — whatever the searcher calls it */
@@ -975,34 +1002,6 @@ const SCHEMA = {
      campaign's built-in wording, so emptying this tab cannot produce a blank flyer. */
   copy: [
     "copy_id", "campaign_id", "slot", "variant", "text", "note", "active",
-  ],
-
-  /* ---------- WHAT THE SEARCH ASKS, AND WHAT IT CALLS IT -------------------------------------------
-     THE FUNNEL IS TWO DIFFERENT THINGS AND ONLY ONE OF THEM BELONGS IN CODE.
-
-     Reading a value off a row is logic — "the band, but only when it is a grade rather than a
-     stage" cannot be written in a cell without inventing a formula language in a spreadsheet
-     column, and that is a bad day for everybody. That half stays in find.js, keyed by `field`.
-
-     WHICH QUESTIONS GET ASKED, IN WHAT ORDER, AND WHAT THEY ARE CALLED is editorial. It is the same
-     kind of decision as the wording on a flyer, and it was in code for the same bad reason. So it
-     is here.
-
-       field         the key. It must match a field the code knows; one it does not is ignored,
-                     which is what lets you write a row for something not built yet.
-       label         what the question is called on screen
-       sort_order    lower is asked earlier
-       min_coverage  0 to 1. A question is skipped while fewer than this share of the things in
-                     front of you can answer it — because choosing a value silently drops every
-                     item that has none, and a question only a quarter of the shelf can answer
-                     removes three quarters of it for a reason no screen mentions. Blank uses the
-                     0.5 the code has always used.
-       active        OFF removes the question entirely, however well covered it is.
-
-     A FIELD WITH NO ROW KEEPS ITS BUILT-IN SETTINGS, so this tab can be empty, or hold one row for
-     the one thing you wanted to rename, and everything else carries on. */
-  facets: [
-    "field", "label", "sort_order", "min_coverage", "note", "active",
   ],
 
   holidays: [

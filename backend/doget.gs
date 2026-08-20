@@ -274,8 +274,6 @@ function doGet(e) {
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       links: [], shop: [], promotions: [], intervals: [], landmarks: [],
       campaigns: [],
-      /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
-      facets: [],
       gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
@@ -358,7 +356,7 @@ function doGet(e) {
          a thing can appear and disappear on its own without anybody remembering. */
       festive: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
-      questions: [], boxers: [],
+      questions: [], boxers: [], fights: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one
@@ -566,22 +564,6 @@ function doGet(e) {
     read(TAB.brand).rows.forEach(r => {
       const k = S(r.key).trim();
       if (k) payload.brand[k] = S(r.value);
-    });
-
-    /* THE FUNNEL'S QUESTIONS. To EVERY phone, not just an admin's — this decides what the search
-       asks, and search is the thing everybody uses. A row for a field the code does not know is
-       passed through rather than dropped: the phone ignores it, and a tab that quietly deleted
-       rows it did not recognise would be impossible to debug from the sheet end. */
-    read(TAB.facets).rows.forEach(r => {
-      const field = S(r.field).trim();
-      if (!field) return;
-      payload.facets.push({
-        field: field,
-        label: S(r.label),
-        order: S(r.sort_order) === '' ? null : Number(r.sort_order),
-        minCoverage: S(r.min_coverage) === '' ? null : Number(r.min_coverage),
-        active: ON_(r.active),
-      });
     });
 
     /* ---------- THE CAMPAIGNS, AND THE WORDS THEY SAY -------------------------------------------
@@ -1198,6 +1180,40 @@ function doGet(e) {
         });
       });
     } catch (err) { payload.boxers = []; }
+
+    /* THE BOUTS. Same guard as the boxers above: a site whose sheet predates this tab has no such
+       tab, and `read` on one that is not there throws — which would take the entire payload down
+       over a feature nobody has switched on yet.
+
+       SORTED OLDEST FIRST, because a rivalry only reads correctly in order — the second fight is
+       an answer to the first. Sorted here rather than on the phone so every screen that shows them
+       agrees without each one remembering to. */
+    try {
+      read(TAB.fights).rows.forEach(r => {
+        if (!ON_(r.active)) return;
+        const a = S(r.boxer_a), b = S(r.boxer_b);
+        if (!a || !b) return;
+        payload.fights.push({
+          id: S(r.fight_id), rivalryId: S(r.rivalry_id),
+          boutNo: N(r.bout_no), boutTotal: N(r.bout_total), series: S(r.series),
+          event: S(r.event_name),
+          aId: S(r.boxer_a_id), a: a, bId: S(r.boxer_b_id), b: b,
+          /* THE DATE IS A DATE CELL AND ARRIVES AS A TIMESTAMP. Cut to the day here, once, rather
+             than by every screen that shows it — the exam wave column taught this the hard way,
+             where a cell meaning "June 2018" reached the phone as sixty characters of clock and
+             timezone and got drawn on a filter button exactly as it arrived. */
+          date: S(r.date).slice(0, 10),
+          venue: S(r.venue), city: S(r.city), country: S(r.country),
+          division: S(r.division), titles: S(r.titles), rounds: N(r.scheduled_rounds),
+          result: S(r.result), winnerId: S(r.winner_id), winner: S(r.winner),
+          method: S(r.method), endRound: N(r.end_round),
+          scorecards: S(r.scorecards), attendance: S(r.attendance), notes: S(r.notes),
+          video: S(r.video_url) || S(r.video_search_url),
+          verified: ON_(r.verified),
+        });
+      });
+      payload.fights.sort((x, y) => String(x.date).localeCompare(String(y.date)));
+    } catch (err) { payload.fights = []; }
 
     // --- resources -> checklists --------------------------------------------------------------
     /* The nest the checklist needs: subject, then band, then topics. The SHOP screen wants them
