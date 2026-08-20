@@ -5444,8 +5444,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: #14140f; letter-spacing: -.02em; }
 .mat-head span { font: 400 3mm/1 var(--mono); color: #77776c; }
 .mat-cols { display: flex; flex-direction: column; gap: 5mm; }
-.mat-two-up { display: flex; gap: 4mm; }
+/* ---------- AND ONE BETWEEN THE TWO HALVES --------------------------------------------------------
+   THE HORIZONTAL RULES ALONE MADE IT WORSE. They run the full width of the sheet, straight across
+   the gap between a pair, so two side-by-side blocks read as one block with a very wide middle
+   column — 'Pythagoras' and 'Sequences' became one four-column table with two headings.
+
+   THE GAP IS SPLIT RATHER THAN ADDED TO. 4mm of gap becomes 4mm of padding on each side of the line,
+   so the two columns still measure the same and the separation is the same 8mm it always was; only
+   now there is something in the middle of it. */
+.mat-two-up { display: flex; gap: 0; }
 .mat-two-up > * { flex: 1; min-width: 0; }
+.mat-two-up > :first-child { padding-right: 4mm; }
+.mat-two-up > .mat-box + .mat-box { border-left: .2mm solid #c9c3b2; padding-left: 4mm; }
 /* WHERE ONE COMPONENT ENDS AND THE NEXT BEGINS — a hairline ABOVE the block, not under its heading.
    Under the heading it separated a heading from its own content, which is the one boundary that did
    not need marking; the boundary that did was invisible, and 2.8mm of gap between two blocks of
@@ -5466,11 +5476,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    header row is four different ways of saying "this is a separate thing" — and four lines saying one
    thing is three lines too many. The heading in small capitals says it on its own; what the rule
    added was weight. Space does the same work and does not have to be looked at. */
-.mat-box { padding-top: 0; }
+/* ---------- RESTORED: THE HAIRLINE ABOVE EVERY BLOCK ----------------------------------------------
+   THE RULE THE COMMENT ABOVE DESCRIBES WAS NOT THERE. `.mat-box` set `padding-top: 0` and nothing
+   else, while the very next rule existed only to take a `border-top` off the first child — an
+   exception to a rule that had been deleted, and three paragraphs explaining a line the sheet did
+   not draw. With it gone the page had no separator of any kind: no rule, no frame, and 2.8mm of gap
+   between blocks of 2.7mm type, which is less than the height of one line. Eight components ran
+   together as one grey field and the headings, in pale grey small capitals, were not enough on their
+   own to break it.
+
+   THIS IS THE LINE THE COMMENT ASKED FOR. Above the heading, so it costs no height it was not
+   already spending; hairline, so it separates without weighing; and it lines up across a pair. */
+.mat-box { border-top: .25mm solid #c9c3b2; padding-top: 1.6mm; }
 .mat-cols > .mat-box:first-child,
 .mat-cols > :first-child .mat-box { border-top: 0; padding-top: 0; }
+/* DARKER THAN IT WAS. At #77776c the heading was lighter than the values under it, so scanning for
+   'where does probability start' meant reading the block rather than seeing it. It is the label for
+   everything below it and it should be the first thing found, not the last. */
 .mat-box h4 { margin: 0 0 1.4mm; font: 700 2.9mm/1 var(--mono); letter-spacing: .12em;
-              text-transform: uppercase; color: #77776c; }
+              text-transform: uppercase; color: #44443c; }
 .mat-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline;
             /* NO RULE ABOVE IT. The footer is already the smallest, palest thing on the sheet and
                it is already at the bottom; a line to announce that is a line doing nothing. */
@@ -5635,7 +5659,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    DELETE THIS BLOCK IF YOU DISAGREE — everything above it is the fix and stands without it. */
 .mat-two i b,
-.mat-two i em { padding-bottom: .9mm; border-bottom: .15mm solid #e4e0d3; }
+.mat-two i em { padding-bottom: .9mm; border-bottom: .15mm solid #ddd7c6; }
 .mat-two i:last-child b,
 .mat-two i:last-child em { border-bottom: 0; padding-bottom: 0; }
 /* IN THE WIDE GRID THE LAST ROW IS THE LAST TWO ITEMS, not the last one. Addressed through the
