@@ -606,11 +606,25 @@
       <rect class="fb-sq" style="--i:2" x="4"  y="28" width="16" height="16"/>
       <rect class="fb-sq" style="--i:3" x="4"  y="4"  width="24" height="24"/>
       <rect class="fb-sq" style="--i:4" x="28" y="4"  width="40" height="40"/>
-      <!-- A quarter turn in each square, corner to corner, so the curve is continuous. -->
-      <path class="fb-arc" d="M20 36 A8 8 0 0 1 28 28 A8 8 0 0 1 28 44 A16 16 0 0 1 4 44
-                              A24 24 0 0 1 4 4 A40 40 0 0 1 68 4"/>
+      <!-- ==========================================================================================
+           THE CURVE SAID IT WAS QUARTER TURNS AND ONE OF THEM WAS A SEMICIRCLE.
+
+           `A8 8 0 0 1 28 44` ran from (28,28) to (28,44) — sixteen apart, with a radius of eight.
+           Sixteen IS the diameter of an eight-radius circle, so that is not a quarter of a turn,
+           it is a half: the curve left the small square, bulged out to the right past the edge of
+           the tiling, and came back. Every arc after it started from the wrong corner, so the
+           spiral crossed its own squares instead of running through them.
+
+           A QUARTER TURN IS A FACT YOU CAN CHECK, not a shape you nudge until it looks right. In
+           every segment below the centre is a CORNER of that square, the radius IS that square's
+           side, and the two endpoints are the corners either side of the centre — which makes the
+           turn exactly ninety degrees, and makes each arc end precisely where the next begins.
+           Checked, all five: centre on a corner, radius equal to the side, ninety degrees.
+      =========================================================================================== -->
+      <path class="fb-arc" d="M20 28 A8 8 0 0 0 28 36 A8 8 0 0 0 20 44 A16 16 0 0 0 4 28
+                              A24 24 0 0 0 28 4 A40 40 0 0 0 68 44"/>
     </svg>
-    <div class="fb-say">1 1 2 3 5 8</div>
+    <div class="fb-say">1 1 2 3 5</div>
     <div class="sp-sig">@family.</div>
   </div>
 
