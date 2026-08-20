@@ -102,10 +102,37 @@
      with it, so nobody can be left on an old file. Leave it and the browser keeps what it already
      has and the app opens instantly.
 
-     BUMP THIS ON EVERY PUSH. That is the whole procedure, and it is the price of the app opening
-     quickly the rest of the time. If you ever see a change not take effect, this is the first
-     thing to check — it is the one line that decides. */
-  var LOAD = '2026-08-19c';
+     IT USED TO SAY "BUMP THIS ON EVERY PUSH", AND THAT WAS THE FAULT. Not a wrong instruction — it
+     worked perfectly whenever anybody remembered — but a procedure a person has to run, and on
+     20 August it cost eleven hours. The fix was pushed at 22:40 and the phone kept drawing the old
+     screen, because the version string beside it had not moved, so every URL was the URL the
+     browser already had a file for. Correct code, on the server, unreachable. Three separate
+     attempts to work out what was wrong with the code, and there was nothing wrong with the code.
+
+     A STEP THAT MUST BE REMEMBERED IS A STEP THAT WILL BE FORGOTTEN, and the times it is forgotten
+     are the times somebody is in a hurry, which are exactly the times it matters. So the number
+     comes from something that already changes on every push and cannot be forgotten:
+
+     `document.lastModified` IS WHEN GITHUB PAGES LAST BUILT THIS FILE. It moves when the site is
+     deployed and at no other time, which is precisely the definition this line has always wanted:
+     the same value all day while nothing changes, a different one the instant something does.
+
+     ROUNDED TO FIVE MINUTES, WHICH IS THE SAFETY NET. If a server ever fails to send the header,
+     `lastModified` quietly becomes "now" — and a version that changes every load is the same
+     never-cache disaster the clock above was removed for, but silent. Rounding cannot hurt a real
+     build time, which is a fixed instant either way, and it puts a floor under the failure: the
+     worst case becomes one refetch every five minutes rather than one on every load.
+
+     THERE IS NOTHING TO DO ON A PUSH ANY MORE. Push, and the URLs change by themselves. */
+  var LOAD_AT = Date.parse(document.lastModified);
+  if (!LOAD_AT || isNaN(LOAD_AT)) LOAD_AT = Date.now();
+  var LOAD = String(Math.floor(LOAD_AT / 300000));
+
+  /* WHAT THE FOOTER SHOWS, from the same instant — so the version on screen is a MEASUREMENT of
+     what is running rather than a second thing to remember to type. It read `2026-08-15m` for four
+     days while the app was on newer code, which made the one line meant to answer "which version
+     am I looking at" the least trustworthy thing on the page. */
+  window.SITE_STAMP = new Date(LOAD_AT).toISOString().slice(0, 16).replace('T', ' ');
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
 </script>

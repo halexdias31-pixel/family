@@ -68,7 +68,10 @@ const API = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8
    reporting a build from six days ago while everything under it changed. Which makes the one place
    you look to answer "is my frontend current" answer it wrongly, and that is worse than not
    showing it at all: twice today we chased a fault that was a file not yet pasted in. */
-const SITE_VERSION = '2026-08-19c';
+/* MEASURED, NOT TYPED. `SITE_STAMP` is set in index.html from the moment GitHub Pages last built
+   the site — see the long note there. The fallback is only for a page opened straight off the
+   filesystem, where there is no build to ask about. */
+const SITE_VERSION = window.SITE_STAMP || 'local';
 
 /**
  * WHICH STYLESHEET IS RUNNING.
