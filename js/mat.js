@@ -509,10 +509,57 @@ const MAT_HTML = {
                        ['cosine rule','a² = b² + c² − 2bc cos A'], ['area','½ab sin C'],
                        ['which one','angle between → cosine']]),
 
-  M30: () => matPairs([['semicircle','angle is 90°'], ['at the centre','twice the edge'],
-                       ['same segment','equal angles'], ['cyclic quad','opposite add to 180°'],
-                       ['tangent & radius','90°'], ['two tangents','equal length'],
-                       ['alternate segment','equal to the other'], ['centre to chord','bisects it']]),
+  M30: () => `<div class="mat-circ">${[
+  /* THE DIAMETER IS DASHED, because it is construction rather than part of the theorem — the
+     theorem is the two lines to the edge and the right angle they make. */
+  matCirc('<path d="M20,52 L100,52" class="dash"/>' +
+          '<path d="M20,52 L60,12 L100,52" class="ln"/>' +
+          '<path d="M60,12 L54.3,17.7 L60,23.4 L65.7,17.7 Z" class="mk"/>' +
+          '<circle cx="60" cy="52" r="1.8" class="dot"/>',
+          'semicircle &rarr; 90&deg;'),
+
+  matCirc('<path d="M25.4,72 L60,52 L94.6,72" class="ln"/>' +
+          '<path d="M25.4,72 L60,12 L94.6,72" class="ln"/>' +
+          '<text x="60" y="70" class="lb" text-anchor="middle">2x</text>' +
+          '<text x="60" y="34" class="lb" text-anchor="middle">x</text>',
+          'centre &rarr; twice the edge'),
+
+  matCirc('<path d="M25.4,72 L94.6,72" class="ch"/>' +
+          '<path d="M25.4,72 L40,17.4 L94.6,72" class="ln"/>' +
+          '<path d="M25.4,72 L80,17.4 L94.6,72" class="ln"/>' +
+          '<text x="34" y="33" class="lb">x</text><text x="79" y="33" class="lb">x</text>',
+          'same segment &rarr; equal'),
+
+  matCirc('<polygon points="31.7,23.7 88.3,23.7 94.6,72 25.4,72" class="ln"/>' +
+          '<text x="36" y="37" class="lb">x</text><text x="82" y="66" class="lb">y</text>',
+          'cyclic quad &rarr; 180&deg;'),
+
+  matCirc('<path d="M14,92 L106,92" class="ln"/><path d="M60,52 L60,92" class="ln"/>' +
+          '<path d="M60,84 L68,84 L68,92" class="mk"/>' +
+          '<circle cx="60" cy="52" r="1.8" class="dot"/>',
+          'tangent &amp; radius &rarr; 90&deg;'),
+
+  /* THIS ONE IS DRAWN ON ITS OWN CIRCLE — the external point has to sit inside the box, so the
+     circle moves up and shrinks rather than the point falling off the bottom. The tangents are
+     carried a little past where they touch, because a line that stops exactly at the circle reads
+     as a chord that missed. */
+  matCirc('<circle cx="60" cy="45" r="34" class="rim"/>' +
+          '<path d="M60,100 L27.7,58.9 M60,100 L92.3,58.9" class="ln"/>' +
+          '<path d="M44,80 L50,76 M76,80 L70,76" class="mk"/>' +
+          '<circle cx="60" cy="100" r="1.8" class="dot"/>',
+          'two tangents &rarr; equal', true),
+
+  matCirc('<path d="M14,92 L106,92" class="ln"/><path d="M60,92 L94.6,32" class="ln"/>' +
+          '<path d="M25.4,32 L60,92 M25.4,32 L94.6,32" class="ln"/>' +
+          '<text x="67" y="87" class="lb">x</text><text x="30" y="46" class="lb">x</text>',
+          'alternate segment &rarr; same'),
+
+  matCirc('<path d="M25.4,72 L94.6,72" class="ln"/><path d="M60,52 L60,72" class="ln"/>' +
+          '<path d="M60,64 L68,64 L68,72" class="mk"/>' +
+          '<path d="M42.7,68 L42.7,76 M77.3,68 L77.3,76" class="mk"/>' +
+          '<circle cx="60" cy="52" r="1.8" class="dot"/>',
+          'centre to chord &rarr; bisects')
+].join('')}</div>`,
 
   M31: () => matPairs([['adding','same denominator first'], ['multiplying','tops × tops'],
                        ['dividing','flip and multiply'], ['of','× the fraction'],
@@ -623,6 +670,13 @@ const matGrid = (cls, n, cell) => {
    black, without this needing to know which it is in. */
 const fr = (top, bottom) =>
   `<span class="mat-fr"><span>${top}</span><span>${bottom}</span></span>`;
+
+/* `own` IS FOR THE ONE FIGURE THAT NEEDS A DIFFERENT CIRCLE. Two tangents meet at a point outside
+   the circle, and that point has to be inside the box — so that figure shrinks the circle and moves
+   it up, and must not also get the standard one drawn underneath it. */
+const matCirc = (inner, cap, own) =>
+  `<i><svg viewBox="0 0 120 104" xmlns="http://www.w3.org/2000/svg">${
+     own ? '' : '<circle cx="60" cy="52" r="40" class="rim"/>'}${inner}</svg><em>${cap}</em></i>`;
 
 const matPairs = rows => `<div class="mat-two">${
   rows.filter(r => matKeep(r[2])).map(([a, b]) => `<i><b>${a}</b><em>${b}</em></i>`).join('')}</div>`;
