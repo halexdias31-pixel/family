@@ -615,14 +615,25 @@
            the tiling, and came back. Every arc after it started from the wrong corner, so the
            spiral crossed its own squares instead of running through them.
 
-           A QUARTER TURN IS A FACT YOU CAN CHECK, not a shape you nudge until it looks right. In
-           every segment below the centre is a CORNER of that square, the radius IS that square's
-           side, and the two endpoints are the corners either side of the centre — which makes the
-           turn exactly ninety degrees, and makes each arc end precisely where the next begins.
-           Checked, all five: centre on a corner, radius equal to the side, ninety degrees.
+           THEN IT DREW A ROSETTE. The fix checked that each arc ENDED where the next BEGAN, which
+           five quarter-turns can satisfy while alternating which way they curve — so the joints
+           met at a point and reversed, and the result was a flower with cusps rather than a
+           spiral. Continuous is not the same as smooth: touching is a condition on position, and a
+           spiral is a condition on DIRECTION.
+
+           SO THE TEST IS TANGENCY. At every joint the heading coming out of one arc must equal the
+           heading going into the next — not merely the same point, the same way. That rules out
+           every rosette, and exactly one chain of five survives it.
+
+           Checked, all five: centre on a corner of its own square, radius equal to that square's
+           side, ninety degrees of turn, and the heading matched at all four joints.
+
+           THE TWO SMALL SQUARES SHARE A CENTRE, which looks like a mistake and is not: both unit
+           squares turn about the same corner, so together they make one half turn. That is what
+           the middle of a golden spiral is.
       =========================================================================================== -->
-      <path class="fb-arc" d="M20 28 A8 8 0 0 0 28 36 A8 8 0 0 0 20 44 A16 16 0 0 0 4 28
-                              A24 24 0 0 0 28 4 A40 40 0 0 0 68 44"/>
+      <path class="fb-arc" d="M20 28 A8 8 0 0 1 28 36 A8 8 0 0 1 20 44 A16 16 0 0 1 4 28
+                              A24 24 0 0 1 28 4 A40 40 0 0 1 68 44"/>
     </svg>
     <div class="fb-say">1 1 2 3 5</div>
     <div class="sp-sig">@family.</div>
