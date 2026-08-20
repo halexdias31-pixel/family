@@ -5453,8 +5453,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    so the two columns still measure the same and the separation is the same 8mm it always was; only
    now there is something in the middle of it. */
 .mat-two-up { display: flex; gap: 0; }
-.mat-two-up > * { flex: 1; min-width: 0; }
-.mat-two-up > :first-child { padding-right: 4mm; }
+/* THE PADDING IS ON EVERY CELL, NOT ON THE FIRST ONE. With two across, 'first gets padding-right,
+   second gets padding-left' is the same thing; with three it gives 8mm between the first pair and
+   4mm between the second, and a row whose two gutters are different widths reads as a mistake even
+   when nobody can say what is wrong with it. */
+.mat-two-up > * { flex: 1; min-width: 0; padding-right: 4mm; }
+.mat-two-up > :last-child { padding-right: 0; }
 .mat-two-up > .mat-box + .mat-box { border-left: .2mm solid #c9c3b2; padding-left: 4mm; }
 /* WHERE ONE COMPONENT ENDS AND THE NEXT BEGINS — a hairline ABOVE the block, not under its heading.
    Under the heading it separated a heading from its own content, which is the one boundary that did
@@ -5642,7 +5646,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    45% RATHER THAN 40% because a two-column grid has one label column carrying every label in the
    block, and the longest of them — 'mixed → improper', 'vertically opposite' — sets it. At 40% those
    wrap and take the value column's alignment with them. */
-.mat-two-up .mat-two { grid-template-columns: fit-content(45%) 1fr; }
+/* 40% AND A NARROWER GUTTER, because the cell is 60mm now rather than 99mm. At 45% the label column
+   caps at 27mm, which is where 'product of primes' and 'completing the square' start wrapping — and
+   a wrapped label pushes its own value down and takes the row's alignment with it. Giving the label
+   less and the value more means the wrapping happens in the values, where a second line is a second
+   line and nothing moves. */
+.mat-two-up .mat-two { grid-template-columns: fit-content(40%) 1fr; gap: 1mm 2mm; }
 
 /* AND THE HALF-GAP GOES WITH IT. `nth-child(odd) em` puts 4mm on the right of the first value
    column to separate the two halves of the wide grid. In two columns there is no second half, so

@@ -27,6 +27,21 @@
    whatever the font makes it. */
 const MAT_ROOM = 262;
 
+/* ---------- HOW MANY NARROW BLOCKS GO ACROSS -----------------------------------------------------
+   THREE, NOT TWO. `half` has never meant "half the page" to anything but the name — it means "this
+   one is narrow enough to share a row", and how many share it is a decision about the page rather
+   than about the block. At two across a narrow block gets 99mm; at three it gets 60mm, and the
+   label/value grid inside it goes from 44mm + 55mm to 27mm + 33mm.
+
+   SOME VALUES WILL WRAP AT 33mm, and it is still the cheaper page. Six narrow blocks at two across
+   is three rows of about six lines each; at three across it is two rows of about seven, because
+   only the longest values wrap and only onto one extra line. That is roughly 14 line-heights
+   against 18 — and vertical space is the thing this sheet has none of.
+
+   SET IT BACK TO 2 AND EVERYTHING FOLLOWS. The row builder, the rule between the columns and the
+   gauge all read the rendered result, so this is the only number to change. */
+const MAT_ACROSS = 3;
+
 /* ---------- THE SECOND FILTER, AND WHY LEVEL ALONE WAS NOT ENOUGH -------------------------------
    HALF THE GCSE COMPONENTS ARE HIGHER-ONLY. Exact trig values, negative and fractional indices,
    sphere and cone, perpendicular gradients, cubic and reciprocal graphs — a Foundation student
@@ -1023,7 +1038,7 @@ function matPaint() {
 
   /* HALF-WIDTH BLOCKS PAIR UP, full ones take a row. Walked in list order rather than sorted, so
      moving something on the mat is moving one line here. */
-  let h = '', hold = null;
+  let h = '';
   /* ONE FUNCTION, CALLED ONCE PER BLOCK. The first version had a ternary that invoked `MAT_HTML`
      twice for the same component — drawing a protractor's 181 ticks and throwing one copy away. */
   /* A PIECE THAT IS ALREADY A FINISHED THING GETS NO HEADING AND NO RULE. A flyer carries its own
@@ -1033,15 +1048,22 @@ function matPaint() {
   const cell = c => c.bare
     ? `<div class="mat-box bare">${matDraw(c)}</div>`
     : `<div class="mat-box"><h4>${esc(c.name)}</h4>${matDraw(c)}</div>`;
-  const pair = (a, b) => `<div class="mat-two-up">${cell(a)}${b ? cell(b) : '<div></div>'}</div>`;
+  /* A ROW OF NARROW BLOCKS, PADDED OUT TO THE FULL COUNT. The empty cells matter: without them a
+     row holding one block would stretch it across the whole page, and a block that is narrow on one
+     sheet and full width on the next is the layout changing its mind in front of you. */
+  const row = cs => `<div class="mat-two-up">${cs.map(cell).join('')}${
+    '<div></div>'.repeat(MAT_ACROSS - cs.length)}</div>`;
+  /* HELD RATHER THAN COUNTED, because a full-width block arriving mid-row ends the row wherever it
+     had got to — the alternative is holding narrow blocks back past a wide one to fill a row, which
+     reorders the sheet against the order the list was written in. */
+  let held = [];
+  const flush = () => { if (held.length) { h += row(held); held = []; } };
   pieces.forEach(c => {
-    if (!c.half) {
-      if (hold) { h += pair(hold); hold = null; }
-      h += cell(c);
-    } else if (hold) { h += pair(hold, c); hold = null; }
-    else hold = c;
+    if (!c.half) { flush(); h += cell(c); return; }
+    held.push(c);
+    if (held.length === MAT_ACROSS) flush();
   });
-  if (hold) h += pair(hold);
+  flush();
 
   /* THE LEVEL IS ON THE PAPER. Six sheets in a folder all headed "Cheat sheet" are six sheets you
      have to read to tell apart, and the one thing that distinguishes them is already known here.
