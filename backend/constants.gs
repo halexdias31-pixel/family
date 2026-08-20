@@ -98,6 +98,8 @@ const TAB = {
   campaigns: 'campaigns',
   /* The words those campaigns say, one line per row — see SCHEMA.copy. */
   copy: 'copy',
+  /* What the search funnel asks, in what order, and what it calls things — see SCHEMA.facets. */
+  facets: 'facets',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
   /* One row per exam question — see SCHEMA.questions. */
@@ -834,6 +836,10 @@ const SCHEMA = {
      box with a heading is worse than an absent one. `check-mat` is what tells you it is there. */
   cheatsheet: [
     "part_id", "name", "levels", "tier", "height_mm", "half_width",
+    /* TICKED WHEN THE TOOL OPENS. Six were hard-coded in mat.js, chosen so the sheet opens on a
+       working example rather than over-full with the print button already dead. That was the right
+       instinct in the wrong place: WHICH six is a decision about teaching, not about code. */
+    "start_on",
     "sort_order", "active", "notes",
   ],
 
@@ -1002,6 +1008,30 @@ const SCHEMA = {
      campaign's built-in wording, so emptying this tab cannot produce a blank flyer. */
   copy: [
     "copy_id", "campaign_id", "slot", "variant", "text", "note", "active",
+  ],
+
+  /* ---------- WHAT THE SEARCH ASKS, AND WHAT IT CALLS IT -------------------------------------------
+     THE FUNNEL IS TWO DIFFERENT THINGS AND ONLY ONE OF THEM BELONGS IN CODE.
+
+     Reading a value off a row is logic — "the band, but only when it is a grade rather than a
+     stage" cannot be written in a cell without inventing a formula language in a spreadsheet
+     column, and that is a bad day for everybody. That half stays in find.js, keyed by `field`.
+
+     WHICH QUESTIONS GET ASKED, IN WHAT ORDER, AND WHAT THEY ARE CALLED is editorial. It is the
+     same kind of decision as the wording on a flyer, and it was in code for the same bad reason.
+
+       field         the key. It must match a field the code knows; one it does not is ignored.
+       label         what the question is called on screen
+       sort_order    lower is asked earlier
+       min_coverage  0 to 1. A question is skipped while fewer than this share of the things in
+                     front of you can answer it — because choosing a value silently drops every
+                     item that has none. Blank uses the 0.5 the code has always used.
+       active        OFF removes the question entirely, however well covered it is.
+
+     A FIELD WITH NO ROW KEEPS ITS BUILT-IN SETTINGS, so this tab can be empty, or hold one row for
+     the one thing you wanted to rename, and everything else carries on. */
+  facets: [
+    "field", "label", "sort_order", "min_coverage", "note", "active",
   ],
 
   holidays: [

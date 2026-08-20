@@ -274,6 +274,8 @@ function doGet(e) {
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       links: [], shop: [], promotions: [], intervals: [], landmarks: [],
       campaigns: [],
+      /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
+      facets: [],
       gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
@@ -357,6 +359,7 @@ function doGet(e) {
       festive: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
       questions: [], boxers: [], fights: [],
+      cheatsheet: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one
@@ -564,6 +567,44 @@ function doGet(e) {
     read(TAB.brand).rows.forEach(r => {
       const k = S(r.key).trim();
       if (k) payload.brand[k] = S(r.value);
+    });
+
+    /* ---------- WHAT MAY GO ON A CHEAT SHEET -----------------------------------------------------
+       THE TAB EXISTED, THE SCHEMA KNEW IT, `mat.js` READ IT — AND NOTHING EVER SENT IT. Nineteen
+       rows saying which components exist, how tall each is and which levels it suits, and the
+       phone has been falling back to the copy hard-coded in the frontend every single time.
+
+       NOT A BUG ANYBODY COULD SEE, which is what made it survive: the fallback is correct, so the
+       tool worked perfectly and the sheet did nothing at all. Editing a row changed nothing and
+       there was no error to notice. */
+    read(TAB.cheatsheet).rows.forEach(r => {
+      const id = S(r.part_id).trim();
+      if (!id || !ON_(r.active)) return;
+      payload.cheatsheet.push({
+        id: id, name: S(r.name), levels: S(r.levels), tier: S(r.tier),
+        /* BLANK IS NOT ZERO. An empty height means "whatever the code says"; a typed 0 is a real
+           answer. Distinguishing them is what lets a row set one column and leave the rest alone. */
+        heightMm: S(r.height_mm) === '' ? null : N(r.height_mm),
+        half: S(r.half_width) === '' ? null : ON_(r.half_width),
+        startOn: ON_(r.start_on),
+        order: S(r.sort_order) === '' ? null : N(r.sort_order),
+      });
+    });
+
+    /* THE FUNNEL'S QUESTIONS. To EVERY phone, not just an admin's — this decides what the search
+       asks, and search is the thing everybody uses. A row for a field the code does not know is
+       passed through rather than dropped: the phone ignores it, and a tab that quietly deleted
+       rows it did not recognise would be impossible to debug from the sheet end. */
+    read(TAB.facets).rows.forEach(r => {
+      const field = S(r.field).trim();
+      if (!field) return;
+      payload.facets.push({
+        field: field,
+        label: S(r.label),
+        order: S(r.sort_order) === '' ? null : Number(r.sort_order),
+        minCoverage: S(r.min_coverage) === '' ? null : Number(r.min_coverage),
+        active: ON_(r.active),
+      });
     });
 
     /* ---------- THE CAMPAIGNS, AND THE WORDS THEY SAY -------------------------------------------
