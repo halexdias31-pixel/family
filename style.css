@@ -4648,7 +4648,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* ---------- HALVES ------------------------------------------------------------------------------ */
 #splash-half .hf-svg { width: min(64vw, 15rem); height: auto; }
-.hf-p { fill: #6fa8dc; stroke: #1b1a17; stroke-width: 1.2; opacity: 0;
+/* NO STROKE. A 1.2 outline on a piece 3 wide is mostly outline — the last two halvings came out as
+   black bars with a hint of blue in them, and the right-hand end of the strip read as a barcode
+   rather than as halves getting smaller. The shades below already tell the pieces apart, and they
+   do it without taking width away from the ones that have least to spare. */
+.hf-p { fill: #6fa8dc; opacity: 0;
         animation: hf-in .4s ease-out both, hf-breathe 3s ease-in-out infinite;
         animation-delay: calc(.2s + var(--i) * .3s), calc(1.8s + var(--i) * .18s); }
 .hf-p:nth-child(2) { fill: #5b93c7; } .hf-p:nth-child(3) { fill: #4a7fb0; }
