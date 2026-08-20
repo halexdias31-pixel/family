@@ -132,7 +132,12 @@
      what is running rather than a second thing to remember to type. It read `2026-08-15m` for four
      days while the app was on newer code, which made the one line meant to answer "which version
      am I looking at" the least trustworthy thing on the page. */
-  window.SITE_STAMP = new Date(LOAD_AT).toISOString().slice(0, 16).replace('T', ' ');
+  /* LOCAL TIME, NOT UTC. `toISOString` is always UTC, so through the summer the footer read an hour
+     behind every clock the reader owns — and the one question this line exists to answer is "is
+     this newer than the thing I just pushed", which cannot be answered by a number an hour out.
+     Twice tonight a build WAS current and looked stale. */
+  window.SITE_STAMP = new Date(LOAD_AT).toLocaleString('en-GB',
+    { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
 </script>
