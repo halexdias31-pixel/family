@@ -102,14 +102,31 @@ const MAT_PARTS = [
   { id: 'M07', name: 'Angles named',       lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 28,  half: true },
   { id: 'M08', name: 'Protractor',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true,
     note: 'prints at true size' },
-  { id: 'M09', name: '2D shapes',          lv: ['SATs','11+','Y2 Mocks'],                    h: 35,  half: false },
+  /* Y1 AS WELL AS Y2. Naming a triangle and a square is the first year's work, and the block was
+     offered to the second year and withheld from the one that starts it. */
+  { id: 'M09', name: '2D shapes',          lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 35,  half: false },
   { id: 'M10', name: 'Roman numerals',     lv: ['SATs','11+'],                               h: 13,  half: true },
   { id: 'M11', name: 'Fraction = decimal', lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 15,  half: true },
   /* NOT AN A-LEVEL BLOCK, WHICH IS WHAT ITS NAME SAYS. "Formulae not given" names a GCSE exam
      convention, and every line in it — circle, sphere, cone, prism, compound measures, percentage
      change, compound interest — is GCSE content that Y9 mocks and B-TEC both examine. An A-level
      student has a different booklet and does not consult this one. */
-  { id: 'M12', name: 'Formulae not given', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 49,  half: true },
+  /* ---------- EIGHT FORMULAE, EIGHT TICKBOXES ------------------------------------------------------
+     "Formulae not given" WAS ONE BOX HOLDING EIGHT UNRELATED FACTS. A student wanting the circle and
+     percentage change had to take the cone and compound interest with them, and the only thing the
+     eight had in common was a fact ABOUT them — that the exam does not print them. That is a
+     property, not a shelf. Grouping by it made the sphere and the prism into one object.
+
+     SO EACH IS ITS OWN COMPONENT and "not given" is a marker on it, which is the honest shape: any
+     component can be given or not given, and several outside this old group are. */
+  { id: 'M12A', name: 'Circle',            lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12B', name: 'Arc & sector',      lv: ['Y9 Mocks','GCSE'],                          h: 10, half: true, inExam: false },
+  { id: 'M12C', name: 'Sphere',            lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: false },
+  { id: 'M12D', name: 'Cone',              lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: false },
+  { id: 'M12E', name: 'Prism',             lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12F', name: 'Compound measures', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12G', name: 'Percentage change', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12H', name: 'Compound interest', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
   { id: 'M13', name: 'Exact trig values',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H' },
   { id: 'M14', name: 'The trig trick',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H' },
   /* INDEX LAWS AND GRAPH SHAPES START AT Y9. Both are Y8/Y9 teaching, and both were tagged from
@@ -130,12 +147,22 @@ const MAT_PARTS = [
   { id: 'M19', name: 'Pythagoras & trig',  lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true },
   { id: 'M20', name: 'Angle rules',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true },
   { id: 'M21', name: 'Area & perimeter',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true },
-  { id: 'M22', name: 'Percentages',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 23,  half: true },
+  /* SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry
+     SATs on the rows around this one — four neighbours teaching the same year, and this the only
+     one saying otherwise. */
+  { id: 'M22', name: 'Percentages',        lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true },
   { id: 'M23', name: 'Rounding & bounds',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true },
   { id: 'M24', name: 'Standard form',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 35,  half: true },
-  { id: 'M25', name: 'Sequences',          lv: ['11+','Y9 Mocks','GCSE'],                    h: 41,  half: true },
-  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 23,  half: false },
-  { id: 'M27', name: 'Probability',        lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true },
+  /* SATs, for the same reason: continuing a number sequence is Y6, and the nth term on top of it
+     is what the later levels add rather than what makes the block start. */
+  { id: 'M25', name: 'Sequences',          lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 41,  half: true },
+  /* B-TEC, LIKE THE ALGEBRA EITHER SIDE OF IT. Index laws, the straight line and standard form all
+     carry B-TEC; solving a quadratic is the same kind of tool on the same kind of course, and its
+     absence here was an omission rather than a decision. */
+  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 23,  half: false },
+  /* 11+, WHERE IT IS ASKED. Simple probability is on entrance papers, and this was the only block
+     on a common 11+ topic that an 11+ student could not see. */
+  { id: 'M27', name: 'Probability',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 28,  half: true },
   { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: false },
   /* HIGHER, AND WHOLLY SO — both of these are Higher-only content top to bottom, which is what makes
      them component-wide tiers rather than the row-level ones inside M22, M23, M25 and M26. */
@@ -274,7 +301,10 @@ function matParts() {
       half:  r.half === null || r.half === undefined ? c.half : r.half,
       /* WHETHER THE EXAM GIVES YOU THIS. Only the sheet knows — nothing in the code has an opinion,
          and null stays null so "nobody has checked" survives all the way to the screen. */
-      inExam: r.inExam === undefined ? null : r.inExam,
+      /* THE SHEET WINS, THE CODE ANSWERS WHEN IT IS SILENT. `null` from the tab means the cell was
+         empty, which is "nobody has checked" — and that is not the same as the code not knowing. */
+      inExam: (r.inExam === undefined || r.inExam === null)
+                ? (c.inExam === undefined ? null : c.inExam) : r.inExam,
       at:    r.order === null || r.order === undefined ? (c.at0 || (i + 1) * 10) : r.order,
     });
   });
@@ -346,11 +376,14 @@ const MAT_HTML = {
   /* THE THIRD ENTRY IS THE TIER. Sphere and cone are Higher-only content; the rest of this block is
      on both papers, so tagging the whole component 'H' would have taken the circle away from a
      Foundation student to keep a sphere they will never be asked for. */
-  M12: () => matPairs([
-    ['Circle','A = πr² · C = 2πr'], ['Arc, sector', fr('θ','360') + ' × 2πr · × πr²'],
-    ['Sphere', 'V = ' + fr('4','3') + 'πr³ · A = 4πr²', 'H'], ['Cone', 'V = ' + fr('1','3') + 'πr²h · πrl', 'H'],
-    ['Prism','V = cross-section × length'], ['Compound','speed = d/t · density = m/v'],
-    ['% change', fr('new − old','old') + ' × 100'], ['Interest','P(1 + r)ⁿ']]),
+  M12A: () => matPairs([['Circle','A = πr² · C = 2πr']]),
+  M12B: () => matPairs([['Arc, sector', fr('θ','360') + ' × 2πr · × πr²']]),
+  M12C: () => matPairs([['Sphere', 'V = ' + fr('4','3') + 'πr³ · A = 4πr²']]),
+  M12D: () => matPairs([['Cone', 'V = ' + fr('1','3') + 'πr²h · πrl']]),
+  M12E: () => matPairs([['Prism','V = cross-section × length']]),
+  M12F: () => matPairs([['Compound','speed = d/t · density = m/v']]),
+  M12G: () => matPairs([['% change', fr('new − old','old') + ' × 100']]),
+  M12H: () => matPairs([['Interest','P(1 + r)ⁿ']]),
   /* EVERY VALUE AS √n ÷ 2, INCLUDING THE ONES THAT SIMPLIFY. The table used to read 0, ½, √2/2,
      √3/2, 1 — five values with nothing in common, which is five things to memorise and no way to
      rebuild any of them once one has gone. Written unsimplified they are one thing: n counts 0 1 2
@@ -795,11 +828,17 @@ function initMat() {
      flyer could be ticked onto the sheet; with the flyer maker its own tool again there is one
      library here, and a heading over a list of one kind is a word doing no work. */
   $('mat-list').innerHTML = matParts().map(c => {
-    return `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"><input
+    return `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"${
+      /* THE CLASS IS ON THE ROW so the name can carry the colour. The tag alone is read once the
+         row has been found; the point of the mark is to find it. */
+      c.inExam === false ? ' class="not-given"' : ''}><input
        type="checkbox" data-do="mat-tick"
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
-     ${esc(c.name)}${c.inExam === true
-       ? '<b class="mat-given" title="the exam gives you this">given</b>' : ''}<u>${
+     ${esc(c.name)}${/* THE MARKER IS FOR "NOT GIVEN", which is the one that changes what you do. "Given" means the
+      paper has it and you need not print it — worth knowing, but it is the ordinary case and a tag
+      on most of the list is a tag nobody sees. "Not given" is the exception and the warning. */''}${
+     c.inExam === false
+       ? '<b class="mat-given">not given</b>' : ''}<u>${
          /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
             says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
             and cost a tenth of the sheet. Area is true of both shapes. */
