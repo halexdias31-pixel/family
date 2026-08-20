@@ -125,10 +125,16 @@ const KINDS = {
   ------------------------------------------------------------------------------------------------
      ITS OWN GROUP. A boxer is not something you book, learn from or buy — and folding him into
      Learning would put a dead heavyweight in the same list as a past paper. */
-  boxer: { group: 'Learning', label: 'Boxers', card: x => boxerCard_(x) },
+  /* LABELLED `Resources`, LIKE A TOPIC AND A PAST PAPER, because that is what the second question
+     is asking: what KIND of thing, not which table it came out of. `Boxers` and `Fights` as their
+     own kinds put the storage shape on the screen — the user does not have a boxers tab, they have
+     a subject they want to read about. Two kinds sharing a label is already how `topic` and
+     `question` work, and it is the reason Boxing can then turn up under Subject beside Maths and
+     English rather than as a department of its own. */
+  boxer: { group: 'Learning', label: 'Resources', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
-  fight: { group: 'Learning', label: 'Fights', card: x => fightCard_(x) },
+  fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
 
   tool: { group: 'Tools & games', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Tools & games', label: 'Games', card: x => widgetCard_(x) },
