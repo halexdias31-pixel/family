@@ -111,6 +111,9 @@ const KINDS = {
   /* ITS OWN GROUP. A boxer is not something you book, learn from or buy — and folding him into
      Learning would put a dead heavyweight in the same list as a past paper. */
   boxer: { group: 'Boxing', label: 'Boxers', card: x => boxerCard_(x) },
+  /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
+     because nothing in the app had ever been told the tab existed. */
+  fight: { group: 'Boxing', label: 'Fights', card: x => fightCard_(x) },
 
   tool: { group: 'Tools & games', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Tools & games', label: 'Games', card: x => widgetCard_(x) },
@@ -297,6 +300,9 @@ const FACETS = [
      rule again, doing what a per-kind filter list would otherwise need code for. */
   { field: 'category',  label: 'Category',    of: x => x.category || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
+  /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
+     else — the same rule that hides `borough` unless you are looking at venues. */
+  { field: 'division',  label: 'Division',    of: x => x.division || '' },
   /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
      revising and somebody sitting a mock are not looking for the same thing — so it is the
      question that most changes what should come next. 412 of 417 rows can answer it, which is
@@ -492,6 +498,49 @@ const QUESTION_CLASSES = ['roman', 'lbl', 'num', 'ax', 'axis', 'grid', 'pt',
    ninety parts is scanned rather than read. The whole thing opens on a tap. */
 /* THE RECORD IS THE FACE OF IT. W-L-D first, KOs under it, and the date the count was taken —
    because a record with no date is the one number on the card that can quietly go wrong. */
+/* ---------- ONE BOUT ------------------------------------------------------------------------------
+   THE RESULT SENTENCE IS NOT USED, and that is deliberate. `result` reads "Jack Johnson def. James
+   J. Jeffries" — the two names again, which the card has already printed larger, plus a word. The
+   facts worth the space are the ones the names do not carry: how it ended, in which round, and
+   whether anybody has checked.
+
+   THE WINNER IS MARKED RATHER THAN STATED. A name in bold and the other not is read instantly and
+   costs no line; "Winner: Jack Johnson" is a whole row saying what a weight already said. A draw
+   or a no-contest marks neither, which is exactly right — nothing to emphasise, and the method
+   underneath says what happened.
+
+   `verified` IS SHOWN WHEN IT IS FALSE, not when it is true. Almost every row will be checked
+   eventually, so a tick on all of them is decoration; a mark on the few that are not is a to-do
+   list somebody can actually work through. */
+function fightCard_(x) {
+  const f = x.row;
+  const wonA = f.winner && norm(f.winner) === norm(f.a);
+  const wonB = f.winner && norm(f.winner) === norm(f.b);
+  const corner = (name, won) => `<span class="fight-who${won ? ' won' : ''}">${esc(name)}</span>`;
+
+  /* HOW IT ENDED, AS A PHRASE. "KO" and "round 2" are two facts and one sentence; a card that
+     printed them as two rows would be a form rather than a result. */
+  const how = [f.method, f.endRound ? 'round ' + f.endRound : '',
+               (!f.endRound && f.rounds) ? f.rounds + ' rounds' : '']
+    .filter(Boolean).join(' · ');
+
+  const where = [f.venue, f.city].filter(Boolean).join(', ');
+  const bout = f.boutTotal > 1 ? `Bout ${f.boutNo} of ${f.boutTotal}` : '';
+
+  return `<div class="card fight">
+    <p class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</p>
+    <p class="sub">${esc([f.date, f.division, bout].filter(Boolean).join(' · '))}</p>
+    ${how ? `<p class="fight-how">${esc(how)}</p>` : ''}
+    ${f.titles ? `<p class="note">${esc(f.titles)}</p>` : ''}
+    ${where ? `<p class="note">${esc(where)}${
+      f.attendance ? ' · ' + esc(f.attendance) + ' there' : ''}</p>` : ''}
+    ${f.notes ? `<p class="fight-note">${esc(f.notes)}</p>` : ''}
+    ${f.video ? `<p><a class="btn quiet" href="${esc(f.video)}" target="_blank"
+       rel="noopener">Watch it</a></p>` : ''}
+    ${f.verified ? '' : '<p class="note faint">Not checked yet</p>'}
+  </div>`;
+}
+
 function boxerCard_(x) {
   const b = x.row;
   const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
@@ -931,10 +980,31 @@ function stuffItems() {
     ...(DATA.boxers || []).filter(b => b.name).map(b => ({
       kind: 'boxer', name: b.name, key: 'bx:' + (b.id || b.name),
       sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: b.image,
-      cost: 0, slot: '', subject: b.bestDivision || '', grade: '',
+      /* ---------- A DIVISION IS NOT A SUBJECT -----------------------------------------------
+         `subject` HELD THE DIVISION, written that way for a good-sounding reason: it is the column
+         every facet already knows how to group by, so Boxers narrowed by division for free. What
+         it cost was the Subject question, which then offered Maths, English, Heavyweight and
+         Welterweight in one list — two vocabularies pretending to be one, with "Boxing" itself
+         nowhere in it, which is the thing anybody would look for first.
+         SO THE SUBJECT IS BOXING and the division is its own field. */
+      cost: 0, slot: '', subject: 'Boxing', division: b.bestDivision || '', grade: '',
       off: false, row: b,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: b.activeTo || '', paper: false,
+    })),
+
+    /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: Boxing as the subject, the weight as the
+       division. Everything school-shaped stays blank, and blank is what keeps a fight out of a
+       list of past papers. */
+    ...(DATA.fights || []).map(f => ({
+      kind: 'fight', name: f.a + ' v ' + f.b,
+      key: 'ft:' + (f.id || f.a + f.b + f.date),
+      sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
+      image: '',
+      cost: 0, slot: '', subject: 'Boxing', division: f.division || '', grade: '',
+      off: false, row: f,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: (f.date || '').slice(0, 4), paper: false,
     })),
 
     ...allTopics()

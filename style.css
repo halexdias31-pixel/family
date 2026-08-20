@@ -6007,3 +6007,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
 .qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
 .qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+/* ==================================================================================================
+   BOXING — THE FIGHTER AND THE FIGHT
+
+   `boxer-nick` AND `boxer-rec` WERE NEVER STYLED. The card has been writing both since it was
+   built, and both have been arriving as plain body text — a nickname in quotes reading as part of
+   the name, and a record reading as a sentence. Not broken, so nothing complained; just never
+   finished.
+
+   THE WINNER IS A WEIGHT, NOT A LABEL. Two names, one bold, and the eye has the result before it
+   has read a word. A draw leaves both light, which says draw without a line saying draw.
+================================================================================================== */
+.boxer-nick { font-weight: 400; color: var(--dim); }
+.boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
+
+.fight-line { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; }
+.fight-who { font: 600 1rem/1.2 inherit; color: var(--dim); }
+/* THE ONE THAT WON. Colour and weight together, because weight alone is lost at this size on a
+   phone and colour alone is lost on paper. */
+.fight-who.won { color: var(--ink); font-weight: 700; }
+.fight-line em { font: 400 .72rem/1 var(--mono); font-style: normal; color: var(--faint); }
+.fight-how { margin: .3rem 0 0; font: 600 .74rem/1 var(--mono); color: var(--gold);
+             letter-spacing: .04em; text-transform: uppercase; }
+/* A NOTE IS A SENTENCE SOMEBODY WROTE, so it reads as prose rather than as another field. */
+.fight-note { margin: .4rem 0 0; font-size: .78rem; line-height: 1.45; color: var(--dim); }
