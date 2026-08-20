@@ -6029,3 +6029,31 @@ body.has-ib #install-bar { transition: transform .28s ease; }
              letter-spacing: .04em; text-transform: uppercase; }
 /* A NOTE IS A SENTENCE SOMEBODY WROTE, so it reads as prose rather than as another field. */
 .fight-note { margin: .4rem 0 0; font-size: .78rem; line-height: 1.45; color: var(--dim); }
+
+/* ==================================================================================================
+   A WHOLE PAPER, READ ON A PHONE
+
+   THE QUESTIONS WERE ALWAYS THERE and could only be opened one at a time. Read end to end they
+   need what a printed paper has: a section heading, a number that stands away from the text, and
+   the marks where the eye expects them, hard right.
+================================================================================================== */
+.qpaper { padding-bottom: 1rem; }
+.qp-head { margin: 0 0 1rem; font: 400 .74rem/1.4 var(--mono); color: var(--dim);
+           letter-spacing: .04em; }
+.qp-head b { color: var(--gold); }
+/* A SECTION IS A DIVISION OF THE PAPER, so it gets a rule; a question is not, so it does not. */
+.qp-sec { margin: 1.6rem 0 .8rem; font: 700 .72rem/1 var(--mono); letter-spacing: .14em;
+          text-transform: uppercase; color: var(--faint);
+          border-bottom: 1px solid var(--line); padding-bottom: .4rem; }
+.qp-q { margin: 1.4rem 0 .5rem; font: 700 1.1rem/1 var(--mono); color: var(--gold); }
+.qp-q:first-child { margin-top: 0; }
+/* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text
+   under a hanging (a) is what makes a multi-part question readable at a glance. */
+.qp-part { display: flex; gap: .7rem; margin: 0 0 1rem; }
+.qp-body { flex: 1; min-width: 0; }
+/* HARD RIGHT, ON ITS OWN LINE. Marks run down one edge so the weight of a paper can be read
+   without reading the paper — which is what a student is doing when they flick through one. */
+.qp-marks { margin: .3rem 0 0; text-align: right;
+            font: 400 .74rem/1 var(--mono); color: var(--faint); }
+.btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
+            color: var(--faint); margin-top: .2rem; }

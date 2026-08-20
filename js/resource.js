@@ -43,10 +43,25 @@ on('topic', el => {
 
     <h2>Digital</h2>
     ${row('Costs', 'free', 'green')}
+    ${/* ---------- THE PAPER ITSELF, WHEN IT IS IN THE SHEET ------------------------------------
+          A PAST PAPER WITH NO PDF SAID "No link on this one yet" while twenty of its questions sat
+          in the `questions` tab with their full HTML in them. The paper was READABLE and the one
+          screen you would read it from was the one screen that did not say so — because the only
+          thing it knew how to offer was a URL somebody else hosts.
+
+          A LINK AND A TRANSCRIPTION ARE BOTH "the paper", so both are offered, and either can be
+          missing. When the questions are here they are the better answer: no download, no PDF
+          reader, and it is the same rows the question cards already draw from — so a fix to a
+          question fixes it here too. */''}
+    ${paperParts(t).length
+      ? `<button class="btn" style="margin-top:.5rem" data-do="paper-read"
+                 data-key="${esc(t.id || t.name)}">Read the paper
+           <em class="btn-note">${paperParts(t).filter(r => r.kind !== 'stem').length} questions</em>
+         </button>` : ''}
     ${t.link
       ? `<a class="btn ghost" href="${esc(t.link)}" target="_blank" rel="noopener"
-           style="margin-top:.5rem">Open it now</a>`
-      : '<p class="faint">No link on this one yet.</p>'}
+           style="margin-top:.5rem">Open the PDF</a>`
+      : (paperParts(t).length ? '' : '<p class="faint">No link on this one yet.</p>')}
 
     ${/* THE PRINTED COPY. Paper, at cost. The sum is spelled out rather than stated — "43 pages ×
           2p" is checkable, and "£0.86" is something you either believe or you do not. */''}
@@ -380,4 +395,69 @@ on('open-cart', on_openCart);
 
 on('cart-send', () => {
   toast('Checkout is the next thing to build');
+});
+/* ==================================================================================================
+   THE WHOLE PAPER, READ FROM THE ROWS THAT ALREADY DRAW ITS QUESTIONS.
+
+   Nothing here is new data. `questions` has carried the stems, the leads and the parts since it was
+   built, and the question cards have been drawing them one at a time. What was missing was the
+   obvious thing to do with twenty rows that share a `paper_id`: put them in order and read them.
+================================================================================================== */
+
+/* EVERY PART OF ONE PAPER, IN THE ORDER IT IS PRINTED.
+   SORTED NUMERICALLY ON THE QUESTION AND ALPHABETICALLY ON THE PART, which is not the same as
+   sorting the pair as text: as text, Q10 comes between Q1 and Q2, so a twenty-question paper reads
+   1, 10, 11, 12, 2 — right for a filing cabinet, wrong for a paper. */
+function paperParts(t) {
+  const id = t && (t.id || t.rowId);
+  if (!id) return [];
+  return (DATA.questions || [])
+    .filter(r => r.paper === id && r.kind !== 'paper')
+    .sort((a, b) => (Number(a.q) || 0) - (Number(b.q) || 0)
+                 || String(a.part || '').localeCompare(String(b.part || '')));
+}
+
+on('paper-read', el => {
+  const key = el.getAttribute('data-key');
+  const t = (allTopics() || []).find(x => (x.id || x.name) === key);
+  if (!t) { toast('That paper is not in the sheet'); return; }
+
+  const rows = paperParts(t);
+  if (!rows.length) { toast('No questions written up for this one yet'); return; }
+
+  let h = '', section = null, q = null, marks = 0;
+  rows.forEach(r => {
+    /* A SECTION HEADING WHERE THE SECTION CHANGES, not one per question. */
+    if (r.section && r.section !== section) {
+      section = r.section;
+      h += `<h2 class="qp-sec">Section ${esc(section)}</h2>`;
+    }
+    if (r.q !== q) {
+      q = r.q;
+      h += `<h3 class="qp-q">${esc(r.q)}</h3>`;
+    }
+    /* THE STEM IS THE SHARED PART and prints once, above the parts that need it — which is the
+       whole reason it is a row of its own rather than a copy on each part. */
+    if (r.kind === 'stem') {
+      h += `<div class="qsheet-stem">${r.html || ''}</div>`;
+      return;
+    }
+    marks += Number(r.marks) || 0;
+    h += `<div class="qp-part">
+      ${r.part ? `<span class="qsheet-pn">(${esc(r.part)})</span>` : ''}
+      <div class="qp-body">
+        ${r.lead ? `<div class="qsheet-lead">${r.lead}</div>` : ''}
+        ${r.html || ''}
+        ${r.marks ? `<p class="qp-marks">[${esc(r.marks)} mark${
+          Number(r.marks) === 1 ? '' : 's'}]</p>` : ''}
+      </div>
+    </div>`;
+  });
+
+  /* THE TOTAL IS ADDED UP RATHER THAN TYPED, so it cannot disagree with the questions above it. */
+  openSheet(t.name, `<div class="qsheet qpaper">
+    <p class="qp-head">${esc([t.examBoard, waveOf(t), t.keystage].filter(Boolean).join(' · '))}
+      ${marks ? ` · <b>${marks} marks</b>` : ''}</p>
+    ${h}
+  </div>`);
 });
