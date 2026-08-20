@@ -85,7 +85,11 @@ const MAT_PARTS = [
      from the 262mm the gauge is counting; this one takes width from the left margin instead. So it
      costs 0 against the budget, which is not a fiddle — it genuinely uses none of the space the
      other pieces are competing for. */
-  { id: 'M01', name: 'Ruler down the edge', lv: [], h: 0, half: false, edge: true },
+  /* `h` IS ITS REAL HEIGHT, THE WHOLE PAGE. It was 0 back when the gauge counted height and an edge
+     piece had to be made free by lying to it. The gauge counts area now and works the strip out for
+     itself — but the PICKER prices from `h`, so the list went on saying 0cm² for a component the
+     bar was charging 52cm² for. Two numbers for one thing, and the visible one was the wrong one. */
+  { id: 'M01', name: 'Ruler down the edge', lv: [], h: 262, half: false, edge: true },
   { id: 'M02', name: 'Number square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
   { id: 'M03', name: 'Times tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
   { id: 'M04', name: 'Number line',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
