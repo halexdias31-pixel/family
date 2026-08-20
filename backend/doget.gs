@@ -587,6 +587,9 @@ function doGet(e) {
         heightMm: S(r.height_mm) === '' ? null : N(r.height_mm),
         half: S(r.half_width) === '' ? null : ON_(r.half_width),
         startOn: ON_(r.start_on),
+        /* THREE STATES, NOT TWO. `ON_` would fold "nobody has checked" into "no", and the picker
+           has to be able to say nothing rather than say the wrong thing. */
+        inExam: S(r.in_exam) === '' ? null : ON_(r.in_exam),
         order: S(r.sort_order) === '' ? null : N(r.sort_order),
       });
     });

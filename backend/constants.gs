@@ -840,6 +840,15 @@ const SCHEMA = {
        working example rather than over-full with the print button already dead. That was the right
        instinct in the wrong place: WHICH six is a decision about teaching, not about code. */
     "start_on",
+    /* ---------- IS IT ON THE PAPER ANYWAY -------------------------------------------------------
+       TRUE means the exam gives you this, so putting it on a cheat sheet spends paper on something
+       the candidate will already be holding. FALSE means they must know it or bring it.
+
+       BLANK MEANS NOBODY HAS CHECKED, and blank is not FALSE. Which formulae are printed on the
+       paper differs by board and changes between specifications, so a guess written here is a
+       wrong fact in the database that reads exactly like a checked one. Left empty until somebody
+       has the specification open. */
+    "in_exam",
     "sort_order", "active", "notes",
   ],
 
