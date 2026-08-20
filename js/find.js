@@ -1905,7 +1905,11 @@ function stuffQuestion() {
      choices there are, it is how many THINGS are behind each one — a value leaving three and a
      value leaving three hundred look identical without it, and the difference is whether the next
      tap is worth making. */
-  return values.map(v => `<div class="row tap" data-do="facet-pick"
+  /* `counted` TAKES THE CHEVRON OFF. See the stylesheet: a chevron is pinned to the right edge, and
+     so is the count — so on a one-digit number it appeared beside the digit and on a four-digit one
+     it disappeared behind them. Five rows, chevrons on two of them, and the two were whichever
+     happened to have small numbers. It marked nothing and read as litter. */
+  return values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
         <span class="k">${mark(v.value)}</span>
         <span class="v mono">${v.n}</span>

@@ -74,6 +74,28 @@ const matKeep = flag => flag !== 'H' || MAT_SHOW === 'H';
    also what it looks like before `?setup=1` has been run, so it has to be right rather than blank.
    THE DRAWINGS STAY IN CODE, in `MAT_HTML` below, keyed by these ids. An id is the join between a
    row and a function, which is why they are dull: M02 names a function, not a hundred-square. */
+/* ==================================================================================================
+   GIVEN IN THE EXAM, OR NOT — `inExam` ON EACH COMPONENT
+
+   Checked against the 2026 GCSE maths formula sheet, which Ofqual provides to every candidate on
+   every board. Nine formulae are on it. Everything else must be recalled, and a cheat sheet exists
+   to carry the everything else — so this is the field that decides whether a component is worth the
+   paper at all.
+
+   TWO OF THE OLD "FORMULAE NOT GIVEN" BLOCK ARE GIVEN. The sphere and the cone are printed IN the
+   question whenever one comes up, and always have been, sheet or no sheet. Grouped under a heading
+   that called all eight not-given, they were teaching the opposite of the truth to anybody who read
+   the heading — which is the second reason that block had to come apart.
+
+   HIGHER AND FOUNDATION GET DIFFERENT SHEETS. The quadratic formula and the sine and cosine rules
+   are on the Higher one only, so both are marked given while a Foundation student still has to
+   know them. Both components are already tagged `H`, so a Foundation sheet never offers them and
+   the two facts cannot contradict each other on screen.
+
+   IT EXPIRES. Ofqual has confirmed the sheet for 2026 and 2027 and is withdrawing it from 2028.
+   Every `true` below becomes `false` that year, which is a bigger change to this table than any
+   syllabus revision — and it is in the sheet's `in_exam` column, so it will not need a developer.
+================================================================================================== */
 const MAT_PARTS = [
   /* ---------- THE RULER IS A COMPONENT LIKE ANY OTHER ----------------------------------------------
      IT WAS ALWAYS THERE, drawn straight into the sheet and impossible to switch off, which made it
@@ -98,7 +120,7 @@ const MAT_PARTS = [
   /* MEASURES AND FRACTION=DECIMAL REACH B-TEC. Unit conversion and percentages are most of what an
      applied course asks arithmetically, and it was tagged as though B-TEC were a level above them
      rather than the one course that uses them every week. */
-  { id: 'M06', name: 'Measures',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 39,  half: true },
+  { id: 'M06', name: 'Measures',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 39,  half: true, inExam: false },
   { id: 'M07', name: 'Angles named',       lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 28,  half: true },
   { id: 'M08', name: 'Protractor',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true,
     note: 'prints at true size' },
@@ -106,7 +128,7 @@ const MAT_PARTS = [
      offered to the second year and withheld from the one that starts it. */
   { id: 'M09', name: '2D shapes',          lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 35,  half: false },
   { id: 'M10', name: 'Roman numerals',     lv: ['SATs','11+'],                               h: 13,  half: true },
-  { id: 'M11', name: 'Fraction = decimal', lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 15,  half: true },
+  { id: 'M11', name: 'Fraction = decimal', lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 15,  half: true, inExam: false },
   /* NOT AN A-LEVEL BLOCK, WHICH IS WHAT ITS NAME SAYS. "Formulae not given" names a GCSE exam
      convention, and every line in it — circle, sphere, cone, prism, compound measures, percentage
      change, compound interest — is GCSE content that Y9 mocks and B-TEC both examine. An A-level
@@ -121,54 +143,54 @@ const MAT_PARTS = [
      component can be given or not given, and several outside this old group are. */
   { id: 'M12A', name: 'Circle',            lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
   { id: 'M12B', name: 'Arc & sector',      lv: ['Y9 Mocks','GCSE'],                          h: 10, half: true, inExam: false },
-  { id: 'M12C', name: 'Sphere',            lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: false },
-  { id: 'M12D', name: 'Cone',              lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: false },
+  { id: 'M12C', name: 'Sphere',            lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: true },
+  { id: 'M12D', name: 'Cone',              lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: true },
   { id: 'M12E', name: 'Prism',             lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
   { id: 'M12F', name: 'Compound measures', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
   { id: 'M12G', name: 'Percentage change', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
-  { id: 'M12H', name: 'Compound interest', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
-  { id: 'M13', name: 'Exact trig values',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H' },
-  { id: 'M14', name: 'The trig trick',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H' },
+  { id: 'M12H', name: 'Compound interest', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: true },
+  { id: 'M13', name: 'Exact trig values',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
+  { id: 'M14', name: 'The trig trick',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
   /* INDEX LAWS AND GRAPH SHAPES START AT Y9. Both are Y8/Y9 teaching, and both were tagged from
      GCSE up while the straight line beside them started at Y9 — the same year, three rows apart,
      disagreeing about when algebra begins. */
-  { id: 'M15', name: 'Index laws',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 21,  half: true },
-  { id: 'M16', name: 'Graph shapes',       lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 40,  half: false },
+  { id: 'M15', name: 'Index laws',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 24,  half: true, inExam: false },
+  { id: 'M16', name: 'Graph shapes',       lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 40,  half: false, inExam: false },
   /* AS BUT NOT ALEVEL was the clearest error in the table: A-level contains everything AS does, so
      a component offered to the first year and withheld from the second cannot be right either way
      round. B-TEC too — gradient is how every rate-of-change task on an applied course is read. */
-  { id: 'M17', name: 'Straight line',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 29,  half: true },
-  { id: 'M18', name: 'Averages',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 24,  half: true },
+  { id: 'M17', name: 'Straight line',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 29,  half: true, inExam: false },
+  { id: 'M18', name: 'Averages',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 24,  half: true, inExam: false },
   /* THE HEIGHTS BELOW ARE MODELLED, NOT MEASURED, and they are the weakest numbers in this file.
      A wrap model calibrated on the four hand-measured pair blocks still came out between 15% and
      70% low, because how far a row wraps depends on the exact string. They are scaled up from it
      and should be read as indicative — the gauge measures the real column, so a sheet cannot
      overrun on the strength of a wrong label, but a label can still tell you 28mm and cost 40. */
-  { id: 'M19', name: 'Pythagoras & trig',  lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true },
-  { id: 'M20', name: 'Angle rules',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true },
-  { id: 'M21', name: 'Area & perimeter',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true },
+  { id: 'M19', name: 'Pythagoras & trig',  lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true, inExam: true },
+  { id: 'M20', name: 'Angle rules',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true, inExam: false },
+  { id: 'M21', name: 'Area & perimeter',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
   /* SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry
      SATs on the rows around this one — four neighbours teaching the same year, and this the only
      one saying otherwise. */
-  { id: 'M22', name: 'Percentages',        lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true },
-  { id: 'M23', name: 'Rounding & bounds',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true },
-  { id: 'M24', name: 'Standard form',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 35,  half: true },
+  { id: 'M22', name: 'Percentages',        lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
+  { id: 'M23', name: 'Rounding & bounds',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
+  { id: 'M24', name: 'Standard form',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 35,  half: true, inExam: false },
   /* SATs, for the same reason: continuing a number sequence is Y6, and the nth term on top of it
      is what the later levels add rather than what makes the block start. */
-  { id: 'M25', name: 'Sequences',          lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 41,  half: true },
+  { id: 'M25', name: 'Sequences',          lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 41,  half: true, inExam: false },
   /* B-TEC, LIKE THE ALGEBRA EITHER SIDE OF IT. Index laws, the straight line and standard form all
      carry B-TEC; solving a quadratic is the same kind of tool on the same kind of course, and its
      absence here was an omission rather than a decision. */
-  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 23,  half: false },
+  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 23,  half: false, inExam: true },
   /* 11+, WHERE IT IS ASKED. Simple probability is on entrance papers, and this was the only block
      on a common 11+ topic that an 11+ student could not see. */
-  { id: 'M27', name: 'Probability',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 28,  half: true },
-  { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: false },
+  { id: 'M27', name: 'Probability',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 28,  half: true, inExam: false },
+  { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: false, inExam: false },
   /* HIGHER, AND WHOLLY SO — both of these are Higher-only content top to bottom, which is what makes
      them component-wide tiers rather than the row-level ones inside M22, M23, M25 and M26. */
-  { id: 'M29', name: 'Sine & cosine rule', lv: ['GCSE','AS','Alevel'],                       h: 18,  half: false, tier: 'H' },
-  { id: 'M30', name: 'Circle theorems',    lv: ['GCSE'],                                     h: 28,  half: false, tier: 'H' },
-  { id: 'M31', name: 'Fractions',          lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true },
+  { id: 'M29', name: 'Sine & cosine rule', lv: ['GCSE','AS','Alevel'],                       h: 18,  half: false, tier: 'H', inExam: true },
+  { id: 'M30', name: 'Circle theorems',    lv: ['GCSE'],                                     h: 28,  half: false, tier: 'H', inExam: false },
+  { id: 'M31', name: 'Fractions',          lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
   /* YEAR ONE IS 'AS','Alevel' AND YEAR TWO IS 'Alevel' ALONE. The pair of them is the only place in
      this table where one level contains another, which is why it is the only place a component is
      deliberately withheld from the lower of the two rather than shared upward. */
@@ -407,7 +429,15 @@ const MAT_HTML = {
   /* POSITIVE POWERS AND THE ZERO INDEX ARE ON BOTH PAPERS. Negative and fractional indices are
      Higher, and they are the two rows a Foundation student would spend the longest reading. */
   M15: () => matPairs([['aᵐ × aⁿ','aᵐ⁺ⁿ'],['aᵐ ÷ aⁿ','aᵐ⁻ⁿ'],['(aᵐ)ⁿ','aᵐⁿ'],
-                       ['a⁰','1'],['a⁻ⁿ', fr('1','aⁿ'), 'H'],['a^½','√a','H']]),
+                       ['a⁰','1'],['a⁻ⁿ', fr('1','aⁿ'), 'H'],
+                       /* SUPERSCRIPT, LIKE THE FIVE ABOVE IT. `a^½` was typed with a caret because
+                          there is no single superscript ½ character — but every other law in the
+                          block is set properly, so the last line read as somebody's plain-text note
+                          in the middle of printed mathematics. `<sup>` needs no character to exist.
+                          AND THE GENERAL FORM, since a½ alone teaches one case: the same rule gives
+                          the cube root and every other, and a student who has aⁿ can rebuild a½. */
+                       ['a<sup>1/n</sup>','ⁿ√a','H'],
+                       ['a<sup>1/2</sup>','√a','H']]),
   M16: () => matGraphs(),
   /* PARALLEL IS ON BOTH PAPERS AND PERPENDICULAR IS NOT — the one distinction in this block, and
      the reason it could not be tiered as a whole. */
@@ -746,21 +776,39 @@ function matTrick() {
    large as you let it be. The grid gives them their width. */
 function matGraphs() {
   const W = 44, H = 34;
+  /* ---------- A BREAK IN A CURVE IS PART OF THE CURVE -----------------------------------------------
+     THE RECIPROCAL WAS DRAWN AS ONE UNBROKEN LINE and that is not what 1/x looks like — it is the
+     one thing about 1/x. Points either side of the asymptote were skipped, correctly, and then
+     joined to each other by a single `<polyline>`, which drew a stroke straight across the gap that
+     had just been made. On the sheet it came out as a wave crossing the y-axis: a graph of a
+     function that is defined at zero, printed under the label `y = 1/x`.
+
+     SO A SKIPPED POINT ENDS THE LINE and the next one starts a new one. Every other graph here is
+     continuous and comes back as a single piece, so nothing else changes. */
   const curve = f => {
-    const pts = [];
+    const runs = [];
+    let run = [];
     for (let k = 0; k <= 40; k++) {
       const x = -1.6 + 3.2 * k / 40;
       const y = f(x);
-      if (!isFinite(y) || Math.abs(y) > 3) continue;
-      pts.push((W / 2 + x * W / 3.6).toFixed(1) + ',' + (H / 2 - y * H / 7).toFixed(1));
+      if (!isFinite(y) || Math.abs(y) > 3) {
+        if (run.length > 1) runs.push(run);
+        run = [];
+        continue;
+      }
+      run.push((W / 2 + x * W / 3.6).toFixed(1) + ',' + (H / 2 - y * H / 7).toFixed(1));
     }
-    return pts.join(' ');
+    if (run.length > 1) runs.push(run);
+    return runs;
   };
   /* FOUNDATION RECOGNISES LINEAR AND QUADRATIC. Cubic, reciprocal and exponential are Higher, and
      the tier is the fourth entry rather than the third because the third is the function. */
   const kinds = [['linear','y = x', x => x], ['quadratic','y = x²', x => x * x],
                  ['cubic','y = x³', x => x ** 3, 'H'],
-                 ['reciprocal','y = 1/x', x => Math.abs(x) > .28 ? 1 / x : 9, 'H'],
+                 /* NO CLAMP. Returning 9 near zero was a way of forcing a skip under the old
+                    single-line drawing; now the skip is real, `1/x` can be handed over as itself
+                    and the |y| > 3 test does the cutting. */
+                 ['reciprocal','y = 1/x', x => 1 / x, 'H'],
                  ['exponential','y = 2ˣ', x => Math.pow(2, x) - 1, 'H']];
   return `<div class="mat-graphs">${kinds.filter(k => matKeep(k[3])).map(([n, eq, f]) =>
     `<div><svg viewBox="0 0 ${W} ${H}">
@@ -769,7 +817,9 @@ function matGraphs() {
             must not compete with the curve, which is the thing being looked at. */''}
       <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#b4ae9c" stroke-width=".4"/>
       <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#b4ae9c" stroke-width=".4"/>
-      <polyline points="${curve(f)}" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      ${curve(f).map(pts =>
+        `<polyline points="${pts.join(' ')}" fill="none" stroke="currentColor" stroke-width="1.2"/>`
+      ).join('')}
     </svg><span>${n}</span><em>${eq}</em></div>`).join('')}</div>`;
 }
 

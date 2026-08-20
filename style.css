@@ -3779,6 +3779,15 @@ textarea, select, [data-noswipe],
 .card.tap:active::after, .row.tap:active::after, .rc-stub.tap:active::after {
   color: var(--gold); transform: translateY(-50%) translateX(2px);
 }
+/* ---------- A ROW THAT ENDS IN A NUMBER HAS NO ROOM FOR ONE ---------------------------------------
+   THE CHEVRON IS PINNED TO THE RIGHT EDGE AND SO IS THE COUNT, so the two were in the same place:
+   beside the digit on `5`, underneath the digits on `1083`. What you saw was chevrons on two rows
+   out of five, and the two were simply the ones with short numbers.
+
+   THE COUNT IS THE BETTER MARK ANYWAY. It says the row leads somewhere AND how much is behind it,
+   which is the thing a chevron only gestures at. */
+.row.tap.counted::after { content: none; }
+
 /* A receipt's own paper is pale, so a pale chevron on it would be invisible. */
 .rc-stub.tap::after { color: rgb(43 38 32 / .38); }
 .rc-stub.tap:active::after { color: #2b2620; }
