@@ -5634,12 +5634,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    IT IS SET SMALLER THAN ITS LINE, at .9em, because a full-size stacked fraction is two lines tall
    and would open a gap in every row it appears in. `vertical-align` sits the bar on the baseline of
    the text around it, which is where a reader expects to find it. */
-.mat-fr { display: inline-grid; justify-items: center; vertical-align: -.42em;
-          font-size: .9em; line-height: 1.12; }
+/* TIGHTER, AND SITTING HIGHER. At .9em and 1.12 line-height a fraction is a shade over two full
+   lines tall, so any row holding one — sin, cos, tan, the quadratic formula — came out twice the
+   height of the rows around it and the block lost its rhythm. And at -.42em the whole stack hangs
+   below the line it is on, which is why `V = 4/3 πr³` reads as a 4 that has slipped: the bar should
+   sit ON the line of the text beside it, with the numerator above and the denominator below. */
+.mat-fr { display: inline-grid; justify-items: center; vertical-align: -.48em;
+          font-size: .85em; line-height: 1.02; }
 .mat-fr span { padding: 0 .5mm; }
 .mat-fr span + span { border-top: .25mm solid currentColor; padding-top: .25mm; }
 .mat-two { display: grid; grid-template-columns: fit-content(40%) 1fr fit-content(40%) 1fr;
-           gap: 1mm 3mm; align-items: baseline; }
+           gap: 1mm 0; align-items: stretch; }
 
 /* HALF THE WIDTH, HALF THE COLUMNS. `.mat-two-up > *` is exactly the half-width case and it already
    exists, so the fix needs no new class and no change to the markup or to `matPairs`.
@@ -5667,6 +5672,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    ON THE ROW, NOT BETWEEN THE COLUMNS. A vertical rule would be the frame argument all over again.
 
    DELETE THIS BLOCK IF YOU DISAGREE — everything above it is the fix and stands without it. */
+/* ---------- WHY THE ROW RULE HAD TO CHANGE TWICE -------------------------------------------------
+   IT WAS DRAWN UNDER EACH CELL SEPARATELY AND THE TWO ENDS DID NOT MEET. Two faults at once, and
+   both are visible on the trig block:
+
+   STAGGERED, because the grid was `align-items: baseline` and a fraction is two lines tall. The
+   label sat on the first baseline and its rule was drawn under that; the value's rule was drawn
+   under a box twice as tall. One row, two rules, 3mm apart — which reads as a fault in the printer
+   rather than as a line.
+
+   AND BROKEN, because a 3mm column gap sits between the two cells, so even where they lined up the
+   rule came out as two dashes with a hole in the middle.
+
+   STRETCH FIXES THE FIRST: both cells take the row's full height, so both rules are drawn at the
+   bottom of the same row. The label now sits at the top of its cell rather than on the value's
+   baseline, which is where it should be anyway when the value is two lines tall.
+
+   AND THE COLUMN GAP BECOMES PADDING, which fixes the second: the space is still there, but it is
+   inside the label's cell, so the rule runs under it and the two halves meet. */
+.mat-two i b { padding-right: 3mm; }
 .mat-two i b,
 .mat-two i em { padding-bottom: .9mm; border-bottom: .15mm solid #ddd7c6; }
 .mat-two i:last-child b,
@@ -5695,7 +5719,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-circ .dot  { fill: #14140f; }
 .mat-circ .lb   { font: italic 400 11px/1 "Times New Roman", serif; fill: #14140f; }
 .mat-two i { display: contents; }
-.mat-two i b { font: 600 2.7mm/1.3 inherit; color: #66665c; }
+/* UPRIGHT. `matPairs` wraps each row in `<i>` as its grid handle, and `<i>` is italics — so every
+   label on every block has been italic since the day it was written, and only the value ever said
+   otherwise, because `em` sets `font-style: normal` and `b` never did. Bold grey italic is the
+   hardest of the three to read at 2.7mm and it was being used for the word you scan for. */
+.mat-two i b { font: 600 2.7mm/1.3 inherit; font-style: normal; color: #66665c; }
 .mat-two i em { font: 400 2.7mm/1.3 inherit; font-style: normal; color: #14140f; }
 /* A LITTLE AIR BETWEEN THE TWO HALVES, put on the first value column rather than as a gap, because
    one gap value would have to space the label from its value too — and those belong together.
