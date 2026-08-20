@@ -168,8 +168,17 @@ const MAT_START = ['M01', 'M02', 'M03', 'M04', 'M05', 'M08', 'M09'];
    before the payload lands. Falling back to a working example rather than to nothing is the whole
    reason that list exists — see the note above it. */
 function matStart() {
-  const said = (DATA.cheatsheet || []).filter(r => r && r.startOn).map(r => r.id);
-  return said.length ? said : MAT_START.slice();
+  const rows = DATA.cheatsheet || [];
+  /* ---------- NONE TICKED IS AN ANSWER, NOT AN ABSENCE ---------------------------------------------
+     THIS RETURNED THE HARD-CODED SEVEN WHENEVER NOTHING WAS TICKED, which made "I want an empty
+     sheet" impossible to say: untick every row and the fallback puts them all back, so the sheet
+     appears to ignore you.
+
+     THE QUESTION IS WHETHER THE TAB ARRIVED, not whether anything in it is on. If there are rows,
+     they are the answer — including the answer "none of them". Only a tab that is not here at all,
+     which means a payload that has not landed yet, falls back to the list below. */
+  if (rows.length) return rows.filter(r => r && r.startOn).map(r => r.id);
+  return MAT_START.slice();
 }
 
 let MAT_LEVEL = 'SATs';
