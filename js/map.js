@@ -1025,6 +1025,19 @@ const WIDGETS = [
      SEARCH MATCHES THE NAME AND NOTHING ELSE for a widget (`find.js` gives them an empty `sub`),
      so the old word has to be IN the name or it stops being findable — which is why this reads
      "maths mat" at the end rather than dropping it. */
+  /* THE FLYER MAKER, WHICH IS A TOOL AND NOT A PIECE OF THE CHEAT SHEET. It was folded into the
+     sheet and lost its own page doing it — see the note at the foot of flyer.js. This is that page
+     back: its own paper, its own print, and `flyOne` still the only thing that draws a flyer. */
+  { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
+    start: () => initFlyer?.(),
+    into: 'fm-wrap', what: 'The flyer',
+    html: `<div class="card">
+    <h3>Make a flyer</h3>
+    <p class="sub">Campaign, style, colours and size. Two to a sheet, or nine stickers. Prices come
+      from the venue you pick.</p>
+    <div id="fm-wrap"></div>
+  </div>` },
+
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',

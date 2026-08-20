@@ -205,10 +205,7 @@ function matParts() {
   const by = {};
   rows.forEach(r => { if (r && r.id) by[String(r.id).toUpperCase()] = r; });
 
-  /* THE FLYERS COME AFTER THE COMPONENTS, at a thousand and up, so a sheet that has never been
-     touched lists the maths first and the flyers under it — and one `sort_order` cell still moves
-     any piece anywhere, because they are all in one list by the time they are sorted. */
-  const all = MAT_PARTS.concat(matFlyerParts().map((f, k) => Object.assign({}, f, { at0: 1000 + k * 10 })));
+  const all = MAT_PARTS;
 
   const out = all.map((c, i) => {
     const r = by[c.id];
@@ -234,51 +231,6 @@ function matParts() {
      of blank `sort_order` cells leaves the sheet exactly as it prints today, and filling in one cell
      moves one component. */
   return out.sort((a, b) => a.at - b.at);
-}
-
-/* ---------- THE OTHER KIND OF PIECE ---------------------------------------------------------------
-   A FLYER IS A PIECE, AND A5 IS HALF OF A4. That is the whole of the merge and it is not a joke:
-   the flyer maker's "2 up / 4 up / 9 up" was never three modes, it was one design at three sizes —
-   148.5mm, a quarter page, a ninth — and this tool has placed pieces by their share of the page
-   since the first component. The two tools were the same tool with different libraries.
-
-   SO THE SHEET STOPS BEING A MATHS SHEET. It is a piece of A4 and you tick what goes on it. A
-   flyer and a times table on one page is a strange thing to want until the week you are running a
-   revision session and want the sheet the student takes home to also say when the next one is.
-
-   WHAT A FLYER PIECE IS: one campaign from `FLY_ROWS`, drawn by `flyOne`, at whichever size is
-   ticked. It carries the campaign's own recipe — style, ink, accent, paper — so ticking one is a
-   whole finished thing rather than four more decisions. The flyer maker keeps the colour pickers
-   and the venue and hours; this places what that tool designs.
-
-   NO LEVEL. A flyer is not GCSE or SATs, so these carry an empty `lv` — which `matParts` and the
-   picker both read as "shown at every level" rather than "shown at none". */
-const MAT_FLY_SIZES = {
-  a5: { name: 'A5 · half a page', cls: 'mat-p-a5', mm: 148, half: false, fills: 1 },
-  a6: { name: 'A6 · a quarter',   cls: 'mat-p-a6', mm: 105, half: true,  fills: 2 },
-  sq: { name: 'Sticker',          cls: 'mat-p-sq', mm: 99,  half: true,  fills: 2 },
-};
-
-/* ONE FLYER PIECE, NOT ONE PER CAMPAIGN. Eleven ticks was the wrong shape twice over: only one A5
-   flyer fits beside anything else on a 262mm column, so ten of them could never be ticked — and the
-   campaign is not what a flyer IS, it is what a flyer is SET TO. So the piece is "Flyer" and the
-   campaign is the first of its controls, which is also what makes the eleven behave as presets:
-   choosing one sets the style, the three colours and the blocks, and you carry on from there.
-   ADMIN ONLY. It prices your classes and prints your advertising. */
-function matFlyerParts() {
-  if (typeof FLY_ROWS === 'undefined') return [];
-  if (typeof isAdmin === 'function' && !isAdmin()) return [];
-  return [{ id: 'F01', name: 'Flyer', lv: [], h: matFlySize().mm, half: matFlySize().half,
-            bare: true, fly: true }];
-}
-
-/* WHICH SIZE IS SET, and what that means in millimetres and in width. A5 is half a page and takes
-   the full column; A6 is a quarter, so two sit side by side exactly as two half-width components
-   do; a sticker is a ninth. The sizes are the paper's own fractions, which is why the gauge can
-   speak about them at all. */
-function matFlySize() {
-  const z = ($('fm-z') || {}).value || 'a5';
-  return (MAT_FLY_SIZES[z] || MAT_FLY_SIZES.a5);
 }
 
 /* ---------- THE BLOCKS ---------------------------------------------------------------------------
@@ -702,10 +654,6 @@ function initMat() {
           row still holds its gap and reads as something that failed to load. */''}
     <div class="mat-lev" id="mat-tier"></div>
     <div class="mat-list" id="mat-list"></div>
-    ${/* THE FLYER'S OWN CONTROLS, and only when a flyer is on the sheet. A campaign picker, three
-          colours and ten switches sitting above a maths sheet nobody is putting a flyer on is a
-          screenful of somebody else's job. Empty otherwise, so it takes no room at all. */''}
-    <div class="mat-fly" id="mat-fly"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
     <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>
@@ -720,16 +668,11 @@ function initMat() {
     `<button data-do="mat-tier" data-t="${t}">${label}</button>`).join('');
   /* THE TIER IS ON THE COMPONENT ROW TOO, so switching tier hides the same way switching level
      does and neither has to know what the other did. */
-  /* ONE LIST, WITH A LINE WHERE THE LIBRARY CHANGES. Fifty-eight ticks in an undivided column is a
-     column nobody reads to the bottom of, and the two kinds are not the same question: a component
-     is part of a sheet, a flyer IS a sheet. The heading is written where the kind changes rather
-     than by looping twice, so a third kind — a coupon, a booking slip — needs no new loop. */
-  let was = null;
+  /* ONE KIND OF THING, SO NO HEADINGS. The list was split into "Components" and "Flyers" while a
+     flyer could be ticked onto the sheet; with the flyer maker its own tool again there is one
+     library here, and a heading over a list of one kind is a word doing no work. */
   $('mat-list').innerHTML = matParts().map(c => {
-    const kind = c.fly !== undefined ? 'Flyers' : 'Components';
-    const head = kind === was ? '' : `<h5 class="mat-kind">${kind}</h5>`;
-    was = kind;
-    return head + `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"><input
+    return `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"><input
        type="checkbox" data-do="mat-tick"
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
      ${esc(c.name)}<u>${c.h}mm</u></label>`;
@@ -756,13 +699,6 @@ on('mat-tick', el => {
    A PIECE WHOSE DRAWING IS MISSING SAYS SO on the paper. Silence would print a gap, and a gap on a
    sheet you are about to photocopy thirty times is worth a sentence. */
 function matDraw(c) {
-  /* THE CAMPAIGN COMES FROM THE CONTROL, not from the piece. `FLY_AT` is what the campaign picker
-     last set, and it is the same variable the colour inputs write through — so what is drawn here
-     and what those controls say cannot disagree. */
-  if (c.fly) {
-    return typeof flyOne === 'function' && FLY_ROWS[FLY_AT || 0]
-      ? flyOne(FLY_ROWS[FLY_AT || 0]) : '';
-  }
   return MAT_HTML[c.id] ? MAT_HTML[c.id]()
     : `<p class="mat-gone">${esc(c.name)} has nothing to draw it.</p>`;
 }
@@ -797,21 +733,6 @@ function matPaint() {
     el.classList.toggle('off', (MAT_LEVEL !== 'all' && !has) || !fits);
   });
 
-  /* THE CONTROLS APPEAR AND DISAPPEAR WITH THE PIECE. Built once and left alone while it stays
-     ticked — rebuilding them on every repaint would throw away a half-picked colour on every
-     keystroke, and would put the focus back to the top of the list as you used it. */
-  const fly = $('mat-fly');
-  if (fly) {
-    const want = MAT_ON.indexOf('F01') !== -1 && matParts().some(c => c.id === 'F01');
-    if (want && !fly.dataset.built) {
-      fly.innerHTML = flyControls();
-      fly.dataset.built = '1';
-      flyBind(fly, matPaint);
-    } else if (!want && fly.dataset.built) {
-      fly.innerHTML = '';
-      delete fly.dataset.built;
-    }
-  }
 
   const on_ = matParts().filter(c => MAT_ON.indexOf(c.id) !== -1
     /* NO LEVEL MEANS EVERY LEVEL. A flyer is not GCSE or SATs, and reading an empty list as
@@ -820,20 +741,7 @@ function matPaint() {
     && (MAT_LEVEL === 'all' || !c.lv.length || c.lv.indexOf(MAT_LEVEL) !== -1)
     && matKeep(c.tier));
 
-  /* FILL THE SHEET is the old "2 up · 4 up · 9 up", and it is a COUNT rather than a size now. The
-     old tool tied the two together, so asking for stickers asked for nine of them whether or not
-     you wanted nine — and there was no way to put one sticker on a page with anything else.
-     EXPANDED HERE, INTO THE LIST, rather than by repeating the markup: everything downstream —
-     the pairing of half-width pieces, the gauge, the print — then treats four flyers exactly as it
-     treats four components, and none of it has to know this happened. */
-  const pieces = [];
-  on_.forEach(c => {
-    if (!c.fly || (($('fm-rep') || {}).value || '1') !== 'fill') { pieces.push(c); return; }
-    const size = matFlySize();
-    const room = MAT_ROOM - on_.filter(x => !x.fly).reduce((n, x) => n + x.h, 0);
-    const rows = Math.max(1, Math.floor(room / size.mm));
-    for (let i = 0; i < rows * (size.fills || 1); i++) pieces.push(c);
-  });
+  const pieces = on_.slice();
 
   /* HALF-WIDTH BLOCKS PAIR UP, full ones take a row. Walked in list order rather than sorted, so
      moving something on the mat is moving one line here. */
@@ -845,7 +753,7 @@ function matPaint() {
      it would be labelling a poster with the word poster. `bare` says so, and the stylesheet takes
      the heading, the hairline and the padding off. */
   const cell = c => c.bare
-    ? `<div class="mat-box bare ${matFlySize().cls}">${matDraw(c)}</div>`
+    ? `<div class="mat-box bare">${matDraw(c)}</div>`
     : `<div class="mat-box"><h4>${esc(c.name)}</h4>${matDraw(c)}</div>`;
   const pair = (a, b) => `<div class="mat-two-up">${cell(a)}${b ? cell(b) : '<div></div>'}</div>`;
   pieces.forEach(c => {

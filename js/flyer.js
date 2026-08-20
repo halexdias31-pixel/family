@@ -373,8 +373,7 @@ on('fm-preset', el => {
   document.querySelectorAll('.fm-adds input[type=checkbox]')
     .forEach(x => { x.checked = p.on.indexOf(x.id) !== -1; });
   if ($('fm-z')) $('fm-z').value = p.z;
-  /* THE HOST REDRAWS, not this. The flyer is a piece on somebody else's paper now. */
-  if (typeof matPaint === 'function') matPaint();
+  flyDraw();
 });
 
 /* THE PRINT HANDLER AND THE RESIZE HOOK ARE GONE TOO. `mat-print` prints the paper, from a copy
@@ -384,3 +383,83 @@ on('fm-preset', el => {
    WHAT SURVIVES OF THIS FILE is the part that was always the interesting bit: the campaigns, the
    sum that prices a seat, the brand read, and `flyOne` — which draws one flyer and does not care
    what it is drawn onto. */
+
+/* ==================================================================================================
+   THE FLYER MAKER IS ITS OWN TOOL AGAIN.
+
+   It was folded into the maths mat on the argument that a flyer is a piece and A5 is half of A4 —
+   which is true, and was never the problem. The problem was what the fold COST: the flyer maker
+   stopped having a page. Its preview, its print button and its scaling all went, and what was left
+   was a strip of controls that could only draw onto somebody else's sheet. To print one flyer you
+   opened the maths mat, ticked a flyer onto it, and printed a maths mat that happened to be a
+   flyer. Two tools had become one tool wearing the other as a hat.
+
+   SO THE PAGE COMES BACK AND THE RENDERER STAYS SHARED. `flyOne` still draws one flyer and is still
+   the only thing that knows how — nothing is duplicated, and that was the half of the merge worth
+   keeping. What returns is everything around it: a sheet to see it on, a scale that fits the phone,
+   and a print that puts the flyer on the paper instead of the mat.
+
+   `flyControls` IS REUSED RATHER THAN REBUILT. The old version of this file wrote the same two rows
+   of controls a second time, in its own markup, which is how two copies of one thing start drifting
+   apart. The controls are built once, here and in whatever else asks for them.
+================================================================================================== */
+function initFlyer() {
+  const wrap = $('fm-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = flyControls()
+    + '<div class="fm-out" id="fm-out"></div>'
+    + '<button class="btn" data-do="fm-print" style="margin-top:.5rem">Print</button>';
+  flyBind(wrap, flyDraw);          /* binds, loads the campaign, and draws once */
+}
+
+/* THE SHEET, FILLED WITH AS MANY AS FIT. `FLY_PER` knows how many of each size go on a page — two
+   A5, four A6, nine stickers — so the paper is one flyer repeated rather than a layout to maintain. */
+function flyDraw() {
+  const out = $('fm-out');
+  if (!out) return;
+  const z = ($('fm-z') || {}).value || 'a5';
+  const size = FLY_PER[z] || FLY_PER.a5;
+  out.innerHTML = `<div class="fm-sheet ${size.cls}">`
+    + flyOne(FLY_ROWS[FLY_AT]).repeat(size.per) + '</div>';
+  flyFit();
+}
+
+/* ---------- THE PAPER IS SCALED TO FIT THE SCREEN ------------------------------------------------
+   A4 IS 210MM AND A PHONE IS NOT. Scaled down to whatever the sheet is wide, so what you see is the
+   SHAPE of the page rather than a phone-sized guess at it — and reset to 1 for printing, where the
+   paper really is 210mm. Measured rather than assumed, because the sheet width changes with the
+   screen and a hard-coded factor would be right on exactly one device. */
+function flyFit() {
+  const out = $('fm-out'), sheet = out && out.firstElementChild;
+  if (!sheet) return;
+  const room = out.clientWidth || 320;
+  const k = Math.min(1, room / (210 * 3.7795));    /* mm to px at 96dpi */
+  sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
+  /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full height, so without this
+     the sheet sits in a column of empty space taller than the phone. */
+  out.style.height = (297 * 3.7795 * k) + 'px';
+}
+
+/* ---------- PRINTING ------------------------------------------------------------------------------
+   THE BROWSER PRINTS THE WHOLE DOCUMENT, so without the `@media print` rules in the stylesheet this
+   would put the column, the tab bar and the tool's own chrome on the paper. The class is set here
+   rather than left on, so a print started from anywhere else in the app is unaffected. */
+on('fm-print', () => {
+  const sheet = document.querySelector('.fm-out .fm-sheet');
+  if (sheet) sheet.style.transform = 'scale(1)';   /* full size on paper */
+  document.body.classList.add('printing-fly');
+  const done = () => {
+    document.body.classList.remove('printing-fly');
+    flyFit();
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  /* AND A TIMER AS WELL AS THE EVENT. Some browsers never fire `afterprint` when the dialogue is
+     cancelled, and the app would be left in printing mode with everything hidden — a blank screen
+     that looks like a crash. */
+  setTimeout(done, 1500);
+  window.print();
+});
+
+/* THE SHEET IS MEASURED, so a rotation or a keyboard opening has to re-measure it. */
+addEventListener('resize', () => { if ($('fm-out')) flyFit(); });
