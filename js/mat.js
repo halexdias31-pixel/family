@@ -781,7 +781,12 @@ function initMat() {
        type="checkbox" data-do="mat-tick"
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
      ${esc(c.name)}${c.inExam === true
-       ? '<b class="mat-given" title="the exam gives you this">given</b>' : ''}<u>${c.h}mm</u></label>`;
+       ? '<b class="mat-given" title="the exam gives you this">given</b>' : ''}<u>${
+         /* THE COST, IN THE SAME UNIT THE GAUGE USES. `${c.h}mm` was the height of a stacked block,
+            which says nothing about a piece that is 20mm wide and the whole page tall — the ruler
+            read as 0mm and cost a tenth of the sheet. Area is the one number that is true of both
+            shapes, so both are priced in it. */
+         Math.round((c.edge ? 20 * c.h : (c.half ? 99 : 198) * c.h) / 100)}cm²</u></label>`;
   }).join('');
   matPaint();
 }
@@ -899,14 +904,37 @@ function matPaint() {
      cost the taller of them, and no table of numbers can know which pairs got ticked. Reading the
      rendered column is the only figure that is always right. */
   const cols = out.querySelector('.mat-cols');
-  const used = cols ? Math.round(cols.getBoundingClientRect().height / matPx()) : 0;
-  const over = used > MAT_ROOM;
+  /* ---------- THE PAGE IS AN AREA, NOT A HEIGHT ---------------------------------------------------
+     THE GAUGE MEASURED THE COLUMN'S HEIGHT, which works while everything is stacked and breaks the
+     moment something is not. The ruler is the case that broke it: it takes 20mm off the WIDTH of
+     every row for the whole 285mm of the page, so it costs more paper than any other component on
+     the list — and it was written into the sheet as `h: 0`, free, because the number it was being
+     measured against had no idea width existed.
+
+     THAT IS NOT A ROUNDING ERROR. 20 x 285 is 5,700mm2, about a tenth of the usable page, and the
+     gauge said the sheet was empty while a tenth of it was already gone. Ticking the ruler could
+     take you over the edge without moving the bar at all.
+
+     SO EVERYTHING IS COUNTED IN SQUARE MILLIMETRES. A row of content costs the content width times
+     its height; the ruler costs its own strip. Both are then the same kind of number and can be
+     added, which is the whole reason for the change: a budget you cannot add up is not a budget. */
+  const PAGE_W = 198, PAGE_H = MAT_ROOM;         /* usable, inside the 6mm margins */
+  const room = PAGE_W * PAGE_H;
+  const ruleW = ruled ? 20 : 0;
+  const colH = cols ? cols.getBoundingClientRect().height / matPx() : 0;
+  const used = Math.round(ruleW * PAGE_H + (PAGE_W - ruleW) * colH);
+  const over = used > room;
+
+  /* SAID IN CENTIMETRES SQUARED. 41,382mm2 is a number nobody can picture; 414cm2 is a postcard.
+     And the fraction is what actually gets read, so it comes first. */
+  const pct = Math.min(100, Math.round(used / room * 100));
+  const left = Math.max(0, Math.round((room - used) / 100));
   $('mat-gauge').classList.toggle('over', over);
-  $('mat-gauge').firstElementChild.style.width = Math.min(100, used / MAT_ROOM * 100) + '%';
+  $('mat-gauge').firstElementChild.style.width = pct + '%';
   $('mat-said').className = 'mat-said' + (over ? ' over' : '');
   $('mat-said').innerHTML = over
-    ? `<b>${used - MAT_ROOM}mm too much</b> — untick something, or the bottom is cut off.`
-    : `<b>${MAT_ROOM - used}mm</b> of paper left.`;
+    ? `<b>${Math.round((used - room) / 100)}cm² too much</b> — untick something, or the bottom is cut off.`
+    : `<b>${pct}% used</b> · ${left}cm² of paper left.`;
   $('mat-go').disabled = over || !pieces.length;
   matFit();
   matWatch();
