@@ -1041,10 +1041,13 @@ const WIDGETS = [
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
+    /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page
+       showing a sheet of A4 — three sentences describing what is already on the screen, read once
+       and then skipped forever while still taking the top of every visit. The two facts worth
+       keeping were that the ruler and protractor print at true size, and those belong on those two
+       components rather than in a paragraph about the whole tool. */
     html: `<div class="card">
     <h3>Cheat sheet maker</h3>
-    <p class="sub">One sheet of A4. Tick what goes on it — the ruler down the edge and the
-      protractor print at true size.</p>
     <div id="mat-box"></div>
   </div>` },
   { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => initTimer?.(),

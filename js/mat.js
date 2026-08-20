@@ -89,7 +89,8 @@ const MAT_PARTS = [
      piece had to be made free by lying to it. The gauge counts area now and works the strip out for
      itself — but the PICKER prices from `h`, so the list went on saying 0cm² for a component the
      bar was charging 52cm² for. Two numbers for one thing, and the visible one was the wrong one. */
-  { id: 'M01', name: 'Ruler down the edge', lv: [], h: 262, half: false, edge: true },
+  { id: 'M01', name: 'Ruler down the edge', lv: [], h: 262, half: false, edge: true,
+    note: 'prints at true size' },
   { id: 'M02', name: 'Number square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
   { id: 'M03', name: 'Times tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
   { id: 'M04', name: 'Number line',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
@@ -99,7 +100,8 @@ const MAT_PARTS = [
      rather than the one course that uses them every week. */
   { id: 'M06', name: 'Measures',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 39,  half: true },
   { id: 'M07', name: 'Angles named',       lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 28,  half: true },
-  { id: 'M08', name: 'Protractor',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true },
+  { id: 'M08', name: 'Protractor',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true,
+    note: 'prints at true size' },
   { id: 'M09', name: '2D shapes',          lv: ['SATs','11+','Y2 Mocks'],                    h: 35,  half: false },
   { id: 'M10', name: 'Roman numerals',     lv: ['SATs','11+'],                               h: 13,  half: true },
   { id: 'M11', name: 'Fraction = decimal', lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 15,  half: true },
@@ -801,7 +803,11 @@ function initMat() {
          /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
             says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
             and cost a tenth of the sheet. Area is true of both shapes. */
-         Math.round((c.edge ? 20 * c.h : (c.half ? 99 : 198) * c.h) / 100)}cm²</u></label>`;
+         Math.round((c.edge ? 20 * c.h : (c.half ? 99 : 198) * c.h) / 100)}cm²</u>${
+       /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
+          size" was a line in a paragraph above the whole list, which is where a fact about two
+          items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
+       c.note ? `<em class="mat-note">${esc(c.note)}</em>` : ''}</label>`;
   }).join('');
   matPaint();
 }
