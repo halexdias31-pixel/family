@@ -6069,3 +6069,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the page reclaims the 20mm rather than printing an empty strip, which looks like a fault. */
 .mat-sheet { padding-left: 6mm; }
 .mat-sheet.ruled { padding-left: 20mm; }
+
+/* GIVEN IN THE EXAM. Shown only when the sheet says TRUE — a blank cell means nobody has checked,
+   and a mark that appears for "unknown" as well as for "no" tells you nothing. Set beside the name
+   rather than in place of the height, because both facts matter when you are choosing: how much
+   paper it costs, and whether it is worth any paper at all. */
+.mat-given { font: 400 .6rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+             color: var(--gold); border: 1px solid currentColor; border-radius: 3px;
+             padding: .1rem .25rem; margin-left: .4rem; vertical-align: middle; }

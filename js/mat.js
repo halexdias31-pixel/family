@@ -254,6 +254,9 @@ function matParts() {
       tier:  r.tier === '-' ? '' : (matTierFlag(r.tier) || c.tier),
       h:     r.heightMm === null || r.heightMm === undefined ? c.h : r.heightMm,
       half:  r.half === null || r.half === undefined ? c.half : r.half,
+      /* WHETHER THE EXAM GIVES YOU THIS. Only the sheet knows — nothing in the code has an opinion,
+         and null stays null so "nobody has checked" survives all the way to the screen. */
+      inExam: r.inExam === undefined ? null : r.inExam,
       at:    r.order === null || r.order === undefined ? (c.at0 || (i + 1) * 10) : r.order,
     });
   });
@@ -777,7 +780,8 @@ function initMat() {
     return `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"><input
        type="checkbox" data-do="mat-tick"
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
-     ${esc(c.name)}<u>${c.h}mm</u></label>`;
+     ${esc(c.name)}${c.inExam === true
+       ? '<b class="mat-given" title="the exam gives you this">given</b>' : ''}<u>${c.h}mm</u></label>`;
   }).join('');
   matPaint();
 }
