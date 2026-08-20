@@ -258,7 +258,12 @@ const MAT_HTML = {
       `<i style="left:${W*n/d}%"></i><b style="left:${W*n/d}%">${l}</b>`).join('');
     for (let k = 0; k <= 10; k++) {
       h += `<u style="left:${k*10}%"></u>`;
-      if (k % 5 === 0 || [2,4,6,8].indexOf(k) !== -1) h += `<s style="left:${k*10}%">${(k/10).toFixed(1)}</s>`;
+      /* THE DECIMALS ONLY WHERE THE FRACTIONS ARE SILENT. 0, 0.5 and 1.0 sat directly under 0, the
+         half and 1 — the same three places on the line labelled twice, which is what made the strip
+         look crowded and, worse, made the two systems look like different scales rather than one.
+         Four labels where there were six, and every one of them says something the row above does
+         not. */
+      if ([2,4,6,8].indexOf(k) !== -1) h += `<s style="left:${k*10}%">${(k/10).toFixed(1)}</s>`;
     }
     return `<div class="mat-nl">${h}</div>`;
   },

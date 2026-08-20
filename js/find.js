@@ -335,7 +335,51 @@ const FACETS = [
                                                       ? 'Can afford' : '' },
 ];
 
-const facetBy = f => FACETS.find(x => x.field === f);
+/* ==================================================================================================
+   THE FUNNEL'S QUESTIONS, AS THE SHEET WANTS THEM.
+
+   `FACETS` above is the half that has to be code: how to READ a value off a thing. "The band, but
+   only when it is a grade rather than a stage" is logic, and logic in a spreadsheet cell is a
+   formula language nobody asked for.
+
+   Everything else about a question — what it is called, when it is asked, whether it is asked at
+   all — is editorial, and it was in code for no better reason than that it was written there. So
+   the `facets` tab overlays this list: same fields, new labels, new order, and an off switch.
+
+   A FIELD WITH NO ROW IS UNCHANGED, so the tab can be empty and the funnel behaves exactly as it
+   does today. A ROW FOR A FIELD THAT DOES NOT EXIST IS IGNORED — the sheet cannot invent a
+   question, because there would be nothing to read for it.
+================================================================================================== */
+let FACET_LIVE = null;
+
+function facetList() {
+  if (FACET_LIVE) return FACET_LIVE;
+  const said = {};
+  (DATA.facets || []).forEach(f => { if (f && f.field) said[f.field] = f; });
+
+  FACET_LIVE = FACETS
+    .map((f, i) => {
+      const s = said[f.field];
+      if (!s) return Object.assign({}, f, { at: (i + 1) * 10, min: FACET_COVERAGE });
+      if (s.active === false) return null;
+      return Object.assign({}, f, {
+        label: s.label || f.label,
+        at:    s.order === null || s.order === undefined ? (i + 1) * 10 : s.order,
+        /* A THRESHOLD OF ZERO IS A REAL ANSWER — "ask this however few can answer it" — so it
+           cannot be treated as absent the way an empty cell is. `null` means the cell was blank;
+           0 means somebody typed it. */
+        min:   s.minCoverage === null || s.minCoverage === undefined
+                 ? FACET_COVERAGE : s.minCoverage,
+      });
+    })
+    .filter(Boolean)
+    /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a
+       column of blank cells leaves the funnel exactly as it asks today. */
+    .sort((a, b) => a.at - b.at);
+  return FACET_LIVE;
+}
+
+const facetBy = f => facetList().find(x => x.field === f) || FACETS.find(x => x.field === f);
 
 /** Does one item satisfy one chosen filter? One comparison, because a facet says how to read
     itself — the old version had a switch with a case per field, which is a place to forget one. */
@@ -392,10 +436,13 @@ const FACET_COVERAGE = 0.5;
  */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
-  for (const facet of FACETS) {
+  for (const facet of facetList()) {
     if (asked.indexOf(facet.field) !== -1) continue;
     if (facetValues(items, facet).length < 2) continue;
-    if (facetCoverage(items, facet) < FACET_COVERAGE) continue;
+    /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
+       given a lower bar to is one somebody decided is worth asking early even though it is thin. */
+    const min = typeof facet.min === 'number' ? facet.min : FACET_COVERAGE;
+    if (facetCoverage(items, facet) < min) continue;
     return facet;
   }
   return null;

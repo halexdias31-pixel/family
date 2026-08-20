@@ -5482,21 +5482,29 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    widest cell. In a thirteen-column table the widest cell is 144, so the grid refused to fit the
    half-page column it was in and simply overflowed — silently, because the sheet clips.
    `minmax(0, 1fr)` removes the floor and the columns share the width they actually have. */
-.mat-hun { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr));
-           border: .2mm solid #b4ae9c; }
+/* ---------- 269 RECTANGLES ------------------------------------------------------------------------
+   A HUNDRED SQUARE IS A HUNDRED BOXES AND A TIMES TABLE IS ANOTHER HUNDRED AND SIXTY-NINE, and
+   every one was drawn with four lines. Lightening them was the wrong repair: the page did not have
+   heavy lines, it had far too MANY, and a thousand pale marks is still a thousand marks.
+
+   NUMBERS IN A GRID DO NOT NEED BOXES. They are already in columns, which is what a grid IS, and
+   the alignment does every job the ruling was doing. What the lines added was the look of a
+   spreadsheet, which is not what a child reads.
+
+   WHAT IS KEPT IS WHAT CARRIES MEANING. The tens still print bold and the fives still print grey,
+   so the structure a hundred square is FOR survives with no lines at all. */
+.mat-hun { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
 .mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.9mm/1 inherit;
-             border-right: .12mm solid #ddd8ca; border-bottom: .12mm solid #ddd8ca; }
-.mat-hun i:nth-child(10n) { border-right: 0; }
+             padding: .35mm 0; }
 .mat-hun i.five { color: #77776c; }
 .mat-hun i.ten { font-weight: 700; }
-.mat-tt { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr));
-          border: .2mm solid #b4ae9c; }
+.mat-tt { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); }
 .mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.5mm/1 inherit;
-            border-right: .12mm solid #ddd8ca; border-bottom: .12mm solid #ddd8ca; }
-.mat-tt i:nth-child(13n) { border-right: 0; }
+            padding: .35mm 0; }
 .mat-tt i.h { font-weight: 700; }
-/* THE HEADER ROW AND COLUMN, RULED OFF. A heavier line on the thirteenth boundary does the work the
-   black band did, and it is the line a printed table would have had anyway. */
+/* THE ONLY TWO LINES LEFT, and they are the two that mean something: everything below this line and
+   right of that one is an ANSWER; everything outside them is a heading. A table with no rules at
+   all loses that, and it is the one distinction a times table exists to make. */
 .mat-tt i:nth-child(-n+13) { border-bottom: .25mm solid #8d8878; }
 .mat-tt i:nth-child(13n+1) { border-right: .25mm solid #8d8878; }
 /* THE SQUARE NUMBERS DOWN THE DIAGONAL, boxed rather than filled. An outline is drawn on top of the
