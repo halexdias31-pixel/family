@@ -64,6 +64,86 @@ const FLY_ROWS = [
    'code name head say facts foot qr'],
 ];
 
+/* ==================================================================================================
+   THE CAMPAIGNS ABOVE ARE NOW A FALLBACK, NOT THE SOURCE.
+
+   `FLY_ROWS` held every word on every flyer — eleven headlines and eleven paragraphs, in code. So
+   changing "Better call Halex." to "Better call Halex today." was a developer job, which is an
+   absurd thing to say about a slogan. The words belong in the sheet, next to the campaign they
+   belong to, where the person writing them can reach them.
+
+   WHY IT IS STILL HERE. A tab that is empty, a phone that is not signed in as an admin, a load that
+   failed — all three end with no campaigns, and a flyer maker with no campaigns is a blank page. So
+   the sheet REPLACES these rows when it has something to say and is ignored when it does not. The
+   worst case is the flyers you have today.
+
+   ONE ROW PER WORDING IS WHY `copy` IS ITS OWN TAB. A campaign has one accent colour, so that is a
+   column on the campaign. It does not have one headline — the whole point is four and a choice —
+   and columns cannot hold four of anything without becoming head_1, head_2, head_3, which caps you
+   at whatever number somebody guessed on the day.
+================================================================================================== */
+
+/* The working set: the same eight-column shape as `FLY_ROWS`, so nothing downstream knows or cares
+   where a campaign came from. Built once and then MUTATED IN PLACE by the colour pickers — which is
+   why this is a variable holding an array rather than a function returning a fresh one. Rebuilding
+   it on every read would throw away a half-picked colour on every keystroke. */
+let FLY_LIVE = null;
+
+/* WHICH WORDING IS CHOSEN, per campaign, by index into the slot's list. Kept beside the rows rather
+   than inside them because it is a thing about the screen, not about the campaign. */
+const FLY_PICK = {};
+
+/* THE CAMPAIGNS AS THE APP SHOULD SEE THEM. Sheet first, code second, and never a mixture: a half
+   of each would mean a campaign whose colours came from one place and whose words came from
+   another, which is the exact confusion this whole change exists to end. */
+function flyRows() {
+  if (FLY_LIVE) return FLY_LIVE;
+  const from = (DATA.campaigns || []).filter(c => c && c.name);
+  if (!from.length) { FLY_LIVE = FLY_ROWS.map(r => r.slice()); return FLY_LIVE; }
+
+  FLY_LIVE = from.map((c, i) => {
+    /* A ROW THAT SAYS NOTHING STILL PRINTS. Every design column falls back to the first built-in
+       campaign's, so a campaign added with a name and nothing else is a working flyer rather than
+       black text on black paper. */
+    const d = FLY_ROWS[0];
+    const head = flyPicked(c, 'head') || d[5];
+    const say  = flyPicked(c, 'say')  || d[6];
+    return [c.name, c.style || d[1], c.ink || d[2], c.accent || d[3], c.ground || d[4],
+            head, say, c.blocks || d[7], c.id];
+  });
+  return FLY_LIVE;
+}
+
+/* THE CHOSEN WORDING FOR ONE SLOT, or nothing if the sheet has none. */
+function flyPicked(c, slot) {
+  const list = (c && c.copy && c.copy[slot]) || [];
+  if (!list.length) return '';
+  const at = Math.min(FLY_PICK[(c.id || '') + ':' + slot] || 0, list.length - 1);
+  return list[at].text;
+}
+
+/* HOW MANY WORDINGS THE CURRENT CAMPAIGN HAS, and what they are — for the Wording menu. Reads the
+   raw campaign rather than the working copy, because the working copy holds the chosen one and has
+   forgotten the alternatives. */
+function flyWordings(slot) {
+  const row = flyRows()[FLY_AT || 0];
+  const id = row && row[8];
+  const c = (DATA.campaigns || []).find(x => x && x.id === id);
+  return (c && c.copy && c.copy[slot]) || [];
+}
+
+/* CHANGING THE WORDING WRITES INTO THE WORKING ROW, so everything that reads a campaign — the
+   preview, the print, the sheet — sees one answer and cannot disagree with the menu. */
+function flyUseWording(slot, at) {
+  const rows = flyRows(), row = rows[FLY_AT || 0];
+  if (!row) return;
+  const list = flyWordings(slot);
+  if (!list.length) return;
+  const i = Math.max(0, Math.min(at, list.length - 1));
+  FLY_PICK[(row[8] || '') + ':' + slot] = i;
+  row[slot === 'head' ? 5 : 6] = list[i].text;
+}
+
 /* THE STYLE CLASSES, WRITTEN OUT — same reason as the sizes above. `fm-s-${style}` is a name no
    grep will find, so the four rules that style them look unused and get deleted by somebody tidying
    up. Twice now `check-css` has caught this in one file, which is the checker doing its job and me
@@ -141,6 +221,8 @@ const flyBrand = () => {
    be no way to be forced into carrying a paragraph you do not want. */
 function flyOne(r) {
   const [name, style, ink, accent, ground, head, say] = r;
+  /* `head` may be empty if a campaign row exists with no wording at all — a blank <h1> is a gap
+     nobody can explain, so an empty headline simply does not draw one. */
   const B = flyBrand();
   const H = head.split('|').map(x => x.trim()).map(esc).join('<br>');
   const qr = flyOn('fm-qr');
@@ -255,8 +337,10 @@ function flyControls() {
 
   return `
     <div class="fm-bar">
-      <label>Campaign<select id="fm-c">${FLY_ROWS
-        .map((r, i) => `<option value="${i}">${esc(r[0])}</option>`).join('')}</select></label>
+      <label>Campaign<select id="fm-c">${flyRows()
+        .map((r, i) => `<option value="${i}"${i === (FLY_AT || 0) ? ' selected' : ''}>${
+          esc(r[0])}</option>`).join('')}</select></label>
+      ${flyWordingMenu()}
       <label>Style<select id="fm-s">${FLY_STYLES
         .map(s => `<option>${s}</option>`).join('')}</select></label>
       <label>Ink<input type="color" id="fm-k1"></label>
@@ -310,11 +394,16 @@ function flyBind(scope, redraw) {
   if (!scope) return;
   scope.querySelectorAll('select, input').forEach(el => {
     el[el.type === 'color' ? 'oninput' : 'onchange'] = () => {
-      if (el.id === 'fm-c') flyLoad();
-      if (el.id === 'fm-s') FLY_ROWS[FLY_AT][1] = el.value;
-      if (el.id === 'fm-k1') FLY_ROWS[FLY_AT][2] = el.value;
-      if (el.id === 'fm-k2') FLY_ROWS[FLY_AT][3] = el.value;
-      if (el.id === 'fm-k3') FLY_ROWS[FLY_AT][4] = el.value;
+      /* THE CAMPAIGN CHANGED, SO THE WORDING MENU IS ABOUT THE WRONG CAMPAIGN. It is rebuilt
+         rather than left — a menu offering last campaign's four headlines is worse than no menu,
+         because it looks authoritative. */
+      if (el.id === 'fm-c') { flyLoad(); flyRedrawWordings(scope, redraw); }
+      if (el.id === 'fm-wh') flyUseWording('head', Number(el.value) || 0);
+      if (el.id === 'fm-wb') flyUseWording('say', Number(el.value) || 0);
+      if (el.id === 'fm-s') flyRows()[FLY_AT][1] = el.value;
+      if (el.id === 'fm-k1') flyRows()[FLY_AT][2] = el.value;
+      if (el.id === 'fm-k2') flyRows()[FLY_AT][3] = el.value;
+      if (el.id === 'fm-k3') flyRows()[FLY_AT][4] = el.value;
       redraw();
     };
   });
@@ -334,7 +423,8 @@ function flyBind(scope, redraw) {
    look. Departing from it afterwards is the next thing you do, and nothing here stops you. */
 function flyLoad() {
   FLY_AT = Number(($('fm-c') || {}).value) || 0;
-  const r = FLY_ROWS[FLY_AT];
+  const r = flyRows()[FLY_AT];
+  if (!r) return;
   if ($('fm-s')) $('fm-s').value = r[1];
   if ($('fm-k1')) $('fm-k1').value = r[2];
   if ($('fm-k2')) $('fm-k2').value = r[3];
@@ -361,6 +451,29 @@ function flyTicks(list) {
    A sticker is not a mode — it is most of the switches off and a smaller size, and you can watch it
    happen. A preset that hid what it did would be a fourth thing to learn and a thing to get stuck
    inside. */
+/* ---------- THE WORDING MENU ----------------------------------------------------------------------
+   ONLY WHEN THERE IS A CHOICE. One headline is not a decision, and a dropdown with a single entry
+   is a control that teaches you to ignore controls. Two or more and it appears. */
+function flyWordingMenu() {
+  const one = (slot, id, label) => {
+    const list = flyWordings(slot);
+    if (list.length < 2) return '';
+    const at = Math.min(FLY_PICK[(flyRows()[FLY_AT || 0] || [])[8] + ':' + slot] || 0, list.length - 1);
+    return `<label>${label}<select id="${id}">${list.map((w, i) =>
+      `<option value="${i}"${i === at ? ' selected' : ''}>${
+        esc(w.note || (w.text.split('|')[0].slice(0, 34)))}</option>`).join('')}</select></label>`;
+  };
+  const bits = one('head', 'fm-wh', 'Wording') + one('say', 'fm-wb', 'Paragraph');
+  return bits;
+}
+
+/* Rebuilt in place, and rebound, because the menu that was there belonged to another campaign. */
+function flyRedrawWordings(scope, redraw) {
+  const bar = scope && scope.querySelector('.fm-bar');
+  if (!bar) return;
+  flyBind(scope, redraw);
+}
+
 const FLY_PRESETS = {
   flyer:   { z: 'a5', on: ['fm-code','fm-head','fm-slogan','fm-say','fm-facts','fm-price','fm-foot'] },
   sticker: { z: 'sq', on: ['fm-name','fm-qr','fm-foot'] },
@@ -420,7 +533,7 @@ function flyDraw() {
   const z = ($('fm-z') || {}).value || 'a5';
   const size = FLY_PER[z] || FLY_PER.a5;
   out.innerHTML = `<div class="fm-sheet ${size.cls}">`
-    + flyOne(FLY_ROWS[FLY_AT]).repeat(size.per) + '</div>';
+    + flyOne(flyRows()[FLY_AT] || flyRows()[0]).repeat(size.per) + '</div>';
   flyFit();
 }
 
