@@ -108,12 +108,27 @@ const KINDS = {
   } },
 
   /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
-  /* ITS OWN GROUP. A boxer is not something you book, learn from or buy — and folding him into
+  /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT ------------------------------------------------
+     THIS HAD ITS OWN GROUP, on the argument below — that a boxer is not something you book, learn
+     from or buy. That argument was wrong, and the first question showed why: Booking, Boxing,
+     Learning, Shop, Tools & games. Four of those are things you might want to DO with the app and
+     one is a topic, sitting at the same level, as though boxing were a department.
+
+     A BOXER IS SOMETHING YOU LEARN ABOUT, exactly as a past paper is. So the group is Learning and
+     the SUBJECT is Boxing — which puts it in the list beside Maths and English, where anybody
+     looking for it would look, and where it can be narrowed by division the way a paper is
+     narrowed by exam board.
+
+     The old reasoning is kept below because it is the reasoning that has to be answered, not
+     deleted: what it got right is that a boxer is not a resource. What it missed is that the first
+     question is not asking what KIND of record a thing is — it is asking what you came here to do.
+  ------------------------------------------------------------------------------------------------
+     ITS OWN GROUP. A boxer is not something you book, learn from or buy — and folding him into
      Learning would put a dead heavyweight in the same list as a past paper. */
-  boxer: { group: 'Boxing', label: 'Boxers', card: x => boxerCard_(x) },
+  boxer: { group: 'Learning', label: 'Boxers', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
-  fight: { group: 'Boxing', label: 'Fights', card: x => fightCard_(x) },
+  fight: { group: 'Learning', label: 'Fights', card: x => fightCard_(x) },
 
   tool: { group: 'Tools & games', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Tools & games', label: 'Games', card: x => widgetCard_(x) },
