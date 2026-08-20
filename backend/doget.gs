@@ -273,6 +273,7 @@ function doGet(e) {
                  'approvePost'],
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       links: [], shop: [], promotions: [], intervals: [], landmarks: [],
+      campaigns: [],
       gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
@@ -564,6 +565,44 @@ function doGet(e) {
       const k = S(r.key).trim();
       if (k) payload.brand[k] = S(r.value);
     });
+
+    /* ---------- THE CAMPAIGNS, AND THE WORDS THEY SAY -------------------------------------------
+       The design comes off `campaigns`; the wording off `copy`, gathered under the campaign it
+       belongs to so the phone never has to join two lists itself. Sent to admins only, which is
+       who the flyer maker is for — there is no reason for a parent's phone to carry next term's
+       advertising copy.
+
+       ONE PASS OVER `copy`, INDEXED BY CAMPAIGN. Reading the tab once per campaign would be eleven
+       passes over the same rows to save writing four lines, and this tab will be the longest of the
+       two by far — four wordings for eleven campaigns is forty-four rows before anybody gets
+       inventive. */
+    if (viewerIsAdmin) {
+      const words = {};
+      read(TAB.copy).rows.forEach(r => {
+        if (!ON_(r.active)) return;
+        const cid = S(r.campaign_id), slot = S(r.slot).toLowerCase(), text = S(r.text);
+        if (!cid || !slot || !text) return;
+        (words[cid] || (words[cid] = {}));
+        (words[cid][slot] || (words[cid][slot] = []))
+          .push({ variant: S(r.variant) || '1', text: text, note: S(r.note) });
+      });
+      /* SORTED BY THE VARIANT NUMBER, numerically — so 10 comes after 9 rather than after 1, which
+         is what sorting them as text would have done the moment somebody wrote a tenth. */
+      Object.keys(words).forEach(cid => Object.keys(words[cid]).forEach(slot =>
+        words[cid][slot].sort((a, b) => (Number(a.variant) || 0) - (Number(b.variant) || 0))));
+
+      read(TAB.campaigns).rows.forEach(r => {
+        if (!ON_(r.active)) return;
+        const id = S(r.campaign_id), name = S(r.name);
+        if (!id || !name) return;
+        payload.campaigns.push({
+          id: id, name: name, when: S(r.when), note: S(r.note),
+          style: S(r.style), ink: S(r.ink), accent: S(r.accent), ground: S(r.ground),
+          blocks: S(r.blocks),
+          copy: words[id] || {},
+        });
+      });
+    }
 
     /* THE LAWS. Sent to every phone, because every screen paints text with them — and they are
        a handful of rows, so the cost of sending them is nothing against the cost of asking. */

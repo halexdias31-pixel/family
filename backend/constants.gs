@@ -96,6 +96,8 @@ const TAB = {
   holidays: 'holidays',
   /* When a particular message is worth putting out — see SCHEMA.campaigns. */
   campaigns: 'campaigns',
+  /* The words those campaigns say, one line per row — see SCHEMA.copy. */
+  copy: 'copy',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
   /* One row per exam question — see SCHEMA.questions. */
@@ -922,13 +924,55 @@ const SCHEMA = {
     "at",
   ],
 
+  /* ---------- A CAMPAIGN IS A DESIGN AND A SCHEDULE, AND IT WAS ONLY EVER THE SCHEDULE -----------
+     This tab said WHEN to run each campaign and nothing about what it says. The words lived in
+     `FLY_ROWS`, an array in flyer.js — eleven campaigns, headline and paragraph and colours, all
+     in code. So the one part of the app that is pure copywriting was the one part that needed a
+     developer to change, and the tab that was obviously for it sat here holding notes.
+
+     THE DESIGN COLUMNS COME HERE. The WORDS go in `copy` below, one row per line, because a
+     headline is not a property of a campaign the way a colour is — you want four of them and to
+     pick between them.
+
+       style    minimal · elegant · detailed · loud
+       ink      the colour the text is set in
+       accent   the one thing meant to be looked at
+       ground   the paper
+       blocks   which pieces appear, space separated, from:
+                  code name head slogan say facts price phone foot qr
+
+     Leave a row's design columns empty and the built-in defaults are used, so a campaign added
+     with nothing but a name still prints. */
   campaigns: [
     "campaign_id", "name",
     /* WHEN IT RUNS. Roughly — "late August", "first week of January" — because that is how you
        actually think about it, and a real date can be added to a row later without changing
        anything that reads this. */
     "when",
-    "note", "active",
+    "note",
+    "style", "ink", "accent", "ground", "blocks",
+    "active",
+  ],
+
+  /* ---------- THE WORDS, ONE LINE PER ROW ---------------------------------------------------------
+     WHY THIS IS NOT MORE COLUMNS ON `campaigns`. A campaign has one style and one accent, so those
+     are properties of it. A headline is not: the whole point is to have four and choose. Columns
+     cannot hold four of a thing without becoming head_1, head_2, head_3 — which is a table lying
+     about its own shape, and which caps you at however many somebody guessed.
+
+       slot     which part of the flyer this is
+                  head    the big line. `|` is where it breaks
+                  say     the paragraph under it
+                  offer   the line about price and seats
+       variant  1, 2, 3 … Rows sharing a campaign and a slot are alternatives, and the flyer
+                maker offers them in a Wording menu. Numbers need not be tidy; they order the list.
+       text     the words themselves
+
+     `active` OFF TAKES IT OUT OF THE MENU without deleting it, which is what you want for a line
+     that worked last year and is wrong for this term. A slot with no active row falls back to the
+     campaign's built-in wording, so emptying this tab cannot produce a blank flyer. */
+  copy: [
+    "copy_id", "campaign_id", "slot", "variant", "text", "note", "active",
   ],
 
   holidays: [
