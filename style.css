@@ -5376,11 +5376,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                   border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .5rem;
                   cursor: pointer; }
 .mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-/* THE HEADING SPANS THE WHOLE PICKER. The list is an auto-fit grid, so without `grid-column: 1/-1`
-   a heading takes one cell and sits in the middle of a row of tickboxes as though it were one. */
-.mat-kind { grid-column: 1 / -1; margin: .5rem 0 0; font-size: .62rem; letter-spacing: .12em;
-            text-transform: uppercase; color: var(--faint); font-weight: 700; }
-.mat-kind:first-child { margin-top: 0; }
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
             gap: .1rem .6rem; margin-bottom: .5rem; }
 .mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 2rem;
@@ -5425,14 +5420,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    A BORDER PRINTS. It is the same hairline, the same colour, the same place; the box is flattened
    to nothing and the border is the mark. Same for the number line below, which is a rule and two
    sets of ticks and would otherwise have printed as a row of fractions floating in white. */
-.mat-rule i { position: absolute; left: 0; height: 0; border-top: .25mm solid #14140f; }
-.mat-rule b { position: absolute; left: 8mm; font: 700 3.4mm/1 var(--mono);
-              transform: translateY(-1.7mm); }
+/* THE TICKS ARE A SCALE, NOT A PATTERN. At one weight, twenty-eight full-width lines down the
+   margin read as hatching and pulled the eye off the sheet. Every fifth is the long dark one you
+   actually count by; the rest are short and pale, which is how a real rule is engraved. */
+.mat-rule i { position: absolute; left: 0; height: 0; width: 2.5mm;
+              border-top: .2mm solid #b4ae9c; }
+.mat-rule i.mid { width: 4.5mm; border-top-color: #8d8878; }
+.mat-rule i.cm  { width: 7mm;   border-top-color: #14140f; }
+.mat-rule b { position: absolute; left: 8mm; font: 400 2.7mm/1 var(--mono); color: #77776c;
+              transform: translateY(-1.35mm); }
 .mat-head { display: flex; justify-content: space-between; align-items: baseline;
-            border-bottom: .5mm solid #14140f; padding-bottom: 1.5mm; }
+            border-bottom: .3mm solid #14140f; padding-bottom: 1.5mm; }
 .mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: #14140f; letter-spacing: -.02em; }
 .mat-head span { font: 400 3mm/1 var(--mono); color: #77776c; }
-.mat-cols { display: flex; flex-direction: column; gap: 2.8mm; }
+.mat-cols { display: flex; flex-direction: column; gap: 5mm; }
 .mat-two-up { display: flex; gap: 4mm; }
 .mat-two-up > * { flex: 1; min-width: 0; }
 /* WHERE ONE COMPONENT ENDS AND THE NEXT BEGINS — a hairline ABOVE the block, not under its heading.
@@ -5449,7 +5450,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    NOT ON THE FIRST ONE, which already has the heavy rule under the title above it. Two lines 2mm
    apart is a mistake that looks deliberate. */
-.mat-box { border-top: .25mm solid #d8d2c2; padding-top: 1.6mm; }
+/* ---------- A HEADING IS ALREADY A DIVISION -------------------------------------------------------
+   EVERY COMPONENT DREW ITS OWN FRAME and the page ended up as eight boxes arguing. A rule above the
+   heading, a black border round the grid, a hairline between every cell and a heavier one under the
+   header row is four different ways of saying "this is a separate thing" — and four lines saying one
+   thing is three lines too many. The heading in small capitals says it on its own; what the rule
+   added was weight. Space does the same work and does not have to be looked at. */
+.mat-box { padding-top: 0; }
 .mat-cols > .mat-box:first-child,
 .mat-cols > :first-child .mat-box { border-top: 0; padding-top: 0; }
 .mat-box h4 { margin: 0 0 1.4mm; font: 700 2.9mm/1 var(--mono); letter-spacing: .12em;
@@ -5469,24 +5476,32 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    thing to look at: five decorative colours across nine blocks — cream, pale blue, sand, black, red
    — read as five unrelated ideas, and a reference sheet has one idea. Ink, a grey for what is
    secondary, and a hairline. */
-.mat-hun { display: grid; grid-template-columns: repeat(10, 1fr); border: .3mm solid #14140f; }
+/* ---------- `1fr` IS NOT "A THIRTEENTH OF THE WIDTH" ---------------------------------------------
+   THE TIMES TABLE RAN OFF THE EDGE OF THE PAPER and had done since it was written. `1fr` is short
+   for `minmax(auto, 1fr)`, and that `auto` is a MIN-CONTENT FLOOR: no column may shrink below its
+   widest cell. In a thirteen-column table the widest cell is 144, so the grid refused to fit the
+   half-page column it was in and simply overflowed — silently, because the sheet clips.
+   `minmax(0, 1fr)` removes the floor and the columns share the width they actually have. */
+.mat-hun { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr));
+           border: .2mm solid #b4ae9c; }
 .mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.9mm/1 inherit;
-             border-right: .15mm solid #c9c3b2; border-bottom: .15mm solid #c9c3b2; }
+             border-right: .12mm solid #ddd8ca; border-bottom: .12mm solid #ddd8ca; }
 .mat-hun i:nth-child(10n) { border-right: 0; }
 .mat-hun i.five { color: #77776c; }
 .mat-hun i.ten { font-weight: 700; }
-.mat-tt { display: grid; grid-template-columns: repeat(13, 1fr); border: .3mm solid #14140f; }
+.mat-tt { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr));
+          border: .2mm solid #b4ae9c; }
 .mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.5mm/1 inherit;
-            border-right: .15mm solid #c9c3b2; border-bottom: .15mm solid #c9c3b2; }
+            border-right: .12mm solid #ddd8ca; border-bottom: .12mm solid #ddd8ca; }
 .mat-tt i:nth-child(13n) { border-right: 0; }
 .mat-tt i.h { font-weight: 700; }
 /* THE HEADER ROW AND COLUMN, RULED OFF. A heavier line on the thirteenth boundary does the work the
    black band did, and it is the line a printed table would have had anyway. */
-.mat-tt i:nth-child(-n+13) { border-bottom: .3mm solid #14140f; }
-.mat-tt i:nth-child(13n+1) { border-right: .3mm solid #14140f; }
+.mat-tt i:nth-child(-n+13) { border-bottom: .25mm solid #8d8878; }
+.mat-tt i:nth-child(13n+1) { border-right: .25mm solid #8d8878; }
 /* THE SQUARE NUMBERS DOWN THE DIAGONAL, boxed rather than filled. An outline is drawn on top of the
    cell instead of inside its border, so it marks the square without moving anything. */
-.mat-tt i.sq { font-weight: 700; outline: .3mm solid #14140f; outline-offset: -.3mm; }
+.mat-tt i.sq { font-weight: 700; outline: .25mm solid #8d8878; outline-offset: -.25mm; }
 /* FRACTIONS ABOVE AND DECIMALS BELOW ON ONE LINE, because they are the same thing and showing them
    apart is most of why they stay separate ideas. */
 .mat-nl { position: relative; height: 16mm; }
@@ -5495,15 +5510,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-nl i { position: absolute; top: 4mm; width: 0; height: 4mm; border-left: .4mm solid #14140f; }
 .mat-nl b { position: absolute; top: 0; font: 700 3.4mm/1 inherit; transform: translateX(-50%); }
 .mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid #77776c; }
-.mat-nl s { position: absolute; top: 11.5mm; font: 400 2.6mm/1 var(--mono); color: #77776c;
+.mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: #9a9488;
             text-decoration: none; transform: translateX(-50%); }
-.mat-pv { display: grid; grid-template-columns: repeat(7, 1fr); border: .3mm solid #14140f; }
+.mat-pv { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+          border: .2mm solid #b4ae9c; }
 .mat-pv i { display: grid; place-items: center; padding: 1.4mm 0;
             border-right: .15mm solid #c9c3b2; }
 .mat-pv i:last-child { border-right: 0; }
 /* THE POINT COLUMN IS RULED ON BOTH SIDES, which is where a decimal point actually sits — between
    two places — and says it without a colour. */
-.mat-pv i.dot { border-left: .3mm solid #14140f; border-right: .3mm solid #14140f; }
+.mat-pv i.dot { border-left: .25mm solid #8d8878; border-right: .25mm solid #8d8878; }
 .mat-pv b { font: 700 3.4mm/1 inherit; }
 .mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: #77776c; margin-top: .6mm; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
@@ -5530,30 +5546,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-fdp i { font-style: normal; }
 .mat-fdp b { display: block; font: 700 3.4mm/1.2 inherit; }
 .mat-fdp em { display: block; font: 400 2.2mm/1.3 var(--mono); font-style: normal; color: #77776c; }
-/* THE FLYER'S CONTROLS, INSIDE THE PICKER. Ruled off above so the bars read as belonging to the
-   piece that was just ticked rather than as a second toolbar for the whole sheet. Empty and gone
-   when no flyer is on the paper — an empty div with margins is a gap nobody can explain. */
-.mat-fly:empty { display: none; }
-.mat-fly { margin: .6rem 0 .2rem; padding-top: .6rem; border-top: 1px solid var(--line); }
-
 /* ---------- A PIECE THAT IS ALREADY A FINISHED THING ---------------------------------------------
-   A FLYER ON THE SHEET IS THE FLYER, not a block about one. No heading, no hairline above it, and
-   no gutter: it has its own edge, its own paper colour and its own name in it already.
-   THE SIZES ARE THE PAPER'S OWN FRACTIONS, the same three the flyer maker cuts to — A5 is half of
-   A4 at 148mm, A6 a quarter, a sticker a ninth. That is why two A5 pieces fill a sheet exactly and
-   the gauge can say so: a piece's height here is a fact about paper rather than a guess. */
+   `bare` says the block carries its own name and its own edge, so it gets no heading and no rule
+   above it. The flyer sizes that used to live here went with the flyer maker when it became its
+   own tool again — a stylesheet keeping rules for a thing that can no longer be drawn is how a
+   file grows a decade of scenery nobody dares delete. */
 .mat-box.bare { border-top: 0; padding-top: 0; }
 .mat-box.bare > h4 { display: none; }
-.mat-p-a5, .mat-p-a6, .mat-p-sq { overflow: hidden; }
-.mat-p-a5 { height: 148mm; }
-.mat-p-a6 { height: 105mm; }
-.mat-p-sq { height: 99mm; }
-/* THE FLYER FILLS THE PIECE. Inside its own tool it is a cell of a 210mm grid; here it is whatever
-   the piece is, and the dashed trim edges belong to a sheet being guillotined into flyers rather
-   than to one flyer sitting on a mixed page. */
-.mat-p-a5 > .fm-fly, .mat-p-a6 > .fm-fly, .mat-p-sq > .fm-fly {
-  width: 100%; height: 100%; border-right: 0; border-bottom: 0; }
-.mat-p-a6 > .fm-fly, .mat-p-sq > .fm-fly { padding: 9mm; }
+
 /* A piece with no drawing behind it says so rather than printing a gap. */
 .mat-gone { margin: 0; font: 400 2.7mm/1.4 var(--mono); color: #77776c; }
 

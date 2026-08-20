@@ -633,8 +633,13 @@ function matGraphs() {
 function matRuler(mmHigh) {
   let h = '';
   for (let mm = 0; mm <= mmHigh; mm++) {
+    /* THE LENGTH IS A CLASS, NOT A NUMBER TYPED HERE. Written inline, the three tick widths could
+       not be adjusted from the stylesheet — an inline style beats every rule in the file, so the
+       ruler was the one component whose weight could only be changed in JavaScript. A centimetre,
+       a half, and a millimetre are three kinds of mark; naming them is what lets the sheet decide
+       how loud each one is. */
     const long = mm % 10 === 0, mid = mm % 5 === 0;
-    h += `<i style="top:${mm}mm;width:${long ? 7 : (mid ? 4.5 : 2.5)}mm"></i>`;
+    h += `<i class="${long ? 'cm' : (mid ? 'mid' : '')}" style="top:${mm}mm"></i>`;
     if (long && mm > 0) h += `<b style="top:${mm}mm">${mm / 10}</b>`;
   }
   return h;
