@@ -782,10 +782,9 @@ function initMat() {
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
      ${esc(c.name)}${c.inExam === true
        ? '<b class="mat-given" title="the exam gives you this">given</b>' : ''}<u>${
-         /* THE COST, IN THE SAME UNIT THE GAUGE USES. `${c.h}mm` was the height of a stacked block,
-            which says nothing about a piece that is 20mm wide and the whole page tall — the ruler
-            read as 0mm and cost a tenth of the sheet. Area is the one number that is true of both
-            shapes, so both are priced in it. */
+         /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
+            says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
+            and cost a tenth of the sheet. Area is true of both shapes. */
          Math.round((c.edge ? 20 * c.h : (c.half ? 99 : 198) * c.h) / 100)}cm²</u></label>`;
   }).join('');
   matPaint();
@@ -905,19 +904,17 @@ function matPaint() {
      rendered column is the only figure that is always right. */
   const cols = out.querySelector('.mat-cols');
   /* ---------- THE PAGE IS AN AREA, NOT A HEIGHT ---------------------------------------------------
-     THE GAUGE MEASURED THE COLUMN'S HEIGHT, which works while everything is stacked and breaks the
-     moment something is not. The ruler is the case that broke it: it takes 20mm off the WIDTH of
-     every row for the whole 285mm of the page, so it costs more paper than any other component on
-     the list — and it was written into the sheet as `h: 0`, free, because the number it was being
-     measured against had no idea width existed.
+     THIS MEASURED THE COLUMN'S HEIGHT, which works while everything is stacked and breaks the
+     moment something is not. The ruler is the case that broke it: 20mm off the WIDTH of every row
+     for the whole height of the page, written into the list as `h: 0` — free, because the number it
+     was measured against had no idea width existed.
 
-     THAT IS NOT A ROUNDING ERROR. 20 x 285 is 5,700mm2, about a tenth of the usable page, and the
-     gauge said the sheet was empty while a tenth of it was already gone. Ticking the ruler could
-     take you over the edge without moving the bar at all.
+     NOT A ROUNDING ERROR. 20 x 262 is 5,240mm2, a tenth of the usable page, so ticking the ruler
+     could put you over the edge without moving the bar at all.
 
-     SO EVERYTHING IS COUNTED IN SQUARE MILLIMETRES. A row of content costs the content width times
-     its height; the ruler costs its own strip. Both are then the same kind of number and can be
-     added, which is the whole reason for the change: a budget you cannot add up is not a budget. */
+     SO EVERYTHING IS COUNTED IN SQUARE MILLIMETRES: a row costs the content width times its height,
+     the ruler costs its own strip, and the two can finally be added together. A budget you cannot
+     add up is not a budget. */
   const PAGE_W = 198, PAGE_H = MAT_ROOM;         /* usable, inside the 6mm margins */
   const room = PAGE_W * PAGE_H;
   const ruleW = ruled ? 20 : 0;
@@ -925,8 +922,8 @@ function matPaint() {
   const used = Math.round(ruleW * PAGE_H + (PAGE_W - ruleW) * colH);
   const over = used > room;
 
-  /* SAID IN CENTIMETRES SQUARED. 41,382mm2 is a number nobody can picture; 414cm2 is a postcard.
-     And the fraction is what actually gets read, so it comes first. */
+  /* IN CENTIMETRES SQUARED, and the percentage first. 41,382mm2 is a number nobody can picture;
+     414cm2 is a postcard, and "38% used" is what actually gets read. */
   const pct = Math.min(100, Math.round(used / room * 100));
   const left = Math.max(0, Math.round((room - used) / 100));
   $('mat-gauge').classList.toggle('over', over);
