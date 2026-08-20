@@ -34,7 +34,7 @@ on('topic', el => {
     ${/* Only when there is one. A row reading "Year —" on four hundred exercises is four hundred
           lines saying nothing, and this sheet is already long. */''}
     ${yearOf(t) ? `${row('Year', yearOf(t))}` : ''}
-    ${t.examWave ? `${row('Exam wave', t.examWave)}` : ''}
+    ${waveOf(t) ? `${row('Exam wave', waveOf(t))}` : ''}
     ${row('Pages', t.pages || '—')}
 
     ${t.trackable && USER ? `<h2>Your passes</h2>

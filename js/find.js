@@ -309,7 +309,10 @@ const FACETS = [
                                                     ? x.bandValue : '' },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
   { field: 'tier',      label: 'Tier',        of: x => x.tier },
-  { field: 'examWave',  label: 'Exam wave',   of: x => x.examWave },
+  /* Through `waveOf`, for the same reason `year` goes through `yearOf` one line below: the cell
+     may hold a DATE rather than a wave, and a filter button sixty characters wide reading
+     "Fri Jun 01 2024 08:00:00 GMT+0100 (British Summer Time)" is what that looks like untouched. */
+  { field: 'examWave',  label: 'Exam wave',   of: x => waveOf(x) },
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
@@ -950,6 +953,59 @@ function yearOf(x) {
 
   const m = String((x && x.examWave) || '').match(/\b(19|20)\d{2}\b/);
   return m ? m[0] : '';
+}
+
+/**
+ * THE WAVE OF A THING, AS A HUMAN WOULD SAY IT.
+ *
+ * `exam_wave` is meant to hold "June 2024" — a sitting, which is a month and a year. What is
+ * actually in the sheet on most rows is a DATE: 2024-06-01, typed into a cell Google then treats
+ * as a date, so what reaches this file is the whole of
+ *
+ *     Fri Jun 01 2024 08:00:00 GMT+0100 (British Summer Time)
+ *
+ * and the funnel drew that, verbatim, as a button. Seven of them, one per sitting, each sixty
+ * characters of clock and timezone — which is the fault you can see, but not the worst of it: two
+ * ways of writing the same sitting are two DIFFERENT buttons, so "June 2018" typed by hand and
+ * 2018-06-01 read from a date cell split one wave into two.
+ *
+ * A DATE IS NOT WRONG IN THE SHEET, it is just not what a person calls a sitting. So it is read
+ * rather than rejected: month and year out of whatever shape arrived, in the words somebody would
+ * use. The row that already says "June 2018" is returned untouched and lands on the same button as
+ * the date that means the same thing — which is the part that actually fixes the filter.
+ */
+function waveOf(x) {
+  const raw = String((x && x.examWave) || '').trim();
+  if (!raw) return '';
+
+  const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  /* ALREADY A SITTING. "June 2024", "Nov 2023" — somebody typed what they meant. */
+  const said = raw.match(/^([A-Za-z]{3,9})\s+((?:19|20)\d{2})$/);
+  if (said) {
+    const i = MONTH.findIndex(m => m.toLowerCase().startsWith(said[1].toLowerCase().slice(0, 3)));
+    return i < 0 ? raw : MONTH[i] + ' ' + said[2];
+  }
+
+  /* A DATE THAT CAME THROUGH AS TEXT. Read by pattern rather than by `new Date`, which reads the
+     same characters differently depending on the machine's timezone — and a wave that is June on
+     one phone and May on another is a filter that splits in half for no reason anybody can see. */
+  const long = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b[^]*?\b((?:19|20)\d{2})\b/);
+  if (long) {
+    const i = MONTH.findIndex(m => m.slice(0, 3) === long[1]);
+    return i < 0 ? long[2] : MONTH[i] + ' ' + long[2];
+  }
+
+  const iso = raw.match(/\b((?:19|20)\d{2})-(\d{2})-\d{2}\b/);
+  if (iso) {
+    const i = parseInt(iso[2], 10) - 1;
+    return (MONTH[i] ? MONTH[i] + ' ' : '') + iso[1];
+  }
+
+  /* Nothing recognisable but a year in it somewhere — better than the whole string. */
+  const bare = raw.match(/\b(19|20)\d{2}\b/);
+  return bare ? bare[0] : raw;
 }
 
 /* Numeric-aware, so Grade 2 comes before Grade 10. Plain alphabetical put Grade 10 first, and that
@@ -1722,7 +1778,7 @@ function paperish_(x) {
 function paperCard(x) {
   const board = S_(x.examBoard);
   const paper = (S_(x.name).match(/paper\s*\d+[a-z]?/i) || [''])[0];
-  const when = yearOf(x) || S_(x.examWave);
+  const when = yearOf(x) || waveOf(x);
   return `<div class="paper tap${x.off ? ' is-off' : ''}"
        data-do="topic" data-key="${esc(x.key)}">
     <div class="paper-top">
