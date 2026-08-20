@@ -5408,8 +5408,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
              font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
 /* THE RULER AT THE EDGE, because that is where a ruler is used — you lay the paper against the
    thing you are measuring, and one in the middle of a sheet cannot reach anything. */
-.mat-rule { position: absolute; left: 0; top: 6mm; bottom: 5mm; width: 20mm;
-            border-right: .3mm solid #c9c3b2; }
+/* NO LINE DOWN THE EDGE. The ruler had a border on its right, which on a 297mm page is a 286mm
+   vertical rule running the whole height of the sheet — the single longest mark on it, drawn to
+   separate a margin from a page that is already separated by being empty. The ticks are the ruler.
+   A box round them is a box round nothing. */
+.mat-rule { position: absolute; left: 0; top: 6mm; bottom: 5mm; width: 20mm; }
 /* ---------- A LINE ON PAPER IS A BORDER, NEVER A BACKGROUND --------------------------------------
    THE RULER'S TICKS WERE FILLED DIVS, and a browser drops background fills when it prints. So the
    one component whose whole job is to be measured against printed as twenty-eight numbers down the
@@ -5460,7 +5463,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-box h4 { margin: 0 0 1.4mm; font: 700 2.9mm/1 var(--mono); letter-spacing: .12em;
               text-transform: uppercase; color: #77776c; }
 .mat-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline;
-            border-top: .3mm solid #c9c3b2; padding-top: 1.5mm;
+            /* NO RULE ABOVE IT. The footer is already the smallest, palest thing on the sheet and
+               it is already at the bottom; a line to announce that is a line doing nothing. */
+            padding-top: 1.5mm;
             font: 400 2.7mm/1 var(--mono); color: #77776c; }
 .mat-foot b { color: #14140f; }
 
@@ -5518,11 +5523,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid #77776c; }
 .mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: #9a9488;
             text-decoration: none; transform: translateX(-50%); }
-.mat-pv { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
-          border: .2mm solid #b4ae9c; }
-.mat-pv i { display: grid; place-items: center; padding: 1.4mm 0;
-            border-right: .15mm solid #c9c3b2; }
-.mat-pv i:last-child { border-right: 0; }
+/* ---------- ONE LINE, WHERE THE POINT IS ---------------------------------------------------------
+   SEVEN COLUMNS, A BOX ROUND THEM AND A DIVIDER BETWEEN EVERY PAIR was eight lines to say a thing
+   the headings already say: Th, H, T, U are four words in four columns and nobody needs ruling to
+   see that. The one boundary that carries meaning is the decimal point, because that is the whole
+   subject of the chart — which side of it a digit falls on. So that is the only one left. */
+.mat-pv { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.mat-pv i { display: grid; place-items: center; padding: 1.4mm 0; }
 /* THE POINT COLUMN IS RULED ON BOTH SIDES, which is where a decimal point actually sits — between
    two places — and says it without a colour. */
 .mat-pv i.dot { border-left: .25mm solid #8d8878; border-right: .25mm solid #8d8878; }
