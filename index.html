@@ -672,27 +672,41 @@
   <div id="splash-bal" aria-hidden="true">
     <svg class="bl-svg" viewBox="0 0 128 76">
       <g class="bl-beam">
-        <line class="bl-bar" x1="18" y1="30" x2="102" y2="30"/>
-        <!-- THE BLOCKS HAVE TO MATCH THE CAPTION.
-             IT SAID "x + 3 = 5" OVER THREE BLOCKS AGAINST THREE. The picture read 3 = 3, which is
-             a true statement about nothing and says the opposite of what a balance is for. A child
-             who counts the blocks finds the caption wrong, and the whole point is that the picture
-             IS the equation.
-             LEFT: one x and three units. RIGHT: five units. The three units on the left and three
-             of the five on the right are the red ones — take the same from both sides and what is
-             left is one x against two, which is the answer. -->
+        <!-- ==========================================================================================
+             THE BEAM IS LEVEL AND STAYS LEVEL. It used to swing four degrees, on the argument that a
+             balance which does not visibly tip reads as a frozen picture during a load. True of a
+             balance in general; false of THIS one. The caption is `x + 3 = 5` — an equation, a
+             statement that the two sides ARE equal — and a beam that tips is a picture saying they
+             are not. The comment two rules above it in the stylesheet already said the beam never
+             tips and that this is the proof; the animation was added later and contradicted it.
+
+             THE MOVEMENT COMES FROM THE BLOCKS INSTEAD, which is also where the maths is: three
+             units lift off the left and three off the right, together, and the beam does not move
+             — because taking the same from both sides is the one operation that cannot unbalance
+             anything. That is the whole lesson, and it is now the only thing moving.
+
+             AND THE BLOCKS FIT THE BAR NOW. The x block started at 10 and the last unit ended at
+             119 while the beam ran 18 to 102, so both ends hung off into space. Everything is laid
+             out from the pivot at 60: the bar reaches 52 either side, each pan is centred in its
+             half, and nothing overhangs.
+        =========================================================================================== -->
+        <line class="bl-bar" x1="8" y1="30" x2="112" y2="30"/>
+
+        <!-- LEFT: one x and three units.  RIGHT: five units.
+             The red ones are the three that come off both sides. What is left is one x against
+             two, which is the answer the caption gives. -->
         <g class="bl-l">
-          <rect class="bl-x" x="10" y="14" width="16" height="16" rx="2"/>
-          <rect class="bl-go" x="28" y="16" width="10" height="12"/>
-          <rect class="bl-go" x="39" y="16" width="10" height="12"/>
-          <rect class="bl-go" x="50" y="16" width="10" height="12"/>
+          <rect class="bl-x" x="12" y="14" width="16" height="16" rx="2"/>
+          <rect class="bl-go" x="31" y="18" width="9" height="12"/>
+          <rect class="bl-go" x="41" y="18" width="9" height="12"/>
+          <rect class="bl-go" x="51" y="18" width="9" height="12"/>
         </g>
         <g class="bl-r">
-          <rect x="65" y="16" width="10" height="12"/>
-          <rect x="76" y="16" width="10" height="12"/>
-          <rect class="bl-go" x="87" y="16" width="10" height="12"/>
-          <rect class="bl-go" x="98" y="16" width="10" height="12"/>
-          <rect class="bl-go" x="109" y="16" width="10" height="12"/>
+          <rect x="62"  y="18" width="9" height="12"/>
+          <rect x="72"  y="18" width="9" height="12"/>
+          <rect class="bl-go" x="82"  y="18" width="9" height="12"/>
+          <rect class="bl-go" x="92"  y="18" width="9" height="12"/>
+          <rect class="bl-go" x="102" y="18" width="9" height="12"/>
         </g>
       </g>
       <path class="bl-post" d="M60 30 L60 62 M44 62 L76 62"/>

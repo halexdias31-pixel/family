@@ -4856,27 +4856,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Negative, like the beam's, so the removal is already under way on the first frame and the two
    stay in step with each other. */
 .bl-go { fill: #d9534f; animation: bl-off 3.4s ease-in-out -.9s infinite; }
-/* ---------- A ONE-SECOND DELAY ON A TWO-SECOND SPLASH ---------------------------------------------
-   THE BEAM HAD NO TRANSFORM AT ALL for the first second — half the time anybody sees it. Widening
-   the swing and reshaping the keyframes changed nothing, because the animation had not started; I
-   spent two attempts on the motion when the fault was that there was no motion yet.
-   A NEGATIVE DELAY STARTS IT MID-SWING instead: the beam is already moving on the first frame, and
-   the cycle keeps its timing. That is what a delay is for on something meant to be caught partway. */
-.bl-beam { animation: bl-tip 3.4s ease-in-out -.9s infinite; transform-origin: 60px 30px; }
+/* ---------- THE BEAM DOES NOT MOVE, AND THAT IS THE PICTURE ---------------------------------------
+   IT SWUNG FOUR DEGREES, added because a balance that never tips was thought to read as a frozen
+   image during a load. The worry was right and the cure was wrong: the caption is `x + 3 = 5`, an
+   equation, a claim that the two sides ARE equal — so a tipping beam illustrated the opposite of
+   the sentence under it. The rule above already said the beam never tips and that this is the
+   proof. The animation contradicted its own comment.
+
+   THE MOTION IS THE BLOCKS. Three units lift off the left and three off the right at the same
+   moment, the beam holds level, and `x = 2` fades in underneath. Something is moving on every
+   frame of the load, and what is moving is the actual argument: take the same from both sides and
+   nothing tips. */
+.bl-beam { transform-origin: 60px 30px; }
 @keyframes bl-off { 0%,22% { opacity: 1; transform: none; }
                     46%,88% { opacity: 0; transform: translateY(-14px); }
                     100% { opacity: 1; transform: none; } }
-/* ONE AND A HALF DEGREES IS NOT A TILT, it is a rendering rounding error — across a beam this size
-   it moves the ends by about a pixel, and three frames of a load came out identical. A balance that
-   does not visibly tip is a picture of a balance.
-   Four degrees, which reads as weighing without turning it into a seesaw, and the pause at the ends
-   is shortened so the movement is happening rather than waiting. */
-/* AND THE POSE MUST NOT REPEAT MID-CYCLE. Returning to 0° at the halfway mark meant two sample
-   frames landed on the same angle — the beam WAS moving and two moments of it looked identical,
-   which on a three-frame check is indistinguishable from a still picture and to an eye reads as a
-   hesitation. It swings straight through: down, up, back, with no pause at level. */
-@keyframes bl-tip { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); }
-                    100% { transform: rotate(-4deg); } }
 /* THE X BLOCK IS THE UNKNOWN, so it is a different colour and a different size — a picture where
    the unknown looks like the units is a picture where nothing is unknown.
     IS ONE CLASS PLUS AN ELEMENT and beats a bare class, so `.bl-x` alone lost and the
