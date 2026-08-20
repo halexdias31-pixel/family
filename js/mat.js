@@ -1053,17 +1053,30 @@ function matPaint() {
      sheet and full width on the next is the layout changing its mind in front of you. */
   const row = cs => `<div class="mat-two-up">${cs.map(cell).join('')}${
     '<div></div>'.repeat(MAT_ACROSS - cs.length)}</div>`;
-  /* HELD RATHER THAN COUNTED, because a full-width block arriving mid-row ends the row wherever it
-     had got to — the alternative is holding narrow blocks back past a wide one to fill a row, which
-     reorders the sheet against the order the list was written in. */
-  let held = [];
-  const flush = () => { if (held.length) { h += row(held); held = []; } };
-  pieces.forEach(c => {
-    if (!c.half) { flush(); h += cell(c); return; }
-    held.push(c);
-    if (held.length === MAT_ACROSS) flush();
-  });
-  flush();
+  /* ---------- A ROW IS FILLED FROM WHEREVER THE NARROW BLOCKS ARE ---------------------------------
+     ENDING THE ROW WHEN A FULL-WIDTH BLOCK ARRIVES LOOKED TIDIER AND MEANT THE THIRD COLUMN NEVER
+     APPEARED. The GCSE Higher sheet is Pythagoras, sequences, QUADRATICS, probability, primes,
+     circle theorems — two narrow, then a wide one, then one more narrow. Three never accumulate, so
+     a page set to three across came out as a row of two and a row of one, exactly as before.
+
+     SO A NARROW BLOCK REACHES PAST A WIDE ONE to find its row-mates, and the wide block prints where
+     it always was, at full width, once the row in front of it is closed. Nothing is dropped and
+     nothing is widened; the only thing that moves is a narrow block arriving one place early.
+
+     THE ORDER STILL BROADLY HOLDS, because the only blocks that jump are ones that would have been
+     in the next row anyway — they land one row earlier, not somewhere else on the sheet. */
+  const queue = pieces.slice();          /* a copy: `pieces` is read again for the gauge */
+  while (queue.length) {
+    const c = queue.shift();
+    if (!c.half) { h += cell(c); continue; }
+    const cells = [c];
+    while (cells.length < MAT_ACROSS) {
+      const at = queue.findIndex(x => x.half);
+      if (at === -1) break;
+      cells.push(queue.splice(at, 1)[0]);
+    }
+    h += row(cells);
+  }
 
   /* THE LEVEL IS ON THE PAPER. Six sheets in a folder all headed "Cheat sheet" are six sheets you
      have to read to tell apart, and the one thing that distinguishes them is already known here.
