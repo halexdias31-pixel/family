@@ -106,38 +106,36 @@ function flyRows() {
        campaign's, so a campaign added with a name and nothing else is a working flyer rather than
        black text on black paper. */
     const d = FLY_ROWS[0];
-    const head = flyPicked(c, 'head') || d[5];
-    const say  = flyPicked(c, 'say')  || d[6];
+    const head = flyText(c, 'head') || d[5];
+    const say  = flyText(c, 'say')  || d[6];
     return [c.name, c.style || d[1], c.ink || d[2], c.accent || d[3], c.ground || d[4],
             head, say, c.blocks || d[7], c.id];
   });
   return FLY_LIVE;
 }
 
-/* THE CHOSEN WORDING FOR ONE SLOT, or nothing if the sheet has none. */
-function flyPicked(c, slot) {
+/* The chosen text for one slot, or nothing when the sheet has none. */
+function flyText(c, slot) {
   const list = (c && c.copy && c.copy[slot]) || [];
   if (!list.length) return '';
   const at = Math.min(FLY_PICK[(c.id || '') + ':' + slot] || 0, list.length - 1);
   return list[at].text;
 }
 
-/* HOW MANY WORDINGS THE CURRENT CAMPAIGN HAS, and what they are — for the Wording menu. Reads the
-   raw campaign rather than the working copy, because the working copy holds the chosen one and has
-   forgotten the alternatives. */
-function flyWordings(slot) {
+/* The alternatives for a slot. Read off the RAW campaign, because the working row holds only the
+   chosen one and has forgotten the rest. */
+function flyVariants(slot) {
   const row = flyRows()[FLY_AT || 0];
   const id = row && row[8];
   const c = (DATA.campaigns || []).find(x => x && x.id === id);
   return (c && c.copy && c.copy[slot]) || [];
 }
 
-/* CHANGING THE WORDING WRITES INTO THE WORKING ROW, so everything that reads a campaign — the
-   preview, the print, the sheet — sees one answer and cannot disagree with the menu. */
-function flyUseWording(slot, at) {
+/* Writes into the working row, so the preview, the print and the menu cannot disagree. */
+function flyPick(slot, at) {
   const rows = flyRows(), row = rows[FLY_AT || 0];
   if (!row) return;
-  const list = flyWordings(slot);
+  const list = flyVariants(slot);
   if (!list.length) return;
   const i = Math.max(0, Math.min(at, list.length - 1));
   FLY_PICK[(row[8] || '') + ':' + slot] = i;
@@ -340,7 +338,7 @@ function flyControls() {
       <label>Campaign<select id="fm-c">${flyRows()
         .map((r, i) => `<option value="${i}"${i === (FLY_AT || 0) ? ' selected' : ''}>${
           esc(r[0])}</option>`).join('')}</select></label>
-      ${flyWordingMenu()}
+      ${flyMenu()}
       <label>Style<select id="fm-s">${FLY_STYLES
         .map(s => `<option>${s}</option>`).join('')}</select></label>
       <label>Ink<input type="color" id="fm-k1"></label>
@@ -397,9 +395,9 @@ function flyBind(scope, redraw) {
       /* THE CAMPAIGN CHANGED, SO THE WORDING MENU IS ABOUT THE WRONG CAMPAIGN. It is rebuilt
          rather than left — a menu offering last campaign's four headlines is worse than no menu,
          because it looks authoritative. */
-      if (el.id === 'fm-c') { flyLoad(); flyRedrawWordings(scope, redraw); }
-      if (el.id === 'fm-wh') flyUseWording('head', Number(el.value) || 0);
-      if (el.id === 'fm-wb') flyUseWording('say', Number(el.value) || 0);
+      if (el.id === 'fm-c') { flyLoad(); flyBind(scope, redraw); }
+      if (el.id === 'fm-wh') flyPick('head', Number(el.value) || 0);
+      if (el.id === 'fm-wb') flyPick('say', Number(el.value) || 0);
       if (el.id === 'fm-s') flyRows()[FLY_AT][1] = el.value;
       if (el.id === 'fm-k1') flyRows()[FLY_AT][2] = el.value;
       if (el.id === 'fm-k2') flyRows()[FLY_AT][3] = el.value;
@@ -454,9 +452,9 @@ function flyTicks(list) {
 /* ---------- THE WORDING MENU ----------------------------------------------------------------------
    ONLY WHEN THERE IS A CHOICE. One headline is not a decision, and a dropdown with a single entry
    is a control that teaches you to ignore controls. Two or more and it appears. */
-function flyWordingMenu() {
+function flyMenu() {
   const one = (slot, id, label) => {
-    const list = flyWordings(slot);
+    const list = flyVariants(slot);
     if (list.length < 2) return '';
     const at = Math.min(FLY_PICK[(flyRows()[FLY_AT || 0] || [])[8] + ':' + slot] || 0, list.length - 1);
     return `<label>${label}<select id="${id}">${list.map((w, i) =>
@@ -465,13 +463,6 @@ function flyWordingMenu() {
   };
   const bits = one('head', 'fm-wh', 'Wording') + one('say', 'fm-wb', 'Paragraph');
   return bits;
-}
-
-/* Rebuilt in place, and rebound, because the menu that was there belonged to another campaign. */
-function flyRedrawWordings(scope, redraw) {
-  const bar = scope && scope.querySelector('.fm-bar');
-  if (!bar) return;
-  flyBind(scope, redraw);
 }
 
 const FLY_PRESETS = {
@@ -523,6 +514,7 @@ function initFlyer() {
     + '<div class="fm-out" id="fm-out"></div>'
     + '<button class="btn" data-do="fm-print" style="margin-top:.5rem">Print</button>';
   flyBind(wrap, flyDraw);          /* binds, loads the campaign, and draws once */
+  flyWatch();
 }
 
 /* THE SHEET, FILLED WITH AS MANY AS FIT. `FLY_PER` knows how many of each size go on a page — two
@@ -542,10 +534,14 @@ function flyDraw() {
    SHAPE of the page rather than a phone-sized guess at it — and reset to 1 for printing, where the
    paper really is 210mm. Measured rather than assumed, because the sheet width changes with the
    screen and a hard-coded factor would be right on exactly one device. */
+/* SAME FAULT THE CHEAT SHEET HAD, written into this file when its page came back: `clientWidth ||
+   320` scales to a guessed phone width whenever the panel is measured before it is on screen —
+   which on a phone is most of the time. It does not guess; the observer calls again. */
 function flyFit() {
   const out = $('fm-out'), sheet = out && out.firstElementChild;
   if (!sheet) return;
-  const room = out.clientWidth || 320;
+  const room = out.getBoundingClientRect().width;
+  if (!room) return;
   const k = Math.min(1, room / (210 * 3.7795));    /* mm to px at 96dpi */
   sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
   /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full height, so without this
@@ -574,5 +570,14 @@ on('fm-print', () => {
   window.print();
 });
 
-/* THE SHEET IS MEASURED, so a rotation or a keyboard opening has to re-measure it. */
+/* THE SHEET IS MEASURED, so anything that changes its box has to re-measure it — a rotation, a
+   keyboard, and above all the panel becoming visible, which `resize` never reports. */
 addEventListener('resize', () => { if ($('fm-out')) flyFit(); });
+
+let FLY_WATCH = null;
+function flyWatch() {
+  const out = $('fm-out');
+  if (!out || FLY_WATCH || typeof ResizeObserver !== 'function') return;
+  FLY_WATCH = new ResizeObserver(() => flyFit());
+  FLY_WATCH.observe(out);
+}

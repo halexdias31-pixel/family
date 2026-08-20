@@ -53,15 +53,15 @@ on('topic', el => {
           missing. When the questions are here they are the better answer: no download, no PDF
           reader, and it is the same rows the question cards already draw from — so a fix to a
           question fixes it here too. */''}
-    ${paperParts(t).length
+    ${paperRows(t).length
       ? `<button class="btn" style="margin-top:.5rem" data-do="paper-read"
                  data-key="${esc(t.id || t.name)}">Read the paper
-           <em class="btn-note">${paperParts(t).filter(r => r.kind !== 'stem').length} questions</em>
+           <em class="btn-note">${paperRows(t).filter(r => r.kind !== 'stem').length} questions</em>
          </button>` : ''}
     ${t.link
       ? `<a class="btn ghost" href="${esc(t.link)}" target="_blank" rel="noopener"
            style="margin-top:.5rem">Open the PDF</a>`
-      : (paperParts(t).length ? '' : '<p class="faint">No link on this one yet.</p>')}
+      : (paperRows(t).length ? '' : '<p class="faint">No link on this one yet.</p>')}
 
     ${/* THE PRINTED COPY. Paper, at cost. The sum is spelled out rather than stated — "43 pages ×
           2p" is checkable, and "£0.86" is something you either believe or you do not. */''}
@@ -404,11 +404,9 @@ on('cart-send', () => {
    obvious thing to do with twenty rows that share a `paper_id`: put them in order and read them.
 ================================================================================================== */
 
-/* EVERY PART OF ONE PAPER, IN THE ORDER IT IS PRINTED.
-   SORTED NUMERICALLY ON THE QUESTION AND ALPHABETICALLY ON THE PART, which is not the same as
-   sorting the pair as text: as text, Q10 comes between Q1 and Q2, so a twenty-question paper reads
-   1, 10, 11, 12, 2 — right for a filing cabinet, wrong for a paper. */
-function paperParts(t) {
+/* One paper's rows, in printed order. Numeric on the question, alphabetical on the part — sorted as
+   TEXT, Q10 falls between Q1 and Q2, which is right for a filing cabinet and wrong for a paper. */
+function paperRows(t) {
   const id = t && (t.id || t.rowId);
   if (!id) return [];
   return (DATA.questions || [])
@@ -422,7 +420,7 @@ on('paper-read', el => {
   const t = (allTopics() || []).find(x => (x.id || x.name) === key);
   if (!t) { toast('That paper is not in the sheet'); return; }
 
-  const rows = paperParts(t);
+  const rows = paperRows(t);
   if (!rows.length) { toast('No questions written up for this one yet'); return; }
 
   let h = '', section = null, q = null, marks = 0;

@@ -887,7 +887,7 @@ function matPaint() {
      cost the taller of them, and no table of numbers can know which pairs got ticked. Reading the
      rendered column is the only figure that is always right. */
   const cols = out.querySelector('.mat-cols');
-  const used = cols ? Math.round(cols.getBoundingClientRect().height / matPxPerMm()) : 0;
+  const used = cols ? Math.round(cols.getBoundingClientRect().height / matPx()) : 0;
   const over = used > MAT_ROOM;
   $('mat-gauge').classList.toggle('over', over);
   $('mat-gauge').firstElementChild.style.width = Math.min(100, used / MAT_ROOM * 100) + '%';
@@ -897,12 +897,13 @@ function matPaint() {
     : `<b>${MAT_ROOM - used}mm</b> of paper left.`;
   $('mat-go').disabled = over || !pieces.length;
   matFit();
+  matWatch();
 }
 
 /* THE SHEET IS SCALED TO THE SCREEN and back to 1 for printing, where 210mm really is 210mm. The
    factor is measured rather than assumed, because the box width changes with the screen and a
    hard-coded one would be right on a single device. */
-function matPxPerMm() {
+function matPx() {
   const p = document.createElement('div');
   p.style.cssText = 'width:100mm;position:absolute;visibility:hidden';
   document.body.appendChild(p);
@@ -910,12 +911,35 @@ function matPxPerMm() {
   p.remove();
   return k || 3.7795;
 }
+/* ---------- MEASURE, OR WAIT ---------------------------------------------------------------------
+   `out.clientWidth || 320` was the phone bug. A hidden element measures 0, and this is usually
+   painted before its screen is on camera — so the sheet was scaled to a GUESS at a phone width.
+   Desktop paints visible, measures fine, never hits the fallback: same code, two pages. And 320 is
+   plausible enough that the result looked like a fit, so nothing ever looked wrong.
+   No width now means not laid out yet; the observer calls back when it is. */
 function matFit() {
   const out = $('mat-out'), sheet = out && out.querySelector('.mat-sheet');
   if (!sheet) return;
-  const k = Math.min(1, (out.clientWidth || 320) / (210 * matPxPerMm()));
+  const room = out.getBoundingClientRect().width;
+  if (!room) return;                     /* not on screen yet; the observer will call again */
+  const px = matPx();
+  const k = Math.min(1, room / (210 * px));
   sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
-  out.style.height = (297 * matPxPerMm() * k) + 'px';
+  /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full unscaled height, so
+     without this the sheet sits in a column of white taller than the phone. */
+  out.style.height = (297 * px * k) + 'px';
+}
+
+/* WATCHES THE BOX, NOT THE WINDOW. `resize` does not fire when a hidden panel becomes visible, when
+   a column changes width because something else on the screen collapsed, or when the sheet is
+   painted before layout — which are the three ways this went wrong. A ResizeObserver fires for all
+   of them, and for the window too. */
+let MAT_WATCH = null;
+function matWatch() {
+  const out = $('mat-out');
+  if (!out || MAT_WATCH || typeof ResizeObserver !== 'function') return;
+  MAT_WATCH = new ResizeObserver(() => matFit());
+  MAT_WATCH.observe(out);
 }
 
 /* PRINTING FROM INSIDE THE APP. A browser prints the whole document, so the class hides everything
