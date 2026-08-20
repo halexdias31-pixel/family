@@ -158,25 +158,22 @@ const MAT_PARTS = [
   { id: 'M48', name: 'Numerical methods',  lv: ['Alevel'],                                   h: 23,  half: false },
 ];
 
-/* IT OPENS ON A MAT THAT FITS. Ticking everything by default opened it far over with the print
-   button already dead — a tool whose first impression is a red bar before anybody has done anything
-   wrong. A default has to be a working example. */
-const MAT_START = ['M01', 'M02', 'M03', 'M04', 'M05', 'M08', 'M09'];
 
 /* WHAT IS TICKED WHEN IT OPENS, from the sheet when the sheet says. `start_on` on the cheatsheet
    tab decides it; the list above is what happens when no row does, which is also what happens
    before the payload lands. Falling back to a working example rather than to nothing is the whole
    reason that list exists — see the note above it. */
 function matStart() {
-  const rows = DATA.cheatsheet || [];
-  /* NONE TICKED IS AN ANSWER, NOT AN ABSENCE. This asked whether anything was ticked and fell back
-     to the hard-coded seven when nothing was — so "I want an empty sheet" was impossible to say:
-     untick every row and they all came back. The question is whether the TAB ARRIVED. If it did,
-     it is the answer, including the answer "none". Only a missing tab falls back. */
-  if (rows.length) return rows.filter(r => r && r.startOn).map(r => r.id);
-  return MAT_START.slice();
-}
+  /* ---------- NOTHING IS TICKED UNLESS THE SHEET SAYS SO ------------------------------------------
+     THERE WAS A LIST OF SEVEN HERE and it was reached whenever the sheet had nothing to say — an
+     empty tab, a backend not yet redeployed, a payload still in flight. Every one of those is a
+     REASON TO KNOW NOTHING, and the code answered all three with a confident seven ticks that
+     nobody had asked for and unticking could not remove.
 
+     A DEFAULT THAT SURVIVES BEING OVERRULED IS NOT A DEFAULT. `start_on` is the only thing that
+     ticks a box now; no rows means no ticks, which is also the honest picture of knowing nothing. */
+  return (DATA.cheatsheet || []).filter(r => r && r.startOn).map(r => r.id);
+}
 /* ---------- NOTHING IS CHOSEN FOR YOU --------------------------------------------------------------
    THIS OPENED ON 'SATs', which is one of nine levels and was picked by being first to mind when the
    line was typed. For anybody teaching GCSE it is simply the wrong sheet, silently — the list is
@@ -184,7 +181,7 @@ function matStart() {
    `all` IS THE ONLY NON-ANSWER. It shows every component and privileges no level, so the first
    choice on the screen is still the user's to make. */
 let MAT_LEVEL = 'all';
-let MAT_ON = MAT_START.slice();   /* replaced by matStart() once the payload has landed */
+let MAT_ON = [];   /* filled from the sheet by matStart() when the tool opens */
 /* WHETHER ANYBODY HAS CHOSEN ANYTHING YET. Without this, opening the tool a second time would
    silently undo the sheet somebody had just built. */
 let MAT_TOUCHED = false;
