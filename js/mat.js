@@ -75,6 +75,17 @@ const matKeep = flag => flag !== 'H' || MAT_SHOW === 'H';
    THE DRAWINGS STAY IN CODE, in `MAT_HTML` below, keyed by these ids. An id is the join between a
    row and a function, which is why they are dull: M02 names a function, not a hundred-square. */
 const MAT_PARTS = [
+  /* ---------- THE RULER IS A COMPONENT LIKE ANY OTHER ----------------------------------------------
+     IT WAS ALWAYS THERE, drawn straight into the sheet and impossible to switch off, which made it
+     the one thing on a cheat sheet nobody could choose. Fine for a maths mat; wrong the moment the
+     sheet stopped being only that — a revision sheet of formulae does not want a centimetre scale
+     down its edge, and a flyer never did.
+
+     `edge: true` MEANS IT LIVES IN THE MARGIN, NOT THE COLUMN. Every other component takes height
+     from the 262mm the gauge is counting; this one takes width from the left margin instead. So it
+     costs 0 against the budget, which is not a fiddle — it genuinely uses none of the space the
+     other pieces are competing for. */
+  { id: 'M01', name: 'Ruler down the edge', lv: [], h: 0, half: false, edge: true },
   { id: 'M02', name: 'Number square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
   { id: 'M03', name: 'Times tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
   { id: 'M04', name: 'Number line',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
@@ -150,10 +161,22 @@ const MAT_PARTS = [
 /* IT OPENS ON A MAT THAT FITS. Ticking everything by default opened it far over with the print
    button already dead — a tool whose first impression is a red bar before anybody has done anything
    wrong. A default has to be a working example. */
-const MAT_START = ['M02', 'M03', 'M04', 'M05', 'M08', 'M09'];
+const MAT_START = ['M01', 'M02', 'M03', 'M04', 'M05', 'M08', 'M09'];
+
+/* WHAT IS TICKED WHEN IT OPENS, from the sheet when the sheet says. `start_on` on the cheatsheet
+   tab decides it; the list above is what happens when no row does, which is also what happens
+   before the payload lands. Falling back to a working example rather than to nothing is the whole
+   reason that list exists — see the note above it. */
+function matStart() {
+  const said = (DATA.cheatsheet || []).filter(r => r && r.startOn).map(r => r.id);
+  return said.length ? said : MAT_START.slice();
+}
 
 let MAT_LEVEL = 'SATs';
-let MAT_ON = MAT_START.slice();
+let MAT_ON = MAT_START.slice();   /* replaced by matStart() once the payload has landed */
+/* WHETHER ANYBODY HAS CHOSEN ANYTHING YET. Without this, opening the tool a second time would
+   silently undo the sheet somebody had just built. */
+let MAT_TOUCHED = false;
 
 /* THE LEVELS THE REST OF THE SITE USES. `primary` and `secondary` were a vocabulary I invented, and
    the options tab already lists the real ones — so a level added there arrives here without anybody
@@ -656,6 +679,11 @@ function matRuler(mmHigh) {
 function initMat() {
   const box = $('mat-box');
   if (!box) return;
+  /* SET FROM THE SHEET EACH TIME THE TOOL OPENS, not once at load: the payload may not have landed
+     when this file did, and a default read too early is the hard-coded one for the rest of the
+     session. Only when nothing has been ticked yet, so reopening the tool does not throw away what
+     somebody was in the middle of choosing. */
+  if (!MAT_TOUCHED) MAT_ON = matStart();
   box.innerHTML = `
     <div class="mat-lev" id="mat-lev"></div>
     ${/* THE SAME CLASS AS THE LEVEL ROW, deliberately. Two rows of pills that are the same kind of
@@ -695,6 +723,7 @@ function initMat() {
 on('mat-level', el => { MAT_LEVEL = el.getAttribute('data-l'); matPaint(); });
 on('mat-tier', el => { MAT_TIER = el.getAttribute('data-t'); matPaint(); });
 on('mat-tick', el => {
+  MAT_TOUCHED = true;
   const id = el.getAttribute('data-id');
   const at = MAT_ON.indexOf(id);
   if (el.checked && at === -1) MAT_ON.push(id);
@@ -751,7 +780,9 @@ function matPaint() {
     && (MAT_LEVEL === 'all' || !c.lv.length || c.lv.indexOf(MAT_LEVEL) !== -1)
     && matKeep(c.tier));
 
-  const pieces = on_.slice();
+  /* AN EDGE PIECE IS NOT IN THE COLUMN. The ruler lives in the margin, so it must not be laid out
+     with the others or it would take a row of its own and push everything down a sheet. */
+  const pieces = on_.filter(c => !c.edge);
 
   /* HALF-WIDTH BLOCKS PAIR UP, full ones take a row. Walked in list order rather than sorted, so
      moving something on the mat is moving one line here. */
@@ -785,7 +816,12 @@ function matPaint() {
   /* PHONE ONLY IF THE TAB HAS ONE — a separator with nothing after it reads as something missing
      rather than something not offered. */
   const foot = [B.area, B.phone].filter(Boolean).join('  ·  ');
-  out.innerHTML = `<div class="mat-sheet"><div class="mat-rule">${matRuler(285)}</div>
+  /* THE MARGIN BELONGS TO THE RULER, so it goes when the ruler does. Left reserved, an untick
+     would take the scale away and leave a 20mm strip of nothing down the page — which reads as a
+     printing fault rather than as a choice. */
+  const ruled = MAT_ON.indexOf('M01') !== -1;
+  out.innerHTML = `<div class="mat-sheet${ruled ? ' ruled' : ''}">${
+    ruled ? `<div class="mat-rule">${matRuler(285)}</div>` : ''}
     <div class="mat-head"><h3>${esc(title)}</h3><span>${esc(B.name)}</span></div>
     <div class="mat-cols">${h}</div>
     <div class="mat-foot"><span>${esc(foot)}</span>

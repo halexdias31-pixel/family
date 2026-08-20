@@ -6064,3 +6064,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
             font: 400 .74rem/1 var(--mono); color: var(--faint); }
 .btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .2rem; }
+
+/* THE LEFT MARGIN IS THE RULER'S, so the sheet only gives it up when the ruler is on. Untick it and
+   the page reclaims the 20mm rather than printing an empty strip, which looks like a fault. */
+.mat-sheet { padding-left: 6mm; }
+.mat-sheet.ruled { padding-left: 20mm; }
