@@ -41,6 +41,17 @@ const MAT_ROOM = 262;
    SET IT BACK TO 2 AND EVERYTHING FOLLOWS. The row builder, the rule between the columns and the
    gauge all read the rendered result, so this is the only number to change. */
 const MAT_ACROSS = 3;
+/* THE GUTTER, ONCE. 4mm of padding either side of the rule between two columns, so 8mm goes between
+   each pair — the CSS spends it and the pricing has to know it. */
+const MAT_GUT = 8;
+/* WHAT ONE COLUMN IS ACTUALLY WORTH, in millimetres of the 198 usable across the page.
+
+   `half` STOPPED MEANING HALF THE PAGE the moment there were three columns, and the price did not
+   notice. A narrow block was costed at 99mm wide while it was being laid out at 61 — every narrow
+   row in the picker read about 63% dearer than it was, on a gauge whose whole job is to say whether
+   the next block fits. Derived here so the two can never disagree again: change MAT_ACROSS and the
+   price follows. */
+const matColW = () => (198 - MAT_GUT * (MAT_ACROSS - 1)) / MAT_ACROSS;
 
 /* ---------- THE SECOND FILTER, AND WHY LEVEL ALONE WAS NOT ENOUGH -------------------------------
    HALF THE GCSE COMPONENTS ARE HIGHER-ONLY. Exact trig values, negative and fractional indices,
@@ -141,6 +152,15 @@ const MAT_PARTS = [
     note: 'prints at true size' },
   { id: 'M02', name: 'Number square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
   { id: 'M03', name: 'Times tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
+  /* ---------- THE FOUR THAT KEEP THE FULL WIDTH ----------------------------------------------------
+     WIDTH IS FUNCTIONAL IN THESE, not a default. Circle theorems is eight figures — at 61mm they
+     would be 7mm across, which is smaller than the type beside them. Graph shapes is five curves,
+     2D shapes a row of them, and a number line is a line: all three are pictures whose meaning is
+     spread sideways, and stacking them does not make them narrower, it makes them wrong.
+
+     SINE & COSINE KEEPS IT TOO, for the one reason a text block can: `a² = b² + c² − 2bc cos A` is
+     about 45mm of formula, and 61mm minus a 24mm label column leaves 37. A formula that wraps is a
+     formula misread. */
   { id: 'M04', name: 'Number line',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
   { id: 'M05', name: 'Place value',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 15,  half: true },
   /* MEASURES AND FRACTION=DECIMAL REACH B-TEC. Unit conversion and percentages are most of what an
@@ -207,11 +227,19 @@ const MAT_PARTS = [
   /* B-TEC, LIKE THE ALGEBRA EITHER SIDE OF IT. Index laws, the straight line and standard form all
      carry B-TEC; solving a quadratic is the same kind of tool on the same kind of course, and its
      absence here was an omission rather than a decision. */
-  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 23,  half: false, inExam: true },
+  /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
+     one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
+     is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
+     the column rules for something that is only text. */
+  { id: 'M26', name: 'Quadratics',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 23,  half: true, inExam: true },
   /* 11+, WHERE IT IS ASKED. Simple probability is on entrance papers, and this was the only block
      on a common 11+ topic that an 11+ student could not see. */
   { id: 'M27', name: 'Probability',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 28,  half: true, inExam: false },
-  { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: false, inExam: false },
+  /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
+     one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
+     is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
+     the column rules for something that is only text. */
+  { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: true, inExam: false },
   /* SET NOTATION SITS BESIDE PROBABILITY because that is where the sheet already talks about A and
      B — 'A and B' and 'A or B' are M27's words for what this block gives the symbols for. Higher
      only: Foundation meets Venn diagrams but is not asked to read the notation. */
@@ -231,16 +259,32 @@ const MAT_PARTS = [
   { id: 'M36', name: 'Logs & exponentials', lv: ['AS','Alevel'],                             h: 23,  half: true },
   { id: 'M37', name: 'Binomial expansion', lv: ['AS','Alevel'],                              h: 17,  half: true },
   { id: 'M38', name: 'Trig identities',    lv: ['AS','Alevel'],                              h: 23,  half: true },
-  { id: 'M39', name: 'Double & addition',  lv: ['Alevel'],                                   h: 23,  half: false },
+  /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
+     one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
+     is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
+     the column rules for something that is only text. */
+  { id: 'M39', name: 'Double & addition',  lv: ['Alevel'],                                   h: 23,  half: true },
   { id: 'M40', name: 'Radians',            lv: ['Alevel'],                                   h: 23,  half: true },
-  { id: 'M41', name: 'Series',             lv: ['Alevel'],                                   h: 23,  half: false },
-  { id: 'M42', name: 'Circles & points',   lv: ['AS','Alevel'],                              h: 23,  half: false },
+  /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
+     one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
+     is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
+     the column rules for something that is only text. */
+  { id: 'M41', name: 'Series',             lv: ['Alevel'],                                   h: 23,  half: true },
+  /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
+     one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
+     is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
+     the column rules for something that is only text. */
+  { id: 'M42', name: 'Circles & points',   lv: ['AS','Alevel'],                              h: 23,  half: true },
   { id: 'M43', name: 'Vectors',            lv: ['AS','Alevel'],                              h: 29,  half: true },
   { id: 'M44', name: 'SUVAT & forces',     lv: ['AS','Alevel'],                              h: 29,  half: true },
   { id: 'M45', name: 'Binomial distribution', lv: ['AS','Alevel'],                           h: 35,  half: true },
   { id: 'M46', name: 'Normal distribution', lv: ['Alevel'],                                  h: 29,  half: true },
   { id: 'M47', name: 'Hypothesis testing', lv: ['AS','Alevel'],                              h: 23,  half: true },
-  { id: 'M48', name: 'Numerical methods',  lv: ['Alevel'],                                   h: 23,  half: false },
+  /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
+     one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
+     is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
+     the column rules for something that is only text. */
+  { id: 'M48', name: 'Numerical methods',  lv: ['Alevel'],                                   h: 23,  half: true },
 ];
 
 
@@ -1020,7 +1064,7 @@ function initMat() {
          /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
             says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
             and cost a tenth of the sheet. Area is true of both shapes. */
-         Math.round((c.edge ? 20 * c.h : (c.half ? 99 : 198) * c.h) / 100)}cm²</u>${
+         Math.round((c.edge ? 20 * c.h : (c.half ? matColW() : 198) * c.h) / 100)}cm²</u>${
        /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
           size" was a line in a paragraph above the whole list, which is where a fact about two
           items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
