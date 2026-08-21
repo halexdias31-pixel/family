@@ -701,18 +701,6 @@
     <div class="sp-sig">@family.</div>
   </div>
 
-  <!-- THE TIMES TABLE, filling in square by square. -->
-  <div id="splash-times" aria-hidden="true">
-    <div class="tt-grid">
-      <i style="--i:0">1</i><i style="--i:1">2</i><i style="--i:2">3</i><i style="--i:3">4</i>
-      <i style="--i:4">2</i><i style="--i:5">4</i><i style="--i:6">6</i><i style="--i:7">8</i>
-      <i style="--i:8">3</i><i style="--i:9">6</i><i style="--i:10">9</i><i style="--i:11">12</i>
-      <i style="--i:12">4</i><i style="--i:13">8</i><i style="--i:14">12</i><i style="--i:15">16</i>
-    </div>
-    <div class="tt-say">4 × 4</div>
-    <div class="sp-sig">@family.</div>
-  </div>
-
   <!-- A PROTRACTOR, with the arm sweeping through the degrees. -->
   <!-- ---------- MULTIPLES ON A HUNDRED SQUARE -------------------------------------------------
        THE ONE THING THE OTHER TWENTY-SIX DO NOT DO: show a pattern EMERGING from a grid. Every
@@ -816,11 +804,36 @@
     <div class="sp-sig">@family.</div>
   </div>
 
-  <!-- ANGLES ON A STRAIGHT LINE. The ray sweeps and the two angles trade, and they are 180 the whole
-       way — the rule is not that they happen to add to 180, it is that they cannot do otherwise. -->
-  <div id="splash-str" aria-hidden="true">
-    <div class="st-box"><span class="st-line"></span><span class="st-ray"></span></div>
-    <div class="st-say">always <b>180&deg;</b></div>
+  <!-- ---------- FOUR THAT TEACH NOTHING AT ALL ---------------------------------------------------
+       A SET OF THIRTY PROOFS IS A SET THAT NEVER LETS ANYBODY JUST WAIT. These four make no claim
+       and ask for nothing back: a ripple, an orbit, a tide, a sunrise. Somebody opening the app for
+       the fourth time today is not there to be taught, and a loading screen that insists on
+       teaching them is a loading screen that has stopped reading the room.
+
+       AND THEY ARE ALL ONE PROPERTY EACH — a scale, a rotation, a height, a rise. Nothing measured,
+       nothing positioned by hand, nothing that can be a pixel out on a phone. -->
+
+  <!-- A RIPPLE. Three rings leaving the same point, each starting as the one before it fades. -->
+  <div id="splash-ripple" aria-hidden="true">
+    <div class="rp-box"><span></span><span></span><span></span></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- AN ORBIT. One dot, one ring, going round at a speed nobody would call urgent. -->
+  <div id="splash-orbit" aria-hidden="true">
+    <div class="or-box"><span class="or-ring"></span><span class="or-arm"><i></i></span></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A TIDE. Seven columns rising and falling a beat apart, so the swell travels along them. -->
+  <div id="splash-tide" aria-hidden="true">
+    <div class="td-row"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- A SUNRISE. A disc comes up behind a line and goes back down. Slow on purpose. -->
+  <div id="splash-dawn" aria-hidden="true">
+    <div class="dw-box"><span class="dw-sun"></span><span class="dw-sky"></span></div>
     <div class="sp-sig">@family.</div>
   </div>
 
@@ -1013,7 +1026,7 @@
                  /* ---------- AND EIGHT MORE ---------------------------------------------------
                     Balancing an equation, sorting, the times table, a protractor, coin flips, a
                     number line, a Venn diagram, a clock. */
-                 'is-sort', 'is-times', 'is-prot', 'is-coin',
+                 'is-sort', 'is-prot', 'is-coin',
                  'is-line', 'is-venn', 'is-clock', 'is-mult',
                  /* ---------- AND THREE THAT TEACH NOTHING -----------------------------------
                     Breathing, rain, a pendulum wave. Twenty-seven proofs in a row is a set that
@@ -1030,7 +1043,8 @@
                     thing in the same words — which is the point of taking them from the list
                     rather than inventing four more. */
                  'is-index', 'is-trick', 'is-sf', 'is-cent',
-                 'is-mean', 'is-half3', 'is-mxc', 'is-str',
+                 'is-mean', 'is-half3', 'is-mxc',
+                 'is-ripple', 'is-orbit', 'is-tide', 'is-dawn',
                  'is-breathe', 'is-rain', 'is-pend'];
     /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
        THE LIST ABOVE IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `DATA` has not loaded when
