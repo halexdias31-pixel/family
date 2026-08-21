@@ -201,6 +201,10 @@ const MAT_PARTS = [
      on a common 11+ topic that an 11+ student could not see. */
   { id: 'M27', name: 'Probability',        lv: ['11+','Y9 Mocks','GCSE','B-TEC'],            h: 28,  half: true, inExam: false },
   { id: 'M28', name: 'Primes, HCF & LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: false, inExam: false },
+  /* SET NOTATION SITS BESIDE PROBABILITY because that is where the sheet already talks about A and
+     B — 'A and B' and 'A or B' are M27's words for what this block gives the symbols for. Higher
+     only: Foundation meets Venn diagrams but is not asked to read the notation. */
+  { id: 'M49', name: 'Set notation',        lv: ['GCSE'],                                     h: 47,  half: true, tier: 'H', inExam: false },
   /* HIGHER, AND WHOLLY SO — both of these are Higher-only content top to bottom, which is what makes
      them component-wide tiers rather than the row-level ones inside M22, M23, M25 and M26. */
   { id: 'M29', name: 'Sine & cosine rule', lv: ['GCSE','AS','Alevel'],                       h: 18,  half: false, tier: 'H', inExam: true },
@@ -576,6 +580,22 @@ const MAT_HTML = {
           'centre to chord &rarr; bisects')
 ].join('')}</div>`,
 
+  M49: () => `<div class="mat-venn">${[
+    matVenn(VS_LENS, 'A &#8745; B', 'in both'),
+    matVenn('<circle class="vs-on" cx="38" cy="28" r="22"/><circle class="vs-on" cx="58" cy="28" r="22"/>',
+            'A &#8746; B', 'in either'),
+    /* NOT-A IS THE BOX WITH ONE HOLE IN IT, and the hole is A alone. The part of B that lies outside
+       A is not in A, so it stays shaded — whiting B out as well would draw (A &#8746; B)&#8242; and
+       call it A&#8242;, which is the mistake the diagram exists to stop. */
+    matVenn('<rect class="vs-on" x="3" y="3" width="90" height="50"/>' +
+            '<circle class="vs-out" cx="38" cy="28" r="22"/>',
+            'A&#8242;', 'not in A'),
+    /* AND &#958; IS EVERYTHING, circles included — shading the box but leaving the two circles white
+       says "everything except A and B", which is the one thing &#958; is not. */
+    matVenn('<rect class="vs-on" x="3" y="3" width="90" height="50"/>',
+            '&#958;', 'everything'),
+  ].join('')}</div>`,
+
   M31: () => matPairs([['adding','same denominator first'], ['multiplying','tops × tops'],
                        ['dividing','flip and multiply'], ['of','× the fraction'],
                        ['mixed → improper','whole × bottom, + top'], ['simplifying','÷ both by the HCF']]),
@@ -685,6 +705,31 @@ const matGrid = (cls, n, cell) => {
    black, without this needing to know which it is in. */
 const fr = (top, bottom) =>
   `<span class="mat-fr"><span>${top}</span><span>${bottom}</span></span>`;
+
+
+/* ---------- FOUR VENNS, ONE PICTURE EACH ---------------------------------------------------------
+   THE SYMBOL IS THE THING BEING TAUGHT, so it is the caption and the words are underneath it — a
+   student who can already say "in both" is looking this up to find out which of ∩ and ∪ means it.
+
+   THE UNIVERSAL BOX IS DRAWN ON ALL FOUR, not only on the two that need it. It is part of how the
+   diagram is set out in the paper, and a box that appears only when the answer involves it tells
+   the student it is optional, which it is not.
+
+   SHADED, NOT OUTLINED. The region is the answer, and an outlined region on a diagram already made
+   of outlines is one more line to disentangle. */
+const matVenn = (fill, sym, say) =>
+  `<i><svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg">
+      <rect class="vs-box" x="3" y="3" width="90" height="50"/>
+      ${fill}
+      <circle class="vs-c" cx="38" cy="28" r="22"/>
+      <circle class="vs-c" cx="58" cy="28" r="22"/>
+      <text class="vs-l" x="20" y="14">A</text><text class="vs-l" x="72" y="14">B</text>
+      <text class="vs-x" x="7" y="50">&#958;</text>
+    </svg><b>${sym}</b><em>${say}</em></i>`;
+
+/* THE LENS. Both arcs bulge the same way, so the path traces one circle down and the other back up
+   — the two crossing points are where x = 48 and y = 28 &plusmn; &radic;(22&sup2; &minus; 10&sup2;). */
+const VS_LENS = '<path class="vs-on" d="M48 8.4 A22 22 0 0 0 48 47.6 A22 22 0 0 0 48 8.4 Z"/>';
 
 /* `own` IS FOR THE ONE FIGURE THAT NEEDS A DIFFERENT CIRCLE. Two tangents meet at a point outside
    the circle, and that point has to be inside the box — so that figure shrinks the circle and moves

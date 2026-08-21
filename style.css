@@ -5032,6 +5032,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE OVERLAP, LIT ON ITS OWN. Two circles crossing is a picture; the middle picked out is an idea. */
 .vn-both { fill: #f4f1e8; opacity: 0; animation: vn-mid 3.4s ease-in-out infinite; }
 @keyframes vn-mid { 0%,22% { opacity: 0; } 45%,58% { opacity: .6; } 80%,100% { opacity: 0; } }
+/* THE LABELS SLIDE WITH THEIR CIRCLES. Same animation, same timing — a label that stayed still
+   while its set moved would be labelling the space the set used to be in. */
+.vn-l { font: 700 15px var(--mono); text-anchor: middle; }
+.vn-a-l { fill: #6fa8dc; animation: vn-slide 3.4s ease-in-out infinite; }
+.vn-b-l { fill: #e8862c; animation: vn-slide-b 3.4s ease-in-out infinite; }
 .vn-say { margin-top: .7rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
 
 /* ---------- THE CLOCK ---------------------------------------------------------------------------- */
@@ -5748,6 +5753,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    which is a Selectors-4 feature doing work an existing structural fact already does. */
 .mat-cols > .mat-box .mat-two i:nth-last-child(2) b,
 .mat-cols > .mat-box .mat-two i:nth-last-child(2) em { border-bottom: 0; padding-bottom: 0; }
+
+/* ---------- SET NOTATION ------------------------------------------------------------------------- */
+.mat-venn { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5mm 3mm; }
+.mat-venn i { display: block; text-align: center; font-style: normal; }
+.mat-venn svg { width: 100%; height: auto; display: block; }
+/* THE SYMBOL IS THE HEADING OF ITS OWN FIGURE, so it is set at the size of a value rather than of a
+   caption, and the words under it at the size of a note. */
+.mat-venn b { display: block; font: 400 3.4mm/1.1 var(--mono); margin-top: .8mm; color: var(--pa-ink); }
+.mat-venn em { display: block; font: 400 2.4mm/1.2 var(--mono); font-style: normal;
+               color: var(--pa-mid); }
+.mat-venn .vs-box { fill: none; stroke: var(--pa-line); stroke-width: 1.2; }
+.mat-venn .vs-c   { fill: none; stroke: var(--pa-ink);  stroke-width: 1.5; }
+/* THE SHADED REGION, AND THE SAME CIRCLE UNSHADED OVER THE TOP OF IT — `vs-out` is only there to put
+   the outline back after a fill has covered it. */
+.mat-venn .vs-on  { fill: var(--pa-rule-soft); stroke: none; }
+.mat-venn .vs-out { fill: #fff; stroke: var(--pa-ink); stroke-width: 1.5; }
+.mat-venn .vs-l   { font: 400 8px/1 var(--mono); fill: var(--pa-ink); text-anchor: middle; }
+.mat-venn .vs-x   { font: 400 7px/1 var(--mono); fill: var(--pa-mid); }
 
 .mat-circ { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2mm; align-items: start; }
 .mat-circ i { display: block; text-align: center; }
