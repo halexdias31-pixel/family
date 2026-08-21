@@ -5480,7 +5480,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
             border-bottom: .3mm solid var(--pa-ink); padding-bottom: 1.5mm; }
 .mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: var(--pa-ink); letter-spacing: -.02em; }
 .mat-head span { font: 400 3mm/1 var(--mono); color: var(--pa-mid); }
-.mat-cols { display: flex; flex-direction: column; gap: 5mm; }
+/* ---------- THE GAP IS WHAT WAS BREAKING THE COLUMN RULES ----------------------------------------
+   5mm OF GAP SITS BETWEEN THE RUNS, and the rule between two columns is drawn on the column, so it
+   can only be as tall as the run it belongs to. Every gap therefore cut the line: on a page with
+   three runs the two column rules came out as three separate pieces each, 422, 394 and 339 pixels
+   long with 30-pixel holes between them — six stubs of four different lengths where there should
+   have been two lines.
+
+   SO THE AIR MOVES INSIDE THE COLUMN. A border runs the full height of its element including the
+   padding, so putting the same 5mm underneath each column instead of between the runs leaves the
+   spacing exactly as it was and lets the rule run through it. Consecutive runs now meet, and the
+   line is continuous from the first block to the last.
+
+   A FULL-WIDTH BLOCK STILL BREAKS IT, and should — there is no second column to divide from while
+   one block is spanning both, and a line running behind it would be drawing a division that is not
+   there for those few millimetres. */
+.mat-cols { display: flex; flex-direction: column; gap: 0; }
+.mat-col { padding-bottom: 5mm; }
+.mat-cols > .mat-box { margin-bottom: 5mm; }
 /* ---------- AND ONE BETWEEN THE TWO HALVES --------------------------------------------------------
    THE HORIZONTAL RULES ALONE MADE IT WORSE. They run the full width of the sheet, straight across
    the gap between a pair, so two side-by-side blocks read as one block with a very wide middle
