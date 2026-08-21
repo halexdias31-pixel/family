@@ -1048,35 +1048,59 @@ function matPaint() {
   const cell = c => c.bare
     ? `<div class="mat-box bare">${matDraw(c)}</div>`
     : `<div class="mat-box"><h4>${esc(c.name)}</h4>${matDraw(c)}</div>`;
-  /* A ROW OF NARROW BLOCKS, PADDED OUT TO THE FULL COUNT. The empty cells matter: without them a
-     row holding one block would stretch it across the whole page, and a block that is narrow on one
-     sheet and full width on the next is the layout changing its mind in front of you. */
-  const row = cs => `<div class="mat-two-up">${cs.map(cell).join('')}${
-    '<div></div>'.repeat(MAT_ACROSS - cs.length)}</div>`;
-  /* ---------- A ROW IS FILLED FROM WHEREVER THE NARROW BLOCKS ARE ---------------------------------
-     ENDING THE ROW WHEN A FULL-WIDTH BLOCK ARRIVES LOOKED TIDIER AND MEANT THE THIRD COLUMN NEVER
-     APPEARED. The GCSE Higher sheet is Pythagoras, sequences, QUADRATICS, probability, primes,
-     circle theorems — two narrow, then a wide one, then one more narrow. Three never accumulate, so
-     a page set to three across came out as a row of two and a row of one, exactly as before.
+  /* ---------- COLUMNS THAT FILL, NOT ROWS THAT STRETCH ---------------------------------------------
+     ROWS WERE THE REASON THE PAGE LOOKED UNTIDY. Three blocks side by side in a row are three cells
+     of one grid, so every one of them is as tall as the tallest — and the blocks are nothing like
+     the same height. 'Circle' is one line and sat beside a nine-row trig table; 'Percentage change'
+     is one line and sat beside Angle rules, which is ten. The short ones did not shrink, they were
+     given sixty millimetres of nothing underneath, and the sheet came out as text with holes in it.
 
-     SO A NARROW BLOCK REACHES PAST A WIDE ONE to find its row-mates, and the wide block prints where
-     it always was, at full width, once the row in front of it is closed. Nothing is dropped and
-     nothing is widened; the only thing that moves is a narrow block arriving one place early.
+     A COLUMN DOES NOT DO THAT. Each of the three is its own stack and ends where its last block
+     ends, so a one-line block costs one line wherever it lands.
 
-     THE ORDER STILL BROADLY HOLDS, because the only blocks that jump are ones that would have been
-     in the next row anyway — they land one row earlier, not somewhere else on the sheet. */
+     FILLED SHORTEST-FIRST, in order. Each block goes to whichever column is currently shortest,
+     which is the ordinary way of levelling three stacks and needs nothing but the height already in
+     the list. Reading order becomes column-major rather than row-major — down one column, then down
+     the next — which is how a page of columns is read anyway.
+
+     THE HEIGHTS ARE THE LIST'S, NOT THE PAGE'S. They are only used to decide which column is
+     behind; the gauge still measures what was actually rendered, so an estimate being a few
+     millimetres out costs a slightly uneven pair of columns and never a wrong budget. */
+  const stack = cs => {
+    const cols = Array.from({ length: MAT_ACROSS }, () => ({ h: 0, out: [] }));
+    /* ---------- TALLEST FIRST, THEN PUT THE ORDER BACK -------------------------------------------
+       TAKING THEM IN ORDER LEVELLED BADLY WHENEVER THE LAST BLOCK WAS THE BIGGEST. On the GCSE
+       sheet it is: Angle rules is 35mm and arrives last, so it lands on a column that is already
+       the tallest and the three come out 52, 45 and 78 — a page whose third column runs 26mm past
+       the other two, which is the ragged bottom edge this was meant to fix.
+
+       PLACING THE BIG ONES WHILE THERE IS STILL ROOM TO CHOOSE gives 55, 58 and 62 from the same
+       nine blocks. It is the ordinary way of levelling stacks and it costs one sort.
+
+       AND THE ORDER GOES BACK AFTERWARDS, so this decides only WHICH column a block is in, never
+       where it sits within one. A column still reads top to bottom in the order of the list. */
+    cs.map((c, i) => ({ c, i }))
+      .sort((a, b) => (b.c.h || 0) - (a.c.h || 0))
+      .forEach(({ c, i }) => {
+        const to = cols.reduce((a, b) => (b.h < a.h ? b : a));
+        to.out.push({ c, i });
+        to.h += c.h || 0;
+      });
+    return `<div class="mat-two-up">${cols.map(col =>
+      `<div class="mat-col">${col.out.sort((a, b) => a.i - b.i)
+        .map(x => cell(x.c)).join('')}</div>`).join('')}</div>`;
+  };
+  /* A FULL-WIDTH BLOCK STILL PRINTS WHERE IT WAS, at full width — it closes the run of narrow blocks
+     in front of it and starts a new one behind. That is the part that was worth keeping. */
   const queue = pieces.slice();          /* a copy: `pieces` is read again for the gauge */
+  let run = [];
+  const close = () => { if (run.length) { h += stack(run); run = []; } };
   while (queue.length) {
     const c = queue.shift();
-    if (!c.half) { h += cell(c); continue; }
-    const cells = [c];
-    while (cells.length < MAT_ACROSS) {
-      const at = queue.findIndex(x => x.half);
-      if (at === -1) break;
-      cells.push(queue.splice(at, 1)[0]);
-    }
-    h += row(cells);
+    if (c.half) run.push(c);
+    else { close(); h += cell(c); }
   }
+  close();
 
   /* THE LEVEL IS ON THE PAPER. Six sheets in a folder all headed "Cheat sheet" are six sheets you
      have to read to tell apart, and the one thing that distinguishes them is already known here.

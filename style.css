@@ -5411,7 +5411,39 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* ---------- THE PAPER --------------------------------------------------------------------------- */
 .mat-out { overflow: hidden; margin-top: .6rem; }
-.mat-sheet { width: 210mm; height: 297mm; background: #fff; color: #14140f; position: relative;
+/* ---------- THE PAPER'S NINE GREYS, NAMED ---------------------------------------------------------
+   THE SHEET WAS THE ONLY PART OF THE STYLESHEET WITH NO PALETTE. The app has --gold, --dim, --faint
+   and the rest; the paper had `var(--mono)` for its typeface and forty-nine colour literals for
+   everything else. To darken the block headings I had to know that #77776c meant "secondary text",
+   find which of its fourteen uses were headings, and change those without touching the others.
+
+   AND I MADE IT WORSE. Darkening the headings added #44443c and the row rule added #ddd7c6, so the
+   paper now runs #44443c, #66665c, #77776c, #8d8878, #9a9488, #b4ae9c, #c9c3b2, #ddd7c6 — eight
+   greys between ink and white, several a couple of percent apart, none of them named, and no way to
+   tell from a hex which job it was doing.
+
+   NOTHING IS MERGED HERE. Every literal keeps its own value and gets its own name, so this changes
+   the page in no way at all — it only makes the next change a one-line one. What it does do is put
+   the near-duplicates next to each other where they can be argued about: --pa-head, --pa-label and
+   --pa-mid are three greys for what may be two jobs, and --pa-line and --pa-rule are two hairlines
+   that differ by about four percent. Collapsing those is a decision about the sheet, not a tidy-up,
+   so it is left to you.
+
+   SCOPED TO THE PAPER. #14140f and #77776c are also used by the app chrome, where they mean
+   something else; these names only cover the sheet. */
+:root {
+  --pa-ink:       #14140f;   /* what the sheet is printed in                    */
+  --pa-head:      #44443c;   /* block headings                                  */
+  --pa-label:     #66665c;   /* the label half of a label/value row             */
+  --pa-mid:       #77776c;   /* secondary text                                  */
+  --pa-mark:      #8d8878;   /* drawn marks: ticks, arrows, outlines            */
+  --pa-faint:     #9a9488;   /* the faintest text on the page                   */
+  --pa-line:      #b4ae9c;   /* drawn lines inside a figure                     */
+  --pa-rule:      #c9c3b2;   /* the rule above a block, and between columns     */
+  --pa-rule-soft: #ddd7c6;   /* the rule under a row                            */
+}
+
+.mat-sheet { width: 210mm; height: 297mm; background: #fff; color: var(--pa-ink); position: relative;
              padding: 6mm 6mm 5mm 20mm; transform-origin: 0 0; overflow: hidden;
              display: flex; flex-direction: column; gap: 2.8mm;
              font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
@@ -5434,15 +5466,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    margin read as hatching and pulled the eye off the sheet. Every fifth is the long dark one you
    actually count by; the rest are short and pale, which is how a real rule is engraved. */
 .mat-rule i { position: absolute; left: 0; height: 0; width: 2.5mm;
-              border-top: .2mm solid #b4ae9c; }
-.mat-rule i.mid { width: 4.5mm; border-top-color: #8d8878; }
-.mat-rule i.cm  { width: 7mm;   border-top-color: #14140f; }
-.mat-rule b { position: absolute; left: 8mm; font: 400 2.7mm/1 var(--mono); color: #77776c;
+              border-top: .2mm solid var(--pa-line); }
+.mat-rule i.mid { width: 4.5mm; border-top-color: var(--pa-mark); }
+.mat-rule i.cm  { width: 7mm;   border-top-color: var(--pa-ink); }
+.mat-rule b { position: absolute; left: 8mm; font: 400 2.7mm/1 var(--mono); color: var(--pa-mid);
               transform: translateY(-1.35mm); }
 .mat-head { display: flex; justify-content: space-between; align-items: baseline;
-            border-bottom: .3mm solid #14140f; padding-bottom: 1.5mm; }
-.mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: #14140f; letter-spacing: -.02em; }
-.mat-head span { font: 400 3mm/1 var(--mono); color: #77776c; }
+            border-bottom: .3mm solid var(--pa-ink); padding-bottom: 1.5mm; }
+.mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: var(--pa-ink); letter-spacing: -.02em; }
+.mat-head span { font: 400 3mm/1 var(--mono); color: var(--pa-mid); }
 .mat-cols { display: flex; flex-direction: column; gap: 5mm; }
 /* ---------- AND ONE BETWEEN THE TWO HALVES --------------------------------------------------------
    THE HORIZONTAL RULES ALONE MADE IT WORSE. They run the full width of the sheet, straight across
@@ -5459,7 +5491,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    when nobody can say what is wrong with it. */
 .mat-two-up > * { flex: 1; min-width: 0; padding-right: 4mm; }
 .mat-two-up > :last-child { padding-right: 0; }
-.mat-two-up > .mat-box + .mat-box { border-left: .2mm solid #c9c3b2; padding-left: 4mm; }
+/* THE RULE IS BETWEEN COLUMNS NOW, not between blocks — a column is the thing that has a neighbour.
+   AN EMPTY COLUMN STILL DRAWS ITS LINE, and that is right: three stacks that level out to different
+   depths are still three columns, and a line stopping short of the shortest one would read as the
+   page running out rather than as a column ending. */
+.mat-two-up > .mat-col + .mat-col { border-left: .2mm solid var(--pa-rule); padding-left: 4mm; }
+
+/* ---------- WHERE THE HAIRLINE ABOVE A BLOCK BELONGS, NOW THAT BLOCKS STACK -----------------------
+   THE FIRST BLOCK IN EACH COLUMN TAKES NO RULE. It is already under the heading rule or under a
+   full-width block's own line, and three short lines at the top of three columns read as a broken
+   one. Every block BELOW it keeps its rule, which is what separates a stack.
+
+   THE OLD EXCEPTION HAD TO GO WITH IT: `.mat-cols > :first-child .mat-box` took the rule off EVERY
+   block in the first row, which when a row became a column meant the whole first column lost its
+   separators. */
+.mat-col > .mat-box:first-child { border-top: 0; padding-top: 0; }
+.mat-col > .mat-box + .mat-box { border-top: .25mm solid var(--pa-rule); padding-top: 1.6mm; }
 /* WHERE ONE COMPONENT ENDS AND THE NEXT BEGINS — a hairline ABOVE the block, not under its heading.
    Under the heading it separated a heading from its own content, which is the one boundary that did
    not need marking; the boundary that did was invisible, and 2.8mm of gap between two blocks of
@@ -5491,20 +5538,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    THIS IS THE LINE THE COMMENT ASKED FOR. Above the heading, so it costs no height it was not
    already spending; hairline, so it separates without weighing; and it lines up across a pair. */
-.mat-box { border-top: .25mm solid #c9c3b2; padding-top: 1.6mm; }
-.mat-cols > .mat-box:first-child,
-.mat-cols > :first-child .mat-box { border-top: 0; padding-top: 0; }
-/* DARKER THAN IT WAS. At #77776c the heading was lighter than the values under it, so scanning for
+.mat-box { border-top: .25mm solid var(--pa-rule); padding-top: 1.6mm; }
+.mat-cols > .mat-box:first-child { border-top: 0; padding-top: 0; }
+/* DARKER THAN IT WAS. At var(--pa-mid) the heading was lighter than the values under it, so scanning for
    'where does probability start' meant reading the block rather than seeing it. It is the label for
    everything below it and it should be the first thing found, not the last. */
 .mat-box h4 { margin: 0 0 1.4mm; font: 700 2.9mm/1 var(--mono); letter-spacing: .12em;
-              text-transform: uppercase; color: #44443c; }
+              text-transform: uppercase; color: var(--pa-head); }
 .mat-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline;
             /* NO RULE ABOVE IT. The footer is already the smallest, palest thing on the sheet and
                it is already at the bottom; a line to announce that is a line doing nothing. */
             padding-top: 1.5mm;
-            font: 400 2.7mm/1 var(--mono); color: #77776c; }
-.mat-foot b { color: #14140f; }
+            font: 400 2.7mm/1 var(--mono); color: var(--pa-mid); }
+.mat-foot b { color: var(--pa-ink); }
 
 /* ---------- THE COMPONENTS ----------------------------------------------------------------------
    NOTHING HERE IS SAID WITH A BACKGROUND. A browser DROPS background fills when it prints — that is
@@ -5536,7 +5582,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-hun { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
 .mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.9mm/1 inherit;
              padding: .35mm 0; }
-.mat-hun i.five { color: #77776c; }
+.mat-hun i.five { color: var(--pa-mid); }
 .mat-hun i.ten { font-weight: 700; }
 .mat-tt { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); }
 .mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.5mm/1 inherit;
@@ -5545,20 +5591,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE ONLY TWO LINES LEFT, and they are the two that mean something: everything below this line and
    right of that one is an ANSWER; everything outside them is a heading. A table with no rules at
    all loses that, and it is the one distinction a times table exists to make. */
-.mat-tt i:nth-child(-n+13) { border-bottom: .25mm solid #8d8878; }
-.mat-tt i:nth-child(13n+1) { border-right: .25mm solid #8d8878; }
+.mat-tt i:nth-child(-n+13) { border-bottom: .25mm solid var(--pa-mark); }
+.mat-tt i:nth-child(13n+1) { border-right: .25mm solid var(--pa-mark); }
 /* THE SQUARE NUMBERS DOWN THE DIAGONAL, boxed rather than filled. An outline is drawn on top of the
    cell instead of inside its border, so it marks the square without moving anything. */
-.mat-tt i.sq { font-weight: 700; outline: .25mm solid #8d8878; outline-offset: -.25mm; }
+.mat-tt i.sq { font-weight: 700; outline: .25mm solid var(--pa-mark); outline-offset: -.25mm; }
 /* FRACTIONS ABOVE AND DECIMALS BELOW ON ONE LINE, because they are the same thing and showing them
    apart is most of why they stay separate ideas. */
 .mat-nl { position: relative; height: 16mm; }
 .mat-nl::before { content: ""; position: absolute; left: 0; right: 0; top: 8mm; height: 0;
-                  border-top: .4mm solid #14140f; }
-.mat-nl i { position: absolute; top: 4mm; width: 0; height: 4mm; border-left: .4mm solid #14140f; }
+                  border-top: .4mm solid var(--pa-ink); }
+.mat-nl i { position: absolute; top: 4mm; width: 0; height: 4mm; border-left: .4mm solid var(--pa-ink); }
 .mat-nl b { position: absolute; top: 0; font: 700 3.4mm/1 inherit; transform: translateX(-50%); }
-.mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid #77776c; }
-.mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: #9a9488;
+.mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid var(--pa-mid); }
+.mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: var(--pa-faint);
             text-decoration: none; transform: translateX(-50%); }
 /* ---------- ONE LINE, WHERE THE POINT IS ---------------------------------------------------------
    SEVEN COLUMNS, A BOX ROUND THEM AND A DIVIDER BETWEEN EVERY PAIR was eight lines to say a thing
@@ -5569,11 +5615,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-pv i { display: grid; place-items: center; padding: 1.4mm 0; }
 /* THE POINT COLUMN IS RULED ON BOTH SIDES, which is where a decimal point actually sits — between
    two places — and says it without a colour. */
-.mat-pv i.dot { border-left: .25mm solid #8d8878; border-right: .25mm solid #8d8878; }
+.mat-pv i.dot { border-left: .25mm solid var(--pa-mark); border-right: .25mm solid var(--pa-mark); }
 .mat-pv b { font: 700 3.4mm/1 inherit; }
-.mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: #77776c; margin-top: .6mm; }
+.mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); margin-top: .6mm; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
-.mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: #77776c; }
+.mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-meas i { display: block; font: 400 2.8mm/1.5 inherit; font-style: normal; }
 /* THE NOTE UNDER THE NAME, NOT UNDER THE ICON. Three children in a two-column grid put the note in
    the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
@@ -5581,21 +5627,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-ang div { display: grid; grid-template-columns: 7mm 1fr; align-items: center; gap: 0 1.2mm; }
 .mat-ang svg { width: 7mm; grid-row: span 2; align-self: center; }
 .mat-ang span { grid-column: 2; font: 600 2.8mm/1.1 inherit; }
-.mat-ang em { grid-column: 2; font: 400 2.2mm/1.2 var(--mono); font-style: normal; color: #77776c; }
+.mat-ang em { grid-column: 2; font: 400 2.2mm/1.2 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-prot { text-align: center; }
 .mat-prot svg { display: block; margin: 0 auto; width: 90mm; }
 .mat-shapes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1.5mm; text-align: center; }
 .mat-shapes svg { width: 100%; height: auto; }
 .mat-shapes span { display: block; font: 400 2.4mm/1.2 inherit; margin-top: .6mm; }
-.mat-shapes em { display: block; font: 400 2.1mm/1 var(--mono); font-style: normal; color: #77776c; }
+.mat-shapes em { display: block; font: 400 2.1mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-rom { display: flex; flex-wrap: wrap; gap: 1mm 2mm; }
 .mat-rom i { font: 400 2.8mm/1.2 inherit; font-style: normal; }
 .mat-rom i b { font-weight: 700; margin-right: .8mm; }
-.mat-rom i.wide { flex-basis: 100%; color: #77776c; font-size: 2.5mm; }
+.mat-rom i.wide { flex-basis: 100%; color: var(--pa-mid); font-size: 2.5mm; }
 .mat-fdp { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1mm; text-align: center; }
 .mat-fdp i { font-style: normal; }
 .mat-fdp b { display: block; font: 700 3.4mm/1.2 inherit; }
-.mat-fdp em { display: block; font: 400 2.2mm/1.3 var(--mono); font-style: normal; color: #77776c; }
+.mat-fdp em { display: block; font: 400 2.2mm/1.3 var(--mono); font-style: normal; color: var(--pa-mid); }
 /* ---------- A PIECE THAT IS ALREADY A FINISHED THING ---------------------------------------------
    `bare` says the block carries its own name and its own edge, so it gets no heading and no rule
    above it. The flyer sizes that used to live here went with the flyer maker when it became its
@@ -5605,7 +5651,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-box.bare > h4 { display: none; }
 
 /* A piece with no drawing behind it says so rather than printing a gap. */
-.mat-gone { margin: 0; font: 400 2.7mm/1.4 var(--mono); color: #77776c; }
+.mat-gone { margin: 0; font: 400 2.7mm/1.4 var(--mono); color: var(--pa-mid); }
 
 /* ---------- THE PAIR BLOCKS, WHICH ARE MOST OF THE SHEET ------------------------------------------
    THIRTY-FOUR OF THE FORTY-SEVEN COMPONENTS ARE THIS ONE LAYOUT, so whatever it does wrong, the
@@ -5692,7 +5738,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    inside the label's cell, so the rule runs under it and the two halves meet. */
 .mat-two i b { padding-right: 3mm; }
 .mat-two i b,
-.mat-two i em { padding-bottom: .9mm; border-bottom: .15mm solid #ddd7c6; }
+.mat-two i em { padding-bottom: .9mm; border-bottom: .15mm solid var(--pa-rule-soft); }
 .mat-two i:last-child b,
 .mat-two i:last-child em { border-bottom: 0; padding-bottom: 0; }
 /* IN THE WIDE GRID THE LAST ROW IS THE LAST TWO ITEMS, not the last one. Addressed through the
@@ -5707,44 +5753,44 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-circ i { display: block; text-align: center; }
 .mat-circ svg { width: 100%; height: auto; display: block; }
 .mat-circ em { display: block; font: 400 2.2mm/1.2 var(--mono); font-style: normal;
-               color: #14140f; margin-top: .6mm; min-height: 5.3mm; }
+               color: var(--pa-ink); margin-top: .6mm; min-height: 5.3mm; }
 /* TWO LINES' WORTH, ALWAYS. Six captions fit on one line and two do not, and letting them differ
    drops the short ones' baselines above the long ones' — eight figures that were the same size
    stop looking it. A fixed height costs 2mm once and holds the row flat. */
-.mat-circ .rim  { fill: none; stroke: #b4ae9c; stroke-width: 1.2; }
-.mat-circ .ln   { fill: none; stroke: #14140f; stroke-width: 1.7; stroke-linejoin: round; }
-.mat-circ .ch   { stroke: #8d8878; stroke-width: 1.2; }
-.mat-circ .mk   { fill: none; stroke: #14140f; stroke-width: 1.4; }
-.mat-circ .dash { stroke: #b4ae9c; stroke-width: 1; stroke-dasharray: 3 2; }
-.mat-circ .dot  { fill: #14140f; }
-.mat-circ .lb   { font: italic 400 11px/1 "Times New Roman", serif; fill: #14140f; }
+.mat-circ .rim  { fill: none; stroke: var(--pa-line); stroke-width: 1.2; }
+.mat-circ .ln   { fill: none; stroke: var(--pa-ink); stroke-width: 1.7; stroke-linejoin: round; }
+.mat-circ .ch   { stroke: var(--pa-mark); stroke-width: 1.2; }
+.mat-circ .mk   { fill: none; stroke: var(--pa-ink); stroke-width: 1.4; }
+.mat-circ .dash { stroke: var(--pa-line); stroke-width: 1; stroke-dasharray: 3 2; }
+.mat-circ .dot  { fill: var(--pa-ink); }
+.mat-circ .lb   { font: italic 400 11px/1 "Times New Roman", serif; fill: var(--pa-ink); }
 .mat-two i { display: contents; }
 /* UPRIGHT. `matPairs` wraps each row in `<i>` as its grid handle, and `<i>` is italics — so every
    label on every block has been italic since the day it was written, and only the value ever said
    otherwise, because `em` sets `font-style: normal` and `b` never did. Bold grey italic is the
    hardest of the three to read at 2.7mm and it was being used for the word you scan for. */
-.mat-two i b { font: 600 2.7mm/1.3 inherit; font-style: normal; color: #66665c; }
-.mat-two i em { font: 400 2.7mm/1.3 inherit; font-style: normal; color: #14140f; }
+.mat-two i b { font: 600 2.7mm/1.3 inherit; font-style: normal; color: var(--pa-label); }
+.mat-two i em { font: 400 2.7mm/1.3 inherit; font-style: normal; color: var(--pa-ink); }
 /* A LITTLE AIR BETWEEN THE TWO HALVES, put on the first value column rather than as a gap, because
    one gap value would have to space the label from its value too — and those belong together.
    THE 3mm GAP ABOVE IS A FLOOR, NOT A PREFERENCE. At 2.7mm type a 1.6mm gap is half a character
    wide, and where a label fills its column — 'completing the square' does — half a character reads
    as no gap at all. Three is the width of a space you would notice missing. */
 .mat-two i:nth-child(odd) em { padding-right: 4mm; }
-.mat-trig { display: grid; grid-template-columns: repeat(6, 1fr); border: .3mm solid #14140f; }
+.mat-trig { display: grid; grid-template-columns: repeat(6, 1fr); border: .3mm solid var(--pa-ink); }
 .mat-trig i { display: grid; place-items: center; padding: 1mm 0; font: 400 2.7mm/1 inherit;
-              font-style: normal; border-right: .15mm solid #c9c3b2;
-              border-bottom: .15mm solid #c9c3b2; }
+              font-style: normal; border-right: .15mm solid var(--pa-rule);
+              border-bottom: .15mm solid var(--pa-rule); }
 .mat-trig i:nth-child(6n) { border-right: 0; }
-.mat-trig i.h { font-weight: 700; color: #44443c; }
-.mat-trig i:nth-child(-n+6) { border-bottom: .3mm solid #14140f; }
-.mat-trig i:nth-child(6n+1) { border-right: .3mm solid #14140f; }
+.mat-trig i.h { font-weight: 700; color: var(--pa-head); }
+.mat-trig i:nth-child(-n+6) { border-bottom: .3mm solid var(--pa-ink); }
+.mat-trig i:nth-child(6n+1) { border-right: .3mm solid var(--pa-ink); }
 /* AN SVG WITH NO WIDTH IS NOT A SMALL PICTURE, it is as large as you let it be — these filled the
    column and the block came out 744mm, nearly three sheets from one component. */
 .mat-graphs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; text-align: center; }
 .mat-graphs svg { width: 100%; height: auto; }
 .mat-graphs span { display: block; font: 400 2.5mm/1.2 inherit; margin-top: .5mm; }
-.mat-graphs em { display: block; font: 400 2.2mm/1 var(--mono); font-style: normal; color: #77776c; }
+.mat-graphs em { display: block; font: 400 2.2mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 /* THE ROOT IS DRAWN, NOT TYPED. A √ character sits beside the numbers at whatever size the font
    makes it, and its bar covers only the first — so it reads as the root of one number rather than
    of the row, which is the one thing the trick depends on saying. */
@@ -6219,3 +6265,4 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    than an instruction — read when the eye is already there and invisible when it is not. */
 .mat-note { display: block; font: 400 .62rem/1.3 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .1rem; }
+
