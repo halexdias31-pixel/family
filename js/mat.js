@@ -55,8 +55,19 @@ const MAT_ROOM = 262;
    it is the heading of the block on the sheet itself, which is where somebody who does not know the
    symbol will meet it anyway.
 
-   A WORD WHERE A SYMBOL WOULD LIE. 'HCF', 'nth' and 'sin 30' are words because the notation for
-   those is either nothing or the whole block; a made-up glyph would be worse than the word. */
+   THE RULE IS: THE MATHS ALONE WHERE THE MATHS IS UNMISTAKABLE, and the maths plus one word where
+   it is not. `πr²`, `y = mx + c`, `P(A)`, `a²+b²=c²` and `N(μ,σ²)` need nothing — each is the only
+   thing it could be. `⌒`, `≈`, `∠`, `x̄` and `Σ` do not: a lone arc could be an arc, a sector or a
+   circle theorem, and `≈` could be rounding, bounds or estimation. Those take the word — `◯
+   theorems`, `≈ bounds`, `∠ named`, `x̄ averages`, `Σ series` — which is still one word and still
+   scanned rather than read.
+
+   THE SYMBOL COMES FIRST IN THE PAIR, because that is the part the eye lands on; the word is there
+   to settle which of two or three things the symbol meant, and it is only read if the symbol did
+   not already answer it.
+
+   AND A WORD ALONE WHERE THERE IS NO NOTATION. 'HCF · LCM' and 'nth term' are words because the
+   notation for them is either nothing or the whole block, and an invented glyph would be worse. */
 const MAT_ACROSS = 3;
 /* THE GUTTER, ONCE. 4mm of padding either side of the rule between two columns, so 8mm goes between
    each pair — the CSS spends it and the pricing has to know it. */
@@ -165,10 +176,10 @@ const MAT_PARTS = [
      piece had to be made free by lying to it. The gauge counts area now and works the strip out for
      itself — but the PICKER prices from `h`, so the list went on saying 0cm² for a component the
      bar was charging 52cm² for. Two numbers for one thing, and the visible one was the wrong one. */
-  { id: 'M01', name: 'Ruler down the edge', face: '|·|·|', lv: [], h: 262, half: false, edge: true,
+  { id: 'M01', name: 'Ruler down the edge', face: '|·| ruler', lv: [], h: 262, half: false, edge: true,
     note: 'prints at true size' },
-  { id: 'M02', name: 'Number square', face: '100',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
-  { id: 'M03', name: 'Times tables', face: '7×8',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
+  { id: 'M02', name: 'Number square', face: '100 square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
+  { id: 'M03', name: 'Times tables', face: '7×8 tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
   /* ---------- THE FOUR THAT KEEP THE FULL WIDTH ----------------------------------------------------
      WIDTH IS FUNCTIONAL IN THESE, not a default. Circle theorems is eight figures — at 61mm they
      would be 7mm across, which is smaller than the type beside them. Graph shapes is five curves,
@@ -178,14 +189,14 @@ const MAT_PARTS = [
      SINE & COSINE KEEPS IT TOO, for the one reason a text block can: `a² = b² + c² − 2bc cos A` is
      about 45mm of formula, and 61mm minus a 24mm label column leaves 37. A formula that wraps is a
      formula misread. */
-  { id: 'M04', name: 'Number line', face: '−1 0 1',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
+  { id: 'M04', name: 'Number line', face: '−1 0 1 line',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 20,  half: false },
   { id: 'M05', name: 'Place value', face: 'H T U',        lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 15,  half: true },
   /* MEASURES AND FRACTION=DECIMAL REACH B-TEC. Unit conversion and percentages are most of what an
      applied course asks arithmetically, and it was tagged as though B-TEC were a level above them
      rather than the one course that uses them every week. */
-  { id: 'M06', name: 'Measures', face: 'km→m',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 39,  half: true, inExam: false },
-  { id: 'M07', name: 'Angles named', face: '∠',       lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 28,  half: true },
-  { id: 'M08', name: 'Protractor', face: '◡ 0–180',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true,
+  { id: 'M06', name: 'Measures', face: 'km→m units',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 39,  half: true, inExam: false },
+  { id: 'M07', name: 'Angles named', face: '∠ named',       lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 28,  half: true },
+  { id: 'M08', name: 'Protractor', face: '◡ protractor',         lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 54,  half: true,
     note: 'prints at true size' },
   /* Y1 AS WELL AS Y2. Naming a triangle and a square is the first year's work, and the block was
      offered to the second year and withheld from the one that starts it. */
@@ -205,42 +216,42 @@ const MAT_PARTS = [
      SO EACH IS ITS OWN COMPONENT and "not given" is a marker on it, which is the honest shape: any
      component can be given or not given, and several outside this old group are. */
   { id: 'M12A', name: 'Circle', face: 'πr²',            lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
-  { id: 'M12B', name: 'Arc & sector', face: 'θ/360',      lv: ['Y9 Mocks','GCSE'],                          h: 10, half: true, inExam: false },
+  { id: 'M12B', name: 'Arc & sector', face: 'θ/360 arc',      lv: ['Y9 Mocks','GCSE'],                          h: 10, half: true, inExam: false },
   { id: 'M12C', name: 'Sphere', face: '⁴⁄₃πr³',            lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: true },
   { id: 'M12D', name: 'Cone', face: '⅓πr²h',              lv: ['GCSE'],                                     h: 10, half: true, tier: 'H', inExam: true },
-  { id: 'M12E', name: 'Prism', face: 'A × l',             lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
-  { id: 'M12F', name: 'Compound measures', face: 'd / t', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
-  { id: 'M12G', name: 'Percentage change', face: '%Δ', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12E', name: 'Prism', face: 'A × l prism',             lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12F', name: 'Compound measures', face: 'd/t speed', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
+  { id: 'M12G', name: 'Percentage change', face: '%Δ change', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: false },
   { id: 'M12H', name: 'Compound interest', face: 'P(1+r)ⁿ', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: true },
-  { id: 'M13', name: 'Exact trig values', face: 'sin 30',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
-  { id: 'M14', name: 'The trig trick', face: '√n ⁄ 2',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
+  { id: 'M13', name: 'Exact trig values', face: 'sin30 exact',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
+  { id: 'M14', name: 'The trig trick', face: '√n⁄2 trick',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
   /* INDEX LAWS AND GRAPH SHAPES START AT Y9. Both are Y8/Y9 teaching, and both were tagged from
      GCSE up while the straight line beside them started at Y9 — the same year, three rows apart,
      disagreeing about when algebra begins. */
-  { id: 'M15', name: 'Index laws', face: 'aᵐaⁿ',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 24,  half: true, inExam: false },
-  { id: 'M16', name: 'Graph shapes', face: 'y = x²',       lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 40,  half: false, inExam: false },
+  { id: 'M15', name: 'Index laws', face: 'aᵐaⁿ index',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 24,  half: true, inExam: false },
+  { id: 'M16', name: 'Graph shapes', face: 'y=x² graphs',       lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 40,  half: false, inExam: false },
   /* AS BUT NOT ALEVEL was the clearest error in the table: A-level contains everything AS does, so
      a component offered to the first year and withheld from the second cannot be right either way
      round. B-TEC too — gradient is how every rate-of-change task on an applied course is read. */
   { id: 'M17', name: 'Straight line', face: 'y = mx + c',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 29,  half: true, inExam: false },
-  { id: 'M18', name: 'Averages', face: 'x̄',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 24,  half: true, inExam: false },
+  { id: 'M18', name: 'Averages', face: 'x̄ averages',           lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 24,  half: true, inExam: false },
   /* THE HEIGHTS BELOW ARE MODELLED, NOT MEASURED, and they are the weakest numbers in this file.
      A wrap model calibrated on the four hand-measured pair blocks still came out between 15% and
      70% low, because how far a row wraps depends on the exact string. They are scaled up from it
      and should be read as indicative — the gauge measures the real column, so a sheet cannot
      overrun on the strength of a wrong label, but a label can still tell you 28mm and cost 40. */
   { id: 'M19', name: 'Pythagoras & trig', face: 'a²+b²=c²',  lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true, inExam: true },
-  { id: 'M20', name: 'Angle rules', face: '180°',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true, inExam: false },
-  { id: 'M21', name: 'Area & perimeter', face: '½bh',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
+  { id: 'M20', name: 'Angle rules', face: '180° rules',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true, inExam: false },
+  { id: 'M21', name: 'Area & perimeter', face: '½bh area',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
   /* SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry
      SATs on the rows around this one — four neighbours teaching the same year, and this the only
      one saying otherwise. */
   { id: 'M22', name: 'Percentages', face: '%',        lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
-  { id: 'M23', name: 'Rounding & bounds', face: '≈',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
+  { id: 'M23', name: 'Rounding & bounds', face: '≈ bounds',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
   { id: 'M24', name: 'Standard form', face: 'a × 10ⁿ',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 35,  half: true, inExam: false },
   /* SATs, for the same reason: continuing a number sequence is Y6, and the nth term on top of it
      is what the later levels add rather than what makes the block start. */
-  { id: 'M25', name: 'Sequences', face: 'nth',          lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 41,  half: true, inExam: false },
+  { id: 'M25', name: 'Sequences', face: 'nth term',          lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 41,  half: true, inExam: false },
   /* B-TEC, LIKE THE ALGEBRA EITHER SIDE OF IT. Index laws, the straight line and standard form all
      carry B-TEC; solving a quadratic is the same kind of tool on the same kind of course, and its
      absence here was an omission rather than a decision. */
@@ -256,7 +267,7 @@ const MAT_PARTS = [
      one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
      is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
      the column rules for something that is only text. */
-  { id: 'M28', name: 'Primes, HCF & LCM', face: 'HCF',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: true, inExam: false },
+  { id: 'M28', name: 'Primes, HCF & LCM', face: 'HCF · LCM',  lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 23,  half: true, inExam: false },
   /* SET NOTATION SITS BESIDE PROBABILITY because that is where the sheet already talks about A and
      B — 'A and B' and 'A or B' are M27's words for what this block gives the symbols for. Higher
      only: Foundation meets Venn diagrams but is not asked to read the notation. */
@@ -264,13 +275,13 @@ const MAT_PARTS = [
   /* HIGHER, AND WHOLLY SO — both of these are Higher-only content top to bottom, which is what makes
      them component-wide tiers rather than the row-level ones inside M22, M23, M25 and M26. */
   { id: 'M29', name: 'Sine & cosine rule', face: 'a ⁄ sin A', lv: ['GCSE','AS','Alevel'],                       h: 18,  half: false, tier: 'H', inExam: true },
-  { id: 'M30', name: 'Circle theorems', face: '⌒',    lv: ['GCSE'],                                     h: 28,  half: false, tier: 'H', inExam: false },
-  { id: 'M31', name: 'Fractions', face: 'a ⁄ b',          lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
+  { id: 'M30', name: 'Circle theorems', face: '◯ theorems',    lv: ['GCSE'],                                     h: 28,  half: false, tier: 'H', inExam: false },
+  { id: 'M31', name: 'Fractions', face: 'a⁄b + c⁄d',          lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
   /* YEAR ONE IS 'AS','Alevel' AND YEAR TWO IS 'Alevel' ALONE. The pair of them is the only place in
      this table where one level contains another, which is why it is the only place a component is
      deliberately withheld from the lower of the two rather than shared upward. */
   { id: 'M32', name: 'Differentiation', face: 'dy/dx',    lv: ['AS','Alevel'],                              h: 40,  half: true },
-  { id: 'M33', name: 'Differentiation rules', face: 'uv′', lv: ['Alevel'],                                h: 29,  half: true },
+  { id: 'M33', name: 'Differentiation rules', face: 'uv′ rules', lv: ['Alevel'],                                h: 29,  half: true },
   { id: 'M34', name: 'Integration', face: '∫',        lv: ['AS','Alevel'],                              h: 40,  half: true },
   { id: 'M35', name: 'Integration methods', face: '∫ u dv', lv: ['Alevel'],                                  h: 35,  half: true },
   { id: 'M36', name: 'Logs & exponentials', face: 'ln x', lv: ['AS','Alevel'],                             h: 23,  half: true },
@@ -281,27 +292,27 @@ const MAT_PARTS = [
      is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
      the column rules for something that is only text. */
   { id: 'M39', name: 'Double & addition', face: 'sin 2A',  lv: ['Alevel'],                                   h: 23,  half: true },
-  { id: 'M40', name: 'Radians', face: 'π ᶜ',            lv: ['Alevel'],                                   h: 23,  half: true },
+  { id: 'M40', name: 'Radians', face: 'π = 180°',            lv: ['Alevel'],                                   h: 23,  half: true },
   /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
      one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
      is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
      the column rules for something that is only text. */
-  { id: 'M41', name: 'Series', face: 'Σ',             lv: ['Alevel'],                                   h: 23,  half: true },
+  { id: 'M41', name: 'Series', face: 'Σ series',             lv: ['Alevel'],                                   h: 23,  half: true },
   /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
      one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
      is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
      the column rules for something that is only text. */
-  { id: 'M42', name: 'Circles & points', face: '(x−a)²',   lv: ['AS','Alevel'],                              h: 23,  half: true },
-  { id: 'M43', name: 'Vectors', face: '⟶',            lv: ['AS','Alevel'],                              h: 29,  half: true },
+  { id: 'M42', name: 'Circles & points', face: '(x−a)² eqn',   lv: ['AS','Alevel'],                              h: 23,  half: true },
+  { id: 'M43', name: 'Vectors', face: '⟶ vectors',            lv: ['AS','Alevel'],                              h: 29,  half: true },
   { id: 'M44', name: 'SUVAT & forces', face: 'F = ma',     lv: ['AS','Alevel'],                              h: 29,  half: true },
   { id: 'M45', name: 'Binomial distribution', face: 'B(n,p)', lv: ['AS','Alevel'],                           h: 35,  half: true },
   { id: 'M46', name: 'Normal distribution', face: 'N(μ,σ²)', lv: ['Alevel'],                                  h: 29,  half: true },
-  { id: 'M47', name: 'Hypothesis testing', face: 'H₀', lv: ['AS','Alevel'],                              h: 23,  half: true },
+  { id: 'M47', name: 'Hypothesis testing', face: 'H₀ testing', lv: ['AS','Alevel'],                              h: 23,  half: true },
   /* NARROW NOW. This was full width because the sheet had two widths and this did not fit the other
      one — at 99mm it is a comfortable two-up table, and the alternative was 198. At three across it
      is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
      the column rules for something that is only text. */
-  { id: 'M48', name: 'Numerical methods', face: 'xₙ₊₁',  lv: ['Alevel'],                                   h: 23,  half: true },
+  { id: 'M48', name: 'Numerical methods', face: 'xₙ₊₁ iter',  lv: ['Alevel'],                                   h: 23,  half: true },
 ];
 
 

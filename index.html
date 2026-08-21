@@ -796,6 +796,63 @@
   </div>
 
 
+  <!-- ---------- FOUR DRAWN STRAIGHT OFF THE SHEET ------------------------------------------------
+       THESE FOUR ARE COMPONENTS. Index laws, the trig trick, standard form and the circle theorem
+       are all blocks a student can tick onto their own cheat sheet, and a loading screen is four
+       seconds of undivided attention several times a week. Seeing the rule move before you ever
+       look it up is how it stops needing looking up.
+
+       THE MOTION IS THE TEACHING, not decoration on top of it. Each one animates the step that is
+       the actual point: the letters queuing up, the count going up, the point walking left, the
+       angle refusing to change. A splash that showed the finished formula would be a poster. -->
+
+  <!-- INDEX LAWS. Three a's and two a's, pushed together and counted. Nobody who has watched five
+       letters line up needs telling that you add the powers. -->
+  <div id="splash-index" aria-hidden="true">
+    <div class="ix-line">
+      <span class="ix-g"><i style="--i:0">a</i><i style="--i:1">a</i><i style="--i:2">a</i></span>
+      <span class="ix-op">×</span>
+      <span class="ix-g ix-g2"><i style="--i:3">a</i><i style="--i:4">a</i></span>
+    </div>
+    <div class="ix-say">a<sup>3</sup> &times; a<sup>2</sup> = a<sup class="ix-sum">5</sup></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE TRIG TRICK. The numerators counting 0, 1, 2, 3, 4 is the whole of it, and it is the one
+       thing a table of exact values never shows you, because a table has no order in time. -->
+  <div id="splash-trick" aria-hidden="true">
+    <div class="tk-row tk-deg"><i style="--i:0">0&deg;</i><i style="--i:1">30&deg;</i><i style="--i:2">45&deg;</i><i style="--i:3">60&deg;</i><i style="--i:4">90&deg;</i></div>
+    <div class="tk-row tk-val"><i style="--i:0"><b>&radic;0</b><u>2</u></i><i style="--i:1"><b>&radic;1</b><u>2</u></i><i style="--i:2"><b>&radic;2</b><u>2</u></i><i style="--i:3"><b>&radic;3</b><u>2</u></i><i style="--i:4"><b>&radic;4</b><u>2</u></i></div>
+    <div class="tk-say">count up for <b>sine</b></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- STANDARD FORM. The point walks left and the power counts the steps it took. That is the
+       rule, and it is a rule about movement, so it is one a still picture cannot make. -->
+  <div id="splash-sf" aria-hidden="true">
+    <div class="sf-num">
+      <span class="sf-d">4</span><span class="sf-d">8</span><span class="sf-d">0</span><span class="sf-d">0</span><span class="sf-d">0</span>
+      <span class="sf-dot">&middot;</span>
+    </div>
+    <div class="sf-say">4.8 &times; 10<sup class="sf-exp"><i>1</i><i>2</i><i>3</i><i>4</i></sup></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- THE ANGLE AT THE CENTRE. The point walks round the arc and its angle does not change, which
+       is the part nobody believes from a diagram holding still. -->
+  <div id="splash-cent" aria-hidden="true">
+    <svg class="ct-svg" viewBox="0 0 120 104">
+      <circle class="ct-rim" cx="60" cy="54" r="34"/>
+      <path class="ct-cen" d="M30.6,71 L60,54 L89.4,71"/>
+      <g class="ct-p" style="--i:0"><path d="M30.6,71 L38.1,28 L89.4,71"/><text x="38.1" y="42">x</text></g>
+      <g class="ct-p" style="--i:1"><path d="M30.6,71 L60,20 L89.4,71"/><text x="60" y="34">x</text></g>
+      <g class="ct-p" style="--i:2"><path d="M30.6,71 L81.9,28 L89.4,71"/><text x="76" y="42">x</text></g>
+      <text class="ct-two" x="60" y="68">2x</text>
+    </svg>
+    <div class="ct-say">the edge angle <b>does not move</b></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
   <!-- BREATHING. A ring that swells and settles, and a word that keeps time with it. Nothing to
        learn — some loads should just be calm, and a set of twenty-seven proofs is a set that never
        lets anybody rest. -->
@@ -996,6 +1053,12 @@
                     than an animation, and a loading screen that looks frozen reads as an app that
                     has. Its markup, its rules and its keyframes went with it — a splash left in the
                     file but out of the pool is dead code that still has to be maintained. */
+                 /* ---------- AND FOUR THAT ARE COMPONENTS -----------------------------------
+                    Index laws, the trig trick, standard form, the angle at the centre. Every one
+                    of these is a block on the sheet, so the splash and the paper teach the same
+                    thing in the same words — which is the point of taking them from the list
+                    rather than inventing four more. */
+                 'is-index', 'is-trick', 'is-sf', 'is-cent',
                  'is-breathe', 'is-rain', 'is-pend'];
     /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
        THE LIST ABOVE IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `DATA` has not loaded when

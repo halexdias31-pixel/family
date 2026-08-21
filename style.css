@@ -3016,7 +3016,8 @@ textarea, select, [data-noswipe],
 #splash-ang, #splash-bin, #splash-pas, #splash-fib, #splash-gal,
 #splash-bal, #splash-sort, #splash-times, #splash-prot, #splash-coin, #splash-mult,
 #splash-breathe, #splash-rain, #splash-pend,
-#splash-nline, #splash-venn, #splash-clock { display: none; }
+#splash-nline, #splash-venn, #splash-clock,
+#splash-index, #splash-trick, #splash-sf, #splash-cent { display: none; }
 #splash.is-led   #splash-led   { display: block; }
 /* `grid`, not `block` — the two copies of the word sit in one grid cell so they are on top of each
    other by construction. The display value belongs to the rule that decides it is visible, so
@@ -3047,6 +3048,11 @@ textarea, select, [data-noswipe],
 #splash.is-venn  #splash-venn  { display: block; }
 #splash.is-clock #splash-clock { display: block; }
 #splash.is-mult  #splash-mult  { display: block; }
+/* ---------- THE FOUR TAKEN FROM THE COMPONENT LIST --------------------------------------------- */
+#splash.is-index #splash-index { display: block; }
+#splash.is-trick #splash-trick { display: block; }
+#splash.is-sf    #splash-sf    { display: block; }
+#splash.is-cent  #splash-cent  { display: block; }
 /* THE FOUR NEW ONES ARE FLEX COLUMNS, set below with their centring — a `display: block` here
    would win or lose on source order depending on where somebody adds the next rule. */
 
@@ -5015,6 +5021,93 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .nl-say { margin-top: .8rem; font: 700 .86rem var(--mono); letter-spacing: .1em;
           color: #6fd8a0; text-align: center; }
 
+/* ---------- INDEX LAWS ---------------------------------------------------------------------------
+   THE TWO GROUPS CLOSE UP AND THE `×` GOES OUT WITH THEM, because the whole claim of the law is
+   that three a's and two a's are five a's — and that is a thing that happens, not a thing that is.
+   The tiles then light in order, so the five is counted rather than asserted. */
+.ix-line { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+.ix-g { display: flex; gap: .3rem; }
+.ix-g i { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 6px;
+          background: #2a2c27; border: 2px solid #3c4038; color: #f4f1e8;
+          font: 700 .95rem var(--mono); font-style: normal;
+          animation: ix-lit 4s ease-in-out infinite; animation-delay: calc(1.6s + var(--i) * .22s); }
+@keyframes ix-lit { 0%,32% { border-color: #3c4038; }
+                    46%,64% { border-color: #e8862c; color: #ffd9a8; }
+                    82%,100% { border-color: #3c4038; } }
+.ix-op { color: #f4f1e8; font: 700 1rem var(--mono); animation: ix-go 4s ease-in-out infinite; }
+@keyframes ix-go { 0%,26% { opacity: 1; } 44%,100% { opacity: 0; } }
+.ix-g2 { animation: ix-close 4s ease-in-out infinite; }
+@keyframes ix-close { 0%,26% { transform: translateX(0); } 44%,100% { transform: translateX(-1.5rem); } }
+.ix-say { margin-top: .9rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.ix-sum { color: #e8862c; }
+
+/* ---------- THE TRIG TRICK ------------------------------------------------------------------------
+   REVEALED LEFT TO RIGHT AND NEVER ALL AT ONCE. The numerators are 0, 1, 2, 3, 4 and the only thing
+   worth carrying away is that they go up by one — which a table cannot say, because everything in a
+   table arrives at the same moment. */
+.tk-row { display: flex; justify-content: center; gap: .45rem; }
+.tk-deg i { width: 2.4rem; text-align: center; color: #8b8b80;
+            font: 700 .72rem var(--mono); font-style: normal; }
+.tk-val { margin-top: .35rem; }
+.tk-val i { width: 2.4rem; display: grid; place-items: center; font-style: normal; opacity: 0;
+            animation: tk-in .5s ease-out both; animation-delay: calc(.5s + var(--i) * .42s); }
+.tk-val b { display: block; padding: 0 .25rem; border-bottom: 1.5px solid #f4f1e8;
+            color: #f4f1e8; font: 700 .84rem var(--mono); }
+.tk-val u { display: block; text-decoration: none; color: #f4f1e8; font: 700 .84rem var(--mono); }
+@keyframes tk-in { from { opacity: 0; transform: translateY(.4rem); } to { opacity: 1; } }
+.tk-say { margin-top: .9rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.tk-say b { color: #e8862c; }
+
+/* ---------- STANDARD FORM --------------------------------------------------------------------------
+   THE POINT WALKS AND THE POWER COUNTS ITS STEPS. Four hops, four numbers, in step — the exponent
+   is not a fact about the number, it is a tally of a movement, and this is the only way to show it. */
+.sf-num { position: relative; display: flex; justify-content: center; gap: .12rem; }
+.sf-d { width: 1.1rem; text-align: center; color: #f4f1e8; font: 700 1.4rem var(--mono); }
+.sf-dot { position: absolute; left: 50%; bottom: .05rem; color: #e8862c; font: 700 1.6rem var(--mono);
+          animation: sf-hop 4.4s steps(1, end) infinite; }
+/* THE STEPS ARE STEPS, not a glide: the point lands between two digits or it is nowhere, and an
+   eased slide would show it halfway through a digit, which is not a place a decimal point can be. */
+@keyframes sf-hop { 0%,14%   { transform: translateX(1.72rem); }
+                    25%      { transform: translateX(1.11rem); }
+                    39%      { transform: translateX(.50rem); }
+                    53%      { transform: translateX(-.11rem); }
+                    67%,100% { transform: translateX(-.72rem); } }
+.sf-say { margin-top: 1rem; font: 700 1rem var(--mono); color: #f4f1e8; text-align: center; }
+.sf-exp { position: relative; display: inline-block; width: .7rem; text-align: left; color: #e8862c; }
+.sf-exp i { position: absolute; left: 0; top: 0; font-style: normal; opacity: 0;
+            animation-duration: 4.4s; animation-timing-function: steps(1, end);
+            animation-iteration-count: infinite; }
+/* EACH NUMERAL HOLDS ITS OWN WINDOW of the same loop rather than fading in and out on a timer of
+   its own — four independent fades drift apart from the hops within a few cycles. */
+.sf-exp i:nth-child(1) { animation-name: sf-n1; }
+.sf-exp i:nth-child(2) { animation-name: sf-n2; }
+.sf-exp i:nth-child(3) { animation-name: sf-n3; }
+.sf-exp i:nth-child(4) { animation-name: sf-n4; }
+@keyframes sf-n1 { 0%,13% { opacity: 0; } 14%,24% { opacity: 1; } 25%,100% { opacity: 0; } }
+@keyframes sf-n2 { 0%,24% { opacity: 0; } 25%,38% { opacity: 1; } 39%,100% { opacity: 0; } }
+@keyframes sf-n3 { 0%,38% { opacity: 0; } 39%,52% { opacity: 1; } 53%,100% { opacity: 0; } }
+@keyframes sf-n4 { 0%,52% { opacity: 0; } 53%,100% { opacity: 1; } }
+
+/* ---------- THE ANGLE AT THE CENTRE ----------------------------------------------------------------
+   THREE POSITIONS, SHOWN IN TURN, and the angle at the edge is the same in all three. Drawn as a
+   flip-book rather than a point sliding round the arc: three fixed triangles cannot drift out of
+   true, and the claim being made is about three particular positions being equal, not about the
+   journey between them.
+
+   THE CENTRE ANGLE NEVER MOVES OR FADES, so the thing that stays put and the thing that travels are
+   told apart by which one is still there in every frame. */
+#splash-cent .ct-svg { width: min(62vw, 15rem); height: auto; }
+.ct-rim { fill: none; stroke: rgb(244 241 232 / .3); stroke-width: 1.6; }
+.ct-cen { fill: none; stroke: #e8862c; stroke-width: 2.2; stroke-linejoin: round; }
+.ct-two { fill: #e8862c; font: 700 9px var(--mono); text-anchor: middle; }
+.ct-p path { fill: none; stroke: #6fa8dc; stroke-width: 2; stroke-linejoin: round; }
+.ct-p text { fill: #6fa8dc; font: 700 9px var(--mono); text-anchor: middle; }
+.ct-p { opacity: 0; animation: ct-show 4.2s ease-in-out infinite;
+        animation-delay: calc(var(--i) * 1.4s); }
+@keyframes ct-show { 0% { opacity: 0; } 6%,26% { opacity: 1; } 33%,100% { opacity: 0; } }
+.ct-say { margin-top: .8rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.ct-say b { color: #6fa8dc; }
+
 /* ---------- THE VENN ----------------------------------------------------------------------------- */
 #splash-venn .vn-svg { width: min(62vw, 15rem); height: auto; }
 /* ---------- THE CIRCLES MOVE INTO EACH OTHER -----------------------------------------------------
@@ -5392,7 +5485,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
    column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines
    rather than thirteen, and no row wrapping onto a second line. */
-.mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+/* 7.5rem, NOT 6.5. A face that pairs a symbol with a word runs to twelve characters — `◡ protractor`,
+   `km→m units` — and at 6.5rem those wrap, which costs more height than the extra width does. */
+.mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
             gap: .1rem .5rem; margin-bottom: .5rem; }
 .mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 1.7rem;
                   font-size: .72rem; color: var(--ink); cursor: pointer; }
