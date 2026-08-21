@@ -6289,9 +6289,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    point of marking these is to find them while scanning, and colour on the NAME is what a scan
    picks up. Kept to the text — a red background on eight of twenty-five rows would be a page that
    looks broken rather than a page that is telling you something. */
-.mat-given { font: 400 .6rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
-             color: var(--bad); border: 1px solid currentColor; border-radius: 3px;
-             padding: .1rem .25rem; margin-left: .4rem; vertical-align: middle; white-space: nowrap; }
+/* ---------- THE BAR IS THE KEY ---------------------------------------------------------------------
+   'Not given' IS SET IN THE SAME RED AS THE ROWS IT SELECTS, so the bar says what the colour means
+   without a legend under the list — and it says it once, at the top, instead of twenty times down
+   the side. Lit, it is the usual filled pill; unlit, the word still carries the colour, because a
+   key that only works while it is switched on is not a key. */
+.mat-exam [data-g="not"] { color: var(--bad); border-color: var(--bad); }
+.mat-exam [data-g="not"].on { background: var(--bad); border-color: var(--bad); color: #12100d; }
 .mat-list label.not-given { color: var(--bad); }
 /* THE COST STAYS QUIET. It is not the warning, and two red things on one row is neither of them
    standing out. */

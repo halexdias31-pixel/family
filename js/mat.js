@@ -62,6 +62,17 @@ const MAT_TIERED = ['Y9 Mocks', 'GCSE'];
    and the button has to keep saying what it said, or choosing Foundation, looking at A-level and
    coming back would silently promote the sheet. */
 let MAT_TIER = 'H';
+/* ---------- GIVEN IN THE EXAM, AS A FILTER --------------------------------------------------------
+   'not given' WAS WRITTEN AS THE EXCEPTION AND TURNED OUT TO BE THE RULE. The comment on the tag
+   says a marker on most of the list is a marker nobody sees, and that is exactly what happened: on
+   GCSE Higher about twenty of twenty-five rows are not given, so the tag appeared on nearly all of
+   them, said the same thing the red name already said, and pushed the area figure off the row.
+
+   THE ROW COLOUR KEEPS THE JOB — it is what a scan picks up, which is what the tag was for. What
+   the tag could not do is answer the question somebody actually has, which is "show me only the
+   ones the paper will not give me". A filter does that, and it doubles as the key: 'all' / 'not
+   given' / 'given' names the colour without a legend sitting under the list. */
+let MAT_EXAM = 'all';
 let MAT_SHOW = 'H';
 
 /* Does this row survive the tier being drawn? A flag of 'H' means Higher only; anything else — and
@@ -973,6 +984,7 @@ function initMat() {
           apart in the stylesheet. It is hidden on an untiered level rather than emptied — an empty
           row still holds its gap and reads as something that failed to load. */''}
     <div class="mat-lev" id="mat-tier"></div>
+    <div class="mat-lev mat-exam" id="mat-exam"></div>
     <div class="mat-list" id="mat-list"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
@@ -986,23 +998,25 @@ function initMat() {
     + '<button data-do="mat-level" data-l="all">Everything</button>';
   $('mat-tier').innerHTML = [['F', 'Foundation'], ['H', 'Higher']].map(([t, label]) =>
     `<button data-do="mat-tier" data-t="${t}">${label}</button>`).join('');
+  /* THE MIDDLE ONE CARRIES THE COLOUR, so the bar reads as a key whether or not it is used: the
+     words 'not given' in the same red as the rows say what the red means. */
+  $('mat-exam').innerHTML = [['all', 'All'], ['not', 'Not given'], ['given', 'Given']].map(([g, label]) =>
+    `<button data-do="mat-exam" data-g="${g}">${label}</button>`).join('');
   /* THE TIER IS ON THE COMPONENT ROW TOO, so switching tier hides the same way switching level
      does and neither has to know what the other did. */
   /* ONE KIND OF THING, SO NO HEADINGS. The list was split into "Components" and "Flyers" while a
      flyer could be ticked onto the sheet; with the flyer maker its own tool again there is one
      library here, and a heading over a list of one kind is a word doing no work. */
   $('mat-list').innerHTML = matParts().map(c => {
-    return `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}"${
+    return `<label data-id="${c.id}" data-l="${esc(c.lv.join('|'))}" data-t="${c.tier || ''}" data-g="${
+      c.inExam === false ? 'not' : 'given'}"${
       /* THE CLASS IS ON THE ROW so the name can carry the colour. The tag alone is read once the
          row has been found; the point of the mark is to find it. */
       c.inExam === false ? ' class="not-given"' : ''}><input
        type="checkbox" data-do="mat-tick"
        data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
-     ${esc(c.name)}${/* THE MARKER IS FOR "NOT GIVEN", which is the one that changes what you do. "Given" means the
-      paper has it and you need not print it — worth knowing, but it is the ordinary case and a tag
-      on most of the list is a tag nobody sees. "Not given" is the exception and the warning. */''}${
-     c.inExam === false
-       ? '<b class="mat-given">not given</b>' : ''}<u>${
+     ${esc(c.name)}${/* NO TAG. The row is already red and the bar above already says what red means;
+      a third statement of it per row is what was crowding the area figure out. */''}<u>${
          /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
             says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
             and cost a tenth of the sheet. Area is true of both shapes. */
@@ -1019,6 +1033,7 @@ function initMat() {
    looked at GCSE and came back should find their mat as they left it. */
 on('mat-level', el => { MAT_LEVEL = el.getAttribute('data-l'); matPaint(); });
 on('mat-tier', el => { MAT_TIER = el.getAttribute('data-t'); matPaint(); });
+on('mat-exam', el => { MAT_EXAM = el.getAttribute('data-g'); matPaint(); });
 on('mat-tick', el => {
   MAT_TOUCHED = true;
   const id = el.getAttribute('data-id');
@@ -1044,6 +1059,8 @@ function matPaint() {
   if (!out) return;
   if (lev) lev.querySelectorAll('button').forEach(b =>
     b.classList.toggle('on', b.getAttribute('data-l') === MAT_LEVEL));
+  $('mat-exam').querySelectorAll('button').forEach(b =>
+    b.classList.toggle('on', b.getAttribute('data-g') === MAT_EXAM));
 
   /* WHETHER THIS LEVEL HAS TIERS AT ALL, and therefore whether the row is offered. `all` is not a
      level anybody sits, so it shows everything: filtering the Everything view by tier would make
@@ -1066,7 +1083,10 @@ function matPaint() {
     const lv = el.getAttribute('data-l');
     const has = !lv || lv.split('|').indexOf(MAT_LEVEL) !== -1;
     const fits = matKeep(el.getAttribute('data-t'));
-    el.classList.toggle('off', (MAT_LEVEL !== 'all' && !has) || !fits);
+    /* HIDDEN, NOT UNTICKED — the same rule the tier filter follows. Narrowing the view to 'not
+       given' must not quietly drop the given blocks off a sheet that was already built. */
+    const shown = MAT_EXAM === 'all' || el.getAttribute('data-g') === MAT_EXAM;
+    el.classList.toggle('off', (MAT_LEVEL !== 'all' && !has) || !fits || !shown);
   });
 
 
@@ -1090,9 +1110,11 @@ function matPaint() {
      name, its own colour and its own edge — putting "FLYER — BACK TO SCHOOL" in small capitals above
      it would be labelling a poster with the word poster. `bare` says so, and the stylesheet takes
      the heading, the hairline and the padding off. */
-  const cell = c => c.bare
-    ? `<div class="mat-box bare">${matDraw(c)}</div>`
-    : `<div class="mat-box"><h4>${esc(c.name)}</h4>${matDraw(c)}</div>`;
+  /* `data-i` IS THE BLOCK'S PLACE IN THE LIST, carried onto the page so the balancer can measure the
+     blocks, move them, and still put each column back into list order afterwards. */
+  let cellN = 0;
+  const cell = c => `<div class="mat-box${c.bare ? ' bare' : ''}" data-i="${cellN++}">${
+    c.bare ? '' : `<h4>${esc(c.name)}</h4>`}${matDraw(c)}</div>`;
   /* ---------- COLUMNS THAT FILL, NOT ROWS THAT STRETCH ---------------------------------------------
      ROWS WERE THE REASON THE PAGE LOOKED UNTIDY. Three blocks side by side in a row are three cells
      of one grid, so every one of them is as tall as the tallest — and the blocks are nothing like
@@ -1202,8 +1224,44 @@ function matPaint() {
     ? `<b>${Math.round((used - room) / 100)}cm² too much</b> — untick something, or the bottom is cut off.`
     : `<b>${pct}% used</b> · ${left}cm² of paper left.`;
   $('mat-go').disabled = over || !pieces.length;
+  matBalance(out);
   matFit();
   matWatch();
+}
+
+/* ---------- THE COLUMNS ARE LEVELLED AGAIN, ON HEIGHTS THAT ARE REAL ------------------------------
+   `h` IS AN ESTIMATE AND SOME OF THEM ARE A LONG WAY OUT. On the GCSE Higher sheet the trig trick is
+   written as 33mm and renders at about 24; index laws is written as 24 and renders at about 77,
+   because it is seven rows and two of them hold a fraction. Balancing on those numbers put the
+   short block alone in one column and the tall one alone in the next, and the first column finished
+   160 pixels above the second — the ragged bottom the packing was supposed to remove.
+
+   SO IT IS DONE TWICE. Once from the estimates, to get something on the page; then measured and
+   done again from what actually rendered. The blocks are moved, not rebuilt — the same nodes are
+   appended to different columns, so nothing is drawn a second time.
+
+   THE WIDTHS ARE EQUAL, which is what makes this sound: a block measured in one column is the same
+   height in any of them, so the second pass can trust the first pass's measurements.
+
+   AND `h` STOPS DECIDING THE LAYOUT. It still prices the row in the picker, and the gauge still
+   measures the page, but a wrong estimate can no longer tilt the columns. */
+function matBalance(out) {
+  out.querySelectorAll('.mat-two-up').forEach(run => {
+    const cols = Array.prototype.slice.call(run.querySelectorAll('.mat-col'));
+    if (cols.length < 2) return;
+    const boxes = [];
+    cols.forEach(col => Array.prototype.slice.call(col.children).forEach(b =>
+      boxes.push({ el: b, i: +b.getAttribute('data-i'), h: b.getBoundingClientRect().height })));
+    if (boxes.length < 2) return;
+    const bins = cols.map(() => ({ h: 0, out: [] }));
+    boxes.slice().sort((a, b) => b.h - a.h).forEach(b => {
+      const to = bins.reduce((a, c) => (c.h < a.h ? c : a));
+      to.out.push(b);
+      to.h += b.h;
+    });
+    bins.forEach((bin, n) => bin.out.sort((a, b) => a.i - b.i)
+      .forEach(b => cols[n].appendChild(b.el)));
+  });
 }
 
 /* THE SHEET IS SCALED TO THE SCREEN and back to 1 for printing, where 210mm really is 210mm. The
