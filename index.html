@@ -690,73 +690,7 @@
   <!-- EIGHT MORE. Same rule as the rest: the drawing is the argument, and every one keeps moving
        after it has made it. -->
 
-  <!-- BALANCING AN EQUATION. Take three off both sides and the scales stay level — which is the
-       only thing algebra ever asks you to believe. -->
-  <div id="splash-bal" aria-hidden="true">
-    <svg class="bl-svg" viewBox="0 0 128 76">
-      <g class="bl-beam">
-        <!-- ==========================================================================================
-             THE BEAM IS LEVEL AND STAYS LEVEL. It used to swing four degrees, on the argument that a
-             balance which does not visibly tip reads as a frozen picture during a load. True of a
-             balance in general; false of THIS one. The caption is `x + 3 = 5` — an equation, a
-             statement that the two sides ARE equal — and a beam that tips is a picture saying they
-             are not. The comment two rules above it in the stylesheet already said the beam never
-             tips and that this is the proof; the animation was added later and contradicted it.
-
-             THE MOVEMENT COMES FROM THE BLOCKS INSTEAD, which is also where the maths is: three
-             units lift off the left and three off the right, together, and the beam does not move
-             — because taking the same from both sides is the one operation that cannot unbalance
-             anything. That is the whole lesson, and it is now the only thing moving.
-
-             AND THE BLOCKS FIT THE BAR NOW. The x block started at 10 and the last unit ended at
-             119 while the beam ran 18 to 102, so both ends hung off into space. Everything is laid
-             out from the pivot at 60: the bar reaches 52 either side, each pan is centred in its
-             half, and nothing overhangs.
-        =========================================================================================== -->
-        <line class="bl-bar" x1="8" y1="30" x2="112" y2="30"/>
-
-        <!-- ==========================================================================================
-             TWO PANS, AND YOU COULD NOT SEE WHERE ONE ENDED. The gap at the pivot was 2 and the gaps
-             between blocks were 1, so nine blocks read as one row of nine and the picture said
-             nothing about two sides at all. An equation drawn as a single queue is not an equation.
-
-             SO THE PIVOT HAS A REAL GAP EITHER SIDE OF IT — ten units of clear paper, wider than any
-             gap inside a pan, which is what makes a pan a pan. And each group sits on a short
-             platform, because a tray is what you put weights ON: it says these three belong
-             together and those five do not, without a word.
-
-             LEFT IS x AND THREE. RIGHT IS FIVE. The pale ones are the three that lift from each side
-             at the same moment, leaving one x against two — which is the answer under the picture.
-        =========================================================================================== -->
-        <line class="bl-pan" x1="10" y1="31" x2="56" y2="31"/>
-        <line class="bl-pan" x1="64" y1="31" x2="110" y2="31"/>
-
-        <g class="bl-l">
-          <rect class="bl-x" x="10" y="16" width="14" height="14" rx="2"/>
-          <rect class="bl-go" x="28" y="19" width="8" height="11"/>
-          <rect class="bl-go" x="38" y="19" width="8" height="11"/>
-          <rect class="bl-go" x="48" y="19" width="8" height="11"/>
-        </g>
-        <g class="bl-r">
-          <rect x="64"  y="19" width="8" height="11"/>
-          <rect x="74"  y="19" width="8" height="11"/>
-          <rect class="bl-go" x="84"  y="19" width="8" height="11"/>
-          <rect class="bl-go" x="94"  y="19" width="8" height="11"/>
-          <rect class="bl-go" x="104" y="19" width="8" height="11"/>
-        </g>
-      </g>
-        <g class="bl-r">
-          <rect x="62"  y="18" width="9" height="12"/>
-          <rect x="72"  y="18" width="9" height="12"/>
-          <rect class="bl-go" x="82"  y="18" width="9" height="12"/>
-          <rect class="bl-go" x="92"  y="18" width="9" height="12"/>
-          <rect class="bl-go" x="102" y="18" width="9" height="12"/>
-        </g>
-      </g>
-      <path class="bl-post" d="M60 30 L60 62 M44 62 L76 62"/>
-    </svg>
-    <div class="bl-say">x + 3 = 5<em class="bl-then">x = 2</em></div>
-    <div class="sp-sig">@family.</div>
+   <div class="sp-sig">@family.</div>
   </div>
 
   <!-- SORTING. Bars swap into order, over and over — the shape of an algorithm rather than its code. -->
@@ -832,7 +766,7 @@
   <div id="splash-sf" aria-hidden="true">
     <div class="sf-num">
       <span class="sf-d">4</span><span class="sf-d">8</span><span class="sf-d">0</span><span class="sf-d">0</span><span class="sf-d">0</span>
-      <span class="sf-dot">&middot;</span>
+      <span class="sf-dot">.</span>
     </div>
     <div class="sf-say">4.8 &times; 10<sup class="sf-exp"><i>1</i><i>2</i><i>3</i><i>4</i></sup></div>
     <div class="sp-sig">@family.</div>
@@ -850,6 +784,46 @@
       <text class="ct-two" x="60" y="68">2x</text>
     </svg>
     <div class="ct-say">the edge angle <b>does not move</b></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- ---------- FOUR MORE OFF THE SHEET, DELIBERATELY PLAIN --------------------------------------
+       NONE OF THESE FOUR MOVES ANYTHING BUT A HEIGHT, A WIDTH OR AN ANGLE. No geometry computed in
+       a viewBox, no path interpolation, nothing that can land a pixel out on a phone — the earlier
+       standard-form one taught me that an animation whose numbers are subtly wrong is worse than no
+       animation, because it is confidently wrong in front of a student.
+
+       A SMALL TRUE THING BEATS A LARGE APPROXIMATE ONE. Each of these makes exactly one claim. -->
+
+  <!-- THE MEAN. Five bars of different heights settle to one height — the mean is the level they
+       would all share if they poured into each other, which is a thing to watch, not a sum. -->
+  <div id="splash-mean" aria-hidden="true">
+    <div class="mn-row"><i style="--h:2.2rem"></i><i style="--h:5rem"></i><i style="--h:3.4rem"></i><i style="--h:6.2rem"></i><i style="--h:1.7rem"></i></div>
+    <div class="mn-say">the <b>mean</b> is the level they share</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- ONE HALF, THREE WAYS. The bar fills to the same place each time and only the writing under it
+       changes, which is the entire content of the fraction-to-decimal block. -->
+  <div id="splash-half3" aria-hidden="true">
+    <div class="h3-bar"><span></span></div>
+    <div class="h3-say"><i>&frac12;</i><i>0.5</i><i>50%</i></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- y = mx + c. The line tilts and the crossing point does not: m is the tilt, c is the place it
+       cuts, and separating them is what the block is for. -->
+  <div id="splash-mxc" aria-hidden="true">
+    <div class="mx-box"><span class="mx-ax"></span><span class="mx-ay"></span><span class="mx-line"></span><span class="mx-dot"></span></div>
+    <div class="mx-say"><b>m</b> tilts &middot; <b>c</b> stays</div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
+  <!-- ANGLES ON A STRAIGHT LINE. The ray sweeps and the two angles trade, and they are 180 the whole
+       way — the rule is not that they happen to add to 180, it is that they cannot do otherwise. -->
+  <div id="splash-str" aria-hidden="true">
+    <div class="st-box"><span class="st-line"></span><span class="st-ray"></span></div>
+    <div class="st-say">always <b>180&deg;</b></div>
     <div class="sp-sig">@family.</div>
   </div>
 
@@ -1042,7 +1016,7 @@
                  /* ---------- AND EIGHT MORE ---------------------------------------------------
                     Balancing an equation, sorting, the times table, a protractor, coin flips, a
                     number line, a Venn diagram, a clock. */
-                 'is-bal', 'is-sort', 'is-times', 'is-prot', 'is-coin',
+                 'is-sort', 'is-times', 'is-prot', 'is-coin',
                  'is-line', 'is-venn', 'is-clock', 'is-mult',
                  /* ---------- AND THREE THAT TEACH NOTHING -----------------------------------
                     Breathing, rain, a pendulum wave. Twenty-seven proofs in a row is a set that
@@ -1059,6 +1033,7 @@
                     thing in the same words — which is the point of taking them from the list
                     rather than inventing four more. */
                  'is-index', 'is-trick', 'is-sf', 'is-cent',
+                 'is-mean', 'is-half3', 'is-mxc', 'is-str',
                  'is-breathe', 'is-rain', 'is-pend'];
     /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
        THE LIST ABOVE IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `DATA` has not loaded when

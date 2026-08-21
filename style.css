@@ -3014,10 +3014,11 @@ textarea, select, [data-noswipe],
 #splash-tag, #splash-led, #splash-torch, #splash-pyth, #splash-tube, #splash-ps, #splash-blocks,
 #splash-odds, #splash-tri, #splash-sine, #splash-area, #splash-sieve, #splash-half,
 #splash-ang, #splash-bin, #splash-pas, #splash-fib, #splash-gal,
-#splash-bal, #splash-sort, #splash-times, #splash-prot, #splash-coin, #splash-mult,
+#splash-sort, #splash-times, #splash-prot, #splash-coin, #splash-mult,
 #splash-breathe, #splash-rain, #splash-pend,
 #splash-nline, #splash-venn, #splash-clock,
-#splash-index, #splash-trick, #splash-sf, #splash-cent { display: none; }
+#splash-index, #splash-trick, #splash-sf, #splash-cent,
+#splash-mean, #splash-half3, #splash-mxc, #splash-str { display: none; }
 #splash.is-led   #splash-led   { display: block; }
 /* `grid`, not `block` — the two copies of the word sit in one grid cell so they are on top of each
    other by construction. The display value belongs to the rule that decides it is visible, so
@@ -3039,7 +3040,6 @@ textarea, select, [data-noswipe],
 #splash.is-pas   #splash-pas   { display: grid; place-items: center; }
 #splash.is-fib   #splash-fib   { display: block; }
 #splash.is-gal   #splash-gal   { display: block; }
-#splash.is-bal   #splash-bal   { display: block; }
 #splash.is-sort  #splash-sort  { display: grid; place-items: center; }
 #splash.is-times #splash-times { display: grid; place-items: center; }
 #splash.is-prot  #splash-prot  { display: block; }
@@ -3053,6 +3053,10 @@ textarea, select, [data-noswipe],
 #splash.is-trick #splash-trick { display: block; }
 #splash.is-sf    #splash-sf    { display: block; }
 #splash.is-cent  #splash-cent  { display: block; }
+#splash.is-mean  #splash-mean  { display: block; }
+#splash.is-half3 #splash-half3 { display: block; }
+#splash.is-mxc   #splash-mxc   { display: block; }
+#splash.is-str   #splash-str   { display: block; }
 /* THE FOUR NEW ONES ARE FLEX COLUMNS, set below with their centring — a `display: block` here
    would win or lose on source order depending on where somebody adds the next rule. */
 
@@ -4863,47 +4867,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    has made it. Entrances land inside two seconds, because a load often does.
 ================================================================================================== */
 
-/* ---------- BALANCING AN EQUATION ---------------------------------------------------------------- */
-#splash-bal .bl-svg { width: min(64vw, 15rem); height: auto; }
-.bl-bar { stroke: #f0b45f; stroke-width: 2.4; stroke-linecap: round; }
-.bl-post { stroke: rgb(244 241 232 / .4); stroke-width: 2; fill: none; }
-.bl-svg rect { fill: #6fa8dc; stroke: #1b1a17; stroke-width: 1.2; }
-/* THE THREE THAT COME OFF BOTH SIDES, together — the beam never tips, which IS the proof. */
-/* THE SAME ONE-SECOND DELAY THE BEAM HAD, and I fixed the beam and left this. The red blocks are
-   the point of the picture — taking three off each side is what "x + 3 = 5" becomes "x = 2" MEANS —
-   and for the first second of a two-second splash they simply sat there.
-   Negative, like the beam's, so the removal is already under way on the first frame and the two
-   stay in step with each other. */
-.bl-go { fill: #d9534f; animation: bl-off 3.4s ease-in-out -.9s infinite; }
-/* ---------- THE BEAM DOES NOT MOVE, AND THAT IS THE PICTURE ---------------------------------------
-   IT SWUNG FOUR DEGREES, added because a balance that never tips was thought to read as a frozen
-   image during a load. The worry was right and the cure was wrong: the caption is `x + 3 = 5`, an
-   equation, a claim that the two sides ARE equal — so a tipping beam illustrated the opposite of
-   the sentence under it. The rule above already said the beam never tips and that this is the
-   proof. The animation contradicted its own comment.
-
-   THE MOTION IS THE BLOCKS. Three units lift off the left and three off the right at the same
-   moment, the beam holds level, and `x = 2` fades in underneath. Something is moving on every
-   frame of the load, and what is moving is the actual argument: take the same from both sides and
-   nothing tips. */
-.bl-beam { transform-origin: 60px 30px; }
-@keyframes bl-off { 0%,22% { opacity: 1; transform: none; }
-                    46%,88% { opacity: 0; transform: translateY(-14px); }
-                    100% { opacity: 1; transform: none; } }
-/* THE X BLOCK IS THE UNKNOWN, so it is a different colour and a different size — a picture where
-   the unknown looks like the units is a picture where nothing is unknown.
-    IS ONE CLASS PLUS AN ELEMENT and beats a bare class, so `.bl-x` alone lost and the
-   unknown came out the same blue as the units. Matched at the same shape to win on order. */
-.bl-svg rect.bl-x { fill: #6fd8c4; }
-.bl-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #f0b45f; text-align: center;
-          position: relative; }
-/* AND THE ANSWER ARRIVES AS THE BLOCKS LEAVE. The equation is what you start with; "x = 2" is what
-   the picture has just done, and showing it at the moment the reds vanish is what joins the two.
-   Same timing and same negative delay as the blocks, so they cannot drift apart. */
-.bl-then { display: block; font-style: normal; font-size: .8rem; color: #6fd8c4; opacity: 0;
-           animation: bl-then 3.4s ease-in-out -.9s infinite; }
-@keyframes bl-then { 0%,30% { opacity: 0; } 50%,84% { opacity: 1; } 96%,100% { opacity: 0; } }
-
 /* ---------- SORTING ------------------------------------------------------------------------------ */
 #splash-sort .so-row { display: flex; align-items: flex-end; gap: .3rem; height: 6rem; }
 .so-row i { width: 1.5rem; height: var(--h); border-radius: 3px 3px 0 0; background: #6fa8dc;
@@ -5021,6 +4984,68 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .nl-say { margin-top: .8rem; font: 700 .86rem var(--mono); letter-spacing: .1em;
           color: #6fd8a0; text-align: center; }
 
+/* ---------- THE MEAN --------------------------------------------------------------------------------
+   EVERY BAR GOES TO THE SAME HEIGHT AND COMES BACK. `--h` is where each one starts and 3.7rem is
+   their average, so the animation is the definition acted out: level them off and that is the mean.
+   Nothing is computed at runtime — the average is written in because five fixed bars have one. */
+#splash-mean .mn-row { display: flex; align-items: flex-end; justify-content: center;
+                       gap: .34rem; height: 7rem; }
+.mn-row i { width: 1.5rem; height: var(--h); border-radius: 3px 3px 0 0; background: #6fa8dc;
+            animation: mn-level 4s ease-in-out infinite; }
+@keyframes mn-level { 0%,22% { height: var(--h); }
+                      48%,72% { height: 3.7rem; background: #6fd8a0; }
+                      96%,100% { height: var(--h); } }
+.mn-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.mn-say b { color: #6fd8a0; }
+
+/* ---------- ONE HALF, THREE WAYS ---------------------------------------------------------------------
+   THE BAR DOES NOT MOVE. It fills once and stays, and the three notations take turns underneath —
+   the claim is that these are one quantity written three ways, so the quantity has to be the thing
+   that holds still while the writing changes. A bar that re-filled for each would say the opposite. */
+#splash-half3 .h3-bar { width: min(58vw, 14rem); height: 1.6rem; margin: 0 auto;
+                        border: 2px solid rgb(244 241 232 / .35); border-radius: 4px; overflow: hidden; }
+.h3-bar span { display: block; height: 100%; width: 50%; background: #e8862c;
+               animation: h3-fill 1s ease-out both; }
+@keyframes h3-fill { from { width: 0; } to { width: 50%; } }
+.h3-say { position: relative; height: 1.4rem; margin-top: .9rem; }
+.h3-say i { position: absolute; inset: 0; font: 700 1.05rem var(--mono); font-style: normal;
+            color: #e8862c; text-align: center; opacity: 0;
+            animation: h3-turn 4.2s ease-in-out infinite; }
+.h3-say i:nth-child(2) { animation-delay: 1.4s; }
+.h3-say i:nth-child(3) { animation-delay: 2.8s; }
+@keyframes h3-turn { 0% { opacity: 0; } 6%,28% { opacity: 1; } 34%,100% { opacity: 0; } }
+
+/* ---------- y = mx + c -------------------------------------------------------------------------------
+   THE LINE TILTS ABOUT THE POINT WHERE IT CROSSES, and that is the whole separation of m from c: the
+   tilt changes, the crossing does not. `transform-origin` is set to that crossing, so the two cannot
+   come apart however the angles are edited later. */
+#splash-mxc .mx-box { position: relative; width: min(56vw, 13rem); height: 8rem; margin: 0 auto; }
+.mx-ax, .mx-ay { position: absolute; background: rgb(244 241 232 / .28); }
+.mx-ax { left: 0; right: 0; top: 5.4rem; height: 2px; }
+.mx-ay { top: 0; bottom: 0; left: 1.6rem; width: 2px; }
+.mx-line { position: absolute; left: 0; right: 0; top: 3.9rem; height: 3px; border-radius: 2px;
+           background: #6fa8dc; transform-origin: 1.6rem 50%;
+           animation: mx-tilt 4.4s ease-in-out infinite; }
+@keyframes mx-tilt { 0%,100% { transform: rotate(-26deg); } 50% { transform: rotate(14deg); } }
+.mx-dot { position: absolute; left: 1.6rem; top: 3.9rem; width: .55rem; height: .55rem;
+          margin: -.2rem 0 0 -.26rem; border-radius: 50%; background: #e8862c; }
+.mx-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.mx-say b { color: #6fa8dc; }
+
+/* ---------- ANGLES ON A STRAIGHT LINE ----------------------------------------------------------------
+   ONE RAY, PIVOTING ON THE LINE. Both angles are drawn by the same ray, so they cannot be made to
+   add to anything but 180 — the rule is enforced by the construction rather than asserted by a
+   caption, which is the difference between showing and telling. */
+#splash-str .st-box { position: relative; width: min(56vw, 13rem); height: 5rem; margin: 0 auto; }
+.st-line { position: absolute; left: 0; right: 0; bottom: 1rem; height: 3px; border-radius: 2px;
+           background: rgb(244 241 232 / .5); }
+.st-ray { position: absolute; left: 50%; bottom: 1rem; width: 3px; height: 3.4rem; border-radius: 2px;
+          background: #e8862c; transform-origin: 50% 100%;
+          animation: st-sweep 4.6s ease-in-out infinite; }
+@keyframes st-sweep { 0%,100% { transform: rotate(-52deg); } 50% { transform: rotate(46deg); } }
+.st-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.st-say b { color: #e8862c; }
+
 /* ---------- INDEX LAWS ---------------------------------------------------------------------------
    THE TWO GROUPS CLOSE UP AND THE `×` GOES OUT WITH THEM, because the whole claim of the law is
    that three a's and two a's are five a's — and that is a thing that happens, not a thing that is.
@@ -5061,17 +5086,35 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- STANDARD FORM --------------------------------------------------------------------------
    THE POINT WALKS AND THE POWER COUNTS ITS STEPS. Four hops, four numbers, in step — the exponent
    is not a fact about the number, it is a tally of a movement, and this is the only way to show it. */
-.sf-num { position: relative; display: flex; justify-content: center; gap: .12rem; }
+/* THE ROW IS THE THING THE POINT IS POSITIONED AGAINST, so it must be exactly as wide as its digits:
+   a flex row that stretched to the splash would put `left: 50%` somewhere other than the middle of
+   the numerals, and every hop would be measured from the wrong origin. */
+.sf-num { position: relative; display: flex; justify-content: center; gap: .12rem;
+          width: max-content; margin: 0 auto; }
 .sf-d { width: 1.1rem; text-align: center; color: #f4f1e8; font: 700 1.4rem var(--mono); }
+/* ---------- THE HOPS ARE ONE DIGIT EACH, WHICH THEY WERE NOT --------------------------------------
+   A DIGIT IS 1.1rem WIDE WITH .12rem BESIDE IT, so one place is 1.22rem and the point can only ever
+   sit in a gap. The first version moved .61rem a hop — half a digit — so the point walked up the
+   middle of the numerals instead of between them and finished three places short of the 4, under a
+   caption that said 4.8. The animation contradicted its own answer, which is the one thing a
+   teaching animation must never do.
+
+   THE FIVE PLACES, MEASURED FROM THE CENTRE OF A FIVE-DIGIT ROW: the right-hand end is +2.99rem and
+   each hop takes 1.22rem off it, landing at +1.83, +0.61, −0.61 and −1.83. Written out rather than
+   calculated so that changing the digit width and forgetting these is impossible to do quietly —
+   the numbers are visibly the digit width and nothing else.
+
+   AND `translate(-50%)` GOES IN FRONT OF EACH ONE, because `left: 50%` puts the point's left edge on
+   the centre rather than the point itself. It was half a glyph right of every position it claimed. */
 .sf-dot { position: absolute; left: 50%; bottom: .05rem; color: #e8862c; font: 700 1.6rem var(--mono);
           animation: sf-hop 4.4s steps(1, end) infinite; }
 /* THE STEPS ARE STEPS, not a glide: the point lands between two digits or it is nowhere, and an
    eased slide would show it halfway through a digit, which is not a place a decimal point can be. */
-@keyframes sf-hop { 0%,14%   { transform: translateX(1.72rem); }
-                    25%      { transform: translateX(1.11rem); }
-                    39%      { transform: translateX(.50rem); }
-                    53%      { transform: translateX(-.11rem); }
-                    67%,100% { transform: translateX(-.72rem); } }
+@keyframes sf-hop { 0%,14%   { transform: translate(-50%) translateX(2.99rem); }
+                    25%      { transform: translate(-50%) translateX(1.83rem); }
+                    39%      { transform: translate(-50%) translateX(.61rem); }
+                    53%      { transform: translate(-50%) translateX(-.61rem); }
+                    67%,100% { transform: translate(-50%) translateX(-1.83rem); } }
 .sf-say { margin-top: 1rem; font: 700 1rem var(--mono); color: #f4f1e8; text-align: center; }
 .sf-exp { position: relative; display: inline-block; width: .7rem; text-align: left; color: #e8862c; }
 .sf-exp i { position: absolute; left: 0; top: 0; font-style: normal; opacity: 0;
@@ -5155,7 +5198,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
           text-align: center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .bl-go, .bl-beam, .bl-then, .so-row i, .tt-grid i, .pr-arm, .cn-flip, .cn-bar i, .nl-dot,
+  .so-row i, .tt-grid i, .mn-row i, .h3-say i, .h3-bar span, .mx-line, .st-ray, .pr-arm, .cn-flip, .cn-bar i, .nl-dot,
   .vn-a, .vn-b, .vn-both, .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
   .cn-bar i { width: 51%; } .vn-both { opacity: .55; }
 }
@@ -6405,9 +6448,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    standing out. */
 .mat-list label.not-given u { color: var(--faint); }
 
-/* THE PAN EACH SIDE STANDS ON. Without it the blocks float over one long bar and the two sides read
-   as a single queue; a tray is what says "these belong together, those do not" without a word. */
-.bl-pan { stroke: var(--gold); stroke-width: 1.6; stroke-linecap: round; opacity: .55; }
 
 /* A COMPONENT'S OWN NOTE. Quiet, under the name, because it is a detail about that one row rather
    than an instruction — read when the eye is already there and invisible when it is not. */
