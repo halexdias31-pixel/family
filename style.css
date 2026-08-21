@@ -5388,10 +5388,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                   border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .5rem;
                   cursor: pointer; }
 .mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-.mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-            gap: .1rem .6rem; margin-bottom: .5rem; }
-.mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 2rem;
+/* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
+   9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
+   column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines
+   rather than thirteen, and no row wrapping onto a second line. */
+.mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+            gap: .1rem .5rem; margin-bottom: .5rem; }
+.mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 1.7rem;
                   font-size: .72rem; color: var(--ink); cursor: pointer; }
+/* THE MATHS, SET AS MATHS. Mono keeps the columns of the list from jittering as the glyphs change
+   width, and it is the face of the block rather than a label about it, so it takes the row's ink
+   rather than the muted grey a caption would. */
+.mat-face { font: 400 .82rem/1.15 var(--mono); font-weight: 400; letter-spacing: 0;
+            white-space: nowrap; }
 .mat-list label.off { display: none; }
 /* DRAWN, NOT STYLED — a background on a native checkbox stops the browser drawing its own control
    and there is nothing left to replace the tick. And `min-height` must be unset by name, or the
