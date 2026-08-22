@@ -1220,7 +1220,17 @@ function closeSheet() {
  * specific about it, which is better than a generic catch. The reply comes back as it came.
  */
 function api(body) {
-  return fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(body) })
+  /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE ------------------------------------
+     ADDED HERE BECAUSE EVERY WRITE IN THE APP COMES THROUGH THIS FUNCTION. Threading it through
+     forty call sites would mean forty chances to forget one, and the one forgotten is a feature
+     that stops working for everybody signed in — or worse, a handler that falls back to trusting a
+     name because that is what it was given.
+
+     A REQUEST WITH NO TOKEN IS STILL SENT. Registering and signing in have none by definition, and
+     the gate decides which actions need one. */
+  const b = Object.assign({}, body);
+  if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
+  return fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(b) })
     .then(r => r.json())
     .then(d => {
       /* A value the sheet had nowhere to put. The server turns this into an error where it can, so

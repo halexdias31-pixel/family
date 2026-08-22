@@ -663,6 +663,13 @@ on('do-signin', () => {
 });
 
 on('signout', () => {
+  /* ---------- SIGNING OUT ENDS THE SESSION ON THE SERVER TOO ---------------------------------------
+     FORGETTING THE TOKEN ON THIS PHONE IS NOT ENDING A SESSION. A token that still works after
+     somebody believed they had left is the one thing sign-out must not leave behind — on a shared
+     or lost phone it is the whole of what sign-out was for.
+     SENT AND NOT WAITED FOR. The screen must clear whatever the network does; a sign-out that
+     hangs because there is no signal is a sign-out that did not happen. */
+  try { api({ action: 'signOut' }); } catch (err) {}
   USER = null;
   try { localStorage.removeItem('familyUser'); } catch {}
   toast('Signed out');
