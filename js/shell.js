@@ -1099,13 +1099,27 @@ function setSheetOrigin_(el) {
   st.setProperty('--from-s', scale.toFixed(3));
 }
 
-function openSheet(title, html, onClose) {
+/* ---------- WHAT THE SHEET IS ONE OF -------------------------------------------------------------
+   A SHEET IS OPENED WITH A TITLE AND SOME HTML AND KNOWS NOTHING ELSE, which is why reading three
+   past papers meant open, close, swipe, open, close, swipe. The card underneath is one of a list —
+   the app knows that; the sheet was simply never told.
+
+   `step` IS OPTIONAL AND IS THE WHOLE OF IT. A caller that has neighbours hands over a function
+   taking -1 or 1; it returns true if it moved, having re-opened the sheet on the next one. A caller
+   with nothing to step through passes nothing and the sheet behaves exactly as it always has, which
+   is what keeps this from being a change to twenty-five call sites. */
+let sheetStep = null;
+
+function openSheet(title, html, onClose, step) {
   /* A SHEET OPENED OVER A SHEET. The second overwrote the first and the first's `onClose` was
      dropped on the floor — never called, and then replaced, so whatever it was going to put right
      never happened. Rare, and the kind of thing that goes unnoticed for a year and then loses
      somebody's half-typed booking.
      Run it first, so opening a second sheet is the same as closing the first and opening one. */
   if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) {} }
+
+  /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
+  sheetStep = typeof step === 'function' ? step : null;
 
   /* ---------- WHERE IT GROWS FROM -----------------------------------------------------------
      The panel opens OUT OF the thing you pressed. Measured here, at the moment of opening, because
@@ -1161,6 +1175,7 @@ function openSheet(title, html, onClose) {
 let sheetClear = 0;
 
 function closeSheet() {
+  sheetStep = null;
   $('sheet').classList.add('hidden');
   $('sheet-back').classList.add('hidden');
   document.body.style.overflow = '';

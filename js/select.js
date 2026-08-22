@@ -59,7 +59,20 @@
 /* THE BOXES A SELECTION IS ALLOWED TO STOP AT. Order does not matter — `closest` finds the nearest
    ancestor matching any of them — but it reads as the list of things somebody would call "a thing
    on the screen", which is the point. */
-const SELECT_IN = '#sheet-body, .widget-full, .card, .screen';
+const SELECT_IN = '#sheet-body, .widget-full, .card, .cpn, .screen';
+
+/* ---------- AND THE ONE IT SHOULD STOP AT FIRST ----------------------------------------------------
+   `.screen` IS IN THAT LIST AND IT IS THE WHOLE TAB. That is right for the second press and wrong
+   for the first: with nothing tapped yet — which is every press by somebody using a keyboard —
+   `selWidestOnScreen_` only ever looked at `.widget-full` and `.screen`, so the answer to a first
+   Ctrl-A on the account page was the entire page, nav and all. Which is what Ctrl-A does anyway, so
+   the feature looked as though it had never been written.
+
+   A CARD IS THE FIRST STOP. This is the same list without the tab, used for the opening press and
+   for finding the widest thing on a screen nobody has touched. Press again and `SELECT_IN` takes
+   over and the selection climbs — which was always the design; it just never got a chance to start
+   small. */
+const SELECT_CARD = '#sheet-body, .widget-full, .card, .cpn';
 
 /* WHERE YOUR EYE WAS. The last thing pressed, which is a better answer than any calculation about
    which screen the camera is over: a sheet opens on top of a screen, and while it is open the
@@ -108,8 +121,15 @@ function selectBoxFor_() {
     return selLastBox.parentElement ? selLastBox.parentElement.closest(SELECT_IN) : null;
   }
 
-  const from = (selTouched && document.contains(selTouched)) ? selTouched : null;
-  const box  = from && from.closest ? from.closest(SELECT_IN) : null;
+  /* ---------- WHERE THE EYE IS: FOCUS FIRST, THEN THE LAST TAP -----------------------------------
+     `selTouched` IS A POINTER RECORD AND CTRL-A IS A KEYBOARD ACT. Somebody who has tabbed to a
+     card has never touched it, so the pointer record is stale or empty and the card they are
+     plainly on was not even a candidate. `activeElement` is the one the browser already agrees is
+     focused, so it is asked first and the tap is the fallback rather than the only answer. */
+  const on   = document.activeElement;
+  const near = (on && on !== document.body && document.contains(on)) ? on
+             : ((selTouched && document.contains(selTouched)) ? selTouched : null);
+  const box  = near && near.closest ? near.closest(SELECT_CARD) : null;
   return box || selWidestOnScreen_();
 }
 
@@ -124,12 +144,13 @@ function selectBoxFor_() {
 function selWidestOnScreen_() {
   const h = window.innerHeight || 0;
   let best = null, most = 0;
-  document.querySelectorAll('#screen .widget-full, #screen > .screen').forEach(el => {
+  document.querySelectorAll('#screen .widget-full, #screen .card, #screen .cpn').forEach(el => {
     if (el.classList.contains('hidden') || !el.getClientRects().length) return;
     const r = el.getBoundingClientRect();
     const seen = Math.max(0, Math.min(r.bottom, h) - Math.max(r.top, 0));
-    /* A `.screen` is the whole tab and will always beat a widget inside it on raw height, so a
-       widget wins ties and near-ties — the smaller, truer answer again. */
+    /* THE TAB IS NO LONGER IN THE RUNNING, so the weighting is between a widget and a card. A widget
+       still wins ties, being the more deliberate thing to have on screen — the smaller, truer
+       answer, one rung down from where this used to start. */
     const worth = el.classList.contains('widget-full') ? seen * 1.5 : seen;
     if (worth > most) { most = worth; best = el; }
   });

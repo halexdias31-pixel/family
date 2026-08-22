@@ -44,7 +44,21 @@ function bookBlocks() {
      scarcity said plainly and a number you do not have to squint at. */
   const openClassCard = j => {
     const seats = Number(j.seatsGoing) || 0;
-    const cap = Number(j.capacity) || seats || 4;
+    /* ---------- "3 OF 3 SEATS LEFT" ON A CLASS OF FOUR ---------------------------------------------
+       `j.capacity` IS NEVER SET BY ANYTHING. Nothing in the client, the backend or the payload
+       writes that name, so `Number(j.capacity)` was always NaN and the fallback took over — and the
+       fallback was `seats`, which makes the total equal the seats left and prints "3 of 3" whatever
+       the real class size is. It reads as a full class and a free one in the same breath, and it
+       could never have read anything else.
+
+       THE FIELDS THE REST OF THE FILE USES. `waitlist` capacity is resolved as
+       `j.maxKids || j.maxStudents` at the foot of this file, which comes off the venue's
+       `max_students` — 4 at Colliers Wood. `j.capacity` is kept at the front in case the payload
+       ever grows one, but it is no longer the only thing asked.
+
+       AND THE TOTAL CANNOT BE SMALLER THAN WHAT IS LEFT. If the numbers ever disagree the seats
+       left are the ones somebody is about to act on, so they win and the total follows. */
+    const cap = Math.max(Number(j.capacity || j.maxKids || j.maxStudents) || 4, seats);
     /* `job`, THE SAME DOOR THE ORDINARY CARD USES. I wrote `job-open`, which no handler answers —
        a coupon that looks pressable and does nothing, which `check-doors` named immediately. The
        card looks different; what it opens is the same thing. */

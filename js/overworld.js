@@ -258,6 +258,15 @@ const SWIPE = {
  * controls that consume a drag for their own reasons is the only exception.
  */
 function axisFree(target, axis, dir) {
+  /* ---------- THE SHEET NO LONGER BLOCKS EVERYTHING, ONLY THE GRID ------------------------------
+     THE GRID STAYS BLOCKED, and must: the sheet is over it and moving a screen nobody can see is
+     how you close a card onto a different tab than the one you opened it from. What changes is that
+     a sheet WITH neighbours now answers a vertical flick itself, so reading three past papers is
+     three swipes rather than close, swipe, open, close, swipe, open.
+
+     STILL FALSE EITHER WAY, because the grid is never the thing that moves here — the flick is
+     picked up by the sheet's own watcher below. This returns false so the grid ignores the gesture
+     exactly as before; the sheet takes it instead. */
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is over everything
   /* A text area scrolls its own contents and a select opens by dragging on some phones. Neither is
      a scroll container the walk below would notice, so they are named. */
@@ -1829,3 +1838,60 @@ function owPartTile(it, pt, t, draw) {
   if (shape === 'pitch') pitch(x0, x1, base + h, 3, z0, z1, roofC);
   else box(x0, x1, base + h, base + h + 1.6, z0, z1, roofC);
 }
+
+
+/* ==================================================================================================
+   A FLICK INSIDE AN OPEN SHEET
+   --------------------------------------------------------------------------------------------------
+   SEPARATE FROM THE GRID'S GESTURE ON PURPOSE. The grid tracks a drag live, moving cells under the
+   finger, and everything about that machinery assumes the thing being moved is the grid. Reusing it
+   here would mean teaching it about a second kind of target for the sake of one gesture.
+
+   SO THIS IS A FLICK, NOT A DRAG. Nothing follows the finger; the sheet changes when the finger
+   lifts. That is a poorer gesture than the grid's and the right trade: the sheet's content is
+   arbitrary HTML of unknown height, and dragging it live would mean deciding, mid-gesture, whether
+   a finger on a long question is scrolling it or leaving it.
+
+   WHICH IS ALSO WHY IT DEFERS TO SCROLLING. If the sheet's own body can still scroll in the
+   direction of the flick, the flick was a scroll — the step only happens at the end of the travel,
+   which is where a reader is when they have finished reading.
+================================================================================================== */
+const SHEET_FLICK = { live: false, id: 0, x: 0, y: 0, at: 0 };
+
+addEventListener('pointerdown', e => {
+  if (!e.isPrimary || typeof sheetStep !== 'function' || !sheetStep) return;
+  if ($('sheet').classList.contains('hidden')) return;
+  if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+  if (e.target.closest?.('input, textarea, select, button, a, [data-noswipe]')) return;
+  SHEET_FLICK.live = true; SHEET_FLICK.id = e.pointerId;
+  SHEET_FLICK.x = e.clientX; SHEET_FLICK.y = e.clientY; SHEET_FLICK.at = Date.now();
+}, { passive: true });
+
+addEventListener('pointerup', e => {
+  if (!SHEET_FLICK.live || e.pointerId !== SHEET_FLICK.id) return;
+  SHEET_FLICK.live = false;
+  if (typeof sheetStep !== 'function' || !sheetStep) return;
+
+  const dx = e.clientX - SHEET_FLICK.x, dy = e.clientY - SHEET_FLICK.y;
+  /* SIDEWAYS IS NOT THIS GESTURE, and a lazy diagonal is sideways. The grid uses 1.4 to favour the
+     vertical; the same number here, for the same reason and so the two agree about what a
+     vertical flick is. */
+  if (Math.abs(dy) < 60 || Math.abs(dy) < Math.abs(dx) * 1.4) return;
+  /* AND NOT A SLOW DRAG. Three quarters of a second of travel is somebody moving the page about,
+     not flicking through it. */
+  if (Date.now() - SHEET_FLICK.at > 750) return;
+
+  const body = $('sheet-body');
+  if (body) {
+    const room = body.scrollHeight - body.clientHeight;
+    const pos  = body.scrollTop;
+    /* 2px, THE SAME SLACK THE GRID USES for the same rounding reason — a body that fits exactly
+       still reports a pixel of overflow. */
+    if (dy < 0 && room - pos > 2) return;    // flicking up, still more to read below
+    if (dy > 0 && pos > 2) return;           // flicking down, still scrolled away from the top
+  }
+
+  /* DOWN IS BACKWARDS, up is forwards — the direction the content moves, which is the way the grid
+     already reads a swipe and the way every list on a phone reads one. */
+  try { sheetStep(dy > 0 ? -1 : 1); } catch (err) {}
+}, { passive: true });

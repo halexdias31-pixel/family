@@ -415,11 +415,19 @@ function paperRows(t) {
                  || String(a.part || '').localeCompare(String(b.part || '')));
 }
 
-on('paper-read', el => {
-  const key = el.getAttribute('data-key');
-  const t = (allTopics() || []).find(x => (x.id || x.name) === key);
-  if (!t) { toast('That paper is not in the sheet'); return; }
+/* ---------- READING A PAPER, AND THE ONE AFTER IT --------------------------------------------------
+   PULLED OUT OF THE HANDLER so it can call itself. A flick inside the open sheet asks for the next
+   paper, and the next paper is opened by exactly the code that opened this one — which is the only
+   way the two can be guaranteed to look the same.
 
+   ONLY PAPERS WITH QUESTIONS WRITTEN UP ARE NEIGHBOURS. Stepping onto one with nothing in it would
+   land on an empty sheet with no way back except closing, so the list is filtered first and a paper
+   nobody has typed up is simply not in the sequence. */
+function papersWithQuestions_() {
+  return (allTopics() || []).filter(t => (paperRows(t) || []).length);
+}
+
+function openPaper_(t) {
   const rows = paperRows(t);
   if (!rows.length) { toast('No questions written up for this one yet'); return; }
 
@@ -453,9 +461,28 @@ on('paper-read', el => {
   });
 
   /* THE TOTAL IS ADDED UP RATHER THAN TYPED, so it cannot disagree with the questions above it. */
+  /* THE NEIGHBOURS ARE WORKED OUT AT OPENING TIME, not held from when the list was drawn: the
+     sheet may sit open while a refresh arrives, and a stale index would step onto the wrong paper
+     or off the end. `indexOf` on the current paper is cheap and cannot go stale. */
   openSheet(t.name, `<div class="qsheet qpaper">
     <p class="qp-head">${esc([t.examBoard, waveOf(t), t.keystage].filter(Boolean).join(' · '))}
       ${marks ? ` · <b>${marks} marks</b>` : ''}</p>
     ${h}
-  </div>`);
+  </div>`, null, dir => {
+    const all = papersWithQuestions_();
+    const at = all.findIndex(x => (x.id || x.name) === (t.id || t.name));
+    const next = all[at + dir];
+    /* THE ENDS ARE ENDS. Wrapping round would mean a flick at the last paper silently showing the
+       first, which reads as the app losing your place rather than as running out of papers. */
+    if (at === -1 || !next) return false;
+    openPaper_(next);
+    return true;
+  });
+}
+
+on('paper-read', el => {
+  const key = el.getAttribute('data-key');
+  const t = (allTopics() || []).find(x => (x.id || x.name) === key);
+  if (!t) { toast('That paper is not in the sheet'); return; }
+  openPaper_(t);
 });
