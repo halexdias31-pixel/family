@@ -5024,6 +5024,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mx-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
 .mx-say b { color: #6fa8dc; }
 
+/* THE "or" BETWEEN THE TWO WAYS IN. A rule either side rather than a word floating in space, so it
+   reads as a fork in one card and not as a heading over a second one. */
+.in-or { display: flex; align-items: center; gap: .6rem; margin: .9rem 0 .7rem; }
+.in-or::before, .in-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.in-or span { font-size: .72rem; color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
+#g-btn { display: flex; justify-content: center; min-height: 2.5rem; }
+
 /* ---------- A RIPPLE ---------------------------------------------------------------------------------
    THREE RINGS ON ONE TIMER, A THIRD OF A CYCLE APART, so one is always leaving as another arrives
    and the box is never empty. Scale and opacity only: a ring that grew by changing its width and
@@ -6493,4 +6500,3 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    than an instruction — read when the eye is already there and invisible when it is not. */
 .mat-note { display: block; font: 400 .62rem/1.3 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .1rem; }
-

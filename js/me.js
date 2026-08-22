@@ -47,6 +47,15 @@ function meBlocks() {
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         <button class="btn" data-do="do-signin">Sign in</button>
+        ${/* ---------- AND THE OTHER DOOR ----------------------------------------------------------
+             DRAWN ONLY WHEN THERE IS AN ID TO DRAW IT FOR. `googleClientId` comes off the payload;
+             with no id in the config tab the button is absent rather than present and broken, which
+             is the difference between a feature not set up and a feature that does not work.
+
+             THE PIN STAYS. Children mostly do not have Google accounts, and half of the people this
+             app signs in are children — so this is a second way in, never a replacement. */''}
+        ${(DATA.googleClientId || '') ? `<div class="in-or"><span>or</span></div>
+        <div id="g-btn"></div>` : ''}
         <p class="faint" id="in-said" style="margin:.6rem 0 0"></p>
       </div>
       <div class="card tap" data-do="register">
@@ -506,6 +515,10 @@ on('install', el => {
 screen('me', () => {
   const html = pages('me', mePages());
   if (USER) requestAnimationFrame(() => { if ($('msg-body')) fillMessages(); });
+  /* THE BUTTON IS MOUNTED THE SAME WAY THE MESSAGES ARE FILLED — a frame after the markup lands,
+     because Google renders into an element that has to exist first. Only when signed out, which is
+     the only time the card holding it is drawn. */
+  if (!USER) requestAnimationFrame(googleMount);
   return html;
 });
 
@@ -567,6 +580,61 @@ on('health', () => {
         <span class="faint">${esc(String(err && err.message || err))}</span></p>`;
     });
 });
+/* ---------- MOUNTING GOOGLE'S BUTTON ---------------------------------------------------------------
+   GOOGLE DRAWS IT, NOT US. The button has to be theirs — it is what carries the sign-in prompt and
+   the account chooser, and a lookalike of our own could not produce a token.
+
+   THE SCRIPT IS FETCHED ONCE AND ONLY IF NEEDED. Loaded at the moment the sign-in card is drawn
+   rather than in the page head: somebody already signed in never asks Google for anything, which is
+   a request they never make and a third party that never hears from them.
+
+   AND IT IS IDEMPOTENT. `repaint()` redraws this card whenever anything changes, so both the script
+   load and the render guard against having already happened — without that, a redraw stacks a
+   second button on top of the first. */
+let gLoaded = false;
+
+function googleMount() {
+  const host = $('g-btn');
+  const id = DATA.googleClientId || '';
+  if (!host || !id || host.childElementCount) return;
+
+  const draw = () => {
+    if (!window.google || !google.accounts || !google.accounts.id) return;
+    google.accounts.id.initialize({ client_id: id, callback: googleSignedIn_ });
+    google.accounts.id.renderButton(host, { theme: 'filled_black', size: 'large',
+                                            text: 'signin_with', width: 260 });
+  };
+  if (gLoaded) { draw(); return; }
+  gLoaded = true;
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  s.onload = draw;
+  /* NO SCRIPT, NO BUTTON, AND A SENTENCE. A blocked or offline third party otherwise leaves an
+     empty gap under the word "or", which reads as the app having lost something. */
+  s.onerror = () => { host.innerHTML = '<p class="faint">Google sign-in could not load.</p>'; };
+  document.head.appendChild(s);
+}
+
+/* WHAT COMES BACK IS A CLAIM AND IT IS NOT INSPECTED HERE. The token is passed straight through to
+   the server, which asks Google whether it signed it. Reading it in the browser would prove nothing
+   — the browser is the party being checked. */
+function googleSignedIn_(res) {
+  const said = $('in-said');
+  if (said) said.textContent = 'Checking with Google…';
+  send_({ action: 'googleLogin', credential: (res && res.credential) || '' }, { where: 'in-said' })
+    .then(d => {
+      if (!d.success) { if (said) said.textContent = d.error || 'That did not work.'; return; }
+      /* THE SAME THREE LINES AS THE PIN PATH, because the reply is the same reply — one function
+         builds it on the server for exactly this reason. */
+      USER = Object.assign({}, d);
+      try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
+      toast('Signed in');
+      load();
+    })
+    .catch(() => { if (said) said.textContent = 'Could not reach the server.'; });
+}
+
 on('do-signin', () => {
   const name = ($('in-name') || {}).value || '';
   const pin = ($('in-pin') || {}).value || '';
