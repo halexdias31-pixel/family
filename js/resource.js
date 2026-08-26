@@ -16,84 +16,14 @@
 
 
 
-/* ---------- ONE RESOURCE -------------------------------------------------------------------------
-   Free to open, and priced to print. Two offers, not one — and the free one goes first, because it
-   is what almost everybody wants and because a free thing listed under a paid one reads as the
-   cheap option rather than as the default.
+/* ---------- ONE RESOURCE, AND NO SHEET FOR IT --------------------------------------------------
+   `on('topic')` WAS HERE and is gone. It opened a panel that repeated the card — the name, the
+   subject, the page count — and then offered the ticks, the PDF, the transcription and the
+   printed copy. All four are buttons on the card now; see `topicTiles_` in tiles.js.
+   The panel had to repeat the card because a panel floating over a list has to say which of the
+   list it belongs to. That is the tell: a screen whose first job is to identify itself is a
+   screen that did not need to exist.
 --------------------------------------------------------------------------------------------- */
-on('topic', el => {
-  const t = topicBy(el.dataset.key);
-  if (!t) return;
-  const price = printPrice(t.pages);
-  const offered = canPrint(t);
-  const inCart = CART.some(c => c.key === (t.id || t.name) && c.kind === 'print');
-
-  openSheet(t.name, `
-    ${rowHtml('Subject', mark(t.subject || '—'))}
-    ${row('Grade', String(t.grade || '—'))}
-    ${/* Only when there is one. A row reading "Year —" on four hundred exercises is four hundred
-          lines saying nothing, and this sheet is already long. */''}
-    ${yearOf(t) ? `${row('Year', yearOf(t))}` : ''}
-    ${waveOf(t) ? `${row('Exam wave', waveOf(t))}` : ''}
-    ${row('Pages', t.pages || '—')}
-
-    ${t.trackable && USER ? `<h2>Your passes</h2>
-      <p class="faint" style="margin:0 0 .2rem">Three times, spaced out. Each is worth a credit.</p>
-      ${tickRow(t)}` : ''}
-
-    <h2>Digital</h2>
-    ${row('Costs', 'free', 'green')}
-    ${/* ---------- THE PAPER ITSELF, WHEN IT IS IN THE SHEET ------------------------------------
-          A PAST PAPER WITH NO PDF SAID "No link on this one yet" while twenty of its questions sat
-          in the `questions` tab with their full HTML in them. The paper was READABLE and the one
-          screen you would read it from was the one screen that did not say so — because the only
-          thing it knew how to offer was a URL somebody else hosts.
-
-          A LINK AND A TRANSCRIPTION ARE BOTH "the paper", so both are offered, and either can be
-          missing. When the questions are here they are the better answer: no download, no PDF
-          reader, and it is the same rows the question cards already draw from — so a fix to a
-          question fixes it here too. */''}
-    ${paperRows(t).length
-      ? `<button class="btn" style="margin-top:.5rem" data-do="paper-read"
-                 data-key="${esc(t.id || t.name)}">Read the paper
-           <em class="btn-note">${paperRows(t).filter(r => r.kind !== 'stem').length} questions</em>
-         </button>` : ''}
-    ${t.link
-      ? `<a class="btn ghost" href="${esc(t.link)}" target="_blank" rel="noopener"
-           style="margin-top:.5rem">Open the PDF</a>`
-      : (paperRows(t).length ? '' : '<p class="faint">No link on this one yet.</p>')}
-
-    ${/* THE PRINTED COPY. Paper, at cost. The sum is spelled out rather than stated — "43 pages ×
-          2p" is checkable, and "£0.86" is something you either believe or you do not. */''}
-    <h2>Printed</h2>
-    ${offered ? `
-      ${/* BACKTICKS, NOT QUOTES. The whole point of this line is that the sum is checkable —
-            "43 pages × 2p" rather than a figure you either believe or you do not — and inside
-            single quotes it read `${t.pages} pages × ${printRatePence()}p` on the page. */''}
-      ${row(`${t.pages} pages × ${printRatePence()}p`, money(price), 'mono gold')}
-      <button class="btn" style="margin-top:.5rem" data-do="cart-add"
-              data-key="${esc(t.id || t.name)}" data-kind="print" ${USER ? '' : 'disabled'}>
-        ${!USER ? 'Sign in first' : inCart ? 'Already in your basket' : 'Add a printed copy'}
-      </button>`
-      /* WHY it is not offered. A missing button is indistinguishable from a broken one, and the
-         commonest reason here is a page count nobody has run yet — which is a thing you can fix
-         rather than a thing you have to wonder about. */
-      : `<p class="note">${t.pages
-          ? 'Not offered as a print.'
-          : 'Not priced yet — nobody has counted the pages.'}</p>`}
-
-    ${isAdmin() ? `
-      <h2>Admin</h2>
-      <div class="btn-row">
-        <button class="btn quiet" data-do="topic-edit" data-key="${esc(t.id || t.name)}">Edit</button>
-        <button class="btn danger" data-do="topic-delete"
-                data-key="${esc(t.id || t.name)}" data-on="${t.active ? '' : '1'}">
-          ${t.active ? 'Delete' : 'Restore'}</button>
-      </div>
-      ${t.id ? '' : `<p class="faint">No id on this row — edits will match by name, which is
-        unreliable. Run <code>ensureResourceIds()</code>.</p>`}
-      <p class="faint" id="topic-said"></p>` : ''}`);
-});
 
 /* ---------- EDITING A RESOURCE, FROM THE BACKEND'S OWN LIST ---------------------------------------
    The form used to name seven fields by hand while the tab had twenty-five and the allow-list
@@ -343,7 +273,8 @@ on('cart-add', el => {
   }
 
   cartSave();
-  closeSheet();
+  /* NO SHEET TO CLOSE. This ran from inside the resource panel; it now runs from a tile on the
+     list itself, and closing a sheet nobody opened is a line that does nothing on every add. */
   toast('In your basket — ' + CART.length + ' item' + (CART.length === 1 ? '' : 's'));
   repaint();
 });

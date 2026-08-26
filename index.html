@@ -1085,6 +1085,9 @@
   <section class="screen hidden" id="s-arcade"></section>
   <section class="screen hidden" id="s-tools"></section>
   <section class="screen hidden" id="s-find"></section>
+  <section class="screen hidden" id="s-spotlight"></section>
+  <section class="screen hidden" id="s-favourites"></section>
+  <section class="screen hidden" id="s-basket"></section>
   <section class="screen hidden" id="s-book"></section>
   <section class="screen hidden" id="s-me"></section>
 </main>
@@ -1141,7 +1144,7 @@
      `openSheet` from shell, and before `boot`, which starts everything. */
   ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
    'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld',
-   'select', 'boot'].forEach(function (f) {
+   'select', 'collections', 'tiles', 'boot'].forEach(function (f) {
     /* `js/` — THE FOLDER THEY ARE ACTUALLY IN. This asked for them flat, beside index.html, and
        they moved into a folder: twenty requests for files that are one directory up from where
        they live, twenty 404s, and a blank app.

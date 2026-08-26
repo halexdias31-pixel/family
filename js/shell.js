@@ -26,6 +26,17 @@ const TABS = [
   /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
      question, and a person with no question needs somewhere to land. */
   { id: 'posts',   icon: '▦',  label: 'Posts',   title: 'Posts' },
+
+  /* ---------- THREE COLUMNS THAT ARE ONE IDEA ---------------------------------------------------
+     Spotlight, Saved and Basket are each a SET OF KEYS drawn as the cards those keys name.
+     Spotlight sits beside Posts because it is the business talking; Saved and Basket sit beside
+     You because they are yours.
+
+     WHAT THIS COSTS, and it is real: there is no tab bar, so the only way across is the X grid,
+     and every column added puts every column beyond it one more swipe away. At four, You was
+     three swipes from Posts. At seven it is six. `data-tab` is still handled, so a jump control
+     is possible if that turns out to be too far. */
+  { id: 'spotlight',  icon: '✦', label: 'Spot',   title: 'Spotlight' },
   /* ONE TAB FOR FINDING ANYTHING — tutors, venues, subjects, resources, wearables, things.
      The id stays `stuff` because it keys the pager, the page memory and the tests; only what it is
      called has changed, and renaming an id to match a label is a day of moving things for no
@@ -40,6 +51,9 @@ const TABS = [
      says "make something" in a way no other glyph does — it is the one action the whole app is
      for, and it should not be a word among six other words. */
   { id: 'book',    icon: '＋', label: 'Book',    title: 'Book a session', big: true },
+
+  { id: 'favourites', icon: '★', label: 'Saved',  title: 'Saved' },
+  { id: 'basket',     icon: '⛁', label: 'Basket', title: 'Your basket' },
 
   /* NOT "Who". It holds tutors, venues AND subjects — people, places and things — so a name
      asking about people was wrong about two thirds of it. "Find" is what you are doing on it. */
@@ -993,6 +1007,17 @@ function goPage(id, to, instant) {
    `.page` is the cell and is invisible. `.pane` inside it is the glass and is as tall as what is on
    it. Nothing that styles a page's contents changes: every rule was written as a DESCENDANT
    (`.page .post`), not a child, so a wrapper between them is not something they can notice. */
+/* ---------- THE MARKS, ADOPTED FROM THE PAYLOAD JUST LANDED ------------------------------------
+   BOTH SETS, AND AFTER `DATA` IS THE NEW ONE. `adoptFavourites_` used to be called a few lines
+   ABOVE the `DATA = new Proxy(d, ...)` assignment, so it read `DATA.favourites` off the payload
+   BEFORE this one — one load behind on every load, and on the very first load `DATA` is `{}` so
+   it adopted nothing at all. Every star was device-only and nobody could have seen why.
+   Called from `adoptMarks_` so the two cannot drift apart again. */
+function adoptMarks_() {
+  try { adoptFavourites_(); } catch (e) {}
+  try { adoptSpotlight_(); } catch (e) {}
+}
+
 const pages = (id, cards) =>
   cards.map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
 
@@ -1540,8 +1565,6 @@ async function load() {
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
          `find.js` because this is the moment a payload becomes DATA, and a favourite read before
          that is the last device's guess. */
-      try { adoptFavourites_(); } catch (e) {}
-
       DATA = new Proxy(d, {
         get(t, k) {
           /* `then` is asked for by anything that awaits an object, to find out whether it is a
@@ -1554,6 +1577,12 @@ async function load() {
         }
       });
       LOAD_FAILED = '';
+
+      /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. Called HERE rather
+         than a few lines above, which is where `adoptFavourites_` used to sit: up there `DATA` was
+         still the PREVIOUS payload, so every load adopted the load before it and the very first
+         one — where `DATA` is `{}` — adopted nothing. */
+      adoptMarks_();
 
       /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE ---------------------------------
          THE PAYLOAD ARRIVED. Whatever the 30-second watchdog in index.html wrote is now a

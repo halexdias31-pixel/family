@@ -48,6 +48,8 @@
      and not eight, and past that a palette becomes a legend. */
   --pink:      #ff8fc4;
   --gold:      #ffb454;   /* the one action */
+  /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
+  --admin:     #aab6c8;
   --warn:      #ffb454;
   --good:      #3ddc84;
   --bad:       #ff5f56;
@@ -6500,3 +6502,46 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    than an instruction — read when the eye is already there and invisible when it is not. */
 .mat-note { display: block; font: 400 .62rem/1.3 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .1rem; }
+
+/* ---------- TILES: THE CONTROLS THAT USED TO BE IN A SHEET ---------------------------------------
+   A ROW THAT WRAPS, NOT A GRID. The number of buttons on a card differs on every card — a worksheet
+   has two, a past paper with a transcription and a print price has four — and a fixed grid would
+   leave holes on most of them. */
+.tile-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .45rem; }
+.tile-row.is-admin { margin-top: .3rem; }
+
+.tile {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: .4rem .55rem;
+  font: 600 .78rem/1.15 var(--mono);
+  color: var(--ink); background: var(--sunk);
+  border: 1px solid var(--line); border-radius: var(--r);
+  text-decoration: none; cursor: pointer;
+}
+/* THE DETAIL, ON THE BUTTON THAT USES IT. "20pp x 2p" under "£0.40" is the sum made checkable — it
+   is the reason for the number above it, so it belongs on that control and nowhere else. */
+.tile-note { display: block; font: 400 .62rem/1.3 var(--mono); font-style: normal;
+             color: var(--faint); margin-top: .12rem; }
+.tile:active { transform: scale(.97); }
+.tile[disabled] { opacity: .45; cursor: default; }
+
+/* THE ONE THAT COSTS MONEY IS THE LOUD ONE, and the only gold thing on the card. */
+.tile.is-buy { color: var(--gold); border-color: rgb(255 180 84 / .45); }
+.tile.is-buy.on { background: rgb(255 180 84 / .14); }
+.tile.is-dim { color: var(--faint); }
+
+/* ---------- SILVER MEANS ONLY YOU CAN SEE THIS ---------------------------------------------------
+   NOT A HUE, ON PURPOSE. Green is a subject, purple a venue, pink a wearable, red a tutor — every
+   colour in this palette names what a thing IS, and there were none left, because admin is not that
+   kind of fact. It names who can SEE the control. A neutral says so without taking a fifth slot in
+   a palette that was declared full at four.
+
+   COOL, NOT GREY. `--dim` is #9a9a9a and a disabled tile is 45% opacity, so a neutral grey would
+   read as "switched off" — the one meaning it must never carry. The blue cast is what makes it look
+   deliberate rather than faded. */
+.tile.is-admin { color: var(--admin); border-color: rgb(170 182 200 / .45);
+                 background: rgb(170 182 200 / .07); }
+.tile.is-admin.on { background: rgb(170 182 200 / .2); }
+
+@media (prefers-reduced-motion: reduce) { .tile:active { transform: none; } }

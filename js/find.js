@@ -267,9 +267,14 @@ function thingCard_(x, credits) {
        So: it needs a board or a tier or a paper number. Everything else stays an ordinary card. */
     if (x.kind === 'topic' && !x.wearable && paperish_(x)) return paperCard(x);
 
-    return `<div class="card tap${x.wearable ? ' is-wear'
+    /* THE CARD IS NO LONGER A BUTTON. Its surface opened a sheet that repeated the card and then
+       offered four controls; the controls are ON the card now, so the surface has nothing left to
+       do — and leaving it tappable means every tap that misses a tick by two pixels opens a panel.
+       A WEARABLE IS THE ONE EXCEPTION and keeps its sheet: buying one and putting it on are a
+       single act with no basket in it, which is a different gesture from anything in a tile row. */
+    return `<div class="card${x.wearable ? ' tap is-wear'
              : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}"
-         data-do="${x.kind === 'shop' ? 'shop-item' : 'topic'}" data-key="${esc(x.key)}">
+         ${x.wearable ? `data-do="shop-item" data-key="${esc(x.key)}"` : ''}>
       <div class="thing">
         ${/* A WEARABLE DRAWS ITSELF. It has no photograph and never will — the drawing is the
               object, and a card selling a cape with nothing on it was selling a word.
@@ -298,7 +303,7 @@ function thingCard_(x, credits) {
           ${price}
         </div>
       </div>
-      ${x.kind === 'topic' && x.topic ? tickRow(x.topic) : ''}
+      ${cardTiles_(x)}
     </div>`;
   }
 }
@@ -1957,8 +1962,7 @@ function paperCard(x) {
   const board = S_(x.examBoard);
   const paper = (S_(x.name).match(/paper\s*\d+[a-z]?/i) || [''])[0];
   const when = yearOf(x) || waveOf(x);
-  return `<div class="paper tap${x.off ? ' is-off' : ''}"
-       data-do="topic" data-key="${esc(x.key)}">
+  return `<div class="paper${x.off ? ' is-off' : ''}">
     <div class="paper-top">
       <span class="paper-board">${esc(board || '@family.')}</span>
       ${x.tier ? `<span class="paper-tier">${esc(x.tier)} Tier</span>` : ''}
@@ -1983,8 +1987,14 @@ function paperCard(x) {
     <div class="paper-foot">
       <span>${esc(when || '')}</span>
       <span>${x.pages ? esc(x.pages) + ' pages' : ''}</span>
-      <span>${x.printPrice != null ? esc(money(x.printPrice)) + ' printed' : 'Answer all questions'}</span>
+      ${/* `x.printPrice` WAS NEVER SET BY ANYTHING. Nothing in `stuffItems` writes that field, so
+            this read `undefined` on every past paper ever drawn and every cover in the app said
+            "Answer all questions" whether or not it was priced. Worked out from the pages here,
+            which is where the other two facts on this line come from. */''}
+      <span>${printPrice(x.topic && x.topic.pages) != null
+        ? esc(money(printPrice(x.topic.pages))) + ' printed' : 'Answer all questions'}</span>
     </div>
+    ${cardTiles_(x)}
   </div>`;
 }
 
