@@ -16,8 +16,8 @@
 
    A stack keeps that promise for nothing. Every row is the width of the card, so uniformity is not
    maintained, it is simply unavoidable. And once nothing is competing for horizontal room the label
-   can be the word — PDF, HTML, Paper — which needs no long-press text to explain it and no guess
-   about whether a framed block reads as a document.
+   can be the word — HTML, Paper — which needs no long-press text to explain it and no guess about
+   whether a framed block reads as a document.
 
    WHICH ALSO REMOVES THE PLACEHOLDERS. The dim dead slots existed to hold a column position steady
    so that a thumb would find the paper copy in the same place on every card. A stacked row has no
@@ -109,11 +109,11 @@ function adminTiles_(x, t) {
 
 
 /* ---------- A RESOURCE'S WAYS IN -------------------------------------------------------------------
-   PDF, HTML, PAPER — in that order, and only the ones that exist.
+   HTML, THEN PAPER — read it here, or hold it. There were three and the PDF was the first of them;
+   see the note in the list below for where it went.
 
-   THE ORDER IS EFFORT ASCENDING. The PDF is what most people came for and what most rows actually
-   have; the transcription is better where it exists and exists on few; paper costs money and is
-   last, which is where the only control that spends anything belongs.
+   PAPER IS LAST because it is the only control that spends anything, and that is where a control
+   that spends anything belongs.
 
    WHEN NOTHING IS OFFERED AT ALL, one line says so. That is not a placeholder — it is the answer to
    the question the card just raised by having no rows under it, and a page count nobody has run is
@@ -127,11 +127,18 @@ function topicTiles_(x) {
   const inCart = CART.some(c => c.key === (t.id || t.name) && c.kind === 'print');
 
   const rows = [
-    t.link ? tile_({ label: 'PDF', href: t.link }) : '',
+    /* ---------- THE PDF ROW WAS HERE --------------------------------------------------------------
+       A PDF IS OPAQUE TO EVERYTHING THIS APP DOES. You cannot tick one question inside it, filter to
+       it, or pull four questions from four papers into one worksheet — and the funnel, the passes
+       and the generated paper all work at question granularity. It could be linked and nothing else.
 
-    /* THE TRANSCRIBED PAPER. Where the questions are in the `questions` tab this is the better
-       answer — no download and no reader — and it is the same rows the question cards draw from,
-       so a fix to a question fixes it here too. */
+       `link` IS STILL IN THE SHEET and is deliberately left there: it is the only record of where
+       those papers actually live, and a column costs nothing. It is simply no longer a way in.
+    --------------------------------------------------------------------------------------------- */
+
+    /* THE PAPER, FROM ITS OWN QUESTIONS. The only way to read a resource now — no download, no
+       reader, and it is the same rows the question cards draw from, so a fix to a question fixes it
+       here too. */
     qs ? tile_({ label: 'HTML', note: qs + ' questions',
                  act: 'paper-read', data: { key: t.id || t.name } }) : '',
 
@@ -145,9 +152,12 @@ function topicTiles_(x) {
       : '',
   ].filter(Boolean);
 
+  /* NOTHING TO OPEN MEANS NOBODY HAS TYPED IT UP. That is now the only reason it can happen, and it
+     is a thing you can go and do rather than a thing to wonder about — so the sentence says which,
+     and says it to an admin as a job rather than to a client as a fault. */
   const none = rows.length ? '' : `<p class="tile-none">${
-    t.pages ? 'Nothing to open on this one yet.'
-            : 'Not priced and no link — nobody has counted the pages.'}</p>`;
+    isAdmin() ? 'No questions written up for this one yet.'
+              : 'Not ready to read yet.'}</p>`;
 
   return `${tickRow(t)}
     ${rows.length ? `<div class="tile-row">${rows.join('')}</div>` : none}
