@@ -6602,3 +6602,50 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .tile.is-buy.on { color: var(--dim); background: rgb(255 180 84 / .09); }
 .tile.is-admin.on { color: var(--admin); background: rgb(170 182 200 / .18); }
 .tile.on .tile-v { color: var(--faint); }
+
+
+/* ---------- SECOND PASS, FROM LOOKING AT IT -------------------------------------------------------
+   THREE THINGS WERE WRONG AND THEY WERE ALL ONE THING: everything on the card had the same weight,
+   so nothing had any.
+
+   1. THE SILVER WAS NOT READING AS SILVER. #aab6c8 on near-black at 0.8rem is white — the whole
+      "only you can see this" idea was invisible, which is worse than not having tried, because the
+      admin rows then look like ordinary actions a client is failing to get a response from.
+
+   2. THE ADMIN ROWS OUTNUMBER THE REAL ONES. Two ways in and three things only you can do means the
+      card is mostly maintenance. Colour alone was never going to fix a majority.
+
+   3. THE TICKS WERE THE LOUDEST THING ON IT. Gold filled squares above, and the paper copy — the
+      one row that takes money — quiet underneath. Gold means "the one action" everywhere else in
+      this app and it was being spent on a checkbox.
+
+   SO SIZE CARRIES IT NOW, not hue. Admin rows are smaller, tighter and dimmer; they read as a
+   footer to the card rather than as three more of the same. A glance sees two actions and a strip
+   of small print, which is what the card actually is. */
+.tile-row.is-admin { margin-top: .5rem; gap: 0; }
+.tile-row.is-admin .tile {
+  padding: .3rem .5rem;
+  font-size: .68rem; font-weight: 500; letter-spacing: .03em;
+  color: var(--admin); opacity: .75;
+  background: transparent; border-color: var(--line-soft);
+}
+/* THE MIDDLE ONE LOSES ITS SHARED EDGES, so three rows read as one block of small print rather than
+   as three separate offers. */
+.tile-row.is-admin .tile + .tile { border-top: 0; }
+.tile-row.is-admin .tile:not(:first-child):not(:last-child) { border-radius: 0; }
+.tile-row.is-admin .tile:first-child { border-radius: var(--r) var(--r) 0 0; }
+.tile-row.is-admin .tile:last-child  { border-radius: 0 0 var(--r) var(--r); }
+.tile-row.is-admin .tile.on { opacity: 1; background: rgb(170 182 200 / .12); }
+
+/* ---------- THE TICKS STOP SHOUTING ---------------------------------------------------------------
+   AN OUTLINE, NOT A FILL. A pass is a record of something you did, not an offer — so it is marked
+   the way a record is marked, and the gold goes back to the one row on this card that spends money.
+   Still unmistakably done: a filled outline at this size is as readable as a solid block and does
+   not compete with the thing underneath it. */
+.card .ticks .tick .tick-box { background: rgb(255 255 255 / .04); box-shadow: none; }
+.card .ticks .tick.on .tick-box { background: transparent; border-color: var(--gold); }
+/* THE MARK ITSELF IS THE GOLD. `.tick.on .tick-box::after` sets it to #1a1409 — ink, for reading on
+   a solid gold square — so removing the fill without this leaves a near-black tick on near-black
+   and the box comes out looking empty. */
+.card .ticks .tick.on .tick-box::after { color: var(--gold); }
+.card .ticks .tick-said { color: var(--faint); }
