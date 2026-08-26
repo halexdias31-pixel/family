@@ -707,12 +707,19 @@ function questionItems() {
   const papers = {};
   (allTopics() || []).forEach(t => { if (t.id) papers[t.id] = t; });
 
-  const stems = {};
-  all.forEach(r => { if (r.kind === 'stem') stems[r.paper + '|' + r.q] = r; });
+  /* ---------- ONE READER FOR THE PAPER'S ID -------------------------------------------------------
+     THREE NAMES WERE IN USE for one column — `paper`, `paperId`, `paper_id` — and `paper` is also a
+     BOOLEAN on a resource row. With resources gone the boolean is too, but the ambiguity is worth
+     closing rather than inheriting: one function, read everywhere. */
+  const pid = r => r.paperId || r.paper_id || r.paper || '';
 
-  return all.filter(r => r.kind !== 'stem' && r.kind !== 'paper').map(r => {
-    const p = papers[r.paper] || {};
-    const stem = stems[r.paper + '|' + r.q] || null;
+  const stems = {};
+  all.forEach(r => { if (r.kind === 'stem') stems[pid(r) + '|' + r.q] = r; });
+
+  /* NO `kind: paper` ROWS LEFT TO EXCLUDE. A paper is a group of these now, not a row beside them. */
+  return all.filter(r => r.kind !== 'stem').map(r => {
+    const p = papers[pid(r)] || {};
+    const stem = stems[pid(r) + '|' + r.q] || null;
     return {
       kind: 'question',
       /* "Q5b" IS THE NAME, and the paper is the subtitle. A list of parts all called
@@ -729,7 +736,9 @@ function questionItems() {
       /* THE PAPER'S OWN TYPE, so filtering to "Past paper" keeps its questions rather than
          dropping them — a part of a past paper IS a past paper. */
       resourceType: p.resourceType || '', examWave: p.examWave || '',
-      year: p.year || '', paper: p.paper || '',
+      /* `paper: p.paper` WAS THE RESOURCE ROW'S BOOLEAN and there are no resource rows.
+         Every question here is part of a paper by definition, so it is simply true. */
+      year: p.year || '', paper: true,
       /* and its own two */
       qNumber: r.q, qPart: r.part || '',
       marks: r.marks, section: r.section,
@@ -740,70 +749,88 @@ function questionItems() {
   });
 }
 
+/* ---------- EVERY PAPER, DERIVED FROM ITS OWN QUESTIONS -------------------------------------------
+   THERE IS NO `resources` TAB ANY MORE. It has moved to another spreadsheet and the backend does not
+   read it, so the checklists branch that used to build this list has nothing behind it.
+
+   A PAPER IS NOW A GROUP OF QUESTIONS THAT SHARE A `paperId`, and its paper-level facts — the name,
+   the subject, the board, the wave — ride on every part. That is a denormalisation and it is worth
+   naming as one: the same ten fields are repeated on all eight or nine rows of a paper, and nothing
+   stops row four disagreeing with row three.
+
+   SO THE FIRST PART WINS, and disagreement is reported rather than resolved. `paperMismatches()`
+   typed into the console names any paper whose parts do not agree, which is the only defence a
+   repeated fact has. Picking silently would make a typo on one row invisible for ever.
+
+   IT COSTS ONE PASS over the questions rather than a lookup per card — four hundred cards each
+   scanning two hundred rows is eighty thousand comparisons to draw one screen. */
 function allTopics() {
-  const by = (DATA.dropdowns || {}).checklists || {};
-  /* Keyed on the object IDENTITY of the payload's own branch. A new payload is a new object, so
-     this cannot go stale — and it costs one comparison rather than hashing four hundred rows. */
-  if (TOPICS_MEMO.from === by && TOPICS_MEMO.fromQ === DATA.questions) return TOPICS_MEMO.list;
+  const qs = DATA.questions || [];
+  /* Keyed on the object IDENTITY of the payload's own branch, so a new payload is a new list and
+     this cannot go stale — one comparison rather than hashing two hundred rows. */
+  if (TOPICS_MEMO.fromQ === qs) return TOPICS_MEMO.list;
+
+  const seen = {};
   const out = [];
-  Object.keys(by).forEach(subject => {
-    Object.keys(by[subject] || {}).forEach(band => {
-      ((by[subject][band] || {}).topics || []).forEach(t => {
-        out.push({
-          /* THE ID IS THE POINT. A name is not a name — two subjects can both have "Quadratics",
-             and every lookup here takes the first match. Reading the wrong one is invisible;
-             deleting the wrong one is not. */
-          id: t.id || '', name: t.name, subject, grade: t.grade || band, link: t.link,
-          type: t.resourceType, board: t.examBoard, image: t.image,
-          /* EVERY QUESTION THE FUNNEL CAN ASK. They have been in the payload since the fields
-             were added and stopped here — flattened into six of twenty, because the checklist
-             only needed six. A facet nothing carries is a facet that silently offers nothing. */
-          bandType: t.bandType || '', bandValue: t.bandValue || band,
-          keystage: t.keystage || '', tier: t.tier || '',
-          examBoard: t.examBoard || '', company: t.company || '',
-          resourceType: t.resourceType || '', examWave: t.examWave || '',
-          year: t.year || '', paper: !!t.paper,
-          pages: Number(t.pages) || 0, printable: t.printable,
-          active: t.active !== false,
-          /* THE THREE TICKS. Each is the comma-separated list of everybody who has done that pass
-             — the count is its length, and whether it is YOURS is whether your handle is in it.
-             Carried whole rather than as a boolean, because the same payload serves a tutor
-             looking at who has done what and a student looking at their own row. */
-          trackable: t.trackable !== false,
-          rowIndex: t.rowIndex || 0,
-          ticks: [t.tick1 || '', t.tick2 || '', t.tick3 || ''],
-        });
-      });
+  qs.forEach(r => {
+    const id = r.paperId || r.paper_id || '';
+    if (!id || seen[id]) return;
+    seen[id] = true;
+    out.push({
+      id,
+      name: r.name || id,
+      subject: r.subject || '',
+      grade: r.bandType === 'grade' ? r.bandValue : '',
+      /* NO LINK AND NO PAGES. There is no PDF behind any of these — which is the whole point — so
+         the print price never offers itself and the funnel files them as digital. If printing from
+         HTML ever happens, `pages` is what it has to start producing. */
+      link: '', image: '', company: '',
+      type: r.resourceType || '', board: r.examBoard || '',
+      bandType: r.bandType || '', bandValue: r.bandValue || '',
+      keystage: r.keyStage || r.keystage || '', tier: r.tier || '',
+      examBoard: r.examBoard || '', resourceType: r.resourceType || '',
+      examWave: r.examWave || '', year: r.year || '',
+      paper: false, pages: 0, printable: false,
+      active: r.active !== false,
+      /* ---------- THE PASSES HAVE NOWHERE TO LIVE ---------------------------------------------
+         `ticks` WERE THREE COLUMNS ON THE `resources` TAB and that tab is gone, so there is nothing
+         to read and nothing to write to. Every card therefore draws none, and `tickRow` returns
+         empty for an untrackable topic — which is the honest state rather than three boxes that
+         accept a tap and lose it.
+         518 of them exist in the other spreadsheet. Until passes have a home of their own — a
+         `ticks` tab of person, paper and which pass — this stays false. */
+      trackable: false,
+      rowIndex: 0,
+      ticks: ['', '', ''],
     });
   });
-  /* ---------- AND THE PAPERS THAT HAVE NO RESOURCE ROW ---------------------------------------
-     A paper written as HTML is described by one `kind: paper` row in the questions tab and
-     nothing else. It joins the topic list here on purpose: this one function is what the funnel
-     indexes, what the cards are drawn from, and what a question looks its own paper up in — so a
-     paper added here is a paper everywhere, with no second path to keep in step.
 
-     ITS OWN ROW WINS. If a resource row with the same id also exists — a paper part-way through
-     being moved off its PDF — the questions row is the newer truth and replaces it. */
-  (DATA.questions || []).filter(r => r.kind === 'paper').forEach(r => {
-    const t = {
-      id: r.id, name: r.name, subject: r.subject,
-      grade: r.bandType === 'grade' ? r.bandValue : '',
-      link: '', type: r.resourceType, board: r.examBoard, image: '',
-      bandType: r.bandType, bandValue: r.bandValue,
-      keystage: r.keystage, tier: r.tier,
-      examBoard: r.examBoard, company: '',
-      resourceType: r.resourceType, examWave: r.examWave, year: r.year,
-      /* NOT PRINTED, NO PAGES. There is no PDF to print — which is the whole point of it — so it
-         is Digital in the funnel and the print price never offers itself. */
-      paper: false, pages: 0, printable: false,
-      active: true, trackable: true, rowIndex: 0,
-      ticks: ['', '', ''],
-    };
-    const at = out.findIndex(x => x.id && x.id === t.id);
-    if (at >= 0) out[at] = t; else out.push(t);
-  });
-  TOPICS_MEMO = { from: by, fromQ: DATA.questions, list: out };
+  TOPICS_MEMO = { from: null, fromQ: qs, list: out };
   return out;
+}
+
+/* WHERE THE PARTS OF ONE PAPER DISAGREE about a fact that belongs to the paper. Nothing calls this;
+   it is for typing into the console after a batch of questions has been written, which is exactly
+   when a repeated field gets one row wrong. */
+function paperMismatches() {
+  const F = ['name', 'subject', 'resourceType', 'keyStage', 'bandType', 'bandValue',
+             'tier', 'examBoard', 'examWave', 'year'];
+  const by = {};
+  (DATA.questions || []).forEach(r => {
+    const id = r.paperId || r.paper_id || '';
+    if (!id) return;
+    (by[id] = by[id] || []).push(r);
+  });
+  const bad = [];
+  Object.keys(by).forEach(id => {
+    F.forEach(f => {
+      const vals = [...new Set(by[id].map(r => String(r[f] == null ? '' : r[f])))];
+      if (vals.length > 1) bad.push({ paper: id, field: f, values: vals.join(' | ') });
+    });
+  });
+  if (!bad.length) { console.log('every paper agrees with itself'); return bad; }
+  console.table(bad);
+  return bad;
 }
 
 /* By id, always. The name lookup is what remains for a row written before ids existed, and it is
