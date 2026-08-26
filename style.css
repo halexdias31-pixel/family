@@ -6563,3 +6563,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                border: 1px solid var(--line-soft); border-radius: var(--r); }
 .card .ticks .tick-said { font: 400 .8rem/1.2 var(--mono); color: var(--dim); }
 .card .ticks .tick-said:empty::before { content: 'Passes'; color: var(--faint); }
+
+
+/* ---------- WHAT THE CARDS NEEDED ONCE THEY STOPPED OPENING PANELS -------------------------------
+   THE PASS GAINED A PLACE. It is the one fact the tutor sheet had that the pass did not, and it is
+   what a parent scanning a list is sorting by — so it goes in the foot beside the DBS stamp, set
+   like the rest of the printed matter on the card. */
+.pass-where { font: 400 .6rem/1 var(--mono); color: var(--dim); letter-spacing: .04em;
+              text-transform: uppercase; }
+
+/* A TOOL OPENS INSIDE ITS OWN CARD. Empty until the row is pressed, so a list of forty widgets is
+   forty headings and no canvases — a running board on a card nobody is looking at is a flat
+   battery for nothing. */
+.widget-slot:empty { display: none; }
+.widget-slot { margin-top: .45rem; }
+
+/* THE WHOLE QUESTION, ON THE CARD. `.qcard-peek` is gone with the 96-character truncation it
+   styled; what replaces it is the same `.qsheet` markup the panel used, which is why the question
+   looks identical to how it always did — it is the same three fields in the same order, one layer
+   further out. */
+.qcard .qsheet { margin-top: .5rem; }
+.qcard .qsheet-part { margin-top: .4rem; }

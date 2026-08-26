@@ -134,7 +134,6 @@ function topicTiles_(x) {
    nothing to collect, so it never enters a basket — and that is a different gesture from anything
    on this row. It keeps its sheet until it has a screen of its own. */
 function shopTiles_(x) {
-  if (x.wearable) return adminTiles_(x, null);
   const inCart = CART.some(c => c.key === x.key && c.kind === 'shop');
   return `<div class="tile-row">
     ${tile_({ label: inCart ? 'In your basket' : 'Add to basket', tone: 'buy', on: inCart,
@@ -145,12 +144,128 @@ function shopTiles_(x) {
 }
 
 
+/* ---------- A TUTOR --------------------------------------------------------------------------------
+   THE PASS ALREADY SAYS WHO THEY ARE — photograph, name, what they teach, rate, DBS. The sheet
+   repeated all of that and added a borough, a full subject list and one button. So the borough and
+   the list go onto the pass where the rest of the person is, and the button comes down here.
+
+   `Listed` IS ADMIN AND DESTRUCTIVE-ISH: unticking it takes somebody off the site for every client
+   at once. It was a checkbox in a panel, which is where a switch goes to be flipped by accident;
+   as a silver row it is as deliberate as Delete and reads the same way. */
+function tutorTiles_(x) {
+  const t = x.row || {};
+  return `<div class="tile-row">
+    ${tile_({ label: 'Book with them', act: 'book-with', data: { name: x.key } })}
+  </div>
+  ${isAdmin() ? `<div class="tile-row is-admin">
+    ${tile_({ label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
+              on: t.listed !== false, act: 'set-listed',
+              note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
+              data: { who: x.key } })}
+    ${tile_({ label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
+              on: isSpot(x.key), act: 'spot', data: { key: x.key, kind: 'tutor' } })}
+  </div>` : ''}`;
+}
+
+
+/* ---------- A VENUE ---------------------------------------------------------------------------------
+   THE SLIP ALREADY CARRIES EVERY FACT the sheet had — the rooms, their capacities, their rates and
+   the notice period — and it carried them better, one line per room against a single "from" price.
+   The sheet was a worse copy of the card in front of it. Only the button was ever new. */
+function venueTiles_(x) {
+  return `<div class="tile-row">
+    ${tile_({ label: 'Book this room', act: 'book-with', data: { name: x.key } })}
+  </div>${adminTiles_(x, null)}`;
+}
+
+
+/* ---------- A SUBJECT -------------------------------------------------------------------------------
+   `Book this` SENT AN EMPTY NAME in the sheet — `data-name=""` — so booking from a subject asked for
+   nobody in particular. Kept exactly as it was rather than quietly fixed: booking a subject with no
+   tutor named may well be right, and changing what a button DOES while moving it is how a move gets
+   blamed for a bug it did not cause. */
+function subjectTiles_(x) {
+  return `<div class="tile-row">
+    ${tile_({ label: 'Book this', act: 'book-with', data: { name: '' } })}
+  </div>${adminTiles_(x, null)}`;
+}
+
+
+/* ---------- A WEARABLE ------------------------------------------------------------------------------
+   THE ONE THAT IS GENUINELY NOT A BASKET. Buying and putting on are a single act — there is nothing
+   to post and nothing to collect — and the credits come off at the moment it goes on, which is what
+   stops a failed request leaving somebody poorer than it found them.
+
+   SO IT IS ONE ROW, AND THE ROW SAYS WHICH ACT IT IS: put it on, buy and wear it, or how far off it
+   is. A LEVEL IS NOT A PRICE and never reads as one here — "6 more ticks to go" is a distance you
+   can close, where "locked" is a door. */
+function wearTiles_(x) {
+  const level = levelFromXp(USER && USER.xp);
+  const mine = wardrobe().find(w => w.slot === x.slot && w.id === x.artId);
+  const owned = mine && mine.unlocked;
+  const tooLow = x.level && level < x.level;
+  const wearing = USER
+    && avatarConfig(USER.avatar, USER.handle || USER.name)[x.slot] === x.artId;
+
+  const label = !USER ? 'Sign in first'
+    : wearing ? 'Wearing it'
+    : tooLow ? (x.level * 10 - (Number(USER.xp) || 0)) + ' more ticks to go'
+    : owned ? 'Put it on' : 'Buy and wear it';
+
+  const note = !USER ? ''
+    : wearing ? ''
+    : tooLow ? 'level ' + x.level
+    : owned ? '' : (x.cost ? x.cost + ' credits' : 'free');
+
+  return `<div class="tile-row">
+    ${tile_({ label, note, tone: tooLow ? '' : 'buy', on: !!wearing,
+              act: 'wear', off: !USER || tooLow || wearing,
+              data: { slot: x.slot, id: x.artId } })}
+  </div>${adminTiles_(x, null)}`;
+}
+
+
+/* ---------- A TOOL OR A GAME ------------------------------------------------------------------------
+   NOT A DETAILS PANEL — the sheet held the THING ITSELF, a timer or a board, and there is nothing
+   about it to summarise onto a card. So it opens in place instead of over the top: the row toggles
+   the widget open inside its own card, and `startWidget_` runs once the markup is in the document.
+
+   IN PLACE RATHER THAN INLINE-ALWAYS, because a canvas loop running on every card of a list of
+   forty is a flat battery for thirty-nine things nobody is looking at. */
+function widgetTiles_(x) {
+  const id = (x.row && x.row.id) || '';
+  return `<div class="tile-row">
+    ${tile_({ label: 'Open', act: 'widget-open', data: { id } })}
+  </div>
+  <div class="widget-slot" id="wgt-${esc(String(id))}"></div>
+  ${adminTiles_(x, null)}`;
+}
+
+on('widget-open', el => {
+  const id = el.dataset.id;
+  const wgt = WIDGETS.find(w => w.id === id);
+  const slot = $('wgt-' + id);
+  if (!wgt || !slot) return;
+
+  /* A SECOND PRESS PUTS IT AWAY. A thing that can only be opened is a thing that fills the card and
+     stays there — and on a list, the way back has to be the same control that got you in. */
+  if (slot.innerHTML) { slot.innerHTML = ''; el.querySelector('.tile-k').textContent = 'Open'; return; }
+  slot.innerHTML = wgt.html;
+  el.querySelector('.tile-k').textContent = 'Close';
+  startWidget_(wgt);
+});
+
+
 /* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
    rows, so a spotlight can go on anything findable rather than only on the two kinds that happen to
    have actions today. */
 function cardTiles_(x) {
   if (x.kind === 'topic') return topicTiles_(x);
-  if (x.kind === 'shop') return shopTiles_(x);
+  if (x.kind === 'shop') return x.wearable ? wearTiles_(x) : shopTiles_(x);
+  if (x.kind === 'tutor') return tutorTiles_(x);
+  if (x.kind === 'venue') return venueTiles_(x);
+  if (x.kind === 'subject') return subjectTiles_(x);
+  if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   return adminTiles_(x, null);
 }
 

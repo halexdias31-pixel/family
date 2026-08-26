@@ -218,10 +218,13 @@ const KINDS = {
 };
 
 function widgetCard_(x) {
-  return `<div class="card tap" data-do="widget" data-id="${esc(x.row.id)}">
+  /* NO LONGER A TAP TARGET. The sheet it opened was not a description of the tool, it WAS the tool —
+     so there is nothing to summarise here and nothing a panel added except a lid. `widgetTiles_`
+     opens it inside this card instead, and closes it with the same row. */
+  return `<div class="card">
     <h3>${esc(x.name)}</h3>
+    ${cardTiles_(x)}
   </div>`;
-
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -272,9 +275,11 @@ function thingCard_(x, credits) {
        do — and leaving it tappable means every tap that misses a tick by two pixels opens a panel.
        A WEARABLE IS THE ONE EXCEPTION and keeps its sheet: buying one and putting it on are a
        single act with no basket in it, which is a different gesture from anything in a tile row. */
-    return `<div class="card${x.wearable ? ' tap is-wear'
-             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}"
-         ${x.wearable ? `data-do="shop-item" data-key="${esc(x.key)}"` : ''}>
+    /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. The wearable was the last exception — it kept
+       its sheet because buying and wearing are one act — and that act is now the row underneath,
+       which says which of the three it is rather than making you open a panel to find out. */
+    return `<div class="card${x.wearable ? ' is-wear'
+             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}">
       <div class="thing">
         ${/* A WEARABLE DRAWS ITSELF. It has no photograph and never will — the drawing is the
               object, and a card selling a cape with nothing on it was selling a word.
@@ -616,38 +621,41 @@ function boxerCard_(x) {
 }
 
 function questionCard_(x) {
-  /* THE FIRST SENTENCE, with the tags stripped. A card showing raw HTML would show angle brackets;
-     one showing the whole question would be a page per row. */
-  const plain = String(x.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  const peek = plain.length > 96 ? plain.slice(0, 96).replace(/\s\S*$/, '') + '…' : plain;
-  return `<div class="qcard tap" data-do="question" data-key="${esc(x.key)}">
+  /* ---------- THE WHOLE QUESTION, NOT A PEEK ------------------------------------------------------
+     THE CARD SHOWED 96 CHARACTERS and a panel showed the rest. That split only made sense while the
+     rest lived somewhere else — and it never did: the stem, the lead and the part are three fields
+     on the row this card is already drawn from.
+
+     A QUESTION IS SHORT. That is what a question IS; if it were a page it would be a paper. So the
+     truncation was buying nothing and costing a tap on every single one.
+
+     THE STEM AND THE LEAD COME FIRST, in printed order, because a part without them cannot be
+     answered — which is the whole reason the stem is a row of its own rather than a copy on each
+     part. */
+  return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
       <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
     </div>
     <p class="qcard-sub">${esc(x.sub)}</p>
-    <p class="qcard-peek">${esc(peek)}</p>
+    <div class="qsheet">
+      ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}</div>` : ''}
+      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
+      <div class="qsheet-part">
+        <div class="qsheet-pb">${x.html || ''}</div>
+      </div>
+    </div>
+    ${cardTiles_(x)}
   </div>`;
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it
    is printed and because a part without them cannot be answered. This is the whole reason the stem
    is a row of its own rather than a copy on each part. */
-on('question', el => {
-  const key = el.getAttribute('data-key');
-  const x = questionItems().find(q => q.key === key);
-  if (!x) { toast('That question is not in the sheet'); return; }
-  openSheet(x.name + ' · ' + x.sub, `
-    <div class="qsheet">
-      ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}</div>` : ''}
-      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
-      <div class="qsheet-part">
-        <span class="qsheet-pn">${esc(qPartShow_(x.qPart))}</span>
-        <div class="qsheet-pb">${x.html}
-          <span class="qsheet-marks">(${esc(x.marks)})</span></div>
-      </div>
-    </div>`);
-});
+/* ---------- `on('question')` WAS HERE ------------------------------------------------------------
+   It opened the stem, the lead and the part over the top of a card showing the first 96
+   characters of the part. All three are on the card now. See `questionCard_` above.
+--------------------------------------------------------------------------------------------- */
 
 /* ---------- WHAT A PART IS CALLED ------------------------------------------------------------
    THREE HABITS, ONE COLUMN. Edexcel letters its parts (5b) and nests roman numerals inside them

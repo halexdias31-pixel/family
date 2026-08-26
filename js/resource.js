@@ -157,53 +157,12 @@ on('topic-delete', el => {
     });
 });
 
-on('shop-item', el => {
-  const it = (DATA.shop || []).find(x => norm(x.name) === norm(el.dataset.key));
-  if (!it) return;
-  const credits = USER ? (USER.credits || 0) : 0;
-  const price = Number(it.price) || 0;
-  const inCart = CART.some(c => c.key === it.name && c.kind === 'shop');
-  const wearable = isWearable(it);
-
-  /* A WEARABLE IS NOT PUT IN A BASKET. There is nothing to post and nothing to collect — it is
-     worn, or it is not — so it goes on straight away and the credits come off at that moment.
-     Buying and equipping are ONE act, which is what stops a failed request leaving somebody
-     poorer than it found them. */
-  const mine = wardrobe().find(w => w.slot === it.slot && w.id === it.artId);
-  const owned = wearable && mine && mine.unlocked;
-  const level = levelFromXp(USER && USER.xp);
-  const tooLow = wearable && it.level && level < it.level;
-  const wearing = wearable && USER
-    && avatarConfig(USER.avatar, USER.handle || USER.name)[it.slot] === it.artId;
-
-  openSheet(it.name, `
-    ${wearable && itemArt(it.slot, it.artId)
-      ? `<div class="av-wrap">${itemArt(it.slot, it.artId, 96)}</div>`
-      : it.image ? `<img src="${esc(pic(it.image))}" alt=""
-           style="width:100%;margin-bottom:.7rem">` : ''}
-    ${it.description ? `<p class="note" style="margin-top:0">${mark(it.description)}</p>` : ''}
-    ${it.slot ? `${row('Goes on', it.slot)}` : ''}
-    ${it.level
-      ? `${row('Unlocks at', 'Level ' + it.level, level >= it.level ? 'gold' : '')}
-         ${row('You are', 'Level ' + level)}`
-      : `${row('Costs', price ? price + ' credits' : 'free')}
-         ${USER ? `${row('You have', credits)}` : ''}`}
-
-    ${wearable
-      ? `<button class="btn" style="margin-top:.85rem" data-do="wear"
-                 data-slot="${esc(it.slot)}" data-id="${esc(it.artId)}"
-                 ${!USER || tooLow || wearing ? 'disabled' : ''}>
-          ${!USER ? 'Sign in first'
-          : wearing ? 'Wearing it'
-          : tooLow ? (it.level * 10 - (Number(USER.xp) || 0)) + ' more ticks to go'
-          : owned ? 'Put it on' : 'Buy and wear it'}
-        </button>
-        ${tooLow ? `<p class="faint">Every topic you tick is one XP. Ten is a level.</p>` : ''}`
-      : `<button class="btn" style="margin-top:.85rem" data-do="cart-add"
-                 data-key="${esc(it.name)}" data-kind="shop" ${USER ? '' : 'disabled'}>
-          ${!USER ? 'Sign in first' : inCart ? 'Already in your basket' : 'Add to basket'}
-        </button>`}`);
-});
+/* ---------- `on('shop-item')` WAS HERE -----------------------------------------------------------
+   THE LAST OF THEM. It opened a panel showing the drawing, the slot, the level or the price, and
+   one button — over a card that already draws the object and names its slot and its cost. The
+   button is `wearTiles_` in tiles.js now, and it still says which act it is: put it on, buy and
+   wear it, or how many ticks away it is.
+--------------------------------------------------------------------------------------------- */
 
 /* PUTTING SOMETHING ON. The WHOLE look is sent, not the one change — the server re-checks every
    piece against what this person has earned, so the phone only ever has to know how to draw.
@@ -224,7 +183,7 @@ on('wear', el => {
       if (typeof d.credits === 'number') USER.credits = d.credits;
       if (d.owned) USER.avatarItems = d.owned;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      closeSheet();
+      /* NO SHEET TO CLOSE — this now runs from a row on the card itself. */
       toast((d.bought || []).length ? 'Bought ' + d.bought.join(', ') : 'Wearing it');
       repaint();
     })

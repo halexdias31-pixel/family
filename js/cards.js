@@ -64,8 +64,10 @@ function findCard(x) {
      hanging round somebody's neck rather than as a rectangle with a photograph in it — and once it
      reads as that, the DBS stamp reads as clearance without anybody explaining it. */
   if (x.kind === 'tutor') return `
-    <div class="pass tap${t.listed === false ? ' is-off' : ''}"
-         data-do="who" data-kind="tutor" data-name="${esc(t.title)}">
+    ${/* NO LONGER A TAP TARGET. The sheet it opened repeated this pass and added three facts and a
+          button; the facts are on the pass now — see `pass-line` below and `pass-where` in the
+          foot — and the button is a row under it. */''}
+    <div class="pass${t.listed === false ? ' is-off' : ''}">
       <span class="pass-hole"></span>
       <div class="pass-top">
         <span class="pass-org">@family.</span>
@@ -79,7 +81,10 @@ function findCard(x) {
           <span class="pass-name">${esc(t.title)}</span>
           ${/* WHAT THEY TEACH, as printed lines. Two at most: a pass lists a person's post, not
                 their whole history, and four subjects in this space is a paragraph. */''}
-          ${(t.teaches || []).slice(0, 2).map(v =>
+          ${/* THREE, NOT TWO. The sheet's "Teaches" row held the whole list and the pass held the
+                first two, so the fact you had to open a panel for was the third subject. Three is
+                what fits; anything past that is a paragraph and belongs on a profile. */''}
+          ${(t.teaches || []).slice(0, 3).map(v =>
             `<span class="pass-line">${mark(v)}</span>`).join('')}
           ${t.rate ? `<span class="pass-line pass-rate">${money(t.rate)}/h</span>` : ''}
         </div>
@@ -89,8 +94,12 @@ function findCard(x) {
               what a blank field is. A parent scanning a list of these is looking for exactly one
               thing and it should be findable at arm's length. */''}
         <span class="pass-dbs ${t.dbs ? 'yes' : 'no'}">${t.dbs ? 'DBS CHECKED' : 'NO DBS ON FILE'}</span>
+        ${/* WHERE THEY ARE. The one fact on the sheet that was not already on the pass, and the one
+              a parent scanning a list of tutors is actually sorting by. */''}
+        ${t.city || t.borough ? `<span class="pass-where">${esc(t.city || t.borough)}</span>` : ''}
         ${t.listed === false ? '<span class="pass-off">NOT LISTED</span>' : ''}
       </div>
+      ${cardTiles_({ kind: 'tutor', key: t.title, row: t })}
     </div>`;
 
   /* ---------- A VENUE IS THE SLIP ON THE DOOR ----------------------------------------------------
@@ -102,7 +111,9 @@ function findCard(x) {
      take away, and a slip you take away is a thing you BOOK — which is what this card does when you
      tap it. The shape says what the tap does. */
   if (x.kind === 'venue') return `
-    <div class="slip tap" data-do="who" data-kind="venue" data-name="${esc(t.title)}">
+    ${/* NO LONGER A TAP TARGET. The sheet it opened held a "from" price and a rate; the rooms
+          below already hold one line each, which is the better version of both. */''}
+    <div class="slip">
       <div class="slip-head">
         <span class="slip-where">${esc(t.title)}</span>
         ${t.subtitle ? `<span class="slip-sub">${mark(t.subtitle)}</span>` : ''}
@@ -128,57 +139,37 @@ function findCard(x) {
       <div class="slip-perf"></div>
       <div class="slip-stub">
         <span>${t.minNoticeDays ? esc(t.minNoticeDays) + ' days notice' : 'Book any time'}</span>
-        <span class="slip-take">Tap to book</span>
       </div>
+      ${/* "Tap to book" WAS THE STUB'S RIGHT-HAND TEXT and it is gone: the tap it described no
+            longer exists, and a row underneath now says the same thing as a thing you press. */''}
+      ${cardTiles_({ kind: 'venue', key: t.title, row: t })}
     </div>`;
 
   return `
-    <div class="card tap is-subject" data-do="subject" data-name="${esc(t.name)}">
+    <div class="card is-subject">
       <h3>${esc(t.name)}</h3>
       ${row(t.mult === 1 ? 'No surcharge' : 'Surcharge',
             t.mult === 1 ? '—'
           : (t.mult > 1 ? '+' : '−') + Math.abs(Math.round((t.mult - 1) * 100)) + '%')}
+      ${/* THE LEVELS, which only the sheet had. One line, and it is the fact that decides whether
+            this subject is the one somebody wants at all. */''}
+      ${t.levels && t.levels.filter(Boolean).length
+        ? row('Levels', t.levels.filter(Boolean).join(', ')) : ''}
       ${t.tutors && t.tutors.length
         ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
         : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches this yet</p>'}
+      ${cardTiles_({ kind: 'subject', key: t.name, row: t })}
     </div>`;
 }
 
 /* Tapping one opens a sheet rather than expanding the card. An expanding card pushes everything
    below it down, which on a phone means the thing you were looking at moves the moment you touch
    it — a sheet leaves the list exactly where it was. */
-on('who', (el) => {
-  const name = el.dataset.name;
-  const list = el.dataset.kind === 'tutor' ? (DATA.tutors || []) : (DATA.venues || []);
-  const it = list.find(x => norm(x.title) === norm(name));
-  if (!it) return;
-
-  const rows = [
-    ['Where', it.city || it.borough],
-    ['Rate', it.rate ? money(it.rate) + '/h' : (it.bestRate ? money(it.bestRate) + '/h' : '')],
-    ['Teaches', (it.tags || []).join(', ')],
-  ].filter(([, v]) => v);
-
-  openSheet(name, `
-    ${it.image ? `<img src="${esc(it.image)}" alt="" style="width:100%;border-radius:var(--r);margin-bottom:12px">` : ''}
-    ${it.subtitle ? `<p class="note" style="margin-top:0">${mark(it.subtitle)}</p>` : ''}
-    ${/* `row` escapes its own label, so nothing is wrapped here — and the label is passed as a
-          VALUE rather than inside quotes. It used to read `row('${esc(k)}', v)`, and a `${…}` inside
-          a quoted string is six characters: every row in this sheet was labelled `${esc(k)}`. */''}
-    ${rows.map(([k, v]) => row(k, v)).join('')}
-    <div class="btn-row" style="margin-top:1rem">
-      <button class="btn" data-do="book-with" data-name="${esc(name)}">Book with them</button>
-    </div>
-    ${el.dataset.kind === 'tutor' && isAdmin()
-      ? `<label class="check" style="margin-top:.6rem">
-           <input type="checkbox" data-do="set-listed" data-who="${esc(name)}"
-                  ${it.listed === false ? '' : 'checked'}>
-           <span class="box"></span>
-           <span>Listed on the site<br><span class="faint">Clients only see tutors that are
-             ticked.</span></span>
-         </label>`
-      : ''}`);
-});
+/* ---------- `on('who')` WAS HERE ----------------------------------------------------------------
+   It opened a panel over a pass or a slip that already said everything in it. Every fact it
+   added is on the card now and the one button is a row underneath. See `tutorTiles_` and
+   `venueTiles_` in tiles.js.
+--------------------------------------------------------------------------------------------- */
 
 /* The switch. Admin only — a tutor who could list themselves could put themselves in front of
    clients before you had agreed to it. */
@@ -215,28 +206,12 @@ document.addEventListener('change', e => {
 /* Tapping a SUBJECT. It has emitted `data-do="subject"` since the screen was written and no
    handler was ever registered, so the third of the three lists on this tab was the one that did
    nothing when you pressed it. */
-on('subject', el => {
-  const x = subjectRows().find(s2 => norm(s2.name) === norm(el.dataset.name));
-  if (!x) return;
-  openSheet(x.name, `
-    ${/* The LABEL changes with the value here — "No surcharge" against a dash, or "Surcharge"
-          against a percentage. So it is an expression rather than a word, which is exactly the case
-          `row` takes as its first argument. */''}
-    ${row(x.mult === 1 ? 'No surcharge' : 'Surcharge',
-          x.mult === 1 ? '—'
-        : (x.mult > 1 ? '+' : '−') + Math.abs(Math.round((x.mult - 1) * 100)) + '%')}
-    ${x.levels && x.levels.filter(Boolean).length
-      ? `${row('Levels', x.levels.filter(Boolean).join(', '))}` : ''}
-    <h2>Who teaches it</h2>
-    ${x.tutors && x.tutors.length
-      ? x.tutors.map(t => `<div class="card tap is-tutor" data-do="who" data-kind="tutor"
-           data-name="${esc(t.title)}"><h3>${esc(t.title)}</h3>
-           ${t.rate ? `<p class="sub">${money(t.rate)}/h</p>` : ''}</div>`).join('')
-      : '<p class="note">Nobody yet.</p>'}
-    <div class="btn-row" style="margin-top:1rem">
-      <button class="btn" data-do="book-with" data-name="">Book this</button>
-    </div>`);
-});
+/* ---------- `on('subject')` WAS HERE -------------------------------------------------------------
+   The surcharge and the tutor names were already on the card; the levels have joined them, and
+   `Book this` is a row underneath. The one thing genuinely lost is the list of tutors AS CARDS
+   inside it — which was a list of passes reachable only by opening a subject, when the same
+   passes are one filter away on the same screen.
+--------------------------------------------------------------------------------------------- */
 
 on('book-with', (el) => {
   closeSheet();
