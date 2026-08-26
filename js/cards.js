@@ -174,15 +174,38 @@ function findCard(x) {
 /* The switch. Admin only — a tutor who could list themselves could put themselves in front of
    clients before you had agreed to it. */
 on('set-listed', el => {
-  const on = el.checked;
+  /* ---------- `el.checked` WAS READ HERE, AND THIS IS NO LONGER A CHECKBOX -----------------------
+     It became a tile when the tutor sheet went, and `.checked` on a button is `undefined` — so this
+     sent `on: undefined` on every press and put `!undefined`, which is `true`, back on failure. The
+     switch was broken in both directions and looked like a backend problem.
+
+     THE FILL IS THE STATE NOW, the same way it is on a star: `.on` is what the tile is showing, so
+     `.on` is what it currently means, and the new value is the opposite of that. */
+  const on = !el.classList.contains('on');
+
+  /* SAID BEFORE IT IS TRUE. It almost always becomes true, and the round trip is the only part
+     anybody would notice. */
+  tileSet_(el, { label: on ? 'Listed' : 'Not listed', on,
+                 note: on ? 'clients can see them' : 'clients cannot see them' });
+
   api({ action: 'setListed',
     adminName: USER.name, name: USER.name, who: el.dataset.who, on })
     .then(d => {
-      if (d && d.error) { el.checked = !on; toast(d.error); return; }
+      if (d && d.error) throw new Error(d.error);
       toast(on ? 'Listed' : 'Hidden from clients');
-      load();
+      /* `load()` WAS HERE — the whole payload fetched again to change one word. Nothing else on the
+         screen depends on whether one tutor is listed, so nothing else needs redrawing. The row's
+         own `listed` is updated so a later repaint from anything else agrees with the tile. */
+      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(el.dataset.who));
+      if (t) t.listed = on;
     })
-    .catch(() => { el.checked = !on; toast('Could not reach the server.'); });
+    .catch(err => {
+      /* PUT IT BACK. A switch that has not actually flipped must not keep saying it has — this is
+         the one case where showing it early has a cost, and it is paid here. */
+      tileSet_(el, { label: !on ? 'Listed' : 'Not listed', on: !on,
+                     note: !on ? 'clients can see them' : 'clients cannot see them' });
+      toast(String((err && err.message) || 'Could not reach the server.'));
+    });
 });
 
 /* THE OTHER HALF OF THE CLICK HANDLER.

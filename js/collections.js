@@ -64,10 +64,10 @@ on('spot', el => {
   /* THE ONE BUTTON, not the screen. Redrawing would throw away the scroll position of somebody
      working down a long list — the same reason the star repaints itself and nothing else. */
   /* THE TILE'S OWN LABEL, not a glyph. This wrote ✦ / ✧ — written when the control was a small
-     button in the corner beside the star, and it would now overwrite the word on the tile. */
-  const on_ = isSpot(el.getAttribute('data-key'));
-  el.textContent = on_ ? 'Spotlit' : 'Spotlight';
-  el.classList.toggle('on', on_);
+     button in the corner beside the star, and it would now overwrite the word on the tile AND any
+     value beside it, because a tile is two spans rather than a string. */
+  tileSet_(el, { label: isSpot(el.getAttribute('data-key')) ? 'Spotlit' : 'Spotlight',
+                 on: isSpot(el.getAttribute('data-key')) });
 });
 
 

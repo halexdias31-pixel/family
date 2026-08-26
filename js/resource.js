@@ -172,8 +172,12 @@ on('wear', el => {
   if (!USER) { toast('Sign in first'); go('me'); return; }
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   cfg[el.dataset.slot] = el.dataset.id;
-  el.disabled = true;
-  el.textContent = 'Putting it on…';
+  /* SAID BEFORE IT IS TRUE, because it almost always becomes true and the wait is the only part
+     anybody would notice. `el.textContent` was written straight onto the button here, which on a
+     tile would have wiped the word AND the price beside it — the tile is two spans, not a string. */
+  const was = { label: (el.querySelector('.tile-k') || {}).textContent,
+                note: (el.querySelector('.tile-v') || {}).textContent };
+  tileSet_(el, { label: 'Putting it on…', off: true });
 
   api({ action: 'saveAvatar',
     name: USER.name, personId: USER.personId, avatar: cfg })
@@ -184,12 +188,22 @@ on('wear', el => {
       if (d.owned) USER.avatarItems = d.owned;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* NO SHEET TO CLOSE — this now runs from a row on the card itself. */
+      tileSet_(el, { label: 'Wearing it', note: '', on: true, off: true });
       toast((d.bought || []).length ? 'Bought ' + d.bought.join(', ') : 'Wearing it');
+      /* ---------- THE ONE PLACE A REDRAW IS STILL RIGHT ------------------------------------------
+         WEARING SOMETHING CHANGES OTHER CARDS. Credits came off, so every priced wearable on the
+         screen can now afford differently, and whatever was in this slot before is no longer being
+         worn. That is not one button changing its word — it is the list being out of date — and a
+         redraw is the honest answer to that rather than a shortcut.
+         The basket is the opposite case and is why it does not do this: adding a line changes
+         exactly one button and nothing else on the screen knows or cares. */
       repaint();
     })
     .catch(err => {
-      el.disabled = false;
-      el.textContent = 'Try again';
+      /* PUT BACK EXACTLY WHAT WAS THERE. `el.textContent = 'Try again'` was written here, which on
+         a tile replaces both spans with one string — the word, the price and the markup with it,
+         so a failed purchase left a button that could never be styled or read again. */
+      tileSet_(el, { label: was.label, note: was.note, off: false });
       toast(String(err.message || err));
     });
 });
@@ -232,10 +246,16 @@ on('cart-add', el => {
   }
 
   cartSave();
-  /* NO SHEET TO CLOSE. This ran from inside the resource panel; it now runs from a tile on the
-     list itself, and closing a sheet nobody opened is a line that does nothing on every add. */
+  /* ---------- THE SHAPE FILLS, AND NOTHING ELSE MOVES -------------------------------------------
+     THIS CALLED `repaint()` — the whole screen rebuilt, forty cards, the search box and the pager,
+     so that one button could change its word. On a list that is a visible flinch and it drops the
+     keyboard with it.
+
+     THE BASKET IS LOCAL. It lives in localStorage and nothing has to agree to it, so there is no
+     request to wait for and no failure to revert: the press IS the change. That is the whole reason
+     this can be the simplest of them. */
+  tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
   toast('In your basket — ' + CART.length + ' item' + (CART.length === 1 ? '' : 's'));
-  repaint();
 });
 
 on('cart-drop', el => {

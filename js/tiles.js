@@ -61,6 +61,32 @@ function tile_(o) {
 }
 
 
+/* ---------- FILLING THE SHAPE ---------------------------------------------------------------------
+   THE STAR'S PATTERN, EVERYWHERE. Press it, it fills, and that is the end of the interaction as far
+   as the person is concerned. The request goes out behind it and is only ever heard from again if
+   it fails.
+
+   WHY NOT `repaint()`. Every one of these used to redraw the whole screen to change one word —
+   rebuilding forty cards, the search box and the pager so that a button could say "In your basket".
+   That is slow, it drops the keyboard, and on a list it is visibly a flinch. `set-listed` was worse
+   again and called `load()`, which went back to the network for the entire payload.
+
+   ONE ELEMENT, THREE THINGS: the word, the number beside it, and whether it is filled. Nothing else
+   on the screen is touched, so nothing else on the screen can move. */
+function tileSet_(el, o) {
+  if (!el) return;
+  const k = el.querySelector('.tile-k');
+  const v = el.querySelector('.tile-v');
+  if (k && o.label != null) k.textContent = o.label;
+  if (v && o.note != null) v.textContent = o.note;
+  /* AN EMPTY VALUE IS REMOVED, not left as an empty span — "In your basket" followed by a gap where
+     a price used to be is the shape of a thing that failed to load. */
+  if (v && o.note === '') v.remove();
+  if (o.on != null) el.classList.toggle('on', !!o.on);
+  if (o.off != null) el.disabled = !!o.off;
+}
+
+
 /* ---------- THE ADMIN ROWS -----------------------------------------------------------------------
    SPOTLIGHT, EDIT, DELETE — the three things only an admin can do to a row, in the same order on
    every kind of card, stacked like everything else.

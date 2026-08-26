@@ -6584,3 +6584,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    further out. */
 .qcard .qsheet { margin-top: .5rem; }
 .qcard .qsheet-part { margin-top: .4rem; }
+
+
+/* ---------- FILLED MEANS DONE --------------------------------------------------------------------
+   THE STAR'S RULE, APPLIED TO EVERY TILE. `.favwrap.is-fav .star` fills and colours, and nothing
+   else about the card moves — that is the whole interaction, and it is why the star has always felt
+   right where a button that reloads the screen does not.
+
+   A FILLED TILE IS PAST TENSE. "In your basket", "Wearing it", "Listed" — each is a statement about
+   something that has already happened, so it stops asking to be pressed: quieter, not louder, and
+   the fill is what carries it. Gold means "the one action" on this card and a done thing is not one.
+
+   `[disabled]` IS NOT DIMMED WHEN IT IS FILLED, and that is deliberate. A dimmed tile reads as
+   broken, and these are the opposite of broken. */
+.tile.on { color: var(--dim); border-color: var(--line); background: rgb(255 255 255 / .04); }
+.tile.on[disabled] { opacity: 1; }
+.tile.is-buy.on { color: var(--dim); background: rgb(255 180 84 / .09); }
+.tile.is-admin.on { color: var(--admin); background: rgb(170 182 200 / .18); }
+.tile.on .tile-v { color: var(--faint); }
