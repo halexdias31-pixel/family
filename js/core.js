@@ -400,6 +400,30 @@ function subjectMult(name) {
   return (isNaN(q) || q <= 0) ? 1 : q;
 }
 
+/* ---------- AND ONE READER FOR THE LEVEL MULTIPLIERS ---------------------------------------------
+   THE SAME FAULT SUBJECTS HAD, one table along. The rule for reading the level surcharge lived
+   inside `priceFrom` as a closure, so nothing outside `priceFrom` could ask what a level costs
+   without writing the rule out a second time — which is exactly how `subjectMult` came to exist.
+   `levelRows` needs that number for the card, so it is written once, here, beside its twin.
+
+   A blank or a zero is 1. Same rule, same reason: these are multipliers and nothing in this table
+   may ever zero a price. `sur()` inside `priceFrom` now calls through to this for levels, so the
+   figure on the card and the figure in the quote are one number rather than two that agree. */
+function levelMult(name) {
+  const q = num(((DATA.multipliers || {}).levels || {})[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+/* WHETHER A LEVEL HAS ACTUALLY BEEN PRICED, which `levelMult` cannot say — it answers 1 for a
+   level set to 1 on purpose and 1 for a level nobody has ever entered, and those are different
+   facts. The pricing tab is mostly the second: the comment in `priceFrom` below says most levels
+   have never been given a multiplier, and a card that prints "no surcharge" over a blank cell is
+   reporting a decision that was never made. */
+function levelPriced(name) {
+  const t = (DATA.multipliers || {}).levels || {};
+  return Object.prototype.hasOwnProperty.call(t, name) && String(t[name]).trim() !== '';
+}
+
 function priceFrom(spec) {
   spec = spec || {};
   const m = DATA.multipliers || {};
@@ -418,7 +442,11 @@ function priceFrom(spec) {
 
      Zero and blank both mean "no effect", which for a multiplier is 1. There is no value of this
      that should ever be able to zero a price. */
+  /* LEVELS GO THROUGH `levelMult`, which is this same rule lifted out so the subject cards and the
+     level cards can ask the question too. Everything else still reads its table here. Two callers,
+     one rule — the arrangement `subjectMult` already has. */
   const sur = (group, value) => {
+    if (group === 'levels') return levelMult(value);
     const x = num((m[group] || {})[value]);
     return (isNaN(x) || x <= 0) ? 1 : x;
   };

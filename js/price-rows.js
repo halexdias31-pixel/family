@@ -246,21 +246,92 @@ function priceCells(row, L, fmt) {
 }
 
 
+/* ---------- WHAT A TUTOR WROTE IN `teaches`, READ ONCE ------------------------------------------
+   A tutor types one string per thing they teach — `Maths (GCSE)` — and it holds two facts. The
+   rule for pulling them apart was written inline in `subjectRows`, twice in the same function, and
+   `levelRows` below needs the same rule the other way round. Four copies of a regex is four places
+   for the format to be understood slightly differently, so it is one pair of functions.
+
+   THE BRACKET IS ONE LEVEL, not a list. `Maths (GCSE, A-Level)` reads as a single level named
+   "GCSE, A-Level" — which is what this has always done, and it is left alone deliberately:
+   splitting on the comma would change which tutors match which level, and that is a data decision
+   for the sheet rather than something to slip in while moving a regex. If tutors are writing
+   commas in there, the fix is two rows, not a cleverer parser. */
+const subjectIn_ = s => String(s || '').replace(/\s*\([^)]*\)/, '').trim();
+const levelIn_   = s => (String(s || '').match(/\(([^)]+)\)/) || [, ''])[1].trim();
+
+
 function subjectRows() {
   /* The table is read by `subjectMult` in core.js, which `priceFrom` also uses — so the number on
      this card and the number in the price are the same number by construction rather than by two
      pieces of code happening to agree. */
   return (DATA.dropdowns?.subjects || []).map(name => {
     const tutors = (DATA.tutors || []).filter(t =>
-      (t.teaches || []).some(x => norm(String(x).replace(/\s*\([^)]*\)/, '')) === norm(name)));
+      (t.teaches || []).some(x => norm(subjectIn_(x)) === norm(name)));
     const levels = uniq(tutors.flatMap(t => (t.teaches || [])
-      .filter(x => norm(String(x).replace(/\s*\([^)]*\)/, '')) === norm(name))
-      .map(x => (String(x).match(/\(([^)]+)\)/) || [, ''])[1])));
+      .filter(x => norm(subjectIn_(x)) === norm(name))
+      .map(x => levelIn_(x))));
     /* The same word a tutor or a venue uses. One vocabulary across all three, so "sporty" filters
        them together rather than meaning something slightly different in each place. */
     const focus = ((DATA.dropdowns || {}).focus || {}).subject || {};
     return { name, mult: subjectMult(name), tutors, levels,
              focus: focus[name] || '', rowIndex: null, type: 'subject' };
+  });
+}
+
+
+/* ==================================================================================================
+   A LEVEL, AS A THING RATHER THAN AS A SIDE EFFECT.
+
+   A level has been three unconnected facts in three places: a word inside a tutor's `teaches`
+   string, a key in the pricing tab's level multipliers, and an option on the booking form. Nothing
+   joined them, so nothing could tell you that a level exists in one and not the others — and both
+   of those gaps are real and both cost money:
+
+     · A LEVEL NOBODY TEACHES is still offered on the booking form. A client picks it, and the job
+       goes out to a list of tutors none of whom said they teach it.
+     · A LEVEL WITH NO MULTIPLIER prices at 1 — no surcharge — and looks identical to a level
+       deliberately set to 1. `priceFrom` says so in its own comment: most levels have never been
+       given one. So A-Level may well be quoted at GCSE money and nothing anywhere says so.
+
+   THREE SOURCES, UNIONED, is what makes those visible. Take only the dropdown and a level a tutor
+   teaches but the sheet never listed disappears; take only what tutors teach and a level nobody
+   covers yet is invisible exactly when you need to see it. The card carries where each one came
+   from, so the gap reads as a gap rather than as a blank.
+================================================================================================== */
+function levelRows() {
+  const listed = (DATA.dropdowns || {}).levels || [];
+  const priced = Object.keys((DATA.multipliers || {}).levels || {});
+  const taught = uniq((DATA.tutors || []).flatMap(t =>
+    (t.teaches || []).map(x => levelIn_(x))));
+
+  /* THE DROPDOWN FIRST, in its own order — that is the order the sheet chose and the order the
+     booking form asks in, and a list of levels that runs GCSE, A-Level, KS2 because that is how a
+     Set happened to fill is a list nobody can scan. Anything the dropdown does not know about
+     follows it, which is also where the eye should find it. */
+  const names = uniq([...listed, ...taught, ...priced].filter(Boolean));
+
+  return names.map(name => {
+    const tutors = (DATA.tutors || []).filter(t =>
+      (t.teaches || []).some(x => norm(levelIn_(x)) === norm(name)));
+    /* WHICH SUBJECTS RUN AT THIS LEVEL — the mirror of the `levels` line on a subject card, and
+       the fact somebody choosing a level actually wants. */
+    const subjects = uniq(tutors.flatMap(t => (t.teaches || [])
+      .filter(x => norm(levelIn_(x)) === norm(name))
+      .map(x => subjectIn_(x))));
+    const focus = ((DATA.dropdowns || {}).focus || {}).level || {};
+    return {
+      name,
+      mult: levelMult(name),
+      /* Not the same question as `mult === 1`. See `levelPriced` in core.js. */
+      priced: levelPriced(name),
+      /* WHETHER THE BOOKING FORM OFFERS IT. A level that is taught and priced but missing from the
+         options tab cannot be booked at all, which is the one failure of the three that a client
+         would never see and never report. */
+      listed: listed.some(l => norm(l) === norm(name)),
+      tutors, subjects,
+      focus: focus[name] || '', rowIndex: null, type: 'level',
+    };
   });
 }
 

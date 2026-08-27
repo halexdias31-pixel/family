@@ -145,6 +145,43 @@ function findCard(x) {
       ${cardTiles_({ kind: 'venue', key: t.title, row: t })}
     </div>`;
 
+  /* ---------- A LEVEL IS THE OTHER HALF OF A SUBJECT CARD ----------------------------------------
+     GCSE was never a thing you could look at. It was a word inside a tutor's `teaches` string, a
+     key in the pricing tab and an option on the booking form, and none of those three knew about
+     the others — see `levelRows` for what that costs. This is those three facts on one card.
+
+     NO NEW COLOUR. Green is a subject, purple a venue, red a tutor, and style.css says plainly
+     that a fourth would turn a vocabulary into a legend. A level is not a fourth thing to scan a
+     list for — it is a property of the three — so its name is set in the ordinary colour and the
+     SUBJECTS on it are green, which is the same green they are everywhere else.
+
+     THE TWO GAPS ARE PRINTED, not hidden behind a blank. A level with no multiplier says so
+     instead of quietly reading "no surcharge"; a level the booking form has never heard of says
+     so instead of looking exactly like one you can book. Both are admin-facing faults sitting in
+     a client-facing list, and the only way either was ever going to be noticed is if something
+     drew it. */
+  if (x.kind === 'level') return `
+    <div class="card is-level">
+      <h3>${esc(t.name)}</h3>
+      ${t.priced
+        ? row(t.mult === 1 ? 'No surcharge' : 'Surcharge',
+              t.mult === 1 ? '—'
+            : (t.mult > 1 ? '+' : '−') + Math.abs(Math.round((t.mult - 1) * 100)) + '%')
+        : row('Surcharge', 'Not priced yet', 'bad')}
+      ${/* THE SUBJECTS THAT RUN AT IT — green, because a subject is green wherever it appears, and
+            this is the fact somebody who has chosen a level is actually asking for. */''}
+      ${t.subjects && t.subjects.length
+        ? rowHtml('Subjects', t.subjects.map(s => `<span class="subject">${esc(s)}</span>`).join(', '))
+        : row('Subjects', 'None yet', 'bad')}
+      ${row('Tutors', t.tutors && t.tutors.length ? String(t.tutors.length) : 'None yet',
+            t.tutors && t.tutors.length ? '' : 'bad')}
+      ${t.listed ? '' : row('Booking form', 'Not offered', 'bad')}
+      ${t.tutors && t.tutors.length
+        ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
+        : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches at this level yet</p>'}
+      ${cardTiles_({ kind: 'level', key: t.name, row: t })}
+    </div>`;
+
   return `
     <div class="card is-subject">
       <h3>${esc(t.name)}</h3>

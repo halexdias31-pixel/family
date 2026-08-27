@@ -26,8 +26,19 @@ const fs=require('fs'),path=require('path');
 const acorn=require('acorn');
 const {freeVars,eagerFree}=require('./_scope.js');
 
+/* ---------- THIS LIST HAD GONE STALE, AND A STALE LIST HERE IS WORSE THAN NO LIST ----------------
+   `collections` and `tiles` were added to index.html and never added here, so the checker read 21
+   of the 23 files that actually load. What it printed was four names USED BUT NEVER DECLARED —
+   `cardTiles_`, `tileSet_`, `adoptSpotlight_` — every one of them a false alarm, in the one report
+   whose whole value is that it can be believed without checking. Two missing entries and the
+   safety net reads FAILED on a working app, which is how a safety net stops being read at all.
+
+   IT MUST MATCH index.html, IN ORDER. That is not documentation, it is the third check below:
+   whether a const is read before the file declaring it has loaded. Get the order wrong here and
+   that check answers a question about an app that does not exist. */
 const ORDER=['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-             'resource','arcade','map','book','receipt','flyer','mat','games','overworld','select','boot'];
+             'resource','arcade','map','book','receipt','flyer','mat','games','overworld','select',
+             'collections','tiles','boot'];
 
 const GLOBALS=new Set(('window document navigator localStorage sessionStorage console Math JSON Date '+
 'Array Object String Number Boolean Set Map WeakMap WeakSet Promise RegExp Error TypeError Symbol '+
@@ -41,6 +52,11 @@ const GLOBALS=new Set(('window document navigator localStorage sessionStorage co
 'speechSynthesis SpeechSynthesisUtterance AudioContext webkitAudioContext caches indexedDB open '+
 'close top self parent frames name status origin atob btoa CSS Function DOMParser XMLHttpRequest '+
 'Notification navigator visualViewport onerror '+
+/* GOOGLE IDENTITY SERVICES. `google.accounts.id` is put on the window by the script me.js appends
+   at sign-in time, so it is a global that arrives late rather than a name anybody forgot to
+   declare — and me.js already guards it with `if (!window.google)`, which is the right check for
+   a third party that may be blocked. Reported as undeclared since the sign-in button was written. */
+'google '+
 /* THE TYPED ARRAYS. Missing from this list since it was written, which nothing noticed because
    nothing used one until the overworld started merging geometry into Float32Arrays. A global the
    list does not know about is reported as a name nobody declared — a false alarm, in the one report

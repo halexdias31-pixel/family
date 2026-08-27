@@ -227,6 +227,26 @@ function subjectTiles_(x) {
 }
 
 
+/* ---------- A LEVEL --------------------------------------------------------------------------------
+   THE SAME EMPTY NAME AS A SUBJECT, and for the same reason: booking from a level is booking the
+   level, not a person, so there is nobody to name. Kept identical to `subjectTiles_` rather than
+   made cleverer — the day `book-with` learns to carry a subject or a level through to the form,
+   both of these change together, and they should be the same shape when that happens.
+
+   OFF WHEN THE FORM CANNOT ASK FOR IT. A level missing from the options tab is not on the booking
+   form's dropdown, so the button would open a form that has no way to select the thing you pressed
+   it from. A button that cannot work says so. */
+function levelTiles_(x) {
+  const t = x.row || {};
+  return `<div class="tile-row">
+    ${tile_({ label: t.listed === false ? 'Not on the booking form' : 'Book this',
+              note: t.listed === false ? 'add it to the options tab' : '',
+              off: t.listed === false,
+              act: 'book-with', data: { name: '' } })}
+  </div>${adminTiles_(x, null)}`;
+}
+
+
 /* ---------- A WEARABLE ------------------------------------------------------------------------------
    THE ONE THAT IS GENUINELY NOT A BASKET. Buying and putting on are a single act — there is nothing
    to post and nothing to collect — and the credits come off at the moment it goes on, which is what
@@ -301,6 +321,7 @@ function cardTiles_(x) {
   if (x.kind === 'tutor') return tutorTiles_(x);
   if (x.kind === 'venue') return venueTiles_(x);
   if (x.kind === 'subject') return subjectTiles_(x);
+  if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   return adminTiles_(x, null);
 }

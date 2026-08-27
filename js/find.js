@@ -89,6 +89,10 @@ const KINDS = {
   tutor:   { group: 'Booking', label: 'Tutors',   card: x => findCard({ kind: x.kind, row: x.row }) },
   venue:   { group: 'Booking', label: 'Venues',   card: x => findCard({ kind: x.kind, row: x.row }) },
   subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
+  /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on —
+     and it was the one you could not look at. Same group as the other three because it is the same
+     errand: this is a thing you book with, not a thing you learn from. */
+  level:   { group: 'Booking', label: 'Levels',   card: x => findCard({ kind: x.kind, row: x.row }) },
 
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
   friend: { group: 'Friends', label: 'Friends', card: x => {
@@ -1032,6 +1036,25 @@ function stuffItems() {
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       cost: 0, slot: '', subject: x.name, grade: '', off: false, row: x,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    /* ---------- LEVELS -------------------------------------------------------------------------
+       `subject` IS BLANK, and it is the one field somebody would be tempted to fill. A level runs
+       across several subjects — that is the whole point of the card — so putting one of them in
+       would make GCSE turn up when you filter to Maths and vanish when you filter to English,
+       which is worse than it not answering the question at all. Blank is what keeps it out, the
+       same way blank keeps a shop item out of the exam-board question.
+
+       `keystage` IS ALSO BLANK. A key stage and a level are two different ladders — KS4 and GCSE
+       describe the same year and are not the same fact — and folding one into the other would put
+       two vocabularies in one dropdown, which is the mistake the boxer comment above already had
+       to be talked out of once. */
+    ...(typeof levelRows === 'function' ? levelRows() : []).map(x => ({
+      kind: 'level', name: x.name, key: 'lvl:' + x.name,
+      /* The subjects, under the name, so the list is readable before anything is opened. */
+      sub: (x.subjects || []).join(' · '), image: '',
+      cost: 0, slot: '', subject: '', grade: '', off: false, row: x,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: '', paper: false,
     })),
