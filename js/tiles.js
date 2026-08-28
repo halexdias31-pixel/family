@@ -81,6 +81,11 @@ const TILE_ICONS = {
      properly so it is the same weight and the same size as every other mark in the row. */
   share: '<path d="M9 11.5V2.5"/><path d="M5.8 5.7 9 2.5l3.2 3.2"/>'
        + '<path d="M3.5 9.5v5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-5"/>',
+  /* THE PAPER AEROPLANE. Sending, and nothing else in the app sends — so it can be the one mark
+     that means it. Drawn as an outline like the rest rather than the solid dart most apps use: a
+     filled shape beside eleven outlined ones is a different set. */
+  send:  '<path d="M16 2.5 2.5 7.8l5.4 2.3z"/><path d="M16 2.5 10.2 16l-2.3-5.9z"/>'
+       + '<path d="M7.9 10.1 16 2.5"/>',
 };
 
 function tileIcon_(name) {

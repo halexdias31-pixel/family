@@ -301,9 +301,17 @@ async function receiptCanvas(stage) {
 }
 
 on('book-share', async el => {
+  /* ---------- A TILE HAS NO TEXT TO REPLACE -------------------------------------------------------
+     THIS WROTE "Drawing…" INTO THE BUTTON, which worked while the button was a word. It is a mark
+     now, and `textContent` on it would have deleted the SVG — the control would go blank mid-press
+     and never come back, because `was` would have been the empty string it started with.
+
+     `tileSet_` IS THE WAY TO CHANGE A TILE, and what it changes is the title: the name is the only
+     text a mark has. Drawing a receipt takes a moment on a long card, so saying so is still worth
+     it — it is just said where an icon-only control says anything. */
   el.disabled = true;
-  const was = el.textContent;
-  el.textContent = 'Drawing…';
+  const was = el.getAttribute('title') || 'Share this booking';
+  tileSet_(el, { label: 'Drawing…' });
   try {
     /* WHICH DOCUMENT IS ON SCREEN. Read off the button rather than worked out again here — the card
        that drew the button already decided, and deciding twice is two answers waiting to differ. */
@@ -334,7 +342,7 @@ on('book-share', async el => {
     }
   }
   el.disabled = false;
-  el.textContent = was;
+  tileSet_(el, { label: was });
 });
 
 /* ==================================================================================================
@@ -443,9 +451,22 @@ function drawBooker_() {
      and the page has no surface, so they floated. Handed to `bookBreakdown` instead, which prints
      them above the barcode where a receipt's terms go. */
   const foot = `
-    <button class="btn rc-do" data-do="book-send">Ask for it</button>
-    <div class="tile-row rc-tiles">${tile_({ icon: 'share', label: 'Share this booking',
-      act: 'book-share', data: { stage: 'screen' } })}</div>
+    ${/* ---------- TWO MARKS, NOT A BUTTON AND A MARK ---------------------------------------------
+          "ASK FOR IT" WAS A FULL-WIDTH GOLD BAR with a symbol underneath it — the commit dressed as
+          a different kind of control from everything else on the paper, and the one thing next to
+          it that shared its job drawn a fifth the size.
+
+          BOTH ARE ACTIONS ON THIS DOCUMENT, so both are tiles in one row, the same row every card
+          in Find carries. Sending keeps the gold, because it is the one that spends something and
+          the one that cannot be undone.
+
+          THE NAMES ARE IN THE TITLES, which is where every icon-only control in this app keeps
+          them — "Ask for it" and "Share this booking", unchanged. */''}
+    <div class="tile-row rc-tiles">
+      ${tile_({ icon: 'send', label: 'Ask for it', tone: 'buy', act: 'book-send' })}
+      ${tile_({ icon: 'share', label: 'Share this booking',
+                act: 'book-share', data: { stage: 'screen' } })}
+    </div>
     <p class="rc-terms" id="book-said">Nothing is booked or charged yet — this asks, and we come
       back to you.</p>`;
   const money_ = bookBreakdown(L, foot);

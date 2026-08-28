@@ -6931,9 +6931,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    RULED OFF ABOVE, because they are not another row of the booking — everything above is what was
    asked for and everything here is what to do about it. */
-/* THE COMMIT BUTTON, STILL OBVIOUSLY THE COMMIT BUTTON, AT TWO-THIRDS THE HEIGHT. It was a
-   full-size `.btn` with .7rem of rule above it — on a card of 14px rows it read as a different
-   piece of software. */
+/* `.rc-do` WAS THE FULL-WIDTH GOLD BAR. Sending is a tile in the row beside sharing now — see the
+   note in `drawBooker_`. The basket still uses this class for its Pay button, which names a price
+   and is the one place a bar is right: there is no receipt under it, only a total. */
 .rc-do {
   width: 100%;
   margin: .45rem 0 0;
@@ -6945,8 +6945,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
    receipt is a single thing to do, not a set to choose from. */
-.rc-tiles { justify-content: center; margin-top: 0; }
-.rc-tiles .tile { width: 34px; height: 34px; }
+/* THE ACTIONS ON THE DOCUMENT, centred and ruled off — everything above is what was asked for and
+   everything here is what to do about it. Two of them, so a row rather than a stack. */
+.rc-tiles { justify-content: center; gap: .4rem; margin: .45rem 0 0; padding-top: .45rem; }
+.rc-tiles .tile { width: 40px; height: 40px; }
+.rc .rc-tiles { border-top: 1px dashed #b3aa9c; }
+.rc.scr .rc-tiles { border-top-color: rgb(61 220 132 / .25); }
 
 /* THE TERMS, in the paper's own quiet colour rather than the app's. `.faint` is a dark-theme grey
    and this sits on off-white for every stage but the form. */
