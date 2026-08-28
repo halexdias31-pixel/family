@@ -222,10 +222,102 @@ function doPost(e) {
       return jsonOut({ success: true, name: personDisplayName(r) });
     }
 
-    if (action === 'verifyLogin' || action === 'relogin') {
+    /* ================================================================================================
+       SIGNING IN WITH GOOGLE
+       ------------------------------------------------------------------------------------------------
+       WHAT THE BROWSER SENDS IS A CLAIM, NOT A FACT. Google's button hands the page a signed token
+       saying "this is who I am"; a page can hand this endpoint anything at all. So the token is not
+       read here — it is sent back to Google, which is the only party that can say whether it signed
+       it, and every answer below comes from Google's reply rather than from the request.
+
+       THREE THINGS ARE CHECKED AND ALL THREE MATTER.
+       `aud` must be OUR client id: a valid Google token issued to somebody else's site is still a
+       valid Google token, and without this check anybody could take one from their own app and sign
+       in here as its owner.
+       `email_verified` must be true: Google will carry an unverified address, and an unverified
+       address is somebody's claim about an inbox rather than proof of one.
+       `exp` is enforced by tokeninfo, which refuses an expired token outright.
+
+       AND NO ACCOUNT IS CREATED. Matching an address to a row is a different act from making one —
+       an unknown address gets a sentence, not a new person. Registering stays where it was, where a
+       name and a role and a PIN are set deliberately.
+    ================================================================================================ */
+    if (action === 'googleLogin') {
+      const clientId = S(config().google_client_id);
+      /* NOT CONFIGURED IS NOT OPEN. With no client id there is nothing to check `aud` against, and
+         a check that cannot run must refuse rather than wave things through. */
+      if (!clientId) return jsonOut({ success: false, error: 'Google sign-in is not set up yet.' });
+
+      const cred = S(body.credential);
+      if (!cred) return jsonOut({ success: false, error: 'No Google token in that request.' });
+
+      let info = null;
+      try {
+        const res = UrlFetchApp.fetch(
+          'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(cred),
+          { muteHttpExceptions: true });
+        if (res.getResponseCode() === 200) info = JSON.parse(res.getContentText());
+      } catch (err) {
+        return jsonOut({ success: false, error: 'Could not reach Google to check that sign-in.' });
+      }
+      /* A REFUSAL FROM GOOGLE IS A REFUSAL HERE. Expired, tampered with, or never signed by them —
+         tokeninfo answers with a non-200 and there is nothing further to consider. */
+      if (!info || !S(info.sub)) return jsonOut({ success: false, error: 'That Google sign-in was not valid.' });
+      if (S(info.aud) !== clientId) return jsonOut({ success: false, error: 'That Google sign-in was for a different site.' });
+      if (String(info.email_verified) !== 'true') {
+        return jsonOut({ success: false, error: 'That Google address is not verified.' });
+      }
+
+      const email = S(info.email).toLowerCase();
+      if (!email) return jsonOut({ success: false, error: 'That Google account has no address on it.' });
+
+      const t = read(TAB.people);
+      /* MATCHED ON THE ADDRESS AND NOTHING ELSE. Not on the name Google carries: people change
+         their display name, and a name match would let a stranger called Sasha Ivanov in. */
+      const r = t.rows.find(x => S(x.email).toLowerCase() === email) || null;
+      if (!r) {
+        return jsonOut({ success: false,
+          error: 'No @family. account uses that Google address. Ask an admin to add it to your profile.' });
+      }
+      if (S(r.verified).toUpperCase() === 'PENDING') {
+        /* SIGNING IN WITH GOOGLE IS THE CONFIRMATION. The pending state exists to prove somebody
+           owns the inbox, and Google has just proved exactly that about the same address. */
+        setCell(t, r, 'verified', 'TRUE');
+        setCell(t, r, 'verify_token', '');
+        clearCache();
+      }
+      logEvent({ jobId: '', actor: personDisplayName(r), role: toAppRole(mainRole(r)),
+                 action: ACT.SAY, message: 'signed in with Google' });
+      return loginReplyFor_(r, authNewSession_(t, r));
+    }
+
+    if (action === 'signOut') {
+      /* THE GATE HAS ALREADY RESOLVED THE TOKEN, so this ends the session of whoever actually holds
+         it — a request cannot sign anybody else out. */
+      const t = read(TAB.people);
+      const r = findPerson(body.name);
+      if (r) { authEndSession_(t, r); clearCache(); }
+      /* SUCCESS EITHER WAY. An expired token reaching here means the session is already over, and
+         an error would say otherwise. */
+      return jsonOut({ success: true });
+    }
+
+    if (action === 'verifyLogin') {
+      const t0 = read(TAB.people);
       const r = findPerson(body.name);
       if (!r) return jsonOut({ success: false, error: 'Name or PIN not recognised.' });
-      if (action !== 'relogin' && S(r.pin) !== S(body.pin)) {
+      /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
+         guess was right or not — a lock that only applies to wrong answers tells a guesser when
+         they have found the right one. */
+      if (authLocked_(r)) {
+        return jsonOut({ success: false,
+          error: 'Too many attempts. Try again in a few minutes.' });
+      }
+      /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
+      if (!authCheckPin_(t0, r, body.pin)) {
+        authWrong_(t0, r);
+        /* THE SAME SENTENCE FOR A WRONG NAME AND A WRONG PIN, which was already right here: telling
+           somebody the name was correct is telling them half the answer. */
         return jsonOut({ success: false, error: 'Name or PIN not recognised.' });
       }
       // Only accounts that WERE asked to confirm are held back. A blank means the account predates
@@ -234,68 +326,7 @@ function doPost(e) {
         return jsonOut({ success: false,
           error: 'Please confirm your email first — check your inbox for the link we sent.' });
       }
-      // 'parent'/'kid' are what the frontend calls client/student.
-      const appRole = toAppRole(mainRole(r));
-      const appRoles = rolesOf(r).map(toAppRole);
-      const out = { success: true, role: appRole, roles: appRoles, name: personDisplayName(r),
-                    // The session's real identity from here on. Names are for logging in.
-                    personId: S(r.person_id),
-                    handle: S(r.handle),
-                    /* BOTH of them. `saveTodo` has been writing the docket to this column since it
-                       was built and the login reply only ever sent the notepad back — so every
-                       line anybody added was saved correctly, survived in the sheet, and was gone
-                       from the app the next time they signed in. Written under one name and read
-                       under another, which is the fault this whole file keeps producing; the only
-                       reason it is here rather than in the list of seven is that nothing was
-                       comparing the two sides until now. */
-                    notepad: S(r.notepad), todo: S(r.todo),
-                    /* THE PHOTOGRAPH. Neither field was in this reply, so the You screen has been
-                       falling back to a letter in a circle for everybody since the rewrite — it
-                       reads `USER.photo`, and nothing was sending one.
-                       They are DIFFERENT THINGS and both are needed: `photo` is a picture of the
-                       person, `avatar` is the wearable string — "hair:crop|legs:jeans" — which is
-                       a figure to be drawn and is a broken image in any <img> that gets it. */
-                    photo: S(r.photo), avatar: S(r.avatar),
-                    /* AND WHAT THEY MAY WEAR. `getProfile` has always sent this and the login
-                       reply never did — so the wardrobe on somebody's own screen had to guess
-                       their unlocks from the shop rows, while an admin looking at them got the
-                       real answer. One of those is authoritative and it was not the one the
-                       person themselves was shown. */
-                    avatarItems: avatarUnlocks(r),
-                    topics: S(r.ticks_1), tick1: S(r.ticks_1), tick2: S(r.ticks_2), tick3: S(r.ticks_3),
-                    xp: N(r.xp), credits: N(r.credits),
-                    /* HOW MANY PASSES THEY HAVE DONE, counted from the resources where the ticks
-                       live. The You screen shows this and was computing it from three fields on
-                       this reply that nothing has ever written to, so it has always read 0. */
-                    ticks: countTicks(r),
-                    /* The address, because the basket has to know whether it can offer to post
-                       anything. Without it the option is missing and the reason is invisible. */
-                    address: S(r.address), postcode: S(r.postcode),
-                    highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
-                    friends: S(r.friends) };
-      if (appRole === 'parent') out.kids = childrenOf(r);
-
-      /* Their family, as agreed by both sides, and anything still waiting on them. Sent with the
-         person rather than fetched separately — it is three names, and a second round trip for
-         three names costs more than carrying them. */
-      const meId = S(r.person_id);
-      out.parents  = acceptedParents(meId).map(personDisplayName);
-      out.children = acceptedChildren(meId).map(personDisplayName);
-      out.siblings = siblingsOf(meId).map(personDisplayName);
-      out.claims = read(TAB.family).rows
-        .filter(x => S(x.child_id) === meId && norm(x.state) === 'asked')
-        .map(x => {
-          const pr = findPerson(S(x.parent_id));
-          return { rowIndex: x._row, from: pr ? personDisplayName(pr) : 'Someone' };
-        });
-      // Their own values, so the edit form opens filled in rather than blank.
-      const groups = appRole === 'parent' ? CLIENT_GROUPS : appRole === 'kid' ? STUDENT_GROUPS : PROFILE_GROUPS;
-      out.profile = {};
-      flat(groups).concat(PROFILE_READONLY).forEach(f => {
-        out.profile[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (availSet(r.availability)[f] ? 'TRUE' : '') : S(r[f]);
-      });
-      out.profile.location = S(r.city);
-      return jsonOut(out);
+      return loginReplyFor_(r, authNewSession_(t0, r));
     }
 
     /* --- admin: read anyone's profile -------------------------------------------------------- */
@@ -1462,7 +1493,8 @@ function doPost(e) {
       const asker = S(body.adminName) || S(body.name);
       const resetting = key(asker) !== key(S(body.name)) && isAdminPerson(asker);
 
-      if (!resetting && S(r.pin) !== now) {
+      const tPin = read(TAB.people);
+      if (!resetting && !authCheckPin_(tPin, r, now)) {
         return jsonOut({ error: 'That is not your current PIN.' });
       }
       if (!/^[0-9]{4,8}$/.test(next)) {
@@ -1479,7 +1511,12 @@ function doPost(e) {
 
       const t = read(TAB.people);
       const row = t.rows.find(x => x._row === r._row);
-      setCell(t, row, 'pin', next);
+      authSetPin_(t, row, next);
+      /* ---------- CHANGING A PIN ENDS EVERY OTHER SESSION -------------------------------------
+         SOMEBODY CHANGING A PIN IS OFTEN SOMEBODY WHO THINKS SOMEONE ELSE HAS IT. Leaving old
+         tokens working would mean the intruder stays signed in through the very act meant to
+         remove them — the change would lock out only the person who made it. */
+      authEndSession_(t, row);
       clearCache();
 
       /* Tell them it changed. If it was not them, this is how they find out — and an email nobody
@@ -2547,8 +2584,13 @@ function doPost(e) {
         if (on.some(c => key(c.name) === key(personDisplayName(me)))) {
           return jsonOut({ error: 'You are already on that list.' });
         }
-        if (on.length >= price.seats) {
-          return jsonOut({ error: 'That list is full — it will run once everybody has paid.' });
+        /* ---------- FULL IS THE ROOM, AND SHUT IS THE CALENDAR --------------------------------
+           A LIST THAT IS RUNNING IS NOT OFFERED HERE AT ALL — `openWaitlistAt` has already passed
+           over it — so reaching this point with a full roster means four people are on it and none
+           of them has been asked for money yet. */
+        const st = waitStage_(j);
+        if (st.left <= 0) {
+          return jsonOut({ error: 'That list is full — it will run once three of them have paid.' });
         }
       } else {
         /* THE FIRST FAMILY, so the session comes into existence around them. */
@@ -2582,7 +2624,16 @@ function doPost(e) {
           /* NOBODY IS PICKED. A tutor is assigned when it runs, and the rate it is priced at is the
              one for a tutor nobody chose. */
           stealable: 'TRUE',
-          closes_on: S(body.closesOn),
+          /* ---------- WHEN IT SHUTS, WORKED OUT RATHER THAN SENT --------------------------------
+             THIS READ `body.closesOn` AND NOTHING HAS EVER SENT IT. The column has been on every
+             waitlist row since the column existed, blank every time, with a comment above it in
+             `constants.gs` saying nothing enforces it yet — so a list that never filled sat open
+             for good and the families on it were waiting on an answer that was never coming.
+
+             THREE WEEKS BEFORE THE NEXT TERM STARTS. Counted here, once, at the moment the list is
+             made, so it is a date sitting in a cell that you can read and change rather than a rule
+             running invisibly somewhere. */
+          closes_on: waitShutsOn_() || '',
           created_at: new Date(),
         });
         j = t.rows[t.rows.length - 1];
@@ -2869,4 +2920,78 @@ function doPost(e) {
   } catch (err) {
     return jsonOut({ error: err.toString() });
   }
+}
+
+/* ---------- THE REPLY A SIGNED-IN PERSON GETS ------------------------------------------------------
+   ONE COPY, TWO DOORS. A PIN and a Google account are two ways of proving the same thing, and what
+   comes back afterwards is not a property of how you knocked. Written out twice, the second copy
+   would be missing a field within a month — this reply has lost `todo`, `photo`, `avatar` and
+   `avatarItems` one at a time already, each for weeks, each because it was assembled somewhere
+   that did not know about them. */
+function loginReplyFor_(r, token) {
+// 'parent'/'kid' are what the frontend calls client/student.
+  const appRole = toAppRole(mainRole(r));
+  const appRoles = rolesOf(r).map(toAppRole);
+  const out = { success: true, role: appRole, roles: appRoles, name: personDisplayName(r),
+                /* THE SESSION. Sent once, at sign-in, and never again — the phone keeps it and
+                   offers it on every request, and the sheet holds only its digest. */
+                token: token || '',
+                // The session's real identity from here on. Names are for logging in.
+                personId: S(r.person_id),
+                handle: S(r.handle),
+                /* BOTH of them. `saveTodo` has been writing the docket to this column since it
+                   was built and the login reply only ever sent the notepad back — so every
+                   line anybody added was saved correctly, survived in the sheet, and was gone
+                   from the app the next time they signed in. Written under one name and read
+                   under another, which is the fault this whole file keeps producing; the only
+                   reason it is here rather than in the list of seven is that nothing was
+                   comparing the two sides until now. */
+                notepad: S(r.notepad), todo: S(r.todo),
+                /* THE PHOTOGRAPH. Neither field was in this reply, so the You screen has been
+                   falling back to a letter in a circle for everybody since the rewrite — it
+                   reads `USER.photo`, and nothing was sending one.
+                   They are DIFFERENT THINGS and both are needed: `photo` is a picture of the
+                   person, `avatar` is the wearable string — "hair:crop|legs:jeans" — which is
+                   a figure to be drawn and is a broken image in any <img> that gets it. */
+                photo: S(r.photo), avatar: S(r.avatar),
+                /* AND WHAT THEY MAY WEAR. `getProfile` has always sent this and the login
+                   reply never did — so the wardrobe on somebody's own screen had to guess
+                   their unlocks from the shop rows, while an admin looking at them got the
+                   real answer. One of those is authoritative and it was not the one the
+                   person themselves was shown. */
+                avatarItems: avatarUnlocks(r),
+                topics: S(r.ticks_1), tick1: S(r.ticks_1), tick2: S(r.ticks_2), tick3: S(r.ticks_3),
+                xp: N(r.xp), credits: N(r.credits),
+                /* HOW MANY PASSES THEY HAVE DONE, counted from the resources where the ticks
+                   live. The You screen shows this and was computing it from three fields on
+                   this reply that nothing has ever written to, so it has always read 0. */
+                ticks: countTicks(r),
+                /* The address, because the basket has to know whether it can offer to post
+                   anything. Without it the option is missing and the reason is invisible. */
+                address: S(r.address), postcode: S(r.postcode),
+                highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
+                friends: S(r.friends) };
+  if (appRole === 'parent') out.kids = childrenOf(r);
+
+  /* Their family, as agreed by both sides, and anything still waiting on them. Sent with the
+     person rather than fetched separately — it is three names, and a second round trip for
+     three names costs more than carrying them. */
+  const meId = S(r.person_id);
+  out.parents  = acceptedParents(meId).map(personDisplayName);
+  out.children = acceptedChildren(meId).map(personDisplayName);
+  out.siblings = siblingsOf(meId).map(personDisplayName);
+  out.claims = read(TAB.family).rows
+    .filter(x => S(x.child_id) === meId && norm(x.state) === 'asked')
+    .map(x => {
+      const pr = findPerson(S(x.parent_id));
+      return { rowIndex: x._row, from: pr ? personDisplayName(pr) : 'Someone' };
+    });
+  // Their own values, so the edit form opens filled in rather than blank.
+  const groups = appRole === 'parent' ? CLIENT_GROUPS : appRole === 'kid' ? STUDENT_GROUPS : PROFILE_GROUPS;
+  out.profile = {};
+  flat(groups).concat(PROFILE_READONLY).forEach(f => {
+    out.profile[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (availSet(r.availability)[f] ? 'TRUE' : '') : S(r[f]);
+  });
+  out.profile.location = S(r.city);
+  return jsonOut(out);
 }

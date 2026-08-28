@@ -188,8 +188,16 @@ function doGet(e) {
     /* Only the tabs the site genuinely can't run without. Anything seeded by ensureSchema stays
        off this list: a new tab must never take the whole site down in the gap between deploying
        and seeding. Add to it only if nothing at all can be shown without that tab. */
+    /* `resources` IS NO LONGER ON THIS LIST, because the tab is no longer in the spreadsheet.
+       A name here is a promise that the site cannot start without it, and the site starting is
+       exactly what this was preventing: `read()` answers `{sheet: null}` for a tab that does not
+       exist, so every single request was returning "This spreadsheet has no resources tab" — not
+       a degraded resources section, the whole API refusing to answer.
+
+       IT IS STILL READ IN A DOZEN PLACES and those all now return zero rows, which is safe but is
+       NOT the same as removed — see the checklist builder further down. */
     const REQUIRED_TABS = ['people', 'venues', 'jobs', 'events', 'terms',
-                           'resources', 'links', 'shop', 'pricing', 'config', 'options'];
+                           'links', 'shop', 'pricing', 'config', 'options'];
     const missingTabs = REQUIRED_TABS.filter(name => !read(name).sheet);
     if (missingTabs.length) {
       return jsonOut({ error: 'This spreadsheet has no ' + missingTabs.join(', ') + ' tab' +

@@ -406,16 +406,32 @@ function accessDenied(action, body) {
   // somebody has decided who it is for, rather than open until somebody notices.
   if (!need) return 'That action is not recognised.';
   if (need === 'anyone') return '';
-  if (need === 'admin' && !isAdminPerson(S(body.adminName) || S(body.name))) {
-    return 'Not authorised.';
-  }
+  /* THE OLD ADMIN CHECK READ A NAME OFF THE REQUEST and is left to the token branch below, which
+     resolves the person before asking whether they are an admin. */
   /* `clientName` counts as being signed in. `createJob` names the person that way and nothing
      else does — so the gate asked for a field the one handler behind it never sends, and every
      booking would have been refused with "You need to be signed in for that" by somebody who
      plainly was. It has never fired because the booking form is not wired yet; it would have
      fired on the first booking ever made. */
-  if (need === 'self' && !S(body.name) && !S(body.adminName) && !S(body.clientName)) {
-    return 'You need to be signed in for that.';
+  /* ---------- BEING SIGNED IN IS A TOKEN, NOT A NAME ---------------------------------------------
+     THIS ASKED WHETHER A NAME HAD BEEN SENT. Any name — the field simply had to be non-empty — so
+     the whole of what stood between a stranger and somebody's profile was knowing how they are
+     spelled, and the app puts names on screen. Every `self` action behind this gate was open.
+
+     THE TOKEN DECIDES WHO, AND THE HANDLER IS TOLD. `body.name` is overwritten with the name the
+     token resolves to, so a request claiming to be somebody else acts as whoever it really is
+     rather than being refused — the handlers all read `body.name` and now cannot be lied to.
+
+     ADMIN IS CHECKED AGAINST THE SAME TOKEN, for the same reason: `adminName` was a claim too. */
+  if (need === 'self' || need === 'admin') {
+    const who = authWhoIs_(body.token);
+    if (!who) return 'Please sign in again.';
+    body.name = personDisplayName(who);
+    body.personId = S(who.person_id);
+    if (need === 'admin' && !isAdminPerson(body.name)) return 'Not authorised.';
+    /* NAMING SOMEBODY ELSE AS THE ADMIN IS OVER. Anything reading `adminName` gets the signed-in
+       person, so the two can no longer disagree. */
+    if (S(body.adminName)) body.adminName = body.name;
   }
   return '';
 }
@@ -902,17 +918,99 @@ function waitlistPrice(venueName) {
   };
 }
 
+/* ==================================================================================================
+   THE LIFE OF A WAITLIST
+   --------------------------------------------------------------------------------------------------
+   THE NUMBERS ARE HERE AND NOWHERE ELSE. Three is how many people it takes to be worth asking anyone
+   for money, three is how many paying makes it run, and four is the room. They are business rules,
+   they will be argued about, and every one of them was previously either a literal in the middle of
+   a function or not written down at all.
+
+   INTEREST IS NOT PAYMENT, and that is the whole shape of this. A family says they want it — that
+   is `Waiting`, and it costs them nothing and promises them nothing. When three have said so there
+   is something worth paying for, and only then is anybody asked. Asking one family to pay for a
+   class that may never have anybody else in it is asking them to carry the risk of it not filling.
+
+   AND THE THIRD PAYMENT IS WHAT STARTS IT, not the fourth. A class of three runs; the fourth seat
+   is a seat, not a condition. If only two pay it stays open — the two who paid keep their seats and
+   the list goes on gathering people, rather than the whole thing hanging on whichever of the
+   original three went quiet. */
+const WAIT = {
+  /* ENOUGH TO ASK. Below this nobody is prompted for money. */
+  ASK_AT: 3,
+  /* ENOUGH TO RUN. Once this many have paid it is a session. */
+  RUNS_AT: 3,
+  /* HOW LONG BEFORE THE START IT SHUTS. Three weeks: a room has to be booked, a tutor found and
+     four families told, and a list still taking names inside that is a list making promises the
+     calendar cannot keep. */
+  SHUTS_DAYS_BEFORE: 21
+};
+
+/* WHERE A LIST HAS GOT TO, counted from the roster rather than stored. A stage held in a column is
+   a second copy of something the statuses already say, and the two come apart the first time
+   somebody edits a row by hand — which on a spreadsheet backend is a Tuesday. */
+function waitStage_(job) {
+  const cs = clientsIn(S(job.job_id) || String(job._row));
+  const paid   = cs.filter(c => c.status === BM.BOOKED).length;
+  const asked  = cs.filter(c => c.status === BM.PAYING).length;
+  const keen   = cs.length;                       // everybody on it, however far along
+  const seats  = N(job.max_students) || 4;
+
+  /* SHUT IS A DATE, NOT A DECISION. Read before anything else, because a list past its closing date
+     is not gathering interest whatever its roster says. */
+  const shutsOn = sheetDate(job.closes_on);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const shut = !!(shutsOn && today > shutsOn);
+
+  const stage = paid >= WAIT.RUNS_AT ? 'running'
+              : shut                 ? 'shut'
+              : keen >= WAIT.ASK_AT  ? 'paying'
+              :                        'interest';
+
+  return { stage: stage, keen: keen, asked: asked, paid: paid, seats: seats,
+           /* SEATS LEFT IS OFF THE ROOM, not off the three that make it run: once it is running the
+              fourth seat is still for sale. */
+           left: Math.max(0, seats - keen),
+           shutsOn: shutsOn || null };
+}
+
+/* WHEN A LIST OPENED TODAY WOULD SHUT. The start it is counting back from is the beginning of the
+   next term — a shared class is a term thing, and the next one to start is the only date the list
+   has to aim at before a day and a room are settled.
+   NULL IF THERE IS NO NEXT TERM in the sheet, and null means no closing date rather than a guessed
+   one: a list that quietly shuts on a date nobody entered is worse than one that waits. */
+function waitShutsOn_() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const y = today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
+  const terms = termsFor(y).concat(termsFor(y + 1))
+    .filter(t => t.kind !== 'holiday' && t.start && t.start > today)
+    .sort((a, b) => a.start - b.start);
+  if (!terms.length) return null;
+  const shut = new Date(terms[0].start.getTime() - WAIT.SHUTS_DAYS_BEFORE * 864e5);
+  shut.setHours(0, 0, 0, 0);
+  return shut;
+}
+
 /* THE ONE WAITLIST A VENUE MAY HAVE OPEN. Two lists on one room is two sets of families waiting for
    the same four seats, and the second one cannot ever be filled without the first being abandoned.
-   OPEN means nobody has paid yet: a waitlist whose families are Booked has become a session and is
-   no longer a list, so the room is free to start another. */
+
+   OPEN USED TO MEAN "NOBODY HAS PAID YET", AND THAT WAS THE BUG. The moment one family paid, the
+   list stopped counting and the very next family at that library started a SECOND one — so a
+   library could hold a part-paid list and a brand new list at the same time, which is the thing
+   this function exists to prevent. It let go exactly one payment too early.
+
+   OPEN NOW MEANS "HAS NOT RUN AND HAS NOT SHUT". A list that is running is a session and the room
+   is free to gather the next one; a list that has shut is over. Everything between — nobody paid,
+   one paid, two paid — is still the venue's one list, which is what makes the second and third
+   payment go to the same place as the first. */
 function openWaitlistAt(venueName) {
   return read(TAB.jobs).rows.find(j => {
     if (norm(j.kind) !== 'waitlist') return false;
     if (key(j.venue) !== key(venueName)) return false;
     const cs = clientsIn(S(j.job_id) || String(j._row));
     if (!cs.length) return false;                        // nobody on it — it is not a live list
-    return !cs.some(c => c.status === BM.BOOKED);        // once anybody is Booked it is a session
+    const st = waitStage_(j).stage;
+    return st !== 'running' && st !== 'shut';
   }) || null;
 }
 
@@ -997,4 +1095,140 @@ function closeFinishedJobs() {
       setCell(t, j, 'status', 'ended');
     }
   });
+}
+/* ==================================================================================================
+   SIGNING IN: HASHING, SESSIONS, AND NOT LETTING SOMEBODY GUESS
+   --------------------------------------------------------------------------------------------------
+   THREE THINGS WERE WRONG AND THEY ARE THE THREE THINGS EVERY LOGIN GETS WRONG.
+
+   THE PIN WAS STORED AS TYPED. A digest is one-way: it can confirm a PIN somebody offers and cannot
+   be turned back into the PIN itself, so a copy of the sheet is no longer a list of everyone's
+   four digits.
+
+   THE PIN WAS CHECKED ONCE AND NEVER AGAIN. After sign-in the phone sent a NAME, and the gate
+   accepted a name as proof — so knowing how somebody is spelled was the whole of what it took to
+   edit their profile. A session token replaces it: random, issued at sign-in, kept here only as a
+   digest, and expiring.
+
+   AND NOTHING COUNTED WRONG ANSWERS. Four digits is ten thousand possibilities; at a few requests a
+   second that is an afternoon. Five wrong in a row now stops the account answering for fifteen
+   minutes, which is the difference between an afternoon and a couple of centuries.
+
+   WHY NOT bcrypt: Apps Script has no such library and no way to load one. SHA-256 run many times
+   over is the honest approximation available here — slower than a bare digest by the number of
+   rounds, which is what makes guessing expensive. The pepper lives in Script Properties rather than
+   the sheet, so the spreadsheet alone is not enough to test guesses against.
+================================================================================================== */
+const AUTH = {
+  ROUNDS: 4000,          // ~50ms per check here; a login is rare and a guess is not free
+  SESSION_DAYS: 30,      // signed in for a month, then the PIN again
+  MAX_TRIES: 5,
+  LOCK_MINUTES: 15
+};
+
+/* THE PEPPER. Made once and kept out of the sheet — Script Properties belong to the project, not to
+   the document, so somebody holding a copy of the spreadsheet still cannot test a guess. */
+function authPepper_() {
+  const p = PropertiesService.getScriptProperties();
+  let v = p.getProperty('AUTH_PEPPER');
+  if (!v) { v = Utilities.getUuid() + Utilities.getUuid(); p.setProperty('AUTH_PEPPER', v); }
+  return v;
+}
+
+function authHash_(secret, salt) {
+  let acc = String(salt) + '|' + authPepper_() + '|' + String(secret);
+  for (let i = 0; i < AUTH.ROUNDS; i++) {
+    acc = Utilities.base64Encode(
+      Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, acc, Utilities.Charset.UTF_8));
+  }
+  return acc;
+}
+
+/* CONSTANT TIME. `a === b` on strings stops at the first differing character, and the time that
+   takes is a measurement of how much of the digest was right. Irrelevant over the internet in
+   practice, and it costs three lines. */
+function authSame_(a, b) {
+  const x = String(a), y = String(b);
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  return diff === 0;
+}
+
+/* SET OR CHANGE A PIN. The salt is new every time, so changing a PIN back to an old one does not
+   reproduce an old hash. */
+function authSetPin_(t, r, pin) {
+  const salt = Utilities.getUuid();
+  setCell(t, r, 'pin_salt', salt);
+  setCell(t, r, 'pin_hash', authHash_(pin, salt));
+  setCell(t, r, 'pin', '');            // the plaintext goes, here and for good
+}
+
+/* CHECKING A PIN, AND MOVING AN OLD ROW ACROSS WHILE NOBODY IS LOOKING.
+   A row that predates this has a plaintext `pin` and no hash. It is compared once, in the old way,
+   and immediately rewritten as a hash — so the sheet converts itself as people sign in and nobody
+   is locked out by the change. A row with a hash never consults the plaintext again. */
+function authCheckPin_(t, r, pin) {
+  const given = S(pin);
+  if (!given) return false;
+  const hash = S(r.pin_hash);
+  if (hash) return authSame_(hash, authHash_(given, S(r.pin_salt)));
+  const old = S(r.pin);
+  if (!old || old !== given) return false;
+  authSetPin_(t, r, given);
+  return true;
+}
+
+/* THE THROTTLE. Read before the PIN is even looked at, so a locked account costs a guesser the same
+   whether the guess was right or not. */
+function authLocked_(r) {
+  const until = r.locked_until ? new Date(r.locked_until) : null;
+  return !!(until && until.getTime() > Date.now());
+}
+
+function authWrong_(t, r) {
+  const n = N(r.tries) + 1;
+  setCell(t, r, 'tries', n);
+  if (n >= AUTH.MAX_TRIES) {
+    setCell(t, r, 'locked_until', new Date(Date.now() + AUTH.LOCK_MINUTES * 60000));
+    setCell(t, r, 'tries', 0);
+    /* TOLD, BECAUSE A LOCKOUT IS THE ONLY WARNING A GUESSED ACCOUNT EVER GIVES. */
+    try {
+      notify(personDisplayName(r), 'Too many sign-in attempts',
+        'Somebody tried your @family. PIN ' + AUTH.MAX_TRIES + ' times and got it wrong.\n\n'
+        + 'The account is locked for ' + AUTH.LOCK_MINUTES + ' minutes. If that was not you, reply here.');
+    } catch (err) {}
+  }
+}
+
+/* A NEW SESSION. The token is returned once and never stored — only its digest is kept, so this is
+   the only moment it exists in readable form anywhere. */
+function authNewSession_(t, r) {
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  setCell(t, r, 'session_hash', authHash_(token, 'session'));
+  setCell(t, r, 'session_until', new Date(Date.now() + AUTH.SESSION_DAYS * 864e5));
+  setCell(t, r, 'tries', 0);
+  setCell(t, r, 'locked_until', '');
+  return token;
+}
+
+/* WHO IS CALLING, decided by the token and by nothing else. Returns the row or null; a caller with
+   no valid token is not somebody whose name we should look up. */
+function authWhoIs_(token) {
+  const given = S(token);
+  if (!given) return null;
+  const want = authHash_(given, 'session');
+  const t = read(TAB.people);
+  const r = t.rows.find(x => S(x.session_hash) && authSame_(S(x.session_hash), want));
+  if (!r) return null;
+  const until = r.session_until ? new Date(r.session_until) : null;
+  if (!until || until.getTime() < Date.now()) return null;
+  return r;
+}
+
+/* SIGNING OUT ends the session HERE, not only on the phone. A token that still works after the
+   person believed they left is the one thing sign-out must not do. */
+function authEndSession_(t, r) {
+  setCell(t, r, 'session_hash', '');
+  setCell(t, r, 'session_until', '');
 }

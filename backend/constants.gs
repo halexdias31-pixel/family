@@ -145,6 +145,26 @@ const SCHEMA = {
        gate — a random string has to be read off a screen, and a referral needing a screen is a
        referral that does not happen. */
     "referral_code",
+    /* ---------- HOW A PERSON PROVES WHO THEY ARE -----------------------------------------------
+       THE PIN COLUMN HELD THE PIN. Typed in, written down, sat in a cell — so anybody who could
+       open the spreadsheet could read every family's PIN, and a PIN is the same four digits people
+       use on a phone and a bank card. `pin_hash` replaces it: a one-way digest, so what is stored
+       cannot be read back into the number somebody types.
+
+       `pin_salt` IS PER PERSON and is why two families choosing 4815 do not produce the same hash.
+       Without it one leaked hash tells you every account sharing that PIN.
+
+       `session_hash` AND `session_until` ARE THE SIGNED-IN STATE. A random token is handed to the
+       phone at sign-in and only its digest is kept here — the same reasoning as the PIN, and it
+       means a copy of this sheet cannot be used to impersonate anybody.
+
+       `tries` AND `locked_until` ARE THE THROTTLE. Four digits is ten thousand guesses, which is
+       minutes of unattended requests; five wrong in a row and the account stops answering for a
+       while, which turns minutes into years without inconveniencing anybody who knows their PIN.
+
+       `pin` STAYS IN THE LIST so the migration can read it once and blank it. It is not written
+       to again. */
+    "pin_hash", "pin_salt", "session_hash", "session_until", "tries", "locked_until",
     "photo",
     /* THE FIGURE, and what has been bought for it. Neither column existed, and both are written
        to: saveAvatar called setCell for `avatar` and `avatar_owned` on every save, setCell found
@@ -2056,7 +2076,26 @@ const MIGRATIONS = [
 --------------------------------------------------------------------------------------------- */
 const ACTION_ACCESS = {
   // Open by necessity — you cannot be signed in to sign in.
-  register: 'anyone', verifyEmail: 'anyone', verifyLogin: 'anyone', relogin: 'anyone',
+  register: 'anyone', verifyEmail: 'anyone', verifyLogin: 'anyone',
+  /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
+     signed in to sign in — and the handler proves identity by asking Google rather than by
+     believing the request, which is the difference between this and the entry removed below. */
+  googleLogin: 'anyone',
+  /* `self`, so the token is resolved and the session ended belongs to whoever holds it. */
+  signOut: 'self',
+  /* `relogin` WAS HERE, AND IT WAS THE WAY IN. It reached the same handler as `verifyLogin` with
+     the PIN comparison switched off for it by name — so a request naming somebody came back with
+     their `person_id`, e-mail, handle and role, and `person_id` is the whole of what every `self`
+     action checks. A PIN guarded the front door and this stood beside it handing out keys.
+
+     NOTHING CALLED IT. Not one line in `js/`, not the login screen, not the phone — the same
+     condition this file already applies to `likePost` two entries down: an endpoint nothing calls
+     is an endpoint nobody maintains. The difference is that a dead read is untidy and a dead
+     credential issuer is a way in.
+
+     SIGNING IN AGAIN IS `verifyLogin`, which is what the app has always used, and it asks for the
+     PIN. If a silent re-sign-in is wanted later it needs a token issued at login and checked here,
+     which is a different thing from trusting a name. */
   imageData: 'anyone',          // proxies a picture for the share canvas; reads nothing private
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
