@@ -189,29 +189,60 @@ function savedPages_() {
 function basketPages() {
   if (!CART.length) return [];
 
+  /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE -------------------------------------------
+     IT WAS BUILT FROM `.row`, the app's generic label-and-value line, and it broke: `.k` has no
+     `min-width: 0`, so a long title could not shrink and pushed the price and the ✕ off the right
+     edge of the card. Three items and you could see none of the prices and remove none of them.
+
+     THAT IS FIXABLE IN A LINE, and fixing it would still leave a list of things and prices with a
+     total and a button to pay, drawn in a shape the app uses for settings screens. The app already
+     has a shape for exactly this, and it is on the page above: `receiptHtml`, the same paper the
+     booking is drawn on, with columns that were measured to fit a phone.
+
+     SO THE BASKET AND THE BOOKING ARE THE SAME DOCUMENT. Both are things you are about to pay for,
+     and now they look it — same torn ends, same numbered lines, same total, and the button printed
+     on the paper rather than floating under it.
+
+     `printed ‧ 26 pages` MOVES TO THE PAGES COLUMN, where a receipt puts a quantity, instead of
+     trailing after the title in a smaller grey. It was the thing making the line too long. */
   const credits = collCredits_();
   const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
   const cash = CART.reduce((n, c) => n + (c.money || 0), 0);
   const short = due > credits;
 
-  const lines = CART.map(c => `<div class="row">
-      <span class="k">${esc(c.name)}${c.kind === 'print'
-        ? ` <span class="faint">printed ‧ ${esc(String(c.pages))} pages</span>` : ''}</span>
-      <span class="v mono">${c.money ? money(c.money) : (c.cost ? c.cost : 'free')}
-        <span class="text-drop" data-do="cart-drop"
-              data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</span></span>
-    </div>`).join('');
+  const rows = CART.map((c, i) => receiptRow({
+    n: String(i + 1).padStart(3, '0'),
+    k: c.kind === 'print' ? 'Paper' : 'Item',
+    v: '',
+    /* THE ✕ RIDES IN THE VALUE CELL. `receiptRow` escapes `v` and inserts `sel` raw — that hook
+       exists for the booking's dropdowns and is exactly what is wanted here: the name, and the way
+       to take it out, on the line it belongs to. A separate list of remove buttons underneath would
+       be every title printed twice. */
+    sel: esc(c.name) + ` <span class="text-drop" data-do="cart-drop"
+      data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</span>`,
+    mul: c.kind === 'print' && c.pages ? String(c.pages) + 'pp' : '',
+    rate: '',
+    /* CREDITS AND MONEY IN THE SAME COLUMN, because a line costs one or the other and never both —
+       `cart-add` writes `money` for a paper and `cost` for anything bought with credits. */
+    total: c.money ? money(c.money) : (c.cost ? c.cost + ' cr' : 'free'),
+    /* THE ✕ IS THE ROW'S OWN CONTROL, drawn where a receipt's line already ends. */
+    end: true,
+  })).join('');
 
-  return [`<div class="card">${lines}
-    ${due ? `<div class="row"><span class="k">Credits</span>
-       <span class="v big mono">${due}</span></div>
-      <div class="row"><span class="k">You have</span>
-       <span class="v mono${short ? ' bad' : ''}">${credits}</span></div>` : ''}
-    ${cash ? `<div class="row"><span class="k">To pay</span>
-       <span class="v big gold mono">${esc(money(cash))}</span></div>` : ''}
-    <button class="btn" style="margin-top:.85rem" ${short ? 'disabled' : ''}
-            data-do="cart-send">Send</button>
-  </div>`];
+  const foot = `
+    <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">Send</button>
+    ${short ? '<p class="rc-terms bad">Not enough credits for this yet.</p>' : ''}`;
+
+  return [receiptHtml({
+    kind: 'screen',
+    lines: [due ? due + ' credit' + (due === 1 ? '' : 's') : '',
+            due ? 'you have ' + credits : ''].filter(Boolean),
+    rows: rows,
+    totalLabel: cash ? 'To pay' : 'Credits',
+    total: cash ? money(cash) : String(due),
+    foot: foot,
+    bars: receiptBars('cart-' + CART.map(c => c.key).join('-')),
+  })];
 }
 
 /* `screen('basket')` WAS HERE. A screen with no tab is a screen nobody can reach — the basket is

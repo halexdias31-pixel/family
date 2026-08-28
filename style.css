@@ -438,7 +438,18 @@ body {
   font-size: .88rem;
 }
 .row:last-child { border-bottom: 0; }
-.row .k { color: var(--dim); flex: 0 0 auto; }
+/* ---------- A LABEL THAT CANNOT SHRINK PUSHES THE VALUE OFF THE CARD --------------------------------
+   `flex: 0 0 auto` IS RIGHT FOR A LABEL — "Credits", "You have", "Where" — and every label in the
+   app was one of those when it was written. The basket then put an item's TITLE in the `k` slot,
+   and "3D Trig and Pythagoras Edexcel printed ‧ 26 pages" cannot shrink either: it ran past the
+   right edge and took the price and the ✕ with it, so three items showed no prices and could not be
+   removed.
+
+   `min-width: 0` LETS IT GIVE WAY when there is not room, which is all a flex child needs to stop
+   overflowing its parent. `flex-shrink` stays 0, so on every ordinary row — where the label is two
+   words and there is room — nothing changes at all. It only bends when the alternative was
+   spilling. */
+.row .k { color: var(--dim); flex: 0 0 auto; min-width: 0; overflow-wrap: break-word; }
 .row .v { text-align: right; overflow-wrap: anywhere; min-width: 0; }
 .row .v.big { font-size: 1.05rem; font-weight: 620; }
 
@@ -6873,3 +6884,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   color: #6a6259;
 }
 .rc.scr .rc-terms { color: #6f8f7c; }
+
+
+/* THE ✕ ON A BASKET LINE. `.text-drop` is sized for a settings row; on a receipt line it has to sit
+   with the title rather than beside it, and stay pressable at 44px without making the line taller
+   than its neighbours. */
+.bk-v .text-drop { padding: .35rem .3rem; margin-left: .25rem; }
