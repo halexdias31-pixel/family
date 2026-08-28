@@ -1921,8 +1921,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
 /* THE BARCODE ENCODES THE BOOKING, so the same session always prints the same code. A decorative
    one would be a lie told in a place where people expect a fact. */
+/* THE BARCODE IS DECORATION AND IS PRICED AS SUCH. It says nothing — it is 44 bars off a hash, and
+   it is there because a till receipt has one. Worth keeping for exactly that reason, and worth
+   keeping SMALL: 34px plus its margins was more height than the total line. */
 .rc-bars { display: flex; justify-content: center; align-items: flex-end; gap: 1px;
-           height: 34px; margin: .5rem 0 .3rem; }
+           height: 18px; margin: .3rem 0 .2rem; }
 .rc-bars i { display: block; height: 100%; background: #2b2620; }
 .rc-thanks { text-align: center; margin: 0; font-size: .66rem; color: #8a8175; }
 
@@ -1931,16 +1934,23 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    than a number — and an empty slot look like an invitation rather than an absence, which is what
    splitting a session actually is.
 ------------------------------------------------------------------------------------------------ */
-.rost { display: grid; grid-template-columns: repeat(4, 1fr); gap: .3rem; margin: .2rem 0 .4rem; }
-.rost-slot { display: flex; flex-direction: column; align-items: center; gap: .15rem;
-             padding: .35rem .1rem; border: 1px solid #cfc6b4; border-radius: 3px;
+/* ---------- THE ROSTER, TIGHTENED ------------------------------------------------------------------
+   FOUR STACKED SLOTS — a 34px face, a name, a role — is about 80px of card for four words and four
+   drawings, and three of the four are usually "Open". The seats matter; the amount of room they
+   were taking to say so did not.
+
+   The face drops to 22px and the role goes under the name rather than on its own line. Same four
+   facts, a third of the height. */
+.rost { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .15rem 0 .3rem; }
+.rost-slot { display: flex; flex-direction: column; align-items: center; gap: .08rem;
+             padding: .25rem .1rem; border: 1px solid #cfc6b4; border-radius: 3px;
              background: #eeeadd; min-width: 0; }
 /* An open slot is dashed and pale — the same language every lobby uses for a space you could take,
    and unmistakably different from a filled one at a glance. */
 .rost-slot:not(.on) { border-style: dashed; background: transparent; opacity: .6; }
 /* The tutor is not a seat. A line above the slot says so without needing a different shape. */
 .rost-slot.tut { border-top: 2px solid #8a7a4a; }
-.rost-pic { width: 34px; height: 34px; display: grid; place-items: center; }
+.rost-pic { width: 22px; height: 22px; display: grid; place-items: center; }
 .rost-pic svg { width: 100%; height: 100%; border-radius: 50%; }
 .rost-plus { font-size: 1.1rem; color: #a99f8f; line-height: 1; }
 .rost-name { font-size: .6rem; font-weight: 700; color: #2b2620; max-width: 100%;
@@ -2036,8 +2046,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .rc .bk-hr.on { background: #2b2620; color: #f4f1e8; border-color: #2b2620; }
 .rc .bk-dates { color: #6a6259; }
 /* The two photographs sit on the paper like something stapled to it. */
-.rc .bk-photos img, .rc .bk-none { border-color: #c9c0b0; }
-.rc .bk-none { color: #b3aa9c; }
 
 /* ---------- THE BOOKING CARD --------------------------------------------------------------------
    Five columns: what it is · what was chosen · the multiplier · what it adds an hour · the running
@@ -2138,21 +2146,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* The two photographs — the room and the person. A booking is largely about whether you like the
    look of both, and a card that names them without showing them is a receipt rather than an offer.
    Square, side by side, taped like every other photo on the site. */
-.bk-photos { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .6rem; }
-/* GREY, BECAUSE A RECEIPT IS PRINTED. A till roll has one ink and no colour in it — a photograph
-   in full colour on thermal paper is the one thing on the card that gives away that it is a screen
-   pretending to be a receipt.
-   Contrast lifted a little because greyscale alone leaves a photograph muddy, and a thermal print
-   is anything but: it is black marks or nothing. */
-.bk-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--sunk);
-                 border: 1px solid var(--line);
-                 filter: grayscale(1) contrast(1.18) brightness(1.04); }
-/* Nobody chosen yet — a drawn figure rather than a caption. It reads as a person nobody has
-   picked, which is what an open booking IS, and it holds the frame so a card with one photograph
-   does not look like a booking with a room and no teacher. */
-.bk-none { display: flex; align-items: center; justify-content: center;
-           aspect-ratio: 1; border: 1px dashed var(--line); color: var(--faint); padding: 18%; }
-.bk-none svg { width: 100%; height: auto; }
+/* `.bk-photos`, `.bk-photos img` AND `.bk-none` WERE HERE — the two square photographs at the head
+   of the booking card. They were about 180px of height for a picture of a room you had already
+   named two rows below, and empty outlines until both were chosen. The small pair on the job stubs
+   is `rc-stub-pics` and is styled separately. */
 
 /* ---------- WHEN, AS A WEEK YOU TICK -------------------------------------------------------------
    One row per day, one small button per bookable hour. It replaces three questions — which day,

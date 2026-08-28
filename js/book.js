@@ -1343,13 +1343,18 @@ function stepRows_() {
 }
 
 function bookBreakdown(L) {
-  /* Photographs of the two things chosen — the room and the person. A booking is largely about
-     whether you like the look of both, and a card that names them without showing them is a receipt
-     rather than an offer.
-     One lookup, shared with the job stub. This was written out here and about to be written again
-     there, which is two ways of finding a venue's photograph and two ways for one of them to stop
-     finding it. */
-  const photos = facesFor(BOOKING.loc, BOOKING.tutor);
+  /* ---------- THE TWO PHOTOGRAPHS ARE GONE --------------------------------------------------------
+     THEY WERE HALF THE CARD. Two squares side by side, each a full 1:1 at half the card's width —
+     about 180px of height before a single row of the booking was drawn, and on the first question
+     both of them were empty outlines, so the largest thing on the screen said nothing at all.
+
+     THEY WERE ARGUED FOR AS AN OFFER rather than a receipt: you are choosing a room and a person,
+     and you want to see them. That is true on the VENUE card and the TUTOR card, where the photo is
+     the point and is what you press. Here it is the same picture a second time, under the name it
+     already says on the Venue and Tutor rows.
+
+     The job stubs keep theirs — `rc-stub-pics` draws them small, two to a line beside the text,
+     which costs nothing and is what tells one saved session from another at a glance. */
   /* `L` IS NULL UNTIL ENOUGH IS ANSWERED TO COST IT — no subjects, or no venue on a shared class.
      Everything below reads it for figures, so each read is guarded rather than the whole card being
      refused. The paper exists from the first question; only the numbers arrive late. */
@@ -1377,7 +1382,6 @@ function bookBreakdown(L) {
              'split:' + (BOOKING.split || []).join(',')]).join('|'));
 
   return receiptHtml({
-    photos,
     lines: [venueName, BOOKING.tutor || 'No tutor yet', when],
     /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
        from the booking rather than assumed to be whoever is looking. */
@@ -1445,6 +1449,9 @@ function facesOf_(venueName, tutorName) {
   };
 }
 
+/* THE ONLY CALLER LEFT PASSES `rc-stub-pics`. The booking card's pair is gone — see
+   `bookBreakdown` — so the default is the stub's class rather than `bk-photos`, which nothing
+   styles any more. */
 function facesFor(venueName, tutorName, cls) {
   const { venue, tutor } = facesOf_(venueName, tutorName);
   const figure = kind => `<span class="bk-none"><svg viewBox="0 0 64 52" aria-hidden="true">${
@@ -1456,7 +1463,7 @@ function facesFor(venueName, tutorName, cls) {
   }</svg></span>`;
   const one = (img, kind) => img
     ? `<img src="${esc(pic(img))}" alt="" loading="lazy">` : figure(kind);
-  return `<div class="${cls || 'bk-photos'}">
+  return `<div class="${cls || 'rc-stub-pics'}">
       ${one(venue && venue.image, 'venue')}
       ${one(tutor && tutor.image, 'tutor')}
     </div>`;
@@ -1580,7 +1587,7 @@ function receiptHtml(r) {
       ${(r.lines || []).filter(Boolean).length
         ? `<p>${(r.lines || []).filter(Boolean).map(esc).join(' · ')}</p>` : ''}
     </div>
-    ${r.photos || ''}
+    ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
     <div class="rc-rule"></div>
     ${/* THE COLUMN HEADINGS ARE GONE. "# Item × Rate Total" over four rows that are plainly a
          number, a thing, a multiplier and a price — six words explaining a layout nobody was
