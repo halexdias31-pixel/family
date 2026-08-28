@@ -6748,20 +6748,28 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 
 
-/* ---------- THE BOOKER, ON THE PAGE RATHER THAN OVER IT ---------------------------------------------
-   The nine questions used to open in a sheet. They are a card on Book now — same markup, same
-   funnel, drawn where the blank paper it replaces was drawn.
+/* ---------- THE BOOKER IS THE PAPER, AND NOTHING ELSE --------------------------------------------
+   IT WAS AN `.rc` INSIDE A `.card` INSIDE A `.pane` — a receipt, in a panel, in glass. Three
+   containers for one object, and only the innermost had anything to say: the receipt is torn at
+   both ends and printed on its own colour, which makes it the most obviously bounded thing in the
+   app. The two boxes round it were framing a photograph that came framed.
 
-   IT KEEPS THE SHEET'S PROPORTIONS ON PURPOSE. A form is read top to bottom and the question is the
-   thing you look at first, so the heading sits on its own line with the leave control opposite it,
-   exactly as the sheet's bar did. Anything else and the question competes with the answers under
-   it. */
-.bookr { padding-bottom: .9rem; }
-.bookr-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem;
-  margin-bottom: .6rem;
+   SO THE PANE ON BOOK'S FIRST PAGE STOPS BEING A BOX. Visual only — it keeps its sizing, its
+   containment and its `touch-action`, which are about being a page in the swipe grid rather than
+   about how it is painted. The same move the Find controls page needed, for the opposite reason:
+   that one holds several widgets and had to stop being one box so each could be its own; this one
+   holds a single widget that already is one.
+
+   `.bookr` HAS NO EDGES OF ITS OWN. It exists to be found by `redrawBooker_`, which restores the
+   scroll position across a redraw, and to keep the note box and the send buttons with the paper
+   they belong to. */
+#s-book > .page:first-child > .pane {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 0;
 }
-.bookr-top > h3 { margin: 0; }
 
 /* `.bookr-x` WAS THE CLOSE BUTTON. The booker is the first card on Book and is always drawn, so
    there is nothing to close and no state to return to. */

@@ -347,7 +347,8 @@ on('book-share', async el => {
 
    IT IS THE SAME MARKUP IN THE SAME PLACE. `drawBooker_` was four `openSheet` calls with four
    nearly-identical bodies; it RETURNS those bodies now and `bookerCard` puts them on the Book
-   screen instead. Nothing about the questions, the skipping, the pricing or the running total
+   screen instead. It returned a `title` too, for the heading above the card — there is no heading
+   and no card, so it returns only the body. Nothing about the questions, the skipping, the pricing or the running total
    changed — only where the answer to "where does this go" is given, and it is given once.
 
    WHY IT WAS A SHEET AT ALL: because the funnel needs somewhere that is only the question, with
@@ -359,17 +360,19 @@ function drawBooker() { redrawBooker_(paintBook_); }
 function bookerCard() {
   const out = drawBooker_();
   if (!out) return '';
-  return `<div class="card bookr" id="bookr">
-    ${/* NO CLOSE BUTTON, BECAUSE THERE IS NOTHING TO CLOSE. This was a form you opened, so it needed
-          a way out; it is the first card on Book now, always drawn, the same way the blank paper it
-          replaced always was. Closing it would leave an empty column.
+  return `<div id="bookr">
+    ${/* ---------- NO CARD AROUND IT ----------------------------------------------------------
+          IT WAS A `.card` HOLDING AN `.rc`, which is a glass panel with a paper receipt inside it —
+          two containers for one object, and the outer one said nothing. The receipt already has
+          edges: it is torn at both ends, it has its own colour, and it is the most obviously
+          bounded thing in the app. Putting it in a box was framing a photograph that came framed.
 
-          THE HEADING IS THE QUESTION and sits above the paper, which is the one piece of chrome
-          worth keeping from the sheet: the paper shows everything, and the question says which line
-          of it is being answered right now. */''}
-    <div class="bookr-top">
-      <h3>${esc(out.title)}</h3>
-    </div>
+          THE HEADING WENT WITH IT. "How would you like to book?" named the question being asked,
+          which mattered when a list of answers sat underneath. Every field is a dropdown on the
+          paper now, so there is no single current question for a heading to name — the card asks
+          all twelve at once and you answer whichever you like.
+
+          What is left is the paper, and under it the note box and the buttons that send it. */''}
     ${out.html}
   </div>`;
 }
@@ -462,7 +465,7 @@ function drawBooker_() {
   if (!step) {
     /* THE HEADING IS WHAT IS LEFT TO DO, not what is being asked — there is no question on screen
        when every field is a dropdown on the card. */
-    return { title: wanted ? wanted.label : 'Ask for a session', html: `
+    return { html: `
       ${head || '<p class="note">Not enough answered to price it yet.</p>'}
       <label class="field"><span>anything else we should know</span>
         <textarea id="book-note" placeholder="Optional"></textarea></label>
@@ -484,7 +487,7 @@ function drawBooker_() {
     const g = slotGrid();
     const on = BOOKING.slots || [];
     const runs = bookRuns();
-    return { title: step.label, html: `
+    return { html: `
       ${head}
       ${g.anyOpen ? `
         <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
@@ -515,7 +518,7 @@ function drawBooker_() {
   /* ONE BOX PER PERSON, and a ＋ for another. How many there are IS how many there are. */
   if (step.emails) {
     const list = BOOKING.split || [];
-    return { title: step.label, html: `
+    return { html: `
       ${head}
       <p class="faint">Each family pays their own share. Leave it empty if it is just you.</p>
       ${list.map((v, k) => `<label class="field"><span>their email</span>
@@ -533,7 +536,7 @@ function drawBooker_() {
   const opts = step.options().filter(Boolean);
   const chosen = step.multi ? (BOOKING[step.id] || []) : [];
 
-  return { title: step.label, html: `
+  return { html: `
     ${head}
     ${BOOKING.editing ? `<div class="btn-row">
       <button class="btn quiet" data-do="book-back">Leave it as it is</button>
