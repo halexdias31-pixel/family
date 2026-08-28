@@ -1312,7 +1312,14 @@ function breakdownRows(L) {
       const st = asked ? bookStep_(asked) : null;
       const sel = st ? stepControl_(st) : '';
       push(r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
-        { end: gi === inGroup.length - 1, step: sel ? '' : asked, key: r.key, sel: sel,
+        /* ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL --------------------
+           THIS SAID `sel ? '' : asked`, blanked so a row carrying a dropdown would not also be
+           pressable. That was right when these rows WERE the card. They are not: `bookBreakdown`
+           merges them onto the form's rows now, and it finds the right one by this field — so
+           blanking it meant every priced line failed to find its question and printed as a row of
+           its own, with the figures stranded away from the answer that caused them. Which is
+           exactly what "the multiplier is gone" was. */
+        { end: gi === inGroup.length - 1, step: asked, key: r.key, sel: sel,
           open: st ? stepGrid_(st) : '' });
     });
   });
@@ -1616,8 +1623,22 @@ function bookBreakdown(L, foot) {
   const steps = stepRows_();
   const priced = L ? breakdownRows(L) : [];
 
+  /* ---------- WHICH PRICED LINES BELONG TO A QUESTION -----------------------------------------
+     ALL BUT THE BASE. `PRICE_ROWS` maps its base line to the tutor step, because pressing it should
+     open the tutor question — but "Tuition · × 10 · £10.00/h" is what you are being charged FOR,
+     not an answer you gave, and a receipt without a base line is a receipt that has lost its
+     subject. It stays its own row at the foot, where the other consequences are. */
+  /* ONE RULE, ASKED TWICE. A line either belongs to a question or it does not, and both the merge
+     and the leftovers below have to agree — the first version said it in two places and the base
+     line fell through the gap: excluded from merging, then dropped by a filter that saw it named a
+     step and assumed it had merged. It vanished off the card entirely. */
+  const ownRow = r => r.key !== 'base';
+
   const byStep = {};
-  priced.forEach(r => { if (r.step && !byStep[r.step]) byStep[r.step] = r; });
+  priced.forEach(r => {
+    if (!ownRow(r)) return;
+    if (r.step && !byStep[r.step]) byStep[r.step] = r;
+  });
   steps.forEach(r => {
     const p = byStep[r.id];
     if (!p) return;
@@ -1634,7 +1655,8 @@ function bookBreakdown(L, foot) {
   steps.forEach(r => { said[norm(r.k)] = true; mine[r.id] = true; });
 
   const out = steps
-    .concat(priced.filter(r => !r.used && !said[norm(r.k)] && !mine[r.step]))
+    .concat(priced.filter(r =>
+      !r.used && !said[norm(r.k)] && !(ownRow(r) && mine[r.step])))
     .concat([noteRow_()])
     .map(receiptRow);
 

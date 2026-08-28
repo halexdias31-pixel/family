@@ -340,6 +340,43 @@ check('the paper keeps the same rows whatever is answered', async () => {
   return bad;
 });
 
+check('a price lands on the question that caused it', async () => {
+  /* ---------- THE FIGURES WERE STRANDED FROM THEIR ANSWERS ---------------------------------------
+     `bookBreakdown` merges each priced line onto the form row for the step it came from, and it
+     finds that row by the line's `step` field. `breakdownRows` was blanking that field on any row
+     that carried a control — which, once every question became a dropdown, was all of them.
+
+     So nothing merged. Every price printed as a row of its own below the form, and the multiplier
+     for "Level" sat four lines away from the level somebody had chosen. Nothing threw and the rows
+     were all present, which is why it read as the figures having quietly gone.
+
+     THE CHECK IS THAT A SURCHARGE IS ON ITS OWN ROW — the venue's running total on the Venue line,
+     not on a second line named after the price table. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.paper) return ['bookBreakdown is not exported — cannot check the paper'];
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  Object.assign(w.__t.BOOKING, { how: 'Instant class', loc: 'Colliers Wood Library',
+    level: '11+', n: '2', subjects: ['Maths', 'English'] });
+
+  const html = w.__t.paper();
+  const rows = html.match(/<div class="bk-row[\s\S]*?<span class="bk-t">[^<]*<\/span>/g) || [];
+  const cell = (r, c) => ((r.match(new RegExp('class="' + c + '">([^<]*)')) || [])[1] || '').trim();
+  const find = k => rows.find(r => cell(r, 'bk-k') === k);
+
+  const bad = [];
+  const venue = find('Venue');
+  if (!venue) bad.push('there is no Venue row at all');
+  else if (!cell(venue, 'bk-t')) {
+    bad.push('the Venue row carries no running total — its price did not find its question');
+  }
+  /* AND THE BASE LINE IS STILL THERE. It is the one price with no question behind it — what you are
+     being charged for rather than something you chose — and an earlier attempt at this dropped it
+     off the card entirely. */
+  if (!find('Tuition')) bad.push('the base charge has no line on the receipt');
+  return bad;
+});
+
 check('the booking form asks a session everything and a class almost nothing', async () => {
   const { w } = boot();
   await wait(300);
