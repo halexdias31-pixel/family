@@ -1745,17 +1745,7 @@ function filterChips() {
    Nothing carries `data-do="noop"`, so it swallowed nothing. */
 /* ANSWERING THE QUESTION ON THE PAGE. One tap: it becomes a chip, and the next question — if
    there is one worth asking — takes its place. */
-/* STRAIGHT TO THE FORM. It answers the first question — "what for · booking" — rather than
-   navigating past the funnel, so the chips say how you got there and taking the chip off puts you
-   back where you were. A shortcut that leaves no trail is one you cannot undo. */
-on('book-jump', () => {
-  STUFF.filters = [{ field: 'forLabel', value: 'Booking' }];
-  paintStuff();
-  /* ONE PAGE ON, WHICH IS THE FORM. `paintStuff` lands on the question, and the whole point of this
-     is not having to make that swipe. */
-  PAGE.stuff = stuffQuestionPage_() + 1;
-  paintPager('stuff', true);
-});
+/* `on('book-jump')` WAS HERE, with the line that used it. */
 
 on('facet-pick', el => {
   STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
@@ -2155,23 +2145,10 @@ function stuffQuestion() {
       Swipe up for the ${items.length === 1 ? 'one' : items.length}.</p>` + adding;
   }
 
-  /* ---------- A FRONT DOOR TO THE BOOKING FORM ------------------------------------------------------
-   THE FORM IS TWO ANSWERS DEEP. It lives behind "What for · Booking", which is right — it is built
-   out of the tutors, venues, subjects and levels that question leads to — but a thing you might
-   have opened the app to do should not require two taps of a funnel to find, and nothing on the
-   first screen says it is there at all.
-
-   SO THE FIRST QUESTION CARRIES IT, and only the first: once anything is narrowed the funnel is
-   answering something and an unrelated shortcut in the middle of it is noise. One line, in the
-   place somebody is already reading, that answers the question on their behalf and turns to the
-   form.
-
-   NOT A ROW. The rows below are answers to the question being asked and each one narrows a list;
-   this does something else, and dressing it as one of them would make the count column look like
-   it had lost its number. */
-  const door = (!STUFF.filters.length && !S_(STUFF.q).trim() && USER)
-    ? `<p class="stuff-door"><span class="text-action" data-do="book-jump"
-        >Ask for a session</span></p>` : '';
+  /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first
+     question only, that filtered to Booking and turned to the form. It was clutter above the one
+     question this screen exists to ask, and the form is not hard to reach: "What for · Booking" is
+     the first answer in the list, and the Book buttons on tutor and venue cards go straight to it. */
 
   const values = facetValues(items, facet);
   /* THE HEADING IS GONE — it read `> WHAT FOR   5` above five rows that were about to say the same
@@ -2185,7 +2162,7 @@ function stuffQuestion() {
      so is the count — so on a one-digit number it appeared beside the digit and on a four-digit one
      it disappeared behind them. Five rows, chevrons on two of them, and the two were whichever
      happened to have small numbers. It marked nothing and read as litter. */
-  return door + values.map(v => `<div class="row tap counted" data-do="facet-pick"
+  return values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
         <span class="k">${mark(v.value)}</span>
         <span class="v mono">${v.n}</span>

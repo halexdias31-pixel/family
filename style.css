@@ -6841,11 +6841,3 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    there is nothing to close and no state to return to. */
 
 
-/* THE WAY STRAIGHT TO THE BOOKING FORM, above the funnel's answers on the first question only.
-   Ruled off underneath so it reads as a thing apart from the rows rather than as the first of them
-   — those narrow a list and this does not. */
-.stuff-door {
-  margin: 0 0 .5rem;
-  padding-bottom: .55rem;
-  border-bottom: 1px solid var(--line);
-}
