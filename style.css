@@ -1882,8 +1882,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .rc {
   background: #f4f1e8;
   color: #2b2620;
-  padding: 1rem .9rem 1.1rem;
-  margin: .2rem 0 .4rem;
+  /* The torn ends need a little room above and below the print or the zigzag eats the first line;
+     .7rem is enough for that and .3rem less than it was carrying on each end. */
+  padding: .7rem .8rem .8rem;
+  margin: .2rem 0 .3rem;
   font-family: var(--mono);
   /* TORN AT BOTH ENDS. A zigzag mask rather than a border image: it costs one gradient, scales to
      any width, and cuts the paper rather than drawing a picture of a cut. The two masks are
@@ -1905,12 +1907,18 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 }
 
 /* WHO, WHERE, WHEN — where a receipt puts them, and because those three ARE the booking. */
-.rc-head { text-align: center; padding: .2rem 0 .6rem; }
-.rc-head h2 { margin: 0 0 .3rem; font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
-.rc-head p { margin: 0; font-size: .7rem; color: #6a6259; line-height: 1.5; }
+/* THE HEAD IS THREE LINES OF WHICH ONE MATTERS. The stage, the shop name, then venue · tutor · when
+   — and on an unsent booking the third is "No venue yet · No tutor yet" beside a timestamp, which is
+   two facts the rows below state properly and a clock nobody asked for. Tightened rather than cut:
+   it is what makes the card a receipt at a glance. */
+.rc-head { text-align: center; padding: .1rem 0 .35rem; }
+.rc-head h2 { margin: 0 0 .15rem; font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
+.rc-head p { margin: 0; font-size: .68rem; color: #6a6259; line-height: 1.35; }
 
 /* A dashed rule, because a till roll's separators are printed rather than drawn. */
-.rc-rule { border-top: 1px dashed #b3aa9c; margin: .5rem 0; }
+/* A dashed rule, because a till roll's separators are printed rather than drawn. Five of them on a
+   card of twelve rows is 5rem of margin on its own at the old .5rem. */
+.rc-rule { border-top: 1px dashed #b3aa9c; margin: .3rem 0; }
 
 /* The column headings, in the same grid as the rows so they line up with the figures under them —
    a header that does not sit over its own column is worse than none. */
@@ -1925,7 +1933,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    it is there because a till receipt has one. Worth keeping for exactly that reason, and worth
    keeping SMALL: 34px plus its margins was more height than the total line. */
 .rc-bars { display: flex; justify-content: center; align-items: flex-end; gap: 1px;
-           height: 18px; margin: .3rem 0 .2rem; }
+           height: 14px; margin: .2rem 0 0; }
 .rc-bars i { display: block; height: 100%; background: #2b2620; }
 .rc-thanks { text-align: center; margin: 0; font-size: .66rem; color: #8a8175; }
 
@@ -1941,7 +1949,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
    The face drops to 22px and the role goes under the name rather than on its own line. Same four
    facts, a third of the height. */
-.rost { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .15rem 0 .3rem; }
+.rost { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .1rem 0 .2rem; }
 .rost-slot { display: flex; flex-direction: column; align-items: center; gap: .08rem;
              padding: .25rem .1rem; border: 1px solid #cfc6b4; border-radius: 3px;
              background: #eeeadd; min-width: 0; }
@@ -2087,8 +2095,16 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      THE FLOOR STAYS. `minmax(0, 1fr)` let the value collapse to nothing once the fixed columns had
      taken theirs, which is how a word ends up one letter per line. */
   grid-template-columns: 2.6ch 5.6rem minmax(4.5rem, 1fr) 4.5ch 7.5ch 7.5ch;
-  gap: .5rem; align-items: start;
-  padding: .34rem 0;
+  /* ---------- TWELVE ROWS IS A LOT OF ROWS -----------------------------------------------------
+     The card lists every question now, so what used to be four or five priced lines is twelve
+     before anything is answered. At .34rem top and bottom plus a .5rem gap that is most of a phone
+     screen spent on the gaps between things rather than the things.
+
+     TIGHTER, AND THE ROW STILL HAS AIR. .16rem of padding on a .76rem line leaves the rows clearly
+     separate — the dashed rule under each value is doing most of that work anyway — and gives back
+     roughly a third of the card. */
+  gap: .4rem; align-items: baseline;
+  padding: .16rem 0;
   font-size: .76rem;
 }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break.
@@ -5311,7 +5327,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    there is anything to put in them — so "Status · unconfirmed" had 59px for a word needing 74 and
    the two ran together. A row with no figures lets the value have that space instead.
    The columns still line up down the card: a row that spans has no figures to line up with. */
-.bk-row.is-bare { grid-template-columns: 3ch 4.4rem minmax(0, 1fr); }
+/* THE SAME TWO COLUMNS AS EVERY OTHER ROW, so a card of mixed rows lines up down its left edge. This
+   said `3ch 4.4rem` — the widths the main rule used before it was widened for "Possession" — so a
+   bare row's label started in a different place from a priced one's, on the same card. Third copy of
+   the same fault: a width stated twice and the second one forgotten. */
+.bk-row.is-bare { grid-template-columns: 2.6ch 5.6rem minmax(0, 1fr); }
 .bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r, .bk-row.is-bare .bk-t { display: none; }
 
 /* ==================================================================================================
