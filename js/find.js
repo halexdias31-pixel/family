@@ -1796,11 +1796,17 @@ function paintStuff() {
     if (el !== first) el.remove();
   });
 
-  /* WHAT YOU KEPT, BACK IN FRONT. Rebuilt rather than left alone because a star pressed on a result
-     page changes how many of these there are — see `on('fav')`. */
-  const saved = savedPages_()
+  /* ---------- WHAT YOU HAVE, BACK IN FRONT -------------------------------------------------------
+     REBUILT RATHER THAN LEFT ALONE because both change from a press on a result page: a star adds a
+     saved page, a trolley adds the basket or a ✕ empties it.
+
+     ONE INSERT, SO THE STRING'S OWN ORDER IS THE ORDER — unlike the two separate `afterend` calls
+     below, where each pushes the last one along and they go in backwards. Basket then saved then
+     the question, which is what `screen('stuff')` builds. Two ways of ordering the same page list,
+     twenty lines apart, is a good way to get one of them the wrong way round. */
+  const front = basketPages().concat(savedPages_())
     .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
-  if (saved) first.insertAdjacentHTML('beforebegin', saved);
+  if (front) first.insertAdjacentHTML('beforebegin', front);
 
   const blanks = Array.from({ length: stuffPageCount() },
     /* WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a page
@@ -2310,7 +2316,11 @@ screen('stuff', () => {
      you just asked for belongs in the direction you are travelling.
 
      WHAT YOU KEPT, THEN THE QUESTION, THEN THE BOOKING, THEN THE ANSWER. */
-  return pages('stuff', savedPages_().concat(
+  /* WHAT YOU ARE PAYING FOR, THEN WHAT YOU KEPT, THEN THE QUESTION. The basket first because it is
+     the one with a deadline on it — a thing you meant to buy and forgot is a worse outcome than a
+     thing you meant to look at again. */
+  return pages('stuff', basketPages().concat(
+    savedPages_(),
     [controls],
     bookingPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));

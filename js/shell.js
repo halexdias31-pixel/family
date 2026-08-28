@@ -52,11 +52,12 @@ const TABS = [
      Everything that was on it — the form, your sessions, the open classes — is a page on Find now,
      behind that answer. See `bookingPages_` in find.js. */
 
-  /* SAVED WAS A COLUMN HERE. Each saved thing is a PAGE on Find now, in front of the question —
-     see `savedPages_` in collections.js for why — so the tab is gone rather than left pointing at a
-     screen nobody registers. Six columns, not seven, which is one less swipe to You from every
-     screen. */
-  { id: 'basket',     icon: '⛁', label: 'Basket', title: 'Your basket' },
+  /* BASKET WAS A COLUMN HERE. It is a page in front of the question on Find, beside the saved
+     things — everything in it was put there by pressing a trolley on a card in Find, and it was
+     sitting two columns away from the only place that happens. See `basketPages` in
+     collections.js.
+
+     Three columns: Posts, Find, You. */
 
   /* NOT "Who". It holds tutors, venues AND subjects — people, places and things — so a name
      asking about people was wrong about two thirds of it. "Find" is what you are doing on it. */
@@ -849,7 +850,8 @@ const PAGER = {
      of this table follows: a pager that counts for itself is a pager that can disagree. */
   stuff:  () => {
     const n = stuffPageCount();
-    return Array.from({ length: savedPages_().length }, () => 'Saved')
+    return Array.from({ length: basketPages().length }, () => 'Basket')
+      .concat(Array.from({ length: savedPages_().length }, () => 'Saved'))
       .concat(['Search'])
       .concat(Array.from({ length: bookingPages_().length }, () => 'Booking'))
       .concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));

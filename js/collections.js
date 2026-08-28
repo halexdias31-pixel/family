@@ -173,10 +173,21 @@ function savedPages_() {
    IT IS ALSO THE ONLY WAY IN. `find.js` builds a `basket ‧ n` chip and hands it to `screen()` as a
    THIRD argument, which `screen(id, draw)` does not take — so the only `open-cart` control in the
    app has never been rendered. Things could go into the basket and nothing could open it. */
+/* ---------- THE BASKET IS A PAGE ON FIND, IN FRONT OF THE QUESTION -------------------------------
+   IT WAS A COLUMN, and a column is a swipe on every screen whether or not anything is in it — which
+   for a basket is most of the time. It also sat two columns away from the only place anything gets
+   put in one: every single thing in it was added by pressing a trolley on a card in Find.
+
+   IN FRONT, WITH THE SAVED THINGS, and for the same reason. Those pages are what you already have —
+   the things you kept, the things you are about to pay for — and the question is what you are here
+   to ask next. What you have, then what you want.
+
+   NOTHING WHEN IT IS EMPTY. "Your basket is empty" was a whole pane whose entire content was the
+   announcement of its own emptiness; on a column somebody had deliberately opened that at least
+   answered them, and in front of the search box it is a permanent notice for everyone who has not
+   bought anything. An empty basket should be no basket. */
 function basketPages() {
-  if (!CART.length) {
-    return ['<div class="card"><p class="note">Your basket is empty.</p></div>'];
-  }
+  if (!CART.length) return [];
 
   const credits = collCredits_();
   const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
@@ -203,7 +214,8 @@ function basketPages() {
   </div>`];
 }
 
-screen('basket', () => pages('basket', basketPages()));
+/* `screen('basket')` WAS HERE. A screen with no tab is a screen nobody can reach — the basket is
+   pages on Find now, assembled beside the saved things. */
 
 
 /* ---------- THE PAGERS ---------------------------------------------------------------------------
@@ -217,6 +229,5 @@ screen('basket', () => pages('basket', basketPages()));
 /* NO `PAGER.favourites`. Saved is a strip on the Find controls page now, not a column, so it has
    no pages of its own to count — and a pager for a screen nobody registers is the exact thing
    check.js names. */
-PAGER.basket     = () => basketPages().map(() => '');
+/* NO `PAGER.basket`. Find counts its own pages. */
 
-PAGE.basket = 0;
