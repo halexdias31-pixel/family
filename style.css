@@ -93,12 +93,20 @@
 /* THE ONE LINE. 4.1vw between 15 and 17px — so a small phone is legible and a large one uses the
    room, and every rem in the file follows without being told. */
 html {
-  font-size: clamp(15px, 4.1vw, 17px);
+  /* ---------- THE ROOT SIZE IS THE ONE LEVER THAT MOVES EVERYTHING ----------------------------
+     Nearly every measurement in this file is `rem` or `em`, so this number is the app's scale: drop
+     it and the type, the padding, the gaps and the column widths all come down together, in
+     proportion, with no rule needing to know about any other.
+
+     15 → 13.5 AT THE BOTTOM. On a 390px phone that is about a tenth off everything, which is a row
+     and a half more of a booking on screen. The floor matters more than the ceiling here — a wide
+     screen is a fixed column anyway and has room to spare. */
+  font-size: clamp(13.5px, 3.8vw, 16px);
   /* On a screen wider than a phone the app is a fixed-width column, so the root stops growing and
      the layout is exactly what a phone gets. */
   -webkit-text-size-adjust: 100%;
 }
-@media (min-width: 30rem) { html { font-size: 16.5px; } }
+@media (min-width: 30rem) { html { font-size: 15.5px; } }
 
 body {
   margin: 0 auto;
@@ -2353,7 +2361,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    (T and S are each two days), and the 14px it gives back goes to the cells, which need it more. */
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .25rem 0 .1rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
-.slot-row.is-shut .hr { min-height: 13px; font-size: .55rem; }
+.slot-row.is-shut .hr { min-height: 11px; font-size: .55rem; }
 .slot-day { flex: 0 0 1.5rem; font-size: .62rem; color: var(--faint);
             text-transform: uppercase; letter-spacing: .04em; }
 /* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
@@ -2371,7 +2379,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    question and it should not look like two. */
 .hr {
   flex: 1 1 0; min-width: 0; padding: 0;
-  min-height: max(24px, 1.5rem);
+  /* IN `em` SO IT COMES DOWN WITH THE ROOT. It was pinned in px, which meant shrinking the app's
+     scale made every row narrower while the week stayed exactly as tall — the one block that most
+     needed to move was the one that could not. The floor stays: below about 20px a cell 24px wide
+     stops being reliably pressable. */
+  min-height: max(20px, 1.55em);
   display: grid; place-items: center;
   user-select: none; -webkit-user-select: none;
   background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
@@ -2380,7 +2392,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   /* Small enough that the number has to be, too — it is a label on a column, not a word. A `.78rem`
      was set here and again below at `.66rem`; the second won and the first read as though it were
      the size. */
-  font-size: .66rem; letter-spacing: -.02em;
+  /* SMALLER THAN THE PAPER, and in `em` so it comes down with the app's scale. A grid of numbers is
+     scanned rather than read — you are looking for the shape of the ticked boxes, not reading eleven
+     figures — so it can sit below the size the rest of the card needs. */
+  font-size: .66em; letter-spacing: -.02em;
 }
 .hr:active { transform: scale(.9); }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance

@@ -1481,9 +1481,12 @@ function stepGrid_(st) {
   const off = stepLocked_(st);
   if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
   return `<div class="bk-open${off ? ' is-off' : ''}">
-    <p class="faint">${off
+    ${/* THE INSTRUCTION GOES ONCE YOU HAVE FOLLOWED IT. "Two together is a two-hour session" is
+          worth saying to somebody who has ticked nothing and is noise above a week they have
+          already filled in — the runs printed underneath say the same thing in their own hours. */''}
+    ${(off || !runs.length) ? `<p class="faint">${off
       ? 'A waiting list has no day until it fills — this is settled once the seats are taken.'
-      : 'Two together is a two-hour session; another day is another session.'}</p>
+      : 'Two together is a two-hour session; another day is another session.'}</p>` : ''}
     <div class="slot-grid">
       ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
             nobody works are different facts, which is the same reason a shut hour is greyed rather
@@ -1691,7 +1694,14 @@ function bookBreakdown(L, foot) {
              'split:' + (BOOKING.split || []).join(',')]).join('|'));
 
   return receiptHtml({
-    lines: [venueName, BOOKING.tutor || 'No tutor yet', when],
+    /* ---------- THE HEAD SAID WHAT THE ROWS SAY -----------------------------------------------
+       "No venue yet · No tutor yet · 29/08/26 00:29" sat above a Venue row and a Tutor row holding
+       exactly those two facts, one line apart, and the clock was the time the card happened to be
+       drawn — which on a form nobody has sent is not a fact about anything.
+
+       A REAL RECEIPT KEEPS ITS HEAD, because it left the shop and the reader needs to know where and
+       when. A form on screen has not left anything, and the answers are directly underneath. */
+    lines: [],
     /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
@@ -1838,8 +1848,16 @@ function rosterHtml(o) {
       <span class="rost-pic">${sl.filled
         ? avatarFor(sl.name || sl.role, 34, '')
         : '<span class="rost-plus">+</span>'}</span>
+      ${/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE -------------------------------------------
+            The slot is padded with `{ role: 'Open', name: '' }`, and the name line falls back to
+            'Open' when there is no name — so a free seat printed Open above OPEN, one word stacked
+            on itself in two type sizes. Three of the four seats are usually empty, so most of the
+            roster was that.
+
+            ONE LINE WHEN THERE IS ONE THING TO SAY. A taken seat still has two: who is in it, and
+            which seat it is. */''}
       <span class="rost-name">${esc(sl.filled ? (sl.name || sl.role) : 'Open')}</span>
-      <span class="rost-role">${esc(sl.role)}</span>
+      ${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}
     </div>`).join('')}
   </div>`;
 }
