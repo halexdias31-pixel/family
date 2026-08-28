@@ -211,16 +211,23 @@ function basketPages() {
   const short = due > credits;
 
   const rows = CART.map((c, i) => receiptRow({
+    /* WIDE, because a basket line is a name and a price and nothing else — see `receiptRow`. The
+       kind column said "Paper" beside a title that already begins "Paper 31", and the quantity
+       column held "8pp" three columns from the thing it counts. Both are in the name now, where
+       somebody reads them in one go. */
+    wide: true,
     n: String(i + 1).padStart(3, '0'),
-    k: c.kind === 'print' ? 'Paper' : 'Item',
+    k: '',
     v: '',
     /* THE ✕ RIDES IN THE VALUE CELL. `receiptRow` escapes `v` and inserts `sel` raw — that hook
        exists for the booking's dropdowns and is exactly what is wanted here: the name, and the way
        to take it out, on the line it belongs to. A separate list of remove buttons underneath would
        be every title printed twice. */
-    sel: esc(c.name) + ` <span class="text-drop" data-do="cart-drop"
-      data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</span>`,
-    mul: c.kind === 'print' && c.pages ? String(c.pages) + 'pp' : '',
+    sel: esc(c.name)
+      + (c.kind === 'print' && c.pages ? ` <span class="faint">${esc(c.pages)}pp</span>` : '')
+      + ` <span class="text-drop" data-do="cart-drop"
+          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</span>`,
+    mul: '',
     rate: '',
     /* CREDITS AND MONEY IN THE SAME COLUMN, because a line costs one or the other and never both —
        `cart-add` writes `money` for a paper and `cost` for anything bought with credits. */
@@ -248,6 +255,8 @@ function basketPages() {
     lines: [due ? due + ' credit' + (due === 1 ? '' : 's') : '',
             due ? 'you have ' + credits : ''].filter(Boolean),
     rows: rows,
+    /* "TO PAY", NOT "COST". The booking card says Cost on a thing nobody has agreed to; this one has
+       a Pay button under it and money genuinely about to move. */
     totalLabel: cash ? 'To pay' : 'Credits',
     total: cash ? money(cash) : String(due),
     foot: foot,

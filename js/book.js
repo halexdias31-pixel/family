@@ -1866,7 +1866,15 @@ function receiptHtml(r) {
 
 /** One row of a receipt, from the shape `breakdownRows` and `jobRows` both produce. */
 function receiptRow(r) {
-  const cls = [r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '']
+  /* `wide` — A TITLE IS NOT A VALUE. The six columns are sized for a booking: a short label and a
+     short answer with three figures beside them. A basket line is the other shape entirely — one
+     long name and one price — and squeezed into the 4.5em value column, "Paper 31: Statistics —
+     June 2022" came out one word per line, six lines tall, with the price clipped off the edge.
+
+     So a row can say it is the wide kind and the grid becomes two columns. Decided here, with the
+     rest of what a row looks like, rather than by the caller patching the string afterwards. */
+  const cls = [r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
+               r.wide ? 'is-wide' : '']
     .filter(Boolean).join(' ');
   /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so
      a day on the receipt and a day in the grid are visibly the same thing.

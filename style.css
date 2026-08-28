@@ -5437,6 +5437,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    bare row's label started in a different place from a priced one's, on the same card. Third copy of
    the same fault: a width stated twice and the second one forgotten. */
 .bk-row.is-bare { grid-template-columns: 6.2em minmax(0, 1fr); }
+
+/* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
+   THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three
+   figures beside it; a basket row is one long title and one number. In the 4.5em value column a
+   paper's name came out a word per line, six lines tall, with the price clipped off the right.
+
+   TWO COLUMNS: the name takes everything going, the total keeps its width. The label, the line
+   number, the multiplier and the rate are not hidden because they are unwanted — they are empty,
+   and an empty column is width taken from the only one that needs it. */
+.bk-row.is-wide { grid-template-columns: minmax(0, 1fr) 7.5ch; }
+.bk-row.is-wide .bk-n, .bk-row.is-wide .bk-k,
+.bk-row.is-wide .bk-m, .bk-row.is-wide .bk-r { display: none; }
+/* LEFT, AND IN THE ORDINARY INK. A title reads from the left like a title, not right-aligned like a
+   figure — and it is the thing on the line, so it is not the quiet colour a value takes when it
+   sits under a label that names it. */
+.bk-row.is-wide .bk-v {
+  text-align: left; color: inherit;
+  overflow-wrap: break-word; hyphens: none;
+}
 .bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r, .bk-row.is-bare .bk-t { display: none; }
 
 /* ==================================================================================================
