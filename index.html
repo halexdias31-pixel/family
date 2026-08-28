@@ -27,7 +27,25 @@
      fetch when somebody taps Add to Home Screen. So `icon.png` stays as the one file, and one
      512px square covers every size both platforms ask for. -->
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%40family.%22%2C%22short_name%22%3A%22%40family.%22%2C%22description%22%3A%22Tutoring%20in%20Merton%20and%20Wandsworth.%22%2C%22start_url%22%3A%22./index.html%22%2C%22scope%22%3A%22./%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%23000000%22%2C%22theme_color%22%3A%22%2312100d%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/png%22%2C%22purpose%22%3A%22any%22%7D%2C%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/png%22%2C%22purpose%22%3A%22maskable%22%7D%5D%7D">
-<link rel="apple-touch-icon" href="icon.png">
+<!-- ==================================================================================================
+     THERE WAS NO `rel="icon"` LINE AT ALL, which is why the tab shows the browser's globe. The
+     manifest and the apple-touch-icon below both name `icon.png` — and there is no `icon.png` in the
+     repository, so all three point at a 404. Add to Home Screen on either platform would have given
+     a blank tile.
+
+     THE FILE IS STILL THE RIGHT ANSWER FOR THIS LINE. A favicon is read while the page is parsing,
+     seconds before any script runs and long before the sheet has answered, so it cannot come from
+     the database — the tab needs something in it immediately, and a name in a `<link>` is the only
+     thing available that early.
+
+     THE SHEET OVERRIDES IT ONCE IT ARRIVES: `brand.logo_square` swaps this href when the payload
+     lands — see `applyBrandIcon_` in shell.js. So the file is the instant answer and the sheet is
+     the authority, which is the same arrangement `LOAD` has with the version string.
+
+     PUT AN `icon.png` IN THE REPOSITORY. 512×512, beside index.html. Until there is one, all of
+     this points at nothing. -->
+<link rel="icon" id="favicon" href="icon.png">
+<link rel="apple-touch-icon" id="favicon-ios" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="@family.">

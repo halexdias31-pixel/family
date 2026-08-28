@@ -900,6 +900,35 @@ const PAGE_HOME = {
   me:    () => (USER ? 1 : 0),      // past the name card; signed out there is only the sign-in pane
 };
 /* `book` WAS HERE — a column that no longer exists. */
+/* ---------- THE ICON, FROM THE SHEET ---------------------------------------------------------------
+   `brand.logo_square` IS ALREADY A ROW ON THE BRAND TAB and has always been empty. Fill it with a
+   URL and the tab icon becomes it on the next load, with no deploy — which is the arrangement every
+   other piece of wording in this app already has, and there is no reason the mark should be the one
+   thing that needs a commit to change.
+
+   IT CANNOT BE THE FIRST ANSWER. A favicon is read while the page parses; this runs when the sheet
+   replies, a second or two later. So `icon.png` in the `<link>` is what the tab shows immediately
+   and this replaces it — nobody sees the swap unless the two differ, and if the sheet is empty it
+   does not happen at all.
+
+   THE `<link>` IS REPLACED, NOT EDITED. Setting `href` on an existing icon link is ignored by some
+   browsers, which cache the icon against the element rather than the URL. Removing the node and
+   adding a fresh one is what reliably makes them look again.
+
+   iOS IS SET TOO, and unlike the tab icon it is not decoration: `apple-touch-icon` is read at the
+   moment somebody taps Add to Home Screen, which is always long after this has run. */
+function applyBrandIcon_() {
+  const url = ((DATA || {}).brand || {}).logo_square;
+  if (!url) return;
+  [['favicon', 'icon'], ['favicon-ios', 'apple-touch-icon']].forEach(([id, rel]) => {
+    const old = document.getElementById(id);
+    if (old) old.remove();
+    const el = document.createElement('link');
+    el.id = id; el.rel = rel; el.href = url;
+    document.head.appendChild(el);
+  });
+}
+
 const PAGE = { posts: 0, stuff: 0, me: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
@@ -1621,6 +1650,7 @@ async function load() {
          still the PREVIOUS payload, so every load adopted the load before it and the very first
          one — where `DATA` is `{}` — adopted nothing. */
       adoptMarks_();
+      applyBrandIcon_();
 
       /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE ---------------------------------
          THE PAYLOAD ARRIVED. Whatever the 30-second watchdog in index.html wrote is now a
