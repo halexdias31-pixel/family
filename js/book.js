@@ -1162,14 +1162,9 @@ document.addEventListener('change', e => {
   drawBooker();
 });
 
-/* Finished with a multiple-choice question. Recorded, so it stops being asked — and so that
-   coming back to it later reopens it rather than treating one tick as the whole answer. */
-on('book-more', el => {
-  const id = (el && el.dataset && el.dataset.step) || (nextBookStep() || {}).id;
-  if (id) BOOKING.done = uniq((BOOKING.done || []).concat([id]));
-  BOOKING.editing = '';
-  drawBooker();
-});
+/* `on('book-more')` WAS HERE — the Done button that closed a multiple-choice question. Nothing draws
+   one: a multi answer is a toggling dropdown and is finished when the list has something in it, and
+   the hours grid closes by pressing its own row again. The handler outlived both. */
 
 /**
  * THE CARD. Photographs, then every priced row, then the dates, then where it stands.

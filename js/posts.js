@@ -147,7 +147,11 @@ screen('posts', () => {
         ${reacts(p) || (isAdmin()
           ? '<span class="faint">No reaction set — fill in <code>brand!reactions</code>.</span>'
           : '<span></span>')}
-        <button class="post-act" data-do="share" data-id="${esc(p.id)}" aria-label="share">↗</button>
+        ${/* THE SAME MARK AS EVERY OTHER SHARE. This was a ↗ — a character, so whatever arrow the
+              phone happened to have, at whatever weight, next to marks that are drawn. Sharing a
+              post and sharing a booking are the same act and now look it. */''}
+        <button class="post-act" data-do="share" data-id="${esc(p.id)}"
+          title="Share this post" aria-label="Share this post">${tileIcon_('share')}</button>
       </div>
 
       ${/* The name leads the caption, as it does everywhere — but ONLY when there is a caption.

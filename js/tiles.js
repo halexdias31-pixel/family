@@ -77,6 +77,10 @@ const TILE_ICONS = {
        + '<path d="M11.4 10.6A2.2 2.2 0 0 1 7.5 8.9"/>'
        + '<path d="M12 12.4A7.6 7.6 0 0 1 9 13c-4.8 0-7.5-4.5-7.5-4.5a14 14 0 0 1 3.3-3.4"/>',
   close: '<path d="M4 4.5 14 14"/><path d="M14 4.5 4 14"/>',
+  /* THE SHARE MARK. An arrow leaving a tray — the same idea the ↗ on a post was reaching for, drawn
+     properly so it is the same weight and the same size as every other mark in the row. */
+  share: '<path d="M9 11.5V2.5"/><path d="M5.8 5.7 9 2.5l3.2 3.2"/>'
+       + '<path d="M3.5 9.5v5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-5"/>',
 };
 
 function tileIcon_(name) {

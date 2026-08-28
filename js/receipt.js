@@ -461,13 +461,25 @@ function drawBooker_() {
     ${head || '<p class="note">Not enough answered to price it yet.</p>'}
     ${/* THE NOTE BOX WAS HERE. It is the last row on the paper now — see `noteRow_` — which is
           where every other thing somebody tells us already was. */''}
+    ${/* ---------- ONE COMMIT, ONE ACTION ----------------------------------------------------------
+          ASKING IS THE THING THIS PAGE IS FOR, so it stays a full-width button — a tile among tiles
+          would make sending a booking look like starring one.
+
+          SHARING IS NOT, and it was the same size and shape as asking. A second wide button under
+          the first is two things claiming to be the point, and the quieter one still took a whole
+          row of the screen to say something optional.
+
+          SO IT IS A TILE, in a row, exactly as sharing is on every card in Find — see `tileIcon_`.
+          The mark is the same mark, the target is the same 44px, and somebody who has learnt what
+          it means on a boxer has learnt it here.
+
+          IT SHARES A FORM, NOT A RECEIPT, which is why the label says "Share this booking" rather
+          than anything with the word receipt in it: nobody has agreed to this and nothing has been
+          paid for, and a picture calling itself a receipt would say otherwise to whoever it reaches.
+          The wording lives in the tile's title now, which is the only place there is room for it. */''}
     <button class="btn" data-do="book-send">Ask for it</button>
-    ${/* SHARING IT BEFORE SENDING IT. A parent deciding usually shows somebody else first — the
-          other parent, the family they are splitting with — and until now that meant a screenshot,
-          which crops badly and loses the bottom of a long receipt. */''}
-    ${/* AND IT IS NOT A RECEIPT YET, which is the whole point: this button sits under "Ask for it",
-          on a booking nobody has agreed to and nothing has been paid for. */''}
-    <button class="btn quiet" data-do="book-share" data-stage="screen">Share this</button>
+    <div class="tile-row">${tile_({ icon: 'share', label: 'Share this booking',
+      act: 'book-share', data: { stage: 'screen' } })}</div>
     <p class="faint" id="book-said" style="margin:.6rem 0 0">
       Nothing is booked or charged yet — this asks, and we come back to you.</p>` };
 }

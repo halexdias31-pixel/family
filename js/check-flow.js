@@ -36,8 +36,14 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 const dir = __dirname;
-const ORDER = ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
-               'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld', 'boot'];
+const ORDER = ['core','price-rows','chess','data','shell','cards','me','posts','links','find',
+               'resource','arcade','map','book','receipt','flyer','mat','games','overworld',
+               /* `select`, `collections` AND `tiles` WERE MISSING. index.html loads twenty three
+                  files and this listed twenty, so three were never read — and `tiles.js` is where
+                  every card action in the app is built, which made all of them invisible to this
+                  audit. Same drift `check.js` had: a list of files kept by hand, beside another
+                  list of files kept by hand. */
+               'select','collections','tiles','boot'];
 
 /* ---------- THE PAYLOAD, IN THE SHAPE THE BACKEND SENDS ------------------------------------------
    Small but real: two tutors, two venues, an interval, and one job of each kind. Anything the app

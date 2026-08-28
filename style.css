@@ -1066,7 +1066,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   display: flex; align-items: center; justify-content: center;
   flex: none; margin-left: auto;
   background: none; border: 0; padding: .3rem .1rem .3rem .5rem;
-  color: var(--dim); font: inherit; font-size: 1.15rem; cursor: pointer;
+  /* `font-size: 1.15rem` SIZED THE ↗, and there is no ↗ — the mark is an SVG at a fixed 18px now,
+     the same 18px it is on every tile. Left at `inherit` so nothing here is sizing a character that
+     is not there. */
+  color: var(--dim); font: inherit; cursor: pointer;
   min-height: max(44px, 2.9rem); min-width: 2.2rem;
   transition: color var(--quick) ease, transform var(--quick) ease;
 }

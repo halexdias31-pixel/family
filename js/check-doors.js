@@ -21,7 +21,13 @@
 const fs = require('fs'), path = require('path');
 const dir = __dirname;
 const ORDER = ['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-               'resource','arcade','map','book','receipt','flyer','mat','games','overworld','boot'];
+               'resource','arcade','map','book','receipt','flyer','mat','games','overworld',
+               /* `select`, `collections` AND `tiles` WERE MISSING. index.html loads twenty three
+                  files and this listed twenty, so three were never read — and `tiles.js` is where
+                  every card action in the app is built, which made all of them invisible to this
+                  audit. Same drift `check.js` had: a list of files kept by hand, beside another
+                  list of files kept by hand. */
+               'select','collections','tiles','boot'];
 
 const files = ORDER.map(n => ({ n, src: fs.readFileSync(path.join(dir, n + '.js'), 'utf8') }));
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -34,6 +40,18 @@ const gotos    = new Map();
 files.forEach(({ n, src }) => {
   const code = strip(src);
   for (const m of code.matchAll(/\bon\(\s*'([a-z0-9-]+)'/g)) {
+    if (handlers.has(m[1])) handlers.set(m[1], handlers.get(m[1]) + ', ' + n);
+    else handlers.set(m[1], n);
+  }
+  /* ---------- A `change` LISTENER IS A HANDLER TOO --------------------------------------------------
+     `on()` IS FOR PRESSES, and a dropdown is never pressed — choosing from it fires `change` and
+     never a click, so the three controls on the booking paper bind it directly:
+     `closest('[data-do="book-set"]')` inside a document listener.
+
+     They are doors with handlers and were reported as doors with none, which is the same false
+     alarm as the tiles above, in the other direction. Matched on the same string the door is
+     written with, so the two cannot drift apart. */
+  for (const m of code.matchAll(/closest\(\s*['"]\[data-do="([a-z0-9-]+)"\]['"]/g)) {
     if (handlers.has(m[1])) handlers.set(m[1], handlers.get(m[1]) + ', ' + n);
     else handlers.set(m[1], n);
   }
@@ -51,6 +69,23 @@ files.forEach(({ n, src }) => {
      It found a real fault the first time it fired that way and then went on reporting it after the
      fault was fixed, which is the shape of alarm people learn to skip. */
   for (const m of code.matchAll(/setAttribute\(\s*['"]data-do['"]\s*,\s*['"]([a-z0-9-]+)['"]/g)) {
+    if (!doors.has(m[1])) doors.set(m[1], new Set());
+    doors.get(m[1]).add(n);
+  }
+
+  /* ---------- A TILE'S `act` IS A DOOR --------------------------------------------------------------
+     `tile_({ act: 'fav' })` WRITES `data-do="fav"`, in one place, in tiles.js. Every card action in
+     the app goes through it — the star, the trolley, HTML, Watch, Spotlight, Edit, Delete — so from
+     this file's point of view all of them vanished the day tiles stopped being written out by hand.
+
+     TEN FALSE ALARMS, WHICH IS WORSE THAN NONE. `fav`, `wear`, `cart-add`, `paper-read`,
+     `topic-edit`, `topic-delete`, `book-with`, `set-listed`, `book-more`, `book-share` were all
+     reported as handlers nothing can reach, on a screen where every one of them is a button you can
+     press. A list that is ten parts noise is a list nobody reads, and this one is meant to be read
+     the moment it is not empty.
+
+     The same goes for `stepSelect_` and `stepInput_`, which build `data-do` the same way. */
+  for (const m of code.matchAll(/\bact:\s*['"]([a-z0-9-]+)['"]/g)) {
     if (!doors.has(m[1])) doors.set(m[1], new Set());
     doors.get(m[1]).add(n);
   }
