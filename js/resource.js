@@ -264,47 +264,24 @@ on('cart-add', el => {
 on('cart-drop', el => {
   CART = CART.filter(c => !(c.key === el.dataset.key && c.kind === el.dataset.kind));
   cartSave();
-  repaint();
-  if (!CART.length) closeSheet(); else on_openCart();
+  /* THE PAGE COUNT CHANGES when the last thing leaves the basket — the basket page stops being
+     drawn at all — so this is a rebuild rather than a repaint. `paintStuff` handles both, and
+     knows not to disturb the search box while it does. */
+  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(); else repaint();
 });
 
-function on_openCart() {
-  const credits = USER ? (USER.credits || 0) : 0;
-  const due   = CART.reduce((n, c) => n + (c.cost || 0), 0);
-  const cash  = CART.reduce((n, c) => n + (c.money || 0), 0);
-  const short = due > credits;
+/* ---------- `on_openCart` AND `on('open-cart')` WERE HERE ------------------------------------------
+   A SECOND BASKET, IN A SHEET. It drew the same lines, the same total and the same Send button as
+   `basketPages` in collections.js, over the top of whatever you were looking at — two versions of
+   one screen, kept in two files, and only one of them had been fixed when a long title started
+   pushing prices off the edge. That is exactly how the two come to disagree about what is in your
+   basket.
 
-  openSheet('Your basket', CART.length ? `
-    ${/* A BASKET LINE IS NOT A FACT ABOUT SOMETHING — it is a thing with a way to remove it, and the
-          value holds a control rather than a number. `row` escapes its value precisely so a control
-          cannot end up in one, so this is written out and that is the right way round. */''}
-    ${CART.map(c => `<div class="row">
-        <span class="k">${mark(c.name)}${c.kind === 'print'
-          ? ` <span class="faint">printed · ${c.pages} pages</span>` : ''}</span>
-        <span class="v mono">${c.money ? money(c.money) : (c.cost ? c.cost : 'free')}
-          <span class="text-drop" data-do="cart-drop"
-                data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</span></span>
-      </div>`).join('')}
+   The basket is a page in front of the question on Find. There is nothing to pop out.
 
-    ${/* THE CLASS IS COMPUTED — gold when you can afford it, red when you cannot. That is a
-          decision about the value and belongs in the third argument, which is what it is for. */''}
-    ${due ? row('Credits', due, 'big') + row('You have', credits, short ? 'bad' : '') : ''}
-    ${/* LEFT AS "To pay". This one is a basket with a Send button under it — money genuinely is
-          about to change hands, and "Cost" beside a thing you are buying reads as a price tag
-          rather than the amount you are about to hand over. The booking card is the one that was
-          wrong: it says "To pay" on things nobody has agreed to. */''}
-    ${cash ? row('To pay', money(cash), 'big gold') : ''}
-
-    <button class="btn" style="margin-top:.85rem" ${short ? 'disabled' : ''} data-do="cart-send">
-      ${short ? (due - credits) + ' more credits needed'
-              : cash ? 'Pay ' + money(cash) : 'Confirm'}
-    </button>
-    <p class="faint" style="margin-top:.5rem">${cash
-      ? 'Printing is charged at cost — paper only. Collect from the library or a session.'
-      : 'Nothing leaves your basket until you confirm.'}</p>`
-    : '<p class="empty">Your basket is empty.</p>');
-}
-on('open-cart', on_openCart);
+   ITS BETTER WORDING SURVIVED. "Pay £0.92" rather than "Send", "N more credits needed" on a button
+   that cannot be pressed, and the line about printing being charged at cost — all of it says more
+   than the page version did, and all of it moved there. */
 
 on('cart-send', () => {
   toast('Checkout is the next thing to build');

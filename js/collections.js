@@ -232,9 +232,16 @@ function basketPages() {
      hands it the list and lets it do that, and handing it a joined string instead threw
      `.join is not a function` and took the whole screen down. */
 
+  /* THE WORDING OFF THE SHEET THAT USED TO DUPLICATE THIS. A button saying what it will cost is a
+     button somebody can agree to; one saying "Send" is one they have to work out first. And when
+     it cannot be pressed it says why rather than sitting there greyed with no explanation. */
   const foot = `
-    <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">Send</button>
-    ${short ? '<p class="rc-terms bad">Not enough credits for this yet.</p>' : ''}`;
+    <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">${
+      short ? (due - credits) + ' more credits needed'
+            : cash ? 'Pay ' + money(cash) : 'Confirm'}</button>
+    <p class="rc-terms">${cash
+      ? 'Printing is charged at cost — paper only. Collect from the library or a session.'
+      : 'Nothing leaves your basket until you confirm.'}</p>`;
 
   return [receiptHtml({
     kind: 'screen',

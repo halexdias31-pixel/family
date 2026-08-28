@@ -2324,9 +2324,10 @@ screen('stuff', () => {
     [controls],
     bookingPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));
-}, () => CART.length
-  ? `<span class="act" data-do="open-cart">basket ‧ ${CART.length}</span>`
-  : '');
+}, () => '');
+/* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
+   — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
+   already visible. */
 
 /* Typed into rather than pressed, so it cannot go through the click handler. Debounced, because
    redrawing four hundred cards on every keystroke is how a search box feels broken. Nothing needs
