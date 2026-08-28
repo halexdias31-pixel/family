@@ -290,6 +290,56 @@ check('every question the form asks has a row on the paper', async () => {
   return bad;
 });
 
+check('the paper keeps the same rows whatever is answered', async () => {
+  /* ---------- ROWS USED TO COME AND GO ---------------------------------------------------------
+     `stepRows_` SKIPPED ANY STEP WITH NO OPTIONS, so choosing "waiting list class" deleted Subject,
+     Level, When and Term off the card, and choosing a class to join deleted four more. The paper
+     reshaped itself under every answer: the card changed height, every row below moved, and where
+     a field was depended on what you had already said.
+
+     THE INVARIANT IS THE SHAPE. Whatever is answered, the same questions have the same rows in the
+     same order. What changes is whether a row can be answered, which is a state of its control.
+
+     This is the check that would have caught the disappearing rows AND would catch them coming
+     back — an empty `options()` is a reason to grey a row, never to drop it. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.paper) return ['bookBreakdown is not exported — cannot check the paper'];
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const B = w.__t.BOOKING;
+
+  /* THE QUESTIONS ONLY, which is what has to hold still. A derived line — "Extra subjects", the
+     booked days, an estimate — appears when there is something to say and belongs at the foot, below
+     everything that can be answered. Those are additive and do not move a question. */
+  const asked = w.__t.STEPS.map(s => s.short || s.id);
+  const shape = () => (w.__t.paper().match(/class="bk-k">[^<]*/g) || [])
+    .map(x => x.split('>')[1])
+    .filter(k => asked.indexOf(k) !== -1)
+    .join('|');
+
+  B.how = 'Instant class'; B.loc = 'Colliers Wood Library';
+  B.subjects = []; B.level = ''; B.joining = '';
+  const blank = shape();
+
+  B.subjects = ['Maths']; B.level = '11+';
+  const priced = shape();
+
+  B.how = 'Waiting list class';
+  const klass = shape();
+
+  const bad = [];
+  if (!blank) bad.push('the paper drew no rows at all');
+  if (priced !== blank) {
+    bad.push('answering changed which rows exist:\n            was  ' + blank
+      + '\n            now  ' + priced);
+  }
+  if (klass !== blank) {
+    bad.push('choosing a waiting list changed which rows exist:\n            was  ' + blank
+      + '\n            now  ' + klass);
+  }
+  return bad;
+});
+
 check('the booking form asks a session everything and a class almost nothing', async () => {
   const { w } = boot();
   await wait(300);

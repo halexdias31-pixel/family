@@ -2211,6 +2211,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .bk-sel:focus { outline: 0; }
+/* ---------- LOCKED, NOT MISSING --------------------------------------------------------------------
+   A ROW WHOSE ANSWER IS NOT YOURS TO GIVE keeps its place, its label and its value — the venue of the
+   class you are joining is worth reading even though you cannot change it. What it loses is the
+   pointer and a little contrast, which is the whole difference between "settled" and "not offered".
+
+   `opacity: 1` ON PURPOSE. The browser fades a disabled control to about 40%, which on a receipt
+   reads as failed to load rather than as decided. The colour says it instead. */
+.bk-sel:disabled, .bk-in:read-only {
+  opacity: 1; cursor: default; color: var(--dim);
+}
+.rc .bk-sel:disabled, .rc .bk-in:read-only { color: #8a8175; }
+.rc.scr .bk-sel:disabled, .rc.scr .bk-in:read-only { color: #6f8f7c; }
+/* THE WEEK, WHEN THERE IS NO WEEK TO PICK. Greyed whole rather than removed — see `stepGrid_`. */
+.bk-open.is-off .slot-grid { opacity: .45; }
 
 /* A TYPED ANSWER, IN THE SAME CLOTHES AS A CHOSEN ONE. The split is addresses rather than a choice,
    so its row holds a text box — and it has to look like the dashed value it sits on, not like a

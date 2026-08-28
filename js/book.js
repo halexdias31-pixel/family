@@ -1372,8 +1372,11 @@ function stepSelect_(st) {
   const isOn = o => st.multi
     ? chosen.some(c => norm(c) === norm(o))
     : norm(o) === norm(v);
+  /* DISABLED, NOT ABSENT. The row keeps its height, its label and its answer; only the pointer
+     changes. A form whose rows come and go cannot be learnt. */
+  const off = stepLocked_(st);
   return `<select class="bk-sel" data-do="book-set" data-step="${esc(st.id)}"
-      aria-label="${esc(st.label)}">
+      ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
     ${/* THE FIRST OPTION IS ALWAYS SELECTED ON A MULTI, because the select is a way of picking the
           NEXT one rather than a display of what is picked — the row above it already shows that. */''}
     <option value=""${(st.multi || !v) ? ' selected' : ''}>—</option>
@@ -1409,9 +1412,11 @@ function noteRow_() {
    would take the focus out of the box mid-word. */
 function stepInput_(st) {
   const v = (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ');
+  /* `readonly`, NOT `disabled`. A locked text box should still be readable and selectable — somebody
+     joining a class may well want to copy the addresses already on it. */
   return `<input class="bk-in" type="text" data-do="book-emails" data-step="${esc(st.id)}"
     value="${esc(v)}" placeholder="—" aria-label="${esc(st.label)}"
-    autocomplete="off" spellcheck="false">`;
+    ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
 
 /* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
@@ -1430,13 +1435,27 @@ function stepInput_(st) {
    `open` IS PER-ROW, NOT A MODE. `BOOKING.editing` still says which row is showing its grid, and
    pressing the row again closes it — the same fact it always held, now expressed on the paper. */
 function stepGrid_(st) {
-  if (!st.grid || BOOKING.editing !== st.id) return '';
+  /* ---------- ALWAYS OPEN ---------------------------------------------------------------------
+     IT UNFOLDED WHEN YOU PRESSED THE ROW, and folding is the thing to avoid: the card changed
+     height under your thumb, every row below it moved, and whether the week was on screen depended
+     on something you had to discover. A control that is sometimes there is one you have to look
+     for twice.
+
+     IT IS PART OF THE PAPER NOW, drawn whenever the When row is. Costs the height it costs, every
+     time, which is the point — a card whose size does not move is a card you can learn. */
+  if (!st.grid) return '';
   const g = slotGrid();
   const on = BOOKING.slots || [];
   const runs = bookRuns();
+  /* GREYED WHOLE WHEN THE QUESTION DOES NOT APPLY — a waiting list has no day until it fills, so
+     the week is shown and cannot be ticked. Same rule as every other locked row: the thing stays,
+     the answering stops. */
+  const off = stepLocked_(st);
   if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
-  return `<div class="bk-open">
-    <p class="faint">Two together is a two-hour session; another day is another session.</p>
+  return `<div class="bk-open${off ? ' is-off' : ''}">
+    <p class="faint">${off
+      ? 'A waiting list has no day until it fills — this is settled once the seats are taken.'
+      : 'Two together is a two-hour session; another day is another session.'}</p>
     <div class="slot-grid">
       ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
             nobody works are different facts, which is the same reason a shut hour is greyed rather
@@ -1447,7 +1466,7 @@ function stepGrid_(st) {
         <span class="slot-day">${esc(r.label.slice(0, 3))}</span>
         <div class="slot-hours">
           ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
-            h.open ? '' : ' shut'}" ${h.open ? '' : 'disabled'}
+            (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
             ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
                   are already teaching are the same grey box, and only the second is worth trying a
                   different week for. */''}
@@ -1466,6 +1485,30 @@ function stepGrid_(st) {
 
 /* Which steps open something under their row rather than answering in it. */
 function stepIsPanel_(st) { return !!st.grid; }
+
+/* ---------- A FIELD THAT CANNOT BE ANSWERED IS SHOWN, NOT REMOVED ----------------------------------
+   ROWS USED TO DISAPPEAR. `stepRows_` skipped any step whose `options()` came back empty, so
+   choosing "waiting list class" deleted Subject, Level, When and Term off the card, and choosing a
+   class to join deleted four more. The paper reshaped itself under every answer, which is the
+   opposite of what a form should do — you cannot learn where anything is if it moves.
+
+   EVERY QUESTION HAS A ROW, ALWAYS. What changes is whether you can answer it, which is a state of
+   the control rather than a reason to remove the line. A greyed row still says what the booking is:
+   "Level · 11+, and not yours to change" is information; a missing Level row is a question you are
+   left wondering about.
+
+   TWO REASONS TO LOCK ONE:
+     · NOTHING TO OFFER — a class has no day to pick, an instant booking has no list to join.
+     · ALREADY DECIDED — the class you are joining has a subject, a level, a venue and one seat,
+       chosen by whoever opened it. Those are shown, filled in, and not up for negotiation by the
+       fifth person to join. */
+const FIXED_BY_CLASS = ['subjects', 'level', 'loc', 'n'];
+
+function stepLocked_(st) {
+  if (joinedJob_() && FIXED_BY_CLASS.indexOf(st.id) !== -1) return true;
+  try { return !(st.grid || st.emails || st.options().filter(Boolean).length); }
+  catch (e) { return true; }
+}
 
 /* The control a row carries. One answer here so `stepRows_` and `breakdownRows` cannot draw a
    different thing for the same step. */
@@ -1494,8 +1537,9 @@ function stepControl_(st) {
    so a row for one would be a line nobody can ever fill in. */
 function stepRows_() {
   let line = 0;
-  return BOOK_STEPS.filter(st =>
-      st.grid || st.emails || st.options().filter(Boolean).length)
+  /* NO FILTER. Every step, every time — see `stepLocked_` for why a question with nothing to offer
+     is greyed rather than dropped. */
+  return BOOK_STEPS
     .map(st => {
       const v = BOOKING[st.id];
       const text = st.emails
@@ -1581,11 +1625,16 @@ function bookBreakdown(L, foot) {
     p.used = true;
   });
 
+  /* WHAT THE QUESTIONS ALREADY SAY, both by name and by which step they stand for. The name alone
+     was not enough: `PRICE_ROWS` calls the hosting line "Host" and the step calls it "Space", so it
+     survived the check and printed the same fact twice under two words. Matching on the step id as
+     well catches that however either is worded. */
   const said = {};
-  steps.forEach(r => { said[norm(r.k)] = true; });
+  const mine = {};
+  steps.forEach(r => { said[norm(r.k)] = true; mine[r.id] = true; });
 
   const out = steps
-    .concat(priced.filter(r => !r.used && !said[norm(r.k)]))
+    .concat(priced.filter(r => !r.used && !said[norm(r.k)] && !mine[r.step]))
     .concat([noteRow_()])
     .map(receiptRow);
 
