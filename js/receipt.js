@@ -438,7 +438,17 @@ function drawBooker_() {
      applied — so the last figure IS the total, rather than a number you have to trust.
      Built from PRICE_ROWS, the same list the old card used, so a row cannot be drawn without being
      costed or costed without being drawn. */
-  const money_ = bookBreakdown(L);
+  /* ---------- THE ACTIONS ARE PRINTED ON THE PAPER ---------------------------------------------
+     They were markup after the receipt, which put them on the page rather than on the document —
+     and the page has no surface, so they floated. Handed to `bookBreakdown` instead, which prints
+     them above the barcode where a receipt's terms go. */
+  const foot = `
+    <button class="btn rc-do" data-do="book-send">Ask for it</button>
+    <div class="tile-row rc-tiles">${tile_({ icon: 'share', label: 'Share this booking',
+      act: 'book-share', data: { stage: 'screen' } })}</div>
+    <p class="rc-terms" id="book-said">Nothing is booked or charged yet — this asks, and we come
+      back to you.</p>`;
+  const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION ---------------------------------------
      IT USED TO BE A QUESTION UNTIL IT WAS A CARD. Nine questions in a row, and only once the last
@@ -457,31 +467,9 @@ function drawBooker_() {
   /* ONE RETURN. This was four branches — a question, a grid, a list of email boxes, and the card —
      and the last three have moved onto the paper. What is left is the paper, the note box and the
      two buttons, which is what the whole form is now. */
-  return { html: `
-    ${head || '<p class="note">Not enough answered to price it yet.</p>'}
-    ${/* THE NOTE BOX WAS HERE. It is the last row on the paper now — see `noteRow_` — which is
-          where every other thing somebody tells us already was. */''}
-    ${/* ---------- ONE COMMIT, ONE ACTION ----------------------------------------------------------
-          ASKING IS THE THING THIS PAGE IS FOR, so it stays a full-width button — a tile among tiles
-          would make sending a booking look like starring one.
-
-          SHARING IS NOT, and it was the same size and shape as asking. A second wide button under
-          the first is two things claiming to be the point, and the quieter one still took a whole
-          row of the screen to say something optional.
-
-          SO IT IS A TILE, in a row, exactly as sharing is on every card in Find — see `tileIcon_`.
-          The mark is the same mark, the target is the same 44px, and somebody who has learnt what
-          it means on a boxer has learnt it here.
-
-          IT SHARES A FORM, NOT A RECEIPT, which is why the label says "Share this booking" rather
-          than anything with the word receipt in it: nobody has agreed to this and nothing has been
-          paid for, and a picture calling itself a receipt would say otherwise to whoever it reaches.
-          The wording lives in the tile's title now, which is the only place there is room for it. */''}
-    <button class="btn" data-do="book-send">Ask for it</button>
-    <div class="tile-row">${tile_({ icon: 'share', label: 'Share this booking',
-      act: 'book-share', data: { stage: 'screen' } })}</div>
-    <p class="faint" id="book-said" style="margin:.6rem 0 0">
-      Nothing is booked or charged yet — this asks, and we come back to you.</p>` };
+  /* THE PAPER IS THE WHOLE THING NOW. The note box moved into it as a row, the buttons are printed
+     on it above the barcode, and what is left out here is nothing at all. */
+  return { html: head || '<p class="note">Not enough answered to price it yet.</p>' };
 }
 
 on('book-send', el => {

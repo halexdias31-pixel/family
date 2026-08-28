@@ -6841,3 +6841,35 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    there is nothing to close and no state to return to. */
 
 
+
+
+/* ---------- WHAT YOU DO WITH THE BOOKING, PRINTED ON IT ---------------------------------------------
+   These were markup after the receipt. The page they sat on has a transparent pane — the paper is
+   the box — so they floated on black under a card they obviously belonged to, with a gap between
+   that read as a bug rather than as spacing. They are inside the document now, above the barcode,
+   where a till roll puts its total and its terms.
+
+   RULED OFF ABOVE, because they are not another row of the booking — everything above is what was
+   asked for and everything here is what to do about it. */
+.rc-do {
+  width: 100%;
+  margin: .7rem 0 0;
+  padding-top: .7rem;
+}
+.rc .rc-do { border-top: 1px dashed #b3aa9c; border-radius: 0; }
+.rc.scr .rc-do { border-top-color: rgb(61 220 132 / .25); }
+
+/* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
+   receipt is a single thing to do, not a set to choose from. */
+.rc-tiles { justify-content: center; margin-top: .2rem; }
+
+/* THE TERMS, in the paper's own quiet colour rather than the app's. `.faint` is a dark-theme grey
+   and this sits on off-white for every stage but the form. */
+.rc-terms {
+  margin: .3rem 0 0;
+  text-align: center;
+  font-size: .68rem;
+  line-height: 1.4;
+  color: #6a6259;
+}
+.rc.scr .rc-terms { color: #6f8f7c; }

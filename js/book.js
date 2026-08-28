@@ -1476,7 +1476,7 @@ function stepRows_() {
     });
 }
 
-function bookBreakdown(L) {
+function bookBreakdown(L, foot) {
   /* ---------- THE TWO PHOTOGRAPHS ARE GONE --------------------------------------------------------
      THEY WERE HALF THE CARD. Two squares side by side, each a full 1:1 at half the card's width —
      about 180px of height before a single row of the booking was drawn, and on the first question
@@ -1528,6 +1528,9 @@ function bookBreakdown(L) {
        hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
        this form is in no position to make. A dash means not yet, which is the truth. */
     total: (L && L.total > 0) ? money(L.total) : '—',
+    /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
+       see `drawBooker_` — and printed where a receipt's footer goes. */
+    foot: foot || '',
     aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
     /* The tutor, then a seat for each student, then whoever is splitting it. */
     roster: rosterHtml({
@@ -1761,6 +1764,19 @@ function receiptHtml(r) {
     </div>
     ${r.roster ? `<div class="rc-rule"></div>${r.roster}` : ''}
     <div class="rc-rule"></div>
+    ${/* ---------- WHAT YOU DO WITH IT, ON IT --------------------------------------------------------
+          THE BUTTONS SAT UNDER THE PAPER, on the page, with nothing behind them. The pane on that
+          page is transparent — the receipt is the box — so "Ask for it" and the share mark were
+          floating on black beneath a card they plainly belonged to, and the gap between the two
+          read as a rendering fault rather than as a layout.
+
+          THEY ARE PART OF THE DOCUMENT. A till receipt does not have its buttons printed on a
+          separate slip; the thing you press to commit belongs on the thing being committed, above
+          the barcode where a real one puts its total and its terms.
+
+          BEFORE THE BARS, because the bars are the end of a receipt and nothing goes after the end
+          of one. */''}
+    ${r.foot || ''}
     <div class="rc-bars">${(r.bars || []).join('')}</div>
     ${/* THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE. It said "Nothing is booked until you ask for
           it" under every unsent booking — true, and already obvious from the question sitting under
