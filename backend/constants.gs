@@ -88,7 +88,7 @@ const SPREADSHEET_ID = "1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW";
    A BLANK SUBJECTS_ID IS NOT AN ERROR, it is four empty sections — the same as any tab that is not
    there. `checkTabs()` says so plainly rather than leaving you to work out why boxing vanished.
 ================================================================================================== */
-const SUBJECTS_ID = "";          // <- paste the subjects spreadsheet id here
+const SUBJECTS_ID = "1jDEeRoUTtLW-9ImOVyCyNaGZKCSox_Ao";
 
 const FILES = { main: SPREADSHEET_ID, subjects: SUBJECTS_ID };
 
