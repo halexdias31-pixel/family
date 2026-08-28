@@ -53,9 +53,10 @@ const TABS = [
      for, and it should not be a word among six other words. */
   { id: 'book',    icon: '＋', label: 'Book',    title: 'Book a session', big: true },
 
-  /* SAVED WAS A COLUMN HERE. It is a strip under the funnel on Find now — see `savedStrip_` in
-     collections.js for why — so the tab is gone rather than left pointing at a screen nobody
-     registers. Six columns, not seven, which is one less swipe to You from every screen. */
+  /* SAVED WAS A COLUMN HERE. Each saved thing is a PAGE on Find now, in front of the question —
+     see `savedPages_` in collections.js for why — so the tab is gone rather than left pointing at a
+     screen nobody registers. Six columns, not seven, which is one less swipe to You from every
+     screen. */
   { id: 'basket',     icon: '⛁', label: 'Basket', title: 'Your basket' },
 
   /* NOT "Who". It holds tutors, venues AND subjects — people, places and things — so a name

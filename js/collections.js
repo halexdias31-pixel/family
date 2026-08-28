@@ -127,25 +127,24 @@ screen('spotlight', () => pages('spotlight', spotPages()));
    dropped under the search box came out as more hairline rows on the search panel itself, which is
    the opposite of "its own widget".
 
-   `.savebox` IS A PANE THAT IS NOT A PAGE. Same fill, same border, same bright top edge and the
-   same 14px corner — because a saved thing should look like every other panel on the screen, not
-   like a new invention — but it sits in the flow rather than being positioned by the grid. Each
-   one holds exactly one thing.
+   ---------------------------------------------------------------------------------------------
+   ONE PAGE EACH, WHICH IS WHAT MAKES IT ITS OWN WIDGET.
 
-   ABOVE THE SEARCH BOX, AND OUTSIDE IT. The first version put these at the bottom of the search
-   panel, which made them part of it — more rows on somebody else's card. They are their own
-   panels now and the search is another one below them, so the first page of Find is a short stack
-   of boxes rather than one box with a list stuck to the end.
+   Two versions of this were wrong in the same way. Cards under the search box were rows on the
+   search panel; boxes above it were still inside the search page's pane, sharing its scroll. Both
+   were a thing sitting ON another thing, because a `.card` is a row and only a `.pane` is a box.
 
-   NO HEADING. A saved thing is the SAME widget you starred, moved — not a section of a list that
-   needs announcing. A label above it would be chrome the search panel underneath does not have,
-   and the count is already the number of boxes you can see. */
-function savedStrip_() {
-  if (!USER) return '';
-  const items = collItems_(isFav);
-  if (!items.length) return '';
+   A PAGE IS THE UNIT OF "ITS OWN WIDGET" HERE. Every other screen in the app already works this
+   way — one pane, one thing, turned to rather than scrolled past — so a saved thing becomes a page
+   like any result page, and it is styled by the rules that already exist rather than by a copy of
+   them. All the CSS the box versions needed goes away.
+
+   THEY COME BEFORE THE SEARCH PAGE, so what you kept is what you meet first and the question is
+   the page after it. `savedPages_` returns the cards; `screen('stuff')` puts them in front. */
+function savedPages_() {
+  if (!USER) return [];
   const credits = collCredits_();
-  return items.map(x => `<div class="savebox">${stuffCard(x, credits)}</div>`).join('');
+  return collItems_(isFav).map(x => stuffCard(x, credits));
 }
 
 

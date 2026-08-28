@@ -1404,6 +1404,26 @@ function stuffAsked() {
 }
 const S_ = v => String(v == null ? '' : v);
 
+/* ---------- WHERE THE RESULTS START ----------------------------------------------------------------
+   THE QUESTION USED TO BE PAGE ZERO and three separate pieces of code knew it: the fill loop began
+   at 1, every result read `items[i - 1]`, and `paintStuff` kept "the first page" and rebuilt the
+   rest. With the saved pages in front of it none of those is true any more, and the failure would
+   not have been an error — it would have been results drawn one page out, silently, only for people
+   who had starred something.
+
+   SO IT IS ASKED RATHER THAN ASSUMED, once, off the id on the question page itself. Nothing counts
+   saved things to work it out, which matters because the count can change between a render and a
+   fill and the two would disagree exactly when somebody had just pressed a star.
+
+   ONE BEFORE ANYTHING IS DRAWN. `paintStuff` inserts the pages around a question page that already
+   exists, so there is always one to find by the time this is asked in anger. */
+function stuffFirstResult_() {
+  const el = $('stuff-controls');
+  const page = el && el.closest('.page');
+  if (!page || !page.parentNode) return 1;
+  return [].indexOf.call(page.parentNode.children, page) + 1;
+}
+
 function stuffPageCount() {
   /* ---------- NOTHING IS LISTED UNTIL SOMEBODY NARROWS -------------------------------------
      This screen used to open with all five hundred and sixty-six resources paged out behind the
@@ -1555,18 +1575,15 @@ on('fav', el => {
   if (wrap) wrap.classList.toggle('is-fav', isFav(el.getAttribute('data-key')));
   el.textContent = isFav(el.getAttribute('data-key')) ? '★' : '☆';
 
-  /* ---------- AND THE ONE LIST THAT IS ABOUT THE STARS THEMSELVES --------------------------------
-     `Saved` lives on the controls page, and the controls page is drawn ONCE and deliberately never
-     rebuilt — that is what stops the search box losing focus mid-word. Which meant starring a thing
-     updated the star, updated the sheet, and left the list of starred things showing what it showed
-     when the screen opened. It only caught up if you left Find and came back, which reads exactly
-     like favourites being broken.
+  /* ---------- AND THE PAGES IN FRONT OF THE QUESTION ---------------------------------------------
+     A saved thing is a PAGE now, so starring one does not change what is on a page — it changes how
+     many pages there are. Nothing can be repainted in place for that; the strip has to be rebuilt.
 
-     SO THE STRIP REPAINTS ITSELF, and nothing else does. Same move as the star above and the tile
-     in `on('spot')`: find the one node whose contents are now wrong and refill it, rather than
-     redrawing a screen and throwing away the scroll position of somebody working down a list. */
-  const strip = document.getElementById('stuff-saved');
-  if (strip) strip.innerHTML = savedStrip_();
+     `paintStuff` IS EXACTLY THAT REBUILD and already keeps what must not be rebuilt: the question
+     page is updated in place, so the search box does not lose the word you are typing. It lands you
+     on the question afterwards, which is the right place to be left after adding something to the
+     pages in front of it. */
+  if ($('s-stuff')) paintStuff();
 });
 
 function stuffCard(x, credits) {
@@ -1644,7 +1661,10 @@ function paintStuff() {
 
   const host = $('s-stuff');
   if (!host) return;
-  const first = host.querySelector(':scope > .page');
+  /* THE QUESTION PAGE, BY ITS ID. `:scope > .page` was "the first one", which is a saved thing now
+     — so this kept a favourite and deleted the search box. */
+  const ctrl = $('stuff-controls');
+  const first = ctrl && ctrl.closest('.page');
   if (!first) return;
 
   /* ---------- THE QUESTION PAGE IS NOT REDRAWN, AND THAT IS THE WHOLE POINT ---------------------
@@ -1660,7 +1680,16 @@ function paintStuff() {
      So only the RESULT pages are replaced. The question page — the search box, the chips, the
      counts, the facet list — is updated in place by the three lines at the top of this function,
      which is what they were for. */
-  [].slice.call(host.querySelectorAll(':scope > .page')).slice(1).forEach(el => el.remove());
+  [].slice.call(host.querySelectorAll(':scope > .page')).forEach(el => {
+    if (el !== first) el.remove();
+  });
+
+  /* WHAT YOU KEPT, BACK IN FRONT. Rebuilt rather than left alone because a star pressed on a result
+     page changes how many of these there are — see `on('fav')`. */
+  const saved = savedPages_()
+    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+  if (saved) first.insertAdjacentHTML('beforebegin', saved);
+
   const blanks = Array.from({ length: stuffPageCount() },
     /* WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a page
        with no glass — so every result on this screen was drawn straight onto the black while the
@@ -1673,7 +1702,9 @@ function paintStuff() {
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
      results landed you on the last page of the new ones, which reads as the app having lost its
      place. */
-  PAGE.stuff = 0;
+  /* ZERO IS A SAVED THING NOW, not the question. Landing there after changing a filter would put
+     you in front of something you starred last week instead of the question you just asked. */
+  PAGE.stuff = stuffFirstResult_() - 1;
 
   fillStuffPages();
   paintPager('stuff', true);
@@ -1807,7 +1838,8 @@ function fillStuffPages() {
   const pages = host.querySelectorAll(':scope > .page');
   const at = PAGE.stuff || 0;
   const items = stuffFiltered();
-  for (let i = 1; i < pages.length; i++) {
+  const first = stuffFirstResult_();
+  for (let i = first; i < pages.length; i++) {
     const el = pages[i];
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
        content — which is exactly what happened, for as long as these pages were built without a
@@ -1836,14 +1868,14 @@ function fillStuffPages() {
        will eventually disagree. */
     const near = Math.abs(i - at) <= STUFF_NEAR;
     if (near && el.dataset.filled !== '1') {
-      pane.innerHTML = stuffPageHtml(i - 1);
+      pane.innerHTML = stuffPageHtml(i - first);
       el.dataset.filled = '1';
       changed = true;
       /* AND DRAWN WHILE IT IS BUILT, if it is one of the ten that do not loop. This is the whole of
          the fix for widgets popping open: the markup and its contents now arrive together, five
          pages before anybody sees either. It happens before `settle_` below, so the grid measures
          panes that are already their final height rather than measuring them and being wrong. */
-      const w = showingWidgets() && items[i - 1] && items[i - 1].row;
+      const w = showingWidgets() && items[i - first] && items[i - first].row;
       if (w && !w.stop) drawWidget_(w);
     } else if (!near && el.dataset.filled === '1') {
       pane.innerHTML = '';
@@ -1861,7 +1893,7 @@ function fillStuffPages() {
      position it already holds, a clock from the time it already has — and remembering which have
      been started is a second thing to keep true. */
   if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
-  const wgt = items[at - 1] && items[at - 1].row;
+  const wgt = items[at - first] && items[at - first].row;
   if (!wgt) { stopWidget_(); settle_(changed); return; }
   if (!wgt.stop) {
     /* Already drawn with its page. Landing on a still widget still has to stop whatever was running
@@ -2097,8 +2129,11 @@ screen('stuff', () => {
      one you believe is the one you can see. */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';
 
-  const controls = `<div id="stuff-saved">${savedStrip_()}</div>`
-    + `<div class="savebox searchbox">`
+  /* `#stuff-controls` MARKS THIS PAGE so the rest of the screen can find it. It used to be page
+     zero and everything else indexed off "the first page" — with saved pages in front of it that
+     is no longer true, and a hard-coded 1 would have `paintStuff` keeping a saved page and
+     deleting the question. One id, and nothing has to count. */
+  const controls = `<div id="stuff-controls">`
     + (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
         <span class="k">Your credits</span><span class="v big gold mono">${credits}</span>
       </div></div>` : '')
@@ -2118,7 +2153,7 @@ screen('stuff', () => {
           you narrow anything it is the size of the library, which is not a fact about your search,
           and after you narrow it the results are right there to be looked at. */''}
     <div id="stuff-groups">${stuffQuestion()}</div>
-    ${/* SAVED IS NOT DOWN HERE ANY MORE — it is above, outside this box. See `savedStrip_`. */''}
+    ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
   </div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. Four hundred cards under a
@@ -2128,7 +2163,9 @@ screen('stuff', () => {
      once and never rebuilt, so typing in the search box cannot lose its own focus. */
   /* Empty pages. `fillStuffPages` puts markup in the ones you can reach, after the screen exists
      — a page cannot be measured or moved until it is in the document. */
-  return pages('stuff', [controls].concat(
+  /* WHAT YOU KEPT, THEN THE QUESTION, THEN THE ANSWER. */
+  return pages('stuff', savedPages_().concat(
+    [controls],
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => CART.length
   ? `<span class="act" data-do="open-cart">basket ‧ ${CART.length}</span>`
