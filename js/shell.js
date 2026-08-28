@@ -830,9 +830,20 @@ const PAGER = {
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
+  /* ---------- THE FIND PAGER COUNTS EVERY PAGE, NOT JUST THE RESULTS -------------------------------
+     IT NAMED TWO KINDS OF PAGE and there are four: the things you saved sit in front of the search,
+     and the booking form sits between the search and the results. Named as "Search" plus N results,
+     the pager ran short of the pages actually there — and `paintPager` clamps to the names it is
+     given, so the tail of the list became unreachable by the header even though the pages existed.
+
+     Each group asks the function that DRAWS it how many there are, which is the same rule the rest
+     of this table follows: a pager that counts for itself is a pager that can disagree. */
   stuff:  () => {
     const n = stuffPageCount();
-    return ['Search'].concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));
+    return Array.from({ length: savedPages_().length }, () => 'Saved')
+      .concat(['Search'])
+      .concat(Array.from({ length: bookingPages_().length }, () => 'Booking'))
+      .concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));
   },
 };
 

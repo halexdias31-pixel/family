@@ -1469,11 +1469,20 @@ function bookingPages_() {
   return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
 }
 
-function stuffFirstResult_() {
+/* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
+   star, so this is asked rather than assumed — off the id on the page itself. */
+function stuffQuestionPage_() {
   const el = $('stuff-controls');
   const page = el && el.closest('.page');
-  if (!page || !page.parentNode) return 1;
-  return [].indexOf.call(page.parentNode.children, page) + 1;
+  if (!page || !page.parentNode) return 0;
+  return [].indexOf.call(page.parentNode.children, page);
+}
+
+function stuffFirstResult_() {
+  /* PAST THE BOOKING PAGES TOO. They sit between the question and the results, so a result's index
+     is its position minus the question, minus however many of those there are. Counted from the
+     same function that draws them, so the two cannot disagree about how many there were. */
+  return stuffQuestionPage_() + 1 + bookingPages_().length;
 }
 
 function stuffPageCount() {
@@ -1764,15 +1773,26 @@ function paintStuff() {
        question above it sat on a card. `pages()` builds every other page in the app this way; these
        were the one place that built its own and forgot the wrapper. */
     () => '<section class="page"><div class="pane"></div></section>').join('');
+
+  /* ---------- THE BOOKING PAGES GO BETWEEN, AND THEY GO IN FIRST ----------------------------------
+     `afterend` INSERTS DIRECTLY AFTER THE QUESTION, so the last thing put there ends up nearest to
+     it. The blanks go in before these and get pushed along, which leaves question → booking →
+     results — the order `screen('stuff')` builds and the order `stuffFirstResult_` counts. Put them
+     in the other way round and the form lands after four hundred results. */
   if (blanks) first.insertAdjacentHTML('afterend', blanks);
+  const booking = bookingPages_()
+    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+  if (booking) first.insertAdjacentHTML('afterend', booking);
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
      results landed you on the last page of the new ones, which reads as the app having lost its
      place. */
-  /* ZERO IS A SAVED THING NOW, not the question. Landing there after changing a filter would put
-     you in front of something you starred last week instead of the question you just asked. */
-  PAGE.stuff = stuffFirstResult_() - 1;
+  /* ON THE QUESTION, NOT ONE BEFORE THE RESULTS. Those were the same page until the booking pages
+     went between them; `stuffFirstResult_() - 1` is now the last of those, so answering "what for"
+     would have dropped you at the foot of the booking form rather than on the question you just
+     answered. Zero is no good either — that is a saved thing. */
+  PAGE.stuff = stuffQuestionPage_();
 
   fillStuffPages();
   paintPager('stuff', true);
@@ -2243,10 +2263,16 @@ screen('stuff', () => {
      ONLY WHEN THE FUNNEL IS ON BOOKING, which is what makes this an answer rather than a seventh
      tab wearing a different hat. Ask a different question and none of it is drawn.
 
-     WHAT YOU KEPT, THEN THE BOOKING, THEN THE QUESTION, THEN THE ANSWER. */
+     AFTER THE QUESTION, NOT BEFORE IT. They went in front of the controls page first, beside the
+     saved things — which put the form BEHIND you: you answer "what for · booking", the funnel keeps
+     you on the question page, and the thing you asked for is a page back the way you came with
+     nothing saying so. Saved things belong in front because they are what you already had; a form
+     you just asked for belongs in the direction you are travelling.
+
+     WHAT YOU KEPT, THEN THE QUESTION, THEN THE BOOKING, THEN THE ANSWER. */
   return pages('stuff', savedPages_().concat(
-    bookingPages_(),
     [controls],
+    bookingPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => CART.length
   ? `<span class="act" data-do="open-cart">basket ‧ ${CART.length}</span>`
