@@ -2067,7 +2067,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   /* SIX COLUMNS: the line number, what it is, what was chosen, the multiplier, the rate, the
      running total. The number goes first because that is where a till roll puts it and because it
      is the only column somebody reads DOWN rather than across. */
-  grid-template-columns: 3ch 4.4rem minmax(0, 1fr) 5.5ch 9ch 8ch;
+  /* THE VALUE COLUMN HAS A FLOOR NOW. `minmax(0, 1fr)` let it collapse to nothing once the five
+     fixed columns had taken theirs, and a word in a 30px column breaks however you ask it to. 4rem
+     is enough for "Unconfirmed" on two lines instead of eleven. */
+  grid-template-columns: 3ch 4.4rem minmax(4rem, 1fr) 5.5ch 8ch 8ch;
   gap: .5rem; align-items: start;
   padding: .34rem 0;
   font-size: .76rem;
@@ -2095,8 +2098,13 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .bk-m, .bk-r, .bk-t { padding-top: .05rem; }
 /* The chosen value, right against the figures — and dashed underneath, because that is how the
    card says "you picked this" as opposed to "this was worked out". */
-.bk-v { text-align: right; overflow-wrap: anywhere; min-width: 0;
-        border-bottom: 1px dashed var(--line); }
+/* `overflow-wrap: anywhere` WAS STILL HERE. The rule above sets `break-word` on `.bk-k, .bk-v` and
+   explains at length why `anywhere` was wrong — but it was only ever removed from one of the two,
+   and this later line put it straight back on the value column. Which is why a long value came out
+   as one letter per line: `anywhere` breaks eagerly, and this column can be squeezed to about 30px
+   once the five other columns have taken theirs. Same fault as the tile that was a column: a rule
+   declared twice, and the one you can see is not the one you read. */
+.bk-v { text-align: right; min-width: 0; border-bottom: 1px dashed var(--line); }
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
    quieter; the running total is the answer, so it is the only one in full ink. */

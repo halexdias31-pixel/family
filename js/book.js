@@ -1173,6 +1173,13 @@ on('book-undo', el => {
   if (!step) return;
   if (step.emails) BOOKING.split = [];
   else BOOKING[step.id] = step.grid ? [] : (step.multi ? [] : '');
+  /* CLEARED MEANS UNASKED. `done` is what stops a multiple-choice question being offered again, so
+     leaving it set would empty the answer and then refuse to ask for a new one — the row would go
+     blank on the receipt with no way to fill it back in. It was harmless while this lived on a chip
+     that only ever cleared a FINISHED answer; it is not harmless now the button sits inside the
+     question itself. */
+  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
+  BOOKING.editing = '';
   drawBooker();
 });
 

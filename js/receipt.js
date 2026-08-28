@@ -390,18 +390,11 @@ function drawBooker_() {
 
   /* WHAT HAS BEEN SAID SO FAR, each one pressable to change. A wizard that hides its earlier
      answers is one you have to restart to correct. */
-  const said = BOOK_STEPS.filter(bookAnswered_).map(st => {
-    const v = BOOKING[st.id];
-    const text = st.emails
-      ? ((BOOKING.split || []).filter(x => String(x).trim()).length
-          ? (BOOKING.split || []).filter(x => String(x).trim()).join(', ') : 'Just us')
-      : st.grid
-      ? bookRuns().map(r => r.dayName.slice(0, 3) + ' ' + r.hour + ':00').join(', ')
-      : st.multi ? v.join(', ') : (st.label_ ? st.label_(v) : v);
-    return `<button class="chip" data-do="book-undo" data-step="${esc(st.id)}">
-      <span class="chip-k">${esc(st.label.replace(/\?$/, ''))}</span>${esc(text)}
-      <span class="chip-x">✕</span></button>`;
-  }).join('');
+  /* `said` WAS HERE — a chip per answered question, each with a ✕ that cleared it. It was a second
+     list of the answers drawn above a receipt that lists the answers, so it went; but the ✕ was the
+     ONLY way to un-answer a question rather than change it, and losing a control is not the same as
+     losing a duplicate. It is a button in the edit view now, beside "Leave it as it is", which is
+     where somebody who has opened a question to reconsider it is already standing. */
 
   /* ---------- A QUESTION THAT DID NOT GET ASKED, SAID OUT LOUD ---------------------------------
      `nextBookStep` skips any question with no options, which is right — one venue is not a choice
@@ -440,11 +433,24 @@ function drawBooker_() {
      Built from PRICE_ROWS, the same list the old card used, so a row cannot be drawn without being
      costed or costed without being drawn. */
   const money_ = bookBreakdown(L);
+
+  /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION ---------------------------------------
+     IT USED TO BE A QUESTION UNTIL IT WAS A CARD. Nine questions in a row, and only once the last
+     one was answered did the thing you were building appear — so for eight of nine steps you were
+     answering a form with no idea what it was adding up to, and the running price this file goes to
+     such lengths to compute was on screen for exactly one of them.
+
+     THE RECEIPT IS DRAWN FIRST NOW, on every step, with the question underneath it. Answering moves
+     a figure you can already see. That was always the design — the comment above says the card
+     becomes the control and every chosen value is pressable — it just started too late.
+
+     THE `said` CHIPS ARE GONE. They were a second list of the answers so far, drawn above a receipt
+     that lists the answers so far. Two of the same list, and only one of them had the prices. */
+  const head = `${kidsNote}${money_ || ''}`;
+
   if (!step) {
     return { title: 'Ask for a session', html: `
-      ${said ? `<div class="chips">${said}</div>` : ''}
-      ${kidsNote}
-      ${money_ || '<p class="note">Not enough answered to price it yet.</p>'}
+      ${head || '<p class="note">Not enough answered to price it yet.</p>'}
       <label class="field"><span>anything else we should know</span>
         <textarea id="book-note" placeholder="Optional"></textarea></label>
       <button class="btn" data-do="book-send">Ask for it</button>
@@ -466,6 +472,7 @@ function drawBooker_() {
     const on = BOOKING.slots || [];
     const runs = bookRuns();
     return { title: step.label, html: `
+      ${head}
       ${g.anyOpen ? `
         <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
           session that week.</p>
@@ -489,16 +496,14 @@ function drawBooker_() {
             runs.length === 1 ? '' : 's'} a week</button>` : ''}`
         /* NO HOURS AND WHY. An empty grid with no explanation reads as the app being broken; the
            reason is always something somebody can go and fix in the sheet. */
-        : `<p class="note">${esc(g.why)}</p>`}
-      ${said ? `<div class="chips">${said}</div>` : ''}
-      ${kidsNote}
-      ${money_}` };
+        : `<p class="note">${esc(g.why)}</p>`}` };
   }
 
   /* ONE BOX PER PERSON, and a ＋ for another. How many there are IS how many there are. */
   if (step.emails) {
     const list = BOOKING.split || [];
     return { title: step.label, html: `
+      ${head}
       <p class="faint">Each family pays their own share. Leave it empty if it is just you.</p>
       ${list.map((v, k) => `<label class="field"><span>their email</span>
         <input type="email" data-do="split-set" data-k="${k}" value="${esc(v)}"
@@ -509,17 +514,19 @@ function drawBooker_() {
           ${list.filter(x => String(x).trim()).length
             ? 'Done — split ' + (list.filter(x => String(x).trim()).length + 1) + ' ways'
             : 'Just us'}</button>
-      </div>
-      ${said ? `<div class="chips">${said}</div>` : ''}
-      ${kidsNote}
-      ${money_}` };
+      </div>` };
   }
 
   const opts = step.options().filter(Boolean);
   const chosen = step.multi ? (BOOKING[step.id] || []) : [];
 
   return { title: step.label, html: `
-    ${BOOKING.editing ? '<button class="btn quiet" data-do="book-back">Leave it as it is</button>' : ''}
+    ${head}
+    ${BOOKING.editing ? `<div class="btn-row">
+      <button class="btn quiet" data-do="book-back">Leave it as it is</button>
+      ${bookAnswered_(step) ? `<button class="btn quiet" data-do="book-undo"
+        data-step="${esc(step.id)}">Clear it</button>` : ''}
+    </div>` : ''}
     ${opts.map(v => {
       /* ---------- A REFUSAL AND A NOTE ARE NOT THE SAME THING -------------------------------------
          `why` MEANS "THIS DOES NOT FIT" — it draws the option at 45% and, on a multi-select,
@@ -550,9 +557,7 @@ function drawBooker_() {
     ${/* WHAT HAS BEEN SAID, between the question and the price. Above the choices it was the first
           thing read on a screen whose whole job is the list below it; below the breakdown it would
           be past the fold. Here it separates the two and reads as the join between them. */''}
-    ${said ? `<div class="chips">${said}</div>` : ''}
-    ${kidsNote}
-    ${money_}` };
+` };
 }
 
 on('book-send', el => {
