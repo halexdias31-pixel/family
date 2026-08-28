@@ -139,7 +139,114 @@
   window.SITE_STAMP = new Date(LOAD_AT).toLocaleString('en-GB',
     { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
-  document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">');
+  /* ---------- THE SCRIPTS ARE TOLD ABOUT AT THE SAME MOMENT AS THE STYLESHEET --------------------
+     A `preload` is the only way to let the browser start fetching something it cannot see. These
+     files arrive through `document.write` further down, which the preload scanner does not run, so
+     without this the network sits idle for as long as the parser takes to reach them — and the
+     stylesheet, written on the line below, would win the connection alone.
+
+     `as="script"` MATTERS. Without it the browser fetches into the wrong cache bucket and asks
+     again when the real tag appears, which is the same file downloaded twice. The URL has to match
+     the one written later, `?t=` included, or it is a different file as far as the cache is
+     concerned. */
+  /* ---------- ONE LIST, AND IT IS THIS ONE -------------------------------------------------------
+     THE ORDER IS THE ONLY RULE THE WHOLE SPLIT RESTS ON — every file shares one scope and a file
+     moved against the others breaks the app. Written twice, once here to preload and once below to
+     load, it would be two orders that have to agree, and the second copy is the one somebody edits.
+     `window.FILES`, read by both. */
+  window.FILES = ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
+    'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld',
+    'select', 'collections', 'tiles', 'boot'];
+  document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">'
+    + FILES.map(function (f) {
+        return '<link rel="preload" as="script" href="js/' + f + '.js?t=' + LOAD + '">';
+      }).join(''));
+</script>
+
+<!-- ==================================================================================================
+     THE SCRIPTS ARE ASKED FOR HERE, IN THE HEAD, AND NOT AT THE FOOT OF THE BODY.
+
+     THEY WERE WRITTEN AT LINE 1111, after seventy kilobytes of markup. Nothing is wrong with that
+     in itself — a script at the end of the body is the old advice, and the reason for it was that
+     scripts block the parser. `defer` solves that properly, and once they defer there is no reason
+     to make the browser read the entire page before it learns which files it needs.
+
+     THE PRELOAD SCANNER CANNOT SEE THEM. They arrive through `document.write`, which the scanner
+     does not run — so the requests genuinely cannot start until the parser reaches that line. Every
+     millisecond spent parsing markup above it was a millisecond of an idle network.
+
+     Moved up, all twenty three requests are in flight before the body starts.
+================================================================================================== -->
+
+<script>
+  /* TWENTY FILES, ONE SCOPE, ONE ORDER.
+
+     script.js was ten thousand lines, which is a file nobody can hold in their head and nobody can
+     paste anywhere. Split at its own section headers into eighteen — and split is all it is: the
+     files concatenated are byte-for-byte what script.js was. Nothing was renamed and nothing moved
+     between them, which is why the split cannot have changed how anything behaves.
+
+     EVERYTHING SITS BESIDE index.html, in one folder, rather than in a js/ one. A folder would be
+     tidier and would cost a path in this list that has to agree with where the files actually are —
+     and a path that disagrees is eighteen 404s and a blank screen, which is a worse failure than
+     an untidy folder. Flat, until there is a reason not to be.
+
+     THEY ARE NOT MODULES, deliberately. Fourteen of the app's own variables are set in one part of
+     it and declared in another — DATA is set by the loader, USER by the sign-in, CHESS and ttState
+     and flappyState by their games. An ES module's import is read-only, so every one of those would
+     have thrown, and the fix would have been rewriting thousands of lines to reach through a state
+     object. Plain scripts share one scope and need none of that.
+
+     WHAT THAT COSTS, and what pays it. A module fails loudly at load when a name is missing; a
+     plain script fails quietly, later, when somebody taps the thing that needed it. So js/check.js
+     does that job instead: it reads all eighteen, and reports any name used and never declared, any
+     name declared twice, and anything read at load before the file declaring it. Run it after every
+     change — `node js/check.js`, two seconds. It is the whole safety net and it is not optional.
+
+     THE ORDER BELOW IS THE PROGRAM. boot.js draws the first screen and asks the backend for data,
+     so it is last, for the same reason the boot lines were last inside the single file. Everything
+     above it must exist before it runs. */
+  /* Collected rather than reported one at a time: a wrong folder means eighteen of these, and
+     eighteen messages is a wall. The check a second later prints the list. */
+  window.__missing = function (f) { (window.__gone = window.__gone || []).push(f); };
+
+  /* NINETEEN NOW — `flyer` sits after `receipt` because it uses `money` and `esc` from core and
+     `openSheet` from shell, and before `boot`, which starts everything. */
+  /* `FILES` — declared with the preloads in the head. See the note there. */
+  FILES.forEach(function (f) {
+    /* `js/` — THE FOLDER THEY ARE ACTUALLY IN. This asked for them flat, beside index.html, and
+       they moved into a folder: twenty requests for files that are one directory up from where
+       they live, twenty 404s, and a blank app.
+       Nothing about that says what happened. A script that does not arrive is not an error the
+       page reports — it simply never runs — so the whole app being missing looks like the app
+       being broken. The banner in overworld.js names a missing file for exactly this reason, and
+       it cannot: it is in one of the files that did not arrive.
+       ONE PLACE DECIDES THE PATH. If they ever move again, this line moves with them. */
+    /* `onerror` NAMES THE FILE THAT DID NOT ARRIVE.
+
+       Without it a missing file is silent, and what you get instead is whatever breaks FIRST as a
+       result — `LOADED is not defined`, thrown by posts.js, when the file that never loaded was
+       me.js. The message names a variable in the wrong file and says nothing about the real fault,
+       and it looks for all the world like a bug in the code you are reading.
+
+       One attribute turns that into the file's own name. */
+    /* ---------- `defer`, AND IT IS THE WHOLE OPTIMISATION ---------------------------------------
+       WITHOUT IT THESE RUN ONE AT A TIME. A parser-inserted script blocks: the browser stops, asks
+       for core.js, waits for the round trip, runs it, and only then discovers price-rows.js. Twenty
+       three files is twenty three round trips end to end, and on a phone a round trip is most of
+       the cost of a small file.
+
+       `defer` KEEPS THE ORDER AND DROPS THE WAITING. Deferred scripts are fetched in parallel and
+       executed in document order, which is exactly the guarantee this list exists to provide — the
+       one rule the whole split rests on is that a file must not be reordered against the others,
+       and `defer` is the only attribute that promises that. `async` would not: it runs whichever
+       arrives first, and core.js arriving after shell.js is the app not starting.
+
+       AND THEY EXECUTE AFTER THE HTML IS PARSED, which is where boot.js expected to be anyway —
+       it is the last file in the list and its whole job is to start once everything exists. */
+    document.write('<scr' + 'ipt defer src="js/' + f + '.js?t=' + LOAD
+      + '" onerror="__missing(\'' + f + '\')"><\/scr' + 'ipt>');
+  });
 </script>
 <noscript><link rel="stylesheet" href="style.css"></noscript>
 
@@ -1108,63 +1215,6 @@
 
 <!-- Dated with the same number as the stylesheet, and at the END of the body, where script.js
      expects every element above it to already exist. -->
-<script>
-  /* TWENTY FILES, ONE SCOPE, ONE ORDER.
-
-     script.js was ten thousand lines, which is a file nobody can hold in their head and nobody can
-     paste anywhere. Split at its own section headers into eighteen — and split is all it is: the
-     files concatenated are byte-for-byte what script.js was. Nothing was renamed and nothing moved
-     between them, which is why the split cannot have changed how anything behaves.
-
-     EVERYTHING SITS BESIDE index.html, in one folder, rather than in a js/ one. A folder would be
-     tidier and would cost a path in this list that has to agree with where the files actually are —
-     and a path that disagrees is eighteen 404s and a blank screen, which is a worse failure than
-     an untidy folder. Flat, until there is a reason not to be.
-
-     THEY ARE NOT MODULES, deliberately. Fourteen of the app's own variables are set in one part of
-     it and declared in another — DATA is set by the loader, USER by the sign-in, CHESS and ttState
-     and flappyState by their games. An ES module's import is read-only, so every one of those would
-     have thrown, and the fix would have been rewriting thousands of lines to reach through a state
-     object. Plain scripts share one scope and need none of that.
-
-     WHAT THAT COSTS, and what pays it. A module fails loudly at load when a name is missing; a
-     plain script fails quietly, later, when somebody taps the thing that needed it. So js/check.js
-     does that job instead: it reads all eighteen, and reports any name used and never declared, any
-     name declared twice, and anything read at load before the file declaring it. Run it after every
-     change — `node js/check.js`, two seconds. It is the whole safety net and it is not optional.
-
-     THE ORDER BELOW IS THE PROGRAM. boot.js draws the first screen and asks the backend for data,
-     so it is last, for the same reason the boot lines were last inside the single file. Everything
-     above it must exist before it runs. */
-  /* Collected rather than reported one at a time: a wrong folder means eighteen of these, and
-     eighteen messages is a wall. The check a second later prints the list. */
-  window.__missing = function (f) { (window.__gone = window.__gone || []).push(f); };
-
-  /* NINETEEN NOW — `flyer` sits after `receipt` because it uses `money` and `esc` from core and
-     `openSheet` from shell, and before `boot`, which starts everything. */
-  ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
-   'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld',
-   'select', 'collections', 'tiles', 'boot'].forEach(function (f) {
-    /* `js/` — THE FOLDER THEY ARE ACTUALLY IN. This asked for them flat, beside index.html, and
-       they moved into a folder: twenty requests for files that are one directory up from where
-       they live, twenty 404s, and a blank app.
-       Nothing about that says what happened. A script that does not arrive is not an error the
-       page reports — it simply never runs — so the whole app being missing looks like the app
-       being broken. The banner in overworld.js names a missing file for exactly this reason, and
-       it cannot: it is in one of the files that did not arrive.
-       ONE PLACE DECIDES THE PATH. If they ever move again, this line moves with them. */
-    /* `onerror` NAMES THE FILE THAT DID NOT ARRIVE.
-
-       Without it a missing file is silent, and what you get instead is whatever breaks FIRST as a
-       result — `LOADED is not defined`, thrown by posts.js, when the file that never loaded was
-       me.js. The message names a variable in the wrong file and says nothing about the real fault,
-       and it looks for all the world like a bug in the code you are reading.
-
-       One attribute turns that into the file's own name. */
-    document.write('<scr' + 'ipt src="js/' + f + '.js?t=' + LOAD
-      + '" onerror="__missing(\'' + f + '\')"><\/scr' + 'ipt>');
-  });
-</script>
 
 <script>
   /* ==============================================================================================
