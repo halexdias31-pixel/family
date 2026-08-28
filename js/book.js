@@ -1401,10 +1401,14 @@ function stepGrid_(st) {
   const runs = bookRuns();
   if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
   return `<div class="bk-open">
-    <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
-      session that week.</p>
+    <p class="faint">Two together is a two-hour session; another day is another session.</p>
     <div class="slot-grid">
-      ${g.rows.map(r => `<div class="slot-row">
+      ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
+            nobody works are different facts, which is the same reason a shut hour is greyed rather
+            than removed — but it does not need a thumb-sized row, because there is nothing on it to
+            press. Four working days and three closed ones costs half what seven equal rows did. */''}
+      ${g.rows.map(r => `<div class="slot-row${
+        r.hours.some(h => h.open) ? '' : ' is-shut'}">
         <span class="slot-day">${esc(r.label.slice(0, 3))}</span>
         <div class="slot-hours">
           ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
@@ -1417,6 +1421,9 @@ function stepGrid_(st) {
         </div>
       </div>`).join('')}
     </div>
+    ${/* WHAT THE TICKS ADD UP TO, and only when there is something. It says the same thing the gold
+          blocks above already say, in words — worth keeping because "Mon 10:00–12:00" is what a
+          session IS and a run of squares is not, but not worth a line of its own when empty. */''}
     ${runs.length ? `<p class="note">${runs.map(r =>
         esc(r.dayName) + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00').join(' · ')}</p>` : ''}
   </div>`;

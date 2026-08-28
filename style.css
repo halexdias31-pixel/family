@@ -2237,12 +2237,16 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
    INDENTED TO THE VALUE COLUMN so it reads as belonging to that row rather than to the card, and
    ruled off at the bottom so the rows continuing underneath do not look like part of it. */
+/* INDENTED, BUT NOT BY MUCH. 6.5em lined it up with the value column and cost the grid a fifth of
+   its width — which on a row of fourteen hours is the difference between a target you can hit and
+   one you cannot. It reads as belonging to the row above from the rule underneath it and from being
+   the only thing there; it does not also need to start where the values start. */
 .bk-open {
-  margin: .1rem 0 .45rem 6.5em;
-  padding-bottom: .45rem;
+  margin: .05rem 0 .3rem 1.5em;
+  padding-bottom: .3rem;
   border-bottom: 1px dashed var(--line);
 }
-.bk-open > p { margin: 0 0 .35rem; }
+.bk-open > p { margin: 0 0 .2rem; font-size: .66rem; line-height: 1.3; }
 .rc .bk-open { border-color: #cfc9bd; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
@@ -2294,8 +2298,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    rather than a row of refusals. A grid of mostly-disabled buttons is a grid you have to read
    before you can use.
 --------------------------------------------------------------------------------------------- */
-.slot-grid { display: flex; flex-direction: column; gap: .3rem; margin: .5rem 0 .2rem; }
-.slot-row { display: flex; align-items: center; gap: .5rem; }
+/* ---------- SEVEN THUMB-SIZED ROWS IS THREE HUNDRED PIXELS -----------------------------------------
+   OPENING THE WEEK DOUBLED THE CARD. Seven rows at a 38px minimum plus their gaps is 298px before
+   the wording around it, dropped into the middle of a receipt whose rows are 19px each.
+
+   THE HEIGHT COMES DOWN TO 30, WHICH IS STILL A TARGET. Fourteen hours across a phone makes each
+   about 20px wide whatever happens, so the row height is the only dimension there is — and 20×30
+   is a comfortable press. 38 was inherited from a square-button era this grid never had.
+
+   AND A CLOSED DAY COLLAPSES. See `stepGrid_`: a day with no open hour keeps its label and its
+   greyed boxes, because a missing Wednesday and a Wednesday nobody works are different facts — but
+   it does not need a pressable row, because there is nothing on it to press. */
+.slot-grid { display: flex; flex-direction: column; gap: 2px; margin: .3rem 0 .15rem; }
+.slot-row { display: flex; align-items: center; gap: .4rem; }
+.slot-row.is-shut .hr { min-height: 15px; font-size: .58rem; }
 .slot-day { flex: 0 0 2.2rem; font-size: .7rem; color: var(--faint);
             text-transform: uppercase; letter-spacing: .08em; }
 /* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
@@ -2313,7 +2329,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    question and it should not look like two. */
 .hr {
   flex: 1 1 0; min-width: 0; padding: 0;
-  min-height: max(38px, 2.4rem);
+  min-height: max(30px, 1.9rem);
   display: grid; place-items: center;
   user-select: none; -webkit-user-select: none;
   background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
