@@ -6710,16 +6710,5 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 }
 .bookr-top > h3 { margin: 0; }
 
-/* LEAVING IT. A sheet had a close button drawn by the shell; a card has whatever it draws itself,
-   and without this a half-answered booking has no way out but answering the rest of it. Quiet,
-   because leaving is not what anybody came here to do. */
-.bookr-x {
-  flex: 0 0 auto;
-  width: 30px; height: 30px; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  font: 400 .95rem/1 var(--mono);
-  color: var(--faint); background: none; border: 0; border-radius: var(--r);
-  cursor: pointer;
-  transition: color var(--quick) ease, transform var(--quick) ease;
-}
-.bookr-x:active { transform: scale(.88); color: var(--dim); }
+/* `.bookr-x` WAS THE CLOSE BUTTON. The booker is the first card on Book and is always drawn, so
+   there is nothing to close and no state to return to. */

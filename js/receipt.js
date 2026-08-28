@@ -357,16 +357,18 @@ function drawBooker() { redrawBooker_(paintBook_); }
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
 function bookerCard() {
-  if (!BOOKING.open) return '';
   const out = drawBooker_();
   if (!out) return '';
   return `<div class="card bookr" id="bookr">
+    ${/* NO CLOSE BUTTON, BECAUSE THERE IS NOTHING TO CLOSE. This was a form you opened, so it needed
+          a way out; it is the first card on Book now, always drawn, the same way the blank paper it
+          replaced always was. Closing it would leave an empty column.
+
+          THE HEADING IS THE QUESTION and sits above the paper, which is the one piece of chrome
+          worth keeping from the sheet: the paper shows everything, and the question says which line
+          of it is being answered right now. */''}
     <div class="bookr-top">
       <h3>${esc(out.title)}</h3>
-      ${/* LEAVING IS A CONTROL, and it has to exist here in a way it did not before: a sheet had a
-            close button drawn by the shell, and a card has whatever it draws itself. Without it a
-            half-finished booking would have no way out except answering all of it. */''}
-      <button class="bookr-x" data-do="book-close" aria-label="Leave it" title="Leave it">✕</button>
     </div>
     ${out.html}
   </div>`;
@@ -604,7 +606,6 @@ on('book-send', el => {
       .then(d => {
         /* CLOSING THE FORM, not a sheet. Sent is the one moment the booker should stop being on
            the screen — everything else about it is now a job, and jobs are the cards underneath. */
-        BOOKING.open = false;
         /* WHERE IT HAS GOT TO, because that is the whole content of a waiting list. "You are on
            the list" says less than the backend already knows, and it knows it exactly: how many
            have joined and how many seats there are. */
@@ -677,7 +678,6 @@ on('book-send', el => {
     requestId: 'R' + Date.now() + '-' + Math.floor(Math.random() * 1e6) })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      BOOKING.open = false;
       toast('Asked — we will come back to you');
       /* Emptied from the step list rather than from a list of names written here — see
          `resetBooking_`. This was seven keys typed out, and it was missing `done` and `kids`: the

@@ -129,32 +129,9 @@ function bookBlocks() {
      else's session.
      `data-do="new-booking"` is the same handler the button used, so tapping the paper opens the
      questions exactly as pressing the button did. */
-  /* THE EMPTY ONE IS THE TERMINAL ITSELF — nothing asked for, nothing existing, an invitation to
-     type. It was the most receipt-looking card on the screen. */
-  /* ---------- THE BLANK CARD --------------------------------------------------------------------
-     ONE INVITATION, NOT FIVE. It said "Ask for a session", then "£—", then "Subject · where ·
-     when", then "No tutor yet", then "Nothing booked", then "Tap to start" — six pieces of text
-     all making the same point, which is that nothing has been filled in yet. Six ways of saying
-     nothing is worse than one, because the eye has to read all six before it can be sure they do
-     not differ.
-
-     What is left is the two outlines — a building and a person, the same drawings a real session
-     shows before it has a venue or a tutor — one line of prompt, and the pips. A card that is
-     visibly empty does not also need telling you it is empty. */
-  const blankJobCard = () => `<div class="rc rc-stub rc-blank rc-screen scr tap" data-do="new-booking">
-      <div class="rc-stub-top">
-        <span class="rc-stub-what">Ask for a session</span>
-      </div>
-      <div class="rc-stub-mid">
-        ${facesFor('', '', 'rc-stub-pics')}
-        <div class="rc-stub-said">
-          <span>Subject · where · when</span>
-        </div>
-      </div>
-      <div class="rc-stub-line rc-stub-foot">
-        ${rosterPips(0, 0)}
-      </div>
-    </div>`;
+  /* `blankJobCard` WAS HERE — the grey outline card with "Ask for a session" on it. It was a
+     picture of a receipt that you tapped to be given a receipt, and the real one draws from the
+     first question now, so there is nothing left for a placeholder to hold the place of. */
 
   /* Built as blocks rather than one string, because the pager needs the pieces and this screen's
      pieces are already separate things — the blank one, and a receipt per session. */
@@ -171,11 +148,15 @@ function bookBlocks() {
 
        Built by `jobCard` with an empty job rather than by markup of its own, so a change to a
        receipt changes this too. A second version of the paper would be one that drifts. */
-    /* THE BOOKER SITS WHERE THE BLANK PAPER SITS, because it is what the blank paper turns into.
-       One replaces the other rather than appearing beside it — two invitations to start a booking,
-       one of them already started, is the shape of a screen nobody trusts. */
+    /* ---------- THE BOOKER IS THE FIRST CARD, ALWAYS ------------------------------------------
+       THE BLANK PAPER WAS A TEASER FOR A FORM. It showed two grey outlines, "Subject · where ·
+       when" and four empty pips — a picture of a receipt, which you tapped to be shown the actual
+       thing somewhere else. Two objects for one job, and the first of them could not be used.
+
+       The real paper does everything the blank one did — it is visibly empty, it is visibly a
+       receipt, it invites you to fill it in — and it is also the form. So there is one card. */
     USER
-      ? (bookerCard() || blankJobCard())
+      ? bookerCard()
       : `<div class="card"><h3>Sign in to book</h3>
            <p class="sub">You need an account to ask for a session.</p>
            <button class="btn" data-do="signin">Sign in</button></div>`,
@@ -358,10 +339,6 @@ on('signin', () => toast('Sign-in screen next'));
    which is the same fault `setOptions` was written to avoid on the old form.
    They become numbers in `bookSpec`, which is where a number is actually needed. */
 const BOOKING = {
-  /* `open` — WHETHER THE FORM IS BEING FILLED IN. Not an answer to anything; it is the difference
-     between the blank paper and the questions, and it exists because the booker draws in the column
-     now rather than over it. */
-  open: false,
   subjects: [], level: '', n: '', loc: '', hosting: '',
   /* WHEN A FAMILY ON A WAITING LIST CAN ACTUALLY COME. Only asked of a class — an ordinary session
      picks exact hours on the grid, which is a stronger answer than any of these. */
@@ -586,7 +563,7 @@ const BOOK_STEPS = [
      ONE SHORT LINE EACH, and it names the thing that differs rather than everything that is true.
      What separates these two is certainty against price: one is yours the moment you pay, the other
      is cheaper and might not happen. That is the whole decision, and it fits on a line. */
-  { id: 'how', label: 'How would you like to book?',
+  { id: 'how', label: 'How would you like to book?', short: 'Kind',
     /* BOTH ARE "START", because both are things you set going — the difference is whether it runs
        now or waits for company. "Join a waiting list" was wrong twice over: there may be no list to
        join, and you are the one opening it. */
@@ -603,10 +580,10 @@ const BOOK_STEPS = [
 
   /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
      Written into the booking below so the receipt and the backend agree without asking. */
-  { id: 'subjects', label: 'What are we working on?', multi: true,
+  { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
     options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name) },
 
-  { id: 'level', label: 'What level?',
+  { id: 'level', label: 'What level?', short: 'Level',
     options: () => ((DATA.dropdowns || {}).levels || []) },
 
   /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
@@ -625,7 +602,7 @@ const BOOK_STEPS = [
      changing what the number MEANS would put every one of them out by one. `label_` changes only
      what is written on the option, so the question reads in extras and the booking still stores the
      count everything downstream expects. Presentation moved; the data did not. */
-  { id: 'n', label: 'How many extra seats?',
+  { id: 'n', label: 'How many extra seats?', short: 'Seats',
     label_: v => Number(v) === 1 ? 'Just mine'
       : Number(v) === 2 ? 'One more seat'
       : (Number(v) - 1) + ' more seats',
@@ -668,7 +645,7 @@ const BOOK_STEPS = [
          left does not depend on whether you counted yourself in. */
     } },
 
-  { id: 'loc', label: 'Where?',
+  { id: 'loc', label: 'Where?', short: 'Venue',
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
     why: v => {
       const sp = spaceFor(v);
@@ -689,7 +666,7 @@ const BOOK_STEPS = [
      only "Yes", so it is filled in and never asked. Nothing special is needed for the lock; it
      falls out of the rule that a question with one answer is not a question. */
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: 'Are you providing the space?',
+  { id: 'hosting', label: 'Are you providing the space?', short: 'Space',
     options: () => {
       if (isWaiting_()) return [];
       const rate = venueRate_();
@@ -708,7 +685,7 @@ const BOOK_STEPS = [
      `grid` rather than a list, so it is drawn by hand below rather than as options. */
   /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
      nobody has booked, made to four families who have not all joined. */
-  { id: 'slots', label: 'When?', grid: true,
+  { id: 'slots', label: 'When?', short: 'When', grid: true,
     options: () => isWaiting_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
 
   /* ---------- WHEN COULD YOU COME? ----------------------------------------------------------------
@@ -730,7 +707,7 @@ const BOOK_STEPS = [
      IT IS NOT STORED ON THE JOB. Four families on one list have four different answers, and the
      job is one row — so it goes on each family's own JOINING EVENT, where it is theirs by
      construction and needs no column. See `joinWaitlist`. */
-  { id: 'avail', label: 'When could you come?', multi: true,
+  { id: 'avail', label: 'When could you come?', short: 'Free', multi: true,
     options: () => isWaiting_()
       ? ['Weekday mornings', 'Weekday afternoons', 'Weekday evenings',
          'Weekends', 'Flexible — whatever suits']
@@ -738,7 +715,7 @@ const BOOK_STEPS = [
     why: () => '' },
 
   /* AND NO TERM, for the same reason as the day. */
-  { id: 'interval', label: 'Over what period?',
+  { id: 'interval', label: 'Over what period?', short: 'Term',
     options: () => isWaiting_() ? [] : (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
 
   /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
@@ -751,7 +728,7 @@ const BOOK_STEPS = [
      So there is no number to pick. The count IS how many addresses have been given. */
   /* SHARING IS THE WHOLE PRODUCT here — there is nobody to invite, because the other three seats
      are for whoever joins the list. */
-  { id: 'split', label: 'Sharing the cost with anyone?', emails: true,
+  { id: 'split', label: 'Sharing the cost with anyone?', short: 'Split', emails: true,
     options: () => isWaiting_() ? [] : ['emails'] },
 
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? --------------------------------
@@ -793,7 +770,7 @@ const BOOK_STEPS = [
      Only asked of somebody who HAS children on their account, and only when there are seats to put
      them in — `nextBookStep` skips a question with no options, so a client with none never sees it
      and nothing has to remember that. */
-  { id: 'kids', label: 'Which of your children is this for?', multi: true,
+  { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true,
     /* EVERY CHILD IS OFFERED. This used to hand back only as many names as there were seats —
        so booking two seats showed Danile two of her three children and she could not choose WHICH
        two. The seat count limits HOW MANY you may tick, and it has never had anything to say about
@@ -855,7 +832,7 @@ const BOOK_STEPS = [
 
      WHY AN ADMIN NEEDS IT: somebody rings up and you book it for them. Without this the receipt
      says the booking belongs to whoever was holding the phone, which is you. */
-  { id: 'client', label: 'Who is this for?',
+  { id: 'client', label: 'Who is this for?', short: 'For',
     options: () => {
       if (!isAdmin()) return [];
       const me = (USER && USER.name) || '';
@@ -886,7 +863,7 @@ const BOOK_STEPS = [
     note: v => v === NOBODY ? 'the list opens empty, and families join it'
       : (norm(v) === norm((USER && USER.name) || '') ? 'your own booking' : '') },
 
-  { id: 'tutor', label: 'Anyone in particular?',
+  { id: 'tutor', label: 'Anyone in particular?', short: 'Tutor',
     options: () => isWaiting_() ? [] : ['No preference'].concat(
       (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
     why: v => {
@@ -1071,32 +1048,15 @@ function resetBooking_() {
        an empty string would make `.length` read 0 and look right until something pushed to it. */
     BOOKING[st.id] = (st.multi || st.grid || st.emails) ? [] : '';
   });
-  /* The three that are not answers: what has been finished with, which question is being changed,
-     and whether the form is on the screen at all. All three are about the FORM rather than about
-     the booking, and all three must go — `open` most of all, since a booking that has been sent
-     leaving the form up would invite somebody to send it twice. */
+  /* The two that are not answers: what has been finished with, and which question is being
+     changed. Both are about the FORM rather than about the booking, and both must go. */
   BOOKING.done = [];
   BOOKING.editing = '';
-  BOOKING.open = false;
 }
 
-on('new-booking', () => {
-  if (!USER) { toast('Sign in to book'); go('me'); return; }
-  /* `open` IS WHAT MAKES THE CARD EXIST. It was the act of opening a sheet before; with the booker
-     living on the page there has to be a fact saying whether it is being filled in, or the blank
-     paper and the form would both be drawn on every visit to Book. */
-  BOOKING.open = true;
-  paintBook_();
-});
-
-/* LEAVING IT. The answers are kept — `BOOKING` is not cleared — so coming back carries on where it
-   stopped rather than starting again, which is what closing a half-finished form should do. Only
-   `book-send` and a finished booking clear it. */
-on('book-close', () => {
-  BOOKING.open = false;
-  BOOKING.editing = '';
-  paintBook_();
-});
+/* `on('new-booking')` AND `on('book-close')` WERE HERE. One opened the form and one shut it, and
+   both existed because the form was a thing you opened. It is the first card on Book now — there is
+   no moment when it is not there, so there is no opening it and nothing to close. */
 
 /* Ticking an hour. Adjacent ticks become one session; the grid is redrawn so the summary under it
    keeps up. */
@@ -1343,9 +1303,46 @@ function breakdownRows(L) {
   return rows;
 }
 
-function bookBreakdown(L) {
-  if (!L) return '<p class="note">Not enough answered to price it yet.</p>';
+/* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT -----------------------------------------------
+   THE PAPER USED TO ARRIVE LATE. `breakdownRows` builds a row per thing that has a PRICE, so before
+   anything was answered there was nothing to draw and the card said "not enough answered to price
+   it yet" — a sentence where the document should have been. And even part-way through, a question
+   still to come left no trace: you could not see that a venue was expected until the venue question
+   arrived.
 
+   SO THE UNANSWERED ONES ARE DRAWN TOO, as rows with a blank in the value column, pressable like
+   every answered one. The card is the whole form from the first moment: what it will ask, what you
+   have said, and what it costs so far, in one object that fills in rather than appears at the end.
+
+   `short` IS THE COLUMN NAME. A step's `label` is a question — "How would you like to book?" — and
+   a question does not fit a 4.4rem column or read like a receipt line. Every step carries a short
+   noun beside its question now, which is the word a till roll would print.
+
+   A QUESTION WITH NOTHING TO OFFER IS NOT DRAWN. `nextBookStep` skips those and never asks them —
+   the subjects question on a shared class, the children question for somebody with no children —
+   so a row for one would be a line nobody can ever fill in. */
+function stepRows_() {
+  let line = 0;
+  return BOOK_STEPS.filter(st =>
+      st.grid || st.emails || st.options().filter(Boolean).length)
+    .map(st => {
+      const v = BOOKING[st.id];
+      const text = st.emails
+        ? ((BOOKING.split || []).filter(x => String(x).trim()).join(', '))
+        : st.grid
+        ? bookRuns().map(r => r.dayName.slice(0, 3) + ' ' + r.hour + ':00').join(', ')
+        : st.multi ? (v || []).join(', ')
+        : (st.label_ ? st.label_(v) : (v || ''));
+      return { n: String(++line).padStart(3, '0'),
+               k: st.short || st.id,
+               /* AN EM DASH, NOT AN EMPTY CELL. A blank looks like a row that failed to draw; a
+                  dash looks like a blank somebody is expected to fill, which is what it is. */
+               v: String(text || '—'),
+               mul: '', rate: '', total: '', step: st.id };
+    });
+}
+
+function bookBreakdown(L) {
   /* Photographs of the two things chosen — the room and the person. A booking is largely about
      whether you like the look of both, and a card that names them without showing them is a receipt
      rather than an offer.
@@ -1353,6 +1350,9 @@ function bookBreakdown(L) {
      there, which is two ways of finding a venue's photograph and two ways for one of them to stop
      finding it. */
   const photos = facesFor(BOOKING.loc, BOOKING.tutor);
+  /* `L` IS NULL UNTIL ENOUGH IS ANSWERED TO COST IT — no subjects, or no venue on a shared class.
+     Everything below reads it for figures, so each read is guarded rather than the whole card being
+     refused. The paper exists from the first question; only the numbers arrive late. */
 
   const venueName = BOOKING.loc || 'No venue yet';
   const now = new Date();
@@ -1365,7 +1365,10 @@ function bookBreakdown(L) {
      is decided once, so a row added to the card cannot go missing from the shared picture. */
   /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist
      is decided once, so a row added to the card cannot go missing from the shared picture. */
-  const out = breakdownRows(L).map(receiptRow);
+  /* PRICED ROWS WHERE THERE IS A PRICE, the plain question list where there is not. They are the
+     same document either way — same paper, same columns, same pressable values — so the card does
+     not change shape underneath somebody the moment their answers become costable. */
+  const out = (L ? breakdownRows(L) : stepRows_()).map(receiptRow);
 
   const bars = receiptBars(BOOK_STEPS.map(st => {
     const v = BOOKING[st.id];
@@ -1380,8 +1383,8 @@ function bookBreakdown(L) {
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
     rows: out,
-    total: money(L.total),
-    aside: L.W ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
+    total: L ? money(L.total) : '',
+    aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
     /* The tutor, then a seat for each student, then whoever is splitting it. */
     roster: rosterHtml({
       tutor: BOOKING.tutor, seats: Number(BOOKING.n) || 0,
