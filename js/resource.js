@@ -322,13 +322,11 @@ on('cart-send', () => {
 function paperRows(t) {
   const id = t && (t.id || t.rowId);
   if (!id) return [];
-  /* ---------- `r.paper`, `r.paperId`, `r.paper_id` — ALL THREE ------------------------------------
-     THE COLUMN IS `paper_id` IN THE SHEET and what arrives on the payload depends on how the backend
-     names it. This read only `r.paper`, which is also the name of a BOOLEAN on a resource row — two
-     different facts one letter apart — and there are no `kind: paper` rows left to exclude, because
-     a paper is no longer a row at all. */
+  /* THROUGH `paperIdOf_`, which is the one reader for this column — see find.js. This was the
+     fourth copy of the same three-name test, and the copy in `allTopics` was the one that had a
+     name missing and emptied the entire paper list. */
   return (DATA.questions || [])
-    .filter(r => (r.paperId || r.paper_id || r.paper) === id)
+    .filter(r => paperIdOf_(r) === id)
     .sort((a, b) => (Number(a.q) || 0) - (Number(b.q) || 0)
                  || String(a.part || '').localeCompare(String(b.part || '')));
 }

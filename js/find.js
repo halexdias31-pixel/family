@@ -779,11 +779,48 @@ function questionItems() {
 
    IT COSTS ONE PASS over the questions rather than a lookup per card — four hundred cards each
    scanning two hundred rows is eighty thousand comparisons to draw one screen. */
+/* ---------- HOW MANY PAGES A PAPER WOULD BE ---------------------------------------------------------
+   `pages` HAS BEEN ZERO ON EVERY PAPER, hard-coded, since papers stopped being rows and became
+   groups of questions. A PDF knew its own length; a group of questions does not. And zero is not a
+   harmless placeholder here — `printPrice` returns null for it and `canPrint` reads that as "not
+   printable", so the paper copy was never offered on anything. The count was missing from the cover
+   and the trolley was missing from the row, and both were this one number.
+
+   FROM THE MARKS, because that is what answer space is for. A four-mark part needs roughly four
+   times the room of a one-mark part, which is the whole reason a real paper's marks are printed
+   beside the questions. Counting parts instead would give a two-page paper the same length as a
+   twelve-page one whenever the parts happened to be long.
+
+   IT IS AN ESTIMATE AND IS NAMED AS ONE. `print_marks_per_page` is a var on the config tab beside
+   `print_rate_per_page`, so the number that decides this is somewhere you can change it after
+   seeing one come out of a printer rather than somewhere only I can. Eight is the default because a
+   GCSE paper runs about that with room to write; if yours come out short, raise it.
+
+   PLUS A COVER. Every one of these draws a board, a subject, a paper name and a candidate-name box
+   before any question, so the first sheet is never questions. */
+function paperPages_(marks) {
+  const per = num(((DATA.constants || {}).vars || {}).print_marks_per_page);
+  const perPage = (isNaN(per) || per <= 0) ? 8 : per;
+  const m = Number(marks) || 0;
+  if (m <= 0) return 0;
+  return 1 + Math.ceil(m / perPage);
+}
+
 function allTopics() {
   const qs = DATA.questions || [];
   /* Keyed on the object IDENTITY of the payload's own branch, so a new payload is a new list and
      this cannot go stale — one comparison rather than hashing two hundred rows. */
   if (TOPICS_MEMO.fromQ === qs) return TOPICS_MEMO.list;
+
+  /* THE MARKS FIRST, in one pass, because a paper's length is a fact about all of its parts and the
+     loop below only ever sees the first one. A stem carries no marks of its own — it is the shared
+     wording above the parts — so counting it would be counting nothing twice. */
+  const marks = {};
+  qs.forEach(r => {
+    const id = paperIdOf_(r);
+    if (!id || r.kind === 'stem') return;
+    marks[id] = (marks[id] || 0) + (Number(r.marks) || 0);
+  });
 
   const seen = {};
   const out = [];
@@ -796,16 +833,20 @@ function allTopics() {
       name: r.name || id,
       subject: r.subject || '',
       grade: r.bandType === 'grade' ? r.bandValue : '',
-      /* NO LINK AND NO PAGES. There is no PDF behind any of these — which is the whole point — so
-         the print price never offers itself and the funnel files them as digital. If printing from
-         HTML ever happens, `pages` is what it has to start producing. */
+      /* NO LINK. There is no PDF behind any of these, which is the whole point — there is nothing to
+         download and nothing to link to. PAGES is different: see `paperPages_` above. It is worked
+         out from the marks now rather than left at zero, which is what makes a printed copy
+         offerable at all. */
       link: '', image: '', company: '',
       type: r.resourceType || '', board: r.examBoard || '',
       bandType: r.bandType || '', bandValue: r.bandValue || '',
       keystage: r.keyStage || r.keystage || '', tier: r.tier || '',
       examBoard: r.examBoard || '', resourceType: r.resourceType || '',
       examWave: r.examWave || '', year: r.year || '',
-      paper: false, pages: 0, printable: false,
+      /* `paper: true` — IT IS ONE. This said false, so the funnel filed every past paper under
+         "Digital" and the Printed filter found none of them. It is the same fact `pages` was
+         getting wrong, one line along. */
+      paper: true, pages: paperPages_(marks[id]), printable: '',
       active: r.active !== false,
       /* ---------- THE PASSES HAVE NOWHERE TO LIVE ---------------------------------------------
          `ticks` WERE THREE COLUMNS ON THE `resources` TAB and that tab is gone, so there is nothing
@@ -2117,15 +2158,19 @@ function paperCard(x) {
       <span class="paper-box-line"></span>
     </div>
 
+    ${/* THE FOOT OF A REAL PAPER: when it is from, how long it is, and the instruction. The length
+          belongs HERE, printed on the cover, rather than beside a button — it is a fact about the
+          paper in the same way the year and the board are, and it is the thing you want to know
+          before you decide to print it.
+
+          THE PRICE IS NOT ON THE COVER. It was, worked out from the pages and set in the third
+          slot — but a price is a fact about buying a copy, not about the paper, and no real exam
+          paper has ever had one printed on it. It rides on the trolley's name instead, where the
+          person who is actually spending something will meet it. */''}
     <div class="paper-foot">
       <span>${esc(when || '')}</span>
       <span>${x.pages ? esc(x.pages) + ' pages' : ''}</span>
-      ${/* `x.printPrice` WAS NEVER SET BY ANYTHING. Nothing in `stuffItems` writes that field, so
-            this read `undefined` on every past paper ever drawn and every cover in the app said
-            "Answer all questions" whether or not it was priced. Worked out from the pages here,
-            which is where the other two facts on this line come from. */''}
-      <span>${printPrice(x.topic && x.topic.pages) != null
-        ? esc(money(printPrice(x.topic.pages))) + ' printed' : 'Answer all questions'}</span>
+      <span>Answer all questions</span>
     </div>
   </div>`;
 }
