@@ -2189,6 +2189,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .bk-in:focus { outline: 0; }
 .bk-in::placeholder { color: var(--faint); opacity: 1; }
 
+/* THE NOTE READS LEFT TO RIGHT. Every other value is right-aligned against its figures; a sentence
+   is not a figure, and a sentence that starts at the right edge and grows leftwards is unreadable.
+   Its row has no figures at all, so it already spans the card — see `is-bare`. */
+.bk-in-l { text-align: left; }
+
 /* ---------- A CONTROL THAT UNFOLDS UNDER ITS OWN ROW -----------------------------------------------
    THE WEEK GRID IS THE ONE ANSWER THAT IS NOT A LINE OF TEXT. Which hours are free is a shape you
    read across seven days, so it stays a grid — but it belongs to the When row, so it opens directly

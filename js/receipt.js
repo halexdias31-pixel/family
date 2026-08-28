@@ -459,8 +459,8 @@ function drawBooker_() {
      two buttons, which is what the whole form is now. */
   return { html: `
     ${head || '<p class="note">Not enough answered to price it yet.</p>'}
-    <label class="field"><span>anything else we should know</span>
-      <textarea id="book-note" placeholder="Optional"></textarea></label>
+    ${/* THE NOTE BOX WAS HERE. It is the last row on the paper now — see `noteRow_` — which is
+          where every other thing somebody tells us already was. */''}
     <button class="btn" data-do="book-send">Ask for it</button>
     ${/* SHARING IT BEFORE SENDING IT. A parent deciding usually shows somebody else first — the
           other parent, the family they are splitting with — and until now that meant a screenshot,
@@ -581,7 +581,10 @@ on('book-send', el => {
     /* Who to invite. `createJob` has accepted this since the beginning and nothing ever sent it,
        so a split booking was priced per family and nobody else was ever told about it. */
     splitEmails: (BOOKING.split || []).filter(x => String(x).trim()).join(', '),
-    message: ($('book-note') || {}).value || '',
+    /* FROM `BOOKING`, NOT FROM THE DOM. This read `#book-note` directly, which only worked while
+       that box was on screen — a redraw between typing and sending would have dropped it without a
+       word. */
+    message: BOOKING.note || '',
     /* THE SAME ASK TWICE IS ONE ASK. A slow connection and an impatient thumb are the ordinary way
        a family ends up with two identical bookings, and the backend already refuses a repeated
        requestId — this is what gives it one. */

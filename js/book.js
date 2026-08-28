@@ -339,6 +339,9 @@ on('signin', () => toast('Sign-in screen next'));
    which is the same fault `setOptions` was written to avoid on the old form.
    They become numbers in `bookSpec`, which is where a number is actually needed. */
 const BOOKING = {
+  /* `note` — the free-text line at the foot of the paper. An answer like any other, which is why it
+     is here and not read off the box at the moment somebody presses send. */
+  note: '',
   subjects: [], level: '', n: '', loc: '', hosting: '',
   /* WHEN A FAMILY ON A WAITING LIST CAN ACTUALLY COME. Only asked of a class — an ordinary session
      picks exact hours on the grid, which is a stronger answer than any of these. */
@@ -1052,6 +1055,7 @@ function resetBooking_() {
      changed. Both are about the FORM rather than about the booking, and both must go. */
   BOOKING.done = [];
   BOOKING.editing = '';
+  BOOKING.note = '';
 }
 
 /* `on('new-booking')` AND `on('book-close')` WERE HERE. One opened the form and one shut it, and
@@ -1133,6 +1137,14 @@ document.addEventListener('change', e => {
    place, so nothing else emits this — see `receiptRow`, which only writes it when there is no
    dropdown for the row. */
 on('book-edit', el => { BOOKING.editing = el.dataset.step; drawBooker(); });
+
+/* NO REDRAW. Every other control on the paper changes what the receipt says, so it repaints; this
+   one changes nothing but itself, and repainting would take the cursor out of the box the moment
+   somebody clicked away mid-sentence. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-note"]');
+  if (el) BOOKING.note = el.value || '';
+});
 
 /* ---------- THE SPLIT, TYPED --------------------------------------------------------------------
    COMMAS, AND EMPTIES DROPPED. Somebody typing a list leaves a trailing comma or a double one, and
@@ -1381,6 +1393,27 @@ function stepSelect_(st) {
   </select>`;
 }
 
+/* ---------- THE NOTE IS A ROW LIKE THE REST -------------------------------------------------------
+   IT WAS A LABELLED TEXTAREA UNDER THE CARD, the last thing on the form that was not on the paper.
+   Everything else somebody types or picks is a line on the receipt; this was a box below it with a
+   heading of its own, which made it look like a different kind of question when it is the same kind
+   as all the others — a thing you tell us.
+
+   IT LIVES IN `BOOKING` NOW, not in the DOM. `book-send` read it straight off `#book-note`, which
+   worked only because that box happened to still be on screen at the moment you pressed send. A
+   redraw between typing and sending — starting the grid, changing a subject — would have wiped it
+   silently. Kept with the answers, it survives every redraw the way every other answer does.
+
+   NO FIGURES, SO IT SPANS. `receiptRow` gives a row with no multiplier, rate or total the full
+   width for its value, which is what a sentence needs and what a right-aligned 55px column would
+   have made impossible. */
+function noteRow_() {
+  return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
+    sel: `<input class="bk-in bk-in-l" type="text" data-do="book-note"
+      value="${esc(BOOKING.note || '')}" placeholder="anything else we should know"
+      aria-label="Anything else we should know">` };
+}
+
 /* ---------- TYPING INTO A ROW --------------------------------------------------------------------
    Same shape as `stepSelect_` and for the same reason: the answer belongs in the row, not under the
    card. Read on `change` rather than on every keystroke — redrawing the whole receipt per letter
@@ -1520,7 +1553,9 @@ function bookBreakdown(L) {
   /* PRICED ROWS WHERE THERE IS A PRICE, the plain question list where there is not. They are the
      same document either way — same paper, same columns, same pressable values — so the card does
      not change shape underneath somebody the moment their answers become costable. */
-  const out = (L ? breakdownRows(L) : stepRows_()).map(receiptRow);
+  /* THE NOTE GOES LAST, after every question and before the total — it is the thing you add once
+     the rest is said, and on a real docket that is exactly where the handwriting goes. */
+  const out = (L ? breakdownRows(L) : stepRows_()).concat([noteRow_()]).map(receiptRow);
 
   const bars = receiptBars(BOOK_STEPS.map(st => {
     const v = BOOKING[st.id];
