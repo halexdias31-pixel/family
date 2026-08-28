@@ -337,7 +337,40 @@ on('book-share', async el => {
   el.textContent = was;
 });
 
-function drawBooker() { redrawBooker_(drawBooker_); }
+/* ==================================================================================================
+   THE BOOKER IS NOT A SHEET ANY MORE.
+
+   IT OPENED OVER THE TOP OF BOOK, one question at a time, and every answer redrew the panel. That
+   is a modal wizard, and it is the last one in the app — the card actions stopped being a sheet,
+   the paper stopped being a sheet, and this was the only place left where you press a thing and
+   something covers what you pressed.
+
+   IT IS THE SAME MARKUP IN THE SAME PLACE. `drawBooker_` was four `openSheet` calls with four
+   nearly-identical bodies; it RETURNS those bodies now and `bookerCard` puts them on the Book
+   screen instead. Nothing about the questions, the skipping, the pricing or the running total
+   changed — only where the answer to "where does this go" is given, and it is given once.
+
+   WHY IT WAS A SHEET AT ALL: because the funnel needs somewhere that is only the question, with
+   the answers so far above it and the price below. A sheet gave that for free. A card gives it
+   too, and gives it without hiding the column it belongs to. */
+function drawBooker() { redrawBooker_(paintBook_); }
+
+/** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
+function bookerCard() {
+  if (!BOOKING.open) return '';
+  const out = drawBooker_();
+  if (!out) return '';
+  return `<div class="card bookr" id="bookr">
+    <div class="bookr-top">
+      <h3>${esc(out.title)}</h3>
+      ${/* LEAVING IS A CONTROL, and it has to exist here in a way it did not before: a sheet had a
+            close button drawn by the shell, and a card has whatever it draws itself. Without it a
+            half-finished booking would have no way out except answering all of it. */''}
+      <button class="bookr-x" data-do="book-close" aria-label="Leave it" title="Leave it">✕</button>
+    </div>
+    ${out.html}
+  </div>`;
+}
 
 function drawBooker_() {
   /* PLAYING WITH IT.
@@ -408,7 +441,7 @@ function drawBooker_() {
      costed or costed without being drawn. */
   const money_ = bookBreakdown(L);
   if (!step) {
-    openSheet('Ask for a session', `
+    return { title: 'Ask for a session', html: `
       ${said ? `<div class="chips">${said}</div>` : ''}
       ${kidsNote}
       ${money_ || '<p class="note">Not enough answered to price it yet.</p>'}
@@ -424,8 +457,7 @@ function drawBooker_() {
             the thing was settled. */''}
       <button class="btn quiet" data-do="book-share" data-stage="screen">Share this</button>
       <p class="faint" id="book-said" style="margin:.6rem 0 0">
-        Nothing is booked or charged yet — this asks, and we come back to you.</p>`);
-    return;
+        Nothing is booked or charged yet — this asks, and we come back to you.</p>` };
   }
 
   /* THE GRID IS DRAWN, not listed. Every other question is a set of options; this one is a week. */
@@ -433,7 +465,7 @@ function drawBooker_() {
     const g = slotGrid();
     const on = BOOKING.slots || [];
     const runs = bookRuns();
-    openSheet(step.label, `
+    return { title: step.label, html: `
       ${g.anyOpen ? `
         <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
           session that week.</p>
@@ -460,14 +492,13 @@ function drawBooker_() {
         : `<p class="note">${esc(g.why)}</p>`}
       ${said ? `<div class="chips">${said}</div>` : ''}
       ${kidsNote}
-      ${money_}`);
-    return;
+      ${money_}` };
   }
 
   /* ONE BOX PER PERSON, and a ＋ for another. How many there are IS how many there are. */
   if (step.emails) {
     const list = BOOKING.split || [];
-    openSheet(step.label, `
+    return { title: step.label, html: `
       <p class="faint">Each family pays their own share. Leave it empty if it is just you.</p>
       ${list.map((v, k) => `<label class="field"><span>their email</span>
         <input type="email" data-do="split-set" data-k="${k}" value="${esc(v)}"
@@ -481,14 +512,13 @@ function drawBooker_() {
       </div>
       ${said ? `<div class="chips">${said}</div>` : ''}
       ${kidsNote}
-      ${money_}`);
-    return;
+      ${money_}` };
   }
 
   const opts = step.options().filter(Boolean);
   const chosen = step.multi ? (BOOKING[step.id] || []) : [];
 
-  openSheet(step.label, `
+  return { title: step.label, html: `
     ${BOOKING.editing ? '<button class="btn quiet" data-do="book-back">Leave it as it is</button>' : ''}
     ${opts.map(v => {
       /* ---------- A REFUSAL AND A NOTE ARE NOT THE SAME THING -------------------------------------
@@ -522,7 +552,7 @@ function drawBooker_() {
           be past the fold. Here it separates the two and reads as the join between them. */''}
     ${said ? `<div class="chips">${said}</div>` : ''}
     ${kidsNote}
-    ${money_}`);
+    ${money_}` };
 }
 
 on('book-send', el => {
@@ -567,7 +597,9 @@ on('book-send', el => {
       requestId: 'wl-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
     })
       .then(d => {
-        closeSheet();
+        /* CLOSING THE FORM, not a sheet. Sent is the one moment the booker should stop being on
+           the screen — everything else about it is now a job, and jobs are the cards underneath. */
+        BOOKING.open = false;
         /* WHERE IT HAS GOT TO, because that is the whole content of a waiting list. "You are on
            the list" says less than the backend already knows, and it knows it exactly: how many
            have joined and how many seats there are. */
@@ -640,7 +672,7 @@ on('book-send', el => {
     requestId: 'R' + Date.now() + '-' + Math.floor(Math.random() * 1e6) })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      closeSheet();
+      BOOKING.open = false;
       toast('Asked — we will come back to you');
       /* Emptied from the step list rather than from a list of names written here — see
          `resetBooking_`. This was seven keys typed out, and it was missing `done` and `kids`: the

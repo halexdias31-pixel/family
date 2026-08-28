@@ -171,8 +171,11 @@ function bookBlocks() {
 
        Built by `jobCard` with an empty job rather than by markup of its own, so a change to a
        receipt changes this too. A second version of the paper would be one that drifts. */
+    /* THE BOOKER SITS WHERE THE BLANK PAPER SITS, because it is what the blank paper turns into.
+       One replaces the other rather than appearing beside it — two invitations to start a booking,
+       one of them already started, is the shape of a screen nobody trusts. */
     USER
-      ? blankJobCard()
+      ? (bookerCard() || blankJobCard())
       : `<div class="card"><h3>Sign in to book</h3>
            <p class="sub">You need an account to ask for a session.</p>
            <button class="btn" data-do="signin">Sign in</button></div>`,
@@ -288,6 +291,21 @@ function weekGrid() {
   </div>`;
 }
 
+/* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE ----------------------------------------------
+   The booker is a card on the first page now, so answering a question means redrawing that page —
+   not the whole column, which would throw away the pager position of anybody who had swiped down
+   to look at an existing session before coming back.
+
+   THE FIRST PAGE ONLY. `bookPages` rebuilds every block from the same job data; only block zero
+   can have changed, because only block zero holds the booker. */
+function paintBook_() {
+  const host = $('s-book');
+  if (!host) return;
+  const pane = host.querySelector(':scope > .page > .pane');
+  if (!pane) return;
+  pane.innerHTML = bookBlocks()[0] || '';
+}
+
 function bookPages() {
   const blocks = bookBlocks();
   /* One block, one pane. The carry-forward that used to be here existed to stick a "Yours" or
@@ -340,6 +358,10 @@ on('signin', () => toast('Sign-in screen next'));
    which is the same fault `setOptions` was written to avoid on the old form.
    They become numbers in `bookSpec`, which is where a number is actually needed. */
 const BOOKING = {
+  /* `open` — WHETHER THE FORM IS BEING FILLED IN. Not an answer to anything; it is the difference
+     between the blank paper and the questions, and it exists because the booker draws in the column
+     now rather than over it. */
+  open: false,
   subjects: [], level: '', n: '', loc: '', hosting: '',
   /* WHEN A FAMILY ON A WAITING LIST CAN ACTUALLY COME. Only asked of a class — an ordinary session
      picks exact hours on the grid, which is a stronger answer than any of these. */
@@ -1049,15 +1071,31 @@ function resetBooking_() {
        an empty string would make `.length` read 0 and look right until something pushed to it. */
     BOOKING[st.id] = (st.multi || st.grid || st.emails) ? [] : '';
   });
-  /* The two that are not answers: what has been finished with, and which question is being
-     changed. Both are about the FORM rather than about the booking, and both must go. */
+  /* The three that are not answers: what has been finished with, which question is being changed,
+     and whether the form is on the screen at all. All three are about the FORM rather than about
+     the booking, and all three must go — `open` most of all, since a booking that has been sent
+     leaving the form up would invite somebody to send it twice. */
   BOOKING.done = [];
   BOOKING.editing = '';
+  BOOKING.open = false;
 }
 
 on('new-booking', () => {
   if (!USER) { toast('Sign in to book'); go('me'); return; }
-  drawBooker();
+  /* `open` IS WHAT MAKES THE CARD EXIST. It was the act of opening a sheet before; with the booker
+     living on the page there has to be a fact saying whether it is being filled in, or the blank
+     paper and the form would both be drawn on every visit to Book. */
+  BOOKING.open = true;
+  paintBook_();
+});
+
+/* LEAVING IT. The answers are kept — `BOOKING` is not cleared — so coming back carries on where it
+   stopped rather than starting again, which is what closing a half-finished form should do. Only
+   `book-send` and a finished booking clear it. */
+on('book-close', () => {
+  BOOKING.open = false;
+  BOOKING.editing = '';
+  paintBook_();
 });
 
 /* Ticking an hour. Adjacent ticks become one session; the grid is redrawn so the summary under it
@@ -1915,12 +1953,23 @@ function joinBlock(j) {
  * lands — before that, the new content has no height and the scroll would be clamped to zero.
  * Clamped to the new height, because the page after an answer is usually shorter.
  */
+/* ---------- KEEPING THE PLACE ACROSS A REDRAW ------------------------------------------------------
+   Answering a question rebuilds the whole card, and a rebuild puts the scroll back at the top —
+   which on the last question, where the answers and the running price sit above a long list of
+   options, throws somebody back to the start of a card they had scrolled to the bottom of.
+
+   IT SCROLLED `#sheet-body` and there is no sheet. The pane the booker lives in is the scroller
+   now, and it is found from the card rather than named directly: the card knows which pane it is
+   in, and nothing else has to agree about the shell's structure. */
 function redrawBooker_(draw) {
-  const body = $('sheet-body');
-  const was = body ? body.scrollTop : 0;
+  const before = $('bookr');
+  const pane = before && before.closest('.pane');
+  const was = pane ? pane.scrollTop : 0;
   draw();
-  const now = $('sheet-body');
-  if (!now || !was) return;
+  if (!was) return;
+  const after = $('bookr');
+  const now = after && after.closest('.pane');
+  if (!now) return;
   requestAnimationFrame(() => {
     now.scrollTop = Math.min(was, Math.max(0, now.scrollHeight - now.clientHeight));
   });
