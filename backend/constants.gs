@@ -73,8 +73,17 @@ const SPREADSHEET_ID = "1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW";
    the boxer cards, the question rows, the past-paper builder, the cheat sheet maker. They still
    ask for `boxers`; they just get it from somewhere else.
 
-   THE KEY IS THE NAME THE CODE USES. The value is where it actually is. Move a tab back and you
-   delete its line here, and nothing else changes.
+   THE KEY IS THE NAME THE CODE USES — the one `read('cheatsheet')` asks for, which appears in
+   SCHEMA and in a dozen callers. `alsoTry` is a second name to look under if there is no tab with
+   the first, which is what lets the tab in the spreadsheet be called something else without any of
+   those callers having to know.
+
+   THREE OF THESE NEEDED THAT AND NO LONGER DO: boxers, fights and questions are now named exactly
+   as the code asks, so their lines are one word long. Only `cheatsheet` still differs, because the
+   tab is called `cheatsheetcomp` — a better name for what is in it, since those rows are the PARTS
+   a cheat sheet is built from rather than a cheat sheet. Renaming it in the sheet is not worth
+   doing; one line here is cheaper than a dozen edits elsewhere, and this is exactly what the line
+   is for.
 
    A BLANK SUBJECTS_ID IS NOT AN ERROR, it is four empty sections — the same as any tab that is not
    there. `checkTabs()` says so plainly rather than leaving you to work out why boxing vanished.
@@ -84,10 +93,10 @@ const SUBJECTS_ID = "";          // <- paste the subjects spreadsheet id here
 const FILES = { main: SPREADSHEET_ID, subjects: SUBJECTS_ID };
 
 const ELSEWHERE = {
-  boxers:     { file: 'subjects', tab: 'BoxingDB - boxers'  },
-  fights:     { file: 'subjects', tab: 'BoxingDB - fights'  },
-  questions:  { file: 'subjects', tab: 'FamDB - questions'  },
-  cheatsheet: { file: 'subjects', tab: 'FamDB - cheatsheet' },
+  boxers:     { file: 'subjects' },
+  fights:     { file: 'subjects' },
+  questions:  { file: 'subjects' },
+  cheatsheet: { file: 'subjects', alsoTry: 'cheatsheetcomp' },
 };
 /* WHO GETS TOLD when something needs doing by hand. A name rather than an address, because
    notify() looks the address up on the people tab — so changing your email is one cell, not a

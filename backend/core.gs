@@ -30,24 +30,42 @@
 function clearCache() { Object.keys(_cache).forEach(k => { delete _cache[k]; }); }
 
 /* ---------- WHICH FILE, AND WHAT IT IS CALLED IN THERE --------------------------------------------
-   One lookup, used by `read` and by `ensureSchema`. Those are the only two places that turn a tab
-   name into an actual sheet, and they have to agree — if `read` fetched boxers from the subjects
-   file while `ensureSchema` looked for it in the main one, `ensureSchema` would helpfully create a
-   second empty `boxers` tab back in the database you just moved it out of. */
+   One lookup, used by `read`, `ensureSchema` and `checkTabs`. Those are the only places that turn
+   a tab name into an actual sheet, and they have to agree — if `read` fetched boxers from the
+   subjects file while `ensureSchema` looked for it in the main one, `ensureSchema` would helpfully
+   create a second empty `boxers` tab back in the database you just moved it out of.
+
+   TWO NAMES, TRIED IN ORDER. The name the code asks for wins; `alsoTry` is the fallback. Renaming
+   the tabs in the spreadsheet is therefore something you can do one at a time, in any order, with
+   the site up the whole way through — which is the state this was actually in when it was written,
+   with one of four renamed and three not. `make` is the name to use if a tab has to be CREATED,
+   and it is always the plain one, so nothing new is ever born with a prefix. */
 function sheetFor_(name) {
   const w = ELSEWHERE[name];
-  return w ? { id: FILES[w.file] || '', tab: w.tab, away: w.file }
-           : { id: SPREADSHEET_ID,      tab: name,  away: '' };
+  if (!w) return { id: SPREADSHEET_ID, names: [name], make: name, away: '' };
+  return { id: FILES[w.file] || '',
+           names: w.alsoTry ? [name, w.alsoTry] : [name],
+           make: name, away: w.file };
+}
+
+/** The first of those names that actually exists, or null. */
+function findSheet_(at) {
+  if (!at.id) return null;
+  let ss;
+  try { ss = SpreadsheetApp.openById(at.id); } catch (err) { return null; }
+  for (let i = 0; i < at.names.length; i++) {
+    const sh = ss.getSheetByName(at.names[i]);
+    if (sh) return sh;
+  }
+  return null;
 }
 
 function read(name) {
   if (_cache[name]) return _cache[name];
-  const at = sheetFor_(name);
-  /* NO ID MEANS NO FILE, which is the unfilled SUBJECTS_ID. Answered exactly like a tab that is not
-     there, because that is what it is from every caller's point of view. */
-  if (!at.id) return (_cache[name] = { sheet: null, headers: [], rows: [] });
-  const ss = SpreadsheetApp.openById(at.id);
-  const sheet = ss.getSheetByName(at.tab);
+  /* NO FILE, OR NO TAB UNDER EITHER NAME, is answered the same way — an empty result. That is what
+     it is from every caller's point of view, and an unfilled SUBJECTS_ID is the ordinary case on
+     the day this deploys. */
+  const sheet = findSheet_(sheetFor_(name));
   if (!sheet) return (_cache[name] = { sheet: null, headers: [], rows: [] });
   /* ---------- THE LAST ROW WITH DATA, NOT THE LAST ROW SOMETHING TOUCHED --------------------------
      `getDataRange()` goes to the furthest cell anything has ever been done to — a paste that
