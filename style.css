@@ -2126,6 +2126,29 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    once the five other columns have taken theirs. Same fault as the tile that was a column: a rule
    declared twice, and the one you can see is not the one you read. */
 .bk-v { text-align: right; min-width: 0; border-bottom: 1px dashed var(--line); }
+
+/* ---------- A FIELD ANSWERED IN PLACE --------------------------------------------------------------
+   THE ROW IS THE QUESTION NOW, so the value cell holds a real `<select>` and the phone's own picker
+   does the rest. It has to look like the text it replaced and nothing like a form control: no box,
+   no chrome, right-aligned on the dashed rule that already said "you picked this".
+
+   `appearance: none` REMOVES THE ARROW AND THE INSET. Left on, a select brings a grey well and a
+   chevron per row — twelve of them down a receipt — which is the control shouting about itself on a
+   card whose whole job is to look printed.
+
+   FULL WIDTH SO THE WHOLE CELL IS THE TARGET. A select sized to its text gives a tap target the
+   width of the word in it, and "—" is four pixels of it. */
+.bk-sel {
+  appearance: none; -webkit-appearance: none;
+  width: 100%; padding: 0; margin: 0;
+  font: inherit; text-align: right; text-align-last: right;
+  color: inherit; background: none; border: 0; border-radius: 0;
+  cursor: pointer;
+}
+.bk-sel:focus { outline: 0; }
+/* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
+   as twelve equal lines you have to check one by one. */
+.bk-sel:has(option[value=""]:checked) { color: var(--faint); }
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
    quieter; the running total is the answer, so it is the only one in full ink. */

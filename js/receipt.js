@@ -385,9 +385,18 @@ function drawBooker_() {
      it comes straight back to the card with the running column moved. No mode, no edit button —
      the value IS the button, which is what the old form did with its inline selects.
      `editing` is which question is open. Empty means the card. */
-  const step = BOOKING.editing
+  /* ---------- ONLY THE THREE THAT CANNOT BE A DROPDOWN OPEN A PANEL --------------------------------
+     `nextBookStep` still walks the form and still decides what is unanswered — that logic is worth
+     keeping, it is what skips a question with one option and what knows a class has no subjects to
+     pick. What changed is that most steps are now answered ON the card, in their own row, so being
+     "next" is no longer a reason to draw a list of buttons under it.
+
+     So a panel opens for a multi-select, the week grid or the split emails, and for nothing else.
+     Anything else being next means the card already has the control for it. */
+  const wanted = BOOKING.editing
     ? (bookStep_(BOOKING.editing) || nextBookStep())
     : nextBookStep();
+  const step = (wanted && stepIsPanel_(wanted)) ? wanted : null;
   const L = bookPrice();
 
   /* WHAT HAS BEEN SAID SO FAR, each one pressable to change. A wizard that hides its earlier
@@ -451,7 +460,9 @@ function drawBooker_() {
   const head = `${kidsNote}${money_ || ''}`;
 
   if (!step) {
-    return { title: 'Ask for a session', html: `
+    /* THE HEADING IS WHAT IS LEFT TO DO, not what is being asked — there is no question on screen
+       when every field is a dropdown on the card. */
+    return { title: wanted ? wanted.label : 'Ask for a session', html: `
       ${head || '<p class="note">Not enough answered to price it yet.</p>'}
       <label class="field"><span>anything else we should know</span>
         <textarea id="book-note" placeholder="Optional"></textarea></label>

@@ -1085,6 +1085,26 @@ on('split-done', () => {
 });
 
 /* Answering one. A multi toggles, everything else replaces and moves on. */
+/* ---------- A DROPDOWN ANSWERED --------------------------------------------------------------------
+   `change`, NOT A TAP. Every other control in this app is `data-do` on a press; a select is answered
+   by choosing, which fires `change` and never a click — so the shell's press handler would never
+   hear it. Bound here rather than added to the shell, because this is the only select in the app
+   that answers a question.
+
+   AN EMPTY CHOICE CLEARS THE STEP, which is what the "—" option is: putting a field back to unset
+   without a separate control for it. `done` goes too, or a cleared field would refuse to be asked
+   again — the same fault `book-undo` had. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-set"]');
+  if (!el) return;
+  const step = bookStep_(el.dataset.step);
+  if (!step) return;
+  BOOKING[step.id] = el.value || '';
+  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
+  BOOKING.editing = '';
+  drawBooker();
+});
+
 on('book-pick', el => {
   const step = bookStep_(el.dataset.step);
   const v = el.dataset.value;
@@ -1293,8 +1313,13 @@ function breakdownRows(L) {
          "Level" with an empty value drew a bare dashed underline and nothing else, which reads as a
          row that failed rather than a blank waiting for you. Only on rows somebody can answer:
          a computed row with no value has nothing to fill in. */
+      /* THE SAME DROPDOWN THE UNPRICED CARD USES. A row does not change how it is answered the
+         moment the booking becomes costable — `asked` names the step this row stands for, and if
+         that step is a plain list it gets a select here exactly as it does in `stepRows_`. */
+      const st = asked ? bookStep_(asked) : null;
+      const sel = (st && !stepIsPanel_(st)) ? stepSelect_(st) : '';
       push(r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
-        { end: gi === inGroup.length - 1, step: asked, key: r.key });
+        { end: gi === inGroup.length - 1, step: sel ? '' : asked, key: r.key, sel: sel });
     });
   });
 
@@ -1315,6 +1340,38 @@ function breakdownRows(L) {
      one row here somebody would actually check. */
   return rows;
 }
+
+/* ---------- A ROW IS ITS OWN QUESTION ---------------------------------------------------------------
+   THE LIST OF OPTIONS UNDER THE CARD IS GONE. It was the last piece of the wizard: the card showed
+   every field, and then the same screen showed a list of answers to whichever one was current — so
+   the thing you were filling in and the way you filled it in were two objects, and the second one
+   was as tall as the first.
+
+   THE VALUE CELL IS A `<select>`. A field with a fixed set of answers is what a dropdown is FOR, and
+   a phone already knows how to show one — a wheel, over the top, dismissed by choosing. That is the
+   whole interaction, it costs no height at all, and every row can be open to being changed at once
+   rather than one at a time in an order the form decides.
+
+   THREE STEPS CANNOT BE ONE. `subjects` and `kids` take several answers; `slots` is a week grid;
+   `split` is a list of email boxes. A native multi-select on a phone is worse than what it replaces,
+   so those keep the panel — but it now opens only for them, and only when the row is pressed.
+
+   AN UNANSWERED SELECT SHOWS A DASH as its first option, so a field nobody has filled reads the same
+   as it did before and cannot be submitted by accident. */
+function stepSelect_(st) {
+  const v = BOOKING[st.id];
+  const opts = st.options().filter(Boolean);
+  return `<select class="bk-sel" data-do="book-set" data-step="${esc(st.id)}"
+      aria-label="${esc(st.label)}">
+    <option value=""${v ? '' : ' selected'}>—</option>
+    ${opts.map(o => `<option value="${esc(o)}"${norm(o) === norm(v) ? ' selected' : ''}
+      >${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
+  </select>`;
+}
+
+/* Which steps have to keep the panel. Asked in one place so the row, the handler and the panel
+   cannot disagree about whether a question is a dropdown. */
+function stepIsPanel_(st) { return !!(st.multi || st.grid || st.emails); }
 
 /* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT -----------------------------------------------
    THE PAPER USED TO ARRIVE LATE. `breakdownRows` builds a row per thing that has a PRICE, so before
@@ -1351,7 +1408,11 @@ function stepRows_() {
                /* AN EM DASH, NOT AN EMPTY CELL. A blank looks like a row that failed to draw; a
                   dash looks like a blank somebody is expected to fill, which is what it is. */
                v: String(text || '—'),
-               mul: '', rate: '', total: '', step: st.id };
+               mul: '', rate: '', total: '',
+               /* `step` STILL MARKS IT PRESSABLE for the three that open a panel; `sel` is the
+                  dropdown for everything else. A row never has both. */
+               step: stepIsPanel_(st) ? st.id : '',
+               sel: stepIsPanel_(st) ? '' : stepSelect_(st) };
     });
 }
 
@@ -1639,7 +1700,11 @@ function receiptRow(r) {
      Decided here rather than by the caller patching the markup afterwards: this function knows what
      a row looks like, and a caller that has to reach into the string it was given is a caller doing
      this function's job badly. */
-  const value = r.hours
+  /* A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it: the
+     select already shows what is chosen, and a cell that printed the answer AND a control showing
+     the same answer would be the row saying it twice. */
+  const value = r.sel ? r.sel
+    : r.hours
     ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
         || { hours: [] }).hours).map(h => `<span class="bk-hr${
           (BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}">${h.h}</span>`).join('')}</span>`
