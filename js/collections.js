@@ -227,7 +227,10 @@ function basketPages() {
     total: c.money ? money(c.money) : (c.cost ? c.cost + ' cr' : 'free'),
     /* THE ✕ IS THE ROW'S OWN CONTROL, drawn where a receipt's line already ends. */
     end: true,
-  })).join('');
+  }));
+  /* AN ARRAY, NOT A STRING. `receiptHtml` does `(r.rows || []).join('')` itself — every other caller
+     hands it the list and lets it do that, and handing it a joined string instead threw
+     `.join is not a function` and took the whole screen down. */
 
   const foot = `
     <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">Send</button>
