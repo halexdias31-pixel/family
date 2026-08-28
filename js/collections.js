@@ -104,18 +104,27 @@ function spotPages() {
 screen('spotlight', () => pages('spotlight', spotPages()));
 
 
-/* ---------- FAVOURITES ---------------------------------------------------------------------------
+/* ---------- FAVOURITES, ON THE FIND SCREEN --------------------------------------------------------
    THE STARS ALREADY EXISTED AND HAD NOWHERE TO GO. `FAVS` has been filled since favourites were
-   built and nothing has ever listed it — you could mark a thing and then never find the marks. */
-function favPages() {
-  if (!USER) {
-    return ['<div class="card"><p class="note">Sign in on You to keep favourites.</p></div>'];
-  }
-  return collPages_(collItems_(isFav), collCredits_(),
-    'Nothing starred yet. Press ☆ on anything in Find and it will be here.');
-}
+   built and nothing has ever listed it — you could mark a thing and then never find the marks.
 
-screen('favourites', () => pages('favourites', favPages()));
+   IT WAS A COLUMN OF ITS OWN AND IS NOT ANY MORE. Saved is not an errand — nobody opens the app
+   in order to look at what they saved, they save something WHILE looking for something else, and
+   then want it back the next time they are on that same screen. So it belongs under Find, which
+   is where both halves of that happen, and the app is one swipe narrower for it.
+
+   IT DRAWS NOTHING WHEN THERE IS NOTHING. The empty sentence made sense on a column somebody had
+   deliberately opened — an empty column with no explanation reads as broken. Under a search box it
+   is the opposite: a permanent "nothing starred yet" sitting above every result anybody ever looks
+   at, saying nothing, for the whole time before they star their first thing. */
+function savedStrip_() {
+  if (!USER) return '';
+  const items = collItems_(isFav);
+  if (!items.length) return '';
+  const credits = collCredits_();
+  return `<h3 class="strip-h">Saved ‧ ${items.length}</h3>`
+       + items.map(x => stuffCard(x, credits)).join('');
+}
 
 
 /* ---------- BASKET --------------------------------------------------------------------------------
@@ -168,9 +177,10 @@ screen('basket', () => pages('basket', basketPages()));
    THE COUNT COMES FROM THE SAME FUNCTION THAT RENDERS, exactly as the other four do. A pager that
    disagrees with its own screen is a card that exists and cannot be swiped to. */
 PAGER.spotlight  = () => spotPages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : '');
-PAGER.favourites = () => favPages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : '');
+/* NO `PAGER.favourites`. Saved is a strip on the Find controls page now, not a column, so it has
+   no pages of its own to count — and a pager for a screen nobody registers is the exact thing
+   check.js names. */
 PAGER.basket     = () => basketPages().map(() => '');
 
 PAGE.spotlight = 0;
-PAGE.favourites = 0;
 PAGE.basket = 0;

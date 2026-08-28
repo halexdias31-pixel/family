@@ -6649,3 +6649,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    and the box comes out looking empty. */
 .card .ticks .tick.on .tick-box::after { color: var(--gold); }
 .card .ticks .tick-said { color: var(--faint); }
+
+
+/* A HEADING OVER A RUN OF CARDS, not a card itself. `Saved` under the funnel on Find is the only
+   user of this so far — it has to read as a label on the group beneath it rather than as another
+   thing in the list, which is the whole job. Quiet, spaced above and not below, so it sits with
+   what it names. */
+.strip-h {
+  margin: 1.4rem 0 .5rem;
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}

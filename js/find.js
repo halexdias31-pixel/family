@@ -2102,7 +2102,16 @@ screen('stuff', () => {
     ${/* THE COUNT LINE WAS HERE — "565 of 565 · 27 pages". It said nothing anybody needed: before
           you narrow anything it is the size of the library, which is not a fact about your search,
           and after you narrow it the results are right there to be looked at. */''}
-    <div id="stuff-groups">${stuffQuestion()}</div>`;
+    <div id="stuff-groups">${stuffQuestion()}</div>
+    ${/* SAVED, UNDER THE QUESTION AND NOT ABOVE IT. It is not a control, so it does not belong in
+          the run of things you get past before you can ask — that is the same rule that removed
+          the sort dropdown and the count line from this block.
+
+          IT IS ON THE CONTROLS PAGE, which means it is the first thing after the funnel and is
+          gone the moment you turn to the results. That is the right place for it: it is what you
+          kept from last time, offered before you start looking, rather than something competing
+          with what you are looking at now. */''}
+    ${savedStrip_()}`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. Four hundred cards under a
      search box is a column nobody reaches the end of; eight to a screen is a thing you turn.

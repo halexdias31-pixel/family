@@ -28,9 +28,10 @@ const TABS = [
   { id: 'posts',   icon: '▦',  label: 'Posts',   title: 'Posts' },
 
   /* ---------- THREE COLUMNS THAT ARE ONE IDEA ---------------------------------------------------
-     Spotlight, Saved and Basket are each a SET OF KEYS drawn as the cards those keys name.
-     Spotlight sits beside Posts because it is the business talking; Saved and Basket sit beside
-     You because they are yours.
+     Spotlight and Basket are each a SET OF KEYS drawn as the cards those keys name. Spotlight
+     sits beside Posts because it is the business talking; Basket sits beside You because it is
+     yours. Saved was the third and has moved under the funnel on Find — it is not an errand
+     somebody opens the app to do, it is what you kept while doing a different one.
 
      WHAT THIS COSTS, and it is real: there is no tab bar, so the only way across is the X grid,
      and every column added puts every column beyond it one more swipe away. At four, You was
@@ -52,7 +53,9 @@ const TABS = [
      for, and it should not be a word among six other words. */
   { id: 'book',    icon: '＋', label: 'Book',    title: 'Book a session', big: true },
 
-  { id: 'favourites', icon: '★', label: 'Saved',  title: 'Saved' },
+  /* SAVED WAS A COLUMN HERE. It is a strip under the funnel on Find now — see `savedStrip_` in
+     collections.js for why — so the tab is gone rather than left pointing at a screen nobody
+     registers. Six columns, not seven, which is one less swipe to You from every screen. */
   { id: 'basket',     icon: '⛁', label: 'Basket', title: 'Your basket' },
 
   /* NOT "Who". It holds tutors, venues AND subjects — people, places and things — so a name
