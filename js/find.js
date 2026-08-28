@@ -703,6 +703,24 @@ function qPartShow_(part) {
   return b ? b.letter + '(' + b.roman + ')' : s + ')';
 }
 
+/* ---------- ONE READER FOR THE PAPER'S ID ---------------------------------------------------------
+   THREE NAMES WERE IN USE for one column — `paper`, `paperId`, `paper_id` — and the backend sends
+   the third spelling of the three: `paper: S(r.paper_id)`. `questionItems` read all three and was
+   fine. `allTopics` read only two, so `id` came out empty on every row, every row was skipped, and
+   THE PAPER LIST WAS ALWAYS EMPTY.
+
+   WHAT THAT COST is not a missing paper list — it is that every question then looked up its paper
+   in an empty object and got `{}` back, so all 181 of them carried no subject, no name, no board,
+   no tier and no year. The funnel could not ask "which subject" of a question because no question
+   had one, and with boxers the only things left under Learning that could answer it, the one-answer
+   rule skipped the question entirely and dropped you straight on Boxers or Fights.
+
+   So it is one function now, read in all three places. This is the same fault `pid` was written to
+   fix, left half-fixed: a second reader of the same column is a second chance to spell it wrong. */
+function paperIdOf_(r) {
+  return (r && (r.paperId || r.paper_id || r.paper)) || '';
+}
+
 function questionItems() {
   const all = DATA.questions || [];
   if (!all.length) return [];
@@ -711,11 +729,7 @@ function questionItems() {
   const papers = {};
   (allTopics() || []).forEach(t => { if (t.id) papers[t.id] = t; });
 
-  /* ---------- ONE READER FOR THE PAPER'S ID -------------------------------------------------------
-     THREE NAMES WERE IN USE for one column — `paper`, `paperId`, `paper_id` — and `paper` is also a
-     BOOLEAN on a resource row. With resources gone the boolean is too, but the ambiguity is worth
-     closing rather than inheriting: one function, read everywhere. */
-  const pid = r => r.paperId || r.paper_id || r.paper || '';
+  const pid = paperIdOf_;
 
   const stems = {};
   all.forEach(r => { if (r.kind === 'stem') stems[pid(r) + '|' + r.q] = r; });
@@ -777,7 +791,7 @@ function allTopics() {
   const seen = {};
   const out = [];
   qs.forEach(r => {
-    const id = r.paperId || r.paper_id || '';
+    const id = paperIdOf_(r);
     if (!id || seen[id]) return;
     seen[id] = true;
     out.push({
@@ -817,11 +831,14 @@ function allTopics() {
    it is for typing into the console after a batch of questions has been written, which is exactly
    when a repeated field gets one row wrong. */
 function paperMismatches() {
-  const F = ['name', 'subject', 'resourceType', 'keyStage', 'bandType', 'bandValue',
+  /* `keystage`, NOT `keyStage`. The backend sends the lower-case spelling, so the capital one
+     compared undefined against undefined on every paper and could never report a mismatch in the
+     one field most likely to have one. */
+  const F = ['name', 'subject', 'resourceType', 'keystage', 'bandType', 'bandValue',
              'tier', 'examBoard', 'examWave', 'year'];
   const by = {};
   (DATA.questions || []).forEach(r => {
-    const id = r.paperId || r.paper_id || '';
+    const id = paperIdOf_(r);
     if (!id) return;
     (by[id] = by[id] || []).push(r);
   });
