@@ -91,7 +91,10 @@ screen('posts', () => {
      be worth seeing next week; a club with four places left may not be there. */
   const festive = (DATA.festive || []).map(festiveCard);
 
-  if (!posts.length && !festive.length) {
+  /* WHAT THE BUSINESS IS PUTTING IN FRONT OF YOU, at the very top — see `spotPages`. */
+  const spot = (typeof spotPages === 'function' ? spotPages() : []);
+
+  if (!posts.length && !festive.length && !spot.length) {
     return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
       + 'with an image link and a caption.</span>');
   }
@@ -190,9 +193,12 @@ screen('posts', () => {
   /* ANYBODY SIGNED IN. It was admin-only, which meant the one screen the whole family looks at was
      the one screen only you could add to. What differs is what happens after — see the card. */
   if (USER) cards.unshift(newPostCard());
-  /* AFTER THE ＋, BEFORE THE POSTS. The ＋ is a control and belongs at the very top; the festive
+  /* AFTER THE ＋, BEFORE THE POSTS. The ＋ is a control and belongs above the feed; the festive
      cards are the most perishable thing on the screen and belong next. */
   festive.reverse().forEach(c => cards.splice(USER ? 1 : 0, 0, c));
+  /* AND SPOTLIGHT ABOVE EVEN THE ＋. The ＋ is a control for the person; spotlight is what the
+     business most wants seen, and nothing outranks that at the top of its own feed. */
+  cards.unshift(...spot);
   return pages('posts', cards);
 });
 

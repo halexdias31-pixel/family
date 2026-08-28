@@ -93,15 +93,31 @@ function collPages_(items, credits, empty) {
 const collCredits_ = () => (USER ? (USER.credits || 0) : 0);
 
 
-/* ---------- SPOTLIGHT ---------------------------------------------------------------------------- */
-function spotPages() {
-  return collPages_(collItems_(isSpot), collCredits_(),
-    isAdmin()
-      ? 'Nothing is spotlit yet. Open anything on Find and press ✧ to put it here.'
-      : 'Nothing is being spotlit just now.');
-}
+/* ---------- SPOTLIGHT, ON THE FEED --------------------------------------------------------------
+   IT WAS A COLUMN AND IT IS THE BUSINESS TALKING. Spotlight is what @family. has chosen to put in
+   front of people — a tutor worth meeting, a class worth knowing about — which is the same act as
+   posting a photograph with a caption. Two columns for one voice, and the quieter one cost a swipe
+   on every screen whether or not anything was in it.
 
-screen('spotlight', () => pages('spotlight', spotPages()));
+   ABOVE THE ＋, unlike the festive cards which sit just below it. The ＋ is a control for the
+   person; spotlight is the thing the business most wants seen, and the top of the feed is where
+   that goes. The order down the column is: what we are showing you, the way to add your own, what
+   is happening soon, then everything posted.
+
+   IT DRAWS NOTHING WHEN NOTHING IS SPOTLIT. The two sentences it used to show — one for an admin,
+   one for everybody else — made sense on a column somebody had deliberately opened; an empty
+   column with no explanation reads as broken. At the top of a feed they would be a permanent
+   notice above every post, for everyone, saying nothing is there.
+
+   THE ADMIN ONE IS WORTH KEEPING SOMEWHERE, and it is: pressing ✧ on a card is how a thing gets
+   here, and that control says what it does. A sentence explaining a button is not the same as the
+   button. */
+function spotPages() {
+  const items = collItems_(isSpot);
+  if (!items.length) return [];
+  const credits = collCredits_();
+  return items.map(x => stuffCard(x, credits));
+}
 
 
 /* ---------- FAVOURITES, ON THE FIND SCREEN --------------------------------------------------------
@@ -197,11 +213,10 @@ screen('basket', () => pages('basket', basketPages()));
 
    THE COUNT COMES FROM THE SAME FUNCTION THAT RENDERS, exactly as the other four do. A pager that
    disagrees with its own screen is a card that exists and cannot be swiped to. */
-PAGER.spotlight  = () => spotPages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : '');
+/* NO `PAGER.spotlight`. Spotlight is pages on Posts now, and Posts counts its own. */
 /* NO `PAGER.favourites`. Saved is a strip on the Find controls page now, not a column, so it has
    no pages of its own to count — and a pager for a screen nobody registers is the exact thing
    check.js names. */
 PAGER.basket     = () => basketPages().map(() => '');
 
-PAGE.spotlight = 0;
 PAGE.basket = 0;

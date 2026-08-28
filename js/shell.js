@@ -27,17 +27,12 @@ const TABS = [
      question, and a person with no question needs somewhere to land. */
   { id: 'posts',   icon: '▦',  label: 'Posts',   title: 'Posts' },
 
-  /* ---------- THREE COLUMNS THAT ARE ONE IDEA ---------------------------------------------------
-     Spotlight and Basket are each a SET OF KEYS drawn as the cards those keys name. Spotlight
-     sits beside Posts because it is the business talking; Basket sits beside You because it is
-     yours. Saved was the third and has moved under the funnel on Find — it is not an errand
-     somebody opens the app to do, it is what you kept while doing a different one.
+  /* SPOTLIGHT WAS A COLUMN HERE. It is the business choosing what to put in front of people, which
+     is the same voice as a post with a caption — so it is pages at the top of Posts now, above the
+     ＋. Two columns for one voice, and this one cost a swipe on every screen whether or not
+     anything was in it. See `spotPages` in collections.js.
 
-     WHAT THIS COSTS, and it is real: there is no tab bar, so the only way across is the X grid,
-     and every column added puts every column beyond it one more swipe away. At four, You was
-     three swipes from Posts. At seven it is six. `data-tab` is still handled, so a jump control
-     is possible if that turns out to be too far. */
-  { id: 'spotlight',  icon: '✦', label: 'Spot',   title: 'Spotlight' },
+     Four columns: Posts, Find, Basket, You. */
   /* ONE TAB FOR FINDING ANYTHING — tutors, venues, subjects, resources, wearables, things.
      The id stays `stuff` because it keys the pager, the page memory and the tests; only what it is
      called has changed, and renaming an id to match a label is a day of moving things for no
@@ -826,7 +821,21 @@ const PAGER = {
   /* The ＋ card is a page and everybody signed in has one, so everybody's count includes it. This
      said `isAdmin()`, which was right while only an admin had the card — and would now stop the
      pager one short for everybody else, which is a post that exists and cannot be swiped to. */
-  posts:  () => feedPosts().map(() => '').concat(USER ? [''] : []),
+  /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO ------------------------------------------
+     SPOTLIGHT AND THE FESTIVE CARDS JOINED IT and this counted neither, so the pager ran short by
+     however many of them there were — and `paintPager` clamps to the names it is given, which makes
+     the tail of the feed unreachable from the header. Exactly the fault the Find pager had when
+     saved things became pages: a count kept by hand beside a list built somewhere else.
+
+     Each group asks the function that DRAWS it. `spotPages` and `DATA.festive` are what `posts.js`
+     splices in, so the two cannot disagree. */
+  /* GUARDED, because shell.js is file five and collections.js is file twenty-one. Both of these run
+     long after the load — but `paintPager` fires on the app's first frame, and a `ReferenceError`
+     there takes the whole boot with it. The same guard `posts.js` uses. */
+  posts:  () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
+    .concat(USER ? [''] : [])
+    .concat((DATA.festive || []).map(() => ''))
+    .concat(feedPosts().map(() => '')),
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
@@ -878,10 +887,18 @@ function pagerNames(id) {
    to the one person most likely to be new.
    Asked at the moment the column is first drawn, when whether anybody is signed in is known. */
 const PAGE_HOME = {
-  posts: () => (USER ? 1 : 0),      // past the ＋ card when it is there, the newest post either way
+  /* ---------- SPOTLIGHT IS WHAT THE COLUMN OPENS ON, WHEN THERE IS ONE ---------------------------
+     It is the business choosing what to put in front of people, and a thing put in front of people
+     that opens one swipe behind them is a thing nobody sees — which is what happened to it as a
+     column and is the reason it moved.
+
+     WITH NOTHING SPOTLIT, NOTHING CHANGES: past the ＋ card if it is there, on the newest post
+     either way. */
+  posts: () => ((typeof spotPages === 'function' && spotPages().length) ? 0 : (USER ? 1 : 0)),
   me:    () => (USER ? 1 : 0),      // past the name card; signed out there is only the sign-in pane
 };
-const PAGE = { posts: 0, stuff: 0, book: 0, me: 0 };
+/* `book` WAS HERE — a column that no longer exists. */
+const PAGE = { posts: 0, stuff: 0, me: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
