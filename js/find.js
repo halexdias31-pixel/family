@@ -227,7 +227,6 @@ function widgetCard_(x) {
      opens it inside this card instead, and closes it with the same row. */
   return `<div class="card">
     <h3>${esc(x.name)}</h3>
-    ${cardTiles_(x)}
   </div>`;
 }
 
@@ -312,8 +311,7 @@ function thingCard_(x, credits) {
           ${price}
         </div>
       </div>
-      ${cardTiles_(x)}
-    </div>`;
+      </div>`;
   }
 }
 
@@ -589,7 +587,6 @@ function fightCard_(x) {
     ${/* THE WATCH LINK MOVED into `fightTiles_`, so it sits in the tile row with every other action
           on every other card rather than as a lone button halfway up this one. */''}
     ${f.verified ? '' : '<p class="note faint">Not checked yet</p>'}
-    ${cardTiles_(x)}
   </div>`;
 }
 
@@ -650,7 +647,6 @@ function questionCard_(x) {
         <div class="qsheet-pb">${x.html || ''}</div>
       </div>
     </div>
-    ${cardTiles_(x)}
   </div>`;
 }
 
@@ -1605,8 +1601,21 @@ function stuffCard(x, credits) {
      for among them.
 
      THE WRAPPER STAYS. `.favwrap.is-fav` is what marks a kept card as kept at a glance on a list,
-     and that is a fact about the CARD rather than about the button that set it. */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>`;
+     and that is a fact about the CARD rather than about the button that set it.
+
+     ---------------------------------------------------------------------------------------------
+     AND THE ACTIONS ARE OUTSIDE THE CARD NOW, added here rather than by each builder.
+
+     EVERY BUILDER USED TO END WITH `${cardTiles_(x)}` INSIDE ITS OWN MARKUP, which put the controls
+     on the thing rather than under it — and on a past paper that is literal: `.paper` is a sheet of
+     off-white exam paper, and the buttons were printed on it, below "ANSWER ALL QUESTIONS". A
+     control belongs to the app, not to the document it acts on.
+
+     ONE PLACE INSTEAD OF NINE. Nine builders each remembering to call it was nine chances to
+     forget, and a card with no star was indistinguishable from a card nobody could keep. Now a
+     kind added tomorrow gets its actions without anybody doing anything — the same reasoning that
+     made the star a wrapper in the first place. */
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
 
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
@@ -1618,8 +1627,13 @@ function filterChips() {
         <span class="chip-k">${esc((facetBy(f.field) || {}).label || f.field)}</span>
         ${esc(f.value)}<span class="chip-x">✕</span>
       </button>`).join('')}
+    ${/* `clear` WAS GREY TEXT ON NOTHING — no border, no fill, the faint colour — sitting at the end
+          of a row of bordered chips. It read as a caption rather than a control, which is the one
+          thing a control must never do. It is a chip like the others now, with the same ✕ the chips
+          carry, so the row is a row of things you can press. */''}
     ${STUFF.filters.length > 1
-      ? '<button class="chip clear" data-do="filter-clear">clear</button>' : ''}
+      ? '<button class="chip is-clear" data-do="filter-clear">'
+        + '<span class="chip-k">clear</span><span class="chip-x">✕</span></button>' : ''}
   </div>`;
 }
 
@@ -2113,7 +2127,6 @@ function paperCard(x) {
       <span>${printPrice(x.topic && x.topic.pages) != null
         ? esc(money(printPrice(x.topic.pages))) + ' printed' : 'Answer all questions'}</span>
     </div>
-    ${cardTiles_(x)}
   </div>`;
 }
 

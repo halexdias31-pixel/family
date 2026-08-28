@@ -99,7 +99,6 @@ function findCard(x) {
         ${t.city || t.borough ? `<span class="pass-where">${esc(t.city || t.borough)}</span>` : ''}
         ${t.listed === false ? '<span class="pass-off">NOT LISTED</span>' : ''}
       </div>
-      ${cardTiles_({ kind: 'tutor', key: t.title, row: t })}
     </div>`;
 
   /* ---------- A VENUE IS THE SLIP ON THE DOOR ----------------------------------------------------
@@ -142,7 +141,6 @@ function findCard(x) {
       </div>
       ${/* "Tap to book" WAS THE STUB'S RIGHT-HAND TEXT and it is gone: the tap it described no
             longer exists, and a row underneath now says the same thing as a thing you press. */''}
-      ${cardTiles_({ kind: 'venue', key: t.title, row: t })}
     </div>`;
 
   /* ---------- A LEVEL IS THE OTHER HALF OF A SUBJECT CARD ----------------------------------------
@@ -179,7 +177,6 @@ function findCard(x) {
       ${t.tutors && t.tutors.length
         ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
         : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches at this level yet</p>'}
-      ${cardTiles_({ kind: 'level', key: t.name, row: t })}
     </div>`;
 
   return `
@@ -195,7 +192,6 @@ function findCard(x) {
       ${t.tutors && t.tutors.length
         ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
         : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches this yet</p>'}
-      ${cardTiles_({ kind: 'subject', key: t.name, row: t })}
     </div>`;
 }
 

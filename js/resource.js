@@ -173,10 +173,13 @@ on('wear', el => {
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   cfg[el.dataset.slot] = el.dataset.id;
   /* SAID BEFORE IT IS TRUE, because it almost always becomes true and the wait is the only part
-     anybody would notice. `el.textContent` was written straight onto the button here, which on a
-     tile would have wiped the word AND the price beside it — the tile is two spans, not a string. */
-  const was = { label: (el.querySelector('.tile-k') || {}).textContent,
-                note: (el.querySelector('.tile-v') || {}).textContent };
+     anybody would notice.
+
+     READ OFF `title`, NOT OFF THE SPANS. A tile has no word on it any more — the name is the title
+     and the aria-label, and `.tile-k` / `.tile-v` no longer exist — so this was reading two nulls
+     and putting `undefined` back on failure. One attribute holds "Wear · 40 credits" whole, which
+     is exactly what has to be restored. */
+  const was = { label: el.getAttribute('title') || 'Wear' };
   tileSet_(el, { label: 'Putting it on…', off: true });
 
   api({ action: 'saveAvatar',
@@ -188,7 +191,7 @@ on('wear', el => {
       if (d.owned) USER.avatarItems = d.owned;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* NO SHEET TO CLOSE — this now runs from a row on the card itself. */
-      tileSet_(el, { label: 'Wearing it', note: '', on: true, off: true });
+      tileSet_(el, { label: 'Wearing it', on: true, off: true });
       toast((d.bought || []).length ? 'Bought ' + d.bought.join(', ') : 'Wearing it');
       /* ---------- THE ONE PLACE A REDRAW IS STILL RIGHT ------------------------------------------
          WEARING SOMETHING CHANGES OTHER CARDS. Credits came off, so every priced wearable on the
@@ -203,7 +206,7 @@ on('wear', el => {
       /* PUT BACK EXACTLY WHAT WAS THERE. `el.textContent = 'Try again'` was written here, which on
          a tile replaces both spans with one string — the word, the price and the markup with it,
          so a failed purchase left a button that could never be styled or read again. */
-      tileSet_(el, { label: was.label, note: was.note, off: false });
+      tileSet_(el, { label: was.label, off: false });
       toast(String(err.message || err));
     });
 });

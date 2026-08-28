@@ -70,6 +70,13 @@ const TILE_ICONS = {
   bin:   '<path d="M2.8 4.5h12.4"/><path d="M6.5 4.5V2.8h5v1.7"/>'
        + '<path d="M4.5 4.5 5.3 15h7.4l.8-10.5"/>',
   undo:  '<path d="M2.8 8.5h8a3.5 3.5 0 1 1 0 7H6"/><path d="M5.5 5.5 2.5 8.5l3 3"/>',
+  show:  '<path d="M1.5 8.5S4.2 4 9 4s7.5 4.5 7.5 4.5S13.8 13 9 13s-7.5-4.5-7.5-4.5z"/>'
+       + '<circle cx="9" cy="8.5" r="2.2"/>',
+  hide:  '<path d="M3 3.5 15 14"/>'
+       + '<path d="M7 5.1A7.7 7.7 0 0 1 9 4c4.8 0 7.5 4.5 7.5 4.5a14 14 0 0 1-2.6 2.9"/>'
+       + '<path d="M11.4 10.6A2.2 2.2 0 0 1 7.5 8.9"/>'
+       + '<path d="M12 12.4A7.6 7.6 0 0 1 9 13c-4.8 0-7.5-4.5-7.5-4.5a14 14 0 0 1 3.3-3.4"/>',
+  close: '<path d="M4 4.5 14 14"/><path d="M14 4.5 4 14"/>',
 };
 
 function tileIcon_(name) {
@@ -81,27 +88,43 @@ function tileIcon_(name) {
 }
 
 
-/* ---------- ONE ROW ------------------------------------------------------------------------------
+/* ---------- ONE CONTROL ---------------------------------------------------------------------------
    A LINK WHERE IT LEAVES THE APP, A BUTTON WHERE IT DOES NOT. Written once so the difference is a
    parameter rather than two nearly-identical strings that drift apart — and so `target` and
    `rel="noopener"` exist in exactly one place.
 
-   NO `title`, NO `aria-label`. The label is the word, so there is nothing a hidden one could add
-   that the visible one does not already say. Both existed to rescue a glyph, and a glyph that has
-   to be explained twice was the wrong glyph — which is why `icon` above is drawn `aria-hidden`
-   BESIDE the word rather than in place of it. */
+   ---------------------------------------------------------------------------------------------
+   THE MARK IS THE WHOLE BUTTON NOW, AND THE WORD IS GONE.
+
+   These were full-width rectangles with a word in them, stacked. Four of those under a card is a
+   control panel bolted to the bottom of the thing you were looking at, and on a past paper it was
+   taller than the paper.
+
+   SO `title` AND `aria-label` COME BACK, both of them, and this is the honest cost of the change
+   rather than an oversight. The old comment here said a label needing a hidden copy was the wrong
+   label — that was true while the word was on the button. With no word there is nothing else to
+   read, so the name has to exist somewhere a pointer and a screen reader can each find it, and
+   those are two different attributes. A mark alone is a thing to be learnt; that is the trade, and
+   it is the one that was asked for.
+
+   THE NOTE GOES INTO THE NAME, not onto the button. "23 questions" and "£0.46 · 23pp" have nowhere
+   to sit on a 40px square, so they ride in the label — "Paper · £0.46 · 23pp" — which is what both
+   attributes say and is the only place the price still appears. */
 function tile_(o) {
   const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '');
-  const body = tileIcon_(o.icon)
-    + `<span class="tile-k">${esc(o.label)}</span>`
-    + (o.note ? `<span class="tile-v">${esc(o.note)}</span>` : '');
+  const name = o.label + (o.note ? ' · ' + o.note : '');
+  const attrs = ` title="${esc(name)}" aria-label="${esc(name)}"`;
+  /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
+     has not been given one falls back to the word — visibly wrong, rather than invisible. */
+  const body = tileIcon_(o.icon) || `<span class="tile-k">${esc(o.label)}</span>`;
 
   if (o.href) {
-    return `<a class="${cls}" href="${esc(o.href)}" target="_blank" rel="noopener">${body}</a>`;
+    return `<a class="${cls}" href="${esc(o.href)}"${attrs}
+      target="_blank" rel="noopener">${body}</a>`;
   }
   const data = Object.keys(o.data || {})
     .map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${o.off ? ' disabled' : ''}
+  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 
@@ -120,13 +143,20 @@ function tile_(o) {
    on the screen is touched, so nothing else on the screen can move. */
 function tileSet_(el, o) {
   if (!el) return;
-  const k = el.querySelector('.tile-k');
-  const v = el.querySelector('.tile-v');
-  if (k && o.label != null) k.textContent = o.label;
-  if (v && o.note != null) v.textContent = o.note;
-  /* AN EMPTY VALUE IS REMOVED, not left as an empty span — "In your basket" followed by a gap where
-     a price used to be is the shape of a thing that failed to load. */
-  if (v && o.note === '') v.remove();
+  /* THE NAME, NOT THE TEXT. There is no visible word to rewrite any more — the two attributes ARE
+     the label, so a control that has just become "Saved" has to say so in both or a pointer and a
+     screen reader will disagree about what it does. */
+  if (o.label != null) {
+    const name = o.label + (o.note ? ' · ' + o.note : '');
+    el.setAttribute('title', name);
+    el.setAttribute('aria-label', name);
+  }
+  /* THE MARK CAN CHANGE TOO — a bin becomes an undo, a doc becomes a trolley — and with no word
+     underneath it is the only thing that says the press worked. */
+  if (o.icon) {
+    const old = el.querySelector('.tile-i');
+    if (old) old.outerHTML = tileIcon_(o.icon);
+  }
   if (o.on != null) el.classList.toggle('on', !!o.on);
   if (o.off != null) el.disabled = !!o.off;
 }
@@ -142,7 +172,7 @@ function tileSet_(el, o) {
 function adminTiles_(x, t) {
   if (!isAdmin()) return '';
   const id = t ? (t.id || t.name) : x.key;
-  return `<div class="tile-row is-admin">
+  return `<div class="tile-row is-admin" role="group" aria-label="Admin">
     ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
               on: isSpot(x.key), act: 'spot',
               data: { key: x.key, kind: x.kind || 'item' } })}
@@ -169,9 +199,8 @@ function adminTiles_(x, t) {
    rows underneath are for one person. */
 function favTile_(x) {
   if (!x.key || !USER) return '';
-  return `<div class="tile-row">${tile_({
-    icon: 'star', label: isFav(x.key) ? 'Saved' : 'Save', on: isFav(x.key),
-    act: 'fav', data: { key: x.key, kind: x.kind || 'item' } })}</div>`;
+  return tile_({ icon: 'star', label: isFav(x.key) ? 'Saved' : 'Save', on: isFav(x.key),
+                 act: 'fav', data: { key: x.key, kind: x.kind || 'item' } });
 }
 
 
@@ -187,7 +216,7 @@ function favTile_(x) {
    something you can go and fix rather than something you have to wonder about. */
 function topicTiles_(x) {
   const t = x.topic;
-  if (!t) return adminTiles_(x, null);
+  if (!t) return '';
 
   const price = printPrice(t.pages);
   const qs = paperRows(t).filter(r => r.kind !== 'stem').length;
@@ -227,9 +256,8 @@ function topicTiles_(x) {
     isAdmin() ? 'No questions written up for this one yet.'
               : 'Not ready to read yet.'}</p>`;
 
-  return `${tickRow(t)}
-    ${rows.length ? `<div class="tile-row">${rows.join('')}</div>` : none}
-    ${adminTiles_(x, t)}`;
+  /* THE TICKS ARE NOT AN ACTION ROW and stay with the card, above the marks. */
+  return `${tickRow(t)}${rows.length ? rows.join('') : none}`;
 }
 
 
@@ -239,13 +267,13 @@ function topicTiles_(x) {
    on this row. It keeps its sheet until it has a screen of its own. */
 function shopTiles_(x) {
   const inCart = CART.some(c => c.key === x.key && c.kind === 'shop');
-  return `<div class="tile-row">
+  return `
     ${tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket',
               tone: 'buy', on: inCart,
               note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'),
               act: 'cart-add', off: !USER || inCart,
               data: { key: x.key, kind: 'shop' } })}
-  </div>${adminTiles_(x, null)}`;
+  `;
 }
 
 
@@ -259,15 +287,15 @@ function shopTiles_(x) {
    as a silver row it is as deliberate as Delete and reads the same way. */
 function tutorTiles_(x) {
   const t = x.row || {};
-  return `<div class="tile-row">
-    ${tile_({ label: 'Book with them', act: 'book-with', data: { name: x.key } })}
-  </div>
-  ${isAdmin() ? `<div class="tile-row is-admin">
-    ${tile_({ label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
+  return `
+    ${tile_({ icon: 'book', label: 'Book with them', act: 'book-with', data: { name: x.key } })}
+  ${isAdmin() ? `<div class="tile-row is-admin" role="group" aria-label="Admin">
+    ${tile_({ icon: t.listed === false ? 'hide' : 'show',
+              label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',
               note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
               data: { who: x.key } })}
-    ${tile_({ label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
+    ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
               on: isSpot(x.key), act: 'spot', data: { key: x.key, kind: 'tutor' } })}
   </div>` : ''}`;
 }
@@ -278,9 +306,9 @@ function tutorTiles_(x) {
    the notice period — and it carried them better, one line per room against a single "from" price.
    The sheet was a worse copy of the card in front of it. Only the button was ever new. */
 function venueTiles_(x) {
-  return `<div class="tile-row">
+  return `
     ${tile_({ label: 'Book this room', act: 'book-with', data: { name: x.key } })}
-  </div>${adminTiles_(x, null)}`;
+  `;
 }
 
 
@@ -290,9 +318,9 @@ function venueTiles_(x) {
    tutor named may well be right, and changing what a button DOES while moving it is how a move gets
    blamed for a bug it did not cause. */
 function subjectTiles_(x) {
-  return `<div class="tile-row">
+  return `
     ${tile_({ icon: 'book', label: 'Book this', act: 'book-with', data: { name: '' } })}
-  </div>${adminTiles_(x, null)}`;
+  `;
 }
 
 
@@ -307,12 +335,12 @@ function subjectTiles_(x) {
    it from. A button that cannot work says so. */
 function levelTiles_(x) {
   const t = x.row || {};
-  return `<div class="tile-row">
+  return `
     ${tile_({ icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
               note: t.listed === false ? 'add it to the options tab' : '',
               off: t.listed === false,
               act: 'book-with', data: { name: '' } })}
-  </div>${adminTiles_(x, null)}`;
+  `;
 }
 
 
@@ -342,11 +370,11 @@ function wearTiles_(x) {
     : tooLow ? 'level ' + x.level
     : owned ? '' : (x.cost ? x.cost + ' credits' : 'free');
 
-  return `<div class="tile-row">
+  return `
     ${tile_({ icon: 'wear', label, note, tone: tooLow ? '' : 'buy', on: !!wearing,
               act: 'wear', off: !USER || tooLow || wearing,
               data: { slot: x.slot, id: x.artId } })}
-  </div>${adminTiles_(x, null)}`;
+  `;
 }
 
 
@@ -359,11 +387,9 @@ function wearTiles_(x) {
    forty is a flat battery for thirty-nine things nobody is looking at. */
 function widgetTiles_(x) {
   const id = (x.row && x.row.id) || '';
-  return `<div class="tile-row">
+  return `
     ${tile_({ icon: 'open', label: 'Open', act: 'widget-open', data: { id } })}
-  </div>
-  <div class="widget-slot" id="wgt-${esc(String(id))}"></div>
-  ${adminTiles_(x, null)}`;
+  <div class="widget-slot" id="wgt-${esc(String(id))}"></div>`;
 }
 
 on('widget-open', el => {
@@ -374,9 +400,16 @@ on('widget-open', el => {
 
   /* A SECOND PRESS PUTS IT AWAY. A thing that can only be opened is a thing that fills the card and
      stays there — and on a list, the way back has to be the same control that got you in. */
-  if (slot.innerHTML) { slot.innerHTML = ''; el.querySelector('.tile-k').textContent = 'Open'; return; }
+  /* THROUGH `tileSet_`, NOT INTO `.tile-k`. There is no `.tile-k` on an icon-only tile, so both of
+     these lines were `null.textContent` — a thrown error on the first press of Open, and on the
+     press that put it away again. `tileSet_` swaps the mark and rewrites the name. */
+  if (slot.innerHTML) {
+    slot.innerHTML = '';
+    tileSet_(el, { icon: 'open', label: 'Open', on: false });
+    return;
+  }
   slot.innerHTML = wgt.html;
-  el.querySelector('.tile-k').textContent = 'Close';
+  tileSet_(el, { icon: 'close', label: 'Close', on: true });
   startWidget_(wgt);
 });
 
@@ -394,8 +427,7 @@ on('widget-open', el => {
    and there is nothing here to tell the two apart. */
 function fightTiles_(x) {
   const f = x.row || {};
-  return `${f.video ? `<div class="tile-row">${
-    tile_({ icon: 'play', label: 'Watch', href: f.video })}</div>` : ''}${adminTiles_(x, null)}`;
+  return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
 }
 
 
@@ -403,10 +435,16 @@ function fightTiles_(x) {
    rows, so a spotlight can go on anything findable rather than only on the two kinds that happen to
    have actions today. */
 function cardTiles_(x) {
-  /* THE STAR BEFORE EVERYTHING ELSE, on every kind, including the ones with no actions of their
-     own — which is most of them. `favTile_` returns nothing for a card with no key or a visitor
-     who is not signed in, so this stays one line rather than a condition per branch. */
-  return favTile_(x) + cardActions_(x);
+  /* ---------- ONE ROW OF MARKS, UNDER THE CARD ----------------------------------------------------
+     THE STAR FIRST, on every kind including the ones with no actions of their own — which is most
+     of them. `favTile_` returns nothing for a card with no key or a visitor who is not signed in,
+     so this stays one line rather than a condition per branch.
+
+     ADMIN STAYS ITS OWN ROW. Silver means only you can see it, and a silver bin sitting in the
+     same row as a trolley is the one arrangement that rule exists to prevent — an admin would be
+     one mis-tap from deleting a thing they meant to buy. */
+  const mine = favTile_(x) + cardActions_(x);
+  return (mine ? `<div class="tile-row">${mine}</div>` : '') + adminTiles_(x, x.topic || null);
 }
 
 function cardActions_(x) {
@@ -418,7 +456,7 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
-  return adminTiles_(x, null);
+  return '';
 }
 
 /* A tap on a tile row that is not on a row. The rows used to sit inside a card whose whole surface

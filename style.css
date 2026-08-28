@@ -1350,7 +1350,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
    invitation, not a state. */
 .chip.add { border-color: var(--gold); color: var(--gold); background: none; }
-.chip.clear { border-color: transparent; color: var(--faint); background: none; }
+/* CLEAR IS A CHIP, NOT A CAPTION. It was `border-color: transparent`, no background and the faint
+   colour — which at the end of a row of bordered chips read as a label somebody had left there.
+   It keeps the border and the fill every other chip has; only the colour says it undoes rather than
+   narrows. */
+.chip.is-clear { color: var(--dim); }
+.chip.is-clear .chip-k { color: var(--dim); }
 
 /* ---------- THE CALCULATOR'S CARET --------------------------------------------------------------
    A block that blinks, because a hairline is invisible in a monospace column of digits at this
@@ -6511,18 +6516,38 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    KEY LEFT, VALUE RIGHT — the same shape as every other row on the card, so the actions read as
    part of it rather than as a control panel bolted underneath. */
-.tile-row { display: flex; flex-direction: column; gap: 1px; margin-top: .45rem; }
+/* ---------- A ROW OF MARKS, NOT A STACK OF RECTANGLES ---------------------------------------------
+   THESE WERE FULL-WIDTH BUTTONS, one per line, each with a word in it. Four of them under a past
+   paper was a control panel taller than the paper, and it sat ON the paper — `.paper` is a sheet of
+   off-white exam stationery and the buttons were printed across the bottom of it.
+
+   THE MARK IS THE BUTTON NOW. A row, not a column; no fill and no border, because a square of
+   chrome around a symbol is the rectangle all over again. What makes it a button is that it is big
+   enough to hit and it moves when you press it.
+
+   44px, WHICH IS BIGGER THAN IT LOOKS. The mark is 18px and the target is 44 — the smallest thing
+   a thumb finds reliably — so the space around each symbol is doing work even though it is
+   invisible. Shrinking it to fit the drawing would make a row nobody can press accurately. */
+.tile-row {
+  display: flex; flex-direction: row; align-items: center;
+  gap: .1rem; margin: .5rem 0 0;
+}
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
    overrode. Stated once, where the rest of the admin row is described. */
 
 .tile {
-  display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
-  width: 100%; padding: .5rem .6rem;
-  font: 600 .8rem/1.2 var(--mono); text-align: left;
-  color: var(--ink); background: var(--sunk);
-  border: 1px solid var(--line); border-radius: var(--r);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0;
+  color: var(--dim); background: none; border: 0; border-radius: var(--r);
+  font: 600 .72rem/1 var(--mono);
   text-decoration: none; cursor: pointer;
+  transition: color var(--quick) ease, transform var(--quick) ease;
 }
+.tile:active { transform: scale(.88); }
+/* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
+   all say so by going bright — which is the star's own pattern, applied to every mark. */
+.tile.on { color: var(--ink); }
+.tile[disabled] { opacity: .35; cursor: default; }
 /* ---------- THE MARK BESIDE THE WORD ---------------------------------------------------------------
    FIRST IN THE ROW, so a column of tiles reads as a column of marks down the left edge and the eye
    finds "the trolley one" without reading four labels. That is the whole job — it is never the only
@@ -6534,23 +6559,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `align-items` ON THE TILE IS `baseline`, which a graphic has none of — an SVG would hang off the
    bottom of the text it sits with. `align-self: center` opts this one child out of that, which is
    cheaper than changing the alignment the label and the number already rely on. */
-.tile-i {
-  width: .95rem; height: .95rem;
-  flex: 0 0 auto;
-  align-self: center;
-  margin-right: -.15rem;
-  opacity: .85;
-}
-/* THE WORD TAKES THE SPACE, so the mark and the number stay put and the label is what stretches —
-   without this the three share the row equally and a short label leaves the trolley floating in the
-   middle of the tile. */
-.tile-k { flex: 1 1 auto; }
+.tile-i { width: 18px; height: 18px; flex: 0 0 auto; }
+/* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
+   one today, and a blank 44px square would be worse than an ugly one. */
+.tile-k { font-size: .62rem; letter-spacing: .02em; }
 
-/* THE DETAIL IS NOT THE LABEL. Lighter and lower-contrast so a glance reads the actions down the
-   left edge as a list and finds the numbers only when it is looking for them. */
-.tile-v { font-weight: 400; color: var(--faint); white-space: nowrap; }
-.tile:active { transform: scale(.99); }
-.tile[disabled] { cursor: default; }
+/* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no
+   label any more, so nothing emits one. The detail lives in the button's title and aria-label now;
+   see `tile_`. `.tile:active` and `.tile[disabled]` are stated with the rest of `.tile` above. */
 
 /* NOTHING TO OPEN. A sentence rather than a row, because it is not an action and must not look
    like one that has stopped working. */
@@ -6559,7 +6575,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE ONE THAT COSTS MONEY IS THE LOUD ONE, and the only gold thing on the card. Once it is in the
    basket it stops being an offer, so it stops being loud — the fill says "done" and the label says
    so in words. */
-.tile.is-buy { color: var(--gold); border-color: rgb(255 180 84 / .45); }
+.tile.is-buy { color: var(--gold); }
 /* THE FILLED VERSION IS WITH THE OTHER FILLED RULES, further down. It was declared twice — here
    with a .07 background and there with .09 — and the one you could see was never this one. */
 
@@ -6571,7 +6587,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    COOL, NOT GREY. `--dim` is #9a9a9a, so a neutral grey here would read as "switched off" — the one
    meaning it must never carry. The blue cast is what makes it look deliberate rather than faded. */
-.tile.is-admin { color: var(--admin); border-color: rgb(170 182 200 / .4);
+.tile.is-admin { color: var(--admin);
                  background: rgb(170 182 200 / .06); }
 .tile.is-admin.on { background: rgb(170 182 200 / .18); }
 
@@ -6622,11 +6638,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    `[disabled]` IS NOT DIMMED WHEN IT IS FILLED, and that is deliberate. A dimmed tile reads as
    broken, and these are the opposite of broken. */
-.tile.on { color: var(--dim); border-color: var(--line); background: rgb(255 255 255 / .04); }
+/* IN THE BASKET IS NOT AN OFFER ANY MORE, so it stops being gold and goes quiet — the same
+   "done, and no longer asking" the label used to say in words. */
+.tile.is-buy.on { color: var(--dim); }
 .tile.on[disabled] { opacity: 1; }
-.tile.is-buy.on { color: var(--dim); background: rgb(255 180 84 / .09); }
-.tile.is-admin.on { color: var(--admin); background: rgb(170 182 200 / .18); }
-.tile.on .tile-v { color: var(--faint); }
 
 
 /* ---------- SECOND PASS, FROM LOOKING AT IT -------------------------------------------------------
@@ -6647,20 +6662,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    SO SIZE CARRIES IT NOW, not hue. Admin rows are smaller, tighter and dimmer; they read as a
    footer to the card rather than as three more of the same. A glance sees two actions and a strip
    of small print, which is what the card actually is. */
-.tile-row.is-admin { margin-top: .5rem; gap: 0; }
-.tile-row.is-admin .tile {
-  padding: .3rem .5rem;
-  font-size: .68rem; font-weight: 500; letter-spacing: .03em;
-  color: var(--admin); opacity: .75;
-  background: transparent; border-color: var(--line-soft);
-}
-/* THE MIDDLE ONE LOSES ITS SHARED EDGES, so three rows read as one block of small print rather than
-   as three separate offers. */
-.tile-row.is-admin .tile + .tile { border-top: 0; }
-.tile-row.is-admin .tile:not(:first-child):not(:last-child) { border-radius: 0; }
-.tile-row.is-admin .tile:first-child { border-radius: var(--r) var(--r) 0 0; }
-.tile-row.is-admin .tile:last-child  { border-radius: 0 0 var(--r) var(--r); }
-.tile-row.is-admin .tile.on { opacity: 1; background: rgb(170 182 200 / .12); }
+/* ---------- SILVER, AND SMALLER --------------------------------------------------------------------
+   ITS OWN ROW, UNDERNEATH. Silver means only an admin can see it, and the one arrangement that rule
+   exists to prevent is a bin sitting in the same row as a trolley — one mis-tap from deleting a
+   thing you meant to buy. A gap and a smaller mark say "different set" without a border. */
+.tile-row.is-admin { margin-top: .15rem; gap: .1rem; }
+.tile-row.is-admin .tile { width: 36px; height: 36px; color: var(--admin); opacity: .7; }
+.tile-row.is-admin .tile .tile-i { width: 15px; height: 15px; }
+.tile-row.is-admin .tile.on { opacity: 1; }
 
 /* ---------- THE TICKS STOP SHOUTING ---------------------------------------------------------------
    AN OUTLINE, NOT A FILL. A pass is a record of something you did, not an offer — so it is marked
