@@ -2075,10 +2075,18 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   /* SIX COLUMNS: the line number, what it is, what was chosen, the multiplier, the rate, the
      running total. The number goes first because that is where a till roll puts it and because it
      is the only column somebody reads DOWN rather than across. */
-  /* THE VALUE COLUMN HAS A FLOOR NOW. `minmax(0, 1fr)` let it collapse to nothing once the five
-     fixed columns had taken theirs, and a word in a 30px column breaks however you ask it to. 4rem
-     is enough for "Unconfirmed" on two lines instead of eleven. */
-  grid-template-columns: 3ch 4.4rem minmax(4rem, 1fr) 5.5ch 8ch 8ch;
+  /* ---------- WIDE ENOUGH FOR THE WORDS THAT ARE ACTUALLY IN IT ---------------------------------
+     4.4rem BROKE "POSSESSION" INTO "Possessio / n". The label column was sized for "Subject" and
+     "Level" and every longer word in the set — Possession, Lifecycle, Extra subjects — paid for it
+     with a hyphen in the middle. 5.6rem holds the longest of them on one line.
+
+     AND THE VALUE COLUMN GETS THE REST. "No preference" came out as "No prefer- / ence" for the
+     same reason one column along. The rate column was 8ch for figures like "£10.00/h" that already
+     fit in 7.5, and the multiplier 5.5ch for "× 10"; both give back what they were not using.
+
+     THE FLOOR STAYS. `minmax(0, 1fr)` let the value collapse to nothing once the fixed columns had
+     taken theirs, which is how a word ends up one letter per line. */
+  grid-template-columns: 2.6ch 5.6rem minmax(4.5rem, 1fr) 4.5ch 7.5ch 7.5ch;
   gap: .5rem; align-items: start;
   padding: .34rem 0;
   font-size: .76rem;
@@ -2090,7 +2098,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    venue name with nothing to break at.
    `hyphens: auto` puts a hyphen at the break, so a split word reads as a split word rather than as
    two short ones. */
-.bk-k, .bk-v { overflow-wrap: break-word; hyphens: auto; line-height: 1.35; }
+/* BUT NOT ON THE LABEL. The label column holds a fixed set of words — thirteen step names and a
+   handful of headings — and all of them fit now that the column is 5.6rem. Hyphenation there can
+   only ever be the column being too narrow, and a hyphen makes that look deliberate rather than
+   like the bug it is. The value column keeps it: a venue name can be anything. */
+.bk-k { line-height: 1.35; }
+.bk-v { overflow-wrap: break-word; hyphens: auto; line-height: 1.35; }
 /* Right-aligned, all three, so the columns are edges rather than ragged starts. A number column
    aligned left is a column you have to read across to compare. */
 .bk-m, .bk-r, .bk-t { text-align: right; white-space: nowrap; }

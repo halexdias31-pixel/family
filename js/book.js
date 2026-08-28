@@ -1289,7 +1289,11 @@ function breakdownRows(L) {
       const asked = { base: 'tutor', subject: 'subjects', level: 'level', students: 'n',
                       venue: 'loc', host: 'hosting', term: 'interval',
                       split: 'split' }[r.key];
-      push(r.label, plain, c.mul, c.rate, c.total,
+      /* AN UNANSWERED ROW SHOWS A DASH, the same as one on the unpriced card — see `stepRows_`.
+         "Level" with an empty value drew a bare dashed underline and nothing else, which reads as a
+         row that failed rather than a blank waiting for you. Only on rows somebody can answer:
+         a computed row with no value has nothing to fill in. */
+      push(r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
         { end: gi === inGroup.length - 1, step: asked, key: r.key });
     });
   });
@@ -1297,9 +1301,18 @@ function breakdownRows(L) {
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
   push('Dates', dates.length ? dates.join(', ') : '—', '', '',
     dates.length ? dates.length + ' dates' : '', { free: true, dates: true });
-  push('Status', 'Unsent', '', '', '', { free: true });
-  push('Possession', 'Yours', '', '', '', { free: true });
-  push('Lifecycle', 'Uncreated', '', '', '', { free: true });
+  /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
+     "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
+     has sent, all reporting that it has not been sent — which the card already says at the bottom,
+     says by having a "Ask for it" button on it, and says by existing at all.
+
+     They are also the wrong VOCABULARY for the reader. A parent filling in a booking has no use for
+     lifecycle or possession; those are words about the row in the sheet, and this is the one stage
+     where there is no row in the sheet. Once it IS sent it becomes a job, and `jobRows` prints a
+     real status from real data — which is where a status line earns its place.
+
+     `Dates` STAYS. It is a fact about the booking rather than about the record of it, and it is the
+     one row here somebody would actually check. */
   return rows;
 }
 
@@ -1387,7 +1400,11 @@ function bookBreakdown(L) {
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
     rows: out,
-    total: L ? money(L.total) : '',
+    /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE ---------------------------------
+       The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
+       hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
+       this form is in no position to make. A dash means not yet, which is the truth. */
+    total: (L && L.total > 0) ? money(L.total) : '—',
     aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
     /* The tutor, then a seat for each student, then whoever is splitting it. */
     roster: rosterHtml({
@@ -1402,7 +1419,6 @@ function bookBreakdown(L) {
     /* THE TERMINAL. Nothing has been sent, so there is no row anywhere and nothing to be a record
        OF — which is exactly what a screen is: the entering of a thing, before the thing. */
     kind: 'screen',
-    thanks: 'Nothing is booked until you ask for it.',
   });
 }
 
@@ -1606,7 +1622,11 @@ function receiptHtml(r) {
     ${r.roster ? `<div class="rc-rule"></div>${r.roster}` : ''}
     <div class="rc-rule"></div>
     <div class="rc-bars">${(r.bars || []).join('')}</div>
-    <p class="rc-thanks">${esc(r.thanks || '')}</p>
+    ${/* THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE. It said "Nothing is booked until you ask for
+          it" under every unsent booking — true, and already obvious from the question sitting under
+          the card and the button that sends it. A card that has to explain its own state is a card
+          whose state is not visible; this one's is. */''}
+    ${r.thanks ? `<p class="rc-thanks">${esc(r.thanks)}</p>` : ''}
   </div>`;
 }
 
