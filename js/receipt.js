@@ -533,47 +533,16 @@ function drawBooker_() {
       </div>` };
   }
 
-  const opts = step.options().filter(Boolean);
-  const chosen = step.multi ? (BOOKING[step.id] || []) : [];
+  /* ---------- THE LIST OF OPTION CARDS WAS HERE, AND IT CANNOT BE REACHED ANY MORE ----------------
+     It drew a card per option with `book-pick` on each, and it was the generic branch — everything
+     that was not the week grid or the split emails ended up here. Nothing does now: `step` is only
+     ever non-null when `stepIsPanel_` says so, and that is grid or emails, both of which return
+     above. Every other question is a `<select>` in its own row on the paper.
 
-  return { html: `
-    ${head}
-    ${BOOKING.editing ? `<div class="btn-row">
-      <button class="btn quiet" data-do="book-back">Leave it as it is</button>
-      ${bookAnswered_(step) ? `<button class="btn quiet" data-do="book-undo"
-        data-step="${esc(step.id)}">Clear it</button>` : ''}
-    </div>` : ''}
-    ${opts.map(v => {
-      /* ---------- A REFUSAL AND A NOTE ARE NOT THE SAME THING -------------------------------------
-         `why` MEANS "THIS DOES NOT FIT" — it draws the option at 45% and, on a multi-select,
-         refuses the tick. I then used it for HELPFUL NOTES on three questions today, so six of
-         eight options came out looking disabled: "It happens. Yours from the moment you pay" is an
-         encouragement, and it was greying out the button it was encouraging.
-
-         `note` IS THE SAME TEXT WITHOUT THE VERDICT. Both print under the option; only `why` marks
-         it. Two functions rather than a flag, because at the point of writing one you know which
-         you mean, and a flag is something to forget. */
-      const why = step.why ? step.why(v) : '';
-      const note = why || (step.note ? step.note(v) : '');
-      const on = chosen.indexOf(v) !== -1;
-      /* NOT REMOVED, MARKED. An option that does not fit is shown with the reason, because a list
-         that quietly drops things is a list that seems to have decided for you — and because the
-         thing it would drop is often the thing you meant. */
-      return `<div class="card tap${on ? ' is-on' : ''}${why ? ' is-off' : ''}"
-           data-do="book-pick" data-step="${esc(step.id)}" data-value="${esc(v)}">
-        <div class="row" style="border:0;padding:0">
-          <span class="k">${on ? '✓ ' : ''}${mark(step.label_ ? step.label_(v) : v)}</span>
-          ${note ? `<span class="v faint">${esc(note)}</span>` : ''}
-        </div>
-      </div>`;
-    }).join('')}
-    ${step.multi && chosen.length
-      ? `<button class="btn" style="margin-top:.6rem" data-do="book-more"
-           data-step="${esc(step.id)}">Done — ${chosen.length} chosen</button>` : ''}
-    ${/* WHAT HAS BEEN SAID, between the question and the price. Above the choices it was the first
-          thing read on a screen whose whole job is the list below it; below the breakdown it would
-          be past the fold. Here it separates the two and reads as the join between them. */''}
-` };
+     `on('book-pick')` GOES WITH IT. It was the only reader of these cards, and `book-set` — the
+     `change` handler on the selects — does the same job for single answers and for the toggling
+     multi ones. Two handlers for one act is how the two come to disagree about what a pick means. */
+  return { html: '' };
 }
 
 on('book-send', el => {

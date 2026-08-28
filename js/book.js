@@ -1099,69 +1099,51 @@ document.addEventListener('change', e => {
   if (!el) return;
   const step = bookStep_(el.dataset.step);
   if (!step) return;
-  BOOKING[step.id] = el.value || '';
-  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
-  BOOKING.editing = '';
-  drawBooker();
-});
 
-on('book-pick', el => {
-  const step = bookStep_(el.dataset.step);
-  const v = el.dataset.value;
-  if (!step) return;
-  /* Changing an answer takes you back to the card rather than onwards through questions you have
-     already answered. */
-  const wasEditing = BOOKING.editing === step.id;
-  /* A GRID IS TICKED, NOT PICKED. `book-slot` owns it, and letting this one through would write a
-     single code string over the list of them — after which everything that reads the slots as a
-     list throws, several functions away from the press that caused it. */
-  if (step.grid) return;
   if (step.multi) {
-    const list = BOOKING[step.id] || [];
-    const at = list.indexOf(v);
-    if (at === -1) {
-      /* AN OPTION THAT SAYS WHY IT DOES NOT FIT MAY NOT BE TICKED.
-         `why` marked the option and drew it faintly, and nothing here ever asked — so the mark was
-         decoration and a parent could tick four children into two seats. UNTICKING is always
-         allowed, whatever `why` says: that is how you change your mind about which two of three
-         are coming, and refusing it would trap somebody on their first choice. */
-      const no = step.why ? step.why(v) : '';
-      if (no) { toast(no); return; }
-      list.push(v);
-    } else {
-      list.splice(at, 1);
+    /* TOGGLE, AND NEVER ON THE DASH. Choosing "—" on a multi is choosing nothing — it is what the
+       select falls back to after every pick — so it must not clear the list somebody has built. */
+    const v = el.value;
+    if (v) {
+      const list = BOOKING[step.id] || [];
+      const at = list.findIndex(x => norm(x) === norm(v));
+      if (at === -1) list.push(v); else list.splice(at, 1);
+      BOOKING[step.id] = list;
     }
-    BOOKING[step.id] = list;
+    /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. `done` was how a multiple-choice question said
+       "I have finished adding", which existed because the panel moved on to the next question as
+       soon as you picked once. Nothing moves on any more — the whole form is on screen — so the
+       list being non-empty is the whole of what "answered" means here. */
+    BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
+    if (!(BOOKING[step.id] || []).length) {
+      BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
+    }
   } else {
-    BOOKING[step.id] = v;
-    if (wasEditing) BOOKING.editing = '';
+    BOOKING[step.id] = el.value || '';
+    BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
-  drawBooker();
-});
-
-/* Pressing a value on the card. It reopens that question and keeps everything else — which is the
-   difference between changing your mind and starting again. */
-on('book-edit', el => { BOOKING.editing = el.dataset.step; drawBooker(); });
-/* And backing out of one without changing it. */
-on('book-back', () => { BOOKING.editing = ''; drawBooker(); });
-
-/* Going back to change one. It is emptied rather than the whole booking reset — everything after
-   it stays answered, because changing the venue does not mean you changed your mind about the
-   subject. */
-on('book-undo', el => {
-  const step = bookStep_(el.dataset.step);
-  if (!step) return;
-  if (step.emails) BOOKING.split = [];
-  else BOOKING[step.id] = step.grid ? [] : (step.multi ? [] : '');
-  /* CLEARED MEANS UNASKED. `done` is what stops a multiple-choice question being offered again, so
-     leaving it set would empty the answer and then refuse to ask for a new one — the row would go
-     blank on the receipt with no way to fill it back in. It was harmless while this lived on a chip
-     that only ever cleared a FINISHED answer; it is not harmless now the button sits inside the
-     question itself. */
-  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   BOOKING.editing = '';
   drawBooker();
 });
+
+/* `on('book-pick')` WAS HERE — the handler for the option cards in the panel. There is no panel for
+   a list of options any more; a list of options is a `<select>` on its row, answered by `book-set`.
+   See the note where the cards were, in receipt.js.
+
+   `on('book-back')` AND `on('book-undo')` WENT WITH IT, and both were right to go: "Leave it as it
+   is" and "Clear it" were buttons on that panel, and clearing is what choosing "—" does on a single
+   row and what picking a ticked option again does on a multi one. */
+
+/* ---------- OPENING THE TWO THAT ARE NOT DROPDOWNS -------------------------------------------------
+   `book-edit` IS STILL NEEDED, which is easy to miss now that eleven of the thirteen questions are
+   answered without it. The week grid and the split emails have no control on their row — they are
+   drawn as a panel — so pressing that row is the only way to reach either, and this is what marks
+   which one is open.
+
+   IT IS NOT A GENERAL EDIT ANY MORE. Every other row carries its own select and is changed in
+   place, so nothing else emits this — see `receiptRow`, which only writes it when there is no
+   dropdown for the row. */
+on('book-edit', el => { BOOKING.editing = el.dataset.step; drawBooker(); });
 
 /* Finished with a multiple-choice question. Recorded, so it stops being asked — and so that
    coming back to it later reopens it rather than treating one tick as the whole answer. */
@@ -1352,26 +1334,41 @@ function breakdownRows(L) {
    whole interaction, it costs no height at all, and every row can be open to being changed at once
    rather than one at a time in an order the form decides.
 
-   THREE STEPS CANNOT BE ONE. `subjects` and `kids` take several answers; `slots` is a week grid;
-   `split` is a list of email boxes. A native multi-select on a phone is worse than what it replaces,
-   so those keep the panel — but it now opens only for them, and only when the row is pressed.
+   A QUESTION WITH SEVERAL ANSWERS IS STILL A DROPDOWN. `subjects` and `kids` take more than one, and
+   the obvious move — `<select multiple>` — is the one to avoid: on a phone it renders as a list box
+   with its own scrollbar, which is the panel again in a worse shape.
+
+   SO PICKING TOGGLES. Choose Maths and it joins the list; choose it again and it leaves. The row
+   shows what is in the list, the options show a tick against the ones that are, and the select
+   drops back to "—" after every pick so the next one is one tap away. It is the same gesture as the
+   single-answer rows and it needs nothing new on screen.
+
+   TWO STEPS GENUINELY CANNOT BE ONE. `slots` is a week to tick and `split` is a list of email
+   boxes — neither is a choice from a list, so neither is a dropdown. Those keep the panel, and it
+   opens only when you press their row.
 
    AN UNANSWERED SELECT SHOWS A DASH as its first option, so a field nobody has filled reads the same
    as it did before and cannot be submitted by accident. */
 function stepSelect_(st) {
-  const v = BOOKING[st.id];
   const opts = st.options().filter(Boolean);
+  const chosen = st.multi ? (BOOKING[st.id] || []) : [];
+  const v = st.multi ? '' : BOOKING[st.id];
+  const isOn = o => st.multi
+    ? chosen.some(c => norm(c) === norm(o))
+    : norm(o) === norm(v);
   return `<select class="bk-sel" data-do="book-set" data-step="${esc(st.id)}"
       aria-label="${esc(st.label)}">
-    <option value=""${v ? '' : ' selected'}>—</option>
-    ${opts.map(o => `<option value="${esc(o)}"${norm(o) === norm(v) ? ' selected' : ''}
-      >${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
+    ${/* THE FIRST OPTION IS ALWAYS SELECTED ON A MULTI, because the select is a way of picking the
+          NEXT one rather than a display of what is picked — the row above it already shows that. */''}
+    <option value=""${(st.multi || !v) ? ' selected' : ''}>—</option>
+    ${opts.map(o => `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}
+      >${st.multi && isOn(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
   </select>`;
 }
 
 /* Which steps have to keep the panel. Asked in one place so the row, the handler and the panel
    cannot disagree about whether a question is a dropdown. */
-function stepIsPanel_(st) { return !!(st.multi || st.grid || st.emails); }
+function stepIsPanel_(st) { return !!(st.grid || st.emails); }
 
 /* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT -----------------------------------------------
    THE PAPER USED TO ARRIVE LATE. `breakdownRows` builds a row per thing that has a PRICE, so before
