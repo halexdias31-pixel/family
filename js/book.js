@@ -1376,6 +1376,24 @@ function stepSelect_(st) {
   const opts = st.options().filter(Boolean);
   const chosen = st.multi ? (BOOKING[st.id] || []) : [];
   const v = st.multi ? '' : BOOKING[st.id];
+
+  /* ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL ----------------------------------------------
+     A LOCKED SELECT STILL SHOWED "—" ON A MULTI. The dropdown on a multiple-answer row is a way of
+     picking the NEXT one, so its own selection is always the blank — the chosen list was supposed to
+     be read off the row's value, and the control replaced it. Which is why joining a class showed
+     "Subject · —" directly under "Class · Maths, English Language": the answer was there, and the
+     thing drawn on top of it could not say so.
+
+     SO WHEN NOTHING CAN BE PICKED, NOTHING IS DRAWN THAT PICKS. Plain text, which also wraps — a
+     select cannot, and "Colliers Wood Library" was being cut to "Colliers …" in a column wide enough
+     for the whole thing over two lines. */
+  if (stepLocked_(st)) {
+    const said = st.emails
+      ? (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ')
+      : st.multi ? chosen.join(', ')
+      : (st.label_ && v ? st.label_(v) : v);
+    return `<span class="bk-set">${esc(String(said || '—'))}</span>`;
+  }
   const isOn = o => st.multi
     ? chosen.some(c => norm(c) === norm(o))
     : norm(o) === norm(v);
@@ -1385,8 +1403,11 @@ function stepSelect_(st) {
   return `<select class="bk-sel" data-do="book-set" data-step="${esc(st.id)}"
       ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
     ${/* THE FIRST OPTION IS ALWAYS SELECTED ON A MULTI, because the select is a way of picking the
-          NEXT one rather than a display of what is picked — the row above it already shows that. */''}
-    <option value=""${(st.multi || !v) ? ' selected' : ''}>—</option>
+          NEXT one rather than a display of what is picked. WHICH MEANS IT HAS TO SAY WHAT IS PICKED:
+          it is the only label on the row, so leaving it as "—" made a row with three subjects on it
+          read as empty. */''}
+    <option value=""${(st.multi || !v) ? ' selected' : ''}>${
+      st.multi && chosen.length ? esc(chosen.join(', ')) : '—'}</option>
     ${opts.map(o => `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}
       >${st.multi && isOn(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
   </select>`;

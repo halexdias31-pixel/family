@@ -2243,6 +2243,13 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .bk-in:focus { outline: 0; }
 .bk-in::placeholder { color: var(--faint); opacity: 1; }
 
+/* A SETTLED ANSWER — text where a control would be, because nothing can be picked. It wraps, which
+   is the other half of the point: a select cannot, so a long venue name was cut mid-word in a column
+   with room for it over two lines. Same colour as a locked control, for the same reason. */
+.bk-set { display: block; color: var(--dim); }
+.rc .bk-set { color: #8a8175; }
+.rc.scr .bk-set { color: #6f8f7c; }
+
 /* THE NOTE READS LEFT TO RIGHT. Every other value is right-aligned against its figures; a sentence
    is not a figure, and a sentence that starts at the right edge and grows leftwards is unreadable.
    Its row has no figures at all, so it already spans the card — see `is-bare`. */

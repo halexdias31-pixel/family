@@ -179,7 +179,12 @@ const KINDS = {
   tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
 
-  link: { group: 'Learning', label: 'Links', card: x => {
+  /* ---------- LINKS ARE NOT LEARNING ---------------------------------------------------------------
+     THEY WERE FILED UNDER IT and most of them are not: the categories on that tab run Apple, Google,
+     Money, Admin, Tools, Social, download, videos. A bookmark to a bank is not a resource for a
+     lesson, and burying the lot behind "What for · Learning" meant somebody looking for one had to
+     answer a question wrongly to get there. */
+  link: { group: 'Links', label: 'Links', card: x => {
     const l = x.row;
 
     /* The colour went with the shape it filled. A link's `colour` column is still read by the
@@ -468,6 +473,21 @@ function filterHit(x, f) {
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
+/* ---------- THE FIRST QUESTION IS NOT ALPHABETICAL ------------------------------------------------
+   EVERY FACET SORTS ITS ANSWERS BY NAME, which is right for subjects, venues, exam boards and
+   everything else: there is no reason to prefer one of forty tutors, and alphabetical is the order
+   somebody can predict.
+
+   "WHAT FOR" IS THE EXCEPTION. Its answers are the app's departments, and they have an order that
+   is about what people come here to do rather than about their initials — Booking first because it
+   is the errand that costs money, Links high because it is a shortcut somebody wants in one tap.
+   Alphabetically it ran Booking, Friends, Games, Learning, Links, People, Shop, Tools, which put
+   two of the least-used first.
+
+   ANYTHING NOT LISTED FALLS TO THE END, alphabetically among itself, so a group added tomorrow
+   appears without needing a line here. */
+const GROUP_ORDER = ['Booking', 'Links', 'Learning', 'Shop', 'Tools', 'Games', 'People', 'Friends'];
+
 function facetValues(items, facet) {
   const by = {};
   items.forEach(x => {
@@ -475,7 +495,14 @@ function facetValues(items, facet) {
     if (!v) return;                       // blank is not an answer, so it is never offered
     by[v] = (by[v] || 0) + 1;
   });
-  return Object.keys(by).sort(cmpText).map(v => ({ value: v, n: by[v] }));
+  const rank = v => {
+    const i = GROUP_ORDER.indexOf(v);
+    return i === -1 ? GROUP_ORDER.length : i;
+  };
+  const order = facet.field === 'forLabel'
+    ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
+    : cmpText;
+  return Object.keys(by).sort(order).map(v => ({ value: v, n: by[v] }));
 }
 
 /* HOW MANY OF THESE COULD EVEN ANSWER IT. Not how many distinct answers there are — how many
