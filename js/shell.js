@@ -48,10 +48,14 @@ const TABS = [
      and you. */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
 
-  /* BOOK, dead centre and a plus. The middle is where a thumb rests without moving, and a plus
-     says "make something" in a way no other glyph does — it is the one action the whole app is
-     for, and it should not be a word among six other words. */
-  { id: 'book',    icon: '＋', label: 'Book',    title: 'Book a session', big: true },
+  /* BOOK WAS A COLUMN HERE, dead centre, a plus, and argued for at length as the one action the
+     whole app is for. It still is — but the funnel beside it was already asking "what for", already
+     answering "Booking", and already listing the four things a booking is assembled from. A column
+     for making one, next to a screen for finding the parts of one, was the same errand split in
+     two.
+
+     Everything that was on it — the form, your sessions, the open classes — is a page on Find now,
+     behind that answer. See `bookingPages_` in find.js. */
 
   /* SAVED WAS A COLUMN HERE. Each saved thing is a PAGE on Find now, in front of the question —
      see `savedPages_` in collections.js for why — so the tab is gone rather than left pointing at a
@@ -809,7 +813,7 @@ const PAGER = {
      Each count comes from the same function that renders the pages, so the header and the screen
      cannot disagree about how many there are. */
   me:      () => mePages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
-  book:    () => bookPages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
+  /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. The pager needs the COUNT — that is what it pages through — and
      a post has no name worth putting in a header: "1 of 10" is a fact about the list rather than

@@ -269,8 +269,17 @@ document.addEventListener('change', e => {
    passes are one filter away on the same screen.
 --------------------------------------------------------------------------------------------- */
 
-on('book-with', (el) => {
+/* ---------- BOOKING FROM A CARD --------------------------------------------------------------------
+   IT WENT TO A COLUMN THAT NO LONGER EXISTS, and said "not built yet" on arrival — which was true
+   when it was written and has not been for a while.
+
+   IT ASKS THE FUNNEL INSTEAD. "What for · Booking" is the filter the booker lives behind, so
+   pressing Book on a tutor or a venue is answering that question on your behalf and landing you on
+   the form. The name on the button is not carried through yet: `data-name` is read by nothing, and
+   pre-filling the tutor from here is a change to `BOOKING`, not to navigation. */
+on('book-with', () => {
   closeSheet();
-  go('book');
-  toast('Booking screen — not built yet');
+  STUFF.filters = [{ field: 'forLabel', value: 'Booking' }];
+  go('stuff');
+  paintStuff();
 });

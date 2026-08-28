@@ -1911,6 +1911,9 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    — and on an unsent booking the third is "No venue yet · No tutor yet" beside a timestamp, which is
    two facts the rows below state properly and a clock nobody asked for. Tightened rather than cut:
    it is what makes the card a receipt at a glance. */
+/* NO PADDING ABOVE ON THE FORM. The head is one line now — where and with whom and when — and the
+   room above it was there to sit the shop name off the torn edge. */
+.rc.scr .rc-head { padding-top: 0; }
 .rc-head { text-align: center; padding: .1rem 0 .35rem; }
 .rc-head h2 { margin: 0 0 .15rem; font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
 .rc-head p { margin: 0; font-size: .68rem; color: #6a6259; line-height: 1.35; }
@@ -4274,6 +4277,9 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   pointer-events: none;
 }
 @keyframes scr-blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+/* `.rc.scr .rc-head h2` IS STILL LISTED and now matches nothing — the form has no heading. Left in
+   place deliberately: the rule is "the bright things on the terminal", and dropping the selector
+   would mean adding it back the day a heading returns. */
 .rc.scr .rc-head h2, .rc.scr .rc-total, .rc.scr .bk-pick { color: var(--green) }
 .rc.scr .rc-head p, .rc.scr .rc-stage, .rc.scr .bk-k, .rc.scr .bk-n { color: #6f8f7c }
 .rc.scr .bk-row, .rc.scr .bk-v { color: #cfe8d8 }
@@ -6812,7 +6818,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `.bookr` HAS NO EDGES OF ITS OWN. It exists to be found by `redrawBooker_`, which restores the
    scroll position across a redraw, and to keep the note box and the send buttons with the paper
    they belong to. */
-#s-book > .page:first-child > .pane {
+/* ---------- THE BOOKER'S PAGE, WHEREVER IT SITS ----------------------------------------------------
+   `#s-book` WAS ITS OWN COLUMN. The booker is a page on Find now, behind "What for · Booking", so
+   the rule targets the paper rather than a screen id — `.pane:has(> #bookr)` is "whichever page is
+   holding the booker", which survives the page moving again.
+
+   The receipt is already a box: torn at both ends, printed on its own colour. A pane behind it was
+   a glass panel wrapped round a piece of paper. Visual only — the pane keeps its sizing, its
+   containment and its `touch-action`, which are about being a page in the swipe grid. */
+.pane:has(> #bookr) {
   background: none;
   border: 0;
   box-shadow: none;

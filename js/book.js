@@ -279,32 +279,27 @@ function weekGrid() {
 
    THE FIRST PAGE ONLY. `bookPages` rebuilds every block from the same job data; only block zero
    can have changed, because only block zero holds the booker. */
+/* ---------- REPAINTING THE BOOKER, WHEREVER IT IS -------------------------------------------------
+   IT LIVED ON ITS OWN COLUMN and this rewrote that column's first pane. There is no such column:
+   the booker is a page on Find, behind "What for · Booking", and answering a question can change
+   how many pages there are — the hours grid unfolding, a saved thing starred.
+
+   SO `paintStuff` DOES IT. It already rebuilds the pages around the question page and already
+   knows not to touch the search box mid-word, which is exactly the guarantee this needs. One
+   repainter for one screen, rather than two that have to agree about what is on it. */
 function paintBook_() {
-  const host = $('s-book');
-  if (!host) return;
-  const pane = host.querySelector(':scope > .page > .pane');
-  if (!pane) return;
-  pane.innerHTML = bookBlocks()[0] || '';
+  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff();
 }
 
-function bookPages() {
-  const blocks = bookBlocks();
-  /* One block, one pane. The carry-forward that used to be here existed to stick a "Yours" or
-     "Open" heading onto the session under it; there are no headings now, so there is nothing to
-     carry and nothing that can be left behind at the end. */
-  /* THE WEEK IS NOT IN THIS COLUMN ANY MORE — it is on You, the last of the four. It moved to the
-     end of Book first, which was the right instinct in the wrong column: Book is where you MAKE a
-     session, and a grid of ones already settled is a different question from the one this column
-     asks. `weekGrid` still lives in this file because it is built from the same job data as the
-     cards above; only where it is drawn has changed. */
-  const out = blocks;
-  return out.length ? out : [''];
-}
+/* `bookPages` WAS HERE — one pane per block for the Book column. `bookingPages_` in find.js does the
+   same job for the funnel, which is where the blocks are drawn now. `bookBlocks` is unchanged and
+   is what both ever called. */
 
 /* The second argument was a header action — a "Sign in" link in the top right for anybody who was
    not. There is no header, so it went nowhere; the Book screen's own first card already says
    "Sign in to book" with a button on it, which is where somebody is actually looking. */
-screen('book', () => pages('book', bookPages()));
+/* `screen('book')` WAS HERE. A screen with no tab is a screen nobody can reach, and `bookPages` was
+   its only caller — the same blocks are pages on Find now, assembled by `bookingPages_` there. */
 /* `on('soon')` was here — "Not moved across yet", for screens that had not been rebuilt during
    the rewrite. They all have been, and nothing has carried `data-do="soon"` for a long time. */
 on('signin', () => toast('Sign-in screen next'));
@@ -1743,7 +1738,16 @@ function receiptHtml(r) {
   const kind = r.kind || 'receipt';
   const SKIN = { screen: ' scr', application: ' app', waitlist: ' wl', receipt: '' };
   const STAGE = {
-    screen: 'Asking for a session',
+    /* ---------- THE SCREEN STAGE SAYS NOTHING, SO IT SAYS NOTHING ---------------------------------
+       "ASKING FOR A SESSION" WAS TRUE AND REDUNDANT. It sat above a form headed by the question the
+       funnel just asked, on a page you reach by answering "what for · booking", with a button at
+       the bottom reading "Ask for it". Four things saying the same thing, and this was the one with
+       no other job.
+
+       THE OTHER THREE KEEP THEIRS, because they carry a fact nothing else on the card does: whether
+       an application has been accepted, whether a waiting list has you on it, whether a paid
+       receipt was a shared class or a whole session. Those cannot be read off the rows. */
+    screen: '',
     application: r.accepted ? 'Accepted — waiting for payment'
                            : 'Application — waiting to be accepted',
     waitlist: 'You are on the waiting list',
@@ -1765,7 +1769,15 @@ function receiptHtml(r) {
   return `<div class="rc rc-${esc(kind)}${SKIN[kind] || ''}${okd}">
     ${STAGE[kind] ? `<p class="rc-stage">${esc(STAGE[kind])}</p>` : ''}
     <div class="rc-head">
-      <h2>@family.</h2>
+      ${/* ---------- THE SHOP NAME IS FOR A RECEIPT, NOT FOR A FORM --------------------------------
+            A till roll names the shop because it leaves the shop — it is evidence, held by somebody
+            who might need to say where it came from. A form being filled in has not left anything:
+            it is on screen, inside the app, above a button with the shop's own wording on it.
+
+            SO THE SCREEN STAGE DROPS IT and the other three keep it. That also takes the `> `
+            prompt with it, which `.screen h2::before` draws — the terminal look is the scan lines,
+            the green and the blinking cursor, none of which need a heading to hang on. */''}
+      ${kind === 'screen' ? '' : '<h2>@family.</h2>'}
       ${/* THE THREE LINES ON ONE LINE. Venue, tutor and term were a paragraph each, three deep at
            the top of every card — and they are one fact, not three: where and with whom and when.
            Joined with a middot, they read at a glance and give back two lines of height. */''}

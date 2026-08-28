@@ -1455,6 +1455,20 @@ const S_ = v => String(v == null ? '' : v);
 
    ONE BEFORE ANYTHING IS DRAWN. `paintStuff` inserts the pages around a question page that already
    exists, so there is always one to find by the time this is asked in anger. */
+/* ---------- IS THE FUNNEL ASKING ABOUT BOOKING? ----------------------------------------------------
+   `forLabel` IS THE FIRST QUESTION — the one whose answer is Booking, Learning, Shop, Games or
+   Friends. A filter on it is what says which errand somebody is on, and it is the only signal here:
+   nothing counts kinds or reads the results, so this stays true however the funnel is answered
+   afterwards.
+
+   NOT SIGNED IN, NOTHING TO DRAW. The booker needs somebody to book for, and the sessions are
+   somebody's own — `bookBlocks` already returns the offers alone in that case, which is right. */
+function bookingPages_() {
+  const on = (STUFF.filters || []).some(f => f.field === 'forLabel' && norm(f.value) === 'booking');
+  if (!on) return [];
+  return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
+}
+
 function stuffFirstResult_() {
   const el = $('stuff-controls');
   const page = el && el.closest('.page');
@@ -2220,8 +2234,18 @@ screen('stuff', () => {
      once and never rebuilt, so typing in the search box cannot lose its own focus. */
   /* Empty pages. `fillStuffPages` puts markup in the ones you can reach, after the screen exists
      — a page cannot be measured or moved until it is in the document. */
-  /* WHAT YOU KEPT, THEN THE QUESTION, THEN THE ANSWER. */
+  /* ---------- BOOKING IS A THING YOU FIND ----------------------------------------------------------
+     THE BOOK COLUMN IS GONE and its contents are here, behind the question the funnel already asks.
+     "What for · Booking" then offered Levels, Subjects, Tutors and Venues — the four things a
+     booking is assembled FROM — and had nothing to say about assembling one. The form that does
+     that was a column away.
+
+     ONLY WHEN THE FUNNEL IS ON BOOKING, which is what makes this an answer rather than a seventh
+     tab wearing a different hat. Ask a different question and none of it is drawn.
+
+     WHAT YOU KEPT, THEN THE BOOKING, THEN THE QUESTION, THEN THE ANSWER. */
   return pages('stuff', savedPages_().concat(
+    bookingPages_(),
     [controls],
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => CART.length
