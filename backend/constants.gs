@@ -59,6 +59,36 @@
 // If every section ever loads empty, this line is the first thing to check — doGet now says so
 // explicitly rather than returning empty lists.
 const SPREADSHEET_ID = "1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW";
+
+/* ==================================================================================================
+   TABS THAT LIVE IN ANOTHER FILE.
+
+   The main database grew to forty tabs, and four of them had nothing to do with running the
+   business: boxers, fights, questions and cheatsheet are subject CONTENT — they are what gets
+   taught, not who teaches it or when. So they moved into a second spreadsheet, and the ones that
+   moved were renamed on the way.
+
+   NOTHING ELSE IN THE CODE KNOWS THEY MOVED, and that is the point of doing it here. Every tab in
+   this system is reached through `read(name)`, so one lookup in one function covers all of it —
+   the boxer cards, the question rows, the past-paper builder, the cheat sheet maker. They still
+   ask for `boxers`; they just get it from somewhere else.
+
+   THE KEY IS THE NAME THE CODE USES. The value is where it actually is. Move a tab back and you
+   delete its line here, and nothing else changes.
+
+   A BLANK SUBJECTS_ID IS NOT AN ERROR, it is four empty sections — the same as any tab that is not
+   there. `checkTabs()` says so plainly rather than leaving you to work out why boxing vanished.
+================================================================================================== */
+const SUBJECTS_ID = "";          // <- paste the subjects spreadsheet id here
+
+const FILES = { main: SPREADSHEET_ID, subjects: SUBJECTS_ID };
+
+const ELSEWHERE = {
+  boxers:     { file: 'subjects', tab: 'BoxingDB - boxers'  },
+  fights:     { file: 'subjects', tab: 'BoxingDB - fights'  },
+  questions:  { file: 'subjects', tab: 'FamDB - questions'  },
+  cheatsheet: { file: 'subjects', tab: 'FamDB - cheatsheet' },
+};
 /* WHO GETS TOLD when something needs doing by hand. A name rather than an address, because
    notify() looks the address up on the people tab — so changing your email is one cell, not a
    redeploy.

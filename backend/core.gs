@@ -29,10 +29,25 @@
  */
 function clearCache() { Object.keys(_cache).forEach(k => { delete _cache[k]; }); }
 
+/* ---------- WHICH FILE, AND WHAT IT IS CALLED IN THERE --------------------------------------------
+   One lookup, used by `read` and by `ensureSchema`. Those are the only two places that turn a tab
+   name into an actual sheet, and they have to agree — if `read` fetched boxers from the subjects
+   file while `ensureSchema` looked for it in the main one, `ensureSchema` would helpfully create a
+   second empty `boxers` tab back in the database you just moved it out of. */
+function sheetFor_(name) {
+  const w = ELSEWHERE[name];
+  return w ? { id: FILES[w.file] || '', tab: w.tab, away: w.file }
+           : { id: SPREADSHEET_ID,      tab: name,  away: '' };
+}
+
 function read(name) {
   if (_cache[name]) return _cache[name];
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(name);
+  const at = sheetFor_(name);
+  /* NO ID MEANS NO FILE, which is the unfilled SUBJECTS_ID. Answered exactly like a tab that is not
+     there, because that is what it is from every caller's point of view. */
+  if (!at.id) return (_cache[name] = { sheet: null, headers: [], rows: [] });
+  const ss = SpreadsheetApp.openById(at.id);
+  const sheet = ss.getSheetByName(at.tab);
   if (!sheet) return (_cache[name] = { sheet: null, headers: [], rows: [] });
   /* ---------- THE LAST ROW WITH DATA, NOT THE LAST ROW SOMETHING TOUCHED --------------------------
      `getDataRange()` goes to the furthest cell anything has ever been done to — a paste that

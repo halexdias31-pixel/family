@@ -872,15 +872,20 @@ function seedHolidays(arg) {
 }
 
 function ensureSchema() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const report = {};
   Object.keys(SCHEMA).forEach(name => {
-    let sh = ss.getSheetByName(name);
+    /* THE SAME LOOKUP `read` USES. Without it this walks the main spreadsheet, fails to find
+       `boxers`, and creates a fresh empty one — so the app would read the real boxers from the
+       subjects file while a decoy sat in the database looking like the real thing. */
+    const at = sheetFor_(name);
+    if (!at.id) { report[name] = 'skipped — SUBJECTS_ID is blank'; return; }
+    const ss = SpreadsheetApp.openById(at.id);
+    let sh = ss.getSheetByName(at.tab);
     if (!sh) {
-      sh = ss.insertSheet(name);
+      sh = ss.insertSheet(at.tab);
       sh.appendRow(SCHEMA[name]);
       sh.setFrozenRows(1);
-      report[name] = 'tab created';
+      report[name] = 'tab created' + (at.away ? ' in ' + at.away : '');
       return;
     }
     const lastCol = Math.max(1, sh.getLastColumn());
@@ -1796,4 +1801,31 @@ function autoMigrate() {
   } finally {
     try { lock.releaseLock(); } catch (err2) {}
   }
+}
+
+/* ==================================================================================================
+   WHERE IS EVERY TAB, AND IS IT THERE?
+
+   Four tabs now live in a second spreadsheet, which means a new way for things to go quietly wrong:
+   a blank SUBJECTS_ID, a renamed tab, a file you moved to another Drive account. None of those
+   throw. They all just make a section empty, and an empty section looks exactly like a section
+   nobody has put anything in yet.
+
+   So this asks the question directly. Run it after moving anything.
+================================================================================================== */
+function checkTabs() {
+  const out = { ok: [], EMPTY: [], MISSING: [] };
+  Object.keys(SCHEMA).forEach(name => {
+    const at = sheetFor_(name);
+    const label = name + (at.away ? '  (' + at.away + ' → ' + at.tab + ')' : '');
+    if (!at.id) { out.MISSING.push(label + '  — no file id'); return; }
+    let sh = null;
+    try { sh = SpreadsheetApp.openById(at.id).getSheetByName(at.tab); }
+    catch (err) { out.MISSING.push(label + '  — cannot open that file'); return; }
+    if (!sh) { out.MISSING.push(label + '  — no such tab'); return; }
+    const n = Math.max(0, sh.getLastRow() - 1);
+    (n ? out.ok : out.EMPTY).push(label + '  — ' + n + ' rows');
+  });
+  Logger.log(JSON.stringify(out, null, 2));
+  return out;
 }
