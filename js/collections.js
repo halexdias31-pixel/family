@@ -116,14 +116,28 @@ screen('spotlight', () => pages('spotlight', spotPages()));
    IT DRAWS NOTHING WHEN THERE IS NOTHING. The empty sentence made sense on a column somebody had
    deliberately opened — an empty column with no explanation reads as broken. Under a search box it
    is the opposite: a permanent "nothing starred yet" sitting above every result anybody ever looks
-   at, saying nothing, for the whole time before they star their first thing. */
+   at, saying nothing, for the whole time before they star their first thing.
+
+   ---------------------------------------------------------------------------------------------
+   ONE BOX EACH, AND THAT IS NOT WHAT `.card` GIVES YOU.
+
+   A `.card` is not a box in this app — `background: none`, `border: 0`, one hairline underneath.
+   It is a ROW. What reads as a box is the `.pane`, which is why every screen looks like a stack of
+   panels: each panel is a pane and the cards are the lines inside it. So a run of `stuffCard`s
+   dropped under the search box came out as more hairline rows on the search panel itself, which is
+   the opposite of "its own widget".
+
+   `.savebox` IS A PANE THAT IS NOT A PAGE. Same fill, same border, same bright top edge and the
+   same 14px corner — because a saved thing should look like every other panel on the screen, not
+   like a new invention — but it sits in the flow underneath the search widget rather than being
+   positioned by the grid. Each one holds exactly one thing. */
 function savedStrip_() {
   if (!USER) return '';
   const items = collItems_(isFav);
   if (!items.length) return '';
   const credits = collCredits_();
   return `<h3 class="strip-h">Saved ‧ ${items.length}</h3>`
-       + items.map(x => stuffCard(x, credits)).join('');
+       + items.map(x => `<div class="savebox">${stuffCard(x, credits)}</div>`).join('');
 }
 
 
