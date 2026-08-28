@@ -725,12 +725,20 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
             background: var(--sunk); border: 1px solid var(--line); border-radius: 4px;
             font-size: .7rem; color: var(--faint); }
 
-.tile { display: flex; flex-direction: column; align-items: center; gap: .35rem;
-        text-decoration: none; color: var(--ink);
-        transition: transform var(--quick) ease; }
-.tile:active { transform: scale(.93); }
-/* The tile NAME went with the Library wall — a link is a card on Find now, and its name is the
-   card's own heading. The shape survives, because a link card still carries it. */
+/* ---------- THE LIBRARY WALL'S `.tile` WAS STILL HERE, AND IT WAS WINNING ------------------------
+   A `.tile` on that wall was a square: a picture above a caption, so `flex-direction: column`.
+   The wall is gone and `.tile` now means an ACTION — a row with the mark and the word at one end
+   and the detail at the other, which is what the real rule further down describes.
+
+   THAT RULE NEVER RESET `flex-direction`, because when it was written there was nothing to reset.
+   So every action button in the app has been a COLUMN wearing a row's `justify-content:
+   space-between` and `align-items: baseline` — which is why adding a 15px mark to a tile drew a
+   graphic the height of the card: `space-between` down a column pushes the mark and the label to
+   opposite ends and stretches whatever is between them.
+
+   The comment that lived here said the shape survives because a link card still carries it. It does
+   not: nothing but `tile_` has emitted a `.tile` since the wall came down, so this is one rule
+   quietly overriding its replacement, and it goes. */
 
 /* The `.shape` rules lived here — a cart, a card, a circle, a square, each filled with a colour
    worked out from the link's name. They went with the coloured squares themselves: a link wears the
@@ -5320,20 +5328,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    The wrapper only exists to give the button something to be positioned against, so it does the
    least a wrapper can: it becomes the containing block and changes nothing else. */
 .favwrap { position: relative; }
-.star {
-  position: absolute; top: .4rem; right: .4rem;
-  width: 1.6rem; height: 1.6rem; padding: 0;
-  display: grid; place-items: center;
-  font-size: .95rem; line-height: 1;
-  background: rgb(0 0 0 / .45); color: var(--faint);
-  border: 0; border-radius: 50%; cursor: pointer;
-  /* ABOVE THE CARD, BELOW A SHEET. A star that sits over an open sheet is worse than one that is
-     hard to see. */
-  z-index: 2;
-}
-.favwrap.is-fav .star { color: var(--gold); background: rgb(0 0 0 / .55); }
-.star:active { transform: scale(.9); }
-@media (prefers-reduced-motion: reduce) { .star:active { transform: none; } }
+/* ---------- `.star` WAS HERE ----------------------------------------------------------------------
+   A round button pinned to the top-right corner of every card. It is a tile in the action row now —
+   see `favTile_` — so the corner is empty and these rules had nothing left to position.
+
+   `.favwrap.is-fav` STAYS and is used below: a kept card still marks itself as kept, which is a fact
+   about the card and outlives the button that set it. */
 
 /* ==================================================================================================
    THE FLYER MAKER — every rule under `.fm`, and every colour `--fly-` prefixed.
@@ -6512,7 +6512,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    KEY LEFT, VALUE RIGHT — the same shape as every other row on the card, so the actions read as
    part of it rather than as a control panel bolted underneath. */
 .tile-row { display: flex; flex-direction: column; gap: 1px; margin-top: .45rem; }
-.tile-row.is-admin { margin-top: .45rem; }
+/* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
+   overrode. Stated once, where the rest of the admin row is described. */
 
 .tile {
   display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
@@ -6559,7 +6560,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    basket it stops being an offer, so it stops being loud — the fill says "done" and the label says
    so in words. */
 .tile.is-buy { color: var(--gold); border-color: rgb(255 180 84 / .45); }
-.tile.is-buy.on { color: var(--dim); border-color: var(--line); background: rgb(255 180 84 / .07); }
+/* THE FILLED VERSION IS WITH THE OTHER FILLED RULES, further down. It was declared twice — here
+   with a .07 background and there with .09 — and the one you could see was never this one. */
 
 /* ---------- SILVER MEANS ONLY YOU CAN SEE THIS ---------------------------------------------------
    NOT A HUE, ON PURPOSE. Green is a subject, purple a venue, pink a wearable, red a tutor — every

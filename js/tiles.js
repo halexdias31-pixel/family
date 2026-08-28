@@ -63,6 +63,13 @@ const TILE_ICONS = {
   book:  '<path d="M2.5 3.5h5a2 2 0 0 1 2 2v9a2 2 0 0 0-2-2h-5z"/>'
        + '<path d="M15.5 3.5h-5a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h5z"/>',
   wear:  '<path d="M6 2.5 3 4v4h2v6h6V8h2V4l-3-1.5a2.2 2.2 0 0 1-4 0z"/>',
+  star:  '<path d="m9 2.5 2 4.3 4.5.6-3.3 3.2.8 4.6L9 13l-4 2.2.8-4.6L2.5 7.4 7 6.8z"/>',
+  spot:  '<path d="M9 1.5v2.5"/><path d="M9 14v2.5"/><path d="M2.2 8.5h2.4"/>'
+       + '<path d="M13.4 8.5h2.4"/><circle cx="9" cy="8.5" r="3"/>',
+  edit:  '<path d="M11.5 2.8 14.2 5.5 6 13.7l-3.4.7.7-3.4z"/><path d="m10.2 4.1 2.7 2.7"/>',
+  bin:   '<path d="M2.8 4.5h12.4"/><path d="M6.5 4.5V2.8h5v1.7"/>'
+       + '<path d="M4.5 4.5 5.3 15h7.4l.8-10.5"/>',
+  undo:  '<path d="M2.8 8.5h8a3.5 3.5 0 1 1 0 7H6"/><path d="M5.5 5.5 2.5 8.5l3 3"/>',
 };
 
 function tileIcon_(name) {
@@ -136,13 +143,35 @@ function adminTiles_(x, t) {
   if (!isAdmin()) return '';
   const id = t ? (t.id || t.name) : x.key;
   return `<div class="tile-row is-admin">
-    ${tile_({ label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
+    ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
               on: isSpot(x.key), act: 'spot',
               data: { key: x.key, kind: x.kind || 'item' } })}
-    ${t ? tile_({ label: 'Edit', tone: 'admin', act: 'topic-edit', data: { key: id } }) : ''}
-    ${t ? tile_({ label: t.active ? 'Delete' : 'Restore', tone: 'admin',
+    ${t ? tile_({ icon: 'edit', label: 'Edit', tone: 'admin',
+                  act: 'topic-edit', data: { key: id } }) : ''}
+    ${t ? tile_({ icon: t.active ? 'bin' : 'undo', label: t.active ? 'Delete' : 'Restore',
+                  tone: 'admin',
                   act: 'topic-delete', data: { key: id, on: t.active ? '' : '1' } }) : ''}
   </div>`;
+}
+
+
+/* ---------- THE STAR, WHICH IS AN ACTION LIKE ANY OTHER --------------------------------------------
+   IT USED TO FLOAT IN THE CORNER. `stuffCard` wrapped every card in a `.favwrap` and dropped a
+   `<button class="star">☆</button>` on top of it, absolutely positioned — which was written when it
+   was the only thing you could do to a card. It is not: a paper has HTML and Paper, a bout has
+   Watch, everything an admin sees has three more. So the one control that was NOT in the row was
+   the one people looked for in it.
+
+   SAME SHAPE, SAME PLACE, SAME WORDS AS THE REST. `Save` and `Saved`, filled when it is on, exactly
+   like `Add to basket` / `In your basket` — a glyph in a corner had to be learnt, and this does not.
+
+   FIRST IN THE ROW, ABOVE THE ADMIN BLOCK. Keeping a thing is something anybody can do; the silver
+   rows underneath are for one person. */
+function favTile_(x) {
+  if (!x.key || !USER) return '';
+  return `<div class="tile-row">${tile_({
+    icon: 'star', label: isFav(x.key) ? 'Saved' : 'Save', on: isFav(x.key),
+    act: 'fav', data: { key: x.key, kind: x.kind || 'item' } })}</div>`;
 }
 
 
@@ -374,6 +403,13 @@ function fightTiles_(x) {
    rows, so a spotlight can go on anything findable rather than only on the two kinds that happen to
    have actions today. */
 function cardTiles_(x) {
+  /* THE STAR BEFORE EVERYTHING ELSE, on every kind, including the ones with no actions of their
+     own — which is most of them. `favTile_` returns nothing for a card with no key or a visitor
+     who is not signed in, so this stays one line rather than a condition per branch. */
+  return favTile_(x) + cardActions_(x);
+}
+
+function cardActions_(x) {
   if (x.kind === 'topic') return topicTiles_(x);
   if (x.kind === 'shop') return x.wearable ? wearTiles_(x) : shopTiles_(x);
   if (x.kind === 'tutor') return tutorTiles_(x);

@@ -1572,9 +1572,12 @@ on('fav', el => {
      `.card`, `.paper` — while the rule that colours a starred star is `.favwrap.is-fav .star`. So
      the class landed on an element no rule was watching and the star never lit. The wrapper is also
      the only element guaranteed to exist here; the card is whichever of four builders drew it. */
+  const on = isFav(el.getAttribute('data-key'));
   const wrap = el.closest('.favwrap');
-  if (wrap) wrap.classList.toggle('is-fav', isFav(el.getAttribute('data-key')));
-  el.textContent = isFav(el.getAttribute('data-key')) ? '★' : '☆';
+  if (wrap) wrap.classList.toggle('is-fav', on);
+  /* THE TILE'S OWN LABEL, not a glyph — the same correction `on('spot')` needed when it was still
+     writing ✦ over a control that had become two spans. */
+  tileSet_(el, { label: on ? 'Saved' : 'Save', on: on });
 
   /* ---------- AND THE PAGES IN FRONT OF THE QUESTION ---------------------------------------------
      A saved thing is a PAGE now, so starring one does not change what is on a page — it changes how
@@ -1596,19 +1599,14 @@ function stuffCard(x, credits) {
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
   const html = (kindOf_(x).card || thingCard_)(x, credits);
   if (!x.key) return html;
-  /* THE STAR SITS ON TOP OF WHATEVER THE CARD IS. Wrapping rather than editing eight builders means
-     a kind added later gets a star without anybody remembering to add one — the same reason
-     `stuffCard` has a fallback card at all. */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}
-    ${/* `star`, NOT `fav`. `.fav` was already the FAVICON on a link card — absolutely positioned at
-          inset 10%, eighty per cent wide and tall, with a solid background — so every star button
-          became a black rectangle covering the card it was supposed to sit on. Two features, three
-          letters apart, and the older one silently swallowed the newer.
-          Named for the shape rather than the meaning, because "fav" was ambiguous the moment a
-          second thing wanted it. */''}
-    <button class="star" data-do="fav" data-key="${esc(x.key)}" data-kind="${esc(x.kind || 'item')}"
-      aria-label="Favourite">${isFav(x.key) ? '★' : '☆'}</button>
-  </div>`;
+  /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_`
+     inside `cardTiles_`, which every card builder already calls. A floating button in the corner
+     was the one control that was not where the others were, and it was the one people went looking
+     for among them.
+
+     THE WRAPPER STAYS. `.favwrap.is-fav` is what marks a kept card as kept at a glance on a list,
+     and that is a fact about the CARD rather than about the button that set it. */
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>`;
 }
 
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
