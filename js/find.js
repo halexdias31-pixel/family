@@ -94,6 +94,22 @@ const KINDS = {
      errand: this is a thing you book with, not a thing you learn from. */
   level:   { group: 'Booking', label: 'Levels',   card: x => findCard({ kind: x.kind, row: x.row }) },
 
+  /* ---------- WHAT YOU HAVE BOOKED, AND WHAT IS GOING SPARE ---------------------------------------
+     THESE WERE PAGES, not answers. When the Book column moved here, everything on it came as one
+     run of pages behind "What for · Booking" — the form, your sessions and the open classes, in the
+     order the column happened to stack them. Which meant three unrelated things sharing one answer,
+     and no way to ask for any of them on its own.
+
+     THEY ARE TWO KINDS OF THING AND ARE TWO KINDS. A receipt is yours and settled; a coupon is
+     somebody else's class with room in it. The funnel is built to keep exactly that apart — it is
+     the same question it asks about tutors and venues — so asking it here costs one line each and
+     gives back a filter, a count and a place in the list.
+
+     THE CARDS ARE THE ONES THE COLUMN DREW. `jobCard` and `openClassCard` were locals inside
+     `bookBlocks`; they are top-level in book.js now and nothing about what they draw has changed. */
+  receipt: { group: 'Booking', label: 'Receipts', card: x => jobCard(x.row) },
+  coupon:  { group: 'Booking', label: 'Coupons',  card: x => openClassCard(x.row) },
+
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
   friend: { group: 'Friends', label: 'Friends', card: x => {
     const f = x.row;
@@ -1092,6 +1108,30 @@ function stuffItems() {
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       cost: 0, slot: '', subject: x.name, grade: '', off: false, row: x,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    /* ---------- YOUR SESSIONS, AND THE CLASSES WITH ROOM ----------------------------------------
+       `subject` AND `keystage` ARE FILLED where the job has them, so a receipt turns up when you
+       narrow to Maths — which is the whole reason for making these findable rather than a page.
+
+       `off` MARKS A CANCELLED ONE rather than hiding it. A booking that was called off is still a
+       thing that happened and still the answer to "what did I book"; `is-off` greys it and says
+       so. */
+    ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
+      kind: 'receipt', name: j.subject || 'Session',
+      key: 'job:' + (j.id || j.jobId || ''),
+      sub: [j.venue, j.weekday, j.time].filter(Boolean).join(' · '), image: '',
+      cost: 0, slot: '', subject: j.subject || '', grade: '',
+      off: norm(j.status) === 'cancelled', row: j,
+      bandType: '', bandValue: '', keystage: j.level || '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
+    ...(typeof openJobs_ === 'function' ? openJobs_() : []).map(j => ({
+      kind: 'coupon', name: j.subject || 'Class',
+      key: 'open:' + (j.id || j.jobId || ''),
+      sub: [j.venue, j.weekday, j.time].filter(Boolean).join(' · '), image: '',
+      cost: 0, slot: '', subject: j.subject || '', grade: '', off: false, row: j,
+      bandType: '', bandValue: '', keystage: j.level || '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: '', paper: false,
     })),
     /* ---------- LEVELS -------------------------------------------------------------------------

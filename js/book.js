@@ -20,178 +20,135 @@
    this is the one carried over whole — the screen only has to show what it says.
 --------------------------------------------------------------------------------------------- */
 /** Everything on the Book screen, in order. */
-function bookBlocks() {
-  const jobs = DATA.liveJobs || DATA.jobs || [];
-  const mine = USER ? jobs.filter(j => norm(j.client) === norm(USER.name)
-                                    || norm(j.tutor) === norm(USER.name)) : [];
-  const open = jobs.filter(j => !mine.includes(j));
+  /* ---------- AN OPEN CLASS IS AN OFFER, AND LOOKED LIKE ADMIN -------------------------------------
+   IT WAS THE SAME GREY STUB AS A SESSION ALREADY BOOKED, with "4 free" tucked in a corner. That
+   is the right treatment for a thing you own and the wrong one for a thing being offered to you:
+   in a list of your own bookings, an invitation drawn like a receipt reads as somebody else's
+   business and gets scrolled past.
+
+   A TICKET, NOT A CARD. The seat price large enough to read across a room, the seats left stated
+   as a count, and a torn edge down the side. That is the whole of what makes a coupon work —
+   scarcity said plainly and a number you do not have to squint at. */
+function openClassCard(j) {
+  const seats = Number(j.seatsGoing) || 0;
+  /* ---------- "3 OF 3 SEATS LEFT" ON A CLASS OF FOUR ---------------------------------------------
+     `j.capacity` IS NEVER SET BY ANYTHING. Nothing in the client, the backend or the payload
+     writes that name, so `Number(j.capacity)` was always NaN and the fallback took over — and the
+     fallback was `seats`, which makes the total equal the seats left and prints "3 of 3" whatever
+     the real class size is. It reads as a full class and a free one in the same breath, and it
+     could never have read anything else.
+
+     THE FIELDS THE REST OF THE FILE USES. `waitlist` capacity is resolved as
+     `j.maxKids || j.maxStudents` at the foot of this file, which comes off the venue's
+     `max_students` — 4 at Colliers Wood. `j.capacity` is kept at the front in case the payload
+     ever grows one, but it is no longer the only thing asked.
+
+     AND THE TOTAL CANNOT BE SMALLER THAN WHAT IS LEFT. If the numbers ever disagree the seats
+     left are the ones somebody is about to act on, so they win and the total follows. */
+  const cap = Math.max(Number(j.capacity || j.maxKids || j.maxStudents) || 4, seats);
+  /* `job`, THE SAME DOOR THE ORDINARY CARD USES. I wrote `job-open`, which no handler answers —
+     a coupon that looks pressable and does nothing, which `check-doors` named immediately. The
+     card looks different; what it opens is the same thing. */
+  return `<div class="cpn tap" data-do="job" data-id="${esc(j.id)}">
+    <div class="cpn-l">
+      <span class="cpn-kind">Waiting list class</span>
+      <h3>${esc(j.subject || 'Maths and English')}</h3>
+      <p>${esc([j.location || j.venue, j.term].filter(Boolean).join(' · ') || 'Colliers Wood')}</p>
+      ${/* A COUNT, NOT A BAR. "2 of 4 seats left" is a fact; a progress bar of how full somebody
+            else's booking is would be decoration pretending to be information. */''}
+      <span class="cpn-left">${seats} of ${cap} seat${cap === 1 ? '' : 's'} left</span>
+    </div>
+    <div class="cpn-r">
+      <b>${esc(money(j.price || 0))}</b>
+      <span>a seat</span>
+      <i>Take one</i>
+    </div>
+  </div>`;
+}
 
   /* A STUB ON THE LIST, THE WHOLE RECEIPT ON TAP.
-     The full receipt was drawn for every job — torn ends, twelve numbered lines, a roster and a
-     barcode each — and five of those is a screen you scroll for a minute to find one thing on.
-     A receipt's job is to be COMPLETE. A list's job is to be SCANNABLE. Those pull against each
-     other and the answer is not a compromise between them: it is the stub here and the receipt on
-     tap, each doing the thing it is for.
-     Still on paper, still torn at the ends, so it is recognisably the same document folded up. */
-  /* ---------- AN OPEN CLASS IS AN OFFER, AND LOOKED LIKE ADMIN -------------------------------------
-     IT WAS THE SAME GREY STUB AS A SESSION ALREADY BOOKED, with "4 free" tucked in a corner. That
-     is the right treatment for a thing you own and the wrong one for a thing being offered to you:
-     in a list of your own bookings, an invitation drawn like a receipt reads as somebody else's
-     business and gets scrolled past.
+   The full receipt was drawn for every job — torn ends, twelve numbered lines, a roster and a
+   barcode each — and five of those is a screen you scroll for a minute to find one thing on.
+   A receipt's job is to be COMPLETE. A list's job is to be SCANNABLE. Those pull against each
+   other and the answer is not a compromise between them: it is the stub here and the receipt on
+   tap, each doing the thing it is for.
+   Still on paper, still torn at the ends, so it is recognisably the same document folded up. */
 
-     A TICKET, NOT A CARD. The seat price large enough to read across a room, the seats left stated
-     as a count, and a torn edge down the side. That is the whole of what makes a coupon work —
-     scarcity said plainly and a number you do not have to squint at. */
-  const openClassCard = j => {
-    const seats = Number(j.seatsGoing) || 0;
-    /* ---------- "3 OF 3 SEATS LEFT" ON A CLASS OF FOUR ---------------------------------------------
-       `j.capacity` IS NEVER SET BY ANYTHING. Nothing in the client, the backend or the payload
-       writes that name, so `Number(j.capacity)` was always NaN and the fallback took over — and the
-       fallback was `seats`, which makes the total equal the seats left and prints "3 of 3" whatever
-       the real class size is. It reads as a full class and a free one in the same breath, and it
-       could never have read anything else.
-
-       THE FIELDS THE REST OF THE FILE USES. `waitlist` capacity is resolved as
-       `j.maxKids || j.maxStudents` at the foot of this file, which comes off the venue's
-       `max_students` — 4 at Colliers Wood. `j.capacity` is kept at the front in case the payload
-       ever grows one, but it is no longer the only thing asked.
-
-       AND THE TOTAL CANNOT BE SMALLER THAN WHAT IS LEFT. If the numbers ever disagree the seats
-       left are the ones somebody is about to act on, so they win and the total follows. */
-    const cap = Math.max(Number(j.capacity || j.maxKids || j.maxStudents) || 4, seats);
-    /* `job`, THE SAME DOOR THE ORDINARY CARD USES. I wrote `job-open`, which no handler answers —
-       a coupon that looks pressable and does nothing, which `check-doors` named immediately. The
-       card looks different; what it opens is the same thing. */
-    return `<div class="cpn tap" data-do="job" data-id="${esc(j.id)}">
-      <div class="cpn-l">
-        <span class="cpn-kind">Waiting list class</span>
-        <h3>${esc(j.subject || 'Maths and English')}</h3>
-        <p>${esc([j.location || j.venue, j.term].filter(Boolean).join(' · ') || 'Colliers Wood')}</p>
-        ${/* A COUNT, NOT A BAR. "2 of 4 seats left" is a fact; a progress bar of how full somebody
-              else's booking is would be decoration pretending to be information. */''}
-        <span class="cpn-left">${seats} of ${cap} seat${cap === 1 ? '' : 's'} left</span>
+function jobCard(j) {
+  const dates = String(j.sessionDates || '').split(/[,\n]/).filter(x => x.trim()).length;
+  const mine = USER && norm(j.tutor) === norm(USER.name);
+  /* WHO IS IN IT. The tutor takes a slot, and every seat asked for takes one — so a session for
+     two has three of its four filled and one going, which is the thing somebody scanning this
+     list actually wants to know. */
+  const seats = Number(j.students || j.maxStudents) || 0;
+  const taken = (j.tutor ? 1 : 0) + seats;
+  /* THE STUB IS THE SAME DOCUMENT FOLDED UP, so it is the same kind of document. Without this
+     the list showed torn receipts for everything while opening one showed a form — and the list
+     is the screen people actually look at. */
+  const st = jobStage_(j);
+  const SK = { application: ' app', waitlist: ' wl', receipt: '' };
+  /* THE STUB SAYS IT TOO. The list is where somebody looks to see whether anything has moved, so
+     an accepted booking that looks identical on the list is an acceptance nobody can see. */
+  const ok = st === 'application' && jobAccepted_(j) ? ' is-accepted' : '';
+  return `<div class="rc rc-stub rc-${esc(st)}${SK[st] || ''}${ok} tap" data-do="job"
+      data-id="${esc(String(j.id || j.jobId || ''))}">
+    <div class="rc-stub-top">
+      <span class="rc-stub-what">${esc(j.subject || 'Session')}${
+        j.level ? ' · ' + esc(j.level) : ''}</span>
+      <span class="rc-stub-cost">${money(mine ? (j.tutorPay || 0) : (j.price || 0))}</span>
+    </div>
+    <div class="rc-stub-mid">
+      ${facesFor(j.venue, j.tutor, 'rc-stub-pics')}
+      <div class="rc-stub-said">
+        <span>${esc([j.venue, j.weekday, j.time].filter(Boolean).join(' · ') || 'Not set')}</span>
+        <span class="rc-stub-who">${esc(j.tutor || 'No tutor yet')}</span>
       </div>
-      <div class="cpn-r">
-        <b>${esc(money(j.price || 0))}</b>
-        <span>a seat</span>
-        <i>Take one</i>
-      </div>
-    </div>`;
-  };
+    </div>
+    ${/* SEATS GOING, on the stub, where somebody scanning the list will see it. A session with
+           room is the only reason to look twice at a booking that is not yours, and nothing on
+           the card has ever said there was any. */''}
+    ${j.canAsk ? `<div class="rc-stub-line rc-stub-open">
+        <span>${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} going</span>
+        <span class="rc-stub-ask">Tap to ask</span>
+      </div>` : ''}
+    <div class="rc-stub-line rc-stub-foot">
+      <span>${esc(j.status || 'Open')}</span>
+      ${rosterPips(seats, taken)}
+      <span>${dates ? dates + ' session' + (dates === 1 ? '' : 's') : 'No dates yet'}</span>
+    </div>
+  </div>`;
+}
 
-  const jobCard = j => {
-    const dates = String(j.sessionDates || '').split(/[,\n]/).filter(x => x.trim()).length;
-    const mine = USER && norm(j.tutor) === norm(USER.name);
-    /* WHO IS IN IT. The tutor takes a slot, and every seat asked for takes one — so a session for
-       two has three of its four filled and one going, which is the thing somebody scanning this
-       list actually wants to know. */
-    const seats = Number(j.students || j.maxStudents) || 0;
-    const taken = (j.tutor ? 1 : 0) + seats;
-    /* THE STUB IS THE SAME DOCUMENT FOLDED UP, so it is the same kind of document. Without this
-       the list showed torn receipts for everything while opening one showed a form — and the list
-       is the screen people actually look at. */
-    const st = jobStage_(j);
-    const SK = { application: ' app', waitlist: ' wl', receipt: '' };
-    /* THE STUB SAYS IT TOO. The list is where somebody looks to see whether anything has moved, so
-       an accepted booking that looks identical on the list is an acceptance nobody can see. */
-    const ok = st === 'application' && jobAccepted_(j) ? ' is-accepted' : '';
-    return `<div class="rc rc-stub rc-${esc(st)}${SK[st] || ''}${ok} tap" data-do="job"
-        data-id="${esc(String(j.id || j.jobId || ''))}">
-      <div class="rc-stub-top">
-        <span class="rc-stub-what">${esc(j.subject || 'Session')}${
-          j.level ? ' · ' + esc(j.level) : ''}</span>
-        <span class="rc-stub-cost">${money(mine ? (j.tutorPay || 0) : (j.price || 0))}</span>
-      </div>
-      <div class="rc-stub-mid">
-        ${facesFor(j.venue, j.tutor, 'rc-stub-pics')}
-        <div class="rc-stub-said">
-          <span>${esc([j.venue, j.weekday, j.time].filter(Boolean).join(' · ') || 'Not set')}</span>
-          <span class="rc-stub-who">${esc(j.tutor || 'No tutor yet')}</span>
-        </div>
-      </div>
-      ${/* SEATS GOING, on the stub, where somebody scanning the list will see it. A session with
-             room is the only reason to look twice at a booking that is not yours, and nothing on
-             the card has ever said there was any. */''}
-      ${j.canAsk ? `<div class="rc-stub-line rc-stub-open">
-          <span>${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} going</span>
-          <span class="rc-stub-ask">Tap to ask</span>
-        </div>` : ''}
-      <div class="rc-stub-line rc-stub-foot">
-        <span>${esc(j.status || 'Open')}</span>
-        ${rosterPips(seats, taken)}
-        <span>${dates ? dates + ' session' + (dates === 1 ? '' : 's') : 'No dates yet'}</span>
-      </div>
-    </div>`;
-  };
+/* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM -------------------------------------
+   `bookBlocks` USED TO BE THE WHOLE COLUMN: the form, your sessions, the open classes and whatever
+   the calendar was advertising, in one list. That was right when it WAS a column — one place for
+   everything to do with booking.
 
-  /* AN EMPTY ONE, to start a booking with. Every field is blank on purpose: this is the document
-     you are about to fill in, and showing it filled with examples would be showing you somebody
-     else's session.
-     `data-do="new-booking"` is the same handler the button used, so tapping the paper opens the
-     questions exactly as pressing the button did. */
-  /* `blankJobCard` WAS HERE — the grey outline card with "Ask for a session" on it. It was a
-     picture of a receipt that you tapped to be given a receipt, and the real one draws from the
-     first question now, so there is nothing left for a placeholder to hold the place of. */
+   IT IS A FUNNEL ANSWER NOW, and a funnel already knows how to keep different kinds of thing apart:
+   your sessions are `Receipts` and the open classes are `Coupons`, each a kind of its own under
+   "What for · Booking", each found by asking for it. See `KINDS` in find.js.
 
-  /* Built as blocks rather than one string, because the pager needs the pieces and this screen's
-     pieces are already separate things — the blank one, and a receipt per session. */
+   SO WHAT IS LEFT HERE IS THE FORM, plus anything the calendar is offering — which is the one thing
+   that is not a kind, because it is not a thing you go looking for. It puts itself in front of you
+   or it does not exist. */
+function bookBlocks() {
   return [
-    /* ---------- THE FIRST CARD IS A BLANK RECEIPT ------------------------------------------------
-       It was a button, and a button on a column of receipts is a different KIND of thing sitting
-       where a card should be — you swipe past four documents and then a control, and the eye has
-       to change gear for it.
-
-       A blank one says the same thing better. It is the same paper, torn at the same ends, with
-       every field where it will be once you have answered — so what you are being offered is
-       visibly "one of these, empty", and filling it in is what the questions do. Nothing has to
-       explain that; the shape does it.
-
-       Built by `jobCard` with an empty job rather than by markup of its own, so a change to a
-       receipt changes this too. A second version of the paper would be one that drifts. */
-    /* ---------- THE BOOKER IS THE FIRST CARD, ALWAYS ------------------------------------------
-       THE BLANK PAPER WAS A TEASER FOR A FORM. It showed two grey outlines, "Subject · where ·
-       when" and four empty pips — a picture of a receipt, which you tapped to be shown the actual
-       thing somewhere else. Two objects for one job, and the first of them could not be used.
-
-       The real paper does everything the blank one did — it is visibly empty, it is visibly a
-       receipt, it invites you to fill it in — and it is also the form. So there is one card. */
-    USER
-      ? bookerCard()
-      : `<div class="card"><h3>Sign in to book</h3>
-           <p class="sub">You need an account to ask for a session.</p>
-           <button class="btn" data-do="signin">Sign in</button></div>`,
-    /* NO "YOURS" AND "OPEN" HEADINGS.
-       Each session is a pane of its own, so a heading sat alone above a single receipt — a section
-       rule with one thing under it, which is a rule about nothing.
-       And the receipt already says it. Its foot line carries the status — "Open", "unconfirmed",
-       "active" — printed on the document, where somebody reading the document is already looking.
-       Two places saying the same thing, and the one on the paper is the one that is right.
-       Yours still come before the open ones; that is the order, and it no longer needs announcing. */
-    /* ---------- WHAT THE CALENDAR IS OFFERING, ABOVE THE SESSIONS -----------------------------
-       IT PUTS ITSELF THERE. Nobody publishes these: a holiday has a date, its row says how many
-       days before it should appear, and six weeks before Christmas a card is on every client's
-       screen. The week after, it is gone. A flag somebody sets is a thing to remember twice — once
-       to turn on and once to turn off — and the second one never happens, which is how a business
-       ends up advertising a Christmas party in February.
-
-       ABOVE the sessions, because it is time-limited and they are not. Somebody's own booking will
-       be there next week; the thing with a date on it might not. */
     ...(DATA.festive || []).map(festiveCard),
-    ...mine.map(jobCard),
-    /* THE OPEN ONES AS COUPONS, the owned ones as cards — they are two different kinds of thing
-       and were drawn identically. */
-    ...open.map(openClassCard),
-    /* NO "NO SESSIONS YET".
-       It was a pane of its own — a whole screen you swipe to, holding one grey sentence saying
-       there is nothing on it. That is a widget whose entire content is the announcement of its own
-       emptiness, and it takes up the same space as a real session.
-
-       THE BLANK CARD ABOVE ALREADY SAYS IT, and says it usefully: "Ask for a session · Nothing
-       booked · Tap to start" is the same fact plus the thing to do about it. Two things saying
-       nothing-is-here, and only one of them offers a way out of that state.
-
-       An empty list should be empty, not a list containing an apology. */
+    bookerCard(),
   ].filter(Boolean);
+}
+
+/* WHOSE SESSIONS ARE WHOSE. Asked in one place because `Receipts` and `Coupons` are the two halves
+   of one split, and two functions doing halves of a split is how a job ends up in both or neither. */
+function myJobs_() {
+  const jobs = DATA.liveJobs || DATA.jobs || [];
+  return USER ? jobs.filter(j => norm(j.client) === norm(USER.name)
+                              || norm(j.tutor) === norm(USER.name)) : [];
+}
+
+function openJobs_() {
+  const mine = myJobs_();
+  return (DATA.liveJobs || DATA.jobs || []).filter(j => !mine.includes(j));
 }
 
 /* ONE SESSION, ONE PANE.
