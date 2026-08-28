@@ -157,6 +157,9 @@ function boot(opts) {
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS,' +
+      /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
+         functions behind it were supposed to produce. */
+      'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
       'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
@@ -250,6 +253,40 @@ check('a booking is drawn as the right kind of document', async () => {
     const ask = jobs.find(j => j.id === 'J-ASK');
     if (w.__t.accepted(ask)) bad.push('J-ASK is still waiting and reads as accepted');
   }
+  return bad;
+});
+
+check('every question the form asks has a row on the paper', async () => {
+  /* ---------- THE CARD USED TO DELETE ITS OWN UNANSWERED QUESTIONS ---------------------------------
+     `bookBreakdown` chose between two lists: the form's thirteen questions when nothing could be
+     priced, and `PRICE_ROWS` — which only has lines for things that COST — the moment anything
+     could. So answering a level made Kind, When, Term, Split, Child, For and Tutor disappear off
+     the card while still being asked. Nothing threw; the rows were simply not drawn.
+
+     THE CHECK IS THE INVARIANT, not the bug: whatever the form is asking, the paper has a row for
+     it. Priced or not, before or after, a question with nowhere to answer it is broken. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const B = w.__t.BOOKING;
+  B.how = 'Instant class';
+  B.loc = 'Colliers Wood Library';
+  /* ENOUGH TO BE COSTABLE, which is the state the fault needed — an unpriced booking always drew
+     the full list and looked fine. */
+  B.subjects = ['Maths'];
+  B.level = '11+';
+
+  const html = w.__t.paper ? w.__t.paper() : '';
+  if (!html) return ['bookBreakdown is not exported — cannot check the paper'];
+  const bad = [];
+  w.__t.STEPS
+    .filter(s => { try { return s.options().filter(Boolean).length > 0; } catch (e) { return false; } })
+    .forEach(s => {
+      if (!html.includes('>' + (s.short || s.id) + '<')) {
+        bad.push('"' + s.label + '" is asked but has no row on the paper');
+      }
+    });
   return bad;
 });
 

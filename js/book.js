@@ -1512,6 +1512,9 @@ function stepRows_() {
                mul: '', rate: '', total: '',
                /* `step` STILL MARKS IT PRESSABLE for the three that open a panel; `sel` is the
                   dropdown for everything else. A row never has both. */
+               /* THE STEP THIS ROW STANDS FOR, on every row and not only the ones that open a
+                  panel — it is what lets a price line find its question. See `bookBreakdown`. */
+               id: st.id,
                step: stepIsPanel_(st) ? st.id : '',
                sel: stepControl_(st),
                open: stepGrid_(st) };
@@ -1540,18 +1543,51 @@ function bookBreakdown(L, foot) {
   const when = fmtDate(now) + ' ' + String(now.getHours()).padStart(2, '0')
     + ':' + String(now.getMinutes()).padStart(2, '0');
 
-  /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist is
+  /* ---------- ONE LIST, AND IT IS THE FORM ---------------------------------------------------------
+     THIS CHOSE ONE LIST OR THE OTHER, and the two are not the same length. `stepRows_` is the form —
+     every question, one row each. `breakdownRows` is the invoice, built from `PRICE_ROWS`, which
+     only has lines for things that COST something.
+
+     SO THE FORM VANISHED THE MOMENT IT COULD BE PRICED. Answer a subject and a level and Kind,
+     Seats, Space, When, Split, Child and Tutor were gone from the card — still being asked by
+     `nextBookStep`, with nowhere left to answer them. Nothing threw. The rows were simply not
+     drawn, which is why it read as "not everything is showing".
+
+     THE QUESTIONS ARE THE ROWS AND THE PRICES DECORATE THEM. A price line already names the step it
+     came from — `asked` in `breakdownRows` has mapped them all along — so the multiplier, the rate
+     and the running total land on the question that caused them.
+
+     WHAT IS LEFT OVER GOES AFTER: "Extra subjects", "Hours a week", each booked day, everything the
+     class branch prints. Those are consequences of answers rather than answers, so they sit below
+     the questions and above the total.
+
+     AND ANYTHING NAMING A QUESTION TWICE IS DROPPED. `breakdownRows` prints "For" and "Kind" as free
+     lines of its own; both are steps with rows three lines above — the same fact stated once as an
+     answer you can change and once as a figure you cannot.
+
+     THE NOTE IS LAST, which on a real docket is where the handwriting goes.
+
+     ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist is
      decided once, so a row added to the card cannot go missing from the shared picture. */
-  /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist
-     is decided once, so a row added to the card cannot go missing from the shared picture. */
-  /* ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist
-     is decided once, so a row added to the card cannot go missing from the shared picture. */
-  /* PRICED ROWS WHERE THERE IS A PRICE, the plain question list where there is not. They are the
-     same document either way — same paper, same columns, same pressable values — so the card does
-     not change shape underneath somebody the moment their answers become costable. */
-  /* THE NOTE GOES LAST, after every question and before the total — it is the thing you add once
-     the rest is said, and on a real docket that is exactly where the handwriting goes. */
-  const out = (L ? breakdownRows(L) : stepRows_()).concat([noteRow_()]).map(receiptRow);
+  const steps = stepRows_();
+  const priced = L ? breakdownRows(L) : [];
+
+  const byStep = {};
+  priced.forEach(r => { if (r.step && !byStep[r.step]) byStep[r.step] = r; });
+  steps.forEach(r => {
+    const p = byStep[r.id];
+    if (!p) return;
+    r.mul = p.mul; r.rate = p.rate; r.total = p.total;
+    p.used = true;
+  });
+
+  const said = {};
+  steps.forEach(r => { said[norm(r.k)] = true; });
+
+  const out = steps
+    .concat(priced.filter(r => !r.used && !said[norm(r.k)]))
+    .concat([noteRow_()])
+    .map(receiptRow);
 
   const bars = receiptBars(BOOK_STEPS.map(st => {
     const v = BOOKING[st.id];

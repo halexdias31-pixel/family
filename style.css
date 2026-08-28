@@ -2205,6 +2205,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   text-align: right; text-align-last: right;
   color: inherit; background: none; border: 0; border-radius: 0;
   cursor: pointer;
+  /* A SELECT CANNOT WRAP. "Halex Dias" in a 55px column was cut mid-word with no sign it had been —
+     `Halex Dia` reads as somebody's name, not as a truncation. An ellipsis says the rest is there,
+     and the full text is in the picker the moment it is opened. */
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .bk-sel:focus { outline: 0; }
 
