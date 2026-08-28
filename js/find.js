@@ -586,9 +586,10 @@ function fightCard_(x) {
     ${where ? `<p class="note">${esc(where)}${
       f.attendance ? ' · ' + esc(f.attendance) + ' there' : ''}</p>` : ''}
     ${f.notes ? `<p class="fight-note">${esc(f.notes)}</p>` : ''}
-    ${f.video ? `<p><a class="btn quiet" href="${esc(f.video)}" target="_blank"
-       rel="noopener">Watch it</a></p>` : ''}
+    ${/* THE WATCH LINK MOVED into `fightTiles_`, so it sits in the tile row with every other action
+          on every other card rather than as a lone button halfway up this one. */''}
     ${f.verified ? '' : '<p class="note faint">Not checked yet</p>'}
+    ${cardTiles_(x)}
   </div>`;
 }
 

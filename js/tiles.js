@@ -38,17 +38,55 @@
 ================================================================================================== */
 
 
+/* ---------- THE MARKS ON THE BUTTONS ---------------------------------------------------------------
+   ONE SET, DRAWN ONCE, IN THE APP'S OWN STROKE. Inline SVG rather than characters: ▷ and 🛒 are
+   whatever the phone happens to have, which on one device is a thin outline and on another a
+   full-colour emoji sitting at a different height from the word beside it. These take their colour
+   from the text they sit with, so a silver admin tile gets a silver mark without a second rule.
+
+   BESIDE THE WORD, NEVER INSTEAD OF IT. This app took its glyphs out once already — `tile_` still
+   says why underneath: a ✦ needed a `title` AND an `aria-label` to explain it, and a label that has
+   to be explained twice was the wrong label. A mark next to the word is the opposite trade: the
+   word still says what happens, and the mark is what lets you find the right button without
+   reading four of them. Nothing here is ever the only thing on a tile.
+
+   `aria-hidden`, for the same reason. The word is already the accessible name, and a screen reader
+   announcing "graphic, play" before it would be the second explanation all over again. */
+const TILE_ICONS = {
+  play:  '<path d="M5 3.5v11l9-5.5z"/>',
+  doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
+  code:  '<path d="M6.5 5.5 2.5 9l4 3.5"/><path d="m11.5 5.5 4 3.5-4 3.5"/>',
+  cart:  '<path d="M1.5 2.5h2l2 8h8"/><path d="m4.6 4.5h11l-1.4 4.5h-8.6"/>'
+       + '<circle cx="6.5" cy="14" r="1.2"/><circle cx="12.5" cy="14" r="1.2"/>',
+  open:  '<path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 7 9"/>'
+       + '<path d="M12.5 10v3.5h-10v-10H6"/>',
+  book:  '<path d="M2.5 3.5h5a2 2 0 0 1 2 2v9a2 2 0 0 0-2-2h-5z"/>'
+       + '<path d="M15.5 3.5h-5a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h5z"/>',
+  wear:  '<path d="M6 2.5 3 4v4h2v6h6V8h2V4l-3-1.5a2.2 2.2 0 0 1-4 0z"/>',
+};
+
+function tileIcon_(name) {
+  const d = TILE_ICONS[name];
+  if (!d) return '';
+  return `<svg class="tile-i" viewBox="0 0 18 17" aria-hidden="true" focusable="false"
+    fill="none" stroke="currentColor" stroke-width="1.4"
+    stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+}
+
+
 /* ---------- ONE ROW ------------------------------------------------------------------------------
    A LINK WHERE IT LEAVES THE APP, A BUTTON WHERE IT DOES NOT. Written once so the difference is a
    parameter rather than two nearly-identical strings that drift apart — and so `target` and
    `rel="noopener"` exist in exactly one place.
 
    NO `title`, NO `aria-label`. The label is the word, so there is nothing a hidden one could add
-   that the visible one does not already say. Both existed to rescue a glyph, and the glyphs are
-   gone. A label that has to be explained twice was the wrong label. */
+   that the visible one does not already say. Both existed to rescue a glyph, and a glyph that has
+   to be explained twice was the wrong glyph — which is why `icon` above is drawn `aria-hidden`
+   BESIDE the word rather than in place of it. */
 function tile_(o) {
   const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '');
-  const body = `<span class="tile-k">${esc(o.label)}</span>`
+  const body = tileIcon_(o.icon)
+    + `<span class="tile-k">${esc(o.label)}</span>`
     + (o.note ? `<span class="tile-v">${esc(o.note)}</span>` : '');
 
   if (o.href) {
@@ -139,13 +177,14 @@ function topicTiles_(x) {
     /* THE PAPER, FROM ITS OWN QUESTIONS. The only way to read a resource now — no download, no
        reader, and it is the same rows the question cards draw from, so a fix to a question fixes it
        here too. */
-    qs ? tile_({ label: 'HTML', note: qs + ' questions',
+    qs ? tile_({ icon: 'code', label: 'HTML', note: qs + ' questions',
                  act: 'paper-read', data: { key: t.id || t.name } }) : '',
 
     /* THE PAPER COPY. The price sits on the line that charges it, so the thing you are agreeing to
        is written on the thing you press rather than in a row above it. */
     canPrint(t)
-      ? tile_({ label: inCart ? 'In your basket' : 'Paper', tone: 'buy', on: inCart,
+      ? tile_({ icon: inCart ? 'cart' : 'doc',
+                label: inCart ? 'In your basket' : 'Paper', tone: 'buy', on: inCart,
                 note: inCart ? '' : money(price) + ' · ' + t.pages + 'pp',
                 act: 'cart-add', off: !USER || inCart,
                 data: { key: t.id || t.name, kind: 'print' } })
@@ -172,7 +211,8 @@ function topicTiles_(x) {
 function shopTiles_(x) {
   const inCart = CART.some(c => c.key === x.key && c.kind === 'shop');
   return `<div class="tile-row">
-    ${tile_({ label: inCart ? 'In your basket' : 'Add to basket', tone: 'buy', on: inCart,
+    ${tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket',
+              tone: 'buy', on: inCart,
               note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'),
               act: 'cart-add', off: !USER || inCart,
               data: { key: x.key, kind: 'shop' } })}
@@ -222,7 +262,7 @@ function venueTiles_(x) {
    blamed for a bug it did not cause. */
 function subjectTiles_(x) {
   return `<div class="tile-row">
-    ${tile_({ label: 'Book this', act: 'book-with', data: { name: '' } })}
+    ${tile_({ icon: 'book', label: 'Book this', act: 'book-with', data: { name: '' } })}
   </div>${adminTiles_(x, null)}`;
 }
 
@@ -239,7 +279,7 @@ function subjectTiles_(x) {
 function levelTiles_(x) {
   const t = x.row || {};
   return `<div class="tile-row">
-    ${tile_({ label: t.listed === false ? 'Not on the booking form' : 'Book this',
+    ${tile_({ icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
               note: t.listed === false ? 'add it to the options tab' : '',
               off: t.listed === false,
               act: 'book-with', data: { name: '' } })}
@@ -274,7 +314,7 @@ function wearTiles_(x) {
     : owned ? '' : (x.cost ? x.cost + ' credits' : 'free');
 
   return `<div class="tile-row">
-    ${tile_({ label, note, tone: tooLow ? '' : 'buy', on: !!wearing,
+    ${tile_({ icon: 'wear', label, note, tone: tooLow ? '' : 'buy', on: !!wearing,
               act: 'wear', off: !USER || tooLow || wearing,
               data: { slot: x.slot, id: x.artId } })}
   </div>${adminTiles_(x, null)}`;
@@ -291,7 +331,7 @@ function wearTiles_(x) {
 function widgetTiles_(x) {
   const id = (x.row && x.row.id) || '';
   return `<div class="tile-row">
-    ${tile_({ label: 'Open', act: 'widget-open', data: { id } })}
+    ${tile_({ icon: 'open', label: 'Open', act: 'widget-open', data: { id } })}
   </div>
   <div class="widget-slot" id="wgt-${esc(String(id))}"></div>
   ${adminTiles_(x, null)}`;
@@ -312,6 +352,24 @@ on('widget-open', el => {
 });
 
 
+/* ---------- A BOUT -----------------------------------------------------------------------------
+   THE ONLY ACTION A FIGHT HAS IS WATCHING IT, and it was a loose `.btn` in the middle of the card,
+   above the tile row, styled like nothing else on the screen. It is the same act as opening a paper
+   or a widget, so it is the same control in the same place.
+
+   A LINK, NOT A BUTTON. `tile_` takes `href` and draws an anchor with `target` and `rel` already
+   on it — which is the whole reason that branch exists, and it is what this was reaching past.
+
+   `video_url` OR THE SEARCH, whichever the backend found — see `video: S(r.video_url) ||
+   S(r.video_search_url)` in doget. So a bout nobody has tracked down still offers a way to look,
+   and there is nothing here to tell the two apart. */
+function fightTiles_(x) {
+  const f = x.row || {};
+  return `${f.video ? `<div class="tile-row">${
+    tile_({ icon: 'play', label: 'Watch', href: f.video })}</div>` : ''}${adminTiles_(x, null)}`;
+}
+
+
 /* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
    rows, so a spotlight can go on anything findable rather than only on the two kinds that happen to
    have actions today. */
@@ -323,6 +381,7 @@ function cardTiles_(x) {
   if (x.kind === 'subject') return subjectTiles_(x);
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
+  if (x.kind === 'fight') return fightTiles_(x);
   return adminTiles_(x, null);
 }
 

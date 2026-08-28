@@ -6522,6 +6522,29 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border: 1px solid var(--line); border-radius: var(--r);
   text-decoration: none; cursor: pointer;
 }
+/* ---------- THE MARK BESIDE THE WORD ---------------------------------------------------------------
+   FIRST IN THE ROW, so a column of tiles reads as a column of marks down the left edge and the eye
+   finds "the trolley one" without reading four labels. That is the whole job — it is never the only
+   thing on a tile, and `tile_` says at length why not.
+
+   `currentColor` IS THE POINT. A gold buy tile, a silver admin tile and an ordinary one all colour
+   their own mark, so nothing here needs a rule per tone and none of them can drift apart.
+
+   `align-items` ON THE TILE IS `baseline`, which a graphic has none of — an SVG would hang off the
+   bottom of the text it sits with. `align-self: center` opts this one child out of that, which is
+   cheaper than changing the alignment the label and the number already rely on. */
+.tile-i {
+  width: .95rem; height: .95rem;
+  flex: 0 0 auto;
+  align-self: center;
+  margin-right: -.15rem;
+  opacity: .85;
+}
+/* THE WORD TAKES THE SPACE, so the mark and the number stay put and the label is what stretches —
+   without this the three share the row equally and a short label leaves the trolley floating in the
+   middle of the tile. */
+.tile-k { flex: 1 1 auto; }
+
 /* THE DETAIL IS NOT THE LABEL. Lighter and lower-contrast so a glance reads the actions down the
    left edge as a list and finds the numbers only when it is looking for them. */
 .tile-v { font-weight: 400; color: var(--faint); white-space: nowrap; }
