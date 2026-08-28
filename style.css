@@ -2094,7 +2094,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
      THE FLOOR STAYS. `minmax(0, 1fr)` let the value collapse to nothing once the fixed columns had
      taken theirs, which is how a word ends up one letter per line. */
-  grid-template-columns: 2.6ch 5.6rem minmax(4.5rem, 1fr) 4.5ch 7.5ch 7.5ch;
+  /* ---------- SIX COLUMNS DO NOT FIT A PHONE, AND ONE OF THEM CARRIES NOTHING --------------------
+     MEASURED: the six wanted about 356px on a card with 332 to give, so the running total — the one
+     figure the whole chain exists to arrive at — was being clipped off the right edge. And `× 1.005`
+     needed seven characters in a column given four and a half, so the multiplier was running into
+     the rate beside it.
+
+     THE LINE NUMBER IS THE ONE THAT GOES. It is the only column that carries no information: 001,
+     002, 003 is a till roll's habit, and every other column is a fact somebody might check. When
+     something has to be cut, cut the thing that says nothing.
+
+     AND THE WIDTHS ARE IN `em` NOW, not `rem`. `rem` is root-relative, so the label column was sized
+     against 16px while the text in it was 12 — which is why it looked generous and measured tight.
+     `em` scales with the row, so shrinking the font shrinks the columns with it. */
+  grid-template-columns: 6.2em minmax(4.5em, 1fr) 7ch 7.5ch 7.5ch;
   /* ---------- TWELVE ROWS IS A LOT OF ROWS -----------------------------------------------------
      The card lists every question now, so what used to be four or five priced lines is twelve
      before anything is answered. At .34rem top and bottom plus a .5rem gap that is most of a phone
@@ -2103,7 +2116,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      TIGHTER, AND THE ROW STILL HAS AIR. .16rem of padding on a .76rem line leaves the rows clearly
      separate — the dashed rule under each value is doing most of that work anyway — and gives back
      roughly a third of the card. */
-  gap: .4rem; align-items: baseline;
+  gap: .3rem; align-items: baseline;
   padding: .16rem 0;
   font-size: .76rem;
 }
@@ -2126,9 +2139,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .bk-k { color: var(--dim); }
 /* The line number. Quiet — it is an index, not information, and it should be findable without
    competing with the figures. */
-.bk-n { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .66rem;
-        color: var(--faint); }
-.rc .bk-n { color: #a99f8f; }
+/* THE LINE NUMBER IS NOT DRAWN. See the note on the grid above: six columns did not fit and this is
+   the one with nothing in it — 001, 002, 003 is a till roll's habit, and every other column is a
+   fact somebody might check. The span is still emitted so the row shape is unchanged for anything
+   that reads it; it just has no column to sit in. */
+.bk-n { display: none; }
 /* Aligned to the top rather than the baseline, because these columns now hold several lines each
    and baseline alignment would line up the FIRST line of a two-line label with the only line of a
    one-line figure — which reads as the figure belonging to the line above it. */
@@ -2162,6 +2177,35 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   cursor: pointer;
 }
 .bk-sel:focus { outline: 0; }
+
+/* A TYPED ANSWER, IN THE SAME CLOTHES AS A CHOSEN ONE. The split is addresses rather than a choice,
+   so its row holds a text box — and it has to look like the dashed value it sits on, not like a
+   form field dropped onto a receipt. Same removal of chrome as the select above. */
+.bk-in {
+  width: 100%; padding: 0; margin: 0;
+  font: inherit; text-align: right;
+  color: inherit; background: none; border: 0; border-radius: 0;
+}
+.bk-in:focus { outline: 0; }
+.bk-in::placeholder { color: var(--faint); opacity: 1; }
+
+/* ---------- A CONTROL THAT UNFOLDS UNDER ITS OWN ROW -----------------------------------------------
+   THE WEEK GRID IS THE ONE ANSWER THAT IS NOT A LINE OF TEXT. Which hours are free is a shape you
+   read across seven days, so it stays a grid — but it belongs to the When row, so it opens directly
+   beneath it rather than below the card and after everything else.
+
+   FULL WIDTH, OUTSIDE THE COLUMNS. It is not a value in the value column; it is the control for the
+   row above. Squeezing seven days into 55px would be worse than the panel it replaces.
+
+   INDENTED TO THE VALUE COLUMN so it reads as belonging to that row rather than to the card, and
+   ruled off at the bottom so the rows continuing underneath do not look like part of it. */
+.bk-open {
+  margin: .1rem 0 .45rem 6.5em;
+  padding-bottom: .45rem;
+  border-bottom: 1px dashed var(--line);
+}
+.bk-open > p { margin: 0 0 .35rem; }
+.rc .bk-open { border-color: #cfc9bd; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
@@ -5331,7 +5375,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    said `3ch 4.4rem` — the widths the main rule used before it was widened for "Possession" — so a
    bare row's label started in a different place from a priced one's, on the same card. Third copy of
    the same fault: a width stated twice and the second one forgotten. */
-.bk-row.is-bare { grid-template-columns: 2.6ch 5.6rem minmax(0, 1fr); }
+.bk-row.is-bare { grid-template-columns: 6.2em minmax(0, 1fr); }
 .bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r, .bk-row.is-bare .bk-t { display: none; }
 
 /* ==================================================================================================

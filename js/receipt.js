@@ -378,28 +378,20 @@ function bookerCard() {
 }
 
 function drawBooker_() {
-  /* PLAYING WITH IT.
-     Once every question is answered the card is the whole booking, and the thing somebody actually
-     wants next is not to start again — it is to ask what happens if. A different tutor, one fewer
-     seat, hosting it themselves. The funnel is right for BUILDING a booking, where each answer
-     narrows the next, and wrong for CHANGING one, where you already know what you want to change.
-     So the card becomes the control. Every chosen value on it is already underlined to say
-     somebody picked it; pressing one reopens that question with everything else kept, and answering
-     it comes straight back to the card with the running column moved. No mode, no edit button —
-     the value IS the button, which is what the old form did with its inline selects.
-     `editing` is which question is open. Empty means the card. */
-  /* ---------- ONLY THE THREE THAT CANNOT BE A DROPDOWN OPEN A PANEL --------------------------------
-     `nextBookStep` still walks the form and still decides what is unanswered — that logic is worth
-     keeping, it is what skips a question with one option and what knows a class has no subjects to
-     pick. What changed is that most steps are now answered ON the card, in their own row, so being
-     "next" is no longer a reason to draw a list of buttons under it.
+  /* ---------- THERE IS NO SECOND THING TO DRAW ------------------------------------------------------
+     THIS WAS A FUNNEL. It asked one question, drew a list of answers, and moved to the next — and
+     the card underneath was where the answers landed. Every one of those questions is now answered
+     ON the card: a dropdown for a list, a text box for the split, and the week grid unfolding under
+     its own row. So the funnel has nothing left to render and this function returns the paper.
 
-     So a panel opens for a multi-select, the week grid or the split emails, and for nothing else.
-     Anything else being next means the card already has the control for it. */
-  const wanted = BOOKING.editing
-    ? (bookStep_(BOOKING.editing) || nextBookStep())
-    : nextBookStep();
-  const step = (wanted && stepIsPanel_(wanted)) ? wanted : null;
+     `nextBookStep` HAS NOT GONE and should not. It is what knows a question with one option should
+     not be asked, what knows a shared class has no subjects to pick and no venue to choose, and
+     what `bookAnswered_` leans on. It decides what is ASKED; it no longer decides what is DRAWN,
+     and those were only ever the same thing because the form was a funnel.
+
+     `BOOKING.editing` SURVIVES TOO, meaning only "which row has its grid open". It used to mean
+     "which question is the panel showing", which is the same fact from the days when there was a
+     panel to show it in. */
   const L = bookPrice();
 
   /* WHAT HAS BEEN SAID SO FAR, each one pressable to change. A wizard that hides its earlier
@@ -462,87 +454,22 @@ function drawBooker_() {
      that lists the answers so far. Two of the same list, and only one of them had the prices. */
   const head = `${kidsNote}${money_ || ''}`;
 
-  if (!step) {
-    /* THE HEADING IS WHAT IS LEFT TO DO, not what is being asked — there is no question on screen
-       when every field is a dropdown on the card. */
-    return { html: `
-      ${head || '<p class="note">Not enough answered to price it yet.</p>'}
-      <label class="field"><span>anything else we should know</span>
-        <textarea id="book-note" placeholder="Optional"></textarea></label>
-      <button class="btn" data-do="book-send">Ask for it</button>
-      ${/* SHARING IT BEFORE SENDING IT. A parent deciding usually shows somebody else first — the
-            other parent, the family they are splitting with — and until now that meant a
-            screenshot, which crops badly and loses the bottom of a long receipt. */''}
-      ${/* AND IT IS NOT A RECEIPT YET, which is the whole point of the fix below it: this button
-            sits under "Ask for it", on a booking nobody has agreed to and nothing has been paid
-            for. Calling the picture a receipt — and drawing one — told whoever it was sent to that
-            the thing was settled. */''}
-      <button class="btn quiet" data-do="book-share" data-stage="screen">Share this</button>
-      <p class="faint" id="book-said" style="margin:.6rem 0 0">
-        Nothing is booked or charged yet — this asks, and we come back to you.</p>` };
-  }
-
-  /* THE GRID IS DRAWN, not listed. Every other question is a set of options; this one is a week. */
-  if (step.grid) {
-    const g = slotGrid();
-    const on = BOOKING.slots || [];
-    const runs = bookRuns();
-    return { html: `
-      ${head}
-      ${g.anyOpen ? `
-        <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
-          session that week.</p>
-        <div class="slot-grid">
-          ${g.rows.map(r => `<div class="slot-row">
-            <span class="slot-day">${esc(r.label.slice(0, 3))}</span>
-            <div class="slot-hours">
-              ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
-                h.open ? '' : ' shut'}" ${h.open ? '' : 'disabled'}
-                ${/* THE REASON, not just "not available". An hour the tutor never works and an hour
-                      they are already teaching are the same grey box, and only the second is worth
-                      trying a different week for. `why` comes off the cell — see `slotGrid`. */''}
-                title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
-                data-do="book-slot" data-code="${esc(h.code)}">${h.h}</button>`).join('')}
-            </div>
-          </div>`).join('')}
-        </div>
-        ${runs.length ? `<p class="note">${runs.map(r =>
-            esc(r.dayName) + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00').join(' · ')}</p>
-          <button class="btn" data-do="book-more" data-step="slots">Done — ${runs.length} session${
-            runs.length === 1 ? '' : 's'} a week</button>` : ''}`
-        /* NO HOURS AND WHY. An empty grid with no explanation reads as the app being broken; the
-           reason is always something somebody can go and fix in the sheet. */
-        : `<p class="note">${esc(g.why)}</p>`}` };
-  }
-
-  /* ONE BOX PER PERSON, and a ＋ for another. How many there are IS how many there are. */
-  if (step.emails) {
-    const list = BOOKING.split || [];
-    return { html: `
-      ${head}
-      <p class="faint">Each family pays their own share. Leave it empty if it is just you.</p>
-      ${list.map((v, k) => `<label class="field"><span>their email</span>
-        <input type="email" data-do="split-set" data-k="${k}" value="${esc(v)}"
-               placeholder="name@example.com"></label>`).join('')}
-      <div class="btn-row">
-        <button class="btn quiet" data-do="split-add">＋ another</button>
-        <button class="btn" data-do="split-done">
-          ${list.filter(x => String(x).trim()).length
-            ? 'Done — split ' + (list.filter(x => String(x).trim()).length + 1) + ' ways'
-            : 'Just us'}</button>
-      </div>` };
-  }
-
-  /* ---------- THE LIST OF OPTION CARDS WAS HERE, AND IT CANNOT BE REACHED ANY MORE ----------------
-     It drew a card per option with `book-pick` on each, and it was the generic branch — everything
-     that was not the week grid or the split emails ended up here. Nothing does now: `step` is only
-     ever non-null when `stepIsPanel_` says so, and that is grid or emails, both of which return
-     above. Every other question is a `<select>` in its own row on the paper.
-
-     `on('book-pick')` GOES WITH IT. It was the only reader of these cards, and `book-set` — the
-     `change` handler on the selects — does the same job for single answers and for the toggling
-     multi ones. Two handlers for one act is how the two come to disagree about what a pick means. */
-  return { html: '' };
+  /* ONE RETURN. This was four branches — a question, a grid, a list of email boxes, and the card —
+     and the last three have moved onto the paper. What is left is the paper, the note box and the
+     two buttons, which is what the whole form is now. */
+  return { html: `
+    ${head || '<p class="note">Not enough answered to price it yet.</p>'}
+    <label class="field"><span>anything else we should know</span>
+      <textarea id="book-note" placeholder="Optional"></textarea></label>
+    <button class="btn" data-do="book-send">Ask for it</button>
+    ${/* SHARING IT BEFORE SENDING IT. A parent deciding usually shows somebody else first — the
+          other parent, the family they are splitting with — and until now that meant a screenshot,
+          which crops badly and loses the bottom of a long receipt. */''}
+    ${/* AND IT IS NOT A RECEIPT YET, which is the whole point: this button sits under "Ask for it",
+          on a booking nobody has agreed to and nothing has been paid for. */''}
+    <button class="btn quiet" data-do="book-share" data-stage="screen">Share this</button>
+    <p class="faint" id="book-said" style="margin:.6rem 0 0">
+      Nothing is booked or charged yet — this asks, and we come back to you.</p>` };
 }
 
 on('book-send', el => {

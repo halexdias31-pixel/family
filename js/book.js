@@ -1069,20 +1069,9 @@ on('book-slot', el => {
   drawBooker();
 });
 
-on('split-add', () => { (BOOKING.split = BOOKING.split || []).push(''); drawBooker(); });
-on('split-set', el => {
-  const list = BOOKING.split || [];
-  list[Number(el.dataset.k)] = el.value;
-  BOOKING.split = list;
-  /* NOT redrawn. Rebuilding the sheet on every keystroke destroys the box being typed into — the
-     same fault the Stuff search box was built around. The price catches up when Done is pressed. */
-});
-/* Marked done the same way every other multi-answer step is, so one mechanism says whether a
-   question is finished rather than two. */
-on('split-done', () => {
-  BOOKING.done = (BOOKING.done || []).concat((BOOKING.done || []).indexOf('split') === -1 ? ['split'] : []);
-  drawBooker();
-});
+/* `on('split-add')`, `on('split-set')` AND `on('split-done')` WERE HERE — the three handlers for
+   the panel of email boxes. One text field replaced all of it; `book-emails` reads it. */
+
 
 /* Answering one. A multi toggles, everything else replaces and moves on. */
 /* ---------- A DROPDOWN ANSWERED --------------------------------------------------------------------
@@ -1144,6 +1133,27 @@ document.addEventListener('change', e => {
    place, so nothing else emits this — see `receiptRow`, which only writes it when there is no
    dropdown for the row. */
 on('book-edit', el => { BOOKING.editing = el.dataset.step; drawBooker(); });
+
+/* ---------- THE SPLIT, TYPED --------------------------------------------------------------------
+   COMMAS, AND EMPTIES DROPPED. Somebody typing a list leaves a trailing comma or a double one, and
+   an empty string in `BOOKING.split` counts as a person on every screen that reads the length — the
+   roster, the price per family, the "split N ways" line. Cleaned here, once, where it is read in.
+
+   `done` FOLLOWS WHETHER THERE IS ANYONE IN IT. It used to be set by a Done button on the panel;
+   with no panel, having typed somebody in IS the answer, and clearing the box is unanswering it. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-emails"]');
+  if (!el) return;
+  const step = bookStep_(el.dataset.step);
+  if (!step) return;
+  const list = String(el.value || '').split(',').map(x => x.trim()).filter(Boolean);
+  BOOKING[step.id] = list;
+  BOOKING.done = list.length
+    ? uniq((BOOKING.done || []).concat([step.id]))
+    : (BOOKING.done || []).filter(id => id !== step.id);
+  BOOKING.editing = '';
+  drawBooker();
+});
 
 /* Finished with a multiple-choice question. Recorded, so it stops being asked — and so that
    coming back to it later reopens it rather than treating one tick as the whole answer. */
@@ -1299,9 +1309,10 @@ function breakdownRows(L) {
          moment the booking becomes costable — `asked` names the step this row stands for, and if
          that step is a plain list it gets a select here exactly as it does in `stepRows_`. */
       const st = asked ? bookStep_(asked) : null;
-      const sel = (st && !stepIsPanel_(st)) ? stepSelect_(st) : '';
+      const sel = st ? stepControl_(st) : '';
       push(r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
-        { end: gi === inGroup.length - 1, step: sel ? '' : asked, key: r.key, sel: sel });
+        { end: gi === inGroup.length - 1, step: sel ? '' : asked, key: r.key, sel: sel,
+          open: st ? stepGrid_(st) : '' });
     });
   });
 
@@ -1343,9 +1354,13 @@ function breakdownRows(L) {
    drops back to "—" after every pick so the next one is one tap away. It is the same gesture as the
    single-answer rows and it needs nothing new on screen.
 
-   TWO STEPS GENUINELY CANNOT BE ONE. `slots` is a week to tick and `split` is a list of email
-   boxes — neither is a choice from a list, so neither is a dropdown. Those keep the panel, and it
-   opens only when you press their row.
+   ONE STEP GENUINELY CANNOT BE ONE. `slots` is a week to tick — seven days of hours, which is not a
+   choice from a list and cannot be a dropdown. It keeps the panel, and it opens only when you press
+   its row.
+
+   `split` IS TYPING, NOT CHOOSING, so it is a text box in its row rather than a panel of email
+   fields. Addresses separated by commas: one line instead of a stack of labelled inputs and a
+   ＋ button, and the row already had to show them joined by commas anyway.
 
    AN UNANSWERED SELECT SHOWS A DASH as its first option, so a field nobody has filled reads the same
    as it did before and cannot be submitted by accident. */
@@ -1366,9 +1381,69 @@ function stepSelect_(st) {
   </select>`;
 }
 
-/* Which steps have to keep the panel. Asked in one place so the row, the handler and the panel
-   cannot disagree about whether a question is a dropdown. */
-function stepIsPanel_(st) { return !!(st.grid || st.emails); }
+/* ---------- TYPING INTO A ROW --------------------------------------------------------------------
+   Same shape as `stepSelect_` and for the same reason: the answer belongs in the row, not under the
+   card. Read on `change` rather than on every keystroke — redrawing the whole receipt per letter
+   would take the focus out of the box mid-word. */
+function stepInput_(st) {
+  const v = (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ');
+  return `<input class="bk-in" type="text" data-do="book-emails" data-step="${esc(st.id)}"
+    value="${esc(v)}" placeholder="—" aria-label="${esc(st.label)}"
+    autocomplete="off" spellcheck="false">`;
+}
+
+/* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
+   THE LAST PANEL, AND THE ONE WORTH KEEPING AS A GRID. Every other question is a list, and a list is
+   a dropdown. Hours are not: which hours are free across a week is a SHAPE — you read it by seeing
+   Tuesday afternoon is solid and Thursday morning is not — and a dropdown of seventy-seven options
+   destroys exactly the thing you were looking at.
+
+   SO IT KEEPS ITS GRID AND LOSES ITS PANEL. It opens underneath the When row, inside the receipt,
+   rather than below the card and after everything else. Same markup, same buttons, drawn where the
+   answer belongs.
+
+   IT SPANS THE WHOLE ROW because it is not a value in a column — it is the control for the row above
+   it, and squeezing seven days into the 55px value column would be worse than the panel was.
+
+   `open` IS PER-ROW, NOT A MODE. `BOOKING.editing` still says which row is showing its grid, and
+   pressing the row again closes it — the same fact it always held, now expressed on the paper. */
+function stepGrid_(st) {
+  if (!st.grid || BOOKING.editing !== st.id) return '';
+  const g = slotGrid();
+  const on = BOOKING.slots || [];
+  const runs = bookRuns();
+  if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
+  return `<div class="bk-open">
+    <p class="faint">Tick the hours. Two together is a two-hour session; another day is another
+      session that week.</p>
+    <div class="slot-grid">
+      ${g.rows.map(r => `<div class="slot-row">
+        <span class="slot-day">${esc(r.label.slice(0, 3))}</span>
+        <div class="slot-hours">
+          ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
+            h.open ? '' : ' shut'}" ${h.open ? '' : 'disabled'}
+            ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
+                  are already teaching are the same grey box, and only the second is worth trying a
+                  different week for. */''}
+            title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
+            data-do="book-slot" data-code="${esc(h.code)}">${h.h}</button>`).join('')}
+        </div>
+      </div>`).join('')}
+    </div>
+    ${runs.length ? `<p class="note">${runs.map(r =>
+        esc(r.dayName) + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00').join(' · ')}</p>` : ''}
+  </div>`;
+}
+
+/* Which steps open something under their row rather than answering in it. */
+function stepIsPanel_(st) { return !!st.grid; }
+
+/* The control a row carries. One answer here so `stepRows_` and `breakdownRows` cannot draw a
+   different thing for the same step. */
+function stepControl_(st) {
+  if (stepIsPanel_(st)) return '';
+  return st.emails ? stepInput_(st) : stepSelect_(st);
+}
 
 /* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT -----------------------------------------------
    THE PAPER USED TO ARRIVE LATE. `breakdownRows` builds a row per thing that has a PRICE, so before
@@ -1409,7 +1484,8 @@ function stepRows_() {
                /* `step` STILL MARKS IT PRESSABLE for the three that open a panel; `sel` is the
                   dropdown for everything else. A row never has both. */
                step: stepIsPanel_(st) ? st.id : '',
-               sel: stepIsPanel_(st) ? '' : stepSelect_(st) };
+               sel: stepControl_(st),
+               open: stepGrid_(st) };
     });
 }
 
@@ -1725,7 +1801,7 @@ function receiptRow(r) {
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>
-  </div>`;
+  </div>${r.open || ''}`;
 }
 
 /** Forty-four bars from a seed. Same booking, same code, for ever. */
