@@ -6651,17 +6651,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .card .ticks .tick-said { color: var(--faint); }
 
 
-/* A HEADING OVER A RUN OF PANELS, not a card itself. `Saved` under the funnel on Find is the only
-   user of this so far — it has to read as a label on the group beneath it rather than as another
-   thing in the list, which is the whole job. Quiet, spaced above and not below, so it sits with
-   what it names. */
-.strip-h {
-  margin: 1.4rem 0 .5rem;
-  font-size: .78rem;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--faint);
+/* ---------- THE FIRST PAGE OF FIND IS A STACK OF PANELS, NOT ONE PANEL -----------------------------
+   Every other page in the app is one pane holding one thing, so `pages()` wraps each in `.pane` and
+   that is right everywhere else. The first page of Find is the exception: it carries the saved
+   things AND the search, and those are separate widgets that happen to share a screen rather than
+   one widget with two halves.
+
+   SO THAT PAGE'S PANE STOPS BEING THE BOX and becomes a plain container, and the boxes are the
+   `.savebox` children inside it. Visual only — the pane keeps its sizing, its containment and its
+   `touch-action`, which are about being a page in the swipe grid and have nothing to do with how it
+   is painted. Without this the saved panels would be boxes drawn inside a box, which is the one
+   thing this app's card styling exists to avoid. */
+#s-stuff > .page:first-child > .pane {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 0;
 }
 
 /* ---------- A PANEL THAT IS NOT A PAGE -------------------------------------------------------------
@@ -6683,7 +6689,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    NO BLUR. `.pane` gets `backdrop-filter` on the front page only, for speed. These are in the flow
    with the page behind them already painted, so there is nothing behind to blur and asking for it
    would cost a layer per saved thing for no visible difference. */
-.savebox {
+.savebox, .searchbox {
   background:
     linear-gradient(160deg, rgb(255 255 255 / .05), rgb(255 255 255 / .015)),
     #101010;

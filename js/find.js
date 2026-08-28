@@ -2097,7 +2097,9 @@ screen('stuff', () => {
      one you believe is the one you can see. */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';
 
-  const controls = (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
+  const controls = `<div id="stuff-saved">${savedStrip_()}</div>`
+    + `<div class="savebox searchbox">`
+    + (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
         <span class="k">Your credits</span><span class="v big gold mono">${credits}</span>
       </div></div>` : '')
     + `<input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}">
@@ -2116,15 +2118,8 @@ screen('stuff', () => {
           you narrow anything it is the size of the library, which is not a fact about your search,
           and after you narrow it the results are right there to be looked at. */''}
     <div id="stuff-groups">${stuffQuestion()}</div>
-    ${/* SAVED, UNDER THE QUESTION AND NOT ABOVE IT. It is not a control, so it does not belong in
-          the run of things you get past before you can ask — that is the same rule that removed
-          the sort dropdown and the count line from this block.
-
-          IT IS ON THE CONTROLS PAGE, which means it is the first thing after the funnel and is
-          gone the moment you turn to the results. That is the right place for it: it is what you
-          kept from last time, offered before you start looking, rather than something competing
-          with what you are looking at now. */''}
-    <div id="stuff-saved">${savedStrip_()}</div>`;
+    ${/* SAVED IS NOT DOWN HERE ANY MORE — it is above, outside this box. See `savedStrip_`. */''}
+  </div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. Four hundred cards under a
      search box is a column nobody reaches the end of; eight to a screen is a thing you turn.

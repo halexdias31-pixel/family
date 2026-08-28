@@ -129,15 +129,23 @@ screen('spotlight', () => pages('spotlight', spotPages()));
 
    `.savebox` IS A PANE THAT IS NOT A PAGE. Same fill, same border, same bright top edge and the
    same 14px corner — because a saved thing should look like every other panel on the screen, not
-   like a new invention — but it sits in the flow underneath the search widget rather than being
-   positioned by the grid. Each one holds exactly one thing. */
+   like a new invention — but it sits in the flow rather than being positioned by the grid. Each
+   one holds exactly one thing.
+
+   ABOVE THE SEARCH BOX, AND OUTSIDE IT. The first version put these at the bottom of the search
+   panel, which made them part of it — more rows on somebody else's card. They are their own
+   panels now and the search is another one below them, so the first page of Find is a short stack
+   of boxes rather than one box with a list stuck to the end.
+
+   NO HEADING. A saved thing is the SAME widget you starred, moved — not a section of a list that
+   needs announcing. A label above it would be chrome the search panel underneath does not have,
+   and the count is already the number of boxes you can see. */
 function savedStrip_() {
   if (!USER) return '';
   const items = collItems_(isFav);
   if (!items.length) return '';
   const credits = collCredits_();
-  return `<h3 class="strip-h">Saved ‧ ${items.length}</h3>`
-       + items.map(x => `<div class="savebox">${stuffCard(x, credits)}</div>`).join('');
+  return items.map(x => `<div class="savebox">${stuffCard(x, credits)}</div>`).join('');
 }
 
 
