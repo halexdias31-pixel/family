@@ -20,51 +20,9 @@
    this is the one carried over whole — the screen only has to show what it says.
 --------------------------------------------------------------------------------------------- */
 /** Everything on the Book screen, in order. */
-  /* ---------- AN OPEN CLASS IS AN OFFER, AND LOOKED LIKE ADMIN -------------------------------------
-   IT WAS THE SAME GREY STUB AS A SESSION ALREADY BOOKED, with "4 free" tucked in a corner. That
-   is the right treatment for a thing you own and the wrong one for a thing being offered to you:
-   in a list of your own bookings, an invitation drawn like a receipt reads as somebody else's
-   business and gets scrolled past.
+/* `openClassCard` WAS HERE — the coupon card, a torn ticket with a Take one button. Nothing draws
+   one: the open classes are a dropdown on the booking form, not a kind in Find. */
 
-   A TICKET, NOT A CARD. The seat price large enough to read across a room, the seats left stated
-   as a count, and a torn edge down the side. That is the whole of what makes a coupon work —
-   scarcity said plainly and a number you do not have to squint at. */
-function openClassCard(j) {
-  const seats = Number(j.seatsGoing) || 0;
-  /* ---------- "3 OF 3 SEATS LEFT" ON A CLASS OF FOUR ---------------------------------------------
-     `j.capacity` IS NEVER SET BY ANYTHING. Nothing in the client, the backend or the payload
-     writes that name, so `Number(j.capacity)` was always NaN and the fallback took over — and the
-     fallback was `seats`, which makes the total equal the seats left and prints "3 of 3" whatever
-     the real class size is. It reads as a full class and a free one in the same breath, and it
-     could never have read anything else.
-
-     THE FIELDS THE REST OF THE FILE USES. `waitlist` capacity is resolved as
-     `j.maxKids || j.maxStudents` at the foot of this file, which comes off the venue's
-     `max_students` — 4 at Colliers Wood. `j.capacity` is kept at the front in case the payload
-     ever grows one, but it is no longer the only thing asked.
-
-     AND THE TOTAL CANNOT BE SMALLER THAN WHAT IS LEFT. If the numbers ever disagree the seats
-     left are the ones somebody is about to act on, so they win and the total follows. */
-  const cap = Math.max(Number(j.capacity || j.maxKids || j.maxStudents) || 4, seats);
-  /* `job`, THE SAME DOOR THE ORDINARY CARD USES. I wrote `job-open`, which no handler answers —
-     a coupon that looks pressable and does nothing, which `check-doors` named immediately. The
-     card looks different; what it opens is the same thing. */
-  return `<div class="cpn tap" data-do="job" data-id="${esc(j.id)}">
-    <div class="cpn-l">
-      <span class="cpn-kind">Waiting list class</span>
-      <h3>${esc(j.subject || 'Maths and English')}</h3>
-      <p>${esc([j.location || j.venue, j.term].filter(Boolean).join(' · ') || 'Colliers Wood')}</p>
-      ${/* A COUNT, NOT A BAR. "2 of 4 seats left" is a fact; a progress bar of how full somebody
-            else's booking is would be decoration pretending to be information. */''}
-      <span class="cpn-left">${seats} of ${cap} seat${cap === 1 ? '' : 's'} left</span>
-    </div>
-    <div class="cpn-r">
-      <b>${esc(money(j.price || 0))}</b>
-      <span>a seat</span>
-      <i>Take one</i>
-    </div>
-  </div>`;
-}
 
   /* A STUB ON THE LIST, THE WHOLE RECEIPT ON TAP.
    The full receipt was drawn for every job — torn ends, twelve numbered lines, a roster and a
@@ -483,6 +441,30 @@ const NOBODY = 'Nobody yet — just open it';
 
 const isWaiting_ = () => /wait/i.test(String(BOOKING.how || ''));
 
+/* ---------- THE CLASSES ON OFFER, NAMED FOR A DROPDOWN --------------------------------------------
+   WHAT SOMEBODY NEEDS TO TELL TWO APART: what is taught, where, and how much room is left. The day
+   and the time are deliberately absent — a waiting list has neither until it fills, which is the
+   whole difference between it and an instant class.
+
+   ONE FUNCTION, because the label is also the KEY. A step stores the string somebody chose, so
+   finding the job again means matching that string — and a second copy of this, written slightly
+   differently, would match nothing and silently drop the class from the booking. */
+const NEW_LIST = 'Start a new one';
+
+function openClassLabel_(j) {
+  const left = Math.max(0, (Number(j.maxKids) || 0) - (Number(j.currentKids) || 0));
+  return [j.subject || 'Class', j.location || j.venue, left ? left + ' seats left' : 'full']
+    .filter(Boolean).join(' · ');
+}
+
+/* The job behind the chosen label, or null for "start a new one" and for a class that has gone
+   since the page loaded. */
+function joinedJob_() {
+  const v = BOOKING.joining;
+  if (!v || v === NEW_LIST) return null;
+  return (openJobs_() || []).find(j => openClassLabel_(j) === v) || null;
+}
+
 const BOOK_STEPS = [
   /* ---------- WHICH OF THE TWO THINGS THIS IS -----------------------------------------------------
      THEY ARE NOT THE SAME PRODUCT AND THE FORM CANNOT PRETEND THEY ARE.
@@ -541,6 +523,27 @@ const BOOK_STEPS = [
     note: v => /wait/i.test(String(v))
       ? 'Cheaper, but it waits — it runs once enough others take a seat.'
       : 'It happens. Yours from the moment you pay, and others can join later.' },
+
+  /* ---------- JOINING ONE, OR STARTING ONE ----------------------------------------------------------
+     THE OPEN CLASSES WERE CARDS IN FIND, each with a "Take a seat" button — a whole findable kind
+     for a handful of rows, and a second way to make a booking that did not look like the first one.
+     Somebody wanting a class had to know to go looking for one; somebody filling in this form was
+     never told they existed.
+
+     THEY ARE AN ANSWER TO A QUESTION THIS FORM WAS ALREADY ASKING. "Waiting list class" is chosen
+     one row above; the only thing left to know is whether it is a list that already exists or a new
+     one, and that is a dropdown like every other field on the paper.
+
+     "START A NEW ONE" IS FIRST AND IS NOT A CLASS. Opening a list and joining one are both waiting
+     list classes and the form has to let you say which — leaving it out would mean nobody could ever
+     open the first list at a new venue.
+
+     ASKED ONLY WHEN IT APPLIES. An empty option list is how every other step here says "not this
+     time", and `nextBookStep` skips one — so on an instant class this row does not exist. */
+  { id: 'joining', label: 'A list already going, or a new one?', short: 'Class',
+    options: () => isWaiting_()
+      ? [NEW_LIST].concat((openJobs_() || []).map(openClassLabel_))
+      : [] },
 
   /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
      Written into the booking below so the receipt and the backend agree without asking. */
@@ -1076,6 +1079,36 @@ document.addEventListener('change', e => {
     BOOKING[step.id] = el.value || '';
     BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
+
+  /* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS ------------------------------------
+     A LIST THAT IS ALREADY GOING HAS A VENUE, A LEVEL AND A SUBJECT, decided by whoever opened it
+     and not up for negotiation by the fifth person to join. Asking again would be offering somebody
+     a choice that cannot be honoured — and the answer they gave would then disagree with the class
+     they are joining.
+
+     WRITTEN IN, NOT SKIPPED. The rows stay on the paper showing what the class is, because that is
+     what somebody joining most needs to see. Their dropdowns still exist and still work: change one
+     and you are describing a different class from the one you picked, which is worth being able to
+     do and worth being able to see.
+
+     CLEARED WHEN THE CLASS IS UNCHOSEN, or a switch to "start a new one" would carry the last
+     class's venue into a booking nobody attached it to. */
+  if (step.id === 'joining') {
+    const j = joinedJob_();
+    BOOKING.subjects = j && j.subject ? [j.subject] : [];
+    BOOKING.level    = (j && j.level) || '';
+    BOOKING.loc      = (j && (j.location || j.venue)) || '';
+    BOOKING.n        = j ? '1' : '';
+    ['subjects', 'level', 'loc', 'n'].forEach(id => {
+      BOOKING.done = j ? uniq((BOOKING.done || []).concat([id]))
+                       : (BOOKING.done || []).filter(x => x !== id);
+    });
+  }
+
+  /* AND UNCHOOSING THE KIND UNCHOOSES THE CLASS. "Instant" with a waiting list still named on the
+     row below is the form contradicting itself. */
+  if (step.id === 'how' && !isWaiting_()) BOOKING.joining = '';
+
   BOOKING.editing = '';
   drawBooker();
 });

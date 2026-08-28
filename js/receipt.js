@@ -774,29 +774,39 @@ on('fest-join', el => {
     .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
 });
 
+/* ---------- TAKING A SEAT GOES TO THE FORM ---------------------------------------------------------
+   IT USED TO ASK AND SEND, right here: a browser `prompt()` for availability — a grey OS dialog with
+   a text box, the crudest popup in the app — and then straight to `joinWaitlist`. So there were two
+   ways to join a class that shared no code and asked different questions, and this one could not
+   validate its single answer or show what the seat cost.
+
+   NOW IT ANSWERS THE FORM ON YOUR BEHALF and turns to it: the kind is a waiting list, the class is
+   this one, and everything the class decides is filled in. What is left — when you could come, who
+   it is for — is asked on the paper with the rest, and sent by the one send button.
+
+   THE FIELDS ARE SET HERE RATHER THAN BY `book-set`, because nobody touched a dropdown. Same four,
+   in the same order, and `joinedJob_` will find this class again from the label. */
 on('job-take-seat', el => {
   const j = (DATA.liveJobs || DATA.jobs || []).find(x =>
     String(x.id || x.jobId || '') === String(el.dataset.id));
   if (!j) { toast('That class has gone.'); return; }
-  const when = prompt('When could you come?\n\nWeekday mornings · afternoons · evenings · '
-    + 'weekends · flexible', 'Weekday evenings');
-  /* Cancelled is not an empty answer — backing out must take a seat for nobody. */
-  if (when === null) return;
-  el.disabled = true;
-  api({ action: 'joinWaitlist',
-        name: USER.name, personId: (USER && USER.personId) || '',
-        venue: j.location || j.venue, level: j.level,
-        availability: when,
-        requestId: 'seat-' + el.dataset.id + '-' + Date.now() })
-    .then(d => {
-      el.disabled = false;
-      if (d && d.error) { toast(d.error); return; }
-      closeSheet();
-      toast(d && d.seats ? 'Seat taken — ' + d.joined + ' of ' + d.seats : 'Seat taken');
-      load();
-    })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+  BOOKING.how      = 'Waiting list class';
+  BOOKING.joining  = openClassLabel_(j);
+  BOOKING.subjects = j.subject ? [j.subject] : [];
+  BOOKING.level    = j.level || '';
+  BOOKING.loc      = j.location || j.venue || '';
+  BOOKING.n        = '1';
+  BOOKING.done = uniq((BOOKING.done || [])
+    .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
+  closeSheet();
+  STUFF.filters = [{ field: 'forLabel', value: 'Booking' }];
+  go('stuff');
+  paintStuff();
+  /* ONE PAGE ON FROM THE QUESTION, which is the form. */
+  PAGE.stuff = stuffQuestionPage_() + 1;
+  paintPager('stuff', true);
 });
+
 
 on('job-join', el => {
   el.disabled = true;

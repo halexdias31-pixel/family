@@ -154,6 +154,9 @@ function boot(opts) {
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS,' +
+      /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
+         that no longer exist. It has been wrong twice from being written out by hand. */
+      'TABS,' +
       'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
@@ -209,11 +212,14 @@ check('every tab draws something', async () => {
   await wait(300);
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
   const bad = [];
-  /* THE FOUR SCREENS THAT EXIST, read off the `screen(...)` calls rather than assumed. This asked
-     for `find`, which was removed when the funnel absorbed it — so the test reported the app
-     drawing nothing on a tab the app does not have, which is a test being wrong about the app and
-     the worst kind of red there is. */
-  ['posts', 'stuff', 'book', 'me'].forEach(id => {
+  /* THE SCREENS THAT EXIST, read off `TABS` rather than written out. This has now been wrong twice
+     — once naming `find` after the funnel absorbed it, once naming `book` after the booking form
+     moved onto the funnel — and both times it reported the app drawing nothing on a tab the app
+     does not have. A test being wrong about the app is the worst kind of red there is, and a list
+     of tabs kept by hand beside the real list of tabs is how you get one.
+
+     Asked of the app, so it cannot go stale again. */
+  (w.__t.TABS || []).map(t => t.id).forEach(id => {
     try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw: ' + e.message); return; }
     const el = w.document.getElementById('s-' + id);
     if (!el) { bad.push(id + ': no screen element'); return; }
@@ -345,20 +351,42 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   try { w.__t.ACTIONS['job-take-seat']({ disabled: false, dataset: { id: 'W-LIST' } }); }
   catch (e) { return ['taking a seat threw: ' + e.message]; }
   await wait(250);
-  const got = sent.map(x => x.action);
-  return got.includes('joinWaitlist') ? []
-    : ['taking a seat sent [' + (got.join(', ') || 'nothing') + '], expected joinWaitlist'];
+
+  /* ---------- IT NO LONGER SENDS, AND THAT IS THE POINT --------------------------------------------
+     THIS ASSERTED `joinWaitlist` WENT OUT, because taking a seat used to ask availability in a
+     browser `prompt()` and post it immediately. That was two ways to join a class sharing no code
+     and asking different questions, and the second could not price a seat or validate its answer.
+
+     TAKING A SEAT FILLS THE FORM IN NOW and turns to it, so nothing is sent until the one send
+     button is pressed — the same button an instant booking uses. Asserting a request here would be
+     asserting the fault back into place.
+
+     WHAT IS CHECKED INSTEAD is that the form knows what was chosen: a waiting list, THIS list, and
+     the three things the class decides. That is what the old request carried, and it is now
+     somewhere a person can see it before it goes. */
+  const bad = [];
+  const B = w.__t.BOOKING;
+  if (!/wait/i.test(String(B.how || ''))) bad.push('the kind was not set to a waiting list');
+  if (!B.joining) bad.push('the class was not chosen on the form');
+  if (!B.loc) bad.push('the venue the class runs at was not filled in');
+  if (sent.map(x => x.action).includes('joinWaitlist')) {
+    bad.push('it sent joinWaitlist without anybody pressing send');
+  }
+  return bad;
 });
 
 check('a festive event shows itself and can be joined', async () => {
   const { w, sent } = boot();
   await wait(300);
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
-  w.__t.go('book', false, true);
+  /* ON POSTS, NOT BOOK. A festive card is the business announcing something with a date on it, which
+     is the same voice as a post with a caption — it was only ever on the booking column because
+     bookings were. There is no Book column now either way. */
+  w.__t.go('posts', false, true);
   await wait(200);
-  const el = w.document.getElementById('s-book');
+  const el = w.document.getElementById('s-posts');
   const cards = el ? el.querySelectorAll('.fest') : [];
-  if (!cards.length) return ['the festive event on the payload never appeared on the Book screen'];
+  if (!cards.length) return ['the festive event on the payload never appeared on the feed'];
   try { w.__t.ACTIONS['fest-join']({ disabled: false, dataset: { id: 'H1' } }); }
   catch (e) { return ['joining threw: ' + e.message]; }
   await wait(250);
@@ -367,18 +395,37 @@ check('a festive event shows itself and can be joined', async () => {
     : ['joining sent [' + (got.join(', ') || 'nothing') + '], expected joinFestive'];
 });
 
-check('the folder scan is reachable, and only by an admin', async () => {
+check('the post card says different things to a client and an admin', async () => {
   /* THIS HANDLER EXISTED WITH NO BUTTON ANYWHERE for as long as posting has. It read in the source
      exactly like a working feature, which is the whole reason `check-doors` was written — and a
      door alone is not enough, because a door drawn for the wrong person is its own fault. */
   const { w } = boot();
   await wait(300);
   if (typeof w.__t.card !== 'function') return [];      // only checkable where the card is exported
+
+  /* ---------- THE FOLDER SCAN IS GONE, AND HAS BEEN SINCE 19 AUGUST ---------------------------------
+     `scan-posts` IS NOT IN THE APP: no handler, no button, nothing anywhere. It was taken out of
+     `newPostCard` and this journey was left behind asserting it, so the report has been reading
+     "an admin has no way to run the folder scan" ever since — true, and not a fault.
+
+     A RED THAT IS ALWAYS RED IS A RED NOBODY READS, which is the whole reason this file exists. So
+     the journey now checks what the feature was FOR — that the post card tells a client and an
+     admin different things — which is the rule that outlived the button. Put the scan back and this
+     will not object; break who sees what and it will. */
   const bad = [];
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
-  if (w.__t.card().includes('scan-posts')) bad.push('a client is offered the folder scan');
+  const asClient = w.__t.card();
   w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
-  if (!w.__t.card().includes('scan-posts')) bad.push('an admin has no way to run the folder scan');
+  const asAdmin = w.__t.card();
+  if (asClient === asAdmin) {
+    bad.push('the post card is identical for a client and an admin — nothing is being withheld');
+  }
+  if (!/check posts before they go up/i.test(asClient)) {
+    bad.push('a client is not told their post is checked before it goes up');
+  }
+  if (/check posts before they go up/i.test(asAdmin)) {
+    bad.push('an admin is told their own post will be checked');
+  }
   return bad;
 });
 

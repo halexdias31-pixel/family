@@ -94,27 +94,16 @@ const KINDS = {
      errand: this is a thing you book with, not a thing you learn from. */
   level:   { group: 'Booking', label: 'Levels',   card: x => findCard({ kind: x.kind, row: x.row }) },
 
-  /* ---------- WHAT YOU HAVE BOOKED, AND WHAT IS GOING SPARE ---------------------------------------
-     THESE WERE PAGES, not answers. When the Book column moved here, everything on it came as one
-     run of pages behind "What for · Booking" — the form, your sessions and the open classes, in the
-     order the column happened to stack them. Which meant three unrelated things sharing one answer,
-     and no way to ask for any of them on its own.
+  /* `receipt` AND `coupon` WERE KINDS HERE — your own sessions, and the classes with seats going.
+     Both have gone, and for opposite reasons.
 
-     THEY ARE TWO KINDS OF THING AND ARE TWO KINDS. A receipt is yours and settled; a coupon is
-     somebody else's class with room in it. The funnel is built to keep exactly that apart — it is
-     the same question it asks about tutors and venues — so asking it here costs one line each and
-     gives back a filter, a count and a place in the list.
+     YOUR SESSIONS ARE PANES ON `You`: you do not search for your own bookings, you check them.
 
-     THE CARDS ARE THE ONES THE COLUMN DREW. `jobCard` and `openClassCard` were locals inside
-     `bookBlocks`; they are top-level in book.js now and nothing about what they draw has changed. */
-  /* `receipt` WAS HERE — your own sessions, as a kind. They are panes on You now: you do not search
-     for your own bookings, you check them, and checking belongs with the rest of your own things.
-     See `mePages` in me.js.
-
-     `coupon` STAYS, and the difference between the two is the whole argument. A class with seats
-     going is somebody else's, there are many of them, and which one suits depends on subject,
-     level, venue and day — that is a search, and a search is what this screen is. */
-  coupon:  { group: 'Booking', label: 'Coupons',  card: x => openClassCard(x.row) },
+     THE OPEN CLASSES ARE A DROPDOWN ON THE BOOKING FORM. A findable kind for a handful of rows meant
+     somebody wanting a class had to know to go looking for one, and somebody filling in the form was
+     never told they existed — two ways to make a booking that did not look like each other. Now
+     "Waiting list class" is answered on the paper and the row below asks which list. See `joining`
+     in book.js. */
 
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
   friend: { group: 'Friends', label: 'Friends', card: x => {
@@ -1114,17 +1103,6 @@ function stuffItems() {
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       cost: 0, slot: '', subject: x.name, grade: '', off: false, row: x,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
-    })),
-    /* ---------- THE CLASSES WITH ROOM ------------------------------------------------------------
-       `subject` AND `keystage` ARE FILLED off the job, so narrowing to Maths or to GCSE finds the
-       classes that match — which is the entire reason these are findable rather than a page. */
-    ...(typeof openJobs_ === 'function' ? openJobs_() : []).map(j => ({
-      kind: 'coupon', name: j.subject || 'Class',
-      key: 'open:' + (j.id || j.jobId || ''),
-      sub: [j.venue, j.weekday, j.time].filter(Boolean).join(' · '), image: '',
-      cost: 0, slot: '', subject: j.subject || '', grade: '', off: false, row: j,
-      bandType: '', bandValue: '', keystage: j.level || '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: '', paper: false,
     })),
     /* ---------- LEVELS -------------------------------------------------------------------------
