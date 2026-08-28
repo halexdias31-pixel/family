@@ -1554,6 +1554,19 @@ on('fav', el => {
   const wrap = el.closest('.favwrap');
   if (wrap) wrap.classList.toggle('is-fav', isFav(el.getAttribute('data-key')));
   el.textContent = isFav(el.getAttribute('data-key')) ? '★' : '☆';
+
+  /* ---------- AND THE ONE LIST THAT IS ABOUT THE STARS THEMSELVES --------------------------------
+     `Saved` lives on the controls page, and the controls page is drawn ONCE and deliberately never
+     rebuilt — that is what stops the search box losing focus mid-word. Which meant starring a thing
+     updated the star, updated the sheet, and left the list of starred things showing what it showed
+     when the screen opened. It only caught up if you left Find and came back, which reads exactly
+     like favourites being broken.
+
+     SO THE STRIP REPAINTS ITSELF, and nothing else does. Same move as the star above and the tile
+     in `on('spot')`: find the one node whose contents are now wrong and refill it, rather than
+     redrawing a screen and throwing away the scroll position of somebody working down a list. */
+  const strip = document.getElementById('stuff-saved');
+  if (strip) strip.innerHTML = savedStrip_();
 });
 
 function stuffCard(x, credits) {
@@ -2111,7 +2124,7 @@ screen('stuff', () => {
           gone the moment you turn to the results. That is the right place for it: it is what you
           kept from last time, offered before you start looking, rather than something competing
           with what you are looking at now. */''}
-    ${savedStrip_()}`;
+    <div id="stuff-saved">${savedStrip_()}</div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. Four hundred cards under a
      search box is a column nobody reaches the end of; eight to a screen is a thing you turn.
