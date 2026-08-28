@@ -331,21 +331,70 @@ function paperRows(t) {
                  || String(a.part || '').localeCompare(String(b.part || '')));
 }
 
-/* ---------- READING A PAPER, AND THE ONE AFTER IT --------------------------------------------------
-   PULLED OUT OF THE HANDLER so it can call itself. A flick inside the open sheet asks for the next
-   paper, and the next paper is opened by exactly the code that opened this one — which is the only
-   way the two can be guaranteed to look the same.
+/* `papersWithQuestions_` WAS HERE. It answered "which paper is next" for the flick inside the open
+   sheet, and there is no sheet — a paper opens in a tab of its own now. Nothing else ever called it.
+   `check-dead.js` would have named it on the next run anyway. */
 
-   ONLY PAPERS WITH QUESTIONS WRITTEN UP ARE NEIGHBOURS. Stepping onto one with nothing in it would
-   land on an empty sheet with no way back except closing, so the list is filtered first and a paper
-   nobody has typed up is simply not in the sequence. */
-function papersWithQuestions_() {
-  return (allTopics() || []).filter(t => (paperRows(t) || []).length);
-}
+/* ==================================================================================================
+   A PAPER OPENS AS A PAGE OF ITS OWN, IN A NEW TAB.
 
-function openPaper_(t) {
+   IT WAS A SHEET — the app's overlay, sliding up over the card you pressed. That was the last sheet
+   left in the app, and it was the wrong shape for this one thing above all others: a past paper is
+   a DOCUMENT. You read it beside something else, you scroll it for twenty minutes, you print it,
+   you keep the tab open while you work. An overlay can do none of those; it can only be dismissed.
+
+   AND IT IS THE THING THE TROLLEY SELLS. `Paper` charges for a printed copy, and until now nothing
+   in the app could actually produce one — the sheet had the app's chrome around it and the app's
+   dark theme through it. A tab holding nothing but the paper is Ctrl-P away from the thing being
+   bought, which makes the price honest.
+
+   WHAT IS LOST, and it is worth saying: the sheet could be flicked left and right to the paper
+   before or after this one. A tab cannot. That was a nice way to browse and a poor way to read, and
+   reading is what this is for — the funnel is how you find the next one.
+
+   ---------------------------------------------------------------------------------------------
+   THE STYLES TRAVEL WITH IT. A new tab shares nothing with the app — no stylesheet, no variables —
+   so the paper carries its own, inline and complete. They are deliberately NOT a copy of the app's:
+   this is black on white, because that is what an exam paper is and because it is what comes out of
+   a printer without anybody changing a setting.
+================================================================================================== */
+const PAPER_CSS = `
+  :root { --ink: #14130f; --faint: #6b675e; --rule: #cfc9bd; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.2rem 1.4rem 4rem; background: #fff; color: var(--ink);
+    font: 400 15px/1.55 ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  }
+  main { max-width: 46rem; margin: 0 auto; }
+  .qp-title { margin: 0 0 .2rem; font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+  .qp-head { margin: 0 0 1.6rem; padding-bottom: .9rem; color: var(--faint);
+             font-size: .82rem; border-bottom: 1px solid var(--rule); }
+  .qp-sec { margin: 2.2rem 0 .9rem; font-size: .78rem; font-weight: 700;
+            letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+  .qp-q { margin: 1.9rem 0 .5rem; font-size: 1.05rem; font-weight: 700; }
+  .qsheet-stem { margin: .4rem 0 .9rem; }
+  .qp-part { display: flex; gap: .55rem; margin: 0 0 1.1rem; }
+  .qsheet-pn { flex: 0 0 auto; font-weight: 700; }
+  .qp-body { flex: 1 1 auto; min-width: 0; }
+  .qsheet-lead { margin: 0 0 .35rem; }
+  .qp-marks { margin: .35rem 0 0; text-align: right; color: var(--faint); font-size: .85rem; }
+  .qp-end { margin: 2.5rem 0 0; padding-top: .9rem; border-top: 1px solid var(--rule);
+            text-align: center; color: var(--faint); font-size: .8rem; letter-spacing: .1em; }
+  img, svg, table { max-width: 100%; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid var(--rule); padding: .3rem .5rem; text-align: left; }
+  /* ON PAPER: no page break inside a question, and the browser's own header is enough of a title. */
+  @media print {
+    body { padding: 0; font-size: 12pt; }
+    .qp-q, .qp-part { break-inside: avoid; page-break-inside: avoid; }
+  }
+`;
+
+/* The questions, as printed order. Shared by the tab and by nothing else — but kept separate from
+   the document around it so the two can be read apart. */
+function paperBody_(t) {
   const rows = paperRows(t);
-  if (!rows.length) { toast('No questions written up for this one yet'); return; }
+  if (!rows.length) return null;
 
   let h = '', section = null, q = null, marks = 0;
   rows.forEach(r => {
@@ -375,25 +424,34 @@ function openPaper_(t) {
       </div>
     </div>`;
   });
-
   /* THE TOTAL IS ADDED UP RATHER THAN TYPED, so it cannot disagree with the questions above it. */
-  /* THE NEIGHBOURS ARE WORKED OUT AT OPENING TIME, not held from when the list was drawn: the
-     sheet may sit open while a refresh arrives, and a stale index would step onto the wrong paper
-     or off the end. `indexOf` on the current paper is cheap and cannot go stale. */
-  openSheet(t.name, `<div class="qsheet qpaper">
-    <p class="qp-head">${esc([t.examBoard, waveOf(t), t.keystage].filter(Boolean).join(' · '))}
-      ${marks ? ` · <b>${marks} marks</b>` : ''}</p>
-    ${h}
-  </div>`, null, dir => {
-    const all = papersWithQuestions_();
-    const at = all.findIndex(x => (x.id || x.name) === (t.id || t.name));
-    const next = all[at + dir];
-    /* THE ENDS ARE ENDS. Wrapping round would mean a flick at the last paper silently showing the
-       first, which reads as the app losing your place rather than as running out of papers. */
-    if (at === -1 || !next) return false;
-    openPaper_(next);
-    return true;
-  });
+  return { html: h, marks: marks };
+}
+
+function openPaper_(t) {
+  const body = paperBody_(t);
+  if (!body) { toast('No questions written up for this one yet'); return; }
+
+  /* THE TAB IS OPENED FIRST AND EMPTY, before anything is built. A browser allows a new window only
+     while it can still see the click that asked for it, and building the document first hands that
+     back — the tab is then a pop-up and is blocked. Opening it empty and filling it afterwards is
+     the order that survives. */
+  const w = window.open('', '_blank');
+  if (!w) { toast('Allow pop-ups to open papers'); return; }
+
+  const head = [t.examBoard, waveOf(t), t.keystage].filter(Boolean).join(' · ');
+  w.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${esc(t.name)}</title><style>${PAPER_CSS}</style></head>
+    <body><main>
+      <h1 class="qp-title">${esc(t.name)}</h1>
+      <p class="qp-head">${esc(head)}${body.marks ? (head ? ' · ' : '') + body.marks + ' marks' : ''}</p>
+      ${body.html}
+      <p class="qp-end">END OF QUESTIONS</p>
+    </main></body></html>`);
+  /* CLOSED EXPLICITLY. Without it the tab keeps its loading spinner turning for ever, which reads
+     as a page that never finished. */
+  w.document.close();
 }
 
 on('paper-read', el => {
