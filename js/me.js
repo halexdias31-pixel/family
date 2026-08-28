@@ -293,6 +293,21 @@ const mePages = () => {
      with the account list anyway. Splitting on all of them means adding a pane is adding a marker.
      Empty pieces are dropped, so a marker at the very start or two in a row costs nothing. */
   const pages = all.split(ME_SPLIT).map(x => x.trim()).filter(Boolean);
+
+  /* ---------- YOUR SESSIONS ARE YOURS, SO THEY ARE HERE ------------------------------------------
+     THEY WERE A COLUMN, THEN A FUNNEL ANSWER, and neither was right. A column cost a swipe on every
+     screen for a list most people can count on one hand; a funnel answer made them findable, which
+     sounds better than it is — you do not SEARCH for your own bookings, you check them, and a thing
+     you check belongs where the rest of your own things already are.
+
+     THE OPEN CLASSES DID NOT COME WITH THEM, and that is the whole distinction: a class with seats
+     going is somebody else's, there are many, and which one suits you depends on subject, level,
+     venue and day. That is a search. Those stayed in Find where the filters are.
+
+     ONE PANE EACH, after the account and before the messages — the same order the column had, and
+     the same `jobCard` stub it drew, so a session looks the same wherever it is met. */
+  if (USER) (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => pages.push(jobCard(j)));
+
   if (USER) pages.push(meMessagesCard());
   return pages.length ? pages : [all];
 };

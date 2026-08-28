@@ -77,7 +77,21 @@ screen('posts', () => {
   if (!LOADED) return skeleton();
 
   const posts = feedPosts();
-  if (!posts.length) {
+  /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED -------------------------------
+     THESE WERE ON THE BOOKING COLUMN, which is where they were built and is not where they belong.
+     A festive card is the business saying "there is a holiday club on the 23rd, four places left" —
+     an announcement with a date on it, which is precisely what this screen is for. It was next to
+     the booking form only because bookings were.
+
+     NOBODY PUBLISHES THEM. A holiday row carries a date and how many days ahead to appear, so six
+     weeks before Christmas one puts itself here and the week after it is gone. That is the same
+     thing the ＋ card at the top of this feed does by hand, done by the sheet.
+
+     IN FRONT OF THE POSTS, because they expire and posts do not. A photograph from June will still
+     be worth seeing next week; a club with four places left may not be there. */
+  const festive = (DATA.festive || []).map(festiveCard);
+
+  if (!posts.length && !festive.length) {
     return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
       + 'with an image link and a caption.</span>');
   }
@@ -176,6 +190,9 @@ screen('posts', () => {
   /* ANYBODY SIGNED IN. It was admin-only, which meant the one screen the whole family looks at was
      the one screen only you could add to. What differs is what happens after — see the card. */
   if (USER) cards.unshift(newPostCard());
+  /* AFTER THE ＋, BEFORE THE POSTS. The ＋ is a control and belongs at the very top; the festive
+     cards are the most perishable thing on the screen and belong next. */
+  festive.reverse().forEach(c => cards.splice(USER ? 1 : 0, 0, c));
   return pages('posts', cards);
 });
 

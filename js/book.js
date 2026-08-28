@@ -128,14 +128,21 @@ function jobCard(j) {
    your sessions are `Receipts` and the open classes are `Coupons`, each a kind of its own under
    "What for · Booking", each found by asking for it. See `KINDS` in find.js.
 
-   SO WHAT IS LEFT HERE IS THE FORM, plus anything the calendar is offering — which is the one thing
-   that is not a kind, because it is not a thing you go looking for. It puts itself in front of you
-   or it does not exist. */
+   SO WHAT IS LEFT HERE IS THE FORM. The festive cards went to Posts, which is where the business
+   talking already lives — a holiday offer is an announcement with a date on it, and it was only
+   ever here because bookings were.
+
+   SIGNED OUT, IT IS A SIGN-IN CARD. The column drew one; the form drew unconditionally after the
+   move, which meant a visitor got twelve fields they could fill in and no way to send any of it.
+   The button toasts rather than opening anything, which is the state sign-in has been in for a
+   while — but a dead end that says what it is beats a form that silently cannot work. */
 function bookBlocks() {
-  return [
-    ...(DATA.festive || []).map(festiveCard),
-    bookerCard(),
-  ].filter(Boolean);
+  if (!USER) {
+    return [`<div class="card"><h3>Sign in to book</h3>
+      <p class="sub">You need an account to ask for a session.</p>
+      <button class="btn" data-do="signin">Sign in</button></div>`];
+  }
+  return [bookerCard()].filter(Boolean);
 }
 
 /* WHOSE SESSIONS ARE WHOSE. Asked in one place because `Receipts` and `Coupons` are the two halves

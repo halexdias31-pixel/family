@@ -107,7 +107,13 @@ const KINDS = {
 
      THE CARDS ARE THE ONES THE COLUMN DREW. `jobCard` and `openClassCard` were locals inside
      `bookBlocks`; they are top-level in book.js now and nothing about what they draw has changed. */
-  receipt: { group: 'Booking', label: 'Receipts', card: x => jobCard(x.row) },
+  /* `receipt` WAS HERE — your own sessions, as a kind. They are panes on You now: you do not search
+     for your own bookings, you check them, and checking belongs with the rest of your own things.
+     See `mePages` in me.js.
+
+     `coupon` STAYS, and the difference between the two is the whole argument. A class with seats
+     going is somebody else's, there are many of them, and which one suits depends on subject,
+     level, venue and day — that is a search, and a search is what this screen is. */
   coupon:  { group: 'Booking', label: 'Coupons',  card: x => openClassCard(x.row) },
 
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
@@ -1110,22 +1116,9 @@ function stuffItems() {
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: '', paper: false,
     })),
-    /* ---------- YOUR SESSIONS, AND THE CLASSES WITH ROOM ----------------------------------------
-       `subject` AND `keystage` ARE FILLED where the job has them, so a receipt turns up when you
-       narrow to Maths — which is the whole reason for making these findable rather than a page.
-
-       `off` MARKS A CANCELLED ONE rather than hiding it. A booking that was called off is still a
-       thing that happened and still the answer to "what did I book"; `is-off` greys it and says
-       so. */
-    ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
-      kind: 'receipt', name: j.subject || 'Session',
-      key: 'job:' + (j.id || j.jobId || ''),
-      sub: [j.venue, j.weekday, j.time].filter(Boolean).join(' · '), image: '',
-      cost: 0, slot: '', subject: j.subject || '', grade: '',
-      off: norm(j.status) === 'cancelled', row: j,
-      bandType: '', bandValue: '', keystage: j.level || '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
-    })),
+    /* ---------- THE CLASSES WITH ROOM ------------------------------------------------------------
+       `subject` AND `keystage` ARE FILLED off the job, so narrowing to Maths or to GCSE finds the
+       classes that match — which is the entire reason these are findable rather than a page. */
     ...(typeof openJobs_ === 'function' ? openJobs_() : []).map(j => ({
       kind: 'coupon', name: j.subject || 'Class',
       key: 'open:' + (j.id || j.jobId || ''),
@@ -1752,6 +1745,18 @@ function filterChips() {
    Nothing carries `data-do="noop"`, so it swallowed nothing. */
 /* ANSWERING THE QUESTION ON THE PAGE. One tap: it becomes a chip, and the next question — if
    there is one worth asking — takes its place. */
+/* STRAIGHT TO THE FORM. It answers the first question — "what for · booking" — rather than
+   navigating past the funnel, so the chips say how you got there and taking the chip off puts you
+   back where you were. A shortcut that leaves no trail is one you cannot undo. */
+on('book-jump', () => {
+  STUFF.filters = [{ field: 'forLabel', value: 'Booking' }];
+  paintStuff();
+  /* ONE PAGE ON, WHICH IS THE FORM. `paintStuff` lands on the question, and the whole point of this
+     is not having to make that swipe. */
+  PAGE.stuff = stuffQuestionPage_() + 1;
+  paintPager('stuff', true);
+});
+
 on('facet-pick', el => {
   STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
   paintStuff();
@@ -2150,6 +2155,24 @@ function stuffQuestion() {
       Swipe up for the ${items.length === 1 ? 'one' : items.length}.</p>` + adding;
   }
 
+  /* ---------- A FRONT DOOR TO THE BOOKING FORM ------------------------------------------------------
+   THE FORM IS TWO ANSWERS DEEP. It lives behind "What for · Booking", which is right — it is built
+   out of the tutors, venues, subjects and levels that question leads to — but a thing you might
+   have opened the app to do should not require two taps of a funnel to find, and nothing on the
+   first screen says it is there at all.
+
+   SO THE FIRST QUESTION CARRIES IT, and only the first: once anything is narrowed the funnel is
+   answering something and an unrelated shortcut in the middle of it is noise. One line, in the
+   place somebody is already reading, that answers the question on their behalf and turns to the
+   form.
+
+   NOT A ROW. The rows below are answers to the question being asked and each one narrows a list;
+   this does something else, and dressing it as one of them would make the count column look like
+   it had lost its number. */
+  const door = (!STUFF.filters.length && !S_(STUFF.q).trim() && USER)
+    ? `<p class="stuff-door"><span class="text-action" data-do="book-jump"
+        >Ask for a session</span></p>` : '';
+
   const values = facetValues(items, facet);
   /* THE HEADING IS GONE — it read `> WHAT FOR   5` above five rows that were about to say the same
      thing. The label named a question whose answers were already on the screen, and the number
@@ -2162,7 +2185,7 @@ function stuffQuestion() {
      so is the count — so on a one-digit number it appeared beside the digit and on a four-digit one
      it disappeared behind them. Five rows, chevrons on two of them, and the two were whichever
      happened to have small numbers. It marked nothing and read as litter. */
-  return values.map(v => `<div class="row tap counted" data-do="facet-pick"
+  return door + values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
         <span class="k">${mark(v.value)}</span>
         <span class="v mono">${v.n}</span>
