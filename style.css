@@ -1898,7 +1898,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   color: #2b2620;
   /* The torn ends need a little room above and below the print or the zigzag eats the first line;
      .7rem is enough for that and .3rem less than it was carrying on each end. */
-  padding: .6rem .7rem .7rem;
+  /* THE PADDING IS 22px OF A 307px CARD, both sides. .45rem keeps the print off the torn edge and
+     gives 5px back to every row on the paper — including the eleven-across grid, where it is a
+     quarter of a cell. */
+  padding: .5rem .45rem .6rem;
   margin: .2rem 0 .3rem;
   font-family: var(--mono);
   /* TORN AT BOTH ENDS. A zigzag mask rather than a border image: it costs one gradient, scales to
@@ -2259,8 +2262,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    its width — which on a row of fourteen hours is the difference between a target you can hit and
    one you cannot. It reads as belonging to the row above from the rule underneath it and from being
    the only thing there; it does not also need to start where the values start. */
+/* THE INDENT COSTS THE GRID A CELL AND A HALF. It reads as belonging to the When row from the rule
+   underneath it and from being the only thing there; on a 307px card it does not also need to be
+   inset. */
 .bk-open {
-  margin: .05rem 0 .3rem 1.5em;
+  margin: .05rem 0 .25rem 0;
   padding-bottom: .3rem;
   border-bottom: 1px dashed var(--line);
 }
@@ -2327,11 +2333,22 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    AND A CLOSED DAY COLLAPSES. See `stepGrid_`: a day with no open hour keeps its label and its
    greyed boxes, because a missing Wednesday and a Wednesday nobody works are different facts — but
    it does not need a pressable row, because there is nothing on it to press. */
-.slot-grid { display: flex; flex-direction: column; gap: 2px; margin: .3rem 0 .15rem; }
-.slot-row { display: flex; align-items: center; gap: .4rem; }
-.slot-row.is-shut .hr { min-height: 15px; font-size: .58rem; }
-.slot-day { flex: 0 0 2.2rem; font-size: .7rem; color: var(--faint);
-            text-transform: uppercase; letter-spacing: .08em; }
+/* ---------- MEASURED ON A 390px PHONE -------------------------------------------------------------
+   THE CARD IS 307px WIDE THERE. Take the day label and the gaps and eleven hours share 225px, so a
+   cell is 20px across whatever else happens — width is not available and never was. Height is the
+   only dimension, and at 30px the week was 222px tall inside a card whose rows are 20px each: the
+   single biggest block on the paper by some way.
+
+   24px, WHICH IS 20×24 OF TARGET. Below about 24 a cell stops being reliably pressable at this
+   width, so this is the floor rather than a preference — and it takes the week from 222 to 174.
+
+   THE DAY LABEL DROPS TO TWO LETTERS. `Mo Tu We Th Fr Sa Su` is unambiguous where one letter is not
+   (T and S are each two days), and the 14px it gives back goes to the cells, which need it more. */
+.slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .25rem 0 .1rem; }
+.slot-row { display: flex; align-items: center; gap: .3rem; }
+.slot-row.is-shut .hr { min-height: 13px; font-size: .55rem; }
+.slot-day { flex: 0 0 1.5rem; font-size: .62rem; color: var(--faint);
+            text-transform: uppercase; letter-spacing: .04em; }
 /* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
    see is one you will not book. */
 /* THIN AND TALL. Fourteen hours at a 38px square is two lines on any phone, and a day that wraps
@@ -2347,7 +2364,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    question and it should not look like two. */
 .hr {
   flex: 1 1 0; min-width: 0; padding: 0;
-  min-height: max(30px, 1.9rem);
+  min-height: max(24px, 1.5rem);
   display: grid; place-items: center;
   user-select: none; -webkit-user-select: none;
   background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);

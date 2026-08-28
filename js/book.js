@@ -1470,7 +1470,10 @@ function stepGrid_(st) {
             press. Four working days and three closed ones costs half what seven equal rows did. */''}
       ${g.rows.map(r => `<div class="slot-row${
         r.hours.some(h => h.open) ? '' : ' is-shut'}">
-        <span class="slot-day">${esc(r.label.slice(0, 3))}</span>
+        ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell's width — and Mo/Tu/
+              We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
+              T and S are each two days. */''}
+        <span class="slot-day">${esc(r.label.slice(0, 2))}</span>
         <div class="slot-hours">
           ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
             (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}

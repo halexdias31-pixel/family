@@ -50,6 +50,47 @@
    a browse page with three counts, a pager, and a filter that could only ever ask one question.
 --------------------------------------------------------------------------------------------- */
 /** One card. The three shapes, each carrying the class that colours its name. */
+/* ---------- YOU, AS A CARD -------------------------------------------------------------------------
+   THE ACCOUNT WAS A LIST OF ROWS ON `You` — name, role, credits, ticks, email, where — with the
+   things you can do about it as three separate tap-cards further down the column. Everybody else in
+   this app is a card: a tutor is a pass, a friend is a card, a venue is a card. You were a settings
+   screen.
+
+   ONE CARD, AND THE ACTIONS ARE ON IT, which is the rule every other card in the app already
+   follows. Editing your details, adding your child and opening your wardrobe were three cards you
+   scrolled past; they are marks in the row under your own face now.
+
+   IT IS ONLY EVER YOU. There is no people directory on the device and there should not be one from
+   here: the `people` tab carries PINs, bank details, addresses and dates of birth, and the backend
+   deliberately sends only `tutors` — filtered to public facts — and `students`. Everything on this
+   card is already on this device because it is yours. */
+function meCard() {
+  if (!USER) return '';
+  const face = pic(USER.photo || (USER.profile || {}).photo || '');
+  const p = USER.profile || {};
+  const ticks = typeof tickCount === 'function' ? tickCount() : 0;
+  const rows = [
+    ['Role', roleOf(USER.role || '')],
+    ['Credits', String(USER.credits || 0)],
+    ['Ticks', String(ticks)],
+    ['Email', p.email || ''],
+    ['Where', p.city || p.borough || ''],
+  ].filter(([, v]) => String(v || '').trim());
+
+  return `<div class="card">
+    <div class="thing">
+      ${face
+        ? `<img class="thing-pic" src="${esc(face)}" alt="">`
+        : `<span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>`}
+      <div class="thing-body">
+        <h3>${esc(USER.name)}</h3>
+        <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
+      </div>
+    </div>
+    ${rows.map(([k, v]) => row(k, v)).join('')}
+  </div>${cardTiles_({ kind: 'me', key: 'me:' + (USER.handle || USER.name), row: USER })}`;
+}
+
 function findCard(x) {
   const t = x.row;
   /* ---------- A TUTOR IS A STAFF PASS ------------------------------------------------------------

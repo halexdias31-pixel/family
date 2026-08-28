@@ -434,6 +434,22 @@ on('widget-open', el => {
    `video_url` OR THE SEARCH, whichever the backend found — see `video: S(r.video_url) ||
    S(r.video_search_url)` in doget. So a bout nobody has tracked down still offers a way to look,
    and there is nothing here to tell the two apart. */
+/* ---------- WHAT YOU CAN DO ABOUT YOURSELF -------------------------------------------------------
+   THREE TAP-CARDS BECAME THREE MARKS. "Edit your details", "Add your child" and the wardrobe were
+   full cards in the `You` column, each a heading and a sentence, each doing one thing — which is
+   what a tile is for.
+
+   ADDING A CHILD IS NOT FOR EVERYBODY. A student has nobody to add, which is the same condition the
+   card carried; it is asked here now so the row is right for whoever is looking. */
+function meTiles_() {
+  const parent = heldRoles().indexOf('client') !== -1
+    || heldRoles().indexOf('parent') !== -1
+    || heldRoles().indexOf('admin') !== -1;
+  return `${tile_({ icon: 'edit', label: 'Edit your details', act: 'edit-me' })}
+    ${parent ? tile_({ icon: 'star', label: 'Add your child', act: 'add-child' }) : ''}
+    ${tile_({ icon: 'wear', label: 'Your figure', act: 'wardrobe' })}`;
+}
+
 function fightTiles_(x) {
   const f = x.row || {};
   return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
@@ -465,6 +481,7 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
+  if (x.kind === 'me') return meTiles_(x);
   return '';
 }
 

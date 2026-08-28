@@ -106,6 +106,18 @@ const KINDS = {
      in book.js. */
 
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
+  /* ---------- YOU ARE FINDABLE, AND YOU ARE THE ONLY PERSON WHO IS -------------------------------
+     `People` HAS ONE ENTRY AND THAT IS THE POINT. Tutors are already a kind, filtered to public
+     facts by the backend; friends are already a kind, name and handle and score. What was missing
+     was you — your own account lived as a settings list on `You` while everybody else in the app
+     was a card.
+
+     NOTHING ELSE GOES IN THIS GROUP without a backend change. The `people` tab holds PINs, bank
+     details, addresses and dates of birth, and `doget.gs` deliberately never sends it — a directory
+     built from here would put all of that on every phone, and the leak would be invisible because
+     the data would already have arrived. */
+  me: { group: 'People', label: 'You', card: () => meCard() },
+
   friend: { group: 'Friends', label: 'Friends', card: x => {
     const f = x.row;
     const xp = Number(f.xp) || 0;
@@ -1116,6 +1128,16 @@ function stuffItems() {
        describe the same year and are not the same fact — and folding one into the other would put
        two vocabularies in one dropdown, which is the mistake the boxer comment above already had
        to be talked out of once. */
+    /* ---------- YOU, ONE ROW, ONLY WHEN SIGNED IN --------------------------------------------
+       Everything on it is already on this device because it is yours — see the note on the `me`
+       kind above for why nobody else joins it. */
+    ...(USER ? [{
+      kind: 'me', name: USER.name || 'You', key: 'me:' + (USER.handle || USER.name),
+      sub: roleOf(USER.role || ''), image: pic(USER.photo || (USER.profile || {}).photo || ''),
+      cost: 0, slot: '', subject: '', grade: '', off: false, row: USER,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    }] : []),
     ...(typeof levelRows === 'function' ? levelRows() : []).map(x => ({
       kind: 'level', name: x.name, key: 'lvl:' + x.name,
       /* The subjects, under the name, so the list is readable before anything is opened. */

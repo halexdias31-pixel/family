@@ -64,25 +64,8 @@ function meBlocks() {
       </div>`);
   }
 
-  const ticks = typeof tickCount === 'function' ? tickCount() : 0;
-  const rows = [
-    ['Name', USER.name],
-    ['Role', roleOf(USER.role || '')],
-    ['Credits', String(USER.credits || 0)],
-    ['Ticks', String(ticks)],
-    /* FROM THE PROFILE, which is where the login reply puts them. `verifyLogin` returns an
-       `email` and a `city` inside `profile` and nothing at the top level, so both of these rows
-       have been undefined for everybody — and the filter below drops an empty row silently, so
-       the card simply had two fewer lines and nothing said why. The same fault the photograph
-       had, two lines down, fixed the same way. */
-    /* AND THE DEAD HALF OF EACH IS GONE. `USER.email`, `USER.city` and `USER.borough` were the
-          first thing each of these tried, and the login reply has never sent any of them at the top
-          level — so all three were undefined every single time and the profile behind them did all
-          the work. A branch that never runs reads as the one that does, and the next person to
-          wonder where these come from would have looked at the wrong half. */
-    ['Email', (USER.profile || {}).email],
-    ['Where', (USER.profile || {}).city || (USER.profile || {}).borough],
-  ].filter(([, v]) => v);
+  /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
+     now, built from the same `USER` and `USER.profile` this read. */
 
   /* THE PHOTOGRAPH, not the figure. `USER.avatar` is the WEARABLE string — "hair:crop|legs:jeans"
      — and putting that in a src gives a broken image every time. The picture is `photo`, it is a
@@ -106,11 +89,10 @@ function meBlocks() {
       </div>
     </div>
 
-    <div class="card">
-      ${/* Same fault as the tutor sheet had: the label was inside quotes inside an
-            interpolation, so every row on this card was labelled `${esc(k)}`. */''}
-      ${rows.map(([k, v]) => row(k, v)).join('')}
-    </div>
+    ${/* THE ACCOUNT ROWS MOVED ONTO YOUR OWN CARD, in the funnel under People — see `meCard` in
+          cards.js. Everybody else in this app is a card; you were a settings list, in a column, two
+          swipes from anything. The facts are the same facts and they are on the same device; only
+          the shape and the address changed. */''}
 
     ${/* SECOND, and that is the whole point of where it is.
           It was seventh — six swipes across a horizontal carousel from the first thing anybody
@@ -173,15 +155,9 @@ function meBlocks() {
           A PARENT ASKS BY NAME. The backend matches on first and last name and refuses politely
           when there are none or more than one — so this asks for exactly those two things and lets
           it answer. Shown to a parent or client; a student has nobody to add. */''}
-    ${(heldRoles().indexOf('client') !== -1 || heldRoles().indexOf('parent') !== -1
-       || heldRoles().indexOf('admin') !== -1)
-      ? `<div class="card tap" data-do="add-child"><h3>Add your child</h3>
-           <p class="sub">Search their name. They will be asked to say yes before you are
-             linked.</p></div>`
-      : ''}
-
-    <div class="card tap" data-do="edit-me"><h3>Edit your details</h3>
-      <p class="sub">Name, email, address, availability.</p></div>
+    ${/* `Add your child` AND `Edit your details` ARE TILES ON YOUR CARD NOW — one mark each, in the
+          row under your own face, beside the wardrobe. Three cards you scrolled past, each a heading
+          and a sentence, each doing one thing: which is what a tile is. See `meTiles_`. */''}
 
     ${/* WHAT IS WRONG WITH THE DATA, said where somebody will see it.
           `dataProblems()` is the largest diagnostic in the backend — a term that ends before it
