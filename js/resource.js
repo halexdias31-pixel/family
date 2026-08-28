@@ -267,7 +267,8 @@ on('cart-drop', el => {
   /* THE PAGE COUNT CHANGES when the last thing leaves the basket — the basket page stops being
      drawn at all — so this is a rebuild rather than a repaint. `paintStuff` handles both, and
      knows not to disturb the search box while it does. */
-  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(); else repaint();
+  /* STAY WHERE YOU ARE. Taking a line off the basket should not move you off the basket. */
+  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true); else repaint();
 });
 
 /* ---------- `on_openCart` AND `on('open-cart')` WERE HERE ------------------------------------------

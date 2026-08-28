@@ -252,7 +252,9 @@ function weekGrid() {
    knows not to touch the search box mid-word, which is exactly the guarantee this needs. One
    repainter for one screen, rather than two that have to agree about what is on it. */
 function paintBook_() {
-  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff();
+  /* STAY ON THE FORM. Answering a dropdown is not a new question — the whole point of putting every
+     field on one page was that you never leave it. */
+  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true);
 }
 
 /* `bookPages` WAS HERE — one pane per block for the Book column. `bookingPages_` in find.js does the

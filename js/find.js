@@ -1680,7 +1680,9 @@ on('fav', el => {
      page is updated in place, so the search box does not lose the word you are typing. It lands you
      on the question afterwards, which is the right place to be left after adding something to the
      pages in front of it. */
-  if ($('s-stuff')) paintStuff();
+  /* STAY ON THE CARD YOU STARRED. A star adds or removes a page in front of the question, so the
+     index shifts — `paintStuff` moves it by exactly that much rather than sending you to the top. */
+  if ($('s-stuff')) paintStuff(true);
 });
 
 function stuffCard(x, credits) {
@@ -1765,7 +1767,19 @@ on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
  * first page too and DO get rewritten, because adding a filter is a press rather than a keystroke
  * and there is nothing to lose focus from.
  */
-function paintStuff() {
+/* `keepPage` — STAY WHERE YOU ARE ---------------------------------------------------------------
+   THIS ALWAYS JUMPED YOU BACK TO THE QUESTION, and for a filter change that is right: a filter is a
+   new question and the answer to it starts at the beginning.
+
+   IT IS WRONG FOR EVERY OTHER CALLER. Choosing a subject from a dropdown on the booking form calls
+   this — the form is a page on this screen — and being thrown from the form back to the search box
+   after every single answer is the "it scrolls up" nobody could work around. Same for starring a
+   thing on a result page, and for the ✕ on a basket line.
+
+   THE PAGE COUNT CAN STILL CHANGE UNDER IT — starring adds a saved page in front — so the index is
+   nudged by however much the front of the list grew or shrank, rather than trusted blindly. Without
+   that, a star on page twelve leaves you on page eleven's card. */
+function paintStuff(keepPage) {
   const chips = $('stuff-chips');
   if (chips) chips.innerHTML = filterChips();
   const groups = $('stuff-groups');
@@ -1778,6 +1792,10 @@ function paintStuff() {
   const ctrl = $('stuff-controls');
   const first = ctrl && ctrl.closest('.page');
   if (!first) return;
+  /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
+     what says how much the pages in front moved by. */
+  const was = PAGE.stuff || 0;
+  const wasQ = stuffQuestionPage_();
 
   /* ---------- THE QUESTION PAGE IS NOT REDRAWN, AND THAT IS THE WHOLE POINT ---------------------
      This was `host.innerHTML = first.outerHTML + …`, which rebuilds the first page from its own
@@ -1833,7 +1851,9 @@ function paintStuff() {
      went between them; `stuffFirstResult_() - 1` is now the last of those, so answering "what for"
      would have dropped you at the foot of the booking form rather than on the question you just
      answered. Zero is no good either — that is a saved thing. */
-  PAGE.stuff = stuffQuestionPage_();
+  PAGE.stuff = keepPage
+    ? Math.max(0, Math.min(was + (stuffQuestionPage_() - wasQ), host.children.length - 1))
+    : stuffQuestionPage_();
 
   fillStuffPages();
   paintPager('stuff', true);
