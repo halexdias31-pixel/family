@@ -1898,7 +1898,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   color: #2b2620;
   /* The torn ends need a little room above and below the print or the zigzag eats the first line;
      .7rem is enough for that and .3rem less than it was carrying on each end. */
-  padding: .7rem .8rem .8rem;
+  padding: .6rem .7rem .7rem;
   margin: .2rem 0 .3rem;
   font-family: var(--mono);
   /* TORN AT BOTH ENDS. A zigzag mask rather than a border image: it costs one gradient, scales to
@@ -1928,14 +1928,14 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* NO PADDING ABOVE ON THE FORM. The head is one line now — where and with whom and when — and the
    room above it was there to sit the shop name off the torn edge. */
 .rc.scr .rc-head { padding-top: 0; }
-.rc-head { text-align: center; padding: .1rem 0 .35rem; }
-.rc-head h2 { margin: 0 0 .15rem; font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
-.rc-head p { margin: 0; font-size: .68rem; color: #6a6259; line-height: 1.35; }
+.rc-head { text-align: center; padding: .05rem 0 .25rem; }
+.rc-head h2 { margin: 0 0 .1rem; font-size: .95rem; letter-spacing: .18em; text-transform: uppercase; }
+.rc-head p { margin: 0; font-size: .64rem; color: #6a6259; line-height: 1.3; }
 
 /* A dashed rule, because a till roll's separators are printed rather than drawn. */
 /* A dashed rule, because a till roll's separators are printed rather than drawn. Five of them on a
    card of twelve rows is 5rem of margin on its own at the old .5rem. */
-.rc-rule { border-top: 1px dashed #b3aa9c; margin: .3rem 0; }
+.rc-rule { border-top: 1px dashed #b3aa9c; margin: .22rem 0; }
 
 /* The column headings, in the same grid as the rows so they line up with the figures under them —
    a header that does not sit over its own column is worse than none. */
@@ -1950,7 +1950,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    it is there because a till receipt has one. Worth keeping for exactly that reason, and worth
    keeping SMALL: 34px plus its margins was more height than the total line. */
 .rc-bars { display: flex; justify-content: center; align-items: flex-end; gap: 1px;
-           height: 14px; margin: .2rem 0 0; }
+           height: 11px; margin: .25rem 0 0; }
 .rc-bars i { display: block; height: 100%; background: #2b2620; }
 .rc-thanks { text-align: center; margin: 0; font-size: .66rem; color: #8a8175; }
 
@@ -1967,15 +1967,15 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    The face drops to 22px and the role goes under the name rather than on its own line. Same four
    facts, a third of the height. */
 .rost { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .1rem 0 .2rem; }
-.rost-slot { display: flex; flex-direction: column; align-items: center; gap: .08rem;
-             padding: .25rem .1rem; border: 1px solid #cfc6b4; border-radius: 3px;
+.rost-slot { display: flex; flex-direction: column; align-items: center; gap: .05rem;
+             padding: .18rem .1rem; border: 1px solid #cfc6b4; border-radius: 3px;
              background: #eeeadd; min-width: 0; }
 /* An open slot is dashed and pale — the same language every lobby uses for a space you could take,
    and unmistakably different from a filled one at a glance. */
 .rost-slot:not(.on) { border-style: dashed; background: transparent; opacity: .6; }
 /* The tutor is not a seat. A line above the slot says so without needing a different shape. */
 .rost-slot.tut { border-top: 2px solid #8a7a4a; }
-.rost-pic { width: 22px; height: 22px; display: grid; place-items: center; }
+.rost-pic { width: 18px; height: 18px; display: grid; place-items: center; }
 .rost-pic svg { width: 100%; height: 100%; border-radius: 50%; }
 .rost-plus { font-size: 1.1rem; color: #a99f8f; line-height: 1; }
 .rost-name { font-size: .6rem; font-weight: 700; color: #2b2620; max-width: 100%;
@@ -2133,9 +2133,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      TIGHTER, AND THE ROW STILL HAS AIR. .16rem of padding on a .76rem line leaves the rows clearly
      separate — the dashed rule under each value is doing most of that work anyway — and gives back
      roughly a third of the card. */
+  /* A ROW IS ONE LINE AND THE RULE UNDER IT. With the control no longer forcing a minimum, the
+     padding is what is left, and .1rem on a .74rem line is enough to keep twelve of them apart —
+     the dashed underline is doing most of the separating anyway. */
   gap: .3rem; align-items: baseline;
-  padding: .16rem 0;
-  font-size: .76rem;
+  padding: .1rem 0;
+  font-size: .74rem;
 }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break.
    This said `anywhere`, which breaks eagerly rather than as a last resort — so "Possession" came
@@ -2186,10 +2189,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
    FULL WIDTH SO THE WHOLE CELL IS THE TARGET. A select sized to its text gives a tap target the
    width of the word in it, and "—" is four pixels of it. */
+/* ---------- A SELECT IS TALLER THAN ITS TEXT UNLESS YOU SAY OTHERWISE ------------------------------
+   `appearance: none` TAKES THE ARROW AND THE WELL, NOT THE HEIGHT. Every browser keeps a minimum
+   box for a form control — roughly a line and a half plus its own padding — so twelve rows of
+   17px text were coming out at 47px each. Thirty pixels a row, twelve rows, on a card people were
+   already calling too long: the control was most of the receipt.
+
+   `line-height` AND `height: auto` TOGETHER. Setting one and not the other leaves the other doing
+   the padding; both, and the row is as tall as the word in it. */
 .bk-sel {
   appearance: none; -webkit-appearance: none;
-  width: 100%; padding: 0; margin: 0;
-  font: inherit; text-align: right; text-align-last: right;
+  width: 100%; height: auto; min-height: 0;
+  padding: 0; margin: 0;
+  font: inherit; line-height: 1.35;
+  text-align: right; text-align-last: right;
   color: inherit; background: none; border: 0; border-radius: 0;
   cursor: pointer;
 }
@@ -2198,9 +2211,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* A TYPED ANSWER, IN THE SAME CLOTHES AS A CHOSEN ONE. The split is addresses rather than a choice,
    so its row holds a text box — and it has to look like the dashed value it sits on, not like a
    form field dropped onto a receipt. Same removal of chrome as the select above. */
+/* THE SAME MINIMUM APPLIES TO AN INPUT, and for the same reason. */
 .bk-in {
-  width: 100%; padding: 0; margin: 0;
-  font: inherit; text-align: right;
+  width: 100%; height: auto; min-height: 0;
+  padding: 0; margin: 0;
+  font: inherit; line-height: 1.35;
+  text-align: right;
   color: inherit; background: none; border: 0; border-radius: 0;
 }
 .bk-in:focus { outline: 0; }
@@ -6862,22 +6878,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    RULED OFF ABOVE, because they are not another row of the booking — everything above is what was
    asked for and everything here is what to do about it. */
+/* THE COMMIT BUTTON, STILL OBVIOUSLY THE COMMIT BUTTON, AT TWO-THIRDS THE HEIGHT. It was a
+   full-size `.btn` with .7rem of rule above it — on a card of 14px rows it read as a different
+   piece of software. */
 .rc-do {
   width: 100%;
-  margin: .7rem 0 0;
-  padding-top: .7rem;
+  margin: .45rem 0 0;
+  padding: .5rem .6rem;
+  font-size: .82rem;
 }
 .rc .rc-do { border-top: 1px dashed #b3aa9c; border-radius: 0; }
 .rc.scr .rc-do { border-top-color: rgb(61 220 132 / .25); }
 
 /* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
    receipt is a single thing to do, not a set to choose from. */
-.rc-tiles { justify-content: center; margin-top: .2rem; }
+.rc-tiles { justify-content: center; margin-top: 0; }
+.rc-tiles .tile { width: 34px; height: 34px; }
 
 /* THE TERMS, in the paper's own quiet colour rather than the app's. `.faint` is a dark-theme grey
    and this sits on off-white for every stage but the form. */
 .rc-terms {
-  margin: .3rem 0 0;
+  margin: .1rem 0 0;
   text-align: center;
   font-size: .68rem;
   line-height: 1.4;
