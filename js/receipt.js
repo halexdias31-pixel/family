@@ -515,6 +515,35 @@ on('book-send', el => {
      WHAT IS SENT IS WHAT WAS ASKED: the venue and the level. Nothing else on this form was even
      offered, and sending a subject or a day would be this file inventing an answer to a question
      nobody was asked. */
+  /* ---------- ASKING TO JOIN A CLASS THAT IS ALREADY RUNNING -----------------------------------
+     THREE VERBS, NOT TWO. `createJob` starts a session; `joinWaitlist` buys a seat on a list. A
+     class that already runs is neither: it belongs to the family who booked it, seats in it are
+     theirs to give, and joining is a REQUEST — which is exactly what `move: 'Request'` is, and what
+     the "Ask to join" button on a job receipt has always sent.
+
+     THE FORM CAN REACH IT NOW. Choosing "instant class" and then picking one that is going sends
+     this instead of creating a second session at the same time in the same room. Nothing else on
+     the paper applies — the subject, level, venue and seats are the class's, filled in and locked
+     — so nothing else is sent. */
+  const joined = typeof joinedJob_ === 'function' ? joinedJob_() : null;
+  if (joined && !isWaiting_()) {
+    api({ action: 'move', jobId: String(joined.id || joined.jobId || ''),
+          role: 'client', name: USER.name, move: 'Request',
+          text: 'asked to join', requestId: 'join-' + (joined.id || '') + '-' + Date.now() })
+      .then(d => {
+        el.disabled = false;
+        if (d && d.error) { if (said) said.textContent = d.error; return; }
+        resetBooking_();
+        toast('Asked — they will be in touch');
+        load();
+      })
+      .catch(() => {
+        el.disabled = false;
+        if (said) said.textContent = 'Could not reach the server.';
+      });
+    return;
+  }
+
   if (isWaiting_()) {
     /* ---------- OPENING ONE IS A DIFFERENT ACTION FROM JOINING ONE --------------------------------
        `joinWaitlist` SEATS WHOEVER CALLS IT. That is right for a family and wrong for an admin who
@@ -829,18 +858,32 @@ on('job-take-seat', el => {
 });
 
 
+/* ---------- ASKING TO JOIN GOES TO THE FORM, LIKE TAKING A SEAT --------------------------------
+   IT SENT STRAIGHT FROM THE BUTTON, which made it the third way to make a booking and the only one
+   that showed you nothing first — no subject, no venue, no price, no chance to say who it is for.
+   `job-take-seat` was moved onto the form for the same reason; this is its other half.
+
+   THE VERB IS STILL A REQUEST. Filling the form in does not turn asking to share somebody's class
+   into buying a seat — `book-send` reads which kind was chosen and sends `move: 'Request'` for a
+   class that is already running. What changes is that you can see what you are asking for. */
 on('job-join', el => {
-  el.disabled = true;
-  api({ action: 'move', jobId: el.dataset.id, role: 'client', name: USER.name,
-        move: 'Request', requestId: 'join-' + el.dataset.id + '-' + Date.now(),
-        text: 'asked to join' })
-    .then(d => {
-      if (d && d.error) { el.disabled = false; toast(d.error); return; }
-      closeSheet();
-      toast('Asked — they will be in touch');
-      load();
-    })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+  const j = (DATA.liveJobs || DATA.jobs || []).find(x =>
+    String(x.id || x.jobId || '') === String(el.dataset.id));
+  if (!j) { toast('That class has gone.'); return; }
+  BOOKING.how      = 'Instant class';
+  BOOKING.joining  = openClassLabel_(j);
+  BOOKING.subjects = j.subject ? [j.subject] : [];
+  BOOKING.level    = j.level || '';
+  BOOKING.loc      = j.location || j.venue || '';
+  BOOKING.n        = '1';
+  BOOKING.done = uniq((BOOKING.done || [])
+    .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
+  closeSheet();
+  STUFF.filters = [{ field: 'forLabel', value: 'Booking' }];
+  go('stuff');
+  paintStuff();
+  PAGE.stuff = stuffQuestionPage_() + 1;
+  paintPager('stuff', true);
 });
 
 /* ---------- AN ADMIN ENDS A SESSION --------------------------------------------------------------

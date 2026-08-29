@@ -377,6 +377,39 @@ check('a price lands on the question that caused it', async () => {
   return bad;
 });
 
+check('an instant class with room can be joined, not only a waiting list', async () => {
+  /* ---------- HALF THE JOINABLE THINGS WERE INVISIBLE ---------------------------------------------
+     The `joining` row only had options when the kind was a waiting list, so a class already running
+     with two seats left could not be reached from the form at all — you had to find its card and
+     press a button that sent immediately. `kind` and `canAsk` were on the payload the whole time.
+
+     THE TWO ARE JOINED BY DIFFERENT VERBS and that is the reason to keep them apart rather than a
+     reason to offer one: a list is a thing that exists to be joined, a running class belongs to the
+     family who booked it. So the row offers whichever kind was asked for, and `book-send` picks the
+     verb to match. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
+  w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+  const B = w.__t.BOOKING;
+  const step = w.__t.STEPS.find(s => s.id === 'joining');
+  if (!step) return ['there is no joining step'];
+
+  const bad = [];
+  B.how = '';
+  if (step.options().filter(Boolean).length) {
+    bad.push('classes are offered before the kind has been chosen');
+  }
+  B.how = 'Instant class';
+  if (step.options().filter(Boolean).length < 1) {
+    bad.push('an instant booking is offered nothing at all, not even "start a new one"');
+  }
+  B.how = 'Waiting list class';
+  const lists = step.options().filter(Boolean);
+  if (!lists.length) bad.push('a waiting list booking is offered nothing');
+  return bad;
+});
+
 check('the booking form asks a session everything and a class almost nothing', async () => {
   const { w } = boot();
   await wait(300);

@@ -453,9 +453,26 @@ const NEW_LIST = 'Start a new one';
 
 function openClassLabel_(j) {
   const left = Math.max(0, (Number(j.maxKids) || 0) - (Number(j.currentKids) || 0));
-  return [j.subject || 'Class', j.location || j.venue, left ? left + ' seats left' : 'full']
+  /* WHEN IT RUNS, FOR ONE THAT ALREADY DOES. A waiting list has no day — that is what makes it a
+     list — but an instant class does, and it is the fact somebody choosing between two of them
+     needs most. Left off where there is none rather than printed empty. */
+  const when = isWaitJob_(j) ? '' : [j.weekday, j.time].filter(Boolean).join(' ');
+  return [j.subject || 'Class', j.location || j.venue, when,
+          left ? left + ' seats left' : 'full']
     .filter(Boolean).join(' · ');
 }
+
+/* ---------- A LIST AND A CLASS ARE JOINED DIFFERENTLY -------------------------------------------
+   `kind` IS ON THE PAYLOAD and says which. A waiting list is a thing that exists to be joined —
+   you buy a seat and the server prices it. A class that is already running belongs to the family
+   who booked it, and joining is a REQUEST to them.
+
+   BOTH ARE JOINABLE AND ONLY ONE WAS OFFERED. The form asked "a list already going, or a new one?"
+   only after somebody said "waiting list class", so a class with two seats left and a subject you
+   wanted was invisible unless you happened to be looking at the right card. `canAsk` — computed by
+   the backend, which knows whether the owner opened it to others — has been on every one of them
+   the whole time. */
+const isWaitJob_ = j => norm(j && j.kind) === 'waitlist';
 
 /* The job behind the chosen label, or null for "start a new one" and for a class that has gone
    since the page loaded. */
@@ -540,10 +557,19 @@ const BOOK_STEPS = [
 
      ASKED ONLY WHEN IT APPLIES. An empty option list is how every other step here says "not this
      time", and `nextBookStep` skips one — so on an instant class this row does not exist. */
-  { id: 'joining', label: 'A list already going, or a new one?', short: 'Class',
-    options: () => isWaiting_()
-      ? [NEW_LIST].concat((openJobs_() || []).map(openClassLabel_))
-      : [] },
+  { id: 'joining', label: 'Something already going, or a new one?', short: 'Class',
+    /* THE ONES OF THE KIND BEING ASKED FOR. Say "waiting list" and the lists are offered; say
+       "instant" and the classes already running with room in them are. Nothing is offered before
+       the kind is chosen, because the two are joined by different verbs and a mixed list would ask
+       somebody to tell them apart from a label. */
+    options: () => {
+      if (!BOOKING.how) return [];
+      const want = isWaiting_();
+      return [NEW_LIST].concat((openJobs_() || [])
+        .filter(j => isWaitJob_(j) === want)
+        .filter(j => want || j.canAsk)
+        .map(openClassLabel_));
+    } },
 
   /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
      Written into the booking below so the receipt and the backend agree without asking. */
