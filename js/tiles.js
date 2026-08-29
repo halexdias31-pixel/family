@@ -414,7 +414,9 @@ function widgetTiles_(x) {
 
 on('widget-open', el => {
   const id = el.dataset.id;
-  const wgt = WIDGETS.find(w => w.id === id);
+  /* THROUGH `allWidgets`, NOT THE CONST — message threads are built from the payload and are not in
+     `WIDGETS`. Looking at the const would list a conversation and then fail to open it. */
+  const wgt = allWidgets().find(w => w.id === id);
   const slot = $('wgt-' + id);
   if (!wgt || !slot) return;
 

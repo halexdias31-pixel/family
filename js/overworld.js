@@ -181,7 +181,8 @@ let flappyState = null;
  * unfinished feature twice.
  */
 on('widget', el => {
-  const wgt = WIDGETS.find(x => x.id === el.dataset.id);
+  /* `allWidgets`, so a message thread opened from the overworld behaves like one opened from Find. */
+  const wgt = allWidgets().find(x => x.id === el.dataset.id);
   if (!wgt) return;
   /* Still here for a MIXED result — searching "timer" alongside three resources gives a list of
      cards, and the card has to open something. When Tools or Games is chosen on its own they are

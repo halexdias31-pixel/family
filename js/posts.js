@@ -94,7 +94,9 @@ screen('posts', () => {
   /* WHAT THE BUSINESS IS PUTTING IN FRONT OF YOU, at the very top — see `spotPages`. */
   const spot = (typeof spotPages === 'function' ? spotPages() : []);
 
-  if (!posts.length && !festive.length && !spot.length) {
+  /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
+     nothing-here message is only right when there is genuinely nothing and somebody to see it. */
+  if (!posts.length && !festive.length && !spot.length && USER) {
     return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
       + 'with an image link and a caption.</span>');
   }
@@ -199,6 +201,20 @@ screen('posts', () => {
   /* AND SPOTLIGHT ABOVE EVEN THE ＋. The ＋ is a control for the person; spotlight is what the
      business most wants seen, and nothing outranks that at the top of its own feed. */
   cards.unshift(...spot);
+
+  /* ---------- AND SIGNING IN ABOVE ALL OF IT ----------------------------------------------------
+     WHETHER YOU ARE SIGNED IN DECIDES WHETHER ANYTHING ELSE WORKS — the ＋ does not post, the
+     trolley does not fill, the booking form has nothing to book for. It was on the far end of `You`,
+     past the account and the claims, which is where somebody looks only if they already know to.
+
+     THIS IS THE SCREEN NOBODY ARRIVES AT WITH AN ERRAND, so a state you might need to change belongs
+     here — and above the ＋, because it governs it. Signed in it is a name and a way out; signed out
+     it is the whole sign-in card. See `signInCard_` and `signOutCard_` in me.js. */
+  const acct = USER
+    ? (typeof signOutCard_ === 'function' ? signOutCard_() : '')
+    : (typeof signInCard_ === 'function' ? signInCard_() : '');
+  if (acct) split_(acct).reverse().forEach(c => cards.unshift(c));
+
   return pages('posts', cards);
 });
 

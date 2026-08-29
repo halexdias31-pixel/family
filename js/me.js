@@ -38,8 +38,23 @@ const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x
 
 /** Every card on the You screen, in order. */
 function meBlocks() {
-  if (!USER) {
-    return split_(`<div class="card">
+  if (!USER) return split_(signInCard_());
+  return meRest_();
+}
+
+/* ---------- SIGNING IN AND OUT BELONGS AT THE TOP OF THE FEED ---------------------------------------
+   IT WAS AT THE FAR END OF `You`. Signing in is the thing somebody does BEFORE anything else works,
+   and signing out is the thing they look for when handing the phone to somebody else — and both sat
+   on the last column, past the account, past the claims, past everything.
+
+   POSTS IS THE SCREEN NOBODY ARRIVES AT WITH AN ERRAND, which is exactly where a state you might
+   need to change belongs. Above the ＋, because whether you are signed in decides whether the ＋ does
+   anything at all.
+
+   ONE FUNCTION, DRAWN IN TWO PLACES. `You` still shows it — that is where somebody who has gone
+   looking will look — and Posts shows it first. Same markup either way, so the two cannot drift. */
+function signInCard_() {
+  return `<div class="card">
         <h3>Sign in</h3>
         <p class="sub">You need an account to book, to keep a checklist, or to spend credits.</p>
         <label class="field"><span>your name</span>
@@ -61,9 +76,26 @@ function meBlocks() {
       <div class="card tap" data-do="register">
         <h3>No account yet?</h3>
         <p class="sub">Making one takes a name, an email and a PIN.</p>
-      </div>`);
-  }
+      </div>`;
+}
 
+/* WHO YOU ARE, AND THE WAY OUT. Shown at the top of the feed once somebody is signed in — a name
+   and one button, rather than the whole account card, which lives on its own page in Find. */
+function signOutCard_() {
+  if (!USER) return '';
+  return `<div class="card">
+    <div class="thing">
+      <span class="thing-pic art">${avatarFor(USER.handle || USER.name, 40, USER.avatar)}</span>
+      <div class="thing-body">
+        <h3>${esc(USER.name)}</h3>
+        <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
+      </div>
+    </div>
+    <button class="btn quiet" data-do="signout">Sign out</button>
+  </div>`;
+}
+
+function meRest_() {
   /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
      now, built from the same `USER` and `USER.profile` this read. */
 
@@ -212,13 +244,9 @@ function meBlocks() {
    gets the pane, the same way a session gets one on the Book screen.
 
    ONE FUNCTION FOR THE CARD, called from here, so the markup and the page cannot come apart. */
-function meMessagesCard() {
-  return `<div class="card">
-    <h3>Messages</h3>
-    <p class="sub">Anyone who has written to you.</p>
-    <div id="msg-body" class="msg-body"></div>
-  </div>`;
-}
+/* `meMessagesCard` WAS HERE — one pane on `You` holding every message from everybody, filled by
+   `fillMessages` into a single `#msg-body`. Each conversation is its own widget now, in the drawer
+   with the calendar and the notepad — see `msgWidgets_`. */
 
 /* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
    built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
@@ -252,7 +280,6 @@ const mePages = () => {
      the same `jobCard` stub it drew, so a session looks the same wherever it is met. */
   if (USER) (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => pages.push(jobCard(j)));
 
-  if (USER) pages.push(meMessagesCard());
   return pages.length ? pages : [all];
 };
 
@@ -473,8 +500,7 @@ on('install', el => {
 
 screen('me', () => {
   const html = pages('me', mePages());
-  if (USER) requestAnimationFrame(() => { if ($('msg-body')) fillMessages(); });
-  /* THE BUTTON IS MOUNTED THE SAME WAY THE MESSAGES ARE FILLED — a frame after the markup lands,
+    /* THE BUTTON IS MOUNTED THE SAME WAY THE MESSAGES ARE FILLED — a frame after the markup lands,
      because Google renders into an element that has to exist first. Only when signed out, which is
      the only time the card holding it is drawn. */
   if (!USER) requestAnimationFrame(googleMount);
@@ -783,20 +809,62 @@ function loadMessages() {
 const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">Messages about a
      session appear here.</span></p>`;
 
-function fillMessages() {
-  const host = $('msg-body');
-  if (!host) return;
-  if (!USER) { host.innerHTML = '<p class="empty">Sign in to see your messages.</p>'; return; }
-  /* Something on screen while the request is out. A pane that is blank for a second and then
-     fills is indistinguishable from a pane that is empty, which is the wrong first impression to
-     give of the one screen whose whole job is to say whether anybody has written to you. */
-  if (MESSAGES === null) host.innerHTML = '<p class="empty faint">Looking…</p>';
-  loadMessages().then(ms => {
-    const el = $('msg-body');
-    if (!el) return;                                    // the widget was closed while we waited
-    el.innerHTML = ms.length ? messagesHtml_(ms) : emptyMessages_;
+/* ---------- ONE THREAD PER PERSON ------------------------------------------------------------------
+   EVERY MESSAGE WAS IN ONE LIST. A note from a tutor about Tuesday and a note from another parent
+   about splitting a class sat in one column, sorted by time, with nothing but a name under each to
+   say which conversation you were reading. That is a log, not a chat.
+
+   `withId` IS THE THREAD. The server now says who the other person is on every message — see the
+   messages handler in dopost.gs — so grouping is a fact from the sheet rather than a guess from a
+   name string.
+
+   MOST RECENT FIRST, because a thread nobody has written to in a month is not the one you opened
+   the app for. */
+function messageThreads_() {
+  const by = {};
+  (MESSAGES || []).forEach(m => {
+    const k = m.withId || m.withName || '?';
+    (by[k] = by[k] || { id: k, name: m.withName || 'Someone', msgs: [] }).msgs.push(m);
+  });
+  const out = Object.keys(by).map(k => by[k]);
+  out.forEach(t => {
+    t.unread = t.msgs.filter(m => !m.mine && !m.read).length;
+    t.last = t.msgs[t.msgs.length - 1];
+  });
+  return out.sort((a, b) => String((b.last || {}).at || '')
+    .localeCompare(String((a.last || {}).at || '')));
+}
+
+/* THREADS AS WIDGETS. `WIDGETS` is a fixed list of things the app can open; these are made from the
+   payload, one per person who has written to you, so the drawer grows and shrinks with the
+   conversations rather than holding one "Messages" that contains all of them. */
+function msgWidgets_() {
+  if (!USER) return [];
+  return messageThreads_().map(t => ({
+    id: 'msg:' + t.id,
+    kind: 'tool',
+    name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
+    what: 'That conversation',
+    into: 'msg-body-' + t.id,
+    start: () => fillThread_(t.id),
+    html: '<div class="card"><h3>' + esc(t.name) + '</h3>'
+        + '<div id="msg-body-' + esc(t.id) + '" class="msg-body"></div></div>',
+  }));
+}
+
+function fillThread_(withId) {
+  const el = $('msg-body-' + withId);
+  if (!el) return;
+  loadMessages().then(() => {
+    const now = $('msg-body-' + withId);
+    if (!now) return;                                   // the widget was closed while we waited
+    const t = messageThreads_().find(x => String(x.id) === String(withId));
+    now.innerHTML = t ? messagesHtml_(t.msgs) : emptyMessages_;
   });
 }
+
+/* `fillMessages` WAS HERE — it filled the single `#msg-body` on `You` with every message at once.
+   `fillThread_` above replaces it, one conversation at a time, into the widget that asked. */
 
 /* One renderer, used by the widget and by anything else that wants to show a thread. */
 const messagesHtml_ = ms => ms.map(m =>

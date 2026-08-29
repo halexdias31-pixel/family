@@ -1112,7 +1112,7 @@ function stuffItems() {
        and a calculator; it matters the moment one of them prints your flyers.
        `admin` on a widget means admins only. Anything without it is for everybody, which is what
        the other nine are. */
-    ...WIDGETS.filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
+    ...allWidgets().filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
       kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
       cost: 0, slot: '', subject: '', grade: '', off: false, row: wgt,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
@@ -2148,6 +2148,17 @@ function drawWidget_(wgt) {
   into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
     ${esc(wgt.what)} did not start.<br>
     <span class="faint">${esc(err ? String(err.message || err) : 'It drew nothing.')}</span></p>`;
+}
+
+/* ---------- EVERY WIDGET, FIXED AND MADE -----------------------------------------------------------
+   `WIDGETS` IS A CONST ARRAY of the things this app can open — chess, the calendar, the notepad. It
+   was the whole list, and the whole list was known before the payload arrived.
+
+   MESSAGE THREADS ARE NOT KNOWN IN ADVANCE. There is one per person who has written to you, so they
+   are built from `MESSAGES` — see `msgWidgets_` in me.js. Anything that looks a widget up has to
+   look here rather than at the const, or a thread would appear in the list and refuse to open. */
+function allWidgets() {
+  return WIDGETS.concat(typeof msgWidgets_ === 'function' ? msgWidgets_() : []);
 }
 
 function startWidget_(wgt) {
