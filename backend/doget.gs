@@ -419,10 +419,29 @@ function doGet(e) {
              when they CAN work; this says when they are already working, and keeping the two apart
              is what lets a cancelled session give the hour back on its own. */
           busy: busyHours(personDisplayName(r)),
-          teaches: [
-            S(r.teaches_1) && (S(r.teaches_1) + (S(r.teaches_1_level) ? ' (' + S(r.teaches_1_level) + ')' : '')),
-            S(r.teaches_2) && (S(r.teaches_2) + (S(r.teaches_2_level) ? ' (' + S(r.teaches_2_level) + ')' : '')),
-          ].filter(Boolean),
+          /* ---------- THE SAME SUBJECT TWICE IS ONE SUBJECT --------------------------------------
+             A TUTOR ROW HAS TWO SLOTS and nothing stops both holding the same thing. One does:
+             `teaches_1` and `teaches_2` are both Maths (GCSE), so the pass printed it on two lines,
+             the subject card counted the tutor twice, and the level card did too.
+
+             DEDUPED HERE RATHER THAN ON THE CARD, because the card is not the only reader —
+             `subjectRows` and `levelRows` both walk this list, and fixing it three times is three
+             chances to fix it differently. The sheet is still worth tidying; this stops a typo in a
+             spreadsheet becoming a wrong number on a card. */
+          teaches: (function () {
+            const seen = {}, out = [];
+            [1, 2].forEach(function (n) {
+              const subj = S(r['teaches_' + n]);
+              if (!subj) return;
+              const lvl = S(r['teaches_' + n + '_level']);
+              const one = subj + (lvl ? ' (' + lvl + ')' : '');
+              const key = one.toLowerCase().trim();
+              if (seen[key]) return;
+              seen[key] = true;
+              out.push(one);
+            });
+            return out;
+          })(),
           quals: [1,2,3].map(n => {
             const subj = S(r['qual_' + n]);
             if (!subj) return null;
