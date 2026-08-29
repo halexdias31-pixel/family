@@ -1715,15 +1715,16 @@ function bookBreakdown(L, foot) {
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
     aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
-    /* The tutor, then a seat for each student, then whoever is splitting it. */
-    roster: rosterHtml({
-      tutor: BOOKING.tutor, seats: Number(BOOKING.n) || 0,
-      client: USER && USER.name,
-      /* THE CHILDREN, in the order they were ticked. Whoever is splitting the cost is a different
-         fact — those are other FAMILIES, not other children, and putting their addresses in the
-         chairs was saying that a parent was sitting in one. */
-      names: (BOOKING.kids || []).filter(Boolean),
-    }),
+    /* ---------- NO ROSTER ON A FORM ------------------------------------------------------------
+       IT WAS A PICTURE OF TWO ROWS ABOVE IT. The chairs are drawn from `n` and `kids` — the Seats
+       answer and the Child answer — so on an unsent booking the roster said "Child, Child, two
+       open" directly under a Seats row saying 2 and a Child row naming them. Four boxes to repeat
+       one line of text.
+
+       IT EARNS ITS PLACE ON A REAL RECEIPT, which is why `jobReceipt` still draws one: there the
+       chairs hold names the backend filled in — who actually took which seat, which of them are
+       yours and which are strangers' — and none of that is on any row. Here it is a drawing of
+       what you just typed. */
     bars,
     /* THE TERMINAL. Nothing has been sent, so there is no row anywhere and nothing to be a record
        OF — which is exactly what a screen is: the entering of a thing, before the thing. */

@@ -294,19 +294,30 @@ function shopTiles_(x) {
    `Listed` IS ADMIN AND DESTRUCTIVE-ISH: unticking it takes somebody off the site for every client
    at once. It was a checkbox in a panel, which is where a switch goes to be flipped by accident;
    as a silver row it is as deliberate as Delete and reads the same way. */
+/* ---------- A TUTOR'S OWN ACTIONS, AND NOT THE ONES EVERY CARD HAS ---------------------------------
+   THIS DREW ITS OWN ADMIN ROW, and `cardTiles_` adds one to every card — so a tutor came out with
+   Spotlight twice: once in the silver row this built, once in the silver row underneath it. The
+   second row held a single mark and looked like a rendering fault, because that is what it was.
+
+   `Listed` IS A TUTOR'S ALONE and stays here. Spotlight is not — it is on a boxer, a venue, a paper
+   and a subject, drawn by `adminTiles_` for all of them — and a card that also draws it is a card
+   claiming a control the system already gives it.
+
+   THE ROW WRAPPER GOES TOO. Every other `*Tiles_` returns bare tiles and lets `cardTiles_` do the
+   wrapping; this one built its own `<div class="tile-row is-admin">`, which is how it ended up
+   beside a second one rather than inside it. */
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
     ${tile_({ icon: 'book', label: 'Book with them', act: 'book-with', data: { name: x.key } })}
-  ${isAdmin() ? `<div class="tile-row is-admin" role="group" aria-label="Admin">
-    ${tile_({ icon: t.listed === false ? 'hide' : 'show',
+    ${/* SILVER, IN THE ORDINARY ROW. Every other admin mark sits in its own silver row below —
+          `adminTiles_` builds that — and `Listed` cannot join it, because that row is built for
+          every kind and this control exists only for a tutor. The tone still says who it is for. */''}
+    ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',
               note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
-              data: { who: x.key } })}
-    ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
-              on: isSpot(x.key), act: 'spot', data: { key: x.key, kind: 'tutor' } })}
-  </div>` : ''}`;
+              data: { who: x.key } }) : ''}`;
 }
 
 
