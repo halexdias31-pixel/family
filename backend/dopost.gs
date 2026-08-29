@@ -1342,14 +1342,31 @@ function doPost(e) {
 
       const rows = read(TAB.messages).rows
         .filter(r => S(r.from_id) === mine || S(r.to_id) === mine)
-        .map(r => ({
-          id: S(r.message_id),
-          fromId: S(r.from_id), toId: S(r.to_id),
-          mine: S(r.from_id) === mine,
-          at: fmtDateTime(r.sent_at),
-          body: S(r.body),
-          read: !!sheetDate(r.read_at),
-        }));
+        .map(r => {
+          /* ---------- WHO THE OTHER PERSON IS ---------------------------------------------------
+             `fromName` HAS BEEN READ BY THE PHONE AND NEVER SENT. `messagesHtml_` prints
+             `m.fromName || 'them'`, so every message anybody has ever received has been labelled
+             "them" — the field simply was not in this reply.
+
+             AND THE COUNTERPART IS THE THREAD. A message is between two people; which of them is
+             the OTHER one depends on who is asking, and the server is the only side that knows both
+             the ids and the names. Sent once here rather than looked up per row on a device that
+             does not have the people tab. */
+          const other = S(r.from_id) === mine ? S(r.to_id) : S(r.from_id);
+          const who = findPerson('', other);
+          return {
+            id: S(r.message_id),
+            fromId: S(r.from_id), toId: S(r.to_id),
+            mine: S(r.from_id) === mine,
+            withId: other,
+            withName: who ? personDisplayName(who) : '',
+            fromName: S(r.from_id) === mine ? personDisplayName(me)
+                                            : (who ? personDisplayName(who) : ''),
+            at: fmtDateTime(r.sent_at),
+            body: S(r.body),
+            read: !!sheetDate(r.read_at),
+          };
+        });
       return jsonOut({ success: true, messages: rows, gapMs: MESSAGE_GAP_MS });
     }
 
