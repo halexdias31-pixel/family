@@ -709,7 +709,15 @@ const BOOK_STEPS = [
      IT IS NOT STORED ON THE JOB. Four families on one list have four different answers, and the
      job is one row — so it goes on each family's own JOINING EVENT, where it is theirs by
      construction and needs no column. See `joinWaitlist`. */
-  { id: 'avail', label: 'When could you come?', short: 'Free', multi: true,
+  /* ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER --------------------------------------
+     The question is "when could you come?" and the column said `Free`, on a card whose other
+     columns are money. Nobody reads that as availability — they read it as a price of nothing, on a
+     row sitting two lines from a running total.
+
+     `When free` IS NINE CHARACTERS and the column holds nine. It also pairs with `When` directly
+     above it, which is the settled day for an instant class; these are the two halves of the same
+     question and now look like it. */
+  { id: 'avail', label: 'When could you come?', short: 'When free', multi: true,
     options: () => isWaiting_()
       ? ['Weekday mornings', 'Weekday afternoons', 'Weekday evenings',
          'Weekends', 'Flexible — whatever suits']
@@ -1361,7 +1369,7 @@ function breakdownRows(L) {
 
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
   push('Dates', dates.length ? dates.join(', ') : '—', '', '',
-    dates.length ? dates.length + ' dates' : '', { free: true, dates: true });
+    dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
      "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
      has sent, all reporting that it has not been sent — which the card already says at the bottom,
@@ -1544,11 +1552,10 @@ function stepGrid_(st) {
         </div>
       </div>`).join('')}
     </div>
-    ${/* WHAT THE TICKS ADD UP TO, and only when there is something. It says the same thing the gold
-          blocks above already say, in words — worth keeping because "Mon 10:00–12:00" is what a
-          session IS and a run of squares is not, but not worth a line of its own when empty. */''}
-    ${runs.length ? `<p class="note">${runs.map(r =>
-        esc(r.dayName) + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00').join(' · ')}</p>` : ''}
+    ${/* THE RUNS LINE WAS HERE — "Monday 13:00–15:00" under the grid. It is the When row's value
+          now, in full, which is where an answer belongs: a line under the control repeating what the
+          control just decided is the card saying one thing in two places, and the row was the one
+          that had it in the shorter form. */''}
   </div>`;
 }
 
@@ -1614,7 +1621,15 @@ function stepRows_() {
       const text = st.emails
         ? ((BOOKING.split || []).filter(x => String(x).trim()).join(', '))
         : st.grid
-        ? bookRuns().map(r => r.dayName.slice(0, 3) + ' ' + r.hour + ':00').join(', ')
+        /* ---------- THE WHOLE RUN, NOT ITS START -----------------------------------------------
+           THIS SAID "Mon 13:00" and the grid printed "Monday 13:00–15:00" underneath it — the same
+           answer twice, and the row had the less useful half. A session is a span; when it ENDS is
+           what somebody checks against the rest of their day, and the start alone cannot say
+           whether two ticked hours are one two-hour session or two separate ones.
+
+           The full form is on the row now and the line under the grid has gone with it. */
+        ? bookRuns().map(r => r.dayName + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00')
+            .join(', ')
         : st.multi ? (v || []).join(', ')
         : (st.label_ ? st.label_(v) : (v || ''));
       return { n: String(++line).padStart(3, '0'),
@@ -1695,6 +1710,16 @@ function bookBreakdown(L, foot) {
      line fell through the gap: excluded from merging, then dropped by a filter that saw it named a
      step and assumed it had merged. It vanished off the card entirely. */
   const ownRow = r => r.key !== 'base';
+
+  /* ---------- THE BASE LINE SAID THE TUTOR'S NAME, AND SO DID THE TUTOR ROW ----------------------
+     `PRICE_ROWS` gives the base line the tutor as its value — right when it was an invoice on its
+     own, where "Tuition · Halex Dias · × 10 · £10.00/h" is one readable line. On a card that also
+     asks "Tutor" as a question three rows above, it is the same name printed twice, once as
+     something you can change and once as something you cannot.
+
+     THE FIGURES ARE WHAT THE LINE IS FOR. The hours, the rate and the total have no question behind
+     them; the name does, and it already has its row. */
+  priced.forEach(r => { if (r.key === 'base') r.v = ''; });
 
   const byStep = {};
   priced.forEach(r => {
@@ -2049,7 +2074,20 @@ function receiptRow(r) {
      So a row carrying no numbers says so, and the value runs to the end of the card. Nothing moves
      on the rows that do have figures; the columns still line up down the card, because a row that
      spans has no figures to line up with. */
-  const bare = !S_(r.mul) && !S_(r.rate) && !S_(r.total);
+  /* ---------- A QUESTION KEEPS ITS COLUMNS WHETHER OR NOT IT HAS FIGURES ------------------------
+     `is-bare` COLLAPSES A ROW TO TWO COLUMNS so a value with no figures beside it can use the width
+     they would have taken. That is right on a receipt, where a bare row is an aside — "Shared
+     between · 4 families" — among priced ones.
+
+     ON A FORM IT MADE THE FIELDS DIFFERENT WIDTHS. Subject has no surcharge so its box ran the
+     width of the card; Venue has one so its box was 4.5em and cut "Sutton Library" to "Sutton Li…".
+     Two editable fields, one above the other, in two sizes — and which size a field got depended on
+     whether the answer in it happened to cost anything.
+
+     SO A ROW THAT IS A QUESTION NEVER COLLAPSES. `id` is set by `stepRows_` and by nothing else, so
+     asking for it is asking "is this a field somebody fills in". The asides still collapse, which is
+     what the rule was for. */
+  const bare = !r.id && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
   return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
     <span class="bk-k">${esc(r.k)}</span>
@@ -2135,7 +2173,7 @@ function jobRows(j) {
 
   const dates = String(j.sessionDates || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean);
   push('Dates', dates.length ? dates.join(', ') : '—',
-    dates.length ? dates.length + ' dates' : '', { free: true, dates: true });
+    dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
 
   /* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor
      sees what they earn; an admin sees both and the difference. Same receipt, three readings —
