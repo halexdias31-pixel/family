@@ -956,7 +956,35 @@ const SCHEMA = {
      test of whether this split was done at the right seam. */
   questions: [
     "row_id", "paper_id", "question", "part", "kind", "section",
-    "marks", "figure", "lead", "html", "active",
+    "marks", "figure", "lead", "html",
+
+    /* ---------- WHAT THE ANSWER IS, AND WHAT KIND OF ANSWER IT IS -------------------------------
+       THE QUESTIONS WERE HERE WITHOUT THEIR MARK SCHEME, which makes marking a paper impossible and
+       makes a revision answer impossible too — two of the things this tab exists to serve.
+
+       `answer_type` IS NOT `kind`. That one says whether a row is a question or the shared wording
+       above several — structure, not format. This says what an answer LOOKS like: essay, short,
+       multiple choice, calculation, annotate, table. A 25-mark essay and a one-mark recall question
+       need different marking and a different screen, and `marks` only implies it.
+
+       `needs_print` IS A FACT ABOUT THE QUESTION, NOT A SETTING. An individual question is never
+       printed — printing is a whole paper, priced per page. This records that the question cannot
+       honestly be answered on a screen: a diagram to annotate, a table to fill, a graph to plot. The
+       paper still decides whether to print; this is what tells it, and what stops the HTML view
+       offering something nobody can do in it. */
+    "answer", "answer_type", "needs_print",
+
+    /* ---------- WHAT THE EXAMINER SAID -----------------------------------------------------------
+       PER QUESTION AND PER PAPER, because reports are written both ways. `examiner_note` is the
+       paragraph about THIS question — what most candidates missed, what earned the top band — which
+       is the most useful thing a student can read straight after attempting it. `examiner_report`
+       is the whole report, or a link to it, and sits with the other paper-level facts below.
+
+       BOTH BLANK FOR NOW. Named here so the sheet does not have to be recut when the reports go
+       in. */
+    "examiner_note", "examiner_report",
+
+    "active",
     /* ---------- THE PAPER DESCRIBING ITSELF ----------------------------------------------------
        Blank on every part row. Filled only on the one `kind: paper` row per paper, whose `row_id`
        IS the paper id the parts point at.

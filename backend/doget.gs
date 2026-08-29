@@ -1215,6 +1215,22 @@ function doGet(e) {
           q: S(r.question), part: S(r.part), kind: norm(r.kind) || 'part',
           section: S(r.section), marks: N(r.marks),
           figure: S(r.figure), lead: S(r.lead), html: S(r.html),
+
+          /* ---------- THE ANSWER, AND WHAT KIND OF ANSWER IT IS ----------------------------------
+             `needsPrint` IS A FACT, NOT A SETTING. A single question is never printed — printing is
+             a whole paper, priced by the page. This says the question cannot honestly be answered on
+             a screen: a diagram to annotate, a table to fill. What the paper does about that is the
+             paper's decision; this is what it decides on.
+
+             `TRUE_` RATHER THAN `S`, so a blank cell reads as false and not as the string "". Every
+             question is answerable on screen until somebody says otherwise. */
+          answer: S(r.answer), answerType: norm(r.answer_type),
+          needsPrint: TRUE_(r.needs_print),
+
+          /* WHAT THE EXAMINER SAID ABOUT THIS QUESTION, and about the paper it came from. Blank
+             until the reports go in — named now so nothing has to be recut later. */
+          examinerNote: S(r.examiner_note), examinerReport: S(r.examiner_report),
+
           /* BLANK ON A PART, filled on a paper row. Ten empty strings per part is the price of a
              paper that needs no resource row — and the phone throws them away in one pass. */
           name: S(r.name), subject: S(r.subject),
