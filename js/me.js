@@ -76,24 +76,15 @@ function meBlocks() {
      resort now rather than the second — it says nothing about anybody, and every account has a
      figure whether or not anybody has chosen one, because the starting look is seeded from the
      handle. */
-  const face = pic(USER.photo || (USER.profile || {}).photo || '');
-  return split_(`<div class="card">
-      <div class="thing">
-        ${face
-          ? `<img class="thing-pic" src="${esc(face)}" alt="">`
-          : `<span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>`}
-        <div class="thing-body">
-          <h3>${esc(USER.name)}</h3>
-          <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
-        </div>
-      </div>
-    </div>
+  /* ---------- YOUR FACE AND YOUR NAME ARE ON YOUR CARD, NOT HERE -----------------------------------
+     THE ACCOUNT ROWS MOVED AND THIS DID NOT. `meCard` in cards.js draws your photograph, your name,
+     your role and every fact under them, in the funnel under People — and this drew the photograph,
+     the name and the role again at the top of a column two swipes away. Half a card, duplicating
+     the top half of a whole one.
 
-    ${/* THE ACCOUNT ROWS MOVED ONTO YOUR OWN CARD, in the funnel under People — see `meCard` in
-          cards.js. Everybody else in this app is a card; you were a settings list, in a column, two
-          swipes from anything. The facts are the same facts and they are on the same device; only
-          the shape and the address changed. */''}
-
+     What is left in this column is what you DO — the claims waiting on an answer, what needs fixing,
+     your link, signing out. Who you are is one card, in one place. */
+  return split_(`
     ${/* SECOND, and that is the whole point of where it is.
           It was seventh — six swipes across a horizontal carousel from the first thing anybody
           sees. It was drawn correctly the entire time and nobody was ever going to reach it, which
@@ -104,22 +95,9 @@ function meBlocks() {
           only until it is used — once installed it returns nothing and the pane goes. */''}
     ${installCard()}
 
-    <div class="card tap" data-do="wardrobe">
-      <div class="thing">
-        <span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>
-        <div class="thing-body">
-          <h3>Your figure</h3>
-          <p class="sub">${(() => {
-            /* WHAT THEY ARE WEARING, in words. A row of item names is what somebody would say out
-               loud, and it tells you the wardrobe holds something before you open it. */
-            const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
-            const on = AV_SLOTS.map(([slot]) => cfg[slot])
-              .filter(id => id && id !== 'none' && id !== 'crop' && id !== 'plain');
-            return on.length ? esc(on.join(', ')) : 'Nothing on yet — pick something';
-          })()}</p>
-        </div>
-      </div>
-    </div>
+    ${/* `Your figure` IS A TILE ON YOUR CARD — see `meTiles_`. It was a whole card here, with the
+          avatar drawn a second time beside the one at the top of the same column, listing what you
+          have on. The wardrobe itself says that better than a summary of it does. */''}
 
     ${/* ---------- END OF THE PROFILE CARD ------------------------------------------------------
           Everything above is WHO YOU ARE: your name and face, the facts about your account, and
@@ -135,7 +113,9 @@ function meBlocks() {
           one thing on this column you READ rather than act on, and it needs the width.
           `ME_SPLIT` already makes separate panes, so it gets one. */''}
     ${ME_SPLIT}
-    ${weekGrid()}
+    ${/* `Your week` IS A TOOL NOW, in the drawer with the calendar and the notepad — see `WIDGETS`
+          in map.js. It was a card here that, for most people most of the time, said only that there
+          was nothing to show. */''}
     ${ME_SPLIT}
     ${/* ---------- SOMEBODY WANTS TO ADD YOU TO THEIR FAMILY -----------------------------------
           FIRST, ABOVE EVERYTHING. A claim is somebody saying they are your parent, and it sits
@@ -159,30 +139,18 @@ function meBlocks() {
           row under your own face, beside the wardrobe. Three cards you scrolled past, each a heading
           and a sentence, each doing one thing: which is what a tile is. See `meTiles_`. */''}
 
-    ${/* WHAT IS WRONG WITH THE DATA, said where somebody will see it.
-          `dataProblems()` is the largest diagnostic in the backend — a term that ends before it
-          starts, a tutor with no hours, an admin row with no PIN, a law set to a colour nobody
-          defined — and it has been computed, put in the payload under `health`, and read by
-          nothing. Every item in it is something that used to have to be noticed by a person
-          staring at a spreadsheet, and the system already knew all of it.
-          Admin only, because it is a list of what needs fixing rather than anything a client
-          would act on. */
-      /* THE FLYER CARD MOVED TO TOOLS. It was here because this is where admin things had
-         accumulated, not because it belonged — a tool that makes something, in a column of
-         settings, between your email address and Sign out. Two doors to one thing is how the
-         "Open a waiting list" card survived after the booking flow replaced it. */
-      isAdmin() ? `<div class="card tap" data-do="health"><h3>What needs fixing</h3>
-        <p class="sub">Terms, tutors, prices, permissions — everything the sheet already knows is
-          wrong.</p></div>` : ''}
+    ${/* ---------- `What needs fixing` AND `Tell someone` WERE HERE ------------------------------
+          BOTH WERE CARDS THAT OPENED A SHEET, in a column of things you do to your account, and
+          neither is something anybody comes here for. `Tell someone` handed out a referral link
+          nobody had asked for; `What needs fixing` was an admin diagnostic sitting between a
+          client's details and their Sign out button.
 
-    ${/* MESSAGES AND CHANGE-YOUR-PIN BOTH LEFT THIS SCREEN.
-          Messages is a thing you READ, which is what the widgets are — it sits in Find with the
-          calculator and the calendar, and gets a whole pane instead of a card that says how many
-          are unread.
-          Changing a PIN is part of your details, and was a second card asking for a second sheet to
-          do a thing the first sheet is already for. */''}
-    <div class="card tap" data-do="my-referral"><h3>Tell someone</h3>
-      <p class="sub">A link only you have. We will know it came from you.</p></div>
+          THE DIAGNOSTIC ITSELF IS STILL COMPUTED AND IS NOW READ BY NOTHING. `dataProblems()` is
+          the largest thing in the backend — a term that ends before it starts, a tutor with no
+          hours, a law set to a colour nobody defined — and the comment that used to be here said,
+          correctly, that it had been computed and read by nothing for a long time before this card
+          existed. It is back in that state. That is worth a door somewhere an admin actually
+          works, rather than a card on a settings screen; it is not worth this one. */''}
 
     <button class="btn quiet" data-do="signout" style="margin-top:.4rem">Sign out</button>
     ${/* BOTH VERSIONS, at the bottom where a version number belongs. It is the answer to the
@@ -513,64 +481,11 @@ screen('me', () => {
   return html;
 });
 
-/**
- * THE HEALTH REPORT.
- *
- * ASKED FOR, not carried. The check walks the terms, the people, the venues, the resources and
- * the landmarks, and it probes Drive and asks Google what this deployment is allowed to do — a
- * second or two of work that has no business happening on a page load somebody is waiting for.
- * `?health=1` is the backend's own switch for exactly this.
- *
- * Grouped by `level`, which is the backend's word for what it costs you — things that stop money
- * first, then things that stop contact, then things that are merely untidy. The order it sends
- * them in is already that order, so grouping preserves it rather than imposing one.
- */
-on('health', () => {
-  if (!isAdmin()) { toast('Admins only'); return; }
-  openSheet('What needs fixing', '<p class="empty faint">Checking…</p>');
+/* `on('health')` WAS HERE — it fetched `?health=1` and drew the backend's problem list in a sheet.
+   The card that opened it has gone, so this could not be reached; `check-doors` named it the moment
+   the card came out. The backend still computes `dataProblems()` and still puts it on the payload,
+   so nothing is lost by deleting the reader — only the reading. */
 
-  const url = API + '?health=1&name=' + encodeURIComponent(USER.name)
-            + (USER.personId ? '&person=' + encodeURIComponent(USER.personId) : '')
-            + '&_=' + Date.now();
-  fetch(url, { cache: 'no-store' })
-    .then(r => r.json())
-    .then(d => {
-      const body = $('sheet-body');
-      if (!body || ($('sheet-title') || {}).textContent !== 'What needs fixing') return;
-      if (d && d.error) { body.innerHTML = `<p class="empty">${esc(d.error)}</p>`; return; }
-
-      const problems = ((d || {}).health || {}).problems || [];
-      if (!problems.length) {
-        body.innerHTML = `<p class="empty">Nothing to fix.<br><span class="faint">Every check the
-          backend runs came back clean.</span></p>`;
-        return;
-      }
-
-      /* One card per level, in the order the backend listed them. A flat list of thirty items
-         sorted by nothing is a list nobody works through. */
-      const order = [];
-      const byLevel = {};
-      problems.forEach(p => {
-        const k = String(p.level || 'other');
-        if (!byLevel[k]) { byLevel[k] = []; order.push(k); }
-        byLevel[k].push(p);
-      });
-
-      body.innerHTML = order.map(level => `<div class="card">
-        <h3>${esc(level)}</h3>
-        ${byLevel[level].map(p => `<div class="row" style="display:block">
-          <p class="v" style="margin:.2rem 0">${esc(p.what || '')}</p>
-          ${p.fix ? `<p class="faint" style="margin:0 0 .4rem">${esc(p.fix)}</p>` : ''}
-        </div>`).join('')}
-      </div>`).join('')
-        + `<p class="faint" style="text-align:center">backend ${esc((d && d.version) || '—')}</p>`;
-    })
-    .catch(err => {
-      const body = $('sheet-body');
-      if (body) body.innerHTML = `<p class="empty">Could not run the check.<br>
-        <span class="faint">${esc(String(err && err.message || err))}</span></p>`;
-    });
-});
 /* ---------- MOUNTING GOOGLE'S BUTTON ---------------------------------------------------------------
    GOOGLE DRAWS IT, NOT US. The button has to be theirs — it is what carries the sign-in prompt and
    the account chooser, and a lookalike of our own could not produce a token.
@@ -1247,30 +1162,12 @@ on('pin-save', () => {
     .catch(() => { if (said) said.textContent = 'Could not reach the server.'; });
 });
 
-on('my-referral', () => {
-  send_({ action: 'myReferral', name: USER.name })
-    .then(d => {
-      const link = location.origin + location.pathname + '?ref=' + encodeURIComponent(d.code);
-      openSheet('Tell someone', `
-        <p class="note" style="margin-top:0">Send this to a family it would suit. We will know it
-          came from you.</p>
-        ${row('Your code', d.code)}
-        <input class="mono" readonly value="${esc(link)}" style="margin:.6rem 0">
-        <button class="btn" data-do="ref-send" data-link="${esc(link)}">Send it</button>
-        <div class="row" style="margin-top:.8rem"><span class="k">Joined through you</span>
-          <span class="v mono">${(d.sent || []).length}</span></div>
-        ${(d.sent || []).length
-          ? (d.sent || []).map(x => `${row('·', x.name)}`).join('')
-          : '<p class="faint">Nobody yet. It only takes one.</p>'}`);
-    })
-    .catch(() => toast('Could not reach the server.'));
-});
+/* `on('my-referral')` WAS HERE — the referral link sheet. Its card has gone and nothing else opened
+   it. The `referral_code` column stays on the people tab; nothing on a phone hands one out now. */
 
-on('ref-send', el => {
-  const link = el.dataset.link;
-  if (navigator.share) { navigator.share({ title: '@family.', url: link }).catch(() => {}); return; }
-  navigator.clipboard?.writeText(link).then(() => toast('Link copied')).catch(() => toast(link));
-});
+/* `on('ref-send')` WENT WITH IT. It was the Share button INSIDE the referral sheet — reachable from
+   nowhere else, so removing the sheet stranded it. `check-doors` named it on the next run. */
+
 
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state.
 

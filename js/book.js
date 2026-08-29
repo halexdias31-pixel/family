@@ -138,16 +138,27 @@ function openJobs_() {
    THE HOURS ARE NOT HARDCODED — the grid runs from the earliest to the latest hour anything is
    actually booked at, so a week with nothing before four in the afternoon does not draw seven empty
    morning rows. */
+/* THE WIDGET'S OWN STARTER. `startWidget_` calls this once the container is on screen — see the
+   `week` entry in `WIDGETS`. Kept beside `weekGrid` rather than in map.js, because what it draws is
+   this file's job and map.js only knows where it goes. */
+function initWeek() {
+  const el = $('week-body');
+  if (el) el.innerHTML = weekGrid();
+}
+
 function weekGrid() {
   const jobs = (DATA.liveJobs || DATA.jobs || []).filter(j => {
     /* A session with no day or no time has not been settled yet — a waitlist, or a request nobody
        has put in the diary. It belongs on the list, not in a grid that says where to be. */
     return S_(j.day) && S_(j.time);
   });
+  /* ---------- THE GRID, WITHOUT THE CARD AROUND IT ------------------------------------------------
+     THIS RETURNED A WHOLE CARD, heading and all, because it was a block in the `You` column. It is a
+     widget now — the card and the heading are the widget's, drawn by `WIDGETS` like every other
+     tool's — so this returns only the thing that is actually a week. */
   if (!jobs.length) {
-    return `<div class="card"><h3>Your week</h3>
-      <p class="sub">Nothing in the diary yet. Sessions appear here once a day and a time are
-        settled.</p></div>`;
+    return `<p class="sub">Nothing in the diary yet. Sessions appear here once a day and a time are
+      settled.</p>`;
   }
 
   const DAYS = [['Mon','Mon'],['Tue','Tue'],['Wed','Wed'],['Thu','Thu'],
@@ -170,8 +181,7 @@ function weekGrid() {
   const at = (d, h) => spans.find(s =>
     norm(s.j.day).indexOf(norm(d)) === 0 && h >= s.from && h < s.to);
 
-  return `<div class="card"><h3>Your week</h3>
-    <div class="wk" style="--cols:${days.length}">
+  return `<div class="wk" style="--cols:${days.length}">
       <div class="wk-h"></div>
       ${days.map(([, label]) => `<div class="wk-h">${esc(label)}</div>`).join('')}
       ${hours.map(h => `
@@ -190,8 +200,7 @@ function weekGrid() {
         }).join('')}
       `).join('')}
     </div>
-    <p class="faint">Tap a block to open it.</p>
-  </div>`;
+    <p class="faint">Tap a block to open it.</p>`;
 }
 
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE ----------------------------------------------

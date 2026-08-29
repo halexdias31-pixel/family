@@ -1088,6 +1088,25 @@ const WIDGETS = [
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
+  /* ---------- YOUR WEEK ---------------------------------------------------------------------------
+     IT WAS A BLOCK IN THE `You` COLUMN, and for most people it said "Nothing in the diary yet" — a
+     card whose whole content was the announcement that it had nothing to show, on a screen nobody
+     opens to look at their timetable.
+
+     IT IS A TOOL. A calendar is a tool here; a notepad is a tool; a week of your sessions is the
+     same kind of thing — something you go and look at when you want to know when you are somewhere.
+     So it is in the drawer with them, opened when wanted and costing nothing when not.
+
+     `into` AND `start`, LIKE THE CALENDAR. The week is built from `liveJobs`, so it cannot be static
+     `html` the way chess is — the markup is an empty container and `initWeek` fills it at the moment
+     it is opened, which is also the moment its data is freshest. */
+  { id: 'week', kind: 'tool', name: 'Your week', start: () => initWeek?.(),
+    into: 'week-body', what: 'Your week',
+    html: `<div class="card">
+    <h3>Your week</h3>
+    <div id="week-body"></div>
+  </div>` },
+
   { id: 'calendar', kind: 'tool', name: 'Calendar', start: () => initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
     html: `<div class="card">
