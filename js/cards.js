@@ -64,6 +64,10 @@
    here: the `people` tab carries PINs, bank details, addresses and dates of birth, and the backend
    deliberately sends only `tutors` — filtered to public facts — and `students`. Everything on this
    card is already on this device because it is yours. */
+/* NO `cardTiles_` CALL HERE. `stuffCard` in find.js appends the action row to every card it draws,
+   and this card is drawn through it — the `me` kind is registered in `KINDS` like any other. This
+   builder kept the call it had from before the actions were centralised, so the row came out twice:
+   two stars, two pencils, two bins, two admin rows, all live and all doing the same thing. */
 function meCard() {
   if (!USER) return '';
   const face = pic(USER.photo || (USER.profile || {}).photo || '');
@@ -88,7 +92,7 @@ function meCard() {
       </div>
     </div>
     ${rows.map(([k, v]) => row(k, v)).join('')}
-  </div>${cardTiles_({ kind: 'me', key: 'me:' + (USER.handle || USER.name), row: USER })}`;
+  </div>`;
 }
 
 function findCard(x) {
