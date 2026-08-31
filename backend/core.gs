@@ -219,7 +219,13 @@ function jsonOut(obj) {
    so an edit made in the app is visible on the next load. A change typed straight into the
    spreadsheet is the case a write cannot see, which is what the TTL is for.
 ================================================================================================== */
-const PAYLOAD_TTL  = 300;      /* seconds. Five minutes is the longest a hand edit stays invisible */
+/* SIX HOURS, WHICH IS THE MAXIMUM THE SERVICE ALLOWS, and not a compromise between freshness and
+   speed — a write invalidates immediately, so freshness is not what this number controls. It was
+   300, and on a site with a few dozen visits a day spread across the hours that meant almost every
+   visitor found an expired entry and paid the full rebuild: a cache that never fires, and all of
+   the code with none of the benefit. The only thing this number delays is an edit typed straight
+   into the spreadsheet rather than made in the app. */
+const PAYLOAD_TTL  = 21600;    /* seconds — six hours, the CacheService ceiling */
 const CACHE_CHUNK  = 90000;    /* under the 100KB ceiling, with room for the key and the overhead  */
 const CACHE_TAG    = 'pay:';
 
