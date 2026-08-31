@@ -316,6 +316,8 @@ function doGet(e) {
       campaigns: [],
       /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
       facets: [],
+      /* And what its first two questions answer — see SCHEMA.kinds. */
+      kinds: [],
       gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
@@ -665,6 +667,35 @@ function doGet(e) {
         label: S(r.label),
         order: S(r.sort_order) === '' ? null : Number(r.sort_order),
         minCoverage: S(r.min_coverage) === '' ? null : Number(r.min_coverage),
+        active: ON_(r.active),
+      });
+    });
+
+    /* THE FUNNEL'S ANSWERS. To every phone, for the same reason the questions are: this decides how
+       the first two questions group and name everything, and those are the two every search passes
+       through. A row for a kind the code does not produce is passed through rather than dropped —
+       same as `facets`, and for the same reason: a tab that silently deleted what it did not
+       recognise could not be debugged from the sheet end. */
+    read(TAB.kinds).rows.forEach(r => {
+      const kind = S(r.kind).trim();
+      if (!kind) return;
+      payload.kinds.push({
+        kind:  kind,
+        /* ---------- A KIND MAY BE IN MORE THAN ONE GROUP -----------------------------------------
+           A TUTOR IS TWO THINGS: something you BOOK with and someone who IS a person. The first
+           question asks which errand you are on, so a tutor filed under one of those meant the
+           other had to be answered wrongly to reach them.
+
+           COMMAS IN THE ONE CELL, rather than a second column or a second row. `Booking, People` is
+           what somebody would write if nobody had told them the format, which is the whole argument
+           for it — and a cell with no comma still comes out as a list of one, so every existing row
+           on this tab means exactly what it meant before.
+
+           SENT AS A LIST EITHER WAY. A field whose type depends on its contents is a field every
+           reader has to test before using; the phone gets an array always. */
+        group: S(r.group).split(',').map(x => x.trim()).filter(Boolean),
+        label: S(r.label),
+        order: S(r.sort_order) === '' ? null : Number(r.sort_order),
         active: ON_(r.active),
       });
     });
