@@ -880,9 +880,22 @@ function ensureSchema() {
     const at = sheetFor_(name);
     if (!at.id) { report[name] = 'skipped — SUBJECTS_ID is blank'; return; }
     const ss = SpreadsheetApp.openById(at.id);
-    let sh = ss.getSheetByName(at.tab);
+    /* ---------- `at.tab` HAS NEVER EXISTED -------------------------------------------------------
+       `sheetFor_` RETURNS `id`, `names`, `make` AND `away`. There is no `tab`, and there never was —
+       so this asked for `getSheetByName(undefined)`, found nothing every single time, and then
+       called `insertSheet(undefined)`, which creates a sheet with a DEFAULT name. Run once against a
+       full database it reported "tab created" for all forty tabs and left forty `Sheet1`-style
+       sheets holding nothing but headers, while the real tabs went untouched — so the columns this
+       function exists to add were never added, and the report said the opposite.
+
+       IT LOOKS THE WAY `read` LOOKS. `at.names` is the list `read` tries in order — the code's own
+       name first, then whatever the tab has been renamed to — so a tab called `items&shop` is found
+       rather than duplicated. Only when none of them exists is one made, under `at.make`, which is
+       the name the code asks for. */
+    let sh = null;
+    for (let i = 0; i < at.names.length && !sh; i++) sh = ss.getSheetByName(at.names[i]);
     if (!sh) {
-      sh = ss.insertSheet(at.tab);
+      sh = ss.insertSheet(at.make);
       sh.appendRow(SCHEMA[name]);
       sh.setFrozenRows(1);
       report[name] = 'tab created' + (at.away ? ' in ' + at.away : '');
@@ -1817,10 +1830,15 @@ function checkTabs() {
   const out = { ok: [], EMPTY: [], MISSING: [] };
   Object.keys(SCHEMA).forEach(name => {
     const at = sheetFor_(name);
-    const label = name + (at.away ? '  (' + at.away + ' → ' + at.tab + ')' : '');
+    const label = name + (at.away ? '  (' + at.away + ' → ' + at.names.join(' / ') + ')' : '');
     if (!at.id) { out.MISSING.push(label + '  — no file id'); return; }
     let sh = null;
-    try { sh = SpreadsheetApp.openById(at.id).getSheetByName(at.tab); }
+    /* THE SAME FAULT AS `ensureSchema` ABOVE — `at.tab` is undefined, so this found no tab for any
+       name and reported the whole database missing. Same fix: the names `read` would try. */
+    try {
+      const ss2 = SpreadsheetApp.openById(at.id);
+      for (let i = 0; i < at.names.length && !sh; i++) sh = ss2.getSheetByName(at.names[i]);
+    }
     catch (err) { out.MISSING.push(label + '  — cannot open that file'); return; }
     if (!sh) { out.MISSING.push(label + '  — no such tab'); return; }
     const n = Math.max(0, sh.getLastRow() - 1);
