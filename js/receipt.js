@@ -539,7 +539,7 @@ on('book-send', el => {
       })
       .catch(() => {
         el.disabled = false;
-        if (said) said.textContent = 'Could not reach the server.';
+        if (said) said.textContent = why_(err);
       });
     return;
   }
@@ -736,7 +736,7 @@ on('job-pay', el => {
          return leg comes back to this site anyway. */
       location.href = d.url;
     })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 /* ---------- THE BUSINESS ANSWERING A REQUEST ------------------------------------------------------
@@ -765,7 +765,7 @@ on('job-answer', el => {
       closeSheet();
       load();
     })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 /* MARKING IT PAID BY HAND. The one action on this site that says money arrived without a payment
@@ -789,7 +789,7 @@ on('job-paid', el => {
       closeSheet();
       load();
     })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 /* ASKING TO JOIN. The same `move` a tutor uses to apply — one machine, one set of rules, and the
@@ -821,7 +821,7 @@ on('fest-join', el => {
       toast(d && d.seats ? 'Coming along — ' + d.joined + ' of ' + d.seats : 'Coming along');
       load();
     })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 /* ---------- TAKING A SEAT GOES TO THE FORM ---------------------------------------------------------
@@ -907,7 +907,7 @@ on('job-delete', el => {
       toast('Session ended');
       load();
     })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 

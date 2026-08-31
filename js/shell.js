@@ -1312,6 +1312,33 @@ function closeSheet() {
  * every caller's reply handling by hand — most of them already read `d.error` and say something
  * specific about it, which is better than a generic catch. The reply comes back as it came.
  */
+/* ==================================================================================================
+   WHAT ACTUALLY WENT WRONG, IN WORDS, WHERE THEY CAN BE READ AND COPIED.
+
+   "COULD NOT REACH THE SERVER" WAS PRINTED BY NINE CALL SITES and was true at none of them. Every
+   one was written `.catch(() => …)` — a catch that ignores its own argument — so the message the
+   backend had already sent was thrown away and replaced with a guess. `doPost` has always ended
+   `catch (err) { return jsonOut({ error: err.toString() }) }`, so the real sentence was in hand
+   every single time and never shown.
+
+   FOUR DIFFERENT FAULTS LOOKED IDENTICAL: no signal, a backend that threw, a deployment serving
+   old code, and an action the backend has never heard of. Each needs a different thing done about
+   it and none of them was named.
+
+   AND IT GOES IN THE BANNER TOO. The line under a button is where somebody looks; the banner is
+   where text can be selected and pasted to somebody who can fix it. Both, from one place. */
+function why_(err) {
+  const msg = String((err && err.message) || err || '').trim();
+  /* A GENUINELY UNREACHABLE SERVER IS THE ONE CASE THE OLD SENTENCE WAS RIGHT ABOUT. `fetch`
+     rejects with a TypeError and no useful text when there is no connection at all, which is the
+     only time nothing better can be said. */
+  const said = (!msg || /^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg))
+    ? 'No connection — the server could not be reached at all.'
+    : msg;
+  try { banner(said); } catch (e) {}
+  return said;
+}
+
 function api(body) {
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE ------------------------------------
      ADDED HERE BECAUSE EVERY WRITE IN THE APP COMES THROUGH THIS FUNCTION. Threading it through
@@ -1324,7 +1351,24 @@ function api(body) {
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
   return fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(b) })
-    .then(r => r.json())
+    /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY -------------------------------------
+       `r.json()` ON AN APPS SCRIPT ERROR PAGE THROWS `Unexpected token '<'`, which is how a
+       perfectly clear server-side error — a missing column, a bad id, a permission — arrived on
+       the phone as a parse failure and got reported as no connection. Apps Script answers an
+       uncaught throw with an HTML page saying exactly what happened, and that page was being
+       binned unread.
+
+       SO THE TEXT IS READ FIRST AND PARSED SECOND. If it is JSON, nothing changes. If it is not,
+       the human sentence is dug out of the HTML and raised as the error — which is the difference
+       between "could not reach the server" and the name of the function that threw. */
+    .then(r => r.text().then(txt => {
+      try { return JSON.parse(txt); } catch (e) {}
+      const m = txt.match(/<div[^>]*>([^<]{10,400})<\/div>/i)
+             || txt.match(/>\s*(TypeError|ReferenceError|Exception|Error)([^<]{0,300})</i);
+      const said = m ? (m[1] + (m[2] || '')).replace(/\s+/g, ' ').trim()
+                     : txt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+      throw new Error('Backend: ' + (said || ('HTTP ' + r.status)));
+    }))
     .then(d => {
       /* A value the sheet had nowhere to put. The server turns this into an error where it can, so
          reaching here means it could not — a read that wrote, or a reply with no `success` to take

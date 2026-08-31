@@ -575,7 +575,7 @@ function googleSignedIn_(res) {
       toast('Signed in');
       load();
     })
-    .catch(() => { if (said) said.textContent = 'Could not reach the server.'; });
+    .catch(err => { if (said) said.textContent = why_(err); });
 }
 
 on('do-signin', () => {
@@ -602,7 +602,7 @@ on('do-signin', () => {
       toast('Signed in');
       load();
     })
-    .catch(() => { if (said) said.textContent = 'Could not reach the server.'; });
+    .catch(err => { if (said) said.textContent = why_(err); });
 });
 
 on('signout', () => {
@@ -1076,10 +1076,10 @@ function send_(body, o) {
       done();
       /* THE MESSAGE, NOT THE STACK. And a network failure has none worth reading — `Failed to
          fetch` tells somebody on a train nothing they can act on. */
-      const msg = String(err && err.message || err);
-      say(/fetch|network|load failed/i.test(msg)
-        ? 'No connection — that has not been sent.'
-        : msg);
+      /* THROUGH `why_`, so the same sentence appears here and in the banner — the line under the
+         button is where somebody looks, the banner is where text can be selected and pasted to
+         somebody who can fix it, and neither should be a different account of the same fault. */
+      say(typeof why_ === 'function' ? why_(err) : String(err && err.message || err));
       /* Rethrown so a caller can still react, and marked so a caller that does not care can tell
          a handled failure from a bug. */
       err.handled = true;
@@ -1242,7 +1242,7 @@ on('pin-save', () => {
       if (d && d.error) { if (said) said.textContent = d.error; return; }
       toast('PIN changed'); closeSheet();
     })
-    .catch(() => { if (said) said.textContent = 'Could not reach the server.'; });
+    .catch(err => { if (said) said.textContent = why_(err); });
 });
 
 /* `on('my-referral')` WAS HERE — the referral link sheet. Its card has gone and nothing else opened

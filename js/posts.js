@@ -699,7 +699,7 @@ on('post-approve', el => {
       toast(on ? 'It is up' : 'Not put up');
       load();
     })
-    .catch(() => { el.disabled = false; toast('Could not reach the server.'); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 on('post-save', el => {
