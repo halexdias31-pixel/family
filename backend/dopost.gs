@@ -31,6 +31,10 @@ function doPost(e) {
     /* Nothing carried over from whoever asked last. Apps Script reuses an instance between
        requests, so a miss left in the list would be reported against the next person. */
     WRITE_MISSES = [];
+    /* THE STORED PAYLOAD IS STALE THE MOMENT THIS SUCCEEDS. Flagged rather than cleared: this
+       function has two hundred and fifty returns and `jsonOut` is the one thing they all pass
+       through, so the clearing happens there, once, and cannot be forgotten in a branch. */
+    POST_WROTE = true;
     const body = JSON.parse(e.postData.contents);
     const action = S(body.action);
 

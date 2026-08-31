@@ -196,6 +196,21 @@ function doGet(e) {
 
        IT IS STILL READ IN A DOZEN PLACES and those all now return zero rows, which is safe but is
        NOT the same as removed — see the checklist builder further down. */
+    /* ---------- THE ANSWER FROM LAST TIME, IF THERE IS ONE ---------------------------------------
+       HERE, AND NOT HIGHER UP. Everything above this line is a different endpoint — setup, run,
+       map, receipts — and every one of them returns before reaching this point, so nothing that is
+       cached has passed through them.
+
+       AND NOT LOWER DOWN EITHER. It goes before the required-tabs check, which opens the
+       spreadsheet, and before `config()`, which is the first of about thirty tab reads. A cache
+       checked after the reads it exists to skip is a cache that saves nothing. See `cacheGet_` in
+       core.gs for what is kept and why it is the finished body rather than the rows. */
+    const cacheKey = payloadKey_(p);
+    if (cacheKey) {
+      const kept = cacheGet_(cacheKey);
+      if (kept) { mark('cache'); return jsonRaw_(kept); }
+    }
+
     const REQUIRED_TABS = ['people', 'venues', 'jobs', 'events', 'terms',
                            'links', 'shop', 'pricing', 'config', 'options'];
     const missingTabs = REQUIRED_TABS.filter(name => !read(name).sheet);
@@ -1491,6 +1506,19 @@ function doGet(e) {
                 resources: read(TAB.resources).rows.length, options: read(TAB.options).rows.length } });
 
     payload.timings = timings;
+    /* ---------- KEPT, AND THEN SENT --------------------------------------------------------------
+       SERIALISED ONCE. `jsonOut` would stringify this again, and the point of storing the finished
+       body is that it is finished — so the body is built here, put away, and handed to `jsonRaw_`,
+       which is the same wrapper `jsonOut` ends with.
+
+       THE FIRST REQUEST AFTER A DEPLOY OR A WRITE STILL PAYS THE FULL PRICE, and there is no way
+       round that short of building it before anybody asks. What changes is that it is paid once
+       rather than by everybody. */
+    if (cacheKey) {
+      const body = JSON.stringify(payload);
+      cachePut_(cacheKey, body);
+      return jsonRaw_(body);
+    }
     return jsonOut(payload);
   } catch (err) {
     return jsonOut({ error: err.toString() });
