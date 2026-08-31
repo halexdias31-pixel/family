@@ -419,7 +419,10 @@ function kindMap_() {
     const base = KINDS[k], s = said[k];
     if (s && s.active === false) return;
     out[k] = Object.assign({}, base, {
-      group: (s && s.group) || base.group,
+      /* THE SHEET WINS WHEN IT HAS SAID ANYTHING. `asList_` is what decides whether it has — an
+         empty cell arrives as an empty array, which is falsy nowhere useful, so testing the length
+         is the only test that means "the cell was blank". */
+      group: asList_(s && s.group).length ? s.group : base.group,
       label: (s && s.label) || base.label,
       at:    facetNum_(s && s.order, (i + 1) * 10),
     });
