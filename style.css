@@ -556,6 +556,15 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .green { color: var(--green); }
 .mono  { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .link  { color: var(--gold); text-decoration: none; }
+/* ---------- GOLD ON AMBER IS NOT A COLOUR, IT IS AN ABSENCE ---------------------------------------
+   THE BANNER IS THE ONE PLACE `.link` LANDS ON A LIGHT BACKGROUND, and the one place it has to be
+   readable: every message in it that names a URL ends with "Open it in a tab", which is the single
+   most useful thing on the screen when the backend is unreachable — it is the test that separates
+   four different faults. In gold on `--warn` it was invisible, so what people saw was a sentence
+   with a hole in it and no way to run the test the sentence describes.
+   The banner's own ink, underlined so it still reads as something to press. */
+#banner .link { color: inherit; text-decoration: underline;
+                text-underline-offset: 2px; font-weight: 700; }
 .empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
 code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 
@@ -5943,6 +5952,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
               border-top: .2mm solid var(--pa-line); }
 .mat-rule i.mid { width: 4.5mm; border-top-color: var(--pa-mark); }
 .mat-rule i.cm  { width: 7mm;   border-top-color: var(--pa-ink); }
+/* THE CALIBRATION NOTE, along the foot of the ruler strip. Rotated because the strip is 20mm wide
+   and the words are not — upright it would either wrap to four lines or run out over the page. Set
+   in the faintest ink on the sheet: it is an instruction for the one time the ruler is wrong, not a
+   label competing with the scale it sits beside. */
+.mat-rule-say { position: absolute; left: 1mm; bottom: 1mm; width: 18mm;
+                font: 400 1.9mm/1.25 var(--mono); color: var(--pa-faint);
+                text-decoration: none; font-style: normal; }
 .mat-rule b { position: absolute; left: 8mm; font: 400 2.7mm/1 var(--mono); color: var(--pa-mid);
               transform: translateY(-1.35mm); }
 .mat-head { display: flex; justify-content: space-between; align-items: baseline;

@@ -1040,6 +1040,20 @@ function matRuler(mmHigh) {
     h += `<i class="${long ? 'cm' : (mid ? 'mid' : '')}" style="top:${mm}mm"></i>`;
     if (long && mm > 0) h += `<b style="top:${mm}mm">${mm / 10}</b>`;
   }
+  /* ---------- THE SHEET SAYS WHAT TO DO WHEN IT COMES OUT WRONG ------------------------------------
+     A PRINTED RULER THAT IS NOT TRUE SIZE IS WORSE THAN NO RULER, because it is used without being
+     questioned — a child measures with it and gets a wrong answer confidently. And it comes out
+     wrong by default on most printers: `@page { margin: 0 }` asks for the full sheet, no printer can
+     print to the paper edge, and the browser's answer to that is to shrink the whole page to fit the
+     printable area. Twelve to fifteen per cent, silently, with nothing on screen or on paper saying
+     so. Measured against a tape it read 23cm at 20cm.
+
+     THE NOTE IS ON THE PAPER AND NOT IN THE PICKER, which is the whole point. The picker is where
+     you choose the ruler; the moment you find out it is wrong is with a tape in your hand next to
+     the printout, and that is not a moment when anybody goes back to a web page to read a warning.
+     It is what a scale bar on a map is for, and it costs one line at the foot of a strip that is
+     otherwise empty below the last centimetre. */
+  h += '<s class="mat-rule-say">100% scale<br>no fit to page</s>';
   return h;
 }
 
