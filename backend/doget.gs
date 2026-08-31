@@ -208,7 +208,14 @@ function doGet(e) {
     const cacheKey = payloadKey_(p);
     if (cacheKey) {
       const kept = cacheGet_(cacheKey);
-      if (kept) { mark('cache'); return jsonRaw_(kept); }
+      /* ---------- A HIT SAYS SO -------------------------------------------------------------------
+         WITHOUT THIS THERE IS NO WAY TO TELL. A hit returns the body the miss stored, `timings` and
+         all, so a cached reply and a freshly built one are byte-for-byte identical and the only
+         evidence of which you got is how long you waited — which is the one thing you are trying to
+         find out. One key, appended to the stored JSON rather than parsed and re-serialised, so a
+         hit stays the cheap path it exists to be. Open the API address in a tab: `"cached":true` is
+         there or it is not. */
+      if (kept) { mark('cache'); return jsonRaw_(kept.slice(0, -1) + ',"cached":true}'); }
     }
 
     const REQUIRED_TABS = ['people', 'venues', 'jobs', 'events', 'terms',

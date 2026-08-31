@@ -124,6 +124,7 @@ function setCell(t, row, field, value) {
   if (c < 0) { missedWrite_(t, field); return false; }
   t.sheet.getRange(row._row, c + 1).setValue(value);
   row[field] = value;              // read-after-write within this request now sees the truth
+  POST_WROTE = true;               // the stored payload no longer matches the sheet
   return true;
 }
 
@@ -135,6 +136,7 @@ function addRow(t, obj) {
   });
   const line = t.headers.map(h => (obj[h] !== undefined ? obj[h] : ''));
   t.sheet.appendRow(line);
+  POST_WROTE = true;               // the stored payload no longer matches the sheet
   const row = Object.assign({ _row: t.sheet.getLastRow() }, obj);
   t.rows.push(row);
   return row;
@@ -157,11 +159,20 @@ function missedWrite_(t, field) {
  * it does not get to say `success`. The value is gone either way; the difference is whether
  * anybody finds out today or in three weeks when somebody notices their avatar keeps resetting.
  */
-/* SET BY `doPost` AND READ BY `jsonOut`. A POST is a write, and the stored payload is out of date
-   the moment one succeeds — but `doPost` has two hundred and fifty separate returns, and a rule
-   that has to be remembered in two hundred and fifty places is a rule that will be missed in one.
-   `jsonOut` is the one exit every one of them goes through, which is where this belongs, for the
-   same reason the unwritten-column check above is here and not in fifty handlers. */
+/* ---------- SET BY THE WRITES THEMSELVES ----------------------------------------------------------
+   THIS WAS SET AT THE TOP OF `doPost`, ON THE GROUNDS THAT A POST IS A WRITE. It is not. `messages`
+   is a POST and reads an inbox; `signOut` is a POST; several more only look things up. Opening the
+   messages widget therefore emptied the payload cache, and on a signed-in phone that is a POST on
+   the way in — so the cache was cleared about as often as it was filled, and the app was exactly as
+   slow as it had been before any of this existed.
+
+   SO IT IS THE WRITE THAT SAYS SO. `setCell` and `addRow` are the two functions that put anything
+   into a spreadsheet, and the payload is stale if and only if one of them succeeded. A read-only
+   POST now touches neither, and leaves the cache alone.
+
+   READ BY `jsonOut`, which is the one exit every one of `doPost`'s two hundred and fifty returns
+   goes through — the same reason the unwritten-column check lives there rather than in fifty
+   handlers. */
 let POST_WROTE = false;
 
 function jsonOut(obj) {
