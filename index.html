@@ -1088,6 +1088,21 @@
 
   <!-- Said, as well as drawn: whichever one is showing, this is what it says. -->
   <p id="splash-say">@family.</p>
+
+  <!-- ============================================================================================
+       THE SLOW-LOAD MESSAGE LIVES ON THE SPLASH, NOT UNDER IT.
+
+       It used to go in the banner, and the banner is z-index 29 while the splash is 200 — so the
+       only way to make it readable was to take the splash off, which is what the watchdog did. A
+       load that was merely SLOW therefore ended with the animation gone, the app empty behind it
+       and a message saying it was still trying: three things on screen disagreeing about whether
+       anything was happening.
+
+       Written here instead, over the animation that is still running, so nothing has to be
+       removed to say it. `boot-` and not `splash-`, deliberately: every `#splash-*` id is a
+       loading screen as far as check-css.js is concerned, and this is a caption on one.
+  ============================================================================================ -->
+  <p id="boot-slow" class="hidden"></p>
 </div>
 
 <script>
@@ -1110,12 +1125,16 @@
     var codeHere = (typeof go === 'function');
     var dataHere = (typeof DATA !== 'undefined' && DATA && Object.keys(DATA).length > 1);
     var url = (typeof API !== 'undefined') ? API : '(API not defined — data.js did not load)';
-    sp.classList.add('done');                                // lift it, whatever else is true
-    /* SAID OUT LOUD, so a payload that arrives at forty seconds can take this message back down.
-       Without it the app finishes loading with "Data: not yet" still on screen above a full feed —
-       which is the app calling itself broken while plainly working. */
+    /* ---------- IT SAYS SO. IT DOES NOT LIFT THE SPLASH ------------------------------------------
+       THIS USED TO END THE LOADING SCREEN ON A TIMER, and that was the fault: the fetch has its
+       own sixty-second deadline and `load()` lifts the splash whichever way that goes, so at
+       thirty seconds this was ending the animation while the request it was reporting on was
+       still perfectly alive. Between thirty and sixty you got an empty app and a message saying
+       it was still loading — the app contradicting itself on screen.
+       The splash now comes off in one place and for one reason: the load finished. This says why
+       it is taking so long, on top of the animation, and the animation keeps running. */
     try { LOAD_SLOW = true; } catch (e) {}
-    var b = document.getElementById('banner');
+    var b = document.getElementById('boot-slow');
     if (!b) return;
     b.className = '';
     b.innerHTML = '<b>Still loading after 30 seconds.</b><br>'
@@ -1127,6 +1146,47 @@
       + 'sign-in page means the deployment is not shared; a 404 means the address is wrong; a very '
       + 'long wait means the backend is busy and will finish on its own.';
   }, 30000);
+
+  /* ==================================================================================================
+     THE ANIMATION RUNS FOR AS LONG AS THE LOAD DOES.
+
+     EVERY SPLASH TELLS A STORY THAT ENDS. The tag is written on in 1.7 seconds, the tube map draws
+     itself in 2.1, Pythagoras squares up in 2.4 — and then `forwards` holds the last frame and the
+     screen is a still picture. On a backend that answers in fifteen seconds that is two seconds of
+     animation and thirteen of a photograph, which reads as the app having stopped rather than as
+     the app working, and it is the reason a slow load FEELS broken rather than slow.
+
+     SO IT PLAYS AGAIN. Every animation on the splash that has a finite number of iterations is
+     restarted the moment the last of them finishes, over and over, until the splash is taken off —
+     which happens in exactly one place, when `load()` has finished, success or failure.
+
+     NOTHING PER-SPLASH. `getAnimations({ subtree: true })` asks the browser what is actually
+     running rather than this needing a list of thirty-eight names and their durations, so a splash
+     added later loops without anybody remembering to tell this line about it.
+
+     THE INFINITE ONES ARE LEFT ALONE — the mist, the glow, the ticking clock. They never finish,
+     so waiting for them would wait for ever, and restarting a texture would make it stutter.
+  ================================================================================================== */
+  (function () {
+    var sp = document.getElementById('splash');
+    if (!sp || !sp.getAnimations) return;         /* old browser: the still frame, as before */
+    var replay = function () {
+      if (sp.classList.contains('done')) return;
+      var once = sp.getAnimations({ subtree: true }).filter(function (a) {
+        var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+        return t && t.iterations !== Infinity;
+      });
+      if (!once.length) return;                   /* reduced motion, or nothing to replay */
+      Promise.all(once.map(function (a) { return a.finished; })).then(function () {
+        if (sp.classList.contains('done')) return;
+        once.forEach(function (a) { a.currentTime = 0; a.play(); });
+        replay();
+      }, function () {});                         /* cancelled: stop, say nothing */
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', replay);
+    } else { replay(); }
+  })();
 
   /* WHICH ONE, decided here and nowhere else.
 

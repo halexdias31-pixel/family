@@ -3136,6 +3136,18 @@ textarea, select, [data-noswipe],
 #splash.done { opacity: 0; visibility: hidden;
                transition: opacity .45s ease, visibility 0s linear .45s; }
 
+/* ---------- THE SLOW-LOAD CAPTION -----------------------------------------------------------------
+   ON the splash, because the splash is z-index 200 and the banner is 29 — a message in the banner
+   while the loading screen is up is a message behind a wall, which is why the watchdog used to take
+   the splash off in order to be read. `pointer-events` back on for this one element: the splash
+   turns them off for everything under it, and the address in here has to be selectable while it is
+   showing. */
+#boot-slow { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%);
+             width: min(32rem, 88vw); margin: 0; pointer-events: auto; text-align: center;
+             font: 400 .76rem/1.55 var(--mono); color: var(--dim, #8a8175); }
+#boot-slow b { color: var(--warn, #f0a93c); }
+#boot-slow code { color: #7de6ff; word-break: break-all; }
+
 #splash-tag { width: min(78vw, 22rem); height: auto; overflow: visible; }
 
 /* THE WORD, DRAWN ON. Both layers are the same text in the same place: one is the outline being
@@ -5673,7 +5685,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .fm-mark { font-style: normal; font-weight: 700; font-size: 16pt; line-height: 1; letter-spacing: -.01em; }
 .fm-head { margin: 9mm 0 0; letter-spacing: -.028em; max-width: 150mm; }
 .fm-say { margin: 5mm 0 0; font-style: normal; font-weight: 400; font-size: 10pt; line-height: 1.5; max-width: 108mm; opacity: .82; }
-.fm-slogan { margin: 4mm 0 0; font-style: normal; font-weight: 400; font-size: 11pt; line-height: 1.35; font-style: italic;
+.fm-slogan { margin: 4mm 0 0; font-weight: 400; font-size: 11pt; line-height: 1.35; font-style: italic;
              color: var(--fly-accent); }
 .fm-facts { margin-top: auto; padding-top: 5mm; border-top: .8pt solid currentColor; }
 .fm-facts div { font: 400 8.5pt/1.7 var(--mono); }
@@ -5712,15 +5724,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    particular thing. */
 .fm-s-loud { padding: 10mm 12mm; border-top: 4mm solid var(--fly-ink);
              border-bottom: 4mm solid var(--fly-ink); }
-.fm-s-loud .fm-head { font-style: normal; font-weight: 900; font-size: 33pt; line-height: .98; letter-spacing: -.035em; font-style: italic;
+.fm-s-loud .fm-head { font-weight: 900; font-size: 33pt; line-height: .98; letter-spacing: -.035em; font-style: italic;
                       text-transform: uppercase; margin: 5mm 0 0; }
 .fm-s-loud .fm-say { font-weight: 700; font-size: 9.5pt; opacity: 1; margin-top: 3mm; }
-.fm-s-loud .fm-slogan { font-style: normal; font-weight: 900; font-size: 13pt; line-height: 1.1; font-style: italic; text-transform: uppercase;
+.fm-s-loud .fm-slogan { font-weight: 900; font-size: 13pt; line-height: 1.1; font-style: italic; text-transform: uppercase;
                         color: var(--fly-ink); }
 .fm-ring { margin: 4mm 0 0; text-align: center; }
 .fm-ring span { display: block; font-style: normal; font-weight: 700; font-size: 8pt; line-height: 1; letter-spacing: .18em;
                 text-transform: uppercase; margin-bottom: 1.5mm; }
-.fm-ring b { display: block; font-style: normal; font-weight: 900; font-size: 30pt; line-height: 1; letter-spacing: -.03em; font-style: italic; }
+.fm-ring b { display: block; font-weight: 900; font-size: 30pt; line-height: 1; letter-spacing: -.03em; font-style: italic; }
 .fm-s-loud .fm-facts { border-top-width: 1.4pt; }
 .fm-s-loud .fm-facts div { font-weight: 700; }
 
