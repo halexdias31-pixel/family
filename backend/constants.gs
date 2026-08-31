@@ -92,6 +92,16 @@ const SUBJECTS_ID = "1jDEeRoUTtLW-9ImOVyCyNaGZKCSox_Ao";
 
 const FILES = { main: SPREADSHEET_ID, subjects: SUBJECTS_ID };
 
+/* ---------- TABS IN THE MAIN FILE THAT ARE NOT CALLED WHAT THE CODE CALLS THEM --------------------
+   THE KEY IS THE NAME THE CODE ASKS FOR; the value is what the tab is actually called. Renaming a
+   tab in the sheet is a thing somebody does for good reasons — `items&shop` says what is in it far
+   better than `shop` did once the wearables and the stationery became one list — and it should not
+   mean renaming a key that thirty lines of code read.
+   Tried in order: the code's own name first, so a tab that has not been renamed still wins. */
+const HERE = {
+  shop: 'items&shop',
+};
+
 const ELSEWHERE = {
   boxers:     { file: 'subjects' },
   fights:     { file: 'subjects' },
@@ -139,6 +149,8 @@ const TAB = {
   copy: 'copy',
   /* What the search funnel asks, in what order, and what it calls things — see SCHEMA.facets. */
   facets: 'facets',
+  /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
+  kinds: 'kinds',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
   /* One row per exam question — see SCHEMA.questions. */
@@ -585,10 +597,27 @@ const SCHEMA = {
     "colour",
     "description", "photo"
   ],
+  /* ---------- ONE TAB FOR EVERYTHING THAT IS A THING -----------------------------------------------
+     `shop` HELD THE WEARABLES AND `items` HELD THE STATIONERY, and `items` was never wired up at
+     all — forty rows in a tab with no SCHEMA entry, no TAB entry and nothing reading it, which is
+     the same fault as the `notes` column and the English cheat-sheet components. Merged rather than
+     wired up twice: a pencil and a pair of jeans are both a thing with a name, a price and a way of
+     getting hold of it, and the differences are columns rather than tabs.
+
+     `acquire` IS THE COLUMN THAT DID THE MERGING. `shop` said how you got something by leaving the
+     price blank; `items` said it in a word — buy, ticks, issued, loan. The word won, and `level`
+     joined it for the wearables you earn by levelling up.
+
+     THREE PRICE COLUMNS BECAUSE THERE ARE THREE CURRENCIES. Pence for money, ticks for ticks, coins
+     for the wardrobe. One `price` and a `currency` beside it meant every reader had to check the
+     second before trusting the first, and a blank currency was a silent guess. */
   shop: [
-    "item_id", "kind", "name", "price",
-    "currency", "level_required", "slot", "art_id",
-    "description", "photo", "in_stock"
+    "item_id", "name", "brand", "kind", "description", "photo",
+    "audience", "acquire",
+    "price_pence", "price_ticks", "price_coins", "value_pence",
+    "stock", "max_per_person", "returnable", "contains",
+    "level_required", "slot", "art_id",
+    "active", "notes"
   ],
   pricing: [
     "kind", "label", "surcharge_per_hour", "note"
@@ -1128,6 +1157,32 @@ const SCHEMA = {
      the one thing you wanted to rename, and everything else carries on. */
   facets: [
     "field", "label", "sort_order", "min_coverage", "note", "active",
+  ],
+
+  /* ---------- AND WHAT THE FIRST TWO QUESTIONS ANSWER ----------------------------------------------
+     THE `facets` TAB MOVED THE QUESTIONS OUT OF CODE AND LEFT THE ANSWERS BEHIND. "What for" and
+     "What kind" are the first two things the funnel asks and the two that shape everything after,
+     and every one of their answers — which group a kind belongs to, what that group is called, what
+     the kind is called, what order the groups come in — was a literal in find.js.
+
+     THAT IS THE SAME KIND OF DECISION AS A FACET LABEL, and it got a tab for exactly the reason
+     this one now has one: it is editorial, it changes, and changing it should not be a deploy.
+
+     WHAT IT COST TO BE IN CODE. The note above `forLabel` says grouping takes the first question
+     "from nine answers to four". There are EIGHT groups now. Adding one is a single word inside a
+     literal, nothing counts them, and the benefit the grouping exists for was given back one word
+     at a time without anybody deciding to.
+
+       kind        the row's `kind` value — one the code does not produce is ignored
+       group       the answer to "What for". Kinds sharing a group are asked about together
+       label       the answer to "What kind"
+       sort_order  lower groups are offered first. Ties fall back to alphabetical
+       active      OFF hides that kind from the funnel entirely
+
+     A KIND WITH NO ROW KEEPS ITS BUILT-IN GROUP AND LABEL, so this tab can be empty and the funnel
+     behaves exactly as it does today. */
+  kinds: [
+    "kind", "group", "label", "sort_order", "note", "active",
   ],
 
   holidays: [
@@ -1748,10 +1803,11 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
 /* What an admin may change on a shop item. Same pattern as everything else: one list drives the
    form AND the write allow-list, so the two can't drift apart. */
 const SHOP_GROUPS = {
-  'What it is': ['name', 'description', 'photo'],
-  'Price':      ['price', 'currency', 'level_required'],
+  'What it is': ['name', 'brand', 'kind', 'description', 'photo'],
+  'Who and how': ['audience', 'acquire'],
+  'Price':      ['price_pence', 'price_ticks', 'price_coins', 'level_required'],
   'Wearable':   ['slot', 'art_id'],
-  'Stock':      ['in_stock'],
+  'Stock':      ['stock', 'max_per_person', 'returnable', 'value_pence', 'active'],
 };
 const SHOP_EDITABLE = flat(SHOP_GROUPS);
 

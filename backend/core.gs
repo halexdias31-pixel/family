@@ -48,7 +48,15 @@ function clearCache() {
    and it is always the plain one, so nothing new is ever born with a prefix. */
 function sheetFor_(name) {
   const w = ELSEWHERE[name];
-  if (!w) return { id: SPREADSHEET_ID, names: [name], make: name, away: '' };
+  /* ---------- A TAB IN THE MAIN FILE MAY ALSO GO BY ANOTHER NAME ---------------------------------
+     `ELSEWHERE` CARRIED `alsoTry` AND ONLY FOR TABS IN ANOTHER FILE, which was the only case there
+     had been — `cheatsheet` living on a tab called `cheatsheetcomp`. `shop` and `items` have now
+     been merged into one tab called `items&shop` in the main file, which is the same situation with
+     the file part removed, and there was nowhere to say so.
+     `HERE` is that place. Same shape, same meaning, one line per renamed tab. */
+  const also = HERE[name];
+  if (!w) return { id: SPREADSHEET_ID, names: also ? [name, also] : [name],
+                   make: name, away: '' };
   return { id: FILES[w.file] || '',
            names: w.alsoTry ? [name, w.alsoTry] : [name],
            make: name, away: w.file };

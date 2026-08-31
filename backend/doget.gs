@@ -1251,11 +1251,39 @@ function doGet(e) {
            two lines up and this still asked for `avatar`, so every wearable would have been priced
            in pounds. Caught by grepping for the old word rather than by anything failing — which
            is the whole risk in renaming a value that is compared in six places. */
-        name: S(r.name), price: S(r.price), unit: S(r.currency) || (kind === 'wearable' ? '🪙 ' : '£'),
+        /* ---------- THE PAYLOAD SHAPE HAS NOT MOVED -------------------------------------------
+           `price`, `unit`, `level`, `slot`, `artId`, `inStock` are what the phone has always read —
+           the wardrobe, the shop list, the basket and the price rows all name them — so the merge
+           is done HERE, on the way out, and not one line of frontend changed. The tab got wider;
+           what leaves it is the same eight fields.
+
+           WHICH PRICE, DECIDED BY `acquire` RATHER THAN GUESSED FROM THE KIND. Three columns hold
+           three currencies and only one of them is filled on any given row, so the word that says
+           how you get the thing is also the word that says which column to read. A wearable earned
+           by levelling up has no price at all, which is why `level` sits beside it. */
+        name: S(r.name),
+        price: (function () {
+          const how = norm(r.acquire);
+          if (how === 'level' || how === 'issued' || how === 'loan') return '';
+          if (how === 'ticks') return S(r.price_ticks);
+          return S(r.price_coins) || S(r.price_pence);
+        })(),
+        unit: (function () {
+          const how = norm(r.acquire);
+          if (how === 'ticks') return '✓ ';
+          if (S(r.price_coins)) return '🪙 ';
+          if (S(r.price_pence)) return 'p';
+          return kind === 'wearable' ? '🪙 ' : '£';
+        })(),
+        /* HOW YOU GET IT, SENT AS ITSELF TOO. Nothing reads it yet; it is the one fact the merge
+           added that the old two tabs could not express, and a column the payload drops is a column
+           that may as well not be in the sheet — which is the fault this tab was merged to end. */
+        acquire: norm(r.acquire) || 'buy',
+        audience: norm(r.audience) || 'all',
         level: N(r.level_required) || 0,
         slot: S(r.slot), artId: S(r.art_id),
         description: S(r.description), image: S(r.photo),
-        inStock: ON_(r.in_stock),
+        inStock: ON_(r.active),
         fields: SHOP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
       });
     });
