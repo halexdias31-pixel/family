@@ -269,24 +269,90 @@ function cacheGet_(key) {
   } catch (err) { return ''; }
 }
 
-/** Store `body` under `key`. Silent on failure: a cache that cannot be written is not an error. */
+/* WHY THE LAST WRITE FAILED, IF IT DID. A bare `catch {}` on the one operation the whole cache
+   depends on means a store that never works looks exactly like a store that works — which is the
+   state this spent a day in. Held in a variable rather than logged, so `testCache` can report it. */
+let CACHE_LAST_ERR = '';
+
+/** Store `body` under `key`. Returns '' on success or the reason it failed. */
 function cachePut_(key, body) {
   const c = payloadCache_();
-  if (!c || !body) return;
+  if (!c) return (CACHE_LAST_ERR = 'CacheService unavailable');
+  if (!body) return (CACHE_LAST_ERR = 'nothing to store');
   try {
     const parts = {};
     let n = 0;
     for (let i = 0; i < body.length; i += CACHE_CHUNK) {
       parts[CACHE_TAG + key + ':' + n] = body.substr(i, CACHE_CHUNK);
       n++;
-      if (n > 200) return;                 /* absurdly large: not worth caching, and not an error */
+      if (n > 200) return (CACHE_LAST_ERR = 'payload too large: over ' + (200 * CACHE_CHUNK) + ' chars');
     }
     c.putAll(parts, PAYLOAD_TTL);
     /* THE INDEX IS WRITTEN LAST. Written first, a request arriving between the two calls would find
        an index promising chunks that are not there yet — which `cacheGet_` handles, but there is no
        reason to create the case. */
     c.put(CACHE_TAG + key, String(n), PAYLOAD_TTL);
-  } catch (err) {}
+    return (CACHE_LAST_ERR = '');
+  } catch (err) { return (CACHE_LAST_ERR = String(err && err.message || err)); }
+}
+
+/* ==================================================================================================
+   RUN THIS AND IT TELLS YOU IN WORDS.
+
+   EVERY QUESTION ABOUT THIS CACHE HAS BEEN ANSWERED BY TIMING A PAGE LOAD, which is the worst
+   instrument available: it cannot tell a cache that is off from a cache that is on and failing, and
+   it cannot tell either of those from Google having a slow minute — and Apps Script's own variance
+   on the same work has been eighteen, thirty-five and fourteen seconds.
+
+   SO IT ASKS THE CACHE DIRECTLY. Store a payload-sized string, read it back, compare, and say what
+   happened. Pick `testCache` in the editor's function dropdown, press Run, and read the answer in
+   the execution log. Nothing to install and nothing to measure.
+================================================================================================== */
+function testCache() {
+  const out = [];
+  const c = payloadCache_();
+  if (!c) return 'FAIL — CacheService is not available to this script at all.';
+
+  /* THE SAME SIZE THE REAL ONE IS, because the limits that matter are size limits. A test that
+     stores the word "hello" proves nothing about an 80KB payload. */
+  const body = '{"test":"' + new Array(80000).join('x') + '"}';
+  const key = 'selftest|' + Date.now();
+
+  const err = cachePut_(key, body);
+  if (err) return 'FAIL — could not store: ' + err;
+  out.push('stored ' + body.length + ' chars');
+
+  const back = cacheGet_(key);
+  if (!back) return 'FAIL — stored without error, but nothing came back. '
+    + 'The cache is accepting writes and losing them.';
+  if (back !== body) return 'FAIL — came back a different length: put ' + body.length
+    + ', got ' + back.length + '. Chunking is wrong.';
+  out.push('read back identical');
+
+  /* AND THE PART THAT ACTUALLY BREAKS: whether the key a visitor produces is the same key twice
+     running. A cache that works perfectly and is asked a different question each time is a cache
+     that never hits, and that failure looks exactly like this one from the outside. */
+  const k1 = payloadKey_({ person: 'P001', name: 'Test Person' });
+  const k2 = payloadKey_({ person: 'P001', name: 'Test Person' });
+  if (k1 !== k2) return 'FAIL — the same visitor produces two different keys (' + k1 + ' / ' + k2
+    + '), so nothing can ever be found again.';
+  out.push('key is stable: ' + k1);
+
+  out.push('generation is ' + payloadGen_() + ' (this only moves when something writes to the sheet '
+    + '— if it climbs on every page load, a read-only POST is clearing the cache)');
+
+  const url = webAppUrl_();
+  out.push(url ? ('warmer will call: ' + url)
+                : 'WARNING — no web app URL, so warmPayload can do nothing. Deploy first.');
+
+  const trig = ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'warmPayload').length;
+  out.push(trig ? ('warm trigger installed (' + trig + ')')
+                : 'WARNING — no warm trigger. Run installWarmTrigger.');
+
+  return 'PASS — the cache itself works.\n' + out.join('\n')
+    + '\n\nIf loads are still slow with this passing, the deployed version is older than this code: '
+    + 'Deploy > Manage deployments > edit > Version: New version.';
 }
 
 /* ---------- WHO GETS WHOSE COPY -------------------------------------------------------------------
@@ -356,7 +422,11 @@ function payloadGen_() {
 function webAppUrl_() {
   try {
     const set = PropertiesService.getScriptProperties().getProperty('WEB_APP_URL');
-    if (set) return set;
+    /* CHECKED, NOT TRUSTED. Anything in a property is whatever somebody last typed, and a value
+       that is not an address makes `UrlFetchApp` throw inside the warmer — where it is caught, and
+       so becomes a refresh that silently never runs. Rejected here it falls through to the address
+       the service knows for itself, which is right far more often than a stale typed one. */
+    if (set && /^https:\/\//.test(set)) return set;
   } catch (err) {}
   /* THE SERVICE KNOWS ITS OWN ADDRESS. Only from a versioned deployment, which is the only place
      the warmer runs anyway — and the property above is the override for when it does not. */
