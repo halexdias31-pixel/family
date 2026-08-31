@@ -227,17 +227,19 @@ function postsBlocks() {
      SO IT IS IN FRONT OF THE QUESTION INSTEAD, the first page of the funnel, before anything has
      been narrowed. See `screen('stuff')` in find.js. */
 
-  /* ---------- AND SIGNING IN ABOVE ALL OF IT ----------------------------------------------------
-     WHETHER YOU ARE SIGNED IN DECIDES WHETHER ANYTHING ELSE WORKS — the ＋ does not post, the
-     trolley does not fill, the booking form has nothing to book for. It was on the far end of `You`,
-     past the account and the claims, which is where somebody looks only if they already know to.
+  /* ---------- SIGNING IN, AND ONLY SIGNING IN ----------------------------------------------------
+     SIGNED IN, THERE IS NOTHING FOR THIS TO DRAW. It used to put a small card here with your name,
+     your role and a Sign out button — which was right when the feed was a column and your account
+     was two swipes away. Your account is a card in the results now and the way out is the last row
+     of it, so drawing a second name and a second Sign out at the top of the feed would be the same
+     control in two places: which is the fault this app has already had once, when the move to the
+     feed left the old button behind on `You`.
 
-     THIS IS THE SCREEN NOBODY ARRIVES AT WITH AN ERRAND, so a state you might need to change belongs
-     here — and above the ＋, because it governs it. Signed in it is a name and a way out; signed out
-     it is the whole sign-in card. See `signInCard_` and `signOutCard_` in me.js. */
-  const acct = USER
-    ? (typeof signOutCard_ === 'function' ? signOutCard_() : '')
-    : (typeof signInCard_ === 'function' ? signInCard_() : '');
+     SIGNED OUT IS DIFFERENT AND STAYS. There IS no account card when nobody is signed in — `meCard`
+     returns nothing — so without this there would be no way in at all. And whether you are signed in
+     decides whether anything else works: the ＋ does not post, the trolley does not fill, the
+     booking form has nothing to book for. So it sits above the ＋, because it governs it. */
+  const acct = USER ? '' : (typeof signInCard_ === 'function' ? signInCard_() : '');
   if (acct) split_(acct).reverse().forEach(c => cards.unshift(c));
 
   /* THE CARDS THEMSELVES. This was `pages('posts', cards)` — the screen's own pager — and there is

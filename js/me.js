@@ -79,21 +79,15 @@ function signInCard_() {
       </div>`;
 }
 
-/* WHO YOU ARE, AND THE WAY OUT. Shown at the top of the feed once somebody is signed in — a name
-   and one button, rather than the whole account card, which lives on its own page in Find. */
-function signOutCard_() {
-  if (!USER) return '';
-  return `<div class="card">
-    <div class="thing">
-      <span class="thing-pic art">${avatarFor(USER.handle || USER.name, 40, USER.avatar)}</span>
-      <div class="thing-body">
-        <h3>${esc(USER.name)}</h3>
-        <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
-      </div>
-    </div>
-    <button class="btn quiet" data-do="signout">Sign out</button>
-  </div>`;
-}
+/* ---------- `signOutCard_` WAS HERE ----------------------------------------------------------------
+   A NAME, A ROLE AND A `Sign out` BUTTON, at the top of the feed. It was the right answer to the
+   question "which screen does signing out live on", and that turned out to be the wrong question —
+   the way out belongs on the object it acts on, which is your own card, next to your photograph and
+   your credits. See `meCard` in cards.js.
+
+   AND IT WAS HALF A CARD. `meCard` already drew your face, your name and your role; this drew the
+   first three of those again on another screen, which is the same duplication the account rows were
+   moved out of `meRest_` to stop. One card, one place, one way out. */
 
 function meRest_() {
   /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
@@ -192,11 +186,10 @@ function meRest_() {
           screens carried one and each was `data-do="signout"` — identical behaviour, two places,
           which reads as an app unsure which of them is the real one.
 
-          THE ONE ON POSTS IS THE REAL ONE. It sits with your face and your role in `signOutCard_`,
-          which is the whole point: the way out belongs next to who you are on the way in. This one
-          sat under a diagnostic card that has itself since been removed, at the far end of the last
-          column of You — past the account, past the claims, exactly where the note above says
-          nobody looks. */''}
+          NEITHER OF THEM SURVIVED. The one on Posts went too, and for the same reason it beat this
+          one: the way out belongs next to who you are. It is the last row of `meCard` now — under
+          your photograph, your name, your role and your credits — which is the one place it does not
+          have to be moved again the next time a screen changes shape. */''}
     ${/* ---------- THE VERSION CARD IS GONE FROM THE COLUMN --------------------------------------
           IT WAS THREE BUILD NUMBERS AND A DEPLOY WARNING, on a card of its own, and with the You
           column folded into the funnel it landed between the question and your own account card —
