@@ -1172,14 +1172,29 @@
     if (!sp || !sp.getAnimations) return;         /* old browser: the still frame, as before */
     var replay = function () {
       if (sp.classList.contains('done')) return;
-      var once = sp.getAnimations({ subtree: true }).filter(function (a) {
+      var all = sp.getAnimations({ subtree: true });
+      var once = all.filter(function (a) {
         var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
         return t && t.iterations !== Infinity;
       });
       if (!once.length) return;                   /* reduced motion, or nothing to replay */
+      /* ---------- WAIT ON THE FINITE ONES, RESTART EVERY ONE OF THEM ----------------------------
+         THE TWO SETS HAVE TO GO BACK TOGETHER OR THEY DRIFT APART. Seven rules on this splash run
+         a one-shot and an endless one at once — `.fb-sq` is `fb-in .45s both` alongside
+         `fb-glow 3.4s infinite`, and the Fibonacci spiral itself is a single infinite `fb-draw`.
+         Restarting only the finite ones put the five squares back to nothing while the glow and
+         the spiral carried on from wherever their own clocks had reached, so the second play was
+         out of step with the first and every play after it drifted further.
+
+         SO THE WAIT AND THE RESTART ARE DIFFERENT SETS. Only a finite animation can be waited on —
+         an endless one never resolves and would hold the replay for ever. But once the wait is
+         over EVERYTHING goes back to zero, which is the state the splash was in on the first
+         frame, and that state is by definition the one that looks right. */
       Promise.all(once.map(function (a) { return a.finished; })).then(function () {
         if (sp.classList.contains('done')) return;
-        once.forEach(function (a) { a.currentTime = 0; a.play(); });
+        sp.getAnimations({ subtree: true }).forEach(function (a) {
+          a.currentTime = 0; a.play();
+        });
         replay();
       }, function () {});                         /* cancelled: stop, say nothing */
     };
