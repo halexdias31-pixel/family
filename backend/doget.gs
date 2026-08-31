@@ -206,7 +206,17 @@ function doGet(e) {
        checked after the reads it exists to skip is a cache that saves nothing. See `cacheGet_` in
        core.gs for what is kept and why it is the finished body rather than the rows. */
     const cacheKey = payloadKey_(p);
-    if (cacheKey) {
+    /* ---------- `?warm=1` BUILDS AND STORES WITHOUT READING ---------------------------------------
+       THE SCHEDULED REFRESH ASKS FOR THIS. A warmer that made an ordinary request would be handed
+       the copy already in the cache and would refresh nothing; one that cleared the cache first
+       would leave a hole for whoever arrived during the rebuild — which is the thirty-five seconds
+       this exists to stop anybody ever paying. Skipping only the READ does both jobs: the entry is
+       rebuilt from the sheet and written over the old one, which stays readable the whole time.
+
+       `warm` IS DELIBERATELY NOT IN `payloadKey_`'s SPECIAL LIST. It must produce the SAME key an
+       ordinary visitor produces, or it would be filling an entry nobody ever asks for. */
+    const warming = S(p.warm) === '1';
+    if (cacheKey && !warming) {
       const kept = cacheGet_(cacheKey);
       /* ---------- A HIT SAYS SO -------------------------------------------------------------------
          WITHOUT THIS THERE IS NO WAY TO TELL. A hit returns the body the miss stored, `timings` and

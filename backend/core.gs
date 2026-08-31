@@ -329,6 +329,77 @@ function payloadGen_() {
   } catch (err) { return '0'; }
 }
 
+/* ==================================================================================================
+   THE CACHE IS FILLED BEFORE ANYBODY ASKS, NOT BY THE FIRST PERSON TO ASK.
+
+   A CACHE ONLY MOVES WHO PAYS. Somebody still walks the thirty tabs and waits the thirty-five
+   seconds — it is just the first visitor after each expiry rather than all of them, and on a site
+   with a few dozen visits a day that is often the only visitor of the hour. The one who came to
+   read about tutoring is the one who pays for everybody else's speed.
+
+   SO A TRIGGER PAYS INSTEAD. Every five minutes this asks the web app for the payload with `warm=1`,
+   which rebuilds it and writes it over the stored copy without reading the old one first — so there
+   is never a moment when the entry is missing. The slow rebuild happens to a scheduled job with
+   nobody watching, and every real request lands on something already built.
+
+   IT CALLS ITS OWN URL rather than building the payload directly, because the payload is built
+   inside `doGet` and nothing else can produce one. Going in through the front door means the warmer
+   and the visitor are running the same code by construction, which is the only version of this that
+   cannot drift.
+
+   THE ADMIN GETS A COPY TOO. `viewerIsAdmin` changes what is in the payload, so an admin's key is
+   not the anonymous key and a warmed anonymous entry does nothing for them. Every person whose role
+   is admin is warmed as well — usually one, and it is the account most likely to be waiting on it.
+================================================================================================== */
+
+/** The deployed address of this web app, for the warmer to call. */
+function webAppUrl_() {
+  try {
+    const set = PropertiesService.getScriptProperties().getProperty('WEB_APP_URL');
+    if (set) return set;
+  } catch (err) {}
+  /* THE SERVICE KNOWS ITS OWN ADDRESS. Only from a versioned deployment, which is the only place
+     the warmer runs anyway — and the property above is the override for when it does not. */
+  try { return ScriptApp.getService().getUrl() || ''; } catch (err) { return ''; }
+}
+
+/** Rebuild and store the payload for the anonymous visitor and for each admin. Called by a trigger. */
+function warmPayload() {
+  const url = webAppUrl_();
+  if (!url) return 'no web app url — deploy first, or set WEB_APP_URL in Script properties';
+  const asks = ['?warm=1'];
+  try {
+    read(TAB.people).rows.forEach(r => {
+      if (!S(r.full_name) || mainRole(r) !== 'admin') return;
+      asks.push('?warm=1&person=' + encodeURIComponent(S(r.person_id))
+              + '&name=' + encodeURIComponent(S(r.full_name)));
+    });
+  } catch (err) {}
+  const done = [];
+  asks.forEach(q => {
+    try {
+      /* MUTED AND FOLLOWED. Apps Script answers a web app with a 302 to a content address, so the
+         redirect has to be followed or nothing is fetched; and an error here must not stop the
+         other keys being warmed, which is the whole reason each is in its own try. */
+      UrlFetchApp.fetch(url + q, { muteHttpExceptions: true, followRedirects: true });
+      done.push(q.indexOf('person=') === -1 ? 'anonymous' : 'admin');
+    } catch (err) { done.push('failed: ' + String(err && err.message || err)); }
+  });
+  return 'warmed ' + done.join(', ');
+}
+
+/** Put the five-minute refresh in place. Run once, by hand, after deploying. */
+function installWarmTrigger() {
+  /* THE OLD ONES GO FIRST. Running this twice would otherwise leave two triggers doing the same
+     work, and there is no way to see that from the app — only a quota that runs out sooner than it
+     should. */
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'warmPayload') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('warmPayload').timeBased().everyMinutes(5).create();
+  return 'the payload will be rebuilt every 5 minutes';
+}
+
 /** The reply, from a body that is already JSON. Wrapped exactly as `jsonOut` wraps one. */
 function jsonRaw_(body) {
   if (JSONP_CB && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(JSONP_CB)) {
