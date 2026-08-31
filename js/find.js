@@ -1811,6 +1811,32 @@ function feedPages_() {
    `meCard` IS THE WHOLE OF IT NOW and it is a result, not a page. The claims and the messages are
    still built by `meBlocks` and still reachable from the tiles on that card. */
 
+/* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN ----------------------------------------------
+   IT HAS MOVED FIVE TIMES: the far end of You, the top of the feed, both at once, the last row of
+   your own pass, and the question card. Every one of those was an answer to "which card does it go
+   on" — and the reason it kept moving is that it is not a card's business. It is the state the whole
+   app is in.
+
+   SO IT IS A PAGE, ON THE SAME SIDE AS THE OTHER THINGS THAT ARE YOURS. Saved and basket sit after
+   the question because they are answers rather than questions; this is the same kind of thing and
+   the same swipe. Nothing filters it, nothing scrolls past it, and it does not have to be squeezed
+   onto a card that was drawn for another reason.
+
+   FIRST OF THEM, because signed out it is the only one that does anything. */
+function accountPages_() {
+  if (!USER) {
+    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
+       first, and the element is in the card this returns. */
+    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+    return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+  }
+  return [`<div class="card">
+    <h3>${esc(USER.name || 'Signed in')}</h3>
+    <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
+    <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
+  </div>`];
+}
+
 /** Everything spliced between the question and the results, whichever answer is showing. */
 function frontPages_() {
   return [].concat(bookingPages_(), feedPages_());
@@ -1830,7 +1856,7 @@ function stuffFirstResult_() {
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
   return stuffQuestionPage_() + 1 + frontPages_().length
-       + savedPages_().length + basketPages().length;
+       + accountPages_().length + savedPages_().length + basketPages().length;
 }
 
 function stuffPageCount() {
@@ -2616,35 +2642,13 @@ screen('stuff', () => {
      zero and everything else indexed off "the first page" — with saved pages in front of it that
      is no longer true, and a hard-coded 1 would have `paintStuff` keeping a saved page and
      deleting the question. One id, and nothing has to count. */
-  /* ---------- SIGNING IN AND OUT BELONGS TO THE SCREEN, NOT TO A CARD ------------------------------
-     IT HAS BEEN IN FOUR PLACES NOW: the far end of You, the top of the feed, both of those at once,
-     and the last row of your own pass. Each move was an answer to "which card does it go on", and
-     the reason it kept moving is that the question was wrong — a card can be scrolled past, filtered
-     out, or not drawn at all, and a way in that is only there when you are already somewhere is not
-     a way in.
-
-     THIS IS THE ONE THING ALWAYS ON SCREEN. `#stuff-controls` is the question every route passes
-     through, it is never filtered away, and it already holds your credits — which is the same class
-     of fact: who you are on this device. Signed in it is a quiet button beside that number; signed
-     out it is the whole sign-in card, because there is nothing else to show and nothing else works
-     until it is used.
-
-     AND IT IS OFF THE PASS. Your card is your card wherever it is seen; it should not be the only
-     copy of a control the app cannot do without. */
-  const acct = USER
-    ? `<div class="card"><div class="row" style="border:0;padding:0">
-        <span class="k">Your credits</span><span class="v big gold mono">${credits}</span>
-      </div>
-      <button class="btn quiet" data-do="signout" style="margin-top:.5rem">Sign out</button></div>`
-    : (typeof signInCard_ === 'function' ? signInCard_() : '');
-
-  /* THE GOOGLE BUTTON IS MOUNTED A FRAME AFTER THE MARKUP LANDS, because Google renders into an
-     element that has to exist first — and the element is in the sign-in card just built above.
-     It hangs off this paint now rather than the feed's, which is where the card used to be. */
-  if (!USER && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-
+  /* THE CREDITS STAY ON THE QUESTION and the way in and out does not — see `accountPages_`. A number
+     is a fact about you and belongs beside the thing it is spent on; a button is a control and has
+     earned a page of its own. */
   const controls = `<div id="stuff-controls">`
-    + acct
+    + (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
+        <span class="k">Your credits</span><span class="v big gold mono">${credits}</span>
+      </div></div>` : '')
     + `<input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}">
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first.
 
@@ -2707,6 +2711,7 @@ screen('stuff', () => {
   return pages('stuff', spotPages().concat(
     [controls],
     frontPages_(),
+    accountPages_(),
     savedPages_(),
     basketPages(),
     Array.from({ length: stuffPageCount() }, () => '')));
