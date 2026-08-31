@@ -1392,9 +1392,15 @@ function checkEverything() {
   /* 1. WHICH TABS EXIST. A tab missing means ensureSchema has not run since it was added — the
      commonest cause of a feature that is built and invisible. */
   say('TABS');
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   Object.keys(TAB).forEach(k => {
-    const sheet = ss.getSheetByName(TAB[k]);
+    /* THROUGH `sheetFor_` LIKE THE REST — otherwise the four subjects tabs and anything renamed
+       are reported MISSING by the very function somebody runs to find out what is missing. */
+    const at = sheetFor_(k);
+    let sheet = null;
+    try {
+      const ss2 = SpreadsheetApp.openById(at.id);
+      for (let i = 0; i < at.names.length && !sheet; i++) sheet = ss2.getSheetByName(at.names[i]);
+    } catch (err) {}
     if (!sheet) { say('  ✗ ' + TAB[k] + '  MISSING — run ensureSchema()'); return; }
     const rows = Math.max(0, sheet.getLastRow() - 1);
     say('  ✓ ' + (TAB[k] + '                    ').slice(0, 16) + rows + ' row(s)');
@@ -1703,10 +1709,25 @@ function authoriseDrive() {
  * version whether or not any of it landed.
  */
 function schemaGaps() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const gaps = {};
   Object.keys(SCHEMA).forEach(name => {
-    const sh = ss.getSheetByName(name);
+    /* ---------- THE SAME LOOKUP AS EVERYWHERE ELSE, FOR THE THIRD TIME ---------------------------
+       THIS OPENED THE MAIN SPREADSHEET AND ASKED FOR THE TAB BY THE CODE'S OWN NAME. Two whole
+       classes of tab can never be found that way: the four that live in the subjects file, and any
+       that has been renamed — `items&shop` is both a merge and a rename.
+
+       AND IT IS NOT ONLY A WRONG REPORT. `autoMigrate` records `SCHEMA_VERSION` only when this
+       comes back EMPTY, so a tab it structurally cannot see means the version is never recorded,
+       which means the schema is judged stale on the next request, which means `ensureSchema` runs
+       again — every two minutes, for ever, on somebody's page load. A broken check here is not a
+       missing check; it is a loop. */
+    const at = sheetFor_(name);
+    if (!at.id) return;                       /* a file that is not configured is not a gap */
+    let sh = null;
+    try {
+      const ss = SpreadsheetApp.openById(at.id);
+      for (let i = 0; i < at.names.length && !sh; i++) sh = ss.getSheetByName(at.names[i]);
+    } catch (err) { gaps[name] = ['(cannot open that file)']; return; }
     if (!sh) { gaps[name] = ['(the whole tab)']; return; }
     const lastCol = Math.max(1, sh.getLastColumn());
     const have = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim());
