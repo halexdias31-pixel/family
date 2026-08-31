@@ -1325,17 +1325,13 @@
        silently — which is entry four on the list of seven in the notes. `who` became `find`
        because the screen holds tutors, venues AND subjects, so this had to move with it. -->
 
-  <section class="screen" id="s-posts"></section>
-  <section class="screen hidden" id="s-library"></section>
-  <section class="screen hidden" id="s-stuff"></section>
-  <section class="screen hidden" id="s-arcade"></section>
-  <section class="screen hidden" id="s-tools"></section>
-  <section class="screen hidden" id="s-find"></section>
-  <section class="screen hidden" id="s-spotlight"></section>
-  <section class="screen hidden" id="s-favourites"></section>
-  <section class="screen hidden" id="s-basket"></section>
-  <section class="screen hidden" id="s-book"></section>
-  <section class="screen hidden" id="s-me"></section>
+  <!-- ONE SECTION, BECAUSE THERE IS ONE SCREEN. There were eleven, and eight of them had been dead
+       for a long time: library, arcade, tools, find, spotlight, favourites, basket and book are all
+       columns that were folded into the funnel, and their empty sections were left behind each
+       time. Posts and You have now gone the same way — see `feedPages_` and `youPages_` in find.js.
+       A section whose tab does not exist is markup nothing can ever reach, and eleven of them is
+       ten questions somebody has to answer before deciding none of them matters. -->
+  <section class="screen" id="s-stuff"></section>
 </main>
 
 <!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,
@@ -1350,7 +1346,10 @@
   <div id="sheet-body"></div>
 </div>
 
-<nav id="tabs"></nav>
+<!-- `<nav id="tabs">` WAS HERE AND WAS ALREADY EMPTY. Nothing in any JavaScript file has written
+     to it since the bar was removed — the stylesheet's own note says its rules "LIVED HERE" — so it
+     was an empty fixed element reserving three rem at the foot of every screen for a control that
+     did not exist. With one tab there is not even a bar to bring back. -->
 
 <!-- Dated with the same number as the stylesheet, and at the END of the body, where script.js
      expects every element above it to already exist. -->

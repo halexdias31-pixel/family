@@ -160,7 +160,16 @@ function feedPosts() {
     });
 }
 
-screen('posts', () => {
+/* ---------- THE FEED IS A FUNNEL ANSWER, NOT A COLUMN ---------------------------------------------
+   `screen('posts')` WAS HERE. It was the last tab besides Find, kept because it is the one screen
+   somebody opens with no errand — and every other column had already been folded in. What was left
+   was one navigation for everything except this, which is two navigations.
+
+   THE BODY IS UNCHANGED AND IS NOW A FUNCTION. `postsBlocks` returns exactly the card list the
+   screen returned, in exactly the order it built — spotlight, the ＋, the festive cards, then the
+   posts, pinned first and newest after. `feedPages_` in find.js puts them behind `What for · Posts`.
+   Nothing about what a post looks like, how it sorts, or who may see it has moved. */
+function postsBlocks() {
   /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
      wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
      in flight is a lie the app corrects a second later, which is worse than saying nothing. */
@@ -187,8 +196,8 @@ screen('posts', () => {
   /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
      nothing-here message is only right when there is genuinely nothing and somebody to see it. */
   if (!posts.length && !festive.length && !spot.length && USER) {
-    return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
-      + 'with an image link and a caption.</span>');
+    return [nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
+      + 'with an image link and a caption.</span>')];
   }
 
   /* ONE POST PER SCREEN, and the same pager the tools use. A feed is the place this shape
@@ -228,8 +237,10 @@ screen('posts', () => {
     : (typeof signInCard_ === 'function' ? signInCard_() : '');
   if (acct) split_(acct).reverse().forEach(c => cards.unshift(c));
 
-  return pages('posts', cards);
-});
+  /* THE CARDS THEMSELVES. This was `pages('posts', cards)` — the screen's own pager — and there is
+     no Posts screen to page. `screen('stuff')` pages the whole funnel, and these are pages in it. */
+  return cards;
+}
 
 /* The first page of the feed, for an admin. A card rather than a glyph: it can say what it does,
    which a ＋ in a corner cannot, and it is the width of a thumb rather than the width of a
@@ -311,7 +322,7 @@ on('who-reacted', el => {
 });
 
 on('react', el => {
-  if (!USER) { toast('Sign in to react'); go('me'); return; }
+  if (!USER) { toast('Sign in to react'); goFor_('You'); return; }
   const id = el.dataset.id, emoji = el.dataset.emoji;
   const post = (DATA.posts || []).find(x => x.id === id);
   if (!post || !post.reactions) return;
@@ -436,9 +447,9 @@ function openSharedPost() {
      absolutely-positioned page moves nothing at all, silently, which would look exactly like a
      shared link going to the top of the feed. */
   const n = feedPosts().findIndex(p => String(p.id) === String(id));
-  if (n < 0) { go('posts'); return; }
+  if (n < 0) { goFor_('Posts'); return; }
   PAGE.posts = n;
-  go('posts');
+  goFor_('Posts');
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.querySelector(`[data-post="${CSS.escape(id)}"]`)?.classList.add('post-lit');
   }));

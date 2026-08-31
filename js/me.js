@@ -510,14 +510,21 @@ on('install', el => {
   }).catch(() => { INSTALL_PROMPT = null; el.disabled = false; });
 });
 
-screen('me', () => {
-  const html = pages('me', mePages());
-    /* THE BUTTON IS MOUNTED THE SAME WAY THE MESSAGES ARE FILLED — a frame after the markup lands,
-     because Google renders into an element that has to exist first. Only when signed out, which is
-     the only time the card holding it is drawn. */
-  if (!USER) requestAnimationFrame(googleMount);
-  return html;
-});
+/* ---------- `screen('me')` WAS HERE -----------------------------------------------------------------
+   THE LAST COLUMN BUT ONE. `meCard` had already taken the top of it into the funnel — your face,
+   your name, your role and the facts under them — and what stayed was what you DO: the install
+   prompt, the claims, the tiles, the version footer. Those are pages behind `What for · You` now;
+   see `youPages_` in find.js.
+
+   `meBlocks` IS UNCHANGED and is what that reads. It already returned a card list rather than a
+   screen, which is why nothing here had to be rewritten to move it.
+
+   THE GOOGLE BUTTON STILL HAS TO BE MOUNTED A FRAME LATE, because Google renders into an element
+   that has to exist first. It hangs off the funnel's own paint now rather than this screen's —
+   `mountGoogleWhenDrawn` below, called from the same place the other widgets are started. */
+function mountGoogleWhenDrawn() {
+  if (!USER && typeof googleMount === 'function') requestAnimationFrame(googleMount);
+}
 
 /* `on('health')` WAS HERE — it fetched `?health=1` and drew the backend's problem list in a sheet.
    The card that opened it has gone, so this could not be reached; `check-doors` named it the moment
@@ -1281,7 +1288,7 @@ function skeleton() {
   const bar = (w, h, delay, extra) =>
     `<span class="sk-box" style="width:${w};height:${h};animation-delay:${delay}s${
       extra ? ';' + extra : ''}"></span>`;
-  return pages('posts', [`
+  return [`
     <article class="post sk">
       <header class="post-by">
         ${bar('1.9rem', '1.9rem', 0, 'border-radius:50%;flex:none')}
@@ -1291,5 +1298,5 @@ function skeleton() {
       <div class="post-acts">${bar('9rem', '2.3rem', .24)}</div>
       ${bar('80%', '.7rem', .32, 'margin-top:.5rem')}
       ${bar('45%', '.7rem', .4, 'margin-top:.35rem')}
-    </article>`]);
+    </article>`];
 }

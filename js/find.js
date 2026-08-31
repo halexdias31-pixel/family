@@ -116,7 +116,13 @@ const KINDS = {
      details, addresses and dates of birth, and `doget.gs` deliberately never sends it — a directory
      built from here would put all of that on every phone, and the leak would be invisible because
      the data would already have arrived. */
-  me: { group: 'People', label: 'You', card: () => meCard() },
+  /* ---------- `You` IS AN ANSWER TO THE FIRST QUESTION NOW, NOT A GROUP CALLED `People` ----------
+     IT WAS A COLUMN AND `People` WAS ITS GROUP HERE — which was right while `You` was a tab, because
+     the group only had to say what KIND of record a thing was. With the column gone, `forLabel` is
+     the whole navigation: its answers are the app's top level, and one of them has to be you.
+     `People` as an answer would have been a group with a single member whose name did not match the
+     thing it held. */
+  me: { group: 'You', label: 'You', card: () => meCard() },
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR ---------------------------------------------------
      THE FEED IS FOR SCROLLING, NOT FOR FINDING. It is sorted by pinned and then by when, which is
@@ -1660,10 +1666,72 @@ const S_ = v => String(v == null ? '' : v);
 
    NOT SIGNED IN, NOTHING TO DRAW. The booker needs somebody to book for, and the sessions are
    somebody's own — `bookBlocks` already returns the offers alone in that case, which is right. */
+const forIs_ = want => (STUFF.filters || [])
+  .some(f => f.field === 'forLabel' && norm(f.value) === want);
+
+/* ---------- THE WAY BACK TO WHAT USED TO BE A TAB -------------------------------------------------
+   `go('me')` AND `go('posts')` WERE SCATTERED AROUND — "sign in first", then jump to the You column.
+   With the columns gone those calls do not fail: `go` falls back to `TABS[0]`, which is Find, so a
+   person told to sign in was silently dropped on the search box with no sign-in card in sight. A
+   fallback that lands somewhere plausible is worse than one that lands nowhere, because nobody
+   reports it.
+
+   ANSWERING THE QUESTION IS THE NAVIGATION NOW. This clears whatever was filtered and sets the one
+   answer, which is exactly what tapping it would have done — so `goFor_('You')` puts somebody on
+   the account pages, the same place `go('me')` used to. */
+function goFor_(label) {
+  STUFF.filters = [{ field: 'forLabel', value: label }];
+  STUFF.q = '';
+  if (typeof paintStuff === 'function') paintStuff();
+}
+
 function bookingPages_() {
-  const on = (STUFF.filters || []).some(f => f.field === 'forLabel' && norm(f.value) === 'booking');
-  if (!on) return [];
+  if (!forIs_('booking')) return [];
   return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
+}
+
+/* ---------- THE FEED, BEHIND ITS OWN ANSWER -------------------------------------------------------
+   POSTS WAS THE LEFT-HAND COLUMN AND IS AN ANSWER TO `What for` NOW. Every other column had already
+   gone this way — Spotlight, Book, Basket — and the argument for keeping this one was that it is
+   the screen somebody opens with no errand. That is a real argument and it loses to a simpler one:
+   the app is a funnel, and a second way in is a second thing to maintain and a second place for a
+   card to be forgotten.
+
+   THE WHOLE FEED, NOT THE SEARCH RESULTS. The `post` kind above makes a post findable BY CAPTION,
+   which is a different job — and results come back sorted by name, which for a feed would mean
+   photographs in alphabetical order by caption. So this returns what the Posts screen returned:
+   spotlight, the festive cards, the ＋, and the posts in the order the feed sorts them. Pinned
+   first, then newest, exactly as before.
+
+   AND SIGNING IN COMES WITH IT. It sat at the top of this feed because the feed was the screen
+   nobody arrived at with an errand; the feed is still the least errand-like thing in the app, and
+   the card travels with the thing it was placed above rather than being moved a third time. */
+function feedPages_() {
+  if (!forIs_('posts')) return [];
+  return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
+}
+
+/* ---------- AND YOU ------------------------------------------------------------------------------
+   `meCard` IS ALREADY THE ANSWER TO MOST OF THIS — your face, your name, your role and the facts
+   under them are one card in the results, which is what emptied the top of the You column in the
+   first place. What was left there is what you DO: the install prompt, the claims waiting on an
+   answer, your tiles, the version footer. Those are pages here, in front of the card, the same way
+   the booking form sits in front of the sessions. */
+function youPages_() {
+  if (!forIs_('you')) return [];
+  /* `mePages` AND NOT `meBlocks`. `meBlocks` returns every card; `mePages` groups them on the
+     `ME_SPLIT` markers into the panes the You column actually showed — profile, account, messages,
+     your week. Reading the raw blocks here would have put each card on a page of its own and turned
+     four swipes into eleven. */
+  const out = typeof mePages === 'function' ? mePages()
+            : (typeof meBlocks === 'function' ? meBlocks() : []);
+  if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+  return out.filter(Boolean);
+}
+
+/** Everything spliced between the question and the results, whichever answer is showing. */
+function frontPages_() {
+  return [].concat(bookingPages_(), feedPages_(), youPages_());
 }
 
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
@@ -1679,7 +1747,7 @@ function stuffFirstResult_() {
   /* PAST THE BOOKING PAGES TOO. They sit between the question and the results, so a result's index
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
-  return stuffQuestionPage_() + 1 + bookingPages_().length;
+  return stuffQuestionPage_() + 1 + frontPages_().length;
 }
 
 function stuffPageCount() {
@@ -2003,9 +2071,9 @@ function paintStuff(keepPage) {
      results — the order `screen('stuff')` builds and the order `stuffFirstResult_` counts. Put them
      in the other way round and the form lands after four hundred results. */
   if (blanks) first.insertAdjacentHTML('afterend', blanks);
-  const booking = bookingPages_()
+  const inFront = frontPages_()
     .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
-  if (booking) first.insertAdjacentHTML('afterend', booking);
+  if (inFront) first.insertAdjacentHTML('afterend', inFront);
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
@@ -2517,7 +2585,7 @@ screen('stuff', () => {
   return pages('stuff', basketPages().concat(
     savedPages_(),
     [controls],
-    bookingPages_(),
+    frontPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => '');
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one

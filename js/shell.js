@@ -25,45 +25,26 @@
 const TABS = [
   /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
      question, and a person with no question needs somewhere to land. */
-  { id: 'posts',   icon: '▦',  label: 'Posts',   title: 'Posts' },
+  /* ---------- ONE TAB ---------------------------------------------------------------------------
+     THERE IS NO BAR ANY MORE, AND THIS IS WHY. Every column this app has had was eventually folded
+     into the funnel — Spotlight, Book, Basket, Library, Arcade, Tools, Favourites — each for the
+     same reason: it was a second way to reach something the funnel already reached, and a second
+     way is a second thing to maintain and a second place for a card to be forgotten.
 
-  /* SPOTLIGHT WAS A COLUMN HERE. It is the business choosing what to put in front of people, which
-     is the same voice as a post with a caption — so it is pages at the top of Posts now, above the
-     ＋. Two columns for one voice, and this one cost a swipe on every screen whether or not
-     anything was in it. See `spotPages` in collections.js.
+     POSTS AND YOU WERE THE LAST TWO. `meCard` had already taken the top of You into the results;
+     the `post` kind had already made a post findable by its caption. What was left of both was a
+     set of cards, and a set of cards behind an answer is what this app calls a page. So the feed is
+     `What for · Posts` and the account is `What for · You` — see `feedPages_` and `youPages_` in
+     find.js.
 
-     Four columns: Posts, Find, Basket, You. */
-  /* ONE TAB FOR FINDING ANYTHING — tutors, venues, subjects, resources, wearables, things.
-     The id stays `stuff` because it keys the pager, the page memory and the tests; only what it is
-     called has changed, and renaming an id to match a label is a day of moving things for no
-     effect anybody can see. */
-  /* FOUR TABS. Everything that is a THING you might want is behind one question here — people,
-     places, subjects, resources, links, tools, games — and the three tabs that used to hold some
-     of them are gone. What is left is the three things that are not lookups: the feed, booking,
-     and you. */
+     THE TABLE STAYS RATHER THAN GOING. `go`, `paintNeighbours`, the X axis and the page memory all
+     read it, and a single-entry list keeps every one of them correct with no special case: `go`
+     finds the tab, the X axis clamps to one cell and therefore never moves, and `paintNeighbours`
+     has nothing to paint. A tab bar of one button is drawn as nothing — see `paintTabs`.
+
+     AND IT IS THE WAY BACK IN. One tab means a single-entry table is not navigation, it is a root,
+     and the thing that used to be `go('posts')` is now answering the first question. */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
-
-  /* BOOK WAS A COLUMN HERE, dead centre, a plus, and argued for at length as the one action the
-     whole app is for. It still is — but the funnel beside it was already asking "what for", already
-     answering "Booking", and already listing the four things a booking is assembled from. A column
-     for making one, next to a screen for finding the parts of one, was the same errand split in
-     two.
-
-     Everything that was on it — the form, your sessions, the open classes — is a page on Find now,
-     behind that answer. See `bookingPages_` in find.js. */
-
-  /* BASKET WAS A COLUMN HERE. It is a page in front of the question on Find, beside the saved
-     things — everything in it was put there by pressing a trolley on a card in Find, and it was
-     sitting two columns away from the only place that happens. See `basketPages` in
-     collections.js.
-
-     Three columns: Posts, Find, You. */
-
-  /* NOT "Who". It holds tutors, venues AND subjects — people, places and things — so a name
-     asking about people was wrong about two thirds of it. "Find" is what you are doing on it. */
-  /* You, last. Everything else is the app; this is the one screen that is only about the person
-     using it, and the far corner is where every app in the world has taught people to look. */
-  { id: 'me',      icon: '◉',  label: 'You',     title: 'You' },
 ];
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
@@ -75,8 +56,12 @@ const SCREENS = {};
     than accepted and ignored: a parameter nothing reads is a parameter somebody will pass. */
 function screen(id, draw) { SCREENS[id] = { draw }; }
 
-let AT = 'posts';
-try { AT = localStorage.getItem('familyTab') || 'posts'; } catch {}
+/* ONE SCREEN, SO THERE IS NOWHERE ELSE TO BE. The remembered tab is still read, because a stored
+   `posts` or `me` from before the columns went would otherwise be handed to `go`, which falls back
+   to `TABS[0]` and is therefore already right — but reading it and letting it fall back is a
+   silent correction, and clearing it is the honest one. */
+let AT = 'stuff';
+try { localStorage.setItem('familyTab', 'stuff'); } catch {}
 
 function go(id, remember, instant) {
   const tab = TABS.find(t => t.id === id) || TABS[0];
