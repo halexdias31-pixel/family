@@ -45,6 +45,17 @@ const TABS = [
      AND IT IS THE WAY BACK IN. One tab means a single-entry table is not navigation, it is a root,
      and the thing that used to be `go('posts')` is now answering the first question. */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
+  /* ---------- WHO YOU ARE, TO THE RIGHT OF THE QUESTION -------------------------------------------
+     A SECOND COLUMN, AND ON PURPOSE THIS TIME. The others were folded in because each was a second
+     route to something the funnel already reached — Posts, You, Book, Basket, all of them findable
+     by answering a question. Signing in is not: it is the state the app is in BEFORE any question
+     can be answered, and it is the one thing a signed-out visitor must be able to reach without
+     first knowing how the funnel works.
+
+     ONE SWIPE, ALWAYS IN THE SAME DIRECTION, from wherever you are in the funnel. That is what a
+     column gives it that a page could not — a page sits at a position in a list that changes with
+     what you have narrowed, and this must not move. */
+  { id: 'account', icon: '👤', label: 'You',     title: 'You' },
 ];
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
@@ -56,12 +67,17 @@ const SCREENS = {};
     than accepted and ignored: a parameter nothing reads is a parameter somebody will pass. */
 function screen(id, draw) { SCREENS[id] = { draw }; }
 
-/* ONE SCREEN, SO THERE IS NOWHERE ELSE TO BE. The remembered tab is still read, because a stored
-   `posts` or `me` from before the columns went would otherwise be handed to `go`, which falls back
-   to `TABS[0]` and is therefore already right — but reading it and letting it fall back is a
-   silent correction, and clearing it is the honest one. */
+/* ---------- WHERE YOU WERE, IF IT IS STILL A PLACE ------------------------------------------------
+   REMEMBERED AGAIN, NOW THAT THERE ARE TWO COLUMNS. It was forced to `stuff` while there was only
+   one, and a stored `posts` or `me` from before the fold would still be handed to `go`, which falls
+   back to `TABS[0]` — right, but silently.
+   SO IT IS CHECKED RATHER THAN TRUSTED. A remembered id that is no longer a tab is discarded here
+   instead of being corrected three functions later, and `account` is a place you can be left. */
 let AT = 'stuff';
-try { localStorage.setItem('familyTab', 'stuff'); } catch {}
+try {
+  const was = localStorage.getItem('familyTab');
+  if (was && TABS.some(t => t.id === was)) AT = was;
+} catch {}
 
 function go(id, remember, instant) {
   const tab = TABS.find(t => t.id === id) || TABS[0];

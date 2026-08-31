@@ -1822,7 +1822,10 @@ function feedPages_() {
    the same swipe. Nothing filters it, nothing scrolls past it, and it does not have to be squeezed
    onto a card that was drawn for another reason.
 
-   FIRST OF THEM, because signed out it is the only one that does anything. */
+   A COLUMN, NOT A PAGE. It was briefly a page after the question, which put it at a position in a
+   list — and that position moves with whatever you have narrowed, so the one control that must
+   always be in the same place was the one thing that kept shifting. One swipe right, from anywhere,
+   whatever is on screen. */
 function accountPages_() {
   if (!USER) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
@@ -1836,6 +1839,11 @@ function accountPages_() {
     <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
   </div>`];
 }
+
+/* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
+   here beside `accountPages_` rather than in me.js, because the thing it draws is built here and a
+   screen registered away from what it draws is a screen somebody has to go looking for. */
+screen('account', () => pages('account', accountPages_()));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 function frontPages_() {
@@ -1856,7 +1864,7 @@ function stuffFirstResult_() {
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
   return stuffQuestionPage_() + 1 + frontPages_().length
-       + accountPages_().length + savedPages_().length + basketPages().length;
+       + savedPages_().length + basketPages().length;
 }
 
 function stuffPageCount() {
@@ -2711,7 +2719,6 @@ screen('stuff', () => {
   return pages('stuff', spotPages().concat(
     [controls],
     frontPages_(),
-    accountPages_(),
     savedPages_(),
     basketPages(),
     Array.from({ length: stuffPageCount() }, () => '')));
