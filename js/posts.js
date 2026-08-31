@@ -190,12 +190,10 @@ function postsBlocks() {
      be worth seeing next week; a club with four places left may not be there. */
   const festive = (DATA.festive || []).map(festiveCard);
 
-  /* WHAT THE BUSINESS IS PUTTING IN FRONT OF YOU, at the very top — see `spotPages`. */
-  const spot = (typeof spotPages === 'function' ? spotPages() : []);
 
   /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
      nothing-here message is only right when there is genuinely nothing and somebody to see it. */
-  if (!posts.length && !festive.length && !spot.length && USER) {
+  if (!posts.length && !festive.length && USER) {
     return [nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
       + 'with an image link and a caption.</span>')];
   }
@@ -220,9 +218,14 @@ function postsBlocks() {
   /* AFTER THE ＋, BEFORE THE POSTS. The ＋ is a control and belongs above the feed; the festive
      cards are the most perishable thing on the screen and belong next. */
   festive.reverse().forEach(c => cards.splice(USER ? 1 : 0, 0, c));
-  /* AND SPOTLIGHT ABOVE EVEN THE ＋. The ＋ is a control for the person; spotlight is what the
-     business most wants seen, and nothing outranks that at the top of its own feed. */
-  cards.unshift(...spot);
+  /* ---------- SPOTLIGHT IS NOT HERE ANY MORE -----------------------------------------------------
+     IT WAS ABOVE EVEN THE ＋, on the argument that nothing outranks what the business most wants
+     seen at the top of its own feed. True while the feed was the screen the app opened on. It is an
+     answer to a question now, which means somebody has to ask for Posts before spotlight exists —
+     and the one thing spotlight is for is reaching somebody who has not asked for anything.
+
+     SO IT IS IN FRONT OF THE QUESTION INSTEAD, the first page of the funnel, before anything has
+     been narrowed. See `screen('stuff')` in find.js. */
 
   /* ---------- AND SIGNING IN ABOVE ALL OF IT ----------------------------------------------------
      WHETHER YOU ARE SIGNED IN DECIDES WHETHER ANYTHING ELSE WORKS — the ＋ does not post, the

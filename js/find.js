@@ -116,13 +116,15 @@ const KINDS = {
      details, addresses and dates of birth, and `doget.gs` deliberately never sends it — a directory
      built from here would put all of that on every phone, and the leak would be invisible because
      the data would already have arrived. */
-  /* ---------- `You` IS AN ANSWER TO THE FIRST QUESTION NOW, NOT A GROUP CALLED `People` ----------
-     IT WAS A COLUMN AND `People` WAS ITS GROUP HERE — which was right while `You` was a tab, because
-     the group only had to say what KIND of record a thing was. With the column gone, `forLabel` is
-     the whole navigation: its answers are the app's top level, and one of them has to be you.
-     `People` as an answer would have been a group with a single member whose name did not match the
-     thing it held. */
-  me: { group: 'You', label: 'You', card: () => meCard() },
+  /* ---------- BACK UNDER `People`, AND THERE IS NO `You` ANSWER ---------------------------------
+     IT WAS BRIEFLY ITS OWN ANSWER, on the argument that with the columns gone `forLabel` is the
+     whole navigation and one of its answers had to be you. That was wrong for a simple reason: the
+     card IS the answer. `meCard` carries your photograph, your name, your role, your credits and now
+     the way out — so an answer called `You` led to one card, which is a question whose only purpose
+     was to be answered.
+
+     UNDER `People`, where a person goes, found the way every other person in this app is found. */
+  me: { group: 'People', label: 'You', card: () => meCard() },
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR ---------------------------------------------------
      THE FEED IS FOR SCROLLING, NOT FOR FINDING. It is sorted by pinned and then by when, which is
@@ -1677,7 +1679,7 @@ const forIs_ = want => (STUFF.filters || [])
    reports it.
 
    ANSWERING THE QUESTION IS THE NAVIGATION NOW. This clears whatever was filtered and sets the one
-   answer, which is exactly what tapping it would have done — so `goFor_('You')` puts somebody on
+   answer, which is exactly what tapping it would have done — so `goFor_('People')` puts somebody on
    the account pages, the same place `go('me')` used to. */
 function goFor_(label) {
   STUFF.filters = [{ field: 'forLabel', value: label }];
@@ -1708,30 +1710,25 @@ function bookingPages_() {
    the card travels with the thing it was placed above rather than being moved a third time. */
 function feedPages_() {
   if (!forIs_('posts')) return [];
+  /* THE GOOGLE BUTTON, MOUNTED A FRAME LATE. It is in the signed-out card at the top of the feed,
+     and Google renders into an element that has to exist first — so this hangs off the paint that
+     draws it, the way `screen('me')` used to. */
+  if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
 
-/* ---------- AND YOU ------------------------------------------------------------------------------
-   `meCard` IS ALREADY THE ANSWER TO MOST OF THIS — your face, your name, your role and the facts
-   under them are one card in the results, which is what emptied the top of the You column in the
-   first place. What was left there is what you DO: the install prompt, the claims waiting on an
-   answer, your tiles, the version footer. Those are pages here, in front of the card, the same way
-   the booking form sits in front of the sessions. */
-function youPages_() {
-  if (!forIs_('you')) return [];
-  /* `mePages` AND NOT `meBlocks`. `meBlocks` returns every card; `mePages` groups them on the
-     `ME_SPLIT` markers into the panes the You column actually showed — profile, account, messages,
-     your week. Reading the raw blocks here would have put each card on a page of its own and turned
-     four swipes into eleven. */
-  const out = typeof mePages === 'function' ? mePages()
-            : (typeof meBlocks === 'function' ? meBlocks() : []);
-  if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-  return out.filter(Boolean);
-}
+/* ---------- `youPages_` WAS HERE AND LASTED ONE VERSION -------------------------------------------
+   IT PUT THE OLD `You` COLUMN BEHIND AN ANSWER — the install prompt, the claims, the tiles, the
+   version footer, then the card. What that showed on a real account was a page of build numbers
+   between the question and the one card anybody wanted, which is the column's own emptiness made
+   visible: there was never enough left on it to be worth a question.
+
+   `meCard` IS THE WHOLE OF IT NOW and it is a result, not a page. The claims and the messages are
+   still built by `meBlocks` and still reachable from the tiles on that card. */
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 function frontPages_() {
-  return [].concat(bookingPages_(), feedPages_(), youPages_());
+  return [].concat(bookingPages_(), feedPages_());
 }
 
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
@@ -1747,7 +1744,8 @@ function stuffFirstResult_() {
   /* PAST THE BOOKING PAGES TOO. They sit between the question and the results, so a result's index
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
-  return stuffQuestionPage_() + 1 + frontPages_().length;
+  return stuffQuestionPage_() + 1 + frontPages_().length
+       + savedPages_().length + basketPages().length;
 }
 
 function stuffPageCount() {
@@ -2582,10 +2580,25 @@ screen('stuff', () => {
   /* WHAT YOU ARE PAYING FOR, THEN WHAT YOU KEPT, THEN THE QUESTION. The basket first because it is
      the one with a deadline on it — a thing you meant to buy and forgot is a worse outcome than a
      thing you meant to look at again. */
-  return pages('stuff', basketPages().concat(
-    savedPages_(),
+  /* ---------- WHAT IS PUT IN FRONT OF YOU, THE QUESTION, THEN WHAT YOU KEPT -----------------------
+     SPOTLIGHT FIRST. It was the top of the Posts feed, which meant it only existed once you had
+     answered a question to get there — and the whole point of it is that it is what the business
+     wants seen by somebody who has not asked for anything. In front of the question is the only
+     place that is true of. It is also the only thing here that is not yours, which is the right
+     order: theirs, then the question, then yours.
+
+     SAVED AND BASKET AFTER. They were in front, on the argument that they are what you already had
+     — and that put two pages of your own things between opening the app and being able to ask it
+     anything, every time, whether or not there was anything in them. They are the answer to "what
+     did I keep", and an answer goes where answers go.
+
+     WHICH IS ALSO WHY THE BOOKING AND FEED PAGES SIT WITH THEM. Everything after the question is
+     something you asked for; everything before it is the one thing you did not. */
+  return pages('stuff', spotPages().concat(
     [controls],
     frontPages_(),
+    savedPages_(),
+    basketPages(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => '');
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one

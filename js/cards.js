@@ -92,6 +92,16 @@ function meCard() {
       </div>
     </div>
     ${rows.map(([k, v]) => row(k, v)).join('')}
+    ${/* ---------- THE WAY OUT IS ON THE CARD -------------------------------------------------------
+          IT HAS BEEN IN THREE PLACES AND NONE OF THEM WAS THIS ONE. It was at the far end of the You
+          column, then at the top of the feed with a second copy left behind on You, and when the
+          columns went it needed a home again. Every one of those was a decision about which SCREEN
+          it belonged on — and it does not belong on a screen, it belongs on the object it acts on.
+
+          THIS IS THAT OBJECT. Your photograph, your name, your role, your credits: signing out is
+          the last row of the same card, in the same place your account already is, findable the one
+          way everything else in this app is findable. Nothing has to remember where it was put. */''}
+    <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
   </div>`;
 }
 

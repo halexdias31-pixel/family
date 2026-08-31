@@ -197,37 +197,35 @@ function meRest_() {
           sat under a diagnostic card that has itself since been removed, at the far end of the last
           column of You — past the account, past the claims, exactly where the note above says
           nobody looks. */''}
-    ${/* BOTH VERSIONS, at the bottom where a version number belongs. It is the answer to the
-          question that has cost more rounds than any bug: is what I am looking at the thing I
-          just changed? Two strings, and either one being stale is visible without opening
-          anything. */''}
-    ${/* ALL THREE, because any one of them being stale looks exactly like a bug in the other
-          two. This line is the first thing to read when something has been changed and has not
-          changed — and the CSS was the one that could not be asked. */''}
-    <p class="faint" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
+    ${/* ---------- THE VERSION CARD IS GONE FROM THE COLUMN --------------------------------------
+          IT WAS THREE BUILD NUMBERS AND A DEPLOY WARNING, on a card of its own, and with the You
+          column folded into the funnel it landed between the question and your own account card —
+          so the first thing anybody saw after answering was a page of build stamps. It answered a
+          question only I ever ask, in the place everybody looks.
+
+          IT IS NOT DELETED, BECAUSE IT EARNS ITS KEEP. "Is what I am looking at the thing I just
+          changed" has cost more rounds than any bug in this app, and the per-file `Not deployed`
+          line is what catches a half-pasted Apps Script every time. Both are on the diagnostics
+          the tiles already open, not on a page in everybody's way. */''}`);}
+
+/* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT ---------------------------
+   ALL THREE, because any one of them being stale looks exactly like a bug in the other two — and
+   the CSS was the one that could not be asked. Below them, and only when they disagree, which of
+   the backend files was missed: one number for six files is a number that lies, because Apps Script
+   is pasted a file at a time and `BACKEND_VERSION` lives in constants.gs, so pasting that one alone
+   moves the figure while every handler stays where it was.
+
+   COMPARED ON THE WHOLE STAMP. Comparing dates was right while I bumped only the file I had edited,
+   and that made an untouched file look permanently undeployed — so the warning was always on, which
+   is the one thing a warning must never be. */
+function versionSaid_() {
+  return `<p class="faint" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
       backend ${esc(DATA.version || '—')}</p>
-      ${/* ---------- EVERY FILE, WHEN THEY DISAGREE ------------------------------------------------
-            ONE NUMBER FOR SIX FILES IS A NUMBER THAT LIES. Apps Script is pasted a file at a time,
-            and `BACKEND_VERSION` lives in constants.gs — so pasting that one alone moves the figure
-            above while every handler stays where it was. This screen said `2026-08-14-features`
-            while the backend had no `openWaitlist` in it, and the version is the first thing you
-            check to rule the deploy out.
-            Shown ONLY when they disagree, because four identical strings is noise on every load. */''}
       ${(() => {
         const f = DATA.fileVersions || {};
         const names = Object.keys(f);
         if (names.length < 2) return '';
-        /* COMPARED BY DATE, NOT BY THE WHOLE STRING. Sorting `2026-08-14-easter` against
-           `2026-08-14-seatprice` sorts on the WORD after the date, so "seatprice" came out newest
-           and the three up-to-date files were reported as the stale ones — a warning that named
-           everything except the file actually missing. Only the date part means anything. */
-        /* THE WHOLE STAMP, NOT JUST THE DATE. Comparing dates was right while I bumped only the
-           file I had edited — and that made an untouched file look permanently undeployed, so the
-           warning was always on, which is the one thing a warning must never be.
-           Every backend file now carries the SAME stamp, moved together on every ship. So the
-           stamps either all match, meaning one paste, or they do not, meaning one file was
-           missed — which is exactly the question this is asking. */
         const newest = names.map(k => f[k]).sort().pop();
         const stale = names.filter(k => f[k] !== newest);
         return stale.length
@@ -235,7 +233,8 @@ function meRest_() {
               .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
               ? 'that file' : 'those files'} into Apps Script.</p>`
           : '';
-      })()}`);}
+      })()}`;
+}
 
 /* THE YOU SCREEN IS ONE PAGE.
    It was chunked four cards at a time, which put Messages, Change your PIN, Tell someone and Sign
@@ -634,6 +633,10 @@ on('signout', () => {
 
    The colours are free and come first, because they are what most people change and because
    nobody should have to earn the right to have brown hair. */
+/* THE BUILD STAMPS, ON DEMAND. `versionSaid_` is the card that used to sit at the foot of the You
+   column; the tile on your own card opens it. Admin-only, because the tile is. */
+on('build-said', () => openSheet('Build', versionSaid_()));
+
 on('wardrobe', () => {
   if (!USER) { toast('Sign in first'); return; }
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);

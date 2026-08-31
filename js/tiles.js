@@ -458,9 +458,14 @@ function meTiles_() {
   const parent = heldRoles().indexOf('client') !== -1
     || heldRoles().indexOf('parent') !== -1
     || heldRoles().indexOf('admin') !== -1;
+  /* THE BUILD STAMPS, FOR YOU ONLY. They were a card of their own at the foot of the You column,
+     and when that column became pages in the funnel they landed between the question and this card
+     — a page of version numbers in front of everybody, answering a question only an admin asks.
+     A tile is the right size for it: out of the way, one tap, on the card it is about. */
   return `${tile_({ icon: 'edit', label: 'Edit your details', act: 'edit-me' })}
     ${parent ? tile_({ icon: 'star', label: 'Add your child', act: 'add-child' }) : ''}
-    ${tile_({ icon: 'wear', label: 'Your figure', act: 'wardrobe' })}`;
+    ${tile_({ icon: 'wear', label: 'Your figure', act: 'wardrobe' })}
+    ${isAdmin() ? tile_({ icon: 'note', label: 'Build', act: 'build-said' }) : ''}`;
 }
 
 function fightTiles_(x) {
