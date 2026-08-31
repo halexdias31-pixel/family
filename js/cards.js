@@ -68,18 +68,52 @@
    and this card is drawn through it — the `me` kind is registered in `KINDS` like any other. This
    builder kept the call it had from before the actions were centralised, so the row came out twice:
    two stars, two pencils, two bins, two admin rows, all live and all doing the same thing. */
+/* ---------- ONE PERSON, ONE CARD -------------------------------------------------------------------
+   YOU WERE ON THE SCREEN TWICE. A staff pass with your photograph, your subjects, your rate and your
+   DBS stamp — and then, a swipe later, a second card with your photograph, your name and your role
+   again above your credits. Same person, same face, two cards, because one was built for `tutor` and
+   the other for `me` and nothing ever asked whether they could be the same row.
+
+   THE PASS IS THE PUBLIC HALF AND IT WINS. It is what everybody else sees of you, it is the shape
+   this app already uses for a person, and it says more: what you teach, what you cost, whether you
+   are cleared. Drawing a plainer version of the same person underneath it says nothing the pass did
+   not already say better.
+
+   SO THE PRIVATE HALF HANGS OFF IT. Credits, ticks, email, where — the facts only you see — are rows
+   under your own pass rather than a card of their own, and the way out is the last of them.
+
+   AND IT IS NOT ABOUT TUTORS. A child with a row, an admin, anybody: `passFor_` finds whatever
+   public record exists for the person and the private rows go under it. Somebody with no such record
+   gets the rows on their own, which is what everybody used to get. */
+function passFor_(name) {
+  const n = norm(name);
+  if (!n) return null;
+  return (DATA.tutors || []).find(t => norm(t.title) === n) || null;
+}
+
 function meCard() {
   if (!USER) return '';
   const face = pic(USER.photo || (USER.profile || {}).photo || '');
   const p = USER.profile || {};
   const ticks = typeof tickCount === 'function' ? tickCount() : 0;
   const rows = [
+    /* `Role` GOES WHEN THE PASS IS THERE. The pass prints it in the corner, and a row repeating it
+       under the photograph is the duplication this merge exists to remove. */
     ['Role', roleOf(USER.role || '')],
     ['Credits', String(USER.credits || 0)],
     ['Ticks', String(ticks)],
     ['Email', p.email || ''],
     ['Where', p.city || p.borough || ''],
   ].filter(([, v]) => String(v || '').trim());
+
+  const mine = passFor_(USER.name);
+  if (mine) {
+    return `<div class="card">
+      ${findCard({ kind: 'tutor', row: mine })}
+      ${rows.filter(([k]) => k !== 'Role').map(([k, v]) => row(k, v)).join('')}
+      <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
+    </div>`;
+  }
 
   return `<div class="card">
     <div class="thing">

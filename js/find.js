@@ -1239,7 +1239,17 @@ function stuffItems() {
        They can be one list now because the funnel skips a question most of the set cannot answer.
        That was the objection to merging and it is answered: choose Tutors and you will never be
        asked about exam boards, because a tutor has none and the coverage rule sees it. */
-    ...(DATA.tutors || []).filter(t => t.title).map(t => ({
+    /* ---------- YOUR OWN PASS IS NOT A SEPARATE RESULT --------------------------------------
+       `meCard` DRAWS IT NOW, with your credits and the way out under it — see `passFor_` in
+       cards.js. Left in here as well, the same person came back twice: once as a pass and once as
+       an account card, a swipe apart, with the same photograph on both.
+
+       DROPPED FROM THE LIST RATHER THAN HIDDEN ON THE CARD, so the counts beside every answer stay
+       true. A tutor filtered out of the results but still tallied under Booking would be a number
+       promising a card that is not there. */
+    ...(DATA.tutors || []).filter(t => t.title)
+      .filter(t => !(USER && norm(t.title) === norm(USER.name)))
+      .map(t => ({
       kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
       cost: Number(t.rate) || 0, slot: '', subject: '', grade: '', off: t.listed === false,
       row: t,
