@@ -86,7 +86,18 @@ const KINDS = {
   /* A person, a place and a subject already have a card each — written for the Find screen and
      carrying the class that colours the name. Reused rather than reimplemented: two cards for one
      tutor is two things to keep looking the same. */
-  tutor:   { group: 'Booking', label: 'Tutors',   card: x => findCard({ kind: x.kind, row: x.row }) },
+  /* ---------- A TUTOR IS TWO THINGS AND THE GROUP HAD ROOM FOR ONE --------------------------------
+     BOOKING IS WHAT A TUTOR IS FOR; PEOPLE IS WHAT A TUTOR IS. Somebody arranging a session and
+     somebody looking up who teaches their child are on different errands, and the first question
+     asks which errand you are on — so filing a tutor under one of them meant the other had to
+     answer wrongly to get there.
+
+     A LIST RATHER THAN A SECOND KIND. Two kinds for one row is two cards to keep looking the same,
+     which is the mistake the note above already refuses. `group` may be an array now; everything
+     that reads it — the coverage rule, the value counts, the filter test and the group order —
+     takes one or many. See `asList_` below. */
+  tutor:   { group: ['Booking', 'People'], label: 'Tutors',
+             card: x => findCard({ kind: x.kind, row: x.row }) },
   venue:   { group: 'Booking', label: 'Venues',   card: x => findCard({ kind: x.kind, row: x.row }) },
   subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
   /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on —
@@ -422,11 +433,22 @@ function groupOrder_() {
   const seen = {};
   const m = kindMap_();
   Object.keys(m).forEach(k => {
-    const g = m[k].group;
-    if (seen[g] === undefined || m[k].at < seen[g]) seen[g] = m[k].at;
+    /* EVERY GROUP THE KIND IS IN, so a kind belonging to two puts its number against both — and a
+       group still moves by moving any one of its kinds. */
+    asList_(m[k].group).forEach(g => {
+      if (seen[g] === undefined || m[k].at < seen[g]) seen[g] = m[k].at;
+    });
   });
   return Object.keys(seen).sort((a, b) => seen[a] - seen[b] || cmpText(a, b));
 }
+
+/* ONE VALUE OR SEVERAL, ALWAYS READ AS SEVERAL. A facet's `of` may return a string, a list, or
+   nothing; every caller wants the same thing out of it, which is the values that are actually
+   there. Blank strings are dropped here rather than in four places — `facetCoverage` counts what
+   is left, and a row with nothing to say about a question should not be counted as having said
+   something empty. */
+const asList_ = v => (Array.isArray(v) ? v : [v])
+  .map(x => String(x == null ? '' : x).trim()).filter(Boolean);
 
 function kindOf_(x) {
   if (x && x.wearable) return { group: 'Shop', label: 'Wearables' };
@@ -594,7 +616,9 @@ const facetBy = f => facetList().find(x => x.field === f) || FACETS.find(x => x.
 function filterHit(x, f) {
   const facet = facetBy(f.field);
   if (!facet) return true;
-  return norm(facet.of(x)) === norm(f.value);
+  /* ANY OF THEM COUNTS. A tutor is in Booking and in People, and choosing either has to keep them —
+     an `===` against a joined string would have matched neither. */
+  return asList_(facet.of(x)).some(v => norm(v) === norm(f.value));
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
@@ -615,9 +639,11 @@ function filterHit(x, f) {
 function facetValues(items, facet) {
   const by = {};
   items.forEach(x => {
-    const v = String(facet.of(x) ?? '').trim();
-    if (!v) return;                       // blank is not an answer, so it is never offered
-    by[v] = (by[v] || 0) + 1;
+    /* COUNTED ONCE PER VALUE, NOT ONCE PER ITEM. A tutor answers `What for` with both Booking and
+       People, so it is a tally mark against each — which is what makes the count beside an answer
+       true: choosing People really would leave that tutor in it. `Set` because a row that somehow
+       lists the same group twice must not count twice. */
+    new Set(asList_(facet.of(x))).forEach(v => { by[v] = (by[v] || 0) + 1; });
   });
   const rank = v => {
     const ord = groupOrder_();
@@ -635,7 +661,7 @@ function facetValues(items, facet) {
 function facetCoverage(items, facet) {
   if (!items.length) return 0;
   let n = 0;
-  items.forEach(x => { if (String(facet.of(x) ?? '').trim()) n++; });
+  items.forEach(x => { if (asList_(facet.of(x)).length) n++; });
   return n / items.length;
 }
 
