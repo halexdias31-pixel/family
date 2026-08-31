@@ -100,7 +100,96 @@ function bookBlocks() {
       <p class="sub">You need an account to ask for a session.</p>
       <button class="btn" data-do="signin">Sign in</button></div>`];
   }
-  return [bookerCard()].filter(Boolean);
+  /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED -----------------------
+     THE PAST ONES HAD NOWHERE TO BE. `myJobs_` has always held every session a person is in, live
+     and finished together, and the only things reading it were the week grid — which draws one week
+     and so cannot show last term at all — and the open-class split. So a receipt for a session that
+     has happened existed in the payload and appeared on no screen in the app.
+
+     HERE, BECAUSE THIS IS WHERE BOOKING IS. Somebody looking for what they paid for a session in
+     March is on the same errand as somebody booking one for June: they answered "What for ·
+     Booking" to get here, and the answer to "what did last term cost" should not be behind a
+     different question.
+
+     LAST, BECAUSE IT IS THE LEAST URGENT THING ON THE PAGE. The form is what somebody came for; a
+     finished session is a record. The funnel pages these in order, so the receipts are a swipe past
+     the form rather than something in front of it. */
+  return [bookerCard(), pastCard_()].filter(Boolean);
+}
+
+/* ---------- WHEN A SESSION IS OVER --------------------------------------------------------------
+   OFF `endDate`, WHICH THE PAYLOAD ALREADY SENDS — the last of `session_dates`, computed in
+   `doget.gs` beside `startDate`. Nothing had to be added at either end.
+
+   A SESSION WITH NO DATES IS NOT PAST. An empty `endDate` means nobody has said when it runs yet,
+   which is a booking still being arranged — the newest thing a person has, and the last thing that
+   should be filed under finished. So the test is explicit about having a date at all rather than
+   letting an empty string fall through a comparison.
+
+   THE WHOLE DAY COUNTS. A session at four this afternoon is not history at nine this morning, and
+   an `endDate` of today read as "past" would move it into the receipts on the morning of the day it
+   happens. Compared against the START of today, so today is always still live. */
+function jobIsPast_(j) {
+  const end = String((j && j.endDate) || '').trim();
+  if (!end) return false;
+  const d = typeof parseDMY === 'function' ? parseDMY(end) : new Date(end);
+  if (!d || isNaN(+d)) return false;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return d < today;
+}
+
+const pastJobs_ = () => myJobs_().filter(jobIsPast_);
+const liveJobs_ = () => myJobs_().filter(j => !jobIsPast_(j));
+
+/** The finished ones, as stubs. Nothing at all when there are none — not an empty card saying so. */
+function pastCard_() {
+  const past = pastJobs_();
+  /* NO CARD RATHER THAN AN EMPTY ONE. A card whose entire content is the announcement that it has
+     nothing to show is the fault the `week` widget was moved out of `You` for. Most people have no
+     finished sessions for most of the time they use this, and for them this page does not exist. */
+  if (!past.length) return '';
+  /* NEWEST FIRST. A list of receipts is read backwards — the thing you are checking is almost
+     always the most recent one, and the oldest is the one you scroll to deliberately. */
+  const rows = past.slice().sort((x, y) => String(y.endDate || '').localeCompare(String(x.endDate || '')));
+  return `<div class="card">
+    <h3>Past sessions</h3>
+    <p class="sub">${rows.length} finished. Tap one for the receipt.</p>
+    ${rows.map(jobCard).join('')}
+  </div>`;
+}
+
+/* ---------- THE LIVE ONES, AS A WIDGET ------------------------------------------------------------
+   THE WEEK GRID ANSWERS A DIFFERENT QUESTION. It says whether Tuesday is free, which is what you
+   want when you are arranging something — and it says nothing about a session in three weeks, or
+   about who is teaching it, or what it cost, because a grid has room for a block and not a
+   document.
+
+   THIS IS THE LIST. What you are actually in, each one a stub of its own receipt, in the order they
+   happen. Same `jobCard` the booking pages use, so a session looks the same wherever it is seen.
+
+   `into` AND `start`, LIKE THE WEEK AND THE CALENDAR — the markup is an empty container and this
+   fills it at the moment the widget is opened, which is also the moment its data is freshest. */
+function initLive() {
+  const el = $('live-body');
+  if (!el) return;
+  if (!USER) {
+    el.innerHTML = `<p class="empty">Sign in to see your sessions.</p>`;
+    return;
+  }
+  const live = liveJobs_();
+  if (!live.length) {
+    /* THE EMPTY STATE IS ALLOWED HERE AND NOT ON THE PAST CARD, because this one was opened
+       deliberately. Somebody who taps `Your sessions` and is shown nothing at all has been given no
+       answer; somebody who swipes past a booking form has not asked a question. */
+    el.innerHTML = `<p class="empty">Nothing booked yet.<br>
+      <span class="faint">Sessions you are in will appear here.</span></p>`;
+    return;
+  }
+  /* SOONEST FIRST — the opposite of the receipts, and for the same reason. What is coming is read
+     forwards; what has happened is read backwards. */
+  const rows = live.slice().sort((x, y) =>
+    String(x.startDate || '').localeCompare(String(y.startDate || '')));
+  el.innerHTML = rows.map(jobCard).join('');
 }
 
 /* WHOSE SESSIONS ARE WHOSE. Asked in one place because `Receipts` and `Coupons` are the two halves

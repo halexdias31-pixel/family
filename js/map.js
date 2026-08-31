@@ -1100,6 +1100,21 @@ const WIDGETS = [
      `into` AND `start`, LIKE THE CALENDAR. The week is built from `liveJobs`, so it cannot be static
      `html` the way chess is — the markup is an empty container and `initWeek` fills it at the moment
      it is opened, which is also the moment its data is freshest. */
+  /* ---------- WHAT YOU ARE IN ---------------------------------------------------------------------
+     BESIDE THE WEEK RATHER THAN INSTEAD OF IT. The grid answers "is Tuesday free"; this answers
+     "what am I in". They look like the same widget and are not: a grid has room for a block, and
+     what somebody checking their bookings wants is the tutor, the price and the dates — which is a
+     document, and which is why this draws the same receipt stubs the booking pages draw.
+
+     `initLive` IS IN book.js WITH THE REST OF THE SESSION CODE, the way `initWeek` is. map.js knows
+     where a widget goes; it does not know what a session looks like. */
+  { id: 'live', kind: 'tool', name: 'Your sessions', start: () => initLive?.(),
+    into: 'live-body', what: 'Your sessions',
+    html: `<div class="card">
+    <h3>Your sessions</h3>
+    <div id="live-body"></div>
+  </div>` },
+
   { id: 'week', kind: 'tool', name: 'Your week', start: () => initWeek?.(),
     into: 'week-body', what: 'Your week',
     html: `<div class="card">

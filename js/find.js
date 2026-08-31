@@ -118,6 +118,24 @@ const KINDS = {
      the data would already have arrived. */
   me: { group: 'People', label: 'You', card: () => meCard() },
 
+  /* ---------- POSTS ARE A THING YOU LOOK FOR ---------------------------------------------------
+     THE FEED IS FOR SCROLLING, NOT FOR FINDING. It is sorted by pinned and then by when, which is
+     right for a feed and useless the moment somebody wants the picture from the trip in March — the
+     only way to it was to scroll past everything newer, on the one screen where scrolling past
+     something is how you never see it again.
+
+     ITS OWN GROUP, NOT UNDER `Learning` OR `Booking`. A post is the business talking: an
+     announcement, a photograph, a poll. It is not something you book with and not something you
+     revise from, and filing it under either would be answering the first question wrongly to get
+     to it — the same fault the note above `link` describes.
+
+     THE CARD IS THE FEED'S OWN. `postCard_` in posts.js is the article the feed draws, lifted out
+     of the `map` it was buried in — so a post found here is the same object with the same
+     reactions, the same share button and the same admin controls, rather than a summary of one
+     that then needs somewhere to open. */
+  post: { group: 'Posts', label: 'Posts',
+          card: x => (typeof postCard_ === 'function' ? postCard_(x.row, 0) : '') },
+
   friend: { group: 'Friends', label: 'Friends', card: x => {
     const f = x.row;
     const xp = Number(f.xp) || 0;
@@ -348,9 +366,63 @@ function thingCard_(x, credits) {
    holds both, and which it is depends on whether the row names a slot to wear it in. That is a
    genuine exception and is written out here rather than being a tenth entry that `kind` can never
    select. */
+/* ==================================================================================================
+   THE FUNNEL'S ANSWERS, AS THE SHEET WANTS THEM.
+
+   `facets` MOVED THE QUESTIONS OUT OF CODE AND LEFT THE ANSWERS BEHIND. Which group a kind belongs
+   to, what that group is called, what the kind is called, and what order the groups are offered in
+   are four editorial decisions, and all four were literals — while the LABEL on the question asking
+   them had a spreadsheet column. The same kind of decision on both sides of one screen, half of it
+   a cell and half of it a deploy.
+
+   WHAT `card` AND `wearable` STAY FOR. How to DRAW a kind is code, exactly as `of` is on a facet —
+   a function cannot live in a cell without inventing a formula language. Only the naming and the
+   grouping move.
+
+   A KIND WITH NO ROW IS UNCHANGED, so the tab can be empty. A ROW FOR A KIND NOTHING PRODUCES is
+   ignored, because there would be nothing to group.
+
+   AND `GROUP_ORDER` IS DERIVED FROM IT NOW rather than being a second hand-written list that could
+   disagree with the first. It could, and silently: a group named in `KINDS` and missing from the
+   order sorted to the end alphabetically with nothing said.
+================================================================================================== */
+let KIND_LIVE = null, KIND_FROM = null;
+
+function kindMap_() {
+  const src = DATA.kinds || null;
+  if (KIND_LIVE && KIND_FROM === src) return KIND_LIVE;
+  KIND_FROM = src;
+  const said = {};
+  (src || []).forEach(k => { if (k && k.kind) said[k.kind] = k; });
+
+  const out = {};
+  Object.keys(KINDS).forEach((k, i) => {
+    const base = KINDS[k], s = said[k];
+    if (s && s.active === false) return;
+    out[k] = Object.assign({}, base, {
+      group: (s && s.group) || base.group,
+      label: (s && s.label) || base.label,
+      at:    facetNum_(s && s.order, (i + 1) * 10),
+    });
+  });
+  return (KIND_LIVE = out);
+}
+
+/* THE GROUPS IN THE ORDER THEY ARE OFFERED, lowest `sort_order` of any kind in the group first —
+   so a group moves by moving any one of its kinds, and there is no second list to keep in step. */
+function groupOrder_() {
+  const seen = {};
+  const m = kindMap_();
+  Object.keys(m).forEach(k => {
+    const g = m[k].group;
+    if (seen[g] === undefined || m[k].at < seen[g]) seen[g] = m[k].at;
+  });
+  return Object.keys(seen).sort((a, b) => seen[a] - seen[b] || cmpText(a, b));
+}
+
 function kindOf_(x) {
   if (x && x.wearable) return { group: 'Shop', label: 'Wearables' };
-  return (x && KINDS[x.kind]) || { group: 'Shop', label: 'Things' };
+  return (x && kindMap_()[x.kind]) || { group: 'Shop', label: 'Things' };
 }
 
 const FACETS = [
@@ -433,12 +505,28 @@ const FACETS = [
    does today. A ROW FOR A FIELD THAT DOES NOT EXIST IS IGNORED — the sheet cannot invent a
    question, because there would be nothing to read for it.
 ================================================================================================== */
-let FACET_LIVE = null;
+/* ---------- KEYED ON THE PAYLOAD, THE WAY `allTopics` DOES IT --------------------------------------
+   THIS WAS `if (FACET_LIVE) return FACET_LIVE` AND NOTHING EVER CLEARED IT. Whichever call came
+   first won for the rest of the session — and the first one is very often before the payload has
+   landed. The app draws the screen you were last on before `load()` finishes, so reopening it on
+   Find builds this list against `DATA.facets` being undefined, caches the code defaults, and then
+   ignores the `facets` tab entirely no matter what arrives afterwards. Every label, every order and
+   every off switch on that tab silently does nothing, for that whole session, at random. Retry has
+   the same effect: `load()` replaces `DATA` wholesale and this went on answering from the payload
+   before it.
+
+   `allTopics` two hundred lines down already solves this properly — it keys its memo on the object
+   IDENTITY of the payload branch it reads, so a new payload is a new list by construction. Same
+   trick here. One comparison, no coupling to `load()`, and it cannot be forgotten from the other
+   end because there is no other end. */
+let FACET_LIVE = null, FACET_FROM = null;
 
 function facetList() {
-  if (FACET_LIVE) return FACET_LIVE;
+  const src = DATA.facets || null;
+  if (FACET_LIVE && FACET_FROM === src) return FACET_LIVE;
+  FACET_FROM = src;
   const said = {};
-  (DATA.facets || []).forEach(f => { if (f && f.field) said[f.field] = f; });
+  (src || []).forEach(f => { if (f && f.field) said[f.field] = f; });
 
   FACET_LIVE = FACETS
     .map((f, i) => {
@@ -447,12 +535,11 @@ function facetList() {
       if (s.active === false) return null;
       return Object.assign({}, f, {
         label: s.label || f.label,
-        at:    s.order === null || s.order === undefined ? (i + 1) * 10 : s.order,
+        at:    facetNum_(s.order, (i + 1) * 10),
         /* A THRESHOLD OF ZERO IS A REAL ANSWER — "ask this however few can answer it" — so it
            cannot be treated as absent the way an empty cell is. `null` means the cell was blank;
            0 means somebody typed it. */
-        min:   s.minCoverage === null || s.minCoverage === undefined
-                 ? FACET_COVERAGE : s.minCoverage,
+        min:   facetMin_(s.minCoverage),
       });
     })
     .filter(Boolean)
@@ -461,6 +548,36 @@ function facetList() {
     .sort((a, b) => a.at - b.at);
   return FACET_LIVE;
 }
+
+/* ---------- WHAT A SPREADSHEET CELL IS ALLOWED TO DO TO THE FUNNEL --------------------------------
+   A NUMBER FROM A SHEET IS WHATEVER SOMEBODY TYPED, and `Number('first')` is `NaN`, which is the
+   most dangerous value either of these columns can hold — because `NaN` passes every check that
+   was guarding them.
+
+   `typeof NaN === 'number'` IS TRUE, so a mistyped `min_coverage` sailed through `nextFacet`'s
+   `typeof facet.min === 'number'` test, and then `coverage < NaN` is FALSE, so the question was
+   offered at ANY coverage. That is not a broken threshold, it is the coverage rule switched off —
+   the trapdoor the long comment below `FACET_COVERAGE` exists to describe, reopened by a typo, on
+   whichever question was mistyped, with nothing anywhere saying so.
+
+   `a.at - b.at` WITH `NaN` RETURNS `NaN`, which a sort comparator reads as "equal", so a mistyped
+   `sort_order` does not put the question last — it makes the order of the whole funnel depend on
+   the engine's sort implementation.
+
+   AND A HUMAN WILL TYPE 50 FOR A HALF. The column is a share from 0 to 1 and nothing said so at
+   the point of typing; `50` means the question can never be asked, since no coverage exceeds 50.
+   Read as a percentage instead, because that is unambiguously what was meant — nobody wants a
+   question asked only when five thousand per cent of the rows can answer it. */
+const facetNum_ = (v, fallback) => {
+  const n = Number(v);
+  return v === null || v === undefined || v === '' || !isFinite(n) ? fallback : n;
+};
+
+const facetMin_ = v => {
+  const n = facetNum_(v, FACET_COVERAGE);
+  if (n > 1) return Math.min(n / 100, 1);   /* typed as a percentage */
+  return n < 0 ? 0 : n;
+};
 
 const facetBy = f => facetList().find(x => x.field === f) || FACETS.find(x => x.field === f);
 
@@ -486,7 +603,6 @@ function filterHit(x, f) {
 
    ANYTHING NOT LISTED FALLS TO THE END, alphabetically among itself, so a group added tomorrow
    appears without needing a line here. */
-const GROUP_ORDER = ['Booking', 'Links', 'Learning', 'Shop', 'Tools', 'Games', 'People', 'Friends'];
 
 function facetValues(items, facet) {
   const by = {};
@@ -496,8 +612,9 @@ function facetValues(items, facet) {
     by[v] = (by[v] || 0) + 1;
   });
   const rank = v => {
-    const i = GROUP_ORDER.indexOf(v);
-    return i === -1 ? GROUP_ORDER.length : i;
+    const ord = groupOrder_();
+    const i = ord.indexOf(v);
+    return i === -1 ? ord.length : i;
   };
   const order = facet.field === 'forLabel'
     ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
@@ -546,7 +663,7 @@ function nextFacet(items) {
     if (facetValues(items, facet).length < 2) continue;
     /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
        given a lower bar to is one somebody decided is worth asking early even though it is thin. */
-    const min = typeof facet.min === 'number' ? facet.min : FACET_COVERAGE;
+    const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
     if (facetCoverage(items, facet) < min) continue;
     return facet;
   }
@@ -1131,6 +1248,26 @@ function stuffItems() {
         resourceType: '', examWave: '', year: '', paper: false,
       };
     }) : []),
+    /* ---------- THE POSTS -------------------------------------------------------------------
+       READ OFF `DATA.posts` AND FILTERED THE SAME WAY THE FEED FILTERS. `feedPosts` cannot be
+       reused here — it returns finished cards, not rows — so the one rule that matters is repeated
+       rather than the whole function: a deleted post is gone for everybody, including the admin who
+       deleted it. Anything else the feed does to the list is ordering, and ordering is the funnel's
+       job here, not the feed's.
+
+       WHAT IS SEARCHED IS THE CAPTION. `name` is what the text box matches against, and the caption
+       is what somebody remembers about a post — "the one about the trip" — while the author is
+       almost always the same handful of names. So the caption leads and the author is the subtitle,
+       which is also the order they read in on the card itself. */
+    ...(DATA.posts || []).filter(p => p && p.active !== false && p.id).map(p => ({
+      kind: 'post',
+      name: String(p.caption || p.body || 'Post').replace(/\s+/g, ' ').trim().slice(0, 80),
+      key: 'post:' + p.id,
+      sub: String(p.handle || p.author || ''), image: '',
+      cost: 0, slot: '', subject: '', grade: '', off: false, row: p,
+      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
     ...(DATA.links || []).filter(l => l.title).map(l => ({
       kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
       cost: 0, slot: '', subject: '', grade: '', off: false, row: l,

@@ -184,7 +184,19 @@ function meRest_() {
           existed. It is back in that state. That is worth a door somewhere an admin actually
           works, rather than a card on a settings screen; it is not worth this one. */''}
 
-    <button class="btn quiet" data-do="signout" style="margin-top:.4rem">Sign out</button>
+    ${/* ---------- THE SECOND `Sign out` WAS HERE -------------------------------------------------
+          THERE WERE TWO OF THEM, and the note at the head of this file explains why there should be
+          one: signing in and out moved to the top of Posts, because that is the screen nobody
+          arrives at with an errand and because signing out is what you look for when handing the
+          phone to somebody else. The move happened. The old button was never taken out, so both
+          screens carried one and each was `data-do="signout"` — identical behaviour, two places,
+          which reads as an app unsure which of them is the real one.
+
+          THE ONE ON POSTS IS THE REAL ONE. It sits with your face and your role in `signOutCard_`,
+          which is the whole point: the way out belongs next to who you are on the way in. This one
+          sat under a diagnostic card that has itself since been removed, at the far end of the last
+          column of You — past the account, past the claims, exactly where the note above says
+          nobody looks. */''}
     ${/* BOTH VERSIONS, at the bottom where a version number belongs. It is the answer to the
           question that has cost more rounds than any bug: is what I am looking at the thing I
           just changed? Two strings, and either one being stale is visible without opening

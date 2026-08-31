@@ -42,78 +42,18 @@ function pic(url) {
  * `parseDMY` rather than `new Date()`: the cells are DD/MM/YYYY and a browser reads those as
  * American, so 12/06 becomes December.
  */
-function feedPosts() {
-  return [...(DATA.posts || DATA.gallery || [])]
-    /* A DELETED POST IS GONE FROM THE FEED, for everybody including the admin who deleted it.
-       It used to stay, greyed and marked "· deleted", so that it could be switched back on — the
-       same argument the tutor `listed` switch follows. In practice that put every post ever
-       deleted permanently in the way of every post that had not been, on the one screen that is
-       supposed to be a feed.
-       Deleting is still a FLAG and not a removal: the row stays in the sheet, the picture stays in
-       Drive, and the reactions and votes pointing at it stay counted. Putting one back is setting
-       `active` to TRUE on the posts tab. That is the trade — the feed stays clean, and undoing a
-       delete is a cell rather than a tap. */
-    .filter(p => p.active !== false)
-    .sort((a, b) => {
-      const pin = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-      if (pin) return pin;
-      /* `at` first — the payload's millisecond timestamp. `when` is a DAY, so two posts from the
-         same afternoon tie on it and fall back to sheet order, which after a folder scan is
-         Drive's order and no order at all. */
-      const da = parseWhen(a.at || a.when), db = parseWhen(b.at || b.when);
-      /* An undated post goes LAST, not first. Sorting a null as 0 put every unparsed date at the
-         bottom of time — which is 1970, and above everything. */
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
-      return db - da;
-    });
-}
+/* ---------- ONE POST, AS A CARD ------------------------------------------------------------------
+   THIS WAS THE BODY OF `feedPosts`'s `map` AND NOTHING ELSE COULD DRAW A POST. That was fine while
+   the feed was the only place posts appeared; it stopped being fine the moment they became a thing
+   you can search for, because the funnel needs a card for every kind it lists and there was no
+   function to ask.
 
-screen('posts', () => {
-  /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
-     wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
-     in flight is a lie the app corrects a second later, which is worse than saying nothing. */
-  if (!LOADED) return skeleton();
-
-  const posts = feedPosts();
-  /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED -------------------------------
-     THESE WERE ON THE BOOKING COLUMN, which is where they were built and is not where they belong.
-     A festive card is the business saying "there is a holiday club on the 23rd, four places left" —
-     an announcement with a date on it, which is precisely what this screen is for. It was next to
-     the booking form only because bookings were.
-
-     NOBODY PUBLISHES THEM. A holiday row carries a date and how many days ahead to appear, so six
-     weeks before Christmas one puts itself here and the week after it is gone. That is the same
-     thing the ＋ card at the top of this feed does by hand, done by the sheet.
-
-     IN FRONT OF THE POSTS, because they expire and posts do not. A photograph from June will still
-     be worth seeing next week; a club with four places left may not be there. */
-  const festive = (DATA.festive || []).map(festiveCard);
-
-  /* WHAT THE BUSINESS IS PUTTING IN FRONT OF YOU, at the very top — see `spotPages`. */
-  const spot = (typeof spotPages === 'function' ? spotPages() : []);
-
-  /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
-     nothing-here message is only right when there is genuinely nothing and somebody to see it. */
-  if (!posts.length && !festive.length && !spot.length && USER) {
-    return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
-      + 'with an image link and a caption.</span>');
-  }
-
-  /* ONE POST PER SCREEN, and the same pager the tools use. A feed is the place this shape
-     belongs most obviously — a photograph competing with the top of the next photograph is a
-     photograph nobody looks at properly, and scrolling past one by accident is how you never see
-     it again. */
-  /* THE ＋ IS ON THE FEED, not in a bar above it.
-     It lived in the header, beside a ⟳ that rescanned the Drive folder — two glyphs in the corner
-     of every screen in the app, one of which only means anything on this one and the other of
-     which is a thing nobody should have to know exists. A control belongs beside the thing it acts
-     on: adding a post belongs at the top of the posts.
-
-     `unshift` rather than a separate strip, because a page is a page. It pages, it swipes, it is
-     placed by the same grid as everything else, and it needs no rule of its own anywhere. */
-  const cards = posts.map((p, i) => {
+   LIFTED OUT UNCHANGED. Same markup, same order — who, picture, actions, caption — same admin
+   controls, same everything. `i` is still taken because the first two pictures load eagerly and
+   the rest lazily, and a post found by searching is the first thing on its page, so it is passed 0
+   from there.
+--------------------------------------------------------------------------------------------- */
+function postCard_(p, i) {
     const src = pic(p.image);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
@@ -190,7 +130,80 @@ screen('posts', () => {
         </div>` : ''}
       ${p.waiting && !isAdmin() ? `<p class="faint">Waiting to be checked. Only you can see it.</p>` : ''}
     </article>`;
-  });
+}
+
+function feedPosts() {
+  return [...(DATA.posts || DATA.gallery || [])]
+    /* A DELETED POST IS GONE FROM THE FEED, for everybody including the admin who deleted it.
+       It used to stay, greyed and marked "· deleted", so that it could be switched back on — the
+       same argument the tutor `listed` switch follows. In practice that put every post ever
+       deleted permanently in the way of every post that had not been, on the one screen that is
+       supposed to be a feed.
+       Deleting is still a FLAG and not a removal: the row stays in the sheet, the picture stays in
+       Drive, and the reactions and votes pointing at it stay counted. Putting one back is setting
+       `active` to TRUE on the posts tab. That is the trade — the feed stays clean, and undoing a
+       delete is a cell rather than a tap. */
+    .filter(p => p.active !== false)
+    .sort((a, b) => {
+      const pin = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+      if (pin) return pin;
+      /* `at` first — the payload's millisecond timestamp. `when` is a DAY, so two posts from the
+         same afternoon tie on it and fall back to sheet order, which after a folder scan is
+         Drive's order and no order at all. */
+      const da = parseWhen(a.at || a.when), db = parseWhen(b.at || b.when);
+      /* An undated post goes LAST, not first. Sorting a null as 0 put every unparsed date at the
+         bottom of time — which is 1970, and above everything. */
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return db - da;
+    });
+}
+
+screen('posts', () => {
+  /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
+     wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
+     in flight is a lie the app corrects a second later, which is worse than saying nothing. */
+  if (!LOADED) return skeleton();
+
+  const posts = feedPosts();
+  /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED -------------------------------
+     THESE WERE ON THE BOOKING COLUMN, which is where they were built and is not where they belong.
+     A festive card is the business saying "there is a holiday club on the 23rd, four places left" —
+     an announcement with a date on it, which is precisely what this screen is for. It was next to
+     the booking form only because bookings were.
+
+     NOBODY PUBLISHES THEM. A holiday row carries a date and how many days ahead to appear, so six
+     weeks before Christmas one puts itself here and the week after it is gone. That is the same
+     thing the ＋ card at the top of this feed does by hand, done by the sheet.
+
+     IN FRONT OF THE POSTS, because they expire and posts do not. A photograph from June will still
+     be worth seeing next week; a club with four places left may not be there. */
+  const festive = (DATA.festive || []).map(festiveCard);
+
+  /* WHAT THE BUSINESS IS PUTTING IN FRONT OF YOU, at the very top — see `spotPages`. */
+  const spot = (typeof spotPages === 'function' ? spotPages() : []);
+
+  /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
+     nothing-here message is only right when there is genuinely nothing and somebody to see it. */
+  if (!posts.length && !festive.length && !spot.length && USER) {
+    return nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
+      + 'with an image link and a caption.</span>');
+  }
+
+  /* ONE POST PER SCREEN, and the same pager the tools use. A feed is the place this shape
+     belongs most obviously — a photograph competing with the top of the next photograph is a
+     photograph nobody looks at properly, and scrolling past one by accident is how you never see
+     it again. */
+  /* THE ＋ IS ON THE FEED, not in a bar above it.
+     It lived in the header, beside a ⟳ that rescanned the Drive folder — two glyphs in the corner
+     of every screen in the app, one of which only means anything on this one and the other of
+     which is a thing nobody should have to know exists. A control belongs beside the thing it acts
+     on: adding a post belongs at the top of the posts.
+
+     `unshift` rather than a separate strip, because a page is a page. It pages, it swipes, it is
+     placed by the same grid as everything else, and it needs no rule of its own anywhere. */
+  const cards = posts.map((p, i) => postCard_(p, i));
 
   /* ANYBODY SIGNED IN. It was admin-only, which meant the one screen the whole family looks at was
      the one screen only you could add to. What differs is what happens after — see the card. */
