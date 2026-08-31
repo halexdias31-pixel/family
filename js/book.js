@@ -1792,7 +1792,18 @@ function bookBreakdown(L, foot) {
      and the leftovers below have to agree — the first version said it in two places and the base
      line fell through the gap: excluded from merging, then dropped by a filter that saw it named a
      step and assumed it had merged. It vanished off the card entirely. */
-  const ownRow = r => r.key !== 'base';
+  /* ---------- THE BASE LINE MERGES ONTO THE TUTOR ROW LIKE EVERY OTHER PRICED LINE ---------------
+     `Tutor · Halex Dias` AND `Tuition · Halex Dias · × 10 · £10.00/h` ARE ONE FACT PRINTED TWICE.
+     The base was held out of the merge so it could keep a row of its own at the foot — right when
+     this was an invoice, where "Tuition" is the line that says what you are being charged for. On a
+     card that ALREADY asks "Tutor" three rows above, it is the same name twice: once as something
+     you can change and once as something you cannot.
+
+     `asked` ALREADY MAPS IT. `base: 'tutor'` has been in that table all along, so the merge knows
+     exactly where the line belongs — it was only the exclusion here stopping it. The hours, the
+     rate and the total land on the Tutor row, which is the question that produced them, and the
+     second row stops existing rather than being blanked and left. */
+  const ownRow = r => true;
 
   /* ---------- THE BASE LINE SAID THE TUTOR'S NAME, AND SO DID THE TUTOR ROW ----------------------
      `PRICE_ROWS` gives the base line the tutor as its value — right when it was an invoice on its
@@ -1802,6 +1813,7 @@ function bookBreakdown(L, foot) {
 
      THE FIGURES ARE WHAT THE LINE IS FOR. The hours, the rate and the total have no question behind
      them; the name does, and it already has its row. */
+  /* THE FIGURES, NOT THE NAME. Merged onto the Tutor row, whose value is already the tutor. */
   priced.forEach(r => { if (r.key === 'base') r.v = ''; });
 
   const byStep = {};
@@ -1824,9 +1836,34 @@ function bookBreakdown(L, foot) {
   const mine = {};
   steps.forEach(r => { said[norm(r.k)] = true; mine[r.id] = true; });
 
-  const out = steps
-    .concat(priced.filter(r =>
-      !r.used && !said[norm(r.k)] && !(ownRow(r) && mine[r.step])))
+  /* ---------- A CONSEQUENCE SITS UNDER THE ANSWER THAT CAUSED IT ---------------------------------
+     EVERYTHING LEFT OVER WAS APPENDED AT THE FOOT, in whatever order `PRICE_ROWS` happened to
+     produce it — so "Extra subjects", which is the count of subjects beyond the first, printed
+     itself between the Tutor row and the Dates, nowhere near the Subject row it is entirely about.
+     It reads as a stray charge rather than as an explanation of one.
+
+     WHICH STEP IT FOLLOWS, SAID ONCE. `asked` maps a priced row to the step that ANSWERS it, and
+     these are rows no step answers — the arithmetic that follows from one. Same shape, different
+     question, so a second small table rather than a special case: the row is placed straight after
+     the step it belongs to, and anything not named here still falls to the foot as before. */
+  const AFTER = { complexity: 'subjects' };
+
+  const leftover = priced.filter(r =>
+    !r.used && !said[norm(r.k)] && !(ownRow(r) && mine[r.step]));
+
+  const placed = {};
+  const body = [];
+  steps.forEach(r => {
+    body.push(r);
+    leftover.forEach(p => {
+      if (placed[p.key] || AFTER[p.key] !== r.id) return;
+      placed[p.key] = true;
+      body.push(p);
+    });
+  });
+
+  const out = body
+    .concat(leftover.filter(p => !placed[p.key]))
     .concat([noteRow_()])
     .map(receiptRow);
 
