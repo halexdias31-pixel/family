@@ -46,6 +46,12 @@
      this points at nothing. -->
 <link rel="icon" id="favicon" href="icon.png">
 <link rel="apple-touch-icon" id="favicon-ios" href="icon.png">
+<!-- BOTH NAMES, BECAUSE ONE OF THEM IS DEPRECATED AND THE OTHER IS NOT UNIVERSAL. The `apple-`
+     prefixed one is what iOS has always read and still reads; `mobile-web-app-capable` is the
+     standard that replaced it, and Chrome logs a deprecation warning in the console when only the
+     old one is present. Two lines, no behaviour change, one fewer thing in the console that looks
+     like a fault and is not. -->
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="@family.">
