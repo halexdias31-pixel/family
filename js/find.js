@@ -118,7 +118,30 @@ const KINDS = {
      errand: this is a thing you book with, not a thing you learn from. */
   level:   { group: 'Booking', label: 'Levels',   card: x => findCard({ kind: x.kind, row: x.row }) },
 
-  /* `receipt` AND `coupon` WERE KINDS HERE — your own sessions, and the classes with seats going.
+  /* ---------- YOUR OWN SESSIONS ARE ANSWERS UNDER BOOKING ---------------------------------------
+     THEY WERE KINDS, THEN THEY WERE NOT, AND NOW THEY ARE AGAIN — and the reason changed rather
+     than the mind. Taken out, they had nowhere else to be but a column of their own, and the
+     argument was that you do not SEARCH for your own bookings, you check them. That is still true.
+     What is different is that Booking is now an answer in this funnel rather than a tab: choosing
+     it is checking, and "Classes, Waitlists, Receipts" beside "Tutors, Venues, Subjects, Levels" is
+     the whole of booking in one list — the four things a session is made FROM and the three things
+     a session IS.
+
+     THREE KINDS AND NOT ONE, because they are three different questions. What is running, what I am
+     waiting for, and what has finished. A single `Sessions` answer would need a second question to
+     separate them, and the second question is this one.
+
+     THE SAME `jobCard` STUB IN ALL THREE. A session looks the same wherever it is seen — the stub
+     already colours itself by `jobStage_`, so a waitlist reads as a waitlist without this having to
+     know how one looks. */
+  session:  { group: 'Booking', label: 'Classes',
+              card: x => (typeof jobCard === 'function' ? jobCard(x.row) : '') },
+  waitlist: { group: 'Booking', label: 'Waitlists',
+              card: x => (typeof jobCard === 'function' ? jobCard(x.row) : '') },
+  receipt:  { group: 'Booking', label: 'Receipts',
+              card: x => (typeof jobCard === 'function' ? jobCard(x.row) : '') },
+
+  /* `coupon` WAS A KIND HERE — the classes with seats going.
      Both have gone, and for opposite reasons.
 
      YOUR SESSIONS ARE PANES ON `You`: you do not search for your own bookings, you check them.
@@ -1345,6 +1368,26 @@ function stuffItems() {
     /* ---------- YOU, ONE ROW, ONLY WHEN SIGNED IN --------------------------------------------
        Everything on it is already on this device because it is yours — see the note on the `me`
        kind above for why nobody else joins it. */
+    /* ---------- WHAT YOU ARE IN, WHAT YOU ARE WAITING FOR, AND WHAT IS DONE -------------------
+       OFF `myJobs_`, WHICH IS THE ONE PLACE THAT KNOWS WHOSE SESSIONS ARE WHOSE — and off
+       `jobIsPast_` and `isWaitJob_`, which are the two tests `pastCard_` and the sessions widget
+       already use. Three lists from one source, so a session cannot be in two of them or none.
+
+       SEARCHED BY SUBJECT AND LEVEL, which is what somebody types when looking for one — "maths
+       gcse" rather than a job id. The tutor and the venue go in the subtitle, so the text box
+       matches those too. */
+    ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
+      kind: (typeof jobIsPast_ === 'function' && jobIsPast_(j)) ? 'receipt'
+          : (typeof isWaitJob_ === 'function' && isWaitJob_(j)) ? 'waitlist'
+          : 'session',
+      name: [j.subject || 'Session', j.level].filter(Boolean).join(' · '),
+      key: 'job:' + (j.id || j.jobId || ''),
+      sub: [j.tutor, j.venue, j.weekday].filter(Boolean).join(' · '),
+      image: '', cost: Number(j.price) || 0, slot: '',
+      subject: j.subject || '', grade: '', off: false, row: j,
+      bandType: '', bandValue: j.level || '', keystage: '', tier: '', examBoard: '', company: '',
+      resourceType: '', examWave: '', year: '', paper: false,
+    })),
     /* NOT WHEN YOUR PASS IS ALREADY DRAWING IT. With a tutor row of your own the `tutor` entry
        above renders the merged card, so this second entry would be the same person and the same
        card a swipe apart — which is the duplication the merge was for. Without one, this is still
@@ -1756,10 +1799,6 @@ function bookingPages_() {
    the card travels with the thing it was placed above rather than being moved a third time. */
 function feedPages_() {
   if (!forIs_('posts')) return [];
-  /* THE GOOGLE BUTTON, MOUNTED A FRAME LATE. It is in the signed-out card at the top of the feed,
-     and Google renders into an element that has to exist first — so this hangs off the paint that
-     draws it, the way `screen('me')` used to. */
-  if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
 
@@ -2577,10 +2616,35 @@ screen('stuff', () => {
      zero and everything else indexed off "the first page" — with saved pages in front of it that
      is no longer true, and a hard-coded 1 would have `paintStuff` keeping a saved page and
      deleting the question. One id, and nothing has to count. */
-  const controls = `<div id="stuff-controls">`
-    + (USER ? `<div class="card"><div class="row" style="border:0;padding:0">
+  /* ---------- SIGNING IN AND OUT BELONGS TO THE SCREEN, NOT TO A CARD ------------------------------
+     IT HAS BEEN IN FOUR PLACES NOW: the far end of You, the top of the feed, both of those at once,
+     and the last row of your own pass. Each move was an answer to "which card does it go on", and
+     the reason it kept moving is that the question was wrong — a card can be scrolled past, filtered
+     out, or not drawn at all, and a way in that is only there when you are already somewhere is not
+     a way in.
+
+     THIS IS THE ONE THING ALWAYS ON SCREEN. `#stuff-controls` is the question every route passes
+     through, it is never filtered away, and it already holds your credits — which is the same class
+     of fact: who you are on this device. Signed in it is a quiet button beside that number; signed
+     out it is the whole sign-in card, because there is nothing else to show and nothing else works
+     until it is used.
+
+     AND IT IS OFF THE PASS. Your card is your card wherever it is seen; it should not be the only
+     copy of a control the app cannot do without. */
+  const acct = USER
+    ? `<div class="card"><div class="row" style="border:0;padding:0">
         <span class="k">Your credits</span><span class="v big gold mono">${credits}</span>
-      </div></div>` : '')
+      </div>
+      <button class="btn quiet" data-do="signout" style="margin-top:.5rem">Sign out</button></div>`
+    : (typeof signInCard_ === 'function' ? signInCard_() : '');
+
+  /* THE GOOGLE BUTTON IS MOUNTED A FRAME AFTER THE MARKUP LANDS, because Google renders into an
+     element that has to exist first — and the element is in the sign-in card just built above.
+     It hangs off this paint now rather than the feed's, which is where the card used to be. */
+  if (!USER && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+
+  const controls = `<div id="stuff-controls">`
+    + acct
     + `<input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}">
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first.
 

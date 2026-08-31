@@ -227,20 +227,15 @@ function postsBlocks() {
      SO IT IS IN FRONT OF THE QUESTION INSTEAD, the first page of the funnel, before anything has
      been narrowed. See `screen('stuff')` in find.js. */
 
-  /* ---------- SIGNING IN, AND ONLY SIGNING IN ----------------------------------------------------
-     SIGNED IN, THERE IS NOTHING FOR THIS TO DRAW. It used to put a small card here with your name,
-     your role and a Sign out button — which was right when the feed was a column and your account
-     was two swipes away. Your account is a card in the results now and the way out is the last row
-     of it, so drawing a second name and a second Sign out at the top of the feed would be the same
-     control in two places: which is the fault this app has already had once, when the move to the
-     feed left the old button behind on `You`.
+  /* ---------- SIGNING IN IS NOT HERE EITHER -------------------------------------------------------
+     IT WAS AT THE TOP OF THIS FEED because the feed was the screen nobody arrived at with an errand,
+     and a state that governs everything belonged where somebody landed. The feed is an ANSWER now —
+     `What for · Posts` — so it is behind a question, and a way in that is behind a question is a way
+     in you have to already be able to use.
 
-     SIGNED OUT IS DIFFERENT AND STAYS. There IS no account card when nobody is signed in — `meCard`
-     returns nothing — so without this there would be no way in at all. And whether you are signed in
-     decides whether anything else works: the ＋ does not post, the trolley does not fill, the
-     booking form has nothing to book for. So it sits above the ＋, because it governs it. */
-  const acct = USER ? '' : (typeof signInCard_ === 'function' ? signInCard_() : '');
-  if (acct) split_(acct).reverse().forEach(c => cards.unshift(c));
+     IT IS ON THE QUESTION ITSELF. `#stuff-controls` is drawn before anything is narrowed and is
+     never filtered away, so signed out you meet the sign-in card first and signed in you get your
+     credits and the way out. See `screen('stuff')` in find.js. */
 
   /* THE CARDS THEMSELVES. This was `pages('posts', cards)` — the screen's own pager — and there is
      no Posts screen to page. `screen('stuff')` pages the whole funnel, and these are pages in it. */

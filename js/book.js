@@ -114,7 +114,13 @@ function bookBlocks() {
      LAST, BECAUSE IT IS THE LEAST URGENT THING ON THE PAGE. The form is what somebody came for; a
      finished session is a record. The funnel pages these in order, so the receipts are a swipe past
      the form rather than something in front of it. */
-  return [bookerCard(), pastCard_()].filter(Boolean);
+  /* ---------- THE FORM, AND ONLY THE FORM, AGAIN --------------------------------------------------
+     `pastCard_` WAS HERE and its receipts are results now — `Booking · Receipts`, beside Classes and
+     Waitlists, each a kind of its own. A page holding a list of them AND a searchable list of the
+     same rows is the duplication this evening has already produced twice, and the funnel version is
+     the better one: it counts them, it can be searched, and it separates finished from running
+     rather than lumping both under "past". */
+  return [bookerCard()].filter(Boolean);
 }
 
 /* ---------- WHEN A SESSION IS OVER --------------------------------------------------------------
@@ -138,25 +144,13 @@ function jobIsPast_(j) {
   return d < today;
 }
 
-const pastJobs_ = () => myJobs_().filter(jobIsPast_);
+/* `pastJobs_` WENT WITH `pastCard_`. `stuffItems` sorts the three kinds itself, off `jobIsPast_` and
+   `isWaitJob_` directly, because it needs all three in one pass rather than one list at a time. */
 const liveJobs_ = () => myJobs_().filter(j => !jobIsPast_(j));
 
-/** The finished ones, as stubs. Nothing at all when there are none — not an empty card saying so. */
-function pastCard_() {
-  const past = pastJobs_();
-  /* NO CARD RATHER THAN AN EMPTY ONE. A card whose entire content is the announcement that it has
-     nothing to show is the fault the `week` widget was moved out of `You` for. Most people have no
-     finished sessions for most of the time they use this, and for them this page does not exist. */
-  if (!past.length) return '';
-  /* NEWEST FIRST. A list of receipts is read backwards — the thing you are checking is almost
-     always the most recent one, and the oldest is the one you scroll to deliberately. */
-  const rows = past.slice().sort((x, y) => String(y.endDate || '').localeCompare(String(x.endDate || '')));
-  return `<div class="card">
-    <h3>Past sessions</h3>
-    <p class="sub">${rows.length} finished. Tap one for the receipt.</p>
-    ${rows.map(jobCard).join('')}
-  </div>`;
-}
+/* `pastCard_` WAS HERE. The finished sessions are `Booking · Receipts` in the funnel now — one
+   answer, counted like every other, searchable by subject. `jobIsPast_` stays because `stuffItems`
+   and the sessions widget both need to know which side of today a session falls on. */
 
 /* ---------- THE LIVE ONES, AS A WIDGET ------------------------------------------------------------
    THE WEEK GRID ANSWERS A DIFFERENT QUESTION. It says whether Tuesday is free, which is what you
