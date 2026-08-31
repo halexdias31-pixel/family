@@ -72,6 +72,11 @@ const MAT_ACROSS = 3;
 /* THE GUTTER, ONCE. 4mm of padding either side of the rule between two columns, so 8mm goes between
    each pair — the CSS spends it and the pricing has to know it. */
 const MAT_GUT = 8;
+/* THE COLUMNS DO NOT GET 198mm. The sheet is 210 wide and gives up 6mm on the right and 20mm on the
+   left to the ruler, so the text block is 184. Pricing the picker off 198 read every half-width row
+   8% dearer than it is, and — worse — sized the times table's thirteen cells against a column that
+   was never there, which is why 144 sat on top of its neighbour. */
+const MAT_TEXT_W = 184;
 /* WHAT ONE COLUMN IS ACTUALLY WORTH, in millimetres of the 198 usable across the page.
 
    `half` STOPPED MEANING HALF THE PAGE the moment there were three columns, and the price did not
@@ -79,7 +84,7 @@ const MAT_GUT = 8;
    row in the picker read about 63% dearer than it was, on a gauge whose whole job is to say whether
    the next block fits. Derived here so the two can never disagree again: change MAT_ACROSS and the
    price follows. */
-const matColW = () => (198 - MAT_GUT * (MAT_ACROSS - 1)) / MAT_ACROSS;
+const matColW = () => (MAT_TEXT_W - MAT_GUT * (MAT_ACROSS - 1)) / MAT_ACROSS;
 
 /* ---------- THE SECOND FILTER, AND WHY LEVEL ALONE WAS NOT ENOUGH -------------------------------
    HALF THE GCSE COMPONENTS ARE HIGHER-ONLY. Exact trig values, negative and fractional indices,
@@ -495,7 +500,7 @@ const MAT_HTML = {
   M11: () => `<div class="mat-fdp">${
     [[fr('1','2'),'0.5','50%'], [fr('1','4'),'0.25','25%'], [fr('3','4'),'0.75','75%'],
      [fr('1','3'),'0.33','33⅓%'], [fr('1','5'),'0.2','20%'], [fr('1','10'),'0.1','10%'],
-     [fr('1','8'),'0.125','12.5%'], ['1','1.0','100%']]
+     [fr('1','8'),'0.125','12.5%'], [fr('1','1'),'1.0','100%']]
       .map(([f, d, p]) => `<i><b>${f}</b><em>${d}</em><em>${p}</em></i>`).join('')}</div>`,
   /* THE THIRD ENTRY IS THE TIER. Sphere and cone are Higher-only content; the rest of this block is
      on both papers, so tagging the whole component 'H' would have taken the circle away from a
@@ -1093,7 +1098,7 @@ function initMat() {
          /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
             says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
             and cost a tenth of the sheet. Area is true of both shapes. */
-         Math.round((c.edge ? 20 * c.h : (c.half ? matColW() : 198) * c.h) / 100)}cm²</u>${
+         Math.round((c.edge ? 20 * c.h : (c.half ? matColW() : MAT_TEXT_W) * c.h) / 100)}cm²</u>${
        /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
           size" was a line in a paragraph above the whole list, which is where a fact about two
           items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
@@ -1279,11 +1284,16 @@ function matPaint() {
      SO EVERYTHING IS COUNTED IN SQUARE MILLIMETRES: a row costs the content width times its height,
      the ruler costs its own strip, and the two can finally be added together. A budget you cannot
      add up is not a budget. */
-  const PAGE_W = 198, PAGE_H = MAT_ROOM;         /* usable, inside the 6mm margins */
-  const room = PAGE_W * PAGE_H;
+  const PAGE_H = MAT_ROOM;                       /* usable height, inside the margins */
   const ruleW = ruled ? 20 : 0;
-  const colH = cols ? cols.getBoundingClientRect().height / matPx() : 0;
-  const used = Math.round(ruleW * PAGE_H + (PAGE_W - ruleW) * colH);
+  /* THE WIDTH IS MEASURED TOO. It was written as 198 minus the ruler, which is 178 — and the text
+     block is 184, because the 6mm right margin is not the ruler's to give up. A budget half of
+     which is measured and half of which is assumed is the half that is assumed that goes wrong. */
+  const box = cols ? cols.getBoundingClientRect() : null;
+  const colW = box ? box.width / matPx() : 0;
+  const colH = box ? box.height / matPx() : 0;
+  const room = Math.round(ruleW * PAGE_H + colW * PAGE_H);
+  const used = Math.round(ruleW * PAGE_H + colW * colH);
   const over = used > room;
 
   /* IN CENTIMETRES SQUARED, and the percentage first. 41,382mm2 is a number nobody can picture;

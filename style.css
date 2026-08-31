@@ -5670,10 +5670,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
           border-right: 1px dashed rgb(0 0 0 / .18); border-bottom: 1px dashed rgb(0 0 0 / .18); }
 .fm-code { font: 400 7.5pt/1 var(--mono); letter-spacing: .16em; opacity: .55; }
-.fm-mark { font: 700 16pt/1 inherit; letter-spacing: -.01em; }
+.fm-mark { font-style: normal; font-weight: 700; font-size: 16pt; line-height: 1; letter-spacing: -.01em; }
 .fm-head { margin: 9mm 0 0; letter-spacing: -.028em; max-width: 150mm; }
-.fm-say { margin: 5mm 0 0; font: 400 10pt/1.5 inherit; max-width: 108mm; opacity: .82; }
-.fm-slogan { margin: 4mm 0 0; font: 400 11pt/1.35 inherit; font-style: italic;
+.fm-say { margin: 5mm 0 0; font-style: normal; font-weight: 400; font-size: 10pt; line-height: 1.5; max-width: 108mm; opacity: .82; }
+.fm-slogan { margin: 4mm 0 0; font-style: normal; font-weight: 400; font-size: 11pt; line-height: 1.35; font-style: italic;
              color: var(--fly-accent); }
 .fm-facts { margin-top: auto; padding-top: 5mm; border-top: .8pt solid currentColor; }
 .fm-facts div { font: 400 8.5pt/1.7 var(--mono); }
@@ -5685,7 +5685,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- THE FOUR STYLES --------------------------------------------------------------------
    They differ in how much the page says and how loudly, which is the only distinction worth four
    options. Anything more would be four arrangements of one idea. */
-.fm-s-minimal .fm-head { font: 700 34pt/1.03 inherit; }
+.fm-s-minimal .fm-head { font-style: normal; font-weight: 700; font-size: 34pt; line-height: 1.03; }
 
 /* ELEGANT — a serif and wider leading, for campaigns about a decision rather than a deadline. */
 .fm-s-elegant { font-family: Georgia, "Times New Roman", serif; padding: 18mm 18mm 13mm; }
@@ -5697,7 +5697,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .fm-rule { width: 22mm; height: 1.4pt; background: var(--fly-accent); margin: 6mm 0 0; }
 
 /* DETAILED — for a noticeboard, where somebody stands and takes a decision without asking. */
-.fm-s-detailed .fm-head { font: 700 25pt/1.06 inherit; }
+.fm-s-detailed .fm-head { font-style: normal; font-weight: 700; font-size: 25pt; line-height: 1.06; }
 .fm-s-detailed .fm-say { font-size: 9.5pt; max-width: 96mm; }
 .fm-spec { margin: 5mm 0 0; display: flex; gap: 6mm; flex-wrap: wrap; }
 .fm-spec div { font: 400 8pt/1.5 var(--mono); }
@@ -5712,15 +5712,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    particular thing. */
 .fm-s-loud { padding: 10mm 12mm; border-top: 4mm solid var(--fly-ink);
              border-bottom: 4mm solid var(--fly-ink); }
-.fm-s-loud .fm-head { font: 900 33pt/.98 inherit; letter-spacing: -.035em; font-style: italic;
+.fm-s-loud .fm-head { font-style: normal; font-weight: 900; font-size: 33pt; line-height: .98; letter-spacing: -.035em; font-style: italic;
                       text-transform: uppercase; margin: 5mm 0 0; }
 .fm-s-loud .fm-say { font-weight: 700; font-size: 9.5pt; opacity: 1; margin-top: 3mm; }
-.fm-s-loud .fm-slogan { font: 900 13pt/1.1 inherit; font-style: italic; text-transform: uppercase;
+.fm-s-loud .fm-slogan { font-style: normal; font-weight: 900; font-size: 13pt; line-height: 1.1; font-style: italic; text-transform: uppercase;
                         color: var(--fly-ink); }
 .fm-ring { margin: 4mm 0 0; text-align: center; }
-.fm-ring span { display: block; font: 700 8pt/1 inherit; letter-spacing: .18em;
+.fm-ring span { display: block; font-style: normal; font-weight: 700; font-size: 8pt; line-height: 1; letter-spacing: .18em;
                 text-transform: uppercase; margin-bottom: 1.5mm; }
-.fm-ring b { display: block; font: 900 30pt/1 inherit; letter-spacing: -.03em; font-style: italic; }
+.fm-ring b { display: block; font-style: normal; font-weight: 900; font-size: 30pt; line-height: 1; letter-spacing: -.03em; font-style: italic; }
 .fm-s-loud .fm-facts { border-top-width: 1.4pt; }
 .fm-s-loud .fm-facts div { font-weight: 700; }
 
@@ -5917,7 +5917,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
               transform: translateY(-1.35mm); }
 .mat-head { display: flex; justify-content: space-between; align-items: baseline;
             border-bottom: .3mm solid var(--pa-ink); padding-bottom: 1.5mm; }
-.mat-head h3 { margin: 0; font: 700 5.5mm/1 inherit; color: var(--pa-ink); letter-spacing: -.02em; }
+.mat-head h3 { margin: 0; font-style: normal; font-weight: 700; font-size: 5.5mm; line-height: 1; color: var(--pa-ink); letter-spacing: -.02em; }
 .mat-head span { font: 400 3mm/1 var(--mono); color: var(--pa-mid); }
 /* ---------- THE GAP IS WHAT WAS BREAKING THE COLUMN RULES ----------------------------------------
    5mm OF GAP SITS BETWEEN THE RUNS, and the rule between two columns is drawn on the column, so it
@@ -6041,13 +6041,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    WHAT IS KEPT IS WHAT CARRIES MEANING. The tens still print bold and the fives still print grey,
    so the structure a hundred square is FOR survives with no lines at all. */
 .mat-hun { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
-.mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.9mm/1 inherit;
+.mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font-style: normal; font-weight: 400; font-size: 2.9mm; line-height: 1;
              padding: .35mm 0; }
 .mat-hun i.five { color: var(--pa-mid); }
 .mat-hun i.ten { font-weight: 700; }
 .mat-tt { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); }
-.mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font: 400 2.5mm/1 inherit;
-            padding: .35mm 0; }
+.mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font-style: normal; font-weight: 400; font-size: 2.2mm; line-height: 1;
+            padding: .35mm 0; overflow: hidden; }
 .mat-tt i.h { font-weight: 700; }
 /* THE ONLY TWO LINES LEFT, and they are the two that mean something: everything below this line and
    right of that one is an ANSWER; everything outside them is a heading. A table with no rules at
@@ -6063,7 +6063,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-nl::before { content: ""; position: absolute; left: 0; right: 0; top: 8mm; height: 0;
                   border-top: .4mm solid var(--pa-ink); }
 .mat-nl i { position: absolute; top: 4mm; width: 0; height: 4mm; border-left: .4mm solid var(--pa-ink); }
-.mat-nl b { position: absolute; top: 0; font: 700 3.4mm/1 inherit; transform: translateX(-50%); }
+.mat-nl b { position: absolute; top: 0; font-style: normal; font-weight: 700; font-size: 3.4mm; line-height: 1; transform: translateX(-50%); }
 .mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid var(--pa-mid); }
 .mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: var(--pa-faint);
             text-decoration: none; transform: translateX(-50%); }
@@ -6077,32 +6077,32 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE POINT COLUMN IS RULED ON BOTH SIDES, which is where a decimal point actually sits — between
    two places — and says it without a colour. */
 .mat-pv i.dot { border-left: .25mm solid var(--pa-mark); border-right: .25mm solid var(--pa-mark); }
-.mat-pv b { font: 700 3.4mm/1 inherit; }
+.mat-pv b { font-style: normal; font-weight: 700; font-size: 3.4mm; line-height: 1; }
 .mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); margin-top: .6mm; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
 .mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
-.mat-meas i { display: block; font: 400 2.8mm/1.5 inherit; font-style: normal; }
+.mat-meas i { display: block; font-style: normal; font-weight: 400; font-size: 2.8mm; line-height: 1.5; font-style: normal; }
 /* THE NOTE UNDER THE NAME, NOT UNDER THE ICON. Three children in a two-column grid put the note in
    the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
 .mat-ang { display: grid; grid-template-columns: 1fr 1fr; gap: .8mm 2mm; align-content: start; }
 .mat-ang div { display: grid; grid-template-columns: 7mm 1fr; align-items: center; gap: 0 1.2mm; }
 .mat-ang svg { width: 7mm; grid-row: span 2; align-self: center; }
-.mat-ang span { grid-column: 2; font: 600 2.8mm/1.1 inherit; }
+.mat-ang span { grid-column: 2; font-style: normal; font-weight: 600; font-size: 2.8mm; line-height: 1.1; }
 .mat-ang em { grid-column: 2; font: 400 2.2mm/1.2 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-prot { text-align: center; }
 .mat-prot svg { display: block; margin: 0 auto; width: 90mm; }
 .mat-shapes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1.5mm; text-align: center; }
 .mat-shapes svg { width: 100%; height: auto; }
-.mat-shapes span { display: block; font: 400 2.4mm/1.2 inherit; margin-top: .6mm; }
+.mat-shapes span { display: block; font-style: normal; font-weight: 400; font-size: 2.4mm; line-height: 1.2; margin-top: .6mm; }
 .mat-shapes em { display: block; font: 400 2.1mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-rom { display: flex; flex-wrap: wrap; gap: 1mm 2mm; }
-.mat-rom i { font: 400 2.8mm/1.2 inherit; font-style: normal; }
+.mat-rom i { font-style: normal; font-weight: 400; font-size: 2.8mm; line-height: 1.2; font-style: normal; }
 .mat-rom i b { font-weight: 700; margin-right: .8mm; }
 .mat-rom i.wide { flex-basis: 100%; color: var(--pa-mid); font-size: 2.5mm; }
-.mat-fdp { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1mm; text-align: center; }
+.mat-fdp { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .6mm; text-align: center; }
 .mat-fdp i { font-style: normal; }
-.mat-fdp b { display: block; font: 700 3.4mm/1.2 inherit; }
-.mat-fdp em { display: block; font: 400 2.2mm/1.3 var(--mono); font-style: normal; color: var(--pa-mid); }
+.mat-fdp b { display: block; font-style: normal; font-weight: 700; font-size: 3.4mm; line-height: 1.2; }
+.mat-fdp em { display: block; font: 400 2mm/1.3 var(--mono); font-style: normal; color: var(--pa-mid); }
 /* ---------- A PIECE THAT IS ALREADY A FINISHED THING ---------------------------------------------
    `bare` says the block carries its own name and its own edge, so it gets no heading and no rule
    above it. The flyer sizes that used to live here went with the flyer maker when it became its
@@ -6248,8 +6248,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    label on every block has been italic since the day it was written, and only the value ever said
    otherwise, because `em` sets `font-style: normal` and `b` never did. Bold grey italic is the
    hardest of the three to read at 2.7mm and it was being used for the word you scan for. */
-.mat-two i b { font: 600 2.7mm/1.3 inherit; font-style: normal; color: var(--pa-label); }
-.mat-two i em { font: 400 2.7mm/1.3 inherit; font-style: normal; color: var(--pa-ink); }
+.mat-two i b { font-style: normal; font-weight: 600; font-size: 2.7mm; line-height: 1.3; font-style: normal; color: var(--pa-label); }
+.mat-two i em { font-style: normal; font-weight: 400; font-size: 2.7mm; line-height: 1.3; font-style: normal; color: var(--pa-ink); }
 /* A LITTLE AIR BETWEEN THE TWO HALVES, put on the first value column rather than as a gap, because
    one gap value would have to space the label from its value too — and those belong together.
    THE 3mm GAP ABOVE IS A FLOOR, NOT A PREFERENCE. At 2.7mm type a 1.6mm gap is half a character
@@ -6257,7 +6257,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    as no gap at all. Three is the width of a space you would notice missing. */
 .mat-two i:nth-child(odd) em { padding-right: 4mm; }
 .mat-trig { display: grid; grid-template-columns: repeat(6, 1fr); border: .3mm solid var(--pa-ink); }
-.mat-trig i { display: grid; place-items: center; padding: 1mm 0; font: 400 2.7mm/1 inherit;
+.mat-trig i { display: grid; place-items: center; padding: 1mm 0; font-style: normal; font-weight: 400; font-size: 2.7mm; line-height: 1;
               font-style: normal; border-right: .15mm solid var(--pa-rule);
               border-bottom: .15mm solid var(--pa-rule); }
 .mat-trig i:nth-child(6n) { border-right: 0; }
@@ -6268,7 +6268,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    column and the block came out 744mm, nearly three sheets from one component. */
 .mat-graphs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; text-align: center; }
 .mat-graphs svg { width: 100%; height: auto; }
-.mat-graphs span { display: block; font: 400 2.5mm/1.2 inherit; margin-top: .5mm; }
+.mat-graphs span { display: block; font-style: normal; font-weight: 400; font-size: 2.5mm; line-height: 1.2; margin-top: .5mm; }
 .mat-graphs em { display: block; font: 400 2.2mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 /* THE ROOT IS DRAWN, NOT TYPED. A √ character sits beside the numbers at whatever size the font
    makes it, and its bar covers only the first — so it reads as the root of one number rather than
@@ -6288,7 +6288,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-tk-nums { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr);
                border-top: .4mm solid #14140f; padding-top: .8mm; }
 .mat-tk-row:first-child .mat-tk-nums { border-top: 0; }
-.mat-tk-nums i { text-align: center; font: 700 4.2mm/1.1 inherit; font-style: normal; }
+.mat-tk-nums i { text-align: center; font-style: normal; font-weight: 700; font-size: 4.2mm; line-height: 1.1; font-style: normal; }
 .mat-tk-nums em { text-align: center; font: 400 2.6mm/1.1 var(--mono); font-style: normal;
                   color: #77776c; }
 .mat-tk-nums u { text-align: center; font: 400 2.7mm/1.1 var(--mono); text-decoration: none;
@@ -6296,7 +6296,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-tk-simp { display: flex; gap: 1.5mm; margin: .4mm 0 1.5mm; }
 .mat-tk-simp > b { width: 7mm; }
 .mat-tk-simp .mat-tk-nums { border-top: 0; padding-top: 0; }
-.mat-tk-say { margin: .5mm 0 0; font: 400 2.6mm/1.4 inherit; color: #77776c; }
+.mat-tk-say { margin: .5mm 0 0; font-style: normal; font-weight: 400; font-size: 2.6mm; line-height: 1.4; color: #77776c; }
 .mat-tk-say b { color: #14140f; }
 
 /* ---------- PRINTING FROM INSIDE THE APP -------------------------------------------------------
@@ -6671,7 +6671,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
 
 .fight-line { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; }
-.fight-who { font: 600 1rem/1.2 inherit; color: var(--dim); }
+.fight-who { font-style: normal; font-weight: 600; font-size: 1rem; line-height: 1.2; color: var(--dim); }
 /* THE ONE THAT WON. Colour and weight together, because weight alone is lost at this size on a
    phone and colour alone is lost on paper. */
 .fight-who.won { color: var(--ink); font-weight: 700; }
