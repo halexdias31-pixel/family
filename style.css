@@ -1883,7 +1883,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .msg-body-text { margin: 0; font-size: .88rem; line-height: 1.45; }
 
 /* The widget's own space: the thread, scrolling inside the case. */
-.msg-body { max-height: 60vh; overflow-y: auto; scrollbar-width: none; }
+/* `dvh`, FOR THE REASON STATED ON `body`: `vh` is the LARGE viewport, the one you get with the
+   address bar hidden, so 60vh on a phone is 60% of a screen taller than the screen — and the
+   bottom of it sits under the browser chrome where it cannot be read or scrolled to. */
+.msg-body { max-height: 60dvh; overflow-y: auto; scrollbar-width: none; }
 .msg-body::-webkit-scrollbar { width: 0; display: none; }
 .msg-when { margin: .2rem 0 0; }
 .msg.mine { text-align: right; }
@@ -2493,7 +2496,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    THE RATIO IS THE HEIGHT NOW, 9/16 from the base rule, exactly as the board is square from its own
    width. `max-height` is the one thing a ratio cannot know: a 9/16 box off a full-width card is
    taller than a short phone, and the pane behind a widget clips rather than scrolls. */
-.widget-full .feed { flex: 0 0 auto; max-height: 60vh; }
+.widget-full .feed { flex: 0 0 auto; max-height: 60dvh; }   /* dvh — see `.msg-body` */
 
 /* The sprint is short, so it centres rather than stretching — nothing here is better for being
    taller. */
@@ -5801,11 +5804,26 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    of the page at its true size.
 ================================================================================================== */
 @media print {
+  /* ---------- THE BODY IS STILL A 26.5rem COLUMN, AND THAT IS WHAT CLIPS THE PAGE ----------------
+     THE SAME FAULT THE CHEAT SHEET HAD, and it is still here. `body` is a centred column about
+     115mm wide with `overflow-x: clip` and `position: relative`, so a 210mm sheet positioned
+     `absolute; left: 0` inside it starts where the COLUMN starts rather than where the paper does,
+     and everything past 115mm is clipped off the page. What comes out is a flyer shifted right by
+     half the margin with its right-hand half missing.
+
+     `printing-mat` turns those three things off — see the block at the foot of the mat rules —
+     and this one never did, so one of the two printable tools in this app prints correctly and the
+     other does not. Same three lines, same reason.
+
+     AND THE WIDTH IS STATED. `.fm-out` is as wide as the column it sits in; the paper is 210mm.
+     Without this the sheet is laid out to the phone-width box and then told not to scale. */
+  body.printing-fly { max-width: none !important; margin: 0 !important; padding: 0 !important;
+    overflow: visible !important; }
   body.printing-fly * { visibility: hidden !important; }
   body.printing-fly .fm-out,
   body.printing-fly .fm-out * { visibility: visible !important; }
   body.printing-fly .fm-out {
-    position: absolute; left: 0; top: 0; margin: 0; padding: 0;
+    position: absolute; left: 0; top: 0; margin: 0; padding: 0; width: 210mm;
     /* THE SCALED HEIGHT IS SET IN JAVASCRIPT AND MUST BE UNDONE, or the page prints into a box the
        size of a phone screen and the second flyer is cut off. */
     height: auto !important; overflow: visible !important;

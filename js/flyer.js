@@ -542,11 +542,16 @@ function flyFit() {
   if (!sheet) return;
   const room = out.getBoundingClientRect().width;
   if (!room) return;
-  const k = Math.min(1, room / (210 * 3.7795));    /* mm to px at 96dpi */
+  /* MEASURED, NOT ASSUMED — the same call the cheat sheet uses. 3.7795 is what a browser SHOULD
+     make of a millimetre and it is what `matPx` returns on every ordinary page; where the two part
+     company is under a page zoom or inside a transformed ancestor, and then the hard-coded one is
+     silently wrong while the measured one is not. Two functions doing one job by two methods is
+     one of them being right by luck. */
+  const k = Math.min(1, room / (210 * matPx()));
   sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
   /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full height, so without this
      the sheet sits in a column of empty space taller than the phone. */
-  out.style.height = (297 * 3.7795 * k) + 'px';
+  out.style.height = (297 * matPx() * k) + 'px';
 }
 
 /* ---------- PRINTING ------------------------------------------------------------------------------
