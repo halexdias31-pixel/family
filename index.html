@@ -175,6 +175,45 @@
   window.FILES = ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
     'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld',
     'select', 'collections', 'tiles', 'boot'];
+  /* ==================================================================================================
+     THE REQUEST GOES OUT NOW, NOT AFTER A MEGABYTE OF JAVASCRIPT HAS PARSED.
+
+     `load()` IS CALLED BY boot.js, WHICH IS THE TWENTY-THIRD FILE. The scripts `defer`, so they all
+     have to arrive and run before the one line that asks the backend for anything is reached — half
+     a megabyte compressed, downloaded and parsed, with the network otherwise idle and the backend
+     not yet aware anybody wants it. On a phone that is seconds of doing nothing before the slow part
+     is even allowed to begin.
+
+     THE TWO HAVE NOTHING TO DO WITH EACH OTHER. The payload does not depend on a single line of that
+     code, and Apps Script is going to take as long as it takes whether or not the app is ready to
+     receive it. Started here, in the head, the two waits happen AT THE SAME TIME instead of one
+     after the other, and the answer is often already sitting there when `load()` asks for it.
+
+     IT READS `familyUser` STRAIGHT OUT OF STORAGE, because data.js has not run yet and `USER` does
+     not exist. The same two keys, spelt the same way — `person` and `name` — because a URL that
+     differs from the one `load()` would have built is a second request rather than a head start.
+
+     NOTHING DEPENDS ON THIS WORKING. It is a promise parked on `window`; `load()` uses it if it is
+     there and makes its own request if it is not, so a browser without `fetch`, a private mode that
+     refuses storage, or anything else going wrong here costs the head start and nothing else.
+  ================================================================================================== */
+  try {
+    if (window.fetch && location.protocol !== 'file:') {
+      var u = null;
+      try { u = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch (e) {}
+      var qs = [];
+      if (u && u.personId) qs.push('person=' + encodeURIComponent(u.personId));
+      if (u && u.name) qs.push('name=' + encodeURIComponent(u.name));
+      var url = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8zSY8TjB8EKY30ZWxBfDIR0QztN4B64V9c-mud7Go/exec'
+        + (qs.length ? '?' + qs.join('&') + '&' : '?') + '_=' + Date.now();
+      /* CAUGHT HERE AS WELL AS THERE. An unhandled rejection on a promise nobody has awaited yet is
+         reported by the browser as an error in the page, which is a false alarm in the console of
+         somebody looking for a real one — and `load()` reads `.catch`ed value and falls through to
+         its own request. */
+      window.BOOT_GET = fetch(url, { cache: 'no-store' }).catch(function () { return null; });
+    }
+  } catch (e) {}
+
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">'
     + FILES.map(function (f) {
         return '<link rel="preload" as="script" href="js/' + f + '.js?t=' + LOAD + '">';
@@ -1173,28 +1212,29 @@
     var replay = function () {
       if (sp.classList.contains('done')) return;
       var all = sp.getAnimations({ subtree: true });
-      var once = all.filter(function (a) {
+      var forever = false, once = [];
+      all.forEach(function (a) {
         var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
-        return t && t.iterations !== Infinity;
+        if (!t) return;
+        if (t.iterations === Infinity) { forever = true; } else { once.push(a); }
       });
-      if (!once.length) return;                   /* reduced motion, or nothing to replay */
-      /* ---------- WAIT ON THE FINITE ONES, RESTART EVERY ONE OF THEM ----------------------------
-         THE TWO SETS HAVE TO GO BACK TOGETHER OR THEY DRIFT APART. Seven rules on this splash run
-         a one-shot and an endless one at once — `.fb-sq` is `fb-in .45s both` alongside
-         `fb-glow 3.4s infinite`, and the Fibonacci spiral itself is a single infinite `fb-draw`.
-         Restarting only the finite ones put the five squares back to nothing while the glow and
-         the spiral carried on from wherever their own clocks had reached, so the second play was
-         out of step with the first and every play after it drifted further.
+      /* ---------- A SPLASH THAT IS ALREADY MOVING IS LEFT ALONE ---------------------------------
+         THIS IS THE WHOLE RULE, AND GETTING IT WRONG TWICE IS WHAT MADE FIBONACCI GLITCH.
 
-         SO THE WAIT AND THE RESTART ARE DIFFERENT SETS. Only a finite animation can be waited on —
-         an endless one never resolves and would hold the replay for ever. But once the wait is
-         over EVERYTHING goes back to zero, which is the state the splash was in on the first
-         frame, and that state is by definition the one that looks right. */
+         Most splashes are not one-shot. Fibonacci draws its five squares in 1.77 seconds and then
+         runs `fb-glow` at 3.4s and `fb-draw` — the spiral itself — at 3.2s, both endless. It was
+         never a still picture and never needed replaying. Restarting it on the finite set's
+         completion meant resetting everything every 1.77 seconds, which is shorter than the
+         spiral's own cycle: the arc was wiped and started again before it had ever finished
+         drawing once. Not out of sync — cut off, over and over.
+
+         SO: IF ANYTHING HERE LOOPS, NOTHING IS TOUCHED. The splash is alive on its own terms and
+         no clock of mine belongs anywhere near it. Only a splash whose every animation ends —
+         which is the case this was written for, and only that case — is played again. */
+      if (forever || !once.length) return;
       Promise.all(once.map(function (a) { return a.finished; })).then(function () {
         if (sp.classList.contains('done')) return;
-        sp.getAnimations({ subtree: true }).forEach(function (a) {
-          a.currentTime = 0; a.play();
-        });
+        once.forEach(function (a) { a.currentTime = 0; a.play(); });
         replay();
       }, function () {});                         /* cancelled: stop, say nothing */
     };

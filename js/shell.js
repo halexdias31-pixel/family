@@ -1585,13 +1585,31 @@ async function load() {
         no(e);
       }, 60000);
     });
+    /* ---------- THE ONE THE HEAD ALREADY STARTED ---------------------------------------------------
+       index.html FIRES THIS REQUEST DURING PARSING, before the twenty-three script files have even
+       been asked for — see the note there. By the time this line runs it has usually been in flight
+       for seconds, so making a second one would be throwing that away and starting the wait again.
+
+       TAKEN ONCE. Cleared as it is read, so a retry after a failure asks properly rather than being
+       handed the same dead promise for ever — which would make the Retry button do nothing at all,
+       the most convincing kind of broken.
+
+       AND IT IS ONLY A HEAD START. It is null when the browser has no `fetch`, when storage was
+       refused, when the page was opened from a file, or when it simply failed; every one of those
+       falls through to the request below exactly as before. */
+    const early = window.BOOT_GET || null;
+    window.BOOT_GET = null;
     let res;
     try {
       /* FROM A FILE, ASK A DIFFERENT WAY. `fetch` is refused outright by a page with no origin;
          a script tag is not. Served properly — Live Server, GitHub Pages — `fetch` is better in
          every way and this stays out of the way. */
       res = await Promise.race([
-        location.protocol === 'file:'
+        early
+          ? early.then(r => (r && r.ok ? r : (location.protocol === 'file:'
+              ? jsonp(API + who + bust)
+              : fetch(API + who + bust, { cache: 'no-store' }))))
+          : location.protocol === 'file:'
           ? jsonp(API + who + bust)
           : fetch(API + who + bust, { cache: 'no-store' }),
         deadline]);
