@@ -771,6 +771,32 @@ on('job-answer', el => {
     .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
+/* ---------- THE FAMILY LEAVING ---------------------------------------------------------------------
+   THE SAME `move` EVERY OTHER ACT USES, so there is one machine and one set of rules. The backend
+   checks it is really theirs; this only draws the button and asks first.
+
+   ASKED ABOUT, ALWAYS. It removes them from a session and, once paid, puts money into a state a
+   person has to resolve by hand — neither is a thing to do on one mis-tap from a list. The question
+   says which of the two is about to happen, because "are you sure" without the consequence is a
+   question nobody can answer. */
+on('job-leave', el => {
+  const paid = !!el.dataset.paid;
+  if (!confirm(paid
+    ? 'Withdraw from this session? Your seat is given up and a refund will need arranging.'
+    : 'Withdraw from this session? Nothing has been charged, so it simply stops.')) return;
+  el.disabled = true;
+  api({ action: 'move', jobId: el.dataset.id, role: 'client',
+        name: USER.name, move: 'Withdraw',
+        requestId: 'wd-' + el.dataset.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast('Withdrawn');
+      load();
+    })
+    .catch(err => { el.disabled = false; toast(why_(err)); });
+});
+
 /* MARKING IT PAID BY HAND. The one action on this site that says money arrived without a payment
    processor having said so — which is why it asks HOW, and why the answer goes into the event log
    rather than being thrown away. "Cash at the library" is the whole audit trail for that payment,

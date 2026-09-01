@@ -1782,7 +1782,11 @@ const S_ = v => String(v == null ? '' : v);
    in, `payBlock` nothing until it is accepted and yours. */
 const jobPage_ = j => (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
   + (typeof joinBlock === 'function' ? joinBlock(j) : '')
-  + (typeof payBlock === 'function' ? payBlock(j) : '');
+  + (typeof payBlock === 'function' ? payBlock(j) : '')
+  /* LAST, AND IT IS MEANT TO BE. Paying is what most people came to do; leaving is the thing you
+     look for deliberately, and a card that offers it level with the button that takes your money
+     is a card inviting a mis-tap. */
+  + (typeof leaveBlock === 'function' ? leaveBlock(j) : '');
 
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);

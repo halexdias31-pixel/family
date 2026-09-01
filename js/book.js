@@ -2562,6 +2562,37 @@ function jobReceipt(j) {
    the RECEIPT rather than from the job, so what is asked for here cannot change what is charged —
    but a button offered to somebody who cannot use it is a button that gives an error for a reason
    they cannot see. */
+/* ---------- LEAVING, WHICH THE FAMILY COULD NOT DO ------------------------------------------------
+   THE BACKEND HAS HANDLED `Withdraw` SINCE THE LOBBY WAS BUILT — `bmActionsFor` offers it at every
+   status, `participantsOf` knows the one case that must not vanish, and `dataProblems` reports the
+   refund owed afterwards. There has never been a button. So a family who booked the wrong day, or
+   changed their mind, had exactly one route out: email you and wait for you to open a spreadsheet.
+
+   ON EVERY STAGE, because there is no stage at which somebody may not leave. What changes is the
+   consequence, and the wording says which:
+     asked for   nothing has happened — it just goes
+     accepted    the same, but somebody had said yes, so they are told
+     paid        the seat is given up and a refund is owed. `participantsOf` marks the seat
+                 `Withdrawn` rather than deleting it, precisely so the money owed stays visible.
+
+   ONLY THEIRS. A tutor leaving is a different act with different consequences, and another
+   family's booking is not yours to cancel — both refused by the backend, and neither should be
+   offered. Same `mine` test `payBlock` uses. */
+function leaveBlock(j) {
+  if (!j || !USER) return '';
+  const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
+  if (!mine) return '';
+  const paid = (j.slots || []).some(sl =>
+    norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
+  return `<div class="join">
+    <button class="btn quiet" data-do="job-leave" data-id="${esc(String(j.id || j.jobId || ''))}"
+      ${paid ? 'data-paid="1"' : ''}>Withdraw from this</button>
+    <p class="faint">${paid
+      ? 'Your seat is given up and we will arrange the refund with you.'
+      : 'Nothing has been charged, so this simply stops.'}</p>
+  </div>`;
+}
+
 function payBlock(j) {
   if (!j || !USER) return '';
   if (jobStage_(j) !== 'application' || !jobAccepted_(j)) return '';
