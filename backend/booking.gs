@@ -890,7 +890,24 @@ function waitlistPrice(venueName) {
   if (!v) return null;
 
   const cfg = config();
-  const seats = N(cfg.waitlist_seats) || 4;
+  /* ---------- HOW MANY SEATS, AND WHERE THAT NUMBER COMES FROM -------------------------------------
+     IT WAS ONE GLOBAL FIGURE — `waitlist_seats` on the config tab — so every waiting list divided by
+     four whatever room it was in. The room is the thing with a capacity, and the arithmetic already
+     rewards a bigger one: the room and the tutor divide further, so eight seats at a £15 room is
+     £6.25 a seat against £9.50 at four. That was unreachable while the divisor was a constant.
+
+     THE ROOM FIRST, THEN THE VENUE, THEN THE CONFIG. `capacityFor` already resolves
+     "Richmond Library — Small room 1" to that room's own `max_capacity` and falls back to the
+     building's `max_students`, which is the same order every other capacity question in this file
+     uses. The config figure is the floor for a venue that has never been measured, not the answer.
+
+     AND IT IS CAPPED BY THE CONFIG, not merely defaulted to it. `waitlist_seats` is a business
+     decision about how big a class you are willing to run; a hall that holds thirty does not mean
+     you want thirty children in one session. The room can only ever make a list SMALLER than the
+     number you set. */
+  const room_cap = capacityFor('venue', venueName);
+  const want = N(cfg.waitlist_seats) || 4;
+  const seats = room_cap > 0 ? Math.min(room_cap, want) : want;
   if (seats < 1) return null;
 
   const room = N(v.cost_per_hour);
