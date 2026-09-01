@@ -134,12 +134,22 @@ const KINDS = {
      THE SAME `jobCard` STUB IN ALL THREE. A session looks the same wherever it is seen — the stub
      already colours itself by `jobStage_`, so a waitlist reads as a waitlist without this having to
      know how one looks. */
-  session:  { group: 'Booking', label: 'Classes',
-              card: x => (typeof jobCard === 'function' ? jobCard(x.row) : '') },
-  waitlist: { group: 'Booking', label: 'Waitlists',
-              card: x => (typeof jobCard === 'function' ? jobCard(x.row) : '') },
-  receipt:  { group: 'Booking', label: 'Receipts',
-              card: x => (typeof jobCard === 'function' ? jobCard(x.row) : '') },
+  /* ---------- THE WHOLE RECEIPT, NOT A STUB THAT OPENS ONE ----------------------------------------
+     `jobCard` IS A FOLD — a few lines with the subject and the day, made for a LIST, and tapping it
+     opened the document in a sheet over the top of everything. A sheet is a screen you have to
+     close, and the funnel has already done the narrowing that a list needs: by the time you are
+     looking at `Booking · Classes` there is nothing on the page but your sessions, one to a page,
+     which is the shape this app uses for a document everywhere else.
+
+     SO THE PAGE IS THE DOCUMENT. `jobReceipt` is the paper opened out — the same fourteen rows the
+     booking form drew — with the way in and the way to pay under it, which is where somebody
+     deciding either would look for them. Nothing to open and nothing to close.
+
+     `jobCard` STAYS FOR THE WIDGET, where a list is genuinely what is wanted: `Your sessions` in
+     the tools drawer is a glance at several, not a read of one. */
+  session:  { group: 'Booking', label: 'Classes',  card: x => jobPage_(x.row) },
+  waitlist: { group: 'Booking', label: 'Waitlists', card: x => jobPage_(x.row) },
+  receipt:  { group: 'Booking', label: 'Receipts',  card: x => jobPage_(x.row) },
 
   /* `coupon` WAS A KIND HERE — the classes with seats going.
      Both have gone, and for opposite reasons.
@@ -1757,6 +1767,14 @@ const S_ = v => String(v == null ? '' : v);
 
    NOT SIGNED IN, NOTHING TO DRAW. The booker needs somebody to book for, and the sessions are
    somebody's own — `bookBlocks` already returns the offers alone in that case, which is right. */
+/* ONE SESSION, OPENED OUT. The receipt, then the way in for somebody not in it yet, then the way
+   to pay once it has been accepted — the same three the sheet used to stack, in the same order,
+   on the page itself. Each guards itself: `joinBlock` draws nothing for a session you are already
+   in, `payBlock` nothing until it is accepted and yours. */
+const jobPage_ = j => (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
+  + (typeof joinBlock === 'function' ? joinBlock(j) : '')
+  + (typeof payBlock === 'function' ? payBlock(j) : '');
+
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);
 
