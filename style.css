@@ -4429,6 +4429,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   pointer-events: none;
 }
 @keyframes scr-blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+/* ---------- A SAVED DOCUMENT IS NOT WAITING FOR ANYBODY -------------------------------------------
+   The receipt wears the form's skin now — same type, same colours, same rules — so that neither has
+   to be styled twice and neither can drift from the other. The cursor is the single thing that does
+   not carry across: it says "type here", and a record of something already agreed has nothing left
+   to type. */
+.rc.scr.is-done::after { content: none; }
 /* `.rc.scr .rc-head h2` IS STILL LISTED and now matches nothing — the form has no heading. Left in
    place deliberately: the rule is "the bright things on the terminal", and dropping the selector
    would mean adding it back the day a heading returns. */
@@ -7072,6 +7078,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   color: #6a6259;
 }
 .rc.scr .rc-terms { color: #6f8f7c; }
+/* THE SESSION REFERENCE UNDER THE BARCODE. `.rc-thanks` is a warm grey chosen against cream paper,
+   and on the screen skin it came out as a dark smudge on a dark card — the one line on the receipt
+   that identifies WHICH session, unreadable. The skin's own faint green, like every other quiet
+   line on it. */
+.rc.scr .rc-thanks { color: #6f8f7c; }
 
 
 /* THE ✕ ON A BASKET LINE. `.text-drop` is sized for a settings row; on a receipt line it has to sit

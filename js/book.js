@@ -2259,6 +2259,15 @@ function receiptHtml(r) {
      THE `Stage` ROW CARRIES IT, in words, down with Status and Asked for — which is where somebody
      checking where a booking has got to actually looks. */
   const okd = '';
+  /* ---------- THE CURSOR IS THE ONE THING A SAVED DOCUMENT MUST NOT HAVE ---------------------------
+     `.rc.scr::after` BLINKS A BLOCK CURSOR in the corner — the oldest signal in computing that a
+     machine is waiting for you to type, and the whole reason the form reads as being filled in
+     rather than as a dark card. On a receipt nothing is waiting: it is a record of something
+     already done, and a cursor on it is the document telling somebody to finish a thing they
+     finished last week.
+     Everything else about the skin — the type, the colours, the scanlines, the row rules — is
+     exactly what it should inherit. So one class turns off one pseudo-element. */
+  const done = r.done ? ' is-done' : '';
   /* ---------- THE STAGE WAS ON THE CARD FOUR TIMES ------------------------------------------------
      A HEADING LINE, A DIAGONAL STAMP, A `Stage` ROW AND THE SENTENCE ABOVE THE PAY BUTTON — all
      four saying "Accepted — waiting for payment", one under the other, on a card about eight rows
@@ -2273,7 +2282,7 @@ function receiptHtml(r) {
      THE `Stage` ROW STAYS, because a stamp is a glance and a row is a record — it sits with Status
      and Asked for, where somebody checking details looks, rather than at the top competing for the
      same attention the stamp already has. */
-  return `<div class="rc rc-${esc(kind)}${SKIN[kind] || ''}${okd}">
+  return `<div class="rc rc-${esc(kind)}${SKIN[kind] || ''}${okd}${done}">
     <div class="rc-head">
       ${/* ---------- THE SHOP NAME IS FOR A RECEIPT, NOT FOR A FORM --------------------------------
             A till roll names the shop because it leaves the shop — it is evidence, held by somebody
@@ -2653,19 +2662,26 @@ function jobReceipt(j) {
   const mine = USER && norm(j.tutor) === norm(USER.name);
   const stage = jobStage_(j);
   return receiptHtml({
-    /* ---------- A SESSION IS A RECEIPT AT EVERY STAGE ---------------------------------------------
-       THERE WERE THREE SKINS AND THE CARD CHANGED CLOTHES AS THE BOOKING MOVED: an application in
-       one colour with one stamp, a waiting list in another, a paid receipt in a third. Which meant
-       the same session looked like three different documents over its life, and a family who had
-       learned what their booking looked like stopped recognising it the moment you accepted it.
+    /* ---------- THE SAME SKIN AS THE FORM, WHICH IS THE WHOLE POINT --------------------------------
+       THERE WERE FOUR LOOKS — screen, application, waiting list, receipt — and the same session
+       wore three of them over its life. That went first: one document at every stage. This is the
+       last of it, and it goes further, because sharing an ORDER while keeping two appearances left
+       every size, weight and colour to be guessed at twice.
 
-       IT IS ONE DOCUMENT THROUGHOUT. Asked for, accepted, paid — the paper does not change, the
-       same rows are on it, and what moves is the `Stage` line and the stamp across it. That is what
-       a real receipt does: the till roll is the till roll, and PAID is a mark added to it.
+       ONE SKIN, AND IT IS THE FORM'S. Not because the green screen is prettier than cream paper,
+       but because the form is the archetype: whatever its type size, its column widths, its row
+       rules and its grid cells turn out to be, the receipt is those things by construction rather
+       than by somebody matching them by eye. Restyle the form and the receipt has already followed.
 
-       `stage` IS STILL COMPUTED AND STILL PASSED, because the stamp and the wording read it. Only
-       the SKIN is fixed. */
-    kind: 'receipt',
+       THE PAPER LOOK IS NOT LOST, it is unused — `.rc` without `.scr` is still the cream till roll
+       with its torn edges, and if we decide the finished thing should look like paper, it is one
+       word here and BOTH documents become paper together. That is the property worth having: not
+       which of the two looks we picked, but that there is only one to pick.
+
+       `stage` IS STILL COMPUTED AND STILL PASSED — the wording reads it. */
+    kind: 'screen',
+    /* SAVED, so no cursor — see `receiptHtml`. */
+    done: true,
     stage: stage,
     /* THE JOB'S OWN KIND, WHICH IS NOT THE STAGE. `kind` above is which of the four documents this
        is — screen, application, waitlist, receipt — and it changes as the booking moves. `was` is
