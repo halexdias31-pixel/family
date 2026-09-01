@@ -2398,12 +2398,27 @@ function doPost(e) {
       logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
                  message: S(body.message), requestId: body.requestId });
       if (named) {
-        // Naming a tutor is the client accepting them up front, which is what makes them
-        // Confirmed without a separate approval step.
+        /* ---------- NAMING A TUTOR CONFIRMS THE TUTOR, NOT THE BOOKING ---------------------------
+           THIS MARKED THE FAMILY AS HAVING AGREED TO A SESSION NOBODY HAD ACCEPTED YET. The second
+           line logged an Accept whose ACTOR was the client — and `participantsOf` sets the actor of
+           an Accept to `Agreed`, then sets the target to `Agreed` as well because an agreement is
+           mutual. So both seats came out agreed the instant the form was submitted, `jobAccepted_`
+           found every client and every tutor settled, and the card that should have said "asking"
+           opened stamped ACCEPTED — WAITING FOR PAYMENT, with a Pay button, on a request that had
+           never been read by anybody at @family.
+
+           A FAMILY ASKING IS NOT A FAMILY AGREEING. The point of the original line stands: choosing
+           a tutor by name is choosing them, and they should not have to be approved separately. But
+           that is a fact about the TUTOR. Logged as the tutor's own acceptance, with no target, so
+           it settles their seat and touches nobody else's — the family stays at `Waiting`, which is
+           what they are, until the business accepts.
+
+           WHICH IS WHAT `jobAccepted_` THEN READS CORRECTLY: tutor confirmed, client waiting,
+           nothing accepted, no Pay button offered on money nobody has agreed to take. */
         logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.REQUEST,
                    message: 'requested directly by the family' });
-        logEvent({ jobId, actor: me, role: 'client', action: ACT.ACCEPT,
-                   target: S(body.requestedTutor), message: 'chosen at booking' });
+        logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.ACCEPT,
+                   message: 'chosen by the family at booking' });
       }
 
       notify(me, 'Booking received 🎉',
