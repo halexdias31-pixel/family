@@ -2173,10 +2173,15 @@ function receiptHtml(r) {
        point. */
     receipt: r.was === 'waitlist' ? 'A shared class — one seat' : '',
   };
-  /* ACCEPTED, on an application, changes the stamp and nothing else — it is the same form, answered.
-     `is-accepted` rather than a different kind, because a different kind would be a different
-     object and this is emphatically the same one. */
-  const okd = kind === 'application' && r.accepted ? ' is-accepted' : '';
+  /* ---------- NO STAMP, NOW THAT EVERY SESSION IS A RECEIPT ---------------------------------------
+     `is-accepted` PAINTED A DIAGONAL "ACCEPTED" ACROSS THE APPLICATION SKIN, and there is no
+     application skin any more — see `jobReceipt`. A stamp is what a document gets when it has more
+     than one form and you need to tell which you are holding; with one form there is nothing to
+     tell apart, and a mark across the paper would just be decoration over the rows.
+
+     THE `Stage` ROW CARRIES IT, in words, down with Status and Asked for — which is where somebody
+     checking where a booking has got to actually looks. */
+  const okd = '';
   /* ---------- THE STAGE WAS ON THE CARD FOUR TIMES ------------------------------------------------
      A HEADING LINE, A DIAGONAL STAMP, A `Stage` ROW AND THE SENTENCE ABOVE THE PAY BUTTON — all
      four saying "Accepted — waiting for payment", one under the other, on a card about eight rows
@@ -2489,7 +2494,20 @@ function jobReceipt(j) {
   const mine = USER && norm(j.tutor) === norm(USER.name);
   const stage = jobStage_(j);
   return receiptHtml({
-    kind: stage,
+    /* ---------- A SESSION IS A RECEIPT AT EVERY STAGE ---------------------------------------------
+       THERE WERE THREE SKINS AND THE CARD CHANGED CLOTHES AS THE BOOKING MOVED: an application in
+       one colour with one stamp, a waiting list in another, a paid receipt in a third. Which meant
+       the same session looked like three different documents over its life, and a family who had
+       learned what their booking looked like stopped recognising it the moment you accepted it.
+
+       IT IS ONE DOCUMENT THROUGHOUT. Asked for, accepted, paid — the paper does not change, the
+       same rows are on it, and what moves is the `Stage` line and the stamp across it. That is what
+       a real receipt does: the till roll is the till roll, and PAID is a mark added to it.
+
+       `stage` IS STILL COMPUTED AND STILL PASSED, because the stamp and the wording read it. Only
+       the SKIN is fixed. */
+    kind: 'receipt',
+    stage: stage,
     /* THE JOB'S OWN KIND, WHICH IS NOT THE STAGE. `kind` above is which of the four documents this
        is — screen, application, waitlist, receipt — and it changes as the booking moves. `was` is
        what the job IS, and never changes: a shared class stays a shared class after it fills.
