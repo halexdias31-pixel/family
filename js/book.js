@@ -1820,6 +1820,10 @@ const SPINE = [
 
 /* THE RECEIPT'S OLD NAMES FOR SPINE ROWS. Kept as a translation rather than renamed at the twenty
    call sites, so a `push` anywhere in this file still lands on the right line. */
+/* `Total: ''` DROPS THE ROW. The receipt pushed a `Total` line AND the paper prints a total bar at
+   the foot — so £151.82 appeared twice, four rows apart, on the document whose entire job is to say
+   what something costs. The form has only the bar. The bar wins: it is the thing set apart from the
+   rows, which is what a total is. */
 const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '' };
 
 /* ---------- PUT ROWS IN SPINE ORDER, AND FILL WHAT IS MISSING -------------------------------------
@@ -1835,6 +1839,10 @@ function spineRows_(rows) {
   const extra = [];
   rows.forEach(r => {
     const k = SPINE_ALIAS[r.k] !== undefined ? SPINE_ALIAS[r.k] : r.k;
+    /* AN ALIAS TO NOTHING IS A ROW THAT SHOULD NOT BE DRAWN, not a row with no home — see `Total`
+       above. It was falling through to `extra` and printing at the foot anyway, which is the
+       opposite of what the alias says. */
+    if (SPINE_ALIAS[r.k] === '') return;
     if (!k) { extra.push(r); return; }
     if (SPINE.indexOf(k) === -1) { extra.push(r); return; }
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
@@ -2036,16 +2044,21 @@ function bookBreakdown(L, foot) {
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
     aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
-    /* ---------- NO ROSTER ON A FORM ------------------------------------------------------------
-       IT WAS A PICTURE OF TWO ROWS ABOVE IT. The chairs are drawn from `n` and `kids` — the Seats
-       answer and the Child answer — so on an unsent booking the roster said "Child, Child, two
-       open" directly under a Seats row saying 2 and a Child row naming them. Four boxes to repeat
-       one line of text.
+    /* ---------- THE ROSTER IS ON THE FORM TOO -----------------------------------------------------
+       IT WAS LEFT OFF, on the argument that the chairs only repeat the Seats row and the Child row
+       above them. That is true and it is not the point: the two documents are one document at two
+       moments, and a part that appears on the receipt and not on the form is a part somebody meets
+       for the first time AFTER they have committed. Four boxes that repeat a line is a smaller cost
+       than a card that changes shape when it is sent.
 
-       IT EARNS ITS PLACE ON A REAL RECEIPT, which is why `jobReceipt` still draws one: there the
-       chairs hold names the backend filled in — who actually took which seat, which of them are
-       yours and which are strangers' — and none of that is on any row. Here it is a drawing of
-       what you just typed. */
+       AND IT IS NOT PURELY A REPEAT. It is the one place a booking shows how EMPTY it is — two
+       named children and two open chairs is a fact about a class you are about to share, and no row
+       says it. Filled from what has been typed, the same way every other row on the form is. */
+    roster: rosterHtml({
+      tutor: BOOKING.tutor || '',
+      seats: Number(BOOKING.n) || 0,
+      names: (BOOKING.kids || []).filter(Boolean),
+    }),
     bars,
     /* THE TERMINAL. Nothing has been sent, so there is no row anywhere and nothing to be a record
        OF — which is exactly what a screen is: the entering of a thing, before the thing. */
@@ -2402,7 +2415,12 @@ function jobRows(j) {
      `DATA.intervals` by name. So this is a lookup rather than a second copy of the school year. */
   if (norm(j.kind) === 'waitlist') {
     const iv = (DATA.intervals || []).find(x => norm(x.label || x.term) === norm(j.term)) || null;
-    if (j.term) push('For', j.term);
+    /* ---------- `For` MEANS THE CLIENT, AND HERE IT MEANT THE TERM -------------------------------
+       ON THE FORM `For` IS WHO THE SESSION IS FOR — the family paying. On a waiting list it was
+       pushed with the TERM in it, and there is a `Term` row four lines up, so the receipt printed
+       the school term twice under two names while never once saying whose booking it was. The
+       spine put them next to each other and made it obvious.
+       DROPPED, because `Term` already says it. `For` now means one thing on both documents. */
     if (iv && iv.opensOn && iv.closesOn) {
       push('Running', fmtDate(iv.opensOn) + ' to ' + fmtDate(iv.closesOn));
     }
@@ -2486,14 +2504,22 @@ function jobGrid_(j) {
   for (let h = 10; h <= 20; h++) hours.push(h);
   return `<div class="bk-open is-off">
     <div class="slot-grid">
+      ${/* THE FORM'S MARKUP, DOWN TO THE CLASS NAMES. The first version wrote `.slot-cell` spans
+            because they only had to be readable — and a receipt drawn with different elements is a
+            receipt that will drift the next time the grid is restyled, which is the whole thing
+            this exercise is trying to stop. Same `.slot-row`, same `.slot-day`, same `.slot-hours`,
+            same `button.hr`. Disabled, because nothing on a receipt is answerable. */''}
       ${SLOT_DAYS.map(([, label]) => {
         const isDay = norm(label) === day;
         return `<div class="slot-row">
           <span class="slot-day">${esc(label.slice(0, 2))}</span>
-          ${hours.map(h => {
-            const on = isDay && isFinite(start) && h >= start && h < start + hrs;
-            return `<span class="slot-cell${on ? ' on' : ''}">${h}</span>`;
-          }).join('')}
+          <div class="slot-hours">
+            ${hours.map(h => {
+              const on = isDay && isFinite(start) && h >= start && h < start + hrs;
+              return `<button class="hr${on ? ' on' : ''}${on ? '' : ' shut'}" disabled
+                title="${h}:00">${h}</button>`;
+            }).join('')}
+          </div>
         </div>`;
       }).join('')}
     </div>
