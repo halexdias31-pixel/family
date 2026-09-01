@@ -2074,11 +2074,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   font-size: .68rem; font-weight: 400; color: #6a6259;
   text-align: right; white-space: normal;
 }
+/* THE LABEL MAY WRAP AFTER ALL. `auto` sizes this column to its content and `nowrap` forbade it
+   ever being narrower — so "IT WOULD COME TO" took whatever width it wanted and drew straight
+   through the note beside it. Four words is not two: allowed to break, it gives way instead of
+   overlapping, and on a card wide enough it still sits on one line exactly as before. */
 .rc-total .bk-k { color: #2b2620; font-weight: 700; text-transform: uppercase;
-                  letter-spacing: .06em;
-                  /* Two or three words, sized to themselves — this column is `auto` now, so there
-                     is nothing squeezing them and nothing to break. */
-                  white-space: nowrap; }
+                  letter-spacing: .06em; }
 .rc-total .bk-t { font-size: 1.05rem; font-weight: 700; color: #2b2620; }
 
 /* The rows inside the paper: the same five columns, in ink rather than in screen colours. */

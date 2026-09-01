@@ -2177,8 +2177,21 @@ function receiptHtml(r) {
      `is-accepted` rather than a different kind, because a different kind would be a different
      object and this is emphatically the same one. */
   const okd = kind === 'application' && r.accepted ? ' is-accepted' : '';
+  /* ---------- THE STAGE WAS ON THE CARD FOUR TIMES ------------------------------------------------
+     A HEADING LINE, A DIAGONAL STAMP, A `Stage` ROW AND THE SENTENCE ABOVE THE PAY BUTTON — all
+     four saying "Accepted — waiting for payment", one under the other, on a card about eight rows
+     tall. Each was added on its own and read fine on its own; together they are a document
+     shouting one word.
+
+     THE STAMP KEEPS IT. It is the thing a receipt actually does — a mark across the paper, read
+     before any of the rows, and the only one of the four that is not a line of text competing with
+     the lines around it. The heading is dropped: it sat directly above `@family.` and said the same
+     thing the stamp behind it said, in the same colour.
+
+     THE `Stage` ROW STAYS, because a stamp is a glance and a row is a record — it sits with Status
+     and Asked for, where somebody checking details looks, rather than at the top competing for the
+     same attention the stamp already has. */
   return `<div class="rc rc-${esc(kind)}${SKIN[kind] || ''}${okd}">
-    ${STAGE[kind] ? `<p class="rc-stage">${esc(STAGE[kind])}</p>` : ''}
     <div class="rc-head">
       ${/* ---------- THE SHOP NAME IS FOR A RECEIPT, NOT FOR A FORM --------------------------------
             A till roll names the shop because it leaves the shop — it is evidence, held by somebody
@@ -2504,7 +2517,17 @@ function jobReceipt(j) {
       : stage === 'waitlist' ? 'Your seat'
       : 'Cost',
     total: money(mine ? (j.tutorPay || 0) : (j.price || 0)),
-    aside: j.status || '',
+    /* ---------- THE STATUS WORD IS NOT AN ASIDE ON THE TOTAL -----------------------------------
+       IT SAT BESIDE THE FIGURE — "IT WOULD COME TO   unconfirmed   £151.82" — a raw cell from the
+       jobs tab, in a slot meant for a remark ABOUT the money ("6 sessions"). It is neither: it is a
+       fact about the booking, and it now has two rows of its own further up, in words rather than
+       in the sheet's vocabulary.
+
+       AND IT DID NOT FIT. The label is `nowrap` and up to sixteen characters at this stage, so on a
+       narrow card the word and the label drew over each other. Removing it fixes the collision and
+       the duplication in one go — which is usually the sign that the thing should not have been
+       there. */
+    aside: '',
     roster: rosterHtml({
       tutor: j.tutor, seats: Number(j.students || j.maxStudents) || 0,
       client: j.client,
