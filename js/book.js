@@ -190,7 +190,7 @@ function fillRoster_(jobId) {
   }
   el.innerHTML = rosterHtml({
     tutor: j.tutor || '',
-    seats: Number(j.maxKids || j.maxStudents) || 4,
+    seats: seatsOf_(j),
     names: (j.slots || []).map(sl => sl.client).filter(Boolean),
   });
 }
@@ -2658,6 +2658,21 @@ function moneyBlock(o) {
   </div>`;
 }
 
+/* ---------- HOW MANY SEATS A SESSION HAS ----------------------------------------------------------
+   `Number(j.maxKids || j.maxStudents) || 4` WAS WRITTEN IN TWO PLACES — the roster and the fullness
+   test — and that trailing `|| 4` is a hard-coded default in the one comparison that decides whether
+   a waiting list has filled. A job with a blank `max_students` fills at four whatever the room holds
+   and whatever `waitlist_seats` says.
+
+   THE JOB CARRIES ITS OWN NUMBER. `max_students` is written at booking from `waitlistPrice`, which
+   now takes it from the room — so the seat count a list was PRICED at is the seat count it FILLS at,
+   by construction rather than by two places agreeing.
+
+   AND WHEN IT IS BLANK, SAY SO RATHER THAN GUESS. Zero draws no chairs and never reports a list as
+   full, which is visible and wrong-looking; four draws four chairs and quietly closes a list early,
+   which is invisible and wrong. Of the two, the one somebody notices is the one to have. */
+const seatsOf_ = j => Math.max(0, Number((j && (j.maxKids || j.maxStudents)) || 0));
+
 /* ---------- THE STAGE, IN THE WORDS SOMEBODY READS -------------------------------------------------
    `jobStage_` RETURNS THE MACHINE'S WORD — application, waitlist, receipt — and `jobAccepted_` adds
    the half it cannot say on its own: an accepted application is still an application, because money
@@ -2684,7 +2699,8 @@ function jobStatusSaid_(j) {
 function jobStage_(j) {
   const paid = (j.slots || []).filter(sl => /^booked$/i.test(String(sl.status || '')));
   if (norm(j.kind) === 'waitlist') {
-    const seats = Number(j.maxKids || j.maxStudents) || 4;
+    const seats = seatsOf_(j);
+    if (!seats) return 'waitlist';   // unpriced: it cannot be full
     return paid.length >= seats ? 'receipt' : 'waitlist';
   }
   return paid.length ? 'receipt' : 'application';
