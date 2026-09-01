@@ -2420,6 +2420,39 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   font-size: .66em; letter-spacing: -.02em;
 }
 .hr:active { transform: scale(.9); }
+
+/* ---------- A GRID NOBODY CAN PRESS DOES NOT NEED A THUMB'S WORTH OF HEIGHT ------------------------
+   `min-height: max(20px, 1.55em)` IS A FLOOR FOR FINGERS. Below about 20px a cell stops being
+   reliably pressable, so the form pays it seven times over — and the receipt was paying it too,
+   for cells that are `disabled` and will never be touched. Seven rows at twenty pixels each is a
+   fifth of the document spent on a control that is not one.
+
+   READ RATHER THAN PRESSED, so it is sized to be read: the shape of the lit cells is what somebody
+   is looking for, and that survives being small far better than a word would. The gaps come in with
+   it, because a tight grid reads as one block and a loose one reads as seven rows.
+
+   ONLY ON THE SAVED DOCUMENT. `.is-done` is what marks a receipt as a record rather than a form —
+   the same flag that turns the cursor off — so the form keeps every pixel of its press target. */
+.rc.is-done .hr { min-height: 0; padding: .05em 0; font-size: .58em; }
+.rc.is-done .slot-grid { gap: 0; margin: .1rem 0 0; }
+.rc.is-done .slot-hours { gap: 1px; }
+.rc.is-done .slot-row { gap: .2rem; }
+.rc.is-done .slot-row.is-shut .hr { min-height: 0; }
+/* AND THE INSTRUCTION ABOVE IT GOES. "Two together is a two-hour session" tells somebody how to
+   answer a question that has been answered. */
+.rc.is-done .bk-open > p { display: none; }
+
+/* ---------- A ROW THAT SAYS NOTHING TAKES THE ROOM OF ONE THAT DOES --------------------------------
+   TWENTY-SEVEN ROWS AND SIX OF THEM ARE A DASH on any given booking — Class, Extra subj., When
+   free, Split, Child, Note. They stay, because a document read by position has to keep its
+   positions; that was the whole argument for putting them on both. But a row with nothing in it
+   does not need the height of a row with a figure, a multiplier and a running total in it.
+
+   HALF THE PADDING AND A LIGHTER DASH. It still holds its place in the sequence — you can still
+   count down to `Tutor` — and it stops competing with the rows that have something to say. Six
+   rows at half height is most of a phone screen's worth of card back. */
+.bk-row.is-blank { padding-top: 0; padding-bottom: 0; }
+.bk-row.is-blank .bk-v { opacity: .45; }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
 .hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }

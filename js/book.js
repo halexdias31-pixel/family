@@ -1381,8 +1381,8 @@ function breakdownRows(L) {
     push('Kind', 'Waiting list class', '', '', '', { free: true });
     push('A seat', esc(BOOKING.loc || 'no venue'), '', money(w.chargePerHour) + '/h',
       money(w.perSeatSession), { end: true, step: 'loc' });
-    push('Shared between', esc(w.seats) + ' families', '', '', '', { free: true });
-    push('Each session', esc(w.hours) + ' hours', '', '', '', { free: true });
+    push('Shared by', esc(w.seats) + ' families', '', '', '', { free: true });
+    push('Per session', esc(w.hours) + ' hours', '', '', '', { free: true });
 
     /* ---------- WHICH TERM, AND WHEN IT RUNS ------------------------------------------------------
        THE FORM SHOWED NEITHER. The waiting-list branch skips the "over what period" question on
@@ -1845,12 +1845,24 @@ let BOOK_ROWS = [];
    `Stage` and `Status` and `Asked for` only exist once a booking has been sent. Each is pinned
    AFTER the question it belongs with rather than given an index, so inserting a step upstream moves
    them along with it instead of leaving them stranded at a number that no longer means anything. */
+/* ---------- FOUR LABELS WERE TOO LONG FOR THEIR OWN COLUMN ----------------------------------------
+   `Extra subjects`, `Each session`, `Sharing with` and `Shared between` all broke onto a second
+   line, so four rows on every document were twice the height of the twenty-three around them — and
+   a document read by position is hardest to read when the positions are uneven.
+
+   SHORTENED RATHER THAN THE COLUMN WIDENED. The column is 6.2em because the VALUE column needs what
+   is left; giving it two more would take them off the answers, which are the part somebody is
+   actually reading. `Per session`, `Sharing`, `Shared by`, `Extra subj.` — each still says what it
+   is beside the figure that follows it.
+
+   `Extra subj.` KEEPS ITS FULL STOP. It is the one genuine abbreviation of the four, and a shortened
+   word that does not admit it is a word somebody reads twice. */
 const SPINE_EXTRA = [
-  { after: 'Subject', row: 'Extra subjects' },
-  { after: 'When',    row: 'Each session' },
+  { after: 'Subject', row: 'Extra subj.' },
+  { after: 'When',    row: 'Per session' },
   { after: 'Term',    row: 'Weeks left' },
   { after: 'Term',    row: 'Running' },
-  { after: 'Split',   row: 'Sharing with' },
+  { after: 'Split',   row: 'Sharing' },
   /* PINNED TO `For`, WHICH IS THE LAST QUESTION. They were pinned to `Tutor` while `Tutor` was
      last; moving it to third would have carried the dates, the note and the waiting-list lines up
      the page with it, four rows below the level. Pinning is what made that visible — an index would
@@ -1862,7 +1874,7 @@ const SPINE_EXTRA = [
      `A seat` and `Shared between` and the receipt printed neither, so the one document that says
      what a seat costs and how many families share it was the one nobody was handed. */
   { after: 'For',     row: 'A seat' },
-  { after: 'For',     row: 'Shared between' },
+  { after: 'For',     row: 'Shared by' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
      about — which is where a receipt puts it and where the form now puts it too. */
   { after: '',        row: 'Stage' },
@@ -1917,7 +1929,9 @@ function spineRows_(rows) {
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
   });
   const out = SPINE.map(k => say[k] || {
-    n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true,
+    /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
+       the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`. */
+    n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true, blank: true,
   });
   return out.concat(extra);
 }
@@ -2391,7 +2405,8 @@ function receiptRow(r) {
 
      So a row can say it is the wide kind and the grid becomes two columns. Decided here, with the
      rest of what a row looks like, rather than by the caller patching the string afterwards. */
-  const cls = [r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
+  const cls = [r.blank ? 'is-blank' : '',
+               r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
                r.wide ? 'is-wide' : '']
     .filter(Boolean).join(' ');
   /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so
@@ -2487,13 +2502,13 @@ function jobRows(j) {
   /* HUNG OFF THE `When` ROW'S `open`, which is the exact field the form uses for its grid — so the
      picture lands in the same place on both documents and `receiptRow` needed no new case. */
   { const w = rows.find(r => r.k === 'When'); if (w) w.open = jobGrid_(j); }
-  push('Each session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
+  push('Per session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
   push('Term', j.term || '');
   /* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: the whole
      point is that other families join. `splitEmails` is for a session somebody splits with people
      they know; a list is shared with whoever turns up, which is a different fact and wants
      different words. */
-  push('Sharing with', norm(j.kind) === 'waitlist'
+  push('Sharing', norm(j.kind) === 'waitlist'
     ? (Number(j.seatsGoing) > 0 ? 'Open — ' + j.seatsGoing + ' seat'
         + (Number(j.seatsGoing) === 1 ? '' : 's') + ' free' : 'Full')
     : (j.splitEmails || 'Just you'));
