@@ -1416,10 +1416,13 @@ function breakdownRows(L) {
         push(r.dayName, r.hour + ':00–' + (r.hour + r.hours) + ':00', '', '', '',
           { day: true, step: 'slots', hours: r });
       });
-      if (L.hoursPerWeek) {
-        push('Hours a week', '', '× ' + L.hoursPerWeek, '',
-          L.weeksBooked ? money(runningAfter('hoursweek', L)) : '', { day: true });
-      }
+      /* ---------- `Hours a week` WAS THE THIRD ROW TO SAY THE SAME THING ---------------------------
+         `When` ALREADY READS "Monday 12:00–13:00", and the day rows above already print each run
+         with its hours. A row whose whole content is "× 1" adds a multiplier and no fact — and on a
+         document people read to check the money, a line with no value in the value column reads as
+         something that failed to fill in.
+         THE FIGURE IT CARRIED IS NOT LOST: it multiplies into the Term total two rows down, which is
+         the line that says what the weeks actually cost. */
     }
 
     inGroup.forEach((r, gi) => {
@@ -1454,8 +1457,17 @@ function breakdownRows(L) {
     });
   });
 
+  /* ---------- SIX DATES IS A SPAN, NOT A LIST -----------------------------------------------------
+     EVERY DATE, COMMA-SEPARATED, WRAPPED TO SIX LINES on the card and was truncated mid-date on the
+     shared picture — "05/10" with the year cut off, and the sixth missing entirely. Nobody reads a
+     weekly booking date by date; what they check is when it starts, when it ends, and how many.
+     FIRST TO LAST, WITH THE COUNT WHERE THE COUNT ALREADY WAS. One line, nothing to wrap, nothing to
+     truncate. A single session still prints its one date rather than a span of itself. */
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
-  push('Dates', dates.length ? dates.join(', ') : '—', '', '',
+  const span = !dates.length ? '—'
+    : dates.length === 1 ? dates[0]
+    : dates[0] + ' – ' + dates[dates.length - 1];
+  push('Dates', span, '', '',
     dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
      "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
@@ -2344,7 +2356,10 @@ function jobRows(j) {
   if (j.tutor) push('Tutor', j.tutor);
 
   const dates = String(j.sessionDates || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean);
-  push('Dates', dates.length ? dates.join(', ') : '—',
+  /* THE SAME SPAN AS THE BOOKING CARD — see the note there. A job's receipt and the form it came
+     from must not disagree about how a run of dates is written. */
+  push('Dates', !dates.length ? '—'
+    : dates.length === 1 ? dates[0] : dates[0] + ' – ' + dates[dates.length - 1],
     dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
 
   /* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor

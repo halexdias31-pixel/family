@@ -196,9 +196,14 @@ async function receiptCanvas(stage) {
     g.fillText(stageLine.toUpperCase(), W / 2, y);
     y += 14 * S;
   }
-  g.font = `${9.5 * S}px ui-monospace, monospace`; g.fillStyle = FAINT;
-  [BOOKING.loc || 'venue not chosen', BOOKING.tutor || 'no tutor yet',
-   BOOKING.interval || 'term not chosen'].forEach(t => { g.fillText(t, W / 2, y); y += 13 * S; });
+  /* ---------- THE VENUE, TUTOR AND TERM WERE PRINTED TWICE ----------------------------------------
+     A THREE-LINE SUBHEADING SAYING "Morden Library / Halex Dias / Autumn 1" — and every one of
+     those is a row of the receipt eight lines further down, with its multiplier and its price
+     beside it. The card has no such heading; it starts at the first question. So the picture opened
+     with a summary of itself, which is the one thing a receipt should never do: the same fact
+     twice, once without the figures that make it mean anything.
+
+     GONE, and with it the last thing the shared image said that the screen did not. */
   y += 6 * S;
 
   const rule = () => {
