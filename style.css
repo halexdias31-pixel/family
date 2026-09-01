@@ -4318,6 +4318,14 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .live-what { margin: 0 0 .15rem; font-weight: 600; }
 .live-stage { margin: 0 0 .45rem; font-size: .78rem; }
 
+/* ---------- THE BUSINESS'S OWN ARITHMETIC, BESIDE THE PAPER --------------------------------------
+   Floating under the card rather than printed on it, so the document reads the same for everybody
+   and this reads as a note about it. Faint and small: it is a figure you check, not a figure the
+   other party agreed to. */
+.money-note { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .5rem;
+              font-size: .78rem; color: var(--dim); }
+.money-note b { color: var(--gold); font-weight: 600; }
+
 .join { margin-top: 1rem; }
 .join-say { margin: 0 0 .6rem; }
 

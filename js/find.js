@@ -1799,6 +1799,7 @@ const S_ = v => String(v == null ? '' : v);
    because it is not an action on your own session: it is the offer made to somebody who is not in
    it yet, and it carries the seats left and the price, which are facts rather than buttons. */
 const jobPage_ = j => (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
+  + (typeof moneyBlock === 'function' ? moneyBlock(j) : '')
   + (typeof joinBlock === 'function' ? joinBlock(j) : '');
 
 const forIs_ = want => (STUFF.filters || [])

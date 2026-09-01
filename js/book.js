@@ -80,7 +80,13 @@ function bookBlocks() {
      same rows is the duplication this evening has already produced twice, and the funnel version is
      the better one: it counts them, it can be searched, and it separates finished from running
      rather than lumping both under "past". */
-  return [bookerCard()].filter(Boolean);
+  /* THE SAME MONEY BLOCK UNDER THE FORM, and for the sharper reason: the figures move as the
+     questions are answered, which is exactly when you want to see what a booking would leave you. */
+  const L = typeof bookPrice === 'function' ? bookPrice() : null;
+  return [bookerCard()
+    + (typeof moneyBlock === 'function'
+       ? moneyBlock({ tutor: BOOKING.tutor, tutorPay: L && L.tutorPay, profit: L && L.profit })
+       : '')].filter(Boolean);
 }
 
 /* ---------- WHEN A SESSION IS OVER --------------------------------------------------------------
@@ -1778,6 +1784,67 @@ function stepRows_() {
    screen rather than a second attempt at it. */
 let BOOK_ROWS = [];
 
+/* ==================================================================================================
+   THE SPINE — ONE ROW LIST, TWO DOCUMENTS.
+
+   THE BOOKING FORM AND THE RECEIPT WERE BUILT BY TWO FUNCTIONS that had drifted apart line by line.
+   The form said `Seats`, the receipt said `Students`. The form said `Space`, the receipt said
+   `Host`. The receipt had `Running`, `Weeks left` and `About` that the form had never heard of, and
+   the form had `Kind`, `Class`, `Split` and `When free` that the receipt dropped. Their orders
+   disagreed. Every fix all evening had to be made twice, and twice it was made once.
+
+   THIS IS THE ONE ORDER. Taken from the FORM, because that is the document somebody meets first and
+   the order they learn — a receipt that reshuffles what they just filled in is a receipt they have
+   to read from scratch.
+
+   EVERY ROW APPEARS ON BOTH. A row with nothing to say prints a dash rather than being left out,
+   because a document whose SHAPE changes with its contents cannot be read at a glance: you find a
+   line by where it is, and "where it is" has to be the same every time. That is the whole point of
+   a printed form.
+
+   ADDING A ROW MEANS ADDING IT HERE, and both documents get it. `check-spine.js` fails if either
+   builder emits a label that is not on this list, which is what stops the drift coming back.
+================================================================================================== */
+const SPINE = [
+  'Kind', 'Class', 'Subject', 'Extra subjects', 'Level', 'Seats', 'Venue', 'Space',
+  'When', 'When free', 'Each session', 'Term', 'Weeks left', 'Split', 'Sharing with',
+  'Child', 'For', 'Tutor', 'Running', 'About', 'Dates', 'Note',
+  /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: a class printed
+     `A seat` and `Shared between` on the form and the receipt printed neither, so the one document
+     that says what a seat costs and how many families share it was the one nobody was handed.
+     On the spine, so both draw them — a dash on an ordinary booking, which is honest: it is a
+     question that has an answer for a class and no answer for a private session. */
+  'A seat', 'Shared between',
+  'Stage', 'Status', 'Asked for',
+];
+
+/* THE RECEIPT'S OLD NAMES FOR SPINE ROWS. Kept as a translation rather than renamed at the twenty
+   call sites, so a `push` anywhere in this file still lands on the right line. */
+const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '' };
+
+/* ---------- PUT ROWS IN SPINE ORDER, AND FILL WHAT IS MISSING -------------------------------------
+   NEITHER BUILDER IS REWRITTEN. Each still produces whatever rows it can, in whatever order suits
+   the code that makes them; this puts them in the one order and adds a dash for every spine row
+   neither produced. One function, so the two documents cannot disagree about order even if somebody
+   edits one builder and forgets the other.
+
+   ANYTHING NOT ON THE SPINE KEEPS ITS PLACE AT THE END — the day rows, the seat lines, whatever a
+   branch prints for itself. The spine fixes the skeleton, not every bone. */
+function spineRows_(rows) {
+  const say = {};
+  const extra = [];
+  rows.forEach(r => {
+    const k = SPINE_ALIAS[r.k] !== undefined ? SPINE_ALIAS[r.k] : r.k;
+    if (!k) { extra.push(r); return; }
+    if (SPINE.indexOf(k) === -1) { extra.push(r); return; }
+    if (!say[k]) say[k] = Object.assign({}, r, { k: k });
+  });
+  const out = SPINE.map(k => say[k] || {
+    n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true,
+  });
+  return out.concat(extra);
+}
+
 function bookBreakdown(L, foot) {
   /* ---------- THE TWO PHOTOGRAPHS ARE GONE --------------------------------------------------------
      THEY WERE HALF THE CARD. Two squares side by side, each a full 1:1 at half the card's width —
@@ -1932,6 +1999,9 @@ function bookBreakdown(L, foot) {
      COUNTED HERE, ONCE, IN THE ORDER THE ROWS ACTUALLY END UP IN — which is the only place that
      knows it, since the order is decided four lines above. A `free` row keeps its blank: it is not
      a charge, and a numbered row that costs nothing reads as an error in the arithmetic. */
+  /* THE SPINE FIRST, so the numbers below count the document as it is actually read. */
+  rows = spineRows_(rows);
+
   let seq = 0;
   rows.forEach(r => { if (r.n !== '') r.n = String(++seq).padStart(3, '0'); });
 
@@ -2308,6 +2378,11 @@ function jobRows(j) {
   push('Venue', j.venue || '');
   push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
   push('When', [j.weekday, j.time].filter(Boolean).join(' '));
+  /* THE WEEK UNDER IT, exactly where the form draws it — see `jobGrid_`. `grid: true` marks the row
+     so `receiptRow` prints the picture rather than a value. */
+  /* HUNG OFF THE `When` ROW'S `open`, which is the exact field the form uses for its grid — so the
+     picture lands in the same place on both documents and `receiptRow` needed no new case. */
+  { const w = rows.find(r => r.k === 'When'); if (w) w.open = jobGrid_(j); }
   push('Each session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
   push('Term', j.term || '');
   /* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: the whole
@@ -2352,10 +2427,11 @@ function jobRows(j) {
      sees what they earn; an admin sees both and the difference. Same receipt, three readings —
      which is better than three screens that can disagree. */
   if (j.price) push('Total', '', money(j.price), { free: true });
-  if (isAdmin() || (USER && norm(j.tutor) === norm(USER.name))) {
-    if (j.tutorPay) push('Tutor is paid', '', money(j.tutorPay), { free: true });
-  }
-  if (isAdmin() && j.profit) push('Left over', '', money(j.profit), { free: true });
+  /* `Tutor is paid` AND `Left over` WERE ROWS HERE. They are not on the spine and they are not on
+     the paper: what a tutor earns and what is left over are facts about the BUSINESS, and a
+     document a client is handed should not have lines on it that vanish depending on who is
+     holding it. `moneyBlock` floats them underneath, where the tile row and the join offer already
+     sit — see below. */
 
   /* ---------- WHERE IT IS, AND WHERE IT IS GOING --------------------------------------------------
      `Status` PRINTED THE SHEET'S OWN CELL — "unconfirmed", "active", "cancelled" — which is a word
@@ -2372,7 +2448,10 @@ function jobRows(j) {
   push('Stage', jobSaid_(j), '', { free: true });
   push('Status', jobStatusSaid_(j), '', { free: true });
   if (j.createdAt) push('Asked for', String(j.createdAt), '', { free: true });
-  return rows;
+  /* THE SAME ORDER THE FORM USES, and a dash for every question this job cannot answer — see
+     `SPINE`. A receipt that reshuffles what somebody just filled in is a receipt they have to read
+     from scratch. */
+  return spineRows_(rows);
 }
 
 /** A job, on the same paper a booking is drawn on. */
@@ -2387,6 +2466,66 @@ function jobRows(j) {
 
    ACCEPTANCE IS THE LINE, not payment exactly — but on this system they are the same moment: the
    only thing that writes `Booked` is the payment coming back confirmed. */
+/* ---------- THE WEEK, ON A RECEIPT, WITH THE BOOKED HOURS LIT -------------------------------------
+   THE FORM HAS SEVEN ROWS OF TAPPABLE HOURS AND THE RECEIPT HAD NOTHING — so the tallest, most
+   recognisable part of the document vanished the moment it was sent, and a family checking when
+   their session runs had to read `Monday 12:00–13:00` off a line instead of seeing it.
+
+   THE SAME GRID, ANSWERED. Same seven rows, same eleven hours, same cells — the booked ones lit and
+   nothing tappable. It is the picture of the week the form asked for, showing the answer rather
+   than the question, which is what every other row on a receipt does.
+
+   BUILT FROM THE JOB, NOT FROM `slotGrid()`. That reads the tutor's and venue's free hours, which
+   is a question about what COULD be booked; a receipt is about what WAS. So a session on Monday at
+   12 for two hours lights Monday 12 and 13, and every other cell is simply a cell. */
+function jobGrid_(j) {
+  const day = norm(j && j.weekday);
+  const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
+  const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
+  const hours = [];
+  for (let h = 10; h <= 20; h++) hours.push(h);
+  return `<div class="bk-open is-off">
+    <div class="slot-grid">
+      ${SLOT_DAYS.map(([, label]) => {
+        const isDay = norm(label) === day;
+        return `<div class="slot-row">
+          <span class="slot-day">${esc(label.slice(0, 2))}</span>
+          ${hours.map(h => {
+            const on = isDay && isFinite(start) && h >= start && h < start + hrs;
+            return `<span class="slot-cell${on ? ' on' : ''}">${h}</span>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+/* ---------- WHAT THE BUSINESS TAKES, UNDERNEATH RATHER THAN ON IT ---------------------------------
+   TWO ROWS USED TO SIT BETWEEN `Total` AND `Stage`, drawn only for an admin or the tutor — so the
+   same receipt had a different number of lines depending on who opened it, and a client comparing
+   theirs with what you see would find rows they have no explanation for.
+
+   A DOCUMENT IS THE SAME DOCUMENT FOR EVERYBODY. What it costs is on the paper because that is what
+   was agreed; what the tutor earns and what is left over are the business's own arithmetic ABOUT
+   that agreement, and they belong beside it rather than in it. Floating under the card, the way the
+   tile row and the join offer already do.
+
+   AND THE SAME BLOCK UNDER THE FORM, while a booking is still being priced — the figures move as
+   the questions are answered, which is exactly when you want to see them. */
+function moneyBlock(o) {
+  if (!o) return '';
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const theirs = USER && o.tutor && norm(o.tutor) === norm(USER.name);
+  if (!admin && !theirs) return '';
+  const pay = Number(o.tutorPay) || 0;
+  const left = Number(o.profit) || 0;
+  if (!pay && !left) return '';
+  return `<div class="money-note">
+    ${pay ? `<span><b>${esc(money(pay))}</b> to the tutor</span>` : ''}
+    ${(admin && left) ? `<span><b>${esc(money(left))}</b> left over</span>` : ''}
+  </div>`;
+}
+
 /* ---------- THE STAGE, IN THE WORDS SOMEBODY READS -------------------------------------------------
    `jobStage_` RETURNS THE MACHINE'S WORD — application, waitlist, receipt — and `jobAccepted_` adds
    the half it cannot say on its own: an accepted application is still an application, because money
