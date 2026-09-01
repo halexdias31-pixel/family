@@ -696,6 +696,29 @@ const BOOK_STEPS = [
      changing what the number MEANS would put every one of them out by one. `label_` changes only
      what is written on the option, so the question reads in extras and the booking still stores the
      count everything downstream expects. Presentation moved; the data did not. */
+  /* ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST -----------------------------------------------
+     IT WAS THE FINAL QUESTION, and on the receipt that put `Tutor` twenty rows down among the
+     arithmetic — under `Weeks left`, `Running` and `Split` — when it is one of the three things
+     anybody actually looks for. The order of this list IS the order of both documents now, so
+     moving the question is the whole change: the form asks it here and the receipt prints it here.
+
+     AFTER `Level` AND NOT BEFORE `Subject`, because the tutor list is filtered by what and at what
+     level — asking who before what would offer everybody and then quietly narrow it. Subject, level,
+     then who, which is the order somebody says it out loud.
+
+     THE ROWS PINNED AFTER IT MOVE TOO, so they are re-pinned to `For` — the last question now.
+     `Dates`, `Note` and the two waiting-list lines belong at the foot, not beside the tutor. */
+  { id: 'tutor', label: 'Anyone in particular?', short: 'Tutor',
+    options: () => isWaiting_() ? [] : ['No preference'].concat(
+      (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
+    why: v => {
+      if (v === 'No preference') return '';
+      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
+      if (!t || !BOOKING.subjects.length) return '';
+      const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
+      const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
+      return missing.length ? 'does not teach ' + missing.join(', ') : '';
+    } },
   { id: 'n', label: 'How many extra seats?', short: 'Seats',
     label_: v => Number(v) === 1 ? 'Just mine'
       : Number(v) === 2 ? 'One more seat'
@@ -969,17 +992,6 @@ const BOOK_STEPS = [
     note: v => v === NOBODY ? 'the list opens empty, and families join it'
       : (norm(v) === norm((USER && USER.name) || '') ? 'your own booking' : '') },
 
-  { id: 'tutor', label: 'Anyone in particular?', short: 'Tutor',
-    options: () => isWaiting_() ? [] : ['No preference'].concat(
-      (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
-    why: v => {
-      if (v === 'No preference') return '';
-      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      if (!t || !BOOKING.subjects.length) return '';
-      const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
-      const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
-      return missing.length ? 'does not teach ' + missing.join(', ') : '';
-    } },
 ];
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
@@ -1839,14 +1851,18 @@ const SPINE_EXTRA = [
   { after: 'Term',    row: 'Weeks left' },
   { after: 'Term',    row: 'Running' },
   { after: 'Split',   row: 'Sharing with' },
-  { after: 'Tutor',   row: 'About' },
-  { after: 'Tutor',   row: 'Dates' },
-  { after: 'Tutor',   row: 'Note' },
+  /* PINNED TO `For`, WHICH IS THE LAST QUESTION. They were pinned to `Tutor` while `Tutor` was
+     last; moving it to third would have carried the dates, the note and the waiting-list lines up
+     the page with it, four rows below the level. Pinning is what made that visible — an index would
+     have left them where the number said and put the wrong rows there in silence. */
+  { after: 'For',     row: 'About' },
+  { after: 'For',     row: 'Dates' },
+  { after: 'For',     row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: the form printed
      `A seat` and `Shared between` and the receipt printed neither, so the one document that says
      what a seat costs and how many families share it was the one nobody was handed. */
-  { after: 'Tutor',   row: 'A seat' },
-  { after: 'Tutor',   row: 'Shared between' },
+  { after: 'For',     row: 'A seat' },
+  { after: 'For',     row: 'Shared between' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
      about — which is where a receipt puts it and where the form now puts it too. */
   { after: '',        row: 'Stage' },
