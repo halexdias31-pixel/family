@@ -1547,6 +1547,25 @@ function doGet(e) {
           ? S(j.for_children).split(/[,\n]/).map(x => x.trim()).filter(Boolean) : [],
         /* The TUTOR is not private — who teaches a session is the thing somebody deciding whether
            to join most wants to know, and every tutor is already listed publicly. */
+        /* ---------- WHOSE BOOKING IT IS, SAID PLAINLY ------------------------------------------
+           `myJobs_` ON THE PHONE FILTERS ON `j.client` AND `j.tutor`, AND NEITHER WAS EVER SENT.
+           Both are known here — `cs` and `ts` are the roster, read off the events tab — and the
+           payload carried the roster while never naming the two people the phone actually asks
+           about. So every session a family booked arrived, was tested against two undefined
+           fields, failed both, and fell into `openJobs_` as somebody else's: no Classes answer, no
+           row in Your sessions, nothing on the week grid. The job was there the whole time and no
+           filter could recognise it.
+
+           `iAmIn` GUARDS THEM, like `forChildren` and `slots` two lines up. Somebody looking at an
+           open class they are not in still may not learn who is in it — the name is only sent to
+           the people already on the roster and to an admin.
+
+           FIRST CLIENT, because that is what the phone compares against and a session has one
+           household paying for it. The full roster is in `slots` for anything that needs all of
+           them. */
+        client: iAmIn ? ((cs[0] && cs[0].name) || '') : '',
+        tutor:  iAmIn ? ((confirmedTutor && confirmedTutor.name)
+                         || (ts[0] && ts[0].name) || '') : '',
         requestedTutor: (confirmedTutor && confirmedTutor.name) || 'No preference',
         tutorStatus: tutorStatusOf(jobId),
         stealable: TRUE_(j.stealable),
