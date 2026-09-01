@@ -112,7 +112,21 @@ function jobIsPast_(j) {
 
 /* `pastJobs_` WENT WITH `pastCard_`. `stuffItems` sorts the three kinds itself, off `jobIsPast_` and
    `isWaitJob_` directly, because it needs all three in one pass rather than one list at a time. */
-const liveJobs_ = () => myJobs_().filter(j => !jobIsPast_(j));
+/* ---------- A LIVE CLASS IS ONE THAT IS ACTUALLY RUNNING ------------------------------------------
+   THIS WAS "EVERYTHING NOT PAST", so a request nobody had answered and a session paid for last week
+   were both `Your sessions` — which is how two unconfirmed bookings came to be listed as live
+   classes for a family who has never paid for anything. The widget was right about the rows and
+   wrong about the word.
+
+   `jobStage_` ALREADY KNOWS. It returns `receipt` once money has moved and `application` until
+   then, which is exactly the line: a class is live when it has been agreed AND paid for. Reused
+   rather than re-derived, so the widget and the stamp can never disagree about what has happened.
+
+   EVERYTHING ELSE IS STILL THERE, under `Booking · Receipts` — one receipt per session at every
+   stage, which is where a booking somebody is waiting to hear about belongs. Nothing is hidden;
+   what changed is that a word now means what it says. */
+const liveJobs_ = () => myJobs_()
+  .filter(j => !jobIsPast_(j) && jobStage_(j) === 'receipt');
 
 /* `pastCard_` WAS HERE. The finished sessions are `Booking · Receipts` in the funnel now — one
    answer, counted like every other, searchable by subject. `jobIsPast_` stays because `stuffItems`
@@ -2083,25 +2097,34 @@ function bookBreakdown(L, foot) {
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
     aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
-    /* ---------- THE ROSTER IS ON THE FORM TOO -----------------------------------------------------
-       IT WAS LEFT OFF, on the argument that the chairs only repeat the Seats row and the Child row
-       above them. That is true and it is not the point: the two documents are one document at two
-       moments, and a part that appears on the receipt and not on the form is a part somebody meets
-       for the first time AFTER they have committed. Four boxes that repeat a line is a smaller cost
-       than a card that changes shape when it is sent.
+    /* ---------- THE ROSTER IS NOT ON EITHER DOCUMENT ----------------------------------------------
+       IT WAS ON THE RECEIPT, THEN ON BOTH, AND NOW ON NEITHER — and the last move is the right one
+       for a reason the first two missed. The chairs are not a row of a document: they are a view of
+       a session, the same as the week grid is a view of a timetable. `Your sessions` is built to be
+       exactly that view, one widget per class, and it is where somebody asking "who is in this" now
+       goes.
 
-       AND IT IS NOT PURELY A REPEAT. It is the one place a booking shows how EMPTY it is — two
-       named children and two open chairs is a fact about a class you are about to share, and no row
-       says it. Filled from what has been typed, the same way every other row on the form is. */
-    roster: rosterHtml({
-      tutor: BOOKING.tutor || '',
-      seats: Number(BOOKING.n) || 0,
-      names: (BOOKING.kids || []).filter(Boolean),
-    }),
+       ON A DOCUMENT IT WAS ALWAYS EITHER A REPEAT OR A SURPRISE. On the form it drew chairs from the
+       Seats row and the Child row printed directly above it. On the receipt it drew names that no
+       row mentions — which sounds like an argument for keeping it, and is really an argument for it
+       being somewhere of its own rather than smuggled onto the end of a price list.
+
+       WHAT THE DOCUMENTS KEEP is the count: `Seats` says how many, `Sharing with` says who else. A
+       receipt is what was agreed and what it costs. Who turned up is a different question. */
     bars,
-    /* THE TERMINAL. Nothing has been sent, so there is no row anywhere and nothing to be a record
-       OF — which is exactly what a screen is: the entering of a thing, before the thing. */
-    kind: 'screen',
+    /* ---------- PAPER, LIKE EVERYTHING ELSE ---------------------------------------------------------
+       IT WAS A GREEN TERMINAL, on the argument that nothing has been sent yet so there is no record
+       to be — the entering of a thing, before the thing. That reads well and it costs the one thing
+       worth more: a person who fills in a dark screen and is handed cream paper has been given two
+       objects, and has to work out for themselves that they are the same one.
+
+       THE RECEIPT WAS ALREADY THE SHAPE. Torn at both ends, ruled rows, a total set apart, a
+       barcode — a booking form that looks like the receipt it becomes is a form that explains
+       itself: this is what you will be holding.
+
+       AND IT IS ONE WORD. Both documents share a skin now, so this line is the whole change, and
+       changing it back is the same. That is the property that made it worth doing at all. */
+    kind: 'receipt',
   });
 }
 
@@ -2315,6 +2338,10 @@ function receiptHtml(r) {
       <span class="bk-r">${esc(r.aside || '')}</span>
       <span class="bk-t">${esc(r.total || '')}</span>
     </div>
+    ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. Kept rather than
+          cut out, because `rosterHtml` is what `Your sessions` draws and this is the one line that
+          would put chairs back on a document if that ever turns out to be right. Removing it would
+          mean rediscovering where they went. */''}
     ${r.roster ? `<div class="rc-rule"></div>${r.roster}` : ''}
     <div class="rc-rule"></div>
     ${/* ---------- WHAT YOU DO WITH IT, ON IT --------------------------------------------------------
@@ -2673,14 +2700,17 @@ function jobReceipt(j) {
        rules and its grid cells turn out to be, the receipt is those things by construction rather
        than by somebody matching them by eye. Restyle the form and the receipt has already followed.
 
-       THE PAPER LOOK IS NOT LOST, it is unused — `.rc` without `.scr` is still the cream till roll
-       with its torn edges, and if we decide the finished thing should look like paper, it is one
-       word here and BOTH documents become paper together. That is the property worth having: not
-       which of the two looks we picked, but that there is only one to pick.
+       PAPER IT IS. The note above said the choice was one word and that the property worth having
+       was that there is only one to pick — so here is that word being changed, on both documents,
+       in the same breath. A booking form that looks like the receipt it becomes explains itself:
+       this is what you will be holding.
 
        `stage` IS STILL COMPUTED AND STILL PASSED — the wording reads it. */
-    kind: 'screen',
-    /* SAVED, so no cursor — see `receiptHtml`. */
+    kind: 'receipt',
+    /* `done` MARKED THE SAVED DOCUMENT so the screen skin's blinking cursor could be turned off.
+       There is no cursor on paper, so with both documents on the receipt skin this decides nothing.
+       Left in place: the screen skin is one word away for either of them, and a flag that goes and
+       comes back is a flag somebody has to work out the meaning of twice. */
     done: true,
     stage: stage,
     /* THE JOB'S OWN KIND, WHICH IS NOT THE STAGE. `kind` above is which of the four documents this
@@ -2721,15 +2751,8 @@ function jobReceipt(j) {
        the duplication in one go — which is usually the sign that the thing should not have been
        there. */
     aside: '',
-    roster: rosterHtml({
-      tutor: j.tutor, seats: Number(j.students || j.maxStudents) || 0,
-      client: j.client,
-      /* THE CHILDREN, the same as the booking form showed. This used to put the CLIENT in the
-         first chair and the other families' email addresses in the rest — so a saved session
-         showed a parent and two addresses sitting where three children should be, and it did not
-         match the receipt the same parent had been shown while booking. */
-      names: (j.forChildren || []).filter(Boolean),
-    }),
+    /* NO ROSTER HERE EITHER — see the note on the form. The chairs are `Your sessions`, one widget
+       per class, which is the view that answers "who is in it". */
     bars: receiptBars([j.id, j.jobId, j.subject, j.venue, j.price].join('|')),
     thanks: 'Session ' + esc(String(j.id || j.jobId || '')),
   });
