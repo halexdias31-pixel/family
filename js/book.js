@@ -1904,6 +1904,18 @@ function bookBreakdown(L, foot) {
      PUT WHERE THE CANVAS CAN REACH IT rather than passed as an argument, because `receiptCanvas` is
      called from a share button that has no idea a card was ever drawn — and the card is always
      drawn before it can be shared. One assignment, and the picture is the screen. */
+  /* ---------- ONE SEQUENCE OF LINE NUMBERS, COUNTED AFTER THE MERGE ------------------------------
+     `stepRows_` NUMBERS 1..n AND `breakdownRows` NUMBERS 1..n, SEPARATELY — which was fine while
+     they were two documents and is nonsense now that they are one. Merged, the picture printed
+     "003 Subject" then "003 Extra subjects", and "009 When free" then "009 Hours a week": two
+     rows claiming the same line, twice, on the receipt somebody sends to a parent.
+
+     COUNTED HERE, ONCE, IN THE ORDER THE ROWS ACTUALLY END UP IN — which is the only place that
+     knows it, since the order is decided four lines above. A `free` row keeps its blank: it is not
+     a charge, and a numbered row that costs nothing reads as an error in the arithmetic. */
+  let seq = 0;
+  rows.forEach(r => { if (r.n !== '') r.n = String(++seq).padStart(3, '0'); });
+
   BOOK_ROWS = rows;
   const out = rows.map(receiptRow);
 

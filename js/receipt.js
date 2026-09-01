@@ -35,6 +35,10 @@
    and it never half-works.
 --------------------------------------------------------------------------------------------- */
 
+/* `corsImage_` IS UNUSED SINCE THE PHOTOGRAPHS LEFT THE SHARED PICTURE, and it is kept rather than
+   deleted: it is the one piece of knowledge in this file about how a Drive image can be got onto a
+   canvas at all — see the note above it — and the next thing that wants a picture in a share will
+   want exactly this. Deleting it would mean rediscovering the CORS behaviour from scratch. */
 /** Load an image for canvas use, or nothing. Never rejects — a missing photo is not a failed share. */
 function corsImage_(src) {
   return new Promise(resolve => {
@@ -98,7 +102,7 @@ async function receiptCanvas(stage) {
 
   /* Height has to be known before drawing, so the rows are measured first. Two passes over the same
      list rather than a guess: a canvas that is too short crops the total off the bottom. */
-  const photoH = 96 * S;
+  const photoH = 0;   /* the two photographs are gone — see below */
   /* THE HEADER GROWS WITH THE STAMP. A fixed height plus a new line is a new line drawn over the
      first row of the table — the sort of fault that only appears on the one stage that has a
      stamp, which is not the one anybody tests. */
@@ -166,39 +170,16 @@ async function receiptCanvas(stage) {
 
   let y = tooth + 8 * S;
 
-  /* ---- the photographs, in grey ---- */
-  const { venue, tutor } = facesOf_(BOOKING.loc, BOOKING.tutor);
-  const shots = await Promise.all([
-    corsImage_(venue && venue.image ? pic(venue.image) : ''),
-    corsImage_(tutor && tutor.image ? pic(tutor.image) : ''),
-  ]);
-  const boxW = (W - PAD * 2 - 8 * S) / 2, boxH = photoH - 14 * S;
-  shots.forEach((img, i) => {
-    const x = PAD + i * (boxW + 8 * S);
-    g.save();
-    g.beginPath(); g.rect(x, y, boxW, boxH); g.clip();
-    if (img) {
-      /* ONE INK. A till roll has no colour in it, and a colour photograph is the one thing that
-         gives away a screen pretending to be paper. */
-      g.filter = 'grayscale(1) contrast(1.18)';
-      const scale = Math.max(boxW / img.width, boxH / img.height);
-      g.drawImage(img, x + (boxW - img.width * scale) / 2, y + (boxH - img.height * scale) / 2,
-                  img.width * scale, img.height * scale);
-      g.filter = 'none';
-    } else {
-      g.fillStyle = skin.torn ? '#e6e1d4' : (stage === 'screen' ? '#1c2320' : '#e8e4da');
-      g.fillRect(x, y, boxW, boxH);
-      g.fillStyle = FAINT;
-      g.font = `${9 * S}px ui-monospace, monospace`;
-      g.textAlign = 'center';
-      g.fillText(i ? (BOOKING.tutor || 'no tutor') : (BOOKING.loc || 'no venue'),
-                 x + boxW / 2, y + boxH / 2);
-    }
-    g.restore();
-    g.strokeStyle = '#c9c0b0'; g.lineWidth = 1 * S;
-    g.strokeRect(x, y, boxW, boxH);
-  });
-  y += photoH;
+  /* ---------- THE PHOTOGRAPHS WENT FROM THE CARD AND STAYED IN THE PICTURE ------------------------
+     TWO SQUARES, A VENUE AND A TUTOR, ABOUT A THIRD OF THE PAGE. `bookBreakdown` removed them from
+     the card and gave the reason: they were the largest thing on the screen and, before anything
+     was answered, both were empty outlines saying nothing. The picture kept drawing them — so the
+     document somebody SENDS opened with a blank grey box captioned "Sutton Library" above a
+     photograph of the tutor, and the receipt itself started a third of the way down.
+
+     IT IS A RECEIPT, NOT A LISTING. What is being shared is what was asked for and what it costs;
+     a picture of the room is an advertisement, and it belongs on the venue's own card where
+     somebody is choosing one. Gone here for the same reason it went there. */
 
   /* ---- the head ---- */
   g.textAlign = 'center'; g.fillStyle = INK;
@@ -282,7 +263,10 @@ async function receiptCanvas(stage) {
   /* ---- what it costs ---- */
   g.textAlign = 'left'; g.fillStyle = INK;
   g.font = `700 ${11 * S}px ui-monospace, monospace`;
-  g.fillText('TO PAY', PAD, y);
+  /* THE WORD THE CARD USES. The screen says COST and the picture said TO PAY — the same figure
+     under two names, and the one people send was the one that said a payment was due on a booking
+     that has not been accepted yet. */
+  g.fillText('COST', PAD, y);
   g.textAlign = 'right';
   g.font = `700 ${15 * S}px ui-monospace, monospace`;
   g.fillText(money(L.total), W - PAD, y);
@@ -307,7 +291,9 @@ async function receiptCanvas(stage) {
 
   g.textAlign = 'center'; g.fillStyle = FAINT;
   g.font = `${9 * S}px ui-monospace, monospace`;
-  g.fillText('Nothing is booked until you ask for it.', W / 2, y);
+  /* AND THE SAME SENTENCE, for the same reason. The card's footer is the promise being made;
+     a picture of the card that promises something slightly different is a second promise. */
+  g.fillText('Nothing is booked or charged yet — this asks, and we come back to you.', W / 2, y);
 
   return cv;
 }

@@ -1778,6 +1778,21 @@ function goFor_(label) {
 
 function bookingPages_() {
   if (!forIs_('booking')) return [];
+  /* ---------- THE FORM IS THE ANSWER TO `Booking`, NOT TO EVERYTHING UNDER IT --------------------
+     IT FOLLOWED YOU DOWN. `forLabel · Booking` stays set for the whole branch, so narrowing to
+     Classes, or Tutors, or Venues left the form sitting in front of the thing you had just asked
+     for — a twelve-question document to swipe past on the way to a list of three tutors.
+
+     ONE MORE ANSWER MEANS YOU ARE BROWSING. Booking on its own is somebody arranging a session and
+     the form is what they came for. `Booking · Tutors` is somebody looking through tutors, and
+     `Booking · Classes` is somebody checking what they are already in — neither is a person filling
+     a form in, and the form has a page of its own to go back to the moment they clear that answer.
+
+     THE SECOND QUESTION, NOT A LIST OF ITS ANSWERS. Written as "has `kindLabel` been answered at
+     all", so a kind added later — a coupon, a pass, whatever comes next — needs nothing added
+     here. A rule naming the answers it applies to is a rule that goes stale on the next one. */
+  const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
+  if (narrowed) return [];
   return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
 }
 
