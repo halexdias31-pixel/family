@@ -1404,7 +1404,7 @@ function breakdownRows(L) {
       }
     }
 
-    push('Status', 'Not open yet', '', '', '', { free: true });
+    push('Stage', 'Not asked for yet', '', '', '', { free: true });
     return rows;
   }
 
@@ -1469,6 +1469,19 @@ function breakdownRows(L) {
     : dates[0] + ' – ' + dates[dates.length - 1];
   push('Dates', span, '', '',
     dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
+
+  /* ---------- WHERE THIS ONE IS, TOO ---------------------------------------------------------------
+     THREE ROWS WERE REMOVED FROM HERE — "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE ·
+     UNCREATED" — and they deserved to go: three lines all reporting that a form had not been sent,
+     in words about a row in a spreadsheet, on the one document where there is no row yet.
+
+     ONE LINE COMES BACK, IN THE SAME WORDS THE RECEIPT USES. `jobSaid_` has four sentences and this
+     is the first of them, so a booking reads the same before and after it is sent: the form says
+     "Asked for — waiting on us" is what will happen, and the receipt for the same session says it
+     has. Same vocabulary, one place, no second table of words to keep in step.
+
+     NO `Status` ROW HERE. That one lists the seats, and a form nobody has sent has none. */
+  push('Stage', 'Not asked for yet', '', '', '', { free: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
      "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
      has sent, all reporting that it has not been sent — which the card already says at the bottom,
@@ -2371,7 +2384,20 @@ function jobRows(j) {
   }
   if (isAdmin() && j.profit) push('Left over', '', money(j.profit), { free: true });
 
-  push('Status', j.status || 'Open', '', { free: true });
+  /* ---------- WHERE IT IS, AND WHERE IT IS GOING --------------------------------------------------
+     `Status` PRINTED THE SHEET'S OWN CELL — "unconfirmed", "active", "cancelled" — which is a word
+     about a row in a spreadsheet, not about a session. And there was nothing at all saying where in
+     its life the thing had got to, which is the one question somebody opening a receipt is actually
+     asking: has anybody agreed to this, do I owe money, is it done.
+
+     TWO LINES, BOTH DERIVED. `Stage` is `jobStage_` plus `jobAccepted_` — the same two functions the
+     stamp on the card reads, so the line and the stamp cannot disagree. `Status` keeps the seat
+     statuses, which is what the machine is actually tracking: Waiting, Agreed, Paying, Booked.
+
+     PLAIN WORDS. A parent has no use for "lifecycle" or "possession"; they want to know whether it
+     is settled. */
+  push('Stage', jobSaid_(j), '', { free: true });
+  push('Status', jobStatusSaid_(j), '', { free: true });
   if (j.createdAt) push('Asked for', String(j.createdAt), '', { free: true });
   return rows;
 }
@@ -2388,6 +2414,29 @@ function jobRows(j) {
 
    ACCEPTANCE IS THE LINE, not payment exactly — but on this system they are the same moment: the
    only thing that writes `Booked` is the payment coming back confirmed. */
+/* ---------- THE STAGE, IN THE WORDS SOMEBODY READS -------------------------------------------------
+   `jobStage_` RETURNS THE MACHINE'S WORD — application, waitlist, receipt — and `jobAccepted_` adds
+   the half it cannot say on its own: an accepted application is still an application, because money
+   has not moved, and both facts are true at once.
+   Said once here so the receipt row, the booking form and the stamp on the card all read the same
+   sentence. Four states, and every one of them names what happens next. */
+function jobSaid_(j) {
+  const st = jobStage_(j);
+  if (st === 'receipt')  return 'Paid — booked';
+  if (st === 'waitlist') return 'On the waiting list';
+  return jobAccepted_(j) ? 'Accepted — waiting for payment' : 'Asked for — waiting on us';
+}
+
+/* AND WHAT THE SEATS SAY, which is the machine's own record rather than a summary of it. A session
+   where one family has paid and another has not is one line here and could not be one word above. */
+function jobStatusSaid_(j) {
+  const seats = (j.slots || []).map(sl => String(sl.status || '').trim()).filter(Boolean);
+  if (!seats.length) return 'nobody in it yet';
+  const by = {};
+  seats.forEach(s => { by[s] = (by[s] || 0) + 1; });
+  return Object.keys(by).map(s => (by[s] > 1 ? by[s] + ' × ' : '') + s).join(', ');
+}
+
 function jobStage_(j) {
   const paid = (j.slots || []).filter(sl => /^booked$/i.test(String(sl.status || '')));
   if (norm(j.kind) === 'waitlist') {

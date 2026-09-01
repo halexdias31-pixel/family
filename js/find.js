@@ -147,8 +147,16 @@ const KINDS = {
 
      `jobCard` STAYS FOR THE WIDGET, where a list is genuinely what is wanted: `Your sessions` in
      the tools drawer is a glance at several, not a read of one. */
-  session:  { group: 'Booking', label: 'Classes',  card: x => jobPage_(x.row) },
-  waitlist: { group: 'Booking', label: 'Waitlists', card: x => jobPage_(x.row) },
+  /* ---------- ONE ANSWER, NOT THREE ---------------------------------------------------------------
+     `Classes`, `Waitlists` AND `Receipts` WERE THREE KINDS AND THAT WAS THE WRONG CUT. They are one
+     kind of thing at four points in its life, and splitting them by state meant the same session
+     moved between answers as it aged: you looked under Classes for the thing you booked in
+     September and by December it had become a Receipt without telling you.
+
+     AN ANSWER SHOULD NAME WHAT A THING IS, NOT WHAT STAGE IT IS AT. A session is a receipt from the
+     moment it is asked for — that is what the card has always drawn, torn at both ends — and its
+     stage is a line ON the receipt, which is where somebody reads it. That way the list is stable,
+     the count means "sessions", and nothing has to be looked for in two places. */
   receipt:  { group: 'Booking', label: 'Receipts',  card: x => jobPage_(x.row) },
 
   /* `coupon` WAS A KIND HERE — the classes with seats going.
@@ -1387,9 +1395,10 @@ function stuffItems() {
        gcse" rather than a job id. The tutor and the venue go in the subtitle, so the text box
        matches those too. */
     ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
-      kind: (typeof jobIsPast_ === 'function' && jobIsPast_(j)) ? 'receipt'
-          : (typeof isWaitJob_ === 'function' && isWaitJob_(j)) ? 'waitlist'
-          : 'session',
+      /* ONE KIND FOR ALL OF THEM — see the note on `receipt` above. `jobIsPast_` and `isWaitJob_`
+         still decide how a card DRAWS and how the widgets split their lists; they no longer decide
+         which answer a session lives under. */
+      kind: 'receipt',
       name: [j.subject || 'Session', j.level].filter(Boolean).join(' · '),
       key: 'job:' + (j.id || j.jobId || ''),
       sub: [j.tutor, j.venue, j.weekday].filter(Boolean).join(' · '),
