@@ -2312,6 +2312,18 @@ function doPost(e) {
          SO THE SERVER ADDS IT, on the way in, before the price is written or the receipt drawn —
          which means the figure the client agrees to and the figure they are charged are the same
          number, and turning this on is one cell rather than a deploy. */
+      /* ---------- HOW MANY TIMES SOMEBODY MAKES THE JOURNEY ---------------------------------------
+         DECLARED HERE, BECAUSE THE LINE BELOW USES IT. It was thirteen lines further down — after
+         the travel cost, after the sanity check — so `travelCost(…, sessionCount)` reached a `const`
+         that had not been initialised yet and threw `Cannot access 'sessionCount' before
+         initialization`. Not a hoisting nicety: `const` in the temporal dead zone throws outright,
+         so EVERY booking failed at the first line that priced it.
+
+         The same expression the sanity check below builds for `weeks`, which is what it is — one
+         trip per session, and at least one, because a booking with no dates yet is still a
+         booking. */
+      const sessionCount = S(body.dates).split(',').filter(Boolean).length || 1;
+
       const travel = travelCost(S(body.location), sessionCount);
       const chargeTravel = N(cfg3.travel_on_client) > 0 && travel > 0;
       if (chargeTravel) body.price = N(body.price) + travel;
@@ -2322,10 +2334,6 @@ function doPost(e) {
         seats: body.n,
       });
       if (wrong) return jsonOut({ error: wrong });
-
-      /* HOW MANY TIMES SOMEBODY MAKES THE JOURNEY. One trip per session, which is what the dates
-         list says — and at least one, because a booking with no dates yet is still a booking. */
-      const sessionCount = S(body.dates).split(',').filter(Boolean).length || 1;
 
       const jobId = S(body.forceItemId) || ('J-' + Date.now());
       const named = S(body.requestedTutor) && !/^(no preference|any)$/i.test(S(body.requestedTutor));
