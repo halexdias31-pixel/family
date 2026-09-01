@@ -1975,9 +1975,12 @@ function bookBreakdown(L, foot) {
     });
   });
 
-  const rows = body
+  /* THE SPINE APPLIED AS THE LIST IS BUILT, not to a `const` afterwards — which is what the last
+     version did, and `Assignment to constant variable` took the whole screen down with it. One
+     expression, so there is nothing to reassign and no order for the two steps to get wrong. */
+  const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]);
+    .concat([noteRow_()]));
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
@@ -1999,9 +2002,6 @@ function bookBreakdown(L, foot) {
      COUNTED HERE, ONCE, IN THE ORDER THE ROWS ACTUALLY END UP IN — which is the only place that
      knows it, since the order is decided four lines above. A `free` row keeps its blank: it is not
      a charge, and a numbered row that costs nothing reads as an error in the arithmetic. */
-  /* THE SPINE FIRST, so the numbers below count the document as it is actually read. */
-  rows = spineRows_(rows);
-
   let seq = 0;
   rows.forEach(r => { if (r.n !== '') r.n = String(++seq).padStart(3, '0'); });
 
