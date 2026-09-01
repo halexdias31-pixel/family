@@ -280,9 +280,14 @@ const mePages = () => {
      going is somebody else's, there are many, and which one suits you depends on subject, level,
      venue and day. That is a search. Those stayed in Find where the filters are.
 
-     ONE PANE EACH, after the account and before the messages — the same order the column had, and
-     the same `jobCard` stub it drew, so a session looks the same wherever it is met. */
-  if (USER) (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => pages.push(jobCard(j)));
+     AND THEY ARE NOT DRAWN HERE ANY MORE. `mePages` fed the You column, which no longer exists —
+     these pages are read by `youPages_`… which was also deleted, so nothing has drawn a `jobCard`
+     from this line since the columns went. It stayed because it broke nothing, which is the whole
+     problem with it: dead code that still compiles is dead code nobody removes.
+
+     A SESSION HAS TWO PLACES AND THIS WAS NEVER ONE. `Booking · Receipts` is the document, one to a
+     page; `Your sessions` is the roster, who is in it and how many seats are left. A third, folded
+     copy on a screen that no longer exists is the duplication the whole evening has been about. */
 
   return pages.length ? pages : [all];
 };

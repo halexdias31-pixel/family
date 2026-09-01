@@ -24,58 +24,18 @@
    one: the open classes are a dropdown on the booking form, not a kind in Find. */
 
 
-  /* A STUB ON THE LIST, THE WHOLE RECEIPT ON TAP.
-   The full receipt was drawn for every job — torn ends, twelve numbered lines, a roster and a
-   barcode each — and five of those is a screen you scroll for a minute to find one thing on.
-   A receipt's job is to be COMPLETE. A list's job is to be SCANNABLE. Those pull against each
-   other and the answer is not a compromise between them: it is the stub here and the receipt on
-   tap, each doing the thing it is for.
-   Still on paper, still torn at the ends, so it is recognisably the same document folded up. */
+  /* ---------- `jobCard` WAS HERE, AND IT HAS NO CALLERS LEFT ----------------------------------------
+   THE FOLDED STUB — subject, day, price, a stamp and a dotted tear — made for a LIST of sessions
+   you would then open one of. Three things drew it and none of them does now: the You column was
+   folded into the funnel, `Booking · Receipts` opens the whole receipt on its own page rather than a
+   fold that opens a sheet, and `Your sessions` is a roster of who is in each class rather than a
+   pile of small documents.
 
-function jobCard(j) {
-  const dates = String(j.sessionDates || '').split(/[,\n]/).filter(x => x.trim()).length;
-  const mine = USER && norm(j.tutor) === norm(USER.name);
-  /* WHO IS IN IT. The tutor takes a slot, and every seat asked for takes one — so a session for
-     two has three of its four filled and one going, which is the thing somebody scanning this
-     list actually wants to know. */
-  const seats = Number(j.students || j.maxStudents) || 0;
-  const taken = (j.tutor ? 1 : 0) + seats;
-  /* THE STUB IS THE SAME DOCUMENT FOLDED UP, so it is the same kind of document. Without this
-     the list showed torn receipts for everything while opening one showed a form — and the list
-     is the screen people actually look at. */
-  const st = jobStage_(j);
-  const SK = { application: ' app', waitlist: ' wl', receipt: '' };
-  /* THE STUB SAYS IT TOO. The list is where somebody looks to see whether anything has moved, so
-     an accepted booking that looks identical on the list is an acceptance nobody can see. */
-  const ok = st === 'application' && jobAccepted_(j) ? ' is-accepted' : '';
-  return `<div class="rc rc-stub rc-${esc(st)}${SK[st] || ''}${ok} tap" data-do="job"
-      data-id="${esc(String(j.id || j.jobId || ''))}">
-    <div class="rc-stub-top">
-      <span class="rc-stub-what">${esc(j.subject || 'Session')}${
-        j.level ? ' · ' + esc(j.level) : ''}</span>
-      <span class="rc-stub-cost">${money(mine ? (j.tutorPay || 0) : (j.price || 0))}</span>
-    </div>
-    <div class="rc-stub-mid">
-      ${facesFor(j.venue, j.tutor, 'rc-stub-pics')}
-      <div class="rc-stub-said">
-        <span>${esc([j.venue, j.weekday, j.time].filter(Boolean).join(' · ') || 'Not set')}</span>
-        <span class="rc-stub-who">${esc(j.tutor || 'No tutor yet')}</span>
-      </div>
-    </div>
-    ${/* SEATS GOING, on the stub, where somebody scanning the list will see it. A session with
-           room is the only reason to look twice at a booking that is not yours, and nothing on
-           the card has ever said there was any. */''}
-    ${j.canAsk ? `<div class="rc-stub-line rc-stub-open">
-        <span>${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} going</span>
-        <span class="rc-stub-ask">Tap to ask</span>
-      </div>` : ''}
-    <div class="rc-stub-line rc-stub-foot">
-      <span>${esc(j.status || 'Open')}</span>
-      ${rosterPips(seats, taken)}
-      <span>${dates ? dates + ' session' + (dates === 1 ? '' : 's') : 'No dates yet'}</span>
-    </div>
-  </div>`;
-}
+   REMOVED RATHER THAN LEFT. A session has exactly two faces now — the receipt and the roster — and
+   a third that nothing calls is a third somebody will call again by accident, and then there will
+   be three shapes to keep in step. If a list of folds is ever wanted, it is `jobReceipt` with a
+   class on it, not a second builder. */
+
 
 /* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM -------------------------------------
    `bookBlocks` USED TO BE THE WHOLE COLUMN: the form, your sessions, the open classes and whatever
@@ -152,17 +112,23 @@ const liveJobs_ = () => myJobs_().filter(j => !jobIsPast_(j));
    answer, counted like every other, searchable by subject. `jobIsPast_` stays because `stuffItems`
    and the sessions widget both need to know which side of today a session falls on. */
 
-/* ---------- THE LIVE ONES, AS A WIDGET ------------------------------------------------------------
-   THE WEEK GRID ANSWERS A DIFFERENT QUESTION. It says whether Tuesday is free, which is what you
-   want when you are arranging something — and it says nothing about a session in three weeks, or
-   about who is teaching it, or what it cost, because a grid has room for a block and not a
-   document.
+/* ---------- YOUR SESSIONS, AS A ROSTER --------------------------------------------------------------
+   IT DREW `jobCard` STUBS — folded receipts, three of them stacked, each with its own price, its own
+   stamp and its own dotted tear. On a card headed "Your sessions" that is three documents where the
+   question is not "what does this cost" but "who is in it and is it full".
 
-   THIS IS THE LIST. What you are actually in, each one a stub of its own receipt, in the order they
-   happen. Same `jobCard` the booking pages use, so a session looks the same wherever it is seen.
+   THE RECEIPT IS THE DOCUMENT AND THIS IS NOT ONE. Every session already has its receipt, one to a
+   page, under `Booking · Receipts` — a second, smaller, worse copy of the same paper in a widget is
+   the duplication that has cost us all evening. This answers a different question, so it shows a
+   different thing.
 
-   `into` AND `start`, LIKE THE WEEK AND THE CALENDAR — the markup is an empty container and this
-   fills it at the moment the widget is opened, which is also the moment its data is freshest. */
+   `rosterHtml` ALREADY DRAWS IT and has since the seats were built: the tutor, then a pip per seat,
+   filled with whoever is in it and a `+` where nobody is. It is the shape a fireteam takes in a
+   game — who is here, how many slots left — and it is exactly what somebody checking a class wants
+   to know at a glance.
+
+   ONE LINE OF CONTEXT ABOVE EACH, because a roster with no session attached is four faces and no
+   answer: the subject, the day, and whether it is waiting on us. */
 function initLive() {
   const el = $('live-body');
   if (!el) return;
@@ -172,18 +138,25 @@ function initLive() {
   }
   const live = liveJobs_();
   if (!live.length) {
-    /* THE EMPTY STATE IS ALLOWED HERE AND NOT ON THE PAST CARD, because this one was opened
-       deliberately. Somebody who taps `Your sessions` and is shown nothing at all has been given no
-       answer; somebody who swipes past a booking form has not asked a question. */
     el.innerHTML = `<p class="empty">Nothing booked yet.<br>
       <span class="faint">Sessions you are in will appear here.</span></p>`;
     return;
   }
-  /* SOONEST FIRST — the opposite of the receipts, and for the same reason. What is coming is read
-     forwards; what has happened is read backwards. */
+  /* SOONEST FIRST. What is coming is read forwards. */
   const rows = live.slice().sort((x, y) =>
     String(x.startDate || '').localeCompare(String(y.startDate || '')));
-  el.innerHTML = rows.map(jobCard).join('');
+
+  el.innerHTML = rows.map(j => {
+    const when = [j.weekday, j.time].filter(Boolean).join(' ');
+    const said = typeof jobSaid_ === 'function' ? jobSaid_(j) : '';
+    return `<div class="live-row">
+      <p class="live-what">${esc([j.subject, j.level].filter(Boolean).join(' · ') || 'Session')}
+        ${when ? `<span class="faint"> · ${esc(when)}</span>` : ''}</p>
+      ${said ? `<p class="live-stage faint">${esc(said)}</p>` : ''}
+      ${rosterHtml({ tutor: j.tutor || '', seats: Number(j.maxKids || j.maxStudents) || 4,
+                     names: (j.slots || []).map(sl => sl.client).filter(Boolean) })}
+    </div>`;
+  }).join('');
 }
 
 /* WHOSE SESSIONS ARE WHOSE. Asked in one place because `Receipts` and `Coupons` are the two halves
@@ -2021,55 +1994,11 @@ function bookBreakdown(L, foot) {
  *
  * Greyed by the stylesheet, because a receipt has one ink.
  */
-/* WHICH ROOM AND WHICH PERSON. The two rows behind a booking, found once — a venue can be named
-   by one of its rooms, so the room's own venue is what has to be looked up, and getting that wrong
-   means a photograph that is simply never found for half the bookings. */
-function facesOf_(venueName, tutorName) {
-  const sp = spaceFor(venueName);
-  return {
-    venue: (DATA.venues || []).find(x => norm(x.title) === norm(sp ? sp.venue : venueName)),
-    tutor: (DATA.tutors || []).find(x => norm(x.title) === norm(tutorName)),
-  };
-}
+/* `facesOf_` WENT TOO — it looked up the venue and tutor photographs, and the last thing wanting
+   them was the pair of grey squares at the top of the shared picture, removed earlier tonight. */
 
-/* THE ONLY CALLER LEFT PASSES `rc-stub-pics`. The booking card's pair is gone — see
-   `bookBreakdown` — so the default is the stub's class rather than `bk-photos`, which nothing
-   styles any more. */
-function facesFor(venueName, tutorName, cls) {
-  const { venue, tutor } = facesOf_(venueName, tutorName);
-  const figure = kind => `<span class="bk-none"><svg viewBox="0 0 64 52" aria-hidden="true">${
-    kind === 'venue'
-      ? `<path d="M14 42V22l18-11 18 11v20z" fill="none" stroke="currentColor" stroke-width="2"/>
-         <rect x="28" y="30" width="8" height="12" fill="currentColor" opacity=".45"/>`
-      : `<circle cx="32" cy="20" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
-         <path d="M16 46a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="2"/>`
-  }</svg></span>`;
-  const one = (img, kind) => img
-    ? `<img src="${esc(pic(img))}" alt="" loading="lazy">` : figure(kind);
-  return `<div class="${cls || 'rc-stub-pics'}">
-      ${one(venue && venue.image, 'venue')}
-      ${one(tutor && tutor.image, 'tutor')}
-    </div>`;
-}
 
-/**
- * THE ROSTER AS PIPS, small enough for a stub.
- *
- * The full roster is four named slots with faces; this is the same fact at a glance — how many
- * seats are taken and how many are going. On a list, "3 of 4" plus four marks tells you whether
- * there is room without reading anything.
- */
-function rosterPips(seats, taken) {
-  const total = Math.max(4, seats + 1);
-  const full = Math.max(0, Math.min(total, taken));
-  let out = '';
-  for (let i = 0; i < total; i++) {
-    out += `<i class="pip${i < full ? ' on' : ''}${i === 0 ? ' tut' : ''}"></i>`;
-  }
-  const open = total - full;
-  return `<span class="rc-stub-slots">${out}<em>${
-    open ? open + ' free' : 'full'}</em></span>`;
-}
+
 
 function rosterHtml(o) {
   const tutor = o.tutor || '';
@@ -2119,6 +2048,11 @@ function rosterHtml(o) {
     </div>`).join('')}
   </div>`;
 }
+
+/* `facesFor` AND `rosterPips` WENT WITH `jobCard`. Both existed only to draw the fold: the two
+   photographs at its head and the row of dots counting its seats. The roster draws whole faces and
+   the receipt draws whole rows, so neither has a caller. Same reasoning as `jobCard` above — a
+   helper nothing calls is a helper somebody calls again by accident. */
 
 /* ==================================================================================================
    FOUR OBJECTS, NOT ONE OBJECT IN FOUR MOODS.

@@ -4311,6 +4311,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .rc-stub-ask { color: #2b2620; }
 
 /* ---------- AND THE ASK, under the receipt ------------------------------------------------------- */
+/* ---------- ONE SESSION ON THE ROSTER WIDGET ------------------------------------------------------
+   The line above each roster: what it is, when, and where it has got to. Small, because the roster
+   under it is the thing being looked at — this only says which session the faces belong to. */
+.live-row + .live-row { margin-top: .9rem; padding-top: .9rem; border-top: 1px solid var(--line-soft); }
+.live-what { margin: 0 0 .15rem; font-weight: 600; }
+.live-stage { margin: 0 0 .45rem; font-size: .78rem; }
+
 .join { margin-top: 1rem; }
 .join-say { margin: 0 0 .6rem; }
 
