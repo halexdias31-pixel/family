@@ -1505,7 +1505,15 @@ function breakdownRows(L) {
 function stepSelect_(st) {
   const opts = st.options().filter(Boolean);
   const chosen = st.multi ? (BOOKING[st.id] || []) : [];
-  const v = st.multi ? '' : BOOKING[st.id];
+  /* ---------- A FALLBACK HAS TO REACH THE CONTROL, NOT ONLY THE TEXT -------------------------------
+     `receiptRow` DRAWS THE DROPDOWN INSTEAD OF THE VALUE when a row has one — rightly, since a
+     select already shows what is chosen and printing both would be the row saying it twice. Which
+     means a fallback that only reaches the row's TEXT is a fallback an admin never sees: their
+     "Who is this for?" has a list of families on it, so the select wins, and the select had nothing
+     selected because `BOOKING.client` is only set by choosing.
+     So the same one rule is read here too. The control opens on whoever is signed in — which is
+     what the booking would be submitted as — and picking a family still overwrites it. */
+  const v = st.multi ? '' : (BOOKING[st.id] || (st.fallback ? st.fallback() : ''));
 
   /* ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL ----------------------------------------------
      A LOCKED SELECT STILL SHOWED "—" ON A MULTI. The dropdown on a multiple-answer row is a way of
@@ -1521,7 +1529,7 @@ function stepSelect_(st) {
     const said = st.emails
       ? (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ')
       : st.multi ? chosen.join(', ')
-      : (st.label_ && v ? st.label_(v) : v);
+      : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
     return `<span class="bk-set">${esc(String(said || '—'))}</span>`;
   }
   const isOn = o => st.multi
