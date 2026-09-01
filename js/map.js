@@ -1108,7 +1108,21 @@ const WIDGETS = [
 
      `initLive` IS IN book.js WITH THE REST OF THE SESSION CODE, the way `initWeek` is. map.js knows
      where a widget goes; it does not know what a session looks like. */
-  { id: 'live', kind: 'tool', name: 'Your sessions', start: () => initLive?.(),
+  /* ---------- UNDER BOOKING, AND ONLY BOOKING -----------------------------------------------------
+     IT WAS UNDER BOTH, on the argument that a thing findable from one place only is findable from
+     the wrong one half the time. That argument is wrong here and the evening proved it: two answers
+     means the same widget counted twice, kept in step twice, and reachable by two routes that have
+     to stay identical — which is the exact fault the whole column collapse was about.
+
+     BOOKING IS THE RIGHT ONE. Its kind is `tool` because it is a widget, but Tools is where
+     somebody looks for a timer or a notepad — things you pick up and use. This is your bookings,
+     and somebody wanting it answers `Booking`.
+
+     `label` GOES WITH IT, or the second question would offer `Tools` as its kind — the word it was
+     just moved away from. Both overrides are read by `forLabel` and `kindLabel` in find.js. */
+  { id: 'live', kind: 'tool', name: 'Your sessions',
+    groups: 'Booking', label: 'Your sessions',
+    start: () => initLive?.(),
     into: 'live-body', what: 'Your sessions',
     html: `<div class="card">
     <h3>Your sessions</h3>

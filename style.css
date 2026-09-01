@@ -1716,7 +1716,16 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    its own piece of paper"; the comment is the only thing carrying that. If a fifth is ever built,
    it goes here. */
 .pane:has(.rc-stub),
-.pane:has(> .rc),
+/* ---------- `> .rc` MISSED THE ONE THAT MATTERS MOST ---------------------------------------------
+   THE RECEIPT IS ONLY A DIRECT CHILD OF THE PANE WHEN IT IS ALONE ON ONE. As a funnel result it is
+   wrapped in `.favwrap` — the thing that marks a kept card — so the child combinator did not match
+   and the glass stayed: a torn receipt sitting inside a rounded dark panel, which is two containers
+   where the paper already is one, and the tear along its edge loses its whole point against a
+   second border. Exactly the fault the comment above describes, on the fourth object rather than
+   the fifth.
+   THE DESCENDANT FORM instead, like every other line in this list. A receipt anywhere on a pane
+   means that pane is holding paper. */
+.pane:has(.rc),
 .pane:has(.slip),
 .pane:has(.pass),
 .pane:has(.paper),

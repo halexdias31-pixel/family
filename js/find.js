@@ -524,8 +524,17 @@ const FACETS = [
      this and nothing to keep in step. And `kindLabel` below still asks which one — except where
      the group holds only one kind, in which case the one-answer rule skips it and choosing
      Learning takes you straight to the resources. */
-  { field: 'forLabel',  label: 'What for',    of: x => kindOf_(x).group },
-  { field: 'kindLabel', label: 'What kind',   of: x => kindOf_(x).label },
+  /* ---------- AN ITEM MAY OVERRIDE THE GROUP ITS KIND PUTS IT IN ----------------------------------
+     `kinds` DECIDES THE GROUP FOR A WHOLE KIND, which is right for the kinds — a tutor is Booking
+     and People, every tutor, always. It is wrong for one item inside a kind: `Your sessions` is a
+     widget, so its kind says Tools, and Tools is where somebody looks for a timer rather than for
+     what they have booked.
+     `groups` ON THE ITEM WINS WHEN IT IS THERE. Same list-or-string shape `asList_` already reads,
+     so nothing else had to learn a new form. Nothing sets it but the widgets, and only the one. */
+  { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
+  /* `kindLabel` ON THE ITEM WINS, the same way `groups` does on the line above — so a thing placed
+     under a group its kind does not belong to can also say what it is called there. */
+  { field: 'kindLabel', label: 'What kind',   of: x => x.kindLabel || kindOf_(x).label },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to. */
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
@@ -1322,6 +1331,11 @@ function stuffItems() {
        the other nine are. */
     ...allWidgets().filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
       kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
+      /* WHERE THIS ONE ANSWERS FROM, if it says. See the note on `forLabel`. */
+      groups: wgt.groups || null,
+      /* AND WHAT THE SECOND QUESTION CALLS IT. A widget filed under Booking would otherwise offer
+         `Tools` as its kind — the word it was moved away from. Blank for the ordinary tools. */
+      kindLabel: wgt.label || '',
       cost: 0, slot: '', subject: '', grade: '', off: false, row: wgt,
       bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: '', paper: false,
@@ -1779,14 +1793,13 @@ const S_ = v => String(v == null ? '' : v);
 /* ONE SESSION, OPENED OUT. The receipt, then the way in for somebody not in it yet, then the way
    to pay once it has been accepted — the same three the sheet used to stack, in the same order,
    on the page itself. Each guards itself: `joinBlock` draws nothing for a session you are already
-   in, `payBlock` nothing until it is accepted and yours. */
+   in. */
+/* THE PAPER, AND NOTHING ELSE. Paying and withdrawing are marks in the tile row under the card —
+   `jobTiles_` in tiles.js — which is where every other kind keeps its actions. `joinBlock` stays
+   because it is not an action on your own session: it is the offer made to somebody who is not in
+   it yet, and it carries the seats left and the price, which are facts rather than buttons. */
 const jobPage_ = j => (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
-  + (typeof joinBlock === 'function' ? joinBlock(j) : '')
-  + (typeof payBlock === 'function' ? payBlock(j) : '')
-  /* LAST, AND IT IS MEANT TO BE. Paying is what most people came to do; leaving is the thing you
-     look for deliberately, and a card that offers it level with the button that takes your money
-     is a card inviting a mis-tap. */
-  + (typeof leaveBlock === 'function' ? leaveBlock(j) : '');
+  + (typeof joinBlock === 'function' ? joinBlock(j) : '');
 
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);

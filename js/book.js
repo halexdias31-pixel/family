@@ -2580,63 +2580,10 @@ function jobReceipt(j) {
    the RECEIPT rather than from the job, so what is asked for here cannot change what is charged —
    but a button offered to somebody who cannot use it is a button that gives an error for a reason
    they cannot see. */
-/* ---------- LEAVING, WHICH THE FAMILY COULD NOT DO ------------------------------------------------
-   THE BACKEND HAS HANDLED `Withdraw` SINCE THE LOBBY WAS BUILT — `bmActionsFor` offers it at every
-   status, `participantsOf` knows the one case that must not vanish, and `dataProblems` reports the
-   refund owed afterwards. There has never been a button. So a family who booked the wrong day, or
-   changed their mind, had exactly one route out: email you and wait for you to open a spreadsheet.
+/* `payBlock` AND `leaveBlock` WERE HERE. Both are marks in the tile row under the card now —
+   `jobTiles_` in tiles.js — which is where every other kind in this app keeps its actions, and the
+   reasoning is written there. */
 
-   ON EVERY STAGE, because there is no stage at which somebody may not leave. What changes is the
-   consequence, and the wording says which:
-     asked for   nothing has happened — it just goes
-     accepted    the same, but somebody had said yes, so they are told
-     paid        the seat is given up and a refund is owed. `participantsOf` marks the seat
-                 `Withdrawn` rather than deleting it, precisely so the money owed stays visible.
-
-   ONLY THEIRS. A tutor leaving is a different act with different consequences, and another
-   family's booking is not yours to cancel — both refused by the backend, and neither should be
-   offered. Same `mine` test `payBlock` uses. */
-function leaveBlock(j) {
-  if (!j || !USER) return '';
-  const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
-  if (!mine) return '';
-  const paid = (j.slots || []).some(sl =>
-    norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
-  return `<div class="join">
-    <button class="btn quiet" data-do="job-leave" data-id="${esc(String(j.id || j.jobId || ''))}"
-      ${paid ? 'data-paid="1"' : ''}>Withdraw from this</button>
-    <p class="faint">${paid
-      ? 'Your seat is given up and we will arrange the refund with you.'
-      : 'Nothing has been charged, so this simply stops.'}</p>
-  </div>`;
-}
-
-function payBlock(j) {
-  if (!j || !USER) return '';
-  if (jobStage_(j) !== 'application' || !jobAccepted_(j)) return '';
-  /* THEIRS. A tutor is paid rather than paying, and another family's booking is not yours to
-     settle — both are refused by the backend, and neither should be offered. */
-  const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
-  if (!mine) return '';
-  return `<div class="join">
-    <p class="join-say">Accepted. ${esc(money(j.price || 0))} to confirm your place.</p>
-    <button class="btn" data-do="job-pay" data-id="${esc(String(j.id || j.jobId || ''))}">
-      Pay and confirm</button>
-    <p class="faint">You are taken to Stripe. Nothing is booked until the payment comes back
-      confirmed — and then this becomes a receipt.</p>
-  </div>`;
-}
-
-/* ---------- A FESTIVE EVENT, AS A CARD ------------------------------------------------------------
-   NOT A RECEIPT, NOT A FORM, NOT A TICKET. It is an invitation — the thing that arrives through a
-   door before any of the others exist. So it is drawn as one: the occasion large, the date and the
-   place under it, what it costs a child, and how many places are left.
-
-   THE PLACES LEFT ARE THE URGENCY and they are real rather than manufactured. "4 of 12 taken" is a
-   fact about a room; a countdown would be a device. If it fills, the card says so and stops asking.
-
-   ANYBODY SIGNED IN CAN SEE IT. That is the entire point of a festive event — it is the one thing
-   on this site that goes to every family whether or not they have ever booked anything. */
 function festiveCard(f) {
   const full = f.left <= 0;
   return `<div class="fest">

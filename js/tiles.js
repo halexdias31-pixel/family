@@ -309,7 +309,15 @@ function shopTiles_(x) {
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
-    ${tile_({ icon: 'book', label: 'Book with them', act: 'book-with', data: { name: x.key } })}
+    ${/* ---------- `Book with them` WAS HERE -----------------------------------------------------
+          YOU DO NOT BOOK FROM A PERSON. A pass is who somebody is — their subjects, their rate,
+          whether they are cleared — and it is read while deciding, not while arranging. The form
+          asks twelve questions and a tutor is one of them; a button that jumps there from one answer
+          skips the other eleven and lands somebody in a half-filled form they did not open.
+
+          THE FORM IS ONE ANSWER AWAY. `What for · Booking` is the first question in the funnel and
+          the form is the page behind it, which is a shorter route than most cards offer to anything.
+          Nothing has been made harder to reach; a second entrance has been closed. */''}
     ${/* SILVER, IN THE ORDINARY ROW. Every other admin mark sits in its own silver row below —
           `adminTiles_` builds that — and `Listed` cannot join it, because that row is built for
           every kind and this control exists only for a tutor. The tone still says who it is for. */''}
@@ -321,15 +329,18 @@ function tutorTiles_(x) {
 }
 
 
-/* ---------- A VENUE ---------------------------------------------------------------------------------
+/* ---------- A VENUE HAS NO ACTIONS OF ITS OWN ---------------------------------------------------------
    THE SLIP ALREADY CARRIES EVERY FACT the sheet had — the rooms, their capacities, their rates and
    the notice period — and it carried them better, one line per room against a single "from" price.
-   The sheet was a worse copy of the card in front of it. Only the button was ever new. */
-function venueTiles_(x) {
-  return `
-    ${tile_({ label: 'Book this room', act: 'book-with', data: { name: x.key } })}
-  `;
-}
+   The sheet was a worse copy of the card in front of it. Only the button was ever new, and the
+   button has gone the same way as the tutor's: a room is where a session happens, not the thing you
+   are arranging, and booking starts on the form rather than on whichever fact you happened to be
+   reading when you decided.
+
+   NOTHING RETURNED, RATHER THAN AN EMPTY ROW. `cardTiles_` adds the star and the admin marks to
+   every kind whether or not it has actions of its own, so a venue keeps everything that is not
+   specific to being a venue — which, now, is all of it. */
+function venueTiles_(x) { return ''; }
 
 
 /* ---------- A SUBJECT -------------------------------------------------------------------------------
@@ -500,7 +511,42 @@ function cardActions_(x) {
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'me') return meTiles_(x);
+  if (x.kind === 'receipt') return jobTiles_(x);
   return '';
+}
+
+/* ---------- WHAT YOU CAN DO WITH A SESSION -------------------------------------------------------
+   PAY AND WITHDRAW WERE FULL-WIDTH BUTTONS UNDER THE PAPER, each with a paragraph beneath it — two
+   blocks of prose and two slabs of colour on a card whose actual content is fourteen rows. Every
+   other kind in this app answers the same question with one row of marks, and a session had no
+   reason to be the exception.
+
+   THE WORDS ARE NOT LOST. `tile_` puts the label in `title` and `aria-label`, so the mark is named
+   on hover and read aloud — and the two sentences those buttons carried are facts about the
+   session, which now say themselves on the receipt: `Stage` says whether it is waiting on us, and
+   `Total` says what it comes to.
+
+   ASKING IS STILL ASKED. `job-leave` confirms before it does anything and the question names the
+   consequence — that was never the button's job, and shrinking the button does not change it.
+
+   ORDER: pay, then leave. The same order they stood in, and for the same reason — one is what most
+   people came to do, the other is looked for deliberately. */
+function jobTiles_(x) {
+  const j = x.row || {};
+  const id = String(j.id || j.jobId || '');
+  if (!id || !USER) return '';
+  const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
+  if (!mine) return '';
+  const paid = (j.slots || []).some(sl =>
+    norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
+  const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
+  return `
+    ${owed ? tile_({ icon: 'cart', label: 'Pay and confirm', tone: 'buy',
+                     note: typeof money === 'function' ? money(j.price || 0) : '',
+                     act: 'job-pay', data: { id: id } }) : ''}
+    ${tile_({ icon: 'undo', label: 'Withdraw from this',
+              act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
+  `;
 }
 
 /* A tap on a tile row that is not on a row. The rows used to sit inside a card whose whole surface
