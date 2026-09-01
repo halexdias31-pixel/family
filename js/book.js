@@ -112,51 +112,67 @@ const liveJobs_ = () => myJobs_().filter(j => !jobIsPast_(j));
    answer, counted like every other, searchable by subject. `jobIsPast_` stays because `stuffItems`
    and the sessions widget both need to know which side of today a session falls on. */
 
-/* ---------- YOUR SESSIONS, AS A ROSTER --------------------------------------------------------------
-   IT DREW `jobCard` STUBS — folded receipts, three of them stacked, each with its own price, its own
-   stamp and its own dotted tear. On a card headed "Your sessions" that is three documents where the
-   question is not "what does this cost" but "who is in it and is it full".
+/* ---------- ONE WIDGET PER SESSION, NOT ONE WIDGET OF SESSIONS -------------------------------------
+   `Your sessions` WAS A SINGLE WIDGET WITH EVERY ROSTER STACKED INSIDE IT — a card headed with your
+   name for it, then a heading and a roster, then a rule, then another heading and another roster.
+   Which is a list again, and the reason the folded stubs went was that a list of sessions is not
+   what somebody wants: they want a session.
 
-   THE RECEIPT IS THE DOCUMENT AND THIS IS NOT ONE. Every session already has its receipt, one to a
-   page, under `Booking · Receipts` — a second, smaller, worse copy of the same paper in a widget is
-   the duplication that has cost us all evening. This answers a different question, so it shows a
-   different thing.
+   ONE EACH, NAMED FOR ITSELF. `Maths · GCSE · Monday` is a thing you can search for, count, star and
+   open; "Your sessions" is a container you then have to read. The funnel already counts and filters
+   results, so a widget per session means Booking says how many you are in, and typing "maths" finds
+   the one.
 
-   `rosterHtml` ALREADY DRAWS IT and has since the seats were built: the tutor, then a pip per seat,
-   filled with whoever is in it and a `+` where nobody is. It is the shape a fireteam takes in a
-   game — who is here, how many slots left — and it is exactly what somebody checking a class wants
-   to know at a glance.
+   `msgWidgets_` HAS DONE THIS SINCE MESSAGES WERE BUILT — a widget per conversation rather than one
+   inbox — and `allWidgets` concatenates them for exactly this reason. Same shape, same place, no
+   new machinery.
 
-   ONE LINE OF CONTEXT ABOVE EACH, because a roster with no session attached is four faces and no
-   answer: the subject, the day, and whether it is waiting on us. */
-function initLive() {
-  const el = $('live-body');
+   THE ROSTER IS THE WHOLE BODY. No subject line inside it, because the widget's own name is the
+   subject; no stage line, because that is on the receipt where the money is. What is left is the
+   thing this answers: who is in it, and how many seats are free. */
+function liveWidgets_() {
+  if (!USER || typeof liveJobs_ !== 'function') return [];
+  return liveJobs_().slice()
+    .sort((x, y) => String(x.startDate || '').localeCompare(String(y.startDate || '')))
+    .map(j => {
+      const id = String(j.id || j.jobId || '');
+      const when = [j.weekday, j.time].filter(Boolean).join(' ');
+      const name = [[j.subject, j.level].filter(Boolean).join(' · ') || 'Session', when]
+        .filter(Boolean).join(' · ');
+      return {
+        id: 'live:' + id,
+        kind: 'tool',
+        /* UNDER BOOKING, LIKE THE RECEIPTS. Its kind is `tool` because it is a widget; nobody looks
+           for a class among the timers. See `forLabel` and `kindLabel` in find.js. */
+        groups: 'Booking',
+        label: 'Your sessions',
+        name: name,
+        what: 'Who is in it',
+        into: 'live-body-' + id,
+        start: () => fillRoster_(id),
+        html: '<div class="card"><h3>' + esc(name) + '</h3>'
+            + '<div id="live-body-' + esc(id) + '"></div></div>',
+      };
+    });
+}
+
+/** The seats for one session. Redrawn on open, so a seat taken since the last load shows. */
+function fillRoster_(jobId) {
+  const el = $('live-body-' + jobId);
   if (!el) return;
-  if (!USER) {
-    el.innerHTML = `<p class="empty">Sign in to see your sessions.</p>`;
+  const j = (typeof myJobs_ === 'function' ? myJobs_() : [])
+    .find(x => String(x.id || x.jobId || '') === String(jobId));
+  if (!j) {
+    /* IT WENT WHILE THE WIDGET WAS OPEN — withdrawn, or cancelled by us. Said rather than left
+       blank, because an empty roster reads as a class nobody has joined. */
+    el.innerHTML = `<p class="empty">This session is no longer yours.</p>`;
     return;
   }
-  const live = liveJobs_();
-  if (!live.length) {
-    el.innerHTML = `<p class="empty">Nothing booked yet.<br>
-      <span class="faint">Sessions you are in will appear here.</span></p>`;
-    return;
-  }
-  /* SOONEST FIRST. What is coming is read forwards. */
-  const rows = live.slice().sort((x, y) =>
-    String(x.startDate || '').localeCompare(String(y.startDate || '')));
-
-  el.innerHTML = rows.map(j => {
-    const when = [j.weekday, j.time].filter(Boolean).join(' ');
-    const said = typeof jobSaid_ === 'function' ? jobSaid_(j) : '';
-    return `<div class="live-row">
-      <p class="live-what">${esc([j.subject, j.level].filter(Boolean).join(' · ') || 'Session')}
-        ${when ? `<span class="faint"> · ${esc(when)}</span>` : ''}</p>
-      ${said ? `<p class="live-stage faint">${esc(said)}</p>` : ''}
-      ${rosterHtml({ tutor: j.tutor || '', seats: Number(j.maxKids || j.maxStudents) || 4,
-                     names: (j.slots || []).map(sl => sl.client).filter(Boolean) })}
-    </div>`;
-  }).join('');
+  el.innerHTML = rosterHtml({
+    tutor: j.tutor || '',
+    seats: Number(j.maxKids || j.maxStudents) || 4,
+    names: (j.slots || []).map(sl => sl.client).filter(Boolean),
+  });
 }
 
 /* WHOSE SESSIONS ARE WHOSE. Asked in one place because `Receipts` and `Coupons` are the two halves

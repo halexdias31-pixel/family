@@ -2539,7 +2539,12 @@ function drawWidget_(wgt) {
    are built from `MESSAGES` — see `msgWidgets_` in me.js. Anything that looks a widget up has to
    look here rather than at the const, or a thread would appear in the list and refuse to open. */
 function allWidgets() {
-  return WIDGETS.concat(typeof msgWidgets_ === 'function' ? msgWidgets_() : []);
+  /* THE STATIC ONES, THEN THE TWO SETS THAT ARE MADE FROM DATA — a widget per conversation and a
+     widget per session you are in. Both are the same idea: a thing you can name is worth being its
+     own entry rather than a row inside a container somebody has to open first. */
+  return WIDGETS
+    .concat(typeof msgWidgets_ === 'function' ? msgWidgets_() : [])
+    .concat(typeof liveWidgets_ === 'function' ? liveWidgets_() : []);
 }
 
 function startWidget_(wgt) {

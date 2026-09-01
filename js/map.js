@@ -1100,34 +1100,11 @@ const WIDGETS = [
      `into` AND `start`, LIKE THE CALENDAR. The week is built from `liveJobs`, so it cannot be static
      `html` the way chess is — the markup is an empty container and `initWeek` fills it at the moment
      it is opened, which is also the moment its data is freshest. */
-  /* ---------- WHAT YOU ARE IN ---------------------------------------------------------------------
-     BESIDE THE WEEK RATHER THAN INSTEAD OF IT. The grid answers "is Tuesday free"; this answers
-     "what am I in". They look like the same widget and are not: a grid has room for a block, and
-     what somebody checking their bookings wants is the tutor, the price and the dates — which is a
-     document, and which is why this draws the same receipt stubs the booking pages draw.
-
-     `initLive` IS IN book.js WITH THE REST OF THE SESSION CODE, the way `initWeek` is. map.js knows
-     where a widget goes; it does not know what a session looks like. */
-  /* ---------- UNDER BOOKING, AND ONLY BOOKING -----------------------------------------------------
-     IT WAS UNDER BOTH, on the argument that a thing findable from one place only is findable from
-     the wrong one half the time. That argument is wrong here and the evening proved it: two answers
-     means the same widget counted twice, kept in step twice, and reachable by two routes that have
-     to stay identical — which is the exact fault the whole column collapse was about.
-
-     BOOKING IS THE RIGHT ONE. Its kind is `tool` because it is a widget, but Tools is where
-     somebody looks for a timer or a notepad — things you pick up and use. This is your bookings,
-     and somebody wanting it answers `Booking`.
-
-     `label` GOES WITH IT, or the second question would offer `Tools` as its kind — the word it was
-     just moved away from. Both overrides are read by `forLabel` and `kindLabel` in find.js. */
-  { id: 'live', kind: 'tool', name: 'Your sessions',
-    groups: 'Booking', label: 'Your sessions',
-    start: () => initLive?.(),
-    into: 'live-body', what: 'Your sessions',
-    html: `<div class="card">
-    <h3>Your sessions</h3>
-    <div id="live-body"></div>
-  </div>` },
+  /* ---------- THE `live` WIDGET WAS HERE ------------------------------------------------------------
+   ONE WIDGET HOLDING EVERY SESSION. It is one widget PER session now, built from the data by
+   `liveWidgets_` in book.js the way `msgWidgets_` builds one per conversation — so each is named
+   for itself, counted on its own under Booking, and findable by typing its subject.
+   Nothing static is left to declare: a session is not a fixture of the app, it is a row. */
 
   { id: 'week', kind: 'tool', name: 'Your week', start: () => initWeek?.(),
     into: 'week-body', what: 'Your week',
