@@ -62,7 +62,19 @@ function corsImage_(src) {
 async function receiptCanvas(stage) {
   const L = bookPrice();
   if (!L) return null;
-  const rows = breakdownRows(L);
+  /* ---------- THE ROWS THE CARD DREW, NOT A SECOND OPINION --------------------------------------
+     THIS CALLED `breakdownRows(L)` AND DREW THE RESULT, which is the priced lines only — before the
+     card merges them onto the questions, orders them, and adds the ones that have no price at all.
+     What somebody shared was therefore a different document from the one they were looking at:
+     fewer rows, a duplicate tutor line the card had already merged away, and Extra subjects in the
+     wrong place. The card is what they read and checked; the picture is what they send.
+
+     `BOOK_ROWS` IS THAT LIST, set by `bookBreakdown` every time the card is drawn — and the card is
+     always drawn before there is a share button to press. The fallback is the old behaviour, for
+     the one case where a picture is asked for without a card having been built. */
+  const rows = (typeof BOOK_ROWS !== 'undefined' && BOOK_ROWS && BOOK_ROWS.length)
+    ? BOOK_ROWS
+    : breakdownRows(L);
   /* THE SAME WORDS THE CARD USES, so a shared picture and the screen it came from cannot say
      different things about the same booking. */
   const STAGE_SAY = {

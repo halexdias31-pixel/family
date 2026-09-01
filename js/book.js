@@ -1747,6 +1747,10 @@ function stepRows_() {
     });
 }
 
+/* THE ROWS THE CARD LAST DREW. Read by `receiptCanvas` so a shared picture is the document on the
+   screen rather than a second attempt at it. */
+let BOOK_ROWS = [];
+
 function bookBreakdown(L, foot) {
   /* ---------- THE TWO PHOTOGRAPHS ARE GONE --------------------------------------------------------
      THEY WERE HALF THE CARD. Two squares side by side, each a full 1:1 at half the card's width —
@@ -1877,10 +1881,23 @@ function bookBreakdown(L, foot) {
     });
   });
 
-  const out = body
+  const rows = body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()])
-    .map(receiptRow);
+    .concat([noteRow_()]);
+  /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
+     THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
+     `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
+     lines, before any of the work this function does. So the card merged the base line onto the
+     Tutor row and the picture did not; the card put Extra subjects under Subject and the picture
+     put it at the foot; the card showed the questions and the picture showed only the charges.
+     Two documents of the same booking, and the one people actually send is the one nobody was
+     looking at.
+
+     PUT WHERE THE CANVAS CAN REACH IT rather than passed as an argument, because `receiptCanvas` is
+     called from a share button that has no idea a card was ever drawn — and the card is always
+     drawn before it can be shared. One assignment, and the picture is the screen. */
+  BOOK_ROWS = rows;
+  const out = rows.map(receiptRow);
 
   const bars = receiptBars(BOOK_STEPS.map(st => {
     const v = BOOKING[st.id];
