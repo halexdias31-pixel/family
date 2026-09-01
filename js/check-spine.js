@@ -33,9 +33,31 @@ function run() {
   /* ---------- THE SPINE, READ OFF THE FILE ------------------------------------------------------
      Not copied here. A checker holding its own copy of the list it checks passes for ever the day
      somebody edits the real one. */
-  const block = src.match(/const SPINE = \[([\s\S]*?)\];/);
-  if (!block) { console.log('COULD NOT RUN — no SPINE in book.js'); process.exitCode = 1; return; }
-  const spine = (block[1].match(/'([^']+)'/g) || []).map(s => s.slice(1, -1));
+  /* ---------- THE SPINE IS BUILT FROM THE FORM NOW, SO IT IS BUILT HERE THE SAME WAY --------------
+     It used to be a literal array and this read it. It is now derived: every `short` on
+     `BOOK_STEPS`, in order, with the non-question rows pinned after the step they belong with. So
+     this replays that — which also means the checker fails if the derivation stops matching, rather
+     than checking a list that no longer exists. */
+  const shorts = [...src.matchAll(/short: '([^']+)'/g)].map(m => m[1]);
+  const exBlock = src.match(/const SPINE_EXTRA = \[([\s\S]*?)\];/);
+  if (!shorts.length || !exBlock) {
+    console.log('COULD NOT RUN — BOOK_STEPS or SPINE_EXTRA not found in book.js');
+    process.exitCode = 1; return;
+  }
+  const extras = [...exBlock[1].matchAll(/after:\s*'([^']*)',\s*row:\s*'([^']+)'/g)]
+    .map(m => ({ after: m[1], row: m[2] }));
+  const spine = [];
+  shorts.forEach(k => {
+    spine.push(k);
+    extras.forEach(x => { if (x.after === k) spine.push(x.row); });
+  });
+  extras.forEach(x => { if (x.after && spine.indexOf(x.row) === -1) spine.push(x.row); });
+  extras.filter(x => !x.after).forEach(x => spine.push(x.row));
+
+  /* AN EXTRA PINNED TO A STEP THAT IS GONE. It still reaches the spine — it is appended rather than
+     dropped — but at the end, nowhere near where it was meant to be, which on a document read by
+     position is as good as wrong. Said plainly rather than left to be noticed. */
+  const stranded = extras.filter(x => x.after && shorts.indexOf(x.after) === -1);
 
   const aliasBlock = src.match(/const SPINE_ALIAS = \{([^}]*)\}/);
   const alias = {};
@@ -79,6 +101,11 @@ function run() {
     process.exitCode = 1;
   } else {
     console.log('  every row either builder draws is on the spine.');
+  }
+  if (stranded.length) {
+    stranded.forEach(x => console.log('  ✗ "' + x.row + '" is pinned after "' + x.after
+      + '", which is not a step on the form any more — it has fallen to the end of both documents.'));
+    process.exitCode = 1;
   }
   if (never.length) {
     console.log('  rows nothing fills yet (they print a dash on both): ' + never.join(', '));

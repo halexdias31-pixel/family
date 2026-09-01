@@ -1805,18 +1805,57 @@ let BOOK_ROWS = [];
    ADDING A ROW MEANS ADDING IT HERE, and both documents get it. `check-spine.js` fails if either
    builder emits a label that is not on this list, which is what stops the drift coming back.
 ================================================================================================== */
-const SPINE = [
-  'Kind', 'Class', 'Subject', 'Extra subjects', 'Level', 'Seats', 'Venue', 'Space',
-  'When', 'When free', 'Each session', 'Term', 'Weeks left', 'Split', 'Sharing with',
-  'Child', 'For', 'Tutor', 'Running', 'About', 'Dates', 'Note',
-  /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: a class printed
-     `A seat` and `Shared between` on the form and the receipt printed neither, so the one document
-     that says what a seat costs and how many families share it was the one nobody was handed.
-     On the spine, so both draw them — a dash on an ordinary booking, which is honest: it is a
-     question that has an answer for a class and no answer for a private session. */
-  'A seat', 'Shared between',
-  'Stage', 'Status', 'Asked for',
+/* ---------- THE FORM IS THE ARCHETYPE, SO THE FORM IS WHERE THIS COMES FROM ------------------------
+   THE FIRST VERSION OF THIS WAS THE FORM'S ORDER TYPED OUT BY HAND, which is a copy — and a copy is
+   a thing that goes stale the first time somebody adds a question to `BOOK_STEPS` and does not think
+   to come here. That is the exact failure the spine exists to stop, reintroduced one level up.
+
+   SO THE QUESTIONS ARE READ OFF THE STEPS. Every step's `short` IS a spine row, in the order the
+   form asks them, taken from the one list that already decides what the form looks like. Add a
+   question to the form and the receipt grows a row for it, with no second place to remember.
+
+   AND THE ROWS THAT ARE NOT QUESTIONS ARE DECLARED HERE, because they have nowhere else to come
+   from: `Extra subjects` is arithmetic, `Running` and `Weeks left` are looked up from the term,
+   `Stage` and `Status` and `Asked for` only exist once a booking has been sent. Each is pinned
+   AFTER the question it belongs with rather than given an index, so inserting a step upstream moves
+   them along with it instead of leaving them stranded at a number that no longer means anything. */
+const SPINE_EXTRA = [
+  { after: 'Subject', row: 'Extra subjects' },
+  { after: 'When',    row: 'Each session' },
+  { after: 'Term',    row: 'Weeks left' },
+  { after: 'Term',    row: 'Running' },
+  { after: 'Split',   row: 'Sharing with' },
+  { after: 'Tutor',   row: 'About' },
+  { after: 'Tutor',   row: 'Dates' },
+  { after: 'Tutor',   row: 'Note' },
+  /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: the form printed
+     `A seat` and `Shared between` and the receipt printed neither, so the one document that says
+     what a seat costs and how many families share it was the one nobody was handed. */
+  { after: 'Tutor',   row: 'A seat' },
+  { after: 'Tutor',   row: 'Shared between' },
+  /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
+     about — which is where a receipt puts it and where the form now puts it too. */
+  { after: '',        row: 'Stage' },
+  { after: '',        row: 'Status' },
+  { after: '',        row: 'Asked for' },
 ];
+
+const SPINE = (() => {
+  const out = [];
+  const tail = SPINE_EXTRA.filter(x => !x.after).map(x => x.row);
+  BOOK_STEPS.forEach(st => {
+    if (!st.short) return;
+    out.push(st.short);
+    SPINE_EXTRA.forEach(x => { if (x.after === st.short) out.push(x.row); });
+  });
+  /* AN EXTRA PINNED TO A STEP THAT NO LONGER EXISTS would vanish silently, which is the same class
+     of fault as everything else tonight. Anything unplaced goes on the end, where it is visible,
+     and `check-spine.js` reports it. */
+  SPINE_EXTRA.forEach(x => {
+    if (x.after && out.indexOf(x.row) === -1) out.push(x.row);
+  });
+  return out.concat(tail);
+})();
 
 /* THE RECEIPT'S OLD NAMES FOR SPINE ROWS. Kept as a translation rather than renamed at the twenty
    call sites, so a `push` anywhere in this file still lands on the right line. */
