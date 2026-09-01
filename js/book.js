@@ -926,6 +926,10 @@ const BOOK_STEPS = [
      WHY AN ADMIN NEEDS IT: somebody rings up and you book it for them. Without this the receipt
      says the booking belongs to whoever was holding the phone, which is you. */
   { id: 'client', label: 'Who is this for?', short: 'For',
+    /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. The same expression `bookPrice`,
+       `breakdownRows` and the submitted job have each carried privately — said once here instead,
+       so the row cannot disagree with what is actually sent. */
+    fallback: () => (USER && USER.name) || '',
     options: () => {
       if (!isAdmin()) return [];
       const me = (USER && USER.name) || '';
@@ -1714,7 +1718,18 @@ function stepRows_() {
         ? bookRuns().map(r => r.dayName + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00')
             .join(', ')
         : st.multi ? (v || []).join(', ')
-        : (st.label_ ? st.label_(v) : (v || ''));
+        /* ---------- A QUESTION WITH AN OBVIOUS ANSWER SHOWS IT ---------------------------------
+           "FOR" SAT EMPTY WHILE EVERY OTHER PART OF THE APP ALREADY KNEW. `BOOKING.client` is only
+           set when somebody CHOOSES — which for an admin booking on behalf of a family is the whole
+           point of the row, and for everybody else is a question with one possible answer. So the
+           three places that actually use it all wrote `BOOKING.client || USER.name`, and the row
+           that DISPLAYS it did not: signed in as Daniel, the booking priced itself for Daniel,
+           saved itself for Daniel, and printed "For —".
+
+           `fallback` PUTS THAT ONE RULE ON THE STEP. The row shows what the booking would be
+           submitted as, which is the only honest thing for it to show, and choosing anything else
+           still overwrites it exactly as before. */
+        : (st.label_ ? st.label_(v) : (v || (st.fallback ? st.fallback() : '')));
       return { n: String(++line).padStart(3, '0'),
                k: st.short || st.id,
                /* AN EM DASH, NOT AN EMPTY CELL. A blank looks like a row that failed to draw; a
