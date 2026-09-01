@@ -1469,8 +1469,13 @@ function breakdownRows(L) {
      "Asked for — waiting on us" is what will happen, and the receipt for the same session says it
      has. Same vocabulary, one place, no second table of words to keep in step.
 
-     NO `Status` ROW HERE. That one lists the seats, and a form nobody has sent has none. */
+     AND `Status` COMES WITH IT. It was left off on the grounds that a form nobody has sent has no
+     seats — true, and the wrong conclusion: the point of these two lines is that the document reads
+     the SAME from the first question to the last payment, and a row that appears only once the
+     thing is saved is a row that changes shape at exactly the moment somebody is checking it.
+     It says what it is: nobody in it yet. Which is a fact about the booking, not a blank. */
   push('Stage', 'Not asked for yet', '', '', '', { free: true });
+  push('Status', 'nobody in it yet', '', '', '', { free: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
      "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
      has sent, all reporting that it has not been sent — which the card already says at the bottom,
