@@ -554,8 +554,24 @@ const FACETS = [
      the other half of what makes a good early question. */
   { field: 'resourceType', label: 'Type',     of: x => x.resourceType },
   { field: 'keystage',  label: 'Key stage',   of: x => x.keystage },
+  /* ---------- THREE BANDS, THREE QUESTIONS, BECAUSE THEY ARE NOT THE SAME QUESTION ----------------
+     `band_value` HOLDS A NUMBER AND `band_type` SAYS WHAT KIND OF NUMBER IT IS. A GCSE grade 4 and
+     a Year 4 sheet both hold `4`, and asking one question called "Grade" over both would put a
+     nine-year-old's worksheet under Grade 4 next to a foundation exam topic. Each type gets its own
+     facet, gated on `bandType`, so the three can never be mixed and the wrong one is never asked.
+
+     `stage` AND `grade` WERE HERE ALREADY; `year` IS THE ONE THAT WAS MISSING — which is why the
+     Corbettmaths primary sheets could not be reached from the funnel at all. They are banded by
+     school year, no facet asked about school years, and the Grade question they could not answer
+     was the only one on offer.
+
+     THE COVERAGE RULE THEN DOES THE REST. `Grade` is only offered when enough of what is on screen
+     can answer it, so choosing Learning · Maths · Worksheet with primary sheets showing offers
+     `Year`, and with GCSE sheets showing offers `Grade` — without either list naming the other. */
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
                                                     ? 'Grade ' + x.bandValue : '' },
+  { field: 'yearGroup', label: 'Year',        of: x => x.bandValue && x.bandType === 'year'
+                                                    ? 'Year ' + x.bandValue : '' },
   { field: 'stage',     label: 'Stage',       of: x => x.bandValue && x.bandType === 'stage'
                                                     ? x.bandValue : '' },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
