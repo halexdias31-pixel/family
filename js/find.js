@@ -593,8 +593,19 @@ const FACETS = [
      paper, then which question, then which part.
      Blank on everything that is not a question, so they only appear once the list is questions —
      which is what every other facet here already does. */
-  { field: 'qNumber',   label: 'Question',    of: x => x.qNumber || '' },
-  { field: 'qPart',     label: 'Part',        of: x => x.qPart || '' },
+  /* ---------- ONLY WHERE A QUESTION NUMBER MEANS SOMETHING -----------------------------------
+     ON A PAST PAPER IT IS A REAL QUESTION: "question 5" is a specific problem people talk about,
+     look up and revise. ON A WORKSHEET IT IS A ROW INDEX. Twenty-five primary topics with ten
+     questions each produced "1 (25), 2 (25), 3 (25) … 10 (25)" — ten identical answers that carry
+     no fact about anything, offered as the next step after Key stage.
+
+     THE DIFFERENCE IS THE DOCUMENT, so the document decides. A paper's numbering is part of how it
+     is referred to; a worksheet's is the order it happens to be typed in. Blank on a worksheet, so
+     the coverage rule never offers it there — and unchanged on the papers, where it was right. */
+  { field: 'qNumber',   label: 'Question',
+    of: x => (x.resourceType === 'Worksheet' ? '' : (x.qNumber || '')) },
+  { field: 'qPart',     label: 'Part',
+    of: x => (x.resourceType === 'Worksheet' ? '' : (x.qPart || '')) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* Last, because it is the one somebody asks when they already know what they want. */
   { field: 'afford',    label: 'Price',       of: x => x.cost === 0 ? 'Free'
