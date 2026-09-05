@@ -421,7 +421,15 @@ function thingCard_(x, credits) {
                 have to take on trust.
                 Read off the wave when the year itself is blank: "June 2024" carries it, and
                 nobody should have to type the same fact into two columns. */''}
-          <p class="sub">${mark(x.sub || x.subject || '')}${yearOf(x)
+          ${/* WHO IT IS FROM, FIRST. The line said "Maths · 2025" on four hundred cards — and on a
+                screen already filtered to maths the subject is the one word every card shares, which
+                makes it the one word none of them needed. The company varies: 1stclassmaths at KS4,
+                Corbettmaths at KS2. That is the fact that tells two cards apart.
+                NOT ON A PAPER. `paperCard` has already drawn the board across the top of the cover,
+                and printing "AQA" twice on one card reads as a mistake rather than emphasis. */''}
+          <p class="sub">${x.company && !paperish_(x)
+            ? `${mark(x.company)}${x.sub || x.subject ? ' <span class="faint">· </span>' : ''}` : ''}${
+            mark(x.sub || x.subject || '')}${yearOf(x)
             ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
             /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
                says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
@@ -1131,7 +1139,12 @@ function allTopics() {
          download and nothing to link to. PAGES is different: see `paperPages_` above. It is worked
          out from the marks now rather than left at zero, which is what makes a printed copy
          offerable at all. */
-      link: '', image: '', company: '',
+      link: '', image: '',
+      /* WHO WROTE IT. This was hardcoded empty, so the `Company` facet had nothing to offer and
+         every worksheet in the library looked like it came from nowhere. The questions sheet
+         carries it now — 1stclassmaths, Corbettmaths, AQA — and a worksheet's publisher is most
+         of what tells two Grade 5 sheets apart on a screen already filtered to Grade 5 maths. */
+      company: r.company || '',
       type: r.resourceType || '', board: r.examBoard || '',
       bandType: r.bandType || '', bandValue: r.bandValue || '',
       keystage: r.keyStage || r.keystage || '', tier: r.tier || '',
