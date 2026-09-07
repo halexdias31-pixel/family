@@ -578,20 +578,31 @@ function googleSignedIn_(res) {
       USER = Object.assign({}, d);
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
+      /* THE SAME TWO LINES AS THE PIN PATH, and for the same reason — see the long note there. Both
+         doors have to feel the same or the one that feels slower reads as the one that is broken. */
+      repaint();
       load();
     })
     .catch(err => { if (said) said.textContent = why_(err); });
 }
 
-on('do-signin', () => {
+on('do-signin', el => {
   const name = ($('in-name') || {}).value || '';
   const pin = ($('in-pin') || {}).value || '';
   const said = $('in-said');
   if (!name || !pin) { if (said) said.textContent = 'Both, please.'; return; }
-  if (said) said.textContent = 'Checking…';
-  /* Through `send_`, so a phone with no signal says so rather than doing nothing at all. Signing
-     in was one of the five round trips with no failure path: the button simply did not respond. */
-  send_({ action: 'verifyLogin', name, pin }, { where: 'in-said' })
+  /* ---------- THE BUTTON HAS TO LOOK PRESSED ------------------------------------------------------
+     `send_` HAS DONE THIS ALL ALONG and this call was the one that did not ask. It takes `button`
+     and disables it, and `busy` and relabels it, restoring both whatever happens — and signing in
+     passed neither, so the only thing that changed on screen was a line of faint grey text under a
+     button that still read `Sign in` and could still be pressed.
+
+     From the outside that is a frozen app. The request is fifteen seconds against Apps Script, the
+     button invites a second press for all of them, and a second press is a second verifyLogin —
+     so the fix is not decoration, it is the thing that stops two sessions being opened by somebody
+     who thought the first tap missed. */
+  send_({ action: 'verifyLogin', name, pin },
+        { where: 'in-said', button: el, busy: 'Checking…', saying: 'Checking…' })
     .then(d => {
       if (!d.success) { if (said) said.textContent = d.error || 'That did not work.'; return; }
       /* THE REPLY, PLUS WHAT WE ALREADY KNEW. This was `USER = d` — the reply wholesale — so any
@@ -605,9 +616,46 @@ on('do-signin', () => {
       if (!USER.name) USER.name = name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
+      /* ---------- DRAWN NOW, REFRESHED AFTER --------------------------------------------------------
+         THIS WAS `load()` ALONE, AND `load()` IS A FULL PAYLOAD FETCH — about fifteen seconds against
+         this backend. `repaint` is the LAST line of it, so nothing on screen changed until the whole
+         spreadsheet had come back: you were signed in, the toast said so, and the card in front of
+         you still asked for your name until something else happened to repaint it. That is the
+         "it doesn't tell you until you interact again" — the interaction was not doing the work, it
+         was just the next thing that happened to repaint.
+
+         SIGNING OUT NEVER HAD THIS. It sets `USER = null` and repaints on the spot, with no fetch at
+         all, which is exactly why leaving feels instant and arriving did not.
+
+         EVERYTHING THE SIGNED-IN SCREEN NEEDS IS ALREADY IN `USER` — the reply carried it. So paint
+         it, then let `load()` bring the payload the person's id unlocks and repaint again when it
+         lands. Two paints, and the first one is the one that matters. */
+      repaint();
       load();
     })
     .catch(err => { if (said) said.textContent = why_(err); });
+});
+
+/* ---------- ENTER SUBMITS, BECAUSE THE KEYBOARD SAYS IT WILL --------------------------------------
+   A PHONE KEYBOARD PUTS `Go` WHERE RETURN WOULD BE and pressing it did nothing at all — the two
+   inputs are not in a `<form>`, so there is no default submit to happen. Somebody who types their
+   PIN and presses the key the keyboard is offering them gets silence, and the reasonable conclusion
+   is that the app is broken rather than that the key is decorative.
+
+   ONE LISTENER ON THE DOCUMENT, ADDED ONCE, rather than handlers in the markup: the card is redrawn
+   on every repaint, and anything attached to its inputs would be attached again each time — see the
+   note on `data-do` in shell.js, which is the same argument.
+
+   IT PRESSES THE BUTTON RATHER THAN REPEATING WHAT THE BUTTON DOES. `do-signin` needs the element
+   to disable, so calling the handler without one would restore exactly the frozen-button fault
+   above, in a second place where nobody would think to look for it. */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const id = e.target && e.target.id;
+  if (id !== 'in-name' && id !== 'in-pin') return;
+  e.preventDefault();
+  const btn = document.querySelector('[data-do="do-signin"]');
+  if (btn && !btn.disabled) btn.click();
 });
 
 on('signout', () => {
