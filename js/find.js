@@ -607,6 +607,28 @@ const FACETS = [
   /* A yes-or-no, phrased as the two answers rather than as the question. "Printed / Digital" is a
      choice; "Print required: true" is a database column somebody left showing. */
   { field: 'paper',     label: 'Printed?',    of: x => x.paper ? 'Printed' : 'Digital' },
+  /* ---------- WHICH PAPER, AND IT WAS NEVER ASKED --------------------------------------------------
+     THE COMMENT BELOW SAYS "which paper, then which question, then which part" AND THERE WAS NO
+     WHICH-PAPER. Twenty-one facets and not one of them looked at the paper's name — so answering
+     Learning · Maths · Past paper · KS4 · Higher went straight to a column of question numbers,
+     1 to 23, drawn from all six papers of a sitting at once. Question 5 appeared once and meant
+     five different problems.
+
+     THE NAME WAS ALREADY ON EVERY ROW. `questionItems` puts the paper's name in `sub` so the card
+     can say where a question came from; nothing ever filtered on it. This adds no column, no
+     backend change and no data — it reads the field that was already there.
+
+     A PAPER AND ITS QUESTIONS ANSWER THE SAME WAY, which is what makes choosing one keep both: the
+     paper's own card stays in the list beside its questions rather than being filtered out by the
+     answer that selected it.
+
+     BLANK ON EVERYTHING ELSE, so the coverage rule keeps it away from worksheets, tutors and
+     venues — a worksheet has a name too, and offering "which paper" over a hundred and sixty-one
+     worksheets would be the question-number fault again in a different column. */
+  { field: 'paperName', label: 'Which paper',
+    of: x => x.kind === 'question'
+      ? (x.sub || '')
+      : (/paper/i.test(String(x.resourceType || '')) ? (x.name || '') : '') },
   /* ---------- TWO MORE RUNGS ON THE SAME LADDER ------------------------------------------------
      A QUESTION IS NOT A NEW KIND OF SEARCH, it is level → year → paper carried two steps further.
      These sit after the paper facets so the funnel narrows in the order somebody thinks in: which
@@ -1046,7 +1068,34 @@ function questionItems() {
   all.forEach(r => { if (r.kind === 'stem') stems[pid(r) + '|' + r.q] = r; });
 
   /* NO `kind: paper` ROWS LEFT TO EXCLUDE. A paper is a group of these now, not a row beside them. */
-  return all.filter(r => r.kind !== 'stem').map(r => {
+  /* ---------- A WORKSHEET IS ONE THING, NOT FIFTY-THREE ---------------------------------------------
+     EVERY QUESTION WAS ITS OWN CARD, BESIDE THE PAPER IT CAME FROM. Two thousand four hundred and
+     sixty-three worksheet rows across a hundred and sixty-one worksheets — so answering Learning,
+     KS4, Worksheet, Grade 3 left eleven worksheets presented as a hundred and eighty-six cards, and
+     `Times Tables` alone was fifty-three of them, one after another, named Q1 to Q53.
+
+     Nothing could narrow that further and nothing should have to: the facets had already done their
+     job. The list was wrong, not the funnel.
+
+     AND IT IS THE SLOWNESS. `screen('stuff')` builds ONE DOM SECTION PER RESULT before anything is
+     filled — so picking Learning inserted about three and a half thousand `<section>` elements and
+     then positioned every one of them. Collapsing the worksheets takes that to under a thousand,
+     which is the difference between a screen that stalls on the tap and one that does not.
+
+     PAST PAPERS ARE LEFT ALONE, and the distinction is not arbitrary — it is the one `qNumber`
+     already makes two hundred lines down, for exactly this reason. `Question 5` of a past paper is
+     a thing somebody revises and asks for by number. `Q17` of a times-tables sheet is not: nobody
+     wants the seventeenth question, they want the sheet. The paper card is the answer for one and
+     the question card is the answer for the other.
+
+     THE QUESTIONS ARE NOT LOST. They are on the worksheet's own card, which is where somebody who
+     has chosen a worksheet is looking. */
+  const collapse = r => {
+    const p = papers[pid(r)] || {};
+    return String(p.resourceType || '').toLowerCase() === 'worksheet';
+  };
+
+  return all.filter(r => r.kind !== 'stem' && !collapse(r)).map(r => {
     const p = papers[pid(r)] || {};
     const stem = stems[pid(r) + '|' + r.q] || null;
     return {

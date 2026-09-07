@@ -7154,3 +7154,58 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE STATE LINE ON A DOCUMENT CARD. `ok` and `warn` already exist and are used elsewhere; nothing
    is added for them here, deliberately — a second colour for the same meaning is a second thing to
    keep in step. */
+
+/* ==================================================================================================
+   AN ANSWER IS A THING YOU PRESS.
+
+   `.row.tap.counted` — the answers under a funnel question — drew as text on a line with a number
+   at the end and a hairline under it, which is the same thing `.row` draws for `Credits · 40` on a
+   receipt. One is a fact and the other is the only control on the screen, and they looked identical.
+   Nothing said the label was pressable except that it happened to be.
+
+   THE CHEVRON CANNOT DO IT. `.row.tap` pins one to the right edge, and so does the count — so it
+   was turned off for counted rows (see above) and there has been no press affordance since. The
+   count is the better mark for what is BEHIND a row; it says nothing about whether it is a control.
+
+   SO THE ROW BECOMES A SURFACE. A background, a border and a radius are what everything else in
+   this app already uses to say "this is a thing" — `.card`, `.chip`, `.btn`. Reusing them costs no
+   new idea and no new colour, and an answer now reads as the same class of object as the chips
+   above it, which is what it is.
+================================================================================================== */
+.row.tap.counted {
+  /* THE HAIRLINE GOES. Two rows separated by a border AND by a gap is a divider inside a gap —
+     it reads as a table that has been given rounded corners rather than as a list of buttons. */
+  border-bottom: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: .6rem;
+  background: rgb(255 255 255 / .022);
+  padding: .62rem .7rem;
+  margin-bottom: .34rem;
+  /* THE LABEL IS THE THING NOW, so it takes the foreground colour. `--dim` is right for the left
+     half of a fact row and wrong for the text on a button. */
+  align-items: center;
+  transition: background var(--quick) ease, border-color var(--quick) ease,
+              transform var(--quick) ease;
+}
+.row.tap.counted:last-child { margin-bottom: 0; }
+.row.tap.counted .k { color: var(--ink); font-weight: 560; }
+
+/* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
+   importance — and the answer is what you are choosing; the number only tells you how much is
+   behind it. */
+.row.tap.counted .v { color: var(--dim); font-size: .82rem; }
+
+/* PRESSED, AND IT MOVES. `:active` alone is invisible on a phone — the finger is over the row.
+   A shift of one pixel is felt rather than seen, which is the point. */
+.row.tap.counted:active {
+  background: rgb(255 255 255 / .06);
+  border-color: var(--gold);
+  transform: translateY(1px);
+}
+
+/* HOVER IS FOR THE DESKTOP AND MUST NOT STICK ON A PHONE. A plain `:hover` is applied on tap by
+   mobile Safari and stays applied until something else is tapped, so the last answer pressed keeps
+   a highlight that means nothing. */
+@media (hover: hover) {
+  .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
+}
