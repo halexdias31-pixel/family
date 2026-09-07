@@ -92,6 +92,17 @@ const TABS = [
 const TAB_ORDER = ['make', 'feed', 'stuff', 'account'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
+/* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED -------------------------------
+   `go` FELL BACK TO `TABS[0]`, AND THAT USED TO BE FIND. It was correct only because Find happened
+   to be written first, and the moment the camera took the left-hand end it became the camera — so
+   `go('me')`, which is still called from find.js and still has no screen, would have dropped anyone
+   told to sign in onto an empty composer.
+
+   THE NOTE IN find.js SAYS EXACTLY WHY THAT IS THE WORST KIND OF FAULT: a fallback that lands
+   somewhere plausible is worse than one that lands nowhere, because nobody reports it. Naming the
+   screen means the next person to reorder these cannot move it by accident. */
+const TAB_HOME = 'stuff';
+
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */
 const SCREENS = {};
@@ -107,14 +118,20 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
    back to `TABS[0]` — right, but silently.
    SO IT IS CHECKED RATHER THAN TRUSTED. A remembered id that is no longer a tab is discarded here
    instead of being corrected three functions later, and `account` is a place you can be left. */
-let AT = 'stuff';
+/* FIRST VISIT LANDS ON FIND, not on the leftmost column. Instagram opens on its feed because its
+   feed is the product; here the feed is a noticeboard for a tutoring business and the funnel is the
+   product — somebody arriving for the first time wants the thing they came for, not four posts.
+   Anybody who prefers the feed reaches it with one swipe and is remembered there afterwards. */
+let AT = TAB_HOME;
 try {
   const was = localStorage.getItem('familyTab');
   if (was && TABS.some(t => t.id === was)) AT = was;
 } catch {}
 
 function go(id, remember, instant) {
-  const tab = TABS.find(t => t.id === id) || TABS[0];
+  const tab = TABS.find(t => t.id === id)
+           || TABS.find(t => t.id === TAB_HOME)
+           || TABS[0];
   const was = AT;
   AT = tab.id;
   if (remember !== false) { try { localStorage.setItem('familyTab', AT); } catch {} }
