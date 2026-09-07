@@ -576,17 +576,17 @@ const FACETS = [
   /* ---------- A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE -------------------------------------
      PRIMARY WORKSHEETS DO NOT RESPECT THE BOUNDARY. Column addition, times tables, telling the time,
      naming 2-D shapes — Year 2 meets all of them and Year 6 is still practising them. Forcing one
-     answer meant picking which half of the audience to hide the sheet from, and KS2 won every time
-     because there were more of them, so a KS1 tutor filtering by key stage saw nothing at all.
+     answer meant choosing which half of the audience to hide the sheet from, and KS2 won every
+     time, so a KS1 tutor filtering by key stage saw nothing at all.
 
      THE MACHINERY WAS ALREADY THERE, HALF OF IT. `asList_` reads an array or a single value and
-     every facet goes through it — matching at line 756 and counting at 781 — so a facet returning
-     two key stages already filters and counts correctly against both. What it did NOT read was a
-     comma inside a cell, which is how a spreadsheet holds a list. `KS1, KS2` arrived as one answer
-     spelled "KS1, KS2", sitting in the list beside the real ones.
+     every facet goes through it — matching at `matches_` and counting in `facetValues` — so a facet
+     returning two key stages already filters and counts correctly against both. What it did NOT
+     read was a comma inside a cell, which is how a spreadsheet holds a list: `KS1, KS2` arrived as
+     one answer spelled "KS1, KS2", sitting in the list beside the real ones.
 
-     SO THE SPLIT HAPPENS HERE, not in the sheet and not in the backend. One line, and the column
-     stays something a person can type into. */
+     SO THE SPLIT HAPPENS HERE, not in the sheet and not in the backend, and the column stays
+     something a person can type into. */
   { field: 'keystage',  label: 'Key stage',
     of: x => String(x.keystage || '').split(',').map(s => s.trim()).filter(Boolean) },
   /* ---------- THREE BANDS, THREE QUESTIONS, BECAUSE THEY ARE NOT THE SAME QUESTION ----------------
@@ -1255,9 +1255,6 @@ function paperMismatches() {
   /* `keystage`, NOT `keyStage`. The backend sends the lower-case spelling, so the capital one
      compared undefined against undefined on every paper and could never report a mismatch in the
      one field most likely to have one. */
-  /* `keystage` IS STILL COMPARED, and still as a whole string. Two rows of one worksheet must agree
-     on which key stages they serve — `KS1, KS2` on one row and `KS2` on the next is exactly the
-     drift this check exists to catch, and comparing the lists as written catches it. */
   const F = ['name', 'subject', 'resourceType', 'keystage', 'bandType', 'bandValue',
              'tier', 'examBoard', 'examWave', 'year'];
   const by = {};
