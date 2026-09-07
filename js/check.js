@@ -38,7 +38,7 @@ const {freeVars,eagerFree}=require('./_scope.js');
    that check answers a question about an app that does not exist. */
 const ORDER=['core','price-rows','chess','data','shell','cards','me','posts','links','find',
              'resource','arcade','map','book','receipt','flyer','mat','games','overworld','select',
-             'collections','tiles','boot'];
+             'collections','tiles','terms','boot'];
 
 const GLOBALS=new Set(('window document navigator localStorage sessionStorage console Math JSON Date '+
 'Array Object String Number Boolean Set Map WeakMap WeakSet Promise RegExp Error TypeError Symbol '+

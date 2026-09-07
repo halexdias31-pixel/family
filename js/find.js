@@ -191,6 +191,18 @@ const KINDS = {
      UNDER `People`, where a person goes, found the way every other person in this app is found. */
   me: { group: 'People', label: 'You', card: () => meCard() },
 
+  /* ---------- THE PAPERWORK, AND IT IS A DEPARTMENT ------------------------------------------------
+     ITS OWN GROUP, NOT UNDER `Learning`. The first question asks which errand you are on, and
+     somebody looking for the cancellation policy is not revising — filing a policy under Learning
+     would be answering that question wrongly in order to reach it, which is the fault the note above
+     `link` already refuses.
+
+     `kindLabel` COMES OFF THE ITEM, so the second question splits the library into `For tutors` and
+     `For families` without a facet, a column or a line in FACETS — see `docItems_` in terms.js. And
+     because a policy has no board, tier or key stage, the coverage rule stops every other question
+     being asked at all. The whole department costs one entry here and one line in `stuffItems`. */
+  doc: { group: 'Paperwork', label: 'Documents', card: x => docCard_(x) },
+
   /* ---------- POSTS ARE A THING YOU LOOK FOR ---------------------------------------------------
      THE FEED IS FOR SCROLLING, NOT FOR FINDING. It is sorted by pinned and then by when, which is
      right for a feed and useless the moment somebody wants the picture from the trip in March — the
@@ -1342,6 +1354,10 @@ function stuffItems() {
        They can be one list now because the funnel skips a question most of the set cannot answer.
        That was the objection to merging and it is answered: choose Tutors and you will never be
        asked about exam boards, because a tutor has none and the coverage rule sees it. */
+    /* THE DOCUMENTS THE BUSINESS PUBLISHES. Built in terms.js from the `terms` tab, so a clause
+       changes in a spreadsheet rather than in a file — and an empty tab is an empty list rather
+       than a group with nothing in it. */
+    ...(typeof docItems_ === 'function' ? docItems_() : []),
     ...(DATA.tutors || []).filter(t => t.title).map(t => ({
       kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
       cost: Number(t.rate) || 0, slot: '', subject: '', grade: '', off: t.listed === false,
@@ -1943,7 +1959,11 @@ function accountPages_() {
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
    here beside `accountPages_` rather than in me.js, because the thing it draws is built here and a
    screen registered away from what it draws is a screen somebody has to go looking for. */
-screen('account', () => pages('account', accountPages_()));
+/* ANYTHING UNSIGNED RIDES WITH THE ACCOUNT. The library is in the funnel, which is where somebody
+   goes to CHECK a document; this is where somebody is TOLD about one. See the long note at the top
+   of terms.js on why both exist. */
+screen('account', () => pages('account',
+  accountPages_().concat(typeof termsPages_ === 'function' ? termsPages_() : [])));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 function frontPages_() {

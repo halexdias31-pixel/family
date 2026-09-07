@@ -7122,3 +7122,35 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    with the title rather than beside it, and stay pressable at 44px without making the line taller
    than its neighbours. */
 .bk-v .text-drop { padding: .35rem .3rem; margin-left: .25rem; }
+
+/* ==================================================================================================
+   DOCUMENTS — the agreements and policies, read in a sheet. See terms.js.
+   THE PROSE IS THE ONLY THING HERE. A contract sets its own rhythm with headings and paragraphs, so
+   what it needs is measure and spacing, not decoration — a policy that looks designed reads as
+   marketing, and this is the one screen where somebody has to believe every word was meant.
+================================================================================================== */
+
+/* A LINE LENGTH THAT CAN BE READ. Sheet width on a phone is fine; on a desktop an unbounded
+   paragraph runs the full window and the eye loses the line it was on coming back. */
+.doc { max-width: 38rem; }
+
+/* SPACE BETWEEN CLAUSES, NOT BETWEEN LINES. Each section is a numbered thing in the sheet and has to
+   look like one — the gap is what says "this is where the rate clause ends". */
+.doc .doc-part + .doc-part { margin-top: 1.4rem; }
+
+.doc h4 {
+  margin: 0 0 .4rem;
+  font-size: .95rem;
+  /* HEADINGS SIT WITH THEIR TEXT. A heading the same weight as its paragraph is not a heading, and
+     one two sizes larger turns a fifteen-clause agreement into a table of contents you scroll past. */
+  font-weight: 700;
+}
+
+.doc p  { margin: 0 0 .6rem; line-height: 1.55; }
+.doc ul { margin: 0 0 .6rem; padding-left: 1.15rem; }
+.doc li { margin: 0 0 .25rem; line-height: 1.5; }
+.doc b  { font-weight: 700; }
+
+/* THE STATE LINE ON A DOCUMENT CARD. `ok` and `warn` already exist and are used elsewhere; nothing
+   is added for them here, deliberately — a second colour for the same meaning is a second thing to
+   keep in step. */
