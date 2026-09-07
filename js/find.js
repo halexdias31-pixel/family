@@ -605,7 +605,12 @@ const FACETS = [
      `Year`, and with GCSE sheets showing offers `Grade` — without either list naming the other. */
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
                                                     ? 'Grade ' + x.bandValue : '' },
-  { field: 'yearGroup', label: 'Year',        of: x => x.bandValue && x.bandType === 'year'
+  /* `School year`, NOT `Year`. There are two facets here that were both called Year — this one, the
+     year group a child is in, and `year` below, the year a paper was sat. They never collided while
+     no maths resource carried a year group; the primary worksheets now do, and two questions
+     labelled the same thing on one screen, one meaning 4 and the other 2024, is the sort of fault
+     that reads as a bug in the data rather than in the label. */
+  { field: 'yearGroup', label: 'School year',        of: x => x.bandValue && x.bandType === 'year'
                                                     ? 'Year ' + x.bandValue : '' },
   { field: 'stage',     label: 'Stage',       of: x => x.bandValue && x.bandType === 'stage'
                                                     ? x.bandValue : '' },
@@ -1069,6 +1074,50 @@ function paperIdOf_(r) {
   return (r && (r.paperId || r.paper_id || r.paper)) || '';
 }
 
+/* ---------- WHAT A QUESTION IS ABOUT, AS WORDS -----------------------------------------------------
+   THE SEARCH BOX COULD NOT SEE INSIDE A QUESTION. `hay` was name, sub, subject, slot and grade —
+   and a question's name is `Q5b`. So of three thousand rows, not one was findable by what it is
+   actually about: `momentum`, `surds`, `refraction`, `half-life` all returned nothing while the
+   questions sat there. Somebody revising thinks in topics, not in paper numbers, and the funnel is
+   a taxonomy — you have to already know where a thing lives to reach it.
+
+   BUILT ONCE, NOT PER KEYSTROKE. The obvious version strips the HTML inside the filter, which runs
+   for every item on every letter typed — three thousand regexes a keystroke. This runs when items
+   are built and hangs the result on the item, so typing only compares strings.
+
+   TAGS OUT, ENTITIES BACK. `&amp;` in a haystack means searching for `&` finds nothing and
+   searching for `amp` finds everything. */
+function searchText_(r) {
+  return String((r && (r.html || '')) + ' ' + (r && (r.lead || '')))
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&(nbsp|amp|lt|gt|minus|frasl|deg|pi|times|divide|radic|rsquo|ldquo|rdquo|mdash);/g, ' ')
+    .replace(/&[a-z]+;|&#\d+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* EVERY QUESTION OF ONE PAPER, JOINED — so a collapsed worksheet is searchable by its contents.
+   `Recurring Decimals` is findable by its name; the sheet whose questions are all about bearings
+   and none of whose titles say `compass` is not, and that is the case this exists for.
+
+   MEMOISED ON THE PAYLOAD, the same trick `facetList` uses: a new payload is a new array, so one
+   identity comparison decides whether the cache stands. Without it this rebuilds on every repaint,
+   which for two and a half thousand rows is the sort of cost that only shows up on a phone. */
+let PAPER_TEXT = null, PAPER_TEXT_FROM = null;
+function paperText_(id) {
+  const src = DATA.questions || null;
+  if (PAPER_TEXT_FROM !== src) {
+    PAPER_TEXT_FROM = src; PAPER_TEXT = {};
+    (src || []).forEach(r => {
+      const k = paperIdOf_(r);
+      if (!k) return;
+      (PAPER_TEXT[k] = PAPER_TEXT[k] || []).push(searchText_(r));
+    });
+    Object.keys(PAPER_TEXT).forEach(k => { PAPER_TEXT[k] = PAPER_TEXT[k].join(' '); });
+  }
+  return PAPER_TEXT[id] || '';
+}
+
 function questionItems() {
   const all = DATA.questions || [];
   if (!all.length) return [];
@@ -1137,6 +1186,9 @@ function questionItems() {
       marks: r.marks, section: r.section,
       lead: r.lead, html: r.html,
       stemHtml: stem ? stem.html : '',
+      /* SEE `searchText_`. The stem too, because a question that reads "work out the value of x"
+         says nothing on its own and everything alongside the paragraph it hangs from. */
+      text: searchText_(r) + (stem ? ' ' + searchText_(stem) : ''),
       row: r,
     };
   });
@@ -1225,6 +1277,9 @@ function allTopics() {
       bandType: r.bandType || '', bandValue: r.bandValue || '',
       keystage: r.keyStage || r.keystage || '', tier: r.tier || '',
       examBoard: r.examBoard || '', resourceType: r.resourceType || '',
+      /* THE QUESTIONS INSIDE IT, so a collapsed worksheet is findable by what it asks and not only
+         by what it is called. See `paperText_`. */
+      text: paperText_(id),
       examWave: r.examWave || '', year: r.year || '',
       /* `paper: true` — IT IS ONE. This said false, so the funnel filed every past paper under
          "Digital" and the Printed filter found none of them. It is the same fact `pages` was
@@ -1785,8 +1840,10 @@ function stuffFind(items, credits) {
 
   const words = norm(STUFF.q).split(/\s+/).filter(Boolean);
   if (words.length) out = out.filter(x => {
+    /* `x.text` IS THE QUESTION ITSELF — built once when the item was made, never here. See
+       `searchText_`. It is last so that a match on a name still costs the same as it always did. */
     const hay = norm([x.name, x.sub, x.subject, x.slot,
-                      x.grade && 'grade ' + x.grade].filter(Boolean).join(' '));
+                      x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' '));
     return words.every(w => hay.includes(w));
   });
 
@@ -1800,7 +1857,26 @@ function stuffFind(items, credits) {
      somebody made.
      A–Z is what a list of names should be anyway. If prices ever matter enough to sort by, that
      belongs beside the prices rather than above the search. */
-  return out.sort((a, b) => cmpText(a.name, b.name));
+  /* ---------- QUESTIONS SORT WITH THEIR PAPER, AND NUMERICALLY --------------------------------------
+     BY NAME ALONE, A QUESTION'S NAME IS `Q5b`. Two things followed, both visible in the list:
+
+     EVERY PAPER'S Q1 CLUMPED TOGETHER. `cmpText` on the name put Corbett's Q1 beside A-level
+     Statistics Q1 beside Physics Q1 — three unrelated problems adjacent because they share a
+     position in different documents. The card said which paper underneath, so the information was
+     there; the ORDER was meaningless, which is worse than unsorted because it looks deliberate.
+
+     AND Q1, Q10, Q11, Q12 CAME BEFORE Q2. Text order on a number is alphabetical, so a paper read
+     down the screen in the wrong sequence — the one list in the app where the sequence is the whole
+     point, because it is the order the exam asks them in.
+
+     SO: THE PAPER FIRST, THEN THE NUMBER AS A NUMBER, then the part. Everything that is not a
+     question is unaffected — `sub` is empty and `qNumber` is zero, so it falls straight through to
+     the name comparison it always used. */
+  return out.sort((a, b) =>
+    cmpText(a.sub || a.name, b.sub || b.name)
+    || (Number(a.qNumber) || 0) - (Number(b.qNumber) || 0)
+    || cmpText(a.qPart || '', b.qPart || '')
+    || cmpText(a.name, b.name));
 }
 
 /* How many cards to a page. Eight fills a phone without quite filling it — a page that ends

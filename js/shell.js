@@ -56,7 +56,41 @@ const TABS = [
      column gives it that a page could not — a page sits at a position in a list that changes with
      what you have narrowed, and this must not move. */
   { id: 'account', icon: '👤', label: 'You',     title: 'You' },
+
+  /* ---------- AND TWO MORE, WHICH IS A REVERSAL AND SHOULD READ AS ONE ------------------------------
+     EVERYTHING ABOVE SAYS COLUMNS GOT FOLDED IN, one at a time, each because it was a second route
+     to something the funnel already reached. Posts was one of them. It is a column again.
+
+     THE REASON IS NOT THAT THE OLD REASON WAS WRONG — a post IS findable by its caption, and the
+     feed IS reachable as `What for · Posts`, and both of those are still true. It is that BEING
+     FINDABLE AND BEING SOMEWHERE TO LAND ARE DIFFERENT JOBS. The funnel answers a question. A
+     person opening the app with no question needs a door that does not begin by asking them one,
+     and the older note at the top of this table said exactly that about Posts before it was folded
+     away: `the one screen somebody opens with no errand`.
+
+     SO THE DUPLICATION IS ACCEPTED, DELIBERATELY, and it is the only one: the feed exists twice,
+     as a column and as an answer. Nothing else here is reachable two ways.
+
+     CAMERA LEFTMOST, THE WAY A PHONE EXPECTS. Making a thing sits to the left of looking at things
+     on every app that has both, and a composer is the one screen where landing on it by accident is
+     harmless — you see an empty box and swipe away.
+
+     REELS AND MESSAGES ARE NOT HERE, and were asked for. Neither is a layout: one is video hosting
+     and playback, the other is a messaging system with delivery, read state and moderation. An
+     empty column is worse than a missing one, because it is a dead end you swipe past every time
+     rather than a thing you have not built yet. */
+  { id: 'make',    icon: '📷', label: 'Post',    title: 'New post' },
+  { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
 ];
+
+/* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
+   THE TABLE ABOVE IS APPEND-ONLY BY NECESSITY: `AT` is remembered by id in localStorage and the X
+   axis clamps by index, so reordering the literal would move somebody's remembered position to a
+   different screen on the next boot. This sorts it for display and for travel, once, at load.
+
+   CAMERA · FEED · FIND · YOU. */
+const TAB_ORDER = ['make', 'feed', 'stuff', 'account'];
+TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */

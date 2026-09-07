@@ -767,3 +767,36 @@ on('post-delete', el => {
       if (said) said.textContent = String(err.message || 'Could not do that');
     });
 });
+
+
+/* ==================================================================================================
+   THE TWO COLUMNS
+   `screen('posts')` was deleted when the feed was folded into the funnel — the note above says so
+   and says why. These are not that screen coming back unchanged: it split in two, because posting
+   and reading were always two errands sharing one column, and a phone puts making a thing to the
+   LEFT of looking at things.
+================================================================================================== */
+
+/* ---------- MAKING ONE ---------------------------------------------------------------------------
+   THE COMPOSER, AND NOTHING ELSE ON THE SCREEN. Every card added here is a card between somebody
+   and the thing they swiped left to do — and this is the one column reachable by accident, so what
+   it shows when you land on it wrongly has to be harmless and obvious. An empty box is both.
+
+   SIGNED OUT, IT SAYS SO RATHER THAN SHOWING A BOX THAT WILL FAIL. `new-post` refuses without a
+   user, and a control that refuses is worse than a control that was never offered. */
+screen('make', () => pages('make', USER
+  ? [newPostCard()]
+  : [`<div class="card">
+       <h3>New post</h3>
+       <p class="sub">Sign in to post. Swipe right to the end for your account.</p>
+     </div>`]));
+
+/* ---------- READING THEM -------------------------------------------------------------------------
+   `postsBlocks` UNCHANGED, which is the point: the feed the funnel shows under `What for · Posts`
+   and the feed on this column are the same function, so they cannot drift. One of them is a door
+   and the other is an answer; neither is a copy.
+
+   THE COMPOSER IS NOT REPEATED HERE. It is a swipe to the left, always in the same direction from
+   anywhere in the feed — which is what a column gives it that a card at the top of a list cannot,
+   because a card at the top of a list moves as the list grows. */
+screen('feed', () => pages('feed', postsBlocks()));
