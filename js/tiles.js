@@ -181,7 +181,9 @@ function tileSet_(el, o) {
 function adminTiles_(x, t) {
   if (!isAdmin()) return '';
   const id = t ? (t.id || t.name) : x.key;
-  return `<div class="tile-row is-admin" role="group" aria-label="Admin">
+  /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
+     the group for a screen reader, which is the half of the old wrapper worth having. */
+  return `<span class="tile-group is-admin" role="group" aria-label="Admin">
     ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
               on: isSpot(x.key), act: 'spot',
               data: { key: x.key, kind: x.kind || 'item' } })}
@@ -190,7 +192,7 @@ function adminTiles_(x, t) {
     ${t ? tile_({ icon: t.active ? 'bin' : 'undo', label: t.active ? 'Delete' : 'Restore',
                   tone: 'admin',
                   act: 'topic-delete', data: { key: id, on: t.active ? '' : '1' } }) : ''}
-  </div>`;
+  </span>`;
 }
 
 
@@ -494,11 +496,20 @@ function cardTiles_(x) {
      of them. `favTile_` returns nothing for a card with no key or a visitor who is not signed in,
      so this stays one line rather than a condition per branch.
 
-     ADMIN STAYS ITS OWN ROW. Silver means only you can see it, and a silver bin sitting in the
-     same row as a trolley is the one arrangement that rule exists to prevent — an admin would be
-     one mis-tap from deleting a thing they meant to buy. */
+     ---- ONE ROW NOW, AND THE SAFETY ARGUMENT IS ANSWERED RATHER THAN DROPPED ----------------------
+     THIS SAID "ADMIN STAYS ITS OWN ROW", and the reason was real: a bin in the same row as a
+     trolley is one mis-tap from deleting a thing somebody meant to buy. What it produced was two
+     rows of controls that looked like two different species — one bare, one on tinted plates — for
+     actions that are all the same act: press a mark, something happens to this card.
+
+     THE DISTANCE IS KEPT WITHOUT THE SECOND ROW. `is-admin` pushes off the left edge with an auto
+     margin, so the admin marks sit at the far end of the row with the whole gap between them and
+     the trolley — further apart on a phone than they were stacked, where a bin sat directly beneath
+     a trolley and a thumb travels vertically. The colour says the rest. */
   const mine = favTile_(x) + cardActions_(x);
-  return (mine ? `<div class="tile-row">${mine}</div>` : '') + adminTiles_(x, x.topic || null);
+  const admin = adminTiles_(x, x.topic || null);
+  if (!mine && !admin) return '';
+  return `<div class="tile-row">${mine}${admin}</div>`;
 }
 
 function cardActions_(x) {

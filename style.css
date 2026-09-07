@@ -49,7 +49,7 @@
   --pink:      #ff8fc4;
   --gold:      #ffb454;   /* the one action */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
-  --admin:     #aab6c8;
+  --admin:     #f2d24b;   /* only you can see this — see `.tile.is-admin` */
   --warn:      #ffb454;
   --good:      #3ddc84;
   --bad:       #ff5f56;
@@ -6878,23 +6878,50 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    invisible. Shrinking it to fit the drawing would make a row nobody can press accurately. */
 .tile-row {
   display: flex; flex-direction: row; align-items: center;
-  gap: .1rem; margin: .5rem 0 0;
+  /* `.1rem` WAS RIGHT FOR GLYPHS THAT HAD NO EDGES. Plates need telling apart from one another. */
+  gap: .3rem; margin: .5rem 0 0;
+  /* AND IT WRAPS. The admin group drops to a second line intact when a card is genuinely too
+     narrow — which is the old two-row layout arriving by itself, only when there is no room. */
+  flex-wrap: wrap;
 }
+
+/* ---------- THE ADMIN MARKS SIT AT THE FAR END ----------------------------------------------------
+   THIS IS WHAT REPLACES THE SECOND ROW, and it does the job the second row was there for: keeping a
+   bin away from a trolley. A bin BENEATH a trolley is a thumb's width away; a bin at the opposite
+   end of the row is the width of the card away — and a thumb moving sideways is a deliberate
+   movement in a way that a thumb moving down is not. */
+.tile-group.is-admin { display: inline-flex; gap: .3rem; margin-left: auto; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
    overrode. Stated once, where the rest of the admin row is described. */
 
+/* ---------- EVERY MARK ON A CARD IS THE SAME KIND OF OBJECT ---------------------------------------
+   THERE WERE TWO SPECIES AND NO REASON FOR IT. The ordinary marks — star, HTML, Paper — were bare
+   glyphs on `background: none; border: 0`. The admin marks were on tinted plates. Both are the same
+   act: press a mark and something happens to this card. Drawing one as text and the other as a
+   button said they were different sorts of thing, and the only real difference is who may press.
+
+   SO EVERY TILE IS A PLATE and what varies is the colour — one idea instead of two. It also makes
+   an unpressed star look like a control rather than like decoration, which is what it always was
+   and never looked like. */
 .tile {
   display: inline-flex; align-items: center; justify-content: center;
   width: 44px; height: 44px; padding: 0;
-  color: var(--dim); background: none; border: 0; border-radius: var(--r);
+  color: var(--dim); border-radius: var(--r);
+  background: rgb(255 255 255 / .03);
+  border: 1px solid var(--line-soft);
   font: 600 .72rem/1 var(--mono);
   text-decoration: none; cursor: pointer;
-  transition: color var(--quick) ease, transform var(--quick) ease;
+  transition: color var(--quick) ease, background var(--quick) ease,
+              border-color var(--quick) ease, transform var(--quick) ease;
 }
+.tile:active { background: rgb(255 255 255 / .08); border-color: var(--line); }
+/* A DISABLED TILE LOSES THE PLATE ENTIRELY. Dimming a button still reads as a button; taking the
+   surface away is what says there is nothing here to press. */
+.tile[disabled] { background: none; border-color: transparent; }
 .tile:active { transform: scale(.88); }
 /* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
    all say so by going bright — which is the star's own pattern, applied to every mark. */
-.tile.on { color: var(--ink); }
+.tile.on { color: var(--ink); background: rgb(255 255 255 / .09); border-color: var(--line); }
 .tile[disabled] { opacity: .35; cursor: default; }
 /* ---------- THE MARK BESIDE THE WORD ---------------------------------------------------------------
    FIRST IN THE ROW, so a column of tiles reads as a column of marks down the left edge and the eye
@@ -6935,9 +6962,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    COOL, NOT GREY. `--dim` is #9a9a9a, so a neutral grey here would read as "switched off" — the one
    meaning it must never carry. The blue cast is what makes it look deliberate rather than faded. */
-.tile.is-admin { color: var(--admin);
-                 background: rgb(170 182 200 / .06); }
-.tile.is-admin.on { background: rgb(170 182 200 / .18); }
+/* ---------- AND IT IS YELLOW NOW, NOT SILVER -----------------------------------------------------
+   THE ARGUMENT ABOVE STILL HOLDS — admin is not a fact about what a thing is — but silver was
+   chosen when these sat in a row of their own, where being quiet was affordable. In one row with
+   everything else, quiet is indistinguishable from switched off, and these are the controls that
+   change or destroy a row: they should catch the eye of the one person who can press them.
+
+   NOT `--gold`, WHICH IS TAKEN. `--gold` is the buy action and the trolley on this very row is
+   drawn in it, so reusing it would put the bin and the basket in one colour — the exact confusion
+   the two-row layout existed to prevent. This is a cooler, brighter yellow: unmistakably yellow,
+   and unmistakably not the trolley beside it. */
+.tile.is-admin {
+  color: var(--admin);
+  background: rgb(242 210 75 / .07);
+  border-color: rgb(242 210 75 / .22);
+}
+.tile.is-admin:active { background: rgb(242 210 75 / .16); border-color: rgb(242 210 75 / .45); }
+.tile.is-admin.on { background: rgb(242 210 75 / .2); border-color: rgb(242 210 75 / .5); }
 
 @media (prefers-reduced-motion: reduce) { .tile:active { transform: none; } }
 
@@ -7209,3 +7250,4 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @media (hover: hover) {
   .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
 }
+
