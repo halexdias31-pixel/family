@@ -152,6 +152,22 @@
   if (!LOAD_AT || isNaN(LOAD_AT)) LOAD_AT = Date.now();
   var LOAD = String(Math.floor(LOAD_AT / 300000));
 
+  /* ---------- ?dev — NEVER CACHE, WHILE YOU ARE THE ONE LOOKING -----------------------------------
+     THE HOLE THE PARAGRAPHS ABOVE ADMIT TO. Every file this page loads is dated and cannot go
+     stale. THIS page cannot date its own URL, so GitHub Pages serves it under its own `max-age`
+     and the browser holds it — with `LOAD` inside it — for as long as that header says. Push a fix,
+     reload, and you can still be reading the index.html that names the old version of everything
+     else. That is the "one manual clear", and it comes back every time the header expires again.
+
+     A QUERY STRING IS A DIFFERENT URL. `?dev` is a page no browser has a copy of, so the entry
+     point arrives fresh — the one thing the version system could never do for itself. And once it
+     is there, it means: date everything by the clock instead, so no file can be held either.
+
+     IT IS A LINK, NOT A SETTING. Nothing is stored and it cannot be left on for somebody else — a
+     parent opening the ordinary address gets the ordinary cached fast path. */
+  var DEV = /(^|[?&])dev\b/.test(location.search);
+  if (DEV) LOAD = String(Date.now());
+
   /* WHAT THE FOOTER SHOWS, from the same instant — so the version on screen is a MEASUREMENT of
      what is running rather than a second thing to remember to type. It read `2026-08-15m` for four
      days while the app was on newer code, which made the one line meant to answer "which version
@@ -161,7 +177,10 @@
      this newer than the thing I just pushed", which cannot be answered by a number an hour out.
      Twice tonight a build WAS current and looked stale. */
   window.SITE_STAMP = new Date(LOAD_AT).toLocaleString('en-GB',
-    { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+    { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '')
+    /* SO THE FOOTER SAYS WHICH MODE IT IS IN. A page that never caches and a page that does look
+       identical until something is stale, and by then you are debugging the wrong thing. */
+    + (DEV ? ' · dev' : '');
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   /* ---------- THE SCRIPTS ARE TOLD ABOUT AT THE SAME MOMENT AS THE STYLESHEET --------------------
      A `preload` is the only way to let the browser start fetching something it cannot see. These
@@ -1331,12 +1350,6 @@
        time. Posts and You have now gone the same way — see `feedPages_` and `youPages_` in find.js.
        A section whose tab does not exist is markup nothing can ever reach, and eleven of them is
        ten questions somebody has to answer before deciding none of them matters. -->
-  <!-- THE COLUMNS, LEFT TO RIGHT. The X axis reads `$('s-' + tab.id)` for its cells, so a tab
-       without a section here is a tab that places nothing and swipes to a blank screen. `TAB_ORDER`
-       in shell.js decides the travelling order; the order here does not matter and the comment on
-       `cells` says why — it used to, and that was the bug. -->
-  <section class="screen hidden" id="s-make"></section>
-  <section class="screen hidden" id="s-feed"></section>
   <section class="screen" id="s-stuff"></section>
   <section class="screen hidden" id="s-account"></section>
 </main>
