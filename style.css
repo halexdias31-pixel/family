@@ -1628,18 +1628,8 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      `.pane.scrolls`, which script.js adds after measuring. Most panes never get it, so most of the
      screen behaves like the edges did, which is the half that was always working. */
   touch-action: none;
-  /* SIDE PADDING ONLY, AND LESS OF IT. The pane was inset from the cell because it was a card
-     sitting on a background and needed room to be one. It is not a card now, so the padding is
-     only what keeps text off the edge of a phone — and a picture can be told to ignore even that
-     and run the full width, which is the one thing that makes a feed look like a feed. */
-  /* `--pad` ON THE SIDES, NOT A NUMBER. `.post-pic` reaches the edge by cancelling exactly
-     `var(--pad)` — so a side padding written as `.9rem` here would leave the photograph 1.6px
-     narrow on one edge and over on the other, which is the kind of misalignment that looks like a
-     rendering fault rather than a rule. Less above and below, because that space was holding a card
-     off the top of a cell and there is no card. */
-  padding: .5rem var(--pad) 1rem;
-  /* NO RADIUS. A rounded corner is the corner of something. */
-  border-radius: 0;
+  padding: 1rem 1rem 1.25rem;
+  border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */
   contain: layout paint style;
@@ -1658,26 +1648,9 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      front pane is depth added to something already there rather than the only thing holding it up.
      Take the blur away entirely — an old browser, a slow phone, a future speed fix — and every card
      still reads as a card. */
-  /* ---------- AND THEN THE GLASS WENT ---------------------------------------------------------
-     EVERYTHING ABOVE IS THE HISTORY OF MAKING A PANE READ AS A SURFACE — a wash, then a real fill,
-     then an edge and a shadow when the blur moved. It is kept because it records a fault that was
-     invisible for days, and because the reasoning is sound: IF a card must float, that is how.
-
-     THE QUESTION WAS WHETHER IT MUST. Instagram is the argument that it need not: no card, no
-     edge, no shadow, no radius — a photograph, a line of text under it, a hairline, the next one.
-     Everything that separates one post from the next is the gap and the rule, and what is left is
-     the content, which is the only thing anybody came for.
-
-     THIS APP WAS ALREADY MOST OF THE WAY THERE and did not look it. `.card` has had no background,
-     no border and no radius for a long time — a bottom hairline and nothing else. The glass was
-     never on the cards. It was on the PANE behind them, so every screen was a lit rectangle
-     floating on black with flat content inside it, and the frame was doing more work than the
-     thing it framed.
-
-     SO THE PANE IS A CONTAINER AGAIN, drawing nothing. It still positions, still scrolls, still
-     contains — every layout note above is untouched, because none of it was about the fill. What
-     goes is only what was drawn. */
-  background: none;
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / .05), rgb(255 255 255 / .015)),
+    #101010;
   /* THE EDGE, and it is the whole reason a card reads as a card.
 
      Only a sliver of a neighbour is ever on screen, and a sliver of fill is dark on dark — so the
@@ -1689,12 +1662,8 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      Stated ONCE. There were two `border` declarations and two `box-shadow` declarations in this
      rule, four lines apart, and the second silently won — so the first pair was dead text that
      read as though it were doing something. */
-  /* NO EDGE AND NO SHADOW. The long note above is right that these were carrying the separation
-     once the blur moved — but only because there was a surface that needed separating. With no
-     fill there is nothing to hold apart, and a border around nothing is a rectangle drawn for its
-     own sake. */
-  border: 0;
-  box-shadow: none;
+  border: 1px solid rgb(255 255 255 / .16);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .5);
 }
 /* ---------- THE BLUR, ON THE ONE PANE BEING LOOKED AT --------------------------------------------
    A backdrop blur is the most expensive thing on this page by a long way: the browser has to
@@ -1710,15 +1679,16 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 
    Where there is no backdrop-filter at all, a translucent pane over a dark app is nearly
    invisible rather than merely unblurred. A solid fill instead, so it still reads as a surface. */
-/* THE BLUR IS GONE WITH THE SURFACE IT WAS BLURRING FOR. Everything the note above says about
-   moving it to the front pane was true and was a real saving; it is simply no longer needed, since
-   there is nothing translucent left for anything to show through. And it takes the frame budget
-   with it — the swipe this was written to protect now has nothing to recompute at all. */
+.screen.on .pane, .page.on .pane {
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+}
 /* The fallback is no longer load-bearing — `.pane` has a real fill of its own above — but it stays,
    because a browser with no backdrop-filter should get the flatter, more solid version rather than
    the one designed to have a blur under it. */
-/* THE FALLBACK GOES TOO. It existed so a browser without backdrop-filter got a solid pane rather
-   than an invisible one. Every browser now gets the same pane, which is no pane. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pane { background: var(--raised); }
+}
 /* ---------- A RECEIPT IS ALREADY THE CARD --------------------------------------------------------
    The glass is what turns a loose card into a surface — it gives a post, a tutor or a form an edge
    and a shadow so it reads as one object on the screen rather than as markup floating on a
@@ -6846,21 +6816,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    without reading the paper — which is what a student is doing when they flick through one. */
 .qp-marks { margin: .3rem 0 0; text-align: right;
             font: 400 .74rem/1 var(--mono); color: var(--faint); }
-
-/* THE END OF THE PAPER, SAID PLAINLY. A long sheet that simply stops leaves you wondering whether
-   it failed to load the rest — which on a phone, mid-scroll, is exactly what it looks like. */
-.qp-end {
-  margin: 2rem 0 0; padding-top: .9rem; border-top: 1px solid var(--line);
-  text-align: center; color: var(--dim);
-  font: 400 .74rem/1 var(--mono); letter-spacing: .1em;
-}
-
-/* ON PAPER: a question never split across two pages. This was the one rule in the old tab
-   stylesheet that had nothing to do with looking like paper and everything to do with printing on
-   it, so it is the one rule worth carrying over. */
-@media print {
-  .qpaper .qp-q, .qpaper .qp-part { break-inside: avoid; page-break-inside: avoid; }
-}
 .btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .2rem; }
 
@@ -7295,6 +7250,4 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @media (hover: hover) {
   .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
 }
-
-
 

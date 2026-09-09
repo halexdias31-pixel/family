@@ -56,52 +56,7 @@ const TABS = [
      column gives it that a page could not — a page sits at a position in a list that changes with
      what you have narrowed, and this must not move. */
   { id: 'account', icon: '👤', label: 'You',     title: 'You' },
-
-  /* ---------- AND TWO MORE, WHICH IS A REVERSAL AND SHOULD READ AS ONE ------------------------------
-     EVERYTHING ABOVE SAYS COLUMNS GOT FOLDED IN, one at a time, each because it was a second route
-     to something the funnel already reached. Posts was one of them. It is a column again.
-
-     THE REASON IS NOT THAT THE OLD REASON WAS WRONG — a post IS findable by its caption, and the
-     feed IS reachable as `What for · Posts`, and both of those are still true. It is that BEING
-     FINDABLE AND BEING SOMEWHERE TO LAND ARE DIFFERENT JOBS. The funnel answers a question. A
-     person opening the app with no question needs a door that does not begin by asking them one,
-     and the older note at the top of this table said exactly that about Posts before it was folded
-     away: `the one screen somebody opens with no errand`.
-
-     SO THE DUPLICATION IS ACCEPTED, DELIBERATELY, and it is the only one: the feed exists twice,
-     as a column and as an answer. Nothing else here is reachable two ways.
-
-     CAMERA LEFTMOST, THE WAY A PHONE EXPECTS. Making a thing sits to the left of looking at things
-     on every app that has both, and a composer is the one screen where landing on it by accident is
-     harmless — you see an empty box and swipe away.
-
-     REELS AND MESSAGES ARE NOT HERE, and were asked for. Neither is a layout: one is video hosting
-     and playback, the other is a messaging system with delivery, read state and moderation. An
-     empty column is worse than a missing one, because it is a dead end you swipe past every time
-     rather than a thing you have not built yet. */
-  { id: 'make',    icon: '📷', label: 'Post',    title: 'New post' },
-  { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
 ];
-
-/* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
-   THE TABLE ABOVE IS APPEND-ONLY BY NECESSITY: `AT` is remembered by id in localStorage and the X
-   axis clamps by index, so reordering the literal would move somebody's remembered position to a
-   different screen on the next boot. This sorts it for display and for travel, once, at load.
-
-   CAMERA · FEED · FIND · YOU. */
-const TAB_ORDER = ['make', 'feed', 'stuff', 'account'];
-TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
-
-/* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED -------------------------------
-   `go` FELL BACK TO `TABS[0]`, AND THAT USED TO BE FIND. It was correct only because Find happened
-   to be written first, and the moment the camera took the left-hand end it became the camera — so
-   `go('me')`, which is still called from find.js and still has no screen, would have dropped anyone
-   told to sign in onto an empty composer.
-
-   THE NOTE IN find.js SAYS EXACTLY WHY THAT IS THE WORST KIND OF FAULT: a fallback that lands
-   somewhere plausible is worse than one that lands nowhere, because nobody reports it. Naming the
-   screen means the next person to reorder these cannot move it by accident. */
-const TAB_HOME = 'stuff';
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */
@@ -118,20 +73,14 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
    back to `TABS[0]` — right, but silently.
    SO IT IS CHECKED RATHER THAN TRUSTED. A remembered id that is no longer a tab is discarded here
    instead of being corrected three functions later, and `account` is a place you can be left. */
-/* FIRST VISIT LANDS ON FIND, not on the leftmost column. Instagram opens on its feed because its
-   feed is the product; here the feed is a noticeboard for a tutoring business and the funnel is the
-   product — somebody arriving for the first time wants the thing they came for, not four posts.
-   Anybody who prefers the feed reaches it with one swipe and is remembered there afterwards. */
-let AT = TAB_HOME;
+let AT = 'stuff';
 try {
   const was = localStorage.getItem('familyTab');
   if (was && TABS.some(t => t.id === was)) AT = was;
 } catch {}
 
 function go(id, remember, instant) {
-  const tab = TABS.find(t => t.id === id)
-           || TABS.find(t => t.id === TAB_HOME)
-           || TABS[0];
+  const tab = TABS.find(t => t.id === id) || TABS[0];
   const was = AT;
   AT = tab.id;
   if (remember !== false) { try { localStorage.setItem('familyTab', AT); } catch {} }

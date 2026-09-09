@@ -336,11 +336,37 @@ function paperRows(t) {
    this is black on white, because that is what an exam paper is and because it is what comes out of
    a printer without anybody changing a setting.
 ================================================================================================== */
-/* ---------- THE PAPER'S OWN STYLING NOW LIVES IN style.css ----------------------------------------
-   `PAPER_CSS` WAS A WHOLE STYLESHEET IN A STRING, and it had to be: the tab it filled was a blank
-   document with no stylesheet of its own. The paper opens in a sheet now, and style.css already
-   carried a `.qpaper` block written for exactly this — styled, and produced by nothing, because the
-   only reader was the tab. Deleting the string is what connects the two. */
+const PAPER_CSS = `
+  :root { --ink: #14130f; --faint: #6b675e; --rule: #cfc9bd; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.2rem 1.4rem 4rem; background: #fff; color: var(--ink);
+    font: 400 15px/1.55 ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  }
+  main { max-width: 46rem; margin: 0 auto; }
+  .qp-title { margin: 0 0 .2rem; font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+  .qp-head { margin: 0 0 1.6rem; padding-bottom: .9rem; color: var(--faint);
+             font-size: .82rem; border-bottom: 1px solid var(--rule); }
+  .qp-sec { margin: 2.2rem 0 .9rem; font-size: .78rem; font-weight: 700;
+            letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+  .qp-q { margin: 1.9rem 0 .5rem; font-size: 1.05rem; font-weight: 700; }
+  .qsheet-stem { margin: .4rem 0 .9rem; }
+  .qp-part { display: flex; gap: .55rem; margin: 0 0 1.1rem; }
+  .qsheet-pn { flex: 0 0 auto; font-weight: 700; }
+  .qp-body { flex: 1 1 auto; min-width: 0; }
+  .qsheet-lead { margin: 0 0 .35rem; }
+  .qp-marks { margin: .35rem 0 0; text-align: right; color: var(--faint); font-size: .85rem; }
+  .qp-end { margin: 2.5rem 0 0; padding-top: .9rem; border-top: 1px solid var(--rule);
+            text-align: center; color: var(--faint); font-size: .8rem; letter-spacing: .1em; }
+  img, svg, table { max-width: 100%; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid var(--rule); padding: .3rem .5rem; text-align: left; }
+  /* ON PAPER: no page break inside a question, and the browser's own header is enough of a title. */
+  @media print {
+    body { padding: 0; font-size: 12pt; }
+    .qp-q, .qp-part { break-inside: avoid; page-break-inside: avoid; }
+  }
+`;
 
 /* The questions, as printed order. Shared by the tab and by nothing else — but kept separate from
    the document around it so the two can be read apart. */
@@ -384,31 +410,26 @@ function openPaper_(t) {
   const body = paperBody_(t);
   if (!body) { toast('No questions written up for this one yet'); return; }
 
-  /* ---------- IT OPENS HERE, NOT IN A TAB -----------------------------------------------------------
-     A NEW TAB WAS THE WRONG DOOR. It left the app — the back gesture went to whatever the phone had
-     open before, the filters you had answered were gone when you returned, and on a phone the tab
-     is a whole context switch to read four questions. It also asked for pop-up permission, so the
-     first time anybody pressed it the answer was often nothing at all.
+  /* THE TAB IS OPENED FIRST AND EMPTY, before anything is built. A browser allows a new window only
+     while it can still see the click that asked for it, and building the document first hands that
+     back — the tab is then a pop-up and is blocked. Opening it empty and filling it afterwards is
+     the order that survives. */
+  const w = window.open('', '_blank');
+  if (!w) { toast('Allow pop-ups to open papers'); return; }
 
-     THE SHEET IS WHERE EVERY OTHER LONG THING IN THIS APP OPENS — documents, receipts, the booking
-     form. Closing it puts you back exactly where you were, which is the behaviour somebody flicking
-     between two papers actually wants.
-
-     PRINTING STILL WORKS. A sheet is part of this document, so the browser's own print takes it.
-     The tab was never what made that possible. */
   const head = [t.examBoard, waveOf(t), t.keystage].filter(Boolean).join(' · ');
-  /* `.qpaper` AND `.qp-head` ALREADY EXIST in style.css, written for reading a whole paper on a
-     phone — a section heading, a number standing away from the text, marks hard right. They were
-     styled and nothing produced them, because the only paper reader was the tab and the tab used
-     its own stylesheet. This is that block finally being used for what it describes. */
-  openSheet(t.name, `
-    <div class="qpaper">
-      ${head ? `<p class="qp-head">${esc(head)}${
-        body.marks ? ` · <b>${body.marks} marks</b>` : ''}</p>` : ''}
+  w.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${esc(t.name)}</title><style>${PAPER_CSS}</style></head>
+    <body><main>
+      <h1 class="qp-title">${esc(t.name)}</h1>
+      <p class="qp-head">${esc(head)}${body.marks ? (head ? ' · ' : '') + body.marks + ' marks' : ''}</p>
       ${body.html}
       <p class="qp-end">END OF QUESTIONS</p>
-    </div>
-  `);
+    </main></body></html>`);
+  /* CLOSED EXPLICITLY. Without it the tab keeps its loading spinner turning for ever, which reads
+     as a page that never finished. */
+  w.document.close();
 }
 
 on('paper-read', el => {
