@@ -755,7 +755,11 @@ on('job-answer', el => {
   /* DECLINING IS ASKED ABOUT. It removes everybody from a booking a family made and sends them an
      email saying so — one mis-tap from a list of sessions is not a thing to do silently. Accepting
      is not: it is the ordinary act, and it can be undone by declining afterwards. */
-  if (!yes && !confirm('Turn this booking down? Everybody in it is removed and told.')) return;
+  /* TWO PRESSES, NOT A confirm(). A browser dialog is the one thing on a phone that looks like the
+     page has been taken over by something else, and it cannot say what is about to happen in the
+     words this app uses. The button becomes the question, and a press somewhere else leaves it as
+     it was. Same pattern as `post-delete` in posts.js. */
+  if (!yes && !sure_(el, 'Turn it down?')) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
         name: USER.name, adminName: USER.name,
@@ -781,9 +785,7 @@ on('job-answer', el => {
    question nobody can answer. */
 on('job-leave', el => {
   const paid = !!el.dataset.paid;
-  if (!confirm(paid
-    ? 'Withdraw from this session? Your seat is given up and a refund will need arranging.'
-    : 'Withdraw from this session? Nothing has been charged, so it simply stops.')) return;
+  if (!sure_(el, paid ? 'Mark unpaid?' : 'Mark paid?')) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
         name: USER.name, move: 'Withdraw',
@@ -802,12 +804,38 @@ on('job-leave', el => {
    rather than being thrown away. "Cash at the library" is the whole audit trail for that payment,
    and a blank is worse than a guess because a guess can be corrected. */
 on('job-paid', el => {
-  const how = prompt('How was it paid? (cash, bank transfer, …)', 'cash');
-  /* CANCELLED IS NOT AN EMPTY ANSWER. `prompt` gives null when somebody backs out and '' when they
-     press OK on an empty box — the first must do nothing at all, and treating them alike would
-     record a payment nobody meant to record. */
-  if (how === null) return;
+  /* ---------- ASKED IN A SHEET, NOT IN A prompt() ---------------------------------------------------
+     `prompt()` IS A GREY OS DIALOG with the OS's typeface and the OS's buttons. It stops the page
+     dead, it cannot be styled, it cannot explain itself, and on a phone it reads as the page having
+     been hijacked. It is also the only place in this app where a value was typed into something the
+     app did not draw.
+
+     THE SHEET IS WHERE EVERYTHING ELSE IS ASKED. It can say why the answer matters — that "cash at
+     the library" IS the audit trail — which a one-line dialog cannot.
+
+     BACKING OUT IS STILL NOT AN EMPTY ANSWER. Closing the sheet does nothing at all; only the button
+     sends. That distinction was the whole point of the `null` check this replaces. */
+  askHow_(el);
+});
+
+/* Kept apart so the handler above reads as one line and this reads as one screen. */
+function askHow_(el) {
+  openSheet('Mark it paid', `
+    <p class="sub">How was it paid? This goes in the event log and is the whole audit trail for
+      the payment.</p>
+    <input id="paid-how" class="search" value="cash" autocomplete="off">
+    <div class="btn-row">
+      <button class="btn primary" data-do="job-paid-go" data-id="${esc(el.dataset.id)}">Mark paid</button>
+    </div>
+    <p class="faint" id="paid-said"></p>
+  `);
+}
+
+on('job-paid-go', el => {
+  const how = (($('paid-how') || {}).value || '').trim();
+  if (!how) { const s = $('paid-said'); if (s) s.textContent = 'Say how, even roughly.'; return; }
   el.disabled = true;
+  el.textContent = 'Saving…';
   api({ action: 'markPaid', jobId: el.dataset.id,
         name: USER.name, adminName: USER.name, how: how,
         requestId: 'paid-' + el.dataset.id + '-' + Date.now() })
@@ -837,9 +865,26 @@ on('job-paid', el => {
 on('fest-join', el => {
   const f = (DATA.festive || []).find(x => String(x.id) === String(el.dataset.id));
   if (!f) { toast('That has finished.'); return; }
-  const kids = prompt('Who is coming? (names, or how many children)', '');
-  if (kids === null) return;                 // backed out — nobody is put down for it
+  /* ASKED IN A SHEET, NOT IN A prompt(). See `askHow_` above for the argument; it applies here with
+     one addition — this question is asked of a PARENT rather than of the admin, and a grey OS dialog
+     is a worse thing to show somebody who did not build the app. */
+  openSheet(f.name || 'Join in', `
+    <p class="sub">Who is coming? Names, or just how many children.</p>
+    <input id="fest-kids" class="search" placeholder="e.g. Amira and Yusuf" autocomplete="off">
+    <div class="btn-row">
+      <button class="btn primary" data-do="fest-join-go" data-id="${esc(f.id)}">Put us down</button>
+    </div>
+    <p class="faint" id="fest-said"></p>
+  `);
+});
+
+on('fest-join-go', el => {
+  const f = (DATA.festive || []).find(x => String(x.id) === String(el.dataset.id));
+  if (!f) { toast('That has finished.'); return; }
+  const kids = (($('fest-kids') || {}).value || '').trim();
+  if (!kids) { const s = $('fest-said'); if (s) s.textContent = 'Who is coming?'; return; }
   el.disabled = true;
+  el.textContent = 'Sending…';
   api({ action: 'joinFestive', holidayId: f.id,
         name: USER.name, personId: (USER && USER.personId) || '',
         kids: kids,
@@ -926,8 +971,7 @@ on('job-join', el => {
    one thing a real delete would take away. */
 on('job-delete', el => {
   const id = el.dataset.id;
-  if (!confirm('End this session and remove it from the list?\n\n'
-    + 'Everyone in it is withdrawn. The record of what happened is kept.')) return;
+  if (!sure_(el, 'End it?')) return;
   el.disabled = true;
   api({ action: 'deleteJob', adminName: USER.name, name: USER.name, jobId: id })
     .then(d => {
@@ -944,6 +988,29 @@ on('job-delete', el => {
 /* The state the games keep between frames — the board, the clock, the deck, which month the
    calendar is showing. Carried over WITH them: a game without its state is a function that throws
    on its first line, which is precisely what happened when I moved the functions alone. */
+/* ---------- ARE YOU SURE, WITHOUT A DIALOG --------------------------------------------------------
+   THE BUTTON BECOMES THE QUESTION. First press changes its words; second press does the thing; and
+   four seconds of not pressing puts it back, so a stray tap cannot leave a button armed.
+
+   `confirm()` IS THE ONE THING IT REPLACES, and the reason is the same everywhere it appeared: it
+   is an OS dialog in the OS's typeface with the OS's buttons, it stops the page dead, and it cannot
+   use a single word this app chose. On a phone it reads as the page having been hijacked.
+
+   RETURNS TRUE ONLY ON THE SECOND PRESS, so every call site reads `if (!sure_(el, '…')) return;`. */
+function sure_(el, ask) {
+  if (!el) return true;                       // called from somewhere with no button: nothing to arm
+  if (el.dataset.sure) { delete el.dataset.sure; return true; }
+  el.dataset.sure = '1';
+  el.dataset.was = el.textContent;
+  el.textContent = ask;
+  setTimeout(() => {
+    if (!el.dataset.sure) return;
+    delete el.dataset.sure;
+    el.textContent = el.dataset.was || 'Confirm';
+  }, 4000);
+  return false;
+}
+
 let FEED_AT = null;
 let CHESS = null, CHESS_PICK = -1, CHESS_HIST = [], CHESS_BUSY = false;
 let CAL_VIEW = null;

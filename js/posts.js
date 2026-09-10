@@ -689,8 +689,10 @@ on('post-edit', el => {
    `TRUE_` on the backend, so one handler covers both and there is no second name to keep in step. */
 on('post-approve', el => {
   const on = el.dataset.on === '1';
-  if (!on && !confirm('Not put this one up?\n\nThe person who posted it is told, and the post is '
-    + 'kept so you can look at it again.')) return;
+  /* TWO PRESSES, NOT A confirm() — the same pattern as `post-delete` below, and for the same reason:
+     an OS dialog cannot use a single word this app chose, and on a phone it reads as the page having
+     been taken over. The button says what will happen instead. */
+  if (!on && !sure_(el, 'Turn it down?')) return;
   el.disabled = true;
   api({ action: 'approvePost', adminName: USER.name, name: USER.name,
         id: el.dataset.id, on: on ? 'TRUE' : 'FALSE' })

@@ -6816,6 +6816,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    without reading the paper — which is what a student is doing when they flick through one. */
 .qp-marks { margin: .3rem 0 0; text-align: right;
             font: 400 .74rem/1 var(--mono); color: var(--faint); }
+
+/* THE END OF THE PAPER, SAID PLAINLY. A long sheet that simply stops leaves you wondering whether
+   the rest failed to load — which on a phone, mid-scroll, is exactly what it looks like. */
+.qp-end {
+  margin: 2rem 0 0; padding-top: .9rem; border-top: 1px solid var(--line);
+  text-align: center; color: var(--dim);
+  font: 400 .74rem/1 var(--mono); letter-spacing: .1em;
+}
+
+/* ON PAPER: a question never split across two pages. It is the one rule from the old tab
+   stylesheet that was about printing rather than about looking like paper. */
+@media print {
+  .qpaper .qp-q, .qpaper .qp-part { break-inside: avoid; page-break-inside: avoid; }
+}
 .btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .2rem; }
 
