@@ -767,3 +767,32 @@ on('post-delete', el => {
       if (said) said.textContent = String(err.message || 'Could not do that');
     });
 });
+
+
+/* ==================================================================================================
+   THE COLUMNS
+   These are not screens coming back unchanged. `screen('posts')` was one column doing two jobs —
+   reading and posting — and a phone puts making a thing to the LEFT of looking at things. So it
+   split, and the two halves are these.
+================================================================================================== */
+
+/* ---------- MAKING ONE ---------------------------------------------------------------------------
+   THE COMPOSER AND NOTHING ELSE. Every card added here is a card between somebody and the thing
+   they swiped left to do — and this is the one column reachable by accident, so what it shows when
+   you land on it wrongly has to be harmless and obvious. An empty box is both.
+
+   SIGNED OUT IT SAYS SO, rather than offering a control that will refuse. `new-post` needs a user,
+   and a button that refuses is worse than one that was never there. */
+screen('make', () => pages('make', USER
+  ? [newPostCard()]
+  : [`<div class="card"><h3>New post</h3>
+      <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`]));
+
+/* ---------- READING THEM -------------------------------------------------------------------------
+   `postsBlocks` UNCHANGED, and that is the point: the feed under `What for · Posts` and the feed on
+   this column are the same function and cannot drift. One is a door, the other is an answer.
+
+   THE COMPOSER IS NOT REPEATED AT THE TOP. It is one swipe left from anywhere in the feed, always
+   in the same direction — which is what a column gives it that a card at the top of a list cannot,
+   because a card at the top of a list moves as the list grows. */
+screen('feed', () => pages('feed', postsBlocks()));

@@ -2017,8 +2017,16 @@ function goFor_(label) {
   if (typeof paintStuff === 'function') paintStuff();
 }
 
-function bookingPages_() {
-  if (!forIs_('booking')) return [];
+function bookingPages_(o) {
+  /* ---------- THE COLUMN ASKS FOR IT DIRECTLY ------------------------------------------------------
+     `forIs_` READS THE FUNNEL'S STATE, and the booking column has none — nobody answered `What for`
+     to get there, they swiped. Without this the column would build nothing and show a blank screen,
+     which is the same shape of fault as a tab with no section.
+
+     THE REST OF THE FUNCTION IS UNTOUCHED, deliberately: the form the column shows and the form the
+     funnel shows are the same one, and a second copy for the column is a second thing to keep in
+     step. */
+  if (!(o && o.column) && !forIs_('booking')) return [];
   /* ---------- THE FORM IS THE ANSWER TO `Booking`, NOT TO EVERYTHING UNDER IT --------------------
      IT FOLLOWED YOU DOWN. `forLabel · Booking` stays set for the whole branch, so narrowing to
      Classes, or Tutors, or Venues left the form sitting in front of the thing you had just asked

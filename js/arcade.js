@@ -87,3 +87,37 @@ const mapPlaces = () => (DATA.venues || []).filter(v => {
   return !/^online$/i.test(String(v.title).trim())
       && !/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(v.title);
 });
+
+/* ==================================================================================================
+   TOOLS AND GAMES, AS COLUMNS
+
+   THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel
+   and always have been. A column is not a second copy of that: it is the door for somebody who has
+   not come with a question. Wanting the calculator is not an errand you narrow down to.
+
+   `WIDGETS` IS THE SINGLE SOURCE, filtered by kind. Adding a tool is adding a row there and it
+   appears in both places at once, which is the only arrangement that cannot drift.
+================================================================================================== */
+
+/* ---------- WHAT THIS PERSON MAY OPEN -------------------------------------------------------------
+   `admin` HIDES A WIDGET FROM EVERYONE ELSE — the flyer maker is the only one, and it speaks for
+   the business.
+
+   `solid` DOES NOT APPLY HERE. It decides whether a widget is offered when it has no data behind
+   it, and that question belongs to the funnel, which is choosing what to show among everything.
+   A column is the place you go to see all of them; hiding half of it because the calendar is empty
+   this week is the column failing to be a place. */
+function widgetColumn_(kind) {
+  return allWidgets()
+    .filter(w => w.kind === kind)
+    .filter(w => !w.admin || isAdmin())
+    /* `stuffCard`, NOT `widgetCard_`. The card builder draws the name and nothing else; the Open
+       control and the widget's own slot come from the tiles, which `stuffCard` adds AROUND the card
+       rather than inside it. Calling the builder directly gives a heading nobody can press — which
+       is exactly the fault the note above `widgetCard_` describes from the other direction. */
+    .map(w => stuffCard({ kind: w.kind, id: w.id, key: w.id, name: w.name, row: w },
+                        USER ? USER.credits : -1));
+}
+
+screen('tools', () => pages('tools', widgetColumn_('tool')));
+screen('games', () => pages('games', widgetColumn_('game')));

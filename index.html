@@ -1350,8 +1350,17 @@
        time. Posts and You have now gone the same way — see `feedPages_` and `youPages_` in find.js.
        A section whose tab does not exist is markup nothing can ever reach, and eleven of them is
        ten questions somebody has to answer before deciding none of them matters. -->
+  <!-- ONE SECTION PER TAB. The X axis reads its cells as `$('s-' + tab.id)`, so a tab without a
+       section here places nothing and swipes to a blank screen — which is what shipped once, when
+       TABS was pushed and this file was not. `TAB_ORDER` in shell.js decides the travelling order;
+       the order here does not matter. -->
+  <section class="screen hidden" id="s-make"></section>
+  <section class="screen hidden" id="s-feed"></section>
+  <section class="screen hidden" id="s-booking"></section>
   <section class="screen" id="s-stuff"></section>
   <section class="screen hidden" id="s-account"></section>
+  <section class="screen hidden" id="s-tools"></section>
+  <section class="screen hidden" id="s-games"></section>
 </main>
 
 <!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,

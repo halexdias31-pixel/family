@@ -56,7 +56,54 @@ const TABS = [
      column gives it that a page could not — a page sits at a position in a list that changes with
      what you have narrowed, and this must not move. */
   { id: 'account', icon: '👤', label: 'You',     title: 'You' },
+
+  /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME ------------------------
+     EVERYTHING ABOVE IS THE HISTORY OF FOLDING COLUMNS IN, one at a time, each because it was a
+     second route to something the funnel already reached. That reasoning was right about the funnel
+     and wrong about one thing: it treated every column as a QUESTION, and some of them are PLACES.
+
+     A QUESTION IS ANSWERED. A PLACE IS SOMEWHERE YOU GO. `Learning · Worksheet · KS4` is a person
+     narrowing something down; opening the app to see what has been posted is not — there is no
+     errand and no question to answer, so a funnel asks one before it will show anything. That is
+     the whole argument for a column, and it applies to exactly the screens below: the feed, the
+     composer, the tools, the games. It does NOT apply to a worksheet, which is why Learning is
+     still one column and not five.
+
+     THE DUPLICATION IS ACCEPTED AND IT IS NOT FREE. The feed is reachable as `What for · Posts` and
+     as a column; so are Tools and Games. One is a door and the other is an answer. Nothing else in
+     the app is reachable two ways, and the moment a third route appears to any of them, one of the
+     three is wrong.
+
+     ORDER COMES FROM THE LAYOUT SHEET, left to right, and this table stays append-only — see
+     `TAB_ORDER` below for why. */
+  { id: 'make',    icon: '📷', label: 'Post',    title: 'New post' },
+  { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
+  { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
+  { id: 'tools',   icon: '🧰', label: 'Tools',   title: 'Tools' },
+  { id: 'games',   icon: '🎮', label: 'Games',   title: 'Games' },
 ];
+
+/* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
+   THE TABLE ABOVE IS APPEND-ONLY BY NECESSITY. `AT` is remembered by id in localStorage and the X
+   axis clamps by index, so reordering the literal would move somebody's remembered position to a
+   different screen on the next boot — silently, and only for people who already had the app open.
+
+   THIS IS THE LAYOUT SHEET'S ROW, IN ITS ORDER. Camera, posts, booking, search, profile, tools,
+   games. Reels and DMs are on that sheet and are not here: neither is built, and an empty column is
+   worse than a missing one because it is a dead end you swipe past every time rather than a thing
+   you have not made yet. Their own instruction files list what is undecided about them. */
+const TAB_ORDER = ['make', 'feed', 'booking', 'stuff', 'account', 'tools', 'games'];
+TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+
+/* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED -------------------------------
+   `go` FELL BACK TO `TABS[0]`, AND THAT USED TO BE FIND — correct only because Find happened to be
+   written first. The moment the camera took the left-hand end it became the camera, so `go('me')`,
+   which is still called from find.js and still has no screen, would have dropped anybody told to
+   sign in onto an empty composer.
+
+   A fallback that lands somewhere plausible is worse than one that lands nowhere, because nobody
+   reports it. */
+const TAB_HOME = 'stuff';
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */
@@ -73,14 +120,19 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
    back to `TABS[0]` — right, but silently.
    SO IT IS CHECKED RATHER THAN TRUSTED. A remembered id that is no longer a tab is discarded here
    instead of being corrected three functions later, and `account` is a place you can be left. */
-let AT = 'stuff';
+/* FIRST VISIT LANDS ON FIND, not on the leftmost column. The feed is a noticeboard for a tutoring
+   business; the funnel is the product. Anybody who prefers the feed is one swipe away and is
+   remembered there afterwards. */
+let AT = TAB_HOME;
 try {
   const was = localStorage.getItem('familyTab');
   if (was && TABS.some(t => t.id === was)) AT = was;
 } catch {}
 
 function go(id, remember, instant) {
-  const tab = TABS.find(t => t.id === id) || TABS[0];
+  const tab = TABS.find(t => t.id === id)
+           || TABS.find(t => t.id === TAB_HOME)
+           || TABS[0];
   const was = AT;
   AT = tab.id;
   if (remember !== false) { try { localStorage.setItem('familyTab', AT); } catch {} }

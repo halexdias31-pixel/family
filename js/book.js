@@ -2944,3 +2944,16 @@ function redrawBooker_(draw) {
     now.scrollTop = Math.min(was, Math.max(0, now.scrollHeight - now.clientHeight));
   });
 }
+
+/* ==================================================================================================
+   BOOKING, AS A COLUMN
+
+   `bookingPages_` ALREADY BUILDS THIS and has done since the form was folded into the funnel — it
+   answers `What for · Booking`, and it already knows to stand aside once a second question has been
+   answered, because `Booking · Tutors` is somebody browsing rather than somebody filling a form in.
+
+   A COLUMN DOES NOT REPEAT THAT REASONING, it skips it. There is no funnel state here and no second
+   question to have answered, so the form is simply the screen — which is what it is to anybody who
+   swiped here on purpose.
+================================================================================================== */
+screen('booking', () => pages('booking', bookingPages_({ column: true })));
