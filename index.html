@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- ---------- THE ONE FILE THAT CANNOT DATE ITS OWN URL -------------------------------------------
+     EVERY FILE THIS PAGE LOADS carries `?v=` and the clock, so none of them can be held. This page
+     cannot: it is the address somebody typed, and there is nothing in front of it to stamp.
+
+     THESE ARE A REQUEST, NOT A GUARANTEE. GitHub Pages sends its own Cache-Control and a browser is
+     free to prefer it, so treat this as help rather than the mechanism.
+
+     IT MATTERS LESS THAN IT LOOKS. A held copy of this page still runs the block below, which still
+     asks for every script and stylesheet by the clock — so a stale index.html serves a fresh app.
+     The only thing that can actually go stale is this file's own markup, which is the section list
+     and little else, and it changes about once a month. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#12100d">
 
@@ -148,9 +162,12 @@
      worst case becomes one refetch every five minutes rather than one on every load.
 
      THERE IS NOTHING TO DO ON A PUSH ANY MORE. Push, and the URLs change by themselves. */
+  /* WHEN THE SITE WAS BUILT — still read, and still only for the footer. It is the honest answer to
+     "which version am I looking at", which a clock-based `LOAD` cannot give: the clock says when
+     you opened the page, not when the thing you are looking at was published. */
   var LOAD_AT = Date.parse(document.lastModified);
   if (!LOAD_AT || isNaN(LOAD_AT)) LOAD_AT = Date.now();
-  var LOAD = String(Math.floor(LOAD_AT / 300000));
+  var LOAD;
 
   /* ---------- ?dev — NEVER CACHE, WHILE YOU ARE THE ONE LOOKING -----------------------------------
      THE HOLE THE PARAGRAPHS ABOVE ADMIT TO. Every file this page loads is dated and cannot go
@@ -165,8 +182,20 @@
 
      IT IS A LINK, NOT A SETTING. Nothing is stored and it cannot be left on for somebody else — a
      parent opening the ordinary address gets the ordinary cached fast path. */
-  var DEV = /(^|[?&])dev\b/.test(location.search);
-  if (DEV) LOAD = String(Date.now());
+  /* ---------- AND THEN IT WAS THE CLOCK ALL THE TIME -----------------------------------------------
+     EVERYTHING ABOVE IS THE ARGUMENT FOR NOT DOING THIS, and it was a good argument: a clock defeats
+     the cache permanently, so every visit costs the whole app again. It is kept because it is the
+     reasoning somebody will need if they ever want the cache back.
+
+     WHAT CHANGED IS WHOSE TIME IS BEING SPENT. The old answer optimised for a parent on a phone
+     re-opening the app; the cost fell on the person publishing, who could never be sure whether the
+     thing on their screen was the thing they had just pushed. A stale file and a broken feature look
+     identical from the outside, and every hour spent debugging the wrong one is worse than every
+     visitor downloading 230KB they mostly have.
+
+     `?dev` IS GONE WITH IT. It existed to make exactly this happen on demand, and a switch that is
+     always on is not a switch. */
+  LOAD = String(Date.now());
 
   /* WHAT THE FOOTER SHOWS, from the same instant — so the version on screen is a MEASUREMENT of
      what is running rather than a second thing to remember to type. It read `2026-08-15m` for four
@@ -178,9 +207,8 @@
      Twice tonight a build WAS current and looked stale. */
   window.SITE_STAMP = new Date(LOAD_AT).toLocaleString('en-GB',
     { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '')
-    /* SO THE FOOTER SAYS WHICH MODE IT IS IN. A page that never caches and a page that does look
-       identical until something is stale, and by then you are debugging the wrong thing. */
-    + (DEV ? ' · dev' : '');
+    /* NO MODE TO REPORT ANY MORE — there is only one. The stamp still says when the site was built,
+       which is the thing worth reading in a footer. */;
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   /* ---------- THE SCRIPTS ARE TOLD ABOUT AT THE SAME MOMENT AS THE STYLESHEET --------------------
      A `preload` is the only way to let the browser start fetching something it cannot see. These
