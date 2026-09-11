@@ -180,16 +180,17 @@ let flappyState = null;
  * should have filled — because a card with a heading and nothing under it has been mistaken for an
  * unfinished feature twice.
  */
-on('widget', el => {
-  /* `allWidgets`, so a message thread opened from the overworld behaves like one opened from Find. */
-  const wgt = allWidgets().find(x => x.id === el.dataset.id);
-  if (!wgt) return;
-  /* Still here for a MIXED result — searching "timer" alongside three resources gives a list of
-     cards, and the card has to open something. When Tools or Games is chosen on its own they are
-     the pages themselves and nothing needs opening. */
-  openSheet(wgt.name, wgt.html);
-  startWidget_(wgt);
-});
+/* ---------- `on('widget')` IS GONE, AND IT WAS A POP-UP ---------------------------------------------
+   IT PUT A WIDGET IN THE SHEET — `openSheet(wgt.name, wgt.html)` — which slides a panel over the
+   whole app. `widget-open` in tiles.js does the same job the right way: the widget opens INSIDE its
+   own card, in the slot the card already carries, and the same control closes it again.
+
+   NOTHING CALLED THIS. Not one `data-do="widget"` anywhere in the app, so it was a second way to do
+   something that already had a way — and the wrong way of the two, kept alive by nothing but not
+   having been deleted. See the `surfaces` tab in the Engine sheet: SF-06.
+
+   `check-doors` counts handlers against buttons and reports a door nothing presses; that is how this
+   was found. */
 
 /* Started when their screen appears, and only then — a canvas loop running behind a screen nobody
    is looking at is a flat battery for nothing. */
