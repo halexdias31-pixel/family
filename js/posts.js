@@ -798,3 +798,107 @@ screen('make', () => pages('make', USER
    in the same direction — which is what a column gives it that a card at the top of a list cannot,
    because a card at the top of a list moves as the list grows. */
 screen('feed', () => pages('feed', postsBlocks()));
+
+
+/* ==================================================================================================
+   REELS AND MESSAGES — the last two columns on the layout sheet
+================================================================================================== */
+
+/* ---------- REELS --------------------------------------------------------------------------------
+   ONE FACT PER SCREEN, SNAPPED. `scroll-snap` does the physics, so there is no listener, no
+   transform and no drag maths — and the momentum matches every other scroll on the phone because it
+   IS every other scroll on the phone.
+
+   THIS IS THE ONE SCREEN WHERE A PAGER IS RIGHT, and worth saying because the same shape is wrong
+   on the feed: a feed is read by flicking past six things, a reel is watched one at a time.
+
+   NO `.pane`. Every other screen puts its cards on one, and a pane sets `touch-action: none` so the
+   grid can own the vertical drag. Here the drag IS the scroll.
+
+   THE PHOTOGRAPH IS NOT FETCHED HERE. `pic` is a search term, not a URL — the picture is found on
+   Wikimedia Commons when the slide comes into view, which is `reelsWatch_` below. A gradient is the
+   floor, not a placeholder: fifty-eight slides that each flash grey first is a column that looks
+   broken while it works. */
+screen('reel', () => {
+  const facts = (DATA.facts || []).filter(f => f && f.heading);
+  if (!LOADED) return `<section class="page"><div class="pane">${skeleton()}</div></section>`;
+  if (!facts.length) {
+    return `<section class="page"><div class="pane"><div class="card">
+      <h3>Reels</h3>
+      <p class="sub">Nothing here yet. Add a row to the <b>facts</b> tab: subject, heading, body,
+        and a few words to find a photograph by.</p>
+    </div></div></section>`;
+  }
+  return `<section class="page"><div class="reels" id="reels">${facts.map((f, i) => `
+    <div class="reel" data-reel="${i}" style="--h:${(i * 47) % 360}">
+      <div class="reel-art">
+        <div class="over">
+          <span class="faint">${esc(f.subject)}</span>
+          <h3>${esc(f.heading)}</h3>
+          <p>${esc(f.body)}</p>
+          <p class="credit faint"></p>
+        </div>
+      </div>
+    </div>`).join('')}</div></section>`;
+});
+
+/* ---------- THE PHOTOGRAPH ARRIVES WHEN THE REEL DOES ---------------------------------------------
+   FIFTY-EIGHT LOOKUPS ON OPEN would be fifty-eight requests to Commons before anybody has seen the
+   second one — and on a slow connection they compete, so the FIRST one, the only one being looked
+   at, arrives last.
+
+   ONE SCREEN AHEAD, so it is there before you are, and only once per slide. */
+function reelsWatch_() {
+  const host = $('reels');
+  if (!host || !window.IntersectionObserver || typeof feedPicture !== 'function') return;
+  const seen = {};
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target, n = el.dataset.reel;
+    if (seen[n]) return;
+    seen[n] = true; io.unobserve(el);
+    const f = (DATA.facts || [])[Number(n)];
+    if (!f || !f.pic) return;
+    feedPicture(f.pic).then(found => {
+      if (!found) return;
+      /* DECODED FIRST, THEN SHOWN. Setting a background to a URL still downloading gives a slide
+         that flickers gradient, white, picture — and here there are fifty-eight of them. */
+      const img = new Image();
+      img.onload = () => {
+        const art = el.querySelector('.reel-art');
+        if (!art) return;
+        art.style.backgroundImage = `url("${found.src}")`;
+        art.classList.add('has-photo');
+        const c = el.querySelector('.credit');
+        if (c && found.by) c.textContent = found.by;
+      };
+      img.src = found.src;
+    });
+  }), { root: host, rootMargin: '200px 0px' });
+  host.querySelectorAll('.reel').forEach(el => io.observe(el));
+}
+
+/* ---------- MESSAGES -----------------------------------------------------------------------------
+   THE TAB IS EMPTY AND THIS SAYS SO. An empty screen that is WIRED is a week ahead of one that looks
+   right and is not: the backend already has sendMessage, messages, readMessage and flagMessage, and
+   the only thing missing is rows.
+
+   ONE ROW PER CONVERSATION, the same row a resource and a person use. One shape doing three jobs is
+   most of why this app stays quiet. */
+screen('dm', () => pages('dm', dmCards_()));
+
+function dmCards_() {
+  if (!USER) return [`<div class="card"><h3>Messages</h3>
+    <p class="sub">Sign in to see your messages.</p></div>`];
+  if (!LOADED) return [skeleton()];
+  const mine = (DATA.messages || []);
+  if (!mine.length) return [`<div class="card"><h3>Messages</h3>
+    <p class="sub">No messages.</p></div>`];
+  /* NEWEST FIRST, and unread in the foreground colour rather than with a badge — a count you have
+     to notice is a count you can miss. */
+  return mine.slice().sort((a, b) => String(b.sentAt || '').localeCompare(String(a.sentAt || '')))
+    .map(m => `<div class="card${m.readAt ? '' : ' unread'}">
+      <h3>${esc(m.fromName || m.fromId || 'Someone')}</h3>
+      <p class="sub">${esc(m.body || '')}</p>
+    </div>`);
+}

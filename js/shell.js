@@ -81,6 +81,23 @@ const TABS = [
   { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
   { id: 'tools',   icon: '🧰', label: 'Tools',   title: 'Tools' },
   { id: 'games',   icon: '🎮', label: 'Games',   title: 'Games' },
+
+  /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR ------------------------------------------------
+     THESE ARE NOT NEW IDEAS, they are two columns that were drawn on the layout sheet and left out
+     of the code because neither had anything behind it. One of them does now.
+
+     REELS HAS FIFTY-EIGHT FACTS. They were a const array in chess.js — a subject, a headline, a
+     paragraph and a photograph search term each — and they are a tab now, so the column can be
+     built from data rather than from a list nobody could edit.
+
+     DMs HAS NOTHING, and is here anyway. That is a reversal of the rule two notes up — an empty
+     column is worse than a missing one — and the reason is that the `messages` tab exists, the
+     backend has `sendMessage`, `messages`, `readMessage` and `flagMessage`, and the only thing
+     absent is rows. A screen that says "no messages" over a working inbox is honest. A screen that
+     says nothing because somebody decided not to draw it is the app disagreeing with its own
+     layout sheet. */
+  { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
+  { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -92,7 +109,11 @@ const TABS = [
    games. Reels and DMs are on that sheet and are not here: neither is built, and an empty column is
    worse than a missing one because it is a dead end you swipe past every time rather than a thing
    you have not made yet. Their own instruction files list what is undecided about them. */
-const TAB_ORDER = ['make', 'feed', 'booking', 'stuff', 'account', 'tools', 'games'];
+/* THE ORDER IS THE LAYOUT SHEET'S ROW, read left to right:
+     camera · post · booking · reel · DM · search · profile · tools · games
+   `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
+   they are widgets standing for what the column holds, not columns of their own. */
+const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED -------------------------------
@@ -201,6 +222,11 @@ function go(id, remember, instant) {
 
      So: if there is nothing on it yet, fill it now and let the slide be slightly less smooth once.
      After that, always after. */
+  /* THE REELS WATCH THEIR OWN SLIDES, and only once they are in the document. `screen('reel')`
+     builds the markup; the observer has to attach to elements that exist, which is here and not
+     there. Same shape as the `stuff` fill below. */
+  if (AT === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
+
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
     if (instant || !drawn) fillStuffPages(); else afterSlide_(fillStuffPages);

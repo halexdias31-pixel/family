@@ -7265,3 +7265,59 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
 }
 
+
+/* ==================================================================================================
+   REELS — one fact per screen
+
+   `scroll-snap-type: y mandatory` IS THE WHOLE MECHANISM. No listener, no transform, no velocity
+   maths, and momentum that matches every other scroll on the phone because it is one.
+
+   THIS IS THE ONE SCREEN WHERE A PAGER IS RIGHT, and it is worth saying because the same shape is
+   wrong on the feed: a feed is read by flicking past six things; a reel is watched one at a time.
+================================================================================================== */
+.reels {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  /* THE SCROLL IS THE GESTURE HERE. `.pane` sets `touch-action: none` so the grid can own the
+     vertical drag; this screen has no pane for exactly that reason, and says so positively rather
+     than relying on the absence. */
+  touch-action: pan-y;
+  scrollbar-width: none;
+  overscroll-behavior-y: contain;
+}
+.reels::-webkit-scrollbar { display: none; }
+
+.reel {
+  height: 100%;
+  scroll-snap-align: start;
+  /* A FLICK MOVES ONE, NEVER THREE. Without `always`, a fast swipe skips several and lands wherever
+     momentum ran out — fine on a feed, and on a reel it means missing the thing you were reading. */
+  scroll-snap-stop: always;
+  position: relative;
+}
+
+/* THE GRADIENT IS THE FLOOR, NOT A PLACEHOLDER. Fifty-eight slides that each flash grey before a
+   photograph is a column that looks broken while it works — so every slide is already a finished
+   thing, and the picture improves it rather than completing it. `--h` is the slide's own hue. */
+.reel-art {
+  position: absolute; inset: 0;
+  display: flex; align-items: flex-end;
+  background: linear-gradient(160deg, hsl(var(--h, 30) 22% 22%), hsl(var(--h, 30) 18% 10%));
+  background-size: cover; background-position: center;
+}
+
+/* THE TEXT SITS ON THE PICTURE with a gradient under it rather than a panel — a panel is a card,
+   and the cards lost their surfaces for a reason. */
+.reel .over {
+  width: 100%; padding: 1rem var(--pad) 1.5rem;
+  background: linear-gradient(transparent, rgb(0 0 0 / .78));
+}
+.reel .over h3 { margin: .25rem 0 .4rem; font-size: 1.15rem; font-weight: 700; }
+.reel .over p  { margin: 0; font-size: .92rem; line-height: 1.5; }
+.reel .credit  { margin-top: .6rem; font-size: .7rem; }
+
+/* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
+   a count you can miss. */
+.card.unread h3 { color: var(--ink); }
+.card.unread .sub { color: var(--ink); }
