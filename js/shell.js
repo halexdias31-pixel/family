@@ -997,8 +997,20 @@ const PAGE_HOME = {
    iOS IS SET TOO, and unlike the tab icon it is not decoration: `apple-touch-icon` is read at the
    moment somebody taps Add to Home Screen, which is always long after this has run. */
 function applyBrandIcon_() {
-  const url = ((DATA || {}).brand || {}).logo_square;
-  if (!url) return;
+  /* ---------- A DRIVE SHARE LINK IS A PAGE, NOT A PICTURE -------------------------------------------
+     `logo_square` is filled in by pasting from Drive, and what Drive gives you is a link to a
+     VIEWER — an HTML page with a toolbar. Put that in a `<link rel="icon">` and the browser fetches
+     a page, fails to decode it as an image, and falls back to the globe. Which looks exactly like
+     the value being missing, and is the same fault `pic()` exists to fix on every post.
+
+     So the id is pulled out and rebuilt as a thumbnail address, the same way posts do it. A value
+     that is already a plain URL is left alone. */
+  const raw = ((DATA || {}).brand || {}).logo_square;
+  if (!raw) return;
+  const m = String(raw).match(/[-\w]{25,}/);
+  const url = /^https?:\/\//i.test(raw) && !/drive\.google\.com\/file/.test(raw)
+    ? String(raw)
+    : (m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w512' : String(raw));
   [['favicon', 'icon'], ['favicon-ios', 'apple-touch-icon']].forEach(([id, rel]) => {
     const old = document.getElementById(id);
     if (old) old.remove();
