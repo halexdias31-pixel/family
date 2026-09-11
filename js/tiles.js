@@ -127,7 +127,19 @@ function tile_(o) {
      has not been given one falls back to the word — visibly wrong, rather than invisible. */
   const body = tileIcon_(o.icon) || `<span class="tile-k">${esc(o.label)}</span>`;
 
-  if (o.href) {
+  /* ---------- A TILE MAY LEAVE, BUT ONLY FOR SOMEWHERE ELSE ---------------------------------------
+     `target="_blank"` IS THE ONE EXCEPTION to the rule that nothing opens over this app — see the
+     `surfaces` tab in the Engine sheet. A fight's video is on YouTube; somebody's bank is not this
+     app and should not pretend to be.
+
+     SO THE EXCEPTION IS CHECKED RATHER THAN TRUSTED. An absolute http(s) address is somewhere else.
+     Anything else — a relative path, a `#` fragment, a `javascript:` — is this app opening itself in
+     a tab, which is the thing being forbidden, and it falls through to an ordinary button instead of
+     going out through the one door left open.
+
+     It is also what makes `check-surfaces` able to pass this line: the guard is right here, so the
+     checker can see that the address was tested rather than assumed. */
+  if (o.href && /^https?:\/\//i.test(String(o.href))) {
     return `<a class="${cls}" href="${esc(o.href)}"${attrs}
       target="_blank" rel="noopener">${body}</a>`;
   }

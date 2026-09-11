@@ -305,7 +305,12 @@ const KINDS = {
        eighty that work, and fails in a way that blames us.
        A row with no address is not a link yet, so it is not drawn as one — it is a card that says
        what is missing. */
-    const goes = !!hostOf_(l.url);
+    /* ONLY AN ABSOLUTE ADDRESS LEAVES. `hostOf_` said there was a host; this also says the scheme is
+       http or https — see the `surfaces` tab. An external site is the one exception to nothing
+       opening over this app, and `l.url` comes out of the links tab, so it is whatever somebody
+       typed. Anything else is this app opening itself in a tab, and it falls through to a card that
+       does not leave. */
+    const goes = !!hostOf_(l.url) && /^https?:\/\//i.test(String(l.url || ''));
     const open = goes ? `<a class="card tap" href="${esc(l.url)}" target="_blank" rel="noopener">`
                       : `<div class="card">`;
     const shut = goes ? '</a>' : '</div>';
