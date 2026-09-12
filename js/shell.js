@@ -116,6 +116,51 @@ const TABS = [
 const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
+/* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
+   THE TABLE ABOVE IS NOW THE FALLBACK. `columns` in the Widget Settings sheet says which columns the
+   app has and in what order, and this applies it — so moving Reels before Booking is dragging a row,
+   and switching DMs off is one cell, with no paste and no deploy.
+
+   IT CANNOT INVENT A COLUMN. A row naming a screen this build does not have is ignored: the sheet
+   decides ORDER and WHICH, and the code decides what a screen is. A column that swipes to a blank
+   is worse than a column that is not there, and it is the fault that shipped once already — TABS
+   pushed without the matching section in index.html.
+
+   NOR CAN IT LEAVE YOU WITH NOTHING. An empty tab, a tab that has not been made yet, or one whose
+   every row is switched off leaves the written table exactly as it is. A spreadsheet should not be
+   able to make the app unusable by being blank.
+
+   `TABS` IS MUTATED RATHER THAN REPLACED, because everything else in this file holds a reference to
+   it — the axis counts it, `go` searches it, the neighbours are drawn from it. */
+function applyColumns_() {
+  const rows = (DATA && DATA.columns) || [];
+  if (!rows.length) return;
+
+  const known = {};
+  TABS.forEach(t => { known[t.id] = t; });
+
+  const want = rows.map(r => known[String(r.screen || '').trim()])
+                   .filter(Boolean);
+  if (!want.length) return;      /* the sheet names nothing this build has — leave it alone */
+
+  /* THE LABEL AND THE ICON COME FROM THE SHEET TOO, where it gives them. A blank cell means "keep
+     what the code says" rather than "make it empty", which is the same rule every other tab in this
+     system follows. */
+  rows.forEach(r => {
+    const t = known[String(r.screen || '').trim()];
+    if (!t) return;
+    if (String(r.label || '').trim()) t.label = String(r.label).trim();
+    if (String(r.icon  || '').trim()) t.icon  = String(r.icon).trim();
+  });
+
+  TABS.length = 0;
+  want.forEach(t => TABS.push(t));
+
+  /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a
+     screen that no longer exists, and `go` would silently send them home without saying why. */
+  if (!TABS.some(t => t.id === AT)) AT = (TABS.find(t => t.id === TAB_HOME) || TABS[0]).id;
+}
+
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED -------------------------------
    `go` FELL BACK TO `TABS[0]`, AND THAT USED TO BE FIND — correct only because Find happened to be
    written first. The moment the camera took the left-hand end it became the camera, so `go('me')`,
@@ -1828,6 +1873,9 @@ async function load() {
          still the PREVIOUS payload, so every load adopted the load before it and the very first
          one — where `DATA` is `{}` — adopted nothing. */
       adoptMarks_();
+      /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you
+         are on, and everything painted after it reads `AT`. */
+      applyColumns_();
       applyBrandIcon_();
 
       /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE ---------------------------------
