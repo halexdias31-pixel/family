@@ -428,6 +428,23 @@ function thingCard_(x, credits) {
           ? `<span class="thing-pic art">${itemArt(x.slot, x.artId, 44)}</span>`
           : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy">` : ''}
         <div class="thing-body">
+          ${/* ---------- A RESULT IS READ LIKE A SEARCH RESULT -------------------------------------
+                WHERE IT IS FROM GOES ABOVE THE NAME, not under it. That is the one structural thing
+                Google's results do and almost nothing else does, and the reason is scanning: down a
+                list of twenty, the eye lands on the same spot on every row, and the FIRST thing it
+                should meet is what kind of thing this is — 1stclassmaths · KS2 · Year 4 — so that a
+                row can be dismissed without reading its title at all.
+
+                Under the title it would be a footnote, read only by somebody already interested,
+                which is backwards. Half of searching is ruling things out.
+
+                IT IS A BREADCRUMB, so the separators are middots and the whole line is small, quiet
+                and monospaced. It is a path, not a sentence. */''}
+          <p class="crumb">${[x.company, x.keystage,
+              x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
+            : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
+            : x.bandValue, x.tier, yearOf(x)]
+            .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
           ${/* Its own second line: a resource says its subject, a shop item its description. This
                 fell back to the GROUP name when both were empty — which was the card repeating the

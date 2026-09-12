@@ -854,7 +854,9 @@ a { color: inherit; text-decoration: none; }
 --------------------------------------------------------------------------------------------- */
 /* The search box had no rule of its own, so it sat flush against the row of selects and the four
    read as one control. */
-.search { margin-bottom: .5rem; }
+/* `.search` IS SET IN FULL FURTHER DOWN — see "THE SEARCH BOX, AND A RESULT". The margin lived
+   here on its own and was overridden there, which `check-css` reported as a rule that never
+   applies. One rule, one place. */
 /* `.pick-row` was here — the row of dropdowns above the search on the Find screen. There were
    three: group by, then sort, then group again. All three are gone now, one at a time, each for the
    same reason: this screen is a QUESTION, and a control above the question is something to get past
@@ -7321,3 +7323,59 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    a count you can miss. */
 .card.unread h3 { color: var(--ink); }
 .card.unread .sub { color: var(--ink); }
+
+/* ==================================================================================================
+   THE SEARCH BOX, AND A RESULT
+
+   A SEARCH ENGINE'S RESULT IS THREE LINES AND NO SURFACE: where it came from, what it is called,
+   and enough of it to judge. Everything a card would add — a border, a fill, a corner — is a frame
+   around something that is already legible, and down a list of twenty, twenty frames are twenty
+   things between the eye and the answer.
+
+   THE BREADCRUMB GOES ABOVE THE TITLE, which is the one structural thing a search result does that
+   almost nothing else does. Scanning a list, the eye lands on the same spot in every row, and what
+   it should meet FIRST is what kind of thing this is — so a row can be ruled out without reading
+   its name. Half of searching is ruling things out.
+================================================================================================== */
+
+/* ---------- THE BOX ------------------------------------------------------------------------------
+   A PILL, because a rounded field reads as somewhere to type in a way a rectangle does not — it is
+   the one control on the screen that should look like an invitation rather than a slot.
+
+   It is the only place in this app with a radius this large, and that is the point: nothing else
+   should look like it. */
+.search {
+  width: 100%;
+  padding: .7rem 1rem;
+  border-radius: 999px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 400 .95rem/1.4 var(--mono);
+  margin-bottom: .8rem;
+}
+.search::placeholder { color: var(--faint); }
+/* THE EDGE LIGHTS, NOTHING MOVES. A field that grows or glows when you tap it shifts the words you
+   were about to read. */
+.search:focus { outline: 0; border-color: var(--line-soft); background: #0a0a0a; }
+@media (hover: hover) { .search:hover { border-color: var(--line-soft); } }
+
+/* ---------- THE BREADCRUMB -----------------------------------------------------------------------
+   SMALL, QUIET, AND MONOSPACED, because it is a path rather than a sentence: 1stclassmaths · KS2 ·
+   Year 4. Middots and not commas — a comma joins things of one kind, a middot steps through levels. */
+.card .crumb {
+  margin: 0 0 .12rem;
+  font: 400 .72rem/1.3 var(--mono);
+  color: var(--dim);
+  letter-spacing: .01em;
+  /* ONE LINE, ALWAYS. A breadcrumb that wraps stops being a glance and becomes something to read,
+     and the thing being glanced at is the title underneath it. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* EMPTY MEANS ABSENT. A tutor and a venue have no breadcrumb, and a blank line above every one of
+   their names is a gap with nothing in it. */
+.card .crumb:empty { display: none; }
+
+/* THE TITLE IS THE THING BEING CHOSEN, so it carries the weight — and it sits tight under the
+   breadcrumb, because the two are one block and the space belongs below them, not between. */
+.card .crumb + h3 { margin-top: 0; font-size: 1rem; font-weight: 600; }
