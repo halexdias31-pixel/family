@@ -107,10 +107,19 @@ const mapPlaces = () => (DATA.venues || []).filter(v => {
    it, and that question belongs to the funnel, which is choosing what to show among everything.
    A column is the place you go to see all of them; hiding half of it because the calendar is empty
    this week is the column failing to be a place. */
-function widgetColumn_(kind) {
+/* ---------- ONE LIST, ASKED BY BOTH THE RENDER AND THE COUNT --------------------------------------
+   `widgetColumn_` AND `toolsStart_` EACH WROTE THIS FILTER OUT, and `PAGER` now needs it a third
+   time. Three copies of "which widgets are on this screen" is three things to get right when a
+   widget gains an `admin` flag — and a pager that disagrees with its own screen is a widget that
+   exists and cannot be swiped to, which is the failure the note on `PAGER` describes. */
+function widgetsOf_(kind) {
   return allWidgets()
     .filter(w => w.kind === kind)
-    .filter(w => !w.admin || isAdmin())
+    .filter(w => !w.admin || isAdmin());
+}
+
+function widgetColumn_(kind) {
+  return widgetsOf_(kind)
     /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS -------------------------------
        IT USED TO BE A HEADING AND AN `Open` BUTTON, and the button was the whole complaint: a
        column of tools where every tool is a name and a control that reveals it is a column of
@@ -147,9 +156,7 @@ let TOOLS_ON = [];
 
 function toolsStart_(kind) {
   toolsStop_();
-  TOOLS_ON = allWidgets()
-    .filter(w => w.kind === kind)
-    .filter(w => !w.admin || isAdmin());
+  TOOLS_ON = widgetsOf_(kind);
   TOOLS_ON.forEach(w => {
     try { w.start && w.start(); }
     catch (e) { console.warn('[widget]', w.id, e); }
@@ -162,5 +169,26 @@ function toolsStop_() {
 }
 
 
-screen('tools', () => stack('tools', widgetColumn_('tool')));
-screen('games', () => stack('games', widgetColumn_('game')));
+/* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST -------------------------------------------
+   THESE USED `stack`, AND ABOUT SIXTY PER CENT OF BOTH SCREENS WAS UNREACHABLE.
+
+   `stack` puts every card in ONE page and ONE pane, and stands the vertical axis down on the
+   grounds that there is nothing to page to — its note says "the drag falls through to ordinary
+   scrolling". It does not. `.pane` is `overflow-y: hidden`, so with one page there is no paging AND
+   no scrolling. Measured at 390x844: games had 2058px of content in an 805px pane, tools had
+   3122px. You could see the first three and there was no gesture that reached the rest.
+
+   `pages` GIVES EACH ONE ITS OWN PAGE AND ITS OWN PANE, which is what the funnel already does the
+   moment you narrow to Tools — `showingWidgets` in find.js draws one widget to a screen and has
+   since it was written. Two routes to the same nine tools disagreed about what a tool was: a
+   full screen down one and a sixth of a column down the other.
+
+   AND IT SUITS THEM. A chess board and a Flabby Pird canvas want the screen, not a sixth of it.
+   The note on `stack` is right that eight small panes read as a stack of pop-ups — that is an
+   argument about eight SMALL things, and these are not small.
+
+   `PAGER.tools` AND `PAGER.games` ARE NOT OPTIONAL. Without them `paint` never adds the `paged`
+   class and the pages sit there unreachable, which is precisely what had happened to the feed and
+   to You. Pages without a pager is the same bug wearing a different hat. */
+screen('tools', () => pages('tools', widgetColumn_('tool')));
+screen('games', () => pages('games', widgetColumn_('game')));
