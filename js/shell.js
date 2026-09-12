@@ -982,6 +982,23 @@ const PAGER = {
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. Both of these run
      long after the load — but `paintPager` fires on the app's first frame, and a `ReferenceError`
      there takes the whole boot with it. The same guard `posts.js` uses. */
+  /* ---------- TOOLS AND GAMES PAGE NOW, SO THEY NEED NAMING ----------------------------------------
+     Both screens used `stack` — one page holding everything — and about sixty per cent of each was
+     unreachable, because `.pane` is `overflow-y: hidden` and one page means nothing to page to
+     either. They use `pages` now, and a paged screen without an entry here gets no `paged` class
+     and no axis: the pages exist and nothing reaches them, which is the fault the feed and You
+     spent months in.
+
+     THE NAME IS THE WIDGET'S OWN, so the header reads "Chess" rather than "3 of 5". On a feed of
+     photographs a position is the only thing worth saying; on five named games the name is.
+
+     GUARDED, for the reason the `feed` entry below is: shell.js is file five and arcade.js is file
+     nineteen. `paintPager` fires on the app's first frame and a ReferenceError there takes the
+     boot with it. `widgetsOf_` is also what `widgetColumn_` renders from, so the count and the
+     screen cannot disagree. */
+  tools:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('tool') : []).map(w => w.name || ''),
+  games:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('game') : []).map(w => w.name || ''),
+
   feed:   () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
     .concat(USER ? [''] : [])
     .concat((DATA.festive || []).map(() => ''))
@@ -1096,7 +1113,7 @@ function applyBrandIcon_() {
 /* KEYED BY SCREEN ID, like `PAGER` and `PAGE_HOME` — and `posts` and `me` are not screen ids. See
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
-const PAGE = { feed: 0, stuff: 0, account: 0 };
+const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
