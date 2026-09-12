@@ -169,18 +169,40 @@ function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], tinyTargets: [], lowContrast: [] };
 
-  /* THE PANE THAT IS ACTUALLY IN FRONT OF SOMEBODY. Everything else is parked off-canvas by
-     `placeCells` and is not a fault. Chosen by area of intersection with the viewport rather than
-     by class name, so it keeps working if the markup is renamed. */
+  /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
+     `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
+     out. This asks for it directly.
+
+     IT USED TO GUESS, and the guess was wrong in a way that took a while to see. The first version
+     picked whichever pane had the largest area intersecting the viewport, on the reasoning that the
+     one in front is the one you can see. That is true, and it is not stable: run `--screen=tools`
+     on its own and it reported 25 sideways-scroll faults; run the same screen as part of all nine
+     and it reported none. Same code, same screen, same width — a different answer depending on what
+     had been visited first, because with nine screens drawn and placed, some other element won the
+     area contest and the check quietly measured that instead.
+
+     A CHECK THAT ANSWERS DIFFERENTLY ON THE SAME INPUT IS NOT A CHECK. It was about to be used to
+     decide whether a change had broken the layout, and it would have blamed whichever change
+     happened to be in the tree when the reading flipped.
+
+     The fallback is still the old heuristic, for a screen whose element cannot be found at all —
+     but it now says so, so a silent wrong answer becomes a visible unknown. */
   const vw = document.documentElement.clientWidth;
   const vh = document.documentElement.clientHeight;
-  const panes = [...document.querySelectorAll('section, .pane, .screen, .page')];
-  let live = document.body, best = 0;
-  for (const p of panes) {
-    const r = p.getBoundingClientRect();
-    const area = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0))
-               * Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
-    if (area > best) { best = area; live = p; }
+  let live = document.getElementById('s-' + opts.screenId);
+  let guessed = false;
+
+  if (!live) {
+    guessed = true;
+    const panes = [...document.querySelectorAll('section, .pane, .screen, .page')];
+    live = document.body;
+    let best = 0;
+    for (const p of panes) {
+      const r = p.getBoundingClientRect();
+      const area = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0))
+                 * Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+      if (area > best) { best = area; live = p; }
+    }
   }
 
   const vis = el => {
@@ -278,7 +300,8 @@ function inspect(opts) {
     }
   }
 
-  return { found, pane: live === document.body ? 'body' : (live.className || live.tagName),
+  return { found, guessed,
+           pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
            counted: inside.length };
 }
 
@@ -320,12 +343,14 @@ function inspect(opts) {
       if (!went) { rows.push({ width, id, skipped: 'no go()' }); continue; }
       await page.waitForTimeout(450);
 
-      const { found, counted } = await page.evaluate(inspect,
-        { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG });
+      const { found, counted, guessed } = await page.evaluate(inspect,
+        { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
+      if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
+                              + `which pane is in front, so this row may be measuring the wrong thing.`);
 
       const n = found.overflow.length + found.tinyTargets.length + found.lowContrast.length;
       if (n) failures += n;
-      rows.push({ width, id, counted, ...found });
+      rows.push({ width, id, counted, guessed, ...found });
 
       if (SHOTS) await page.screenshot({
         path: path.join(__dirname, 'shots', `${id}-${width}.png`) });
@@ -375,12 +400,12 @@ function inspect(opts) {
     for (const kind of kinds) {
       const items = Object.values(bucket).filter(b => b.kind === kind);
       console.log(`${kind}  (${items.length})`);
-      for (const it of items.slice(0, 12)) {
+      for (const it of items.slice(0, 60)) {
         const w = it.where;
         const at = w.length > 4 ? `${w.slice(0, 3).join(', ')} +${w.length - 3} more` : w.join(', ');
         console.log(`   ${it.key}\n      at ${at}`);
       }
-      if (items.length > 12) console.log(`   …and ${items.length - 12} more`);
+      if (items.length > 60) console.log(`   …and ${items.length - 12} more`);
       console.log('');
     }
   }

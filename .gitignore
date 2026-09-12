@@ -1,5 +1,5 @@
 # The UI check needs playwright; it is a tool, not part of the site.
-node_modules/
+node_modules
 
 # Screenshots check/ui.js --shots writes for a human to look at. Regenerated on demand.
 check/shots/

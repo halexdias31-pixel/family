@@ -38,7 +38,24 @@
 
   --ink:       #e6e6e6;
   --dim:       #9a9a9a;
-  --faint:     #5e5e5e;
+  /* ---------- FAINT, BUT STILL READABLE ---------------------------------------------------------
+     THIS WAS #5e5e5e AND THAT IS NOT A COLOUR, IT IS AN ABSENCE. Against --raised it measured
+     3.04:1 and against the sign-in panel 2.93:1, where the readable minimum for body text is 4.5:1.
+     Everything wearing it was affected and none of it looked broken, which is the whole problem: a
+     placeholder saying "your name", the PIN label above the box you have to type in, and every unit
+     on the print tool — "52cm²", "prints at true size" — all legible to someone who already knew
+     what they said, and a grey smudge to anybody reading them for the first time on a phone in
+     daylight. Nobody reports that as a bug. They just do not fill the form in.
+
+     #808080 IS THE SMALLEST VALUE THAT PASSES, and it is chosen for exactly that reason. 4.82:1 on
+     the panel and 4.98:1 on --raised — over the line on both, and not a shade lighter than it has
+     to be, because the point of this token is to recede. The jump to #8a8a8a would have been
+     comfortable and would also have made faint text compete with --dim, which is the next step up
+     and has a job of its own.
+
+     Found by `node check/ui.js`, which measures contrast on every screen at four widths. It was
+     twenty-two failures across `account` and `tools`, and every one of them was this line. */
+  --faint:     #808080;
 
   --green:     #3ddc84;   /* a subject. Reserved — nothing else uses it. */
   --purple:    #b98cff;   /* a venue */
@@ -5917,8 +5934,39 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    was a favicon and a star button at the same time and every star came out as a black rectangle.
 ================================================================================================== */
 .mat-lev { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .5rem; }
+/* ---------- BIG ENOUGH TO HIT, WITHOUT GETTING LOUDER ---------------------------------------------
+   THESE WERE 21 PIXELS TALL. `padding: .35rem .5rem` around .68rem text comes out at 21px, and the
+   smallest thing a finger reliably lands on is 44 — so every level on this row was a half-size
+   target, and "AS" was 27px wide as well. Nobody reports this as a bug either: a mis-tap reads as
+   your own clumsiness, you try again, and the second one usually works. It is a tax on every use
+   rather than a fault anybody names.
+
+   THE HEIGHT IS THE ONLY THING THAT CHANGES. `min-height` with the text centred means the chip grows
+   downward into space the flex row already had, the font stays at .68rem, and the words sit exactly
+   where they sat. `min-width` does the same for "AS" and "11+". So the row is the same row — it is
+   just possible to hit now.
+
+   A HIT AREA FAKED WITH A PSEUDO-ELEMENT WOULD HAVE KEPT THE 21px LOOK, and was the first idea. It
+   does not work here: the gap between chips is .3rem, so stretching each one to 44px would have
+   overlapped its neighbours by about 18px in both directions and the wrong level would be selected
+   near every edge. An invisible target that hits the wrong thing is worse than a small one.
+
+   44px AND NOT 2.75rem, WHICH IS THE SAME NUMBER EVERYWHERE EXCEPT HERE. Line 121 sets the root to
+   `clamp(13.5px, 3.8vw, 16px)`, so a rem on this site is 14.82px on a 390px phone rather than 16 —
+   and `2.75rem` came out as 40.75px. Measured, not assumed: the first version of this fix used rem
+   and the check still reported the chips as too small, at 37px, which is how the scaling was found
+   at all.
+
+   AND THE UNIT IS RIGHT IN PRINCIPLE, not just arithmetically. Every other size here is meant to
+   scale with the viewport — text, padding, the width of a column. A fingertip is not. It is the
+   same eight millimetres on a 320px phone and on a tablet, so the one measurement on this site that
+   must NOT respond to screen size is this one.
+
+   Found by `node check/ui.js`, which measures every button on every screen at four widths. */
 .mat-lev button { font: 600 .68rem/1 var(--mono); background: var(--sunk); color: var(--dim);
-                  border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .5rem;
+                  border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .6rem;
+                  display: inline-flex; align-items: center; justify-content: center;
+                  min-height: 44px; min-width: 44px;
                   cursor: pointer; }
 .mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
 /* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
@@ -5929,7 +5977,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `km→m units` — and at 6.5rem those wrap, which costs more height than the extra width does. */
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
             gap: .1rem .5rem; margin-bottom: .5rem; }
-.mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 1.7rem;
+/* ---------- AND THE ROWS THEMSELVES, FOR THE SAME REASON ------------------------------------------
+   1.7rem IS 27 PIXELS AND THE CHECKBOX INSIDE IT IS 14, so the row was a half-height target wrapped
+   round a quarter-height one. The whole label is clickable, which is right, and it was still too
+   short to land on.
+
+   THIS ONE COSTS SOMETHING AND THE NOTE ABOVE SAYS WHAT: the list was tuned to fit twenty-five rows
+   in nine lines, and taller rows mean more scrolling. It is paid anyway, because the alternative is
+   a list of twenty-five things you have to aim at — and this is the screen where somebody picks
+   fifteen of them in a row, so the mis-tap is not a one-off, it is the whole task.
+
+   THE COLUMNS ARE UNTOUCHED. `auto-fit, minmax(7.5rem, 1fr)` still decides how many fit across, so
+   a phone gets three and a laptop gets six exactly as before. Only the row height moved. */
+.mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 44px;
                   font-size: .72rem; color: var(--ink); cursor: pointer; }
 /* THE MATHS, SET AS MATHS. Mono keeps the columns of the list from jittering as the glyphs change
    width, and it is the face of the block rather than a label about it, so it takes the row's ink

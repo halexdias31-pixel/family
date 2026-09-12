@@ -112,11 +112,29 @@ node check/ui.js --shots         # also writes PNGs to check/shots/ for a human 
 through its own `go()`, and measures: sideways scroll that nobody asked for, tap targets under 44 px,
 text under WCAG AA contrast, JS errors, and custom properties nothing anywhere sets.
 
-**Known findings as of this writing** (real, not yet fixed): 22 contrast failures — `rgb(94,94,94)`
-placeholder and unit text on near-black, around 2.9–3.0:1 where 4.5:1 is needed — and 107 tap targets
-under 44 px, mostly 21 px-tall chips on the `tools` screen.
+**Known findings, all on `tools`** (real, not yet fixed):
 
-### Two things that will mislead you
+- **25 sideways scrolls.** One cause with a cascade: `.mat-face` is `white-space: nowrap` inside a
+  `minmax(7.5rem, 1fr)` grid column, so a long face name — `◡ protractor`, `km→m units` — cannot
+  shrink to its column. The label overflows by 57px, which pushes `.mat-list`, then `.card`, then
+  `.pane`. Fixing it means letting that text truncate or wrap, and the comment above the rule says
+  nowrap is deliberate (it stops the columns jittering as glyphs change width), so it is a design
+  call rather than a typo. `div.mat-out` overflowing by 593px at 320px wide is separate — that is
+  the print sheet, which is a fixed paper width and probably wants `overflow-x: auto` rather than
+  resizing.
+- **19 tap targets under 44px**: the four `5/15/25/45` minute buttons in `map.js` (45x38), the share
+  and `＋` buttons in `posts.js` (~30px wide), and the bare checkboxes inside the mat rows.
+
+Fixed and verified by the same check: the 22 contrast failures (one token, `--faint`) and 88 of the
+107 tap targets (two rules, `.mat-lev button` and `.mat-list label`).
+
+### Three things that will mislead you
+
+**A check that guesses gives different answers on the same code.** `check/ui.js` originally picked
+the screen to measure by "whichever pane has the most area on screen". Run `--screen=tools` alone
+and it reported 25 sideways scrolls; run the same screen inside the full nine and it reported none,
+because with nine screens drawn something else won the area contest. It now asks for `#s-<id>`
+directly, which is where `paint(id)` writes, and says so loudly if it ever has to fall back.
 
 **Reading the source is not the same as measuring the page.** A scan of `style.css` reported seven
 dead custom properties; all seven were wrong, because they are set from template strings like
@@ -139,6 +157,10 @@ Follow it. It is unusual and it is deliberate.
 - **Fallbacks everywhere.** `brand(k, or)`, `|| []`, `try/catch` around anything that can be absent.
   An empty or broken sheet must still produce a working site.
 - Plain scripts, no modules, no framework, no build.
+- **Tap targets in `px`, everything else in `rem`.** Line 121 sets the root to
+  `clamp(13.5px, 3.8vw, 16px)`, so a rem is 14.82px on a 390px phone. `2.75rem` for a 44px target
+  comes out at 40.75px and still fails. A fingertip is the same size on every screen; it is the one
+  measurement here that must not scale.
 - Version constants — `BACKEND_VERSION`, `DOGET_VERSION`, `DOPOST_VERSION`, `BOOKING_VERSION` — are
   compared on the **whole stamp**, so bump all four together or the You screen reports the untouched
   ones as "Not deployed".
