@@ -7067,7 +7067,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .card .ticks { display: flex; align-items: center; justify-content: space-between;
                gap: .6rem; padding: .5rem .6rem; margin-top: .45rem;
                border: 1px solid var(--line-soft); border-radius: var(--r); }
-.card .ticks .tick-said { font: 400 .8rem/1.2 var(--mono); color: var(--dim); }
+/* `color: var(--dim)` WAS HERE AND NEVER ONCE APPLIED. The same selector sets colour again at line
+   7149, unconditionally and at identical specificity, so the later one has always won. Two rules
+   disagreeing about one property is a question with a settled answer and a reader who cannot see it
+   — you find this line, believe it, and wonder why the screen says otherwise. The colour is stated
+   once now, where the decision was actually made. Found by `node js/check-css.js`. */
+.card .ticks .tick-said { font: 400 .8rem/1.2 var(--mono); }
 .card .ticks .tick-said:empty::before { content: 'Passes'; color: var(--faint); }
 
 
