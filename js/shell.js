@@ -1179,6 +1179,23 @@ function adoptMarks_() {
 const pages = (id, cards) =>
   cards.map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
 
+/* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS -------------------------------------------
+   `pages` GIVES EVERY CARD ITS OWN PAGE AND ITS OWN PANE. That is right when a card IS the screen —
+   a post you look at, a paper you read — and wrong the moment there are eight small things, because
+   eight panes are eight lit rectangles floating separately on black, and a stack of floating
+   rectangles reads as a stack of pop-ups. It is the pane doing its job in a place that does not
+   want one.
+
+   SO: ONE PAGE, ONE PANE, THE CARDS INSIDE IT. Which is what the layout sheet already says — the
+   tools column has one thing in it, c1, and nothing at c2 or c3. One screenful holding a list, not
+   one screen per tool.
+
+   AND THE VERTICAL AXIS STANDS DOWN, because there is one page and nothing to page to. The drag
+   falls through to ordinary scrolling, which shell.js describes a few hundred lines down as exactly
+   what happens on a screen that is not paged. Nothing here is a special case. */
+const stack = (id, cards) =>
+  `<section class="page"><div class="pane">${cards.join('')}</div></section>`;
+
 /** The glass inside a page — where content actually goes. */
 /* THE PANE INSIDE A PAGE — AND ONE IS MADE IF THERE IS NOT ONE.
 

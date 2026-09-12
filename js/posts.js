@@ -885,7 +885,7 @@ function reelsWatch_() {
 
    ONE ROW PER CONVERSATION, the same row a resource and a person use. One shape doing three jobs is
    most of why this app stays quiet. */
-screen('dm', () => pages('dm', dmCards_()));
+screen('dm', () => stack('dm', dmCards_()));
 
 function dmCards_() {
   if (!USER) return [`<div class="card"><h3>Messages</h3>

@@ -119,5 +119,5 @@ function widgetColumn_(kind) {
                         USER ? USER.credits : -1));
 }
 
-screen('tools', () => pages('tools', widgetColumn_('tool')));
-screen('games', () => pages('games', widgetColumn_('game')));
+screen('tools', () => stack('tools', widgetColumn_('tool')));
+screen('games', () => stack('games', widgetColumn_('game')));
