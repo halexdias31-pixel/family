@@ -175,63 +175,37 @@ with nothing anywhere saying what to install.
 through its own `go()`, and measures: sideways scroll that nobody asked for, tap targets under 44 px,
 text under WCAG AA contrast, JS errors, and custom properties nothing anywhere sets.
 
-**Known findings, all on `tools`** (real, not yet fixed):
+**`check/ui.js` now reports nothing** — 9 screens x 4 widths, 0 sideways scrolls, 0 tap targets
+under 44px, 0 contrast failures, 0 JS errors, 0 dead custom properties. That is a baseline, not a
+victory lap: its value is that the next thing to break is now visible instead of being one more line
+in a wall of red. What it took to get there is worth knowing, because three of the four were the
+check being wrong rather than the app:
 
-- **25 sideways scrolls.** One cause with a cascade: `.mat-face` is `white-space: nowrap` inside a
-  `minmax(7.5rem, 1fr)` grid column, so a long face name — `◡ protractor`, `km→m units` — cannot
-  shrink to its column. The label overflows by 57px, which pushes `.mat-list`, then `.card`, then
-  `.pane`. Fixing it means letting that text truncate or wrap, and the comment above the rule says
-  nowrap is deliberate (it stops the columns jittering as glyphs change width), so it is a design
-  call rather than a typo. `div.mat-out` overflowing by 593px at 320px wide is separate — that is
-  the print sheet, which is a fixed paper width and probably wants `overflow-x: auto` rather than
-  resizing.
-- **19 tap targets under 44px**: the four `5/15/25/45` minute buttons in `map.js` (45x38), the share
-  and `＋` buttons in `posts.js` (~30px wide), and the bare checkboxes inside the mat rows.
+- **25 sideways scrolls, two causes.** 22 were `.mat-face` set to `white-space: nowrap` inside a
+  `minmax(7.5rem, 1fr)` column: a face like `◡ protractor` cannot shrink to its column, so the label
+  overflowed by up to 59px and pushed `.mat-list`, then `.card`, then `.pane`. **This entry used to
+  say nowrap was deliberate and quoted the comment above the rule. It misread it** — that comment
+  defends the *monospace font* as what stops the columns jittering, and mono is untouched. The other
+  3 were `div.mat-out`, the print sheet, which had `overflow: hidden`: a fixed paper width clipped
+  with no way to reach the rest of the page you are about to print. Now `overflow-x: auto`.
+- **19 tap targets, 16 real.** `.btn.tiny` said `min-height: max(38px, 2.3rem)` and 2.3rem is 34px
+  on a phone, so the max never chose the rem and the timer buttons were 45x38 on every device.
+  `.post-act` said `min-width: 2.2rem`, which is 32.6px, so Share was 30x44 — tall enough to look
+  deliberate, too narrow to hit. Both now in px. The other 3 were a 14px checkbox inside a 44px
+  label, which is not a small target: a click anywhere in a label toggles the control it contains.
+  `check/ui.js` now exempts a control whose wrapping label is itself 44px, and still measures the
+  label on its own pass, so shrinking the row still reports it.
 
-Fixed and verified by the same check: the 22 contrast failures (one token, `--faint`) and 88 of the
-107 tap targets (two rules, `.mat-lev button` and `.mat-list label`).
-
-### Features wired up with no middle
-
-`check-access.js` and `check-payload.js` report these between them, and they are real. None is a
-regression; all were left unfinished. Building one means a handler, a tab in `SCHEMA` and a payload
-key — a decision, not a repair.
-
-- **`spotlight`** — `collections.js` has an admin star toggle. There is no `spotlight` handler in
-  `dopost.gs`, no spotlight tab in `SCHEMA`, and `doGet` never sends `DATA.spotlight`, which
-  `collections.js:39` reads. Wired at both ends of the front end with no middle.
-- **`acceptTerms`** — `terms.js` posts it. No handler anywhere in `backend/`. `doGet` never sends
-  `DATA.termsAccepted` or `DATA.termsAcceptedWhen`, which `terms.js:101` and `:104` read.
-- **`DATA.terms` is a NAME COLLISION, and the obvious fix would not fix it.** `terms.js` wants legal
-  documents — it filters for `r.docid && r.version`, then uses `live`, `audience`, `title`,
-  `mustsign`. The tab called `terms` in `SCHEMA` is **school terms**: `term_id`, `term_name`, `kind`,
-  `start_date`, `end_date`, and `doGet` already sends those, computed, as `intervals`. Adding
-  `terms` to the payload from `TAB.terms` would silence the check and leave the feature exactly as
-  dead — every row failing the `docid` filter, `termsDocs_` returning `[]` for ever, now with a
-  checker saying it was fine. The legal documents need their own tab under another name.
-- **`DATA.columns` — the one worth building.** `applyColumns_` in `shell.js` lets the sheet decide
-  which screens exist, in what order, with what label and icon. It mutates `TABS` rather than
-  replacing it, ignores a sheet naming nothing this build has, and treats a blank cell as "keep what
-  the code says". Careful, complete, and reading a key nothing sends — so it has never once run.
-  This is the thing the whole project is for. It needs a `columns` tab and one line in `doGet`.
-
-**Two that were on this list and are now fixed**, both found by `check-payload.js`:
-
-- **The `dm` screen said "No messages." to everybody, for ever.** It read `DATA.messages`. Messages
-  are a POST action, not a payload key, because a conversation is private and the GET payload goes
-  out whole to whoever asks — so the backend was right not to send them. Worse, this had already
-  been found and fixed once: `me.js` says `DATA.messages` "is not a key the payload has ever held"
-  and fixed the two readers it could see. This was a third, in another file. **That is the disease
-  here in one function — not a wrong idea, a right idea that did not arrive everywhere.** It also
-  sorted on `m.sentAt` and tested `m.readAt` where the handler sends `at` and `read`, so fixing only
-  the key would have given arbitrary order with everything marked unread: a different silent wrong
-  answer, and one that looks enough like working to survive.
-- **Google sign-in was built at both ends and had no middle.** `me.js` loads Google's script on
-  demand, renders the button idempotently, and passes the token through without inspecting it;
-  `googleLogin` in `dopost.gs` verifies it against Google's tokeninfo and checks `aud`. `doGet` never
-  sent the client id, so the button was never drawn and the verifier was unreachable. One line.
-  `google_client_id` also had no row in `CONFIG_DEFAULTS` — a setting nobody can find is a feature
-  nobody has. It is the **public** client id, not the client secret; the config note says so.
+**The measurement was green before the layout was right, and a screenshot is what caught it.**
+Wrapping `.mat-face` fixed all 25 scrolls and cost 15px of list height, with ten faces on two lines —
+and `|·| ruler` rendering as `|·|` / `rul` / `er`, which no check flagged, because a mid-word break
+is not an overflow. The real culprit was `.mat-note`: `display: block` inside a flex row is
+blockified, so a note asking for its own line silently sat on the same one and took a third of the
+column from the face beside it. With `flex: 1 0 100%` it takes the line it wanted, no face wraps at
+all, and the list measures 860/464/467/467px at 320/390/768/1280 — **the same numbers nowrap gave,
+to the pixel.** CLAUDE.md already says layout facts come from the browser. The other half is that
+"nothing measured wrong" and "it looks right" are different claims, and only one of them a
+screenshot can settle.
 
 ### Every check hand-rolls its own path to `backend/`, and most of them had it wrong
 
