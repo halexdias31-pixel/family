@@ -163,7 +163,10 @@ function boot(opts) {
       'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
-      'card: typeof newPostCard === "function" ? newPostCard : null,' +
+      /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
+         a sentence and a tap target, and it is a button on the camera now. The rule the journey
+         below checks is unchanged: a client and an admin are told different things. */
+      'card: typeof cameraCard === "function" ? cameraCard : null,' +
       /* THE TILE ROW UNDER A SESSION CARD, which is where Pay lives. It used to be a block inside
          the receipt sheet and the journey below still looked for it there — see the note on that
          journey. Exposed so the test can ask the thing that actually renders the button. */

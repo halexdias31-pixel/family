@@ -124,7 +124,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-12-sheetwatch";
+const BACKEND_VERSION = "2026-09-13-reels";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -163,6 +163,9 @@ const TAB = {
   splashes: 'splashes',
   /* What may go on a printed cheat sheet, and at which level — see SCHEMA.cheatsheet. */
   cheatsheet: 'cheatsheet',
+  /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
+     few words to find a photograph by — see SCHEMA.facts. */
+  facts: 'facts',
   posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
   post_reactions: 'post_reactions', laws: 'laws', brand: 'brand',
   family: 'family'
@@ -691,6 +694,25 @@ const SCHEMA = {
      never heard of is still available to whatever you write next. */
   brand: [
     "key", "value", "notes",
+  ],
+
+  /* ---------- THE REELS, WHICH HAD NO TAB AT ALL --------------------------------------------------
+     `screen('reel')` READS `DATA.facts` AND NOTHING EVER SENT IT. No `facts` in TAB, none in this
+     schema, and no line in doGet — so the column showed its empty state on every load since it was
+     written, and that empty state says "add a row to the facts tab", naming a tab the sheet has
+     never had. Somebody following the instruction would have made one and still seen nothing,
+     because the payload had no idea it existed.
+
+     Exactly the failure CLAUDE.md names: a key the site asks for and the backend does not send is
+     `|| []` away from looking like an empty database.
+
+     `pic` IS A SEARCH TERM, NOT A URL. The photograph is found on Wikimedia Commons when the slide
+     scrolls into view — see `reelsWatch_`. So the cell holds words like "Roman aqueduct", not a
+     link, and a row with no `pic` simply keeps its gradient. */
+  facts: [
+    "fact_id", "subject", "heading", "body",
+    "pic",
+    "sort_order", "active", "notes",
   ],
 
   /* THE LAWS — how words are coloured, wherever they appear.
