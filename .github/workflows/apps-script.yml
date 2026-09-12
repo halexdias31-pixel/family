@@ -1,0 +1,154 @@
+# ==================================================================================================
+# PUSHING backend/ TO APPS SCRIPT, SO THAT PASTING STOPS BEING A STEP.
+#
+# Until now the two halves of this project deployed in two completely different ways: the front end
+# went live by being pushed to GitHub, and the backend went live by having six files selected,
+# copied, and pasted one at a time into an editor in another tab. Every one of those pastes is a
+# chance to miss a file, and a missed file does not announce itself — it sits there as the previous
+# version, doing the previous thing, while everything says "deployed".
+#
+# This runs `clasp push` whenever anything under backend/ reaches main, and then updates the EXISTING
+# deployment rather than making a new one.
+#
+# --------------------------------------------------------------------------------------------------
+# IT REVERSES WHO OWNS backend/, AND THAT IS THE WHOLE POINT.
+#
+# `sync.js` used to say Apps Script owned that folder and refused to stage it, because two writers on
+# one folder is one writer too many. That was correct when the .gs files arrived on GitHub as a dump
+# FROM Apps Script. It is now backwards: GitHub is the writer, Apps Script is the copy.
+#
+# SO THE EDITOR IS NO LONGER A PLACE TO CHANGE CODE. `clasp push --force` replaces the project's
+# files wholesale — anything typed into the Apps Script editor and not committed here is gone at the
+# next push. That is the trade for never pasting again, and it is only safe because it is stated.
+#
+# --------------------------------------------------------------------------------------------------
+# WHAT HAS TO EXIST BEFORE THIS DOES ANYTHING. Three secrets and one setting; see the README section
+# in CLAUDE.md for how to produce each.
+#
+#   SCRIPT_ID          the id in the Apps Script project URL
+#   CLASP_CREDENTIALS  the whole contents of ~/.clasprc.json after `clasp login`
+#   DEPLOYMENT_ID      the Active deployment's id — OPTIONAL, and read the note below before setting it
+#
+# and the Apps Script API switched on at https://script.google.com/home/usersettings, which is off by
+# default and is the single likeliest reason a first run fails.
+#
+# EVERY ONE OF THEM IS CHECKED BEFORE ANYTHING RUNS. A job that half-configures itself and then fails
+# inside clasp reports a Google error about a token, which is four steps removed from "you did not
+# add the secret".
+# ==================================================================================================
+name: Apps Script
+
+on:
+  push:
+    branches: [main]
+    # NOTHING ELSE TRIGGERS IT. A change to style.css has no business redeploying a backend, and a
+    # run that does nothing still costs a minute and still reports a status somebody has to read.
+    paths:
+      - 'backend/**'
+      - '.github/workflows/apps-script.yml'
+  # AND BY HAND, for the case where a deploy failed and the fix is a secret rather than a commit.
+  workflow_dispatch:
+
+# ONE AT A TIME. Two pushes a minute apart would otherwise race, and the loser overwrites the winner
+# with older files. `cancel-in-progress` is deliberately false: a half-finished clasp push is a
+# project in an unknown state, so the right move is to let it finish and then supersede it.
+concurrency:
+  group: apps-script
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    # Never from a fork. A pull_request trigger would not receive secrets anyway, but a public repo
+    # deserves the belt as well as the braces.
+    if: github.repository == 'halexdias31-pixel/family'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # PINNED. clasp 3 changed its authentication and its flags; an unpinned `@latest` would turn a
+      # working deploy into a broken one on somebody else's release schedule, with no commit here to
+      # explain it.
+      - name: Install clasp
+        run: npm install -g @google/clasp@2.4.2
+
+      - name: Check the secrets exist before touching anything
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+        run: |
+          missing=""
+          [ -n "$SCRIPT_ID" ]         || missing="$missing SCRIPT_ID"
+          [ -n "$CLASP_CREDENTIALS" ] || missing="$missing CLASP_CREDENTIALS"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo ""
+            echo "Settings > Secrets and variables > Actions > New repository secret."
+            echo "  SCRIPT_ID         the id in the Apps Script project URL"
+            echo "  CLASP_CREDENTIALS the whole contents of ~/.clasprc.json after: clasp login"
+            echo ""
+            echo "Also switch the Apps Script API on at:"
+            echo "  https://script.google.com/home/usersettings"
+            exit 1
+          fi
+          # A credentials file that is not JSON fails inside clasp as an opaque token error.
+          echo "$CLASP_CREDENTIALS" | node -e \
+            'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{JSON.parse(s)}catch(e){
+             console.error("::error::CLASP_CREDENTIALS is not valid JSON — paste the WHOLE file, braces included");
+             process.exit(1)}})'
+
+      - name: Write the credentials and point clasp at the project
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+        run: |
+          printf '%s' "$CLASP_CREDENTIALS" > "$HOME/.clasprc.json"
+          chmod 600 "$HOME/.clasprc.json"
+          # rootDir keeps this to backend/. Without it clasp would try to push the whole repo —
+          # 1.4 MB of front-end JavaScript into a project that has no use for any of it.
+          printf '{ "scriptId": "%s", "rootDir": "backend" }\n' "$SCRIPT_ID" > .clasp.json
+
+      # --force skips the "are you sure" prompt, which has no answer on a runner. It does NOT mean
+      # "overwrite harder" — clasp replaces the project's files either way, which is the thing the
+      # header above is careful to say out loud.
+      - name: Push backend/ to Apps Script
+        run: clasp push --force
+
+      # ---------- AND THE PART THAT ACTUALLY PUTS IT LIVE -----------------------------------------
+      # A PUSH IS NOT A DEPLOY. clasp push updates the project's SOURCE; the web app at /exec goes on
+      # serving whatever version was last deployed. Every confusing "I pasted it and nothing changed"
+      # in this project's history is that distinction, and automating the paste does not remove it.
+      #
+      # `clasp deploy -i <id>` UPDATES THE DEPLOYMENT THAT ALREADY EXISTS. Without -i it creates a
+      # NEW one with a NEW URL, which is the exact mistake data.js spends four paragraphs on: every
+      # version lands somewhere the site is not calling, and from the outside that is indistinguishable
+      # from the code not working.
+      #
+      # SO IT IS SKIPPED RATHER THAN GUESSED. No DEPLOYMENT_ID means the source is updated and the
+      # live URL is not, and the log says so plainly instead of quietly creating a second deployment.
+      - name: Update the Active deployment
+        env:
+          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+        run: |
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "::warning::DEPLOYMENT_ID is not set, so the SOURCE was updated and the LIVE URL was not."
+            echo "The /exec address still serves the previously deployed version."
+            echo "To finish by hand: Deploy > Manage deployments > pencil on Active > Version: New version."
+            echo "To finish automatically from now on: copy that row's deployment id into a"
+            echo "DEPLOYMENT_ID repository secret."
+            exit 0
+          fi
+          clasp deploy --deploymentId "$DEPLOYMENT_ID" \
+            --description "${GITHUB_SHA:0:7} $(date -u +%Y-%m-%dT%H:%MZ)"
+          echo "Live. Check the version with: /exec?run=sheetWatchStatus&name=…&pin=…"
+
+      # The credentials are a real Google token with access to the spreadsheets and Drive. The runner
+      # is thrown away regardless; removing them is cheap and means a later step added to this file
+      # cannot read them by accident.
+      - name: Shred the credentials
+        if: always()
+        run: rm -f "$HOME/.clasprc.json" .clasp.json

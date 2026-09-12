@@ -26,16 +26,21 @@
    want, and what happened to the weave splash.
 
    ------------------------------------------------------------------------------------------------
-   THE BACKEND FOLDER BELONGS TO APPS SCRIPT, NOT TO THIS.
+   THE BACKEND FOLDER NOW BELONGS TO THIS, AND THAT IS A REVERSAL.
 
-   backend/ holds your .gs files, and they arrive on GitHub from Apps Script itself — that is what
-   the "backend dump" commit was. If this pushed that folder too, whichever of the two ran last
-   would flatten the other's work. So this NEVER stages anything under backend/. Apps Script owns
-   it, this owns everything else, and they cannot collide.
+   IT USED TO BELONG TO APPS SCRIPT. The .gs files arrived on GitHub as a dump FROM the editor, so
+   this refused to stage anything under backend/ — two writers on one folder is one writer too many,
+   and whichever ran last would have flattened the other.
 
-   On the first run, if you have no backend/ folder locally, it downloads Apps Script's copy so you
-   can read the .gs files on your own machine. Editing them there does nothing — Apps Script is
-   still where you change them.
+   THE ARROW TURNED ROUND. `.github/workflows/apps-script.yml` now runs `clasp push` whenever
+   anything under backend/ reaches main, so GitHub is the writer and the Apps Script project is the
+   copy. The old exclusion would have made that workflow unreachable: you would edit a .gs here, save,
+   watch this say "nothing changed", and never find out why nothing deployed.
+
+   SO THE EDITOR IS NO LONGER WHERE YOU CHANGE THE BACKEND. `clasp push --force` replaces the
+   project's files wholesale, so anything typed into Apps Script and not committed here is gone at
+   the next push. Edit the .gs files in this folder, save, and they go up and out like everything
+   else. That is the trade for never pasting six files into a browser tab again.
 
    ------------------------------------------------------------------------------------------------
    IT CHECKS BEFORE IT PUSHES. `check.js` reads the app's own files and reports a name used and
@@ -67,9 +72,10 @@ const SKIP = /(^|[\/\\])(\.git|node_modules|\.DS_Store)([\/\\]|$)|~$|\.swp$|^\.#
 const QUIET_MS      = 2500;  // long enough that a save and its editor's temp files land as one commit
 const DELETE_ALARM  = 6;     // this many files vanishing at once is an accident, not an edit
 
-/* EVERYTHING EXCEPT THE BACKEND. Passed to every `git add`. See the header: Apps Script owns that
-   folder and two writers on one folder is one writer too many. */
-const MINE = ['.', ':(exclude)backend'];
+/* EVERYTHING, backend/ INCLUDED. Passed to every `git add`.
+   `:(exclude)backend` was here and is deliberately gone — see the header. The workflow deploys that
+   folder from main, so a .gs change that never leaves this machine is a deploy that never happens. */
+const MINE = ['.'];
 
 /* GIT_TERMINAL_PROMPT=0 so that a missing login FAILS instead of silently waiting forever at a
    "Username:" prompt you cannot see, with the watcher apparently just being slow. */
@@ -145,10 +151,10 @@ function connect() {
   const up = tryGit('branch', '--set-upstream-to=origin/' + BRANCH, BRANCH);
   if (!up.ok) tryGit('push', '-u', 'origin', BRANCH);
 
-  /* The Apps Script files, if you do not have them. */
+  /* The Apps Script files, if you do not have them. They are editable here now — see the header. */
   if (!fs.existsSync(path.join(ROOT, 'backend'))) {
     if (tryGit('checkout', '--', 'backend').ok)
-      say('· brought down backend/ — your Apps Script files, so you can read them here');
+      say('· brought down backend/ — the .gs files. Edit them HERE; they deploy from main.');
   }
 
   if (!fs.existsSync(path.join(ROOT, '.gitignore')))
@@ -197,10 +203,13 @@ function sync() {
     const when  = new Date().toISOString().replace('T', ' ').slice(0, 16);
     git('commit', '-m', `sync: ${head} · ${when}`);
 
-    /* PULL BEFORE PUSH. Apps Script pushing backend/ while this is running is enough to make the
-       two histories diverge, and a plain push then fails with four paragraphs about fast-forwards.
-       Rebase puts your commit on top and carries on. It cannot clash with the backend push, since
-       neither side ever touches the other's files. */
+    /* PULL BEFORE PUSH. Anything that lands on main while this is running — a merged pull request,
+       a commit from another machine — is enough to make the two histories diverge, and a plain push
+       then fails with four paragraphs about fast-forwards. Rebase puts your commit on top and
+       carries on.
+       THE OLD REASON FOR THIS WAS APPS SCRIPT PUSHING backend/ ITSELF. It no longer does; the arrow
+       runs the other way now. The line stays because the general case it also covers is the one that
+       actually bites: this folder being behind main and not knowing it. */
     const pulled = tryGit('pull', '--rebase', '--autostash');
     if (!pulled.ok) {
       say('\nGitHub has a change that clashes with this one. Nothing was pushed.');

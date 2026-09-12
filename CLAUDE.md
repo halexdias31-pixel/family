@@ -73,11 +73,50 @@ into the console to list every one.
 | What changed | How it goes live |
 |---|---|
 | `index.html`, `js/`, `style.css` | `git push` → GitHub Pages. About a minute. |
-| `backend/*.gs` | **Paste into the Apps Script editor.** GitHub holds a copy; Apps Script runs the real thing. Pushing changes nothing. |
+| `backend/*.gs` | `git push` to `main` → the **Apps Script** workflow runs `clasp push`. |
 | Spreadsheet contents | Immediately — *if* the edit watch is installed. See below. |
 
-`sync.js` in the repo root watches the folder and pushes on save. It deliberately never stages
-`backend/` — Apps Script owns that folder, and two writers on one folder is one too many.
+`sync.js` in the repo root watches the folder and pushes on save. It now stages `backend/` too.
+
+### The backend used to be pasted, and the arrow has turned round
+
+It was: edit in the Apps Script editor, and the .gs files arrived on GitHub as a dump *from* it. So
+`sync.js` refused to stage `backend/` — two writers on one folder is one too many.
+
+Now `.github/workflows/apps-script.yml` runs `clasp push` whenever anything under `backend/` reaches
+`main`. **GitHub is the writer; the Apps Script project is the copy.**
+
+**So do not edit the backend in the Apps Script editor.** `clasp push --force` replaces the
+project's files wholesale, so anything typed there and not committed here is gone at the next push.
+Edit the `.gs` files in this folder like any other file.
+
+#### Setting it up — three secrets and one switch
+
+1. **Switch the Apps Script API on** at <https://script.google.com/home/usersettings>. It is off by
+   default and is the likeliest reason a first run fails.
+2. `npx @google/clasp@2.4.2 login` on your own machine, then open `~/.clasprc.json`.
+3. Repository **Settings → Secrets and variables → Actions**:
+
+| Secret | What it is |
+|---|---|
+| `SCRIPT_ID` | the id in the Apps Script project URL |
+| `CLASP_CREDENTIALS` | the **whole** contents of `~/.clasprc.json`, braces included |
+| `DEPLOYMENT_ID` | the **Active** deployment's id. Optional — see below |
+
+The workflow checks all of these before it touches anything, because a half-configured run fails
+inside clasp with a Google token error four steps removed from "you did not add the secret".
+
+#### A push is not a deploy
+
+`clasp push` updates the project's **source**. The web app at `/exec` goes on serving whatever
+version was last **deployed**. Every confusing "I pasted it and nothing changed" in this project's
+history is that distinction, and automating the paste does not remove it.
+
+With `DEPLOYMENT_ID` set, the workflow runs `clasp deploy -i <id>`, which updates the deployment that
+already exists. **Without `-i`, clasp creates a NEW deployment with a NEW URL** — the exact mistake
+`data.js` spends four paragraphs on, where every version lands somewhere the site is not calling.
+So when the secret is absent the workflow updates the source, skips the deploy, and says so in the
+log rather than guessing.
 
 ### The cache, and the trap in it
 
