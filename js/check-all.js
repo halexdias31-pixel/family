@@ -54,6 +54,11 @@ const SUITE = [
      missing from it is a file DELETED from the live project on the next pull. */
   { file: 'check-manifest.js', what: 'the backend file list sync.gs pulls by' },
   { file: 'check-columns.js', what: 'every column the backend touches' },
+  /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE --------------------------------------
+     "A key the site asks for and the backend does not send fails silently." Nothing checked it, and
+     `missingKeys()` only knows about screens somebody opened while signed in as the right person.
+     This reads the files, so it sees every read whether or not anybody performed it. */
+  { file: 'check-payload.js', what: 'DATA keys read vs DATA keys sent' },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
