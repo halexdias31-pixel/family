@@ -7294,15 +7294,30 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    new idea and no new colour, and an answer now reads as the same class of object as the chips
    above it, which is what it is.
 ================================================================================================== */
+/* ---------- THEY WERE SURFACES ALREADY, AND NOBODY COULD TELL -----------------------------------
+   A 2.2%-WHITE FILL ON A `--line-soft` HAIRLINE IS A SURFACE ON PAPER AND A ROW ON A PHONE. The
+   rules below already said card — background, border, radius — at strengths so low that in daylight
+   the whole question read as one panel with lines in it. "Tools" and "Games" are two different
+   errands and two different screens, and they looked like two rows of a table.
+
+   NOTHING ABOUT THE STRUCTURE CHANGES HERE. They were always separate elements; they now look it.
+   The fill moves to `--raised`, which is the token this app already uses for a thing sitting on the
+   page, and the border to `--line`, which is the one that is meant to be seen. Same two tokens the
+   cards below the question use, so an answer and a result read as the same class of object.
+
+   44px MINIMUM, in px and not rem — a fingertip does not scale with the viewport, and the root here
+   is `clamp(13.5px, 3.8vw, 16px)` so `2.75rem` comes out at 40.75. Measured, not assumed: these
+   were 33px tall. */
 .row.tap.counted {
   /* THE HAIRLINE GOES. Two rows separated by a border AND by a gap is a divider inside a gap —
      it reads as a table that has been given rounded corners rather than as a list of buttons. */
   border-bottom: 0;
-  border: 1px solid var(--line-soft);
-  border-radius: .6rem;
-  background: rgb(255 255 255 / .022);
-  padding: .62rem .7rem;
-  margin-bottom: .34rem;
+  border: 1px solid var(--line);
+  border-radius: .7rem;
+  background: var(--raised);
+  padding: .8rem .85rem;
+  margin-bottom: .5rem;
+  min-height: 44px;
   /* THE LABEL IS THE THING NOW, so it takes the foreground colour. `--dim` is right for the left
      half of a fact row and wrong for the text on a button. */
   align-items: center;
@@ -7310,7 +7325,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
               transform var(--quick) ease;
 }
 .row.tap.counted:last-child { margin-bottom: 0; }
-.row.tap.counted .k { color: var(--ink); font-weight: 560; }
+/* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
+   on the screen somebody is here to choose. */
+.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is

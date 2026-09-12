@@ -138,6 +138,38 @@ files.forEach(({ src }) => {
     for (const lit of d[1].matchAll(/'([a-z0-9-]+)'/g)) dynamicDoors.add(lit[1]);
 });
 
+/* ---------- A PAGING TABLE KEYED BY A SCREEN THAT DOES NOT EXIST ----------------------------------
+   `PAGER`, `PAGE_HOME` and `PAGE` are all keyed by screen id, and two of their keys were `me` and
+   `posts` — names the screens had before the columns were folded in. The screens are `account` and
+   `feed`.
+
+   NOTHING THREW. `paint` does `classList.toggle('paged', !!PAGER[id])`, and an undefined lookup is
+   just false, so the class never went on and the screen simply did not page. Moving up and down on
+   the feed and on You did nothing at all: no error, no jump, no flicker. Two of the nine screens
+   lost an axis and the only evidence was that a swipe achieved nothing.
+
+   It is the same rename that left `go('me')` behind, which this file already catches — so the fix
+   is to ask the same question of these three tables. */
+const SCREEN_KEYED = ['PAGER', 'PAGE_HOME', 'PAGE'];
+const strayPageKeys = [];
+files.forEach(({ n, src }) => {
+  SCREEN_KEYED.forEach(name => {
+    /* The object literal, from `const NAME = {` to the line that closes it at column 0. Good enough
+       for a file that formats its top-level declarations this way, and it is checked by eye once. */
+    const open = src.indexOf('const ' + name + ' = {');
+    if (open === -1) return;
+    const close = src.indexOf('\n};', open);
+    if (close === -1) return;
+    const body = src.slice(open, close);
+    /* A key at the start of a line inside that literal. Keys inside comments are skipped by
+       requiring the line to begin with it. */
+    for (const m of body.matchAll(/^\s{0,4}([a-z][a-z0-9_]*)\s*:/gm)) {
+      const key = m[1];
+      if (!screens.has(key)) strayPageKeys.push(name + '.' + key + '  (' + n + ')');
+    }
+  });
+});
+
 const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
@@ -150,6 +182,9 @@ const say = (title, list, how) => {
   if (!list.length) return console.log('  none');
   list.forEach(a => console.log('  ' + a.padEnd(22) + how(a)));
 };
+
+say('A PAGING TABLE KEYED BY A SCREEN THAT IS NOT REGISTERED — that screen silently cannot page',
+    strayPageKeys, f => '');
 
 say('HANDLER WITH NO DOOR — nothing on screen can reach it', noDoor,
     a => 'on(\'' + a + '\') in ' + handlers.get(a) + '.js, no data-do anywhere');
@@ -168,4 +203,4 @@ if (doors.has('${…}')) {
 console.log('');
 console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.has('${…}') ? 1 : 0))
             + '   screens: ' + screens.size);
-process.exit(noDoor.length + noHandler.length + noScreen.length ? 1 : 0);
+process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length ? 1 : 0);
