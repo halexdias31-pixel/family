@@ -101,12 +101,20 @@ budget before lunch and stop the nightly jobs.
 ## Checking your work
 
 ```bash
+npm install                      # ONCE. acorn, jsdom and playwright — for the checks only.
+npm run check                    # everything, via js/check-all.js
 node js/check.js                 # names used but never declared. Two seconds. Run always.
-npm install playwright           # once, for the UI check below
+node js/check-flow.js            # 21 journeys through the real app in jsdom
+node js/check-booking.js         # the booking state machine, folded in Node
 node check/ui.js                 # 9 screens x 4 widths, measured. Exits 1 if anything failed.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
 ```
+
+**`package.json` is for the checks and nothing else.** The site has no build and no dependencies —
+`index.html` loads `js/*.js` and the browser concatenates them. Nothing in `node_modules` is ever
+shipped. Before it existed, a fresh clone ran `node js/check.js` and got `Cannot find module 'acorn'`
+with nothing anywhere saying what to install.
 
 `check/ui.js` serves the real files, stands the backend up from `check/fixture.json`, drives the app
 through its own `go()`, and measures: sideways scroll that nobody asked for, tap targets under 44 px,
