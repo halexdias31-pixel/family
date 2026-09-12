@@ -540,7 +540,25 @@ on('book-send', el => {
         toast('Asked — they will be in touch');
         load();
       })
-      .catch(() => {
+      /* ---------- THE HANDLER TOOK NO ARGUMENT AND THEN USED ONE ---------------------------------
+         `catch(() => …)` with `why_(err)` inside it. There is no `err` in that scope and no `err`
+         anywhere above it, so the line threw ReferenceError — inside the very handler whose job is
+         to explain a failure.
+
+         WHICH MEANS ASKING TO JOIN A CLASS FAILED TWICE AND SAID NOTHING EITHER TIME. The request
+         fails, this runs, it throws before reaching `textContent`, and the throw is inside a
+         `.catch` so it becomes an unhandled rejection that no part of the app is watching. The
+         button re-enables — `el.disabled = false` is above the bad line and does run — so what a
+         person sees is a button that goes dead, comes back, and offers no reason at all. Pressing
+         it again does the same thing.
+
+         `why_` EXISTS FOR THIS EXACT MOMENT. It turns a bare fetch TypeError into a sentence about
+         there being no connection, and it has been unreachable from here since the argument was
+         dropped. The sibling handler a hundred lines below takes `err` correctly, which is what
+         this should have looked like all along.
+
+         Found by `node js/check.js` — "used but never declared", which is precisely what it was. */
+      .catch(err => {
         el.disabled = false;
         if (said) said.textContent = why_(err);
       });
@@ -670,8 +688,24 @@ on('job', el => {
   openSheet('Session ' + id, jobReceipt(j)
     /* The way in, for somebody who is not in it yet. */
     + joinBlock(j)
-    /* AND THE WAY TO PAY, once it has been accepted. */
-    + payBlock(j)
+    /* ---------- `payBlock(j)` WAS HERE AND THE FUNCTION WAS NOT ------------------------------------
+       IT WAS DELETED FROM book.js AND THIS CALL WAS LEFT BEHIND. The note at book.js:2828 says so
+       plainly — "`payBlock` AND `leaveBlock` WERE HERE. Both are marks in the tile row under the
+       card now" — and the move was right. Only this line did not go with it.
+
+       SO EVERY SESSION RECEIPT THREW. `payBlock is not defined`, in the middle of building the
+       sheet's markup, which means nothing after this point in the expression was ever produced:
+       not the Pay affordance, not the admin's Accept and Decline, not the way to end a session.
+       Opening a receipt at all was the failure, so it is not that one button was missing — the
+       document did not exist.
+
+       THREE SEPARATE THINGS READ AS THREE SEPARATE BUGS: a client could not pay for an accepted
+       booking, an admin had no Accept or Decline on a booking that was waiting, and taking a seat
+       on a class threw outright. One deleted function, one surviving call, the whole money path.
+
+       PAYING STILL EXISTS and is where the note says it is — `jobTiles_` in tiles.js offers
+       "Pay and confirm" when `jobAccepted_(j)` is true, the session is yours and it is not already
+       paid. Nothing needs to be put back here; this line needed to go. */
     /* AND, FOR AN ADMIN, THE WAY TO END IT. Under the receipt rather than on the stub: deleting a
        session from a list you are scanning is one mis-tap away from deleting the wrong one, and a
        receipt is the one place you can see exactly which session you are looking at. */

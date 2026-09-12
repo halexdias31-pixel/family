@@ -164,6 +164,10 @@ function boot(opts) {
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       'card: typeof newPostCard === "function" ? newPostCard : null,' +
+      /* THE TILE ROW UNDER A SESSION CARD, which is where Pay lives. It used to be a block inside
+         the receipt sheet and the journey below still looked for it there — see the note on that
+         journey. Exposed so the test can ask the thing that actually renders the button. */
+      'jobTiles: typeof jobTiles_ === "function" ? jobTiles_ : null,' +
       'bar: typeof installBar === "function" ? installBar : null,' +
       'PAGE: () => PAGE,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
@@ -476,19 +480,41 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
   return bad;
 });
 
+/* ---------- PAY MOVED, AND THIS JOURNEY DID NOT ---------------------------------------------------
+   IT LOOKED IN THE RECEIPT SHEET, because that is where `payBlock` used to put the button. Both
+   `payBlock` and `leaveBlock` became marks in the tile row under the card — see book.js:2828 — and
+   `jobTiles_` in tiles.js is what renders them now.
+
+   THE JOURNEY WAS RIGHT TO FAIL, ALL THE SAME. `receipt.js` was still calling the deleted
+   `payBlock`, so opening any session receipt threw and the sheet had no buttons of any kind in it.
+   "A client cannot pay an accepted booking" was true, and so was rather more than that. Fixing the
+   call is what let this be re-pointed rather than simply deleted — the check was reporting a real
+   fault right up until the fault was gone.
+
+   ASKED OF `jobTiles_` DIRECTLY, so it is the same function the card calls, and the three states
+   are the three that matter: asked-for, accepted, and already paid. */
 check('a client can pay once it is accepted, and not before', async () => {
   const { w } = boot();
   await wait(300);
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  if (typeof w.__t.jobTiles !== 'function') return ['jobTiles_ is not exported — cannot check Pay'];
+
   const bad = [];
-  const buttonsOn = id => {
-    try { w.__t.ACTIONS['job']({ dataset: { id } }); } catch (e) { return ['THREW: ' + e.message]; }
-    const b = w.document.getElementById('sheet-body');
-    return b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
+  const offersPay = id => {
+    const j = (w.__t.BOOKING && w.__t.BOOKING.jobs ? w.__t.BOOKING.jobs : [])
+      .find(x => String(x.id || x.jobId) === id);
+    if (!j) return null;                       // fixture does not carry it; nothing to say
+    try { return /job-pay/.test(w.__t.jobTiles({ row: j }) || ''); }
+    catch (e) { return 'THREW: ' + e.message; }
   };
-  if (buttonsOn('J-ASK').includes('job-pay')) bad.push('a client is offered Pay before it is accepted');
-  if (!buttonsOn('J-OK').includes('job-pay')) bad.push('a client cannot pay an accepted booking');
-  if (buttonsOn('J-PAID').includes('job-pay')) bad.push('Pay is still offered on a paid booking');
+
+  const ask = offersPay('J-ASK'), ok = offersPay('J-OK'), paid = offersPay('J-PAID');
+  if (typeof ask === 'string' || typeof ok === 'string' || typeof paid === 'string') {
+    return [String(ask || ok || paid)];
+  }
+  if (ask === true)  bad.push('a client is offered Pay before it is accepted');
+  if (ok === false)  bad.push('a client cannot pay an accepted booking');
+  if (paid === true) bad.push('Pay is still offered on a paid booking');
   return bad;
 });
 

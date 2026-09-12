@@ -46,8 +46,14 @@ const NUMBERED = ['00_constants', '10_core', '20_people', '30_booking', '40_cont
                   '50_setup', '60_doGet', '70_doPost'];
 /* Each name tried in turn: numbered, plain, and plain lower-cased — `doget.gs` and `doGet.gs` are
    the same file to a person and different to a filesystem. */
-const findGs = (i) => [NUMBERED[i], ORDER_[i], ORDER_[i].toLowerCase()]
-  .map(n => path.join(dir, n + '.gs'))
+/* AND IN `backend/`, WHICH IS WHERE THEY ARE. The .gs files were moved there and this went on
+   looking beside itself, so every run printed "missing backend files: constants, core, people,
+   booking, content, setup" and stopped. That at least exited 1 and was therefore visible, unlike
+   `check-booking.js`, which made the same mistake and called it a pass. Directories in order of
+   what is true today. */
+const WHERE = [path.join(dir, '..', 'backend'), path.join(dir, 'backend'), dir, path.join(dir, '..')];
+const findGs = (i) => WHERE
+  .flatMap(w => [NUMBERED[i], ORDER_[i], ORDER_[i].toLowerCase()].map(n => path.join(w, n + '.gs')))
   .find(p2 => fs.existsSync(p2));
 const GS_PATHS = ORDER_.map((unused, i) => findGs(i));
 
