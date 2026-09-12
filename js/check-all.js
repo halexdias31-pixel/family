@@ -50,6 +50,9 @@ const SUITE = [
      A checker that is not in the suite is a checker that does not run, and this file IS the suite. */
   { file: 'check-scope.js',   what: 'names declared in a block, used outside it' },
   { file: 'check-canvas.js', what: 'the shared picture, column by column' },
+  /* backend/files.json must name every backend file — sync.gs pulls by that list, and a name
+     missing from it is a file DELETED from the live project on the next pull. */
+  { file: 'check-manifest.js', what: 'the backend file list sync.gs pulls by' },
   { file: 'check-columns.js', what: 'every column the backend touches' },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },

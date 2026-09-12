@@ -26,8 +26,9 @@
 
    Four things have to be true before a single byte is sent:
 
-     1. GitHub answered 200 for the file LIST. A rate limit or an outage returns a JSON error, and a
-        list of zero files would otherwise PUT a project with nothing in it.
+     1. The file list resolved to something. `backend/files.json` names every file; if it will not
+        download, a built-in list is used rather than giving up. An empty set is refused outright,
+        because sending one would PUT a project with nothing in it.
      2. EVERY file downloaded, each one 200 and not empty.
      3. NONE of them look like an error page. GitHub serves "404: Not Found" as a 200-with-HTML in
         some cases, and a .gs file whose source is `<!DOCTYPE html>` is a project that will not run.
@@ -87,57 +88,85 @@ function ghToApps_(filename, source) {
   return { name: stem, type: type, source: source };
 }
 
+/* ---------- WHY THIS DOES NOT USE THE GITHUB API -------------------------------------------------
+   IT DID, AND IT FAILED ON THE FIRST REAL RUN: "GitHub would not list backend/ (HTTP 403)".
+
+   api.github.com ALLOWS SIXTY UNAUTHENTICATED REQUESTS AN HOUR, PER IP — and the IP is not yours.
+   Apps Script runs on Google's servers, whose addresses are shared with every other script Google
+   is running for everybody else. That budget is spent long before you arrive, permanently and
+   through no fault of anything here. No amount of waiting fixes it; it was the wrong door.
+
+   raw.githubusercontent.com IS A CDN AND HAS NO SUCH LIMIT. It serves file contents and nothing
+   else — which means it cannot tell you what files exist, only hand you one you name.
+
+   SO THE REPO CARRIES THE LIST. `backend/files.json` names every file, and `check-manifest.js`
+   fails the build if it ever disagrees with what is actually in the folder — so it cannot quietly
+   go stale, which is the one way a hardcoded list goes wrong.
+
+   THE FALLBACK IS THE LIST AS IT WAS when this was written. It exists for one case only: the
+   manifest itself failing to download, where giving up would mean the backend could never be
+   repaired by this route again. A stale fallback is caught by the checks below like anything else. */
+const RAW = 'https://raw.githubusercontent.com/' + GH_OWNER + '/' + GH_REPO + '/' + GH_BRANCH + '/';
+const FALLBACK_FILES = ['appsscript.json', 'booking.gs', 'constants.gs', 'content.gs', 'core.gs',
+                        'doget.gs', 'dopost.gs', 'people.gs', 'setup.gs', 'sync.gs'];
+
+/* A CACHE-BUSTER ON EVERY FETCH. raw.githubusercontent.com holds a file for about five minutes,
+   which is long enough to pull the version from before the merge you just did and spend twenty
+   minutes wondering why. */
+function rawUrl_(name) {
+  return RAW + GH_DIR + '/' + name + '?v=' + Date.now();
+}
+
+function fetchOne_(name) {
+  const res = UrlFetchApp.fetch(rawUrl_(name), { muteHttpExceptions: true });
+  return { code: res.getResponseCode(), text: res.getContentText() };
+}
+
 /** Everything in backend/ on GitHub, downloaded and checked. Throws rather than returning a bad set. */
 function fetchBackend_() {
-  const listUrl = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO
-                + '/contents/' + GH_DIR + '?ref=' + GH_BRANCH;
-  const listRes = UrlFetchApp.fetch(listUrl, {
-    muteHttpExceptions: true,
-    headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'family-sync' },
-  });
-  if (listRes.getResponseCode() !== 200) {
-    throw new Error('GitHub would not list ' + GH_DIR + '/ (HTTP ' + listRes.getResponseCode()
-      + '). Unauthenticated requests are limited to 60 an hour, so if you have been running this '
-      + 'repeatedly, wait. Otherwise check the repo and branch at the top of this file.');
+  let names = null;
+  const man = fetchOne_('files.json');
+  if (man.code === 200) {
+    try {
+      const parsed = JSON.parse(man.text);
+      if (parsed && parsed.length) names = parsed;
+    } catch (err) { /* falls through to the fallback below */ }
   }
-
-  let listing;
-  try { listing = JSON.parse(listRes.getContentText()); }
-  catch (err) { throw new Error('GitHub sent something that is not JSON for the file list.'); }
-  if (!listing || !listing.length) {
-    throw new Error('GitHub says ' + GH_DIR + '/ is empty. Refusing to continue — sending that '
-      + 'would empty this project.');
+  if (!names) {
+    names = FALLBACK_FILES;
+    Logger.log('files.json did not load (HTTP ' + man.code + ') — using the built-in list. '
+             + 'If a file has been added to backend/ since, it will be missed.');
   }
-
-  const want = listing.filter(f => f.type === 'file' && /\.(gs|json|html)$/i.test(f.name));
-  if (!want.length) throw new Error('No .gs, .json or .html files in ' + GH_DIR + '/. Refusing.');
 
   const files = [];
-  want.forEach(f => {
-    /* download_url is the raw address for this exact branch, handed over by the listing, so there is
-       no URL to build wrongly. */
-    const res = UrlFetchApp.fetch(f.download_url, { muteHttpExceptions: true,
-                                                    headers: { 'User-Agent': 'family-sync' } });
-    if (res.getResponseCode() !== 200) {
-      throw new Error(f.name + ' would not download (HTTP ' + res.getResponseCode()
-        + '). Nothing has been changed.');
+  names.forEach(name => {
+    if (!/\.(gs|json|html)$/i.test(name)) return;
+    if (name.toLowerCase() === 'files.json') return;   // the manifest is repo metadata, not source
+
+    const got = fetchOne_(name);
+    if (got.code !== 200) {
+      throw new Error(name + ' would not download (HTTP ' + got.code + '). Nothing has been '
+        + 'changed. If you have just added or renamed a file, backend/files.json needs to say so.');
     }
-    const source = res.getContentText();
-    if (!source || !source.trim()) {
-      throw new Error(f.name + ' downloaded empty. Nothing has been changed.');
+    if (!got.text || !got.text.trim()) {
+      throw new Error(name + ' downloaded empty. Nothing has been changed.');
     }
-    /* AN ERROR PAGE IS A 200 WITH HTML IN IT. A .gs whose source begins `<!DOCTYPE` is a project
-       that will not parse, and it would have been written without complaint. */
-    if (!/\.html$/i.test(f.name) && /^\s*<(!doctype|html)\b/i.test(source)) {
-      throw new Error(f.name + ' came back as an HTML page rather than code. Nothing has been '
+    /* AN ERROR PAGE IS SOMETIMES A 200 WITH HTML IN IT. A .gs whose source begins `<!DOCTYPE` is a
+       project that will not parse, and it would have been written without complaint. */
+    if (!/\.html$/i.test(name) && /^\s*<(!doctype|html)\b/i.test(got.text)) {
+      throw new Error(name + ' came back as an HTML page rather than code. Nothing has been '
         + 'changed.');
     }
-    files.push({ name: f.name, source: source });
+    files.push({ name: name, source: got.text });
   });
 
+  if (!files.length) {
+    throw new Error('Nothing downloaded. Refusing to continue — sending that would empty this '
+      + 'project.');
+  }
   if (!files.some(f => f.name.toLowerCase() === 'appsscript.json')) {
-    throw new Error('appsscript.json is not in ' + GH_DIR + '/ on GitHub. It carries the OAuth '
-      + 'scopes and the web app settings, and a project written without it loses both. Refusing.');
+    throw new Error('appsscript.json is not among the files. It carries the OAuth scopes and the '
+      + 'web app settings, and a project written without it loses both. Refusing.');
   }
   return files;
 }
