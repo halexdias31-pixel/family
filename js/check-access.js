@@ -12,7 +12,30 @@
    passed on a feature that could not run.
 ================================================================================================== */
 const fs = require('fs'), path = require('path');
-const read = f => { try { return fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); }
+/* ---------- THE BACKEND IS IN `backend/`, AND `doPost.gs` IS `dopost.gs` ------------------------
+   THIS LOOKED FOR `../doPost.gs` AND GOT NEITHER HALF RIGHT. The .gs files moved into `backend/`,
+   and the file on disk is lower-case `dopost.gs` — which is the same name to a person and a
+   different one to a filesystem.
+
+   SO IT READ NOTHING AND REPORTED THE WORST POSSIBLE ANSWER CONFIDENTLY: "0 handlers, 0 classified,
+   34 asked for by the site", followed by all 34 actions listed under "THE SITE CALLS AN ACTION THAT
+   DOES NOT EXIST". Every action the app performs — signing in, paying, posting, booking — named as
+   missing. A report that alarming is a report nobody can act on, so it gets read once and skipped
+   from then on, which is a worse outcome than the check not existing.
+
+   Directories and spellings both tried, nearest-first. `dirOf_` below is shared by every read so a
+   file that moves again moves for all of them at once. */
+const WHERE_ = [path.join(__dirname, '..', 'backend'), path.join(__dirname, 'backend'),
+                path.join(__dirname, '..'), __dirname];
+const find_ = f => {
+  const names = [f, f.toLowerCase(), f.charAt(0).toLowerCase() + f.slice(1)];
+  for (const w of WHERE_) for (const n of names) {
+    const p = path.join(w, n);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+};
+const read = f => { try { const p = find_(f); return p ? fs.readFileSync(p, 'utf8') : ''; }
                     catch (e) { return ''; } };
 
 const post = read('doPost.gs');

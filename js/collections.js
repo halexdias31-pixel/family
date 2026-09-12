@@ -49,14 +49,38 @@ function toggleSpot(k, kind) {
   const key = String(k);
   if (SPOT.has(key)) SPOT.delete(key); else SPOT.add(key);
 
-  send('spotlight', {
+  /* ---------- THIS CALLED `send` WITH TWO ARGUMENTS AND `send` TAKES ONE ------------------------
+     `send(body)` — shell.js:1546 — passes its single argument straight to `api`. Written as
+     `send('spotlight', { … })` the body was the STRING "spotlight" and the whole object, name,
+     itemId, kind and all, was dropped on the floor before the request was built. There is no
+     `action` field in a bare string, so the backend could not have known what was being asked even
+     if it had the handler.
+
+     AND `.catch(() => {})` MADE IT LOOK LIKE IT WORKED. `SPOT.add`/`delete` three lines up has
+     already changed the set, so the star fills in the moment it is pressed; the request then fails
+     and the empty catch discards the failure without a word. An admin stars six things, sees six
+     stars, reloads, and has none — with nothing anywhere having said no.
+
+     THE HANDLER DOES NOT EXIST EITHER. There is no `spotlight` action in dopost.gs, no spotlight
+     tab in SCHEMA, and `doGet` never sends `DATA.spotlight` — which collections.js:39 reads. The
+     feature is wired at both ends of the front end and has no middle. Fixing the call therefore
+     does not make starring work; it makes it FAIL OUT LOUD, which is the difference between a
+     feature that is missing and a feature that is lying. `send` already turns an unknown action
+     into "The backend does not have `spotlight` yet", which is the true sentence. */
+  send({
+    action: 'spotlight',
     name: USER.name,
     /* THE KEY GOES ACROSS WHOLE and the kind is passed separately, for the same reason the star
        does it: some keys are a bare title and some are prefixed, and splitting on the colon turns
        a venue called "Colliers Wood Library" into a kind. */
     kind: kind || 'item', itemId: key,
     on: SPOT.has(key) ? 'TRUE' : '',
-  }).catch(() => {});
+  }).catch(err => {
+    /* PUT BACK WHAT WAS NOT SAVED. Leaving the star lit after the save failed is the lie this was
+       built on; the set is the only record the screen has, so it has to agree with the server. */
+    if (SPOT.has(key)) SPOT.delete(key); else SPOT.add(key);
+    toast(String((err && err.message) || 'That did not save'));
+  });
 }
 
 on('spot', el => {

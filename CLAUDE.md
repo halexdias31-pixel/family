@@ -128,6 +128,37 @@ text under WCAG AA contrast, JS errors, and custom properties nothing anywhere s
 Fixed and verified by the same check: the 22 contrast failures (one token, `--faint`) and 88 of the
 107 tap targets (two rules, `.mat-lev button` and `.mat-list label`).
 
+### Two features that are wired up and have no backend
+
+`node js/check-access.js` reports these, and they are real:
+
+- **`spotlight`** — `collections.js` has an admin star toggle. There is no `spotlight` handler in
+  `dopost.gs`, no spotlight tab in `SCHEMA`, and `doGet` never sends `DATA.spotlight`, which
+  `collections.js:39` reads. Wired at both ends of the front end with no middle.
+- **`acceptTerms`** — `terms.js:289` posts it. No handler anywhere in `backend/`. `doGet` never
+  sends `DATA.termsAccepted` or `DATA.termsAcceptedWhen`, which `terms.js:101` and `:104` read.
+
+Neither is a regression; both were never finished. Building them means a handler, a tab in `SCHEMA`
+and a payload key each — a decision, not a repair.
+
+### Every check hand-rolls its own path to `backend/`, and most of them had it wrong
+
+`check-booking.js`, `check-columns.js` and `check-access.js` each located the `.gs` files
+differently, and all three looked beside `js/` rather than in `backend/`. `check-access.js` also
+asked for `doPost.gs` when the file is `dopost.gs` — the same name to a person, a different one to a
+filesystem. The failures did not look alike:
+
+- `check-booking.js` printed "nothing to check" and **exited 0**, so it read as a pass for months.
+- `check-columns.js` exited 1, so it was at least visible.
+- `check-access.js` reported "0 handlers, 0 classified, 34 asked for by the site" and listed every
+  action the app performs as missing — alarming enough to be dismissed, which is its own kind of
+  invisible.
+
+All three now search `backend/` first and try lower-case spellings. If you move those files again,
+three separate lists need updating. **A check that cannot find its subject must exit non-zero** —
+"I did not check" is not the same answer as "I checked and it was fine", and exit 0 says the second
+one to everything that reads it.
+
 ### Three things that will mislead you
 
 **A check that guesses gives different answers on the same code.** `check/ui.js` originally picked
