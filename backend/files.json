@@ -1,0 +1,12 @@
+[
+  "appsscript.json",
+  "booking.gs",
+  "constants.gs",
+  "content.gs",
+  "core.gs",
+  "doget.gs",
+  "dopost.gs",
+  "people.gs",
+  "setup.gs",
+  "sync.gs"
+]
