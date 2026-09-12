@@ -448,7 +448,7 @@ function openSharedPost() {
      shared link going to the top of the feed. */
   const n = feedPosts().findIndex(p => String(p.id) === String(id));
   if (n < 0) { goFor_('Posts'); return; }
-  PAGE.posts = n;
+  PAGE.feed = n;                 // the screen is `feed`; `PAGE.posts` went nowhere — see PAGER
   goFor_('Posts');
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.querySelector(`[data-post="${CSS.escape(id)}"]`)?.classList.add('post-lit');

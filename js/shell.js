@@ -940,7 +940,24 @@ const PAGER = {
      single-page screen has no "1 of 1" worth saying.
      Each count comes from the same function that renders the pages, so the header and the screen
      cannot disagree about how many there are. */
-  me:      () => mePages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
+  /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST ----------
+     IT WAS `me:` AND `posts:`. The screens are registered as `account` (find.js:2149) and `feed`
+     (posts.js:800) — renamed when the columns were folded in, and this table was not renamed with
+     them.
+
+     NOTHING THREW, WHICH IS WHY IT LASTED. `paint` does `classList.toggle('paged', !!PAGER[id])`,
+     and `PAGER['account']` is simply undefined — so the class never went on, and a screen without
+     it does not page. `paintPager` returns early on the same lookup, and so does every other reader
+     at the bottom of this file.
+
+     WHAT THAT LOOKED LIKE: moving up and down did nothing on the feed and on You. Not an error, not
+     a jump, not a flicker — the swipe was received and there was nothing registered to move. Two of
+     the nine screens silently lost an axis, and the one that kept it (`stuff`) is the one whose key
+     happened not to be renamed.
+
+     THE KEYS MUST MATCH `screen(id, …)` EXACTLY. `check-doors.js` now fails the build when one does
+     not, which is the only way this stays fixed. */
+  account: () => mePages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. The pager needs the COUNT — that is what it pages through — and
@@ -965,7 +982,7 @@ const PAGER = {
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. Both of these run
      long after the load — but `paintPager` fires on the app's first frame, and a `ReferenceError`
      there takes the whole boot with it. The same guard `posts.js` uses. */
-  posts:  () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
+  feed:   () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
     .concat(USER ? [''] : [])
     .concat((DATA.festive || []).map(() => ''))
     .concat(feedPosts().map(() => '')),
@@ -1028,8 +1045,11 @@ const PAGE_HOME = {
 
      WITH NOTHING SPOTLIT, NOTHING CHANGES: past the ＋ card if it is there, on the newest post
      either way. */
-  posts: () => ((typeof spotPages === 'function' && spotPages().length) ? 0 : (USER ? 1 : 0)),
-  me:    () => (USER ? 1 : 0),      // past the name card; signed out there is only the sign-in pane
+  /* SAME RENAME AS `PAGER` ABOVE, and the same silent failure: `PAGE_HOME['feed']` was undefined,
+     so the feed opened on page 0 rather than past the ＋ card, and spotlight — the whole reason
+     this entry exists — was one swipe behind where nobody saw it. */
+  feed:    () => ((typeof spotPages === 'function' && spotPages().length) ? 0 : (USER ? 1 : 0)),
+  account: () => (USER ? 1 : 0),    // past the name card; signed out there is only the sign-in pane
 };
 /* `book` WAS HERE — a column that no longer exists. */
 /* ---------- THE ICON, FROM THE SHEET ---------------------------------------------------------------
@@ -1073,7 +1093,10 @@ function applyBrandIcon_() {
   });
 }
 
-const PAGE = { posts: 0, stuff: 0, me: 0 };
+/* KEYED BY SCREEN ID, like `PAGER` and `PAGE_HOME` — and `posts` and `me` are not screen ids. See
+   the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
+   remembered between visits. */
+const PAGE = { feed: 0, stuff: 0, account: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
