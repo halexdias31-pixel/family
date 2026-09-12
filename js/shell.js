@@ -276,6 +276,10 @@ function go(id, remember, instant) {
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
      document, which is why this is here and not inside the screen's own draw. */
   if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games') toolsStop_();
+  /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
+     is looking at is a flat battery, and a live camera behind one is a recording light on for
+     nothing. */
+  if (typeof camStop_ === 'function' && AT !== 'make') camStop_();
   if ((AT === 'tools' || AT === 'games') && typeof toolsStart_ === 'function') {
     afterSlide_(() => toolsStart_(AT === 'tools' ? 'tool' : 'game'));
   }
@@ -999,8 +1003,10 @@ const PAGER = {
   tools:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('tool') : []).map(w => w.name || ''),
   games:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('game') : []).map(w => w.name || ''),
 
+  /* `.concat(USER ? [''] : [])` WAS HERE, COUNTING THE ＋ CARD. That card is gone from the feed —
+     it was drawn there AND as the column to its left, one swipe apart, which is the duplicate you
+     could see. Counting a page that is no longer built pages once past the end onto nothing. */
   feed:   () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
-    .concat(USER ? [''] : [])
     .concat((DATA.festive || []).map(() => ''))
     .concat(feedPosts().map(() => '')),
   /* The controls, then the results. Named so the header says which page of how many — on a list
@@ -1065,7 +1071,10 @@ const PAGE_HOME = {
   /* SAME RENAME AS `PAGER` ABOVE, and the same silent failure: `PAGE_HOME['feed']` was undefined,
      so the feed opened on page 0 rather than past the ＋ card, and spotlight — the whole reason
      this entry exists — was one swipe behind where nobody saw it. */
-  feed:    () => ((typeof spotPages === 'function' && spotPages().length) ? 0 : (USER ? 1 : 0)),
+  /* THE `USER ? 1 : 0` SKIPPED PAST THE ＋ CARD, which is no longer on this screen — so it now
+     skips past the first festive card or the newest post instead, which is a page somebody wants
+     to see. Spotlight still wins when there is one. */
+  feed:    () => 0,
   account: () => (USER ? 1 : 0),    // past the name card; signed out there is only the sign-in pane
 };
 /* `book` WAS HERE — a column that no longer exists. */

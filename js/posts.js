@@ -212,12 +212,22 @@ function postsBlocks() {
      placed by the same grid as everything else, and it needs no rule of its own anywhere. */
   const cards = posts.map((p, i) => postCard_(p, i));
 
-  /* ANYBODY SIGNED IN. It was admin-only, which meant the one screen the whole family looks at was
-     the one screen only you could add to. What differs is what happens after — see the card. */
-  if (USER) cards.unshift(newPostCard());
-  /* AFTER THE ＋, BEFORE THE POSTS. The ＋ is a control and belongs above the feed; the festive
-     cards are the most perishable thing on the screen and belong next. */
-  festive.reverse().forEach(c => cards.splice(USER ? 1 : 0, 0, c));
+  /* ---------- THE COMPOSER WAS HERE, AND IT WAS ALSO THE SCREEN TO THE LEFT ----------------------
+     `unshift(newPostCard())` PUT IT AT THE TOP OF THE FEED, and `screen('make')` further down this
+     file drew the identical card as a column of its own. Two pages, same card, one swipe apart —
+     which is what you saw: "＋ New post" beside "＋ New post".
+
+     THE FILE ALREADY SAYS WHICH ONE IS WRONG. The note under `screen('feed')` reads "THE COMPOSER
+     IS NOT REPEATED AT THE TOP. It is one swipe left from anywhere in the feed, always in the same
+     direction — which is what a column gives it that a card at the top of a list cannot, because a
+     card at the top of a list moves as the list grows." That was the decision; this line was left
+     behind when it was made.
+
+     `PAGER.feed` COUNTED IT TOO, with `.concat(USER ? [''] : [])`, so removing it here without
+     removing it there would page one past the end of the feed onto nothing. Both went. */
+  /* THE FESTIVE CARDS ARE FIRST NOW. They were second, behind the ＋; with the ＋ gone they are the
+     most perishable thing on the screen and belong at the front on their own merits. */
+  festive.reverse().forEach(c => cards.unshift(c));
   /* ---------- SPOTLIGHT IS NOT HERE ANY MORE -----------------------------------------------------
      IT WAS ABOVE EVEN THE ＋, on the argument that nothing outranks what the business most wants
      seen at the top of its own feed. True while the feed was the screen the app opened on. It is an
@@ -245,6 +255,150 @@ function postsBlocks() {
 /* The first page of the feed, for an admin. A card rather than a glyph: it can say what it does,
    which a ＋ in a corner cannot, and it is the width of a thumb rather than the width of a
    fingernail. */
+/* ==================================================================================================
+   THE CAMERA, ON THE PAGE.
+
+   THE 📷 TAB DREW "＋ New post" — a card describing a photograph rather than a way to take one. The
+   feed drew the same card at its top, so the tab was a duplicate of a card one swipe away, and
+   neither of them was a camera.
+
+   THIS IS THE VIEWFINDER. Live preview in a glass card, a shutter under it, and the still held on
+   the page once taken.
+
+   --------------------------------------------------------------------------------------------------
+   IT DOES NOT UPLOAD, AND THAT IS NOT AN OVERSIGHT.
+
+   `on('new-post')` takes a LINK to a picture, deliberately: "Uploading meant this app had to be
+   allowed to write to your Drive, which is a large permission to hold for the sake of one button."
+   The backend has no endpoint that accepts an image either — `imageData` runs the other way, fetching
+   a URL and returning a data URI.
+
+   So a still taken here is SAVED TO THE PHONE, and the composer's folder picker finds it once it
+   reaches the Drive folder — which is the route the composer's own note describes: "share it to the
+   folder from the camera roll and it is here". One extra step, and it is the step that keeps this
+   app out of your Drive's write permissions.
+
+   --------------------------------------------------------------------------------------------------
+   IT STARTS ON A TAP, NEVER ON ARRIVAL. Browsers require a gesture for `getUserMedia` on most
+   configurations, and a camera that turns itself on because somebody swiped past is a camera nobody
+   trusts. The card shows a dark panel and a button until asked.
+
+   AND IT STOPS WHEN THE COLUMN LEAVES — `camStop_`, called from `go` beside `toolsStop_`. A live
+   camera behind a screen nobody is looking at is a recording light on for nothing.
+================================================================================================== */
+let CAM_STREAM = null;
+
+function cameraCard() {
+  return `<div class="card cam-card">
+    <h3>Camera</h3>
+    <div class="cam-stage" id="cam-stage">
+      <video id="cam-view" playsinline muted autoplay></video>
+      <canvas id="cam-still" hidden></canvas>
+      <div class="cam-off" id="cam-off">
+        <p class="sub">The camera is off.</p>
+      </div>
+    </div>
+    <div class="btn-row cam-row">
+      <button class="btn" data-do="cam-on" id="cam-on">Turn the camera on</button>
+      <button class="btn quiet" data-do="cam-shoot" id="cam-shoot" hidden>Take one</button>
+      <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
+      <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
+    </div>
+    <p class="faint" id="cam-said"></p>
+  </div>`;
+}
+
+/* WHY IT MIGHT NOT WORK, IN WORDS. Three refusals look identical from the outside — no camera, a
+   refused prompt, and a page that is not on HTTPS — and only the first is worth giving up over. */
+function camWhy_(err) {
+  const n = String((err && err.name) || err || '');
+  if (!window.isSecureContext) {
+    return 'The camera only works on a secure page. Open the site over https.';
+  }
+  if (/NotAllowedError|SecurityError/i.test(n)) {
+    return 'The camera was refused. Allow it for this site in the browser\u2019s address bar, then try again.';
+  }
+  if (/NotFoundError|OverconstrainedError/i.test(n)) return 'No camera on this device.';
+  if (/NotReadableError/i.test(n)) return 'Something else is using the camera.';
+  return 'The camera would not start: ' + n;
+}
+
+on('cam-on', async el => {
+  const said = $('cam-said');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (said) said.textContent = 'This browser has no camera support.';
+    return;
+  }
+  el.disabled = true;
+  try {
+    /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
+       camera gets that rather than an OverconstrainedError. */
+    CAM_STREAM = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }, audio: false });
+  } catch (err) {
+    el.disabled = false;
+    if (said) said.textContent = camWhy_(err);
+    return;
+  }
+  const v = $('cam-view');
+  if (v) { v.srcObject = CAM_STREAM; try { await v.play(); } catch (e) {} }
+  $('cam-off') && ($('cam-off').hidden = true);
+  el.hidden = true; el.disabled = false;
+  $('cam-shoot') && ($('cam-shoot').hidden = false);
+  if (said) said.textContent = '';
+});
+
+on('cam-shoot', () => {
+  const v = $('cam-view'), c = $('cam-still');
+  if (!v || !c || !v.videoWidth) return;
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  c.hidden = false; v.hidden = true;
+  $('cam-shoot').hidden = true;
+  $('cam-again').hidden = false;
+  $('cam-save').hidden = false;
+});
+
+on('cam-again', () => {
+  const v = $('cam-view'), c = $('cam-still');
+  if (c) c.hidden = true;
+  if (v) v.hidden = false;
+  $('cam-again').hidden = true;
+  $('cam-save').hidden = true;
+  $('cam-shoot').hidden = false;
+  const said = $('cam-said'); if (said) said.textContent = '';
+});
+
+on('cam-save', () => {
+  const c = $('cam-still'), said = $('cam-said');
+  if (!c) return;
+  /* A DOWNLOAD, BECAUSE THERE IS NOWHERE ELSE FOR IT TO GO. See the note at the top: this app does
+     not hold write permission on your Drive and the backend has no endpoint that takes an image. */
+  try {
+    const a = document.createElement('a');
+    a.href = c.toDataURL('image/jpeg', 0.92);
+    a.download = 'family-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+    if (said) said.textContent = 'Saved. Put it in the posts folder and it will be in the list below.';
+  } catch (err) {
+    if (said) said.textContent = 'Could not save that: ' + String((err && err.message) || err);
+  }
+});
+
+/** Let the camera go. Called when the column leaves — see `go` in shell.js. */
+function camStop_() {
+  try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
+  CAM_STREAM = null;
+  const v = $('cam-view');
+  if (v) { try { v.srcObject = null; } catch (e) {} v.hidden = false; }
+  const c = $('cam-still'); if (c) c.hidden = true;
+  $('cam-off')   && ($('cam-off').hidden = false);
+  $('cam-on')    && ($('cam-on').hidden = false, $('cam-on').disabled = false);
+  $('cam-shoot') && ($('cam-shoot').hidden = true);
+  $('cam-again') && ($('cam-again').hidden = true);
+  $('cam-save')  && ($('cam-save').hidden = true);
+}
+
 function newPostCard() {
   /* THE CARD SAYS WHAT WILL HAPPEN TO IT, and says it BEFORE anybody posts rather than after.
      A client who posts and then finds nothing on the feed assumes it failed and posts again; one
@@ -786,7 +940,7 @@ on('post-delete', el => {
    SIGNED OUT IT SAYS SO, rather than offering a control that will refuse. `new-post` needs a user,
    and a button that refuses is worse than one that was never there. */
 screen('make', () => pages('make', USER
-  ? [newPostCard()]
+  ? [cameraCard(), newPostCard()]
   : [`<div class="card"><h3>New post</h3>
       <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`]));
 

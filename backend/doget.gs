@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-12-sheetwatch";
+const DOGET_VERSION = "2026-09-13-reels";
 
 
 function doGet(e) {
@@ -400,6 +400,7 @@ function doGet(e) {
          a thing can appear and disappear on its own without anybody remembering. */
       festive: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
+      facts: [],
       questions: [], boxers: [], fights: [],
       cheatsheet: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
@@ -740,6 +741,30 @@ function doGet(e) {
 
     /* THE LAWS. Sent to every phone, because every screen paints text with them — and they are
        a handful of rows, so the cost of sending them is nothing against the cost of asking. */
+    /* ---------- THE REELS ---------------------------------------------------------------------
+       `screen('reel')` has read `DATA.facts` since it was written and nothing has ever sent it, so
+       the column has always shown "Nothing here yet. Add a row to the facts tab" — naming a tab
+       that did not exist in TAB, in SCHEMA, or here. Run `?setup=1` once and ensureSchema creates
+       it with its headers.
+
+       SORTED BY `sort_order` THEN BY ROW, so the order is yours to choose and is stable when the
+       column is left empty — a reel that reshuffles itself every load is a column nobody can point
+       somebody else at. */
+    read(TAB.facts).rows.forEach(r => {
+      if (!S(r.heading)) return;
+      if (!ON_(r.active)) return;
+      payload.facts.push({
+        subject: S(r.subject),
+        heading: S(r.heading),
+        body: S(r.body),
+        /* WORDS, NOT A LINK. Handed to Wikimedia Commons when the slide arrives. */
+        pic: S(r.pic),
+        order: N(r.sort_order) || 0,
+        row: r._row,
+      });
+    });
+    payload.facts.sort((a, b) => (a.order - b.order) || (a.row - b.row));
+
     read(TAB.laws).rows.forEach(r => {
       if (!S(r.match) && norm(r.kind) !== 'list') return;
       if (!ON_(r.active)) return;

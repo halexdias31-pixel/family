@@ -7492,3 +7492,57 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE SLOT IS ALWAYS FULL, so it needs no minimum height and no empty state — the widget is in it
    from the moment the screen is drawn. */
 .card.is-widget .widget-slot { display: block; }
+
+/* ==================================================================================================
+   THE CAMERA CARD.
+
+   The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one,
+   and the identical card sat one swipe away at the top of the feed. This is the viewfinder that
+   replaced it. See `cameraCard` in posts.js.
+
+   THE STAGE HOLDS ITS SHAPE BEFORE THERE IS ANYTHING IN IT. `aspect-ratio` rather than a height, so
+   the card is the same size with the camera off as with it on — otherwise turning it on grows the
+   card under your thumb and the button you just pressed moves out from under it.
+
+   3/4 BECAUSE A PHONE HOLDS A PHONE'S SHAPE. A 16/9 stage on a portrait photograph is two black
+   bars and a stripe.
+================================================================================================== */
+.cam-card .cam-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 60vh;
+  margin: .5rem 0 .7rem;
+  border: 1px solid var(--line);
+  border-radius: .7rem;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+/* `cover` AND NOT `contain`. A viewfinder fills its frame; letterboxing a live camera inside a card
+   that is already a frame is a frame inside a frame. The still uses the same rule so what you get
+   is what you were looking at. */
+.cam-card .cam-stage video,
+.cam-card .cam-stage canvas {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* WHAT IS THERE BEFORE IT IS ASKED. Centred in the stage rather than above it, so the card reads as
+   a camera that is off rather than as an empty box with a caption. */
+.cam-card .cam-off {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 1rem;
+}
+.cam-card .cam-off .sub { margin: 0; }
+
+/* THE BUTTONS WRAP. Four of them exist and at most three are ever shown at once, but "Turn the
+   camera on" is a long label and 320px is a real width. */
+.cam-card .cam-row { flex-wrap: wrap; gap: .5rem; }
+/* 44px, in px — a fingertip does not scale with the viewport, and the root here is
+   clamp(13.5px, 3.8vw, 16px). See the note in the house style. */
+.cam-card .cam-row .btn { min-height: 44px; }
+
+.cam-card #cam-said:empty { display: none; }
