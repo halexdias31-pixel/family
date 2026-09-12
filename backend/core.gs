@@ -242,8 +242,14 @@ function jsonOut(obj) {
    speed — a write invalidates immediately, so freshness is not what this number controls. It was
    300, and on a site with a few dozen visits a day spread across the hours that meant almost every
    visitor found an expired entry and paid the full rebuild: a cache that never fires, and all of
-   the code with none of the benefit. The only thing this number delays is an edit typed straight
-   into the spreadsheet rather than made in the app. */
+   the code with none of the benefit.
+
+   THIS SENTENCE USED TO END "the only thing this number delays is an edit typed straight into the
+   spreadsheet rather than made in the app", and it said that as though it were a small exception.
+   It was the whole fault: an edit typed into a tab was delayed by SIX HOURS, which is not a delay,
+   it is a site showing last night's prices while the cell in front of you shows this morning's. A
+   trigger on the spreadsheet now retires the stored copy the moment anybody changes it — see
+   `onSheetChange` below — so this number once again delays nothing at all. */
 const PAYLOAD_TTL  = 21600;    /* seconds — six hours, the CacheService ceiling */
 const CACHE_CHUNK  = 90000;    /* under the 100KB ceiling, with room for the key and the overhead  */
 const CACHE_TAG    = 'pay:';
@@ -353,10 +359,25 @@ function testCache() {
   out.push(url ? ('warmer will call: ' + url)
                 : 'WARNING — no web app URL, so warmPayload can do nothing. Deploy first.');
 
+  /* THE QUESTION THAT MATTERS IS NO LONGER "is the warmer on". It is whether the spreadsheet tells
+     us when you edit it — see `installSheetWatch`. A missing five-minute warmer costs one visitor a
+     slow load every six hours; a missing edit watch means the site shows the old sheet for six
+     hours, which is not slowness, it is being wrong. So the watch is the warning and the warmer is
+     a remark. */
+  const watching = ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'onSheetChange').length;
+  out.push(watching ? ('edit watch installed (' + watching + ' spreadsheet'
+                       + (watching === 1 ? '' : 's') + ')')
+                    : 'WARNING — nothing is watching the spreadsheet, so an edit typed into a tab '
+                      + 'will not reach the site for up to six hours. Run installSheetWatch, or '
+                      + 'open /exec?triggers=1.');
+
   const trig = ScriptApp.getProjectTriggers()
     .filter(t => t.getHandlerFunction() === 'warmPayload').length;
-  out.push(trig ? ('warm trigger installed (' + trig + ')')
-                : 'WARNING — no warm trigger. Run installWarmTrigger.');
+  out.push(trig ? ('five-minute warmer installed (' + trig + ') — note it costs about five hours of '
+                   + 'script time a day against an allowance of ninety minutes')
+                : 'no five-minute warmer, which is the intended state: rebuilds happen a minute '
+                  + 'after an edit instead. See the note in installTriggers.');
 
   return 'PASS — the cache itself works.\n' + out.join('\n')
     + '\n\nIf loads are still slow with this passing, the deployed version is older than this code: '
@@ -476,6 +497,191 @@ function installWarmTrigger() {
   });
   ScriptApp.newTrigger('warmPayload').timeBased().everyMinutes(5).create();
   return 'the payload will be rebuilt every 5 minutes';
+}
+
+/* ==================================================================================================
+   AN EDIT TYPED INTO THE SPREADSHEET IS A CHANGE TO THE SITE, AND UNTIL NOW IT WAS NOT.
+
+   THE FAULT, IN ONE SENTENCE: `clearPayloadCache` was called after every write THE APP made, and
+   after no write YOU made. Type a price into the pricing tab, open the site, and it shows the old
+   price — for up to six hours, because `PAYLOAD_TTL` is six hours and nothing was ever going to
+   move the generation number that would retire the stored copy.
+
+   THAT IS INDISTINGUISHABLE FROM THE EDIT NOT HAVING SAVED. The cell is right there with the new
+   number in it, the deploy is current, the site answers instantly — and answers with yesterday's
+   sheet. Every instinct then says the spreadsheet is not connected to the site at all, which is the
+   one thing it is; the only broken part was the sentence "a write invalidates immediately", which
+   was true of the app's writes and quietly false of yours.
+
+   SO THE SPREADSHEET TELLS US. `onSheetChange` is an INSTALLABLE trigger on the file itself: Google
+   calls it when a person adds a row, deletes one, or changes a cell, and the first thing it does is
+   retire the stored payload. From that moment the next request rebuilds from the sheet. There is no
+   interval to wait out and nothing to press.
+
+   IT DOES NOT FIRE FOR THE APP'S OWN WRITES, and must not be relied on to: Apps Script does not
+   trigger itself. That path is still `POST_WROTE` → `clearPayloadCache`, which is untouched. The
+   two cover the two ways a row can change and neither covers the other.
+
+   AND THEN IT REBUILDS, ONCE, A MINUTE LATER.
+
+   Retiring the copy is correctness; it is not speed. The next visitor after an edit would pay the
+   full thirty-five-second rebuild, which is the bill this cache exists to stop anybody being
+   handed. But rebuilding ON the edit is worse: filling in a row is fifteen edits in ninety seconds,
+   so fifteen rebuilds would be queued for a sheet that is still being typed into, and the last one
+   is the only one whose answer is worth keeping.
+
+   `scheduleWarmAfterEdit_` COALESCES THEM. The first edit books a single one-off job for a minute
+   from now; every edit during that minute finds one already booked and books nothing. Whenever you
+   stop typing, one rebuild runs against the finished sheet. A burst of fifty edits costs exactly
+   what one edit costs.
+
+   THE MINUTE IS NOT A DELAY YOU WAIT OUT. The generation moved on the first keystroke, so the site
+   is already telling the truth throughout — the rebuild only decides whether the truth arrives fast
+   or slowly. Open the site a second after an edit and you get the new value and a slow load; open it
+   two minutes later and you get the new value instantly.
+================================================================================================== */
+
+/* How long after the last edit the rebuild runs. Long enough that filling in a row is one job;
+   short enough that nobody who edits and immediately looks pays for the rebuild twice over. */
+const EDIT_WARM_DELAY_MS = 60 * 1000;
+
+/* How long a booked rebuild is believed in. Past this the booking is treated as lost and a new one
+   is made — a trigger that failed to create, or a run that died before it could tidy up, would
+   otherwise block every future rebuild for ever, and the symptom would be the old one exactly:
+   edits that are correct but permanently slow. */
+const WARM_BOOKING_MS = EDIT_WARM_DELAY_MS + 4 * 60 * 1000;
+
+/**
+ * SOMEBODY CHANGED THE SPREADSHEET BY HAND. Installed by `installSheetWatch`.
+ *
+ * Deliberately tiny and deliberately unconditional. `e.changeType` distinguishes EDIT from
+ * INSERT_ROW from REMOVE_ROW and so on, and not one of those distinctions matters here: every one
+ * of them can change what the site shows, and the cost of being wrong is a stale site rather than
+ * one property write. So it does not ask.
+ *
+ * NOTHING IN HERE MAY THROW. A trigger that fails is disabled by Google after enough failures, and
+ * a disabled trigger is silent — which would put us straight back where we started, with the added
+ * cruelty that the fix would appear to be installed.
+ */
+function onSheetChange(e) {
+  try { clearPayloadCache(); } catch (err) {}
+  try { scheduleWarmAfterEdit_(); } catch (err) {}
+}
+
+/** Book one rebuild for a minute from now, unless one is already booked. See the note above. */
+function scheduleWarmAfterEdit_() {
+  const props = PropertiesService.getScriptProperties();
+  const now = Date.now();
+  const booked = Number(props.getProperty('WARM_BOOKED_UNTIL') || '0');
+  if (booked > now) return '';                    // one is already on its way
+
+  /* WRITTEN BEFORE THE TRIGGER IS MADE, and cleared again if making it fails. The other order
+     leaves a window in which a second edit sees no booking, makes a second trigger, and both run. */
+  props.setProperty('WARM_BOOKED_UNTIL', String(now + WARM_BOOKING_MS));
+  try {
+    ScriptApp.newTrigger('warmAfterEdit').timeBased().after(EDIT_WARM_DELAY_MS).create();
+    return 'rebuild booked';
+  } catch (err) {
+    try { props.deleteProperty('WARM_BOOKED_UNTIL'); } catch (err2) {}
+    return 'could not book a rebuild: ' + String(err && err.message || err);
+  }
+}
+
+/**
+ * THE BOOKED REBUILD. Tidies itself away first, then builds.
+ *
+ * A one-off time trigger is NOT removed by Google when it fires — it sits in the project's list of
+ * twenty for ever. Left there, a week of editing exhausts the quota and then no trigger of any kind
+ * can be created, including the nightly ones. So the first thing it does is delete every trigger
+ * bearing its own name, this one included, which is allowed and is the only reliable moment to do it.
+ *
+ * THE BOOKING IS RELEASED BEFORE THE BUILD, NOT AFTER. The build takes about thirty-five seconds and
+ * reads the sheet as it is when it starts; an edit made during it is therefore NOT in what gets
+ * stored, and must be able to book the next rebuild. Released afterwards, that edit would be
+ * swallowed and the stored copy would stay wrong until something else moved.
+ */
+function warmAfterEdit() {
+  try {
+    ScriptApp.getProjectTriggers().forEach(t => {
+      if (t.getHandlerFunction() === 'warmAfterEdit') ScriptApp.deleteTrigger(t);
+    });
+  } catch (err) {}
+  try { PropertiesService.getScriptProperties().deleteProperty('WARM_BOOKED_UNTIL'); } catch (err) {}
+  try { return warmPayload(); } catch (err) { return 'warm failed: ' + String(err && err.message || err); }
+}
+
+/**
+ * PUT THE WATCH ON THE SPREADSHEETS. Run once; safe to run again.
+ *
+ * ONE PER FILE, because a trigger watches a file and the data lives in two — the main spreadsheet
+ * and the subjects one. A watch on only the main file means editing the boxers tab changes nothing
+ * on the site, which is the original fault surviving in half the sheet and is far harder to spot
+ * than the whole of it.
+ *
+ * THE IDS ARE DEDUPED. `FILES` maps both names to the same id when everything lives in one file,
+ * and two triggers on one spreadsheet means two bumps and two bookings per keystroke.
+ *
+ * IT REPORTS PER FILE RATHER THAN THROWING. A file the account cannot open should not stop the one
+ * it can — and "subjects failed, main installed" is the sentence that names the problem, where a
+ * thrown error names only the first thing that went wrong.
+ */
+function installSheetWatch() {
+  const out = [];
+  try {
+    ScriptApp.getProjectTriggers().forEach(t => {
+      const f = t.getHandlerFunction();
+      if (f === 'onSheetChange' || f === 'warmAfterEdit') ScriptApp.deleteTrigger(t);
+    });
+  } catch (err) { out.push('could not clear the old ones: ' + String(err && err.message || err)); }
+
+  /* A booking left over from a trigger that has just been deleted would block the first rebuild. */
+  try { PropertiesService.getScriptProperties().deleteProperty('WARM_BOOKED_UNTIL'); } catch (err) {}
+
+  const seen = {};
+  Object.keys(FILES).forEach(which => {
+    const id = String(FILES[which] || '');
+    if (!id || seen[id]) return;
+    seen[id] = true;
+    try {
+      ScriptApp.newTrigger('onSheetChange').forSpreadsheet(id).onChange().create();
+      out.push(which + ': watching');
+    } catch (err) {
+      out.push(which + ': FAILED — ' + String(err && err.message || err));
+    }
+  });
+
+  return { watching: out,
+           means: 'an edit typed into these files now reaches the site within about a minute, '
+                + 'and is correct immediately' };
+}
+
+/** What the watch is doing, without having to read the trigger list yourself. */
+function sheetWatchStatus() {
+  const names = {};
+  try {
+    ScriptApp.getProjectTriggers().forEach(t => {
+      const f = t.getHandlerFunction();
+      names[f] = (names[f] || 0) + 1;
+    });
+  } catch (err) { return { error: String(err && err.message || err) }; }
+
+  const booked = Number((function () {
+    try { return PropertiesService.getScriptProperties().getProperty('WARM_BOOKED_UNTIL') || '0'; }
+    catch (err) { return '0'; }
+  })());
+
+  return {
+    version: BACKEND_VERSION,
+    watchingEdits: (names.onSheetChange || 0) > 0,
+    fiveMinuteWarm: (names.warmPayload || 0) > 0,
+    rebuildBooked: booked > Date.now(),
+    generation: payloadGen_(),
+    triggers: names,
+    verdict: (names.onSheetChange || 0) > 0
+      ? 'Edits typed into the spreadsheet retire the stored payload straight away.'
+      : 'NOT WATCHING — an edit typed into the spreadsheet will not show on the site for up to six '
+        + 'hours. Run installSheetWatch, or open /exec?triggers=1.',
+  };
 }
 
 /** The reply, from a body that is already JSON. Wrapped exactly as `jsonOut` wraps one. */

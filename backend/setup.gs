@@ -1572,7 +1572,43 @@ function installTriggers() {
   ScriptApp.newTrigger('refreshPageCounts').timeBased().everyDays(1).atHour(3).create();
   ScriptApp.newTrigger('closeFinishedJobs').timeBased().everyDays(1).atHour(3).create();
   ScriptApp.newTrigger('geocodeVenues').timeBased().everyDays(1).atHour(3).create();
-  const out = { installed: wanted, when: 'daily, about 3am' };
+
+  /* ---------- AND THE ONE THAT DECIDES WHETHER THE SPREADSHEET IS THE SITE -----------------------
+     `installSheetWatch` WAS "run once, by hand, after deploying", which is a sentence in a comment,
+     and a sentence in a comment is not a thing that has happened. The evidence that it never did is
+     the fault itself: an edit typed into a tab took up to six hours to appear on the site, because
+     nothing retired the stored payload except a write made through the app.
+
+     A SETUP STEP YOU HAVE TO REMEMBER IS A SETUP STEP THAT IS SOMETIMES SKIPPED, and this one is
+     skipped silently and looks exactly like the sheet not being wired to the site at all. So
+     `/exec?triggers=1` now does it.
+
+     REPORTED, NOT ASSUMED. It returns what actually happened, because a watch that could not be
+     installed — the account cannot open the subjects file, the trigger quota is full — must not be
+     reported as installed by a function that only tried. */
+  const watch = (function () {
+    try { return installSheetWatch(); }
+    catch (err) { return { error: String(err && err.message || err) }; }
+  })();
+
+  /* ---------- AND `installWarmTrigger` IS DELIBERATELY NOT CALLED HERE ----------------------------
+     IT WOULD EXHAUST THE ACCOUNT'S SCRIPT TIME AND TAKE THE NIGHTLY JOBS DOWN WITH IT. Every five
+     minutes is 288 runs a day; each one waits on a payload build, which is about thirty-five
+     seconds for the anonymous copy and another for each admin. That is five hours of script time a
+     day against a daily allowance of ninety minutes — so the warmer would spend the budget before
+     lunch and everything scheduled after that, `closeFinishedJobs` included, would simply not run.
+     A speed measure that stops the site's own maintenance is not a speed measure.
+
+     AND IT IS NO LONGER THE THING THAT KEEPS EDITS FAST. It existed to cover the moment the stored
+     copy expires; `warmAfterEdit` now covers the moment it actually matters — a minute after you
+     stop typing — and costs nothing on a day nobody edits anything. Polling every five minutes to
+     notice a change the spreadsheet can simply tell us about is the arrangement this replaces.
+
+     STILL THERE TO RUN BY HAND if a day ever comes where the six-hourly expiry is worth paying for.
+     `?run=installWarmTrigger&name=…&pin=…`, and read the paragraph above first. */
+
+  const out = { installed: wanted, when: 'daily, about 3am', sheetWatch: watch,
+                warm: 'not installed on purpose — see the note in installTriggers' };
   Logger.log(JSON.stringify(out));
   return out;
 }

@@ -124,7 +124,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-08-15-funnel";
+const BACKEND_VERSION = "2026-09-12-sheetwatch";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1959,6 +1959,17 @@ const RUNNABLE = {
   refreshPageCounts: a => refreshPageCounts(String(a).toLowerCase() === 'all'),
   installTriggers:   () => installTriggers(),
   listTriggers:      () => listTriggers(),
+  /* ---------- THE SPREADSHEET AS THE CONTROL PANEL ----------------------------------------------
+     `installSheetWatch` is what makes an edit typed into a tab reach the site. `sheetWatchStatus`
+     answers the question that used to have no answer at all — "is my sheet actually connected?" —
+     without opening the editor, which is the whole point of these being URLs.
+     `clearPayloadCache` and `warmPayload` are the two halves of it by hand, for the case where you
+     have changed something and do not want to wait even a minute to see it. */
+  installSheetWatch: () => installSheetWatch(),
+  sheetWatchStatus:  () => sheetWatchStatus(),
+  clearPayloadCache: () => { clearPayloadCache(); return { cleared: true, generation: payloadGen_(),
+                             means: 'the next request rebuilds from the sheet as it is now' }; },
+  warmPayload:       () => warmPayload(),
   checkEverything:   () => checkEverything(),
   checkPostsFolder:  () => checkPostsFolder(),
   /* Reachable from a URL like everything else — but note that a URL CANNOT grant a scope. This
