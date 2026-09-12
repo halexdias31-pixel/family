@@ -374,10 +374,27 @@ check('a price lands on the question that caused it', async () => {
   else if (!cell(venue, 'bk-t')) {
     bad.push('the Venue row carries no running total — its price did not find its question');
   }
-  /* AND THE BASE LINE IS STILL THERE. It is the one price with no question behind it — what you are
-     being charged for rather than something you chose — and an earlier attempt at this dropped it
-     off the card entirely. */
-  if (!find('Tuition')) bad.push('the base charge has no line on the receipt');
+  /* ---------- AND THE BASE LINE IS STILL THERE, WHEREVER IT NOW LIVES ---------------------------
+     THE GUARD IS REAL AND THE ADDRESS WAS STALE. An earlier attempt at this merge dropped the base
+     charge off the card entirely — excluded from the merge, then dropped by a filter that saw it
+     named a step and assumed it had already merged — so something has to insist it still exists.
+     That part stands.
+
+     BUT IT IS NO LONGER A ROW CALLED "Tuition". book.js:1999 folded it onto the Tutor row on
+     purpose: `Tutor · Halex Dias` and `Tuition · Halex Dias · × 10 · £10.00/h` are one fact printed
+     twice, once as something you can change and once as something you cannot. The note ends "the
+     second row stops existing rather than being blanked and left", and it does not exist. So this
+     was looking for a row the design had deliberately removed, and calling its absence a fault.
+
+     ASKED OF THE MONEY INSTEAD OF THE LABEL. The base charge is the one price with no question
+     behind it, and after the merge it is the Tutor row's running total. If that total is empty the
+     charge really has gone — which is the thing this journey exists to catch — and it does not
+     matter what the row is called when it happens. */
+  const tutor = find('Tutor');
+  if (!tutor) bad.push('there is no Tutor row, so the base charge has nowhere to be');
+  else if (!cell(tutor, 'bk-t')) {
+    bad.push('the base charge has vanished — the Tutor row carries no running total');
+  }
   return bad;
 });
 
@@ -565,17 +582,51 @@ check('a festive event shows itself and can be joined', async () => {
   /* ON POSTS, NOT BOOK. A festive card is the business announcing something with a date on it, which
      is the same voice as a post with a caption — it was only ever on the booking column because
      bookings were. There is no Book column now either way. */
-  w.__t.go('posts', false, true);
+  /* ---------- THE SCREEN IS CALLED `feed`, AND THIS ASKED FOR `posts` -----------------------------
+     THE COLUMN WAS RENAMED AND THE JOURNEY WAS NOT. `posts.js:800` registers `screen('feed', …)`,
+     so `go('posts')` navigates to a screen that does not exist and `#s-posts` is null. `cards`
+     came back empty every time and the journey reported "the festive event never appeared on the
+     feed" — which was true of the element it was looking at, and told you nothing about festive
+     events. The feature is fine: `posts.js:191` maps `DATA.festive` through `festiveCard` and
+     splices the cards in above the posts. */
+  w.__t.go('feed', false, true);
   await wait(200);
-  const el = w.document.getElementById('s-posts');
-  const cards = el ? el.querySelectorAll('.fest') : [];
+  const el = w.document.getElementById('s-feed');
+  if (!el) return ['there is no #s-feed — the feed screen did not draw at all'];
+  const cards = el.querySelectorAll('.fest');
   if (!cards.length) return ['the festive event on the payload never appeared on the feed'];
+  /* ---------- JOINING IS TWO STEPS, AND THIS ONLY DID THE FIRST ----------------------------------
+     `fest-join` DOES NOT SEND ANYTHING AND IS NOT MEANT TO. It opens a sheet asking who is coming,
+     because — the note above the handler — "a party needs a headcount and a family with three
+     children is three chairs". `fest-join-go` is what sends, once there are names in the box.
+
+     So "joining sent [nothing], expected joinFestive" was a true sentence about a journey that
+     stopped halfway. It was hidden until now behind the wrong screen id: the card was never found,
+     the journey returned before reaching here, and this half was unreachable.
+
+     THE HEADCOUNT IS PART OF THE JOURNEY, so it is typed in rather than skipped. An empty box is
+     refused by design and would look exactly like a broken send. */
   try { w.__t.ACTIONS['fest-join']({ disabled: false, dataset: { id: 'H1' } }); }
-  catch (e) { return ['joining threw: ' + e.message]; }
+  catch (e) { return ['opening the join sheet threw: ' + e.message]; }
+  await wait(200);
+
+  const box = w.document.getElementById('fest-kids');
+  if (!box) return ['the join sheet does not ask who is coming — no #fest-kids'];
+  box.value = 'Amira and Yusuf';
+
+  try { w.__t.ACTIONS['fest-join-go']({ disabled: false, dataset: { id: 'H1' } }); }
+  catch (e) { return ['sending the headcount threw: ' + e.message]; }
   await wait(250);
+
   const got = sent.map(x => x.action);
-  return got.includes('joinFestive') ? []
-    : ['joining sent [' + (got.join(', ') || 'nothing') + '], expected joinFestive'];
+  if (!got.includes('joinFestive')) {
+    return ['joining sent [' + (got.join(', ') || 'nothing') + '], expected joinFestive'];
+  }
+  /* AND THE HEADCOUNT ACTUALLY TRAVELLED. Sending `joinFestive` with no `kids` would satisfy the
+     line above and lose the one fact the extra step exists to collect. */
+  const call = sent.find(x => x.action === 'joinFestive');
+  return (call && String(call.kids || '').trim()) ? []
+    : ['joinFestive was sent without the names — the headcount question achieved nothing'];
 });
 
 check('the post card says different things to a client and an admin', async () => {
@@ -679,10 +730,15 @@ check('each column opens on the page worth reading', async () => {
   const bad = [];
   const at = w.__t.PAGE ? w.__t.PAGE() : null;
   if (!at) return [];                              // only checkable where PAGE is exported
-  const host = w.document.getElementById('s-posts');
-  const pages = host ? host.querySelectorAll(':scope > .page') : [];
+  /* SAME RENAME, AND THIS ONE FAILED SILENTLY RATHER THAN LOUDLY. `#s-posts` is null, so `pages`
+     was empty, so `pages.length > 1` was false and the journey returned no complaints — a pass,
+     every run, having examined nothing. A check that cannot find its subject must say so; passing
+     is the one answer it has not earned. */
+  const host = w.document.getElementById('s-feed');
+  if (!host) return ['there is no #s-feed — cannot tell which card the feed opens on'];
+  const pages = host.querySelectorAll(':scope > .page');
   if (pages.length > 1) {
-    const front = pages[at.posts || 0];
+    const front = pages[at.feed || at.posts || 0];
     if (front && /New post/.test(front.textContent)) {
       bad.push('the Posts column opens on the ＋ New post card rather than on a post');
     }
