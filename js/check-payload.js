@@ -52,7 +52,45 @@ const path = require('path');
    sentence, because "we know about that one" is how a real fault gets added to a list of excuses and
    never looked at again. An empty list is the goal. */
 const ACCEPTED = {
-  // (nothing yet — see the report)
+  /* ---------- THE LEGAL DOCUMENTS, AND A NAME COLLISION THAT WOULD SURVIVE THE OBVIOUS FIX --------
+     This one needs reading before anybody "fixes" it. terms.js wants LEGAL DOCUMENTS: it filters for
+     `r.docid && r.version` and goes on to use `live`, `audience`, `title` and `mustsign`. The tab
+     called `terms` in SCHEMA is SCHOOL TERMS — term_id, term_name, kind, start_date, end_date — and
+     doGet already sends those, computed into `intervals`.
+
+     So adding `terms` to the payload from TAB.terms would make this line stop being reported while
+     leaving the feature exactly as dead: every row would fail the `docid` filter and termsDocs_
+     would return [] for ever, now with a checker saying it was fine. The legal documents need their
+     own tab under their own name. */
+  terms: 'terms.js wants legal documents (docid/version/mustsign); TAB.terms is SCHOOL terms and is '
+       + 'already sent as `intervals`. Needs its own tab under another name — sending TAB.terms here '
+       + 'would silence this line without making the feature work.',
+
+  /* The other half of the same unbuilt feature, and both are already named in CLAUDE.md. terms.js
+     posts `acceptTerms`, for which there is no handler anywhere in backend/, and reads these two
+     back, for which there is no tab and no payload key. A handler, a tab and two keys — a decision
+     to build something, not a repair. */
+  termsAccepted: 'no acceptTerms handler and no tab; the signature half of the terms feature was '
+               + 'never built. See CLAUDE.md.',
+  termsAcceptedWhen: 'the timestamp half of the same unbuilt signature feature.',
+
+  /* Wired at both ends of the front end with no middle: collections.js has an admin star toggle
+     that posts `spotlight`, dopost.gs has no such handler, SCHEMA has no such tab. check-access.js
+     reports the handler half; this reports the payload half. Also already in CLAUDE.md. */
+  spotlight: 'admin star toggle with no handler, no tab and no payload key — never finished, not a '
+           + 'regression. check-access.js names the other half.',
+
+  /* ---------- THE ONE WORTH BUILDING ------------------------------------------------------------
+     `applyColumns_` in shell.js lets the SHEET decide which screens exist, in what order, with what
+     label and icon — it mutates TABS rather than replacing it, guards against a sheet naming nothing
+     this build has, and treats a blank cell as "keep what the code says". It is careful, complete,
+     and reads a key nothing sends, so it has never once run.
+
+     This is the thing this whole project is for: the sheet deciding the site. It needs a `columns`
+     tab in SCHEMA and one line in doGet, and it stays here until somebody decides the column set is
+     the sheet's to own. */
+  columns: 'applyColumns_ would let the sheet decide the screens and their order. Needs a `columns` '
+         + 'tab in SCHEMA and a payload key — worth building, and a decision rather than a repair.',
 };
 
 const WHERE = [path.join(__dirname, '..', 'backend'), path.join(__dirname, 'backend'),
@@ -192,7 +230,14 @@ if (accepted.length) {
 
 console.log('');
 console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size);
+/* THE VERDICT MUST NOT OVERSTATE ITSELF. "everything the site reads, the backend sends" was printed
+   here whenever the failing list was empty — including with five entries sitting in ACCEPTED saying
+   the opposite three lines above. A summary that contradicts its own report is worse than no
+   summary: the report is what gets skimmed, and this is the line that gets read. */
 console.log(readNotSent.length
   ? 'FAILED — each of those is a feature that does nothing and says nothing.'
-  : 'OK — everything the site reads, the backend sends.');
+  : accepted.length
+    ? 'OK — nothing NEW is unsent. ' + accepted.length + ' known dead key'
+      + (accepted.length === 1 ? '' : 's') + ' above, each an unbuilt feature rather than a break.'
+    : 'OK — everything the site reads, the backend sends.');
 process.exit(readNotSent.length ? 1 : 0);

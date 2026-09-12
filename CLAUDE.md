@@ -63,8 +63,23 @@ almost never writes to it directly.
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it.
 
 **A key the site asks for and the backend does not send fails silently.** `|| []` turns it into an
-empty list, which looks exactly like an empty database. Tap through the app and type `missingKeys()`
-into the console to list every one.
+empty list, which looks exactly like an empty database.
+
+`node js/check-payload.js` is the instrument for this. It reads the files, so it sees every read
+whether or not anybody performed it — which is the difference between it and `missingKeys()`, the
+console helper that only records keys something actually reached for, and so only knows about the
+screens you happened to open, in the state you happened to be in, as the person you happened to be
+signed in as. A key read only by an admin on the print queue is invisible to `missingKeys()` until
+an admin opens the print queue.
+
+It reports two directions and they are not the same severity. **Read and never sent** is a feature
+that silently does nothing, and fails the build. **Sent and never read** is a tab walked and shipped
+to every phone on every load for nobody — weight worth deleting, but it breaks nothing, so it
+reports and does not fail. There are 23 of those right now.
+
+Keys that are read, deliberately not sent, and known about live in `ACCEPTED` at the top of that
+file, **one written reason each**. They are still printed. The point of the list is that a *new*
+dead key fails loudly instead of joining a red that nobody reads.
 
 ---
 
@@ -144,6 +159,7 @@ npm install                      # ONCE. acorn, jsdom and playwright — for the
 npm run check                    # everything, via js/check-all.js
 node js/check.js                 # names used but never declared. Two seconds. Run always.
 node js/check-flow.js            # 21 journeys through the real app in jsdom
+node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
 node check/ui.js                 # 9 screens x 4 widths, measured. Exits 1 if anything failed.
 node check/ui.js --screen=tools  # one screen
@@ -175,18 +191,47 @@ text under WCAG AA contrast, JS errors, and custom properties nothing anywhere s
 Fixed and verified by the same check: the 22 contrast failures (one token, `--faint`) and 88 of the
 107 tap targets (two rules, `.mat-lev button` and `.mat-list label`).
 
-### Two features that are wired up and have no backend
+### Features wired up with no middle
 
-`node js/check-access.js` reports these, and they are real:
+`check-access.js` and `check-payload.js` report these between them, and they are real. None is a
+regression; all were left unfinished. Building one means a handler, a tab in `SCHEMA` and a payload
+key — a decision, not a repair.
 
 - **`spotlight`** — `collections.js` has an admin star toggle. There is no `spotlight` handler in
   `dopost.gs`, no spotlight tab in `SCHEMA`, and `doGet` never sends `DATA.spotlight`, which
   `collections.js:39` reads. Wired at both ends of the front end with no middle.
-- **`acceptTerms`** — `terms.js:289` posts it. No handler anywhere in `backend/`. `doGet` never
-  sends `DATA.termsAccepted` or `DATA.termsAcceptedWhen`, which `terms.js:101` and `:104` read.
+- **`acceptTerms`** — `terms.js` posts it. No handler anywhere in `backend/`. `doGet` never sends
+  `DATA.termsAccepted` or `DATA.termsAcceptedWhen`, which `terms.js:101` and `:104` read.
+- **`DATA.terms` is a NAME COLLISION, and the obvious fix would not fix it.** `terms.js` wants legal
+  documents — it filters for `r.docid && r.version`, then uses `live`, `audience`, `title`,
+  `mustsign`. The tab called `terms` in `SCHEMA` is **school terms**: `term_id`, `term_name`, `kind`,
+  `start_date`, `end_date`, and `doGet` already sends those, computed, as `intervals`. Adding
+  `terms` to the payload from `TAB.terms` would silence the check and leave the feature exactly as
+  dead — every row failing the `docid` filter, `termsDocs_` returning `[]` for ever, now with a
+  checker saying it was fine. The legal documents need their own tab under another name.
+- **`DATA.columns` — the one worth building.** `applyColumns_` in `shell.js` lets the sheet decide
+  which screens exist, in what order, with what label and icon. It mutates `TABS` rather than
+  replacing it, ignores a sheet naming nothing this build has, and treats a blank cell as "keep what
+  the code says". Careful, complete, and reading a key nothing sends — so it has never once run.
+  This is the thing the whole project is for. It needs a `columns` tab and one line in `doGet`.
 
-Neither is a regression; both were never finished. Building them means a handler, a tab in `SCHEMA`
-and a payload key each — a decision, not a repair.
+**Two that were on this list and are now fixed**, both found by `check-payload.js`:
+
+- **The `dm` screen said "No messages." to everybody, for ever.** It read `DATA.messages`. Messages
+  are a POST action, not a payload key, because a conversation is private and the GET payload goes
+  out whole to whoever asks — so the backend was right not to send them. Worse, this had already
+  been found and fixed once: `me.js` says `DATA.messages` "is not a key the payload has ever held"
+  and fixed the two readers it could see. This was a third, in another file. **That is the disease
+  here in one function — not a wrong idea, a right idea that did not arrive everywhere.** It also
+  sorted on `m.sentAt` and tested `m.readAt` where the handler sends `at` and `read`, so fixing only
+  the key would have given arbitrary order with everything marked unread: a different silent wrong
+  answer, and one that looks enough like working to survive.
+- **Google sign-in was built at both ends and had no middle.** `me.js` loads Google's script on
+  demand, renders the button idempotently, and passes the token through without inspecting it;
+  `googleLogin` in `dopost.gs` verifies it against Google's tokeninfo and checks `aud`. `doGet` never
+  sent the client id, so the button was never drawn and the verifier was unreachable. One line.
+  `google_client_id` also had no row in `CONFIG_DEFAULTS` — a setting nobody can find is a feature
+  nobody has. It is the **public** client id, not the client secret; the config note says so.
 
 ### Every check hand-rolls its own path to `backend/`, and most of them had it wrong
 
