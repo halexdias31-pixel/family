@@ -239,6 +239,34 @@ function inspect(opts) {
       || role === 'button' || el.hasAttribute('onclick');
     if (!tappable) continue;
     if (el.closest('[hidden]')) continue;
+
+    /* ---------- A CONTROL INSIDE A LABEL IS NOT THE TARGET; THE LABEL IS -------------------------
+       A 14px CHECKBOX WAS REPORTED AND THE ROW AROUND IT IS 44px. `.mat-list label` wraps its
+       checkbox and is `min-height: 44px`, and a click anywhere in a label toggles the control it
+       contains — that is what a label IS, not a convention this app invented. So the finger has a
+       44px row to hit and the check was measuring the glyph inside it.
+
+       Three findings, at every width, for a control nobody has ever struggled to press. That is the
+       same class of fault as the dead custom properties and the pane picked by area, both in
+       CLAUDE.md: a check that measures the wrong thing and is believed. The fix for those two was
+       to ask the right question, and this is the same fix.
+
+       THE LABEL STILL HAS TO BE BIG ENOUGH. It is measured on its own pass — LABEL is in the
+       tappable list above — so making a checkbox exempt does not make its row exempt. Shrink that
+       row below 44px and this still reports it, as the label.
+
+       ONLY WHEN THE LABEL ACTUALLY REACHES IT. `closest('label')` covers the wrapping form; a
+       `for=` label sitting elsewhere in the DOM is deliberately NOT accepted, because proving it
+       resolves to a big enough box is a different measurement and an unchecked assumption here
+       would be exactly the kind of quiet pass this file exists to avoid. */
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) {
+      const lab = el.closest('label');
+      if (lab) {
+        const lr = lab.getBoundingClientRect();
+        if (lr.height >= MIN_TAP && lr.width >= MIN_TAP) continue;
+      }
+    }
+
     const r = el.getBoundingClientRect();
     if (r.height < MIN_TAP || r.width < MIN_TAP) {
       found.tinyTargets.push({ tag: tag.toLowerCase(),

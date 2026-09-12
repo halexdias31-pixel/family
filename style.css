@@ -1117,7 +1117,13 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      the same 18px it is on every tile. Left at `inherit` so nothing here is sizing a character that
      is not there. */
   color: var(--dim); font: inherit; cursor: pointer;
-  min-height: max(44px, 2.9rem); min-width: 2.2rem;
+  /* THE HEIGHT WAS RIGHT AND THE WIDTH WAS THE REM TRAP. `min-width: 2.2rem` is 32.6px on a 390px
+     phone, so Share measured 30x44 — tall enough to look deliberate and too narrow to hit, which is
+     the worst version of this fault because nothing about it looks wrong. In px for the same reason
+     the height is: a fingertip does not scale with the root font size.
+     Safe to widen — `.post-acts` is a flex row whose `.reacts` is `flex: 1 1 auto; min-width: 0`,
+     so it gives up the space rather than pushing anything off the card. */
+  min-height: max(44px, 2.9rem); min-width: 44px;
   transition: color var(--quick) ease, transform var(--quick) ease;
 }
 .post-act:active { color: var(--ink); transform: scale(1.2); }
@@ -1429,7 +1435,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    Four preset lengths, smaller than a real button — they are a choice you make once, not the
    thing you came to press.
 --------------------------------------------------------------------------------------------- */
-.btn.tiny { min-height: max(38px, 2.3rem); padding: 0 .5rem; font-size: .8rem; }
+/* ---------- TINY IS ABOUT THE TEXT, NOT ABOUT THE TARGET -----------------------------------------
+   `max(38px, 2.3rem)` MEANT 38px ON EVERY PHONE. 2.3rem is 34px at the root size a 390px screen
+   gets, so the max never chose the rem and the four timer buttons measured 45x38 — reported by
+   check/ui.js at all four widths since it was written, and named in CLAUDE.md.
+
+   The rule this breaks is the one CLAUDE.md states outright: tap targets in px, everything else in
+   rem, because a fingertip is the same size on every screen and is the one measurement here that
+   must not scale. `max(38px, …)` is not the rem trap exactly — it is the smaller one of writing the
+   px down and writing down a number under 44.
+
+   MIN-WIDTH TOO, FOR THE ＋, which was 41px across. There are three `.btn.tiny` in the whole app —
+   `Clear done`, the four timer buttons, and that ＋ — and the only one this resizes is the ＋,
+   because the other two are already wider than 44px from their text. Small type, ordinary target. */
+.btn.tiny { min-height: 44px; min-width: 44px; padding: 0 .5rem; font-size: .8rem; }
 
 /* ---------- WHAT IS ON A DAY --------------------------------------------------------------------
    The dot sits UNDER the number rather than beside it. Beside it the number shifts and the grid
