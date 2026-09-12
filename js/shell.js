@@ -227,6 +227,14 @@ function go(id, remember, instant) {
      there. Same shape as the `stuff` fill below. */
   if (AT === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
 
+  /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
+     Markup first, `start` second — an id cannot be found before the markup carrying it is in the
+     document, which is why this is here and not inside the screen's own draw. */
+  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games') toolsStop_();
+  if ((AT === 'tools' || AT === 'games') && typeof toolsStart_ === 'function') {
+    afterSlide_(() => toolsStart_(AT === 'tools' ? 'tool' : 'game'));
+  }
+
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
     if (instant || !drawn) fillStuffPages(); else afterSlide_(fillStuffPages);

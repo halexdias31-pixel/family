@@ -7379,3 +7379,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE TITLE IS THE THING BEING CHOSEN, so it carries the weight — and it sits tight under the
    breadcrumb, because the two are one block and the space belongs below them, not between. */
 .card .crumb + h3 { margin-top: 0; font-size: 1rem; font-weight: 600; }
+
+/* ---------- A WIDGET IS THE CARD ------------------------------------------------------------------
+   NO SURFACE, NO BORDER, NO CORNER. The tool inside already has edges of its own — a calculator has
+   keys, a notepad has a field — and a box round a box is the thing that made a column of tools read
+   as a stack of pop-ups.
+
+   The name stays, small and quiet, because nine unlabelled tools on one screen is a puzzle. */
+.card.is-widget {
+  background: none; border: 0; border-bottom: 1px solid var(--line-soft);
+  border-radius: 0; padding: .9rem 0 1.1rem;
+}
+.card.is-widget:last-child { border-bottom: 0; }
+.card.is-widget > h3 {
+  margin: 0 0 .5rem;
+  font: 700 .72rem/1 var(--mono);
+  letter-spacing: .14em; text-transform: uppercase; color: var(--dim);
+}
+/* THE SLOT IS ALWAYS FULL NOW, so it needs no minimum height and no empty state — the widget is in
+   it from the moment the screen is drawn. */
+.card.is-widget .widget-slot { display: block; }

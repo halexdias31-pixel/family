@@ -111,13 +111,56 @@ function widgetColumn_(kind) {
   return allWidgets()
     .filter(w => w.kind === kind)
     .filter(w => !w.admin || isAdmin())
-    /* `stuffCard`, NOT `widgetCard_`. The card builder draws the name and nothing else; the Open
-       control and the widget's own slot come from the tiles, which `stuffCard` adds AROUND the card
-       rather than inside it. Calling the builder directly gives a heading nobody can press — which
-       is exactly the fault the note above `widgetCard_` describes from the other direction. */
-    .map(w => stuffCard({ kind: w.kind, id: w.id, key: w.id, name: w.name, row: w },
-                        USER ? USER.credits : -1));
+    /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS -------------------------------
+       IT USED TO BE A HEADING AND AN `Open` BUTTON, and the button was the whole complaint: a
+       column of tools where every tool is a name and a control that reveals it is a column of
+       nine things to click before anything is usable. A calculator you have to open is a menu
+       entry, not a calculator.
+
+       THAT BUTTON MADE SENSE IN THE FUNNEL and only there. Searching "timer" alongside three
+       resources gives a mixed list, and a running clock in the middle of a list of worksheets is
+       a thing nobody asked for — so there it stays a card that opens. HERE the whole screen is
+       tools, every one of them was asked for by coming to this column, and drawing them is the
+       answer rather than the offer.
+
+       SO THE MARKUP CARRIES THE WIDGET ITSELF, in the slot the card has always had, and
+       `toolsStart_` brings them to life once they are in the document. No tiles, no Open, no
+       press. */
+    .map(w => `<div class="card is-widget">
+      <h3>${esc(w.name)}</h3>
+      <div class="widget-slot" id="wgt-${esc(String(w.id))}">${w.html}</div>
+    </div>`);
 }
+
+/* ---------- AND THEN THEY ARE STARTED ---------------------------------------------------------
+   MARKUP FIRST, `start` SECOND, ALWAYS. Every one of these finds its parts by id, and an id cannot
+   be found before the markup carrying it is in the document — which is the entire content of the
+   note that used to sit above `on('widget')`.
+
+   ALL OF THEM, NOT ONE. `startWidget_` keeps a single widget alive because in the funnel only one
+   is open at a time; a column has nine on screen at once, and a calculator that stops working
+   because somebody scrolled past a timer is worse than the battery it saves.
+
+   `stop` IS STILL CALLED WHEN THE COLUMN LEAVES — see `toolsStop_`. A canvas loop running behind a
+   screen nobody is looking at is a flat battery for nothing, and that argument has not changed. */
+let TOOLS_ON = [];
+
+function toolsStart_(kind) {
+  toolsStop_();
+  TOOLS_ON = allWidgets()
+    .filter(w => w.kind === kind)
+    .filter(w => !w.admin || isAdmin());
+  TOOLS_ON.forEach(w => {
+    try { w.start && w.start(); }
+    catch (e) { console.warn('[widget]', w.id, e); }
+  });
+}
+
+function toolsStop_() {
+  TOOLS_ON.forEach(w => { try { w.stop && w.stop(); } catch (e) {} });
+  TOOLS_ON = [];
+}
+
 
 screen('tools', () => stack('tools', widgetColumn_('tool')));
 screen('games', () => stack('games', widgetColumn_('game')));
