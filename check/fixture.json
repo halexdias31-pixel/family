@@ -1,0 +1,61 @@
+{
+  "version": "fixture",
+  "cached": false,
+  "fileVersions": { "constants": "fixture", "doGet": "fixture", "doPost": "fixture", "booking": "fixture" },
+  "features": ["openWaitlist","claimChild","answerClaim","joinWaitlist","move","events","tabs",
+               "getProfile","listPeople","createJob","updateConfig","updateResource","updatePricing",
+               "updateShop","deleteShopItem","updateTrip","addTrip","imageData","saveRoom","updateLink",
+               "addLink","deleteLink","saveTodo","saveAvatar","register","verifyEmail","diagnosePeople",
+               "folderFiles","confirmDetails","editResource","deleteResource","editPost","deletePost",
+               "orderPrints","createCheckout","finalizePayment"],
+  "brand": { "name": "@family.", "area": "Merton & Wandsworth", "phone": "020 0000 0000",
+             "site": "https://example.invalid/" },
+  "constants": { "vars": { "print_marks_per_page": "20", "print_rate_per_page": "0.10" } },
+  "laws": [
+    { "law_id": "L1", "kind": "prefix", "match": "#", "colour": "blue",  "weight": "10", "active": "yes" },
+    { "law_id": "L2", "kind": "prefix", "match": "@", "colour": "softblue", "weight": "10", "active": "yes" }
+  ],
+  "kinds": [
+    { "kind": "tutor",  "group": "people", "label": "Tutors",  "sort_order": "1", "active": "yes" },
+    { "kind": "post",   "group": "feed",   "label": "Posts",   "sort_order": "2", "active": "yes" },
+    { "kind": "lesson", "group": "book",   "label": "Lessons", "sort_order": "3", "active": "yes" }
+  ],
+  "facets": [
+    { "field": "subject", "label": "Subject", "sort_order": "1", "min_coverage": "0", "active": "yes" },
+    { "field": "level",   "label": "Level",   "sort_order": "2", "min_coverage": "0", "active": "yes" }
+  ],
+  "people": [
+    { "person_id": "P001", "role": "admin", "full_name": "Test Admin", "first_name": "Test",
+      "last_name": "Admin", "listed": "yes", "city": "London", "headline": "Runs the place" },
+    { "person_id": "P002", "role": "tutor", "full_name": "Ada Tutor", "first_name": "Ada",
+      "last_name": "Tutor", "listed": "yes", "city": "London",
+      "headline": "Maths and further maths, GCSE to A-Level",
+      "adjective_1": "patient", "adjective_2": "clear", "adjective_3": "quick" }
+  ],
+  "tutors": [
+    { "person_id": "P002", "full_name": "Ada Tutor", "headline": "Maths and further maths, GCSE to A-Level",
+      "subjects": ["Maths"], "city": "London", "listed": "yes", "rate": "30" }
+  ],
+  "students": [], "clients": [],
+  "venues": [
+    { "venue_id": "V001", "name": "Colliers Wood Library", "postcode": "SW19 2HR",
+      "city": "London", "lat": "51.4185", "lng": "-0.1774" }
+  ],
+  "jobs": [], 
+  "liveJobs": [
+    { "job_id": "J001", "title": "GCSE Maths, Tuesday 4pm", "subject": "Maths", "level": "GCSE",
+      "venue": "Colliers Wood Library", "price": "30", "unit": "hour", "seats": "3", "taken": "1" }
+  ],
+  "posts": [
+    { "post_id": "PO1", "caption": "A very ordinary Tuesday at the library #maths",
+      "date": "01/09/2026", "active": "yes", "likes": "3", "author": "@family." }
+  ],
+  "shop": [], "resources": [], "links": [], "messages": [], "orders": [], "exams": [],
+  "questions": [], "boxers": [], "fights": [], "cheatsheet": [], "landmarks": [], "favourites": [],
+  "campaigns": [], "festive": [], "birthdays": [], "gallery": [], "spotlight": [], "promotions": [],
+  "claims": [], "validations": [], "terms": [], "trips": [], "rooms": [],
+  "dropdowns": { "subject": ["Maths","English","Science"], "level": ["KS3","GCSE","A-Level"] },
+  "multipliers": {}, "intervals": {}, "columns": {}, "avatarItems": [],
+  "profileFields": [], "studentFields": [], "clientFields": [], "resourceFields": [],
+  "profileReadonly": [], "facts": [], "termsAccepted": false, "googleClientId": ""
+}

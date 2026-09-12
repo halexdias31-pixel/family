@@ -1435,7 +1435,21 @@ function tickRow(t) {
 on('ticks', () => {});
 
 on('tick', el => {
-  if (!USER) { toast('Sign in to keep a checklist'); go('me'); return; }
+  /* ---------- `go('me')` WAS HERE, AND THERE IS NO `me` ------------------------------------------
+     THE LAST ONE OF THEM. The note beside `goFor_` says these were scattered around and were swept
+     up when the columns went — this call was not in the sweep, and it is the one behind a checkbox,
+     which is a place you only land by pressing a checkbox while signed out.
+
+     `go` DOES NOT FAIL ON A NAME IT DOES NOT KNOW. It falls back to `TABS[0]`, which is Find. So
+     somebody told "Sign in to keep a checklist" was moved to the search box, with no sign-in card
+     anywhere on it — a fallback that lands somewhere plausible, which the same note calls worse
+     than one that lands nowhere, because nobody reports it.
+
+     `goFor_('People')` IS WHAT REPLACED IT, in that note's own words: it answers the funnel's first
+     question rather than jumping to a column, and puts you on the account pages, which is where
+     `go('me')` was aiming. Found by `node js/check-doors.js` — "go() to a screen that is not
+     registered". */
+  if (!USER) { toast('Sign in to keep a checklist'); goFor_('People'); return; }
   const t = topicBy(el.dataset.key);
   if (!t) return;
   const n = Number(el.dataset.n);

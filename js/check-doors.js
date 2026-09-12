@@ -33,12 +33,32 @@ const files = ORDER.map(n => ({ n, src: fs.readFileSync(path.join(dir, n + '.js'
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
 
 const handlers = new Map();   // action -> file
+/* Handlers whose whole body is `{}` — see the note where this is filled in. */
+const deliberatelyIdle = new Set();
 const doors    = new Map();   // action -> Set(files)
 const screens  = new Map();
 const gotos    = new Map();
 
 files.forEach(({ n, src }) => {
   const code = strip(src);
+  /* ---------- A HANDLER THAT DOES NOTHING IS NOT A HANDLER WITH NO DOOR --------------------------
+     `on('noop', () => {})` IN tiles.js WAS REPORTED EVERY RUN and was right every time, in the sense
+     that nothing on screen carries `data-do="noop"`. It is also exactly what that line is for: the
+     note beside it says "this exists so a stray tap is explicitly nothing rather than accidentally
+     something later". Same for `on('ticks', () => {})` in find.js, which absorbs taps aimed at a
+     checkbox so they do not walk up to the card behind it.
+
+     A RED THAT IS ALWAYS RED IS A RED NOBODY READS — this project's own words, in check-flow.js —
+     and this one had been red since the day it was written. One permanent false alarm is enough to
+     teach somebody that the whole report is noise.
+
+     AN EMPTY BODY IS THE RULE, not a list of names to keep in step. A handler registered with
+     nothing in it cannot do anything whether or not it is reachable, so it has nothing to report:
+     the entire point of it is to swallow a press. Give it a body and it becomes checkable again,
+     which is the right moment for the check to start caring. */
+  for (const m of code.matchAll(/\bon\(\s*'([a-z0-9-]+)'\s*,\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{\s*\}/g)) {
+    deliberatelyIdle.add(m[1]);
+  }
   for (const m of code.matchAll(/\bon\(\s*'([a-z0-9-]+)'/g)) {
     if (handlers.has(m[1])) handlers.set(m[1], handlers.get(m[1]) + ', ' + n);
     else handlers.set(m[1], n);
@@ -118,7 +138,8 @@ files.forEach(({ src }) => {
     for (const lit of d[1].matchAll(/'([a-z0-9-]+)'/g)) dynamicDoors.add(lit[1]);
 });
 
-const noDoor = [...handlers.keys()].filter(a => !doors.has(a) && !dynamicDoors.has(a)).sort();
+const noDoor = [...handlers.keys()]
+  .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
 const noWayTo = [...screens.keys()].filter(s => !gotos.has(s) && !tabIds.has(s)).sort();
 const noScreen = [...gotos.keys()].filter(s => !screens.has(s)).sort();

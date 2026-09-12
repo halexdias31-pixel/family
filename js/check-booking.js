@@ -40,20 +40,45 @@ const dir = __dirname;
    The point is to test what actually runs, so nothing here is a copy. `booking.gs` is read from
    disk and the functions are cut out by brace-matching — if somebody renames one, this fails loudly
    rather than testing a stale duplicate. */
+/* ---------- WHERE THE BACKEND ACTUALLY IS --------------------------------------------------------
+   THIS LOOKED IN ONE PLACE AND THE FILES ARE IN ANOTHER, and the cost of that was the whole file.
+
+   It read `../booking.gs`. The .gs files were moved into `backend/` — a good move, and nothing told
+   this — so `backendFile` returned null, the guard below printed "nothing to check", and the
+   process exited ZERO. Every run since has been a pass. `check-all.js` counted it as a pass. The
+   one checker standing between this project and the three money bugs described at the top of this
+   file has been switched off for as long as `backend/` has existed, and it reported success the
+   entire time.
+
+   SO IT SEARCHES, and the list is ordered by what is true today first. */
+const WHERE = [path.join(dir, '..', 'backend'), path.join(dir, 'backend'),
+               path.join(dir, '..'), dir];
+
 function backendFile(names) {
-  for (const n of names) {
-    const p = path.join(dir, '..', n);
-    if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
+  for (const where of WHERE) {
+    for (const n of names) {
+      const p = path.join(where, n);
+      if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
+    }
   }
   return null;
 }
 const booking = backendFile(['booking.gs', '30_booking.gs']);
 const constants = backendFile(['constants.gs', '00_constants.gs']);
+/* ---------- AND IF THEY ARE NOT THERE, THAT IS A FAILURE --------------------------------------
+   IT USED TO EXIT 0 HERE, which is the actual reason the broken path went unnoticed for months. A
+   checker that cannot find the thing it checks has not checked it, and "I did not check" is not the
+   same answer as "I checked and it was fine" — but exit 0 says the second one to every caller.
+
+   Anything automated reads the exit code and nothing reads the prose. `check-all.js` printed a tick
+   beside this file. `sync.js` pushed. The one signal that would have said otherwise was being
+   deliberately suppressed by the file that had the most to lose from it. */
 if (!booking || !constants) {
   console.log('');
-  console.log('  booking.gs or constants.gs is not beside the project — nothing to check.');
+  console.log('  FAIL — booking.gs or constants.gs could not be found, so NOTHING was checked.');
+  console.log('  Looked in: ' + WHERE.join(', '));
   console.log('  This reads the real backend rather than a copy, so it needs the files.');
-  process.exit(0);
+  process.exit(1);
 }
 
 function fn(src, name) {

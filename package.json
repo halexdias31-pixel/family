@@ -1,0 +1,19 @@
+{
+  "name": "family-checks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tooling for the @family. site. THE SITE ITSELF HAS NO BUILD AND NO DEPENDENCIES — index.html loads js/*.js directly and the browser concatenates them. Nothing here is shipped; every package below exists only so the checks can run. See CLAUDE.md.",
+  "scripts": {
+    "check": "node js/check-all.js",
+    "check:names": "node js/check.js",
+    "check:flow": "node js/check-flow.js",
+    "check:booking": "node js/check-booking.js",
+    "check:ui": "node check/ui.js",
+    "check:ui:shots": "node check/ui.js --shots"
+  },
+  "devDependencies": {
+    "acorn": "^8.11.3",
+    "jsdom": "^24.0.0",
+    "playwright": "^1.44.0"
+  }
+}

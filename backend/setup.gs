@@ -45,10 +45,36 @@ function seedAvatarItems() {
   if (t.rows.some(r => norm(r.kind) === 'avatar')) return 0;   // already there
   // Existing rows have no `kind`; they're physical stock, so say so before adding anything.
   t.rows.forEach(r => { if (!S(r.kind)) setCell(t, r, 'kind', 'thing'); });
+  /* ---------- THREE OF THESE COLUMNS DO NOT EXIST, AND ONE OF THEM WAS THE PRICE ------------------
+     IT WROTE `price`, `currency` AND `in_stock`. The shop tab has `price_pence`, `price_ticks`,
+     `price_coins`, `acquire` and `active`. `addRow` reports an unknown key through `missedWrite_`,
+     so this was not silent — but reported and discarded is still discarded, and the row lands with
+     the cell empty either way.
+
+     TWO OF THE THREE DID NO HARM, WHICH IS WHY IT SURVIVED. `inStock` is derived from `active`, and
+     `ON_` reads an empty value as on, so nothing looked out of stock. `unit` is derived too and
+     falls back to 🪙 for a wearable, so the currency still printed. Everything looked right.
+
+     THE PRICE DID NOT SURVIVE. `price` is not a column, `price_coins` was never written, and
+     `acquire` — the word that decides WHICH of the three price columns to read — was not written
+     either. So `doGet` fell to `S(r.price_coins) || S(r.price_pence)`, found both empty, and sent
+     `price: ''`. Every wearable seeded by this function has been priced at nothing since the shop
+     and items tabs were merged. Bunches cost 15 coins in `AVATAR_ITEMS` and cost nothing in the
+     shop.
+
+     `acquire` ALSO SAYS WHICH KIND OF THING IT IS. An item with no `cost` in that list is earned by
+     levelling up rather than bought — the description below has always said so — and `acquire:
+     'level'` is how the payload is told to send no price at all instead of an empty one.
+
+     ALREADY-SEEDED ROWS ARE NOT REPAIRED BY THIS. The guard two lines above returns early once any
+     avatar row exists, so a sheet that has run this before keeps its empty prices and needs
+     `price_coins` and `acquire` filling in by hand. Found by `node js/check-columns.js`, which
+     could not run at all until its own path was fixed. */
   AVATAR_ITEMS.filter(it => !it.free).forEach(it => addRow(t, {
     item_id: 'AV-' + it.slot + '-' + it.id, kind: 'avatar', name: it.name,
-    price: it.cost || '', currency: '🪙 ', level_required: it.level || '',
-    slot: it.slot, art_id: it.id, in_stock: 'TRUE',
+    price_coins: it.cost || '', acquire: it.cost ? 'buy' : 'level',
+    level_required: it.level || '',
+    slot: it.slot, art_id: it.id, active: 'TRUE',
     description: it.cost ? 'Yours to keep once bought.' : 'Earned by levelling up.'
   }));
   clearCache();
@@ -1572,7 +1598,43 @@ function installTriggers() {
   ScriptApp.newTrigger('refreshPageCounts').timeBased().everyDays(1).atHour(3).create();
   ScriptApp.newTrigger('closeFinishedJobs').timeBased().everyDays(1).atHour(3).create();
   ScriptApp.newTrigger('geocodeVenues').timeBased().everyDays(1).atHour(3).create();
-  const out = { installed: wanted, when: 'daily, about 3am' };
+
+  /* ---------- AND THE ONE THAT DECIDES WHETHER THE SPREADSHEET IS THE SITE -----------------------
+     `installSheetWatch` WAS "run once, by hand, after deploying", which is a sentence in a comment,
+     and a sentence in a comment is not a thing that has happened. The evidence that it never did is
+     the fault itself: an edit typed into a tab took up to six hours to appear on the site, because
+     nothing retired the stored payload except a write made through the app.
+
+     A SETUP STEP YOU HAVE TO REMEMBER IS A SETUP STEP THAT IS SOMETIMES SKIPPED, and this one is
+     skipped silently and looks exactly like the sheet not being wired to the site at all. So
+     `/exec?triggers=1` now does it.
+
+     REPORTED, NOT ASSUMED. It returns what actually happened, because a watch that could not be
+     installed — the account cannot open the subjects file, the trigger quota is full — must not be
+     reported as installed by a function that only tried. */
+  const watch = (function () {
+    try { return installSheetWatch(); }
+    catch (err) { return { error: String(err && err.message || err) }; }
+  })();
+
+  /* ---------- AND `installWarmTrigger` IS DELIBERATELY NOT CALLED HERE ----------------------------
+     IT WOULD EXHAUST THE ACCOUNT'S SCRIPT TIME AND TAKE THE NIGHTLY JOBS DOWN WITH IT. Every five
+     minutes is 288 runs a day; each one waits on a payload build, which is about thirty-five
+     seconds for the anonymous copy and another for each admin. That is five hours of script time a
+     day against a daily allowance of ninety minutes — so the warmer would spend the budget before
+     lunch and everything scheduled after that, `closeFinishedJobs` included, would simply not run.
+     A speed measure that stops the site's own maintenance is not a speed measure.
+
+     AND IT IS NO LONGER THE THING THAT KEEPS EDITS FAST. It existed to cover the moment the stored
+     copy expires; `warmAfterEdit` now covers the moment it actually matters — a minute after you
+     stop typing — and costs nothing on a day nobody edits anything. Polling every five minutes to
+     notice a change the spreadsheet can simply tell us about is the arrangement this replaces.
+
+     STILL THERE TO RUN BY HAND if a day ever comes where the six-hourly expiry is worth paying for.
+     `?run=installWarmTrigger&name=…&pin=…`, and read the paragraph above first. */
+
+  const out = { installed: wanted, when: 'daily, about 3am', sheetWatch: watch,
+                warm: 'not installed on purpose — see the note in installTriggers' };
   Logger.log(JSON.stringify(out));
   return out;
 }
