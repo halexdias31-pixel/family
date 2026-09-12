@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-13-reels";
+const DOGET_VERSION = "2026-09-14-signin";
 
 
 function doGet(e) {
@@ -256,6 +256,23 @@ function doGet(e) {
 
     const payload = {
       version: BACKEND_VERSION,
+      /* ---------- GOOGLE SIGN-IN WAS BUILT AT BOTH ENDS AND HAD NO MIDDLE --------------------------
+         EVERY PART OF THIS FEATURE WORKS EXCEPT THIS LINE. me.js loads Google's script on demand,
+         renders the button idempotently, and passes the token straight through without inspecting
+         it; `googleLogin` in dopost.gs reads this same config cell, asks Google's tokeninfo whether
+         it signed the token, checks `aud` against the id, and refuses outright when the cell is
+         blank. Two careful halves, and the phone was never told the id — so `DATA.googleClientId`
+         was always '', the button was never drawn, and the verifier could not be reached.
+
+         Found by check-payload.js, which is the whole reason it exists: nothing FAILED here. The
+         sign-in card rendered, PIN sign-in worked, and the only symptom was a feature that had
+         quietly never once appeared.
+
+         A CLIENT ID IS NOT A SECRET. It is public by design — every site using Google Sign-In ships
+         it in the page — and it is the client SECRET, which this app has never held, that must not
+         leave the server. Blank stays blank: an unset cell sends '', me.js draws no button, and
+         `googleLogin` still refuses, so an unconfigured site behaves exactly as it does today. */
+      googleClientId: S(cfg.google_client_id),
       /* WHAT THE SHEET DID when this version first arrived — null on every request but the first
          after a deploy. Sent so it is visible rather than only in a log nobody opens: a schema
          change that failed and a schema change that was never needed look identical from here. */

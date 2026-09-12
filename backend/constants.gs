@@ -124,7 +124,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-13-reels";
+const BACKEND_VERSION = "2026-09-14-signin";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1282,6 +1282,20 @@ const CONFIG_DEFAULTS = [
   ['max_students_per_job', 4, 'seat cap when neither the tutor nor the venue sets one'],
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
   ['showcase_folder_id', '', 'Drive folder the Showcase reads'],
+
+  /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN --------------------------------------
+     `googleLogin` has always read this cell and the config tab has never offered it, so the only
+     way to switch the feature on was to know the key existed and type the row by hand. A setting
+     nobody can find is a feature nobody has.
+
+     BLANK IS OFF, AND OFF IS SAFE. Empty draws no button and `googleLogin` refuses outright —
+     with no id there is nothing to check `aud` against, and a check that cannot run must refuse
+     rather than wave things through.
+
+     THIS IS THE CLIENT ID, NOT THE CLIENT SECRET. The id is public by design: every site using
+     Google Sign-In ships it in the page, and it goes to the phone in the payload. The secret is a
+     different string, this app has never needed one, and it must never be put in this sheet. */
+  ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
   /* THE REELS PICTURE. Blank means Wikimedia Commons, which needs no key, allows the request from
