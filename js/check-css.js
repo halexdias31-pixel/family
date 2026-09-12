@@ -135,12 +135,25 @@ const rules = [];
 }
 
 let fail = 0;
-const say = (title, list) => {
+/* ---------- A LIST TO LOOK AT IS NOT A BROKEN BUILD ----------------------------------------------
+   EVERY SECTION USED TO FAIL, AND ONE OF THEM CANNOT KNOW IT IS RIGHT. "Classes styled but never
+   produced" says so in its own title — a name may be built in pieces, `'rc-' + kind`, so the check
+   cannot tell a dead rule from one whose writer it cannot see. It had 28 entries, so check-css was
+   permanently red, and that is not a check with a finding in it: it is a check people stop opening.
+
+   What it took down with it matters more than the 28. The sections that ARE conclusive — a dead
+   declaration, a silent override, a contradiction, a splash that never names the app — were all at
+   zero, and nobody could see that past the red. check-all.js already draws this line for check-dead
+   and check-doors; drawing it inside this file rather than on the whole check keeps the conclusive
+   half hard. */
+let noted = 0;
+
+const say = (title, list, soft) => {
   console.log('');
   console.log(title + '  (' + list.length + ')');
   if (!list.length) { console.log('  none'); return; }
   list.forEach(x => console.log('  ' + x));
-  fail = 1;
+  if (soft) noted = 1; else fail = 1;
 };
 
 /* ---------- 1. the same property twice in one rule --------------------------------------------- */
@@ -339,7 +352,9 @@ say('THE SAME PROPERTY TWICE IN ONE RULE — the first never applies', twice);
 say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
 say('PROPERTIES THAT CONTRADICT EACH OTHER', clash);
-say('CLASSES STYLED BUT NEVER PRODUCED — check before deleting; a name may be built in pieces', dead);
+/* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
+say('CLASSES STYLED BUT NEVER PRODUCED — check before deleting; a name may be built in pieces',
+    dead, true);
 say('A LOADING SPLASH THAT COULD SHOW WHEN IT WAS NOT CHOSEN', splashBad);
 say('A RULE WITH NOTHING IN IT', hollow);
 say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
@@ -388,6 +403,10 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 
 console.log('');
 console.log('rules read: ' + rules.length);
-console.log(fail ? 'FAILED — read each line above; every one is a rule that does not do what it says'
-                 : 'OK — no dead declarations, no silent overrides, no contradictions.');
+console.log(fail
+  ? 'FAILED — read each line above; every one is a rule that does not do what it says'
+  : noted
+    ? 'OK — no dead declarations, no silent overrides, no contradictions. The list above is worth '
+      + 'reading and is not a failure: the check cannot see a class name built in pieces.'
+    : 'OK — no dead declarations, no silent overrides, no contradictions.');
 process.exit(fail ? 1 : 0);

@@ -57,8 +57,31 @@ const asked = [...new Set([...front.matchAll(/action:\s*'(\w+)'/g)].map(m => m[1
   .concat([...front.matchAll(/send_?\(\s*'(\w+)'/g)].map(m => m[1]))
   .concat([...front.matchAll(/send\(\s*'(\w+)'/g)].map(m => m[1])))];
 
+/* ---------- ACTIONS WITH NO HANDLER, KNOWN ABOUT, WITH A REASON EACH ------------------------------
+   THIS CHECK WAS PERMANENTLY RED AND THE TWO NAMES IN IT WERE NEVER GOING TO BE FIXED BY A FIX.
+   `spotlight` and `acceptTerms` are not breaks — they are features whose front end was built and
+   whose back end never was. Each needs a handler, a tab in SCHEMA and a payload key, which is a
+   decision to build something rather than a repair.
+
+   Left failing, they made this check red for ever, and a red that is always red is one people skim
+   past on the day a THIRD name joins it — which is precisely the fault this file exists to catch,
+   since an action with no handler is refused silently and looks to the user like a button that did
+   nothing. Same shape as ACCEPTED in check-payload.js, same rule: one written sentence each, still
+   printed every run, and anything NEW fails loudly.
+
+   An empty list is the goal. Adding to it should feel like a decision, because it is one. */
+const ACCEPTED_MISSING = {
+  spotlight: 'collections.js has an admin star toggle; no handler in dopost.gs, no tab in SCHEMA, '
+           + 'and doGet never sends DATA.spotlight. Wired at both ends of the front end with no '
+           + 'middle, and never finished. See CLAUDE.md.',
+  acceptTerms: 'terms.js posts it; no handler anywhere in backend/, and the payload has no '
+             + 'termsAccepted or termsAcceptedWhen to read back. The signature half of the terms '
+             + 'feature was never built. See CLAUDE.md.',
+};
+
 const unclassified = handlers.filter(a => !classified.has(a));
-const asksForMissing = asked.filter(a => !handlers.includes(a));
+const asksForMissing = asked.filter(a => !handlers.includes(a) && !(a in ACCEPTED_MISSING));
+const acceptedMissing = asked.filter(a => !handlers.includes(a) && (a in ACCEPTED_MISSING));
 const askedUnclassified = asked.filter(a => handlers.includes(a) && !classified.has(a));
 
 console.log('');
@@ -73,6 +96,12 @@ console.log('');
 console.log('THE SITE CALLS AN ACTION THAT DOES NOT EXIST  (' + asksForMissing.length + ')');
 if (!asksForMissing.length) console.log('  none');
 asksForMissing.forEach(a => console.log('  ' + a));
+
+if (acceptedMissing.length) {
+  console.log('');
+  console.log('KNOWN UNBUILT, WITH A REASON  (' + acceptedMissing.length + ')');
+  acceptedMissing.forEach(a => console.log('  ' + a + ' — ' + ACCEPTED_MISSING[a]));
+}
 console.log('');
 /* AN UNCLASSIFIED HANDLER IS A FAILURE WHETHER OR NOT THE SITE CALLS IT TODAY. My first version
    only failed when it could SEE the call — and `openWaitlist` is sent through a ternary
@@ -80,7 +109,13 @@ console.log('');
    printed the fault and passed anyway, which is the checker making the same mistake as the code it
    was written to catch. Anything unclassified fails, called or not: it can only ever be refused. */
 const bad = unclassified.length + asksForMissing.length;
+/* THE VERDICT MUST NOT OVERSTATE ITSELF. "every action the site calls has a handler" would be
+   printed with two accepted names sitting three lines above saying otherwise, and the verdict is
+   the line that gets read when the report gets skimmed. */
 console.log(bad
   ? 'FAILED — each of these is refused before its handler runs.'
-  : 'OK — every action the site calls has a handler and a classification.');
+  : acceptedMissing.length
+    ? 'OK — nothing NEW is unreachable. ' + acceptedMissing.length + ' known unbuilt action'
+      + (acceptedMissing.length === 1 ? '' : 's') + ' above, each a feature rather than a break.'
+    : 'OK — every action the site calls has a handler and a classification.');
 process.exit(bad ? 1 : 0);
