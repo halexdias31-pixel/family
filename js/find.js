@@ -2467,34 +2467,34 @@ function paintStuff(keepPage) {
     if (el !== first) el.remove();
   });
 
-  /* ---------- WHAT YOU HAVE, BACK IN FRONT -------------------------------------------------------
-     REBUILT RATHER THAN LEFT ALONE because both change from a press on a result page: a star adds a
-     saved page, a trolley adds the basket or a ✕ empties it.
+  /* ---------- ONE INSERT, IN THE ORDER `screen('stuff')` BUILDS -----------------------------------
+     THIS PUT THE SAVED AND BASKET PAGES BEFORE THE QUESTION. `screen('stuff')` puts them after it —
+     `[controls], frontPages_(), savedPages_(), basketPages(), blanks` — and the note that used to
+     be here claimed the two agreed. They did not, and the note four lines above it had already
+     named the risk: "Two ways of ordering the same page list, twenty lines apart, is a good way to
+     get one of them the wrong way round."
 
-     ONE INSERT, SO THE STRING'S OWN ORDER IS THE ORDER — unlike the two separate `afterend` calls
-     below, where each pushes the last one along and they go in backwards. Basket then saved then
-     the question, which is what `screen('stuff')` builds. Two ways of ordering the same page list,
-     twenty lines apart, is a good way to get one of them the wrong way round. */
-  const front = basketPages().concat(savedPages_())
-    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
-  if (front) first.insertAdjacentHTML('beforebegin', front);
+     WHAT THAT DID. `stuffFirstResult_` counts the first result as
+     `question + 1 + front + saved + basket`, which is right for the order the screen is BUILT in.
+     Move saved and basket in front of the question and `stuffQuestionPage_()` already includes
+     them — so they were counted twice, the first result was placed one page too far down for every
+     saved thing, and the gap was a page with a pane and nothing in it. Star one thing and a blank
+     card appears under the question; star two and there are two.
 
-  const blanks = Array.from({ length: stuffPageCount() },
-    /* WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a page
-       with no glass — so every result on this screen was drawn straight onto the black while the
-       question above it sat on a card. `pages()` builds every other page in the app this way; these
-       were the one place that built its own and forgot the wrapper. */
-    () => '<section class="page"><div class="pane"></div></section>').join('');
+     It only happened after a repaint, which is why the screen looked right until you pressed a star.
 
-  /* ---------- THE BOOKING PAGES GO BETWEEN, AND THEY GO IN FIRST ----------------------------------
-     `afterend` INSERTS DIRECTLY AFTER THE QUESTION, so the last thing put there ends up nearest to
-     it. The blanks go in before these and get pushed along, which leaves question → booking →
-     results — the order `screen('stuff')` builds and the order `stuffFirstResult_` counts. Put them
-     in the other way round and the form lands after four hundred results. */
-  if (blanks) first.insertAdjacentHTML('afterend', blanks);
-  const inFront = frontPages_()
-    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
-  if (inFront) first.insertAdjacentHTML('afterend', inFront);
+     ONE INSERT AND ONE ORDER. The string's own order is the order, so there is nothing to reason
+     about — `afterend` with four separate calls is what made the old code need a paragraph
+     explaining that the last one lands nearest. */
+  const after = frontPages_().concat(savedPages_(), basketPages())
+    .map(c => `<section class="page"><div class="pane">${c}</div></section>`)
+    .join('')
+    + Array.from({ length: stuffPageCount() },
+        /* WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a
+           page with no glass — so every result was drawn straight onto the black while the question
+           above it sat on a card. `pages()` builds every other page in the app this way. */
+        () => '<section class="page"><div class="pane"></div></section>').join('');
+  if (after) first.insertAdjacentHTML('afterend', after);
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
