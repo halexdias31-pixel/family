@@ -184,21 +184,48 @@ function currentFiles_() {
   return (JSON.parse(res.getContentText()).files || []);
 }
 
-/* THE TWO FAILURES THAT LOOK LIKE CREDENTIAL PROBLEMS AND ARE NOT. Said in words here so the answer
-   is in the log rather than in a search. */
+/* ---------- WHAT GOOGLE ACTUALLY SAID, ALWAYS -----------------------------------------------------
+   THE FIRST VERSION OF THIS REPLACED GOOGLE'S MESSAGE WITH A GUESS, AND THE GUESS WAS WRONG.
+
+   It saw a 403 mentioning "disabled", printed "the Apps Script API is switched off for this
+   account", and threw the body away. The account toggle was already on. The real cause was the
+   other one — and Google had named it, in the sentence that got discarded.
+
+   THERE ARE TWO SWITCHES, NOT ONE, and they are in different places:
+
+     1. THE ACCOUNT TOGGLE, at script.google.com/home/usersettings. One switch, per person.
+     2. THE API ON THE SCRIPT'S OWN CLOUD PROJECT. Every Apps Script project has a Google Cloud
+        project behind it, usually one you have never seen. `ScriptApp.getOAuthToken()` issues a
+        token FOR THAT PROJECT, so the Apps Script API has to be enabled there too. Google's 403
+        names it — "has not been used in project 123456789012 before or it is disabled" — and
+        includes the console URL that turns it on.
+
+   A HELPFUL SUMMARY THAT DELETES THE ANSWER IS NOT HELPFUL. So the body is now always appended,
+   under the guidance rather than instead of it. Read the last line of the error: if it names a
+   project number and a console.developers.google.com URL, open that URL and press Enable. */
 function apiTrouble_(res) {
   const code = res.getResponseCode();
-  const body = res.getContentText().slice(0, 300);
-  if (code === 403 && /API has not been used|disabled/i.test(body)) {
-    return 'The Apps Script API is switched off for this account. Turn it on at '
-         + 'https://script.google.com/home/usersettings and run this again. (403)';
+  const body = res.getContentText();
+
+  let guidance;
+  if (code === 403 && /has not been used in project|is disabled/i.test(body)) {
+    guidance = 'The Apps Script API is not enabled for the Cloud project behind this script. '
+             + 'TWO PLACES CAN BE MEANT BY THAT and Google is specific about which — read the '
+             + 'message below. If it names a project number and a console.developers.google.com '
+             + 'link, open the link, press ENABLE, wait a minute and run this again. If it does '
+             + 'not, the account-level switch at https://script.google.com/home/usersettings is '
+             + 'the one, and toggling it off and on again is worth trying before anything else.';
+  } else if (code === 401 || code === 403) {
+    guidance = 'Google refused the call (' + code + '). The usual cause is that '
+             + '"https://www.googleapis.com/auth/script.projects" is missing from oauthScopes in '
+             + 'appsscript.json — add it, save, and run this again to re-authorise.';
+  } else {
+    guidance = 'The Apps Script API answered ' + code + '.';
   }
-  if (code === 401 || code === 403) {
-    return 'Google refused the call (' + code + '). The usual cause is that '
-         + '"https://www.googleapis.com/auth/script.projects" is missing from oauthScopes in '
-         + 'appsscript.json — add it, save, and run this again to re-authorise.\n' + body;
-  }
-  return 'The Apps Script API answered ' + code + ':\n' + body;
+
+  /* TRIMMED, NOT SUMMARISED. Long enough to carry the project number and the URL, which is the
+     whole point; short enough that the log stays readable. */
+  return guidance + '\n\n--- what Google said ---\n' + body.slice(0, 1200);
 }
 
 /**
