@@ -7380,22 +7380,33 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    breadcrumb, because the two are one block and the space belongs below them, not between. */
 .card .crumb + h3 { margin-top: 0; font-size: 1rem; font-weight: 600; }
 
-/* ---------- A WIDGET IS THE CARD ------------------------------------------------------------------
-   NO SURFACE, NO BORDER, NO CORNER. The tool inside already has edges of its own — a calculator has
-   keys, a notepad has a field — and a box round a box is the thing that made a column of tools read
-   as a stack of pop-ups.
+/* ---------- EACH WIDGET IS ITS OWN THING ----------------------------------------------------------
+   A CARD EACH, with its own edge, because that is what makes nine tools nine tools rather than one
+   long screen with headings in it. The calculator ends where the calculator ends.
 
-   The name stays, small and quiet, because nine unlabelled tools on one screen is a puzzle. */
+   FLATTENING THEM WAS WRONG. It was done to stop the column reading as a stack of pop-ups, and the
+   thing actually causing that was one PANE per widget — nine lit rectangles floating separately on
+   black. One pane holding nine cards is a list. Nine panes is a pile. The card was never the
+   problem, and taking its edge away took the separation with it. */
 .card.is-widget {
-  background: none; border: 0; border-bottom: 1px solid var(--line-soft);
-  border-radius: 0; padding: .9rem 0 1.1rem;
+  /* A SURFACE OF ITS OWN. A plain `.card` draws nothing but a bottom hairline, which is right for a
+     row in a list of results and wrong here: a hairline between a calculator and a notepad is not
+     enough to say where one ends and the other begins, because both are full of their own edges
+     already. This gives each one a body to sit in. */
+  background: var(--raised);
+  border: 1px solid var(--line);
+  /* 14px, the same as the pane. A widget is a body in its own right, not a chip. `--r-lg` is not
+     declared, so the number is written out rather than falling back silently to something else. */
+  border-radius: 14px;
+  padding: .9rem;
+  margin-bottom: var(--gap);
 }
-.card.is-widget:last-child { border-bottom: 0; }
+.card.is-widget:last-child { margin-bottom: 0; }
 .card.is-widget > h3 {
-  margin: 0 0 .5rem;
+  margin: 0 0 .6rem;
   font: 700 .72rem/1 var(--mono);
   letter-spacing: .14em; text-transform: uppercase; color: var(--dim);
 }
-/* THE SLOT IS ALWAYS FULL NOW, so it needs no minimum height and no empty state — the widget is in
-   it from the moment the screen is drawn. */
+/* THE SLOT IS ALWAYS FULL, so it needs no minimum height and no empty state — the widget is in it
+   from the moment the screen is drawn. */
 .card.is-widget .widget-slot { display: block; }
