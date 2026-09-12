@@ -1117,7 +1117,13 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      the same 18px it is on every tile. Left at `inherit` so nothing here is sizing a character that
      is not there. */
   color: var(--dim); font: inherit; cursor: pointer;
-  min-height: max(44px, 2.9rem); min-width: 2.2rem;
+  /* THE HEIGHT WAS RIGHT AND THE WIDTH WAS THE REM TRAP. `min-width: 2.2rem` is 32.6px on a 390px
+     phone, so Share measured 30x44 — tall enough to look deliberate and too narrow to hit, which is
+     the worst version of this fault because nothing about it looks wrong. In px for the same reason
+     the height is: a fingertip does not scale with the root font size.
+     Safe to widen — `.post-acts` is a flex row whose `.reacts` is `flex: 1 1 auto; min-width: 0`,
+     so it gives up the space rather than pushing anything off the card. */
+  min-height: max(44px, 2.9rem); min-width: 44px;
   transition: color var(--quick) ease, transform var(--quick) ease;
 }
 .post-act:active { color: var(--ink); transform: scale(1.2); }
@@ -1429,7 +1435,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    Four preset lengths, smaller than a real button — they are a choice you make once, not the
    thing you came to press.
 --------------------------------------------------------------------------------------------- */
-.btn.tiny { min-height: max(38px, 2.3rem); padding: 0 .5rem; font-size: .8rem; }
+/* ---------- TINY IS ABOUT THE TEXT, NOT ABOUT THE TARGET -----------------------------------------
+   `max(38px, 2.3rem)` MEANT 38px ON EVERY PHONE. 2.3rem is 34px at the root size a 390px screen
+   gets, so the max never chose the rem and the four timer buttons measured 45x38 — reported by
+   check/ui.js at all four widths since it was written, and named in CLAUDE.md.
+
+   The rule this breaks is the one CLAUDE.md states outright: tap targets in px, everything else in
+   rem, because a fingertip is the same size on every screen and is the one measurement here that
+   must not scale. `max(38px, …)` is not the rem trap exactly — it is the smaller one of writing the
+   px down and writing down a number under 44.
+
+   MIN-WIDTH TOO, FOR THE ＋, which was 41px across. There are three `.btn.tiny` in the whole app —
+   `Clear done`, the four timer buttons, and that ＋ — and the only one this resizes is the ＋,
+   because the other two are already wider than 44px from their text. Small type, ordinary target. */
+.btn.tiny { min-height: 44px; min-width: 44px; padding: 0 .5rem; font-size: .8rem; }
 
 /* ---------- WHAT IS ON A DAY --------------------------------------------------------------------
    The dot sits UNDER the number rather than beside it. Beside it the number shifts and the grid
@@ -5989,13 +6008,45 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    THE COLUMNS ARE UNTOUCHED. `auto-fit, minmax(7.5rem, 1fr)` still decides how many fit across, so
    a phone gets three and a laptop gets six exactly as before. Only the row height moved. */
-.mat-list label { display: flex; gap: .4rem; align-items: center; min-height: 44px;
-                  font-size: .72rem; color: var(--ink); cursor: pointer; }
+/* WRAPPING, SO THE NOTE CAN TAKE ITS OWN LINE — see `.mat-note`, which asks for one and could not
+   have it while this row refused to wrap. */
+.mat-list label { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center;
+                  min-height: 44px; font-size: .72rem; color: var(--ink); cursor: pointer; }
 /* THE MATHS, SET AS MATHS. Mono keeps the columns of the list from jittering as the glyphs change
    width, and it is the face of the block rather than a label about it, so it takes the row's ink
-   rather than the muted grey a caption would. */
+   rather than the muted grey a caption would.
+
+   ---------- THE NOWRAP THAT TOOK THE WHOLE SCREEN SIDEWAYS WITH IT -------------------------------
+   THIS WAS `white-space: nowrap` AND IT WAS 22 OF THE 25 SIDEWAYS SCROLLS check/ui.js REPORTED. A
+   face that pairs a symbol with a word — `◡ protractor`, `km→m units` — cannot shrink to a
+   `minmax(7.5rem, 1fr)` column when it may not wrap, so the label overflowed by up to 59px and
+   pushed `.mat-list`, then `.card`, then `.pane`. One cause, a cascade, and the whole tools screen
+   scrolling sideways on a phone.
+
+   CLAUDE.md RECORDED THIS AS A DESIGN CALL AND MISREAD THE COMMENT IT WAS QUOTING. It said the note
+   above this rule defends nowrap as stopping the columns jittering. The note says MONO does that —
+   the sentence directly above — and mono is untouched here. The nowrap had no stated reason at all.
+
+   AND THE OTHER OBJECTION WAS MEASURED RATHER THAN ARGUED. The note on `.mat-list` rejects a 6.5rem
+   column because faces would wrap and "cost more height than the extra width does" — a fair worry,
+   and worth a number rather than a guess. Measured in the browser at four widths, with `.mat-note`
+   moved to its own line (see that rule): the list is 860px at 320, 464px at 390, 467px at 768 and
+   1280. Those are the SAME numbers nowrap produced, to the pixel, and not one face wraps at all.
+
+   THE COST IS NOTHING, WHICH IS NOT WHAT THE FIRST TWO ATTEMPTS COST. Truncating with
+   `overflow: hidden` and an ellipsis fixed the cascade, left eleven findings where the faces clipped
+   themselves, and cut the end off every long name on a phone, which has no hover to reveal a
+   `title`. Wrapping alone fixed it at +15px and broke ten faces onto two lines. Both were beaten by
+   finding the thing that was actually eating the width — a note that had asked for its own line and
+   been refused one — and neither would have been if the first green result had been trusted.
+
+   `overflow-wrap: break-word` RATHER THAN `anywhere`: `anywhere` lets the intrinsic minimum fall to
+   a single character, so the flex row squeezed the face to ~30px and `ruler` came out as `rul` /
+   `er`. `break-word` keeps a whole word as the minimum and still breaks a token genuinely too long
+   for its column. `min-width: 0` because this is a flex item, and a flex item will not shrink below
+   its content without it. */
 .mat-face { font: 400 .82rem/1.15 var(--mono); font-weight: 400; letter-spacing: 0;
-            white-space: nowrap; }
+            white-space: normal; overflow-wrap: break-word; min-width: 0; }
 .mat-list label.off { display: none; }
 /* DRAWN, NOT STYLED — a background on a native checkbox stops the browser drawing its own control
    and there is nothing left to replace the tick. And `min-height` must be unset by name, or the
@@ -6019,7 +6070,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-said.over b { color: var(--bad); }
 
 /* ---------- THE PAPER --------------------------------------------------------------------------- */
-.mat-out { overflow: hidden; margin-top: .6rem; }
+/* ---------- THE PRINT SHEET IS A SHEET OF PAPER, AND PAPER DOES NOT REFLOW ------------------------
+   `overflow: hidden` CLIPPED IT AND CALLED THAT FITTING. The preview is a fixed paper width, so on a
+   320px phone it ran 593px past the card — and hidden does not mean "it fits", it means the right
+   two thirds of the page you are about to print are cut off with no way to reach them. The one thing
+   a print preview is for is seeing what will come out of the printer.
+
+   `auto` IS THE HONEST ANSWER rather than a workaround for the check. The sheet genuinely is wider
+   than the phone and genuinely should not be resized — a paper width that changes with the viewport
+   is not a preview of anything — so the box is TOLD it may scroll, and now can be read by dragging
+   it. check/ui.js stops reporting it for the same reason it should: it asks whether a box scrolls
+   sideways when it was not told it could, and this one is now told.
+
+   Y STAYS CLIPPED, said explicitly. With one axis `visible` and the other not, `visible` computes to
+   `auto` and the sheet would grow a vertical scrollbar of its own inside a page that already
+   scrolls. */
+.mat-out { overflow-x: auto; overflow-y: hidden; margin-top: .6rem; }
 /* ---------- THE PAPER'S NINE GREYS, NAMED ---------------------------------------------------------
    THE SHEET WAS THE ONLY PART OF THE STYLESHEET WITH NO PALETTE. The app has --gold, --dim, --faint
    and the rest; the paper had `var(--mono)` for its typeface and forty-nine colour literals for
@@ -6929,7 +6995,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* A COMPONENT'S OWN NOTE. Quiet, under the name, because it is a detail about that one row rather
    than an instruction — read when the eye is already there and invisible when it is not. */
-.mat-note { display: block; font: 400 .62rem/1.3 var(--mono); font-style: normal;
+/* ---------- `display: block` ASKED FOR ITS OWN LINE AND A FLEX ROW DOES NOT GRANT ONE -------------
+   THIS NOTE WAS BREAKING THE WORD NEXT TO IT. `.mat-list label` is a flex row, and a flex item's
+   `display` is blockified — so `block` here bought nothing, the note sat on the SAME line as the
+   face, and `margin-top: .1rem` nudged a thing that was never below anything.
+
+   It is on two rows out of twenty-five, and they are the two that looked worst: the note took
+   roughly a third of a 150px column away from the face beside it, leaving `|·| ruler` about 30px to
+   fit in, so it wrapped as `|·|` / `rul` / `er`. A word broken mid-word, on exactly the rows
+   carrying an explanation, because of a rule that was trying to put that explanation underneath.
+
+   `flex-basis: 100%` IS THE FLEX SPELLING OF WHAT `display: block` MEANT. The row wraps, the note
+   takes the line below, and the face gets the whole column width it was always supposed to have.
+
+   FOUND BY LOOKING AT IT. check/ui.js reported nothing either way — the layout measured clean with
+   the word broken, because a mid-word break is not an overflow. CLAUDE.md already says layout facts
+   come from the browser; this is the other half of that, which is that "no measurement failed" and
+   "it looks right" are different claims, and only one of them a screenshot can settle. */
+.mat-note { flex: 1 0 100%; font: 400 .62rem/1.3 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .1rem; }
 
 /* ---------- TILES: THE CONTROLS THAT USED TO BE IN A SHEET ---------------------------------------

@@ -1048,18 +1048,63 @@ function reelsWatch_() {
    most of why this app stays quiet. */
 screen('dm', () => stack('dm', dmCards_()));
 
+/* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED ----------------------------------------
+   IT SAID "No messages." TO EVERYBODY, FOR EVER, AND IT WAS NOT A BUG IN THE BACKEND. It took
+   `DATA.messages`. Messages are a POST action, not a payload key, because a conversation is private
+   and the GET payload goes out whole to whoever asks for it — so the backend is RIGHT not to send
+   them, and `|| []` turned the absence into an empty inbox. The exact fault CLAUDE.md names as the
+   worst one here, and `check-payload.js` now reports it.
+
+   WORSE: IT HAD ALREADY BEEN FOUND AND FIXED ONCE. me.js says "`DATA.messages` — which both readers
+   below took — is not a key the payload has ever held", and fixed the two it could see. This was a
+   THIRD reader, in another file, and the fix never reached it. That is the disease in this codebase
+   in one function: not a wrong idea, a right idea that did not arrive everywhere.
+
+   THREE FAULTS IN EIGHT LINES, because the other two were hiding behind the first. It also sorted on
+   `m.sentAt` and tested `m.readAt`; the handler sends `at` and `read`. Fixing only the key would have
+   produced cards in arbitrary order, every one of them marked unread — a different silent wrong
+   answer, and one that looks enough like working to survive.
+
+   NOTHING NEW IS BUILT HERE. `loadMessages`, `messageThreads_` and `messagesHtml_` are me.js's, are
+   loaded before this file, and are what the widget already uses. A fourth copy of "how to show a
+   message" is how this happened in the first place.
+--------------------------------------------------------------------------------------------- */
+
+/* ASKED ONCE, NOT ONCE PER PAINT — AND `MESSAGES` CANNOT BE THE FLAG THAT SAYS SO.
+   `loadMessages` assigns MESSAGES on success and deliberately does NOT on failure, so an unreachable
+   backend leaves whatever was there rather than reading as an empty inbox. Right for the widget, and
+   a trap here: if "MESSAGES is still null" were the condition to fetch, one failed request would
+   paint, re-ask, fail, paint, re-ask — a loop against the backend for as long as the tab was open.
+   This records that the ASKING happened, which is the fact the redraw actually depends on. */
+let DM_ASKED = false;
+
 function dmCards_() {
   if (!USER) return [`<div class="card"><h3>Messages</h3>
     <p class="sub">Sign in to see your messages.</p></div>`];
   if (!LOADED) return [skeleton()];
-  const mine = (DATA.messages || []);
-  if (!mine.length) return [`<div class="card"><h3>Messages</h3>
-    <p class="sub">No messages.</p></div>`];
-  /* NEWEST FIRST, and unread in the foreground colour rather than with a badge — a count you have
-     to notice is a count you can miss. */
-  return mine.slice().sort((a, b) => String(b.sentAt || '').localeCompare(String(a.sentAt || '')))
-    .map(m => `<div class="card${m.readAt ? '' : ' unread'}">
-      <h3>${esc(m.fromName || m.fromId || 'Someone')}</h3>
-      <p class="sub">${esc(m.body || '')}</p>
-    </div>`);
+
+  if (!DM_ASKED) {
+    DM_ASKED = true;
+    /* `loadMessages` swallows its own failures and always resolves, so there is no rejection path to
+       handle — and the repaint must happen either way, or a failed first fetch leaves the skeleton
+       on screen for ever with nothing saying why. */
+    loadMessages().then(() => paint('dm'));
+    return [skeleton()];
+  }
+
+  const threads = messageThreads_();
+  const head = `<div class="card"><h3>Messages</h3>
+    <button class="btn" data-do="dm-refresh">Refresh</button></div>`;
+  if (!threads.length) return [`<div class="card"><h3>Messages</h3>${emptyMessages_}</div>`];
+
+  /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
+     doing it again here is a second copy of the ordering rule to get wrong later. */
+  return [head].concat(threads.map(t => `<div class="card${t.unread ? ' unread' : ''}">
+      <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
+      ${messagesHtml_(t.msgs)}
+    </div>`));
 }
+
+/* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this
+   a message that arrived after the tab was first opened would not appear until a reload. */
+on('dm-refresh', () => { loadMessages().then(() => paint('dm')); });

@@ -63,8 +63,23 @@ almost never writes to it directly.
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it.
 
 **A key the site asks for and the backend does not send fails silently.** `|| []` turns it into an
-empty list, which looks exactly like an empty database. Tap through the app and type `missingKeys()`
-into the console to list every one.
+empty list, which looks exactly like an empty database.
+
+`node js/check-payload.js` is the instrument for this. It reads the files, so it sees every read
+whether or not anybody performed it — which is the difference between it and `missingKeys()`, the
+console helper that only records keys something actually reached for, and so only knows about the
+screens you happened to open, in the state you happened to be in, as the person you happened to be
+signed in as. A key read only by an admin on the print queue is invisible to `missingKeys()` until
+an admin opens the print queue.
+
+It reports two directions and they are not the same severity. **Read and never sent** is a feature
+that silently does nothing, and fails the build. **Sent and never read** is a tab walked and shipped
+to every phone on every load for nobody — weight worth deleting, but it breaks nothing, so it
+reports and does not fail. There are 23 of those right now.
+
+Keys that are read, deliberately not sent, and known about live in `ACCEPTED` at the top of that
+file, **one written reason each**. They are still printed. The point of the list is that a *new*
+dead key fails loudly instead of joining a red that nobody reads.
 
 ---
 
@@ -144,6 +159,7 @@ npm install                      # ONCE. acorn, jsdom and playwright — for the
 npm run check                    # everything, via js/check-all.js
 node js/check.js                 # names used but never declared. Two seconds. Run always.
 node js/check-flow.js            # 21 journeys through the real app in jsdom
+node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
 node check/ui.js                 # 9 screens x 4 widths, measured. Exits 1 if anything failed.
 node check/ui.js --screen=tools  # one screen
@@ -159,34 +175,37 @@ with nothing anywhere saying what to install.
 through its own `go()`, and measures: sideways scroll that nobody asked for, tap targets under 44 px,
 text under WCAG AA contrast, JS errors, and custom properties nothing anywhere sets.
 
-**Known findings, all on `tools`** (real, not yet fixed):
+**`check/ui.js` now reports nothing** — 9 screens x 4 widths, 0 sideways scrolls, 0 tap targets
+under 44px, 0 contrast failures, 0 JS errors, 0 dead custom properties. That is a baseline, not a
+victory lap: its value is that the next thing to break is now visible instead of being one more line
+in a wall of red. What it took to get there is worth knowing, because three of the four were the
+check being wrong rather than the app:
 
-- **25 sideways scrolls.** One cause with a cascade: `.mat-face` is `white-space: nowrap` inside a
-  `minmax(7.5rem, 1fr)` grid column, so a long face name — `◡ protractor`, `km→m units` — cannot
-  shrink to its column. The label overflows by 57px, which pushes `.mat-list`, then `.card`, then
-  `.pane`. Fixing it means letting that text truncate or wrap, and the comment above the rule says
-  nowrap is deliberate (it stops the columns jittering as glyphs change width), so it is a design
-  call rather than a typo. `div.mat-out` overflowing by 593px at 320px wide is separate — that is
-  the print sheet, which is a fixed paper width and probably wants `overflow-x: auto` rather than
-  resizing.
-- **19 tap targets under 44px**: the four `5/15/25/45` minute buttons in `map.js` (45x38), the share
-  and `＋` buttons in `posts.js` (~30px wide), and the bare checkboxes inside the mat rows.
+- **25 sideways scrolls, two causes.** 22 were `.mat-face` set to `white-space: nowrap` inside a
+  `minmax(7.5rem, 1fr)` column: a face like `◡ protractor` cannot shrink to its column, so the label
+  overflowed by up to 59px and pushed `.mat-list`, then `.card`, then `.pane`. **This entry used to
+  say nowrap was deliberate and quoted the comment above the rule. It misread it** — that comment
+  defends the *monospace font* as what stops the columns jittering, and mono is untouched. The other
+  3 were `div.mat-out`, the print sheet, which had `overflow: hidden`: a fixed paper width clipped
+  with no way to reach the rest of the page you are about to print. Now `overflow-x: auto`.
+- **19 tap targets, 16 real.** `.btn.tiny` said `min-height: max(38px, 2.3rem)` and 2.3rem is 34px
+  on a phone, so the max never chose the rem and the timer buttons were 45x38 on every device.
+  `.post-act` said `min-width: 2.2rem`, which is 32.6px, so Share was 30x44 — tall enough to look
+  deliberate, too narrow to hit. Both now in px. The other 3 were a 14px checkbox inside a 44px
+  label, which is not a small target: a click anywhere in a label toggles the control it contains.
+  `check/ui.js` now exempts a control whose wrapping label is itself 44px, and still measures the
+  label on its own pass, so shrinking the row still reports it.
 
-Fixed and verified by the same check: the 22 contrast failures (one token, `--faint`) and 88 of the
-107 tap targets (two rules, `.mat-lev button` and `.mat-list label`).
-
-### Two features that are wired up and have no backend
-
-`node js/check-access.js` reports these, and they are real:
-
-- **`spotlight`** — `collections.js` has an admin star toggle. There is no `spotlight` handler in
-  `dopost.gs`, no spotlight tab in `SCHEMA`, and `doGet` never sends `DATA.spotlight`, which
-  `collections.js:39` reads. Wired at both ends of the front end with no middle.
-- **`acceptTerms`** — `terms.js:289` posts it. No handler anywhere in `backend/`. `doGet` never
-  sends `DATA.termsAccepted` or `DATA.termsAcceptedWhen`, which `terms.js:101` and `:104` read.
-
-Neither is a regression; both were never finished. Building them means a handler, a tab in `SCHEMA`
-and a payload key each — a decision, not a repair.
+**The measurement was green before the layout was right, and a screenshot is what caught it.**
+Wrapping `.mat-face` fixed all 25 scrolls and cost 15px of list height, with ten faces on two lines —
+and `|·| ruler` rendering as `|·|` / `rul` / `er`, which no check flagged, because a mid-word break
+is not an overflow. The real culprit was `.mat-note`: `display: block` inside a flex row is
+blockified, so a note asking for its own line silently sat on the same one and took a third of the
+column from the face beside it. With `flex: 1 0 100%` it takes the line it wanted, no face wraps at
+all, and the list measures 860/464/467/467px at 320/390/768/1280 — **the same numbers nowrap gave,
+to the pixel.** CLAUDE.md already says layout facts come from the browser. The other half is that
+"nothing measured wrong" and "it looks right" are different claims, and only one of them a
+screenshot can settle.
 
 ### Every check hand-rolls its own path to `backend/`, and most of them had it wrong
 
