@@ -47,7 +47,11 @@ const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scop
 const gsF=['constants','core','people','booking','content','setup','doGet','doPost']
   .map((n,i)=>{
     const tries=[['00_','10_','20_','30_','40_','50_','60_','70_'][i]+n, n, n.toLowerCase()];
-    const hit=tries.map(x=>O+x+'.gs').find(p2=>fs.existsSync(p2));
+    /* `backend/` FIRST. This looked only beside the project and the .gs files moved into backend/,
+       so the second half of this check — dead functions in the BACKEND — has been skipped on every
+       run since, printing "no .gs files found beside the project" where a result should be. The
+       same mistake check-booking, check-columns and check-access each made separately. */
+    const hit=[O+'backend/',O].flatMap(d=>tries.map(x=>d+x+'.gs')).find(p2=>fs.existsSync(p2));
     return hit?{f:path.basename(hit),p:hit}:null;
   }).filter(Boolean);
 const scan=(set,label)=>{

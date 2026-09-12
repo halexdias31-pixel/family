@@ -7546,3 +7546,37 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .cam-card .cam-row .btn { min-height: 44px; }
 
 .cam-card #cam-said:empty { display: none; }
+
+/* THE COMPOSER, UNDER THE VIEWFINDER. `newPostCard` was a page of its own on this column and, before
+   that, a duplicate of it at the top of the feed. It was never a card — a heading, a sentence and a
+   tap target — so it is the foot of the camera card, which is the thing it was always about. */
+.cam-card .cam-compose {
+  margin-top: .8rem;
+  padding-top: .8rem;
+  border-top: 1px solid var(--line-soft);
+}
+.cam-card .cam-compose .btn { min-height: 44px; }
+.cam-card .cam-compose .sub { margin: .5rem 0 0; }
+
+/* ==================================================================================================
+   `hidden` HAS TO ACTUALLY HIDE.
+
+   The attribute works by a UA rule setting `display: none`, and ANY author rule that sets `display`
+   beats it — so `.btn { display: flex }` made three hidden buttons on the camera card show, and
+   `.cam-stage canvas { display: block }` did the same to the still. The markup said hidden, the
+   screen said otherwise, and the card offered "Take one" before the camera was on.
+
+   MEASURED BEFORE IT WAS ADDED, across all nine screens: four elements were marked hidden and
+   displayed anyway, and all four were the camera's. So this fixes those and changes nothing that
+   was already on screen — it is not a rule with unknown reach.
+
+   `!important` BECAUSE THAT IS THE ONLY THING THAT WINS. The alternative is remembering, in every
+   rule that sets `display` for ever, that the element might be hidden. One line here, or a
+   permanent obligation everywhere else.
+================================================================================================== */
+[hidden] { display: none !important; }
+
+/* AND THE BUTTONS SIZE TO THEIR WORDS. `.btn` is `width: 100%` because most of them are the only
+   thing on their row; three of these share one, so full width made "Turn the camera on" wrap onto
+   three lines inside a 44px-tall box. */
+.cam-card .cam-row .btn { width: auto; flex: 0 1 auto; }

@@ -305,6 +305,21 @@ function cameraCard() {
       <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
     </div>
     <p class="faint" id="cam-said"></p>
+
+    ${/* ---------- AND THE WAY TO WRITE ONE, ON THE SAME CARD -------------------------------------
+          `newPostCard` WAS A SECOND PAGE ON THIS COLUMN and before that a third copy at the top of
+          the feed. It was never a card in its own right — a heading, a sentence and a tap target —
+          so it is a button on the camera, which is the thing it was always about.
+
+          THE SENTENCE FOR A CLIENT AND THE SENTENCE FOR AN ADMIN ARE DIFFERENT, and that is the
+          rule this card has to keep: a client who posts and then finds nothing on the feed assumes
+          it failed and posts again; one who was told it gets checked first waits. Nobody is being
+          told off — "we check them first" is a sentence about the app, not about the person. */''}
+    <div class="cam-compose">
+      <button class="btn quiet" data-do="new-post">＋ Write a post</button>
+      <p class="sub">A photograph, a line about it, and a poll if you want one.${
+        isAdmin() ? '' : '<br>We check posts before they go up.'}</p>
+    </div>
   </div>`;
 }
 
@@ -386,6 +401,9 @@ on('cam-save', () => {
 });
 
 /** Let the camera go. Called when the column leaves — see `go` in shell.js. */
+/* EVERY BUTTON BACK TO ITS STARTING STATE TOO, not just the stream. Stopping the tracks leaves the
+   last frame frozen in the `<video>` and "Take one" still showing, so the card looks live and does
+   nothing — which reads as a broken camera rather than a stopped one. */
 function camStop_() {
   try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
   CAM_STREAM = null;
@@ -397,21 +415,6 @@ function camStop_() {
   $('cam-shoot') && ($('cam-shoot').hidden = true);
   $('cam-again') && ($('cam-again').hidden = true);
   $('cam-save')  && ($('cam-save').hidden = true);
-}
-
-function newPostCard() {
-  /* THE CARD SAYS WHAT WILL HAPPEN TO IT, and says it BEFORE anybody posts rather than after.
-     A client who posts and then finds nothing on the feed assumes it failed and posts again; one
-     who was told it gets checked first knows exactly what is going on and waits.
-     Nobody is being told off here — "we check them first" is a sentence about the app, not about
-     the person reading it. */
-  return `<div class="card">
-    <div class="tap" data-do="new-post">
-      <h3>＋ New post</h3>
-      <p class="sub">A photograph, a line about it, and a poll if you want one.${
-        isAdmin() ? '' : '<br>We check posts before they go up.'}</p>
-    </div>
-  </div>`;
 }
 
 /* ---------- REACTIONS ---------------------------------------------------------------------------
@@ -939,8 +942,12 @@ on('post-delete', el => {
 
    SIGNED OUT IT SAYS SO, rather than offering a control that will refuse. `new-post` needs a user,
    and a button that refuses is worse than one that was never there. */
+/* ONE PAGE, AND IT IS THE CAMERA. It was the camera and then a card describing a photograph — and
+   that second card had already been deleted from the top of the feed for being a duplicate of this
+   column. Two of it on one column was one more than two of it across two. The composer it offered
+   is a button on the camera now; see `cameraCard`. */
 screen('make', () => pages('make', USER
-  ? [cameraCard(), newPostCard()]
+  ? [cameraCard()]
   : [`<div class="card"><h3>New post</h3>
       <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`]));
 
