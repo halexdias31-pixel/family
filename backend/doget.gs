@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-14-signin";
+const DOGET_VERSION = "2026-09-15-games";
 
 
 function doGet(e) {
@@ -418,7 +418,7 @@ function doGet(e) {
       festive: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
       facts: [],
-      questions: [], boxers: [], fights: [],
+      questions: [], boxers: [], fights: [], herd: [],
       cheatsheet: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
@@ -1374,6 +1374,20 @@ function doGet(e) {
         });
       });
     } catch (err) { payload.questions = []; }
+
+    /* --- herd ------------------------------------------------------------------------------------
+       HERD MENTALITY'S QUESTIONS. Same `try` as the questions above and for the same reason: a sheet
+       that has not had `?setup=1` run on it has no herd tab, `read` on a missing tab throws, and one
+       missing party game must never take the whole payload down with it. The game keeps its own
+       twenty questions, so an empty list here costs nothing. */
+    try {
+      read(TAB.herd).rows.forEach(r => {
+        if (!S(r.question) || !ON_(r.active)) return;
+        payload.herd.push({ id: S(r.question_id), question: S(r.question),
+                            sort: N(r.sort_order) });
+      });
+      payload.herd.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+    } catch (err) { payload.herd = []; }
 
     /* --- boxers ---------------------------------------------------------------------------------
        SAME GUARD AS THE QUESTIONS TAB. A sheet that has not had `?setup=1` run on it has no boxers
