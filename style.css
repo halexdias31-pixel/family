@@ -7735,8 +7735,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   display: grid; gap: 3px; margin: .6rem auto 0;
   width: 100%; background: var(--line); padding: 3px; border-radius: var(--r-sm);
 }
-.c4 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr);
-      aspect-ratio: 7 / 6; max-width: 22rem; }
+/* ---------- A BOARD SQUARE CANNOT BE 44px AND THE ARITHMETIC IS THE WHOLE REASON ------------------
+   SEVEN COLUMNS OF 44px IS 308px, plus six 3px gaps and the board's own padding: 332px. A phone this
+   app supports is 320px WIDE. So a Connect 4 column cannot meet the tap-target minimum edge to edge,
+   let alone inside a card — and Othello, at eight columns, is further off again.
+
+   I TRIED TO BUY THE WIDTH BACK AND IT WAS NOT THERE. Bleeding the board out through the card's
+   padding, the way `.sk-pic` does, took the columns from 25px to 29px and bought two sideways
+   scrolls doing it. Four pads instead of two got 33px and three scrolls. The rule is not failing
+   because of a padding I can reclaim; it is failing because 332 is bigger than 320.
+
+   SO THE BOARD STAYS IN THE CARD and `check/ui.js` is told why a board cell is exempt — see the note
+   beside `MIN_TAP` there. Contorting the layout for a number that cannot be reached would have cost
+   the layout and still not reached it. */
 .oth { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
        aspect-ratio: 1; max-width: 24rem; }
 

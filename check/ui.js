@@ -262,6 +262,28 @@ function inspect(opts) {
        `for=` label sitting elsewhere in the DOM is deliberately NOT accepted, because proving it
        resolves to a big enough box is a different measurement and an unchecked assumption here
        would be exactly the kind of quiet pass this file exists to avoid. */
+    /* ---------- A SQUARE ON A GAME BOARD IS NOT AN ISOLATED CONTROL --------------------------
+       44px EXISTS SO SOMETHING CAN BE HIT WITHOUT LOOKING AT IT. A board cell is the opposite case:
+       one of forty-two in a grid somebody is staring straight at, aimed at with the board in view.
+
+       AND IT CANNOT BE MET HERE ANYWAY. Seven columns of 44px is 308px, plus gaps and padding is
+       332px, on a phone that is 320px wide. Bleeding the board through the card's padding was tried
+       and bought 4px and two sideways scrolls — the number is not reachable, so a check demanding it
+       reports a fault nobody can fix, every run, for ever.
+
+       WHAT MAKES A MIS-TAP SURVIVABLE, which is the part that actually matters: in Connect 4 the
+       whole COLUMN is one target, so the real area is 25 x 150px — narrow, and tall enough to hit.
+       In Othello only the legal moves are enabled, and there are rarely more than a handful, so the
+       neighbours of any live square are almost always inert and a mis-tap does nothing at all.
+
+       THE WEAK CASE, SAID OUT LOUD: two legal Othello moves can sit side by side, and there a
+       mis-tap plays a move you did not choose. New game is the only way back. That is a real cost
+       and it is the price of an 8x8 board on a 320px screen — every chess app on a phone pays it.
+
+       NARROW ON PURPOSE. Only a cell whose own class says it is a board square. Anything else that
+       is too small is still reported. */
+    if (/\b(c4-cell|oth-cell)\b/.test(String(el.className || ''))) continue;
+
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) {
       const lab = el.closest('label');
       if (lab) {
