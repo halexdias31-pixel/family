@@ -2099,12 +2099,6 @@ function bookBreakdown(L, foot) {
   BOOK_ROWS = rows;
   const out = rows.map(receiptRow);
 
-  const bars = receiptBars(BOOK_STEPS.map(st => {
-    const v = BOOKING[st.id];
-    return st.id + ':' + (Array.isArray(v) ? v.join(',') : String(v ?? ''));
-  }).concat(['slots:' + (BOOKING.slots || []).join(','),
-             'split:' + (BOOKING.split || []).join(',')]).join('|'));
-
   return receiptHtml({
     /* ---------- THE HEAD SAID WHAT THE ROWS SAY -----------------------------------------------
        "No venue yet · No tutor yet · 29/08/26 00:29" sat above a Venue row and a Tutor row holding
@@ -2141,20 +2135,15 @@ function bookBreakdown(L, foot) {
 
        WHAT THE DOCUMENTS KEEP is the count: `Seats` says how many, `Sharing with` says who else. A
        receipt is what was agreed and what it costs. Who turned up is a different question. */
-    bars,
-    /* ---------- PAPER, LIKE EVERYTHING ELSE ---------------------------------------------------------
-       IT WAS A GREEN TERMINAL, on the argument that nothing has been sent yet so there is no record
-       to be — the entering of a thing, before the thing. That reads well and it costs the one thing
-       worth more: a person who fills in a dark screen and is handed cream paper has been given two
-       objects, and has to work out for themselves that they are the same one.
+    /* ---------- THE SKIN WAS ONE WORD HERE, AND NOW THERE IS NO WORD --------------------------------
+       THIS SAID `kind: 'receipt'`, and the note under it was proud that the whole choice of costume
+       for this document had come down to a single line: the form had been a green terminal, and
+       changing it to cream paper — and back — was one edit.
 
-       THE RECEIPT WAS ALREADY THE SHAPE. Torn at both ends, ruled rows, a total set apart, a
-       barcode — a booking form that looks like the receipt it becomes is a form that explains
-       itself: this is what you will be holding.
-
-       AND IT IS ONE WORD. Both documents share a skin now, so this line is the whole change, and
-       changing it back is the same. That is the property that made it worth doing at all. */
-    kind: 'receipt',
+       THAT WAS TRUE AND IT WAS STILL THE WRONG SHAPE. One line to pick between four palettes is one
+       line that decides which of four sets of rules a control on this card obeys, and the set nobody
+       remembers is the one the next control gets wrong. There is one palette now — the app's — so
+       there is nothing to pick and no line to pick it with. `receiptHtml` says why at length. */
   });
 }
 
@@ -2274,78 +2263,37 @@ function rosterHtml(o) {
    the picture come to disagree.
 ================================================================================================== */
 function receiptHtml(r) {
-  /* `kind` says which of the four this is. Defaulting to a receipt keeps every existing caller
-     drawing exactly what it drew before, so nothing that works today can be changed by this. */
-  const kind = r.kind || 'receipt';
-  const SKIN = { screen: ' scr', application: ' app', waitlist: ' wl', receipt: '' };
-  const STAGE = {
-    /* ---------- THE SCREEN STAGE SAYS NOTHING, SO IT SAYS NOTHING ---------------------------------
-       "ASKING FOR A SESSION" WAS TRUE AND REDUNDANT. It sat above a form headed by the question the
-       funnel just asked, on a page you reach by answering "what for · booking", with a button at
-       the bottom reading "Ask for it". Four things saying the same thing, and this was the one with
-       no other job.
+  /* ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD -------------
+     `kind` PICKED ONE OF FOUR COSTUMES — screen, application, waitlist, receipt — and appended a
+     class that chose a palette in the stylesheet. All four callers pass the same one now, so it
+     chose nothing; the three skins it could no longer reach are deleted, and the argument for why
+     is kept at their old place in `style.css`.
 
-       THE OTHER THREE KEEP THEIRS, because they carry a fact nothing else on the card does: whether
-       an application has been accepted, whether a waiting list has you on it, whether a paid
-       receipt was a shared class or a whole session. Those cannot be read off the rows. */
-    screen: '',
-    application: r.accepted ? 'Accepted — waiting for payment'
-                           : 'Application — waiting to be accepted',
-    waitlist: 'You are on the waiting list',
-    /* ---------- A PAID RECEIPT STILL SAYS WHICH IT WAS -------------------------------------------
-       IT SAID NOTHING, AND THAT LOST A FACT WORTH KEEPING. Once a waiting list fills it becomes a
-       receipt like any other, and a blank stage made a class that four families waited weeks to
-       fill look identical to one somebody booked outright on a Tuesday.
+     `STAGE` WAS THIRTY LINES OF PROSE OVER A MAP NOTHING READ. It built the sentence for each of
+     the four stages and was never interpolated into the markup — the heading it fed was removed in
+     an earlier pass and the map was left behind, complete with a note explaining which of the four
+     stages keeps its wording and why. `.rc-stage` styled its output in four places and matched
+     nothing; `check-css` had been naming it as a class styled but never produced, in a list of 28.
 
-       The two were paid for on different terms — a fixed seat price against a whole session — so a
-       receipt that does not say which cannot be checked against what was actually agreed. The
-       `kind` column has recorded it correctly all along; nothing was reading it back out at this
-       point. */
-    receipt: r.was === 'waitlist' ? 'A shared class — one seat' : '',
-  };
-  /* ---------- NO STAMP, NOW THAT EVERY SESSION IS A RECEIPT ---------------------------------------
-     `is-accepted` PAINTED A DIAGONAL "ACCEPTED" ACROSS THE APPLICATION SKIN, and there is no
-     application skin any more — see `jobReceipt`. A stamp is what a document gets when it has more
-     than one form and you need to tell which you are holding; with one form there is nothing to
-     tell apart, and a mark across the paper would just be decoration over the rows.
-
-     THE `Stage` ROW CARRIES IT, in words, down with Status and Asked for — which is where somebody
-     checking where a booking has got to actually looks. */
-  const okd = '';
-  /* ---------- THE CURSOR IS THE ONE THING A SAVED DOCUMENT MUST NOT HAVE ---------------------------
-     `.rc.scr::after` BLINKS A BLOCK CURSOR in the corner — the oldest signal in computing that a
-     machine is waiting for you to type, and the whole reason the form reads as being filled in
-     rather than as a dark card. On a receipt nothing is waiting: it is a record of something
-     already done, and a cursor on it is the document telling somebody to finish a thing they
-     finished last week.
-     Everything else about the skin — the type, the colours, the scanlines, the row rules — is
-     exactly what it should inherit. So one class turns off one pseudo-element. */
+     THE STAGE IS STILL SAID. `jobSaid_` returns the sentence and `jobReceipt` puts it in a row with
+     Status and Asked for, which is where somebody checking where a booking has got to looks. A row
+     rather than a costume: readable, the same size in every language, and impossible to render as
+     a palette the next control on this card forgets about. */
+  /* `.is-done` STAYS, and it is not a skin. It marks the SAVED document so the hour grid tightens —
+     a record does not need rows you can press — which is a layout, not a colour. */
   const done = r.done ? ' is-done' : '';
-  /* ---------- THE STAGE WAS ON THE CARD FOUR TIMES ------------------------------------------------
-     A HEADING LINE, A DIAGONAL STAMP, A `Stage` ROW AND THE SENTENCE ABOVE THE PAY BUTTON — all
-     four saying "Accepted — waiting for payment", one under the other, on a card about eight rows
-     tall. Each was added on its own and read fine on its own; together they are a document
-     shouting one word.
-
-     THE STAMP KEEPS IT. It is the thing a receipt actually does — a mark across the paper, read
-     before any of the rows, and the only one of the four that is not a line of text competing with
-     the lines around it. The heading is dropped: it sat directly above `@family.` and said the same
-     thing the stamp behind it said, in the same colour.
-
-     THE `Stage` ROW STAYS, because a stamp is a glance and a row is a record — it sits with Status
-     and Asked for, where somebody checking details looks, rather than at the top competing for the
-     same attention the stamp already has. */
-  return `<div class="rc rc-${esc(kind)}${SKIN[kind] || ''}${okd}${done}">
+  return `<div class="rc${done}">
     <div class="rc-head">
-      ${/* ---------- THE SHOP NAME IS FOR A RECEIPT, NOT FOR A FORM --------------------------------
-            A till roll names the shop because it leaves the shop — it is evidence, held by somebody
-            who might need to say where it came from. A form being filled in has not left anything:
-            it is on screen, inside the app, above a button with the shop's own wording on it.
+      ${/* ---------- THE SHOP NAME WAS FOR A RECEIPT, AND THIS IS NOT ONE ANY MORE -------------------
+            A till roll names the shop because it LEAVES the shop — it is evidence, held by somebody
+            who might need to say where it came from. That argument already dropped it from the form
+            being filled in, on the grounds that a form on screen has not left anything.
 
-            SO THE SCREEN STAGE DROPS IT and the other three keep it. That also takes the `> `
-            prompt with it, which `.screen h2::before` draws — the terminal look is the scan lines,
-            the green and the blinking cursor, none of which need a heading to hang on. */''}
-      ${kind === 'screen' ? '' : '<h2>@family.</h2>'}
+            THE SAME SENTENCE FINISHES THE JOB. Nothing drawn by this function leaves: it is on
+            screen, inside the app, under a tab bar with the shop's name on it, above a button with
+            the shop's own wording on it. The ONE thing that does leave is the picture
+            `receiptCanvas` draws for WhatsApp, and that keeps the name — it is the only copy of
+            this document a stranger ever holds. */''}
       ${/* THE THREE LINES ON ONE LINE. Venue, tutor and term were a paragraph each, three deep at
            the top of every card — and they are one fact, not three: where and with whom and when.
            Joined with a middot, they read at a glance and give back two lines of height. */''}
@@ -2381,18 +2329,26 @@ function receiptHtml(r) {
           read as a rendering fault rather than as a layout.
 
           THEY ARE PART OF THE DOCUMENT. A till receipt does not have its buttons printed on a
-          separate slip; the thing you press to commit belongs on the thing being committed, above
-          the barcode where a real one puts its total and its terms.
+          separate slip; the thing you press to commit belongs on the thing being committed.
 
-          BEFORE THE BARS, because the bars are the end of a receipt and nothing goes after the end
-          of one. */''}
+          LAST, because it is what the document is FOR. It used to go before the barcode, on the
+          grounds that nothing goes after the end of a receipt; with the barcode gone the buttons
+          are the end, which is the right place for the one thing anybody presses. */''}
     ${r.foot || ''}
-    <div class="rc-bars">${(r.bars || []).join('')}</div>
+    ${/* THE BARCODE WAS HERE. Its own stylesheet note convicted it: "decoration and priced as such
+          — 44 bars off a hash, and it is there because a till receipt has one." Nothing scanned it
+          and nothing could; it was the most receipt-shaped thing on a document that is also the
+          booking form and the basket. `receiptBars` went with it, and so did the `bars:` all three
+          callers were passing. */''}
     ${/* THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE. It said "Nothing is booked until you ask for
           it" under every unsent booking — true, and already obvious from the question sitting under
           the card and the button that sends it. A card that has to explain its own state is a card
           whose state is not visible; this one's is. */''}
-    ${r.thanks ? `<p class="rc-thanks">${esc(r.thanks)}</p>` : ''}
+    ${/* THE REFERENCE, WHEN THERE IS ONE. It was `r.thanks` in a `.rc-thanks` and it has never held
+          a thank-you — `jobReceipt` puts "Session 42" in it, which is the number somebody quotes
+          when they ring up about a booking. Named for what it carries, because this file is read
+          far more often than it is written. */''}
+    ${r.ref ? `<p class="rc-ref">${esc(r.ref)}</p>` : ''}
   </div>`;
 }
 
@@ -2456,17 +2412,6 @@ function receiptRow(r) {
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>
   </div>${r.open || ''}`;
-}
-
-/** Forty-four bars from a seed. Same booking, same code, for ever. */
-function receiptBars(seedStr) {
-  let seed = hashOf(String(seedStr)) >>> 0;
-  const bars = [];
-  for (let i = 0; i < 44; i++) {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    bars.push(`<i style="width:${1 + (seed % 3)}px"></i>`);
-  }
-  return bars;
 }
 
 /**
@@ -2753,7 +2698,6 @@ function jobReceipt(j) {
        this is what you will be holding.
 
        `stage` IS STILL COMPUTED AND STILL PASSED — the wording reads it. */
-    kind: 'receipt',
     /* `done` MARKED THE SAVED DOCUMENT so the screen skin's blinking cursor could be turned off.
        There is no cursor on paper, so with both documents on the receipt skin this decides nothing.
        Left in place: the screen skin is one word away for either of them, and a flag that goes and
@@ -2800,8 +2744,7 @@ function jobReceipt(j) {
     aside: '',
     /* NO ROSTER HERE EITHER — see the note on the form. The chairs are `Your sessions`, one widget
        per class, which is the view that answers "who is in it". */
-    bars: receiptBars([j.id, j.jobId, j.subject, j.venue, j.price].join('|')),
-    thanks: 'Session ' + esc(String(j.id || j.jobId || '')),
+    ref: 'Session ' + esc(String(j.id || j.jobId || '')),
   });
 }
 

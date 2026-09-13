@@ -275,7 +275,21 @@ function basketPages() {
       : 'Nothing leaves your basket until you confirm.'}</p>`;
 
   return [receiptHtml({
-    kind: 'screen',
+    /* ---------- THE BASKET WORE THE GREEN TERMINAL, AND IT WAS THE LAST ONE WEARING ANYTHING ------
+       `receiptHtml` HAD FOUR SKINS — screen, application, waitlist, receipt — one per stage of a
+       booking, and the same session wore three of them over its life. Three went in an earlier
+       change: the booking form and the saved session both pass `receipt` now, on the argument that
+       a person who fills in a dark screen and is handed cream paper has been given two documents
+       to reconcile rather than one document at two moments.
+
+       THE BASKET WAS THE ONE THAT DID NOT GET THE MEMO. It kept `screen` because nothing routes
+       through it from the booking side, so nobody noticed that a basket was the only thing in the
+       app rendering as a CRT — scan lines, blinking cursor and all — while the card it is modelled
+       on had stopped. One word, and `.rc.scr`, `.rc.app` and `.rc.wl` are all reachable by nothing:
+       about 90 lines of stylesheet in three palettes that no caller could ask for, deleted in the
+       same change. And with all four callers agreeing, `kind` itself is gone: one line choosing
+       between four palettes is one line deciding which of four sets of rules the next control on
+       this card has to obey, and the set nobody remembers is the one that gets written wrong. */
     lines: [due ? due + ' credit' + (due === 1 ? '' : 's') : '',
             due ? 'you have ' + credits : ''].filter(Boolean),
     rows: rows,
@@ -284,7 +298,6 @@ function basketPages() {
     totalLabel: cash ? 'To pay' : 'Credits',
     total: cash ? money(cash) : String(due),
     foot: foot,
-    bars: receiptBars('cart-' + CART.map(c => c.key).join('-')),
   })];
 }
 

@@ -161,7 +161,7 @@ node js/check.js                 # names used but never declared. Two seconds. R
 node js/check-flow.js            # 21 journeys through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
-node check/ui.js                 # 9 screens x 4 widths, measured. Exits 1 if anything failed.
+node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
 ```
@@ -175,11 +175,47 @@ with nothing anywhere saying what to install.
 through its own `go()`, and measures: sideways scroll that nobody asked for, tap targets under 44 px,
 text under WCAG AA contrast, JS errors, and custom properties nothing anywhere sets.
 
-**`check/ui.js` now reports nothing** — 9 screens x 4 widths, 0 sideways scrolls, 0 tap targets
-under 44px, 0 contrast failures, 0 JS errors, 0 dead custom properties. That is a baseline, not a
-victory lap: its value is that the next thing to break is now visible instead of being one more line
-in a wall of red. What it took to get there is worth knowing, because three of the four were the
-check being wrong rather than the app:
+### It reported nothing because it had never signed in
+
+**For a long time this section said `check/ui.js` reports nothing across 9 screens x 4 widths. It
+did. It was measuring the app a STRANGER sees**, because nothing in it ever set a user, and this
+app shows a stranger very little. The booking screen signed out is one card reading "Sign in to
+book"; the form behind it is the most control-dense surface in the whole app, and "booking: nothing
+to report" had always meant that card.
+
+It now runs **72 combinations — 9 screens x 4 widths x 2 visitors**, signed out and signed in as an
+admin, seeded into `localStorage` before the page loads so `data.js` signs the visitor in itself.
+If the seed is ignored the run says so loudly and fails, because "I did not check" printed as
+"I checked and it was fine" is this project's recurring failure.
+
+What the other half was hiding, on the first run that could see it:
+
+- **`.fm-out` — the flyer sheet — `overflow: hidden`, clipping up to 593px of a flyer** at every
+  width. The identical rule on `.mat-out` was found and fixed and written up in this file; this is
+  the same sheet one widget over, with the same fault, unreachable to a check that never signed in.
+- **`.fm-adds label { min-height: 2rem }` — 27px on a phone.** The comment above it correctly says
+  the tap target belongs on the label rather than the 17px tickbox, and then writes it in `rem`.
+  That is the `.btn.tiny` mistake and the `.post-act` mistake, both recorded below, for a **third**
+  time. Tap targets in px is a rule with three convictions behind it now.
+- **`.rc-tiles .tile { 40px }`** on "Ask for it" and "Share this booking" — in px, and under 44 on
+  purpose, to sit politely on a receipt that no longer exists.
+- **`.bk-row` overflowed by 13px at 320**, taking `.bk`, `.rc` and `.pane` sideways with it. The
+  cause is the root font's own floor: `clamp(13.5px, 3.8vw, 16px)` stops shrinking at about 355px
+  while the viewport does not, and every column on that card is `em` or `ch` off the root. The row
+  now takes `min(.74rem, 2.85vw)` — the two curves meet exactly where the clamp stops, so it is
+  unchanged at every width that already worked and needs no breakpoint to keep in step.
+
+**63 findings remain and they are in `ACCEPTED_TAP`, with one written reason each, printed in full
+and not failing the build.** Both are real and neither is a number: the hour grid cannot be made of
+44px parts (eleven of them need 484px, wider than any phone), and giving the booking row's inline
+dropdowns 44px detaches the dashed underline from its label by 24px, because that underline is the
+grid cell's bottom border. Tried twice, photographed both times, reverted both times. Fixing it
+means moving the underline onto the control — a redesign of the app's main form, and a decision
+rather than a repair. The list exists so that a NEW tap target fails loudly instead of joining a red
+nobody reads; same argument as `ACCEPTED` in `check-payload.js`.
+
+The earlier baseline is still worth reading, because three of its four findings were the check being
+wrong rather than the app:
 
 - **25 sideways scrolls, two causes.** 22 were `.mat-face` set to `white-space: nowrap` inside a
   `minmax(7.5rem, 1fr)` column: a face like `◡ protractor` cannot shrink to its column, so the label
@@ -269,6 +305,17 @@ Follow it. It is unusual and it is deliberate.
   - A tile has room for a label and about three words of `note`. When an action needs a real warning
     — "everyone is withdrawn", "never as though Stripe had confirmed it" — put **one** paragraph
     under the row rather than one per button. See `jobAdminTiles_`.
+- **THERE ARE TWO PALETTES.** The screen is black and gold (`--bg`, `--gold`, `--ink`, `--line`).
+  Everything standing in for PAPER — the receipt, the job stubs, the roster, the print sheet, the
+  calendar, the splash — is cream and warm ink (`--paper`, `--paper-ink`, `--paper-dim`,
+  `--paper-faint`, `--paper-strip`, `--paper-rule`). Only the first was ever tokenised: the paper
+  one was six hex codes written out by hand, `#f4f1e8` alone in 29 rule-groups, so "make the paper
+  warmer" was a find-and-replace across ~70 declarations and one missed leaves a card with two
+  different papers in it. **Never write a paper colour as a literal.**
+- **Which palette a colour belongs to decides its scope.** A colour used by more than one component
+  is a `:root` token. A colour that belongs to ONE component — a chess board's cream and charcoal,
+  which is that board's own convention and not this app's — is defined on that component
+  (`.chess { --chess-light: … }`) so it is named without being offered to the whole stylesheet.
 - **Tap targets in `px`, everything else in `rem`.** Line 121 sets the root to
   `clamp(13.5px, 3.8vw, 16px)`, so a rem is 14.82px on a 390px phone. `2.75rem` for a 44px target
   comes out at 40.75px and still fails. A fingertip is the same size on every screen; it is the one

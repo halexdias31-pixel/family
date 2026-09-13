@@ -162,7 +162,15 @@ function boot(opts) {
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
       /* AN ADMIN'S ACTIONS ON A SESSION, so a journey can ask that moving them from buttons to
          tiles did not lose one. */
-      'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
+      /* THE PAGER TABLE AND THE PAGE COUNTER, so a journey can ask whether what the header counts is
+         what the screen drew. */
+      'PAGER, PAGE, goPage, repaint,'
+      /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
+         both without a browser and without the sheet. */
+      + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
+      + 'dockText: typeof docketText === "function" ? docketText : null,'
+      + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
+      + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
@@ -633,6 +641,103 @@ check('a festive event shows itself and can be joined', async () => {
   const call = sent.find(x => x.action === 'joinFestive');
   return (call && String(call.kids || '').trim()) ? []
     : ['joinFestive was sent without the names — the headcount question achieved nothing'];
+});
+
+check('the docket keeps the text you typed, whatever it starts with', async () => {
+  /* ---------- THE BUG, DEMONSTRATED BEFORE IT WAS FIXED -----------------------------------------
+     `x ` AND A TICK WERE THE DONE MARKERS, bare, at the front of the line. So "x ray results" was
+     stored and read back as a COMPLETED task called "ray results": the state wrong and the text
+     eaten, which is both of the only two things a to-do list has to get right. "X marks the spot"
+     went the same way.
+
+     THE MARKER IS A MARKDOWN CHECKBOX NOW and cannot collide with prose. This journey is written
+     against the STORAGE FORMAT rather than the markup, because that is what has to survive — the
+     sheet is the database and these strings sit in a column somebody reads. */
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.__t.dockLines !== 'function' || typeof w.__t.dockText !== 'function') return [];
+
+  const bad = [];
+  const round = t => {
+    w.__t.USER({ name: 'R', personId: 'P1', todo: w.__t.dockText([{ done: false, text: t }]) });
+    return (w.__t.dockLines() || [])[0];
+  };
+
+  ['x ray results', 'X marks the spot', '\u2713 already ticked?', 'Buy milk'].forEach(t => {
+    const got = round(t);
+    if (!got) { bad.push('"' + t + '" vanished from the docket entirely'); return; }
+    if (got.text !== t) bad.push('"' + t + '" came back as "' + got.text + '" \u2014 the text was eaten');
+    if (got.done) bad.push('"' + t + '" came back ticked, and nobody ticked it');
+  });
+
+  /* A TICK MUST STILL SURVIVE A ROUND TRIP, or the fix traded one failure for the other. */
+  w.__t.USER({ name: 'R', personId: 'P1', todo: w.__t.dockText([{ done: true, text: 'Pay the invoice' }]) });
+  const ticked = (w.__t.dockLines() || [])[0];
+  if (!ticked || !ticked.done) bad.push('a ticked line did not come back ticked');
+  if (ticked && ticked.text !== 'Pay the invoice') bad.push('a ticked line lost its text');
+
+  /* AND EVERY DOCKET WRITTEN BEFORE THE BOXES EXISTED still has to read correctly, or the fix
+     silently unticks everybody's finished work the first time they open it. */
+  w.__t.USER({ name: 'R', personId: 'P1', todo: 'x old style\n\u2713 also old\nplain line' });
+  const legacy = w.__t.dockLines() || [];
+  if (legacy.length !== 3) bad.push('a legacy docket did not read back as three lines');
+  if (legacy[0] && (!legacy[0].done || legacy[0].text !== 'old style')) {
+    bad.push('the legacy `x ` form stopped reading as done');
+  }
+  if (legacy[2] && legacy[2].done) bad.push('a plain legacy line came back ticked');
+  return bad;
+});
+
+check('every pager counts the pages its screen actually draws', async () => {
+  /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES ------------------------
+     `PAGER.account` counted `mePages()`. That function fed the old You COLUMN and says so in its
+     own comment; `screen('account')` draws `accountPages_()` plus `termsPages_()`. So the number of
+     pages the header believed in and the number on screen came from two functions that had not
+     agreed since the column was folded into the funnel — and you could not move down the profile
+     column at all. Not an error: the pager reported one page, so there was nowhere to go, while the
+     pages sat underneath waiting.
+
+     THE SAME SHAPE TWICE BEFORE. `PAGER` keyed on `me` and `posts` when the screens had been renamed
+     `account` and `feed`, so two columns silently stopped paging. And `stuffFirstResult_` counted a
+     page list that `paintStuff` built differently, which put a blank card under the question for
+     every starred thing.
+
+     SO THE JOURNEY ASKS THE BROWSER, not the source: paint each screen through `go`, count the
+     `.page` elements that exist, and compare with what `PAGER[id]()` says. Two functions can only
+     be checked against each other by running both. */
+  const { w } = boot();
+  await wait(400);
+  if (!w.__t.PAGER) return ['PAGER is not exported — cannot check the pagers'];
+
+  /* SIGNED IN, because half these columns draw a sign-in card and nothing else when signed out —
+     a roster of one page agrees with anything and proves nothing. */
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  /* AND REPAINTED, BECAUSE THAT IS WHAT SIGNING IN DOES. `__t.USER` only sets the variable; the app
+     calls `repaint()` straight after, which marks every other screen stale so `go` redraws it on the
+     way in. Without this the journey walks onto screens painted while signed out and reports a
+     disagreement that is its own doing — which is exactly what it did the first time it ran. */
+  if (typeof w.__t.repaint === 'function') w.__t.repaint(true);
+  await wait(200);
+
+  const bad = [];
+  for (const id of Object.keys(w.__t.PAGER)) {
+    try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw on go(): ' + e.message); continue; }
+    await wait(120);
+    const el = w.document.getElementById('s-' + id);
+    if (!el) { bad.push(id + ' has no #s-' + id + ' to draw into'); continue; }
+    const drawn = el.querySelectorAll('.page').length;
+    let says;
+    try { says = (w.__t.PAGER[id]() || []).length; }
+    catch (e) { bad.push(id + ' pager threw: ' + e.message); continue; }
+    /* A SCREEN THAT DRAWS NO PAGES IS NOT PAGED AT ALL and its pager saying nothing is correct. */
+    if (!drawn && !says) continue;
+    if (drawn !== says) {
+      bad.push(id + ': ' + drawn + ' page' + (drawn === 1 ? '' : 's') + ' drawn, pager counts '
+                  + says + ' \u2014 so the header and the screen disagree and moving down will '
+                  + 'stop early or refuse');
+    }
+  }
+  return bad;
 });
 
 check('an admin still has every action on a session after the move to tiles', async () => {

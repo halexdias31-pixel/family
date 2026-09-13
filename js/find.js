@@ -3240,17 +3240,45 @@ document.addEventListener('input', e => {
    is the notation anybody would use if handed the cell and no instructions — the format has to
    survive being typed at by a person, because sooner or later it will be.
 --------------------------------------------------------------------------------------------- */
+/* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X -----------------------
+   TYPE "x ray results" AND THE DOCKET STORED A COMPLETED TASK CALLED "ray results". The marker for
+   done was a bare `x ` or a tick at the front of the line, and nothing separated "this line is
+   ticked" from "this line begins with the letter x". So the state was wrong AND the text was eaten
+   — the two halves of the one thing a to-do list must not get wrong. "X marks the spot" went the
+   same way. Demonstrated before changing anything, not reasoned about.
+
+   THE MARKER IS NOW A MARKDOWN CHECKBOX, `- [x] ` and `- [ ] `. It cannot collide with ordinary
+   prose the way a bare letter can; it is a convention anybody reading the sheet recognises on
+   sight — and the sheet IS the database, so a person reads this column; and every line this app
+   writes carries a box, so a line without one is legacy by definition.
+
+   LEGACY LINES STILL READ CORRECTLY. Anything already in somebody's `todo` uses the old bare form,
+   so it is still accepted on the way IN and never written on the way OUT — a docket converts itself
+   the first time anything on it is touched. */
+const DOCK_DONE = /^-\s*\[\s*x\s*\]\s+/i;
+const DOCK_OPEN = /^-\s*\[\s*\]\s+/;
+const DOCK_OLD  = /^(x|\u2713)\s+/i;
+
 function docketLines() {
   return String((USER && USER.todo) || '').split(/\r?\n/)
     .map(t => t.trim()).filter(Boolean)
     .map(t => {
-      const done = /^(x|✓)\s+/i.test(t);
-      return { done, text: t.replace(/^(x|✓)\s+/i, '') };
-    });
+      if (DOCK_DONE.test(t)) return { done: true,  text: t.replace(DOCK_DONE, '') };
+      if (DOCK_OPEN.test(t)) return { done: false, text: t.replace(DOCK_OPEN, '') };
+      /* THE OLD FORM, READ ONLY — tried last, so a new-style line can never reach it. */
+      if (DOCK_OLD.test(t))  return { done: true,  text: t.replace(DOCK_OLD, '') };
+      return { done: false, text: t };
+    })
+    /* A LINE THAT WAS NOTHING BUT A MARKER leaves an empty text, and an empty row is a row you
+       cannot tick, delete or read. Dropped here rather than drawn. */
+    .filter(l => l.text);
 }
 
+/* WRITTEN WITH THE BOX EVERY TIME, done or not. An undone line with no marker would read back
+   correctly today, and then two forms would be in circulation and the next person would have to
+   know that. One form out. */
 const docketText = list =>
-  list.map(l => (l.done ? 'x ' : '') + l.text).join('\n');
+  list.map(l => (l.done ? '- [x] ' : '- [ ] ') + l.text).join('\n');
 
 /* Kept in step on the phone first, then sent. A tick that waits for a round trip before moving is
    a tick that feels broken on a train — and this is a scrap of paper, not a payment. */
@@ -3295,12 +3323,27 @@ function paintDocket() {
   }
   const left = list.filter(l => !l.done).length;
 
+  /* ---------- A ROW IS IDENTIFIED BY ITS TEXT, NOT BY WHERE IT SITS -----------------------------
+     `data-i` ALONE WAS THE WHOLE IDENTITY, and the handlers re-read the list from `USER.todo` at
+     the moment of the tap. Those are two different snapshots: a save landing, a payload arriving or
+     a repaint between the draw and the tap renumbers everything, and index 3 is then somebody
+     else's line. The resources schema states the rule this breaks — "reading the wrong one is
+     invisible; deleting the wrong one is not."
+
+     SO THE TEXT TRAVELS WITH THE TAP and the index comes along as a hint. If the row at that index
+     still has that text, nothing moved. If it does not, the text is looked up instead. Only if both
+     fail does the tap do nothing, which is the right answer for a row that is no longer there. */
   host.innerHTML = list.map((l, i) => `
     <label class="dock-row${l.done ? ' done' : ''}">
-      <input type="checkbox" data-do="dock-tick" data-i="${i}" ${l.done ? 'checked' : ''}>
+      <input type="checkbox" data-do="dock-tick" data-i="${i}" data-t="${esc(l.text)}"
+             ${l.done ? 'checked' : ''}>
       <span class="box"></span>
       <span class="dock-text">${mark(l.text)}</span>
-      <span class="text-drop" data-do="dock-drop" data-i="${i}">✕</span>
+      ${/* A BUTTON, NOT A SPAN. A span with a `data-do` cannot be reached from a keyboard, has no
+            role, and is invisible to the tap-target pass in check/ui.js — so the one control on
+            this row that destroys something was the one nothing measured. */''}
+      <button type="button" class="text-drop" data-do="dock-drop" data-i="${i}"
+              data-t="${esc(l.text)}" aria-label="Remove ${esc(l.text)}">\u2715</button>
     </label>`).join('')
     + `<div class="row" style="border:0;padding:.4rem 0 0">
         <span class="k">${left ? left + ' left' : 'All done'}</span>
@@ -3310,10 +3353,22 @@ function paintDocket() {
       </div>`;
 }
 
+/* WHICH ROW THE TAP MEANT. See the note in `paintDocket`: the index is a hint, the text is the
+   identity, because the list can be renumbered between the draw and the tap. */
+function dockRow_(list, el) {
+  const i = Number(el.dataset.i);
+  const t = el.dataset.t;
+  if (t === undefined) return list[i] ? i : -1;        // no text to match on: markup from before
+  if (list[i] && list[i].text === t) return i;
+  return list.findIndex(l => l.text === t);
+}
+
 on('dock-tick', el => {
   const list = docketLines();
-  const i = Number(el.dataset.i);
-  if (!list[i]) return;
+  const i = dockRow_(list, el);
+  /* REDRAWN IF THE ROW HAS GONE, so the box does not sit checked against a line that is not there
+     — the checkbox has already moved itself by the time this runs. */
+  if (i < 0) { paintDocket(); return; }
   list[i].done = !!el.checked;
   docketSave(list);
 });
@@ -3327,7 +3382,9 @@ on('dock-drop', (el, e) => {
   e?.preventDefault?.();
   e?.stopPropagation?.();
   const list = docketLines();
-  list.splice(Number(el.dataset.i), 1);
+  const i = dockRow_(list, el);
+  if (i < 0) { paintDocket(); return; }               // already gone: redraw, delete nothing
+  list.splice(i, 1);
   docketSave(list);
 });
 

@@ -55,7 +55,7 @@
   "campaigns": [], "festive": [], "birthdays": [], "gallery": [], "spotlight": [], "promotions": [],
   "claims": [], "validations": [], "terms": [], "trips": [], "rooms": [],
   "dropdowns": { "subject": ["Maths","English","Science"], "level": ["KS3","GCSE","A-Level"] },
-  "multipliers": {}, "intervals": {}, "columns": {}, "avatarItems": [],
+  "multipliers": {}, "intervals": [{"rel": "Current", "term": "Autumn 1", "label": "Autumn 1", "kind": "term", "weeks": 6, "startDate": "01/09/2026", "endDate": "18/10/2026"}], "columns": {}, "avatarItems": [],
   "profileFields": [], "studentFields": [], "clientFields": [], "resourceFields": [],
   "profileReadonly": [], "facts": [], "termsAccepted": false, "googleClientId": ""
 }

@@ -76,6 +76,26 @@
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
   --r-sm:   2px;
+
+  /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL ---------------------------------------
+     THIS APP HAS TWO PALETTES AND ONLY ONE OF THEM WAS TOKENISED. The screen is black and gold, and
+     everything that stands in for PAPER — the receipt, the job stubs, the roster, the print sheet,
+     the calendar on its wire, the splash — is cream and warm ink. That second set was six hex codes
+     written out by hand: `#f4f1e8` in 29 separate rule-groups, `#2b2620` in 17, `#8a8175` in 13.
+
+     SO "MAKE THE PAPER A SHADE WARMER" WAS A FIND-AND-REPLACE ACROSS 70 DECLARATIONS, and any one
+     of them missed leaves a card with two different papers in it. That is the whole DRY problem in
+     this stylesheet, and it was never in the widgets — it was in the thing the widgets share.
+
+     NAMED AT `:root`, UNLIKE THE CHESS BOARD. A chess board's cream is that board's own; this cream
+     is every paper surface in the app, so it belongs beside `--gold` rather than scoped to one
+     component. Which of those two a colour is deciding the scope is the rule. */
+  --paper:       #f4f1e8;   /* the page itself */
+  --paper-ink:   #2b2620;   /* what is printed on it */
+  --paper-dim:   #6a6259;   /* a second voice — labels, rules, quiet numbers */
+  --paper-faint: #8a8175;   /* a third — captions, disabled, the small print */
+  --paper-strip: #e7e2d5;   /* the punched binding strip at the top of the calendar */
+  --paper-rule:  #cfc7b5;   /* a hairline drawn on paper */
   --pad:    1rem;
   --gap:    0.62rem;
   /* WAS 3.25rem OF HEADER. Zero, and kept as a variable rather than deleted for exactly the reason
@@ -805,8 +825,26 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* BLACK AND WHITE SQUARES. The board was cream and tan — handsome, and the reason nothing could be
    read on it: a pale piece on a cream square and a dark piece on a tan one are both low contrast,
    so half the board was hard to see whichever way round you looked at it. */
-.chess .lt { background: #f4f4f2; }
-.chess .dk { background: #2e2e2c; }
+/* ---------- A CHESS BOARD HAS ITS OWN PALETTE, AND IT HAD NO NAMES -------------------------------
+   THESE ARE NOT SLOPPY HEX CODES TO BE FOLDED INTO THE APP'S TOKENS. A chess board is cream and
+   charcoal by convention, and the pieces are white and black with the opposite colour outlined
+   round them so each reads on either square. Replacing them with `--gold` and `--ink` would make a
+   board that matches the app and is not a chess board.
+
+   WHAT WAS WRONG IS THAT THEY HAD NO NAMES. Six literals over four rules, so "darken the dark
+   squares" meant working out which `#2e2e2c` was a square and which was something else.
+
+   SCOPED TO `.chess`, NOT `:root` — this is a component's palette, not the app's. Putting
+   `--chess-dark` beside `--gold` would offer it to every rule in the file. */
+.chess {
+  --chess-light: #f4f4f2;
+  --chess-dark:  #2e2e2c;
+  --chess-white: #ffffff;
+  --chess-black: #111111;
+  --chess-frame: #1b1815;
+}
+.chess .lt { background: var(--chess-light); }
+.chess .dk { background: var(--chess-dark); }
 
 /* THE PIECES, told apart by fill and outline rather than by glyph. Both are solid shapes now, so
    each needs an edge in the opposite colour — which is what makes a white piece readable on a white
@@ -814,10 +852,15 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
    `text-shadow` rather than `-webkit-text-stroke`: the stroke property is still prefixed, absent
    from some browsers, and where it is missing the outline simply does not draw — which is the case
    the outline exists for. Four shadows are an outline everywhere. */
-.chess .wp { color: #ffffff;
-             text-shadow: 0 1px 0 #111, 0 -1px 0 #111, 1px 0 0 #111, -1px 0 0 #111; }
-.chess .bp { color: #111111;
-             text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff; }
+/* THE OUTLINE IS THE OTHER SIDE'S COLOUR, which is what makes a white piece readable on a light
+   square and a black one on a dark square. Written as the token rather than `#111`/`#fff` so the
+   two can never drift apart from the fills above. */
+.chess .wp { color: var(--chess-white);
+             text-shadow: 0 1px 0 var(--chess-black), 0 -1px 0 var(--chess-black),
+                          1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black); }
+.chess .bp { color: var(--chess-black);
+             text-shadow: 0 1px 0 var(--chess-white), 0 -1px 0 var(--chess-white),
+                          1px 0 0 var(--chess-white), -1px 0 0 var(--chess-white); }
 .chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
 /* A LEGAL MOVE, in the accent rather than in black — a dark dot vanished on a dark square, which
    is the same fault the pieces had. */
@@ -1955,39 +1998,40 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    total at the bottom. It is the only document shaped exactly like this, and one everybody can read
    without being taught — so the card stops pretending to be a table and admits what it is.
 
-   PAPER, NOT SCREEN. This is the one light thing in a black app, and that is the point: a receipt
-   is a physical object, and the whole reason the metaphor works is that it looks like something you
-   could put in your pocket. Making it dark to match the theme would be matching the theme instead
-   of saying anything.
+   PAPER, NOT SCREEN — AND IT IS NOT PAPER ANY MORE. The note above is kept because it is the case
+   FOR the costume and it is a good one: a receipt is a physical object, and the metaphor works
+   because it looks like something you could put in your pocket.
+
+   IT WAS ANSWERED BY WHAT THE COSTUME COST. This document is not only the receipt. It is the
+   booking form, the basket and the saved session as well — four things the app does, drawn by one
+   function, and cream paper is the right dress for exactly one of them. Everything else on this
+   site is black and gold; the one card somebody spends the most time reading was the one card that
+   looked like it came from somewhere else, and every control on it — the hour grid, the dropdowns,
+   the buttons — had to be given a second set of colours to survive landing on cream. That second
+   set is the cost, and it is paid on every control this document ever gains.
+
+   SO IT WEARS THE APP'S OWN CLOTHES. A raised panel with a hairline round it, which is how this
+   site already says "a bounded object" (see `.qcard`) — and the reason a boundary is declared at
+   all is that the tear used to be one. `bookerCard` dropped the `.card` wrapper precisely because
+   the paper bounded itself; take the paper away without replacing the edge and the document floats
+   on black with nothing to say where it starts.
+
+   THE TEAR, THE BARCODE AND THE SHOP NAME ARE GONE WITH IT. All three are a receipt telling you it
+   is a receipt: the zigzag says a till printed it, the barcode is 44 bars off a hash that encode
+   nothing, and `@FAMILY.` names the shop to somebody who is standing inside it. What remains is
+   what the document is actually for — what you are buying, what each part costs, and the total.
 --------------------------------------------------------------------------------------------- */
 .rc {
-  background: #f4f1e8;
-  color: #2b2620;
-  /* The torn ends need a little room above and below the print or the zigzag eats the first line;
-     .7rem is enough for that and .3rem less than it was carrying on each end. */
-  /* THE PADDING IS 22px OF A 307px CARD, both sides. .45rem keeps the print off the torn edge and
-     gives 5px back to every row on the paper — including the eleven-across grid, where it is a
-     quarter of a cell. */
-  padding: .5rem .45rem .6rem;
+  background: var(--raised);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  /* THE PADDING NO LONGER HAS A TEAR TO CLEAR, so it is the app's own card padding rather than the
+     .45rem that was chosen to keep print off a ragged edge. The eleven-across hour grid is what
+     sets the floor here: it was given 5px back on each side to make its cells square, and that is
+     still true of a border. */
+  padding: .55rem .45rem .6rem;
   margin: .2rem 0 .3rem;
-  font-family: var(--mono);
-  /* TORN AT BOTH ENDS. A zigzag mask rather than a border image: it costs one gradient, scales to
-     any width, and cuts the paper rather than drawing a picture of a cut. The two masks are
-     composited so top and bottom are both ragged while the sides stay straight — which is how a
-     till roll tears. */
-  --tooth: 10px;
-  -webkit-mask:
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
-      bottom / var(--tooth) var(--tooth) repeat-x,
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
-      top / var(--tooth) var(--tooth) repeat-x,
-    linear-gradient(#000 0 0) center / 100% calc(100% - var(--tooth) * 2) no-repeat;
-  mask:
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
-      bottom / var(--tooth) var(--tooth) repeat-x,
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
-      top / var(--tooth) var(--tooth) repeat-x,
-    linear-gradient(#000 0 0) center / 100% calc(100% - var(--tooth) * 2) no-repeat;
 }
 
 /* WHO, WHERE, WHEN — where a receipt puts them, and because those three ARE the booking. */
@@ -1995,17 +2039,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    — and on an unsent booking the third is "No venue yet · No tutor yet" beside a timestamp, which is
    two facts the rows below state properly and a clock nobody asked for. Tightened rather than cut:
    it is what makes the card a receipt at a glance. */
-/* NO PADDING ABOVE ON THE FORM. The head is one line now — where and with whom and when — and the
-   room above it was there to sit the shop name off the torn edge. */
-.rc.scr .rc-head { padding-top: 0; }
-.rc-head { text-align: center; padding: .05rem 0 .25rem; }
-.rc-head h2 { margin: 0 0 .1rem; font-size: .95rem; letter-spacing: .18em; text-transform: uppercase; }
-.rc-head p { margin: 0; font-size: .64rem; color: #6a6259; line-height: 1.3; }
+/* LEFT, NOT CENTRED. Centring was the shop name's doing — a till roll centres its header because
+   the header is the shop. With the name gone what is left is where and with whom and when, which
+   is a line of facts, and every other line of facts in this app starts at the left margin. */
+.rc-head { padding: .05rem 0 .3rem; }
+/* `.rc-head h2` HELD `@FAMILY.` and is deleted rather than left to sit — the markup that made it
+   went in the same change, and `check-css` names an orphan the moment nothing produces it. */
+.rc-head p { margin: 0; font-size: .7rem; color: var(--dim); line-height: 1.35; }
 
-/* A dashed rule, because a till roll's separators are printed rather than drawn. */
-/* A dashed rule, because a till roll's separators are printed rather than drawn. Five of them on a
-   card of twelve rows is 5rem of margin on its own at the old .5rem. */
-.rc-rule { border-top: 1px dashed #b3aa9c; margin: .22rem 0; }
+/* IT WAS DASHED, because a till roll's separators are printed rather than drawn — which was the
+   right reason for as long as this was a till roll. It is a hairline now, the same one `.card` and
+   `.row` draw between any two things on this site, so a divider inside the document and a divider
+   outside it are the same mark. Five of them on a card of twelve rows is why the margin is .22rem
+   rather than the .5rem it started at. */
+.rc-rule { border-top: 1px solid var(--line-soft); margin: .22rem 0; }
 
 /* The column headings, in the same grid as the rows so they line up with the figures under them —
    a header that does not sit over its own column is worse than none. */
@@ -2014,15 +2061,15 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    made it disappears, which is how a stylesheet stays the size of the app rather than the size of
    its history. */
 
-/* THE BARCODE ENCODES THE BOOKING, so the same session always prints the same code. A decorative
-   one would be a lie told in a place where people expect a fact. */
-/* THE BARCODE IS DECORATION AND IS PRICED AS SUCH. It says nothing — it is 44 bars off a hash, and
-   it is there because a till receipt has one. Worth keeping for exactly that reason, and worth
-   keeping SMALL: 34px plus its margins was more height than the total line. */
-.rc-bars { display: flex; justify-content: center; align-items: flex-end; gap: 1px;
-           height: 11px; margin: .25rem 0 0; }
-.rc-bars i { display: block; height: 100%; background: #2b2620; }
-.rc-thanks { text-align: center; margin: 0; font-size: .66rem; color: #8a8175; }
+/* `.rc-bars` WAS THE BARCODE AND IT IS GONE. Its own note said it: "decoration and priced as
+   such — 44 bars off a hash, there because a till receipt has one." Nothing scanned it, nothing
+   could, and it was the single most receipt-shaped thing on the card.
+
+   WHAT IT SAT NEXT TO WAS REAL, AND THAT STAYS. `.rc-thanks` never held a thank-you — it holds
+   "Session 42", the id somebody quotes when they ring up about a booking — so it is named for what
+   it carries now. A class called `thanks` holding a reference number is a thing that has to be
+   opened to be understood, and this file is read far more often than it is written. */
+.rc-ref { text-align: right; margin: .1rem 0 0; font-size: .66rem; color: var(--faint); }
 
 /* ---------- THE ROSTER ---------------------------------------------------------------------------
    Four slots in a row, the shape a game lobby uses. It makes the size of the group a picture rather
@@ -2048,10 +2095,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .rost-pic { width: 18px; height: 18px; display: grid; place-items: center; }
 .rost-pic svg { width: 100%; height: 100%; border-radius: 50%; }
 .rost-plus { font-size: 1.1rem; color: #a99f8f; line-height: 1; }
-.rost-name { font-size: .6rem; font-weight: 700; color: #2b2620; max-width: 100%;
+.rost-name { font-size: .6rem; font-weight: 700; color: var(--paper-ink); max-width: 100%;
              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rost-role { font-size: .52rem; text-transform: uppercase; letter-spacing: .06em;
-             color: #8a8175; }
+             color: var(--paper-faint); }
 /* A STUB: the receipt folded up. Same paper, same torn ends, three lines — what it is, where and
    when, and where it stands. Five of these is a list you can scan; five full receipts is a screen
    you scroll for a minute to find one thing on.
@@ -2060,11 +2107,11 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
            transition: transform var(--quick) ease; }
 .rc-stub:active { transform: scale(.99); }
 .rc-stub-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
-.rc-stub-what { font-weight: 700; font-size: .84rem; color: #2b2620; }
+.rc-stub-what { font-weight: 700; font-size: .84rem; color: var(--paper-ink); }
 .rc-stub-cost { font-family: var(--mono); font-variant-numeric: tabular-nums;
-                font-weight: 700; font-size: .9rem; color: #2b2620; }
+                font-weight: 700; font-size: .9rem; color: var(--paper-ink); }
 .rc-stub-line { display: flex; justify-content: space-between; gap: .6rem;
-                font-size: .7rem; color: #6a6259; margin-top: .15rem; }
+                font-size: .7rem; color: var(--paper-dim); margin-top: .15rem; }
 
 /* THE ROOM AND THE PERSON, small. Two thumbnails on a stub say more than the two names beside them
    — you recognise a venue you have been to before it is read. */
@@ -2079,22 +2126,22 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .rc-stub-pics .bk-none { display: grid; place-items: center; color: #a99f8f; }
 .rc-stub-pics .bk-none svg { width: 70%; height: 70%; }
 .rc-stub-said { display: flex; flex-direction: column; min-width: 0;
-                font-size: .7rem; color: #6a6259; line-height: 1.35; }
+                font-size: .7rem; color: var(--paper-dim); line-height: 1.35; }
 .rc-stub-said span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rc-stub-who { color: #8a8175; font-size: .64rem; }
+.rc-stub-who { color: var(--paper-faint); font-size: .64rem; }
 
 /* THE SEATS, as marks. The full roster is four named slots with faces; this is the same fact at a
    glance — how many are taken and how many are going — so somebody scanning the list can see
    whether there is room without reading anything. */
 .rc-stub-slots { display: flex; align-items: center; gap: 3px; }
 .pip { width: 7px; height: 7px; border-radius: 50%; border: 1px solid #a99f8f; }
-.pip.on { background: #6a6259; border-color: #6a6259; }
+.pip.on { background: var(--paper-dim); border-color: var(--paper-dim); }
 /* The tutor's slot is not a seat, and squaring it says so without a label. */
 .pip.tut { border-radius: 2px; }
-.rc-stub-slots em { font-style: normal; font-size: .58rem; color: #8a8175; margin-left: .2rem; }
+.rc-stub-slots em { font-style: normal; font-size: .58rem; color: var(--paper-faint); margin-left: .2rem; }
 /* The last line is the one somebody scans down — status on the left, how many sessions on the
    right, in the same place on every stub. */
-.rc-stub-foot { color: #8a8175; text-transform: uppercase; letter-spacing: .05em;
+.rc-stub-foot { color: var(--paper-faint); text-transform: uppercase; letter-spacing: .05em;
                 font-size: .6rem; margin-top: .3rem; }
 /* THE LINE THAT PAYS. Bigger, and the only thing on the paper in full ink — a receipt has one
    number somebody is looking for and it should not be the same size as the rest. */
@@ -2118,30 +2165,35 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* The note. Right up against the figure, quiet, and allowed to wrap — it is a remark about the
    total rather than a column of its own. */
 .rc-total .bk-r {
-  font-size: .68rem; font-weight: 400; color: #6a6259;
+  font-size: .68rem; font-weight: 400; color: var(--dim);
   text-align: right; white-space: normal;
 }
 /* THE LABEL MAY WRAP AFTER ALL. `auto` sizes this column to its content and `nowrap` forbade it
    ever being narrower — so "IT WOULD COME TO" took whatever width it wanted and drew straight
    through the note beside it. Four words is not two: allowed to break, it gives way instead of
    overlapping, and on a card wide enough it still sits on one line exactly as before. */
-.rc-total .bk-k { color: #2b2620; font-weight: 700; text-transform: uppercase;
+.rc-total .bk-k { color: var(--ink); font-weight: 700; text-transform: uppercase;
                   letter-spacing: .06em; }
-.rc-total .bk-t { font-size: 1.05rem; font-weight: 700; color: #2b2620; }
+.rc-total .bk-t { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
 
-/* The rows inside the paper: the same five columns, in ink rather than in screen colours. */
-.rc .bk-k { color: #6a6259; }
-.rc .bk-v { border-bottom-color: #c9c0b0; }
-.rc .bk-m { color: #6a6259; }
-.rc .bk-r { color: #8a8175; }
-.rc .bk-t { color: #2b2620; }
-.rc .bk-end { border-bottom-color: #ded5c5; }
-.rc .bk-pick { border-bottom-color: #b8722a; }
-.rc .bk-pick:active { color: #b8722a; }
-.rc .bk-hr { border-color: #c9c0b0; color: #8a8175; }
-.rc .bk-hr.on { background: #2b2620; color: #f4f1e8; border-color: #2b2620; }
-.rc .bk-dates { color: #6a6259; }
-/* The two photographs sit on the paper like something stapled to it. */
+/* ---------- ELEVEN RULES THAT SAID THE SAME ELEVEN THINGS IN A SECOND COLOUR ----------------------
+   THIS BLOCK WAS "the rows inside the paper: the same five columns, in ink rather than in screen
+   colours", and every line of it paired exactly with a base `.bk-*` rule forty lines below:
+   `.rc .bk-k` against `.bk-k`, `.rc .bk-t` against `.bk-t`, cream for black the whole way down.
+
+   THAT PAIRING IS WHAT THE COSTUME COST, and it is why it was worth taking off. Every control this
+   document ever gains needed a second colour written for it by hand, and a control whose author
+   forgot looked right on every screen in the app except the one it was built for. Four of the
+   eleven were not even tokens — `#c9c0b0`, `#ded5c5`, `#b8722a`, `#cfc9bd` — which is the same
+   find-and-replace trap the paper palette was named to close.
+
+   ALL ELEVEN ARE DELETED RATHER THAN RE-POINTED. The base rules are already the app's palette and
+   already correct; re-pointing would have left eleven overrides restating their own defaults, which
+   is the DRY fault one step further along rather than the fix for it. `.rc .bk-sel:disabled`,
+   `.rc .bk-set` and `.rc .bk-open` went the same way, further down this file.
+
+   IF THE ROWS EVER NEED TO DIFFER INSIDE THE DOCUMENT, this is the place — but the reason will
+   have to be something other than "it is on cream". */
 
 /* ---------- THE BOOKING CARD --------------------------------------------------------------------
    Five columns: what it is · what was chosen · the multiplier · what it adds an hour · the running
@@ -2209,7 +2261,22 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      the dashed underline is doing most of the separating anyway. */
   gap: .3rem; align-items: baseline;
   padding: .1rem 0;
-  font-size: .74rem;
+  /* ---------- BELOW 351px THE ROOT STOPS SHRINKING AND THE SCREEN DOES NOT -----------------------
+     THE ROW WANTED 255px AND HAD 242 AT 320, so the running total — the one figure the whole chain
+     exists to arrive at — was 13px off the right edge, and `.bk` then `.rc` then `.pane` scrolled
+     sideways behind it. Nothing had ever reported it: the booking card only exists for a signed-in
+     visitor and `check/ui.js` had only ever measured signed-out ones.
+
+     THE CAUSE IS A FLOOR, NOT THIS GRID. Line 121 sets the root to `clamp(13.5px, 3.8vw, 16px)`, so
+     below about 355px the root is pinned at 13.5 while the viewport keeps getting narrower. Every
+     column here is `em` or `ch` off that root — deliberately, so shrinking the font shrinks the
+     columns with it — so below the floor the card is the one thing on the page that cannot shrink.
+
+     SO THE ROW TRACKS THE VIEWPORT WHERE THE ROOT WILL NOT. `min()` rather than a media query
+     because the two curves meet: 2.85vw equals .74rem at exactly the width the root stops moving,
+     so this is .74rem at every width the card already fitted and continuous at the crossover. No
+     breakpoint to keep in step with the clamp, and no second set of column widths. */
+  font-size: min(.74rem, 2.85vw);
 }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break.
    This said `anywhere`, which breaks eagerly rather than as a last resort — so "Possession" came
@@ -2292,8 +2359,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .bk-sel:disabled, .bk-in:read-only {
   opacity: 1; cursor: default; color: var(--dim);
 }
-.rc .bk-sel:disabled, .rc .bk-in:read-only { color: #8a8175; }
-.rc.scr .bk-sel:disabled, .rc.scr .bk-in:read-only { color: #6f8f7c; }
 /* THE WEEK, WHEN THERE IS NO WEEK TO PICK. Greyed whole rather than removed — see `stepGrid_`. */
 .bk-open.is-off .slot-grid { opacity: .45; }
 
@@ -2315,8 +2380,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    is the other half of the point: a select cannot, so a long venue name was cut mid-word in a column
    with room for it over two lines. Same colour as a locked control, for the same reason. */
 .bk-set { display: block; color: var(--dim); }
-.rc .bk-set { color: #8a8175; }
-.rc.scr .bk-set { color: #6f8f7c; }
 
 /* THE NOTE READS LEFT TO RIGHT. Every other value is right-aligned against its figures; a sentence
    is not a figure, and a sentence that starts at the right edge and grows leftwards is unreadable.
@@ -2346,7 +2409,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   border-bottom: 1px dashed var(--line);
 }
 .bk-open > p { margin: 0 0 .2rem; font-size: .66rem; line-height: 1.3; }
-.rc .bk-open { border-color: #cfc9bd; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
@@ -2752,7 +2814,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* The board's own edge, which is the only edge there should be — a dark frame like the border of a
    real set, and the shadow it casts on the app behind it. */
 .widget-full:has(.chess) .chess {
-  border: 6px solid #1b1815;
+  border: 6px solid var(--chess-frame);
   border-radius: 4px;
   box-shadow: 0 14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
 }
@@ -2789,9 +2851,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    make the strip it is punched through; nothing here is an image, so it costs nothing and scales to
    any width.
 --------------------------------------------------------------------------------------------- */
+/* ---------- THE CALENDAR IS PAPER, AND PAPER IS NOT THIS APP'S PALETTE ---------------------------
+   SIX WARM LITERALS ACROSS SIX RULES — cream, ink, the punched strip, two greys for the wire, and a
+   muted ink for the arrows. They are deliberate: the whole card is pretending to be a paper
+   calendar on a wire binding, and the app is black and gold. Swapping them for `--bg` and `--ink`
+   would delete the idea rather than tidy it.
+
+   NAMED HERE FOR THE SAME REASON AS THE CHESS BOARD: six literals spread over six rules means
+   "warm the paper up" is a search rather than an edit, and nothing in the file says which greys
+   belong to the wire and which to the page. Scoped to the card, so the names exist exactly where
+   the paper does. */
 .widget-full:has(.cal-head) > .card {
-  background: #f4f1e8;
-  color: #2b2620;
+  /* THE PAPER TOKENS ARE AT `:root` — see the note there. This card used to carry its own five. */
+  background: var(--paper);
+  color: var(--paper-ink);
   border: 0;
   border-radius: 3px;
   /* Room at the top for the binding, which is drawn over this padding. */
@@ -2804,8 +2877,8 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .widget-full:has(.cal-head) > .card::before {
   content: '';
   position: absolute; left: 0; right: 0; top: 0; height: 1.5rem;
-  background: #e7e2d5;
-  border-bottom: 1px solid #cfc7b5;
+  background: var(--paper-strip);
+  border-bottom: 1px solid var(--paper-rule);
   border-radius: 3px 3px 0 0;
 }
 /* AND THE WIRE. One repeating gradient: a short length of steel, a gap, over and over. The rings
@@ -2824,10 +2897,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* The month, the days and the numbers are all ink on that paper now. */
 .widget-full:has(.cal-head) h3,
 .widget-full:has(.cal-head) .cal-head,
-.widget-full:has(.cal-head) .cal-h { color: #2b2620; }
+.widget-full:has(.cal-head) .cal-h { color: var(--paper-ink); }
 .widget-full:has(.cal-head) .sub,
-.widget-full:has(.cal-head) .faint { color: #8a8175; }
-.widget-full:has(.cal-head) .cal-arrow { color: #6a6259; }
+.widget-full:has(.cal-head) .faint { color: var(--paper-faint); }
+.widget-full:has(.cal-head) .cal-arrow { color: var(--paper-dim); }
 
 /* ---------- THE HANDHELD ------------------------------------------------------------------------
    A DARK SHELL, NOT A CREAM ONE. The first attempt was warm grey plastic, and it was the brightest
@@ -3042,7 +3115,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   border: 0;
   border-radius: 2px;
   padding: .7rem .6rem;
-  color: #2b2620;
+  color: var(--paper-ink);
   box-shadow: 0 2px 6px rgb(0 0 0 / .3);
 }
 
@@ -3066,8 +3139,8 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   background: linear-gradient(#c9542f, #a33f21);
   border-radius: 2px 2px 0 0;
 }
-.widget-full:has(#notepad) h3 { color: #2b2620; margin: 0 0 .4rem; font-size: .85rem; }
-.widget-full:has(#notepad) .sub, .widget-full:has(#notepad) .faint { color: #8a8175; }
+.widget-full:has(#notepad) h3 { color: var(--paper-ink); margin: 0 0 .4rem; font-size: .85rem; }
+.widget-full:has(#notepad) .sub, .widget-full:has(#notepad) .faint { color: var(--paper-faint); }
 .widget-full:has(#notepad) #notepad {
   background:
     /* the red margin */
@@ -3076,7 +3149,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
     repeating-linear-gradient(#fbf9f1 0 1.55rem, rgb(90 130 180 / .35) 1.55rem 1.6rem);
   border: 0;
   border-radius: 0;
-  color: #2b2620;
+  color: var(--paper-ink);
   padding: .1rem .6rem .6rem 2.5rem;
   line-height: 1.6rem;
   box-shadow: none;
@@ -3188,7 +3261,7 @@ textarea, select, [data-noswipe],
    The difference is carried by the FIELDS instead, which is where it actually lives: the heading is
    ink, and the parts that are not filled in yet are the colour of a placeholder. A form with blanks
    in it and a form nobody may touch look nothing alike once the blanks are the thing that is pale. */
-.rc-blank .rc-stub-what { color: #2b2620; }
+.rc-blank .rc-stub-what { color: var(--paper-ink); }
 /* `.rc-stub-cost` AND `.rc-stub-foot span` WERE IN THIS LIST and neither exists on a blank card any
    more — the "£—" and the "Nothing booked / Tap to start" line were five ways of saying the card is
    empty, and a card that is visibly empty does not need telling you so. Both selectors still earn
@@ -3237,7 +3310,7 @@ textarea, select, [data-noswipe],
    showing. */
 #boot-slow { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%);
              width: min(32rem, 88vw); margin: 0; pointer-events: auto; text-align: center;
-             font: 400 .76rem/1.55 var(--mono); color: var(--dim, #8a8175); }
+             font: 400 .76rem/1.55 var(--mono); color: var(--dim, var(--paper-faint)); }
 #boot-slow b { color: var(--warn, #f0a93c); }
 #boot-slow code { color: #7de6ff; word-break: break-all; }
 
@@ -3261,7 +3334,7 @@ textarea, select, [data-noswipe],
    generous costs a fraction of a second at the start rather than a wrong result. */
 #splash-line {
   fill: none;
-  stroke: #f4f1e8;
+  stroke: var(--paper);
   stroke-width: 1.4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -3274,7 +3347,7 @@ textarea, select, [data-noswipe],
 /* AND THE PAINT, arriving behind the line once it is drawn — the way you outline a letter and then
    fill it. The stop is its own colour, which is the only thing about this that is decoration. */
 #splash-fill {
-  fill: #f4f1e8;
+  fill: var(--paper);
   opacity: 0;
   animation: tag-fill .6s ease-out 1.5s forwards,
              tag-glow 2.4s ease-in-out 2s infinite;
@@ -3627,7 +3700,7 @@ textarea, select, [data-noswipe],
 @keyframes tube-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .tube-name {
-  fill: #f4f1e8;
+  fill: var(--paper);
   font-family: var(--font);
   font-size: 17px; font-weight: 700; letter-spacing: .01em;
   opacity: 0;
@@ -3864,7 +3937,7 @@ textarea, select, [data-noswipe],
   font-family: var(--font);
   font-style: normal; font-weight: 700;
   font-size: 1.25rem; line-height: 2rem;
-  color: #f4f1e8;
+  color: var(--paper);
   text-align: center;
   opacity: 0;
   animation: mb-letter .5s cubic-bezier(.2, .9, .3, 1) both;
@@ -3963,7 +4036,7 @@ textarea, select, [data-noswipe],
 
 /* THE TRIANGLE, struck on first. Drawn rather than filled, because the sides are the subject. */
 .py-tri {
-  fill: none; stroke: #f4f1e8; stroke-width: .18;
+  fill: none; stroke: var(--paper); stroke-width: .18;
   stroke-linejoin: round;
   stroke-dasharray: 12; stroke-dashoffset: 12;
   /* DRAWN ONCE, THEN BREATHING. The proof assembles over about three and a half seconds and then
@@ -4046,7 +4119,7 @@ textarea, select, [data-noswipe],
   margin-top: .35rem;
   font-family: var(--font);
   font-size: 1rem; font-weight: 700; letter-spacing: -.01em;
-  color: #f4f1e8;
+  color: var(--paper);
   opacity: 0; animation: py-in .6s ease-out 2.2s forwards;
 }
 
@@ -4135,7 +4208,7 @@ textarea, select, [data-noswipe],
 
 /* A receipt's own paper is pale, so a pale chevron on it would be invisible. */
 .rc-stub.tap::after { color: rgb(43 38 32 / .38); }
-.rc-stub.tap:active::after { color: #2b2620; }
+.rc-stub.tap:active::after { color: var(--paper-ink); }
 /* The blank one already says "Tap to start" in words. A chevron as well is saying it twice. */
 .rc-blank::after { content: none; }
 
@@ -4379,7 +4452,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   padding-top: .35rem; margin-top: .3rem;
   color: #8a5312; font-weight: 700;
 }
-.rc-stub-ask { color: #2b2620; }
+.rc-stub-ask { color: var(--paper-ink); }
 
 /* ---------- AND THE ASK, under the receipt ------------------------------------------------------- */
 /* ---------- ONE SESSION ON THE ROSTER WIDGET ------------------------------------------------------
@@ -4458,142 +4531,38 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    reads and assumes is doing something. */
 
 /* ==================================================================================================
-   FOUR OBJECTS. `.rc` is the receipt and it is unchanged — torn, cream, off a till. The other three
-   are different things, drawn as different things, because that is what they are:
+   FOUR OBJECTS BECAME ONE, AND THIS IS WHERE THE OTHER THREE LIVED.
 
-     .scr   a terminal being typed into      nothing exists yet
-     .app   an application handed in         asked for, not yet answered
-     .wl    a numbered ticket in a queue     waiting for a seat
+   `.rc` is drawn by one function and it is four things the app does: the booking form, the basket,
+   the application you have handed in, and the session you have paid for. Each had its own skin —
 
-   NONE OF THEM TEARS. The ragged edge is what says a till printed this, and a till prints when
-   money has moved. Squaring the ends is not a style choice on three of these; it is the absence of
-   the event the tear commemorates.
+     .scr   a dark terminal with scan lines and a blinking cursor
+     .app   white paper, a red filing edge, an angled PENDING stamp
+     .wl    an amber queue ticket with a dashed border
+     .rc    cream, torn at both ends, a barcode
+
+   — and each was argued for well, one at a time, on the grounds that a form is not a receipt and a
+   queue ticket is neither. Every one of those arguments is true about the real objects. What they
+   miss together is that the SAME BOOKING wore three of them over its life, so the document a family
+   filled in, the document they were waiting on and the document they ended up holding could not be
+   compared with each other — and none of the four was the black and gold that every other card on
+   this site is drawn in.
+
+   THE COST IS THE PART THAT IS NOT A MATTER OF TASTE. Four palettes on one markup means every
+   control this document ever gains has to be coloured four times by hand, and the fourth is written
+   by somebody who has forgotten the other three exist. `.rc .bk-*` was eleven rules doing exactly
+   that for cream alone, four of them in raw hex.
+
+   SO: ONE DOCUMENT, THE APP'S OWN CLOTHES, AND THE STAGE SAID IN WORDS. `jobSaid_` already returns
+   the sentence — "Accepted, waiting for payment", "On the waiting list" — and a sentence is
+   readable, translatable, and the same size in every skin, none of which a rubber stamp is.
+
+   These 90 lines were reachable by nothing the moment the basket stopped asking for `kind:
+   'screen'`; they are deleted rather than left commented, because a stylesheet should be the size
+   of the app rather than the size of its history. The argument is kept because it is the expensive
+   half: it took four goes to find out that the thing wrong with four good costumes is that there
+   are four of them.
 ================================================================================================== */
-.rc.scr, .rc.app, .rc.wl { -webkit-mask: none; mask: none; }
-
-/* ---------- THE TERMINAL -------------------------------------------------------------------------
-   Nobody is handed paper when they ask for something. Somebody types it into a screen in front of
-   them, and this is that screen: dark glass in a bezel, green type, a cursor waiting. */
-.rc.scr {
-  background: #0d0f0e;
-  color: var(--green);
-  border-radius: 10px;
-  border: 3px solid #2a2f2c;
-  box-shadow: inset 0 0 0 2px #050706, inset 0 6px 22px rgb(0 0 0 / .9), 0 4px 0 #1a1e1c;
-  position: relative;
-  overflow: hidden;
-}
-.rc.scr::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: repeating-linear-gradient(to bottom, rgb(255 255 255 / .035) 0 1px, transparent 1px 3px);
-  pointer-events: none;
-}
-/* The cursor. The oldest signal in computing that a machine is waiting for you, and the whole
-   reason this reads as being typed rather than as a dark card. */
-.rc.scr::after {
-  content: '';
-  position: absolute; right: .8rem; bottom: .7rem;
-  width: .55rem; height: 1rem;
-  background: var(--green);
-  animation: scr-blink 1.1s steps(1) infinite;
-  pointer-events: none;
-}
-@keyframes scr-blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
-/* ---------- A SAVED DOCUMENT IS NOT WAITING FOR ANYBODY -------------------------------------------
-   The receipt wears the form's skin now — same type, same colours, same rules — so that neither has
-   to be styled twice and neither can drift from the other. The cursor is the single thing that does
-   not carry across: it says "type here", and a record of something already agreed has nothing left
-   to type. */
-.rc.scr.is-done::after { content: none; }
-/* `.rc.scr .rc-head h2` IS STILL LISTED and now matches nothing — the form has no heading. Left in
-   place deliberately: the rule is "the bright things on the terminal", and dropping the selector
-   would mean adding it back the day a heading returns. */
-.rc.scr .rc-head h2, .rc.scr .rc-total, .rc.scr .bk-pick { color: var(--green) }
-.rc.scr .rc-head p, .rc.scr .rc-stage, .rc.scr .bk-k, .rc.scr .bk-n { color: #6f8f7c }
-.rc.scr .bk-row, .rc.scr .bk-v { color: #cfe8d8 }
-.rc.scr .rc-rule { border-color: rgb(61 220 132 / .25) }
-
-/* ---------- THE APPLICATION ----------------------------------------------------------------------
-   A FORM THAT HAS BEEN HANDED IN. Everybody knows what one looks like and nobody mistakes one for a
-   receipt: white paper rather than till cream, a hard rule down the left where it would be filed,
-   and a stamp saying it is waiting on somebody.
-
-   THE STAMP IS THE POINT. A form with no stamp has not been dealt with, which is precisely the
-   state this represents — and it is the thing you look for first on any form you have ever handed
-   over. Angled, because a stamp put on by hand is never square. */
-.rc.app {
-  background: #fbfaf7;
-  color: #1e1c19;
-  border-radius: 2px;
-  /* The filing edge. A form is punched and filed; a receipt is torn and pocketed. */
-  border-left: 5px solid #b9312b;
-  box-shadow: 0 1px 0 rgb(0 0 0 / .3), 0 6px 18px rgb(0 0 0 / .35);
-  position: relative;
-  overflow: hidden;
-}
-.rc.app .rc-stage {
-  color: #b9312b;
-  font: 700 .6rem/1 var(--mono);
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  margin: 0 0 .5rem;
-}
-.rc.app::after {
-  content: 'PENDING';
-  position: absolute; top: .9rem; right: -1.4rem;
-  transform: rotate(14deg);
-  font: 800 .82rem/1 var(--mono);
-  letter-spacing: .22em;
-  color: rgb(185 49 43 / .5);
-  border: 2px solid rgb(185 49 43 / .35);
-  border-radius: 3px;
-  padding: .22rem 1.7rem;
-  pointer-events: none;
-}
-/* A stub is three lines tall — a stamp across it would cover the words. The red filing edge is
-   enough at that size, and it is the same signal. */
-.rc.rc-stub.app::after { content: none }
-
-/* ---------- THE QUEUE TICKET ---------------------------------------------------------------------
-   NOT A FORM AND NOT A PURCHASE. It is the numbered ticket you hold at a counter: thin card, a
-   dotted tear line, and the number that is the entire reason you are holding it.
-
-   AMBER because it is the colour of waiting everywhere else on this site, and because it is neither
-   the red of a thing outstanding nor the green of a thing done. */
-.rc.wl {
-  background: #14120d;
-  color: var(--gold);
-  border: 2px dashed rgb(255 180 84 / .55);
-  border-radius: 8px;
-  box-shadow: 0 4px 0 rgb(0 0 0 / .4);
-}
-.rc.wl .rc-head h2, .rc.wl .rc-total { color: var(--gold) }
-.rc.wl .rc-stage {
-  color: var(--gold);
-  font: 700 .62rem/1 var(--mono);
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  margin: 0 0 .5rem;
-}
-.rc.wl .rc-head p, .rc.wl .bk-k, .rc.wl .bk-n { color: #a08a5e }
-.rc.wl .bk-row, .rc.wl .bk-v { color: #f0e2c8 }
-.rc.wl .rc-rule { border-color: rgb(255 180 84 / .3) }
-
-/* ---------- AN APPLICATION THAT HAS BEEN ACCEPTED -------------------------------------------------
-   STILL AN APPLICATION. Money has not moved, so it is not a receipt — what has changed is that the
-   business has said yes and the family may now pay. The form is the same form; the stamp is what
-   answers it, which is exactly what a stamp is for.
-
-   Accepting a booking previously changed nothing on screen at all: the card before and after were
-   identical, so the only evidence it had worked was a status cell in a spreadsheet. */
-.rc.app.is-accepted { border-left-color: var(--green) }
-.rc.app.is-accepted .rc-stage { color: var(--green) }
-.rc.app.is-accepted::after {
-  content: 'ACCEPTED';
-  color: rgb(61 220 132 / .55);
-  border-color: rgb(61 220 132 / .4);
-}
 
 /* ==================================================================================================
    A FESTIVE EVENT IS AN INVITATION.
@@ -4848,7 +4817,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .od-g3 { animation-delay: .99s, 2.3s; } .od-g4 { animation-delay: 1.41s, 2.5s; }
 @keyframes od-in { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
 @keyframes od-glow { 0%,100% { filter: none; } 50% { filter: brightness(1.35); } }
-.od-say { margin-top: .8rem; font: 700 .95rem var(--mono); color: #f4f1e8; text-align: center;
+.od-say { margin-top: .8rem; font: 700 .95rem var(--mono); color: var(--paper); text-align: center;
           opacity: 0; animation: od-in .5s ease-out 1.9s forwards; }
 
 /* ---------- TRIANGLE NUMBERS -------------------------------------------------------------------- */
@@ -4864,7 +4833,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   22%, 70% { opacity: 1; transform: none; }
   92%,100% { opacity: 0; transform: translate(26px, -14px); }
 }
-.tn-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.tn-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
 
 /* ---------- THE UNIT CIRCLE AND THE SINE WAVE --------------------------------------------------- */
 #splash-sine .sn-svg { width: min(70vw, 17rem); height: auto; }
@@ -5003,7 +4972,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    it shrinks to fit rather than wrapping, with `nowrap` to make that the only option. */
 #splash-sieve .sv-grid { display: flex; flex-wrap: nowrap; justify-content: center;
                          gap: 0 min(1.6vw, .34rem); max-width: 94vw; }
-.sv-grid i { position: relative; font-style: normal; color: #f4f1e8;
+.sv-grid i { position: relative; font-style: normal; color: var(--paper);
              font: 700 min(4.4vw, 1.05rem)/1.7 var(--mono); }
 /* THE STROKE IS A PSEUDO-ELEMENT that grows across the digit — drawn rather than a text-decoration,
    because a decoration appears all at once and a pencil line travels. */
@@ -5020,7 +4989,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes sv-fade { to { color: #6a6b63; } }
 /* WHAT IS LEFT KEEPS BREATHING, so the answer is the thing still alive on the line. */
 .sv-x { animation: sv-keep 2.2s ease-in-out infinite; animation-delay: calc(1.1s + var(--i) * .05s); }
-@keyframes sv-keep { 0%,100% { color: #f4f1e8; text-shadow: none; }
+@keyframes sv-keep { 0%,100% { color: var(--paper); text-shadow: none; }
                      50%     { color: #6fd8a0; text-shadow: 0 0 10px rgb(111 216 160 / .5); } }
 .sv-say { margin-top: .8rem; font: 600 .8rem var(--mono); color: #6fd8a0; text-align: center; }
 
@@ -5039,7 +5008,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes hf-in { from { opacity: 0; transform: scaleX(0); transform-origin: left; }
                    to   { opacity: 1; } }
 @keyframes hf-breathe { 0%,100% { filter: none; } 50% { filter: brightness(1.3); } }
-.hf-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.hf-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
 
 /* ---------- THE ANGLES IN A TRIANGLE ------------------------------------------------------------ */
 #splash-ang .ag-svg { width: min(66vw, 16rem); height: auto; }
@@ -5127,7 +5096,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
         animation: pa-in .45s ease-out both; animation-delay: calc(.2s + var(--r) * .26s); }
 .pa-r i { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%;
           background: #2a2c27; border: 2px solid #3c4038; font: 700 .82rem var(--mono);
-          font-style: normal; color: #f4f1e8;
+          font-style: normal; color: var(--paper);
           animation: pa-pulse 2.8s ease-in-out infinite;
           animation-delay: calc(1.6s + var(--r) * .16s); }
 @keyframes pa-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; } }
@@ -5206,7 +5175,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Read by a tutor deciding what day to run it on, which is the only open question a waiting list
    has. */
 .wc { margin: .5rem 0 .7rem; }
-.wc-say { margin: 0 0 .35rem; font-size: .68rem; color: #8a8175;
+.wc-say { margin: 0 0 .35rem; font-size: .68rem; color: var(--paper-faint);
           text-transform: uppercase; letter-spacing: .07em; }
 .wc-row { position: relative; display: flex; align-items: center; gap: .5rem;
           padding: .28rem .45rem; border-radius: 5px; background: rgb(0 0 0 / .16);
@@ -5343,7 +5312,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes mn-level { 0%,22% { height: var(--h); }
                       48%,72% { height: 3.7rem; background: #6fd8a0; }
                       96%,100% { height: var(--h); } }
-.mn-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.mn-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: var(--paper); text-align: center; }
 .mn-say b { color: #6fd8a0; }
 
 /* ---------- ONE HALF, THREE WAYS ---------------------------------------------------------------------
@@ -5377,7 +5346,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes mx-tilt { 0%,100% { transform: rotate(-26deg); } 50% { transform: rotate(14deg); } }
 .mx-dot { position: absolute; left: 1.6rem; top: 3.9rem; width: .55rem; height: .55rem;
           margin: -.2rem 0 0 -.26rem; border-radius: 50%; background: #e8862c; }
-.mx-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.mx-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: var(--paper); text-align: center; }
 .mx-say b { color: #6fa8dc; }
 
 /* THE "or" BETWEEN THE TWO WAYS IN. A rule either side rather than a word floating in space, so it
@@ -5444,17 +5413,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .ix-line { display: flex; align-items: center; justify-content: center; gap: .5rem; }
 .ix-g { display: flex; gap: .3rem; }
 .ix-g i { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 6px;
-          background: #2a2c27; border: 2px solid #3c4038; color: #f4f1e8;
+          background: #2a2c27; border: 2px solid #3c4038; color: var(--paper);
           font: 700 .95rem var(--mono); font-style: normal;
           animation: ix-lit 4s ease-in-out infinite; animation-delay: calc(1.6s + var(--i) * .22s); }
 @keyframes ix-lit { 0%,32% { border-color: #3c4038; }
                     46%,64% { border-color: #e8862c; color: #ffd9a8; }
                     82%,100% { border-color: #3c4038; } }
-.ix-op { color: #f4f1e8; font: 700 1rem var(--mono); animation: ix-go 4s ease-in-out infinite; }
+.ix-op { color: var(--paper); font: 700 1rem var(--mono); animation: ix-go 4s ease-in-out infinite; }
 @keyframes ix-go { 0%,26% { opacity: 1; } 44%,100% { opacity: 0; } }
 .ix-g2 { animation: ix-close 4s ease-in-out infinite; }
 @keyframes ix-close { 0%,26% { transform: translateX(0); } 44%,100% { transform: translateX(-1.5rem); } }
-.ix-say { margin-top: .9rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.ix-say { margin-top: .9rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
 .ix-sum { color: #e8862c; }
 
 /* ---------- THE TRIG TRICK ------------------------------------------------------------------------
@@ -5467,11 +5436,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .tk-val { margin-top: .35rem; }
 .tk-val i { width: 2.4rem; display: grid; place-items: center; font-style: normal; opacity: 0;
             animation: tk-in .5s ease-out both; animation-delay: calc(.5s + var(--i) * .42s); }
-.tk-val b { display: block; padding: 0 .25rem; border-bottom: 1.5px solid #f4f1e8;
-            color: #f4f1e8; font: 700 .84rem var(--mono); }
-.tk-val u { display: block; text-decoration: none; color: #f4f1e8; font: 700 .84rem var(--mono); }
+.tk-val b { display: block; padding: 0 .25rem; border-bottom: 1.5px solid var(--paper);
+            color: var(--paper); font: 700 .84rem var(--mono); }
+.tk-val u { display: block; text-decoration: none; color: var(--paper); font: 700 .84rem var(--mono); }
 @keyframes tk-in { from { opacity: 0; transform: translateY(.4rem); } to { opacity: 1; } }
-.tk-say { margin-top: .9rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.tk-say { margin-top: .9rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
 .tk-say b { color: #e8862c; }
 
 /* ---------- STANDARD FORM --------------------------------------------------------------------------
@@ -5482,7 +5451,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the numerals, and every hop would be measured from the wrong origin. */
 .sf-num { position: relative; display: flex; justify-content: center; gap: .12rem;
           width: max-content; margin: 0 auto; }
-.sf-d { width: 1.1rem; text-align: center; color: #f4f1e8; font: 700 1.4rem var(--mono); }
+.sf-d { width: 1.1rem; text-align: center; color: var(--paper); font: 700 1.4rem var(--mono); }
 /* ---------- THE HOPS ARE ONE DIGIT EACH, WHICH THEY WERE NOT --------------------------------------
    A DIGIT IS 1.1rem WIDE WITH .12rem BESIDE IT, so one place is 1.22rem and the point can only ever
    sit in a gap. The first version moved .61rem a hop — half a digit — so the point walked up the
@@ -5506,7 +5475,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                     39%      { transform: translate(-50%) translateX(.61rem); }
                     53%      { transform: translate(-50%) translateX(-.61rem); }
                     67%,100% { transform: translate(-50%) translateX(-1.83rem); } }
-.sf-say { margin-top: 1rem; font: 700 1rem var(--mono); color: #f4f1e8; text-align: center; }
+.sf-say { margin-top: 1rem; font: 700 1rem var(--mono); color: var(--paper); text-align: center; }
 /* ---------- THE POWER CAME OUT AS A SUBSCRIPT -----------------------------------------------------
    FOUR NUMERALS STACKED, AND ALL FOUR TAKEN OUT OF FLOW. `<sup>` raises itself with
    `vertical-align: super`, which shifts a box relative to the baseline — but every numeral inside
@@ -5551,7 +5520,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .ct-p { opacity: 0; animation: ct-show 4.2s ease-in-out infinite;
         animation-delay: calc(var(--i) * 1.4s); }
 @keyframes ct-show { 0% { opacity: 0; } 6%,26% { opacity: 1; } 33%,100% { opacity: 0; } }
-.ct-say { margin-top: .8rem; font: 700 .88rem var(--mono); color: #f4f1e8; text-align: center; }
+.ct-say { margin-top: .8rem; font: 700 .88rem var(--mono); color: var(--paper); text-align: center; }
 .ct-say b { color: #6fa8dc; }
 
 /* ---------- THE VENN ----------------------------------------------------------------------------- */
@@ -5569,14 +5538,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes vn-slide   { 0%,100% { transform: translateX(-9px); } 50% { transform: translateX(0); } }
 @keyframes vn-slide-b { 0%,100% { transform: translateX(9px); }  50% { transform: translateX(0); } }
 /* THE OVERLAP, LIT ON ITS OWN. Two circles crossing is a picture; the middle picked out is an idea. */
-.vn-both { fill: #f4f1e8; opacity: 0; animation: vn-mid 3.4s ease-in-out infinite; }
+.vn-both { fill: var(--paper); opacity: 0; animation: vn-mid 3.4s ease-in-out infinite; }
 @keyframes vn-mid { 0%,22% { opacity: 0; } 45%,58% { opacity: .6; } 80%,100% { opacity: 0; } }
 /* THE LABELS SLIDE WITH THEIR CIRCLES. Same animation, same timing — a label that stayed still
    while its set moved would be labelling the space the set used to be in. */
 .vn-l { font: 700 15px var(--mono); text-anchor: middle; }
 .vn-a-l { fill: #6fa8dc; animation: vn-slide 3.4s ease-in-out infinite; }
 .vn-b-l { fill: #e8862c; animation: vn-slide-b 3.4s ease-in-out infinite; }
-.vn-say { margin-top: .7rem; font: 700 .9rem var(--mono); color: #f4f1e8; text-align: center; }
+.vn-say { margin-top: .7rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
 
 /* ---------- THE CLOCK ---------------------------------------------------------------------------- */
 #splash-clock .ck-svg { width: min(46vw, 11rem); height: auto; }
@@ -5592,7 +5561,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the entire point of the drawing, read as one moving hand and one stuck one.
    The ratio is kept exactly; both are twelve times faster. The minute hand sweeps in a third of a
    second and the hour hand makes a visible quarter-turn in the time anybody watches. */
-.ck-m { stroke: #f4f1e8; stroke-width: 2; stroke-linecap: round; transform-origin: 40px 40px;
+.ck-m { stroke: var(--paper); stroke-width: 2; stroke-linecap: round; transform-origin: 40px 40px;
         animation: ck-turn 1.2s linear infinite; }
 .ck-h { stroke: #f0b45f; stroke-width: 3; stroke-linecap: round; transform-origin: 40px 40px;
         animation: ck-turn 14.4s linear infinite; }
@@ -5756,7 +5725,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   position: relative; flex: none; align-self: center;
   background: var(--sunk); border: 1px solid var(--line); border-radius: 2px; cursor: pointer;
 }
-.fm-adds label { min-height: 2rem; }
+/* ---------- 2rem IS 27px ON A PHONE, AND THIS IS THE THIRD TIME -----------------------------------
+   THE NOTE ABOVE GETS IT RIGHT AND THE NUMBER GETS IT WRONG: the tickbox is 17px by design and the
+   touch target is kept on the label, which is what a thumb lands on. The label was then given
+   `2rem`, and line 121 sets the root to `clamp(13.5px, 3.8vw, 16px)` — so 2rem is 27px at 320 and
+   30px at 390. The target that was moved to the label was never 44px anywhere.
+
+   CLAUDE.md ALREADY HAS THIS ENTRY TWICE: `.btn.tiny` at `max(38px, 2.3rem)` and `.post-act` at
+   `min-width: 2.2rem`, both fixed, both written up, and the rule stated — tap targets in px,
+   everything else in rem, because a fingertip is the same size on every screen. This is the same
+   mistake a third time in a widget nothing was measuring. */
+.fm-adds label { min-height: 44px; min-width: 44px; }
 .fm-adds input:checked { background: var(--gold); border-color: var(--gold); }
 .fm-adds input:checked::after {
   content: ""; position: absolute; left: 5px; top: 1px;
@@ -5765,7 +5744,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 }
 .fm-sep { width: 1px; height: 14px; background: var(--line); }
 /* PRESETS ONLY TICK BOXES, and you watch it happen — one that hid what it did would be a mode. */
+/* THE THREE SHAPES A FLYER CAN BE — and they are buttons, which means a finger has to land on them.
+   They were 21px tall at 320 and 23 at 390: `padding: .2rem .45rem` on a .66rem line, which is a
+   size chosen by what looked right beside the switches rather than by what a thumb needs. 44px in
+   px, like every other target on this site, and the row already wraps so the extra height costs
+   nothing but the row's own height. */
 .fm-pre { font: inherit; font-size: .66rem; background: var(--sunk); color: var(--dim);
+          min-height: 44px; min-width: 44px;
           border: 1px solid var(--line); border-radius: var(--r); padding: .2rem .45rem;
           cursor: pointer; }
 .fm-pre:active { color: var(--gold); border-color: var(--gold); }
@@ -5775,7 +5760,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the transform — the origin is top left so the scaled sheet does not drift off to one side. */
 /* THE PAPER SITS DIRECTLY UNDER THE PRINT BUTTON, close enough that a change is visible without
    scrolling — which is the whole reason for drawing it here rather than in a second file. */
-.fm-out { overflow: hidden; margin-top: .5rem; }
+/* ---------- THE SAME CUT, ON THE OTHER SHEET ------------------------------------------------------
+   `.mat-out` HAD `overflow: hidden` AND IT WAS WRONG for the reason CLAUDE.md records: a sheet with
+   a fixed paper width, clipped, with no way to reach the rest of the page you are about to print.
+   It was given `overflow-x: auto` and the entry was written up.
+
+   THIS IS THE SAME SHEET ONE FILE OVER and it kept the same rule. It overflows its column by 593px
+   at 320, 542 at 390 and 528 at 768 — most of a flyer, unreachable, on every width there is.
+
+   NOTHING CAUGHT IT BECAUSE NOTHING LOOKED. The flyer maker is a widget on the tools screen and the
+   tools screen signed out has no widgets on it; `check/ui.js` had never signed in. Both halves of
+   that sentence were fixed in the same change, and this is the first thing the other half found. */
+.fm-out { overflow-x: auto; overflow-y: hidden; margin-top: .5rem; }
 .fm-sheet { width: 210mm; height: 297mm; background: #fff; display: grid;
             transform-origin: 0 0; overflow: hidden; }
 .fm-z-a5 { grid-template: 148.5mm 148.5mm / 210mm; }
@@ -7337,33 +7333,34 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   padding: .5rem .6rem;
   font-size: .82rem;
 }
-.rc .rc-do { border-top: 1px dashed #b3aa9c; border-radius: 0; }
-.rc.scr .rc-do { border-top-color: rgb(61 220 132 / .25); }
+.rc .rc-do { border-top: 1px solid var(--line-soft); border-radius: 0; }
 
 /* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
    receipt is a single thing to do, not a set to choose from. */
 /* THE ACTIONS ON THE DOCUMENT, centred and ruled off — everything above is what was asked for and
    everything here is what to do about it. Two of them, so a row rather than a stack. */
 .rc-tiles { justify-content: center; gap: .4rem; margin: .45rem 0 0; padding-top: .45rem; }
-.rc-tiles .tile { width: 40px; height: 40px; }
-.rc .rc-tiles { border-top: 1px dashed #b3aa9c; }
-.rc.scr .rc-tiles { border-top-color: rgb(61 220 132 / .25); }
+/* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH ----------------------
+   "Ask for it" and "Share this booking" were 40x40 at every width. CLAUDE.md's own rule is that tap
+   targets go in px precisely so they cannot come out under 44 by accident — and these were in px
+   and under 44 on purpose, shrunk to sit politely on a receipt.
 
-/* THE TERMS, in the paper's own quiet colour rather than the app's. `.faint` is a dark-theme grey
-   and this sits on off-white for every stage but the form. */
+   THE RECEIPT IS NOT THERE ANY MORE and it was never a good enough reason: sending a booking is the
+   one irreversible thing on this card. 44px, which is the floor, and the row has the height. */
+.rc-tiles .tile { width: 44px; height: 44px; }
+.rc .rc-tiles { border-top: 1px solid var(--line-soft); }
+
+/* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the
+   terms sit on off-white — which was true of the paper and is the whole reason the paper had to
+   go: every quiet line in this document needed its own grey picked by hand against cream, and the
+   app already had one. It is `.faint` now, the same quiet as every other small print on the site. */
 .rc-terms {
   margin: .1rem 0 0;
   text-align: center;
   font-size: .68rem;
   line-height: 1.4;
-  color: #6a6259;
+  color: var(--faint);
 }
-.rc.scr .rc-terms { color: #6f8f7c; }
-/* THE SESSION REFERENCE UNDER THE BARCODE. `.rc-thanks` is a warm grey chosen against cream paper,
-   and on the screen skin it came out as a dark smudge on a dark card — the one line on the receipt
-   that identifies WHICH session, unreadable. The skin's own faint green, like every other quiet
-   line on it. */
-.rc.scr .rc-thanks { color: #6f8f7c; }
 
 
 /* THE ✕ ON A BASKET LINE. `.text-drop` is sized for a settings row; on a receipt line it has to sit

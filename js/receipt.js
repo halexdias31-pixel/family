@@ -54,16 +54,32 @@ function corsImage_(src) {
   });
 }
 
-/* ---------- THE PICTURE IS OF WHATEVER YOU SHARED ------------------------------------------------
-   IT ALWAYS DREW A RECEIPT. Whatever was on screen — a blank screen card, an application waiting to
-   be accepted, a place on a waiting list — the shared image came out as a finished receipt, headed
-   with the same three lines and stamped with nothing.
+/* ---------- THE PICTURE IS THE CARD, IN THE CARD'S OWN COLOURS -----------------------------------
+   IT TOOK A `stage` AND CHOSE ONE OF FOUR SKINS, so that sharing an application did not send
+   somebody a picture of a paid receipt. The argument is right. What it could not survive was being
+   told the answer twice.
 
-   THE SCREEN SHOWS FOUR DIFFERENT DOCUMENTS and they are different on purpose: an application is
-   not a receipt, and sharing one as though it were is telling somebody a thing has been paid for
-   when it has not. The stage is what the card already knows about itself; the picture just never
-   asked. */
-async function receiptCanvas(stage) {
+   THE CARD PICKED ITS SKIN WITH `kind`, PASSED BY `bookBreakdown`. The picture picked its skin with
+   `stage`, read off `data-stage` on the share button — written in exactly one place, the share tile
+   in this file, as `{ stage: 'screen' }`. Two constants, two files, one document. When an earlier
+   pass moved the booking form onto the receipt skin it changed the first and not the second, so
+   every share from that day on drew A GREEN TERMINAL of a card that was cream paper: the same
+   booking, sent as a different object from the one on screen, which is the precise fault the four
+   skins were added to prevent.
+
+   THAT IS THE SECOND REASON THE COSTUMES HAD TO GO, and the more convincing one. A choice between
+   four appearances, made twice, in two files, by two names for the same thing, is a choice that is
+   wrong as soon as one of them is edited — and nothing anywhere can tell you which. It was found
+   by reading, not by a check, because there is no check that can see it.
+
+   SO THE PICTURE ASKS THE STYLESHEET. A canvas cannot read CSS rules, but it can read custom
+   properties off the document, and those are the same six tokens the card is drawn with. Restyle
+   the card and the picture has already followed — which is what "the card is what they read and
+   checked; the picture is what they send" requires and could not have before.
+
+   THE SHOP NAME STAYS ON THE PICTURE, and only here. It came off the card because a document on
+   screen, inside the app, has not left anywhere. This is the copy that leaves. */
+async function receiptCanvas() {
   const L = bookPrice();
   if (!L) return null;
   /* ---------- THE ROWS THE CARD DREW, NOT A SECOND OPINION --------------------------------------
@@ -79,16 +95,6 @@ async function receiptCanvas(stage) {
   const rows = (typeof BOOK_ROWS !== 'undefined' && BOOK_ROWS && BOOK_ROWS.length)
     ? BOOK_ROWS
     : breakdownRows(L);
-  /* THE SAME WORDS THE CARD USES, so a shared picture and the screen it came from cannot say
-     different things about the same booking. */
-  const STAGE_SAY = {
-    screen: 'Asking for a session',
-    application: 'Waiting to be accepted',
-    waitlist: 'On the waiting list',
-    receipt: '',
-  };
-  const stageLine = STAGE_SAY[stage] !== undefined ? STAGE_SAY[stage] : '';
-
   /* Drawn at three times the size and scaled down by the device, so it is sharp on a phone and
      still sharp when somebody opens it on a laptop. */
   /* ---------- WIDE ENOUGH FOR WHAT IS ON IT ------------------------------------------------------
@@ -103,10 +109,7 @@ async function receiptCanvas(stage) {
   /* Height has to be known before drawing, so the rows are measured first. Two passes over the same
      list rather than a guess: a canvas that is too short crops the total off the bottom. */
   const photoH = 0;   /* the two photographs are gone — see below */
-  /* THE HEADER GROWS WITH THE STAMP. A fixed height plus a new line is a new line drawn over the
-     first row of the table — the sort of fault that only appears on the one stage that has a
-     stamp, which is not the one anybody tests. */
-  const headH = (stageLine ? 106 : 92) * S;
+  const headH = 92 * S;
   const footH = 118 * S;
   const H = photoH + headH + rows.length * LINE + footH;
 
@@ -115,60 +118,49 @@ async function receiptCanvas(stage) {
   const g = cv.getContext('2d');
   if (!g) return null;
 
-  /* ---------- AND THE PAPER ITSELF, NOT JUST THE STAMP -------------------------------------------
-     A STAMP ON RECEIPT PAPER IS STILL RECEIPT PAPER. The last pass added a line saying "ASKING FOR
-     A SESSION" and left the picture cream, torn-edged and pocketable — so a booking nobody has
-     agreed to still arrived on WhatsApp looking exactly like something paid for, with a caveat
-     written on it. Text does not undo a shape; the paper is what somebody sees before they read.
+  /* ---------- THE COLOURS COME OFF THE DOCUMENT, NOT OUT OF A TABLE HERE --------------------------
+     THIS WAS A `SKINS` TABLE of four palettes in raw hex, with a note calling it "the one honest
+     duplication in this file, because a canvas cannot read CSS". The premise is wrong and it is the
+     useful kind of wrong: a canvas cannot read CSS RULES, but `getComputedStyle` on the root element
+     hands back custom properties, and those are exactly what the card is drawn with.
 
-     THE SCREEN ALREADY HAS THREE DIFFERENT PAPERS and they were chosen for reasons worth keeping:
+     SO THE PICTURE READS THE SAME FIVE TOKENS THE STYLESHEET DOES. Change the palette in one place
+     and the shared image follows on its own, which is the only version of "the card and the picture
+     cannot say different things" that survives somebody restyling the card and not knowing this
+     file exists.
 
-       SCREEN       a dark terminal. Nothing has been asked for yet — it is the thing you are
-                    typing INTO, and it should look like a device rather than a document.
-       APPLICATION  a white form with a red filing edge. A form is punched and filed; a receipt is
-                    torn and pocketed, and the edge is the difference.
-       WAITLIST     the same form, blue, because waiting is a different sort of pending from
-                    waiting to be accepted.
-       RECEIPT      cream, torn, and the only one of the four that means the money moved.
-
-     These are the same colours the stylesheet uses, restated here because a canvas cannot read
-     CSS — the one honest duplication in this file, and the reason both lists name the stage. */
-  const SKINS = {
-    screen:      { paper: '#0d0f0e', ink: '#7fd6a4', faint: '#6f8f7c', edge: '#2a2f2c', torn: false },
-    application: { paper: '#fbfaf7', ink: '#1e1c19', faint: '#7a7469', edge: '#b9312b', torn: false },
-    waitlist:    { paper: '#fbfaf7', ink: '#1e1c19', faint: '#7a7469', edge: '#2f6fb0', torn: false },
-    receipt:     { paper: '#f4f1e8', ink: '#2b2620', faint: '#8a8175', edge: '',        torn: true },
-  };
-  const skin = SKINS[stage] || SKINS.receipt;
-  const INK = skin.ink, FAINT = skin.faint, PAPER = skin.paper;
+     WITH A FALLBACK EACH, like every other read in this app. A canvas drawn on a page whose
+     stylesheet has not arrived would otherwise come out as black on black — an empty string is a
+     perfectly legal fill and paints nothing anybody can see. */
+  const TOK = getComputedStyle(document.documentElement);
+  const tok = (name, or) => (TOK.getPropertyValue(name) || '').trim() || or;
+  const PAPER = tok('--raised', '#0b0b0b');
+  const INK   = tok('--ink', '#e6e6e6');
+  const FAINT = tok('--faint', '#808080');
+  const EDGE  = tok('--line', '#232323');
   g.fillStyle = PAPER;
   g.fillRect(0, 0, W, H);
-  /* THE FILING EDGE, down the left, on the two that are forms. */
-  if (skin.edge) { g.fillStyle = skin.edge; g.fillRect(0, 0, 5 * S, H); }
 
-  /* THE TORN ENDS, AND ONLY ON THE ONE THAT IS TORN. This ran unconditionally, so a form arrived
-     with a receipt's ragged edges — the same contradiction as the cream paper, in the shape rather
-     than the colour. A receipt is torn off a roll; a form is punched and filed and has straight
-     edges because it lives in a drawer. */
-  /* THE TOOTH SIZE IS DECLARED OUT HERE, not inside the `if`. It sets where the content starts as
-     well as how deep the tear is — line 143 below uses it to leave room at the top — so scoping it
-     to the torn branch made every share of a non-torn document throw `tooth is not defined`, which
-     is to say every share of a booking, which is the thing I had just changed. A `const` moved
-     inside a block it is used outside of: the same shape of fault as `day` in the backend earlier
-     tonight, and neither checker looks at scope. */
-  const tooth = 10 * S;
-  if (skin.torn) {
-    g.globalCompositeOperation = 'destination-out';
-    for (let x = 0; x < W; x += tooth) {
-      g.beginPath(); g.moveTo(x, 0); g.lineTo(x + tooth / 2, tooth); g.lineTo(x + tooth, 0);
-      g.closePath(); g.fill();
-      g.beginPath(); g.moveTo(x, H); g.lineTo(x + tooth / 2, H - tooth); g.lineTo(x + tooth, H);
-      g.closePath(); g.fill();
-    }
-    g.globalCompositeOperation = 'source-over';
-  }
+  /* THE BORDER, because the card has one. On screen a hairline is what says where the document
+     stops; in a picture posted into a chat it is what stops a dark card dissolving into a dark
+     thread. Drawn as a stroke inside the edge rather than a rect behind it, so the corner radius
+     the card has is at least approximated by a square one rather than contradicted by a bleed. */
+  g.strokeStyle = EDGE;
+  g.lineWidth = 1 * S;
+  g.strokeRect(S / 2, S / 2, W - S, H - S);
 
-  let y = tooth + 8 * S;
+  /* ---------- THE TORN ENDS WERE HERE, AND SO WAS A TRAP WORTH KEEPING ----------------------------
+     A ZIGZAG WAS CUT OUT OF THE TOP AND BOTTOM with `destination-out`, matching the card's mask.
+     Both are gone for the same reason: the tear is what says a till printed this, and this document
+     is also the booking form and the basket.
+
+     `tooth` SET WHERE THE CONTENT STARTS AS WELL AS HOW DEEP THE TEAR WAS, and a previous pass moved
+     its `const` inside the `if` that drew the tear — so every share of a document that was not torn
+     threw `tooth is not defined`, which was every share. The inset survives the tear because the
+     content needed it either way; it is named for what it does now. */
+  const TOP = 18 * S;
+
+  let y = TOP + 8 * S;
 
   /* ---------- THE PHOTOGRAPHS WENT FROM THE CARD AND STAYED IN THE PICTURE ------------------------
      TWO SQUARES, A VENUE AND A TUTOR, ABOUT A THIRD OF THE PAGE. `bookBreakdown` removed them from
@@ -185,17 +177,11 @@ async function receiptCanvas(stage) {
   g.textAlign = 'center'; g.fillStyle = INK;
   g.font = `700 ${13 * S}px ui-monospace, monospace`;
   g.fillText('@family.', W / 2, y); y += 16 * S;
-  /* WHAT THIS IS, above the details. A picture with no stamp reads as settled, which is exactly
-     wrong for the three stages that are not. */
-  if (stageLine) {
-    g.font = `700 ${8.5 * S}px ui-monospace, monospace`;
-    /* THE STAMP IN THE SKIN'S OWN INK. Brown on a dark terminal is very nearly the background —
-       the one line whose whole job is to say what this is, unreadable on the one stage that most
-       needs it. */
-    g.fillStyle = stage === 'screen' ? skin.ink : '#8a6a3c';
-    g.fillText(stageLine.toUpperCase(), W / 2, y);
-    y += 14 * S;
-  }
+  /* THE STAGE LINE STOOD HERE — "ASKING FOR A SESSION", "ON THE WAITING LIST" — set from the same
+     `stage` the skin came from, and so wrong in the same way: it said "ASKING FOR A SESSION" on a
+     picture of a card that had stopped being a form. With one document there is one thing to say
+     and the rows say it. When a stage line is wanted again it belongs on the card first, where
+     somebody can see whether it appears, and the picture should read it from there. */
   /* ---------- THE VENUE, TUTOR AND TERM WERE PRINTED TWICE ----------------------------------------
      A THREE-LINE SUBHEADING SAYING "Morden Library / Halex Dias / Autumn 1" — and every one of
      those is a row of the receipt eight lines further down, with its multiplier and its price
@@ -278,21 +264,11 @@ async function receiptCanvas(stage) {
   y += 22 * S;
   rule();
 
-  /* ---- the barcode, from the same seed the card uses ---- */
-  let seed = hashOf(BOOK_STEPS.map(st => {
-    const v = BOOKING[st.id];
-    return st.id + ':' + (Array.isArray(v) ? v.join(',') : String(v ?? ''));
-  }).concat(['slots:' + (BOOKING.slots || []).join(','),
-             'split:' + (BOOKING.split || []).join(',')]).join('|')) >>> 0;
-  let bx = PAD;
-  g.fillStyle = INK;
-  for (let i = 0; i < 44 && bx < W - PAD; i++) {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    const w = (1 + (seed % 3)) * S;
-    if (seed % 7) g.fillRect(bx, y, w, 34 * S);
-    bx += w + 2 * S;
-  }
-  y += 48 * S;
+  /* THE BARCODE WAS HERE, 44 bars off the same seed the card used, and it went from both in the
+     same change. It encoded nothing and nothing could scan it. What it cost was not the pixels: it
+     was drawn twice, from one seed, by two functions in two files, and keeping those two in step
+     was work being done for a thing that was never read. */
+  y += 14 * S;
 
   g.textAlign = 'center'; g.fillStyle = FAINT;
   g.font = `${9 * S}px ui-monospace, monospace`;
@@ -316,9 +292,11 @@ on('book-share', async el => {
   const was = el.getAttribute('title') || 'Share this booking';
   tileSet_(el, { label: 'Drawing…' });
   try {
-    /* WHICH DOCUMENT IS ON SCREEN. Read off the button rather than worked out again here — the card
-       that drew the button already decided, and deciding twice is two answers waiting to differ. */
-    const cv = await receiptCanvas(el.getAttribute('data-stage') || '');
+    /* THIS READ `data-stage` OFF THE BUTTON, under a note saying the card that drew the button had
+       already decided and deciding twice is two answers waiting to differ. Exactly right, and the
+       two answers had already differed for months — see `receiptCanvas`. There is one document, so
+       there is nothing to read. */
+    const cv = await receiptCanvas();
     if (!cv) throw new Error('Not enough answered to print it yet');
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     if (!blob) throw new Error('The picture could not be made');
@@ -468,7 +446,10 @@ function drawBooker_() {
     <div class="tile-row rc-tiles">
       ${tile_({ icon: 'send', label: 'Ask for it', tone: 'buy', act: 'book-send' })}
       ${tile_({ icon: 'share', label: 'Share this booking',
-                act: 'book-share', data: { stage: 'screen' } })}
+                /* `data: { stage: 'screen' }` WAS HERE and it was the second half of a choice this
+                   document made twice — see `receiptCanvas`. The picture is the card now; there is
+                   nothing left for the button to tell it. */
+                act: 'book-share' })}
     </div>
     <p class="rc-terms" id="book-said">Nothing is booked or charged yet — this asks, and we come
       back to you.</p>`;

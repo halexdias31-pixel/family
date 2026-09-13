@@ -1024,7 +1024,25 @@ const PAGER = {
 
      THE KEYS MUST MATCH `screen(id, …)` EXACTLY. `check-doors.js` now fails the build when one does
      not, which is the only way this stays fixed. */
-  account: () => mePages().map((_, i, a) => a.length > 1 ? (i + 1) + ' of ' + a.length : ''),
+  /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW ----------------------------------
+     IT CALLED `mePages()`. That function fed the old You COLUMN, and its own comment in me.js says
+     so — "mePages fed the You column, which no longer exists". `screen('account')` draws
+     `accountPages_()` plus `termsPages_()`. So the number of pages the pager believed in and the
+     number of pages on screen were worked out by two different functions that had not agreed since
+     the column was folded into the funnel.
+
+     WHAT IT LOOKED LIKE: you could not move down the profile column. Not an error — the pager
+     reported one page, so there was nowhere to go, while the pages sat underneath waiting. Adding
+     other people's profiles beneath your own made it obvious, because suddenly there was something
+     to miss.
+
+     COUNTED FROM THE FUNCTIONS THAT DRAW IT, which is the rule this table already states for
+     `stuff` twenty lines down: "a pager that counts for itself is a pager that can disagree". */
+  account: () => {
+    const n = (typeof accountPages_ === 'function' ? accountPages_().length : 0)
+            + (typeof termsPages_ === 'function' ? termsPages_().length : 0);
+    return Array.from({ length: n }, (_, i) => (n > 1 ? (i + 1) + ' of ' + n : ''));
+  },
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. The pager needs the COUNT — that is what it pages through — and
