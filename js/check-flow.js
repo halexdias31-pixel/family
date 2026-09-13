@@ -192,6 +192,12 @@ function boot(opts) {
          journey. Exposed so the test can ask the thing that actually renders the button. */
       'jobTiles: typeof jobTiles_ === "function" ? jobTiles_ : null,' +
       'bar: typeof installBar === "function" ? installBar : null,' +
+      /* THE CHEAT SHEET'S COMPONENT LIST AND ITS TWO WIDTHS. `matParts` is the list after the sheet
+         has had its say about order and levels, which is the list the page is actually built from —
+         so a journey can ask what a component is worth without a browser and without the tab. */
+      'matParts: typeof matParts === "function" ? matParts : null,' +
+      'matColW: typeof matColW === "function" ? matColW : null,' +
+      'matPairW: typeof matPairW === "function" ? matPairW : null,' +
       /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
          — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
          together so a journey can put a line in the basket and ask what it costs, which is the
@@ -316,6 +322,58 @@ check('the basket draws a laminate control on a paper and on nothing else', asyn
            + 'find out what it costs');
   }
   t.setCart([]);
+  return bad;
+});
+
+/* ---------- THE TWO GRIDS ARE PRICED AT THE WIDTH THEY ARE DRAWN AT ------------------------------
+   THE FAULT THIS GUARDS AGAINST has happened twice in `mat.js` already and both are written up
+   there: the picker costs a component from its width, the page draws it at another, and the gauge
+   that decides whether the sheet fits is confidently wrong. `half` was priced at 99mm while it was
+   drawn at 61; the ruler was priced at 0cm² while the bar charged 52.
+
+   THE `pair` BLOCKS ARE THE THIRD CHANCE TO MAKE IT. They are laid out two across rather than
+   three, so the one number that must not be `matColW()` is theirs — and the two widths have to come
+   out of the same two constants, or changing the gutter moves one and not the other. */
+check('the cheat sheet prices its two-across blocks at two across', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matParts || !t.matColW || !t.matPairW) return ['the cheat sheet is not exported'];
+  const bad = [];
+  const parts = t.matParts();
+  const pair = parts.filter(c => c.pair);
+  /* ---------- NAMED, NOT COUNTED ------------------------------------------------------------------
+     THIS ASKED WHETHER ANY COMPONENT WAS MARKED `pair` and passed with one of the two unmarked —
+     which is exactly the change somebody makes by accident, editing one line of a pair. The ids are
+     written here on purpose: these two were asked for by name, and a list of two kept in two places
+     is the cheapest way to be told when one of them moves. */
+  ['M02', 'M03'].forEach(id => {
+    const c = parts.find(x => x.id === id);
+    if (!c) return;                 /* the sheet can hide a component; that is not this check's business */
+    if (!c.pair) {
+      bad.push(id + ' (' + c.name + ') is no longer marked `pair`, so its width goes back to '
+             + 'depending on how many other narrow blocks happen to share its run');
+    }
+  });
+  if (!pair.length) {
+    return ['no component is marked `pair` any more — the hundred square and the times table were, '
+          + 'and without it their width goes back to depending on what else is ticked'];
+  }
+  /* EVERY `pair` BLOCK MUST ALSO BE NARROW. A full-width one would be drawn at 184mm and priced at
+     88 — the same disagreement, pointing the other way. */
+  pair.filter(c => !c.half).forEach(c =>
+    bad.push(c.id + ' is marked `pair` but not `half`, so it is drawn full width and priced at half'));
+  const one = t.matColW(), two = t.matPairW();
+  if (!(two > one)) {
+    bad.push('a two-across block is priced at ' + two + 'mm and a three-across one at ' + one
+           + 'mm — two across cannot be the narrower of the two');
+  }
+  /* THE ARITHMETIC, not a remembered number: 184mm of text with one 8mm gutter, halved. */
+  const want = (184 - 8) / 2;
+  if (Math.abs(two - want) > 0.01) {
+    bad.push('a two-across block is priced at ' + two + 'mm; 184mm of text less one 8mm gutter, '
+           + 'halved, is ' + want + 'mm — the gutter is being spent twice or not at all');
+  }
   return bad;
 });
 
