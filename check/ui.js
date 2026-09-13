@@ -235,7 +235,10 @@ function inspect(opts) {
   for (const el of inside) {
     const tag = el.tagName;
     const role = el.getAttribute('role');
-    const tappable = /^(BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL)$/.test(tag)
+    /* SUMMARY IS A TAP TARGET AND WAS NOT ON THIS LIST. `<details>` arrived with the answer block on
+       a question card (see `answerBlock_` in find.js) — the summary is the only way to open it, so a
+       small one is exactly the fault this check exists to find, and it would have been invisible. */
+    const tappable = /^(BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL|SUMMARY)$/.test(tag)
       || role === 'button' || el.hasAttribute('onclick');
     if (!tappable) continue;
     if (el.closest('[hidden]')) continue;
