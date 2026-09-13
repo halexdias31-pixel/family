@@ -59,6 +59,12 @@ const SUITE = [
      `missingKeys()` only knows about screens somebody opened while signed in as the right person.
      This reads the files, so it sees every read whether or not anybody performed it. */
   { file: 'check-payload.js', what: 'DATA keys read vs DATA keys sent' },
+  /* ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN --------------------------------
+     Removing one widget, I cut from its entry to the next one I could see, and three sat in
+     between. Nothing noticed: the functions were still declared, the flow journeys do not know
+     what belongs on a column, and the UI check measures what is drawn. This asks whether a
+     widget's machinery exists with no widget to reach it — the question that would have. */
+  { file: 'check-widgets.js', what: 'the widget contract, and the roster' },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
