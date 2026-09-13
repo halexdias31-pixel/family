@@ -124,7 +124,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-14-signin";
+const BACKEND_VERSION = "2026-09-15-games";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -132,6 +132,7 @@ const TAB = {
   resources: 'resources', links: 'links', shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
+  herd: 'herd',
   /* The map's own geometry, fetched from OpenStreetMap and kept. Not a tab anybody types into —
      see `fetchMap`. */
   map: 'map',
@@ -546,6 +547,17 @@ const SCHEMA = {
     "relative_name", "display_name",
     "start_date", "end_date", "last_sunday", "weeks_left"
   ],
+  /* ---------- HERD MENTALITY'S QUESTIONS -------------------------------------------------------
+     ONE COLUMN THAT MATTERS AND THREE THAT HELP. The game hands out a question and gets out of the
+     way, so a row is a question — `sort_order` is here because the tab will be typed in bursts and
+     somebody will want to group them, and `active` because a question that did not land in a room
+     should be switchable off rather than deleted, so the next person does not re-add it.
+
+     THE CODE KEEPS ITS OWN LIST AND THIS REPLACES IT. `HERD_BUILTIN` in games.js is twenty
+     questions; fill this tab and those are replaced with no deploy, leave it empty and the game
+     still works. An empty tab must never produce an empty game — see `herdPack_`. */
+  herd: ["question_id", "question", "sort_order", "active", "notes"],
+
   resources: [
     /* A PERMANENT NAME FOR THE ROW. Editing needs to name one, and a name is not a name: two
        subjects can both have "Quadratics", and every lookup takes the first match. Reading the

@@ -7706,3 +7706,71 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    thing on their row; three of these share one, so full width made "Turn the camera on" wrap onto
    three lines inside a 44px-tall box. */
 .cam-card .cam-row .btn { width: auto; flex: 0 1 auto; }
+
+/* ==================================================================================================
+   CONNECT 4, OTHELLO AND HERD MENTALITY
+
+   THE BOARDS ARE GRIDS OF REAL BUTTONS. `aspect-ratio: 1` on the cell keeps every square square
+   without anybody computing a height, and `1fr` columns mean the board is whatever the card is
+   wide — so it fits a 320px phone and a 1280px laptop from the same two lines.
+
+   THE TAP TARGET IS THE THING THAT DECIDES THE SIZE. Seven columns of 44px is 308px, and a card on
+   a 320px phone is narrower than that — so the cells are as wide as they can be and the 44px floor
+   is met on the OTHER axis, which is the one a thumb aiming at a column actually needs. A Connect 4
+   column is a 6-cell-tall strip: easy to hit, and measured as such by check/ui.js on each cell.
+================================================================================================== */
+/* ---------- THE ASPECT-RATIO GOES ON THE BOARD, NOT ON THE SQUARES ---------------------------------
+   FIRST VERSION PUT `aspect-ratio: 1` ON THE CELL and both boards rendered as a 3px stripe. A grid
+   row is `auto` by default and a button has no intrinsic height, so the row collapsed to nothing and
+   the cell's ratio had nothing to be a ratio OF.
+
+   THE CHESS BOARD ALREADY SOLVED THIS, twelve rules up: ratio on the CONTAINER, and rows declared as
+   well as columns. Its comment says "without the rows each one sizes itself to its tallest piece and
+   the board comes out ribbed" — the same fault, found the same way, and I reproduced it rather than
+   reading it. Copied here rather than invented again.
+
+   7:6 AND 1:1 BECAUSE THAT IS WHAT THE GAMES ARE. Connect 4 is seven columns of six; Othello is
+   square. The ratio is the board's shape, so the squares come out square without anybody saying so. */
+.c4, .oth {
+  display: grid; gap: 3px; margin: .6rem auto 0;
+  width: 100%; background: var(--line); padding: 3px; border-radius: var(--r-sm);
+}
+.c4 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr);
+      aspect-ratio: 7 / 6; max-width: 22rem; }
+.oth { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+       aspect-ratio: 1; max-width: 24rem; }
+
+.c4-cell, .oth-cell {
+  min-width: 0; min-height: 0; width: 100%; height: 100%; padding: 0;
+  border: 0; border-radius: 50%; background: var(--sunk);
+  cursor: pointer; transition: transform var(--quick) ease, background var(--quick) ease;
+}
+/* A CELL THAT CANNOT BE PLAYED IS NOT GREYED OUT. `disabled` on a board square means "not a legal
+   move", which is most of the board most of the time — dimming them all would make the board look
+   broken. It only stops the tap; the disc it already holds still shows. */
+.c4-cell[disabled], .oth-cell[disabled] { cursor: default; }
+.c4-cell:not([disabled]):active, .oth-cell:not([disabled]):active { transform: scale(.9); }
+
+/* THE TWO SIDES, IN THE APP'S OWN COLOURS rather than the red and yellow of the physical game —
+   gold is what every other active thing here is, and a red disc next to `--bad` would read as an
+   error. */
+.c4-cell.you { background: var(--gold); }
+.c4-cell.them { background: var(--dim); }
+
+.oth { border-radius: var(--r-sm); }
+.oth-cell { border-radius: 12%; }
+.oth-cell.b { background: #15130f; box-shadow: inset 0 0 0 2px var(--line); }
+.oth-cell.w { background: var(--gold); }
+/* WHERE YOU MAY PLAY, shown rather than left to be discovered. Othello's legal moves are not
+   obvious from the board and a beginner tapping dead squares learns nothing from nothing happening.
+   A ring, not a fill, so a hint is never mistaken for a disc already down. */
+.oth-cell.can { box-shadow: inset 0 0 0 2px var(--gold); opacity: .85; }
+
+/* ---------- HERD MENTALITY ------------------------------------------------------------------------
+   THE QUESTION IS THE WHOLE CARD. It is read aloud to a room, so it is set large enough to be read
+   at arm's length across a table rather than at phone-reading distance. */
+.herd-card .herd-q {
+  margin: 1.1rem 0 .6rem; min-height: 4.5rem;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font: 600 1.15rem/1.35 var(--font); color: var(--ink);
+}

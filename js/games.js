@@ -507,3 +507,347 @@ function feedSlide(it) {
     </div>
   </div>`;
 }
+/* ==================================================================================================
+   CONNECT 4, OTHELLO AND HERD MENTALITY
+
+   THREE GAMES, ONE SHAPE. Each is a `WIDGETS` entry in map.js naming an `init` in here, drawn into
+   an id the card already contains — the same arrangement Flabby Pird and Times Tables use, because
+   a fourth way of starting a game is a fourth thing to remember when one of them stops working.
+
+   NOTHING RUNS BETWEEN TURNS. No animation loop, no timer, no interval — the board is redrawn when
+   somebody taps and sits still otherwise. That is why none of these three needs a `stop`, and it is
+   worth saying out loud: `stop` exists for Flabby Pird because sixty frames a second behind a screen
+   nobody is looking at is a flat battery. A board that only moves when tapped costs nothing parked.
+
+   THE BOARDS ARE BUTTONS, NOT A CANVAS. A canvas would mean hit-testing taps against pixel
+   coordinates and redrawing to show a hover; a grid of real `<button>`s gets the tap target, the
+   keyboard, the focus ring and the press animation from the stylesheet, for free and correctly.
+================================================================================================== */
+
+/* ---------- CONNECT 4 ----------------------------------------------------------------------------
+   SEVEN COLUMNS, SIX ROWS, and the whole column is the target rather than the cell. You do not
+   choose a square in this game — you choose a column and gravity chooses the square, so a grid of
+   42 taps would be offering 35 choices that do not exist.
+
+   THE OPPONENT IS THREE RULES IN ORDER: win if it can, block if it must, otherwise play towards the
+   middle. That is beatable by anybody who is paying attention and unbeatable by anybody who is not,
+   which is the right difficulty for a game somebody opens for four minutes between lessons.
+--------------------------------------------------------------------------------------------- */
+const C4_W = 7, C4_H = 6;
+let c4 = null;
+
+function initConnect4() {
+  const host = $('c4-board');
+  if (!host) return;
+  /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS. Coming back to a board you left half-played
+     sounds kind and is not: the widget is reopened by a swipe, so "where was I" would be answered
+     by a game you had forgotten starting. */
+  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Your go — tap a column.' };
+  c4Paint();
+}
+
+const c4At = (x, y) => c4.cells[y * C4_W + x];
+
+/* THE LOWEST EMPTY SQUARE IN A COLUMN, or -1 when it is full. Everything else asks this. */
+function c4Drop_(cells, x) {
+  for (let y = C4_H - 1; y >= 0; y--) if (!cells[y * C4_W + x]) return y;
+  return -1;
+}
+
+/* FOUR IN A LINE THROUGH A SQUARE, checked in the four directions that matter. Eight would be
+   double-counting: a line and its reverse are the same line. */
+function c4Wins_(cells, x, y, who) {
+  const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+  return dirs.some(([dx, dy]) => {
+    let n = 1;
+    for (const s of [1, -1]) {
+      for (let i = 1; i < 4; i++) {
+        const nx = x + dx * i * s, ny = y + dy * i * s;
+        if (nx < 0 || nx >= C4_W || ny < 0 || ny >= C4_H) break;
+        if (cells[ny * C4_W + nx] !== who) break;
+        n++;
+      }
+    }
+    return n >= 4;
+  });
+}
+
+function c4Play_(x) {
+  if (!c4 || c4.over) return;
+  const y = c4Drop_(c4.cells, x);
+  if (y < 0) return;                                  // full column: the tap does nothing, loudly
+  c4.cells[y * C4_W + x] = c4.turn;
+  if (c4Wins_(c4.cells, x, y, c4.turn)) {
+    c4.over = true;
+    c4.said = c4.turn === 1 ? 'You win.' : 'It wins. Again?';
+  } else if (c4.cells.every(Boolean)) {
+    c4.over = true; c4.said = 'Full board — a draw.';
+  } else {
+    c4.turn = c4.turn === 1 ? 2 : 1;
+    c4.said = c4.turn === 1 ? 'Your go.' : 'Thinking…';
+  }
+}
+
+/* THE THREE RULES, IN ORDER. Written as one loop over the legal columns rather than three passes,
+   because three passes over the same seven columns is three places to get the bounds wrong. */
+function c4Reply_() {
+  if (!c4 || c4.over) return;
+  const legal = [];
+  for (let x = 0; x < C4_W; x++) if (c4Drop_(c4.cells, x) >= 0) legal.push(x);
+  if (!legal.length) return;
+
+  const findFor = who => legal.find(x => {
+    const y = c4Drop_(c4.cells, x);
+    const t = c4.cells.slice();
+    t[y * C4_W + x] = who;
+    return c4Wins_(t, x, y, who);
+  });
+
+  /* WIN, THEN BLOCK. In that order and not the other way round: a move that wins ends the game, so
+     blocking first would decline a win to prevent a reply that never comes. */
+  let pick = findFor(2);
+  if (pick === undefined) pick = findFor(1);
+  if (pick === undefined) {
+    /* TOWARDS THE MIDDLE, because the centre column sits on more possible fours than any other. */
+    pick = legal.slice().sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3))[0];
+  }
+  c4Play_(pick);
+}
+
+function c4Paint() {
+  const host = $('c4-board');
+  if (!host || !c4) return;
+  let html = '';
+  for (let y = 0; y < C4_H; y++) {
+    for (let x = 0; x < C4_W; x++) {
+      const v = c4At(x, y);
+      /* THE WHOLE COLUMN IS ONE TARGET, so every square in it carries the same `data-x` and the
+         same label. A screen reader hears "column 4" six times rather than 42 unnamed squares. */
+      html += `<button class="c4-cell${v ? (v === 1 ? ' you' : ' them') : ''}" data-do="c4-drop"
+        data-x="${x}" aria-label="Column ${x + 1}"${c4.over ? ' disabled' : ''}></button>`;
+    }
+  }
+  host.innerHTML = html;
+  const said = $('c4-said'); if (said) said.textContent = c4.said;
+}
+
+on('c4-drop', el => {
+  const x = Number(el.getAttribute('data-x'));
+  c4Play_(x);
+  c4Paint();
+  /* THE REPLY IS A BEAT LATER, so the disc you dropped is on screen before the answer lands. Played
+     immediately, both discs appear in the same frame and it reads as one move. */
+  if (!c4.over && c4.turn === 2) setTimeout(() => { c4Reply_(); c4Paint(); }, 260);
+});
+
+on('c4-again', () => { initConnect4(); });
+
+/* ---------- OTHELLO ------------------------------------------------------------------------------
+   EIGHT BY EIGHT, four in the middle to start, and a move is only legal if it brackets a line of the
+   opponent between the square you played and one of yours. That rule is the whole game, so it is
+   written once — `othFlips_` returns the squares a move would turn, and everything else asks it:
+   the legality of a tap, the list of hints, and the flipping itself.
+
+   PASSING IS PART OF THE RULES, NOT AN ERROR. A player with no legal move misses a turn, and if
+   neither can move the game is over — which is how Othello ends with the board not full, and the
+   reason the end test is "nobody can move" rather than "no empty squares".
+--------------------------------------------------------------------------------------------- */
+const OTH_N = 8;
+let oth = null;
+
+function initOthello() {
+  if (!$('oth-board')) return;
+  const cells = new Array(OTH_N * OTH_N).fill(0);
+  const m = OTH_N / 2;
+  cells[(m - 1) * OTH_N + (m - 1)] = 2; cells[(m - 1) * OTH_N + m] = 1;
+  cells[m * OTH_N + (m - 1)] = 1;       cells[m * OTH_N + m] = 2;
+  oth = { cells, turn: 1, over: false, said: 'Your go — black.' };
+  othPaint();
+}
+
+function othFlips_(cells, i, who) {
+  if (cells[i]) return [];
+  const x0 = i % OTH_N, y0 = (i / OTH_N) | 0, them = who === 1 ? 2 : 1, out = [];
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+    if (!dx && !dy) continue;
+    const run = [];
+    let x = x0 + dx, y = y0 + dy;
+    while (x >= 0 && x < OTH_N && y >= 0 && y < OTH_N && cells[y * OTH_N + x] === them) {
+      run.push(y * OTH_N + x); x += dx; y += dy;
+    }
+    /* THE LINE ONLY COUNTS IF IT IS CLOSED BY ONE OF YOURS. A run that walks off the edge, or into
+       an empty square, brackets nothing — which is the half of this rule that is easy to forget. */
+    if (run.length && x >= 0 && x < OTH_N && y >= 0 && y < OTH_N && cells[y * OTH_N + x] === who) {
+      out.push(...run);
+    }
+  }
+  return out;
+}
+
+const othMoves_ = (cells, who) => {
+  const out = [];
+  for (let i = 0; i < cells.length; i++) if (othFlips_(cells, i, who).length) out.push(i);
+  return out;
+};
+
+const othScore_ = cells => cells.reduce((a, v) => (v === 1 ? [a[0] + 1, a[1]] : v === 2 ? [a[0], a[1] + 1] : a), [0, 0]);
+
+function othPlay_(i, who) {
+  const flips = othFlips_(oth.cells, i, who);
+  if (!flips.length) return false;
+  oth.cells[i] = who;
+  flips.forEach(j => { oth.cells[j] = who; });
+  return true;
+}
+
+/* WHOSE TURN IT IS NEXT, which is not simply "the other one". */
+function othAdvance_() {
+  const other = oth.turn === 1 ? 2 : 1;
+  if (othMoves_(oth.cells, other).length) { oth.turn = other; return; }
+  if (othMoves_(oth.cells, oth.turn).length) {
+    oth.said = (other === 1 ? 'You have' : 'It has') + ' no move — going again.';
+    return;                                            // the same player goes again
+  }
+  oth.over = true;
+  const [b, w] = othScore_(oth.cells);
+  oth.said = b === w ? `Level, ${b}–${w}.` : b > w ? `You win, ${b}–${w}.` : `It wins, ${w}–${b}.`;
+}
+
+/* CORNERS FIRST, THEN THE BIGGEST FLIP. Greedy alone plays badly in Othello — the move that turns
+   the most discs early is usually the one that hands over an edge — and a corner can never be
+   flipped back, which is the one piece of strategy worth hard-coding. */
+function othReply_() {
+  if (!oth || oth.over) return;
+  const moves = othMoves_(oth.cells, 2);
+  if (!moves.length) { othAdvance_(); return; }
+  const CORNERS = [0, OTH_N - 1, OTH_N * (OTH_N - 1), OTH_N * OTH_N - 1];
+  const corner = moves.find(i => CORNERS.indexOf(i) !== -1);
+  const pick = corner !== undefined
+    ? corner
+    : moves.slice().sort((a, b) => othFlips_(oth.cells, b, 2).length - othFlips_(oth.cells, a, 2).length)[0];
+  othPlay_(pick, 2);
+  othAdvance_();
+  if (!oth.over && oth.turn === 2) { othReply_(); return; }   // it passed back to itself
+  if (!oth.over) oth.said = 'Your go.';
+}
+
+function othPaint() {
+  const host = $('oth-board');
+  if (!host || !oth) return;
+  const hints = oth.over || oth.turn !== 1 ? [] : othMoves_(oth.cells, 1);
+  let html = '';
+  for (let i = 0; i < oth.cells.length; i++) {
+    const v = oth.cells[i];
+    const can = hints.indexOf(i) !== -1;
+    html += `<button class="oth-cell${v === 1 ? ' b' : v === 2 ? ' w' : ''}${can ? ' can' : ''}"
+      data-do="oth-play" data-i="${i}" aria-label="Row ${((i / OTH_N) | 0) + 1} column ${(i % OTH_N) + 1}"
+      ${can ? '' : 'disabled'}></button>`;
+  }
+  host.innerHTML = html;
+  const [b, w] = othScore_(oth.cells);
+  const sc = $('oth-score'); if (sc) sc.textContent = b + ' – ' + w;
+  const said = $('oth-said'); if (said) said.textContent = oth.said;
+}
+
+on('oth-play', el => {
+  if (!oth || oth.over || oth.turn !== 1) return;
+  if (!othPlay_(Number(el.getAttribute('data-i')), 1)) return;
+  othAdvance_();
+  othPaint();
+  if (!oth.over && oth.turn === 2) setTimeout(() => { othReply_(); othPaint(); }, 300);
+});
+
+on('oth-again', () => { initOthello(); });
+
+/* ---------- HERD MENTALITY -----------------------------------------------------------------------
+   ONE QUESTION AT A TIME, SHUFFLED. The game is that everybody answers out loud and you score by
+   matching the room rather than by being right — so the app's whole job is to hand out a question
+   and get out of the way. No timer, no scoring, no turn order: those live at the table, and putting
+   them on the phone would make somebody operate the app instead of playing.
+
+   SHUFFLED ONCE, THEN DEALT. Picking at random each tap repeats — with 30 questions the chance of a
+   repeat inside ten taps is better than four in five — and a repeat reads as the app being broken.
+   A shuffled pack cannot repeat until it is exhausted, and then it reshuffles and says so.
+
+   THE SHEET IS THE AUTHORITY AND THE CODE IS THE FALLBACK, which is the pattern `brand()` sets for
+   everything here: fill the `herd` tab and these are replaced without a deploy; leave it empty and
+   the game still works. An empty tab must never produce an empty game.
+--------------------------------------------------------------------------------------------- */
+const HERD_BUILTIN = [
+  'Name something you would find in a school bag.',
+  'Name a subject that should not exist.',
+  'Name something that is always late.',
+  'Name a snack that is worth the money.',
+  'Name something you would take to a desert island.',
+  'Name an animal that would be rubbish as a pet.',
+  'Name something everybody says they will do and nobody does.',
+  'Name the best day of the week.',
+  'Name something that is better cold than hot.',
+  'Name a smell that reminds you of school.',
+  'Name something you always lose.',
+  'Name a film everybody has seen.',
+  'Name something that is harder than it looks.',
+  'Name a word people spell wrong.',
+  'Name something you would never share.',
+  'Name a place that is always too cold.',
+  'Name something that takes far too long.',
+  'Name a sound that makes everybody look up.',
+  'Name something you own too many of.',
+  'Name a rule everybody breaks.',
+];
+
+let herd = null;
+
+/* FISHER–YATES, NOT `sort(() => Math.random() - 0.5)`. The sort trick is the famous wrong one: the
+   comparator is inconsistent, so the result is neither uniform nor stable and some browsers barely
+   move the list at all. Twelve characters more for a shuffle that is actually a shuffle. */
+function herdShuffle_(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function herdPack_() {
+  /* THE SHEET FIRST, AND ONLY IF IT SAYS ANYTHING. `|| []` then a length test rather than `||` on
+     the array itself: an empty tab arrives as an empty array, which is truthy, so it would replace
+     the built-ins with nothing and leave the game blank. */
+  const rows = ((typeof DATA !== 'undefined' && DATA.herd) || [])
+    .filter(r => r && r.active !== false && String(r.question || '').trim())
+    .map(r => String(r.question).trim());
+  return rows.length ? rows : HERD_BUILTIN;
+}
+
+function initHerd() {
+  if (!$('herd-q')) return;
+  const pack = herdPack_();
+  herd = { pack: herdShuffle_(pack), at: 0, round: 1 };
+  herdPaint();
+}
+
+function herdPaint() {
+  const q = $('herd-q');
+  if (!q || !herd) return;
+  q.textContent = herd.pack[herd.at] || '';
+  const n = $('herd-count');
+  if (n) {
+    n.textContent = (herd.at + 1) + ' of ' + herd.pack.length
+                  + (herd.round > 1 ? ' · round ' + herd.round : '');
+  }
+}
+
+on('herd-next', () => {
+  if (!herd) return;
+  herd.at++;
+  /* THE PACK IS RESHUFFLED WHEN IT RUNS OUT, and the round counter says so — otherwise reaching the
+     end and starting again looks like the same questions coming round in the same order, which is
+     the one thing a shuffle is supposed to prevent. */
+  if (herd.at >= herd.pack.length) {
+    herd.pack = herdShuffle_(herdPack_());
+    herd.at = 0;
+    herd.round++;
+  }
+  herdPaint();
+});

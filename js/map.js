@@ -969,6 +969,44 @@ const WIDGETS = [
       <div id="map-board" class="map ow"></div>
     </div>` },
 
+  /* ---------- THREE THAT NEED NO `stop` ----------------------------------------------------------
+     Flabby Pird has one because it runs sixty frames a second whether or not anybody is looking.
+     These three move only when tapped, so parked off-screen they cost exactly nothing and there is
+     nothing to tear down. Worth saying here rather than leaving the absence to be read as an
+     oversight. */
+  { id: 'connect4', kind: 'game', name: 'Connect 4', start: () => initConnect4?.(),
+    into: 'c4-board', what: 'The board',
+    html: `<div class="card">
+    <h3>Connect 4</h3>
+    <p class="sub">Tap a column. Four in a line, any direction.</p>
+    <div id="c4-board" class="c4"></div>
+    <p class="note" id="c4-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <button class="btn quiet" data-do="c4-again">New game</button>
+  </div>` },
+
+  { id: 'othello', kind: 'game', name: 'Othello', start: () => initOthello?.(),
+    into: 'oth-board', what: 'The board',
+    html: `<div class="card">
+    <h3>Othello</h3>
+    <p class="sub">You are black. Trap a line of white between two of yours.</p>
+    <div id="oth-board" class="oth"></div>
+    ${rowLive('Black – White', '2 – 2', 'oth-score')}
+    <p class="note" id="oth-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <button class="btn quiet" data-do="oth-again">New game</button>
+  </div>` },
+
+  /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
+     and the room decides; an app keeping score would make somebody operate it instead of play. */
+  { id: 'herd', kind: 'game', name: 'Herd Mentality', start: () => initHerd?.(),
+    into: 'herd-q', what: 'The question',
+    html: `<div class="card herd-card">
+    <h3>Herd Mentality</h3>
+    <p class="sub">Everybody answers. You want to match the room, not be right.</p>
+    <p class="herd-q" id="herd-q"></p>
+    <p class="faint" id="herd-count" style="text-align:center"></p>
+    <button class="btn" data-do="herd-next">Next question</button>
+  </div>` },
+
   { id: 'reels', kind: 'game', name: 'One more thing', start: () => initFeed?.(),
     into: 'feed-screen', what: 'This',
     html: `<div class="card">
