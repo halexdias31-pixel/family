@@ -1998,39 +1998,40 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    total at the bottom. It is the only document shaped exactly like this, and one everybody can read
    without being taught — so the card stops pretending to be a table and admits what it is.
 
-   PAPER, NOT SCREEN. This is the one light thing in a black app, and that is the point: a receipt
-   is a physical object, and the whole reason the metaphor works is that it looks like something you
-   could put in your pocket. Making it dark to match the theme would be matching the theme instead
-   of saying anything.
+   PAPER, NOT SCREEN — AND IT IS NOT PAPER ANY MORE. The note above is kept because it is the case
+   FOR the costume and it is a good one: a receipt is a physical object, and the metaphor works
+   because it looks like something you could put in your pocket.
+
+   IT WAS ANSWERED BY WHAT THE COSTUME COST. This document is not only the receipt. It is the
+   booking form, the basket and the saved session as well — four things the app does, drawn by one
+   function, and cream paper is the right dress for exactly one of them. Everything else on this
+   site is black and gold; the one card somebody spends the most time reading was the one card that
+   looked like it came from somewhere else, and every control on it — the hour grid, the dropdowns,
+   the buttons — had to be given a second set of colours to survive landing on cream. That second
+   set is the cost, and it is paid on every control this document ever gains.
+
+   SO IT WEARS THE APP'S OWN CLOTHES. A raised panel with a hairline round it, which is how this
+   site already says "a bounded object" (see `.qcard`) — and the reason a boundary is declared at
+   all is that the tear used to be one. `bookerCard` dropped the `.card` wrapper precisely because
+   the paper bounded itself; take the paper away without replacing the edge and the document floats
+   on black with nothing to say where it starts.
+
+   THE TEAR, THE BARCODE AND THE SHOP NAME ARE GONE WITH IT. All three are a receipt telling you it
+   is a receipt: the zigzag says a till printed it, the barcode is 44 bars off a hash that encode
+   nothing, and `@FAMILY.` names the shop to somebody who is standing inside it. What remains is
+   what the document is actually for — what you are buying, what each part costs, and the total.
 --------------------------------------------------------------------------------------------- */
 .rc {
-  background: var(--paper);
-  color: var(--paper-ink);
-  /* The torn ends need a little room above and below the print or the zigzag eats the first line;
-     .7rem is enough for that and .3rem less than it was carrying on each end. */
-  /* THE PADDING IS 22px OF A 307px CARD, both sides. .45rem keeps the print off the torn edge and
-     gives 5px back to every row on the paper — including the eleven-across grid, where it is a
-     quarter of a cell. */
-  padding: .5rem .45rem .6rem;
+  background: var(--raised);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  /* THE PADDING NO LONGER HAS A TEAR TO CLEAR, so it is the app's own card padding rather than the
+     .45rem that was chosen to keep print off a ragged edge. The eleven-across hour grid is what
+     sets the floor here: it was given 5px back on each side to make its cells square, and that is
+     still true of a border. */
+  padding: .55rem .45rem .6rem;
   margin: .2rem 0 .3rem;
-  font-family: var(--mono);
-  /* TORN AT BOTH ENDS. A zigzag mask rather than a border image: it costs one gradient, scales to
-     any width, and cuts the paper rather than drawing a picture of a cut. The two masks are
-     composited so top and bottom are both ragged while the sides stay straight — which is how a
-     till roll tears. */
-  --tooth: 10px;
-  -webkit-mask:
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
-      bottom / var(--tooth) var(--tooth) repeat-x,
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
-      top / var(--tooth) var(--tooth) repeat-x,
-    linear-gradient(#000 0 0) center / 100% calc(100% - var(--tooth) * 2) no-repeat;
-  mask:
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
-      bottom / var(--tooth) var(--tooth) repeat-x,
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
-      top / var(--tooth) var(--tooth) repeat-x,
-    linear-gradient(#000 0 0) center / 100% calc(100% - var(--tooth) * 2) no-repeat;
 }
 
 /* WHO, WHERE, WHEN — where a receipt puts them, and because those three ARE the booking. */
@@ -2038,17 +2039,20 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    — and on an unsent booking the third is "No venue yet · No tutor yet" beside a timestamp, which is
    two facts the rows below state properly and a clock nobody asked for. Tightened rather than cut:
    it is what makes the card a receipt at a glance. */
-/* NO PADDING ABOVE ON THE FORM. The head is one line now — where and with whom and when — and the
-   room above it was there to sit the shop name off the torn edge. */
-.rc.scr .rc-head { padding-top: 0; }
-.rc-head { text-align: center; padding: .05rem 0 .25rem; }
-.rc-head h2 { margin: 0 0 .1rem; font-size: .95rem; letter-spacing: .18em; text-transform: uppercase; }
-.rc-head p { margin: 0; font-size: .64rem; color: var(--paper-dim); line-height: 1.3; }
+/* LEFT, NOT CENTRED. Centring was the shop name's doing — a till roll centres its header because
+   the header is the shop. With the name gone what is left is where and with whom and when, which
+   is a line of facts, and every other line of facts in this app starts at the left margin. */
+.rc-head { padding: .05rem 0 .3rem; }
+/* `.rc-head h2` HELD `@FAMILY.` and is deleted rather than left to sit — the markup that made it
+   went in the same change, and `check-css` names an orphan the moment nothing produces it. */
+.rc-head p { margin: 0; font-size: .7rem; color: var(--dim); line-height: 1.35; }
 
-/* A dashed rule, because a till roll's separators are printed rather than drawn. */
-/* A dashed rule, because a till roll's separators are printed rather than drawn. Five of them on a
-   card of twelve rows is 5rem of margin on its own at the old .5rem. */
-.rc-rule { border-top: 1px dashed #b3aa9c; margin: .22rem 0; }
+/* IT WAS DASHED, because a till roll's separators are printed rather than drawn — which was the
+   right reason for as long as this was a till roll. It is a hairline now, the same one `.card` and
+   `.row` draw between any two things on this site, so a divider inside the document and a divider
+   outside it are the same mark. Five of them on a card of twelve rows is why the margin is .22rem
+   rather than the .5rem it started at. */
+.rc-rule { border-top: 1px solid var(--line-soft); margin: .22rem 0; }
 
 /* The column headings, in the same grid as the rows so they line up with the figures under them —
    a header that does not sit over its own column is worse than none. */
@@ -2057,15 +2061,15 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    made it disappears, which is how a stylesheet stays the size of the app rather than the size of
    its history. */
 
-/* THE BARCODE ENCODES THE BOOKING, so the same session always prints the same code. A decorative
-   one would be a lie told in a place where people expect a fact. */
-/* THE BARCODE IS DECORATION AND IS PRICED AS SUCH. It says nothing — it is 44 bars off a hash, and
-   it is there because a till receipt has one. Worth keeping for exactly that reason, and worth
-   keeping SMALL: 34px plus its margins was more height than the total line. */
-.rc-bars { display: flex; justify-content: center; align-items: flex-end; gap: 1px;
-           height: 11px; margin: .25rem 0 0; }
-.rc-bars i { display: block; height: 100%; background: var(--paper-ink); }
-.rc-thanks { text-align: center; margin: 0; font-size: .66rem; color: var(--paper-faint); }
+/* `.rc-bars` WAS THE BARCODE AND IT IS GONE. Its own note said it: "decoration and priced as
+   such — 44 bars off a hash, there because a till receipt has one." Nothing scanned it, nothing
+   could, and it was the single most receipt-shaped thing on the card.
+
+   WHAT IT SAT NEXT TO WAS REAL, AND THAT STAYS. `.rc-thanks` never held a thank-you — it holds
+   "Session 42", the id somebody quotes when they ring up about a booking — so it is named for what
+   it carries now. A class called `thanks` holding a reference number is a thing that has to be
+   opened to be understood, and this file is read far more often than it is written. */
+.rc-ref { text-align: right; margin: .1rem 0 0; font-size: .66rem; color: var(--faint); }
 
 /* ---------- THE ROSTER ---------------------------------------------------------------------------
    Four slots in a row, the shape a game lobby uses. It makes the size of the group a picture rather
@@ -2161,30 +2165,35 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* The note. Right up against the figure, quiet, and allowed to wrap — it is a remark about the
    total rather than a column of its own. */
 .rc-total .bk-r {
-  font-size: .68rem; font-weight: 400; color: var(--paper-dim);
+  font-size: .68rem; font-weight: 400; color: var(--dim);
   text-align: right; white-space: normal;
 }
 /* THE LABEL MAY WRAP AFTER ALL. `auto` sizes this column to its content and `nowrap` forbade it
    ever being narrower — so "IT WOULD COME TO" took whatever width it wanted and drew straight
    through the note beside it. Four words is not two: allowed to break, it gives way instead of
    overlapping, and on a card wide enough it still sits on one line exactly as before. */
-.rc-total .bk-k { color: var(--paper-ink); font-weight: 700; text-transform: uppercase;
+.rc-total .bk-k { color: var(--ink); font-weight: 700; text-transform: uppercase;
                   letter-spacing: .06em; }
-.rc-total .bk-t { font-size: 1.05rem; font-weight: 700; color: var(--paper-ink); }
+.rc-total .bk-t { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
 
-/* The rows inside the paper: the same five columns, in ink rather than in screen colours. */
-.rc .bk-k { color: var(--paper-dim); }
-.rc .bk-v { border-bottom-color: #c9c0b0; }
-.rc .bk-m { color: var(--paper-dim); }
-.rc .bk-r { color: var(--paper-faint); }
-.rc .bk-t { color: var(--paper-ink); }
-.rc .bk-end { border-bottom-color: #ded5c5; }
-.rc .bk-pick { border-bottom-color: #b8722a; }
-.rc .bk-pick:active { color: #b8722a; }
-.rc .bk-hr { border-color: #c9c0b0; color: var(--paper-faint); }
-.rc .bk-hr.on { background: var(--paper-ink); color: var(--paper); border-color: var(--paper-ink); }
-.rc .bk-dates { color: var(--paper-dim); }
-/* The two photographs sit on the paper like something stapled to it. */
+/* ---------- ELEVEN RULES THAT SAID THE SAME ELEVEN THINGS IN A SECOND COLOUR ----------------------
+   THIS BLOCK WAS "the rows inside the paper: the same five columns, in ink rather than in screen
+   colours", and every line of it paired exactly with a base `.bk-*` rule forty lines below:
+   `.rc .bk-k` against `.bk-k`, `.rc .bk-t` against `.bk-t`, cream for black the whole way down.
+
+   THAT PAIRING IS WHAT THE COSTUME COST, and it is why it was worth taking off. Every control this
+   document ever gains needed a second colour written for it by hand, and a control whose author
+   forgot looked right on every screen in the app except the one it was built for. Four of the
+   eleven were not even tokens — `#c9c0b0`, `#ded5c5`, `#b8722a`, `#cfc9bd` — which is the same
+   find-and-replace trap the paper palette was named to close.
+
+   ALL ELEVEN ARE DELETED RATHER THAN RE-POINTED. The base rules are already the app's palette and
+   already correct; re-pointing would have left eleven overrides restating their own defaults, which
+   is the DRY fault one step further along rather than the fix for it. `.rc .bk-sel:disabled`,
+   `.rc .bk-set` and `.rc .bk-open` went the same way, further down this file.
+
+   IF THE ROWS EVER NEED TO DIFFER INSIDE THE DOCUMENT, this is the place — but the reason will
+   have to be something other than "it is on cream". */
 
 /* ---------- THE BOOKING CARD --------------------------------------------------------------------
    Five columns: what it is · what was chosen · the multiplier · what it adds an hour · the running
@@ -2335,8 +2344,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .bk-sel:disabled, .bk-in:read-only {
   opacity: 1; cursor: default; color: var(--dim);
 }
-.rc .bk-sel:disabled, .rc .bk-in:read-only { color: var(--paper-faint); }
-.rc.scr .bk-sel:disabled, .rc.scr .bk-in:read-only { color: #6f8f7c; }
 /* THE WEEK, WHEN THERE IS NO WEEK TO PICK. Greyed whole rather than removed — see `stepGrid_`. */
 .bk-open.is-off .slot-grid { opacity: .45; }
 
@@ -2358,8 +2365,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    is the other half of the point: a select cannot, so a long venue name was cut mid-word in a column
    with room for it over two lines. Same colour as a locked control, for the same reason. */
 .bk-set { display: block; color: var(--dim); }
-.rc .bk-set { color: var(--paper-faint); }
-.rc.scr .bk-set { color: #6f8f7c; }
 
 /* THE NOTE READS LEFT TO RIGHT. Every other value is right-aligned against its figures; a sentence
    is not a figure, and a sentence that starts at the right edge and grows leftwards is unreadable.
@@ -2389,7 +2394,6 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
   border-bottom: 1px dashed var(--line);
 }
 .bk-open > p { margin: 0 0 .2rem; font-size: .66rem; line-height: 1.3; }
-.rc .bk-open { border-color: #cfc9bd; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
@@ -4512,142 +4516,38 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    reads and assumes is doing something. */
 
 /* ==================================================================================================
-   FOUR OBJECTS. `.rc` is the receipt and it is unchanged — torn, cream, off a till. The other three
-   are different things, drawn as different things, because that is what they are:
+   FOUR OBJECTS BECAME ONE, AND THIS IS WHERE THE OTHER THREE LIVED.
 
-     .scr   a terminal being typed into      nothing exists yet
-     .app   an application handed in         asked for, not yet answered
-     .wl    a numbered ticket in a queue     waiting for a seat
+   `.rc` is drawn by one function and it is four things the app does: the booking form, the basket,
+   the application you have handed in, and the session you have paid for. Each had its own skin —
 
-   NONE OF THEM TEARS. The ragged edge is what says a till printed this, and a till prints when
-   money has moved. Squaring the ends is not a style choice on three of these; it is the absence of
-   the event the tear commemorates.
+     .scr   a dark terminal with scan lines and a blinking cursor
+     .app   white paper, a red filing edge, an angled PENDING stamp
+     .wl    an amber queue ticket with a dashed border
+     .rc    cream, torn at both ends, a barcode
+
+   — and each was argued for well, one at a time, on the grounds that a form is not a receipt and a
+   queue ticket is neither. Every one of those arguments is true about the real objects. What they
+   miss together is that the SAME BOOKING wore three of them over its life, so the document a family
+   filled in, the document they were waiting on and the document they ended up holding could not be
+   compared with each other — and none of the four was the black and gold that every other card on
+   this site is drawn in.
+
+   THE COST IS THE PART THAT IS NOT A MATTER OF TASTE. Four palettes on one markup means every
+   control this document ever gains has to be coloured four times by hand, and the fourth is written
+   by somebody who has forgotten the other three exist. `.rc .bk-*` was eleven rules doing exactly
+   that for cream alone, four of them in raw hex.
+
+   SO: ONE DOCUMENT, THE APP'S OWN CLOTHES, AND THE STAGE SAID IN WORDS. `jobSaid_` already returns
+   the sentence — "Accepted, waiting for payment", "On the waiting list" — and a sentence is
+   readable, translatable, and the same size in every skin, none of which a rubber stamp is.
+
+   These 90 lines were reachable by nothing the moment the basket stopped asking for `kind:
+   'screen'`; they are deleted rather than left commented, because a stylesheet should be the size
+   of the app rather than the size of its history. The argument is kept because it is the expensive
+   half: it took four goes to find out that the thing wrong with four good costumes is that there
+   are four of them.
 ================================================================================================== */
-.rc.scr, .rc.app, .rc.wl { -webkit-mask: none; mask: none; }
-
-/* ---------- THE TERMINAL -------------------------------------------------------------------------
-   Nobody is handed paper when they ask for something. Somebody types it into a screen in front of
-   them, and this is that screen: dark glass in a bezel, green type, a cursor waiting. */
-.rc.scr {
-  background: #0d0f0e;
-  color: var(--green);
-  border-radius: 10px;
-  border: 3px solid #2a2f2c;
-  box-shadow: inset 0 0 0 2px #050706, inset 0 6px 22px rgb(0 0 0 / .9), 0 4px 0 #1a1e1c;
-  position: relative;
-  overflow: hidden;
-}
-.rc.scr::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: repeating-linear-gradient(to bottom, rgb(255 255 255 / .035) 0 1px, transparent 1px 3px);
-  pointer-events: none;
-}
-/* The cursor. The oldest signal in computing that a machine is waiting for you, and the whole
-   reason this reads as being typed rather than as a dark card. */
-.rc.scr::after {
-  content: '';
-  position: absolute; right: .8rem; bottom: .7rem;
-  width: .55rem; height: 1rem;
-  background: var(--green);
-  animation: scr-blink 1.1s steps(1) infinite;
-  pointer-events: none;
-}
-@keyframes scr-blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
-/* ---------- A SAVED DOCUMENT IS NOT WAITING FOR ANYBODY -------------------------------------------
-   The receipt wears the form's skin now — same type, same colours, same rules — so that neither has
-   to be styled twice and neither can drift from the other. The cursor is the single thing that does
-   not carry across: it says "type here", and a record of something already agreed has nothing left
-   to type. */
-.rc.scr.is-done::after { content: none; }
-/* `.rc.scr .rc-head h2` IS STILL LISTED and now matches nothing — the form has no heading. Left in
-   place deliberately: the rule is "the bright things on the terminal", and dropping the selector
-   would mean adding it back the day a heading returns. */
-.rc.scr .rc-head h2, .rc.scr .rc-total, .rc.scr .bk-pick { color: var(--green) }
-.rc.scr .rc-head p, .rc.scr .rc-stage, .rc.scr .bk-k, .rc.scr .bk-n { color: #6f8f7c }
-.rc.scr .bk-row, .rc.scr .bk-v { color: #cfe8d8 }
-.rc.scr .rc-rule { border-color: rgb(61 220 132 / .25) }
-
-/* ---------- THE APPLICATION ----------------------------------------------------------------------
-   A FORM THAT HAS BEEN HANDED IN. Everybody knows what one looks like and nobody mistakes one for a
-   receipt: white paper rather than till cream, a hard rule down the left where it would be filed,
-   and a stamp saying it is waiting on somebody.
-
-   THE STAMP IS THE POINT. A form with no stamp has not been dealt with, which is precisely the
-   state this represents — and it is the thing you look for first on any form you have ever handed
-   over. Angled, because a stamp put on by hand is never square. */
-.rc.app {
-  background: #fbfaf7;
-  color: #1e1c19;
-  border-radius: 2px;
-  /* The filing edge. A form is punched and filed; a receipt is torn and pocketed. */
-  border-left: 5px solid #b9312b;
-  box-shadow: 0 1px 0 rgb(0 0 0 / .3), 0 6px 18px rgb(0 0 0 / .35);
-  position: relative;
-  overflow: hidden;
-}
-.rc.app .rc-stage {
-  color: #b9312b;
-  font: 700 .6rem/1 var(--mono);
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  margin: 0 0 .5rem;
-}
-.rc.app::after {
-  content: 'PENDING';
-  position: absolute; top: .9rem; right: -1.4rem;
-  transform: rotate(14deg);
-  font: 800 .82rem/1 var(--mono);
-  letter-spacing: .22em;
-  color: rgb(185 49 43 / .5);
-  border: 2px solid rgb(185 49 43 / .35);
-  border-radius: 3px;
-  padding: .22rem 1.7rem;
-  pointer-events: none;
-}
-/* A stub is three lines tall — a stamp across it would cover the words. The red filing edge is
-   enough at that size, and it is the same signal. */
-.rc.rc-stub.app::after { content: none }
-
-/* ---------- THE QUEUE TICKET ---------------------------------------------------------------------
-   NOT A FORM AND NOT A PURCHASE. It is the numbered ticket you hold at a counter: thin card, a
-   dotted tear line, and the number that is the entire reason you are holding it.
-
-   AMBER because it is the colour of waiting everywhere else on this site, and because it is neither
-   the red of a thing outstanding nor the green of a thing done. */
-.rc.wl {
-  background: #14120d;
-  color: var(--gold);
-  border: 2px dashed rgb(255 180 84 / .55);
-  border-radius: 8px;
-  box-shadow: 0 4px 0 rgb(0 0 0 / .4);
-}
-.rc.wl .rc-head h2, .rc.wl .rc-total { color: var(--gold) }
-.rc.wl .rc-stage {
-  color: var(--gold);
-  font: 700 .62rem/1 var(--mono);
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  margin: 0 0 .5rem;
-}
-.rc.wl .rc-head p, .rc.wl .bk-k, .rc.wl .bk-n { color: #a08a5e }
-.rc.wl .bk-row, .rc.wl .bk-v { color: #f0e2c8 }
-.rc.wl .rc-rule { border-color: rgb(255 180 84 / .3) }
-
-/* ---------- AN APPLICATION THAT HAS BEEN ACCEPTED -------------------------------------------------
-   STILL AN APPLICATION. Money has not moved, so it is not a receipt — what has changed is that the
-   business has said yes and the family may now pay. The form is the same form; the stamp is what
-   answers it, which is exactly what a stamp is for.
-
-   Accepting a booking previously changed nothing on screen at all: the card before and after were
-   identical, so the only evidence it had worked was a status cell in a spreadsheet. */
-.rc.app.is-accepted { border-left-color: var(--green) }
-.rc.app.is-accepted .rc-stage { color: var(--green) }
-.rc.app.is-accepted::after {
-  content: 'ACCEPTED';
-  color: rgb(61 220 132 / .55);
-  border-color: rgb(61 220 132 / .4);
-}
 
 /* ==================================================================================================
    A FESTIVE EVENT IS AN INVITATION.
@@ -7391,8 +7291,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   padding: .5rem .6rem;
   font-size: .82rem;
 }
-.rc .rc-do { border-top: 1px dashed #b3aa9c; border-radius: 0; }
-.rc.scr .rc-do { border-top-color: rgb(61 220 132 / .25); }
+.rc .rc-do { border-top: 1px solid var(--line-soft); border-radius: 0; }
 
 /* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
    receipt is a single thing to do, not a set to choose from. */
@@ -7400,24 +7299,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    everything here is what to do about it. Two of them, so a row rather than a stack. */
 .rc-tiles { justify-content: center; gap: .4rem; margin: .45rem 0 0; padding-top: .45rem; }
 .rc-tiles .tile { width: 40px; height: 40px; }
-.rc .rc-tiles { border-top: 1px dashed #b3aa9c; }
-.rc.scr .rc-tiles { border-top-color: rgb(61 220 132 / .25); }
+.rc .rc-tiles { border-top: 1px solid var(--line-soft); }
 
-/* THE TERMS, in the paper's own quiet colour rather than the app's. `.faint` is a dark-theme grey
-   and this sits on off-white for every stage but the form. */
+/* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the
+   terms sit on off-white — which was true of the paper and is the whole reason the paper had to
+   go: every quiet line in this document needed its own grey picked by hand against cream, and the
+   app already had one. It is `.faint` now, the same quiet as every other small print on the site. */
 .rc-terms {
   margin: .1rem 0 0;
   text-align: center;
   font-size: .68rem;
   line-height: 1.4;
-  color: var(--paper-dim);
+  color: var(--faint);
 }
-.rc.scr .rc-terms { color: #6f8f7c; }
-/* THE SESSION REFERENCE UNDER THE BARCODE. `.rc-thanks` is a warm grey chosen against cream paper,
-   and on the screen skin it came out as a dark smudge on a dark card — the one line on the receipt
-   that identifies WHICH session, unreadable. The skin's own faint green, like every other quiet
-   line on it. */
-.rc.scr .rc-thanks { color: #6f8f7c; }
 
 
 /* THE ✕ ON A BASKET LINE. `.text-drop` is sized for a settings row; on a receipt line it has to sit
