@@ -162,7 +162,10 @@ function boot(opts) {
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
       /* AN ADMIN'S ACTIONS ON A SESSION, so a journey can ask that moving them from buttons to
          tiles did not lose one. */
-      'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
+      /* THE PAGER TABLE AND THE PAGE COUNTER, so a journey can ask whether what the header counts is
+         what the screen drew. */
+      'PAGER, PAGE, goPage, repaint,'
+      + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
@@ -633,6 +636,58 @@ check('a festive event shows itself and can be joined', async () => {
   const call = sent.find(x => x.action === 'joinFestive');
   return (call && String(call.kids || '').trim()) ? []
     : ['joinFestive was sent without the names — the headcount question achieved nothing'];
+});
+
+check('every pager counts the pages its screen actually draws', async () => {
+  /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES ------------------------
+     `PAGER.account` counted `mePages()`. That function fed the old You COLUMN and says so in its
+     own comment; `screen('account')` draws `accountPages_()` plus `termsPages_()`. So the number of
+     pages the header believed in and the number on screen came from two functions that had not
+     agreed since the column was folded into the funnel — and you could not move down the profile
+     column at all. Not an error: the pager reported one page, so there was nowhere to go, while the
+     pages sat underneath waiting.
+
+     THE SAME SHAPE TWICE BEFORE. `PAGER` keyed on `me` and `posts` when the screens had been renamed
+     `account` and `feed`, so two columns silently stopped paging. And `stuffFirstResult_` counted a
+     page list that `paintStuff` built differently, which put a blank card under the question for
+     every starred thing.
+
+     SO THE JOURNEY ASKS THE BROWSER, not the source: paint each screen through `go`, count the
+     `.page` elements that exist, and compare with what `PAGER[id]()` says. Two functions can only
+     be checked against each other by running both. */
+  const { w } = boot();
+  await wait(400);
+  if (!w.__t.PAGER) return ['PAGER is not exported — cannot check the pagers'];
+
+  /* SIGNED IN, because half these columns draw a sign-in card and nothing else when signed out —
+     a roster of one page agrees with anything and proves nothing. */
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  /* AND REPAINTED, BECAUSE THAT IS WHAT SIGNING IN DOES. `__t.USER` only sets the variable; the app
+     calls `repaint()` straight after, which marks every other screen stale so `go` redraws it on the
+     way in. Without this the journey walks onto screens painted while signed out and reports a
+     disagreement that is its own doing — which is exactly what it did the first time it ran. */
+  if (typeof w.__t.repaint === 'function') w.__t.repaint(true);
+  await wait(200);
+
+  const bad = [];
+  for (const id of Object.keys(w.__t.PAGER)) {
+    try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw on go(): ' + e.message); continue; }
+    await wait(120);
+    const el = w.document.getElementById('s-' + id);
+    if (!el) { bad.push(id + ' has no #s-' + id + ' to draw into'); continue; }
+    const drawn = el.querySelectorAll('.page').length;
+    let says;
+    try { says = (w.__t.PAGER[id]() || []).length; }
+    catch (e) { bad.push(id + ' pager threw: ' + e.message); continue; }
+    /* A SCREEN THAT DRAWS NO PAGES IS NOT PAGED AT ALL and its pager saying nothing is correct. */
+    if (!drawn && !says) continue;
+    if (drawn !== says) {
+      bad.push(id + ': ' + drawn + ' page' + (drawn === 1 ? '' : 's') + ' drawn, pager counts '
+                  + says + ' \u2014 so the header and the screen disagree and moving down will '
+                  + 'stop early or refuse');
+    }
+  }
+  return bad;
 });
 
 check('an admin still has every action on a session after the move to tiles', async () => {
