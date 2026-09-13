@@ -189,16 +189,62 @@ const scanLiteral = src => {
     /* Depth 1 is the payload's own keys. Deeper is a value's insides — `gallery: { error: '' }`
        must not put `error` on the sent list, or a real missing key hides behind it. */
     if (depth === 1 && /[A-Za-z_]/.test(c)) {
-      const m = /^([A-Za-z_]\w*)\s*:/.exec(src.slice(i, i + 80));
-      if (m && !/\w/.test(src[i - 1] || '')) { keys.push(m[1]); i += m[1].length - 1; }
+      /* THE FIRST CHARACTER OF THE VALUE IS TAKEN TOO, because a key being sent and a key being
+         sent as the right SHAPE are different claims, and the fixture can fail the second while
+         passing the first — see the fixture block below. `[` and `{` are the only two this can
+         be sure of; a constant or a call says nothing here and is recorded as unknown. */
+      const m = /^([A-Za-z_]\w*)\s*:\s*(\S)/.exec(src.slice(i, i + 120));
+      if (m && !/\w/.test(src[i - 1] || '')) { keys.push([m[1], m[2]]); i += m[1].length - 1; }
     }
   }
   return keys;
 };
-scanLiteral(gs).forEach(k => sent.add(k));
+const shapeSent = new Map();               // key -> '[' or '{', for the ones doGet states outright
+scanLiteral(gs).forEach(([k, mark]) => {
+  sent.add(k);
+  if (mark === '[' || mark === '{') shapeSent.set(k, mark);
+});
 
 /* Later assignments and the fill loops: `payload.x = …`, `payload.x.push(…)`. */
 for (const m of gs.matchAll(/\bpayload\s*\.\s*([A-Za-z_][\w]*)/g)) sent.add(m[1]);
+
+/* ---------- AND WHAT THE CHECKS PRETEND IT SENDS ---------------------------------------------------
+   `check/fixture.json` IS THE BACKEND, for every check that stands one up — `check/ui.js` serves it
+   in place of the real `doGet`, so nine screens at four widths are measured against whatever is in
+   that file rather than against whatever doGet returns.
+
+   SO A KEY IT TYPES DIFFERENTLY IS A PAYLOAD THE APP WILL NEVER RECEIVE, and every green tick taken
+   against it is green about fiction. `intervals` was `{}` in the fixture and `[]` from doGet, and
+   `(DATA.intervals || []).map` throws on an object — `{}` is truthy, so the fallback that exists for
+   exactly this never fires. The booking breakdown could not be drawn at all under the harness.
+
+   NOTHING CAUGHT IT for as long as it was there. `check/ui.js` draws nine screens and none of them
+   builds a breakdown; `check-flow.js` has its own payload written inline, where `intervals` is a
+   proper list — so the one harness that would have thrown was reading a different fixture from the
+   one that was wrong.
+
+   ONLY THE TWO SHAPES doGet STATES OUTRIGHT ARE CHECKED. `landmarks: []` and `gallery: { … }` are
+   claims; `brand: BRAND` is a name and says nothing here, and guessing at it would put this check
+   in the business of being wrong about things it cannot see. A key the fixture simply lacks is not
+   a mismatch either: absent reaches the site as `undefined`, which is what `|| []` is for. */
+const fxPath = path.join(__dirname, '..', 'check', 'fixture.json');
+const shapeOf = v => Array.isArray(v) ? '[' : (v && typeof v === 'object' ? '{' : null);
+const fxWrong = [];
+let fxRead = 0;
+try {
+  const fx = JSON.parse(fs.readFileSync(fxPath, 'utf8'));
+  fxRead = Object.keys(fx).length;
+  for (const [k, mark] of shapeSent) {
+    if (!(k in fx)) continue;
+    const got = shapeOf(fx[k]);
+    if (got && got !== mark) fxWrong.push([k, mark, got]);
+  }
+} catch (e) {
+  /* A FIXTURE THAT CANNOT BE READ IS NOT A PASS. Every check that serves it is measuring nothing,
+     and "I did not check" must not exit 0 — the same rule the three `.gs` finders learned. */
+  fxWrong.push(['(the whole file)', '', '']);
+  console.log('\ncheck/fixture.json could not be read: ' + e.message);
+}
 
 /* ---------- THE TWO LISTS ------------------------------------------------------------------------- */
 const readNotSent = [...reads.keys()].filter(k => !sent.has(k) && !(k in ACCEPTED)).sort();
@@ -222,6 +268,15 @@ if (sentNotRead.length) {
   console.log('    Not a fault; weight. Delete the ones nothing is waiting for.');
 }
 
+console.log('');
+console.log('THE FIXTURE AND doGet DISAGREE ABOUT A KEY\'S SHAPE  (' + fxWrong.length + ')');
+if (!fxWrong.length) console.log('  none — every shape doGet states, the fixture matches.');
+fxWrong.forEach(([k, want, got]) => {
+  const said = m => (m === '[' ? 'a list' : m === '{' ? 'an object' : 'unreadable');
+  console.log('  ' + k + ': doGet sends ' + said(want) + ', check/fixture.json has ' + said(got));
+  console.log('      → every check served this fixture is measuring a payload the app never gets.');
+});
+
 if (accepted.length) {
   console.log('');
   console.log('ACCEPTED, WITH A REASON  (' + accepted.length + ')');
@@ -229,15 +284,18 @@ if (accepted.length) {
 }
 
 console.log('');
-console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size);
+console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size
+  + '   shapes doGet states: ' + shapeSent.size + '   keys in the fixture: ' + fxRead);
 /* THE VERDICT MUST NOT OVERSTATE ITSELF. "everything the site reads, the backend sends" was printed
    here whenever the failing list was empty — including with five entries sitting in ACCEPTED saying
    the opposite three lines above. A summary that contradicts its own report is worse than no
    summary: the report is what gets skimmed, and this is the line that gets read. */
-console.log(readNotSent.length
+console.log(fxWrong.length
+  ? 'FAILED — the fixture is not the payload, so nothing served it was really checked.'
+  : readNotSent.length
   ? 'FAILED — each of those is a feature that does nothing and says nothing.'
   : accepted.length
     ? 'OK — nothing NEW is unsent. ' + accepted.length + ' known dead key'
       + (accepted.length === 1 ? '' : 's') + ' above, each an unbuilt feature rather than a break.'
     : 'OK — everything the site reads, the backend sends.');
-process.exit(readNotSent.length ? 1 : 0);
+process.exit(readNotSent.length || fxWrong.length ? 1 : 0);
