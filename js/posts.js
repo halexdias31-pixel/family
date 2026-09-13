@@ -647,7 +647,13 @@ on('react', el => {
   else { r.yours = emoji; r.counts[at(emoji)]++; r.total++; }
   repaint();
 
-  send({ action: 'reactPost', name: USER.name, postId: id, emoji })
+  /* `personId` AS WELL AS `name`. The handler resolves the person with
+     `findPerson(S(body.name), S(body.personId))`, which prefers the id and falls back to matching
+     the name — and a name is an editable cell. Sent only the name, a reaction lands on whichever
+     row happens to hold that name first, and stops finding anybody at all the moment somebody
+     renames themselves. `check-post.js` now fails on any action that leaves it out. */
+  send({ action: 'reactPost', name: USER.name, personId: (USER && USER.personId) || '',
+         postId: id, emoji })
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
       repaint();
@@ -707,7 +713,7 @@ on('vote', el => {
   repaint();
 
   api({ action: 'votePoll',
-    name: USER.name, postId: id, choice })
+    name: USER.name, personId: (USER && USER.personId) || '', postId: id, choice })
     .then(d => { if (d && d.error) throw new Error(d.error); })
     .catch(err => {
       q.yours = before.yours; q.counts = before.counts; q.total = before.total;
@@ -903,7 +909,7 @@ on('post-send', el => {
   if (said) said.textContent = 'Posting…';
 
   api({ action: 'addPost',
-    name: USER.name, adminName: USER.name,
+    name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
     /* THE ADDRESS OF THE PICTURE, and nothing else. No bytes go anywhere: the picture stays where
        it already is, which is the only reason this app no longer needs permission to write to your
        Drive at all. */

@@ -162,6 +162,7 @@ node js/check-flow.js            # 21 journeys through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
 node js/check-backend.js         # one Apps Script scope: every name declared exactly once
+node js/check-post.js            # an action that names a person by a cell they can edit
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -304,7 +305,24 @@ Nothing failed and nothing said so. The row version is `childNamesOf` now, named
 rather than what it takes, because two functions one letter apart would be the same trap with a
 longer fuse.
 
-`node js/check-backend.js` is the instrument, and it is the backend's `check.js`: Apps Script loads
+**Six actions identified a person by their display name alone**, and `node js/check-post.js` is the
+instrument. `findPerson(nameOrId, altId)` prefers the id and falls back to matching the NAME — the
+fallback is right, it is what finds a row typed into the sheet before anybody has an id, and it is
+why leaving the id out is invisible: everything works, for one person, until two share a name or
+somebody renames themselves. `addPost`, `changePin`, `reactPost`, `saveScore`, `toggleTopicTick` and
+`votePoll` all had `USER.personId` to hand and were not sending it. `changePin` was the sharp one:
+the PIN you typed is checked against the OTHER person's, and you are told "That is not your current
+PIN" — confidently wrong about the one thing you are certain of, with no way to change yours. Not a
+way in, since the current PIN is still required; a denial rather than a breach.
+
+The check asks **one** question it can be certain about: a handler that reads `body.personId` must
+be sent one. A first version compared every posted key against every `body.x` in both directions,
+the way `check-payload.js` does for `DATA`, and found twenty "read but never sent" of which most
+were fine — a POST field is usually optional and the handler copes. A report that is mostly noise is
+a report nobody reads.
+
+`node js/check-backend.js` is the instrument for the scope, and it is the backend's `check.js`:
+Apps Script loads
 every `.gs` into one scope exactly as the browser concatenates `js/`, so a name declared twice is a
 name declared once and the loader decides which. A redeclared `function` is quietly wrong; a
 redeclared top-level `const` is a SyntaxError that takes the whole project down at load, so the two

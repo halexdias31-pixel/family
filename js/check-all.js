@@ -70,6 +70,9 @@ const SUITE = [
      widget's machinery exists with no widget to reach it — the question that would have. */
   { file: 'check-widgets.js', what: 'the widget contract, and the roster' },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
+  /* AND WHO THE ACTION IS ABOUT. `check-access` asks whether an action may be performed; this asks
+     whether the person it names can be found again tomorrow. */
+  { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },

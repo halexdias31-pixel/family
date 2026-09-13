@@ -1597,7 +1597,8 @@ on('tick', el => {
   el.closest('.tick')?.classList.toggle('on', checked);
 
   api({ action: 'toggleTopicTick',
-    name: USER.name, handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked })
+    name: USER.name, personId: (USER && USER.personId) || '',
+    handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       /* XP AND CREDITS MOVE WITH IT — a tick is worth one of each, which is what the wardrobe is
