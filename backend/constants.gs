@@ -1363,6 +1363,12 @@ const CONFIG_DEFAULTS = [
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
+  /* LAMINATING IS OFF BY DEFAULT, and that is the honest default rather than a cautious one: a
+     pouch and the machine's time are a real cost, so a site that offered it free because nobody had
+     filled in a cell would be selling at a loss on every order and saying nothing about it. At 0
+     the basket draws no upgrade at all — see `laminatePrice`. */
+  ['laminate_rate_per_page', 0, 'what laminating one page costs. 0 = laminating is not offered'],
+  ['laminate_minimum', 0, 'the least a laminating job can cost, whatever the page count. 0 = none'],
   ['postage_flat', 0, 'one stamp and one envelope for a whole order, not per item. 0 = you do not post, and only collection is offered'],
   // Documentation rows. Read by nobody — written so the sheet explains its own arithmetic.
   /* The formula_* rows lived here. They were documentation stored as data: a written copy of the

@@ -54,7 +54,9 @@
  "constants": {
   "vars": {
    "print_marks_per_page": "20",
-   "print_rate_per_page": "0.10"
+   "print_rate_per_page": "0.10",
+   "laminate_rate_per_page": 0.35,
+   "laminate_minimum": 0.5
   }
  },
  "laws": [

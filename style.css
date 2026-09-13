@@ -1320,6 +1320,30 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    here would fight the one that changes tabs. */
 .text-drop { color: var(--bad); cursor: pointer; padding: .2rem .4rem; margin-left: .4rem; }
 
+/* ---------- THE SAME CONTROL AS A REAL BUTTON -----------------------------------------------------
+   THESE WERE `<span>`s WITH A `data-do` and they are `<button>`s now — the docket's delete, the
+   basket's ✕ and the laminate toggle, all for the same reason: a span cannot be reached by a
+   keyboard, is not announced as a control, and is invisible to `check/ui.js`, which measures
+   buttons, links and inputs.
+
+   A BUTTON BRINGS THE BROWSER'S OWN CLOTHES WITH IT — a grey ground, a border, a system font at the
+   system size — so the whole point of an inline text control is lost unless they are taken off. The
+   dotted underline above then applies to both, and a reader cannot tell which element it is.
+
+   44px, IN px, AND WITHOUT MAKING THE LINE 44px TALL. `min-height` on an inline-block inside a
+   basket row grows the row; these sit at the end of a line in a list of four or five, where that is
+   room well spent — unlike the booking form's fifteen, which is why THOSE controls are in
+   `ACCEPTED_TAP` instead. Vertical padding rather than a height so the text stays on the line's
+   baseline with the name beside it. */
+button.text-action, button.text-drop {
+  background: none; border: 0; font: inherit; color: inherit;
+  cursor: pointer; display: inline-block;
+  min-height: 44px; min-width: 44px; padding: .2rem .4rem;
+}
+button.text-drop { color: var(--bad); }
+/* ON, AND SAYING SO IN THE COLOUR THE APP USES FOR "this is chosen". */
+.lam-on { color: var(--gold); }
+
 
 /* ================================================================================================
    THE THINGS THAT WERE BUILT AFTER THE SCREENS.
@@ -4174,7 +4198,10 @@ textarea, select, [data-noswipe],
    `span[data-do]` rule and by name, so both had to say no.
    ANY SINGLE-GLYPH CONTROL WOULD HAVE THE SAME PROBLEM. A chevron, an arrow, a cross — an
    underline under a mark that small is not an affordance, it is a second mark. */
-span[data-do]:not(.act):not(.chip):not(.react):not(.post-edit):not(.map-arrow):not(.cal-arrow),
+/* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile
+   with everything else you can do to a post. Dropped rather than left: an exception naming nothing
+   is a line somebody has to look up to find out it means nothing. */
+span[data-do]:not(.act):not(.chip):not(.react):not(.map-arrow):not(.cal-arrow),
 .text-action, .text-drop {
   text-decoration: underline;
   text-decoration-style: dotted;

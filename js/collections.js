@@ -210,6 +210,26 @@ function savedPages_() {
    announcement of its own emptiness; on a column somebody had deliberately opened that at least
    answered them, and in front of the search box it is a permanent notice for everyone who has not
    bought anything. An empty basket should be no basket. */
+/* ---------- THE LAMINATE TOGGLE ON ONE BASKET LINE ------------------------------------------------
+   ONE SWITCH, TWO STATES, AND THE PRICE IN BOTH. Off it says what it would cost; on it says what it
+   is costing, so nobody has to take it off to find out. The ✕ next to it removes the whole line, so
+   this one says "plain" rather than a second ✕ — two crosses on one row, meaning different things,
+   is the sort of thing somebody presses once and then does not trust again.
+
+   A REAL BUTTON, with a title, because the row is read by a thumb and by a screen reader and the
+   label is three words either way. */
+function lamControl_(c) {
+  if (!c || c.kind !== 'print') return '';
+  const p = typeof laminatePrice === 'function' ? laminatePrice(c.pages) : null;
+  if (p === null) return '';
+  const at = ` data-key="${esc(c.key)}" data-kind="${esc(c.kind)}"`;
+  return c.laminate
+    ? ` <button class="text-action lam-on" data-do="cart-laminate" data-on=""${at}
+        title="Back to plain paper">laminated ${esc(money(p))} · plain</button>`
+    : ` <button class="text-action" data-do="cart-laminate" data-on="1"${at}
+        title="Laminate this copy">+ laminate ${esc(money(p))}</button>`;
+}
+
 function basketPages() {
   if (!CART.length) return [];
 
@@ -231,7 +251,9 @@ function basketPages() {
      trailing after the title in a smaller grey. It was the thing making the line too long. */
   const credits = collCredits_();
   const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
-  const cash = CART.reduce((n, c) => n + (c.money || 0), 0);
+  /* THROUGH `cartMoney_`, so the laminate upgrade is in the total the moment it is on the line.
+     Summing `c.money` directly was the same figure in two places the day laminating was added. */
+  const cash = CART.reduce((n, c) => n + cartMoney_(c), 0);
   const short = due > credits;
 
   const rows = CART.map((c, i) => receiptRow({
@@ -247,15 +269,33 @@ function basketPages() {
        exists for the booking's dropdowns and is exactly what is wanted here: the name, and the way
        to take it out, on the line it belongs to. A separate list of remove buttons underneath would
        be every title printed twice. */
+    /* ---------- THE UPGRADE BELONGS WHERE THE THING IS, NOT WHERE IT WAS BOUGHT --------------------
+       LAMINATING WAS ASKED FOR IN THE BASKET rather than on the paper's own card, and that is the
+       right place for it: it is a decision about a copy you have already decided to buy, and
+       putting it on the card means every paper in the funnel carries a control that only means
+       anything to somebody who is buying one.
+
+       ONLY ON A PRINTED LINE, and only when the sheet has a rate. A credits line and a shop item
+       are not sheets of paper, and `laminatePrice` returns null when nobody has priced the pouches
+       — see the note on it. Nothing is drawn in either case, so the row is exactly what it was.
+
+       THE PRICE IS ON THE CONTROL. "+ laminate" is a question somebody has to press to find out the
+       answer to; "+ laminate £1.20" is one they can decide. */
     sel: esc(c.name)
       + (c.kind === 'print' && c.pages ? ` <span class="faint">${esc(c.pages)}pp</span>` : '')
-      + ` <span class="text-drop" data-do="cart-drop"
-          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</span>`,
+      + lamControl_(c)
+      /* ---------- A `<span>` WITH A `data-do` ON IT IS NOT A CONTROL -------------------------------
+         THE ✕ WAS ONE, and it is the third time in this codebase: the docket's delete, the post's
+         ⋯, and this. A span cannot be reached by a keyboard, is not announced as a button, and is
+         invisible to `check/ui.js`, which measures buttons, links and inputs — so its size has
+         never been checked by anything. `.text-drop` gives it the same look either way. */
+      + ` <button class="text-drop" data-do="cart-drop" title="Take this out"
+          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button>`,
     mul: '',
     rate: '',
     /* CREDITS AND MONEY IN THE SAME COLUMN, because a line costs one or the other and never both —
        `cart-add` writes `money` for a paper and `cost` for anything bought with credits. */
-    total: c.money ? money(c.money) : (c.cost ? c.cost + ' cr' : 'free'),
+    total: cartMoney_(c) ? money(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
     /* THE ✕ IS THE ROW'S OWN CONTROL, drawn where a receipt's line already ends. */
     end: true,
   }));
