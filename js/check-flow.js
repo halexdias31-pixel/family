@@ -165,6 +165,11 @@ function boot(opts) {
       /* THE PAGER TABLE AND THE PAGE COUNTER, so a journey can ask whether what the header counts is
          what the screen drew. */
       'PAGER, PAGE, goPage, repaint,'
+      /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
+         both without a browser and without the sheet. */
+      + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
+      + 'dockText: typeof docketText === "function" ? docketText : null,'
+      + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
@@ -636,6 +641,51 @@ check('a festive event shows itself and can be joined', async () => {
   const call = sent.find(x => x.action === 'joinFestive');
   return (call && String(call.kids || '').trim()) ? []
     : ['joinFestive was sent without the names — the headcount question achieved nothing'];
+});
+
+check('the docket keeps the text you typed, whatever it starts with', async () => {
+  /* ---------- THE BUG, DEMONSTRATED BEFORE IT WAS FIXED -----------------------------------------
+     `x ` AND A TICK WERE THE DONE MARKERS, bare, at the front of the line. So "x ray results" was
+     stored and read back as a COMPLETED task called "ray results": the state wrong and the text
+     eaten, which is both of the only two things a to-do list has to get right. "X marks the spot"
+     went the same way.
+
+     THE MARKER IS A MARKDOWN CHECKBOX NOW and cannot collide with prose. This journey is written
+     against the STORAGE FORMAT rather than the markup, because that is what has to survive — the
+     sheet is the database and these strings sit in a column somebody reads. */
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.__t.dockLines !== 'function' || typeof w.__t.dockText !== 'function') return [];
+
+  const bad = [];
+  const round = t => {
+    w.__t.USER({ name: 'R', personId: 'P1', todo: w.__t.dockText([{ done: false, text: t }]) });
+    return (w.__t.dockLines() || [])[0];
+  };
+
+  ['x ray results', 'X marks the spot', '\u2713 already ticked?', 'Buy milk'].forEach(t => {
+    const got = round(t);
+    if (!got) { bad.push('"' + t + '" vanished from the docket entirely'); return; }
+    if (got.text !== t) bad.push('"' + t + '" came back as "' + got.text + '" \u2014 the text was eaten');
+    if (got.done) bad.push('"' + t + '" came back ticked, and nobody ticked it');
+  });
+
+  /* A TICK MUST STILL SURVIVE A ROUND TRIP, or the fix traded one failure for the other. */
+  w.__t.USER({ name: 'R', personId: 'P1', todo: w.__t.dockText([{ done: true, text: 'Pay the invoice' }]) });
+  const ticked = (w.__t.dockLines() || [])[0];
+  if (!ticked || !ticked.done) bad.push('a ticked line did not come back ticked');
+  if (ticked && ticked.text !== 'Pay the invoice') bad.push('a ticked line lost its text');
+
+  /* AND EVERY DOCKET WRITTEN BEFORE THE BOXES EXISTED still has to read correctly, or the fix
+     silently unticks everybody's finished work the first time they open it. */
+  w.__t.USER({ name: 'R', personId: 'P1', todo: 'x old style\n\u2713 also old\nplain line' });
+  const legacy = w.__t.dockLines() || [];
+  if (legacy.length !== 3) bad.push('a legacy docket did not read back as three lines');
+  if (legacy[0] && (!legacy[0].done || legacy[0].text !== 'old style')) {
+    bad.push('the legacy `x ` form stopped reading as done');
+  }
+  if (legacy[2] && legacy[2].done) bad.push('a plain legacy line came back ticked');
+  return bad;
 });
 
 check('every pager counts the pages its screen actually draws', async () => {
