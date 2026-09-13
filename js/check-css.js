@@ -38,13 +38,31 @@ const cssPath = path.join(dir, 'style.css');
 if (!fs.existsSync(cssPath)) { console.log('no style.css beside this folder'); process.exit(1); }
 const css = fs.readFileSync(cssPath, 'utf8');
 
-/* Everything the app can actually produce: every file's source, plus index.html. Class names are
-   built inside template strings, so the honest test is "does this name appear anywhere in the
-   code at all" rather than any attempt to parse the markup. */
+/* ---------- THE COMMENTS ARE NOT THE APP, AND THIS FILE IS 64% COMMENTS --------------------------
+   THE TEST IS "does this name appear anywhere in the code at all", because class names are built
+   inside template strings and no parse of the markup would be honest. That is right, and it was
+   searching the PROSE as well as the code.
+
+   IN THIS CODEBASE THAT IS NOT A SMALL LEAK. CLAUDE.md's own figure is 64% comments, and the house
+   style is that a comment says what went wrong before — so every class this project has ever
+   deleted is named in the paragraph explaining why it was deleted. `.post-act` was removed from the
+   markup and named four times in the notes about removing it, and stayed off the dead list on the
+   strength of its own obituary. The rules it left behind would have sat in the stylesheet for ever,
+   invisible to the one check that exists to find them.
+
+   SO THE COMMENTS COME OUT FIRST. Block and line comments both, replaced by their own newlines so
+   nothing that reports a line number moves. A name that survives is a name the browser could
+   actually see. */
+const decomment_ = src => src
+  .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ''))
+  /* NOT `//` AT THE START OF A URL. `https://…` inside a string is the common case and eating from
+     there to the end of the line takes real code with it. A `//` that follows `:` is a scheme. */
+  .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 const code = fs.readdirSync(path.join(dir, 'js'))
   .filter(f => f.endsWith('.js') && !f.startsWith('check') && f !== '_scope.js')
-  .map(f => fs.readFileSync(path.join(dir, 'js', f), 'utf8')).join('\n')
-  + (fs.existsSync(path.join(dir, 'index.html')) ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8') : '');
+  .map(f => decomment_(fs.readFileSync(path.join(dir, 'js', f), 'utf8'))).join('\n')
+  + (fs.existsSync(path.join(dir, 'index.html'))
+     ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '') : '');
 
 
 /* ---------- IS IT EVEN A STYLESHEET ---------------------------------------------------------------
@@ -234,14 +252,24 @@ rules.forEach(r => {
 const IGNORE = new Set(['hidden', 'on', 'far', 'no-anim', 'active', 'is-off', 'solid']);
 const seenClass = new Set();
 bare.replace(/\.(-?[A-Za-z_][\w-]*)/g, (_, c) => { seenClass.add(c); return _; });
-/* PLAIN CONTAINMENT, not a pattern. A class name is very often built with a placeholder stuck to
-   it — `class="widget-full${wgt.solid ? ' solid' : ''}"` — and any rule about what may follow the
-   name gets that wrong and calls a live class dead. Eleven were reported that way, and a report
-   that is mostly wrong is a report nobody reads.
-   So the question is only: does this name appear in the code at all? That can still be fooled — a
-   name assembled from pieces, `'is-' + kind` — which is why the heading says to check before
-   deleting. It is a list to look at, not a list to act on blindly. */
-const dead = [...seenClass].filter(c => !IGNORE.has(c) && !code.includes(c));
+/* ---------- PLAIN CONTAINMENT HID EVERY CLASS WHOSE NAME IS A PREFIX OF A LIVE ONE ----------------
+   IT WAS `code.includes(c)`, and the note defending it was right about what it was defending
+   against: a class name is very often built with a placeholder stuck to it —
+   `class="widget-full${wgt.solid ? ' solid' : ''}"` — and a rule about what may follow the name
+   calls a live class dead. Eleven were reported that way once, and a report that is mostly wrong is
+   a report nobody reads.
+
+   WHAT IT ALSO DID was answer yes for `post-act` because the file contains `post-acts`. Any name
+   that is a prefix of another name in this stylesheet is unreportable: `.post-act`, `.tile` against
+   `.tile-row`, `.bk` against `.bk-row`. The check could not have found them in any state of the
+   codebase, which is worse than a false negative — it is a blind spot with no edge.
+
+   SO: THE NAME, NOT FOLLOWED BY MORE NAME. `(?![\w-])` rejects `post-acts` and accepts every case
+   the old note defends, because what follows a built name is `$`, a quote or a space — none of
+   which is a name character. The one it still cannot see is a name assembled from pieces,
+   `'is-' + kind`, which is why the heading says to check before deleting. A list to look at. */
+const dead = [...seenClass].filter(c => !IGNORE.has(c)
+  && !new RegExp(c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])').test(code));
 
 /* ---------- 6. THE SPLASHES: HIDDEN BY DEFAULT, SHOWN ONLY BY THEIR OWN STATE CLASS -------------
    One loading animation shows and the others are not drawn. That is an invariant of this app rather

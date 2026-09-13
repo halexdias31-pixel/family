@@ -78,10 +78,14 @@ function postCard_(p, i) {
             ? ' <span class="post-wait">· not put up</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
-        ${/* One glyph, at the end of the row where it does not compete with the picture. A post is
-              looked at a hundred times for every time it is edited, so the control is small. */''}
-        ${isAdmin() ? `<span class="post-edit" data-do="post-edit"
-             data-id="${esc(p.id)}">⋯</span>` : ''}
+        ${/* THE ⋯ STOOD HERE — "one glyph, at the end of the row where it does not compete with the
+              picture; a post is looked at a hundred times for every time it is edited, so the
+              control is small." Small is right and a `<span>` was the wrong way to get it: a span
+              with a `data-do` cannot be reached by a keyboard, is not announced as a control, and
+              is invisible to `check/ui.js`, which measures buttons, links and inputs. It was about
+              14px and nothing had ever said so.
+              Editing is now a tile in the row under the post, with every other thing you can do to
+              it — see `postTiles_`. */''}
       </header>
 
       ${/* A SHAPE BEFORE IT LOADS. Without one an image is a zero-height box until the photograph
@@ -106,11 +110,11 @@ function postCard_(p, i) {
         ${reacts(p) || (isAdmin()
           ? '<span class="faint">No reaction set — fill in <code>brand!reactions</code>.</span>'
           : '<span></span>')}
-        ${/* THE SAME MARK AS EVERY OTHER SHARE. This was a ↗ — a character, so whatever arrow the
-              phone happened to have, at whatever weight, next to marks that are drawn. Sharing a
-              post and sharing a booking are the same act and now look it. */''}
-        <button class="post-act" data-do="share" data-id="${esc(p.id)}"
-          title="Share this post" aria-label="Share this post">${tileIcon_('share')}</button>
+        ${/* SHARING MOVED DOWN INTO THE TILE ROW. It was the one action living in this row, drawn
+              as a `.post-act` — its own class, its own 44px rule, its own hover — for a control
+              that is the same act as sharing a booking and now uses the same renderer. What is left
+              here is the reactions, which are a counted response rather than an action on the post,
+              and which is why the row is aligned to flex-start: they wrap. */''}
       </div>
 
       ${/* The name leads the caption, as it does everywhere — but ONLY when there is a caption.
@@ -120,14 +124,15 @@ function postCard_(p, i) {
       ${p.poll ? poll(p) : ''}
       ${p.body ? `<p class="note">${mark(p.body)}</p>` : ''}
       ${p.when || p.at ? `<p class="faint post-when">${esc(ago(p.at || p.when))}</p>` : ''}
-      ${/* THE DECISION, on the post itself. Not on a list somewhere else: you are already looking
-            at the photograph and the caption, which is everything the decision is about, and a
-            separate approvals screen is a second place to remember to visit. */''}
-      ${(p.waiting || p.refused) && isAdmin() ? `<div class="btn-row post-ok">
-          <button class="btn" data-do="post-approve" data-id="${esc(p.id)}" data-on="1">Put it up</button>
-          ${p.refused ? '' : `<button class="btn quiet" data-do="post-approve"
-             data-id="${esc(p.id)}" data-on="">Not this one</button>`}
-        </div>` : ''}
+      ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. Sharing, editing, and the decision to put it up were
+            three controls in three places drawn three ways — a `<span>` in the header, a
+            `.post-act` beside the reactions, and a `.btn-row` down here. A post is a THING, and a
+            thing has tiles: see `postTiles_`, which follows `jobAdminTiles_` exactly.
+
+            THE DECISION STAYS ON THE POST, which was the right half of the old arrangement and the
+            reason the button row was here rather than on an approvals screen: you are already
+            looking at the photograph and the caption, which is everything the decision is about. */''}
+      ${postTiles_(p)}
       ${p.waiting && !isAdmin() ? `<p class="faint">Waiting to be checked. Only you can see it.</p>` : ''}
     </article>`;
 }
