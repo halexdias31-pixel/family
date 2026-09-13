@@ -6869,6 +6869,49 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- THE OPENED QUESTION ------------------------------------------------------------------
    Stem, then lead, then the part, in the order it is printed. The stem is dimmed because it is
    context — somebody who opened 2c wants to find 2c, not read three paragraphs first. */
+/* ---------- THE ANSWER, SHUT UNTIL IT IS ASKED FOR ------------------------------------------------
+   SEE `answerBlock_` in find.js for why this is a `<details>` and not a button with a flag.
+
+   THE SUMMARY IS A TAP TARGET AND IS SIZED LIKE ONE — 44px in px, not rem, for the reason the house
+   style gives: the root here is clamp(13.5px, 3.8vw, 16px), so a fingertip's worth of rem is a
+   different size on every phone and a fingertip is not.
+
+   `list-style: none` PLUS THE WEBKIT PSEUDO-ELEMENT, because Safari draws the disclosure triangle
+   through `::-webkit-details-marker` and ignores `list-style` on a summary entirely. One of the two
+   lines is dead on any given browser and which one depends on the browser, so both stay. The mark is
+   drawn here instead, as a + that becomes a −, which reads at any size and needs no glyph the phone
+   might not have.
+
+   NOT `display: flex` ON THE SUMMARY IN ONE GO — a flex summary loses its marker box in Safari and
+   the element stops being clickable in some older WebKits. `display: block` with the contents laid
+   out inside is the arrangement that behaves everywhere. */
+.qans { margin-top: .9rem; border-top: 1px solid var(--line); }
+.qans-open {
+  display: block; list-style: none; cursor: pointer;
+  min-height: 44px; padding: .8rem 0 .4rem;
+  font: 600 .8rem/1.2 var(--font); color: var(--gold);
+}
+.qans-open::-webkit-details-marker { display: none; }
+.qans-open span { position: relative; padding-left: 1.4rem; }
+.qans-open span::before {
+  content: '+'; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  font: 700 1.1rem/1 var(--mono); color: var(--gold);
+}
+.qans[open] .qans-open span::before { content: '\2212'; }   /* a real minus, not a hyphen */
+.qans-open em { margin-left: .5rem; font-style: normal; font-size: .68rem; color: var(--faint); }
+/* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. */
+.qans-body { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; padding-bottom: .4rem; }
+.qans-body p:first-child { margin-top: 0; }
+.qans-body table { border-collapse: collapse; margin: .9rem 0; }
+.qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
+/* WHAT THE EXAMINER SAID, set apart from the answer — it is commentary on how it was marked, not
+   part of the answer, and reading them as one paragraph is how a hint becomes a requirement. */
+.qans-note {
+  margin: .6rem 0 .4rem; padding: .6rem .7rem;
+  background: var(--sunk); border-radius: var(--r-sm);
+  font: 400 .74rem/1.45 var(--font); color: var(--dim);
+}
+
 .qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
 .qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }

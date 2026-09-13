@@ -1050,7 +1050,45 @@ function questionCard_(x) {
         <div class="qsheet-pb">${x.html || ''}</div>
       </div>
     </div>
+    ${answerBlock_(x)}
   </div>`;
+}
+
+/* ---------- THE ANSWER, SHUT UNTIL IT IS ASKED FOR ------------------------------------------------
+   A REVISION SCREEN THAT SHOWS THE ANSWER UNDER THE QUESTION HAS NOT ASKED YOU ANYTHING. The whole
+   value of a past paper is the gap between reading it and knowing it, so the answer is behind one
+   tap and the question is what you land on.
+
+   `<details>` RATHER THAN A `data-do` AND A HANDLER, and it is the first one in this app. Open and
+   shut is the entire state, the browser already keeps it, and it is reachable from a keyboard
+   without anybody writing that. A handler would have meant a flag somewhere, and cards are rebuilt
+   on every repaint — so the flag would need a key, and the key would need to survive a filter
+   changing underneath it. Nothing to store is better than somewhere to store it.
+
+   IT SHUTS AGAIN WHEN THE CARD IS REDRAWN, and that is the right way round. A repaint means the
+   facts moved; re-arriving at a question you have not answered yet with the answer already open is
+   the one failure mode worth avoiding here.
+
+   THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
+   lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
+   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. An
+   examiner's note is a paragraph of prose, so it is escaped like every other sentence on this card.
+   Both come from the owner's own spreadsheet, which is the same trust as the question itself.
+
+   NOTHING AT ALL WHEN THERE IS NO ANSWER. A summary reading "Answer" that opens on emptiness is
+   worse than no summary: it says one exists. */
+function answerBlock_(x) {
+  if (!x || !String(x.answer || '').trim()) return '';
+  /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
+     25-mark essay want different things of you before you open it. */
+  const kind = String(x.answerType || '').trim();
+  return `<details class="qans">
+    <summary class="qans-open">
+      <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
+    </summary>
+    <div class="qans-body">${x.answer}</div>
+    ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
+  </details>`;
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it
@@ -1232,6 +1270,18 @@ function questionItems() {
       qNumber: r.q, qPart: r.part || '',
       marks: r.marks, section: r.section,
       lead: r.lead, html: r.html,
+      /* ---------- THE ANSWER, WHICH THE BACKEND HAS BEEN SENDING TO NOBODY -------------------
+         `answer`, `answerType` AND `examinerNote` ARE IN THE PAYLOAD ALREADY. `SCHEMA.questions`
+         has carried the columns and `doget.gs` has mapped them since the tab was cut — and this
+         function dropped all three on the floor, so every question reached the phone with its mark
+         scheme attached and nothing ever looked at it. The other direction of the fault
+         `check-payload.js` was written for: sent, and never read.
+
+         NOT ADDED TO `text`. That is what the search box matches against, and putting the answer in
+         it means typing a value finds the question it answers — which is the one search a revision
+         screen must not do. */
+      answer: r.answer || '', answerType: r.answerType || '',
+      examinerNote: r.examinerNote || '',
       stemHtml: stem ? stem.html : '',
       /* SEE `searchText_`. The stem too, because a question that reads "work out the value of x"
          says nothing on its own and everything alongside the paragraph it hangs from. */
