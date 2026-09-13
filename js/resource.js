@@ -372,6 +372,12 @@ function paperBody_(t) {
         ${r.html || ''}
         ${r.marks ? `<p class="qp-marks">[${esc(r.marks)} mark${
           Number(r.marks) === 1 ? '' : 's'}]</p>` : ''}
+        ${ansBox_(t, r)}
+        ${/* AND THE MARK SCHEME UNDER YOUR OWN ANSWER, shut until asked for — the same block the
+              single-question card draws, so a part looks identical whichever way it is reached.
+              Your box comes FIRST deliberately: an answer you can see before you have written one
+              is not a question. */''}
+        ${typeof answerBlock_ === 'function' ? answerBlock_(r) : ''}
       </div>
     </div>`;
   });
@@ -379,39 +385,50 @@ function paperBody_(t) {
   return { html: h, marks: marks };
 }
 
-function openPaper_(t) {
-  const body = paperBody_(t);
-  if (!body) { toast('No questions written up for this one yet'); return; }
+/* ---------- SOMEWHERE TO WRITE THE ANSWER --------------------------------------------------------
+   A BOX PER PART, because that is what the paper has. The alternative — one box at the bottom — is a
+   page of prose nobody can mark against a mark scheme that is written per part.
 
-  /* ---------- NO TAB. IT OPENS HERE ----------------------------------------------------------------
-     THE NOTE THIS REPLACES ARGUED ABOUT WHEN TO OPEN THE TAB — empty first, filled after — so the
-     browser would not treat it as a pop-up. It was solving the wrong problem. The tab itself is the
-     problem: it asks for pop-up permission, so the first press often did nothing at all; the back
-     gesture leaves the app entirely; and the filters you had answered are gone when you return.
+   IT IS KEPT IN `localStorage`, AND THAT IS NOT A SHORTCUT. These cards are rebuilt on every
+   repaint — a filter changing, a payload landing, signing in — and a `<textarea>` rebuilt is a
+   `<textarea>` emptied. Somebody four questions into a paper losing the lot because the sheet
+   answered is the kind of fault that stops people trusting an app entirely. The browser remembers it
+   instead, so a redraw, a swipe away or a reload all come back to what was typed.
 
-     THE SHEET IS WHERE EVERY OTHER LONG THING IN THIS APP OPENS — documents, receipts, the booking
-     form. Closing it puts you back exactly where you were, which is what somebody flicking between
-     two papers actually wants.
+   NOT SENT ANYWHERE, and the card says so. There is no endpoint that takes an answer and no tab to
+   hold one, so this is a workbook and not a submission — promising otherwise by looking like a form
+   would be worse than the plain box it is.
 
-     `.qpaper` AND `.qp-head` ALREADY EXIST in style.css, written for reading a paper on a phone:
-     a section heading, a number standing away from the text, marks hard right. They were styled and
-     produced by nothing, because the only reader was the tab and the tab used its own stylesheet.
+   THE KEY IS PAPER + QUESTION + PART, so two papers that both have a `3(a)` do not share a box.
+   Every read and write is wrapped: private mode throws on `localStorage` rather than returning
+   null, and a thrown getter here would take the whole paper down with it. */
+const ansKey_ = (t, r) => 'ans:' + ((t && (t.id || t.name)) || '?') + '|' + (r.q || '') + '|' + (r.part || '');
 
-     PRINTING STILL WORKS. A sheet is part of this document, so the browser's own print takes it. */
-  const head = [t.examBoard, waveOf(t), t.keystage].filter(Boolean).join(' · ');
-  openSheet(t.name, `
-    <div class="qpaper">
-      ${head ? `<p class="qp-head">${esc(head)}${
-        body.marks ? ` · <b>${body.marks} marks</b>` : ''}</p>` : ''}
-      ${body.html}
-      <p class="qp-end">END OF QUESTIONS</p>
-    </div>
-  `);
+function ansRead_(k) {
+  try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
 }
 
-on('paper-read', el => {
-  const key = el.getAttribute('data-key');
-  const t = (allTopics() || []).find(x => (x.id || x.name) === key);
-  if (!t) { toast('That paper is not in the sheet'); return; }
-  openPaper_(t);
+function ansBox_(t, r) {
+  const k = ansKey_(t, r);
+  return `<label class="qp-ans">
+    <span class="qp-ans-k">Your answer</span>
+    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
+      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
+  </label>`;
+}
+
+/* SAVED AS IT IS TYPED, through the same delegated `change`/`input` route book.js uses for its typed
+   fields — there is no Save button because there is nothing to save it TO, and a button that only
+   wrote to the same browser would be a promise the app cannot keep. */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
+  if (!el) return;
+  try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
 });
+
+/* `openPaper_` AND `on('paper-read')` WERE HERE — the sheet the `<>` tile slid up. Both are gone
+   with the tile: the questions are printed straight onto the paper card now (`paperInline_` in
+   find.js), so there is nothing left to open and nothing left to close. `paperBody_` above is what
+   both the old sheet and the new card build from, and it stays — it was never the popup, it was the
+   paper. */
+

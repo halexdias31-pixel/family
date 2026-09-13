@@ -1343,6 +1343,23 @@ function allTopics() {
      loop below only ever sees the first one. A stem carries no marks of its own — it is the shared
      wording above the parts — so counting it would be counting nothing twice. */
   const marks = {};
+  /* ---------- THE METHOD, FROM WHICHEVER ROW CARRIES IT -------------------------------------------
+     TWO COMMENTS IN THIS CODEBASE DISAGREE ABOUT WHERE A PAPER'S OWN FACTS LIVE. `SCHEMA.questions`
+     says they are "blank on every part row, filled only on the one `kind: paper` row"; the note
+     beside this function says they "ride on every part" and calls it a denormalisation.
+
+     THE CODE SETTLES IT AND THE SCHEMA LOSES. `paperIdOf_` reads `r.paper`, which is blank on a
+     paper row by definition — so that row groups under '' and is dropped, and every paper-level
+     field this function reads comes off a PART. A `guide` typed onto the paper row alone would have
+     been collected by nothing and shown nowhere, silently, which is this app's signature fault.
+
+     SO IT IS TAKEN FROM THE FIRST ROW OF THE PAPER THAT HAS ONE, whichever kind that row is. Fill
+     the paper row or fill a part; both work, and neither has to be the right guess. */
+  const guides = {};
+  qs.forEach(r => {
+    const id = paperIdOf_(r) || String((r && r.id) || '');
+    if (id && !guides[id] && String((r && r.guide) || '').trim()) guides[id] = r.guide;
+  });
   qs.forEach(r => {
     const id = paperIdOf_(r);
     if (!id || r.kind === 'stem') return;
@@ -1381,6 +1398,8 @@ function allTopics() {
       /* `paper: true` — IT IS ONE. This said false, so the funnel filed every past paper under
          "Digital" and the Printed filter found none of them. It is the same fact `pages` was
          getting wrong, one line along. */
+      /* THE PRACTICAL'S METHOD, off the paper row — see SCHEMA.questions. Blank on a past paper. */
+      guide: guides[id] || r.guide || '',
       paper: true, pages: paperPages_(marks[id]), printable: '',
       active: r.active !== false,
       /* ---------- THE PASSES HAVE NOWHERE TO LIVE ---------------------------------------------
@@ -2152,7 +2171,23 @@ function bookingPages_(o) {
      here. A rule naming the answers it applies to is a rule that goes stale on the next one. */
   const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
   if (narrowed) return [];
-  return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
+  const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
+  /* ---------- THE BASKET BELONGS TO BOOKING, AND WAS FILED UNDER THE FUNNEL ----------------------
+     IT SAT ON THE `stuff` COLUMN, between the saved things and the first result. The layout sheet
+     puts it under Booking — second row of that column — and the sheet is right: a basket is the
+     end of arranging a session, not a thing you search for. Moved.
+
+     COLUMN MODE ONLY, and that is the whole care in this change. `bookingPages_()` with no argument
+     is what `frontPages_()` calls to put the form on the FUNNEL — so adding the basket to the plain
+     return would have moved it out of one place on `stuff` and straight back into another.
+
+     AND THREE COUNTERS HAD TO MOVE WITH IT. `stuffFirstResult_`, `paintStuff` and `screen('stuff')`
+     each added `basketPages().length` to work out where the results start; a page list and a page
+     count that disagree is exactly the fault that put a blank card under the question for every
+     starred thing. All three are updated, and `check-flow` walks the funnel to prove it. */
+  return o && o.column && typeof basketPages === 'function'
+    ? form.concat(basketPages())
+    : form;
 }
 
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER -------------------------------------------------------
@@ -2207,11 +2242,40 @@ function accountPages_() {
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
     return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
   }
-  return [`<div class="card">
+  /* ---------- YOU FIRST, THEN EVERYBODY ELSE -----------------------------------------------------
+     `People` LEFT THE FUNNEL AND TOOK THE ONLY WAY TO LOOK SOMEBODY UP WITH IT. Tutors used to
+     answer under People there; with that group gone the app had no roster at all, and this column
+     already had exactly one person on it — you.
+
+     SO THE PEOPLE GO UNDERNEATH, one to a page, in the order the sheet gives them. Your own card
+     stays first because this is your column and because a list you are not at the top of is a
+     directory rather than an account.
+
+     `findCard` DRAWS THEM, WHICH IS THE POINT. It is the same function the funnel used for a tutor,
+     so a person looks identical wherever they are seen — two renderers for one person is two things
+     to keep in step, and the last time this app had that it had two of the same post.
+
+     ONLY WHAT THE BACKEND ALREADY SENDS. `DATA.tutors` is the public list and always has been;
+     `doget.gs` deliberately never sends the `people` tab, which holds PINs, bank details, addresses
+     and dates of birth. Reading from anything else here would put all of that on every phone, and
+     the leak would be invisible because the data would already have arrived. */
+  const me = `<div class="card">
     <h3>${esc(USER.name || 'Signed in')}</h3>
     <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
     <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
-  </div>`];
+  </div>`;
+
+  const others = (DATA.tutors || [])
+    .filter(t => t && t.title && t.listed !== false)
+    /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
+       account and again below as a tutor — the same duplication the `me` kind was merged away to
+       avoid. Matched on the normalised name, which is what every other lookup here uses. */
+    .filter(t => !(USER.name && norm(t.title) === norm(USER.name)))
+    .map(t => (typeof findCard === 'function'
+      ? findCard({ kind: 'tutor', row: t })
+      : `<div class="card"><h3>${esc(t.title)}</h3></div>`));
+
+  return [me].concat(others);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
@@ -2241,8 +2305,9 @@ function stuffFirstResult_() {
   /* PAST THE BOOKING PAGES TOO. They sit between the question and the results, so a result's index
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
+  /* THE BASKET IS NOT COUNTED ANY MORE — it moved to the Booking column. See `bookingPages_`. */
   return stuffQuestionPage_() + 1 + frontPages_().length
-       + savedPages_().length + basketPages().length;
+       + savedPages_().length;
 }
 
 function stuffPageCount() {
@@ -2560,7 +2625,7 @@ function paintStuff(keepPage) {
      ONE INSERT AND ONE ORDER. The string's own order is the order, so there is nothing to reason
      about — `afterend` with four separate calls is what made the old code need a paragraph
      explaining that the last one lands nearest. */
-  const after = frontPages_().concat(savedPages_(), basketPages())
+  const after = frontPages_().concat(savedPages_())
     .map(c => `<section class="page"><div class="pane">${c}</div></section>`)
     .join('')
     + Array.from({ length: stuffPageCount() },
@@ -3015,6 +3080,44 @@ function paperCard(x) {
       <span>${x.pages ? esc(x.pages) + ' pages' : ''}</span>
       <span>Answer all questions</span>
     </div>
+  </div>${paperInline_(x)}`;
+}
+
+/* ---------- THE QUESTIONS ARE ON THE PAGE, NOT BEHIND A BUTTON -------------------------------------
+   THERE WAS AN `HTML` TILE WITH A `<>` ON IT and tapping it slid the paper up in a sheet. Two things
+   were wrong with that and only one of them is the popup.
+
+   A SHEET IS A SCREEN YOU HAVE TO CLOSE. The funnel has already done the narrowing a list needs: by
+   the time you are looking at one paper there is nothing else on the page, so opening a panel over
+   the top of it covers nothing and adds a lid. That is the same argument `jobReceipt` won two
+   hundred lines away — "the page IS the document" — and a past paper is a document.
+
+   AND THE TILE HID THE FEATURE. `<>` with `HTML` under it reads as a developer's view of the row,
+   not as "the questions are in here", so the one thing somebody came to this card for was behind a
+   button that looked like it was for somebody else.
+
+   THE BASKET IS UNTOUCHED. Printing is still a tile, still priced, still the same tap — see
+   `topicTiles_`. This only moves the reading.
+
+   NOTHING WHEN THERE IS NOTHING. A paper with no questions written up renders the cover and stops,
+   rather than an empty rule and a heading with a blank under it. */
+function paperInline_(x) {
+  const t = x && x.topic;
+  if (!t || typeof paperBody_ !== 'function') return '';
+  let body = null;
+  try { body = paperBody_(t); } catch (e) { body = null; }
+  if (!body || !body.html) return '';
+  const head = [x.examBoard, x.examWave || x.year, x.keystage].filter(Boolean).join(' \u00b7 ');
+  /* THE METHOD FIRST, WHEN THERE IS ONE. A practical's guide is what you read BEFORE the questions —
+     apparatus out, method understood — so it sits above them and not in a panel beside them. Blank
+     on every past paper, which is most rows, and blank draws nothing. */
+  const guide = String((t && t.guide) || '').trim();
+  return `<div class="qpaper">
+    ${head ? `<p class="qp-head">${esc(head)}${
+      body.marks ? ` \u00b7 <b>${body.marks} marks</b>` : ''}</p>` : ''}
+    ${guide ? `<div class="qp-guide"><h3>Method</h3>${guide}</div>` : ''}
+    ${body.html}
+    <p class="qp-end">END OF QUESTIONS</p>
   </div>`;
 }
 
@@ -3103,7 +3206,6 @@ screen('stuff', () => {
     [controls],
     frontPages_(),
     savedPages_(),
-    basketPages(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => '');
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one

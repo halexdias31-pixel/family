@@ -7774,3 +7774,28 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   display: flex; align-items: center; justify-content: center; text-align: center;
   font: 600 1.15rem/1.35 var(--font); color: var(--ink);
 }
+
+/* ---------- WRITING ON THE PAPER -------------------------------------------------------------------
+   A BOX PER PART, under the question it belongs to. See `ansBox_` in resource.js for why it is kept
+   in the browser rather than sent anywhere: these cards are rebuilt on every repaint, and a
+   `<textarea>` rebuilt is a `<textarea>` emptied.
+
+   IT LOOKS LIKE RULED PAPER because that is what it is standing in for. A bordered form field would
+   promise a submit button that does not exist. */
+.qp-ans { display: block; margin: .5rem 0 .2rem; }
+.qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
+            letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3rem; }
+.qp-ans-in {
+  display: block; width: 100%; min-height: 44px; resize: vertical;
+  padding: .5rem .6rem; box-sizing: border-box;
+  background: var(--sunk); color: var(--ink);
+  border: 0; border-bottom: 1px solid var(--line); border-radius: var(--r-sm) var(--r-sm) 0 0;
+  font: 400 .9rem/1.6 Georgia, "Times New Roman", serif;
+}
+.qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
+
+/* THE METHOD FOR A PRACTICAL, above the questions — read before you start, not beside them. */
+.qp-guide { margin: 0 0 1rem; padding: .8rem .9rem; background: var(--sunk);
+            border-left: 2px solid var(--gold); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.qp-guide h3 { margin: 0 0 .4rem; font: 600 .72rem/1 var(--font); color: var(--gold);
+               letter-spacing: .08em; text-transform: uppercase; }

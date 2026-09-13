@@ -258,8 +258,10 @@ function topicTiles_(x) {
     /* THE PAPER, FROM ITS OWN QUESTIONS. The only way to read a resource now — no download, no
        reader, and it is the same rows the question cards draw from, so a fix to a question fixes it
        here too. */
-    qs ? tile_({ icon: 'code', label: 'HTML', note: qs + ' questions',
-                 act: 'paper-read', data: { key: t.id || t.name } }) : '',
+    /* THE `<>` TILE WAS HERE — `HTML`, with the question count under it, opening the paper in a
+       sheet. The questions are printed on the card itself now (see `paperInline_` in find.js), so
+       this was a button that opened what you were already looking at. The basket tile below is
+       untouched. */
 
     /* THE PAPER COPY. The price sits on the line that charges it, so the thing you are agreeing to
        is written on the thing you press rather than in a row above it. */

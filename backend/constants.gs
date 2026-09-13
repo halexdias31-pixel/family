@@ -124,7 +124,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-15-games";
+const BACKEND_VERSION = "2026-09-16-papers";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1036,6 +1036,16 @@ const SCHEMA = {
        paper still decides whether to print; this is what tells it, and what stops the HTML view
        offering something nobody can do in it. */
     "answer", "answer_type", "needs_print",
+
+    /* ---------- THE METHOD, FOR A PRACTICAL ------------------------------------------------------
+       ON THE PAPER ROW, NOT A TAB OF ITS OWN. A practical's guide — the apparatus, the method, the
+       safety line — belongs to the practical the way a paper's board and tier belong to the paper,
+       so it goes on the `kind: paper` row beside them rather than in a second tab that would have
+       to be joined back on every read.
+
+       BLANK ON EVERYTHING ELSE, and blank is the normal state: a past paper has no method. The card
+       draws nothing at all when this is empty, so an ordinary paper is unchanged by its existence. */
+    "guide",
 
     /* ---------- WHAT THE EXAMINER SAID -----------------------------------------------------------
        PER QUESTION AND PER PAPER, because reports are written both ways. `examiner_note` is the

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-15-games";
+const DOGET_VERSION = "2026-09-16-papers";
 
 
 function doGet(e) {
@@ -1366,6 +1366,8 @@ function doGet(e) {
 
           /* BLANK ON A PART, filled on a paper row. Ten empty strings per part is the price of a
              paper that needs no resource row — and the phone throws them away in one pass. */
+          /* THE METHOD FOR A PRACTICAL, filled only on the paper row — see SCHEMA.questions. */
+          guide: S(r.guide),
           name: S(r.name), subject: S(r.subject),
           resourceType: S(r.resource_type), keystage: S(r.key_stage),
           bandType: S(r.band_type), bandValue: S(r.band_value),
