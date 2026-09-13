@@ -5719,18 +5719,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the transform — the origin is top left so the scaled sheet does not drift off to one side. */
 /* THE PAPER SITS DIRECTLY UNDER THE PRINT BUTTON, close enough that a change is visible without
    scrolling — which is the whole reason for drawing it here rather than in a second file. */
-/* ---------- THE SAME CUT, ON THE OTHER SHEET ------------------------------------------------------
-   `.mat-out` HAD `overflow: hidden` AND IT WAS WRONG for the reason CLAUDE.md records: a sheet with
-   a fixed paper width, clipped, with no way to reach the rest of the page you are about to print.
-   It was given `overflow-x: auto` and the entry was written up.
+/* ---------- HIDDEN, AND NOTHING IS HIDDEN BY IT --------------------------------------------------
+   I CHANGED THIS TO `overflow-x: auto` AND THE REASON WAS WRONG. `check/ui.js` reported it
+   overflowing by 593px at 320 and I believed it, because CLAUDE.md already carried the same finding
+   about `.mat-out` — "a fixed paper width clipped with no way to reach the rest of the page you are
+   about to print". Two entries agreeing, neither measured.
 
-   THIS IS THE SAME SHEET ONE FILE OVER and it kept the same rule. It overflows its column by 593px
-   at 320, 542 at 390 and 528 at 768 — most of a flyer, unreachable, on every width there is.
+   `flyFit` SCALES THE SHEET TO THE BOX, with a transform, exactly as `matFit` does for the cheat
+   sheet. `scrollWidth` is a LAYOUT width and a transform is painted after layout, so a 794px A4
+   page drawn at 0.3533 still reports 794 inside a 280px box. Measured with rectangles, which do
+   account for transforms: the sheet's rendered right edge is 335 and the box's right edge is 335.
+   Nothing was ever clipped, at any width.
 
-   NOTHING CAUGHT IT BECAUSE NOTHING LOOKED. The flyer maker is a widget on the tools screen and the
-   tools screen signed out has no widgets on it; `check/ui.js` had never signed in. Both halves of
-   that sentence were fixed in the same change, and this is the first thing the other half found. */
-.fm-out { overflow-x: auto; overflow-y: hidden; margin-top: .5rem; }
+   SO IT IS HIDDEN AGAIN, and `check/ui.js` now asks the second question in pixels somebody can see
+   — see the note on its overflow pass. `overflow-x: auto` was not harmless either: it put a real
+   scrollbar under a sheet that is entirely on screen. */
+.fm-out { overflow: hidden; margin-top: .5rem; }
 .fm-sheet { width: 210mm; height: 297mm; background: #fff; display: grid;
             transform-origin: 0 0; overflow: hidden; }
 .fm-z-a5 { grid-template: 148.5mm 148.5mm / 210mm; }
@@ -6040,7 +6044,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Y STAYS CLIPPED, said explicitly. With one axis `visible` and the other not, `visible` computes to
    `auto` and the sheet would grow a vertical scrollbar of its own inside a page that already
    scrolls. */
-.mat-out { overflow-x: auto; overflow-y: hidden; margin-top: .6rem; }
+/* HIDDEN, FOR THE REASON SET OUT ON `.fm-out`. This was changed to `overflow-x: auto` in an earlier
+   session on the strength of `check/ui.js` reporting it clipped, and CLAUDE.md was written up to
+   match. `matFit` scales the sheet to the box with a transform; `scrollWidth` does not see
+   transforms. Measured with rectangles: sheet right edge 335, box right edge 335, nothing lost. */
+.mat-out { overflow: hidden; margin-top: .6rem; }
 /* ---------- THE PAPER'S NINE GREYS, NAMED ---------------------------------------------------------
    THE SHEET WAS THE ONLY PART OF THE STYLESHEET WITH NO PALETTE. The app has --gold, --dim, --faint
    and the rest; the paper had `var(--mono)` for its typeface and forty-nine colour literals for

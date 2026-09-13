@@ -275,7 +275,28 @@ function inspect(opts) {
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR ------------------------------------------
      `scrollWidth > clientWidth` on a box whose overflow-x is not auto or scroll. This is the honest
      form of the question: the browser itself is saying "there is more here than fits, and I was not
-     told that was allowed". No guessing about which parent an element was supposed to fit inside. */
+     told that was allowed". No guessing about which parent an element was supposed to fit inside.
+
+     ---------- AND `scrollWidth` DOES NOT KNOW ABOUT `transform` --------------------------------
+     THIS IS THE ONE CASE WHERE THE BROWSER'S OWN ANSWER IS NOT THE ANSWER. `scrollWidth` is the
+     layout width of the content; a `transform: scale()` on a child is painted afterwards and
+     changes nothing about it. So an element holding a 794px sheet scaled to 0.353 reports 794
+     against a 280px box — 514px of overflow that no viewer can ever see, because the thing is drawn
+     at 280 and its right edge lands exactly on the box's.
+
+     IT COST TWO WRONG FIXES BEFORE IT WAS MEASURED. `.mat-out` and `.fm-out` are the cheat sheet
+     and the flyer, both A4 pages scaled to the phone by `matFit`/`flyFit`, both `overflow: hidden`
+     and both correct. This check called them clipped; CLAUDE.md recorded the first as "a fixed
+     paper width clipped with no way to reach the rest of the page you are about to print", and the
+     second was changed on the strength of that entry. Nothing was ever clipped. Both are back to
+     hidden, and the note that said otherwise is corrected.
+
+     SO THE SECOND QUESTION IS ASKED IN PIXELS THE VIEWER CAN SEE. `getBoundingClientRect` DOES
+     account for transforms, so the rendered right edge of the widest child is what settles it. If
+     that edge is inside the box, the overflow is a number in a property and not a thing on a
+     screen. Both methods are kept because each is right about something: the browser's own
+     `scrollWidth` catches content that genuinely does not fit, and the rectangle catches the case
+     where the page has already dealt with it. */
   const roots = [document.scrollingElement, live, ...inside];
   for (const el of roots) {
     if (!el) continue;
@@ -283,6 +304,24 @@ function inspect(opts) {
     if (/(auto|scroll)/.test(s.overflowX)) continue;
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
+      const box = el.getBoundingClientRect();
+      /* THE FURTHEST ANY CHILD IS ACTUALLY PAINTED. Children only — the element's own rect is the
+         box being overflowed, and asking whether it overflows itself always answers no.
+
+         AN ELEMENT WITH NO ELEMENT CHILDREN IS NOT EXEMPT, and the first version of this made it
+         so. A long unbreakable word in a plain `<div>` overflows with nothing to measure, so
+         `paintedRight` stayed at the box's own left edge and every text overflow in the app would
+         have been silently dropped — a check quietly answering "fine" to the commonest case there
+         is. Text cannot be transformed away from its own box, so where there is nothing to measure
+         the browser's `scrollWidth` is already the right answer and is taken as it stands. */
+      let paintedRight = null;
+      for (const kid of el.children) {
+        const k = kid.getBoundingClientRect();
+        if (k.width > 0 && (paintedRight === null || k.right > paintedRight)) paintedRight = k.right;
+      }
+      /* 2px of slack, which is the rounding a fractional scale leaves behind — `0.3533` on 794px
+         does not land on a whole pixel and neither does the box. */
+      if (paintedRight !== null && paintedRight - box.right <= 2) continue;
       found.overflow.push({ tag: el.tagName.toLowerCase(),
         cls: String(el.className || '').slice(0, 40),
         by: over, width: el.clientWidth });

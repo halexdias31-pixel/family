@@ -190,9 +190,10 @@ If the seed is ignored the run says so loudly and fails, because "I did not chec
 
 What the other half was hiding, on the first run that could see it:
 
-- **`.fm-out` — the flyer sheet — `overflow: hidden`, clipping up to 593px of a flyer** at every
-  width. The identical rule on `.mat-out` was found and fixed and written up in this file; this is
-  the same sheet one widget over, with the same fault, unreachable to a check that never signed in.
+- **`.fm-out` — the flyer sheet — reported as clipping up to 593px. It was not, and neither was
+  `.mat-out` before it.** See "A transform is invisible to `scrollWidth`" below: this was my
+  mistake, made because the entry for `.mat-out` already said the same thing and I did not measure.
+  Both are back to `overflow: hidden` and the check has been taught the difference.
 - **`.fm-adds label { min-height: 2rem }` — 27px on a phone.** The comment above it correctly says
   the tap target belongs on the label rather than the 17px tickbox, and then writes it in `rem`.
   That is the `.btn.tiny` mistake and the `.post-act` mistake, both recorded below, for a **third**
@@ -222,8 +223,8 @@ wrong rather than the app:
   overflowed by up to 59px and pushed `.mat-list`, then `.card`, then `.pane`. **This entry used to
   say nowrap was deliberate and quoted the comment above the rule. It misread it** — that comment
   defends the *monospace font* as what stops the columns jittering, and mono is untouched. The other
-  3 were `div.mat-out`, the print sheet, which had `overflow: hidden`: a fixed paper width clipped
-  with no way to reach the rest of the page you are about to print. Now `overflow-x: auto`.
+  3 were `div.mat-out`, and **that entry was wrong** — see "A transform is invisible to
+  `scrollWidth`" below. Nothing was clipped; it is `overflow: hidden` again.
 - **19 tap targets, 16 real.** `.btn.tiny` said `min-height: max(38px, 2.3rem)` and 2.3rem is 34px
   on a phone, so the max never chose the rem and the timer buttons were 45x38 on every device.
   `.post-act` said `min-width: 2.2rem`, which is 32.6px, so Share was 30x44 — tall enough to look
@@ -268,6 +269,24 @@ the screen to measure by "whichever pane has the most area on screen". Run `--sc
 and it reported 25 sideways scrolls; run the same screen inside the full nine and it reported none,
 because with nine screens drawn something else won the area contest. It now asks for `#s-<id>`
 directly, which is where `paint(id)` writes, and says so loudly if it ever has to fall back.
+
+**A transform is invisible to `scrollWidth`, and it cost two wrong fixes.** `check/ui.js` asked
+`scrollWidth > clientWidth`, which is the browser's own answer and normally the honest one. But
+`scrollWidth` is a LAYOUT width and a `transform: scale()` is painted after layout — so `.mat-out`
+and `.fm-out`, the cheat sheet and the flyer, both 794px A4 pages scaled to 0.3533 by `matFit` and
+`flyFit`, reported 514px of overflow inside a 280px box. Measured with rectangles, which *do*
+account for transforms: the sheet's rendered right edge is 335 and the box's right edge is 335.
+Nothing was ever clipped, at any width.
+
+The `.mat-out` entry above was written on that reading, and I then changed `.fm-out` to match it —
+**two rules changed, one of them twice, on a measurement nobody had taken.** `overflow-x: auto` is
+not harmless either: it puts a real scrollbar under a sheet that is entirely on screen. Both are
+`overflow: hidden` again, and the check now asks a second question in pixels a viewer can see —
+does the widest child's rendered right edge pass the box's? An element with no element children is
+exempt from that second question, because text cannot be transformed away from its own box and
+`scrollWidth` is already right about it; the first version of the fix forgot that and would have
+dropped every text overflow in the app. Verified both ways: a real 13px `.bk-row` overflow and a
+forced `white-space: nowrap` text overflow are both still reported.
 
 **Reading the source is not the same as measuring the page.** A scan of `style.css` reported seven
 dead custom properties; all seven were wrong, because they are set from template strings like
