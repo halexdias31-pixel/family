@@ -1085,8 +1085,9 @@ const PAGER = {
      of this table follows: a pager that counts for itself is a pager that can disagree. */
   stuff:  () => {
     const n = stuffPageCount();
-    return Array.from({ length: basketPages().length }, () => 'Basket')
-      .concat(Array.from({ length: savedPages_().length }, () => 'Saved'))
+    /* NO `Basket` HERE ANY MORE — it is on the Booking column now, and this list has to match what
+       `screen('stuff')` actually builds or the header names the wrong page. */
+    return Array.from({ length: savedPages_().length }, () => 'Saved')
       .concat(['Search'])
       .concat(Array.from({ length: bookingPages_().length }, () => 'Booking'))
       .concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));

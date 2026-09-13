@@ -961,51 +961,11 @@ const WIDGETS = [
      note beside `drawOverworld` — so putting this back is changing one word. */
   /* THE BOARD, which is SVG now rather than three.js — so it draws immediately, needs no loader,
      and leaves nothing running when the widget closes. */
-  { id: 'overworld', kind: 'game', name: 'The Overworld', start: () => initOverworldBoard?.(),
-    into: 'map-board', what: 'The map',
-    html: `<div class="card">
-      <h3>The Overworld</h3>
-      <p class="sub">Every place we teach, and how far along you have got.</p>
-      <div id="map-board" class="map ow"></div>
-    </div>` },
-
-  /* ---------- THREE THAT NEED NO `stop` ----------------------------------------------------------
-     Flabby Pird has one because it runs sixty frames a second whether or not anybody is looking.
-     These three move only when tapped, so parked off-screen they cost exactly nothing and there is
-     nothing to tear down. Worth saying here rather than leaving the absence to be read as an
-     oversight. */
-  { id: 'connect4', kind: 'game', name: 'Connect 4', start: () => initConnect4?.(),
-    into: 'c4-board', what: 'The board',
-    html: `<div class="card">
-    <h3>Connect 4</h3>
-    <p class="sub">Tap a column. Four in a line, any direction.</p>
-    <div id="c4-board" class="c4"></div>
-    <p class="note" id="c4-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <button class="btn quiet" data-do="c4-again">New game</button>
-  </div>` },
-
-  { id: 'othello', kind: 'game', name: 'Othello', start: () => initOthello?.(),
-    into: 'oth-board', what: 'The board',
-    html: `<div class="card">
-    <h3>Othello</h3>
-    <p class="sub">You are black. Trap a line of white between two of yours.</p>
-    <div id="oth-board" class="oth"></div>
-    ${rowLive('Black – White', '2 – 2', 'oth-score')}
-    <p class="note" id="oth-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <button class="btn quiet" data-do="oth-again">New game</button>
-  </div>` },
-
-  /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
-     and the room decides; an app keeping score would make somebody operate it instead of play. */
-  { id: 'herd', kind: 'game', name: 'Herd Mentality', start: () => initHerd?.(),
-    into: 'herd-q', what: 'The question',
-    html: `<div class="card herd-card">
-    <h3>Herd Mentality</h3>
-    <p class="sub">Everybody answers. You want to match the room, not be right.</p>
-    <p class="herd-q" id="herd-q"></p>
-    <p class="faint" id="herd-count" style="text-align:center"></p>
-    <button class="btn" data-do="herd-next">Next question</button>
-  </div>` },
+  /* `The Overworld` WAS A WIDGET HERE and is gone on request: it did not work well enough to keep
+     and nobody was opening it. `drawOverworld` and `initOverworldBoard` are still in this file and
+     in overworld.js — the map they draw is used elsewhere, and deleting a working renderer because
+     one entry point closed is how a codebase loses things it still needs. `check-dead` will name
+     anything that is genuinely now unreachable, which is the right way to find that out. */
 
   { id: 'reels', kind: 'game', name: 'One more thing', start: () => initFeed?.(),
     into: 'feed-screen', what: 'This',
@@ -1149,6 +1109,27 @@ const WIDGETS = [
     html: `<div class="card">
     <h3>Your week</h3>
     <div id="week-body"></div>
+  </div>` },
+
+  /* ---------- A PLACEHOLDER, AND IT SAYS SO ------------------------------------------------------
+     ASKED FOR AS "a Duolingo substitute" with "don't do too much for now". So this is the widget and
+     the slot it will grow into, and nothing more: a card that names what it is going to be and does
+     not pretend to be it yet.
+
+     A PLACEHOLDER THAT LOOKS FINISHED IS WORSE THAN AN EMPTY ONE. Give it a streak counter and three
+     greyed-out buttons and somebody taps them, nothing happens, and the app reads as broken rather
+     than as unbuilt. Saying "not built yet" is the honest version and costs one sentence.
+
+     WHERE IT WILL COME FROM. A drill is a question, an answer and a level — which is `SCHEMA.questions`
+     with `answer` and `answer_type` already on it, the same three columns the past papers use. So
+     when this is built it is a different way of ASKING what is already in the sheet, not a new tab.
+     Written down here because that decision is the whole design and it is easy to forget. */
+  { id: 'drill', kind: 'tool', name: 'Practice', what: 'Daily practice',
+    html: `<div class="card">
+    <h3>Practice</h3>
+    <p class="sub">A few questions a day, getting harder as you get them right.</p>
+    <p class="empty">Not built yet.<br><span class="faint">It will draw from the same questions the
+      past papers use — so anything you add to the sheet turns up here too.</span></p>
   </div>` },
 
   { id: 'calendar', kind: 'tool', name: 'Calendar', start: () => initCalendar?.(),
