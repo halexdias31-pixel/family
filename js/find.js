@@ -241,7 +241,12 @@ const KINDS = {
           <h3>${esc(x.name)}</h3>
           <p class="sub">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
         </div>
-        <span class="text-drop" data-do="friend-drop" data-handle="${esc(f.handle)}">✕</span>
+        ${/* A BUTTON, NOT A SPAN — the fourth one of these. A span with a `data-do` cannot be
+              reached by a keyboard, is not announced as a control, and `check/ui.js` never measures
+              it because that pass looks at buttons, links and inputs. `.text-drop` looks the same
+              either way; see the rule beside it in style.css. */''}
+        <button class="text-drop" data-do="friend-drop" title="Remove"
+          data-handle="${esc(f.handle)}">✕</button>
       </div>
     </div>`;
 
@@ -1470,6 +1475,37 @@ function printPrice(pages) {
   return Math.max(min, Math.round(n * rate * 100) / 100);
 }
 
+/* ---------- AND WHAT LAMINATING ONE COSTS ---------------------------------------------------------
+   THE SAME SHAPE AS `printPrice` AND FOR THE SAME REASONS, which is the point of writing it here
+   rather than three lines of arithmetic wherever the basket happens to need it.
+
+   NO RATE IN THE SHEET MEANS LAMINATING IS OFF, NOT FREE. `printPrice` already makes that argument
+   and it is sharper here: a laminating pouch and the machine's time are a real cost, so a site that
+   offered it at £0.00 because nobody had filled in a cell would be selling something at a loss, on
+   every order, silently. `null` is the answer to "we do not do this", and the basket draws nothing
+   rather than drawing a free upgrade.
+
+   PER PAGE, because that is what it is — every sheet goes through the machine separately — with a
+   minimum for the same reason printing has one: the first sheet costs more than the second in
+   everything except paper. */
+function laminatePrice(pages) {
+  const n = Number(pages) || 0;
+  if (n <= 0) return null;
+  const v = (DATA.constants || {}).vars || {};
+  const rate = num(v.laminate_rate_per_page);
+  if (isNaN(rate) || rate <= 0) return null;      // rate not set: laminating is off, not free
+  const min = num(v.laminate_minimum) || 0;
+  return Math.max(min, Math.round(n * rate * 100) / 100);
+}
+
+/* WHAT A BASKET LINE ACTUALLY COSTS, in one place. `cart-add` writes `money` for a paper and the
+   laminate upgrade is a flag on the line rather than a second number — so the price is DERIVED
+   every time it is asked for, and a line laminated last week is repriced if the sheet's rate
+   changes before anybody pays. Storing the sum instead would have frozen a price nobody agreed to,
+   and would need the subtraction to be got right in the one place that takes the upgrade off. */
+const cartMoney_ = c => (Number(c && c.money) || 0)
+  + (c && c.laminate ? (laminatePrice(c.pages) || 0) : 0);
+
 /* Whether a printed copy is offered at all. An explicit FALSE in the sheet wins over any page
    count — countable and worth printing are different questions, and a 400-page textbook answers
    the first one yes. */
@@ -1561,7 +1597,8 @@ on('tick', el => {
   el.closest('.tick')?.classList.toggle('on', checked);
 
   api({ action: 'toggleTopicTick',
-    name: USER.name, handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked })
+    name: USER.name, personId: (USER && USER.personId) || '',
+    handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       /* XP AND CREDITS MOVE WITH IT — a tick is worth one of each, which is what the wardrobe is

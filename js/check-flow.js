@@ -109,7 +109,16 @@ function payload() {
                  services: ['Group'], linkCategories: [], topics: [], checklists: {}, focus: {} },
     multipliers: { levels: {}, subjects: {}, subjectsEta: {}, days: {}, times: {}, services: {},
                    students: {}, weeks: {}, baseRate: 0 },
-    constants: { vars: { h: 2, max_students_per_job: 4 } },
+    /* ---------- PRICED, SO THE JOURNEYS BELOW ARE NOT PASSING ON AN EMPTY ROOM --------------------
+       THIS PAYLOAD IS NOT `check/fixture.json`, and that caught me out the first time: the laminate
+       journeys read `laminatePrice`, which returns null when the sheet has no rate, and both took
+       their "nothing is offered" branch and reported OK — including against a deliberately broken
+       `cartMoney_`. A check that cannot reach its subject must not read as a pass; the branch is
+       still there because an unpriced upgrade is a real state worth asserting about, but the rate
+       is here so the branch that matters is the one that runs. */
+    constants: { vars: { h: 2, max_students_per_job: 4,
+                         print_rate_per_page: 0.02, laminate_rate_per_page: 0.35,
+                         laminate_minimum: 0.5 } },
     pricingRows: [], options: {}, validations: {}, availGrid: { days: [], hours: [] },
     health: { ok: true, missing: [], problems: [] },
   };
@@ -183,6 +192,20 @@ function boot(opts) {
          journey. Exposed so the test can ask the thing that actually renders the button. */
       'jobTiles: typeof jobTiles_ === "function" ? jobTiles_ : null,' +
       'bar: typeof installBar === "function" ? installBar : null,' +
+      /* THE CHEAT SHEET'S COMPONENT LIST AND ITS TWO WIDTHS. `matParts` is the list after the sheet
+         has had its say about order and levels, which is the list the page is actually built from —
+         so a journey can ask what a component is worth without a browser and without the tab. */
+      'matParts: typeof matParts === "function" ? matParts : null,' +
+      'matColW: typeof matColW === "function" ? matColW : null,' +
+      'matPairW: typeof matPairW === "function" ? matPairW : null,' +
+      /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
+         — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
+         together so a journey can put a line in the basket and ask what it costs, which is the
+         question somebody actually has about a basket. */
+      'CART: () => CART, setCart: v => { CART = v; },' +
+      'cartMoney: typeof cartMoney_ === "function" ? cartMoney_ : null,' +
+      'lamPrice: typeof laminatePrice === "function" ? laminatePrice : null,' +
+      'basket: typeof basketPages === "function" ? basketPages : null,' +
       'PAGE: () => PAGE,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
@@ -216,6 +239,141 @@ check('the app loads and draws without throwing', async () => {
   if (errs.length) bad.push('errors at load: ' + errs.join(' | '));
   if (!w.__t) return ['nothing was exported — the app did not finish loading'];
   if (typeof w.__t.go !== 'function') bad.push('go() is not a function');
+  return bad;
+});
+
+/* ---------- THE UPGRADE HAS TO BE IN THE PRICE, AND HAS TO COME BACK OUT --------------------------
+   THE FAULT THIS GUARDS AGAINST is the one the design avoids on purpose: a laminate upgrade stored
+   as a NUMBER added into the line's `money`. That works the first time and breaks the first time
+   somebody takes it off, because the subtraction lives somewhere else and only one code path runs
+   it. The flag is stored instead and the price derived, so this asks the round trip: on, off, and
+   back to where it started.
+
+   AND THAT NO RATE MEANS NO CHARGE. `laminatePrice` returns null when the sheet has not priced the
+   pouches, and a laminated line must then cost exactly what an unlaminated one does — not zero, not
+   NaN, and certainly not the print price plus `null` coerced to something. */
+check('laminating a basket line adds its price, and unlaminating takes it off', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.cartMoney || !t.setCart || !t.lamPrice) return ['the basket is not exported — cannot check it'];
+  const bad = [];
+  const line = { key: 'T1', name: 'Quadratics', kind: 'print', cost: 0, money: 0.16, pages: 8 };
+
+  const lam = t.lamPrice(8);
+  if (lam === null) {
+    /* The fixture this runs against may not price laminating; that is a valid state and the one
+       thing to check about it is that nothing is charged for it. */
+    line.laminate = true;
+    if (t.cartMoney(line) !== 0.16) {
+      bad.push('with no rate in the sheet a laminated line costs ' + t.cartMoney(line)
+             + ' instead of the plain 0.16 — an unpriced upgrade must be free of charge, '
+             + 'not charged as NaN or zeroed over the print price');
+    }
+    return bad;
+  }
+
+  const plain = t.cartMoney(line);
+  if (plain !== 0.16) bad.push('a plain line costs ' + plain + ', not its own 0.16');
+
+  line.laminate = true;
+  const on = t.cartMoney(line);
+  if (on !== Math.round((0.16 + lam) * 100) / 100) {
+    bad.push('laminated it costs ' + on + ' but print 0.16 + laminate ' + lam
+           + ' is ' + (0.16 + lam) + ' — the upgrade is not reaching the line total');
+  }
+
+  line.laminate = false;
+  const off = t.cartMoney(line);
+  if (off !== plain) {
+    bad.push('taking the laminate off leaves it at ' + off + ' rather than back at ' + plain
+           + ' — the upgrade was added to the stored price instead of derived from the flag');
+  }
+  return bad;
+});
+
+check('the basket draws a laminate control on a paper and on nothing else', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.basket || !t.setCart || !t.lamPrice) return ['the basket is not exported — cannot check it'];
+  if (t.lamPrice(8) === null) return [];        // not priced in this fixture; nothing to draw
+  /* THE SHOP LINE CARRIES A PAGE COUNT ON PURPOSE, and that is the whole point of this journey.
+     A highlighter with no `pages` is refused by `laminatePrice` returning null, so a version with
+     the kind test taken out still passes — the check would be asserting the page count and
+     reporting it as the kind. A workbook has pages and is still not a thing this shop laminates:
+     it is stock, not something printed here. Giving it a count is what makes the kind test the
+     thing being measured. */
+  t.setCart([
+    { key: 'T1', name: 'Quadratics', kind: 'print', cost: 0, money: 0.16, pages: 8 },
+    { key: 'S1', name: 'Revision workbook', kind: 'shop', cost: 3, money: 0, pages: 64 },
+  ]);
+  const html = (t.basket() || []).join('');
+  const bad = [];
+  const n = (html.match(/data-do="cart-laminate"/g) || []).length;
+  if (n !== 1) {
+    bad.push('the basket drew ' + n + ' laminate controls for one paper and one shop item — '
+           + 'a shop item is stock, not something printed here, and must not be offered one');
+  }
+  /* THE PRICE ON THE CONTROL, not just the word. "+ laminate" is a question somebody has to press
+     to find the answer to. */
+  if (!/cart-laminate[\s\S]{0,240}?[£\d]/.test(html)) {
+    bad.push('the laminate control does not name its price, so pressing it is the only way to '
+           + 'find out what it costs');
+  }
+  t.setCart([]);
+  return bad;
+});
+
+/* ---------- THE TWO GRIDS ARE PRICED AT THE WIDTH THEY ARE DRAWN AT ------------------------------
+   THE FAULT THIS GUARDS AGAINST has happened twice in `mat.js` already and both are written up
+   there: the picker costs a component from its width, the page draws it at another, and the gauge
+   that decides whether the sheet fits is confidently wrong. `half` was priced at 99mm while it was
+   drawn at 61; the ruler was priced at 0cm² while the bar charged 52.
+
+   THE `pair` BLOCKS ARE THE THIRD CHANCE TO MAKE IT. They are laid out two across rather than
+   three, so the one number that must not be `matColW()` is theirs — and the two widths have to come
+   out of the same two constants, or changing the gutter moves one and not the other. */
+check('the cheat sheet prices its two-across blocks at two across', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matParts || !t.matColW || !t.matPairW) return ['the cheat sheet is not exported'];
+  const bad = [];
+  const parts = t.matParts();
+  const pair = parts.filter(c => c.pair);
+  /* ---------- NAMED, NOT COUNTED ------------------------------------------------------------------
+     THIS ASKED WHETHER ANY COMPONENT WAS MARKED `pair` and passed with one of the two unmarked —
+     which is exactly the change somebody makes by accident, editing one line of a pair. The ids are
+     written here on purpose: these two were asked for by name, and a list of two kept in two places
+     is the cheapest way to be told when one of them moves. */
+  ['M02', 'M03'].forEach(id => {
+    const c = parts.find(x => x.id === id);
+    if (!c) return;                 /* the sheet can hide a component; that is not this check's business */
+    if (!c.pair) {
+      bad.push(id + ' (' + c.name + ') is no longer marked `pair`, so its width goes back to '
+             + 'depending on how many other narrow blocks happen to share its run');
+    }
+  });
+  if (!pair.length) {
+    return ['no component is marked `pair` any more — the hundred square and the times table were, '
+          + 'and without it their width goes back to depending on what else is ticked'];
+  }
+  /* EVERY `pair` BLOCK MUST ALSO BE NARROW. A full-width one would be drawn at 184mm and priced at
+     88 — the same disagreement, pointing the other way. */
+  pair.filter(c => !c.half).forEach(c =>
+    bad.push(c.id + ' is marked `pair` but not `half`, so it is drawn full width and priced at half'));
+  const one = t.matColW(), two = t.matPairW();
+  if (!(two > one)) {
+    bad.push('a two-across block is priced at ' + two + 'mm and a three-across one at ' + one
+           + 'mm — two across cannot be the narrower of the two');
+  }
+  /* THE ARITHMETIC, not a remembered number: 184mm of text with one 8mm gutter, halved. */
+  const want = (184 - 8) / 2;
+  if (Math.abs(two - want) > 0.01) {
+    bad.push('a two-across block is priced at ' + two + 'mm; 184mm of text less one 8mm gutter, '
+           + 'halved, is ' + want + 'mm — the gutter is being spent twice or not at all');
+  }
   return bad;
 });
 

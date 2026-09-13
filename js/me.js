@@ -1289,7 +1289,16 @@ on('pin-save', () => {
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
   if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The two new PINs do not match.'; return; }
-  api({ action: 'changePin', name: USER.name,
+  /* ---------- THE ONE WHERE A NAME COLLISION LOCKS SOMEBODY OUT ---------------------------------
+     `findPerson(S(body.name), S(body.personId))` PREFERS THE ID AND FALLS BACK TO THE NAME, and
+     this sent no id. Two people with the same display name and the handler resolves the first row,
+     checks the PIN you typed against THEIR PIN, and answers "That is not your current PIN" — to
+     somebody who typed their own correctly, with no way to ever change it.
+
+     NOT A WAY IN. The current PIN is still required, so a collision cannot change anybody else's;
+     it is a denial rather than a breach. It is on this call above all the others because the answer
+     it gives is confidently wrong about the one thing the person is certain of. */
+  api({ action: 'changePin', name: USER.name, personId: (USER && USER.personId) || '',
     currentPin: v('pin-now'), newPin: v('pin-new') })
     .then(d => {
       if (d && d.error) { if (said) said.textContent = d.error; return; }

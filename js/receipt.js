@@ -1166,7 +1166,8 @@ function initFlappy() {
         /* Through `send`, which refuses to resolve on a refusal. This ignored the reply entirely
            — `.then(() => …)` runs whatever came back — so a rejected save ran the success branch
            and the catch below, written for exactly this, could never fire. */
-        send({ action: 'saveScore', name: USER.name, score: S.score })
+        send({ action: 'saveScore', name: USER.name,
+               personId: (USER && USER.personId) || '', score: S.score })
           .then(() => {
 
             const meS = (DATA.students||[]).find(s => norm(s.handle) === norm(USER.handle)); if (meS) meS.highscore = S.score;

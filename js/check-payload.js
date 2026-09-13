@@ -227,9 +227,75 @@ for (const m of gs.matchAll(/\bpayload\s*\.\s*([A-Za-z_][\w]*)/g)) sent.add(m[1]
    claims; `brand: BRAND` is a name and says nothing here, and guessing at it would put this check
    in the business of being wrong about things it cannot see. A key the fixture simply lacks is not
    a mismatch either: absent reaches the site as `undefined`, which is what `|| []` is for. */
+/* ---------- AND THE SHAPE OF A ROW, WHICH IS WHERE IT WAS REALLY WRONG ---------------------------
+   THE CHECK ABOVE COMPARES CONTAINERS — is `posts` a list or an object. That caught `intervals` and
+   it is not where the damage was. `check/fixture.json` held SHEET ROWS for posts, tutors and venues:
+
+       fixture   { post_id: 'PO1', date: '01/09/2026', active: 'yes', likes: '3' }
+       doGet     { id, author, handle, avatar, image, caption, body, location, when, at,
+                   pinned, active, waiting, refused, approvedBy, poll, reactions, rowIndex }
+
+   Nine of eighteen keys absent, `id` among them. So every post the harness ever drew had no id, no
+   picture, no timestamp and no handle — `p.id` was `undefined`, which made the share control's
+   `data-id` empty and, once the actions became tiles, made `postTiles_` correctly draw nothing at
+   all. Tutors were missing `id`, `image`, `subtitle` and `tags`; venues the same. Three of the most
+   drawn things in the app, measured as cards that could not have been built from real data.
+
+   A FIXTURE IN SHEET SPELLING IS AN EASY MISTAKE because both are plausible JSON off the same tab,
+   and nothing anywhere said which side of `doGet` this file sits on. It sits AFTER: it stands in
+   for the response, not for the spreadsheet.
+
+   EVERY TAB IS PUSHED FROM EXACTLY ONE PLACE in `doget.gs`, checked rather than assumed, so the key
+   list for a tab is unambiguous and this can be strict about it.
+
+   TWO SEVERITIES, AS ELSEWHERE IN THIS FILE. A row that exists in the wrong shape is a lie and
+   fails; a tab with no rows at all is thin coverage — real, worth knowing, and not a false claim —
+   so it is printed and does not fail. Fourteen tabs are in that state today. */
+const rowKeys = new Map();
+{
+  const re = /payload\.([A-Za-z_]\w*)\.push\(\{/g;
+  let m;
+  while ((m = re.exec(gs))) {
+    const keys = [];
+    let i = gs.indexOf('{', m.index + m[0].length - 1), depth = 0;
+    for (; i < gs.length; i++) {
+      const c = gs[i];
+      if (c === '"' || c === "'" || c === '`') {
+        const q = c;
+        for (i++; i < gs.length && gs[i] !== q; i++) if (gs[i] === '\\') i++;
+        continue;
+      }
+      if (c === '{' || c === '[') { depth++; continue; }
+      if (c === '}' || c === ']') { depth--; if (depth === 0) break; continue; }
+      /* ---------- A SHORTHAND PROPERTY IS STILL A KEY ---------------------------------------------
+         `payload.venues.push({ id: i, type: 'venue', title, borough: … })` — `title` has no colon
+         after it, so a scanner looking for `name:` does not see it, and this reported `title` as a
+         key doGet never sends. I then wrote a fixture venue without one, and every venue in the
+         booking dropdown came out as `undefined`. The check was wrong and the app was fine, which
+         is the most expensive way round.
+
+         A KEY IS AN IDENTIFIER IN KEY POSITION, which is directly after the opening `{` or after a
+         comma at this depth. Testing for `[:,}]` after the name instead would have read `rate` in
+         `bestRate: rate,` as a key of its own — the value, counted as a field. What comes BEFORE is
+         what settles it. */
+      if (depth === 1 && /[A-Za-z_]/.test(c) && !/\w/.test(gs[i - 1] || '')) {
+        let j = i - 1;
+        while (j >= 0 && /\s/.test(gs[j])) j--;
+        if (gs[j] === '{' || gs[j] === ',') {
+          const k = /^([A-Za-z_]\w*)\s*[:,}]/.exec(gs.slice(i, i + 80));
+          if (k) { keys.push(k[1]); i += k[1].length - 1; }
+        }
+      }
+    }
+    if (keys.length) rowKeys.set(m[1], keys);
+  }
+}
+
 const fxPath = path.join(__dirname, '..', 'check', 'fixture.json');
 const shapeOf = v => Array.isArray(v) ? '[' : (v && typeof v === 'object' ? '{' : null);
 const fxWrong = [];
+const rowWrong = [];
+const rowThin = [];
 let fxRead = 0;
 try {
   const fx = JSON.parse(fs.readFileSync(fxPath, 'utf8'));
@@ -238,6 +304,17 @@ try {
     if (!(k in fx)) continue;
     const got = shapeOf(fx[k]);
     if (got && got !== mark) fxWrong.push([k, mark, got]);
+  }
+  for (const [tab, keys] of rowKeys) {
+    const rows = fx[tab];
+    if (!Array.isArray(rows) || !rows.length) { rowThin.push(tab); continue; }
+    /* MISSING FROM EVERY ROW, not from the first. A tab may have one row exercising a key another
+       does not — `poll` on a post, `refused` on one waiting — and demanding every key on every row
+       would report a good fixture as a bad one. */
+    const have = new Set();
+    rows.forEach(r => Object.keys(r || {}).forEach(x => have.add(x)));
+    const miss = keys.filter(x => !have.has(x));
+    if (miss.length) rowWrong.push([tab, miss, keys.length, rows.length]);
   }
 } catch (e) {
   /* A FIXTURE THAT CANNOT BE READ IS NOT A PASS. Every check that serves it is measuring nothing,
@@ -277,6 +354,27 @@ fxWrong.forEach(([k, want, got]) => {
   console.log('      → every check served this fixture is measuring a payload the app never gets.');
 });
 
+console.log('');
+console.log('THE FIXTURE\'S ROWS ARE NOT THE ROWS doGet BUILDS  (' + rowWrong.length + ')');
+if (!rowWrong.length) console.log('  none — every row carries the keys its tab is sent with.');
+rowWrong.forEach(([tab, miss, sent, n]) => {
+  console.log('  ' + tab + ': doGet sends ' + sent + ' keys per row; no row of the '
+            + n + ' in the fixture has ' + miss.length + ' of them');
+  console.log('      missing: ' + miss.join(', '));
+  console.log('      → usually a SHEET row pasted in where a PAYLOAD row belongs. The fixture '
+            + 'stands in for');
+  console.log('        the response, not for the spreadsheet.');
+});
+
+if (rowThin.length) {
+  console.log('');
+  console.log('TABS THE FIXTURE HAS NO ROWS FOR  (' + rowThin.length + ')');
+  console.log('  ' + rowThin.join(', '));
+  console.log('  → every screen drawn from these is measured empty. Not a false claim, so this '
+            + 'does not fail —');
+  console.log('    but a card that is never drawn is a card no check has an opinion about.');
+}
+
 if (accepted.length) {
   console.log('');
   console.log('ACCEPTED, WITH A REASON  (' + accepted.length + ')');
@@ -290,7 +388,7 @@ console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size
    here whenever the failing list was empty — including with five entries sitting in ACCEPTED saying
    the opposite three lines above. A summary that contradicts its own report is worse than no
    summary: the report is what gets skimmed, and this is the line that gets read. */
-console.log(fxWrong.length
+console.log(fxWrong.length || rowWrong.length
   ? 'FAILED — the fixture is not the payload, so nothing served it was really checked.'
   : readNotSent.length
   ? 'FAILED — each of those is a feature that does nothing and says nothing.'
@@ -298,4 +396,4 @@ console.log(fxWrong.length
     ? 'OK — nothing NEW is unsent. ' + accepted.length + ' known dead key'
       + (accepted.length === 1 ? '' : 's') + ' above, each an unbuilt feature rather than a break.'
     : 'OK — everything the site reads, the backend sends.');
-process.exit(readNotSent.length || fxWrong.length ? 1 : 0);
+process.exit(readNotSent.length || fxWrong.length || rowWrong.length ? 1 : 0);

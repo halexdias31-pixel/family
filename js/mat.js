@@ -85,6 +85,10 @@ const MAT_TEXT_W = 184;
    the next block fits. Derived here so the two can never disagree again: change MAT_ACROSS and the
    price follows. */
 const matColW = () => (MAT_TEXT_W - MAT_GUT * (MAT_ACROSS - 1)) / MAT_ACROSS;
+/* AND WHAT A `pair` BLOCK IS WORTH, which is two across rather than three — the hundred square and
+   the times table are drawn in a run of their own precisely so that this number cannot move. Same
+   two constants, so the gutter is still spent once and in one place. */
+const matPairW = () => (MAT_TEXT_W - MAT_GUT) / 2;
 
 /* ---------- THE SECOND FILTER, AND WHY LEVEL ALONE WAS NOT ENOUGH -------------------------------
    HALF THE GCSE COMPONENTS ARE HIGHER-ONLY. Exact trig values, negative and fractional indices,
@@ -183,8 +187,33 @@ const MAT_PARTS = [
      bar was charging 52cm² for. Two numbers for one thing, and the visible one was the wrong one. */
   { id: 'M01', name: 'Ruler down the edge', face: '|·| ruler', lv: [], h: 262, half: false, edge: true,
     note: 'prints at true size' },
-  { id: 'M02', name: 'Number square', face: '100 square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true },
-  { id: 'M03', name: 'Times tables', face: '12×12 tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true },
+  /* ---------- THE TWO GRIDS KEEP A RUN TO THEMSELVES -----------------------------------------------
+     A COMPONENT'S SIZE DEPENDED ON WHAT ELSE WAS TICKED. `stack` draws a run in as many columns as
+     it has blocks, up to three, so these two get 88mm each when they are the only narrow pair
+     before the number line — and 56mm the moment a third narrow block joins them. Measured: cells
+     go from 11.7px to 7.5px in the preview, digits from 2.9mm to about 1.9mm on paper.
+
+     NOTHING ON SCREEN SAYS WHY, and the thing that changed is not the thing that was touched: you
+     tick Roman numerals at the bottom of the list and the hundred square at the top gets smaller.
+     That is the worst shape a layout rule can have, and it is why you asked for these to be a fixed
+     size.
+
+     `pair` MEANS "DO NOT SHARE A RUN WITH ANYTHING ELSE". These two close the run in front of them
+     and open one of their own, exactly as a full-width block does — so they are always two across,
+     always 88mm, whatever else is on the sheet. That is also the biggest either of them can be: a
+     hundred square at the full 184mm would be 184mm tall, most of the 262mm page, and there would
+     be no room for the times table at all.
+
+     TWO OF THEM, SO THE RUN IS FULL. This is not the empty-column fault in disguise — `stack` draws
+     a run of two in two columns, so there is no 56mm strip of white with a rule down it. Tick only
+     one of the pair and it is drawn alone at full width, which for a single hundred square on a
+     sheet of its own is the right answer anyway.
+
+     THE HEIGHTS ARE WHAT THEY MEASURE AT 88mm. `h` is used to price the picker and to level the
+     stacks, and these two are square: at 88mm wide a ten-cell grid is 88mm tall and a thirteen-cell
+     one is 88 too, plus the heading. 94 and 100 were measured at that width and stay right. */
+  { id: 'M02', name: 'Number square', face: '100 square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true, pair: true },
+  { id: 'M03', name: 'Times tables', face: '12×12 tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true, pair: true },
   /* ---------- THE FOUR THAT KEEP THE FULL WIDTH ----------------------------------------------------
      WIDTH IS FUNCTIONAL IN THESE, not a default. Circle theorems is eight figures — at 61mm they
      would be 7mm across, which is smaller than the type beside them. Graph shapes is five curves,
@@ -1112,7 +1141,13 @@ function initMat() {
          /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
             says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
             and cost a tenth of the sheet. Area is true of both shapes. */
-         Math.round((c.edge ? 20 * c.h : (c.half ? matColW() : MAT_TEXT_W) * c.h) / 100)}cm²</u>${
+         /* PRICED AT THE WIDTH IT IS ACTUALLY DRAWN AT. A `pair` block is laid out two across, not
+            three, so costing it at `matColW()` reads it 36% cheap — and this file already has one
+            entry for a gauge that disagreed with the page: `half` was priced at 99mm while it was
+            being drawn at 61, and the note on `matColW` says the two must never disagree again.
+            Derived from the same two constants, so changing the gutter still moves both. */
+         Math.round((c.edge ? 20 * c.h
+                   : (c.pair ? matPairW() : c.half ? matColW() : MAT_TEXT_W) * c.h) / 100)}cm²</u>${
        /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
           size" was a line in a paragraph above the whole list, which is where a fact about two
           items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
@@ -1225,7 +1260,10 @@ function matPaint() {
      THE HEIGHTS ARE THE LIST'S, NOT THE PAGE'S. They are only used to decide which column is
      behind; the gauge still measures what was actually rendered, so an estimate being a few
      millimetres out costs a slightly uneven pair of columns and never a wrong budget. */
-  const stack = cs => {
+  /* `across` IS OPTIONAL AND ONLY THE `pair` RUN PASSES IT. Everything else keeps the rule below —
+     as many columns as there are blocks, up to three — because for an ordinary run that is what
+     stops an empty column being drawn and charged for. */
+  const stack = (cs, across) => {
     /* ---------- AS MANY COLUMNS AS THERE ARE BLOCKS, UP TO THREE -------------------------------
        A RUN OF TWO WAS STILL DRAWN IN THREE. Two blocks went into two columns and the third was
        left empty — a 56mm strip of white paper with a rule down the side of it, and the gauge
@@ -1235,7 +1273,8 @@ function matPaint() {
        thing on the page was a third of a page of nothing.
        TWO BLOCKS SHARE THE WIDTH INSTEAD. They get 88mm each rather than 56, which is the room a
        ten-cell hundred square and a thirteen-cell times table both wanted anyway. */
-    const cols = Array.from({ length: Math.min(MAT_ACROSS, cs.length) }, () => ({ h: 0, out: [] }));
+    const cols = Array.from({ length: across || Math.min(MAT_ACROSS, cs.length) },
+                            () => ({ h: 0, out: [] }));
     /* ---------- TALLEST FIRST, THEN PUT THE ORDER BACK -------------------------------------------
        TAKING THEM IN ORDER LEVELLED BADLY WHENEVER THE LAST BLOCK WAS THE BIGGEST. On the GCSE
        sheet it is: Angle rules is 35mm and arrives last, so it lands on a column that is already
@@ -1260,11 +1299,51 @@ function matPaint() {
   };
   /* A FULL-WIDTH BLOCK STILL PRINTS WHERE IT WAS, at full width — it closes the run of narrow blocks
      in front of it and starts a new one behind. That is the part that was worth keeping. */
+  /* ---------- THE `pair` BLOCKS ARE DRAWN TOGETHER, TWO ACROSS, WHATEVER ELSE IS TICKED -----------
+     A NARROW BLOCK'S WIDTH IS DECIDED BY HOW MANY OTHERS SHARE ITS RUN — see `stack`. That is right
+     for the ordinary blocks and wrong for the hundred square and the times table, whose whole value
+     is how big the cells are.
+
+     IT LOOKS STABLE AND IT IS NOT. In the order this file is written the two grids are the only
+     narrow blocks before the number line, so they always land in a run of two and always get 88mm.
+     Nothing enforces that: the `cheatsheet` tab's `sort_order` decides the order, so one number
+     typed into one cell moves any narrow component between them and the grids drop to 56mm, with
+     cells going from 11.7px to 7.5px in the preview. Measured, with `M05` at order 25.
+
+     THE FIRST TWO ATTEMPTS AT THIS WERE BOTH WORSE, and both are worth recording because they are
+     the two obvious ideas:
+
+       ONE COLUMN COUNT FOR THE WHOLE SHEET, chosen from how much there is to fit. It made the
+       grids 56mm on the sheet where they matter, and put back the empty-column fault `stack`'s own
+       note describes — a run of two drawn in three leaves a 56mm strip of white with a rule down it.
+
+       A RUN OF THEIR OWN, CLOSED BY ANYTHING THAT IS NOT ONE OF THEM. With a component reordered
+       between them they end up one per run, so each is drawn at the full 184mm — a hundred square
+       184mm tall is most of a 262mm page and the times table has nowhere left to go.
+
+     SO THEY ARE COLLECTED, not merely separated. Every `pair` block on the sheet is drawn as one
+     run at the position of the first of them, and that run is always two across. They cannot be
+     split by anything typed into the sheet, and they cannot stretch to full width when one of them
+     is unticked — the size is the size. Moving one in the sheet still moves the pair on the page;
+     what it can no longer do is change how big they are. */
   const queue = pieces.slice();          /* a copy: `pieces` is read again for the gauge */
+  const pairs = queue.filter(c => c.half && c.pair);
+  let pairsDone = !pairs.length;
   let run = [];
   const close = () => { if (run.length) { h += stack(run); run = []; } };
   while (queue.length) {
     const c = queue.shift();
+    if (c.pair && c.half) {
+      /* THE FIRST ONE DRAWS ALL OF THEM; the rest are already in that run and are skipped here. */
+      if (pairsDone) continue;
+      close();
+      pairsDone = true;
+      /* ALWAYS TWO COLUMNS, not `pairs.length`. With one of the two unticked, `stack` left to
+         itself would draw the survivor in a single column at the full 184mm — three times the
+         width it has at every other moment, which is the opposite of a fixed size. */
+      h += stack(pairs, 2);
+      continue;
+    }
     if (c.half) run.push(c);
     else { close(); h += cell(c); }
   }

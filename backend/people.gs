@@ -245,7 +245,26 @@ function seedFamilies() {
  * the fallback stops mattering — which is the right way for two sources to become one: the weaker
  * one goes quiet rather than being deleted out from under somebody.
  */
-function childrenOf(personRow) {
+/* ---------- RENAMED, BECAUSE THERE WERE TWO `childrenOf` AND THIS ONE NEVER RAN -------------------
+   `people.gs` DECLARED `childrenOf` TWICE — this one at line 248 taking a person ROW and returning
+   NAMES, and another 34 lines below taking a parent ID and returning ROWS. Apps Script has one
+   global scope, so the second silently replaced the first, and CLAUDE.md has carried "not yet
+   fixed; be careful around it" ever since.
+
+   THE TWO CALLERS WANTED DIFFERENT THINGS, which is what made it more than untidy:
+
+     doget.gs:544    childrenOf(S(r.person_id)).map(personDisplayName)   wants the ID version
+     dopost.gs:3018  out.kids = childrenOf(r)                            wants THIS one
+
+   The second was handed a row where the survivor expects an id, so `S(parentId)` on an object
+   matched nothing and `out.kids` has been an empty list for every parent signing in, for as long as
+   both have existed. Nothing failed and nothing said so — the same shape as a key the backend never
+   sends, which `|| []` turns into an empty database.
+
+   NAMED FOR WHAT IT RETURNS. `childrenOf` returns people; `childNamesOf` returns names. Two
+   functions one letter apart would be the same trap with a longer fuse, and the thing that
+   distinguishes them is not the argument but the answer. */
+function childNamesOf(personRow) {
   const linked = acceptedChildren(S(personRow && personRow.person_id)).map(personDisplayName);
   if (linked.length) return linked;
   return S(personRow && personRow.children).split(/[,\n]/).map(x => x.trim()).filter(Boolean);

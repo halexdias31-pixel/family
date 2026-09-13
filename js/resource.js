@@ -261,6 +261,28 @@ on('cart-add', el => {
   toast('In your basket — ' + CART.length + ' item' + (CART.length === 1 ? '' : 's'));
 });
 
+/* ---------- LAMINATE, OR BACK TO PLAIN -----------------------------------------------------------
+   A FLAG ON THE LINE, NOT A SECOND LINE. Two rows saying "Paper 31" and "Laminating Paper 31" is
+   the same thing counted twice in a basket somebody is reading to check what they are buying — and
+   it invites the state where the upgrade survives the paper being removed.
+
+   AND NOT A SECOND NUMBER EITHER. The price is derived by `cartMoney_` every time it is asked for,
+   so this writes a boolean and nothing has to be added or subtracted. See the note on `cartMoney_`.
+
+   THE BASKET IS LOCAL, so the press IS the change — nothing to wait for and nothing to revert, the
+   same argument `cart-add` makes. A repaint rather than `tileSet_` because the line's total and the
+   basket's total both move, and they are three columns apart. */
+on('cart-laminate', el => {
+  const line = CART.find(c => c.key === el.dataset.key && c.kind === el.dataset.kind);
+  if (!line) return;
+  line.laminate = el.dataset.on === '1';
+  cartSave();
+  /* STAY WHERE YOU ARE — the same reason `cart-drop` says it. Turning an upgrade on should not
+     move you off the basket page. */
+  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true); else repaint();
+  toast(line.laminate ? 'Laminated' : 'Back to plain paper');
+});
+
 on('cart-drop', el => {
   CART = CART.filter(c => !(c.key === el.dataset.key && c.kind === el.dataset.kind));
   cartSave();

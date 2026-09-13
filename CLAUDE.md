@@ -161,6 +161,8 @@ node js/check.js                 # names used but never declared. Two seconds. R
 node js/check-flow.js            # 21 journeys through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
+node js/check-backend.js         # one Apps Script scope: every name declared exactly once
+node js/check-post.js            # an action that names a person by a cell they can edit
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -190,9 +192,10 @@ If the seed is ignored the run says so loudly and fails, because "I did not chec
 
 What the other half was hiding, on the first run that could see it:
 
-- **`.fm-out` — the flyer sheet — `overflow: hidden`, clipping up to 593px of a flyer** at every
-  width. The identical rule on `.mat-out` was found and fixed and written up in this file; this is
-  the same sheet one widget over, with the same fault, unreachable to a check that never signed in.
+- **`.fm-out` — the flyer sheet — reported as clipping up to 593px. It was not, and neither was
+  `.mat-out` before it.** See "A transform is invisible to `scrollWidth`" below: this was my
+  mistake, made because the entry for `.mat-out` already said the same thing and I did not measure.
+  Both are back to `overflow: hidden` and the check has been taught the difference.
 - **`.fm-adds label { min-height: 2rem }` — 27px on a phone.** The comment above it correctly says
   the tap target belongs on the label rather than the 17px tickbox, and then writes it in `rem`.
   That is the `.btn.tiny` mistake and the `.post-act` mistake, both recorded below, for a **third**
@@ -222,8 +225,8 @@ wrong rather than the app:
   overflowed by up to 59px and pushed `.mat-list`, then `.card`, then `.pane`. **This entry used to
   say nowrap was deliberate and quoted the comment above the rule. It misread it** — that comment
   defends the *monospace font* as what stops the columns jittering, and mono is untouched. The other
-  3 were `div.mat-out`, the print sheet, which had `overflow: hidden`: a fixed paper width clipped
-  with no way to reach the rest of the page you are about to print. Now `overflow-x: auto`.
+  3 were `div.mat-out`, and **that entry was wrong** — see "A transform is invisible to
+  `scrollWidth`" below. Nothing was clipped; it is `overflow: hidden` again.
 - **19 tap targets, 16 real.** `.btn.tiny` said `min-height: max(38px, 2.3rem)` and 2.3rem is 34px
   on a phone, so the max never chose the rem and the timer buttons were 45x38 on every device.
   `.post-act` said `min-width: 2.2rem`, which is 32.6px, so Share was 30x44 — tall enough to look
@@ -269,6 +272,24 @@ and it reported 25 sideways scrolls; run the same screen inside the full nine an
 because with nine screens drawn something else won the area contest. It now asks for `#s-<id>`
 directly, which is where `paint(id)` writes, and says so loudly if it ever has to fall back.
 
+**A transform is invisible to `scrollWidth`, and it cost two wrong fixes.** `check/ui.js` asked
+`scrollWidth > clientWidth`, which is the browser's own answer and normally the honest one. But
+`scrollWidth` is a LAYOUT width and a `transform: scale()` is painted after layout — so `.mat-out`
+and `.fm-out`, the cheat sheet and the flyer, both 794px A4 pages scaled to 0.3533 by `matFit` and
+`flyFit`, reported 514px of overflow inside a 280px box. Measured with rectangles, which *do*
+account for transforms: the sheet's rendered right edge is 335 and the box's right edge is 335.
+Nothing was ever clipped, at any width.
+
+The `.mat-out` entry above was written on that reading, and I then changed `.fm-out` to match it —
+**two rules changed, one of them twice, on a measurement nobody had taken.** `overflow-x: auto` is
+not harmless either: it puts a real scrollbar under a sheet that is entirely on screen. Both are
+`overflow: hidden` again, and the check now asks a second question in pixels a viewer can see —
+does the widest child's rendered right edge pass the box's? An element with no element children is
+exempt from that second question, because text cannot be transformed away from its own box and
+`scrollWidth` is already right about it; the first version of the fix forgot that and would have
+dropped every text overflow in the app. Verified both ways: a real 13px `.bk-row` overflow and a
+forced `white-space: nowrap` text overflow are both still reported.
+
 **Reading the source is not the same as measuring the page.** A scan of `style.css` reported seven
 dead custom properties; all seven were wrong, because they are set from template strings like
 `style="--fly-ink:${esc(ink)}"`. Asking the rendered page instead produced the *same seven*, because
@@ -276,8 +297,36 @@ dead custom properties; all seven were wrong, because they are set from template
 facts come from the browser; "does a writer exist at all" comes from the source. `check/ui.js` says
 which of the two each check uses and why.
 
-**`backend/people.gs` declares `childrenOf` twice** — line 248 takes a row, line 282 takes an id. The
-second silently wins. Not yet fixed; be careful around it.
+**`backend/people.gs` declared `childrenOf` twice and it is fixed.** Line 248 took a person row and
+returned NAMES; line 282 took a parent id and returned ROWS; the second silently won. The two
+callers wanted different halves — `doget.gs` passed an id, `dopost.gs` passed a row — so
+`out.kids` had been an empty list for every parent on every sign-in, for as long as both existed.
+Nothing failed and nothing said so. The row version is `childNamesOf` now, named for what it returns
+rather than what it takes, because two functions one letter apart would be the same trap with a
+longer fuse.
+
+**Six actions identified a person by their display name alone**, and `node js/check-post.js` is the
+instrument. `findPerson(nameOrId, altId)` prefers the id and falls back to matching the NAME — the
+fallback is right, it is what finds a row typed into the sheet before anybody has an id, and it is
+why leaving the id out is invisible: everything works, for one person, until two share a name or
+somebody renames themselves. `addPost`, `changePin`, `reactPost`, `saveScore`, `toggleTopicTick` and
+`votePoll` all had `USER.personId` to hand and were not sending it. `changePin` was the sharp one:
+the PIN you typed is checked against the OTHER person's, and you are told "That is not your current
+PIN" — confidently wrong about the one thing you are certain of, with no way to change yours. Not a
+way in, since the current PIN is still required; a denial rather than a breach.
+
+The check asks **one** question it can be certain about: a handler that reads `body.personId` must
+be sent one. A first version compared every posted key against every `body.x` in both directions,
+the way `check-payload.js` does for `DATA`, and found twenty "read but never sent" of which most
+were fine — a POST field is usually optional and the handler copes. A report that is mostly noise is
+a report nobody reads.
+
+`node js/check-backend.js` is the instrument for the scope, and it is the backend's `check.js`:
+Apps Script loads
+every `.gs` into one scope exactly as the browser concatenates `js/`, so a name declared twice is a
+name declared once and the loader decides which. A redeclared `function` is quietly wrong; a
+redeclared top-level `const` is a SyntaxError that takes the whole project down at load, so the two
+are reported apart. 164 functions and 90 values, each declared once.
 
 ---
 

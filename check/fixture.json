@@ -1,61 +1,354 @@
 {
-  "version": "fixture",
-  "cached": false,
-  "fileVersions": { "constants": "fixture", "doGet": "fixture", "doPost": "fixture", "booking": "fixture" },
-  "features": ["openWaitlist","claimChild","answerClaim","joinWaitlist","move","events","tabs",
-               "getProfile","listPeople","createJob","updateConfig","updateResource","updatePricing",
-               "updateShop","deleteShopItem","updateTrip","addTrip","imageData","saveRoom","updateLink",
-               "addLink","deleteLink","saveTodo","saveAvatar","register","verifyEmail","diagnosePeople",
-               "folderFiles","confirmDetails","editResource","deleteResource","editPost","deletePost",
-               "orderPrints","createCheckout","finalizePayment"],
-  "brand": { "name": "@family.", "area": "Merton & Wandsworth", "phone": "020 0000 0000",
-             "site": "https://example.invalid/" },
-  "constants": { "vars": { "print_marks_per_page": "20", "print_rate_per_page": "0.10" } },
-  "laws": [
-    { "law_id": "L1", "kind": "prefix", "match": "#", "colour": "blue",  "weight": "10", "active": "yes" },
-    { "law_id": "L2", "kind": "prefix", "match": "@", "colour": "softblue", "weight": "10", "active": "yes" }
+ "version": "fixture",
+ "cached": false,
+ "fileVersions": {
+  "constants": "fixture",
+  "doGet": "fixture",
+  "doPost": "fixture",
+  "booking": "fixture"
+ },
+ "features": [
+  "openWaitlist",
+  "claimChild",
+  "answerClaim",
+  "joinWaitlist",
+  "move",
+  "events",
+  "tabs",
+  "getProfile",
+  "listPeople",
+  "createJob",
+  "updateConfig",
+  "updateResource",
+  "updatePricing",
+  "updateShop",
+  "deleteShopItem",
+  "updateTrip",
+  "addTrip",
+  "imageData",
+  "saveRoom",
+  "updateLink",
+  "addLink",
+  "deleteLink",
+  "saveTodo",
+  "saveAvatar",
+  "register",
+  "verifyEmail",
+  "diagnosePeople",
+  "folderFiles",
+  "confirmDetails",
+  "editResource",
+  "deleteResource",
+  "editPost",
+  "deletePost",
+  "orderPrints",
+  "createCheckout",
+  "finalizePayment"
+ ],
+ "brand": {
+  "name": "@family.",
+  "area": "Merton & Wandsworth",
+  "phone": "020 0000 0000",
+  "site": "https://example.invalid/"
+ },
+ "constants": {
+  "vars": {
+   "print_marks_per_page": "20",
+   "print_rate_per_page": "0.10",
+   "laminate_rate_per_page": 0.35,
+   "laminate_minimum": 0.5
+  }
+ },
+ "laws": [
+  {
+   "law_id": "L1",
+   "kind": "prefix",
+   "match": "#",
+   "colour": "blue",
+   "weight": "10",
+   "active": "yes"
+  },
+  {
+   "law_id": "L2",
+   "kind": "prefix",
+   "match": "@",
+   "colour": "softblue",
+   "weight": "10",
+   "active": "yes"
+  }
+ ],
+ "kinds": [
+  {
+   "kind": "tutor",
+   "group": "people",
+   "label": "Tutors",
+   "order": 1,
+   "active": true,
+   "null": ""
+  },
+  {
+   "kind": "venue",
+   "group": "places",
+   "label": "Venues",
+   "order": 2,
+   "active": true,
+   "null": ""
+  },
+  {
+   "kind": "receipt",
+   "group": "Booking",
+   "label": "Sessions",
+   "order": 3,
+   "active": true,
+   "null": ""
+  }
+ ],
+ "facets": [
+  {
+   "field": "subject",
+   "label": "Subject",
+   "order": 1,
+   "minCoverage": 0,
+   "active": true,
+   "null": ""
+  },
+  {
+   "field": "level",
+   "label": "Level",
+   "order": 2,
+   "minCoverage": 0,
+   "active": true,
+   "null": ""
+  }
+ ],
+ "people": [
+  {
+   "person_id": "P001",
+   "role": "admin",
+   "full_name": "Test Admin",
+   "first_name": "Test",
+   "last_name": "Admin",
+   "listed": "yes",
+   "city": "London",
+   "headline": "Runs the place"
+  },
+  {
+   "person_id": "P002",
+   "role": "tutor",
+   "full_name": "Ada Tutor",
+   "first_name": "Ada",
+   "last_name": "Tutor",
+   "listed": "yes",
+   "city": "London",
+   "headline": "Maths and further maths, GCSE to A-Level",
+   "adjective_1": "patient",
+   "adjective_2": "clear",
+   "adjective_3": "quick"
+  }
+ ],
+ "tutors": [
+  {
+   "id": "P002",
+   "type": "tutor",
+   "role": "tutor",
+   "listed": true,
+   "title": "Ada Tutor",
+   "handle": "@ada",
+   "subtitle": "Maths and further maths, GCSE to A-Level",
+   "image": "",
+   "mediaUrl": "",
+   "tags": [
+    "Maths"
+   ],
+   "description": "Ten years of GCSE and A-Level maths.",
+   "rate": 30,
+   "dbs": true,
+   "detailsConfirmed": true,
+   "yrsExp": 10,
+   "minStudents": 1,
+   "maxStudents": 4,
+   "minHours": 1,
+   "maxHours": 3,
+   "extraSeat": 8,
+   "focus": "Maths",
+   "xp": 0,
+   "credits": 0,
+   "highscore": 0,
+   "ttHighscore": 0,
+   "avail": [],
+   "busy": [],
+   "teaches": [
+    "Maths"
+   ],
+   "quals": [
+    "MMath"
+   ],
+   "extraQuals": [],
+   "actionText": "Book this tutor"
+  }
+ ],
+ "students": [],
+ "clients": [],
+ "venues": [
+  {
+   "id": "V001",
+   "type": "venue",
+   "title": "Colliers Wood Library",
+   "borough": "Merton",
+   "city": "London",
+   "postcode": "SW19 2HR",
+   "lat": 51.4185,
+   "lng": -0.1774,
+   "focus": "Study room",
+   "subtitle": "Colliers Wood Library",
+   "image": "",
+   "link": "",
+   "description": "A quiet room above the lending floor.",
+   "bestRate": 12,
+   "actionText": "Book this room",
+   "tags": [
+    "quiet",
+    "step-free"
+   ],
+   "maxCapacity": 8,
+   "minCapacity": 1,
+   "minHours": 1,
+   "maxHours": 4,
+   "minNoticeDays": 2,
+   "comfort": "warm",
+   "rooms": [
+    {
+     "rowIndex": 2,
+     "name": "Room 1",
+     "rate": 12,
+     "concession": 0,
+     "min": 1,
+     "max": 8,
+     "notes": "",
+     "avail": []
+    }
+   ],
+   "fields": [],
+   "avail": []
+  }
+ ],
+ "jobs": [],
+ "liveJobs": [
+  {
+   "job_id": "J001",
+   "title": "GCSE Maths, Tuesday 4pm",
+   "subject": "Maths",
+   "level": "GCSE",
+   "venue": "Colliers Wood Library",
+   "price": "30",
+   "unit": "hour",
+   "seats": "3",
+   "taken": "1"
+  }
+ ],
+ "posts": [
+  {
+   "id": "PO1",
+   "author": "@family.",
+   "handle": "@family.",
+   "avatar": "",
+   "image": "",
+   "caption": "A very ordinary Tuesday at the library #maths",
+   "body": "",
+   "location": "Colliers Wood Library",
+   "when": "01/09/2026",
+   "at": 1788220800000,
+   "pinned": false,
+   "active": true,
+   "waiting": false,
+   "refused": false,
+   "approvedBy": "",
+   "poll": null,
+   "reactions": {
+    "👍": 3
+   },
+   "rowIndex": 2
+  },
+  {
+   "id": "PO2",
+   "author": "Ada Tutor",
+   "handle": "@ada",
+   "avatar": "",
+   "image": "",
+   "caption": "Waiting on a check before this one goes up",
+   "body": "",
+   "location": "",
+   "when": "02/09/2026",
+   "at": 1788307200000,
+   "pinned": false,
+   "active": true,
+   "waiting": true,
+   "refused": false,
+   "approvedBy": "",
+   "poll": null,
+   "reactions": {},
+   "rowIndex": 3
+  }
+ ],
+ "shop": [],
+ "resources": [],
+ "links": [],
+ "messages": [],
+ "orders": [],
+ "exams": [],
+ "questions": [],
+ "boxers": [],
+ "fights": [],
+ "cheatsheet": [],
+ "landmarks": [],
+ "favourites": [],
+ "campaigns": [],
+ "festive": [],
+ "birthdays": [],
+ "gallery": [],
+ "spotlight": [],
+ "promotions": [],
+ "claims": [],
+ "validations": [],
+ "terms": [],
+ "trips": [],
+ "rooms": [],
+ "dropdowns": {
+  "subject": [
+   "Maths",
+   "English",
+   "Science"
   ],
-  "kinds": [
-    { "kind": "tutor",  "group": "people", "label": "Tutors",  "sort_order": "1", "active": "yes" },
-    { "kind": "post",   "group": "feed",   "label": "Posts",   "sort_order": "2", "active": "yes" },
-    { "kind": "lesson", "group": "book",   "label": "Lessons", "sort_order": "3", "active": "yes" }
-  ],
-  "facets": [
-    { "field": "subject", "label": "Subject", "sort_order": "1", "min_coverage": "0", "active": "yes" },
-    { "field": "level",   "label": "Level",   "sort_order": "2", "min_coverage": "0", "active": "yes" }
-  ],
-  "people": [
-    { "person_id": "P001", "role": "admin", "full_name": "Test Admin", "first_name": "Test",
-      "last_name": "Admin", "listed": "yes", "city": "London", "headline": "Runs the place" },
-    { "person_id": "P002", "role": "tutor", "full_name": "Ada Tutor", "first_name": "Ada",
-      "last_name": "Tutor", "listed": "yes", "city": "London",
-      "headline": "Maths and further maths, GCSE to A-Level",
-      "adjective_1": "patient", "adjective_2": "clear", "adjective_3": "quick" }
-  ],
-  "tutors": [
-    { "person_id": "P002", "full_name": "Ada Tutor", "headline": "Maths and further maths, GCSE to A-Level",
-      "subjects": ["Maths"], "city": "London", "listed": "yes", "rate": "30" }
-  ],
-  "students": [], "clients": [],
-  "venues": [
-    { "venue_id": "V001", "name": "Colliers Wood Library", "postcode": "SW19 2HR",
-      "city": "London", "lat": "51.4185", "lng": "-0.1774" }
-  ],
-  "jobs": [], 
-  "liveJobs": [
-    { "job_id": "J001", "title": "GCSE Maths, Tuesday 4pm", "subject": "Maths", "level": "GCSE",
-      "venue": "Colliers Wood Library", "price": "30", "unit": "hour", "seats": "3", "taken": "1" }
-  ],
-  "posts": [
-    { "post_id": "PO1", "caption": "A very ordinary Tuesday at the library #maths",
-      "date": "01/09/2026", "active": "yes", "likes": "3", "author": "@family." }
-  ],
-  "shop": [], "resources": [], "links": [], "messages": [], "orders": [], "exams": [],
-  "questions": [], "boxers": [], "fights": [], "cheatsheet": [], "landmarks": [], "favourites": [],
-  "campaigns": [], "festive": [], "birthdays": [], "gallery": [], "spotlight": [], "promotions": [],
-  "claims": [], "validations": [], "terms": [], "trips": [], "rooms": [],
-  "dropdowns": { "subject": ["Maths","English","Science"], "level": ["KS3","GCSE","A-Level"] },
-  "multipliers": {}, "intervals": [{"rel": "Current", "term": "Autumn 1", "label": "Autumn 1", "kind": "term", "weeks": 6, "startDate": "01/09/2026", "endDate": "18/10/2026"}], "columns": {}, "avatarItems": [],
-  "profileFields": [], "studentFields": [], "clientFields": [], "resourceFields": [],
-  "profileReadonly": [], "facts": [], "termsAccepted": false, "googleClientId": ""
+  "level": [
+   "KS3",
+   "GCSE",
+   "A-Level"
+  ]
+ },
+ "multipliers": {},
+ "intervals": [
+  {
+   "rel": "Current",
+   "term": "Autumn 1",
+   "label": "Autumn 1",
+   "kind": "term",
+   "weeks": 6,
+   "startDate": "01/09/2026",
+   "endDate": "18/10/2026",
+   "opensOn": "01/09/2026",
+   "closesOn": "18/10/2026",
+   "lastSun": "18/10/2026",
+   "dateFault": ""
+  }
+ ],
+ "columns": {},
+ "avatarItems": [],
+ "profileFields": [],
+ "studentFields": [],
+ "clientFields": [],
+ "resourceFields": [],
+ "profileReadonly": [],
+ "facts": [],
+ "termsAccepted": false,
+ "googleClientId": ""
 }

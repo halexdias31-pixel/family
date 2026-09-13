@@ -618,4 +618,46 @@ function jobAdminTiles_(j, stage, accepted) {
   return `<div class="tile-row">${rows.join('')}</div>`;
 }
 
+/* ---------- WHAT YOU CAN DO ABOUT A POST ----------------------------------------------------------
+   A POST IS A THING, SO IT HAS TILES. That is the rule in CLAUDE.md and this was the last thing in
+   the app still arguing with it: a `<span>` holding `⋯` for editing, a `<button class="post-act">`
+   for sharing, and two `.btn`s for putting it up — three different controls for three actions on one
+   object, in three places on the card, styled three ways.
+
+   THE SPAN WAS THE WORST OF THE THREE and it is the same fault the docket had: a `<span>` with a
+   `data-do` on it cannot be reached by a keyboard, is not announced as a control, and is invisible
+   to `check/ui.js`'s tap-target pass because that pass looks at buttons, links and inputs. It
+   measured nothing and was about 14px.
+
+   `jobAdminTiles_` ABOVE IS THE PATTERN and this follows it exactly: one `.tile-row`, ordinary
+   actions first, the admin's decisions after, destructive last, and any real warning as ONE
+   paragraph under the row rather than one note per tile.
+
+   SHARING STAYS OUT OF THE REACTIONS ROW. The reactions are not actions on the post — they are a
+   counted response, they wrap to two lines, and the note on `.post-acts` explains that the row is
+   aligned to flex-start because of it. A tile row underneath is the same place every other thing in
+   this app puts its actions. */
+function postTiles_(p) {
+  const id = String((p && p.id) || '');
+  if (!id) return '';
+  const rows = [tile_({ icon: 'share', label: 'Share', act: 'share', data: { id: id } })];
+  if (typeof isAdmin === 'function' && isAdmin()) {
+    rows.push(tile_({ icon: 'edit', label: 'Edit', act: 'post-edit', data: { id: id } }));
+    /* THE DECISION, ON THE POST ITSELF — the same argument the old button row carried and worth
+       keeping: you are already looking at the photograph and the caption, which is everything the
+       decision is about, and a separate approvals screen is a second place to remember to visit. */
+    if (p.waiting || p.refused) {
+      rows.push(tile_({ icon: 'show', label: 'Put it up', tone: 'buy', note: 'everyone sees it',
+                        act: 'post-approve', data: { id: id, on: '1' } }));
+      /* ALREADY REFUSED MEANS THERE IS NOTHING LEFT TO REFUSE. Offering it again is offering a
+         control that does nothing, which is how somebody learns not to trust the row. */
+      if (!p.refused) {
+        rows.push(tile_({ icon: 'hide', label: 'Not this one', note: 'stays hidden',
+                          act: 'post-approve', data: { id: id, on: '' } }));
+      }
+    }
+  }
+  return `<div class="tile-row">${rows.join('')}</div>`;
+}
+
 on('noop', () => {});
