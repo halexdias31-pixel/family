@@ -2261,7 +2261,22 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
      the dashed underline is doing most of the separating anyway. */
   gap: .3rem; align-items: baseline;
   padding: .1rem 0;
-  font-size: .74rem;
+  /* ---------- BELOW 351px THE ROOT STOPS SHRINKING AND THE SCREEN DOES NOT -----------------------
+     THE ROW WANTED 255px AND HAD 242 AT 320, so the running total — the one figure the whole chain
+     exists to arrive at — was 13px off the right edge, and `.bk` then `.rc` then `.pane` scrolled
+     sideways behind it. Nothing had ever reported it: the booking card only exists for a signed-in
+     visitor and `check/ui.js` had only ever measured signed-out ones.
+
+     THE CAUSE IS A FLOOR, NOT THIS GRID. Line 121 sets the root to `clamp(13.5px, 3.8vw, 16px)`, so
+     below about 355px the root is pinned at 13.5 while the viewport keeps getting narrower. Every
+     column here is `em` or `ch` off that root — deliberately, so shrinking the font shrinks the
+     columns with it — so below the floor the card is the one thing on the page that cannot shrink.
+
+     SO THE ROW TRACKS THE VIEWPORT WHERE THE ROOT WILL NOT. `min()` rather than a media query
+     because the two curves meet: 2.85vw equals .74rem at exactly the width the root stops moving,
+     so this is .74rem at every width the card already fitted and continuous at the crossover. No
+     breakpoint to keep in step with the clamp, and no second set of column widths. */
+  font-size: min(.74rem, 2.85vw);
 }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break.
    This said `anywhere`, which breaks eagerly rather than as a last resort — so "Possession" came
@@ -5710,7 +5725,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   position: relative; flex: none; align-self: center;
   background: var(--sunk); border: 1px solid var(--line); border-radius: 2px; cursor: pointer;
 }
-.fm-adds label { min-height: 2rem; }
+/* ---------- 2rem IS 27px ON A PHONE, AND THIS IS THE THIRD TIME -----------------------------------
+   THE NOTE ABOVE GETS IT RIGHT AND THE NUMBER GETS IT WRONG: the tickbox is 17px by design and the
+   touch target is kept on the label, which is what a thumb lands on. The label was then given
+   `2rem`, and line 121 sets the root to `clamp(13.5px, 3.8vw, 16px)` — so 2rem is 27px at 320 and
+   30px at 390. The target that was moved to the label was never 44px anywhere.
+
+   CLAUDE.md ALREADY HAS THIS ENTRY TWICE: `.btn.tiny` at `max(38px, 2.3rem)` and `.post-act` at
+   `min-width: 2.2rem`, both fixed, both written up, and the rule stated — tap targets in px,
+   everything else in rem, because a fingertip is the same size on every screen. This is the same
+   mistake a third time in a widget nothing was measuring. */
+.fm-adds label { min-height: 44px; min-width: 44px; }
 .fm-adds input:checked { background: var(--gold); border-color: var(--gold); }
 .fm-adds input:checked::after {
   content: ""; position: absolute; left: 5px; top: 1px;
@@ -5719,7 +5744,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 }
 .fm-sep { width: 1px; height: 14px; background: var(--line); }
 /* PRESETS ONLY TICK BOXES, and you watch it happen — one that hid what it did would be a mode. */
+/* THE THREE SHAPES A FLYER CAN BE — and they are buttons, which means a finger has to land on them.
+   They were 21px tall at 320 and 23 at 390: `padding: .2rem .45rem` on a .66rem line, which is a
+   size chosen by what looked right beside the switches rather than by what a thumb needs. 44px in
+   px, like every other target on this site, and the row already wraps so the extra height costs
+   nothing but the row's own height. */
 .fm-pre { font: inherit; font-size: .66rem; background: var(--sunk); color: var(--dim);
+          min-height: 44px; min-width: 44px;
           border: 1px solid var(--line); border-radius: var(--r); padding: .2rem .45rem;
           cursor: pointer; }
 .fm-pre:active { color: var(--gold); border-color: var(--gold); }
@@ -5729,7 +5760,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the transform — the origin is top left so the scaled sheet does not drift off to one side. */
 /* THE PAPER SITS DIRECTLY UNDER THE PRINT BUTTON, close enough that a change is visible without
    scrolling — which is the whole reason for drawing it here rather than in a second file. */
-.fm-out { overflow: hidden; margin-top: .5rem; }
+/* ---------- THE SAME CUT, ON THE OTHER SHEET ------------------------------------------------------
+   `.mat-out` HAD `overflow: hidden` AND IT WAS WRONG for the reason CLAUDE.md records: a sheet with
+   a fixed paper width, clipped, with no way to reach the rest of the page you are about to print.
+   It was given `overflow-x: auto` and the entry was written up.
+
+   THIS IS THE SAME SHEET ONE FILE OVER and it kept the same rule. It overflows its column by 593px
+   at 320, 542 at 390 and 528 at 768 — most of a flyer, unreachable, on every width there is.
+
+   NOTHING CAUGHT IT BECAUSE NOTHING LOOKED. The flyer maker is a widget on the tools screen and the
+   tools screen signed out has no widgets on it; `check/ui.js` had never signed in. Both halves of
+   that sentence were fixed in the same change, and this is the first thing the other half found. */
+.fm-out { overflow-x: auto; overflow-y: hidden; margin-top: .5rem; }
 .fm-sheet { width: 210mm; height: 297mm; background: #fff; display: grid;
             transform-origin: 0 0; overflow: hidden; }
 .fm-z-a5 { grid-template: 148.5mm 148.5mm / 210mm; }
@@ -7298,7 +7340,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE ACTIONS ON THE DOCUMENT, centred and ruled off — everything above is what was asked for and
    everything here is what to do about it. Two of them, so a row rather than a stack. */
 .rc-tiles { justify-content: center; gap: .4rem; margin: .45rem 0 0; padding-top: .45rem; }
-.rc-tiles .tile { width: 40px; height: 40px; }
+/* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH ----------------------
+   "Ask for it" and "Share this booking" were 40x40 at every width. CLAUDE.md's own rule is that tap
+   targets go in px precisely so they cannot come out under 44 by accident — and these were in px
+   and under 44 on purpose, shrunk to sit politely on a receipt.
+
+   THE RECEIPT IS NOT THERE ANY MORE and it was never a good enough reason: sending a booking is the
+   one irreversible thing on this card. 44px, which is the floor, and the row has the height. */
+.rc-tiles .tile { width: 44px; height: 44px; }
 .rc .rc-tiles { border-top: 1px solid var(--line-soft); }
 
 /* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the
