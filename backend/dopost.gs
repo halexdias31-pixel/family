@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-16-papers";
+const DOPOST_VERSION = "2026-09-17-laminate";
 
 
 function doPost(e) {
@@ -3015,7 +3015,12 @@ function loginReplyFor_(r, token) {
                 address: S(r.address), postcode: S(r.postcode),
                 highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
                 friends: S(r.friends) };
-  if (appRole === 'parent') out.kids = childrenOf(r);
+  /* `childNamesOf`, NOT `childrenOf` — see the note on it. This said `childrenOf(r)`, which after
+     the duplicate declaration was resolved by the second one meant "find children whose parent_id
+     equals this row object", so it has always been `[]`. The booking form reads
+     `USER.children || USER.kids`, and `out.children` below is set correctly from the accepted
+     links, which is why nothing looked broken: the fallback carried it and the primary was dead. */
+  if (appRole === 'parent') out.kids = childNamesOf(r);
 
   /* Their family, as agreed by both sides, and anything still waiting on them. Sent with the
      person rather than fetched separately — it is three names, and a second round trip for

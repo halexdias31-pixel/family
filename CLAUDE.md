@@ -161,6 +161,7 @@ node js/check.js                 # names used but never declared. Two seconds. R
 node js/check-flow.js            # 21 journeys through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
+node js/check-backend.js         # one Apps Script scope: every name declared exactly once
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -295,8 +296,19 @@ dead custom properties; all seven were wrong, because they are set from template
 facts come from the browser; "does a writer exist at all" comes from the source. `check/ui.js` says
 which of the two each check uses and why.
 
-**`backend/people.gs` declares `childrenOf` twice** — line 248 takes a row, line 282 takes an id. The
-second silently wins. Not yet fixed; be careful around it.
+**`backend/people.gs` declared `childrenOf` twice and it is fixed.** Line 248 took a person row and
+returned NAMES; line 282 took a parent id and returned ROWS; the second silently won. The two
+callers wanted different halves — `doget.gs` passed an id, `dopost.gs` passed a row — so
+`out.kids` had been an empty list for every parent on every sign-in, for as long as both existed.
+Nothing failed and nothing said so. The row version is `childNamesOf` now, named for what it returns
+rather than what it takes, because two functions one letter apart would be the same trap with a
+longer fuse.
+
+`node js/check-backend.js` is the instrument, and it is the backend's `check.js`: Apps Script loads
+every `.gs` into one scope exactly as the browser concatenates `js/`, so a name declared twice is a
+name declared once and the loader decides which. A redeclared `function` is quietly wrong; a
+redeclared top-level `const` is a SyntaxError that takes the whole project down at load, so the two
+are reported apart. 164 functions and 90 values, each declared once.
 
 ---
 
