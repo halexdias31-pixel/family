@@ -268,8 +268,33 @@ bare.replace(/\.(-?[A-Za-z_][\w-]*)/g, (_, c) => { seenClass.add(c); return _; }
    the old note defends, because what follows a built name is `$`, a quote or a space — none of
    which is a name character. The one it still cannot see is a name assembled from pieces,
    `'is-' + kind`, which is why the heading says to check before deleting. A list to look at. */
-const dead = [...seenClass].filter(c => !IGNORE.has(c)
-  && !new RegExp(c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])').test(code));
+/* ---------- AND THE ONE CASE THE HEADING HAS ALWAYS WARNED ABOUT, NOW ACTUALLY FOUND -------------
+   "A name may be built in pieces" is in the title of this section, and until now that was all it
+   was: a caveat asking the reader to be careful, with no way to tell WHICH of the entries it
+   applied to. `is-buy` sat in the list looking exactly as dead as `post-ok`, and it is written by
+   `tile_` as `'is-' + o.tone` with `tone: 'buy'` in half a dozen callers. Deleting it would have
+   taken the gold off every affirmative tile in the app, and the list would have been right about
+   the twenty entries either side of it.
+
+   THE ASSEMBLY IS VISIBLE IN THE SOURCE. A name built in pieces is a string literal followed by a
+   `+`, so every such literal that is a PREFIX of a class name makes that class unprovable — `'is-'`
+   covers `is-buy`, `is-admin`, `is-tutor`; `'rc-'` covered `rc-receipt` before that stopped being
+   built at all. Found rather than assumed, and named in the report so the reader knows which of the
+   two lists they are looking at.
+
+   IT STAYS A LIST TO LOOK AT. A name assembled the other way round — `kind + '-row'` — is still
+   invisible, and so is one built from a variable with no literal at all. What changed is that the
+   entries this check CAN be sure about are no longer mixed in with the ones it cannot. */
+const builtPrefix = new Set();
+/* THE LEADING SPACE IS PART OF THE LITERAL. `tile_` writes ` ' is-' + o.tone` — a space, because
+     the name is being appended to a class list — so a pattern anchored to a letter right after the
+     quote missed every one of them, which is how `is-buy` reached the provably-dead list. */
+for (const m of code.matchAll(/(['"`])\s*([A-Za-z][\w-]*-)\1\s*\+/g)) builtPrefix.add(m[2]);
+const maybeBuilt = c => [...builtPrefix].some(p => c.startsWith(p) && c !== p);
+const present = c => new RegExp(c.replace(/[.*+?^${}()|[\]\\]/g, m => '\\' + m)
+                                + '(?![\\w-])').test(code);
+const dead  = [...seenClass].filter(c => !IGNORE.has(c) && !present(c) && !maybeBuilt(c));
+const built = [...seenClass].filter(c => !IGNORE.has(c) && !present(c) && maybeBuilt(c));
 
 /* ---------- 6. THE SPLASHES: HIDDEN BY DEFAULT, SHOWN ONLY BY THEIR OWN STATE CLASS -------------
    One loading animation shows and the others are not drawn. That is an invariant of this app rather
@@ -381,8 +406,9 @@ say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
 say('PROPERTIES THAT CONTRADICT EACH OTHER', clash);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
-say('CLASSES STYLED BUT NEVER PRODUCED — check before deleting; a name may be built in pieces',
-    dead, true);
+say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
+say('CLASSES A LITERAL COULD BE ASSEMBLING — ' + [...builtPrefix].sort().join(' ')
+    + ' appear before a `+`, so these may well be live', built, true);
 say('A LOADING SPLASH THAT COULD SHOW WHEN IT WAS NOT CHOSEN', splashBad);
 say('A RULE WITH NOTHING IN IT', hollow);
 say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);

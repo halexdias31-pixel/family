@@ -1146,30 +1146,15 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 }
 .page .post-by, .page .post-acts, .page .post-cap,
 .page .post-when, .page .poll, .page .note { flex: none; }
+/* `.post-act` WAS THE SHARE CONTROL in the reactions row, and it is a tile now — see `postTiles_`.
+   Its last note is worth carrying forward because it is the rule this project keeps relearning:
+   `min-width: 2.2rem` is 32.6px on a 390px phone, so Share measured 30x44 — tall enough to look
+   deliberate and too narrow to hit, which is the worst version of this fault because nothing about
+   it looks wrong. Tap targets in px. The tile row gets that for free from one renderer, which is
+   the whole argument for tiles over a control per card.
 
-/* THE HEART IS GONE. A like was a reaction with exactly one option, so keeping both meant two
-   counts of the same gesture and a ♥ sitting beside a 👍 asking for the same press — with no way
-   for anybody to say which they had meant. Reactions won because they can say WHICH.
-
-   What is left in that row is sharing, and it is one glyph. */
-.post-act {
-  display: flex; align-items: center; justify-content: center;
-  flex: none; margin-left: auto;
-  background: none; border: 0; padding: .3rem .1rem .3rem .5rem;
-  /* `font-size: 1.15rem` SIZED THE ↗, and there is no ↗ — the mark is an SVG at a fixed 18px now,
-     the same 18px it is on every tile. Left at `inherit` so nothing here is sizing a character that
-     is not there. */
-  color: var(--dim); font: inherit; cursor: pointer;
-  /* THE HEIGHT WAS RIGHT AND THE WIDTH WAS THE REM TRAP. `min-width: 2.2rem` is 32.6px on a 390px
-     phone, so Share measured 30x44 — tall enough to look deliberate and too narrow to hit, which is
-     the worst version of this fault because nothing about it looks wrong. In px for the same reason
-     the height is: a fingertip does not scale with the root font size.
-     Safe to widen — `.post-acts` is a flex row whose `.reacts` is `flex: 1 1 auto; min-width: 0`,
-     so it gives up the space rather than pushing anything off the card. */
-  min-height: max(44px, 2.9rem); min-width: 44px;
-  transition: color var(--quick) ease, transform var(--quick) ease;
-}
-.post-act:active { color: var(--ink); transform: scale(1.2); }
+   THE HEART IS GONE TOO, and that stays gone: a like is a reaction with exactly one option, so
+   keeping both meant two counts of the same gesture with no way to say which you had meant. */
 
 /* ---------- A POST, AS INSTAGRAM ARRANGES ONE -----------------------------------------------------
    Who, then the picture, then what you can do, then what it says. That order is not fashion — a
@@ -2099,50 +2084,23 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rost-role { font-size: .52rem; text-transform: uppercase; letter-spacing: .06em;
              color: var(--paper-faint); }
-/* A STUB: the receipt folded up. Same paper, same torn ends, three lines — what it is, where and
-   when, and where it stands. Five of these is a list you can scan; five full receipts is a screen
-   you scroll for a minute to find one thing on.
-   `.rc` already gives it the paper, so this only has to make it short. */
-.rc-stub { padding: .6rem .8rem; margin-bottom: .55rem; cursor: pointer;
-           transition: transform var(--quick) ease; }
-.rc-stub:active { transform: scale(.99); }
-.rc-stub-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
-.rc-stub-what { font-weight: 700; font-size: .84rem; color: var(--paper-ink); }
-.rc-stub-cost { font-family: var(--mono); font-variant-numeric: tabular-nums;
-                font-weight: 700; font-size: .9rem; color: var(--paper-ink); }
-.rc-stub-line { display: flex; justify-content: space-between; gap: .6rem;
-                font-size: .7rem; color: var(--paper-dim); margin-top: .15rem; }
+/* ---------- THE STUB: A WHOLE DOCUMENT TYPE, STYLED, THAT NOTHING DRAWS --------------------------
+   FORTY-FOUR LINES AND FOURTEEN CLASSES for "the receipt folded up" — what it is, where and when,
+   where it stands, two thumbnails, a row of seat pips. It reads like a good idea and it probably
+   was one: five stubs is a list you can scan, five full receipts is a screen you scroll.
 
-/* THE ROOM AND THE PERSON, small. Two thumbnails on a stub say more than the two names beside them
-   — you recognise a venue you have been to before it is read. */
-.rc-stub-mid { display: flex; align-items: center; gap: .5rem; margin-top: .35rem; }
-.rc-stub-pics { display: flex; gap: 3px; flex: 0 0 auto; }
-.rc-stub-pics img, .rc-stub-pics .bk-none {
-  width: 30px; height: 30px; border-radius: 4px; object-fit: cover;
-  border: 1px solid #cfc6b4; background: #e6e1d4; padding: 0;
-  /* One ink, like the rest of the paper. */
-  filter: grayscale(1) contrast(1.15);
-}
-.rc-stub-pics .bk-none { display: grid; place-items: center; color: #a99f8f; }
-.rc-stub-pics .bk-none svg { width: 70%; height: 70%; }
-.rc-stub-said { display: flex; flex-direction: column; min-width: 0;
-                font-size: .7rem; color: var(--paper-dim); line-height: 1.35; }
-.rc-stub-said span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rc-stub-who { color: var(--paper-faint); font-size: .64rem; }
+   NOTHING HAS PRODUCED ONE FOR A LONG TIME. `Your sessions` draws cards now, and when the markup
+   went the stylesheet stayed — which is the ordinary way a 448KB stylesheet happens.
 
-/* THE SEATS, as marks. The full roster is four named slots with faces; this is the same fact at a
-   glance — how many are taken and how many are going — so somebody scanning the list can see
-   whether there is room without reading anything. */
-.rc-stub-slots { display: flex; align-items: center; gap: 3px; }
-.pip { width: 7px; height: 7px; border-radius: 50%; border: 1px solid #a99f8f; }
-.pip.on { background: var(--paper-dim); border-color: var(--paper-dim); }
-/* The tutor's slot is not a seat, and squaring it says so without a label. */
-.pip.tut { border-radius: 2px; }
-.rc-stub-slots em { font-style: normal; font-size: .58rem; color: var(--paper-faint); margin-left: .2rem; }
-/* The last line is the one somebody scans down — status on the left, how many sessions on the
-   right, in the same place on every stub. */
-.rc-stub-foot { color: var(--paper-faint); text-transform: uppercase; letter-spacing: .05em;
-                font-size: .6rem; margin-top: .3rem; }
+   IT WAS INVISIBLE TO THE CHECK THAT EXISTS TO FIND IT, twice over. `check-css` searched the
+   comments as well as the code, and every one of these names appears in the paragraphs above them;
+   and it asked `code.includes(c)`, so `.rc-stub` was proved live by `.rc-stub-pics` two lines down.
+   Both are fixed, and this is the first thing the repaired check found. The seat pips went with it:
+   `.pip` was only ever drawn inside `.rc-stub-slots`.
+
+   IF A FOLDED LIST IS WANTED AGAIN it is `jobReceipt` with a shorter row list, not this — the
+   receipt has changed palette, lost its tear and lost its barcode since these rules were written,
+   and a stub restored from here would be a cream paper object in a black app. */
 /* THE LINE THAT PAYS. Bigger, and the only thing on the paper in full ink — a receipt has one
    number somebody is looking for and it should not be the same size as the rest. */
 /* ---------- THE TOTAL IS ITS OWN ROW, NOT A SIX-COLUMN ONE --------------------------------------
@@ -3254,23 +3212,17 @@ textarea, select, [data-noswipe],
    the same: no tutor, no venue, no price. So the writing is faint and the paper is a shade paler,
    the way an unused form is paler than one somebody has filled in. Nothing is added — no badge, no
    "new" label — because the emptiness is the message and a label would be explaining it. */
-/* FULL STRENGTH. This was `opacity: .72`, to make it read as an unused form rather than as a
-   session missing its details — and dimming a whole card is how every app there has ever been says
-   "you cannot press this". It is the primary action on the screen; it must not look disabled.
+/* `.rc-blank` WAS THE EMPTY STUB — "Nothing booked / Tap to start" — and it goes with the rest of
+   the stub stylesheet. Two of its arguments are worth keeping in one place, because both apply to
+   any empty state this app builds next:
 
-   The difference is carried by the FIELDS instead, which is where it actually lives: the heading is
-   ink, and the parts that are not filled in yet are the colour of a placeholder. A form with blanks
-   in it and a form nobody may touch look nothing alike once the blanks are the thing that is pale. */
-.rc-blank .rc-stub-what { color: var(--paper-ink); }
-/* `.rc-stub-cost` AND `.rc-stub-foot span` WERE IN THIS LIST and neither exists on a blank card any
-   more — the "£—" and the "Nothing booked / Tap to start" line were five ways of saying the card is
-   empty, and a card that is visibly empty does not need telling you so. Both selectors still earn
-   their keep on a REAL session card, which is why they stay in the stylesheet and only leave here. */
-.rc-blank .rc-stub-said span { color: #a49a8c; }
-/* Pressed, it does what the button did — so it should say so under a thumb the way a button does. */
-/* Pressed, it does what a button does. `transform` only — dimming on press would be the same
-   mistake in miniature. */
-.rc-blank:active { transform: scale(.985); }
+     THE EMPTINESS IS THE MESSAGE. No badge, no "new" label; a card that is visibly empty does not
+     need telling you so.
+
+     AND IT MUST NOT BE DIMMED. This was `opacity: .72` to read as an unused form, and dimming a
+     whole card is how every app there has ever been says "you cannot press this" — on the primary
+     action of a screen that is exactly wrong. The difference belongs in the FIELDS: the heading in
+     ink, the parts not filled in yet the colour of a placeholder. */
 
 /* ==================================================================================================
    THE SPLASH — @family., sprayed on, while the payload is on its way.
@@ -4206,11 +4158,6 @@ textarea, select, [data-noswipe],
    which is the thing a chevron only gestures at. */
 .row.tap.counted::after { content: none; }
 
-/* A receipt's own paper is pale, so a pale chevron on it would be invisible. */
-.rc-stub.tap::after { color: rgb(43 38 32 / .38); }
-.rc-stub.tap:active::after { color: var(--paper-ink); }
-/* The blank one already says "Tap to start" in words. A chevron as well is saying it twice. */
-.rc-blank::after { content: none; }
 
 /* ---------- THE ONES INSIDE A LINE OF TEXT -------------------------------------------------------
    A word in a caption, a date on the calendar, an action at the end of a row. A chevron would be
@@ -4248,7 +4195,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    The two buttons sit under the post itself rather than on a list somewhere, because the decision
    is about the photograph and the caption and you are already looking at both. */
 .post-wait { color: var(--gold); font-weight: 600; }
-.post-ok { margin-top: .6rem; }
 
 /* ==================================================================================================
    THREE THINGS THAT ARE WHAT THEY ARE
@@ -4436,31 +4382,17 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   font-family: var(--mono); font-size: .6rem;
   letter-spacing: .1em; text-transform: uppercase; color: #6b655a;
 }
-.slip-take { color: #24211c; font-weight: 700; }
 
 /* THE CHEVRON the tappable rule adds sits wrong on all three — a pass and a slip and an exam paper
    are objects, and an object with a navigation arrow stuck to it is an object with a sticker on it.
    The shapes already say they can be pressed. */
 .paper::after, .pass::after, .slip::after { content: none; }
 
-/* ---------- A SESSION WITH ROOM IN IT ------------------------------------------------------------
-   The one line on somebody else's booking worth looking twice at. Gold, because that is what this
-   app uses for "there is something here" — and on the paper of a receipt stub gold reads as a stamp
-   rather than as a highlight, which is right: somebody has marked this one as open. */
-.rc-stub-open {
-  border-top: 1px dashed rgb(43 38 32 / .35);
-  padding-top: .35rem; margin-top: .3rem;
-  color: #8a5312; font-weight: 700;
-}
-.rc-stub-ask { color: var(--paper-ink); }
 
 /* ---------- AND THE ASK, under the receipt ------------------------------------------------------- */
-/* ---------- ONE SESSION ON THE ROSTER WIDGET ------------------------------------------------------
-   The line above each roster: what it is, when, and where it has got to. Small, because the roster
-   under it is the thing being looked at — this only says which session the faces belong to. */
-.live-row + .live-row { margin-top: .9rem; padding-top: .9rem; border-top: 1px solid var(--line-soft); }
-.live-what { margin: 0 0 .15rem; font-weight: 600; }
-.live-stage { margin: 0 0 .45rem; font-size: .78rem; }
+/* `.live-row`, `.live-what` AND `.live-stage` STOOD HERE — the line above each roster saying what
+   the session is, when, and where it has got to. Nothing draws them. Gone with the stub stylesheet
+   above, and found by the same two repairs to `check-css`. */
 
 /* ---------- THE BUSINESS'S OWN ARITHMETIC, BESIDE THE PAPER --------------------------------------
    Floating under the card rather than printed on it, so the document reads the same for everybody
