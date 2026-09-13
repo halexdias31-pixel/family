@@ -269,6 +269,17 @@ Follow it. It is unusual and it is deliberate.
   - A tile has room for a label and about three words of `note`. When an action needs a real warning
     — "everyone is withdrawn", "never as though Stripe had confirmed it" — put **one** paragraph
     under the row rather than one per button. See `jobAdminTiles_`.
+- **THERE ARE TWO PALETTES.** The screen is black and gold (`--bg`, `--gold`, `--ink`, `--line`).
+  Everything standing in for PAPER — the receipt, the job stubs, the roster, the print sheet, the
+  calendar, the splash — is cream and warm ink (`--paper`, `--paper-ink`, `--paper-dim`,
+  `--paper-faint`, `--paper-strip`, `--paper-rule`). Only the first was ever tokenised: the paper
+  one was six hex codes written out by hand, `#f4f1e8` alone in 29 rule-groups, so "make the paper
+  warmer" was a find-and-replace across ~70 declarations and one missed leaves a card with two
+  different papers in it. **Never write a paper colour as a literal.**
+- **Which palette a colour belongs to decides its scope.** A colour used by more than one component
+  is a `:root` token. A colour that belongs to ONE component — a chess board's cream and charcoal,
+  which is that board's own convention and not this app's — is defined on that component
+  (`.chess { --chess-light: … }`) so it is named without being offered to the whole stylesheet.
 - **Tap targets in `px`, everything else in `rem`.** Line 121 sets the root to
   `clamp(13.5px, 3.8vw, 16px)`, so a rem is 14.82px on a 390px phone. `2.75rem` for a 44px target
   comes out at 40.75px and still fails. A fingertip is the same size on every screen; it is the one
