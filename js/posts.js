@@ -279,12 +279,32 @@ function postsBlocks() {
    app out of your Drive's write permissions.
 
    --------------------------------------------------------------------------------------------------
-   IT STARTS ON A TAP, NEVER ON ARRIVAL. Browsers require a gesture for `getUserMedia` on most
-   configurations, and a camera that turns itself on because somebody swiped past is a camera nobody
-   trusts. The card shows a dark panel and a button until asked.
+   IT STARTS WHEN THE COLUMN ARRIVES, AND IT USED TO WAIT FOR A TAP.
+
+   The note here said a gesture was required for `getUserMedia`. That is not the rule — the rule is
+   PERMISSION, which is a prompt the browser raises on its own and then remembers for the site. So
+   the button bought nothing after the first visit: you granted the camera once and were still asked
+   to press `Turn the camera on` every single time the column came round.
+
+   Started from `go` now, the same way the tools and games are, through `afterSlide_` so the markup
+   it needs is in the document before it looks for it.
+
+   A REFUSAL STILL HAS TO LEAVE A WAY BACK. If the prompt is declined, or the page is not on https,
+   or another app holds the camera, there is no gesture coming and nothing would ever retry — so the
+   button is still here, hidden, and appears with the sentence saying what went wrong. It is a retry
+   after a failure rather than a step in the normal path, which is the difference the old one blurred.
 
    AND IT STOPS WHEN THE COLUMN LEAVES — `camStop_`, called from `go` beside `toolsStop_`. A live
    camera behind a screen nobody is looking at is a recording light on for nothing.
+
+   --------------------------------------------------------------------------------------------------
+   A PICTURE FROM THE GALLERY LANDS IN THE SAME CANVAS A SHOT DOES.
+
+   `Photos` is a file input wearing a label, and what it picks is DRAWN INTO `cam-still` rather than
+   given an element of its own. So `Again` and `Save it` need to know nothing about where the picture
+   came from: there is one held image on this card and one set of buttons for it. A second element
+   would have meant every one of those handlers asking which of two things it was looking at, which
+   is three states to keep in step for no gain anybody can see.
 ================================================================================================== */
 let CAM_STREAM = null;
 
@@ -294,32 +314,35 @@ function cameraCard() {
     <div class="cam-stage" id="cam-stage">
       <video id="cam-view" playsinline muted autoplay></video>
       <canvas id="cam-still" hidden></canvas>
+      ${/* "Starting" RATHER THAN "off", BECAUSE IT IS. This panel shows for the moment between the
+            column arriving and the first frame, and `The camera is off.` was a statement about a
+            state the card no longer has — read while the thing it denied was already happening. */''}
       <div class="cam-off" id="cam-off">
-        <p class="sub">The camera is off.</p>
+        <p class="sub">Starting the camera…</p>
       </div>
     </div>
     <div class="btn-row cam-row">
-      <button class="btn" data-do="cam-on" id="cam-on">Turn the camera on</button>
       <button class="btn quiet" data-do="cam-shoot" id="cam-shoot" hidden>Take one</button>
       <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
       <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
+      ${/* A LABEL, NOT A BUTTON, so the file input opens with no script at all — a `for` reaches a
+            control the page is hiding, which is the one way to style a file picker without
+            rebuilding it. `accept="image/*"` and NO `capture`: capture would reopen the camera,
+            which is the thing this button exists to be an alternative to. */''}
+      <label class="btn quiet cam-pick" for="cam-pick">Photos</label>
+      <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*" hidden>
+      ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
+            prompt, not a step on the way in. */''}
+      <button class="btn" data-do="cam-on" id="cam-on" hidden>Try the camera again</button>
     </div>
     <p class="faint" id="cam-said"></p>
 
-    ${/* ---------- AND THE WAY TO WRITE ONE, ON THE SAME CARD -------------------------------------
-          `newPostCard` WAS A SECOND PAGE ON THIS COLUMN and before that a third copy at the top of
-          the feed. It was never a card in its own right — a heading, a sentence and a tap target —
-          so it is a button on the camera, which is the thing it was always about.
-
-          THE SENTENCE FOR A CLIENT AND THE SENTENCE FOR AN ADMIN ARE DIFFERENT, and that is the
-          rule this card has to keep: a client who posts and then finds nothing on the feed assumes
-          it failed and posts again; one who was told it gets checked first waits. Nobody is being
-          told off — "we check them first" is a sentence about the app, not about the person. */''}
-    <div class="cam-compose">
-      <button class="btn quiet" data-do="new-post">＋ Write a post</button>
-      <p class="sub">A photograph, a line about it, and a poll if you want one.${
-        isAdmin() ? '' : '<br>We check posts before they go up.'}</p>
-    </div>
+    ${/* ---------- `Write a post` WAS HERE AND IS GONE ON REQUEST ---------------------------------
+          IT WAS THE ONLY DOOR TO `on('new-post')`, so that handler and the composer behind it are
+          now unreachable — working code with nothing to open it. Left in place rather than deleted:
+          it is a whole feature, and where a composer belongs is a decision about the app rather than
+          a tidy-up to make on the way past. `check-doors.js` reports it as a handler waiting for a
+          button, which is exactly what it is and exactly what that check is for. */''}
   </div>`;
 }
 
@@ -338,29 +361,125 @@ function camWhy_(err) {
   return 'The camera would not start: ' + n;
 }
 
-on('cam-on', async el => {
-  const said = $('cam-said');
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (said) said.textContent = 'This browser has no camera support.';
+/* ---------- STARTING IT, FROM THE COLUMN ARRIVING OR FROM A RETRY ----------------------------------
+   ONE FUNCTION FOR BOTH, because the retry button and the swipe want exactly the same thing and two
+   copies of "ask for the camera" is two places for the failure wording to drift apart.
+
+   IT RETURNS EARLY IF A STREAM IS ALREADY LIVE. `go` runs on every arrival, including the one where
+   you swiped away and straight back before the card was torn down, and a second `getUserMedia` while
+   the first is running is a second camera light and a stream nothing ever stops.
+
+   AND IT RETURNS EARLY IF THE CARD IS NOT DRAWN. Signed out, `screen('make')` renders a sentence and
+   no viewfinder, so there is nothing to start and nothing to say about it. */
+async function camStart_() {
+  const v = $('cam-view');
+  if (!v) return;
+
+  /* ---------- THE MARKUP CAN BE REPLACED UNDER A LIVE STREAM -----------------------------------
+     `repaint` rebuilds this screen's cards, so the `<video>` that had the camera in it is gone and
+     the one in front of you is a fresh element with `srcObject` null — while `CAM_STREAM` still
+     holds the camera open behind it. Returning early on "a stream exists" would leave that: a black
+     box, a camera light on, and nothing able to fix it short of leaving the column.
+     Re-attached rather than reopened, because the stream is fine; it is the element that changed. */
+  if (CAM_STREAM) {
+    if (v.srcObject !== CAM_STREAM) {
+      v.srcObject = CAM_STREAM;
+      try { await v.play(); } catch (e) {}
+      $('cam-off')   && ($('cam-off').hidden = true);
+      $('cam-shoot') && ($('cam-shoot').hidden = false);
+    }
     return;
   }
-  el.disabled = true;
+
+  /* A PICTURE ALREADY ON THE CARD IS NOT INTERRUPTED. Coming back to a shot you took, or a photo you
+     picked, must not have the live preview reopen underneath it and throw the picture away. */
+  const c = $('cam-still');
+  if (c && !c.hidden) return;
+
+  const said = $('cam-said'), retry = $('cam-on');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (said) said.textContent = 'This browser has no camera support.';
+    if (retry) retry.hidden = true;          // nothing a retry could change
+    return;
+  }
+  if (retry) retry.disabled = true;
   try {
     /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
        camera gets that rather than an OverconstrainedError. */
     CAM_STREAM = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } }, audio: false });
   } catch (err) {
-    el.disabled = false;
+    CAM_STREAM = null;
     if (said) said.textContent = camWhy_(err);
+    /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
+       offering to start a camera that is already running is the thing this replaced. */
+    if (retry) { retry.hidden = false; retry.disabled = false; }
+    const off = $('cam-off');
+    if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
     return;
   }
-  const v = $('cam-view');
-  if (v) { v.srcObject = CAM_STREAM; try { await v.play(); } catch (e) {} }
+
+  /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. `camStop_` ran with CAM_STREAM still null, so
+     it stopped nothing, and this stream would have stayed live behind a screen nobody is looking at
+     — a recording light on for nothing, which is the exact thing camStop_ exists to prevent. */
+  if (typeof AT !== 'undefined' && AT !== 'make') { camStop_(); return; }
+
+  v.srcObject = CAM_STREAM;
+  try { await v.play(); } catch (e) {}
   $('cam-off') && ($('cam-off').hidden = true);
-  el.hidden = true; el.disabled = false;
+  if (retry) { retry.hidden = true; retry.disabled = false; }
   $('cam-shoot') && ($('cam-shoot').hidden = false);
   if (said) said.textContent = '';
+}
+
+on('cam-on', () => camStart_());
+
+/* ---------- A PICTURE OUT OF THE GALLERY ----------------------------------------------------------
+   DRAWN INTO THE SAME CANVAS A SHOT USES, so `Again` and `Save it` work on it without knowing where
+   it came from. See the note at the top of this section.
+
+   `change`, NOT A `data-do` CLICK. `on()` is the click table; a file input reports its choice by
+   changing, and this is the pattern book.js already uses for its typed fields.
+
+   THE VALUE IS CLEARED AFTERWARDS. Without it, picking the same photograph twice in a row is a
+   `change` event that never fires — the input's value has not changed — so the second attempt looks
+   like the button is broken. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="cam-pick"]');
+  if (!el) return;
+  const file = el.files && el.files[0];
+  el.value = '';
+  if (!file) return;
+
+  const said = $('cam-said'), c = $('cam-still'), v = $('cam-view');
+  if (!c) return;
+
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    /* REVOKED THE MOMENT IT IS DRAWN. The pixels are in the canvas by now, so the blob URL is a
+       handle on a file this page has finished with, and one left per photograph is a leak that only
+       shows up on the device of somebody who picked forty. */
+    URL.revokeObjectURL(url);
+    c.hidden = false;
+    if (v) v.hidden = true;
+    $('cam-shoot') && ($('cam-shoot').hidden = true);
+    $('cam-again') && ($('cam-again').hidden = false);
+    $('cam-save')  && ($('cam-save').hidden = false);
+    $('cam-off')   && ($('cam-off').hidden = true);
+    if (said) said.textContent = '';
+    /* THE CAMERA IS LET GO, not left running behind the picture. You asked for a photograph instead
+       of the viewfinder; holding the stream open for a preview nobody can see is the recording light
+       again. `Again` starts it back up. */
+    camStop_(true);
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    if (said) said.textContent = 'That file would not open as a picture.';
+  };
+  img.src = url;
 });
 
 on('cam-shoot', () => {
@@ -374,6 +493,10 @@ on('cam-shoot', () => {
   $('cam-save').hidden = false;
 });
 
+/* `Again` NOW HAS TO PUT THE CAMERA BACK, not just uncover it. A shot taken here leaves the stream
+   running underneath, but a photograph picked from the gallery released it — see the picker — so
+   showing the `<video>` again would have shown a dead black box on exactly that path. `camStart_`
+   returns immediately when a stream is already live, so the shot case costs nothing. */
 on('cam-again', () => {
   const v = $('cam-view'), c = $('cam-still');
   if (c) c.hidden = true;
@@ -382,6 +505,7 @@ on('cam-again', () => {
   $('cam-save').hidden = true;
   $('cam-shoot').hidden = false;
   const said = $('cam-said'); if (said) said.textContent = '';
+  camStart_();
 });
 
 on('cam-save', () => {
@@ -400,18 +524,33 @@ on('cam-save', () => {
   }
 });
 
-/** Let the camera go. Called when the column leaves — see `go` in shell.js. */
+/** Let the camera go. Called when the column leaves — see `go` in shell.js.
+ *  @param {boolean} [keepShown] release the stream and leave the card exactly as it looks. */
 /* EVERY BUTTON BACK TO ITS STARTING STATE TOO, not just the stream. Stopping the tracks leaves the
    last frame frozen in the `<video>` and "Take one" still showing, so the card looks live and does
-   nothing — which reads as a broken camera rather than a stopped one. */
-function camStop_() {
+   nothing — which reads as a broken camera rather than a stopped one.
+
+   EXCEPT WHEN THE POINT WAS TO KEEP WHAT IS ON IT. The gallery picker releases the camera while a
+   photograph is being looked at, and the full reset would have wiped that photograph off the canvas
+   half a frame after drawing it. `keepShown` releases the hardware and touches nothing else.
+
+   `cam-on` IS NOT REVEALED BY A STOP ANY MORE. It used to come back on every leave, because it was
+   the way in; it is the way back from a failure now, and a stop is not a failure. Showing it here
+   meant swiping away and back left a `Try the camera again` button sitting over a camera that had
+   just started itself perfectly well. */
+function camStop_(keepShown) {
   try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
   CAM_STREAM = null;
   const v = $('cam-view');
-  if (v) { try { v.srcObject = null; } catch (e) {} v.hidden = false; }
+  if (v) { try { v.srcObject = null; } catch (e) {} }
+  if (keepShown) return;
+
+  if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
-  $('cam-off')   && ($('cam-off').hidden = false);
-  $('cam-on')    && ($('cam-on').hidden = false, $('cam-on').disabled = false);
+  const off = $('cam-off');
+  if (off) { off.hidden = false;
+             const t = off.querySelector('.sub'); if (t) t.textContent = 'Starting the camera…'; }
+  $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
   $('cam-shoot') && ($('cam-shoot').hidden = true);
   $('cam-again') && ($('cam-again').hidden = true);
   $('cam-save')  && ($('cam-save').hidden = true);

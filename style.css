@@ -7630,16 +7630,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 .cam-card #cam-said:empty { display: none; }
 
-/* THE COMPOSER, UNDER THE VIEWFINDER. `newPostCard` was a page of its own on this column and, before
-   that, a duplicate of it at the top of the feed. It was never a card — a heading, a sentence and a
-   tap target — so it is the foot of the camera card, which is the thing it was always about. */
-.cam-card .cam-compose {
-  margin-top: .8rem;
-  padding-top: .8rem;
-  border-top: 1px solid var(--line-soft);
-}
-.cam-card .cam-compose .btn { min-height: 44px; }
-.cam-card .cam-compose .sub { margin: .5rem 0 0; }
+/* `.cam-compose` WAS HERE — the composer's strip under the viewfinder. The `Write a post` button it
+   held was removed from `cameraCard` on request, so these four rules styled nothing. Deleted rather
+   than left: `check-css.js` reports a class nothing produces, and a stylesheet that keeps rules for
+   markup that is gone is how 448KB of it happens. The handler behind that button is still in
+   posts.js and is noted there.
+
+   THE `Photos` LABEL NEEDS NOTHING OF ITS OWN. `.btn` is a class selector, not `button.btn`, so a
+   `<label class="btn quiet">` is already a button in every respect the eye can check — the same
+   flex centring, radius, 44px floor and press animation. A second rule to make a label look like a
+   button would be a second place for the button to change. */
 
 /* ==================================================================================================
    `hidden` HAS TO ACTUALLY HIDE.

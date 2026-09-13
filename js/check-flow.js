@@ -632,36 +632,53 @@ check('a festive event shows itself and can be joined', async () => {
     : ['joinFestive was sent without the names — the headcount question achieved nothing'];
 });
 
-check('the post card says different things to a client and an admin', async () => {
-  /* THIS HANDLER EXISTED WITH NO BUTTON ANYWHERE for as long as posting has. It read in the source
-     exactly like a working feature, which is the whole reason `check-doors` was written — and a
-     door alone is not enough, because a door drawn for the wrong person is its own fault. */
+check('the camera card starts itself and offers the gallery', async () => {
+  /* ---------- THIS JOURNEY HAS OUTLIVED TWO OF ITS OWN SUBJECTS ------------------------------------
+     It began as "an admin can run the folder scan", and `scan-posts` left the app. It was rewritten
+     to check that the post card told a client and an admin different things — "we check posts before
+     they go up" — and that sentence left with the `Write a post` button, removed on request.
+
+     THE HONEST MOVE THE SECOND TIME IS NOT THE SAME AS THE FIRST. The rewrite worked because the
+     rule survived its button: somebody still had to be told their post was moderated. This time the
+     surface itself is gone — there is no composer on this card and no door to one anywhere — so
+     there is no wording left to protect, and a journey asserting a deleted sentence is a red that
+     will never go green. Rewriting it to guard the deletion instead of mourning it.
+
+     WHAT IT GUARDS NOW is the card's actual promise: the camera comes up on its own, there is a way
+     in from the gallery, and nothing asks you to switch a camera on that is already starting. Put a
+     start button back in the normal path and this objects. */
   const { w } = boot();
   await wait(300);
   if (typeof w.__t.card !== 'function') return [];      // only checkable where the card is exported
 
-  /* ---------- THE FOLDER SCAN IS GONE, AND HAS BEEN SINCE 19 AUGUST ---------------------------------
-     `scan-posts` IS NOT IN THE APP: no handler, no button, nothing anywhere. It was taken out of
-     `newPostCard` and this journey was left behind asserting it, so the report has been reading
-     "an admin has no way to run the folder scan" ever since — true, and not a fault.
-
-     A RED THAT IS ALWAYS RED IS A RED NOBODY READS, which is the whole reason this file exists. So
-     the journey now checks what the feature was FOR — that the post card tells a client and an
-     admin different things — which is the rule that outlived the button. Put the scan back and this
-     will not object; break who sees what and it will. */
   const bad = [];
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
-  const asClient = w.__t.card();
-  w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
-  const asAdmin = w.__t.card();
-  if (asClient === asAdmin) {
-    bad.push('the post card is identical for a client and an admin — nothing is being withheld');
+  const html = w.__t.card();
+
+  if (!/id="cam-view"/.test(html)) bad.push('the camera card has no viewfinder');
+  if (!/id="cam-pick"/.test(html)) bad.push('there is no way to pick a picture from the gallery');
+  if (!/type="file"/.test(html) || !/accept="image\/\*"/.test(html)) {
+    bad.push('the gallery control is not a file input that accepts pictures');
   }
-  if (!/check posts before they go up/i.test(asClient)) {
-    bad.push('a client is not told their post is checked before it goes up');
+  /* `capture` WOULD REOPEN THE CAMERA, which is the thing the Photos button exists to be an
+     alternative to — a one-word attribute that quietly turns the gallery back into a viewfinder. */
+  if (/\bcapture\b/.test(html)) bad.push('the gallery control carries `capture`, so it opens the camera');
+
+  /* THE START BUTTON IS ALLOWED TO EXIST AND NOT TO SHOW. It is the way back from a refused prompt.
+     What must never come back is it being on the normal path — so if it is there, it is hidden. */
+  const on = /<button[^>]*id="cam-on"[^>]*>/.exec(html);
+  if (on && !/\bhidden\b/.test(on[0])) {
+    bad.push('the camera card still shows a start button — it is meant to start on arrival');
   }
-  if (/check posts before they go up/i.test(asAdmin)) {
-    bad.push('an admin is told their own post will be checked');
+  if (/Turn the camera on/i.test(html)) bad.push('`Turn the camera on` is back on the card');
+  if (/Write a post/i.test(html)) bad.push('`Write a post` is back on the camera card');
+
+  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `screen('make')` renders a sentence instead, and a
+     camera that starts for somebody who is not signed in is a permission prompt with no purpose. */
+  w.__t.USER(null);
+  if (typeof w.__t.makeScreen === 'function') {
+    const out = String(w.__t.makeScreen() || '');
+    if (/id="cam-view"/.test(out)) bad.push('the viewfinder is drawn for somebody who is not signed in');
   }
   return bad;
 });

@@ -247,7 +247,8 @@ function go(id, remember, instant) {
      So: draw it only if there is nothing there, and otherwise leave it alone. Anything that
      genuinely changes a screen — signing in, a save, a fresh payload — goes through `repaint`,
      which is a different function and still repaints on demand. */
-  if (!screenHasMarkup_(AT)) paint(AT);
+  /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
+  if (!screenHasMarkup_(AT) || STALE[AT]) paint(AT);
   /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
      After paint, because none of it can find an element that has not been drawn yet. */
   /* A hoisted FUNCTION, not a const. The wakers are defined further down with the games they
@@ -280,9 +281,10 @@ function go(id, remember, instant) {
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
   if (typeof camStop_ === 'function' && AT !== 'make') camStop_();
-  if ((AT === 'tools' || AT === 'games') && typeof toolsStart_ === 'function') {
-    afterSlide_(() => toolsStart_(AT === 'tools' ? 'tool' : 'game'));
-  }
+  /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
+     just rebuilt this screen's markup too — and two copies of "what does this screen need running"
+     is two places to forget the camera. */
+  afterSlide_(() => startScreen_(AT));
 
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
@@ -323,6 +325,30 @@ function go(id, remember, instant) {
  * phone, and one of them holds four hundred resources — the same reasoning that fills a page of
  * the Stuff list only when you can reach it.
  */
+/* ---------- WHAT EACH SCREEN NEEDS RUNNING ONCE ITS MARKUP EXISTS -----------------------------------
+   ONE LIST, TWO CALLERS. `go` runs it after the slide; `repaint` runs it immediately, because both
+   have just put new markup on screen and anything that was running was running inside the markup
+   that got replaced.
+
+   IT WAS TWO LISTS FOR ABOUT AN HOUR and that is exactly long enough to prove the point: the tools
+   were started from `go` and so was the camera, and `repaint` started neither — so a repaint on the
+   camera column left a `<video>` element with no stream attached, showing black, with `CAM_STREAM`
+   still holding a camera open behind it.
+
+   A HOISTED FUNCTION, NOT A CONST. `repaint` is a const defined above this line and calls it; a
+   `const` read before its own line throws, including through `typeof`, which is the one check that
+   cannot see into a temporal dead zone. A function declaration is hoisted, so this is safe. */
+function startScreen_(id) {
+  if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
+    toolsStart_(id === 'tools' ? 'tool' : 'game');
+  }
+  /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. It waited for a button on the belief that
+     `getUserMedia` needs a gesture; what it needs is PERMISSION, which the browser prompts for once
+     and then remembers — so the button was asking you to confirm, every single visit, a thing you
+     had already allowed. */
+  if (id === 'make' && typeof camStart_ === 'function') camStart_();
+}
+
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
 function screenHasMarkup_(id) {
   const el = $('s-' + id);
@@ -352,7 +378,36 @@ function paintNeighbours() {
 }
 
 /** Redraw one screen where it stands. Called after anything that changes what it should say. */
+/* ---------- WHICH SCREENS ARE OUT OF DATE ----------------------------------------------------------
+   SIGNING IN CHANGED NOTHING EXCEPT THE SCREEN YOU WERE LOOKING AT.
+
+   `repaint` is what everything calls when the facts change — signing in, signing out, a save, a
+   fresh payload — and its comment said so. But it is `paint(AT)` plus `paintNeighbours()`, and
+   `paintNeighbours` returns early on any screen that already has markup, because arriving somewhere
+   already drawn should not rebuild it. At boot every screen is drawn at once, so after that first
+   pass EVERY screen has markup and `paintNeighbours` was a no-op for ever.
+
+   So: sign in, swipe to the camera, and it still says "Sign in to post". Booking, DMs and You the
+   same. Measured in a browser — after `repaint()` the other eight screens were byte-for-byte what
+   they had been while signed out, and nothing but a page reload ever fixed it.
+
+   IT HID BEHIND THE ONE SCREEN IT GOT RIGHT. You sign in ON the account screen, `paint(AT)` redraws
+   exactly that one, and it updates in front of you. The screen you are watching is the single
+   screen this bug cannot affect.
+
+   MARKED, NOT REDRAWN. The obvious fix is for `repaint` to rebuild all nine, and that throws away
+   what `go` was careful to win: rebuilding a screen during its slide is what drops the frames, and
+   it would also tear the markup out from under a live camera or a running game on a screen nobody
+   is looking at. A screen is marked instead, and `go` redraws it on the way in — so the cost lands
+   once per screen, only after something actually changed, and only on screens somebody visits.
+
+   WHAT IT COSTS, and it is real: a stale screen peeking at the edge of the one you are on shows its
+   old markup until you swipe to it. A sliver of a sentence, corrected by arriving. */
+let STALE = {};
+
 function paint(id) {
+  /* Drawn is fresh, by definition, whoever asked for it. */
+  delete STALE[id];
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
      against the screen's padding box and would otherwise be inset by it and then pad itself again.
      Marked here rather than in the markup so the two lists of paged screens cannot disagree:
@@ -432,7 +487,15 @@ function nothingHere(whenEmpty) {
    part of it, and those cases now stand out as exceptions rather than looking like the norm.
 ================================================================================================== */
 const repaint = (instant) => {
+  /* 0. EVERY OTHER SCREEN IS NOW OUT OF DATE — see the note on `STALE`. Marked before painting, so
+        the two that are about to be drawn for real clear their own mark on the way through. */
+  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
   paint(AT);                       // 1. the screen you are on
+  /* 1b. AND WHATEVER THAT SCREEN HAS RUNNING, because `paint` has just replaced the markup it was
+         running in. Without this, a repaint while the camera column is open leaves a `<video>` with
+         no stream in it — the card looks live and shows black. Same list `go` uses; see
+         `startScreen_`. */
+  if (typeof startScreen_ === 'function') startScreen_(AT);
   paintNeighbours();               // 2. the ones either side
   /* 3. A repaint rebuilds the markup, which throws the positions away with it — so the page you
         were on would silently become the first one every time anything saved. Instant for the same
