@@ -96,7 +96,13 @@ const KINDS = {
      which is the mistake the note above already refuses. `group` may be an array now; everything
      that reads it — the coverage rule, the value counts, the filter test and the group order —
      takes one or many. See `asList_` below. */
-  tutor:   { group: ['Booking', 'People'], label: 'Tutors',
+  /* ---------- `People` IS GONE AND A TUTOR IS JUST A BOOKING THING AGAIN --------------------------
+     IT WAS TWO GROUPS BECAUSE A TUTOR IS TWO THINGS — what they are FOR and what they ARE — and
+     `People` was the second half. That half now has a column of its own, so answering it here was a
+     second route to a screen you can reach by swiping, and a second route is a second thing to keep
+     right. The array stays supported everywhere that reads it (`asList_`); nothing in this build
+     uses two groups any more. */
+  tutor:   { group: 'Booking', label: 'Tutors',
              /* ---------- YOUR OWN PASS IS YOUR OWN CARD ------------------------------------------
                 THE MERGE HAPPENS HERE, ON THE TUTOR ROW, and the first attempt had it backwards: I
                 dropped you from the tutor list so the account card could hold the pass, which took
@@ -189,7 +195,10 @@ const KINDS = {
      was to be answered.
 
      UNDER `People`, where a person goes, found the way every other person in this app is found. */
-  me: { group: 'People', label: 'You', card: () => meCard() },
+  /* `me` WAS HERE — you, under `People`, found the way every other person is found. Removed with
+     the group: your own card is the whole of the account column, one swipe right, and a funnel
+     answer that leads to exactly one card you can already see is a question with nothing to decide.
+     `meCard` itself stays and is still what a tutor row draws when the tutor is you. */
 
   /* ---------- THE PAPERWORK, AND IT IS A DEPARTMENT ------------------------------------------------
      ITS OWN GROUP, NOT UNDER `Learning`. The first question asks which errand you are on, and
@@ -218,8 +227,9 @@ const KINDS = {
      of the `map` it was buried in — so a post found here is the same object with the same
      reactions, the same share button and the same admin controls, rather than a summary of one
      that then needs somewhere to open. */
-  post: { group: 'Posts', label: 'Posts',
-          card: x => (typeof postCard_ === 'function' ? postCard_(x.row, 0) : '') },
+  /* `post` WAS HERE — the real post card, reactions and all, answering under `Posts`. Removed:
+     the feed is a column, and the same post reachable two ways is two places for it to look
+     different. `postCard_` stays; the feed is what draws it. */
 
   friend: { group: 'Friends', label: 'Friends', card: x => {
     const f = x.row;
@@ -279,6 +289,21 @@ const KINDS = {
      SEPARATE, EACH GROUP HOLDS ONE KIND, so the second question is skipped by the one-answer rule
      and Games goes straight to the games. Same number of taps to reach a game, one fewer to reach
      a tool, and the first question now reads as five errands rather than four and a category. */
+  /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION -----------------
+     TOOLS AND GAMES ARE COLUMNS NOW, so the funnel stops OFFERING them — but deleting these two
+     entries would be the wrong way to do it, and quietly so. A widget may file itself under another
+     group: `book.js` builds one per live session with `kind: 'tool'` and `groups: 'Booking'`, so it
+     answers under Booking beside the receipts, which is where somebody looks for a class.
+
+     `kindOf_` FALLS BACK TO `{ group: 'Shop', label: 'Things' }` FOR A KIND IT DOES NOT KNOW. Take
+     `tool` out of here and those session widgets do not disappear — they turn into Shop · Things,
+     which is a wrong answer rather than a missing one, and the kind of wrong answer nobody reports
+     because it looks like a category somebody chose.
+
+     SO THE ITEMS ARE FILTERED INSTEAD, where they are built: a widget reaches the funnel only if it
+     says which group it belongs to. See `allWidgets()` in the item list below. The plain tools and
+     games say nothing, so they are not offered — and `Tools` and `Games` stop being answers because
+     NOTHING ANSWERS THEM, which is how `facetValues` decides what to show. */
   tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
 
@@ -1540,7 +1565,17 @@ function stuffItems() {
        and a calculator; it matters the moment one of them prints your flyers.
        `admin` on a widget means admins only. Anything without it is for everybody, which is what
        the other nine are. */
-    ...allWidgets().filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
+    /* ---------- ONLY THE WIDGETS THAT SAY WHERE THEY BELONG ------------------------------------
+       TOOLS AND GAMES HAVE COLUMNS, so the funnel stops carrying the plain ones — `Tools` and
+       `Games` disappear as answers because nothing answers them, which is how `facetValues` builds
+       the list: from the items that exist, not from the kinds table.
+
+       `wgt.groups` IS THE TEST AND IT IS NOT A PROXY FOR ONE. A widget that names a group has been
+       deliberately filed somewhere else — `book.js` gives every live session `groups: 'Booking'` so
+       it answers beside the receipts — and those are exactly the ones that have nowhere else to be
+       reached from. Filtering on `kind` instead would have taken them with it, because a session
+       widget's kind is `tool` too. */
+    ...allWidgets().filter(wgt => (!wgt.admin || isAdmin()) && wgt.groups).map(wgt => ({
       kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
       /* WHERE THIS ONE ANSWERS FROM, if it says. See the note on `forLabel`. */
       groups: wgt.groups || null,
@@ -1575,15 +1610,11 @@ function stuffItems() {
        is what somebody remembers about a post — "the one about the trip" — while the author is
        almost always the same handful of names. So the caption leads and the author is the subtitle,
        which is also the order they read in on the card itself. */
-    ...(DATA.posts || []).filter(p => p && p.active !== false && p.id).map(p => ({
-      kind: 'post',
-      name: String(p.caption || p.body || 'Post').replace(/\s+/g, ' ').trim().slice(0, 80),
-      key: 'post:' + p.id,
-      sub: String(p.handle || p.author || ''), image: '',
-      cost: 0, slot: '', subject: '', grade: '', off: false, row: p,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
-    })),
+    /* THE POSTS WERE BUILT HERE and are not any more: the feed is a column. A post reachable two
+       ways is two places for it to look different, and the funnel's copy was the real card — same
+       reactions, same share, same admin controls — so the two could drift without either looking
+       wrong on its own. `DATA.posts` is still read by the feed, which is the one place that draws
+       them now. */
     ...(DATA.links || []).filter(l => l.title).map(l => ({
       kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
       cost: 0, slot: '', subject: '', grade: '', off: false, row: l,
@@ -1632,17 +1663,10 @@ function stuffItems() {
       bandType: '', bandValue: j.level || '', keystage: '', tier: '', examBoard: '', company: '',
       resourceType: '', examWave: '', year: '', paper: false,
     })),
-    /* NOT WHEN YOUR PASS IS ALREADY DRAWING IT. With a tutor row of your own the `tutor` entry
-       above renders the merged card, so this second entry would be the same person and the same
-       card a swipe apart — which is the duplication the merge was for. Without one, this is still
-       the only place you appear. */
-    ...(USER && !(typeof passFor_ === 'function' && passFor_(USER.name)) ? [{
-      kind: 'me', name: USER.name || 'You', key: 'me:' + (USER.handle || USER.name),
-      sub: roleOf(USER.role || ''), image: pic(USER.photo || (USER.profile || {}).photo || ''),
-      cost: 0, slot: '', subject: '', grade: '', off: false, row: USER,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
-    }] : []),
+    /* YOU WERE AN ITEM HERE, under `People`, when you had no tutor row of your own. Removed with
+       that group — the account column is your card, in full, one swipe right. The merge it guarded
+       against is still guarded: a tutor row that is you draws `meCard`, which is where that note
+       now lives, on the `tutor` entry in KINDS. */
     ...(typeof levelRows === 'function' ? levelRows() : []).map(x => ({
       kind: 'level', name: x.name, key: 'lvl:' + x.name,
       /* The subjects, under the name, so the list is readable before anything is opened. */
