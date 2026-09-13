@@ -710,47 +710,28 @@ on('job', el => {
        session from a list you are scanning is one mis-tap away from deleting the wrong one, and a
        receipt is the one place you can see exactly which session you are looking at. */
     + (isAdmin()
-      ? `${/* ---------- ANSWERING IT, WHICH IS THE THING THAT WAS MISSING ---------------------------
-              A client asks for a session and somebody has to say yes. There was no way to: `move`
-              refused anybody not already in the booking, so a request sat at Waiting until a TUTOR
-              happened to accept it — and on a job with no tutor, nothing could move it at all. The
-              only admin control was Delete, which ends it for everybody.
+      ? `${/* ---------- ONE RENDERER FOR ONE THING ----------------------------------------------
+              THESE WERE FOUR `<button>`s BUILT HERE, while `jobTiles_` in tiles.js was already
+              building the client's two for the same session. One object, two renderers, two files,
+              two shapes — and only one of them checked by anything.
 
-              ACCEPT AND DECLINE ARE THE TWO HALVES OF ONE DECISION, so they sit together and above
-              Delete — which is a different act: Delete ends a session that was already agreed,
-              Decline turns down one that was never taken up. */''}
-         ${jobStage_(j) === 'application' || jobStage_(j) === 'waitlist'
-           ? `<div class="btn-row" style="margin-top:1rem">
-                <button class="btn" data-do="job-answer" data-id="${esc(id)}"
-                        data-yes="1">Accept this booking</button>
-                <button class="btn danger" data-do="job-answer" data-id="${esc(id)}"
-                        data-yes="">Decline it</button>
-              </div>
-              <p class="faint" style="margin:.5rem 0 0">Accepting settles the terms for everybody in
-                it, and the family can pay. Declining turns the whole booking down and tells them.</p>`
-           : ''}
-         ${/* ---------- MARKING IT PAID, FOR MONEY THAT DID NOT COME THROUGH STRIPE ---------------
-              People pay in cash at the library, or by bank transfer, or settle three sessions at
-              once. None of that reaches the card flow, so a family who had genuinely paid stayed on
-              an accepted application for ever and never got the receipt proving what they bought.
+              A THING HAS TILES; A FORM HAS BUTTONS. A session is a thing, so its actions are tiles
+              like every other thing's. The pay sheet and the booking form are forms and keep their
+              buttons. That rule is now written down in CLAUDE.md rather than left to be inferred.
 
-              ONLY ONCE IT IS ACCEPTED. Marking an unagreed booking paid puts somebody on a session
-              whose price and day nobody has settled — the backend refuses it and this does not
-              offer it, so the refusal is never something to run into. */''}
-         ${jobStage_(j) === 'application' && jobAccepted_(j)
-           ? `<div class="btn-row" style="margin-top:1rem">
-                <button class="btn" data-do="job-paid" data-id="${esc(id)}">Mark as paid</button>
-              </div>
-              <p class="faint" style="margin:.5rem 0 0">For cash, a transfer, or anything that did
-                not go through the card page. It is recorded as marked by you, with how they paid —
-                never as though Stripe had confirmed it.</p>`
-           : ''}
-         <div class="btn-row" style="margin-top:1rem">
-           <button class="btn danger" data-do="job-delete" data-id="${esc(id)}">Delete this session</button>
-         </div>
-         <p class="faint" style="margin:.5rem 0 0">Everyone is withdrawn and it disappears from the
-           list. Nothing is erased — every event stays on the events tab, so what happened is still
-           on the record.</p>`
+              THE CONSEQUENCES ARE SAID ONCE, UNDER THE ROW. Each button used to carry its own
+              paragraph and a tile has room for three words. Dropping them was not an option —
+              "everyone is withdrawn", "never as though Stripe had confirmed it" are the whole
+              reason an admin pauses — so they are one paragraph beneath, saying the same things. */''}
+         ${jobAdminTiles_(j, jobStage_(j), jobAccepted_(j))}
+         <p class="faint" style="margin:.6rem 0 0">Accepting settles the terms for everybody in it
+           and lets the family pay; declining turns the whole booking down and tells them.${
+           jobStage_(j) === 'application' && jobAccepted_(j)
+             ? ' Marking it paid is for cash, a transfer, or anything that did not go through the'
+               + ' card page \u2014 it is recorded as marked by you, never as though Stripe had'
+               + ' confirmed it.'
+             : ''} Deleting withdraws everyone and removes it from the list; nothing is erased, so
+           every event stays on the events tab and what happened is still on the record.</p>`
       : ''));
 });
 

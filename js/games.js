@@ -145,6 +145,24 @@ function endTimesTables() {
   }
 }
 
+/* ---------- WHAT THE DISPLAY SAYS, TURNED BACK INTO ARITHMETIC ------------------------------------
+   THE KEYPAD TYPES ÷ × − AND π, because that is what a calculator shows and what an exam paper
+   prints. None of them are operators to a JavaScript evaluator, so they are translated here — once,
+   next to the only line that needs it.
+
+   THE MINUS IS THE ONE THAT WOULD HAVE BITTEN. `−` (U+2212) is not `-` (hyphen-minus); it looks
+   identical at this size and parses as nothing at all, so `7 − 3` would have come back Error while
+   reading perfectly correctly on screen. That is the worst shape of bug: right in front of you and
+   invisible.
+
+   BOTH SPELLINGS ARE ACCEPTED, so a sum typed on a hardware keyboard with `*` and `/` still works
+   and anything already in the history keeps evaluating. */
+const calcNormalise_ = t => String(t || '')
+  .replace(/\u00d7/g, '*')
+  .replace(/\u00f7/g, '/')
+  .replace(/\u2212/g, '-')
+  .replace(/\u03c0/g, 'pi');
+
 function initMiniCalc() {
   const disp = $('mc-display');
   if (!disp) return;
@@ -197,7 +215,7 @@ function initMiniCalc() {
       if (!expr || expr === 'Error') return;
       const was = expr;
       try {
-        let t = expr.replace(/π/g, 'pi');
+        let t = calcNormalise_(expr);
         // degree trig
         t = t.replace(/\b(sin|cos|tan)\(/g, '$1(DEG*');
         let result;
