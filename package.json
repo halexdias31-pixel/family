@@ -9,6 +9,7 @@
     "check:flow": "node js/check-flow.js",
     "check:booking": "node js/check-booking.js",
     "check:payload": "node js/check-payload.js",
+    "check:widgets": "node js/check-widgets.js",
     "check:ui": "node check/ui.js",
     "check:ui:shots": "node check/ui.js --shots"
   },
