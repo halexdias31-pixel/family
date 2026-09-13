@@ -160,7 +160,10 @@ function boot(opts) {
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
-      'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
+      /* AN ADMIN'S ACTIONS ON A SESSION, so a journey can ask that moving them from buttons to
+         tiles did not lose one. */
+      'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
+      + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
@@ -630,6 +633,63 @@ check('a festive event shows itself and can be joined', async () => {
   const call = sent.find(x => x.action === 'joinFestive');
   return (call && String(call.kids || '').trim()) ? []
     : ['joinFestive was sent without the names — the headcount question achieved nothing'];
+});
+
+check('an admin still has every action on a session after the move to tiles', async () => {
+  /* ---------- THE JOURNEY I PROMISED BEFORE MOVING THEM ------------------------------------------
+     Accept, Decline, Mark as paid and Delete were four `<button>`s inside the receipt and are tiles
+     now. A refactor that renders the same actions in a different shape is exactly the kind that
+     loses one silently: the card still draws, the page still looks right, and the action somebody
+     needed once a month is gone.
+
+     SO IT ASKS FOR THE `data-do` NAMES, not the markup. That is what a tap actually dispatches on —
+     it is what `check-doors` pairs against a handler — so a journey written against it survives the
+     next change of shape too, which is the whole point of writing it at this moment.
+
+     AND IT CHECKS THE STAGES SEPARATELY, because the actions are not all offered at once: Accept
+     and Decline only exist on a request, and Mark as paid only once it is accepted. A journey that
+     only looked at one stage would pass while the other had lost everything. */
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.__t.jobAdmin !== 'function') return [];   // only checkable where it is exported
+
+  const bad = [];
+  const job = { id: 'J-1', price: 40, slots: [] };
+  const has = (html, act) => html.indexOf('data-do="' + act + '"') !== -1;
+
+  /* A REQUEST NOBODY HAS ANSWERED: both halves of the decision, and the way to end it. */
+  const asking = w.__t.jobAdmin(job, 'application', false);
+  ['job-answer', 'job-delete'].forEach(a => {
+    if (!has(asking, a)) bad.push('an unanswered request has no `' + a + '`');
+  });
+  if (has(asking, 'job-paid')) {
+    bad.push('an unaccepted booking offers `job-paid` — the backend refuses that, so it must not be '
+           + 'offered');
+  }
+  /* BOTH HALVES, not one. They are one decision and a tile row with only Accept on it is a trap. */
+  if ((asking.match(/data-do="job-answer"/g) || []).length < 2) {
+    bad.push('only one half of Accept/Decline is there');
+  }
+
+  /* ACCEPTED: paying by hand becomes possible, and answering is done with. */
+  const agreed = w.__t.jobAdmin(job, 'application', true);
+  if (!has(agreed, 'job-paid')) bad.push('an accepted booking has no `job-paid`');
+  if (!has(agreed, 'job-delete')) bad.push('an accepted booking has no `job-delete`');
+
+  /* A RUNNING SESSION: nothing to answer, nothing to mark, still endable. */
+  const live = w.__t.jobAdmin(job, 'booked', true);
+  if (has(live, 'job-answer')) bad.push('a booked session still offers `job-answer`');
+  if (!has(live, 'job-delete')) bad.push('a booked session cannot be deleted');
+
+  /* THEY ARE TILES NOW, in the row every other thing's actions use. */
+  if (asking.indexOf('class="tile-row"') === -1) {
+    bad.push('the admin actions are not in a `.tile-row` — they should look like every other '
+           + "thing's actions");
+  }
+  if (/<button class="btn/.test(asking)) {
+    bad.push('a plain `.btn` came back in among the tiles');
+  }
+  return bad;
 });
 
 check('the camera card starts itself and offers the gallery', async () => {

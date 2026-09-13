@@ -577,4 +577,45 @@ function jobTiles_(x) {
 /* A tap on a tile row that is not on a row. The rows used to sit inside a card whose whole surface
    opened a sheet; the surface no longer does anything, and this exists so a stray tap is explicitly
    nothing rather than accidentally something later. */
+/* ---------- AN ADMIN'S ACTIONS ON A JOB, AS TILES -------------------------------------------------
+   THEY WERE FOUR `<button>`s BUILT INSIDE THE RECEIPT and `jobTiles_` twelve lines up was already
+   building the client's two. So one object — a session — had its actions drawn by two different
+   renderers in two files, in two shapes, and only one of them was checked by anything.
+
+   THE RULE THIS SETTLES, and it was never written down: a THING has tiles; a FORM has buttons. A
+   session is a thing. The booking form and the pay sheet are forms, and their buttons stay where
+   they are — see the note in CLAUDE.md.
+
+   WHAT IT COSTS, honestly: the old block carried a paragraph under each button explaining the
+   consequence, and a tile has room for a few words. The consequences are too important to drop, so
+   they are one paragraph under the row rather than one per button — the same words, said once.
+
+   THE ORDER IS THE ORDER OF THE DECISION. Accept and Decline are two halves of one choice and sit
+   together; Mark as paid only exists once it is accepted; Delete is last because it is a different
+   act — Decline turns down a session never taken up, Delete ends one that was already agreed. */
+function jobAdminTiles_(j, stage, accepted) {
+  const id = String((j && (j.id || j.jobId)) || '');
+  if (!id) return '';
+  const rows = [];
+  if (stage === 'application' || stage === 'waitlist') {
+    rows.push(tile_({ icon: 'book', label: 'Accept', tone: 'buy', note: 'settles the terms',
+                      act: 'job-answer', data: { id: id, yes: '1' } }));
+    rows.push(tile_({ icon: 'close', label: 'Decline', note: 'turns it down',
+                      act: 'job-answer', data: { id: id, yes: '' } }));
+  }
+  /* ONLY ONCE IT IS ACCEPTED. Marking an unagreed booking paid puts somebody on a session whose
+     price and day nobody has settled — the backend refuses it, so this does not offer it and the
+     refusal is never something to run into. */
+  if (stage === 'application' && accepted) {
+    rows.push(tile_({ icon: 'cart', label: 'Mark as paid', note: 'cash or transfer',
+                      act: 'job-paid', data: { id: id } }));
+  }
+  rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody',
+                    act: 'job-delete', data: { id: id } }));
+  /* `.tile-row`, WHICH IS WHAT EVERY OTHER TILE ROW IN THIS APP USES — see `cardTiles_` above.
+     `.tiles` is a different thing entirely (the widget grid) and putting these in one would have
+     made an admin's four actions lay out like a drawer of tools. */
+  return `<div class="tile-row">${rows.join('')}</div>`;
+}
+
 on('noop', () => {});

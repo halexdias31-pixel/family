@@ -31,9 +31,19 @@ const CALC_KEYS = [
   ['sin(', 'sin', 'fn'], ['cos(', 'cos', 'fn'], ['tan(', 'tan', 'fn'], ['sqrt(', '√', 'fn'],
   ['^2', 'x²', 'fn'],    ['^', 'xʸ', 'fn'],     ['(', '(', 'fn'],      [')', ')', 'fn'],
   ['pi', 'π', 'fn'],     ['left', '◀', 'nav'],  ['right', '▶', 'nav'], ['del', '⌫', 'del'],
-  ['7', '7', ''], ['8', '8', ''], ['9', '9', ''], ['/', '÷', 'op'],
-  ['4', '4', ''], ['5', '5', ''], ['6', '6', ''], ['*', '×', 'op'],
-  ['1', '1', ''], ['2', '2', ''], ['3', '3', ''], ['-', '−', 'op'],
+  /* ---------- THE KEY PUTS IN WHAT THE KEY SAYS -------------------------------------------------
+     THE BUTTONS ALREADY READ ÷ × − AND THE DISPLAY SHOWED / * -. So the one place a student looks
+     to check what they typed was written in a different alphabet from the keypad they typed it on,
+     and `*` in particular is a programmer's multiply — no exam paper, textbook or Casio has ever
+     printed one.
+
+     THE GLYPH IS NOW THE VALUE, and `calcNormalise_` in games.js turns it back into arithmetic at
+     the moment of `=`. That is the right way round: the display is what a person reads, and the
+     translation belongs next to the evaluator that needs it, once, rather than in the label of
+     every key that does not. */
+  ['7', '7', ''], ['8', '8', ''], ['9', '9', ''], ['\u00f7', '\u00f7', 'op'],
+  ['4', '4', ''], ['5', '5', ''], ['6', '6', ''], ['\u00d7', '\u00d7', 'op'],
+  ['1', '1', ''], ['2', '2', ''], ['3', '3', ''], ['\u2212', '\u2212', 'op'],
   ['0', '0', ''], ['.', '.', ''], ['C', 'C', 'op'], ['+', '+', 'op'],
   ['up', '▲', 'nav'], ['down', '▼', 'nav'], ['=', '=', 'eq'],
 ];
