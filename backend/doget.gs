@@ -1515,7 +1515,7 @@ function doGet(e) {
         /* THE ID. Every lookup on the phone was matching on the name, and two subjects can both
            have "Quadratics" — reading the wrong one is invisible, deleting the wrong one is not. */
         id: S(r.resource_id),
-        name, rowIndex: r._row, link: S(r.link),
+        name, rowIndex: r._row, link: S(r.source_url),
         trackable: TRUE_(r.trackable),
         resourceType: S(r.resource_type),
         /* BOTH HALVES, as well as the split. `grade` and `stage` are the same column read two

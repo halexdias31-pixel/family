@@ -393,6 +393,22 @@ nothing for as long as the tab was empty.
 checklist still reads it. Kept as a column rather than dropped from the read — a past paper is often
 a month and a year with no day at all.
 
+**It did NOT catch `link`, and that is a gap in the check rather than bad luck.** The resources tab
+called the URL `link` and the questions tab calls it `source_url`. Folding the two left **seven**
+reads of `r.link` on rows that no longer have one — the checklist push in `doget.gs`, the page
+counter in `content.gs`, five places in `setup.gs`. Every checklist topic would have arrived with no
+link on it, which is the entire point of a resource, and nothing would have thrown.
+
+`check-columns.js` compares every `r.<name>` against the **union of every tab's columns**, not
+against the columns of the tab that row came from. `venues` and `trips` both have a `link`, so
+`r.link` is a known column somewhere and the check was satisfied. **A per-tab check would have named
+all seven immediately.** That needs each `r.` traced back to its `read(TAB.x)` or `documents_()`,
+which is presumably why it was written globally in the first place. Until it exists, folding one tab
+into another means reading every column name on both sides by hand — the scan that found these is
+in the session, not in the repo, and that is the wrong place for it.
+
+The seven now read `source_url`. One tab, one name for the URL.
+
 **How it was found, which is the part worth keeping.**
 A fifth spreadsheet called "full pdf datbase" — set aside as "trash, disregard it" — turned out to
 be the resources tab: 27 columns that are this tab's columns almost exactly, and **every one of the

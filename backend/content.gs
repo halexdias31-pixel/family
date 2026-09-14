@@ -711,7 +711,7 @@ function refreshPageCounts(force) {
   const failed = [];
   for (let i = 0; i < t.rows.length; i++) {
     const r = t.rows[i];
-    const id = driveIdFrom(r.link);
+    const id = driveIdFrom(r.source_url);
     if (!id) { skipped++; continue; }
     if (!force) {
       const when = parseDate(r.pages_checked);

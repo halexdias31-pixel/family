@@ -463,7 +463,7 @@ function seedPastPapers() {
 
   /* Every link already on the tab, so a second run costs one read and writes nothing. */
   const have = {};
-  t.rows.forEach(r => { const l = S(r.link); if (l) have[l] = true; });
+  t.rows.forEach(r => { const l = S(r.source_url); if (l) have[l] = true; });
 
   let added = 0, already = 0;
   PAPERS.forEach(p => {
@@ -568,7 +568,7 @@ function seedALevelPapers() {
   ];
 
   const have = {};
-  t.rows.forEach(r => { const l = S(r.link); if (l) have[l] = true; });
+  t.rows.forEach(r => { const l = S(r.source_url); if (l) have[l] = true; });
 
   let added = 0, already = 0;
   PAPERS.forEach(p => {
@@ -641,7 +641,7 @@ function dropOldALevelPapers() {
     if (!r) { missing.push(id); return; }
     /* SOMEBODY HAS WORKED ON IT SINCE. A link, or a tick against somebody's name, means this is no
        longer the empty row this job was written to remove. */
-    const used = S(r.link) || S(r.ticks_1) || S(r.ticks_2) || S(r.ticks_3);
+    const used = S(r.source_url) || S(r.ticks_1) || S(r.ticks_2) || S(r.ticks_3);
     if (used) { kept.push(id + ' — ' + S(r.name) + ' (it has a link or a tick now)'); return; }
     hits.push(r);
   });
@@ -1169,7 +1169,7 @@ function dataProblems(deep) {
      screen that says how many of those there are, or whether the number is going down. */
   {
     const rows = documents_().rows.filter(r => S(r.name));
-    const linked = rows.filter(r => driveIdFrom(r.link));
+    const linked = rows.filter(r => driveIdFrom(r.source_url));
     const counted = linked.filter(r => N(r.pages) > 0).length;
     const left = linked.length - counted;
     if (left > 0) {
@@ -1270,7 +1270,7 @@ function dataProblems(deep) {
   /* --- printing --- */
   if (N(cfg.print_rate_per_page) > 0) {
     const noCount = documents_().rows
-      .filter(r => S(r.name) && ON_(r.active) && !N(r.pages) && S(r.link)).length;
+      .filter(r => S(r.name) && ON_(r.active) && !N(r.pages) && S(r.source_url)).length;
     if (noCount) {
       add('cannot be sold', noCount + ' resource(s) have no page count',
           'No paper copy can be priced for them. Run refreshPageCounts(), and type in the ones '
