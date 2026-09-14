@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-19-avatar-price";
+const DOGET_VERSION = "2026-09-21-library";
 
 
 function doGet(e) {
@@ -1358,64 +1358,21 @@ function doGet(e) {
 
        `html` AND `lead` TRAVEL WHOLE. They are the question; there is nothing to summarise. */
     try {
-      read(TAB.questions).rows.forEach(r => {
-        if (!S(r.row_id) || !ON_(r.active)) return;
-        /* ---------- A DOCUMENT IS NOT A QUESTION -------------------------------------------------
-           The tab holds both since `resources` was folded into it: `kind: 'paper'` is the document,
-           `part` and `stem` are the questions inside it. Without this line all 642 documents arrive
-           on the Find screen as questions with no text, no marks and no answer — a funnel a fifth
-           full of blank cards. They are not dropped; they reach the app as the checklists that
-           `documents_()` builds further down, which is what they were when they were a tab. */
-        if (String(r.kind || '').toLowerCase() === 'paper') return;
-        payload.questions.push({
-          id: S(r.row_id), paper: S(r.paper_id),
-          /* THE DOCUMENT THIS CAME OUT OF, so a question can reach its PDF — the link, the page
-             count, whether it prints — without a lookup the phone cannot do. Blank where a paper
-             has no row in the old resources data to point at; a blank id is a lookup that finds
-             nothing, which is how every other optional reference on this payload behaves. */
-          resourceId: S(r.resource_id),
-          q: S(r.question), part: S(r.part), kind: norm(r.kind) || 'part',
-          section: S(r.section), marks: N(r.marks),
-          figure: S(r.figure), lead: S(r.lead), html: S(r.html),
+      /* ---------- THE QUESTIONS COME FROM THE REPOSITORY NOW -------------------------------------
+         `payload.questions` AND `dropdowns.checklists` WERE BUILT HERE and are built in
+         `js/library.js` instead, out of `data/questions.json`. The push that was here is that file
+         verbatim — moved, not copied: there is one implementation and it is the other one.
 
-          /* ---------- THE ANSWER, AND WHAT KIND OF ANSWER IT IS ----------------------------------
-             `needsPrint` IS A FACT, NOT A SETTING. A single question is never printed — printing is
-             a whole paper, priced by the page. This says the question cannot honestly be answered on
-             a screen: a diagram to annotate, a table to fill. What the paper does about that is the
-             paper's decision; this is what it decides on.
+         WHY IT MOVED. `questions` is the one tab nobody hand-edits; it arrives in bulk and every
+         edit to it went through an export, a CSV and two imports. A tab that only ever changes in
+         bulk belongs where bulk changes are cheap and reviewable.
 
-             `TRUE_` RATHER THAN `S`, so a blank cell reads as false and not as the string "". Every
-             question is answerable on screen until somebody says otherwise. */
-          /* ---------- WHO PUBLISHED IT, WHICH THE FUNNEL ASKS FOR AND NOTHING SENT -----------------
-             `allTopics` READS `r.company` AND BUILDS A `Company` FACET OUT OF IT. The note it wrote
-             beside that line says "the questions sheet carries it now — 1stclassmaths, Corbettmaths,
-             AQA", and the sheet does: `company` is a real column with real values in it. This push
-             never included it, so every row arrived on the phone with `company` undefined, the facet
-             had nothing to offer, and every worksheet in the library looked like it came from
-             nowhere — which is the exact sentence that note was written to fix.
+         WHAT THIS BUYS THE PHONE: 3.7 MB off every payload, and the file it replaces is cacheable
+         by the browser where a payload never is. Two visits, one download.
 
-             ONE WORD, AND THE FEATURE THE OTHER END ALREADY BUILT STARTS WORKING. This is the
-             `|| []` failure in miniature: a field the site asks for and the backend does not send
-             does not fail, it just quietly means nothing. */
-          company: S(r.company),
-          answer: S(r.answer), answerType: norm(r.answer_type),
-          needsPrint: TRUE_(r.needs_print),
-
-          /* WHAT THE EXAMINER SAID ABOUT THIS QUESTION, and about the paper it came from. Blank
-             until the reports go in — named now so nothing has to be recut later. */
-          examinerNote: S(r.examiner_note), examinerReport: S(r.examiner_report),
-
-          /* BLANK ON A PART, filled on a paper row. Ten empty strings per part is the price of a
-             paper that needs no resource row — and the phone throws them away in one pass. */
-          /* THE METHOD FOR A PRACTICAL, filled only on the paper row — see SCHEMA.questions. */
-          guide: S(r.guide),
-          name: S(r.name), subject: S(r.subject),
-          resourceType: S(r.resource_type), keystage: S(r.key_stage),
-          bandType: S(r.band_type), bandValue: S(r.band_value),
-          tier: S(r.tier), examBoard: S(r.exam_board),
-          examWave: S(r.exam_wave), year: S(r.year),
-        });
-      });
+         AND THE THREE COLUMNS THAT DID NOT GO. `ticks_1..3` held the handles of real children and
+         the repository is public. They stay in the spreadsheet, and a tick is in any case a fact
+         about a PERSON and a document — it belongs in Ledger, not in a library. */
     } catch (err) { payload.questions = []; }
 
     /* --- herd ------------------------------------------------------------------------------------
@@ -1496,67 +1453,9 @@ function doGet(e) {
     /* The nest the checklist needs: subject, then band, then topics. The SHOP screen wants them
        flat and flattens them itself on the phone — carrying the same four hundred rows twice to
        satisfy both would be a waste of every phone's morning. */
-    documents_().rows.forEach((r, i) => {
-      const name = S(r.name);
-      if (!name) return;
-      /* A deleted resource still reaches an admin, marked, for the same reason a deleted post
-         does: it is the only way to switch one back on from the phone. */
-      const live = ON_(r.active);
-      if (!live && !viewerIsAdmin) return;
-      const subject = S(r.subject) || 'Other';
-      const band = S(r.band_value);
-      const d = payload.dropdowns;
-      if (d.topics.indexOf(name) === -1) d.topics.push(name);
-      d.checklists[subject] = d.checklists[subject] || {};
-      d.checklists[subject][band] = d.checklists[subject][band] ||
-        { bandField: S(r.band_type), topics: [] };
-      const pages = N(r.pages);
-      d.checklists[subject][band].topics.push({
-        /* THE ID. Every lookup on the phone was matching on the name, and two subjects can both
-           have "Quadratics" — reading the wrong one is invisible, deleting the wrong one is not. */
-        id: S(r.resource_id),
-        name, rowIndex: r._row, link: S(r.source_url),
-        trackable: TRUE_(r.trackable),
-        resourceType: S(r.resource_type),
-        /* BOTH HALVES, as well as the split. `grade` and `stage` are the same column read two
-           ways — useful for a checklist, which shows one or the other — and they threw away WHICH
-           it was, so nothing downstream could filter on the distinction.
-           Sent whole as well, because "band type" is a question somebody now asks directly. */
-        bandType: S(r.band_type),
-        bandValue: band,
-        day: S(r.day), month: S(r.month), year: S(r.year),
-        /* WHAT IT COSTS, if anything. Blank means free, which is what every resource is today —
-           so this changes nothing until somebody prices one, and then it needs no code. */
-        price: N(r.price) || 0,
-        currency: S(r.currency) || 'credits',
-        level: N(r.level_required) || 0,
-        /* ONE WORD FOR WHAT SORT OF THING THIS IS, across both tabs:
-             resource   something to read or print
-             wearable   something a figure wears
-             thing      an object that gets posted or collected
-           `resource_type` is the sub-type — Past paper, Worksheet — and stays its own question.
-           A category and a type are different, and one column answering both is the reason
-           `groupOf` had to guess. */
-        kind: 'resource',
-        grade: S(r.band_type) === 'grade' ? band : '',
-        stage: S(r.band_type) === 'stage' ? band : '',
-        keystage: S(r.key_stage), examBoard: S(r.exam_board), company: S(r.company),
-        tier: S(r.tier),
-        paper: TRUE_(r.print_required),
-        printout: TRUE_(r.print_required) ? 'Print out' : '',
-        examWave: S(r.exam_wave),
-        /* THE FILE IS FREE. These describe a PAPER copy, which is not the resource — it is paper,
-           toner and a trip to the post office. `pages` is the cached count; `printPrice` is what
-           it comes to; `printable` is whether it is offered at all, which the page count cannot
-           decide on its own. A null price means nobody has counted it, and the phone says so
-           rather than offering it at £0.00. */
-        pages: pages,
-        printable: canPrint(r),
-        printPrice: printPrice(r.pages),
-        active: live,
-        tick1: S(r.ticks_1), tick2: S(r.ticks_2), tick3: S(r.ticks_3)
-      });
-    });
+    /* THE CHECKLISTS MOVED WITH THEM — see the note above and `libraryInto_` in js/library.js.
+       `dropdowns.topics` and `dropdowns.checklists` are still the shape everything downstream
+       expects; they are just assembled on the phone from a file rather than here from a tab. */
     mark('lists');
 
     // --- jobs ---------------------------------------------------------------------------------

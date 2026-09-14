@@ -225,9 +225,9 @@
      moved against the others breaks the app. Written twice, once here to preload and once below to
      load, it would be two orders that have to agree, and the second copy is the one somebody edits.
      `window.FILES`, read by both. */
-  window.FILES = ['core', 'price-rows', 'chess', 'data', 'shell', 'cards', 'me', 'posts', 'links',
-    'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games', 'overworld',
-    'select', 'collections', 'tiles', 'terms', 'boot'];
+  window.FILES = ['core', 'price-rows', 'chess', 'data', 'library', 'shell', 'cards', 'me', 'posts',
+    'links', 'find', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'mat', 'games',
+    'overworld', 'select', 'collections', 'tiles', 'terms', 'boot'];
   /* ==================================================================================================
      THE REQUEST GOES OUT NOW, NOT AFTER A MEGABYTE OF JAVASCRIPT HAS PARSED.
 
@@ -264,6 +264,18 @@
          somebody looking for a real one — and `load()` reads `.catch`ed value and falls through to
          its own request. */
       window.BOOT_GET = fetch(url, { cache: 'no-store' }).catch(function () { return null; });
+
+      /* ---------- AND THE LIBRARY, IN PARALLEL -------------------------------------------------
+         `data/questions.json` IS 2.4 MB AND THE PAYLOAD IS NOT, so asking for it after the payload
+         would add its whole time to the boot rather than overlapping it. Both start here, while
+         this page is still parsing, and `load()` merges them when the slower one lands.
+
+         `cache: 'default'`, NOT `no-store`. The payload has to be fresh — somebody edited a cell
+         thirty seconds ago — and this file changes when the repository does, which is the one
+         thing the browser's own cache is already right about. It is the same origin as the site,
+         so a second visit pays nothing for it. */
+      window.BOOT_LIB = fetch('data/questions.json?t=' + LOAD, { cache: 'default' })
+        .catch(function () { return null; });
     }
   } catch (e) {}
 

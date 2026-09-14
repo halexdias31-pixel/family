@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-19-avatar-price";
+const DOPOST_VERSION = "2026-09-21-library";
 
 
 function doPost(e) {
@@ -626,7 +626,7 @@ function doPost(e) {
        not show with blanks, which is how an edit to a link quietly erases a page count. --- */
     if (action === 'editResource') {
       const t = documents_();
-      const r = rowById_(t, 'resource_id', body.id, body.rowIndex);
+      const r = rowById_(t, 'paper_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No resource with that id — it may have been deleted.' });
 
       const fields = body.fields || {};
@@ -657,7 +657,7 @@ function doPost(e) {
        A row removed is also a row you cannot un-remove. --- */
     if (action === 'deleteResource') {
       const t = documents_();
-      const r = rowById_(t, 'resource_id', body.id, body.rowIndex);
+      const r = rowById_(t, 'paper_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No resource with that id.' });
       if (t.headers.indexOf('active') < 0) {
         return jsonOut({ error: 'The resources tab has no `active` column. Run ensureSchema() '
@@ -807,7 +807,7 @@ function doPost(e) {
       const lines = [], refused = [];
       let pages = 0, pounds = 0;
       wanted.forEach(id => {
-        const r = rowById_(res, 'resource_id', id, 0)
+        const r = rowById_(res, 'paper_id', id, 0)
                || res.rows.find(x => key(x.name) === key(id));
         if (!r)            { refused.push(id + ' — no longer exists'); return; }
         if (!ON_(r.active)) { refused.push(S(r.name) + ' — has been removed'); return; }
@@ -1799,7 +1799,7 @@ function doPost(e) {
       const t = documents_();
       /* By id where there is one, so a tick cannot land on the wrong resource after a deletion
          has shifted every row below it. */
-      const r = rowById_(t, 'resource_id', body.id, body.rowIndex);
+      const r = rowById_(t, 'paper_id', body.id, body.rowIndex);
       const field = 'ticks_' + Number(body.tick);
       if (!r || t.headers.indexOf(field) < 0) return jsonOut({ error: 'Bad tick request.' });
       const handle = S(body.handle);

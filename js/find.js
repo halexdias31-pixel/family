@@ -383,7 +383,21 @@ const KINDS = {
      paper AND its parts, and the Question and Part facets narrow from there. One funnel, which is
      the argument I made for the two extra rungs and then failed to build. Only the CARD differs,
      because a part is drawn differently from a paper. */
-  question: { group: 'Learning', label: 'Resources', card: x => questionCard_(x) },
+  /* ---------- `question` WAS A KIND AND IS NOT ANY MORE ------------------------------------------
+     A PAST PAPER WAS DRAWN TWICE OVER. `paperCard` renders the cover AND calls `paperInline_`,
+     which prints every question underneath it — and each of those questions was ALSO its own card
+     in the same list. Choosing Learning · Maths · Past paper gave you the paper, then the paper
+     again one question at a time, and the answer to "which question" was a column of numbers 1 to
+     23 drawn from all six papers of a sitting at once.
+
+     THE FACETS BELOW WERE BUILT TO SURVIVE THAT. `paperName` says outright that it exists because
+     "there was no which-paper", and `qNumber` and `qPart` narrow a list that should not have been
+     long. Removing the second rendering removes the reason for all three.
+
+     NOTHING IS LOST AND THE SEARCH STILL WORKS. The questions are on the paper's own page, where
+     somebody who has chosen a paper is looking, with their answers under them — `paperBody_` calls
+     the same `answerBlock_`. And `paperText_(id)` already folds every question's words into the
+     paper's own haystack, which is why searching `surds` finds the paper rather than nothing. */
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
 
@@ -698,9 +712,7 @@ const FACETS = [
      venues — a worksheet has a name too, and offering "which paper" over a hundred and sixty-one
      worksheets would be the question-number fault again in a different column. */
   { field: 'paperName', label: 'Which paper',
-    of: x => x.kind === 'question'
-      ? (x.sub || '')
-      : (/paper/i.test(String(x.resourceType || '')) ? (x.name || '') : '') },
+    of: x => /paper/i.test(String(x.resourceType || '')) ? (x.name || '') : '' },
   /* ---------- TWO MORE RUNGS ON THE SAME LADDER ------------------------------------------------
      A QUESTION IS NOT A NEW KIND OF SEARCH, it is level → year → paper carried two steps further.
      These sit after the paper facets so the funnel narrows in the order somebody thinks in: which
@@ -716,10 +728,8 @@ const FACETS = [
      THE DIFFERENCE IS THE DOCUMENT, so the document decides. A paper's numbering is part of how it
      is referred to; a worksheet's is the order it happens to be typed in. Blank on a worksheet, so
      the coverage rule never offers it there — and unchanged on the papers, where it was right. */
-  { field: 'qNumber',   label: 'Question',
-    of: x => (x.resourceType === 'Worksheet' ? '' : (x.qNumber || '')) },
-  { field: 'qPart',     label: 'Part',
-    of: x => (x.resourceType === 'Worksheet' ? '' : (x.qPart || '')) },
+  /* `qNumber` AND `qPart` WERE HERE. Nothing sets either field now — they were written by
+     `questionItems`, which drew the duplicate cards these two existed to narrow. */
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* Last, because it is the one somebody asks when they already know what they want. */
   { field: 'afford',    label: 'Price',       of: x => x.cost === 0 ? 'Free'
@@ -1030,49 +1040,22 @@ function boxerCard_(x) {
   </div>`;
 }
 
-function questionCard_(x) {
-  /* ---------- THE WHOLE QUESTION, NOT A PEEK ------------------------------------------------------
-     THE CARD SHOWED 96 CHARACTERS and a panel showed the rest. That split only made sense while the
-     rest lived somewhere else — and it never did: the stem, the lead and the part are three fields
-     on the row this card is already drawn from.
 
-     A QUESTION IS SHORT. That is what a question IS; if it were a page it would be a paper. So the
-     truncation was buying nothing and costing a tap on every single one.
+/* ---------- THE ANSWER, SHOWN ------------------------------------------------------------------
+   IT WAS BEHIND A `<details>` AND IT IS NOT ANY MORE, at the owner's decision. The argument for
+   hiding it is written out below because it is a real argument and somebody will make it again:
+   a revision screen that shows the answer under the question has not asked you anything, and the
+   value of a past paper is the gap between reading it and knowing it.
 
-     THE STEM AND THE LEAD COME FIRST, in printed order, because a part without them cannot be
-     answered — which is the whole reason the stem is a row of its own rather than a copy on each
-     part. */
-  return `<div class="qcard">
-    <div class="qcard-top">
-      <b>${esc(x.name)}</b>
-      <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
-    </div>
-    <p class="qcard-sub">${esc(x.sub)}</p>
-    <div class="qsheet">
-      ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}</div>` : ''}
-      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
-      <div class="qsheet-part">
-        <div class="qsheet-pb">${x.html || ''}</div>
-      </div>
-    </div>
-    ${answerBlock_(x)}
-  </div>`;
-}
+   THE ANSWER TO IT is that this is not only a revision screen. It is the surface a tutor reads
+   FROM, in front of somebody, and a disclosure widget between the question and its mark scheme is
+   a tap in the middle of a sentence being spoken. Whoever wants the gap can stop reading; nobody
+   who wants the mark scheme can avoid the tap.
 
-/* ---------- THE ANSWER, SHUT UNTIL IT IS ASKED FOR ------------------------------------------------
-   A REVISION SCREEN THAT SHOWS THE ANSWER UNDER THE QUESTION HAS NOT ASKED YOU ANYTHING. The whole
-   value of a past paper is the gap between reading it and knowing it, so the answer is behind one
-   tap and the question is what you land on.
-
-   `<details>` RATHER THAN A `data-do` AND A HANDLER, and it is the first one in this app. Open and
-   shut is the entire state, the browser already keeps it, and it is reachable from a keyboard
-   without anybody writing that. A handler would have meant a flag somewhere, and cards are rebuilt
-   on every repaint — so the flag would need a key, and the key would need to survive a filter
-   changing underneath it. Nothing to store is better than somewhere to store it.
-
-   IT SHUTS AGAIN WHEN THE CARD IS REDRAWN, and that is the right way round. A repaint means the
-   facts moved; re-arriving at a question you have not answered yet with the answer already open is
-   the one failure mode worth avoiding here.
+   WHAT WENT WITH IT: `<details>` was the only one in this app, and it was chosen because open and
+   shut is the entire state and the browser keeps it for free — no flag, no key, and nothing to
+   survive a repaint. A static block needs even less, so nothing is lost. `.qans-open` in
+   `style.css` styled the summary and has no element left to style.
 
    THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
    lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
@@ -1087,13 +1070,13 @@ function answerBlock_(x) {
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
-  return `<details class="qans">
-    <summary class="qans-open">
+  return `<div class="qans">
+    <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
-    </summary>
+    </div>
     <div class="qans-body">${x.answer}</div>
     ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
-  </details>`;
+  </div>`;
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it
@@ -1208,93 +1191,6 @@ function paperText_(id) {
   return PAPER_TEXT[id] || '';
 }
 
-function questionItems() {
-  const all = DATA.questions || [];
-  if (!all.length) return [];
-
-  /* THE PAPER EACH QUESTION BELONGS TO, indexed once rather than searched per part. */
-  const papers = {};
-  (allTopics() || []).forEach(t => { if (t.id) papers[t.id] = t; });
-
-  const pid = paperIdOf_;
-
-  const stems = {};
-  all.forEach(r => { if (r.kind === 'stem') stems[pid(r) + '|' + r.q] = r; });
-
-  /* NO `kind: paper` ROWS LEFT TO EXCLUDE. A paper is a group of these now, not a row beside them. */
-  /* ---------- A WORKSHEET IS ONE THING, NOT FIFTY-THREE ---------------------------------------------
-     EVERY QUESTION WAS ITS OWN CARD, BESIDE THE PAPER IT CAME FROM. Two thousand four hundred and
-     sixty-three worksheet rows across a hundred and sixty-one worksheets — so answering Learning,
-     KS4, Worksheet, Grade 3 left eleven worksheets presented as a hundred and eighty-six cards, and
-     `Times Tables` alone was fifty-three of them, one after another, named Q1 to Q53.
-
-     Nothing could narrow that further and nothing should have to: the facets had already done their
-     job. The list was wrong, not the funnel.
-
-     AND IT IS THE SLOWNESS. `screen('stuff')` builds ONE DOM SECTION PER RESULT before anything is
-     filled — so picking Learning inserted about three and a half thousand `<section>` elements and
-     then positioned every one of them. Collapsing the worksheets takes that to under a thousand,
-     which is the difference between a screen that stalls on the tap and one that does not.
-
-     PAST PAPERS ARE LEFT ALONE, and the distinction is not arbitrary — it is the one `qNumber`
-     already makes two hundred lines down, for exactly this reason. `Question 5` of a past paper is
-     a thing somebody revises and asks for by number. `Q17` of a times-tables sheet is not: nobody
-     wants the seventeenth question, they want the sheet. The paper card is the answer for one and
-     the question card is the answer for the other.
-
-     THE QUESTIONS ARE NOT LOST. They are on the worksheet's own card, which is where somebody who
-     has chosen a worksheet is looking. */
-  const collapse = r => {
-    const p = papers[pid(r)] || {};
-    return String(p.resourceType || '').toLowerCase() === 'worksheet';
-  };
-
-  return all.filter(r => r.kind !== 'stem' && !collapse(r)).map(r => {
-    const p = papers[pid(r)] || {};
-    const stem = stems[pid(r) + '|' + r.q] || null;
-    return {
-      kind: 'question',
-      /* "Q5b" IS THE NAME, and the paper is the subtitle. A list of parts all called
-         "Paper 31: Statistics" would be a list nobody can read down. */
-      name: 'Q' + r.q + qPartName_(r.part),
-      key: 'q:' + r.id,
-      sub: p.name || '',
-      image: '', cost: 0, slot: '', off: false,
-      subject: p.subject || '', grade: p.grade || '',
-      /* the paper's own facets, so a question filters like its paper */
-      bandType: p.bandType || '', bandValue: p.bandValue || '',
-      keystage: p.keystage || '', tier: p.tier || '',
-      examBoard: p.examBoard || '', company: p.company || '',
-      /* THE PAPER'S OWN TYPE, so filtering to "Past paper" keeps its questions rather than
-         dropping them — a part of a past paper IS a past paper. */
-      resourceType: p.resourceType || '', examWave: p.examWave || '',
-      /* `paper: p.paper` WAS THE RESOURCE ROW'S BOOLEAN and there are no resource rows.
-         Every question here is part of a paper by definition, so it is simply true. */
-      year: p.year || '', paper: true,
-      /* and its own two */
-      qNumber: r.q, qPart: r.part || '',
-      marks: r.marks, section: r.section,
-      lead: r.lead, html: r.html,
-      /* ---------- THE ANSWER, WHICH THE BACKEND HAS BEEN SENDING TO NOBODY -------------------
-         `answer`, `answerType` AND `examinerNote` ARE IN THE PAYLOAD ALREADY. `SCHEMA.questions`
-         has carried the columns and `doget.gs` has mapped them since the tab was cut — and this
-         function dropped all three on the floor, so every question reached the phone with its mark
-         scheme attached and nothing ever looked at it. The other direction of the fault
-         `check-payload.js` was written for: sent, and never read.
-
-         NOT ADDED TO `text`. That is what the search box matches against, and putting the answer in
-         it means typing a value finds the question it answers — which is the one search a revision
-         screen must not do. */
-      answer: r.answer || '', answerType: r.answerType || '',
-      examinerNote: r.examinerNote || '',
-      stemHtml: stem ? stem.html : '',
-      /* SEE `searchText_`. The stem too, because a question that reads "work out the value of x"
-         says nothing on its own and everything alongside the paragraph it hangs from. */
-      text: searchText_(r) + (stem ? ' ' + searchText_(stem) : ''),
-      row: r,
-    };
-  });
-}
 
 /* ---------- EVERY PAPER, DERIVED FROM ITS OWN QUESTIONS -------------------------------------------
    THERE IS NO `resources` TAB ANY MORE. It has moved to another spreadsheet and the backend does not
@@ -1371,8 +1267,71 @@ function allTopics() {
     marks[id] = (marks[id] || 0) + (Number(r.marks) || 0);
   });
 
+  /* ---------- THE DOCUMENTS THEMSELVES, WHICH EXIST AGAIN ----------------------------------------
+     EVERYTHING BELOW USED TO BE DERIVED FROM QUESTION ROWS, and every hardcoded blank in it was
+     true when it was written: the `resources` tab had gone, so there was no link to give, no page
+     count to read and nowhere for a tick to live. That is no longer the case. A document is a
+     `kind: 'paper'` row on the questions tab now, `doGet` builds `dropdowns.checklists` out of
+     those rows, and they carry the link, the real page count, the printable flag and the passes.
+
+     WHAT THAT COST WHILE IT LASTED, measured against the live sheet:
+
+       440 of 642 documents reached the screen not at all — deriving papers from question rows can
+           only ever find the 202 that HAVE questions;
+       328 documents have a `source_url` and every one displayed as having no PDF;
+       155 have a counted page number and the screen showed an estimate off the mark total;
+       169 carry tick data and every card drew three empty boxes it would not accept a tap on.
+
+     A UNION, NOT A SWITCH, and the reason is `active`. 538 of the 642 document rows carry
+     active=FALSE, and `doGet` drops an inactive row from the checklists for anyone but an admin. So
+     sourcing this from the checklists ALONE would take about a hundred papers off a student's
+     screen that are there today — papers whose question rows are live and whose document row is
+     not. The document wins where there is one; a paper with questions and no visible document
+     still derives, exactly as it did. Nothing disappears and 440 things appear. */
   const seen = {};
   const out = [];
+  const cl = (DATA.dropdowns && DATA.dropdowns.checklists) || {};
+  Object.keys(cl).forEach(subject => {
+    Object.keys(cl[subject] || {}).forEach(band => {
+      ((cl[subject][band] || {}).topics || []).forEach(t => {
+        const id = t.id;
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        out.push({
+          id,
+          name: t.name || id,
+          subject: subject === 'Other' ? '' : subject,
+          grade: t.grade || '',
+          /* THE LINK THE DOCUMENT ACTUALLY HAS. See above: this was `''` with a paragraph under it
+             explaining that no PDF existed. 328 of them do. */
+          link: t.link || '', image: '',
+          company: t.company || '',
+          type: t.resourceType || '', board: t.examBoard || '',
+          bandType: t.bandType || '', bandValue: t.bandValue || '',
+          keystage: t.keystage || '', tier: t.tier || '',
+          examBoard: t.examBoard || '', resourceType: t.resourceType || '',
+          text: paperText_(id),
+          examWave: t.examWave || '', year: t.year || '',
+          guide: guides[id] || '',
+          paper: true,
+          /* THE COUNTED PAGES WIN over the estimate. `paperPages_` works a length out of the mark
+             total, which is the right answer for a paper nobody has counted and the wrong one for
+             the 155 that somebody has. */
+          pages: Number(t.pages) || paperPages_(marks[id]),
+          printable: t.printable, printPrice: t.printPrice,
+          price: t.price || 0, currency: t.currency || 'credits', level: t.level || 0,
+          active: t.active !== false,
+          /* THE PASSES HAVE A HOME AGAIN — the three columns are on the document row, which is the
+             one row per document that `kind: 'paper'` exists to guarantee. `toggleTopicTick` writes
+             to it through `rowById_(t, 'paper_id', …)`, which is why the id above is the paper's. */
+          trackable: !!t.trackable,
+          rowIndex: t.rowIndex || 0,
+          ticks: [t.tick1 || '', t.tick2 || '', t.tick3 || ''],
+        });
+      });
+    });
+  });
+
   qs.forEach(r => {
     const id = paperIdOf_(r);
     if (!id || seen[id]) return;
@@ -1382,10 +1341,8 @@ function allTopics() {
       name: r.name || id,
       subject: r.subject || '',
       grade: r.bandType === 'grade' ? r.bandValue : '',
-      /* NO LINK. There is no PDF behind any of these, which is the whole point — there is nothing to
-         download and nothing to link to. PAGES is different: see `paperPages_` above. It is worked
-         out from the marks now rather than left at zero, which is what makes a printed copy
-         offerable at all. */
+      /* DERIVED, so there is genuinely nothing to link to and no count to read — this branch only
+         runs for a paper whose document row the viewer cannot see. */
       link: '', image: '',
       /* WHO WROTE IT. This was hardcoded empty, so the `Company` facet had nothing to offer and
          every worksheet in the library looked like it came from nowhere. The questions sheet
@@ -1407,13 +1364,11 @@ function allTopics() {
       guide: guides[id] || r.guide || '',
       paper: true, pages: paperPages_(marks[id]), printable: '',
       active: r.active !== false,
-      /* ---------- THE PASSES HAVE NOWHERE TO LIVE ---------------------------------------------
-         `ticks` WERE THREE COLUMNS ON THE `resources` TAB and that tab is gone, so there is nothing
-         to read and nothing to write to. Every card therefore draws none, and `tickRow` returns
-         empty for an untrackable topic — which is the honest state rather than three boxes that
-         accept a tap and lose it.
-         518 of them exist in the other spreadsheet. Until passes have a home of their own — a
-         `ticks` tab of person, paper and which pass — this stays false. */
+      /* NOT TRACKABLE ON THIS BRANCH, and now for a narrow reason rather than a general one. The
+         passes DO have a home — three columns on the document row — but this branch only runs when
+         the viewer cannot see that row, and a tick has to be written somewhere. Three boxes that
+         accept a tap and lose it are worse than none, so it stays false here and is read off the
+         document above wherever there is one. */
       trackable: false,
       rowIndex: 0,
       ticks: ['', '', ''],
@@ -1808,7 +1763,6 @@ function stuffItems() {
        EVERY PAPER FIELD IS COPIED ONTO THE PART from its resource row, so a question answers the
        same facets its paper does: filtering to A-Level, Edexcel, 2022 narrows questions exactly
        as it narrows papers, and the funnel does not have to know it is looking at either. */
-    ...questionItems(),
 
     /* A FIGHTER ANSWERS THE FUNNEL'S QUESTIONS IN HIS OWN WORDS. Division goes in `subject`, the
        one column every facet already knows how to group by, so Boxers narrows by division without

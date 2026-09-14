@@ -408,10 +408,9 @@ function landmarks() {
 
     /* MEASURED METRES WIN OVER COUNTED STOREYS. Somebody stood there with a ruler for the first
        one; the second is an estimate off a photograph at about 3.2m a floor. */
-    const height = N(r.height_m) || N(r.storeys) * 3.2 || 0;
+    const height = N(r.height) || N(r.storeys) * 3.2 || 0;
 
     let outline = [];
-    const shape = S(r.shape).toLowerCase();
 
     /* ---------- POINTS ARE POINTS, WHATEVER THE SHAPE CELL SAYS -------------------------------
        THIS REQUIRED `shape` TO BE EXACTLY 'polygon' and the landmarks tab has no `shape` column
@@ -428,7 +427,7 @@ function landmarks() {
         .map(p => p.split(/\s+/).map(Number))
         .filter(p => p.length === 2 && p[0] && p[1]);
     } else {
-      const w = N(r.width_m), d = N(r.depth_m);
+      const w = N(r.w), d = N(r.d);
       if (w && d) {
         /* A ROTATED RECTANGLE, from the centre outwards. `bearing` is the compass direction the
            front faces — 0 north, 90 east — so it is measured CLOCKWISE FROM NORTH, which is the
@@ -453,7 +452,7 @@ function landmarks() {
     }
 
     return {
-      id: S(r.landmark_id), name: S(r.name), world: S(r.world), kind: S(r.kind) || 'building',
+      id: S(r.id), name: S(r.name), world: S(r.world), kind: S(r.kind) || 'building',
       lat: lat, lng: lng, bearing: N(r.bearing),
       height: height, storeys: N(r.storeys),
       /* ---------- TWO DIFFERENT DEPTHS, AND THEY WERE THE SAME KEY --------------------------------
@@ -463,14 +462,14 @@ function landmarks() {
          real depth was thrown away before it left the server, and the board received a zero.
          NOTHING LOOKED WRONG, which is what makes it worth the words. Plots fell back to the hand-set
          `plots` column, which was filled in, so the board drew — just never from the measurement. */
-      widthM: N(r.width_m), depthM: N(r.depth_m),
-      colour: S(r.colour), note: S(r.note),
+      widthM: N(r.w), depthM: N(r.d),
+      colour: S(r.wall_colour), note: S(r.note),
       /* THE FOUR COLUMNS THE TAB HAS AND THE PAYLOAD WAS NOT SENDING. `label`, `icon`, `role` and
          `roof` have been on the landmarks tab since it was made, and the board could not see any of
          them — which is why it carried its own copy of all thirteen buildings as a literal in the
          JavaScript. A column that exists and is not sent is a column that gets duplicated. */
       label: S(r.label) || S(r.name),
-      icon: S(r.icon), role: S(r.role), roof: S(r.roof),
+      icon: S(r.icon), role: S(r.role), roof: S(r.roof_colour),
       /* THE SHAPE OF IT. See the note in the schema: silhouette, roofline, one feature, and how
          many plots wide it sits. All optional — a row with none draws as a plain slab. */
       form: norm(r.form), roofShape: norm(r.roof_shape), feature: norm(r.feature),
@@ -479,7 +478,7 @@ function landmarks() {
          a landmark and everything on it together, and joining two arrays on the phone would be the
          phone doing a database's job. An empty list is the ordinary case and draws exactly as
          before. */
-      parts: parts.filter(x => key(x.landmark_id) === key(r.landmark_id) && ON_(x.active))
+      parts: parts.filter(x => key(x.landmark_id) === key(r.id) && ON_(x.active))
         .map(x => ({
           name: S(x.name), kind: norm(x.kind) || 'building',
           x: N(x.x), z: N(x.z), w: Math.max(1, N(x.w) || 1), d: Math.max(1, N(x.d) || 1),

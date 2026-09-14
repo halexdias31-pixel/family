@@ -238,12 +238,52 @@ node js/check-post.js            # an action that names a person by a cell they 
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
+node check/live.js --sheets s.json --out /tmp/p.json   # the REAL doGet over the REAL spreadsheets
+node check/ui.js --payload=/tmp/p.json                 # and the real app rendered against it
 ```
 
 **`package.json` is for the checks and nothing else.** The site has no build and no dependencies —
 `index.html` loads `js/*.js` and the browser concatenates them. Nothing in `node_modules` is ever
 shipped. Before it existed, a fresh clone ran `node js/check.js` and got `Cannot find module 'acorn'`
 with nothing anywhere saying what to install.
+
+### `check/live.js` — the real backend over the real database
+
+Everything else measures the app against `check/fixture.json`: four question rows, fifteen people,
+a handful of venues, all hand-written. That is right for most of them — a fixture is stable, and a
+check whose answer changes when somebody edits a cell is a check nobody can act on.
+
+**But it means nothing had ever seen the actual data**, and three faults in one week came from
+exactly that gap. No fixture would have caught any of them, because the fixture was written from the
+same belief as the code: `SCHEMA.landmarks` naming seven columns the sheet has never had,
+`allTopics()` hardcoding `link: ''` with a comment explaining no PDF exists while 328 rows carry
+one, and a past paper drawn twice over.
+
+**It is not a second implementation.** It loads the `.gs` files and calls the real `doGet`. Only the
+eight Apps Script globals the payload build touches are replaced — `SpreadsheetApp` backed by a dump
+of the real spreadsheets, `CacheService` deliberately always missing so the payload is built from
+the sheet every time. If `doget.gs` is wrong about a column, this is wrong the same way.
+
+**Never commit the dump or the payload.** `Ledger` holds PINs, e-mail addresses, phone numbers and
+dates of birth, and this repository is public. `check/live.js` refuses to write a payload inside the
+working tree and `.gitignore` carries both paths.
+
+What it found on its first run, none of which the fixture can see, because the fixture has no real
+photographs and nobody in it is missing a DBS:
+
+| | |
+|---|---|
+| `img.post-pic` | overflows by 27–31px on the feed at 320, 390 and 768 |
+| `article.post` | overflows by 14–15px |
+| `img.pass-pic` | overflows by 2px on the account screen |
+| "NO DBS ON FILE" | 4.43:1 against black — needs 4.5 |
+
+and 33 tap targets beyond the 69 already in `ACCEPTED_TAP`.
+
+**The one thing it cannot do is tell you what is deployed.** A push is not a deploy, and every
+Google host is blocked from the agent's environment by network policy — `script.google.com`,
+`docs.google.com`, all of them. Only GitHub is reachable. So which version `/exec` serves has to
+come from somebody opening the URL.
 
 `check/ui.js` serves the real files, stands the backend up from `check/fixture.json`, drives the app
 through its own `go()`, and measures: sideways scroll that nobody asked for, tap targets under 44 px,
@@ -399,7 +439,46 @@ It is now three files, **split by who writes the rows**:
 |---|---|---|
 | **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, ticks — the business as it happened |
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
-| **Library** | you, in bulk | questions (documents AND their questions), boxers, cheatsheet |
+| **Library** | you, in bulk | boxers, cheatsheet — and `questions` has left, see below |
+
+### `questions` lives in this repository, not in a spreadsheet
+
+`data/questions.json` — 3,913 rows, 44 columns, 2.4 MB, one row per line so a diff names the rows
+that changed. `js/library.js` fetches it and builds `DATA.questions` and `dropdowns.checklists` from
+it; `doGet` no longer builds either.
+
+**Why that tab and no other.** Three questions decide where a thing lives, and the first one that
+answers wins:
+
+1. **Is it secret?** → a sheet, never here. This repository is **public**; anything committed is
+   published, and git history is permanent. PINs, e-mail addresses, dates of birth.
+2. **Does the app write to it?** → a sheet. Code cannot be written to at runtime.
+3. **Do you edit it, or does Claude?** → `questions` is the one tab nobody hand-edits. It arrives in
+   bulk, and every edit went export → CSV → download → File → Import, twice. `brand`, `config`,
+   `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
+   must never need a deploy.
+
+**Three columns did not come.** `ticks_1`, `ticks_2`, `ticks_3` — 529 cells holding the handles of
+real people, most of them children. They are stripped at source. A tick is a fact about a PERSON and
+a document; it was never library data, and if it returns it returns in `Ledger`.
+
+**What was checked before publishing**, because the decision is irreversible: every Library tab
+scanned against the Ledger's handles (only the tick columns matched), and the 1,508 Drive links
+sampled for sharing — `anyone: reader`, already public by link, and already served to anonymous
+visitors by the payload. Publishing the ids exposes nothing the site did not.
+
+**`libraryInto_` is not a second `doGet`.** It is the same two blocks, moved: the rows they read no
+longer reach the backend at all, so there is one implementation. The shapes are exact down to the
+key names, because `allTopics`, `paperBody_`, `paperText_` and every facet were written against them.
+
+**The payload went 3.6 MB → 452 KB**, measured, and the file it replaces is cacheable where a
+payload never is. `index.html` starts both requests in parallel; `load()` merges them before `DATA`
+is wrapped, so `missingKeys()` is not told about two keys on every load.
+
+**The fixture no longer holds `questions` or `checklists`.** `check/ui.js` serves the repo, so the
+real file wins and anything a fixture said about them was overwritten a moment later — a fixture key
+that silently does nothing is the fault the suite exists to catch. The library is committed data
+now, so it is as fixed as the fixture ever was.
 
 The ids are in `FILES` in `constants.gs`, and `WHERE` says which file each tab is in. The tab
 colours inside each spreadsheet say the same thing a third time — green written by the app, gold
