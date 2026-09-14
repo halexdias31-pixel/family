@@ -517,6 +517,10 @@ on('book-send', el => {
       .then(d => {
         el.disabled = false;
         if (d && d.error) { if (said) said.textContent = d.error; return; }
+        /* THE CLASS YOU ASKED TO JOIN, kept so it comes back under the blank form — see `ASKED_JOB`
+           in book.js. The id is the one we already had: this path asks to join a session that
+           exists, so there is no new job to be told about. */
+        ASKED_JOB = String(joined.id || joined.jobId || '');
         resetBooking_();
         toast('Asked — they will be in touch');
         load();
@@ -574,6 +578,10 @@ on('book-send', el => {
         toast(d && d.seats
           ? 'On the list — ' + d.joined + ' of ' + d.seats + ' seats taken'
           : 'On the list');
+        /* BOTH WAITLIST VERBS ANSWER WITH ONE. `joinWaitlist` and `openWaitlist` are different
+           handlers reached by the same button, and each returns the `jobId` of the list it seated
+           you on or opened — so one line covers the pair. */
+        ASKED_JOB = String((d && d.jobId) || '');
         resetBooking_();
         load();
       })
@@ -644,6 +652,10 @@ on('book-send', el => {
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       toast('Asked — we will come back to you');
+      /* WHAT WAS JUST ASKED FOR, so it is drawn again under the emptied form — see `ASKED_JOB` in
+         book.js. Set before `resetBooking_()`, which is what clears the answers this receipt is
+         about. */
+      ASKED_JOB = String((d && d.jobId) || '');
       /* Emptied from the step list rather than from a list of names written here — see
          `resetBooking_`. This was seven keys typed out, and it was missing `done` and `kids`: the
          next booking would arrive believing every multiple-choice question had already been

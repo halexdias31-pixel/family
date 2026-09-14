@@ -377,6 +377,54 @@ to the pixel.** CLAUDE.md already says layout facts come from the browser. The o
 "nothing measured wrong" and "it looks right" are different claims, and only one of them a
 screenshot can settle.
 
+### `check-flow.js` could not read a reply, so no write's success path had ever run
+
+**Every POST in every journey rejected, and nothing said so.** `api()` in `shell.js` reads
+`r.text()` and parses it second — deliberately, because an Apps Script error page is HTML and
+reading it as text first is what turns `Unexpected token '<'` into the sentence the server actually
+said. The fetch stub in `boot()` answered a POST with `json()` **only**. So `r.text` was
+`undefined`, the promise rejected with a TypeError, and the `.then` of every write in the app was
+unreachable from the harness.
+
+**It lasted because the journeys assert on the wrong half.** `sent` is filled in by the stub
+*before* it answers, so it is populated whether or not the reply can be read. "A class books
+through `joinWaitlist`, a session through `createJob`" passed for as long as it has existed while
+proving only that the request left the phone. What the app does with the answer — the toast, the
+reset, the reload, every `.then` in `receipt.js` — had never executed once.
+
+**Found by asking what is on the screen after a booking is sent**, and getting the same screen as
+before. The stub answers both shapes now. All 28 journeys pass with the success paths actually
+running, so nothing was depending on the rejection.
+
+**This is the `check-booking.js` fault again in a different costume**: a check that cannot reach its
+subject reporting a pass. There it was a path to `backend/` and an exit 0; here it is a missing
+method on a stub. Both say "I checked and it was fine" when the honest answer is "I did not check".
+
+### The booking widget comes back under the form once it is sent
+
+**Pressing send emptied the screen.** `resetBooking_()` clears every answer and `load()` fetches the
+new job, so the page somebody was looking at a second earlier went blank and a toast was the only
+evidence anything had happened. The session was real and two swipes away under
+`Booking · Receipts`, which is not where a person looks immediately after pressing a button.
+
+`ASKED_JOB` in `book.js` holds the id the backend answered with — all three send paths return one,
+`createJob`, `joinWaitlist` and `openWaitlist` alike — and `askedBlock_()` draws that job's receipt
+below the booker. `jobReceipt` is the same builder the session sheet uses, so the two cannot drift.
+
+**One job, not a list, and that is the whole care.** `bookBlocks` used to draw every live job under
+the form, and the note above it says why that went: the funnel already has a searchable list of
+them, and a page holding both is the duplication this file has produced twice. A confirmation of the
+thing you just did is not that list.
+
+**Below, not beside.** Each element of `bookBlocks()` is a page somebody swipes to, so a receipt
+returned as its own element would be "somewhere else" again — the same fault wearing a different
+shape. The journey checks the page COUNT as well as the markup.
+
+**It is looked up every draw rather than kept as HTML**, so `Stage` says where the booking has got
+to now: an admin accepting it while the family still has the page open moves that row from
+"Asked for — waiting on us" to "Accepted — waiting for payment" on the next `load()`. It is in
+memory, so a reload drops it — right for a confirmation, and nothing to keep in step.
+
 ### Every check hand-rolls its own path to `backend/`, and most of them had it wrong
 
 `check-booking.js`, `check-columns.js` and `check-access.js` each located the `.gs` files

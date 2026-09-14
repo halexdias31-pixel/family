@@ -83,10 +83,33 @@ function bookBlocks() {
   /* THE SAME MONEY BLOCK UNDER THE FORM, and for the sharper reason: the figures move as the
      questions are answered, which is exactly when you want to see what a booking would leave you. */
   const L = typeof bookPrice === 'function' ? bookPrice() : null;
+  /* BELOW THE FORM, NOT AS A SECOND PAGE. Each element of this array is a page somebody swipes to,
+     and the booking they just made is not somewhere else — it is the answer to the form they are
+     looking at. Same string, under the money block. */
   return [bookerCard()
     + (typeof moneyBlock === 'function'
        ? moneyBlock({ tutor: BOOKING.tutor, tutorPay: L && L.tutorPay, profit: L && L.profit })
-       : '')].filter(Boolean);
+       : '')
+    + askedBlock_()].filter(Boolean);
+}
+
+/* THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list.
+
+   IT IS LOOKED UP EVERY DRAW rather than kept as HTML, so the document says where the booking has
+   got to NOW. That matters within one visit: an admin accepting a session while the family still
+   has the page open moves `Stage` from "Asked for — waiting on us" to "Accepted — waiting for
+   payment" on the next `load()`, with nothing here to tell. Storing the drawn markup would have
+   frozen the one row somebody is watching.
+
+   AND IT DISAPPEARS IF THE JOB DOES. A declined booking leaves the payload and this finds nothing,
+   which is the honest outcome — better than a stale receipt for a session that is not happening.
+   `jobReceipt` is the same builder the session sheet uses, so this cannot drift from it. */
+function askedBlock_() {
+  if (!ASKED_JOB) return '';
+  const jobs = (DATA && (DATA.liveJobs || DATA.jobs)) || [];
+  const j = jobs.find(x => String((x && (x.id || x.jobId)) || '') === String(ASKED_JOB));
+  if (!j) return '';
+  return typeof jobReceipt === 'function' ? jobReceipt(j) : '';
 }
 
 /* ---------- WHEN A SESSION IS OVER --------------------------------------------------------------
@@ -393,6 +416,28 @@ const BOOKING = {
   kids: [],
   interval: '', tutor: '', service: '',
 };
+
+/* ---------- THE ONE YOU JUST ASKED FOR ------------------------------------------------------------
+   SENDING A BOOKING LOOKED LIKE LOSING IT. `resetBooking_()` empties every answer and `load()`
+   fetches the new job — so the screen a person was looking at went blank, a toast said "Asked", and
+   the twelve answers they had spent a minute on were nowhere. The session existed; it was two
+   swipes away under `Booking · Receipts`, which is not where somebody is looking a second after
+   pressing send.
+
+   SO THE ANSWER COMES BACK, UNDER THE BLANK FORM. One id, set by whichever of the three send paths
+   succeeded, and `askedBlock_` draws that job's receipt below the booker. The form is ready for the
+   next booking and the last one is still on the page, which is what "it worked" looks like.
+
+   ONE JOB, NOT A LIST, and that is the whole care here. `bookBlocks` used to draw every live job
+   under the form and the note above it says why that went: the funnel already has a searchable
+   list of them, and a page holding both is the duplication this file has produced twice. A
+   confirmation of the thing you just did is not that list — it is one document, and it is only
+   here because you pressed send.
+
+   IN MEMORY, SO IT GOES WHEN THE PAGE DOES. There is nothing to clear and nothing to keep in step:
+   asking for a second session replaces it, and a reload drops it, which is right — it is a receipt
+   for this visit, not a preference. */
+let ASKED_JOB = '';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 

@@ -160,13 +160,30 @@ function boot(opts) {
 
   const data = opts.payload || payload();
   w.fetch = (url, o) => {
+    /* ---------- THE STUB HAD NO `text()`, AND THAT HID EVERY WRITE'S SUCCESS PATH ----------------
+       `api()` IN shell.js READS `r.text()` AND PARSES IT, deliberately — an Apps Script error page
+       is HTML, and reading it as text first is what turns "Unexpected token '<'" into the sentence
+       the server actually said. This stub answered with `json()` only. So `r.text` was undefined,
+       every POST rejected with a TypeError, and the `.then` of every write in the app was
+       unreachable from here.
+
+       NOTHING FAILED, WHICH IS WHY IT LASTED. The journeys that press a send button assert on
+       `sent` — the list this stub fills in before answering — and that is populated whether the
+       reply is readable or not. So "a class books through joinWaitlist, a session through
+       createJob" passed while proving only that the request left; what the app does with the
+       answer had never run once.
+
+       Found by a journey that asked what is on the screen AFTER a booking is sent, and got the
+       same screen as before. Both shapes now, so a caller may read either. */
+    const body_ = txt => ({ ok: true, status: 200,
+      text: () => Promise.resolve(JSON.stringify(txt)),
+      json: () => Promise.resolve(txt) });
     if (o && o.body) {                       // a POST — record it and answer plausibly
       const body = JSON.parse(o.body);
       sent.push(body);
-      return Promise.resolve({ ok: true, status: 200,
-        json: () => Promise.resolve(opts.reply || { success: true, joined: 3, seats: 4 }) });
+      return Promise.resolve(body_(opts.reply || { success: true, joined: 3, seats: 4 }));
     }
-    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(data) });
+    return Promise.resolve(body_(data));
   };
 
   const errs = [];
@@ -203,6 +220,11 @@ function boot(opts) {
          the receipt sheet and the journey below still looked for it there — see the note on that
          journey. Exposed so the test can ask the thing that actually renders the button. */
       'jobTiles: typeof jobTiles_ === "function" ? jobTiles_ : null,' +
+      /* THE BOOKING COLUMN AS DRAWN, and the id of the booking just asked for. Together they are
+         what a journey needs to ask whether pressing send leaves anything on the screen — which
+         it did not, for as long as the form was the only thing on that page. */
+      'blocks: typeof bookBlocks === "function" ? bookBlocks : null,' +
+      'asked: () => ASKED_JOB,' +
       'bar: typeof installBar === "function" ? installBar : null,' +
       /* THE CHEAT SHEET'S COMPONENT LIST AND ITS TWO WIDTHS. `matParts` is the list after the sheet
          has had its say about order and levels, which is the list the page is actually built from —
@@ -660,6 +682,60 @@ check('a class books through joinWaitlist, a session through createJob', async (
     if (!got.includes(action)) {
       bad.push(how + ' sent [' + (got.join(', ') || 'nothing') + '], expected ' + action);
     }
+  }
+  return bad;
+});
+
+/* ---------- PRESSING SEND USED TO EMPTY THE SCREEN ------------------------------------------------
+   `resetBooking_()` CLEARS EVERY ANSWER AND `load()` FETCHES THE NEW JOB, so the page a person was
+   looking at a second ago went blank and a toast was the only evidence anything had happened. The
+   session was real and two swipes away under `Booking · Receipts`, which is not where somebody
+   looks immediately after pressing a button.
+
+   SO THE BOOKING COMES BACK UNDER THE BLANK FORM, and this asks for exactly that: one more
+   document on the SAME page, carrying the id of the job that was just created.
+
+   THE PAGE COUNT IS PART OF IT. Each element of `bookBlocks()` is a page somebody swipes to, so a
+   receipt returned as its own element would be "somewhere else" again — the fault this fixes,
+   wearing a different shape. Same page, more markup. */
+check('a booking you just asked for is still on the screen afterwards', async () => {
+  const bad = [];
+  const { w, sent } = boot({ reply: { success: true, jobId: 'J-ASK' } });
+  await wait(300);
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+
+  const pagesBefore = w.__t.blocks().length;
+  const before = w.__t.blocks().join('');
+  if (before.includes('J-ASK')) bad.push('a booking is shown before one has been asked for');
+  if (w.__t.asked()) bad.push('something is remembered as asked for before any send');
+
+  const B = w.__t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = 'A session of your own'; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
+  B.subjects = ['Maths']; B.n = '1'; B.hosting = 'No — we book the room';
+  B.slots = ['m16']; B.interval = 'Autumn 1';
+  try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); }
+  catch (e) { return bad.concat('book-send threw: ' + e.message); }
+  await wait(600);
+
+  if (!sent.map(x => x.action).includes('createJob')) {
+    return bad.concat('no createJob was sent, so there is nothing to show');
+  }
+  /* THE ID THE BACKEND ANSWERED WITH, not one this test invented — if `createJob` stops returning
+     `jobId` the widget has nothing to look up and this is where that shows. */
+  if (w.__t.asked() !== 'J-ASK') {
+    bad.push('the booking just made was not remembered (asked = "' + w.__t.asked() + '")');
+  }
+  const after = w.__t.blocks().join('');
+  if (!after.includes('J-ASK')) bad.push('the booking just made is not drawn under the form');
+  /* THE STAGE ROW, TWICE: the blank form still says "Not asked for yet" and the receipt under it
+     says where the real booking has got to. One of them is the answer to the other. */
+  if ((after.split('Stage').length - 1) < 2) {
+    bad.push('the second document has no Stage row, so it is not the booking widget');
+  }
+  if (w.__t.blocks().length !== pagesBefore) {
+    bad.push('the booking was added as a separate page (' + pagesBefore + ' -> '
+      + w.__t.blocks().length + '), not below the form');
   }
   return bad;
 });
