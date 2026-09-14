@@ -122,6 +122,21 @@ function libraryInto_(d, rows) {
       bandType: libS(r.band_type), bandValue: libS(r.band_value),
       tier: libS(r.tier), examBoard: libS(r.exam_board),
       examWave: libS(r.exam_wave), year: libS(r.year),
+      /* ---------- AND THE ROW ITSELF, WHICH COSTS A POINTER --------------------------------------
+         THE LIST ABOVE IS AN ENUMERATION AND ENUMERATIONS GO STALE. It names 29 of the file's 44
+         columns, so `topics` (2,918 rows), `description`, `level`, `pages`, `source_url` and nine
+         others reach the browser inside `LIBRARY_ROWS` and then stop at this function.
+
+         THAT MATTERED THE MOMENT THE `facets` TAB COULD INVENT A QUESTION. `facetFromSheet_` in
+         find.js reads `x[field]` and falls back to `x.row[field]` — the original row — which is
+         what lets a new column be filterable without a code change. Without this line that fallback
+         reached this enumeration rather than the file, so `field: topics` silently found nothing:
+         0% coverage, question never offered. Exactly the silent-nothing this app keeps paying for.
+
+         IT IS A REFERENCE, NOT A COPY, and that is a fact about the language rather than something
+         measured: `LIBRARY_ROWS` holds these rows for the life of the page anyway, so this stores
+         3,265 pointers at the objects already there and duplicates no row data. */
+      row: r,
     });
   });
   d.questions = qs;

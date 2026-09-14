@@ -559,16 +559,44 @@ function kindMap_() {
   const said = {};
   (src || []).forEach(k => { if (k && k.kind) said[k.kind] = k; });
 
+  /* ---------- A KIND THE SHEET INVENTED ---------------------------------------------------------
+     THE SAME GAP THE `facets` TAB HAD, and the same fix — see `facetFromSheet_`. This walked
+     `Object.keys(KINDS)` and overlaid the sheet onto each, so a `kinds` row for a kind the code
+     does not declare was read and thrown away. The backend already sends those rows through; its
+     comment where it builds `payload.kinds` says so in as many words.
+
+     AND THE CARD ALREADY FELL BACK, which is what makes this three lines rather than a project.
+     `(kindOf_(x).card || thingCard_)(x, credits)` has always been the call — a kind with no card
+     draws as an ordinary thing: name, subtitle, picture, price. So a new kind needs no card
+     function, no `KINDS` entry and no facet. It needs a row here and a source of items.
+
+     WHAT THAT LEAVES AS THE LAST HAND-WRITTEN BIT is `stuffItems` — where the items come from at
+     all. That is one mapper per domain and it is the honest floor: something has to say "boxers
+     live on `DATA.boxers` and a boxer is called `name`". Everything after it is now editorial.
+
+     THE OLD FALLBACK WAS WRONG AND SILENT. `kindOf_` answers `{ group: 'Shop', label: 'Things' }`
+     for a kind it does not know, so an unrouted kind did not vanish — it appeared under Shop,
+     labelled Things, which is worse than vanishing because it looks deliberate. A sheet row is now
+     the way to say where it really belongs. */
   const out = {};
-  Object.keys(KINDS).forEach((k, i) => {
-    const base = KINDS[k], s = said[k];
+  const order = Object.keys(KINDS)
+    .concat(Object.keys(said).filter(k => !KINDS[k]));
+  order.forEach((k, i) => {
+    const base = KINDS[k] || {}, s = said[k];
     if (s && s.active === false) return;
+    /* A SHEET-ONLY KIND WITH NO GROUP WOULD LAND IN `undefined`, which `groupOrder_` would then
+       offer as an answer to the first question. `Learning` is the default because it is where
+       content goes and the only alternative is refusing the row silently. */
+    if (!KINDS[k] && !asList_(s && s.group).length) base.group = 'Learning';
+    if (!KINDS[k]) base.fromSheet = true;
     out[k] = Object.assign({}, base, {
       /* THE SHEET WINS WHEN IT HAS SAID ANYTHING. `asList_` is what decides whether it has — an
          empty cell arrives as an empty array, which is falsy nowhere useful, so testing the length
          is the only test that means "the cell was blank". */
       group: asList_(s && s.group).length ? s.group : base.group,
-      label: (s && s.label) || base.label,
+      /* A KIND THE SHEET INVENTED AND DID NOT NAME falls back to the kind itself rather than to
+         `undefined`, which would print as an empty answer in the second question. */
+      label: (s && s.label) || base.label || k,
       at:    facetNum_(s && s.order, (i + 1) * 10),
     });
   });
@@ -1444,7 +1472,10 @@ function questionItems() {
          it means typing a value finds the question it answers, which is the one search a revision
          screen must not do. */
       text: searchText_(r) + (stem ? ' ' + searchText_(stem) : ''),
-      row: r,
+      /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
+         `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
+         `data/questions.json` is filterable and not just the 29 that got enumerated. */
+      row: r.row || r,
     };
   });
 }

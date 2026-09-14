@@ -510,6 +510,41 @@ twenty and `Division` seventeen, so nothing real is near it.
 **And `name` having exactly 212 answers is the collection showing through** — 212 distinct paper
 names across 3,265 questions. That is the `contains` idea from the audit, visible in the data.
 
+### And the `kinds` tab can invent a kind — which is where the hand-written part ends
+
+**The same gap, the same three-line fix.** `kindMap_` walked `Object.keys(KINDS)` and overlaid the
+sheet onto each, so a `kinds` row for a kind the code does not declare was read and thrown away.
+The backend already sent those rows through.
+
+**What makes it three lines rather than a project is that the card already fell back.**
+`(kindOf_(x).card || thingCard_)(x, credits)` has always been the call — a kind with no card draws
+as an ordinary thing: name, subtitle, picture, price. Proved: a `podcast` row that exists nowhere in
+the code came back `group: Learning, label: Podcasts` and **drew a card**.
+
+**The old fallback was wrong and silent.** `kindOf_` answers `{ group: 'Shop', label: 'Things' }`
+for an unknown kind, so an unrouted kind did not vanish — it appeared under Shop labelled Things,
+which is worse than vanishing because it looks deliberate.
+
+**So adding a domain is now: one mapper in `stuffItems`, and rows.** That mapper is the honest
+floor — something has to say "boxers live on `DATA.boxers` and a boxer is called `name`". Everything
+after it is editorial.
+
+**I dropped the source-table idea from the audit.** It would have turned an 8-line mapper into a
+4-line config entry, and that is moving code rather than removing a cost. The facet and the kind
+were the real costs and they are gone.
+
+### `row` carries the whole row, because an enumeration goes stale
+
+`libraryInto_` names 29 of `data/questions.json`'s 44 columns, so `topics` (2,918 rows),
+`description`, `level`, `pages`, `source_url` and nine more reached the browser inside
+`LIBRARY_ROWS` and stopped there.
+
+**That became a fault the moment the sheet could invent a facet.** `facetFromSheet_` falls back to
+`x.row[field]`, and `row` was the payload object rather than the file row — so `field: topics` found
+nothing: 0% coverage, question never offered, nothing anywhere saying why. Attaching the row fixed
+it in one line and `topics` came back **11 answers, 77% coverage**. It is a reference, not a copy:
+`LIBRARY_ROWS` holds those rows for the life of the page anyway.
+
 **Fifteen fields of ceremony hid one that decided a filter.** Every mapper wrote
 `bandType: '', bandValue: '', keystage: '', …, paper: false` — ten identical blocks. All of it was
 ceremony: `asList_` cannot tell `''` from `undefined`, so writing them and omitting them are the
