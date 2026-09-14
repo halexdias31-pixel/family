@@ -458,6 +458,25 @@ answers wins:
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
 
+### A paper card is the cover, and that took two goes
+
+**`paperCard` printed the ENTIRE paper onto every card in the results list.** `paperInline_` did it,
+and the argument written above it was: "the funnel has already done the narrowing a list needs, so
+by the time you are looking at one paper there is nothing else on the page." That is false and a
+screenshot is what settled it — the funnel is a paged LIST, five covers on a page is ordinary, so a
+search result unrolled a complete A-Level paper, 47 parts and 47 answer boxes, between one cover and
+the next. You scrolled through an exam to reach the next exam.
+
+**A card is a thumbnail.** That is what it is for a tutor, a venue and a shop item, and a past
+paper's thumbnail is its cover — which `paperCard` already draws properly. Nothing was needed except
+stopping.
+
+**So reading is a tap again and the tile is back**, as `Read` with the question count under it,
+opening `openSheet`. It was removed on the same wrong reading, called "a button that opened what you
+were already looking at" — which it only was because of the line above it. The other half of that
+complaint was fair and is fixed too: the old tile said `HTML` over a `<>` glyph, which reads as a
+developer's view of the row rather than as "the questions are in here".
+
 **`diagram` is a column and `figure` is not.** `figure` has been on the payload since it was
 written and nothing has ever drawn it — it is 253 one-word labels (`venn`, `scatter`, `grid-blank`,
 31 of them) saying which KIND of picture a row wants. `diagram` holds the picture, as inline SVG:
