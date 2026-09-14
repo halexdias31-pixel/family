@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-18-three-files";
+const DOGET_VERSION = "2026-09-18-resources";
 
 
 function doGet(e) {
@@ -1362,6 +1362,12 @@ function doGet(e) {
         if (!S(r.row_id) || !ON_(r.active)) return;
         payload.questions.push({
           id: S(r.row_id), paper: S(r.paper_id),
+          /* THE DOCUMENT THIS CAME OUT OF, so a question can reach its PDF — the link, the page
+             count, whether it prints — without twenty more columns being copied onto every row.
+             Blank for a question whose paper has no `source_url` to join on, which is 100 of the
+             202 papers; a blank id is a lookup that finds nothing, which is already how every
+             other optional reference on this payload behaves. */
+          resourceId: S(r.resource_id),
           q: S(r.question), part: S(r.part), kind: norm(r.kind) || 'part',
           section: S(r.section), marks: N(r.marks),
           figure: S(r.figure), lead: S(r.lead), html: S(r.html),

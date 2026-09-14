@@ -321,8 +321,9 @@ only place it lives.
 
 ### Four spreadsheets became three, and the split is now a question with one answer
 
-It was businessDB, SubjectsDB, Widget_Settings and Engine, **split by subject matter**, which is a
-split nothing could check. Nobody could say where a tab belonged without knowing the history, and
+It was businessDB, SubjectsDB, Widget_Settings and Engine — and a fifth, "full pdf datbase", which
+nobody counted because it had been written off (see `resources` below; it was not junk) — **split by
+subject matter**, which is a split nothing could check. Nobody could say where a tab belonged without knowing the history, and
 the cost of that showed up as duplicates with different column sets: `kinds` and `widgets` each
 existed in two files, and **the live copy of each was the empty one**.
 
@@ -350,11 +351,34 @@ backend reads existed in no file at all** — `resources`, `herd`, `map`, `landm
 `sheetFor_` returns a blank id for an unrouted name on purpose. `read()` cannot tell that from any
 other empty result and does not try; `check-tabs.js` and `checkTabs()` are what tell them apart.
 
-**`resources` is empty and `ticks` has 518 rows pointing into it** — 166 distinct `resource_id`s
-(`R0044`, `R0057`…) with no table describing what any of them is. The paper half is intact: all 86
-`paper_id`s in `ticks` resolve against `questions`. **Do not invent those rows.** Also empty, in
-case any are meant not to be: `kinds`, `widgets`, `laws`, `rooms`, `trips`, `orders`, `invites`,
-`messages`, `exams`.
+**`resources` was empty, and the 559 rows that belong in it were in a file written off as junk.**
+A fifth spreadsheet called "full pdf datbase" — set aside as "trash, disregard it" — turned out to
+be the resources tab: 27 columns that are this tab's columns almost exactly, and **every one of the
+166 `resource_id`s that `ticks` points at is in it**, with no orphans left over. The checklist
+builder in `doget.gs` walks `TAB.resources` to build `dropdowns.checklists`, so it had been
+producing nought checklists from nought rows for as long as the tab has been empty.
+
+Three columns were new and are now in `SCHEMA.resources`: `description` (a paragraph under the
+`name`), `level` (GCSE / AS / Alevel — **not** `level_required`, which `doget.gs` reads with `N()`
+as a membership NUMBER, and merging the two would have read "GCSE" as 0 and shown a paywalled paper
+to everybody), and `paper` (which paper of the set — 1, 2 or 3). One column was dropped: `html`,
+empty on all 559 rows.
+
+**`questions` gained `resource_id`, and the join was already there unseen.** Every one of the 99
+distinct `source_url`s on the questions tab is also a `link` on the resources tab; no link points at
+two resources and no paper resolves to two of them. 1,745 of 3,271 question rows resolve, 102 of 202
+papers. The rest have no `source_url` to join on and are blank, which is the honest answer.
+**Two id systems meet here** — 29 papers have a `paper_id` that IS a `resource_id` (the `RS1786…`
+ones), the other 173 use the `R0001` series and match only through the URL — so anything deriving
+one from the other would be right 29 times out of 202. It has to be a stored column.
+
+**538 of the 559 rows have `active` FALSE**, and `doget.gs` does `if (!live && !viewerIsAdmin)
+return;`. The 21 that are true are the most recently added, so this reads as a stale default rather
+than a decision — but it is data, not a bug, and flipping it is editorial. Until somebody does, a
+student sees 21 resources and an admin sees all 559.
+
+Also empty, in case any are meant not to be: `kinds`, `widgets`, `laws`, `rooms`, `trips`, `orders`,
+`invites`, `messages`, `exams`.
 
 **`shop` was never broken, and I said it was.** There is a `HERE` map — now folded into `WHERE` as
 `alsoTry` — that resolved `shop` to the tab actually called `items&shop`. I checked `TAB` and

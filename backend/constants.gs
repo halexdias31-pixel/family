@@ -197,7 +197,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-18-three-files";
+const BACKEND_VERSION = "2026-09-18-resources";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -675,7 +675,27 @@ const SCHEMA = {
        phone, by a print already paid for, by a checklist tick — so removing it turns all of those
        into a lookup that finds nothing, which renders as an empty card rather than an error. */
     "printable", "active",
-    "ticks_1", "ticks_2", "ticks_3"
+    "ticks_1", "ticks_2", "ticks_3",
+    /* ---------- THE THREE THAT CAME BACK WITH THE ROWS ----------------------------------------
+       THIS TAB WAS EMPTY FOR AS LONG AS ANYBODY CAN CHECK, and the 559 rows that belong in it were
+       in a fourth spreadsheet called "full pdf datbase" that had been written off as junk. It was
+       not junk: every one of the 166 `resource_id`s that `ticks` points at is in it, and the
+       checklist builder in `doget.gs` has been walking nought rows and producing nought checklists.
+
+       Its columns were this tab's columns almost exactly — these three are the difference, and the
+       reason they are added rather than folded into something existing:
+
+         `description`  a sentence about the resource. `name` is a title and gets shown on a tile;
+                        this is the paragraph under it. 223 of 559 rows have one.
+         `level`        GCSE / AS / Alevel. NOT `level_required`, which `doget.gs` reads with `N()`
+                        as a NUMBER — the membership level needed to see the row. Two different
+                        questions that a shared name would have silently merged, and the merge
+                        would have read "GCSE" as 0 and shown a paywalled paper to everybody.
+         `paper`        which paper of the set: 1, 2 or 3. Not the paper's id and not `paper_id` on
+                        the questions tab — those name a document, this numbers it within a series.
+
+       ONE COLUMN WAS DROPPED: `html`, empty on all 559 rows. An empty column is not information. */
+    "description", "level", "paper"
   ],
   links: [
     "link_id", "name", "category", "url",
@@ -1093,6 +1113,24 @@ const SCHEMA = {
   questions: [
     "row_id", "paper_id", "question", "part", "kind", "section",
     "marks", "figure", "lead", "html",
+
+    /* ---------- WHICH DOCUMENT THIS QUESTION CAME OUT OF -----------------------------------------
+       `paper_id` NAMES A PAPER AND `resource_id` NAMES THE PDF, and until now only the first
+       existed — so every fact about the document a question came from (its link, its page count,
+       whether it is printable, who has ticked it off) had to be copied onto every question row, and
+       about twenty columns on this tab are exactly that copy.
+
+       IT WAS NOT ARBITRARY TO ADD. The join was already there and nobody could see it: every one of
+       the 99 distinct `source_url`s on this tab is also a `link` on the resources tab, no link
+       points at two resources, and no paper resolves to two of them. 1,745 of 3,271 rows resolve;
+       102 of 202 papers. The rest have no `source_url` to join on and are blank here, which is the
+       honest answer rather than a guess.
+
+       TWO ID SYSTEMS MEET HERE and that is why this is a column rather than a rule. 29 papers have a
+       `paper_id` that IS a `resource_id` (the `RS1786…` ones, entered together); the other 173 use
+       the `R0001` series and match only through the URL. Anything deriving one from the other would
+       be right 29 times out of 202. */
+    "resource_id",
 
     /* ---------- WHAT THE ANSWER IS, AND WHAT KIND OF ANSWER IT IS -------------------------------
        THE QUESTIONS WERE HERE WITHOUT THEIR MARK SCHEME, which makes marking a paper impossible and
