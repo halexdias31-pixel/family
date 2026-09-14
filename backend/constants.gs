@@ -54,11 +54,30 @@
      other side holds the move. Possession is therefore never stored.
 ============================================================================================= */
 
-// The eleven-tab database. Taken from the sheet's URL:
-//    docs.google.com/spreadsheets/d/1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW/edit
-// If every section ever loads empty, this line is the first thing to check — doGet now says so
-// explicitly rather than returning empty lists.
-const SPREADSHEET_ID = "1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW";
+/* ==================================================================================================
+   BOTH OF THESE IDS POINTED AT AN .xlsx AND `SpreadsheetApp` CANNOT OPEN ONE.
+
+   THE SYMPTOM WAS EVERY SECTION EMPTY, WHICH IS ALSO THE SYMPTOM OF A BLANK DATABASE. The comment
+   below used to say "if every section ever loads empty, this line is the first thing to check", and
+   it was right, and the line was wrong:
+
+     was  1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW   businessDB.xlsx   an Excel UPLOAD
+     is   1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s          the Google Sheet
+
+   `SpreadsheetApp.openById` opens Google Sheets. An .xlsx sitting in Drive is a FILE in Drive — it
+   has an id, it has the same title, it opens in the browser when you click it, and Apps Script
+   cannot read a cell of it. Both files exist, both are called the same thing, both are owned by the
+   same person, and the one the code named was the one that cannot be opened.
+
+   THAT IS WHY IT LOOKED LIKE THE QUESTIONS WERE MISSING. They are not: `questions` in SubjectsDB has
+   the real Edexcel papers in it, stems and parts and mark schemes, and has had for a while. Nothing
+   was ever reading the file they are in.
+
+   HOW TO TELL THEM APART, since the URL does not: a Google Sheet lives at
+   `docs.google.com/spreadsheets/d/<id>/edit` and an uploaded .xlsx at `drive.google.com/file/d/<id>`.
+   If the address says `file/d`, Apps Script cannot open it, whatever the title says.
+================================================================================================== */
+const SPREADSHEET_ID = "1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s";
 
 /* ==================================================================================================
    TABS THAT LIVE IN ANOTHER FILE.
@@ -88,7 +107,11 @@ const SPREADSHEET_ID = "1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW";
    A BLANK SUBJECTS_ID IS NOT AN ERROR, it is four empty sections — the same as any tab that is not
    there. `checkTabs()` says so plainly rather than leaving you to work out why boxing vanished.
 ================================================================================================== */
-const SUBJECTS_ID = "1jDEeRoUTtLW-9ImOVyCyNaGZKCSox_Ao";
+/* THE SAME FAULT, ON THE SAME DAY. `1jDEeRoUTtLW-9ImOVyCyNaGZKCSox_Ao` is SubjectsDB.xlsx — an
+   upload, unopenable — and this is the Google Sheet of the same name. It is the one holding the
+   questions tab, so this single line is the difference between a library of past papers and a
+   library of nothing. See the note on SPREADSHEET_ID above. */
+const SUBJECTS_ID = "1eUmrhFQBmqXTJF4OYVtxb4C6OjuVjbwrVDF0IdzsRkw";
 
 const FILES = { main: SPREADSHEET_ID, subjects: SUBJECTS_ID };
 
@@ -1067,6 +1090,34 @@ const SCHEMA = {
        is a question no filter can find. */
     "name", "subject", "resource_type", "key_stage",
     "band_type", "band_value", "tier", "exam_board", "exam_wave", "year",
+
+    /* ---------- TEN COLUMNS THE TAB HAS AND THIS LIST DID NOT --------------------------------------
+       READ OFF THE REAL `questions` TAB, not designed here. Every one of these is already in the
+       sheet with values in it, and `SCHEMA` is what `ensureSchema` builds a tab FROM — so a fresh
+       database would have come out missing them, and the existing one has columns the code has
+       never heard of.
+
+       `company` IS THE ONE THAT WAS COSTING SOMETHING. `allTopics` reads it to build the `Company`
+       facet and `doGet` was not sending it; see the note where it now does.
+
+       `source_url` IS THE PAPER'S PDF, and it contradicts a comment in `allTopics` that says "there
+       is no PDF behind any of these, which is the whole point". That is true of a worksheet built
+       out of questions and false of a past paper, which has one and is on the sheet. Named here so
+       the disagreement is visible; nothing is changed about what the funnel does with it yet.
+
+       `topics` IS WHAT I SAID DID NOT EXIST. Writing the practice paper I put the topic in
+       `section`, saw "SECTION NUMBER" on the page, moved it out, and wrote in the comment that
+       there was nowhere for it because `SCHEMA` had no topic column. The SHEET has had one all
+       along. The lesson is the one this file keeps relearning from the other direction: the schema
+       in the code is a description of the tab and the tab is the thing that is true.
+
+       `pages`, `price`, `currency`, `level_required`, `trackable`, `printable`, `pages_checked` are
+       the library facts a past paper carries — what it costs to print, whether it may be, whether
+       the count has been done. They live on the question row because a paper IS its questions here.
+
+       `ensureSchema` ONLY EVER ADDS, so listing them cannot disturb a tab that already has them. */
+    "source_url", "pages", "price", "currency", "level_required",
+    "trackable", "printable", "pages_checked", "company", "topics",
   ],
 
   /* ---------- ONE ROW PER FIGHTER --------------------------------------------------------------
