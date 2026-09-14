@@ -64,11 +64,15 @@ jobs:
     if: github.repository == 'halexdias31-pixel/family'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      # v4 AND NODE 20 BOTH WARNED AND WERE ABOUT TO STOP. The runner deprecated Node 20 and
+      # was already forcing these two actions onto Node 24 — a warning on every run, and a
+      # failure on whatever date they stop forcing it. The clasp pin below is the version that
+      # matters; this one is just the runtime it runs on.
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
 
       # PINNED. clasp 3 changed its authentication and its flags; an unpinned `@latest` would turn a
       # working deploy into a broken one on somebody else's release schedule, with no commit here to
