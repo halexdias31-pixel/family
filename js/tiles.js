@@ -258,13 +258,22 @@ function topicTiles_(x) {
        those papers actually live, and a column costs nothing. It is simply no longer a way in.
     --------------------------------------------------------------------------------------------- */
 
-    /* THE PAPER, FROM ITS OWN QUESTIONS. The only way to read a resource now — no download, no
-       reader, and it is the same rows the question cards draw from, so a fix to a question fixes it
-       here too. */
-    /* THE `<>` TILE WAS HERE — `HTML`, with the question count under it, opening the paper in a
-       sheet. The questions are printed on the card itself now (see `paperInline_` in find.js), so
-       this was a button that opened what you were already looking at. The basket tile below is
-       untouched. */
+    /* ---------- READING IT, WHICH IS WHAT SOMEBODY CAME TO THIS CARD FOR ------------------------
+       THIS TILE WAS REMOVED ONCE, on the grounds that it was "a button that opened what you were
+       already looking at" — true only because `paperCard` was printing the entire paper onto every
+       card in the results list. See the note where `paperInline_` used to be in find.js: the funnel
+       is a paged LIST, so that was forty-seven questions and forty-seven answer boxes between one
+       cover and the next.
+
+       IT SAYS `Read`, NOT `<>`. The old one was labelled `HTML` over a `<>` glyph, which reads as a
+       developer's view of the row rather than as "the questions are in here" — that was the other
+       half of why it got removed, and it was a fair complaint about the label rather than about the
+       tile. The question count rides underneath, because how long a paper is decides whether you
+       open it now. */
+    qs ? tile_({ icon: 'doc', label: 'Read', tone: 'go',
+                 note: qs + ' question' + (qs === 1 ? '' : 's'),
+                 act: 'paper-read', data: { key: t.id || t.name } })
+       : '',
 
     /* THE PAPER COPY. The price sits on the line that charges it, so the thing you are agreeing to
        is written on the thing you press rather than in a row above it. */

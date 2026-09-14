@@ -354,9 +354,9 @@ document.addEventListener('input', e => {
   try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
 });
 
-/* `openPaper_` AND `on('paper-read')` WERE HERE — the sheet the `<>` tile slid up. Both are gone
-   with the tile: the questions are printed straight onto the paper card now (`paperInline_` in
-   find.js), so there is nothing left to open and nothing left to close. `paperBody_` above is what
-   both the old sheet and the new card build from, and it stays — it was never the popup, it was the
-   paper. */
+/* `openPaper_` AND `on('paper-read')` MOVED TO find.js, beside the note explaining why they came
+   back. They were removed once, when the whole paper was being printed onto every card in the
+   results list and a button that opened it looked redundant; the card is the cover again, so
+   reading is a tap again. `paperBody_` above never moved — it was always the paper rather than the
+   popup, and the sheet, the old new-tab version and the inline one all built from it. */
 

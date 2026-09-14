@@ -384,8 +384,9 @@ const KINDS = {
      the argument I made for the two extra rungs and then failed to build. Only the CARD differs,
      because a part is drawn differently from a paper. */
   /* ---------- `question` WAS A KIND AND IS NOT ANY MORE ------------------------------------------
-     A PAST PAPER WAS DRAWN TWICE OVER. `paperCard` renders the cover AND calls `paperInline_`,
-     which prints every question underneath it — and each of those questions was ALSO its own card
+     A PAST PAPER WAS DRAWN TWICE OVER. `paperCard` rendered the cover AND printed every question
+     underneath it (`paperInline_`, since removed for a second reason — see the note where it used
+     to be) — and each of those questions was ALSO its own card
      in the same list. Choosing Learning · Maths · Past paper gave you the paper, then the paper
      again one question at a time, and the answer to "which question" was a column of numbers 1 to
      23 drawn from all six papers of a sitting at once.
@@ -394,9 +395,9 @@ const KINDS = {
      "there was no which-paper", and `qNumber` and `qPart` narrow a list that should not have been
      long. Removing the second rendering removes the reason for all three.
 
-     NOTHING IS LOST AND THE SEARCH STILL WORKS. The questions are on the paper's own page, where
-     somebody who has chosen a paper is looking, with their answers under them — `paperBody_` calls
-     the same `answerBlock_`. And `paperText_(id)` already folds every question's words into the
+     NOTHING IS LOST AND THE SEARCH STILL WORKS. The questions are one tap away on the card that
+     names them, with their answers under them — `paperBody_` calls the same `answerBlock_`. And
+     `paperText_(id)` already folds every question's words into the
      paper's own haystack, which is why searching `surds` finds the paper rather than nothing. */
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
@@ -2982,46 +2983,51 @@ function paperCard(x) {
       <span>${x.pages ? esc(x.pages) + ' pages' : ''}</span>
       <span>Answer all questions</span>
     </div>
-  </div>${paperInline_(x)}`;
+  </div>`;
 }
 
-/* ---------- THE QUESTIONS ARE ON THE PAGE, NOT BEHIND A BUTTON -------------------------------------
-   THERE WAS AN `HTML` TILE WITH A `<>` ON IT and tapping it slid the paper up in a sheet. Two things
-   were wrong with that and only one of them is the popup.
+/* ---------- THE CARD IS THE COVER. THE PAPER OPENS. ----------------------------------------------
+   `paperInline_` WAS HERE AND IT PRINTED THE WHOLE PAPER ONTO EVERY CARD. The argument written
+   above it was: "the funnel has already done the narrowing a list needs, so by the time you are
+   looking at one paper there is nothing else on the page." THAT IS NOT TRUE AND A SCREENSHOT IS
+   WHAT SETTLED IT. The funnel is a paged LIST — five paper covers on one page is ordinary — so what
+   it actually produced was a search result that unrolled a complete A-Level paper, forty-seven
+   parts and forty-seven answer boxes, between one cover and the next. You scrolled through an exam
+   to reach the next exam.
 
-   A SHEET IS A SCREEN YOU HAVE TO CLOSE. The funnel has already done the narrowing a list needs: by
-   the time you are looking at one paper there is nothing else on the page, so opening a panel over
-   the top of it covers nothing and adds a lid. That is the same argument `jobReceipt` won two
-   hundred lines away — "the page IS the document" — and a past paper is a document.
+   A CARD IS A THUMBNAIL. That is what a card is everywhere else in this app — a tutor, a venue, a
+   shop item — and a past paper's thumbnail is its cover, which `paperCard` above already draws
+   properly: board, tier, subject, the candidate-name box, the year and the page count. Nothing was
+   needed except stopping.
 
-   AND THE TILE HID THE FEATURE. `<>` with `HTML` under it reads as a developer's view of the row,
-   not as "the questions are in here", so the one thing somebody came to this card for was behind a
-   button that looked like it was for somebody else.
-
-   THE BASKET IS UNTOUCHED. Printing is still a tile, still priced, still the same tap — see
-   `topicTiles_`. This only moves the reading.
-
-   NOTHING WHEN THERE IS NOTHING. A paper with no questions written up renders the cover and stops,
-   rather than an empty rule and a heading with a blank under it. */
-function paperInline_(x) {
-  const t = x && x.topic;
-  if (!t || typeof paperBody_ !== 'function') return '';
+   SO READING IS A TAP AGAIN, AND THE TILE IS BACK. It was removed on the same wrong reading — the
+   note in `topicTiles_` called it "a button that opened what you were already looking at", which it
+   only was because of the line above. `openSheet` is the app's one overlay and already exists; this
+   adds no screen, no route and no CSS. `paperBody_` is untouched, so what opens is exactly what was
+   printing inline, at the width it was measured at.
+--------------------------------------------------------------------------------------------- */
+function openPaper_(t) {
+  if (!t || typeof paperBody_ !== 'function') return;
   let body = null;
   try { body = paperBody_(t); } catch (e) { body = null; }
-  if (!body || !body.html) return '';
-  const head = [x.examBoard, x.examWave || x.year, x.keystage].filter(Boolean).join(' \u00b7 ');
+  if (!body || !body.html) { toast('No questions written up for this one yet'); return; }
+  const head = [t.examBoard, t.examWave || t.year, t.keystage].filter(Boolean).join(' \u00b7 ');
   /* THE METHOD FIRST, WHEN THERE IS ONE. A practical's guide is what you read BEFORE the questions —
-     apparatus out, method understood — so it sits above them and not in a panel beside them. Blank
-     on every past paper, which is most rows, and blank draws nothing. */
+     apparatus out, method understood. Blank on every past paper, and blank draws nothing. */
   const guide = String((t && t.guide) || '').trim();
-  return `<div class="qpaper">
+  openSheet(t.name || 'Paper', `<div class="qpaper">
     ${head ? `<p class="qp-head">${esc(head)}${
       body.marks ? ` \u00b7 <b>${body.marks} marks</b>` : ''}</p>` : ''}
     ${guide ? `<div class="qp-guide"><h3>Method</h3>${guide}</div>` : ''}
     ${body.html}
     <p class="qp-end">END OF QUESTIONS</p>
-  </div>`;
+  </div>`);
 }
+
+on('paper-read', el => {
+  const t = topicBy(el.dataset.key);
+  if (t) openPaper_(t);
+});
 
 /* `stuffCount` was here. Removed with the line it fed — a function whose only caller has gone is
    the thing `check-dead.js` would name next time anyway. */
