@@ -1286,6 +1286,58 @@ function questionItems() {
    THE STEM, THEN THE LEAD, THEN THE PART, in printed order, because a part without them cannot be
    answered. The mark scheme goes last, shut, under `answerBlock_` — an answer you can see before
    you have written one is not a question. */
+/* ---------- SOMEWHERE TO WRITE THE ANSWER --------------------------------------------------------
+   A BOX PER QUESTION, because that is what the paper has. One box at the bottom of a list is a page
+   of prose nobody can mark against a mark scheme written per part.
+
+   IT IS KEPT IN `localStorage`, AND THAT IS NOT A SHORTCUT. These cards are rebuilt on every
+   repaint — a filter changing, the payload landing, signing in — and a `<textarea>` rebuilt is a
+   `<textarea>` emptied. Somebody four questions in losing the lot because a chip moved is the kind
+   of fault that stops people trusting an app at all. The browser remembers instead, so a redraw, a
+   swipe away or a reload all come back to what was typed.
+
+   THE KEY IS THE ROW ID. It was paper + question + part, which was right when the box lived on a
+   paper page; `row_id` is unique across the whole library and does not move when a paper is
+   relabelled. Anything typed under the old key is orphaned — the paper page existed for about a
+   day, so that is nobody.
+
+   AND THE KEY IS WHY 3,271 BOXES COST NOTHING. `fillStuffPages` fills the pages you are near and
+   empties the ones you are not, so about five of these exist at any moment. I removed this function
+   on the assumption that a textarea per question meant 3,271 textareas — measured, the whole strip
+   holds 134 nodes. Wrong for the reason this file keeps repeating: I reasoned about the DOM instead
+   of asking it.
+
+   NOT SENT ANYWHERE, and the label says "Your answer" rather than anything promising otherwise.
+   There is no endpoint that takes one and no tab to hold it, so this is a workbook and not a
+   submission.
+
+   EVERY READ AND WRITE IS WRAPPED. Private mode THROWS on `localStorage` rather than returning
+   null, and a thrown getter here would take the whole results list down with it. */
+const ansKey_ = x => 'ans:' + ((x && (x.key || x.name)) || '?');
+
+function ansRead_(k) {
+  try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
+}
+
+function ansBox_(x) {
+  const k = ansKey_(x);
+  return `<label class="qp-ans">
+    <span class="qp-ans-k">Your answer</span>
+    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
+      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
+  </label>`;
+}
+
+/* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are
+   thousands of these and only one of them is ever being typed into. No Save button, because there
+   is nothing to save it TO and a button that only wrote to the same browser would be a promise the
+   app cannot keep. */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
+  if (!el) return;
+  try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
+});
+
 function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
   return `<div class="qcard">
@@ -1303,6 +1355,9 @@ function questionCard_(x) {
              so far — see the `diagram` column in js/library.js. */''}${fig(x.diagram)}</div>
       </div>
     </div>
+    ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you
+          can see before you have written one is not a question. */''}
+    ${ansBox_(x)}
     ${answerBlock_(x)}
   </div>`;
 }

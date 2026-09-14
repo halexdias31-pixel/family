@@ -484,7 +484,7 @@ paper name as the subtitle, then stem, lead, part, diagram, and the mark scheme 
 | `allTopics`, `topicBy` | the 642 documents, built from `dropdowns.checklists` unioned with a derivation |
 | `paperCard`, `paperish_` | the exam cover, and the test for whether a row earned one |
 | `paperInline_`, `openPaper_`, `on('paper-read')` | attempts (2) and (3) |
-| `paperBody_`, `paperRows`, `ansBox_` | the whole paper typeset end to end, with a textarea per part |
+| `paperBody_`, `paperRows` | the whole paper typeset end to end |
 | `topicTiles_` | `Read` and `Paper` — both took the document behind the card |
 | `paperText_`, `paperPages_`, `canPrint`, `paperMismatches` | document-level helpers with nothing to help |
 | the `paperName` facet | "which paper", which existed to keep a paper card beside its questions |
@@ -494,6 +494,14 @@ paper name as the subtitle, then stem, lead, part, diagram, and the mark scheme 
 are all on the question rows, so the funnel narrows to a paper exactly as before and then keeps
 going. `searchText_` matches each question's own words plus its stem's, which is what `paperText_`
 was faking at the document level.
+
+**`ansBox_` came back one commit later, and the reason it went is worth keeping.** It was deleted
+with `paperBody_` on the argument that a textarea per question means 3,271 textareas. It does not:
+`fillStuffPages` fills the pages you are near and empties the rest, so about five exist at any
+moment and the whole strip holds 140 nodes — measured. **I reasoned about the DOM instead of asking
+it**, which is the same mistake as `.mat-out` and the seven dead custom properties. The key is the
+`row_id` now rather than paper + question + part, because a row id is unique across the library and
+does not move when a paper is relabelled.
 
 **What IS lost, and it is the print line.** You cannot print one question — a print is a whole
 paper, priced per page — and no surface lists a whole paper now. `printPrice` and `laminatePrice`
