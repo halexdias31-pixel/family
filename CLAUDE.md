@@ -92,8 +92,40 @@ dead key fails loudly instead of joining a red that nobody reads.
 | What changed | How it goes live |
 |---|---|
 | `index.html`, `js/`, `style.css` | `git push` → GitHub Pages. About a minute. |
-| `backend/*.gs` | `git push` to `main` → the **Apps Script** workflow runs `clasp push`. |
+| `backend/*.gs` | push to `main`, then run **`pullFromGitHub`** in the Apps Script editor. |
 | Spreadsheet contents | Immediately — *if* the edit watch is installed. See below. |
+
+### Two routes, and the one that is actually used pulls
+
+There are two ways `backend/` reaches Apps Script and they run in opposite directions:
+
+- **`pullFromGitHub` in `backend/sync.gs`** — run from the function dropdown in the Apps Script
+  editor. It downloads `backend/` from `main` over `raw.githubusercontent.com` and writes it into
+  the project through the Apps Script API. **This is the one in use.** No terminal, no token stored
+  anywhere, nothing to configure beyond the API switch. `previewFromGitHub` does the same read and
+  writes nothing — run it first, every time, because it is the only thing that shows a **deletion**
+  before it happens.
+- **`.github/workflows/apps-script.yml`** — `clasp push` on every push to `main`. Better in
+  principle (nobody has to remember to run it) and unused in practice, because `clasp login` needs a
+  terminal.
+
+**The workflow failed nine times out of nine and every failure was the same line**: `SCRIPT_ID` and
+`CLASP_CREDENTIALS` are not set. They are not set because that route was never taken. It now
+**skips rather than fails** when the secrets are absent — a permanent red cross on every merge, for
+a route nobody chose, is a red that teaches you to ignore red. A secret that is present and *wrong*
+still fails loudly; absent and broken are different answers.
+
+**Both routes replace the project's files wholesale**, so the warning below holds either way: what
+is typed into the Apps Script editor and not committed here is gone at the next sync.
+
+What `pullFromGitHub` needs, all of it already true:
+
+| | Why |
+|---|---|
+| the Apps Script API on, at <https://script.google.com/home/usersettings> | it writes through that API |
+| `script.projects` in `oauthScopes` | without it Google answers 403 and `apiTrouble_` says so |
+| the repo **public** | the raw URLs are fetched unauthenticated |
+| `backend/files.json` naming every file | it pulls by that list; `check-manifest.js` keeps it honest |
 
 `sync.js` in the repo root watches the folder and pushes on save. It now stages `backend/` too.
 
