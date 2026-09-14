@@ -6941,9 +6941,26 @@ body.has-ib #install-bar { transition: transform .28s ease; }
            letter-spacing: .04em; }
 .qp-head b { color: var(--gold); }
 /* A SECTION IS A DIVISION OF THE PAPER, so it gets a rule; a question is not, so it does not. */
-.qp-sec { margin: 1.6rem 0 .8rem; font: 700 .72rem/1 var(--mono); letter-spacing: .14em;
+/* ---------- `.screen h2` WAS WINNING EVERY PROPERTY IN HERE ---------------------------------------
+   `.qp-sec` IS 0,1,0 AND `.screen h2` IS 0,1,1, so the generic rule beat this one on every
+   declaration they share — the margin, the font, the colour, the border. What a paper's section
+   heading actually got was the app's terminal-style section rule: a border TOP as well as bottom,
+   `display: flex; justify-content: space-between`, and `::before { content: '> ' }`.
+
+   SO "Section A" ON A PAST PAPER RENDERED AS `>` AT THE FAR LEFT AND `SECTION A` PUSHED TO THE FAR
+   RIGHT, between two rules. Found by photographing it — the markup is a clean `<h2 class="qp-sec">`
+   and nothing in this rule asks for any of that, which is why reading either one alone explains
+   nothing. `check-css` passed too: it looks for a property set twice in one RULE, and this is one
+   rule beating another, which needs the cascade rather than the file.
+
+   `.qpaper .qp-sec` IS 0,2,0 and beats it. The prompt is turned off explicitly rather than by
+   hoping: a paper is the one place in this app that is NOT a terminal. */
+.qpaper .qp-sec { margin: 1.6rem 0 .8rem; padding: 0 0 .4rem;
+          font: 700 .72rem/1 var(--mono); letter-spacing: .14em;
           text-transform: uppercase; color: var(--faint);
-          border-bottom: 1px solid var(--line); padding-bottom: .4rem; }
+          display: block; border-top: 0;
+          border-bottom: 1px solid var(--line); }
+.qpaper .qp-sec::before { content: none; }
 .qp-q { margin: 1.4rem 0 .5rem; font: 700 1.1rem/1 var(--mono); color: var(--gold); }
 .qp-q:first-child { margin-top: 0; }
 /* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text
