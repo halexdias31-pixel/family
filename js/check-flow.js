@@ -709,6 +709,50 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   if (before.includes('J-ASK')) bad.push('a booking is shown before one has been asked for');
   if (w.__t.asked()) bad.push('something is remembered as asked for before any send');
 
+  /* ---------- THE THREE STATE ROWS ARE ON THE BLANK FORM, AND THEY ARE BLANK ----------------------
+     `Stage`, `Status` and `Asked for` are pinned to the end of the spine so the document reads the
+     same from the first question to the last payment. On a form nobody has sent they have nothing
+     to report, and they print `—` like every other unanswered row rather than a sentence that stops
+     the eye. Two of them carried sentences until the spec asked for dashes; this keeps them dashes.
+
+     READ OFF `bk-k`/`bk-v`, WHICH IS THE MARKUP THE FORM ACTUALLY USES. The first version of this
+     looked for `</tr>` and reported all three rows missing — they were present and already correct,
+     and the check was describing its own selector rather than the page. A row here is a
+     `div.bk-row` of spans, and the value is the `bk-v` following the `bk-k` that carries the label. */
+  const cellOf = (html, label) => {
+    const k = html.indexOf('<span class="bk-k">' + label + '</span>');
+    if (k < 0) return null;
+    const v = html.indexOf('bk-v', k);
+    if (v < 0) return null;
+    return html.slice(v, html.indexOf('</span>', v)).replace(/^[^>]*>/, '').trim();
+  };
+  const dashes = (html, where) => ['Stage', 'Status', 'Asked for'].forEach(label => {
+    const v = cellOf(html, label);
+    if (v === null) bad.push(`the ${where} booking form has no "${label}" row`);
+    else if (v !== '—') {
+      bad.push(`"${label}" on the ${where} form reads ${JSON.stringify(v)}, not a dash`);
+    }
+  });
+  dashes(before, 'blank');
+
+  /* ---------- AND ON THE PRICED FORM, WHICH IS A DIFFERENT BUILDER ---------------------------------
+     THE BLANK FORM'S DASHES ARE NOT PROOF OF ANYTHING. `bookPrice()` is null until enough has been
+     answered to cost the booking, so on an empty form `breakdownRows` never runs and the three rows
+     come from `spineRows_`, which prints a dash for every spine row neither builder produced. They
+     were dashes there before this rule existed and would be dashes if it were deleted.
+
+     `breakdownRows` IS THE BUILDER THAT CARRIES THE VALUES, and it only runs once the form can be
+     priced — so that is the state where "Stage says a sentence" could come back. Checked here after
+     answering enough to produce a cost, which is the only version of this assertion that can fail.
+     The first version tested the blank form only, and went on passing with the sentences put back. */
+  const P = w.__t.BOOKING;
+  Object.keys(P).forEach(k => { if (Array.isArray(P[k])) P[k] = []; else P[k] = ''; });
+  P.how = 'A session of your own'; P.level = 'GCSE'; P.loc = 'Colliers Wood Library';
+  P.subjects = ['Maths']; P.n = '1'; P.hosting = 'No — we book the room';
+  P.slots = ['m16']; P.interval = 'Autumn 1';
+  const priced = w.__t.blocks().join('');
+  if (!w.__t.paper || w.__t.paper()) dashes(priced, 'priced');
+
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   B.how = 'A session of your own'; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
