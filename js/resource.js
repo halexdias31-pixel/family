@@ -25,17 +25,25 @@
    screen that did not need to exist.
 --------------------------------------------------------------------------------------------- */
 
-/* ---------- EDITING A RESOURCE, FROM THE BACKEND'S OWN LIST ---------------------------------------
-   The form used to name seven fields by hand while the tab had twenty-five and the allow-list
-   twenty. Adding a column meant a schema edit, an allow-list edit AND a form edit — and forgetting
-   the third meant a column that existed, could be written to, and had nowhere to type it in.
+/* ---------- EDITING A RESOURCE WAS HERE, AND A PAPER IS NOT EDITED FROM A PHONE NOW --------------
+   `on('topic-edit')`, `on('topic-save')` and `on('topic-delete')` opened a sheet over a paper, and
+   the sheet was BUILT FROM `DATA.resourceFields` — the server's own allow-list — so it could not
+   offer a field the server would refuse and could not miss one it would accept. One list, two
+   readers, and it was the right shape.
 
-   `resourceFields` has been in the payload the whole time. It IS the allow-list — the same object
-   the server checks writes against — so a form built from it cannot offer a field the server will
-   refuse, and cannot miss one the server would accept. One list, two readers.
+   BOTH READERS ARE GONE. The 3,913 rows left the spreadsheet for `data/questions.json` in this
+   repository, so `editResource` and `deleteResource` have nothing to write a cell to and
+   `resourceFields` is no longer on the payload. Deleting the form here rather than leaving it
+   pointed at a missing action is the whole point: `doGet` publishes the action list precisely so
+   the app can decide whether to OFFER a button, and a form that opens and cannot save is worse
+   than no button at all.
 
-   The groups come with it, so the form arrives already sectioned: What it is, Level, Source,
-   Flags, Pages, Costs, Admin.
+   SO A RELABEL IS A COMMIT. Change the row in `data/questions.json` and push — one JSON object per
+   line, so the diff names the papers that changed. That is a deploy rather than a cell, and it is
+   the trade the move was made for: `questions` is the one tab nobody hand-edits.
+
+   `FIELD_FROM` AND `FIELD_BOOL` WENT WITH IT. `FIELD_LABEL` and `fieldLabel` below did NOT — me.js
+   reads them for every other form on the site.
 --------------------------------------------------------------------------------------------- */
 
 /* A column name as a person would say it. Everything not named here is the column with its
@@ -48,114 +56,6 @@ const FIELD_LABEL = {
   pages_checked: 'page count checked', trackable: 'can be ticked off',
 };
 const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
-
-/* The ones that are a yes or a no rather than a value. A checkbox for these and a text box for
-   everything else — a boolean in a text field is somebody typing TRUE and hoping. */
-const FIELD_BOOL = ['trackable', 'print_required', 'printable', 'active'];
-
-/* Where a field's value comes from on the topic object, when it is not simply the same name.
-   The payload names things as a person would — `examBoard` — and the sheet as a column does. */
-const FIELD_FROM = {
-  band_type: 'bandType', band_value: 'bandValue', key_stage: 'keystage',
-  exam_board: 'examBoard', exam_wave: 'examWave', resource_type: 'resourceType',
-  print_required: 'paper', level_required: 'level', name: 'name', link: 'link',
-};
-
-on('topic-edit', el => {
-  const t = topicBy(el.dataset.key);
-  if (!t) return;
-
-  const groups = (DATA.resourceFields && Object.keys(DATA.resourceFields).length)
-    ? DATA.resourceFields
-    /* A backend too old to send it. The form still opens, with what this file knows about — an
-       admin who cannot edit anything is worse than one who can edit seven things. */
-    : { 'What it is': ['name', 'subject', 'resource_type', 'link'],
-        'Level': ['band_type', 'band_value'], 'Pages': ['pages', 'printable'] };
-
-  /* Values already known, offered as you type. Every value any resource has for that field, which
-     is how "Edexcel" gets typed once and picked thereafter — and how three spellings of one board
-     stop happening. */
-  const known = f => {
-    const from = FIELD_FROM[f] || f;
-    return uniq(allTopics().map(x => String(x[from] ?? '').trim())).filter(Boolean).sort(cmpText);
-  };
-
-  openSheet('Edit — ' + t.name,
-    fieldsHtml(groups, {
-      attr: 'data-ed',
-      /* A resource's own column names differ from the form's in places — `FIELD_FROM` is the map,
-         and it belongs here rather than in the renderer, which should not need to know that this
-         one editor renames things. */
-      value: f => t[FIELD_FROM[f] || f] ?? '',
-      /* What every other row already says, offered rather than enforced. */
-      suggest: known,
-    })
-    + `<button class="btn" data-do="topic-save" data-key="${esc(t.id || t.name)}">Save</button>
-       <p class="faint" id="ed-said" style="margin:.6rem 0 0">
-         Changing the link clears the page count — it was read off the old file.</p>`);
-});
-
-on('topic-save', el => {
-  const said = $('ed-said');
-
-  /* WHATEVER THE FORM PUT ON THE PAGE, read back by the name it was given. The old version listed
-     the seven fields again — a third place to forget one, and the reason adding a column meant
-     three edits. */
-  const fields = {};
-  document.querySelectorAll('#sheet-body [data-ed]').forEach(box => {
-    fields[box.dataset.ed] = box.type === 'checkbox'
-      ? (box.checked ? 'TRUE' : 'FALSE')
-      : String(box.value || '').trim();
-  });
-
-  if (!String(fields.name || '').trim()) {
-    if (said) said.textContent = 'It needs a name.';
-    return;
-  }
-
-  el.disabled = true;
-  if (said) said.textContent = 'Saving…';
-
-  api({ action: 'editResource',
-    name: USER.name, adminName: USER.name, id: el.dataset.key, fields })
-    .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      closeSheet(); toast('Saved'); load();
-    })
-    .catch(err => {
-      el.disabled = false;
-      if (said) said.textContent = String(err.message || 'Could not save that');
-    });
-});
-
-/* Two presses, the same as a post. The button becomes the question rather than handing the screen
-   to a browser dialogue that cannot speak in this app's words. */
-on('topic-delete', el => {
-  const restoring = !!el.dataset.on;
-  if (!el.dataset.sure && !restoring) {
-    el.dataset.sure = '1';
-    el.textContent = 'Really delete?';
-    setTimeout(() => { if (el.dataset.sure) { delete el.dataset.sure; el.textContent = 'Delete'; } }, 4000);
-    return;
-  }
-  const said = $('topic-said');
-  el.disabled = true;
-  if (said) said.textContent = restoring ? 'Restoring…' : 'Deleting…';
-
-  api({ action: 'deleteResource',
-    name: USER.name, adminName: USER.name, id: el.dataset.key, on: restoring })
-    .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      closeSheet();
-      toast(restoring ? 'Back on the list' : 'Deleted — still there, switched off');
-      load();
-    })
-    .catch(err => {
-      el.disabled = false; delete el.dataset.sure;
-      el.textContent = restoring ? 'Restore' : 'Delete';
-      if (said) said.textContent = String(err.message || 'Could not do that');
-    });
-});
 
 /* ---------- `on('shop-item')` WAS HERE -----------------------------------------------------------
    THE LAST OF THEM. It opened a panel showing the drawing, the slot, the level or the price, and

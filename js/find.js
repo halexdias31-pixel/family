@@ -1321,12 +1321,11 @@ function allTopics() {
           printable: t.printable, printPrice: t.printPrice,
           price: t.price || 0, currency: t.currency || 'credits', level: t.level || 0,
           active: t.active !== false,
-          /* THE PASSES HAVE A HOME AGAIN — the three columns are on the document row, which is the
-             one row per document that `kind: 'paper'` exists to guarantee. `toggleTopicTick` writes
-             to it through `rowById_(t, 'paper_id', …)`, which is why the id above is the paper's. */
+          /* `trackable` IS STILL READ — it is a column of the sheet and it says what the editor
+             meant — but nothing draws a tick any more, and `ticks` is gone from this object rather
+             than carried as three empty strings. See the note where `tickRow` used to be. */
           trackable: !!t.trackable,
           rowIndex: t.rowIndex || 0,
-          ticks: [t.tick1 || '', t.tick2 || '', t.tick3 || ''],
         });
       });
     });
@@ -1364,14 +1363,11 @@ function allTopics() {
       guide: guides[id] || r.guide || '',
       paper: true, pages: paperPages_(marks[id]), printable: '',
       active: r.active !== false,
-      /* NOT TRACKABLE ON THIS BRANCH, and now for a narrow reason rather than a general one. The
-         passes DO have a home — three columns on the document row — but this branch only runs when
-         the viewer cannot see that row, and a tick has to be written somewhere. Three boxes that
-         accept a tap and lose it are worse than none, so it stays false here and is read off the
-         document above wherever there is one. */
+      /* NOT TRACKABLE ON THIS BRANCH — nothing is, now that the passes are gone; this branch kept
+         it false for a narrower reason, that the viewer cannot see the document row a tick would
+         have been written to. Left as it is so the two branches still agree about the field. */
       trackable: false,
       rowIndex: 0,
-      ticks: ['', '', ''],
     });
   });
 
@@ -1470,107 +1466,22 @@ function canPrint(t) {
   return printPrice(t.pages) !== null;
 }
 
-/* ---------- THREE PASSES ------------------------------------------------------------------------
-   A tick is stored as a NAME in a list rather than as a number, which is what makes it possible to
-   ask "who has done this" as well as "have I" — and what stops one person counting twice.
+/* ---------- THE THREE PASSES WERE HERE, AND THEY ARE NOT COMING BACK IN THIS SHAPE ---------------
+   `myTicks`, `tickRow`, `on('ticks')` AND `on('tick')` drew three checkboxes under every trackable
+   document and posted `toggleTopicTick`. A tick was stored as a NAME in a list, three lists per
+   document — which is what made "who has done this" answerable as well as "have I" — and the lists
+   lived in `ticks_1..3` on the document's row.
 
-   Three of them, because doing something once and doing it three times spaced out are different
-   facts and a single checkbox can only record the first. They are INDEPENDENT: ticking the third
-   does not fill the first two, which would be the app deciding you had done two passes you never
-   told it about, and would send three writes for one tap.
+   THEY HELD THE HANDLES OF REAL CHILDREN. 529 cells of them. When the questions tab moved into this
+   repository those three columns were stripped at source, because this repository is public and a
+   child's handle beside a date is not library data. The tab itself is `data/questions.json` now, the
+   backend handler is gone with it, and there is nothing left for a box to write to.
+
+   THE RIGHT HOME FOR THEM IS `Ledger`, one row per person per document, which is what a tick always
+   was: a fact about a PERSON and a document, filed under neither. Written that way it would not
+   have moved with the library at all. Three boxes that accept a tap and lose it are worse than no
+   boxes, so there are none.
 --------------------------------------------------------------------------------------------- */
-function myTicks(t) {
-  const me = norm(USER && (USER.handle || USER.name));
-  if (!me) return [false, false, false];
-  return (t.ticks || ['', '', '']).map(list =>
-    String(list).split(',').map(x => norm(x)).some(h => h && h === me));
-}
-
-/* Nothing is drawn for a resource marked untrackable, or for somebody signed out. A row of dead
-   boxes on four hundred cards is four hundred things to read past, and a control that cannot be
-   pressed teaches nobody that signing in would make it work. */
-function tickRow(t) {
-  if (!USER || !t.trackable) return '';
-  const mine = myTicks(t);
-  const done = mine.filter(Boolean).length;
-  return `<div class="ticks" data-do="ticks">
-    <span class="faint tick-said">${
-      done === 0 ? '' : done === 1 ? 'once' : done === 2 ? 'twice' : 'all three'}</span>
-    ${/* PLAIN BOXES. They were numbered 1, 2, 3 — the pass each one recorded — and a number
-          inside a checkbox reads as a quantity or a rank rather than as a thing you tick. The
-          count in words at the other end of the row already says how many, which is the only part
-          anybody needed the numbers for.
-          Still INDEPENDENT underneath: ticking the third does not fill the first two. Three empty
-          boxes invite being filled left to right and that is fine — it is what most people will
-          do — but the app must not decide it on their behalf. */''}
-    ${[0, 1, 2].map(i => `
-      <label class="tick${mine[i] ? ' on' : ''}"
-             title="pass ${i + 1}" aria-label="pass ${i + 1}">
-        <input type="checkbox" data-do="tick"
-               data-key="${esc(t.id || t.name)}" data-n="${i + 1}"
-               ${mine[i] ? 'checked' : ''}>
-        <span class="tick-box"></span>
-      </label>`).join('')}
-  </div>`;
-}
-
-/* A tap on the tick ROW that is not on a box. The row sits inside a card whose whole surface opens
-   a sheet, so without this half the taps aimed at a checkbox would walk up to the card and open a
-   panel instead. Registered to do nothing, which is exactly right. */
-on('ticks', () => {});
-
-on('tick', el => {
-  /* ---------- `go('me')` WAS HERE, AND THERE IS NO `me` ------------------------------------------
-     THE LAST ONE OF THEM. The note beside `goFor_` says these were scattered around and were swept
-     up when the columns went — this call was not in the sweep, and it is the one behind a checkbox,
-     which is a place you only land by pressing a checkbox while signed out.
-
-     `go` DOES NOT FAIL ON A NAME IT DOES NOT KNOW. It falls back to `TABS[0]`, which is Find. So
-     somebody told "Sign in to keep a checklist" was moved to the search box, with no sign-in card
-     anywhere on it — a fallback that lands somewhere plausible, which the same note calls worse
-     than one that lands nowhere, because nobody reports it.
-
-     `goFor_('People')` IS WHAT REPLACED IT, in that note's own words: it answers the funnel's first
-     question rather than jumping to a column, and puts you on the account pages, which is where
-     `go('me')` was aiming. Found by `node js/check-doors.js` — "go() to a screen that is not
-     registered". */
-  if (!USER) { toast('Sign in to keep a checklist'); goFor_('People'); return; }
-  const t = topicBy(el.dataset.key);
-  if (!t) return;
-  const n = Number(el.dataset.n);
-  const checked = !!el.checked;
-  const me = USER.handle || USER.name;
-
-  /* Edited in place, so a second tap reads the new state rather than the loaded one — the same
-     read-after-write problem the backend's setCell exists to solve, one layer up. */
-  const before = (t.ticks || []).slice();
-  const list = String(t.ticks[n - 1] || '').split(',').map(x => x.trim()).filter(Boolean);
-  const has = list.some(h => norm(h) === norm(me));
-  if (checked && !has) list.push(me);
-  if (!checked && has) list.splice(list.findIndex(h => norm(h) === norm(me)), 1);
-  t.ticks[n - 1] = list.join(', ');
-  el.closest('.tick')?.classList.toggle('on', checked);
-
-  api({ action: 'toggleTopicTick',
-    name: USER.name, personId: (USER && USER.personId) || '',
-    handle: me, id: t.id, rowIndex: t.rowIndex, tick: n, checked })
-    .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      /* XP AND CREDITS MOVE WITH IT — a tick is worth one of each, which is what the wardrobe is
-         priced against. Taken from the server rather than guessed: two devices ticking at once
-         would each add one to their own stale copy and both be wrong. */
-      if (typeof d.xp === 'number') USER.xp = d.xp;
-      if (typeof d.credits === 'number') USER.credits = d.credits;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      paintStuff();
-    })
-    .catch(err => {
-      t.ticks = before;
-      el.checked = !checked;
-      el.closest('.tick')?.classList.toggle('on', !checked);
-      toast(String(err.message || 'Could not save that tick'));
-    });
-});
 
 /* The rate as a number of pence, for the line that spells the sum out. */
 const printRatePence = () => {

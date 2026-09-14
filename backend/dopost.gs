@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-21-library";
+const DOPOST_VERSION = "2026-09-22-no-questions-tab";
 
 
 function doPost(e) {
@@ -600,74 +600,15 @@ function doPost(e) {
       }
     }
 
-    /* --- admin relabels a resource, BY ROW ----------------------------------------------------
-       The existing admin form, unchanged. The tick columns holding students' progress are
-       deliberately NOT in RESOURCE_EDITABLE, so a relabel can never wipe anybody's checklist. --- */
-    if (action === 'updateResource') {
-      const t = documents_();
-      const r = t.rows.find(x => x._row === Number(body.rowIndex));
-      if (!r) return jsonOut({ error: 'Resource not found.' });
-      const fields = body.fields || {};
-      const wrote = [];
-      Object.keys(fields).forEach(f => {
-        if (RESOURCE_EDITABLE.indexOf(f) === -1) return;
-        setCell(t, r, f, fields[f]);
-        wrote.push(f);
-      });
-      return jsonOut({ success: true, wrote, name: S(r.name) });
-    }
+    /* ---------- THREE RESOURCE HANDLERS WERE HERE -----------------------------------------------
+       `updateResource` relabelled a document by row number, `editResource` did the same by id, and
+       `deleteResource` set its `active` to FALSE. All three wrote cells on a `kind: 'paper'` row of
+       the `questions` tab, and that tab is `data/questions.json` in this repository now: a relabel
+       is a commit, not a cell.
 
-    /* --- admin edits a resource, BY ID --------------------------------------------------------
-       What a card in the app calls. The difference from updateResource is the lookup: a row number
-       read when the payload loaded points at a different resource once one has been deleted, and
-       the one it points at is whatever sat immediately below the one that was meant.
-
-       ONLY THE FIELDS SENT ARE WRITTEN. A form that posts every column overwrites the ones it did
-       not show with blanks, which is how an edit to a link quietly erases a page count. --- */
-    if (action === 'editResource') {
-      const t = documents_();
-      const r = rowById_(t, 'paper_id', body.id, body.rowIndex);
-      if (!r) return jsonOut({ error: 'No resource with that id — it may have been deleted.' });
-
-      const fields = body.fields || {};
-      const wrote = [];
-      Object.keys(fields).forEach(f => {
-        if (RESOURCE_EDITABLE.indexOf(f) === -1) return;
-        let v = fields[f];
-        if (f === 'pages') v = N(v) || '';
-        setCell(t, r, f, v);
-        wrote.push(f);
-      });
-
-      /* A LINK THAT CHANGED INVALIDATES THE PAGE COUNT, because the count was read off the OLD
-         file. Cleared rather than left: a stale count prices a print wrongly, and nothing else in
-         the system would ever notice — the number is a perfectly ordinary number. */
-      if (wrote.indexOf('link') !== -1 && wrote.indexOf('pages') === -1) {
-        setCell(t, r, 'pages', '');
-        setCell(t, r, 'pages_checked', '');
-      }
-      clearCache();
-      return jsonOut({ success: true, wrote, name: S(r.name) });
-    }
-
-    /* --- admin deletes a resource — which is `active` FALSE, not a removed row -----------------
-       The row is still REFERENCED: by a basket on somebody's phone, by a print already paid for,
-       by a checklist tick carrying a student's progress. Remove it and every one of those becomes
-       a lookup that finds nothing, which renders as an empty card rather than as an error.
-       A row removed is also a row you cannot un-remove. --- */
-    if (action === 'deleteResource') {
-      const t = documents_();
-      const r = rowById_(t, 'paper_id', body.id, body.rowIndex);
-      if (!r) return jsonOut({ error: 'No resource with that id.' });
-      if (t.headers.indexOf('active') < 0) {
-        return jsonOut({ error: 'The resources tab has no `active` column. Run ensureSchema() '
-          + '— nothing was changed.' });
-      }
-      const on = TRUE_(body.on);
-      setCell(t, r, 'active', on ? 'TRUE' : 'FALSE');
-      clearCache();
-      return jsonOut({ success: true, active: on, name: S(r.name) });
-    }
+       THE FORM WENT WITH THEM. It was built from `resourceFields` on the payload — the same object
+       the server checked writes against — so there is no version of it left offering a field
+       nothing will accept. See js/resource.js, where only the basket and the paper remain. */
 
     /* --- admin edits a post ------------------------------------------------------------------- */
     if (action === 'editPost') {
@@ -780,91 +721,17 @@ function doPost(e) {
       return jsonOut({ success: true, active: on });
     }
 
-    /* --- ASKING FOR PAPER COPIES ---------------------------------------------------------------
-       The file is free and stays free. This is paper, toner, and — if it is posted — a stamp.
+    /* ---------- `orderPrints` WAS HERE, AND NOTHING EVER KNOCKED ON IT ---------------------------
+       It priced a basket of printed papers from the SHEET rather than from the request — the right
+       decision, and the note above it made the argument at length: a total posted by a browser is a
+       total the client chose. There is no sheet. Page counts and print prices are in
+       `data/questions.json`, which the backend cannot read.
 
-       PRICED HERE, FROM THE SHEET. The basket on the phone shows a figure so somebody knows what
-       they are agreeing to; it is not what they are charged. A total posted by a browser is a
-       total the client chose, and the one thing on this site that must never be taken on trust is
-       the one involving money.
-
-       ONE ORDER, not one per resource. Three things going to one address is one envelope and one
-       trip to the post office, so postage is charged once — charging four stamps for one journey
-       would be charging for work nobody does. --- */
-    if (action === 'orderPrints') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-
-      const cfg2 = config();
-      if (N(cfg2.print_rate_per_page) <= 0) {
-        return jsonOut({ error: 'Paper copies are not being offered at the moment.' });
-      }
-
-      const res = documents_();
-      const wanted = (body.items || []).map(S).filter(Boolean);
-      if (!wanted.length) return jsonOut({ error: 'Nothing to print.' });
-
-      const lines = [], refused = [];
-      let pages = 0, pounds = 0;
-      wanted.forEach(id => {
-        const r = rowById_(res, 'paper_id', id, 0)
-               || res.rows.find(x => key(x.name) === key(id));
-        if (!r)            { refused.push(id + ' — no longer exists'); return; }
-        if (!ON_(r.active)) { refused.push(S(r.name) + ' — has been removed'); return; }
-        if (!canPrint(r))  { refused.push(S(r.name) + ' — not offered on paper'); return; }
-        const cost = printPrice(r.pages);
-        lines.push(S(r.name));
-        pages += N(r.pages);
-        pounds += cost;
-      });
-      /* WHICH ones were refused, and why. A basket that comes back "something went wrong" leaves
-         somebody removing items one at a time to find out which. */
-      if (!lines.length) {
-        return jsonOut({ error: 'None of those can be printed:\n' + refused.join('\n') });
-      }
-
-      const post = norm(body.delivery) === 'post';
-      const where = S(me.address) + (S(me.postcode) ? ', ' + S(me.postcode) : '');
-      if (post) {
-        if (N(cfg2.postage_flat) <= 0) {
-          return jsonOut({ error: 'We are not posting at the moment — it will have to be collected.' });
-        }
-        if (!S(me.address)) {
-          return jsonOut({ error: 'We need an address to post it to. Add one under You, or choose '
-            + 'to collect it at a session.' });
-        }
-        pounds += N(cfg2.postage_flat);
-      }
-
-      const t = read(TAB.orders);
-      const order = addRow(t, {
-        order_id: 'OP' + Date.now(),
-        person_id: S(me.person_id),
-        item: 'Printed resources',
-        resource: lines.join('; '),
-        cost_ticks: '',
-        pages: pages,
-        cost_pence: Math.round(pounds * 100),
-        delivery: post ? 'post' : 'collect',
-        state: 'asked',
-        asked_on: new Date(),
-        address: post ? where : '',
-        notes: refused.length ? ('not included: ' + refused.join('; ')) : '',
-      });
-      clearCache();
-
-      /* You need to know, because the next step is yours and nothing else will tell you. */
-      notify(adminName_(), 'Paper to print — ' + personDisplayName(me),
-        personDisplayName(me) + ' has asked for ' + lines.length + ' printed resource'
-        + (lines.length === 1 ? '' : 's') + ', ' + pages + ' pages, £' + pounds.toFixed(2)
-        + '\n\n' + lines.map(x => '  · ' + x).join('\n')
-        + '\n\n' + (post ? 'POST TO:\n  ' + where : 'COLLECTING at a session.')
-        + (refused.length ? '\n\nNot included:\n  ' + refused.join('\n  ') : ''));
-
-      return jsonOut({ success: true, orderId: order ? S(order.order_id) : '',
-                       pages, cost: Math.round(pounds * 100) / 100,
-                       printed: lines, refused });
-    }
+       AND THE FRONT END NEVER CALLED IT. `cart-send` in js/resource.js has always been
+       `toast('Checkout is the next thing to build')`. So this was a priced, guarded, access-listed
+       endpoint that no version of the app has ever posted to — which is why removing it costs the
+       basket nothing: the basket is local, it still totals, and the button still says the same
+       sentence. What is actually missing is a checkout, and it was missing before this. */
 
     /* --- small per-person saves -------------------------------------------------------------- */
     const savePerson = (field, value) => {
@@ -1550,59 +1417,19 @@ function doPost(e) {
       return jsonOut({ success: true });
     }
 
-    /* --- redeeming a printed paper -------------------------------------------------------------
-       Ticks rather than money — the reward for working through the checklist. Different from
-       `orderPrints`, which is somebody paying for paper: this one is earned, capped at one at a
-       time, and costs nothing.
-       Everything here can fail for a reason the student can do something about, so each failure
-       says which one it was. "Not allowed" is the least useful sentence in software. */
-    if (action === 'redeem') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
+    /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS -------------------------
+       IT CANNOT BE EARNED ANY MORE. The price was `countTicks(me)`, which counted a person's handle
+       across `ticks_1..3` on every document row, and those three columns were the one thing
+       deliberately left out of `data/questions.json`: they held the handles of real children and
+       this repository is public. Nothing writes a tick now and nothing reads one.
 
-      const ticks = countTicks(me);
-      const cost = N(body.cost) || 1000;
-      if (ticks < cost) {
-        return jsonOut({ error: 'That needs ' + cost + ' ticks. You have ' + ticks
-          + ' — ' + (cost - ticks) + ' to go.' });
-      }
-      const where = S(me.address);
-      if (!where) {
-        return jsonOut({ error: 'We need an address to post it to. Add one to your profile first.' });
-      }
-      const paper = S(body.resource);
-      if (!paper) return jsonOut({ error: 'Choose which paper you want.' });
+       SO IT GOES RATHER THAN RETURNING 0 FOR EVER. A reward priced at a thousand of something
+       nobody can accumulate is not a reward, it is a sentence the student cannot act on — and this
+       app has already paid once for exactly that shape, when `countTicks` read the person's row
+       while `toggleTopicTick` wrote the document's and the total sat at 0 for everybody.
 
-      /* One in flight at a time. Without this a student with 1,000 ticks can ask for thirty papers
-         in thirty seconds, and you find out when you are stood at the post office. */
-      const t = read(TAB.orders);
-      const open = t.rows.filter(r => S(r.person_id) === S(me.person_id)
-                                   && S(r.cost_ticks) && norm(r.state) !== 'arrived');
-      if (open.length) {
-        return jsonOut({ error: 'You already have one on the way. It will arrive before you can '
-          + 'order another.' });
-      }
-
-      addRow(t, {
-        order_id: 'O' + Date.now(),
-        person_id: S(me.person_id),
-        item: 'Printed past paper',
-        resource: paper,
-        cost_ticks: cost,
-        delivery: 'post',
-        state: 'asked',
-        asked_on: new Date(),
-        address: where + (S(me.postcode) ? ', ' + S(me.postcode) : ''),
-      });
-      clearCache();
-
-      /* You need to know, because the next step is yours and nothing else will tell you. */
-      notify(adminName_(), 'A paper to print',
-        personDisplayName(me) + ' has redeemed ' + cost + ' ticks for:\n\n  ' + paper
-        + '\n\nPost to:\n  ' + where + (S(me.postcode) ? '\n  ' + S(me.postcode) : ''));
-
-      return jsonOut({ success: true });
-    }
+       `orderPosted` BELOW STAYS. It marks an order posted and notifies whoever asked, and orders
+       are still a tab — a thing arriving in the post does not care what paid for it. */
 
     /* Marking one posted. Admin only, and one direction only. */
     if (action === 'orderPosted') {
@@ -1775,55 +1602,15 @@ function doPost(e) {
       return jsonOut({ success: true });
     }
 
-    /* --- checklist tick: a handle goes into that resource's ticks cell ----------------------- */
-    if (action === 'toggleTopicTick') {
-      /* ---------- A TICK IS SOMEBODY'S OWN, AND THIS TOOK A NAME ON TRUST ------------------------
-         `handle` arrived in the request and was written straight into the resource's tick list —
-         so anybody signed in could tick a topic AS somebody else, or untick one, and each tick
-         moves XP and credits on that person's row. Credits buy things.
+    /* ---------- `toggleTopicTick` WAS HERE ------------------------------------------------------
+       It put a person's handle into `ticks_1..3` on a document row and moved XP and credits by one.
+       The columns are gone — stripped out of `data/questions.json` at source, because they held the
+       handles of children and this repository is public — and the tab they were on is gone with
+       them.
 
-         `self` in the access table only means somebody is signed in; WHOSE row it is has to be
-         checked by the handler, which is what the table's own note says. This one did not.
-
-         An admin may still tick on somebody's behalf — that is a real thing when a child works
-         through a paper on paper — and it is now a decision rather than the absence of a check. */
-      const asker = findPerson(S(body.name), S(body.personId));
-      if (!asker) return jsonOut({ error: 'Not signed in.' });
-      const want = S(body.handle);
-      const mine = key(want) === key(S(asker.handle))
-                || key(want) === key(personDisplayName(asker));
-      if (!mine && !hasRole(asker, 'admin')) {
-        return jsonOut({ error: 'You can only tick your own topics.' });
-      }
-
-      const t = documents_();
-      /* By id where there is one, so a tick cannot land on the wrong resource after a deletion
-         has shifted every row below it. */
-      const r = rowById_(t, 'paper_id', body.id, body.rowIndex);
-      const field = 'ticks_' + Number(body.tick);
-      if (!r || t.headers.indexOf(field) < 0) return jsonOut({ error: 'Bad tick request.' });
-      const handle = S(body.handle);
-      let list = S(r[field]).split(/[,\n]/).map(x => x.trim())
-        .filter(x => x && !/^(true|false)$/i.test(x));
-      const has = list.some(h => norm(h) === norm(handle));
-      let delta = 0;
-      if (body.checked && !has) { list.push(handle); delta = 1; }
-      if (!body.checked && has) { list = list.filter(h => norm(h) !== norm(handle)); delta = -1; }
-      setCell(t, r, field, list.join(', '));
-
-      let xp = null, credits = null;
-      if (delta !== 0) {
-        const pt = read(TAB.people);
-        const person = pt.rows.find(x => key(x.handle) === key(handle));
-        if (person) {
-          xp = Math.max(0, N(person.xp) + delta);
-          credits = Math.max(0, N(person.credits) + delta);
-          setCell(pt, person, 'xp', xp);
-          setCell(pt, person, 'credits', credits);
-        }
-      }
-      return jsonOut({ success: true, xp, credits });
-    }
+       IF TICKS COME BACK THEY COME BACK IN `Ledger`, one row per person per document, which is what
+       they always were: a fact about a PERSON and a document, filed under neither. That is also the
+       version that would have survived this move untouched. */
 
     /* --- a tutor marks a venue they're happy at --------------------------------------------- */
     if (action === 'toggleVenueComfort') {
@@ -3006,10 +2793,10 @@ function loginReplyFor_(r, token) {
                 avatarItems: avatarUnlocks(r),
                 topics: S(r.ticks_1), tick1: S(r.ticks_1), tick2: S(r.ticks_2), tick3: S(r.ticks_3),
                 xp: N(r.xp), credits: N(r.credits),
-                /* HOW MANY PASSES THEY HAVE DONE, counted from the resources where the ticks
-                   live. The You screen shows this and was computing it from three fields on
-                   this reply that nothing has ever written to, so it has always read 0. */
-                ticks: countTicks(r),
+                /* `ticks:` WAS HERE, counted off the document rows. There are no document rows
+                   and no tick columns — see `toggleTopicTick` below. The You screen no longer
+                   draws the row, rather than drawing a 0 that would read as "you have done
+                   nothing" instead of as "this is gone". */
                 /* The address, because the basket has to know whether it can offer to post
                    anything. Without it the option is missing and the reason is invisible. */
                 address: S(r.address), postcode: S(r.postcode),

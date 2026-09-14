@@ -115,31 +115,16 @@ function isAdminPerson(name) {
 /* `childrenOf` read the `children` cell and nothing else. It is above, reading the family tab
    first — see the note there on why two sources became one. */
 
-/**
- * HOW MANY TICKS SOMEBODY HAS.
- *
- * They live in three columns — ticks_1, ticks_2, ticks_3 — one per pass through a topic, each a
- * comma-separated list of what has been ticked. Counting them is a small thing that had no name,
- * so anything wanting the total had to know the storage; now it does not.
- */
-/**
- * TWO TICK SYSTEMS WITH THE SAME COLUMN NAMES, on different tabs.
- *
- * This counted `ticks_1..3` on the PERSON'S row. `toggleTopicTick` — the only thing that has ever
- * written a tick — writes `ticks_1..3` on the RESOURCE'S row, putting the person's handle in a
- * list. So a student could work through the entire library and this would return 0 for ever: the
- * thousand-tick reward was unreachable, and nothing about it looked broken.
- *
- * Counted from the resources, which is where the ticks actually are. It reads four hundred rows,
- * which is why it is called on a redeem and not on a page load.
- */
-function countTicks(row) {
-  const me = key(row && row.handle) || key(personDisplayName(row || {}));
-  if (!me) return 0;
-  return documents_().rows.reduce((n, r) =>
-    n + ['ticks_1', 'ticks_2', 'ticks_3'].filter(col =>
-      S(r[col]).split(/[,\n]/).some(h => key(h) === me)).length, 0);
-}
+/* ---------- `countTicks` WAS HERE ----------------------------------------------------------------
+   IT COUNTED A PERSON'S HANDLE across `ticks_1..3` on every document row, and it was right to: the
+   version before it counted the same three column names on the PERSON'S row, which nothing has ever
+   written to, so a student could work through the whole library and the total stayed 0 for ever.
+
+   BOTH TABS ARE NOW WRONG PLACES TO LOOK. The document rows left the spreadsheet with the rest of
+   `questions`, and the three tick columns were stripped out of `data/questions.json` before it was
+   committed — they held the handles of real children and this repository is public. So there is
+   nothing to count, and the two callers (`redeem`, and `ticks:` on the login reply) are gone rather
+   than being handed a permanent zero. See dopost.gs for both. */
 
 /**
  * WHAT THE BUSINESS IS CALLED.

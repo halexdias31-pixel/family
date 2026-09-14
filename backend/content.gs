@@ -657,106 +657,23 @@ function getPostFolder() {
   }
 }
 
-/** File id from a bare id or any Drive URL shape. */
-function driveIdFrom(raw) {
-  const v = S(raw);
-  if (!v) return '';
-  const m = v.match(/\/d\/([\w-]+)/) || v.match(/[?&]id=([\w-]+)/) || v.match(/^([\w-]{20,})$/);
-  return m ? m[1] : '';
-}
+/* ---------- `pdfPageCount` AND `refreshPageCounts` WERE HERE -------------------------------------
+   A PAGE COUNT IS WHAT PRICES A PRINT, and it was read by pulling the PDF's bytes out of Drive and
+   counting `/Count` and `/Type /Page` in them — then written back into the document row's `pages`
+   cell, a few hundred a night on a trigger, skipping anything counted in the last thirty days.
 
-/** Pages in a Drive PDF, or 0 if it can't be determined. Never throws. */
-function pdfPageCount(fileId) {
-  try {
-    const file = DriveApp.getFileById(fileId);
-    if ((file.getMimeType() || '').toLowerCase().indexOf('pdf') === -1) return 0;
-    if (file.getSize() > PAGES_MAX_BYTES) return 0;
-    // latin1 keeps every byte as one character, so offsets in the structure survive intact.
-    const raw = file.getBlob().getDataAsString('latin1');
+   THERE IS NO CELL TO WRITE IT TO. The counts that were already gathered came across in
+   `data/questions.json` — 155 papers carry a real one — and they are committed data now, so they
+   are as stable as anything else in this repository and nothing has to re-read them on a schedule.
 
-    // Preferred: the page tree's own total. Several /Count values can appear (one per tree node),
-    // and the root holds the largest, so the maximum is the document total.
-    let best = 0;
-    const counts = raw.match(/\/Count\s+(\d+)/g) || [];
-    counts.forEach(c => { const n = parseInt(c.replace(/\D+/g, ''), 10); if (n > best) best = n; });
+   WHAT IS ACTUALLY LOST: a NEW paper added to the library arrives with no count and cannot be
+   priced for printing until somebody types one in. That was already the outcome for a compressed
+   PDF, which no script can count — see the `couldNotRead` list this used to return. `installTriggers`
+   no longer books the nightly sweep, and `driveIdFrom` — which pulled the file id out of a
+   document's `source_url` so the PDF could be fetched — went with them. The posts folder uses
+   `folderIdFrom` below, which is a different function and stays.
 
-    // Fallback: count the page objects themselves. `[^s]` keeps /Pages nodes out of the tally.
-    const objs = (raw.match(/\/Type\s*\/Page[^s]/g) || []).length;
-
-    // Trust the larger, but only when they're in the same ballpark — a wildly bigger /Count
-    // usually means it was matched inside an unrelated object.
-    if (best && objs && best > objs * 4) return objs;
-    return Math.max(best, objs);
-  } catch (err) {
-    return 0;
-  }
-}
-
-/**
- * Fill in page counts. Run from the editor, on a daily trigger, or via ?pages=1.
- * Only touches rows with a Drive link and no count yet — so it's cheap to re-run and won't
- * overwrite a number you've corrected by hand. ?pages=all re-reads everything.
- */
-function refreshPageCounts(force) {
-  const t = documents_();
-  if (!t.sheet) return { error: 'no resources tab' };
-  // Anything checked longer ago than this is re-read, so a count doesn't just get filled once and
-  // then drift if the file is replaced. Tunable in config; 30 days is plenty for past papers.
-  const staleDays = N(config().pages_recheck_days) || 30;
-  const cutoff = Date.now() - staleDays * 864e5;
-
-  const startedAt = Date.now();
-  let done = 0, skipped = 0, remaining = 0, fresh = 0;
-  const failed = [];
-  for (let i = 0; i < t.rows.length; i++) {
-    const r = t.rows[i];
-    const id = driveIdFrom(r.source_url);
-    if (!id) { skipped++; continue; }
-    if (!force) {
-      const when = parseDate(r.pages_checked);
-      // Counted recently AND has a number: nothing to do.
-      if (N(r.pages) > 0 && when && when.getTime() > cutoff) { fresh++; continue; }
-      // Checked recently and came back blank: it's a Google Doc or an oversized file, so don't
-      // spend the next run's budget re-discovering that.
-      if (!N(r.pages) && when && when.getTime() > cutoff) { fresh++; continue; }
-    }
-    /* OUT OF TIME, OR OUT OF CEILING. Either way the rest are counted as remaining rather than
-       attempted — the next run picks them up, because `pages_checked` is only written for the ones
-       actually read. */
-    if (done >= PAGES_PER_RUN || Date.now() - startedAt > PAGES_TIME_BUDGET) {
-      remaining++; continue;
-    }
-    const n = pdfPageCount(id);
-    setCell(t, r, 'pages', n || '');
-    setCell(t, r, 'pages_checked', new Date());
-    done++;
-    /* The ROWS that came back with nothing, not just how many. "88 failed" is a number you can do
-       nothing with; eighty-eight names is a list you can work through, and every one of them is a
-       resource that cannot be sold on paper until somebody types a number in. */
-    if (!n) failed.push(S(r.name) || ('row ' + r._row));
-  }
-  const out = { counted: done, upToDate: fresh, noDriveLink: skipped, stillToDo: remaining,
-                seconds: Math.round((Date.now() - startedAt) / 100) / 10,
-                couldNotRead: failed.slice(0, 40) };
-
-  /* NO SELF-BOOKING CHAIN. There was one: a run with work left booked the next a minute later,
-     so the whole library filled in three minutes rather than a night or two.
-
-     It is gone because it answered a question nobody asked. "Eventually" was the requirement, and
-     the nightly sweep already meets it — a hundred and fifty files in one or two nights, and then
-     for ever, catching anything replaced. The chain bought minutes-instead-of-nights for a
-     ONE-TIME backfill, and charged sixty lines, a trigger slot out of twenty, and three ways to go
-     wrong: a chain that never terminates, one that leaves dead triggers behind, and one nobody can
-     stop because a booked trigger is invisible from the app. Each needed its own guard, and each
-     guard needed its own test.
-
-     What is left is the part that was always doing the work: a sweep that fills what it can in the
-     time it has, writes down what it checked, and picks up where it left off next time. It needs
-     no ceiling, no off switch and no counter, because it books nothing. */
-
-  Logger.log(JSON.stringify(out, null, 2));
-  return out;
-}
+   ALSO GONE WITH IT: `?pages=1` and `?pages=all` on doGet, and `?run=refreshPageCounts`. */
 
 /* ---------- GALLERY ------------------------------------------------------------------------- */
 

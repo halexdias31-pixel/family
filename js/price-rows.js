@@ -336,29 +336,16 @@ function levelRows() {
 }
 
 
-/**
- * HOW MANY PASSES THIS PERSON HAS DONE.
- *
- * COUNTED FROM THE RESOURCES, because that is where a tick is written. This added up
- * `USER.tick1..3` — three fields on the person's own row — and `toggleTopicTick` has never
- * written to them: it puts your handle into `ticks_1..3` on the RESOURCE. So a student could work
- * through the whole library and this returned 0 for ever, which reads as "you have done nothing"
- * rather than as a fault, and put the thousand-tick reward permanently out of reach.
- *
- * The backend already sends the right number as `ticks` on the login reply. It is used only as
- * the fallback: the local count is LIVE — it moves the moment a box is ticked, where the login
- * figure is as old as the last sign-in.
- */
-function tickCount() {
-  if (!USER) return 0;
-  try {
-    const topics = allTopics();
-    if (topics.length) {
-      return topics.reduce((n, t) => n + myTicks(t).filter(Boolean).length, 0);
-    }
-  } catch (e) { /* the payload has not arrived yet — fall through to what the login said */ }
-  return Number(USER.ticks) || 0;
-}
+/* ---------- `tickCount` WAS HERE ------------------------------------------------------------------
+   It added up this person's ticks across every document, live, falling back to the `ticks` figure
+   on the login reply when the payload had not landed. Both sources are gone: nothing writes a tick,
+   the three columns that held them were stripped out of `data/questions.json` because they carried
+   children's handles into a public repository, and the login reply no longer counts them.
+
+   THE `Ticks` ROW ON THE YOU CARD WENT WITH IT rather than being shown a permanent 0 — a counter
+   stuck at nought reads as "you have done nothing", which is the sentence this app has already been
+   wrong with once, when `countTicks` read the person's row while `toggleTopicTick` wrote the
+   document's. See the note where `tickRow` used to be in find.js. */
 
 
 /* `setOptions` was here — filling a <select> from a list, for a form built before the field

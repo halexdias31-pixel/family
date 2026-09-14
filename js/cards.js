@@ -95,13 +95,14 @@ function meCard() {
   if (!USER) return '';
   const face = pic(USER.photo || (USER.profile || {}).photo || '');
   const p = USER.profile || {};
-  const ticks = typeof tickCount === 'function' ? tickCount() : 0;
   const rows = [
     /* `Role` GOES WHEN THE PASS IS THERE. The pass prints it in the corner, and a row repeating it
        under the photograph is the duplication this merge exists to remove. */
     ['Role', roleOf(USER.role || '')],
     ['Credits', String(USER.credits || 0)],
-    ['Ticks', String(ticks)],
+    /* `['Ticks', …]` WAS HERE. Nothing counts a tick any more — see `tickCount` in price-rows.js.
+       Dropped rather than left at 0: `.filter(([, v]) => …)` below would have hidden it anyway, so
+       the only thing a zero could have done is reappear the day somebody typed a number in. */
     ['Email', p.email || ''],
     ['Where', p.city || p.borough || ''],
   ].filter(([, v]) => String(v || '').trim());

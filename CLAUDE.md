@@ -437,9 +437,9 @@ It is now three files, **split by who writes the rows**:
 
 | File | Who writes it | Tabs |
 |---|---|---|
-| **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, ticks — the business as it happened |
+| **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, orders — the business as it happened |
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
-| **Library** | you, in bulk | boxers, cheatsheet — and `questions` has left, see below |
+| **Library** | you, in bulk | boxers, fights, cheatsheet. `questions` has left — see below |
 
 ### `questions` lives in this repository, not in a spreadsheet
 
@@ -461,6 +461,60 @@ answers wins:
 **Three columns did not come.** `ticks_1`, `ticks_2`, `ticks_3` — 529 cells holding the handles of
 real people, most of them children. They are stripped at source. A tick is a fact about a PERSON and
 a document; it was never library data, and if it returns it returns in `Ledger`.
+
+#### And then the tab itself was deleted, which took eleven things with it
+
+**The tab can only be deleted once nothing in the code names it**, and the sharp edge is
+`SCHEMA`: `ensureSchema` walks it and CREATES any tab it cannot find, so an entry left behind
+rebuilds an empty `questions` tab on the next `?setup=1` — a decoy with the right headers and no
+rows, which is exactly the shape of the fault that hid the real resource rows in another file for
+months. `SCHEMA.questions`, `TAB.questions` and `WHERE.questions` are all gone, and `documents_()`
+with them. **Only `questions` left.** `cheatsheet`, `boxers` and `fights` are still tabs of
+`Library` and still read by `doGet`.
+
+**Sixteen callers, and they were deleted rather than repointed.** Five of them WROTE to a document
+row — and Apps Script cannot write to a file in git, so a repointed version would read the right
+data, report success, and change nothing anybody could see. That is the worst outcome available
+here, and it is the one "keep it working" would have produced.
+
+| Gone | What it was | Why it could not survive |
+|---|---|---|
+| `updateResource`, `editResource`, `deleteResource` | the admin relabel form, both lookups and the soft delete | wrote a cell; a relabel is a commit now |
+| `toggleTopicTick` + `tickRow`/`myTicks`/`tickCount` | three passes per document, stored as handles | the columns were stripped at source — see above |
+| `redeem` + `countTicks` | a printed paper for 1,000 ticks | priced in something nobody can accumulate any more |
+| `orderPrints` | priced a basket of prints server-side | **nothing ever called it** — see below |
+| `refreshPageCounts`, `pdfPageCount`, `driveIdFrom` | the nightly page-count sweep and its trigger | wrote `pages` on a document row |
+| `printPrice`, `canPrint` (backend) | what a print costs | the phone computes it; see the loss below |
+| `ensureResourceIds`, `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` | 120 papers and every id | CLAUDE.md already said do not seed that tab |
+| `resourceInUse`, `resourceFields`, `RESOURCE_GROUPS/OPTIONS/EDITABLE` | the form and the dropdown values it offered | the form is gone; one list, two readers, both gone |
+
+**`orderPrints` was a door with no handle on either side, and that took measuring to find out.**
+It was access-listed, priced from the sheet deliberately — *a total posted by a browser is a total
+the client chose* — and published in `doGet`'s feature list. No version of the app has ever posted
+to it: `cart-send` in `resource.js` is `toast('Checkout is the next thing to build')`. So the
+basket is untouched by all of this. It is local, it still totals, and what is missing is a
+checkout, which was missing before.
+
+**What is actually lost, and it is worth knowing before rather than during.** A price computed on
+the phone is a price the client can choose. `printPrice` lives in `find.js` and `library.js` now,
+reading the same two config keys off `constants.vars`, so the figure has not moved — but whatever
+takes payment will have to re-price server-side, and **the page counts it would need are in a file
+in git, not in a cell.** Separately: a new paper arrives with no page count and cannot be priced
+for print until somebody types one in, and a `?run=rename` no longer reaches the library at all —
+that is now two jobs, the sheets and a find-and-replace over `data/questions.json`.
+
+**`RENAMEABLE` lost its `questions` entry and the note is longer than the line was.** Leaving it in
+would have been worse than removing it: `renameValue` does `read(TAB[name] || name)`, an unrouted
+name comes back `{ rows: [] }`, and the rename would have reported success, changed the options
+list, and left every paper spelling it the old way.
+
+**Three migration ids stay spent.** `edexcel-maths-past-papers`, `drop-empty-alevel-papers` and
+`edexcel-alevel-maths-past-papers` are remembered in script properties, so a NEW job given one of
+those names would be marked already-done and never run — invisibly.
+
+**The nightly trigger is still NAMED in `installTriggers`**, in the delete list only. A project that
+already installed `refreshPageCounts` needs it removed; installing it again would book a nightly run
+against a function that no longer exists.
 
 **What was checked before publishing**, because the decision is irreversible: every Library tab
 scanned against the Ledger's handles (only the tick columns matched), and the 1,508 Drive links
@@ -504,15 +558,18 @@ they are one table now. **`kind` says which a row is** — `paper` is the docume
 are the questions in it. 3,913 rows: 3,271 questions and **642 documents**, 202 with questions under
 them and 440 with none yet, which is not a gap but the backlog written down.
 
-**`documents_()` in `core.gs` is the filter, in one place.** `read(TAB.resources)` appeared in
-**19 places** and every one of them now calls that instead, otherwise unchanged — it returns `read`'s
+**`documents_()` in `core.gs` WAS the filter, in one place.** `read(TAB.resources)` appeared in
+**19 places** and every one of them called that instead, otherwise unchanged — it returned `read`'s
 own shape, and `setCell` writes through `t.sheet` and `row._row`, so handing back a subset of the
-rows still lands a write on the row it came from. Nineteen copies of `.filter(r => r.kind ===
-'paper')` would be nineteen chances to forget it and treat a question as a document.
+rows still landed a write on the row it came from. Nineteen copies of `.filter(r => r.kind ===
+'paper')` would have been nineteen chances to forget it and treat a question as a document. **It is
+gone now** along with all sixteen callers that were left — see the deletion table above; there is no
+tab under either name for it to read. Everything below this line is the history of how the two
+tables became one, which is still the shape of `data/questions.json`.
 
 **The ticks live on the `paper` row and only there.** Everything else about a document is immutable
 and copies down to its questions safely — exam board, year, link, page count, 4,963 blanks filled.
-A tick is not: it is a fact about a person and a document, `toggleTopicTick` writes one cell, and
+A tick was not: it is a fact about a person and a document, `toggleTopicTick` wrote one cell, and
 copying those columns down would give `P-1MA1-2306-1H` 31 rows that must agree while one of them is
 written. **That difference is the whole reason `kind: 'paper'` is a row rather than a convention** —
 it gives a document exactly one row to be written to, which is what it had when it was a tab.
@@ -552,7 +609,8 @@ one tab, one name for the URL.
 ### `node js/check-rows.js` — the same question, asked of one tab at a time
 
 Built because of those seven. It parses the `.gs` files with acorn instead of matching them, binds
-each row identifier back to the `read(TAB.x)` or `documents_()` it came from, and checks every
+each row identifier back to the `read(TAB.x)` it came from (and to `documents_()`, while that
+existed), and checks every
 `r.<name>` against **that** tab. Both checks are worth running: **the union catches a column NO tab
 has; this catches a column the WRONG tab has**, and the second is the commoner fault.
 
@@ -665,7 +723,8 @@ longer fuse.
 instrument. `findPerson(nameOrId, altId)` prefers the id and falls back to matching the NAME — the
 fallback is right, it is what finds a row typed into the sheet before anybody has an id, and it is
 why leaving the id out is invisible: everything works, for one person, until two share a name or
-somebody renames themselves. `addPost`, `changePin`, `reactPost`, `saveScore`, `toggleTopicTick` and
+somebody renames themselves. `addPost`, `changePin`, `reactPost`, `saveScore`, `toggleTopicTick`
+(since removed) and
 `votePoll` all had `USER.personId` to hand and were not sending it. `changePin` was the sharp one:
 the PIN you typed is checked against the OTHER person's, and you are told "That is not your current
 PIN" — confidently wrong about the one thing you are certain of, with no way to change yours. Not a

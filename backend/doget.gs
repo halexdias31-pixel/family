@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-21-library";
+const DOGET_VERSION = "2026-09-22-no-questions-tab";
 
 
 function doGet(e) {
@@ -119,10 +119,9 @@ function doGet(e) {
     if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema(),
       alsoAvailable: 'add ?run=<job>&name=…&pin=… for the rest: ' + Object.keys(RUNNABLE).join(', ') });
 
-    // ?pages=1 fills blank page counts, ?pages=all re-reads every one. Batched, so a big library
-    // takes a few runs rather than timing out halfway and leaving no record of where it got to.
-    if (p.pages) return jsonOut({ version: BACKEND_VERSION,
-      pages: refreshPageCounts(String(p.pages).toLowerCase() === 'all') });
+    /* `?pages=1` AND `?pages=all` WERE HERE. They filled blank page counts by reading PDFs out of
+       Drive and writing the number into the document row. See content.gs: there is no document row,
+       and the counts the library already has came across in `data/questions.json`. */
 
     // The showcase on its own. Listing a Drive folder is a round-trip to another Google service
     // and by far the slowest thing here — everything else is sheet reads. Fetched separately by
@@ -319,7 +318,7 @@ function doGet(e) {
                      Every action added from here on goes in this list, and the site now reads it. */
                  'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist',
                  'move', 'events', 'tabs', 'getProfile', 'listPeople', 'createJob',
-                 'updateConfig', 'updateResource', 'updatePricing', 'updateShop',
+                 'updateConfig', 'updatePricing', 'updateShop',
                  'deleteShopItem', 'updateTrip', 'addTrip', 'imageData',
                  'saveRoom',
                  'updateLink', 'addLink', 'deleteLink',
@@ -329,8 +328,12 @@ function doGet(e) {
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy
                     of it in somebody's browser cache finds out rather than failing quietly. */
                  'confirmDetails',
-                 // Admin editing, by id rather than by row number, and printed copies.
-                 'editResource', 'deleteResource', 'editPost', 'deletePost', 'orderPrints',
+                 // Admin editing, by id rather than by row number.
+                 /* `editResource`, `deleteResource` and `orderPrints` WERE HERE and are gone with
+                    the questions tab. The site reads this list to decide whether to OFFER a button,
+                    so dropping them is what stops an admin being shown an edit form that nothing
+                    will accept — a name left here would be a promise the deployment cannot keep. */
+                 'editPost', 'deletePost',
                  'createCheckout', 'finalizePayment',
                  /* The site checks this before it offers the button, so an old deployment says so
                     rather than failing when it is pressed. */
@@ -355,30 +358,19 @@ function doGet(e) {
       gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
-      // Admin-only relabelling of checklist resources — moving something from foundation to
-      // higher, fixing a wrong exam board. Groups plus which list fills each dropdown.
-      resourceFields: RESOURCE_GROUPS, resourceOptions: RESOURCE_OPTIONS,
+      /* `resourceFields` AND `resourceOptions` WERE HERE — the admin form that relabelled a
+         document, built from the server's own allow-list so it could not offer a field the server
+         would refuse. Both sides are gone; see dopost.gs. */
       postFields: POST_GROUPS,
       shopFields: SHOP_GROUPS, tripFields: TRIP_GROUPS, roomFields: ROOM_GROUPS,
       roomSlots: ROOM_SLOTS,
       linkFields: LINK_GROUPS,
       options: opts,
-      // Every value ALREADY in use on a resource, per field. The dropdown offers these as well as
-      // the options list, because the two disagree: 68 resources are labelled "Paper ?" and
-      // Paper 1/2/3 are on 25 more, none of which were ever added to the list. Offering only the
-      // list means you can't select a value your own data already uses, and can't relabel the
-      // ones that need it. This keeps itself current with no maintenance.
-      resourceInUse: (function () {
-        const out = {};
-        documents_().rows.forEach(r => Object.keys(RESOURCE_OPTIONS).forEach(f => {
-          const v = S(r[f]);
-          if (!v) return;
-          out[f] = out[f] || [];
-          if (out[f].indexOf(v) === -1) out[f].push(v);
-        }));
-        Object.keys(out).forEach(f => out[f].sort());
-        return out;
-      })(),
+      /* `resourceInUse` WAS HERE. It walked every document row and collected the values already
+         typed into each relabelling field, so the dropdown offered what the data actually used as
+         well as what the options list said — 68 resources were labelled "Paper ?" and none of those
+         spellings had ever been added to the list. It has no form left to fill and no rows left to
+         walk. */
       profileReadonly: PROFILE_READONLY,
       availGrid: { days: AVAIL_DAYS, hours: AVAIL_HOURS },
       // field -> its option list, in the shape the edit forms already read. Built from the
@@ -1596,7 +1588,7 @@ function doGet(e) {
 
     if (p.debugTiming) return jsonOut({ version: BACKEND_VERSION, timings,
       counts: { people: people.length, venues: venuesTab.length, jobs: jobsTab.length,
-                resources: documents_().rows.length, options: read(TAB.options).rows.length } });
+                options: read(TAB.options).rows.length } });
 
     payload.timings = timings;
     /* ---------- KEPT, AND THEN SENT --------------------------------------------------------------
