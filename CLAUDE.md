@@ -458,6 +458,70 @@ answers wins:
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
 
+### The funnel is an engine fed by a hand-written loader, and that seam is where it feels arbitrary
+
+Three layers, each half-generalised:
+
+| Layer | The sheet can | The sheet cannot |
+|---|---|---|
+| **Items** — `stuffItems()` | nothing | everything. 11 hand-written mappers |
+| **Kinds** — `KINDS` + the `kinds` tab | rename, regroup, reorder, switch off | **add one** — `card:` is a function |
+| **Questions** — `FACETS` + the `facets` tab | relabel, reorder, set coverage, switch off | **add one** — `of:` is a function |
+
+**You can edit the funnel from a spreadsheet; you cannot extend it.** Boxing cost seven places — a
+mapper, `boxKind` invented, a `division` facet, `divisionOf_`, `boxerCard_`, a `KINDS` entry and a
+comment explaining why the division is not in `subject`. Six of the seven are code. That is the
+ducktape, and it is worth knowing it is structural rather than sloppiness.
+
+**The next question is chosen by arithmetic over the current list, not by meaning.** `nextFacet`
+offers the first facet with ≥2 distinct answers and ≥50% coverage — so the same data reached two
+ways asks two different questions. Narrow to Maths and `Exam board` appears; add Boxing and it does
+not, because half the list has no board. Nothing on screen says so, so it reads as the app changing
+its mind. **`whyThisQuestion()` in the console prints every facet with its answer count, its
+coverage and the reason it was or was not chosen** — the same instrument as `layout()`, pointed at
+the funnel instead of the boxes.
+
+### The `facets` tab can now INVENT a question, not just rename one
+
+**A facet is two things and only one of them is logic.** "What it is called, when it is asked,
+whether it is asked" has been editorial for a while. "How to READ the value off a thing" is `of:`,
+a function — and for **ten of the twenty-one** facets that function is literally `x => x.subject`.
+Reading a named field is not logic; it is a field name.
+
+**So a `facets` row naming a field the code has never heard of becomes a question**, with the reader
+derived by `facetFromSheet_`: look on the item, then on `row` — the original spreadsheet row every
+item carries. That second half is the unlock. **A column added to `venues` is filterable the same
+afternoon, with no mapper edit**, because the row is already on the item. A comma in the cell is a
+list, the way `keystage` already does it in code.
+
+**No deploy needed.** `doget.gs` already passed unknown facet rows through — its comment says so —
+so this is a phone change only.
+
+Proved against the real data: three rows added at runtime gave
+`answerType` (a real column no facet had ever read) **3 answers, 85% coverage, chosen as the next
+question**; `nonsense` (a typo) **0%, reported, not silent**; and `name` **212 answers, refused**.
+
+**That refusal is a new rule the sheet made necessary.** `FACET_MAX_ANSWERS = 40` — there was never
+an upper bound because every facet was written by somebody looking at the data, and `field: name`
+is 212 answers presented as multiple choice. The rule applies to the code's own facets too: a
+question past forty answers has stopped narrowing anything, whoever wrote it. `Subject` is about
+twenty and `Division` seventeen, so nothing real is near it.
+
+**And `name` having exactly 212 answers is the collection showing through** — 212 distinct paper
+names across 3,265 questions. That is the `contains` idea from the audit, visible in the data.
+
+**Fifteen fields of ceremony hid one that decided a filter.** Every mapper wrote
+`bandType: '', bandValue: '', keystage: '', …, paper: false` — ten identical blocks. All of it was
+ceremony: `asList_` cannot tell `''` from `undefined`, so writing them and omitting them are the
+same behaviour. **`cost: 0` was not ceremony.** The Price facet tests `x.cost === 0` strictly, so
+every unpriced thing — a subject, a level, a link, a friend, a timer, a question — claimed to be
+FREE. Measured: **3,262 of 3,265 items answered `Free`**, which made that bucket mean "everything".
+
+`priced_` now tells an unset rate from a rate of zero, and no `cost` means no answer to the
+question rather than a claim of free. `cost: 0` still means free, because a shop item priced at
+nought is. **One load-bearing line among fifteen decorative ones is exactly what makes a funnel feel
+arbitrary**, and the blanks are gone so the next one cannot hide the same way.
+
 ### The funnel lists QUESTIONS. There are no collections on it.
 
 **Three goes at drawing a past paper card, and the card was never the problem.** A document and the
@@ -484,7 +548,7 @@ paper name as the subtitle, then stem, lead, part, diagram, and the mark scheme 
 | `allTopics`, `topicBy` | the 642 documents, built from `dropdowns.checklists` unioned with a derivation |
 | `paperCard`, `paperish_` | the exam cover, and the test for whether a row earned one |
 | `paperInline_`, `openPaper_`, `on('paper-read')` | attempts (2) and (3) |
-| `paperBody_`, `paperRows`, `ansBox_` | the whole paper typeset end to end, with a textarea per part |
+| `paperBody_`, `paperRows` | the whole paper typeset end to end |
 | `topicTiles_` | `Read` and `Paper` — both took the document behind the card |
 | `paperText_`, `paperPages_`, `canPrint`, `paperMismatches` | document-level helpers with nothing to help |
 | the `paperName` facet | "which paper", which existed to keep a paper card beside its questions |
@@ -494,6 +558,14 @@ paper name as the subtitle, then stem, lead, part, diagram, and the mark scheme 
 are all on the question rows, so the funnel narrows to a paper exactly as before and then keeps
 going. `searchText_` matches each question's own words plus its stem's, which is what `paperText_`
 was faking at the document level.
+
+**`ansBox_` came back one commit later, and the reason it went is worth keeping.** It was deleted
+with `paperBody_` on the argument that a textarea per question means 3,271 textareas. It does not:
+`fillStuffPages` fills the pages you are near and empties the rest, so about five exist at any
+moment and the whole strip holds 140 nodes — measured. **I reasoned about the DOM instead of asking
+it**, which is the same mistake as `.mat-out` and the seven dead custom properties. The key is the
+`row_id` now rather than paper + question + part, because a row id is unique across the library and
+does not move when a paper is relabelled.
 
 **What IS lost, and it is the print line.** You cannot print one question — a print is a whole
 paper, priced per page — and no surface lists a whole paper now. `printPrice` and `laminatePrice`
