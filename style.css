@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-22-questions-only";
+  --css-version: "2026-09-23-collections";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6719,6 +6719,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mu-grid i:nth-child(85) { animation-delay: -0.132s; }
 .mu-grid i:nth-child(95) { animation-delay: -0.143s; }
 .mu-grid i:nth-child(100) { animation-delay: -0.198s; }
+
+/* ---------- "OR THE 212 PAPERS THESE ARE IN" -----------------------------------------------------
+   ABOVE THE FUNNEL'S ANSWERS AND QUIETER THAN THEY ARE. It offers a second way to read the same
+   results rather than being one of the answers — so it must not look like a row you could pick, or
+   the first question would appear to have an extra option on it. `.text-action` already carries the
+   app's underlined pressable-text look; this only places it. */
+.stuff-coll { margin: 0 0 .5rem; font-size: .78rem; }
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
