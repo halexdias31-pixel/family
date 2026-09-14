@@ -788,12 +788,57 @@ const FACETS = [
    end because there is no other end. */
 let FACET_LIVE = null, FACET_FROM = null;
 
+/* ---------- A QUESTION THE SHEET INVENTED -------------------------------------------------------
+   THE FUNNEL COULD BE EDITED FROM A SPREADSHEET AND NOT EXTENDED, and that is the whole reason
+   adding a domain felt like ducktape. Boxing needed a mapper, a `boxKind` field, a `division` facet,
+   `divisionOf_`, a card and a `KINDS` entry — six code changes to ask one new question.
+
+   A FACET IS TWO THINGS AND ONLY ONE OF THEM IS LOGIC. "What is this called, when is it asked, is
+   it asked at all" is editorial and has been in the sheet for a while. "How to READ the value off a
+   thing" is `of:`, a function — and for TEN of the twenty-one facets that function is literally
+   `x => x.subject`. Reading a named field is not logic. It is a field name.
+
+   SO A ROW NAMING A FIELD THE CODE DOES NOT KNOW BECOMES A QUESTION, with the reader derived:
+
+     LOOK ON THE ITEM FIRST, then on `row` — the original spreadsheet row every item carries. That
+     second half is what makes this worth doing: a column somebody adds to `venues` is filterable
+     the same afternoon, with no mapper edit, because the row is already on the item.
+
+     A COMMA IS A LIST. A spreadsheet cell holding several values holds them comma-separated — that
+     is what `keystage` already does in code, and doing it here means the next such column needs no
+     code at all. The cost is a value that legitimately contains a comma, which for the categories a
+     facet asks about is rarer than the list.
+
+   THE BACKEND ALREADY PASSES THESE ROWS THROUGH. `doget.gs` says so where it builds `payload.facets`
+   — "a row for a field the code does not know is passed through rather than dropped" — so this is
+   a phone change only, no deploy.
+
+   A TYPO IS NOT SILENT, and that is the part that took thinking about. `field: subjekt` matches
+   nothing, so coverage is 0 and the question is never offered — invisible, which is this app's
+   signature fault. `whyThisQuestion()` is the answer: it lists every facet including this one, with
+   `nobody can answer it` beside it and 0%. The instrument existed before the hazard did. */
+const facetFromSheet_ = f => ({
+  field: f.field,
+  label: f.label || String(f.field).replace(/_/g, ' '),
+  fromSheet: true,
+  of: x => {
+    const v = (x && x[f.field] !== undefined && x[f.field] !== null && x[f.field] !== '')
+      ? x[f.field]
+      : (x && x.row ? x.row[f.field] : undefined);
+    if (Array.isArray(v)) return v;
+    return String(v === undefined || v === null ? '' : v)
+      .split(',').map(t => t.trim()).filter(Boolean);
+  },
+});
+
 function facetList() {
   const src = DATA.facets || null;
   if (FACET_LIVE && FACET_FROM === src) return FACET_LIVE;
   FACET_FROM = src;
   const said = {};
   (src || []).forEach(f => { if (f && f.field) said[f.field] = f; });
+  const known = {};
+  FACETS.forEach(f => { known[f.field] = true; });
 
   FACET_LIVE = FACETS
     .map((f, i) => {
@@ -809,12 +854,24 @@ function facetList() {
         min:   facetMin_(s.minCoverage),
       });
     })
+    /* ---------- AND THE ONES THE CODE HAS NEVER HEARD OF -----------------------------------------
+       AFTER the code's own, and LAST by default. A question somebody added in a spreadsheet has not
+       been placed in the funnel's order by anybody — the code facets run 10 to 210 — so 1000 puts
+       it behind all of them until a `sort_order` says otherwise. Sorting it in front of `What for`
+       by accident would rearrange the first question every search passes through. */
+    .concat((src || [])
+      .filter(f => f && f.field && !known[f.field] && f.active !== false)
+      .map((f, i) => Object.assign(facetFromSheet_(f), {
+        at:  facetNum_(f.order, 1000 + i),
+        min: facetMin_(f.minCoverage),
+      })))
     .filter(Boolean)
     /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a
        column of blank cells leaves the funnel exactly as it asks today. */
     .sort((a, b) => a.at - b.at);
   return FACET_LIVE;
 }
+
 
 /* ---------- WHAT A SPREADSHEET CELL IS ALLOWED TO DO TO THE FUNNEL --------------------------------
    A NUMBER FROM A SHEET IS WHATEVER SOMEBODY TYPED, and `Number('first')` is `NaN`, which is the
@@ -905,6 +962,20 @@ function facetCoverage(items, facet) {
 /* HOW MUCH OF THE SET A QUESTION HAS TO COVER BEFORE IT IS WORTH ASKING. */
 const FACET_COVERAGE = 0.5;
 
+/* ---------- A QUESTION WITH FORTY ANSWERS IS NOT A QUESTION, IT IS THE LIST -----------------------
+   THERE HAS NEVER BEEN AN UPPER BOUND on how many answers a facet may offer, and until now there
+   did not need to be: every facet was written in code by somebody looking at the data. The sheet
+   can invent one now — see `facetFromSheet_` — and `field: name` reads the name off every item,
+   which is 3,265 distinct answers presented as a multiple-choice question.
+
+   THE RULE IS THE SAME FOR THE CODE'S OWN FACETS, deliberately. A question that has grown past
+   forty answers has stopped narrowing anything, whoever wrote it; `Subject` is about twenty and
+   `Division` seventeen, so nothing real is near this. A list of forty is what the search box is for.
+
+   NOT CONFIGURABLE. A second number in the sheet is a second thing to get wrong, and the honest
+   answer to "my question is not showing" is `whyThisQuestion()`, which names this by name. */
+const FACET_MAX_ANSWERS = 40;
+
 /**
  * THE NEXT QUESTION WORTH ASKING, or nothing.
  *
@@ -931,7 +1002,8 @@ function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
   for (const facet of facetList()) {
     if (asked.indexOf(facet.field) !== -1) continue;
-    if (facetValues(items, facet).length < 2) continue;
+    const vals = facetValues(items, facet).length;
+    if (vals < 2 || vals > FACET_MAX_ANSWERS) continue;
     /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
        given a lower bar to is one somebody decided is worth asking early even though it is thin. */
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
@@ -990,13 +1062,18 @@ function whyThisQuestion(all) {
     if (asked.indexOf(f.field) !== -1) why = 'asked already';
     else if (vals.length < 2) why = (vals.length ? 'one answer' : 'nobody can answer it')
                                     + ' — nothing to decide';
+    else if (vals.length > FACET_MAX_ANSWERS)
+      why = 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
     else if (cov < min) why = 'thin — needs ' + Math.round(min * 100) + '%';
     else if (!chosen) { why = '← THIS ONE'; chosen = f.field; }
     else why = 'would do, but comes after ' + chosen;
-    console.log('  ' + pad(f.field, 14) + pad(f.label, 18)
+    console.log('  ' + pad(f.field + (f.fromSheet ? ' *' : ''), 14) + pad(f.label, 18)
                 + num(vals.length, 8) + num(Math.round(cov * 100) + '%', 7) + '  ' + why);
   });
   if (!chosen) console.log('\n  nothing left to ask — the list is the answer');
+  if (facetList().some(f => f.fromSheet)) {
+    console.log('  * invented in the `facets` tab rather than written in code — see facetFromSheet_');
+  }
   console.log('');
   /* THE VALUES TOO, for the one it chose, because "seven answers" and WHICH seven are different
      facts and the second is the one you act on. */

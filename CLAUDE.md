@@ -481,6 +481,35 @@ its mind. **`whyThisQuestion()` in the console prints every facet with its answe
 coverage and the reason it was or was not chosen** — the same instrument as `layout()`, pointed at
 the funnel instead of the boxes.
 
+### The `facets` tab can now INVENT a question, not just rename one
+
+**A facet is two things and only one of them is logic.** "What it is called, when it is asked,
+whether it is asked" has been editorial for a while. "How to READ the value off a thing" is `of:`,
+a function — and for **ten of the twenty-one** facets that function is literally `x => x.subject`.
+Reading a named field is not logic; it is a field name.
+
+**So a `facets` row naming a field the code has never heard of becomes a question**, with the reader
+derived by `facetFromSheet_`: look on the item, then on `row` — the original spreadsheet row every
+item carries. That second half is the unlock. **A column added to `venues` is filterable the same
+afternoon, with no mapper edit**, because the row is already on the item. A comma in the cell is a
+list, the way `keystage` already does it in code.
+
+**No deploy needed.** `doget.gs` already passed unknown facet rows through — its comment says so —
+so this is a phone change only.
+
+Proved against the real data: three rows added at runtime gave
+`answerType` (a real column no facet had ever read) **3 answers, 85% coverage, chosen as the next
+question**; `nonsense` (a typo) **0%, reported, not silent**; and `name` **212 answers, refused**.
+
+**That refusal is a new rule the sheet made necessary.** `FACET_MAX_ANSWERS = 40` — there was never
+an upper bound because every facet was written by somebody looking at the data, and `field: name`
+is 212 answers presented as multiple choice. The rule applies to the code's own facets too: a
+question past forty answers has stopped narrowing anything, whoever wrote it. `Subject` is about
+twenty and `Division` seventeen, so nothing real is near it.
+
+**And `name` having exactly 212 answers is the collection showing through** — 212 distinct paper
+names across 3,265 questions. That is the `contains` idea from the audit, visible in the data.
+
 **Fifteen fields of ceremony hid one that decided a filter.** Every mapper wrote
 `bandType: '', bandValue: '', keystage: '', …, paper: false` — ten identical blocks. All of it was
 ceremony: `asList_` cannot tell `''` from `undefined`, so writing them and omitting them are the
