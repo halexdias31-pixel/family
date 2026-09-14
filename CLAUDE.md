@@ -297,6 +297,33 @@ dead custom properties; all seven were wrong, because they are set from template
 facts come from the browser; "does a writer exist at all" comes from the source. `check/ui.js` says
 which of the two each check uses and why.
 
+**Both spreadsheet IDs pointed at an `.xlsx` and `SpreadsheetApp` cannot open one.** Every section
+loaded empty, which is also exactly what a blank database looks like — and the comment above
+`SPREADSHEET_ID` said "if every section ever loads empty, this line is the first thing to check". It
+was right and the line was wrong. There are two files of each name, same title, same owner:
+
+| | was (unopenable `.xlsx`) | is (Google Sheet) |
+|---|---|---|
+| businessDB | `1WeY0AD7dEz…` | `1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s` |
+| SubjectsDB | `1jDEeRoUTtL…` | `1eUmrhFQBmqXTJF4OYVtxb4C6OjuVjbwrVDF0IdzsRkw` |
+
+**The URL is how you tell them apart**, because the title does not: a Google Sheet lives at
+`docs.google.com/spreadsheets/d/<id>/edit`, an uploaded `.xlsx` at `drive.google.com/file/d/<id>`.
+If the address says `file/d`, Apps Script cannot read a cell of it.
+
+This is why the past papers looked missing. They are not — `questions` in SubjectsDB has the real
+Edexcel papers in it, stems, parts and mark schemes, and has had for a while. Nothing was reading
+the file they are in. **Do not seed that tab.** It is content, it is maintained in the sheet, and
+the sheet is the only place it lives.
+
+**`SCHEMA.questions` was ten columns behind the real tab** — `source_url`, `pages`, `price`,
+`currency`, `level_required`, `trackable`, `printable`, `pages_checked`, `company`, `topics`, all
+present in the sheet with values in them. Two things fell out of that. `company` is read by
+`allTopics` to build the `Company` facet and `doGet` was never sending it, so every worksheet in the
+library looked like it came from nowhere; it sends it now. And `topics` is a column I asserted did
+not exist while writing something else — **the schema in the code is a description of the tab, and
+the tab is the thing that is true.**
+
 **`backend/people.gs` declared `childrenOf` twice and it is fixed.** Line 248 took a person row and
 returned NAMES; line 282 took a parent id and returned ROWS; the second silently won. The two
 callers wanted different halves — `doget.gs` passed an id, `dopost.gs` passed a row — so

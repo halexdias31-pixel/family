@@ -7,3 +7,6 @@ check/shots/
 .DS_Store
 Thumbs.db
 *.swp
+
+# Generated deliverables — TSV for pasting into the sheet. Not code, not shipped.
+out/

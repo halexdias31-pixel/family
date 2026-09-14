@@ -1357,6 +1357,18 @@ function doGet(e) {
 
              `TRUE_` RATHER THAN `S`, so a blank cell reads as false and not as the string "". Every
              question is answerable on screen until somebody says otherwise. */
+          /* ---------- WHO PUBLISHED IT, WHICH THE FUNNEL ASKS FOR AND NOTHING SENT -----------------
+             `allTopics` READS `r.company` AND BUILDS A `Company` FACET OUT OF IT. The note it wrote
+             beside that line says "the questions sheet carries it now — 1stclassmaths, Corbettmaths,
+             AQA", and the sheet does: `company` is a real column with real values in it. This push
+             never included it, so every row arrived on the phone with `company` undefined, the facet
+             had nothing to offer, and every worksheet in the library looked like it came from
+             nowhere — which is the exact sentence that note was written to fix.
+
+             ONE WORD, AND THE FEATURE THE OTHER END ALREADY BUILT STARTS WORKING. This is the
+             `|| []` failure in miniature: a field the site asks for and the backend does not send
+             does not fail, it just quietly means nothing. */
+          company: S(r.company),
           answer: S(r.answer), answerType: norm(r.answer_type),
           needsPrint: TRUE_(r.needs_print),
 
