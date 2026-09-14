@@ -230,74 +230,20 @@ function favTile_(x) {
 }
 
 
-/* ---------- A RESOURCE'S WAYS IN -------------------------------------------------------------------
-   HTML, THEN PAPER — read it here, or hold it. There were three and the PDF was the first of them;
-   see the note in the list below for where it went.
+/* ---------- `topicTiles_` WAS HERE, AND THERE ARE NO DOCUMENTS TO ACT ON --------------------------
+   It was the action row under a past paper: `Read`, which opened the whole thing in a sheet, and
+   `Paper`, which put a printed copy in the basket at pages x rate. Both took `x.topic` — the
+   document behind the card — and there are no document cards. See the note above `questionItems`
+   in find.js.
 
-   PAPER IS LAST because it is the only control that spends anything, and that is where a control
-   that spends anything belongs.
+   THE PRINT LINE IS THE REAL LOSS AND IT IS WORTH NAMING. You cannot print one question; a print is
+   a whole paper, priced per page, and this screen no longer lists a whole paper. `printPrice` and
+   `canPrint` are still in find.js and `CART` still holds a `print` line if anything makes one —
+   nothing does. Selling paper again means a surface that lists documents, which is the thing that
+   was just removed from the funnel on purpose. Somewhere else, deliberately, or not at all.
+--------------------------------------------------------------------------------------------- */
 
-   WHEN NOTHING IS OFFERED AT ALL, one line says so. That is not a placeholder — it is the answer to
-   the question the card just raised by having no rows under it, and a page count nobody has run is
-   something you can go and fix rather than something you have to wonder about. */
-function topicTiles_(x) {
-  const t = x.topic;
-  if (!t) return '';
 
-  const price = printPrice(t.pages);
-  const qs = paperRows(t).filter(r => r.kind !== 'stem').length;
-  const inCart = CART.some(c => c.key === (t.id || t.name) && c.kind === 'print');
-
-  const rows = [
-    /* ---------- THE PDF ROW WAS HERE --------------------------------------------------------------
-       A PDF IS OPAQUE TO EVERYTHING THIS APP DOES. You cannot tick one question inside it, filter to
-       it, or pull four questions from four papers into one worksheet — and the funnel, the passes
-       and the generated paper all work at question granularity. It could be linked and nothing else.
-
-       `link` IS STILL IN THE SHEET and is deliberately left there: it is the only record of where
-       those papers actually live, and a column costs nothing. It is simply no longer a way in.
-    --------------------------------------------------------------------------------------------- */
-
-    /* ---------- READING IT, WHICH IS WHAT SOMEBODY CAME TO THIS CARD FOR ------------------------
-       THIS TILE WAS REMOVED ONCE, on the grounds that it was "a button that opened what you were
-       already looking at" — true only because `paperCard` was printing the entire paper onto every
-       card in the results list. See the note where `paperInline_` used to be in find.js: the funnel
-       is a paged LIST, so that was forty-seven questions and forty-seven answer boxes between one
-       cover and the next.
-
-       IT SAYS `Read`, NOT `<>`. The old one was labelled `HTML` over a `<>` glyph, which reads as a
-       developer's view of the row rather than as "the questions are in here" — that was the other
-       half of why it got removed, and it was a fair complaint about the label rather than about the
-       tile. The question count rides underneath, because how long a paper is decides whether you
-       open it now. */
-    qs ? tile_({ icon: 'doc', label: 'Read', tone: 'go',
-                 note: qs + ' question' + (qs === 1 ? '' : 's'),
-                 act: 'paper-read', data: { key: t.id || t.name } })
-       : '',
-
-    /* THE PAPER COPY. The price sits on the line that charges it, so the thing you are agreeing to
-       is written on the thing you press rather than in a row above it. */
-    canPrint(t)
-      ? tile_({ icon: inCart ? 'cart' : 'doc',
-                label: inCart ? 'In your basket' : 'Paper', tone: 'buy', on: inCart,
-                note: inCart ? '' : money(price) + ' · ' + t.pages + 'pp',
-                act: 'cart-add', off: !USER || inCart,
-                data: { key: t.id || t.name, kind: 'print' } })
-      : '',
-  ].filter(Boolean);
-
-  /* NOTHING TO OPEN MEANS NOBODY HAS TYPED IT UP. That is now the only reason it can happen, and it
-     is a thing you can go and do rather than a thing to wonder about — so the sentence says which,
-     and says it to an admin as a job rather than to a client as a fault. */
-  const none = rows.length ? '' : `<p class="tile-none">${
-    isAdmin() ? 'No questions written up for this one yet.'
-              : 'Not ready to read yet.'}</p>`;
-
-  /* `tickRow(t)` WAS PREPENDED HERE — three checkboxes that were not an action row and stayed with
-     the card, above the marks. The passes are gone; see the note where `tickRow` used to be in
-     find.js. */
-  return rows.length ? rows.join('') : none;
-}
 
 
 /* ---------- A SHOP THING ---------------------------------------------------------------------------
@@ -541,7 +487,7 @@ function cardTiles_(x) {
 }
 
 function cardActions_(x) {
-  if (x.kind === 'topic') return topicTiles_(x);
+  /* `topic` WAS HERE, routing to `topicTiles_`. No documents, no row. */
   if (x.kind === 'shop') return x.wearable ? wearTiles_(x) : shopTiles_(x);
   if (x.kind === 'tutor') return tutorTiles_(x);
   if (x.kind === 'venue') return venueTiles_(x);

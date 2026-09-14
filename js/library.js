@@ -138,58 +138,21 @@ function libraryInto_(d, rows) {
   });
   d.questions = qs;
 
-  /* --- the documents, as the checklists ------------------------------------------------------- */
-  d.dropdowns = d.dropdowns || {};
-  d.dropdowns.topics = d.dropdowns.topics || [];
-  const cl = (d.dropdowns.checklists = {});
-  const topics = d.dropdowns.topics;
+  /* ---------- THE CHECKLISTS WERE BUILT HERE AND ARE NOT ANY MORE --------------------------------
+     THIS PUT THE 642 `kind: 'paper'` ROWS INTO `d.dropdowns.checklists`, nested by subject and then
+     by band, which is the shape `doGet` had always sent and `allTopics` in find.js read. `allTopics`
+     is gone: the funnel lists questions, not the documents they came out of — see the note above
+     `questionItems`.
 
-  rows.forEach(r => {
-    if (String(r.kind || '').toLowerCase() !== 'paper') return;
-    const name = libS(r.name);
-    if (!name) return;
-    /* A RETIRED DOCUMENT STILL REACHES AN ADMIN, marked, for the same reason a deleted post does:
-       it is the only way to switch one back on. 538 of the 642 carry FALSE today, so this line is
-       the difference between a student seeing about a hundred and an admin seeing all of them. */
-    const live = libOn(r.active);
-    if (!live && !admin) return;
-    const subject = libS(r.subject) || 'Other';
-    const band = libS(r.band_value);
-    if (topics.indexOf(name) === -1) topics.push(name);
-    cl[subject] = cl[subject] || {};
-    cl[subject][band] = cl[subject][band] || { bandField: libS(r.band_type), topics: [] };
-    cl[subject][band].topics.push({
-      /* THE PAPER'S ID, NOT THE RESOURCE'S — see the note in `doget.gs` where this used to live.
-         A question carries only `paper_id`, and 80 documents have no `resource_id` at all. */
-      id: libS(r.paper_id) || libS(r.resource_id),
-      resourceId: libS(r.resource_id),
-      name, rowIndex: 0, link: libS(r.source_url),
-      trackable: libTrue(r.trackable),
-      resourceType: libS(r.resource_type),
-      bandType: libS(r.band_type), bandValue: band,
-      day: libS(r.day), month: libS(r.month), year: libS(r.year),
-      price: libN(r.price) || 0,
-      currency: libS(r.currency) || 'credits',
-      level: libN(r.level_required) || 0,
-      kind: 'resource',
-      grade: libS(r.band_type) === 'grade' ? band : '',
-      stage: libS(r.band_type) === 'stage' ? band : '',
-      keystage: libS(r.key_stage), examBoard: libS(r.exam_board), company: libS(r.company),
-      tier: libS(r.tier),
-      paper: libTrue(r.print_required),
-      printout: libTrue(r.print_required) ? 'Print out' : '',
-      examWave: libS(r.exam_wave),
-      pages: libN(r.pages),
-      printable: libCanPrint_(r, cfg),
-      printPrice: libPrintPrice_(r.pages, cfg),
-      active: live,
-      /* ---------- THE PASSES ARE NOT IN THIS FILE AND WILL NOT BE ---------------------------------
-         `ticks_1..3` HELD THE HANDLES OF REAL CHILDREN and this repository is public. They are
-         stripped from `data/questions.json` at source, so these are empty here and `trackable`
-         above is whatever the sheet said rather than whatever a tick implies. A tick is a fact
-         about a person and a document; it belongs with the people, in `Ledger`. */
-      tick1: '', tick2: '', tick3: '',
-    });
-  });
+     SO IT IS DELETED RATHER THAN LEFT BUILDING. A structure computed on every load for nobody is
+     weight on every phone, and worse, it is a thing the next person reads and believes is wired up.
+     `dropdowns.topics` stays an empty array and `checklists` an empty object, both set by `load()`
+     in shell.js, because `check-payload.js` and the fixture still name them and an absent key reads
+     differently from an empty one.
+
+     THE ROWS THEMSELVES ARE NOT LOST. They are in `data/questions.json` with everything else, still
+     `kind: 'paper'`, still carrying the link, the page count and the print flag. Nothing reads them
+     today. Anything that lists documents again reads them from there. */
+
   return d;
 }

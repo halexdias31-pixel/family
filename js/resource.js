@@ -134,15 +134,13 @@ on('cart-add', el => {
      same line. The old test dropped the second one silently. */
   if (CART.some(c => c.key === key && c.kind === kind)) { toast('Already in your basket'); return; }
 
-  if (kind === 'print') {
-    const t = topicBy(key);
-    if (!t || !canPrint(t)) { toast('That one is not priced for printing'); return; }
-    CART.push({ key, name: t.name, kind, cost: 0, money: printPrice(t.pages), pages: t.pages });
-  } else if (kind === 'topic') {
-    const t = topicBy(key);
-    if (!t) return;
-    CART.push({ key, name: t.name, kind, cost: 0, money: 0 });
-  } else {
+  /* ---------- `print` AND `topic` WERE TWO OF THE THREE KINDS, AND BOTH LOOKED A DOCUMENT UP -----
+     `topicBy` is gone with the documents — see `questionItems` in find.js. Nothing in the app now
+     builds a `print` or `topic` line, so both branches were unreachable code that still named a
+     function that no longer exists. The kind list above keeps them, because a basket saved in
+     somebody's `localStorage` from yesterday still has such lines in it and they have to draw and
+     be removable rather than throw. */
+  {
     const src = (DATA.shop || []).find(x => norm(x.name) === norm(key));
     if (!src) return;
     CART.push({ key, name: src.name, kind, cost: Number(src.price) || 0, money: 0 });
@@ -217,142 +215,24 @@ on('cart-send', () => {
    obvious thing to do with twenty rows that share a `paper_id`: put them in order and read them.
 ================================================================================================== */
 
-/* One paper's rows, in printed order. Numeric on the question, alphabetical on the part — sorted as
-   TEXT, Q10 falls between Q1 and Q2, which is right for a filing cabinet and wrong for a paper. */
-function paperRows(t) {
-  const id = t && (t.id || t.rowId);
-  if (!id) return [];
-  /* THROUGH `paperIdOf_`, which is the one reader for this column — see find.js. This was the
-     fourth copy of the same three-name test, and the copy in `allTopics` was the one that had a
-     name missing and emptied the entire paper list. */
-  return (DATA.questions || [])
-    .filter(r => paperIdOf_(r) === id)
-    .sort((a, b) => (Number(a.q) || 0) - (Number(b.q) || 0)
-                 || String(a.part || '').localeCompare(String(b.part || '')));
-}
+/* ---------- `paperRows` AND `paperBody_` WERE HERE, AND SO WAS THE ANSWER BOX ---------------------
+   `paperRows` gathered one paper's questions in printed order — numeric on the question, alphabetic
+   on the part, because sorted as text Q10 falls between Q1 and Q2. `paperBody_` typeset them: a
+   section heading where the section changed, the question number once, the stem above the parts
+   that read it, then each part with its lead, its marks, a box to write in and the mark scheme shut
+   underneath.
 
-/* `papersWithQuestions_` WAS HERE. It answered "which paper is next" for the flick inside the open
-   sheet, and there is no sheet — a paper opens in a tab of its own now. Nothing else ever called it.
-   `check-dead.js` would have named it on the next run anyway. */
+   NOTHING BUILDS A WHOLE PAPER ANY MORE. The funnel lists questions and `questionCard_` in find.js
+   draws one — the same stem, lead, part, diagram and mark scheme, off the same row, for one
+   question instead of forty-seven. See the note above `questionItems`.
 
-/* ==================================================================================================
-   A PAPER OPENS AS A PAGE OF ITS OWN, IN A NEW TAB.
-
-   IT WAS A SHEET — the app's overlay, sliding up over the card you pressed. That was the last sheet
-   left in the app, and it was the wrong shape for this one thing above all others: a past paper is
-   a DOCUMENT. You read it beside something else, you scroll it for twenty minutes, you print it,
-   you keep the tab open while you work. An overlay can do none of those; it can only be dismissed.
-
-   AND IT IS THE THING THE TROLLEY SELLS. `Paper` charges for a printed copy, and until now nothing
-   in the app could actually produce one — the sheet had the app's chrome around it and the app's
-   dark theme through it. A tab holding nothing but the paper is Ctrl-P away from the thing being
-   bought, which makes the price honest.
-
-   WHAT IS LOST, and it is worth saying: the sheet could be flicked left and right to the paper
-   before or after this one. A tab cannot. That was a nice way to browse and a poor way to read, and
-   reading is what this is for — the funnel is how you find the next one.
-
-   ---------------------------------------------------------------------------------------------
-   THE STYLES TRAVEL WITH IT. A new tab shares nothing with the app — no stylesheet, no variables —
-   so the paper carries its own, inline and complete. They are deliberately NOT a copy of the app's:
-   this is black on white, because that is what an exam paper is and because it is what comes out of
-   a printer without anybody changing a setting.
-================================================================================================== */
-/* `PAPER_CSS` WAS A WHOLE STYLESHEET IN A STRING and had to be: the tab it filled was a blank
-   document with no stylesheet of its own. There is no tab. style.css already carried a `.qpaper`
-   block written for exactly this — styled, and produced by nothing. Deleting the string is what
-   connects the two. */
-
-/* The questions, as printed order. Shared by the tab and by nothing else — but kept separate from
-   the document around it so the two can be read apart. */
-function paperBody_(t) {
-  const rows = paperRows(t);
-  if (!rows.length) return null;
-
-  let h = '', section = null, q = null, marks = 0;
-  rows.forEach(r => {
-    /* A SECTION HEADING WHERE THE SECTION CHANGES, not one per question. */
-    if (r.section && r.section !== section) {
-      section = r.section;
-      h += `<h2 class="qp-sec">Section ${esc(section)}</h2>`;
-    }
-    if (r.q !== q) {
-      q = r.q;
-      h += `<h3 class="qp-q">${esc(r.q)}</h3>`;
-    }
-    /* THE STEM IS THE SHARED PART and prints once, above the parts that need it — which is the
-       whole reason it is a row of its own rather than a copy on each part. */
-    if (r.kind === 'stem') {
-      h += `<div class="qsheet-stem">${r.html || ''}${
-        r.diagram ? `<figure>${r.diagram}</figure>` : ''}</div>`;
-      return;
-    }
-    marks += Number(r.marks) || 0;
-    h += `<div class="qp-part">
-      ${r.part ? `<span class="qsheet-pn">(${esc(r.part)})</span>` : ''}
-      <div class="qp-body">
-        ${r.lead ? `<div class="qsheet-lead">${r.lead}</div>` : ''}
-        ${r.html || ''}
-        ${/* THE DIAGRAM AFTER THE PROSE AND BEFORE THE MARKS, which is where a printed paper puts
-              it: you read what is being asked, you look at the picture, and the marks are the last
-              thing on the part. A `<figure>` because `.qpaper figure` and `.qpaper figure svg` have
-              been in style.css since before anything could produce one. */''}
-        ${r.diagram ? `<figure>${r.diagram}</figure>` : ''}
-        ${r.marks ? `<p class="qp-marks">[${esc(r.marks)} mark${
-          Number(r.marks) === 1 ? '' : 's'}]</p>` : ''}
-        ${ansBox_(t, r)}
-        ${/* AND THE MARK SCHEME UNDER YOUR OWN ANSWER, shut until asked for — the same block the
-              single-question card draws, so a part looks identical whichever way it is reached.
-              Your box comes FIRST deliberately: an answer you can see before you have written one
-              is not a question. */''}
-        ${typeof answerBlock_ === 'function' ? answerBlock_(r) : ''}
-      </div>
-    </div>`;
-  });
-  /* THE TOTAL IS ADDED UP RATHER THAN TYPED, so it cannot disagree with the questions above it. */
-  return { html: h, marks: marks };
-}
-
-/* ---------- SOMEWHERE TO WRITE THE ANSWER --------------------------------------------------------
-   A BOX PER PART, because that is what the paper has. The alternative — one box at the bottom — is a
-   page of prose nobody can mark against a mark scheme that is written per part.
-
-   IT IS KEPT IN `localStorage`, AND THAT IS NOT A SHORTCUT. These cards are rebuilt on every
-   repaint — a filter changing, a payload landing, signing in — and a `<textarea>` rebuilt is a
-   `<textarea>` emptied. Somebody four questions into a paper losing the lot because the sheet
-   answered is the kind of fault that stops people trusting an app entirely. The browser remembers it
-   instead, so a redraw, a swipe away or a reload all come back to what was typed.
-
-   NOT SENT ANYWHERE, and the card says so. There is no endpoint that takes an answer and no tab to
-   hold one, so this is a workbook and not a submission — promising otherwise by looking like a form
-   would be worse than the plain box it is.
-
-   THE KEY IS PAPER + QUESTION + PART, so two papers that both have a `3(a)` do not share a box.
-   Every read and write is wrapped: private mode throws on `localStorage` rather than returning
-   null, and a thrown getter here would take the whole paper down with it. */
-const ansKey_ = (t, r) => 'ans:' + ((t && (t.id || t.name)) || '?') + '|' + (r.q || '') + '|' + (r.part || '');
-
-function ansRead_(k) {
-  try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
-}
-
-function ansBox_(t, r) {
-  const k = ansKey_(t, r);
-  return `<label class="qp-ans">
-    <span class="qp-ans-k">Your answer</span>
-    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
-  </label>`;
-}
-
-/* SAVED AS IT IS TYPED, through the same delegated `change`/`input` route book.js uses for its typed
-   fields — there is no Save button because there is nothing to save it TO, and a button that only
-   wrote to the same browser would be a promise the app cannot keep. */
-document.addEventListener('input', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
-  if (!el) return;
-  try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
-});
+   THE ANSWER BOX WENT WITH IT, and that is the one thing here worth wanting back. `ansBox_` gave
+   every part a `<textarea>` kept in `localStorage`, keyed on paper + question + part, so a redraw
+   or a reload came back to what had been typed. It belonged to reading a whole paper in order. On a
+   funnel that lists 3,271 questions it would be 3,271 textareas, which is a different proposition
+   entirely — so it is not quietly carried over, and if answers are wanted the place for them is a
+   surface built to be worked through rather than one built to be searched.
+--------------------------------------------------------------------------------------------- */
 
 /* `openPaper_` AND `on('paper-read')` MOVED TO find.js, beside the note explaining why they came
    back. They were removed once, when the whole paper was being printed onto every card in the
