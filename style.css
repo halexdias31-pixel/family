@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-22-no-passes";
+  --css-version: "2026-09-22-questions-only";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -4192,57 +4192,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    been decoration.
 ================================================================================================== */
 
-/* ---------- THE PAST PAPER -----------------------------------------------------------------------
-   White, squared off, and set in the face every exam board uses — which is to say a plain one. The
-   whole effect rests on restraint: an exam paper is the least designed object a student handles,
-   and the moment this looks styled it stops looking like one. */
-.paper {
-  background: #fbfaf6;
-  color: #1b1a17;
-  border: 1px solid #d9d5c9;
-  border-radius: 2px;
-  padding: .9rem .95rem .8rem;
-  box-shadow: 0 10px 26px rgb(0 0 0 / .45);
-  position: relative;
-}
-.paper .paper-top {
-  display: flex; justify-content: space-between; align-items: baseline;
-  border-bottom: 2px solid #1b1a17;
-  padding-bottom: .4rem;
-}
-.paper-board {
-  font-family: var(--font); font-weight: 800;
-  font-size: .82rem; letter-spacing: .04em; text-transform: uppercase;
-}
-.paper-tier {
-  font-family: var(--mono); font-size: .6rem; letter-spacing: .14em;
-  text-transform: uppercase;
-  border: 1px solid #1b1a17; border-radius: 2px;
-  padding: .1rem .35rem;
-}
-.paper-mid { display: flex; flex-direction: column; gap: .12rem; margin: .7rem 0 .8rem; }
-.paper-subject { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: #55514a; }
-.paper-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; }
-.paper-of { font-size: .78rem; color: #55514a; }
+/* `.paper`, `.paper-top`, `-board`, `-tier`, `-mid`, `-subject`, `-name`, `-of`, `-box`, `-foot`
+   AND `.paper.is-off` WERE HERE — about fifty lines that drew a past paper as the cover of one, on
+   cream, squared off, set in a plain face because an exam paper is the least designed object a
+   student handles. `paperCard` in find.js emitted it and `paperCard` is gone: the funnel lists
+   questions and not the documents they came out of. See the note above `questionItems`. */
 
-/* THE BOX. Ruled, empty, and the single detail that makes the whole thing land — every one of these
-   anybody has been handed had this, and they wrote in it. */
-.paper-box { display: flex; align-items: flex-end; gap: .5rem; margin-bottom: .75rem; }
-.paper-box-k {
-  font-family: var(--mono); font-size: .58rem; letter-spacing: .1em;
-  text-transform: uppercase; color: #6c675e; white-space: nowrap;
-}
-.paper-box-line { flex: 1 1 auto; border-bottom: 1px solid #9c9689; height: .9rem; }
-
-.paper-foot {
-  display: flex; justify-content: space-between; gap: .5rem;
-  border-top: 1px solid #d9d5c9; padding-top: .45rem;
-  font-family: var(--mono); font-size: .58rem; letter-spacing: .08em;
-  text-transform: uppercase; color: #6c675e;
-}
-/* A deleted one is a paper somebody has crossed out. */
-.paper.is-off { opacity: .55; }
-.paper.is-off .paper-name { text-decoration: line-through; }
 
 /* ---------- THE STAFF PASS -----------------------------------------------------------------------
    A card on a lanyard. The hole at the top is not decoration: it is what makes the eye read this as
@@ -4368,7 +4323,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* THE CHEVRON the tappable rule adds sits wrong on all three — a pass and a slip and an exam paper
    are objects, and an object with a navigation arrow stuck to it is an object with a sticker on it.
    The shapes already say they can be pressed. */
-.paper::after, .pass::after, .slip::after { content: none; }
+.pass::after, .slip::after { content: none; }
 
 
 /* ---------- AND THE ASK, under the receipt ------------------------------------------------------- */
@@ -6823,42 +6778,73 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   font: 400 .74rem/1.45 var(--font); color: var(--dim);
 }
 
-/* ---------- THE TYPESETTING MOVED FROM `.qsheet` TO `.qpaper` -------------------------------------
-   EVERY RULE BELOW USED TO BE `.qsheet …` AND `.qsheet` IS NOT EMITTED ANY MORE. It was the wrapper
-   in `questionCard_`, the per-question card that drew each question of a paper a second time
-   alongside the paper itself; that card is gone and so is its wrapper.
+/* ==================================================================================================
+   QUESTIONS IN THE FUNNEL.
 
-   SO THIS WAS STYLING NOTHING — and, worse, it had never styled the place these questions are
-   actually read. `paperBody_` prints the whole paper inside `.qpaper`, and `.qpaper` has no rule
-   for a table, a roman-numeral list or an SVG figure anywhere in this file. The diagrams, the
-   mark tables and the (i)/(ii)/(iii) parts have been arriving on the paper page unstyled the whole
-   time, which is most of what made it look wrong.
+   THE CARD IS THE WHOLE QUESTION, and the first version of it was not — it showed 96 characters
+   with a `.qcard-peek` clipped to one line, and the rest opened in a panel. That split only made
+   sense while the rest lived somewhere else, and it never did: the stem, the lead and the part are
+   three fields on the row the card is already drawn from. A question is SHORT; if it were a page it
+   would be a paper. So the peek is gone and the tap it cost on every single card is gone with it.
 
-   `.qpaper` IS THE ANCESTOR OF BOTH the stem and the parts, so one prefix covers what two did. */
-.qpaper { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
+   WHAT IS SCANNED IS THE HEADER ROW — `Q5b` hard left in gold mono, the marks hard right — so a
+   list is still something you run an eye down even though each card carries its whole question.
+================================================================================================== */
+.qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
+         padding: .7rem .8rem; margin-bottom: .5rem; }
+.qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+.qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
+.qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
+.qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
+/* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
+   a card that was a button. Neither has anything to do: the card is not tappable, because there is
+   nothing left to open. */
+.qcard .qsheet { margin-top: .5rem; }
+
+/* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE --------------------------------------------
+   IT WAS `.qsheet …`, then `.qpaper …`, and it is `.qsheet …` again. Worth writing down, because
+   the middle move was made for a reason that was true at the time: `questionCard_` had been deleted
+   in favour of printing the whole paper, so `.qsheet` was emitted by nothing while `.qpaper` — the
+   paper page — had no rule for a table, a roman-numeral list or an SVG figure anywhere in this
+   file. Every diagram and every mark table was arriving unstyled, which was most of what made that
+   page look wrong.
+
+   BOTH OF THOSE ARE NOW GONE and the question card is back, so these rules are back on the wrapper
+   they were written for. `.qsheet` is the ancestor of the stem, the lead and the part, so one
+   prefix covers all three.
+
+   THE FIGURE RULES ARE THE ONES THAT MATTER MOST NOW. `figure svg { width: min(100%, 20rem) }` is
+   what keeps a diagram inside a 320px phone, and the label classes below are what let an SVG drawn
+   in black ink on white paper read on a black screen — they all take `currentColor`, so there is
+   one drawing rather than two. See the `diagram` column in js/library.js. */
+.qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
 .qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
 .qsheet-lead { opacity: .9; margin-bottom: .6rem; }
 .qsheet-pn { font-weight: 700; color: var(--gold); }
-/* `.qsheet-part`, `.qsheet-pb` and `.qsheet-marks` went with the card. `paperBody_` has always
-   written `.qp-part`, `.qp-body` and `.qp-marks` for the same three jobs. */
-.qp-body p:first-child { margin-top: 0; }
-.qpaper ol.parts, .qpaper ol.roman { padding-left: 2rem; }
-.qpaper ol.roman { list-style: lower-roman; }
-.qpaper ul { padding-left: 1.2rem; }
-.qpaper .stat { text-align: center; margin: .9rem 0; }
-.qpaper table { border-collapse: collapse; margin: .9rem auto; }
-.qpaper th, .qpaper td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+/* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text
+   under a hanging (a) is what makes a multi-part question readable at a glance. `.qsheet-marks`
+   from the first version is NOT back: `questionCard_` prints the marks in its own header row, hard
+   right beside the reference, which is where somebody scanning a list looks for them. */
+.qsheet-part { display: flex; gap: .6rem; }
+.qsheet-pb { flex: 1; min-width: 0; }
+.qsheet p:first-child { margin-top: 0; }
+.qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
+.qsheet ol.roman { list-style: lower-roman; }
+.qsheet ul { padding-left: 1.2rem; }
+.qsheet .stat { text-align: center; margin: .9rem 0; }
+.qsheet table { border-collapse: collapse; margin: .9rem auto; }
+.qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
    on this black screen without a second copy of it. */
-.qpaper figure { margin: 1rem 0; text-align: center; }
-.qpaper figure svg { width: min(100%, 20rem); height: auto; }
-.qpaper .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
-.qpaper .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
-.qpaper .ax { font: italic 9px serif; fill: currentColor; }
-.qpaper .axis { stroke: currentColor; stroke-width: 1.2; }
-.qpaper .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
-.qpaper .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+.qsheet figure { margin: 1rem 0; text-align: center; }
+.qsheet figure svg { width: min(100%, 20rem); height: auto; }
+.qsheet .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .ax { font: italic 9px serif; fill: currentColor; }
+.qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
+.qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+.qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
 /* ==================================================================================================
    BOXING — THE FIGHTER AND THE FIGHT
 
@@ -6885,61 +6871,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .fight-note { margin: .4rem 0 0; font-size: .78rem; line-height: 1.45; color: var(--dim); }
 
 /* ==================================================================================================
-   A WHOLE PAPER, READ ON A PHONE
+   THE PAPER PAGE WAS HERE — `.qpaper`, `.qp-head`, `.qp-sec`, `.qp-q`, `.qp-part`, `.qp-body`,
+   `.qp-marks`, `.qp-end` and a print rule — about sixty lines that typeset a whole past paper read
+   end to end. `paperBody_` emitted it and nothing does now: the funnel lists questions, one card
+   each, and `questionCard_` writes `.qcard` / `.qsheet` below. See the note above `questionItems`
+   in find.js.
 
-   THE QUESTIONS WERE ALWAYS THERE and could only be opened one at a time. Read end to end they
-   need what a printed paper has: a section heading, a number that stands away from the text, and
-   the marks where the eye expects them, hard right.
+   TWO THINGS IN IT ARE WORTH NOT LOSING, because both were paid for in screenshots:
+
+     `.screen h2` (0,1,1) BEAT `.qp-sec` (0,1,0) ON EVERY PROPERTY THEY SHARED. A paper's section
+     heading rendered as the app's terminal rule — a border top as well as bottom, `display: flex;
+     justify-content: space-between` and `::before { content: '> ' }` — so "Section A" came out as
+     `>` at the far left and `SECTION A` at the far right, between two lines. `check-css` passed,
+     because it looks for a property set twice in ONE rule and this was one rule beating another.
+     A heading class that has to survive `.screen h2` needs two parts to its selector.
+
+     AND A LONG SHEET THAT SIMPLY STOPS reads as the rest having failed to load, which is why there
+     was an "END OF QUESTIONS" line. A card does not have that problem; a list of them might.
 ================================================================================================== */
-.qpaper { padding-bottom: 1rem; }
-.qp-head { margin: 0 0 1rem; font: 400 .74rem/1.4 var(--mono); color: var(--dim);
-           letter-spacing: .04em; }
-.qp-head b { color: var(--gold); }
-/* A SECTION IS A DIVISION OF THE PAPER, so it gets a rule; a question is not, so it does not. */
-/* ---------- `.screen h2` WAS WINNING EVERY PROPERTY IN HERE ---------------------------------------
-   `.qp-sec` IS 0,1,0 AND `.screen h2` IS 0,1,1, so the generic rule beat this one on every
-   declaration they share — the margin, the font, the colour, the border. What a paper's section
-   heading actually got was the app's terminal-style section rule: a border TOP as well as bottom,
-   `display: flex; justify-content: space-between`, and `::before { content: '> ' }`.
 
-   SO "Section A" ON A PAST PAPER RENDERED AS `>` AT THE FAR LEFT AND `SECTION A` PUSHED TO THE FAR
-   RIGHT, between two rules. Found by photographing it — the markup is a clean `<h2 class="qp-sec">`
-   and nothing in this rule asks for any of that, which is why reading either one alone explains
-   nothing. `check-css` passed too: it looks for a property set twice in one RULE, and this is one
-   rule beating another, which needs the cascade rather than the file.
-
-   `.qpaper .qp-sec` IS 0,2,0 and beats it. The prompt is turned off explicitly rather than by
-   hoping: a paper is the one place in this app that is NOT a terminal. */
-.qpaper .qp-sec { margin: 1.6rem 0 .8rem; padding: 0 0 .4rem;
-          font: 700 .72rem/1 var(--mono); letter-spacing: .14em;
-          text-transform: uppercase; color: var(--faint);
-          display: block; border-top: 0;
-          border-bottom: 1px solid var(--line); }
-.qpaper .qp-sec::before { content: none; }
-.qp-q { margin: 1.4rem 0 .5rem; font: 700 1.1rem/1 var(--mono); color: var(--gold); }
-.qp-q:first-child { margin-top: 0; }
-/* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text
-   under a hanging (a) is what makes a multi-part question readable at a glance. */
-.qp-part { display: flex; gap: .7rem; margin: 0 0 1rem; }
-.qp-body { flex: 1; min-width: 0; }
-/* HARD RIGHT, ON ITS OWN LINE. Marks run down one edge so the weight of a paper can be read
-   without reading the paper — which is what a student is doing when they flick through one. */
-.qp-marks { margin: .3rem 0 0; text-align: right;
-            font: 400 .74rem/1 var(--mono); color: var(--faint); }
-
-/* THE END OF THE PAPER, SAID PLAINLY. A long sheet that simply stops leaves you wondering whether
-   the rest failed to load — which on a phone, mid-scroll, is exactly what it looks like. */
-.qp-end {
-  margin: 2rem 0 0; padding-top: .9rem; border-top: 1px solid var(--line);
-  text-align: center; color: var(--dim);
-  font: 400 .74rem/1 var(--mono); letter-spacing: .1em;
-}
-
-/* ON PAPER: a question never split across two pages. It is the one rule from the old tab
-   stylesheet that was about printing rather than about looking like paper. */
-@media print {
-  .qpaper .qp-q, .qpaper .qp-part { break-inside: avoid; page-break-inside: avoid; }
-}
 .btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .2rem; }
 

@@ -458,24 +458,58 @@ answers wins:
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
 
-### A paper card is the cover, and that took two goes
+### The funnel lists QUESTIONS. There are no collections on it.
 
-**`paperCard` printed the ENTIRE paper onto every card in the results list.** `paperInline_` did it,
-and the argument written above it was: "the funnel has already done the narrowing a list needs, so
-by the time you are looking at one paper there is nothing else on the page." That is false and a
-screenshot is what settled it — the funnel is a paged LIST, five covers on a page is ordinary, so a
-search result unrolled a complete A-Level paper, 47 parts and 47 answer boxes, between one cover and
-the next. You scrolled through an exam to reach the next exam.
+**Three goes at drawing a past paper card, and the card was never the problem.** A document and the
+questions inside it answer the *same* facets — the paper's board, tier, year and wave are copied
+onto every question row on purpose — so the list returned two kinds of thing for one search, and
+each fix made it worse in a new way:
 
-**A card is a thumbnail.** That is what it is for a tutor, a venue and a shop item, and a past
-paper's thumbnail is its cover — which `paperCard` already draws properly. Nothing was needed except
-stopping.
+1. the paper drawn once as a cover **and** again once per question;
+2. then the cover with the **whole paper printed under it**, on every card in the results list — 47
+   parts and 47 answer boxes between one cover and the next;
+3. then a cover you had to **open**, which is a search result you cannot read without a tap.
 
-**So reading is a tap again and the tile is back**, as `Read` with the question count under it,
-opening `openSheet`. It was removed on the same wrong reading, called "a button that opened what you
-were already looking at" — which it only was because of the line above it. The other half of that
-complaint was fair and is fixed too: the old tile said `HTML` over a `<>` glyph, which reads as a
-developer's view of the row rather than as "the questions are in here".
+Every one of those was found by looking at a screenshot, and (2) shipped with a comment arguing
+"the funnel has already done the narrowing a list needs, so by the time you are looking at one paper
+there is nothing else on the page." The funnel is a paged **list**. Five covers on a page is
+ordinary.
+
+**So the collection is gone.** `stuffItems()` spreads `questionItems()` — one item per part, 3,265
+of them — and `questionCard_` draws the whole question: reference and marks in the header row, the
+paper name as the subtitle, then stem, lead, part, diagram, and the mark scheme shut underneath.
+
+| Deleted | What it was |
+|---|---|
+| `allTopics`, `topicBy` | the 642 documents, built from `dropdowns.checklists` unioned with a derivation |
+| `paperCard`, `paperish_` | the exam cover, and the test for whether a row earned one |
+| `paperInline_`, `openPaper_`, `on('paper-read')` | attempts (2) and (3) |
+| `paperBody_`, `paperRows`, `ansBox_` | the whole paper typeset end to end, with a textarea per part |
+| `topicTiles_` | `Read` and `Paper` — both took the document behind the card |
+| `paperText_`, `paperPages_`, `canPrint`, `paperMismatches` | document-level helpers with nothing to help |
+| the `paperName` facet | "which paper", which existed to keep a paper card beside its questions |
+| the checklists build in `libraryInto_` | `allTopics` was its only reader |
+
+**Nothing that was being used is lost.** Subject, key stage, tier, exam board, year and exam wave
+are all on the question rows, so the funnel narrows to a paper exactly as before and then keeps
+going. `searchText_` matches each question's own words plus its stem's, which is what `paperText_`
+was faking at the document level.
+
+**What IS lost, and it is the print line.** You cannot print one question — a print is a whole
+paper, priced per page — and no surface lists a whole paper now. `printPrice` and `laminatePrice`
+remain for a basket saved before the change; nothing creates a `print` line. Selling paper again
+means a surface that lists documents, deliberately, somewhere that is not the funnel.
+
+**Measured before committing, because 3,265 items is the thing that would break it.** Typing one
+common word gives 2,397 results: 213 ms to filter (memoised after), **56 ms** to insert 2,398 result
+pages, **15 ms** a page turn, and 134 live nodes — `fillStuffPages` only fills the pages you are
+near, which is what makes the count harmless. The old comment warning that ~3,500 sections stalled
+the screen predates that lazy fill.
+
+**The rows themselves are still in `data/questions.json`**, `kind: 'paper'`, carrying the link, the
+page count and the print flag. Nothing reads them. Anything that lists documents again reads them
+from there — and `source_url` on 2,073 question rows is the real PDF on the exam board's own site,
+which is what a "open the original" control should point at rather than a rebuilt paper.
 
 **`diagram` is a column and `figure` is not.** `figure` has been on the payload since it was
 written and nothing has ever drawn it — it is 253 one-word labels (`venn`, `scatter`, `grid-blank`,

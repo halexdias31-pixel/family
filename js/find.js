@@ -373,7 +373,9 @@ const KINDS = {
 
   /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
      thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
-  topic: { group: 'Learning', label: 'Resources', card: (x, c) => thingCard_(x, c) },
+  /* `topic` WAS HERE — the documents, labelled `Resources`. The funnel lists the questions inside
+     them now and not the boxes; see the note above `questionItems`. */
+  question: { group: 'Learning', label: 'Questions', card: (x, c) => thingCard_(x, c) },
   /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER ------------------------
      I GAVE IT ITS OWN LABEL — "Questions" beside "Resources" — and that is two cupboards where
      there is one thing. Somebody after question 5b would have had to know which to open, and
@@ -443,16 +445,18 @@ function thingCard_(x, credits) {
           free ? 'free' : x.cost + ' credits'}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
-    /* ---------- A PAST PAPER IS THE COVER OF A PAST PAPER ---------------------------------------
-       Not a card describing one. The board, the tier, the paper, the year and the wave are all on
-       the row already, and arranged the way an exam paper arranges them they stop being fields and
-       become the thing itself — which every student in the country reads in a quarter of a second
-       without being told what it is.
+    /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. ------------------
+       `paperCard` WAS HERE, drawing a past paper as the cover of one — board across the top, tier
+       in the corner, a ruled box for a candidate's name. It was a good card and it is gone with the
+       thing it drew: the funnel lists QUESTIONS now, and a collection is not a result.
 
-       ONLY WHEN IT ACTUALLY IS ONE. A worksheet with no board and no tier drawn as an exam cover is
-       a card wearing a costume, and the costume would then mean nothing on the ones that earn it.
-       So: it needs a board or a tier or a paper number. Everything else stays an ordinary card. */
-    if (x.kind === 'topic' && !x.wearable && paperish_(x)) return paperCard(x);
+       WHY. A document is a box with questions in it, and this screen is for finding a question.
+       Putting the box in the list meant every search returned two kinds of thing that answer the
+       same facets — choose Edexcel · 2022 · Higher and you got the paper AND its parts — and every
+       attempt to make that read properly made it worse: the paper drawn twice, then the whole paper
+       printed onto its own card, then a card that was a cover you had to open. Three goes. The
+       collection was the problem, not how it was drawn. */
+    if (x.kind === 'question') return questionCard_(x);
 
     /* THE CARD IS NO LONGER A BUTTON. Its surface opened a sheet that repeated the card and then
        offered four controls; the controls are ON the card now, so the surface has nothing left to
@@ -506,7 +510,7 @@ function thingCard_(x, credits) {
                 Corbettmaths at KS2. That is the fact that tells two cards apart.
                 NOT ON A PAPER. `paperCard` has already drawn the board across the top of the cover,
                 and printing "AQA" twice on one card reads as a mistake rather than emphasis. */''}
-          <p class="sub">${x.company && !paperish_(x)
+          <p class="sub">${x.company
             ? `${mark(x.company)}${x.sub || x.subject ? ' <span class="faint">· </span>' : ''}` : ''}${
             mark(x.sub || x.subject || '')}${yearOf(x)
             ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
@@ -694,26 +698,12 @@ const FACETS = [
   /* A yes-or-no, phrased as the two answers rather than as the question. "Printed / Digital" is a
      choice; "Print required: true" is a database column somebody left showing. */
   { field: 'paper',     label: 'Printed?',    of: x => x.paper ? 'Printed' : 'Digital' },
-  /* ---------- WHICH PAPER, AND IT WAS NEVER ASKED --------------------------------------------------
-     THE COMMENT BELOW SAYS "which paper, then which question, then which part" AND THERE WAS NO
-     WHICH-PAPER. Twenty-one facets and not one of them looked at the paper's name — so answering
-     Learning · Maths · Past paper · KS4 · Higher went straight to a column of question numbers,
-     1 to 23, drawn from all six papers of a sitting at once. Question 5 appeared once and meant
-     five different problems.
-
-     THE NAME WAS ALREADY ON EVERY ROW. `questionItems` puts the paper's name in `sub` so the card
-     can say where a question came from; nothing ever filtered on it. This adds no column, no
-     backend change and no data — it reads the field that was already there.
-
-     A PAPER AND ITS QUESTIONS ANSWER THE SAME WAY, which is what makes choosing one keep both: the
-     paper's own card stays in the list beside its questions rather than being filtered out by the
-     answer that selected it.
-
-     BLANK ON EVERYTHING ELSE, so the coverage rule keeps it away from worksheets, tutors and
-     venues — a worksheet has a name too, and offering "which paper" over a hundred and sixty-one
-     worksheets would be the question-number fault again in a different column. */
-  { field: 'paperName', label: 'Which paper',
-    of: x => /paper/i.test(String(x.resourceType || '')) ? (x.name || '') : '' },
+  /* ---------- `paperName` — "WHICH PAPER" — WAS HERE ------------------------------------------
+     IT EXISTED BECAUSE THE PAPER WAS A RESULT. Its own note said so: the facet kept a paper's card
+     in the list beside its questions rather than filtering it out. There are no paper cards; the
+     list is questions, and `Year` + `Exam wave` + `Tier` already say which paper a question is
+     from, off the same three columns copied onto every question row. A fourth facet spelling out
+     "Paper 31: Statistics — June 2022" was the collection asserting itself one more time. */
   /* ---------- TWO MORE RUNGS ON THE SAME LADDER ------------------------------------------------
      A QUESTION IS NOT A NEW KIND OF SEARCH, it is level → year → paper carried two steps further.
      These sit after the paper facets so the funnel narrows in the order somebody thinks in: which
@@ -1170,27 +1160,13 @@ function searchText_(r) {
     .trim();
 }
 
-/* EVERY QUESTION OF ONE PAPER, JOINED — so a collapsed worksheet is searchable by its contents.
-   `Recurring Decimals` is findable by its name; the sheet whose questions are all about bearings
-   and none of whose titles say `compass` is not, and that is the case this exists for.
+/* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
+   haystack, so typing `surds` found the paper rather than nothing — which was necessary exactly
+   because the thing in the list was a document with none of its own words on it. The list is the
+   questions now and `searchText_` matches each one's own text, plus its stem's. See
+   `questionItems`. */
 
-   MEMOISED ON THE PAYLOAD, the same trick `facetList` uses: a new payload is a new array, so one
-   identity comparison decides whether the cache stands. Without it this rebuilds on every repaint,
-   which for two and a half thousand rows is the sort of cost that only shows up on a phone. */
-let PAPER_TEXT = null, PAPER_TEXT_FROM = null;
-function paperText_(id) {
-  const src = DATA.questions || null;
-  if (PAPER_TEXT_FROM !== src) {
-    PAPER_TEXT_FROM = src; PAPER_TEXT = {};
-    (src || []).forEach(r => {
-      const k = paperIdOf_(r);
-      if (!k) return;
-      (PAPER_TEXT[k] = PAPER_TEXT[k] || []).push(searchText_(r));
-    });
-    Object.keys(PAPER_TEXT).forEach(k => { PAPER_TEXT[k] = PAPER_TEXT[k].join(' '); });
-  }
-  return PAPER_TEXT[id] || '';
-}
+
 
 
 /* ---------- EVERY PAPER, DERIVED FROM ITS OWN QUESTIONS -------------------------------------------
@@ -1208,208 +1184,132 @@ function paperText_(id) {
 
    IT COSTS ONE PASS over the questions rather than a lookup per card — four hundred cards each
    scanning two hundred rows is eighty thousand comparisons to draw one screen. */
-/* ---------- HOW MANY PAGES A PAPER WOULD BE ---------------------------------------------------------
-   `pages` HAS BEEN ZERO ON EVERY PAPER, hard-coded, since papers stopped being rows and became
-   groups of questions. A PDF knew its own length; a group of questions does not. And zero is not a
-   harmless placeholder here — `printPrice` returns null for it and `canPrint` reads that as "not
-   printable", so the paper copy was never offered on anything. The count was missing from the cover
-   and the trolley was missing from the row, and both were this one number.
+/* ==================================================================================================
+   `allTopics()`, `topicBy`, `paperText_`, `paperPages_` AND `paperMismatches()` WERE ALL HERE.
 
-   FROM THE MARKS, because that is what answer space is for. A four-mark part needs roughly four
-   times the room of a one-mark part, which is the whole reason a real paper's marks are printed
-   beside the questions. Counting parts instead would give a two-page paper the same length as a
-   twelve-page one whenever the parts happened to be long.
+   THEY WERE THE COLLECTION. `allTopics` built one object per DOCUMENT — 642 of them — out of
+   `dropdowns.checklists` unioned with a derivation off the question rows, and everything else here
+   hung off that: `topicBy` looked one up by id, `paperText_` folded every question's words into its
+   paper's haystack so searching `surds` found the paper, `paperPages_` guessed a page count from a
+   mark total, `paperMismatches` reported parts of one paper disagreeing about a paper-level fact.
 
-   IT IS AN ESTIMATE AND IS NAMED AS ONE. `print_marks_per_page` is a var on the config tab beside
-   `print_rate_per_page`, so the number that decides this is somewhere you can change it after
-   seeing one come out of a printer rather than somewhere only I can. Eight is the default because a
-   GCSE paper runs about that with room to write; if yours come out short, raise it.
+   THE COLLECTION IS GONE AND THIS IS THE THIRD ATTEMPT AT IT, WHICH IS THE POINT. A document and
+   the questions inside it answer the SAME facets — the paper's board, tier, year and wave are
+   copied onto every question row, deliberately, and CLAUDE.md explains why. So choosing
+   Edexcel · 2022 · Higher returned the paper AND its parts, two kinds of thing in one list, and
+   each fix made it worse in a new way:
 
-   PLUS A COVER. Every one of these draws a board, a subject, a paper name and a candidate-name box
-   before any question, so the first sheet is never questions. */
-function paperPages_(marks) {
-  const per = num(((DATA.constants || {}).vars || {}).print_marks_per_page);
-  const perPage = (isNaN(per) || per <= 0) ? 8 : per;
-  const m = Number(marks) || 0;
-  if (m <= 0) return 0;
-  return 1 + Math.ceil(m / perPage);
-}
+     the paper drawn once as a cover and again once per question;
+     then the cover with the WHOLE paper printed under it, on every card in the results list;
+     then a cover you had to open, which is a search result you cannot read without a tap.
 
-function allTopics() {
-  const qs = DATA.questions || [];
-  /* Keyed on the object IDENTITY of the payload's own branch, so a new payload is a new list and
-     this cannot go stale — one comparison rather than hashing two hundred rows. */
-  if (TOPICS_MEMO.fromQ === qs) return TOPICS_MEMO.list;
+   None of those was the drawing. A screen for finding a question should list questions.
 
-  /* THE MARKS FIRST, in one pass, because a paper's length is a fact about all of its parts and the
-     loop below only ever sees the first one. A stem carries no marks of its own — it is the shared
-     wording above the parts — so counting it would be counting nothing twice. */
-  const marks = {};
-  /* ---------- THE METHOD, FROM WHICHEVER ROW CARRIES IT -------------------------------------------
-     TWO COMMENTS IN THIS CODEBASE DISAGREE ABOUT WHERE A PAPER'S OWN FACTS LIVE. `SCHEMA.questions`
-     says they are "blank on every part row, filled only on the one `kind: paper` row"; the note
-     beside this function says they "ride on every part" and calls it a denormalisation.
+   NOTHING IS LOST THAT WAS BEING USED. The facets that narrow to a paper — subject, key stage,
+   tier, exam board, year, exam wave — are on the question rows themselves, so the funnel reaches
+   the same place and then keeps going. `searchText_` still matches the question's own words, which
+   is what `paperText_` was faking at the document level.
+================================================================================================== */
 
-     THE CODE SETTLES IT AND THE SCHEMA LOSES. `paperIdOf_` reads `r.paper`, which is blank on a
-     paper row by definition — so that row groups under '' and is dropped, and every paper-level
-     field this function reads comes off a PART. A `guide` typed onto the paper row alone would have
-     been collected by nothing and shown nowhere, silently, which is this app's signature fault.
+/* ---------- ONE ITEM PER PART ---------------------------------------------------------------------
+   A STEM IS NOT AN ITEM. It is the shared wording above several parts — "George throws a ball at a
+   target 15 times" — and nobody searches for one; it is looked up when a part is drawn and never
+   listed in its own right. That is the whole reason it is a row of its own rather than a copy on
+   each part.
 
-     SO IT IS TAKEN FROM THE FIRST ROW OF THE PAPER THAT HAS ONE, whichever kind that row is. Fill
-     the paper row or fill a part; both work, and neither has to be the right guess. */
-  const guides = {};
-  qs.forEach(r => {
-    const id = paperIdOf_(r) || String((r && r.id) || '');
-    if (id && !guides[id] && String((r && r.guide) || '').trim()) guides[id] = r.guide;
-  });
-  qs.forEach(r => {
-    const id = paperIdOf_(r);
-    if (!id || r.kind === 'stem') return;
-    marks[id] = (marks[id] || 0) + (Number(r.marks) || 0);
+   AND NEITHER IS A `kind: 'paper'` ROW. Those are the 642 document rows, which is what this screen
+   has just stopped listing. `libraryInto_` already drops them from `DATA.questions`; the test is
+   here too because a row arriving with the wrong `kind` should fall out rather than draw as a
+   question with no text, no marks and no answer.
+
+   EVERY PAPER-LEVEL FIELD IS ALREADY ON THE ROW. Board, tier, key stage, year, wave, company,
+   subject — copied down onto every question when the two tables were folded together, which is the
+   fact that makes this function short and makes the document unnecessary. */
+function questionItems() {
+  const all = DATA.questions || [];
+  if (!all.length) return [];
+
+  const stems = {};
+  all.forEach(r => {
+    if (r.kind === 'stem') stems[paperIdOf_(r) + '|' + r.q] = r;
   });
 
-  /* ---------- THE DOCUMENTS THEMSELVES, WHICH EXIST AGAIN ----------------------------------------
-     EVERYTHING BELOW USED TO BE DERIVED FROM QUESTION ROWS, and every hardcoded blank in it was
-     true when it was written: the `resources` tab had gone, so there was no link to give, no page
-     count to read and nowhere for a tick to live. That is no longer the case. A document is a
-     `kind: 'paper'` row on the questions tab now, `doGet` builds `dropdowns.checklists` out of
-     those rows, and they carry the link, the real page count, the printable flag and the passes.
-
-     WHAT THAT COST WHILE IT LASTED, measured against the live sheet:
-
-       440 of 642 documents reached the screen not at all — deriving papers from question rows can
-           only ever find the 202 that HAVE questions;
-       328 documents have a `source_url` and every one displayed as having no PDF;
-       155 have a counted page number and the screen showed an estimate off the mark total;
-       169 carry tick data and every card drew three empty boxes it would not accept a tap on.
-
-     A UNION, NOT A SWITCH, and the reason is `active`. 538 of the 642 document rows carry
-     active=FALSE, and `doGet` drops an inactive row from the checklists for anyone but an admin. So
-     sourcing this from the checklists ALONE would take about a hundred papers off a student's
-     screen that are there today — papers whose question rows are live and whose document row is
-     not. The document wins where there is one; a paper with questions and no visible document
-     still derives, exactly as it did. Nothing disappears and 440 things appear. */
-  const seen = {};
-  const out = [];
-  const cl = (DATA.dropdowns && DATA.dropdowns.checklists) || {};
-  Object.keys(cl).forEach(subject => {
-    Object.keys(cl[subject] || {}).forEach(band => {
-      ((cl[subject][band] || {}).topics || []).forEach(t => {
-        const id = t.id;
-        if (!id || seen[id]) return;
-        seen[id] = true;
-        out.push({
-          id,
-          name: t.name || id,
-          subject: subject === 'Other' ? '' : subject,
-          grade: t.grade || '',
-          /* THE LINK THE DOCUMENT ACTUALLY HAS. See above: this was `''` with a paragraph under it
-             explaining that no PDF existed. 328 of them do. */
-          link: t.link || '', image: '',
-          company: t.company || '',
-          type: t.resourceType || '', board: t.examBoard || '',
-          bandType: t.bandType || '', bandValue: t.bandValue || '',
-          keystage: t.keystage || '', tier: t.tier || '',
-          examBoard: t.examBoard || '', resourceType: t.resourceType || '',
-          text: paperText_(id),
-          examWave: t.examWave || '', year: t.year || '',
-          guide: guides[id] || '',
-          paper: true,
-          /* THE COUNTED PAGES WIN over the estimate. `paperPages_` works a length out of the mark
-             total, which is the right answer for a paper nobody has counted and the wrong one for
-             the 155 that somebody has. */
-          pages: Number(t.pages) || paperPages_(marks[id]),
-          printable: t.printable, printPrice: t.printPrice,
-          price: t.price || 0, currency: t.currency || 'credits', level: t.level || 0,
-          active: t.active !== false,
-          /* `trackable` IS STILL READ — it is a column of the sheet and it says what the editor
-             meant — but nothing draws a tick any more, and `ticks` is gone from this object rather
-             than carried as three empty strings. See the note where `tickRow` used to be. */
-          trackable: !!t.trackable,
-          rowIndex: t.rowIndex || 0,
-        });
-      });
-    });
-  });
-
-  qs.forEach(r => {
-    const id = paperIdOf_(r);
-    if (!id || seen[id]) return;
-    seen[id] = true;
-    out.push({
-      id,
-      name: r.name || id,
+  return all.filter(r => r.kind !== 'stem' && r.kind !== 'paper').map(r => {
+    const stem = stems[paperIdOf_(r) + '|' + r.q] || null;
+    return {
+      kind: 'question',
+      /* "Q5b" IS THE NAME AND THE PAPER IS THE SUBTITLE. A list of parts all called
+         "Paper 31: Statistics — June 2022" is a list nobody can read down. */
+      name: 'Q' + r.q + qPartName_(r.part),
+      key: 'q:' + r.id,
+      sub: r.name || '',
+      image: '', cost: 0, slot: '', off: false,
       subject: r.subject || '',
-      grade: r.bandType === 'grade' ? r.bandValue : '',
-      /* DERIVED, so there is genuinely nothing to link to and no count to read — this branch only
-         runs for a paper whose document row the viewer cannot see. */
-      link: '', image: '',
-      /* WHO WROTE IT. This was hardcoded empty, so the `Company` facet had nothing to offer and
-         every worksheet in the library looked like it came from nowhere. The questions sheet
-         carries it now — 1stclassmaths, Corbettmaths, AQA — and a worksheet's publisher is most
-         of what tells two Grade 5 sheets apart on a screen already filtered to Grade 5 maths. */
-      company: r.company || '',
-      type: r.resourceType || '', board: r.examBoard || '',
+      /* THE SAME DERIVATION `allTopics` DID, and the only one it did: a grade is a band value when
+         the band is a grade, and blank when it is a stage. Two ladders, one column. */
+      grade: r.bandType === 'grade' ? (r.bandValue || '') : '',
       bandType: r.bandType || '', bandValue: r.bandValue || '',
-      keystage: r.keyStage || r.keystage || '', tier: r.tier || '',
-      examBoard: r.examBoard || '', resourceType: r.resourceType || '',
-      /* THE QUESTIONS INSIDE IT, so a collapsed worksheet is findable by what it asks and not only
-         by what it is called. See `paperText_`. */
-      text: paperText_(id),
-      examWave: r.examWave || '', year: r.year || '',
-      /* `paper: true` — IT IS ONE. This said false, so the funnel filed every past paper under
-         "Digital" and the Printed filter found none of them. It is the same fact `pages` was
-         getting wrong, one line along. */
-      /* THE PRACTICAL'S METHOD, off the paper row — see SCHEMA.questions. Blank on a past paper. */
-      guide: guides[id] || r.guide || '',
-      paper: true, pages: paperPages_(marks[id]), printable: '',
-      active: r.active !== false,
-      /* NOT TRACKABLE ON THIS BRANCH — nothing is, now that the passes are gone; this branch kept
-         it false for a narrower reason, that the viewer cannot see the document row a tick would
-         have been written to. Left as it is so the two branches still agree about the field. */
-      trackable: false,
-      rowIndex: 0,
-    });
-  });
+      keystage: r.keystage || '', tier: r.tier || '',
+      examBoard: r.examBoard || '', company: r.company || '',
+      resourceType: r.resourceType || '', examWave: r.examWave || '',
+      year: r.year || '', paper: true,
+      marks: r.marks, section: r.section,
+      lead: r.lead, html: r.html, diagram: r.diagram || '',
+      /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. `answer`, `answerType` and
+         `examinerNote` have been in the payload since the tab was cut, and the first version of
+         this function dropped all three — the other direction of the fault `check-payload.js`
+         exists for: sent, and never read. Only 91 of 3,271 rows carry one today. */
+      answer: r.answer || '', answerType: r.answerType || '',
+      examinerNote: r.examinerNote || '',
+      stemHtml: stem ? stem.html : '',
+      stemDiagram: stem ? (stem.diagram || '') : '',
+      /* THE STEM'S WORDS TOO. A part reading "work out the value of x" says nothing on its own and
+         everything alongside the paragraph it hangs from — see `searchText_`.
 
-  TOPICS_MEMO = { from: null, fromQ: qs, list: out };
-  return out;
+         THE ANSWER IS DELIBERATELY NOT IN HERE. This is what the search box matches, and including
+         it means typing a value finds the question it answers, which is the one search a revision
+         screen must not do. */
+      text: searchText_(r) + (stem ? ' ' + searchText_(stem) : ''),
+      row: r,
+    };
+  });
 }
 
-/* WHERE THE PARTS OF ONE PAPER DISAGREE about a fact that belongs to the paper. Nothing calls this;
-   it is for typing into the console after a batch of questions has been written, which is exactly
-   when a repeated field gets one row wrong. */
-function paperMismatches() {
-  /* `keystage`, NOT `keyStage`. The backend sends the lower-case spelling, so the capital one
-     compared undefined against undefined on every paper and could never report a mismatch in the
-     one field most likely to have one. */
-  const F = ['name', 'subject', 'resourceType', 'keystage', 'bandType', 'bandValue',
-             'tier', 'examBoard', 'examWave', 'year'];
-  const by = {};
-  (DATA.questions || []).forEach(r => {
-    const id = paperIdOf_(r);
-    if (!id) return;
-    (by[id] = by[id] || []).push(r);
-  });
-  const bad = [];
-  Object.keys(by).forEach(id => {
-    F.forEach(f => {
-      const vals = [...new Set(by[id].map(r => String(r[f] == null ? '' : r[f])))];
-      if (vals.length > 1) bad.push({ paper: id, field: f, values: vals.join(' | ') });
-    });
-  });
-  if (!bad.length) { console.log('every paper agrees with itself'); return bad; }
-  console.table(bad);
-  return bad;
+/* ---------- THE WHOLE QUESTION, NOT A PEEK --------------------------------------------------------
+   THE FIRST VERSION SHOWED 96 CHARACTERS and a panel showed the rest. That split only made sense
+   while the rest lived somewhere else, and it never did — the stem, the lead and the part are three
+   fields on the row this card is already drawn from.
+
+   A QUESTION IS SHORT. That is what a question IS; if it were a page it would be a paper. So the
+   truncation bought nothing and cost a tap on every single one.
+
+   THE STEM, THEN THE LEAD, THEN THE PART, in printed order, because a part without them cannot be
+   answered. The mark scheme goes last, shut, under `answerBlock_` — an answer you can see before
+   you have written one is not a question. */
+function questionCard_(x) {
+  const fig = d => (d ? `<figure>${d}</figure>` : '');
+  return `<div class="qcard">
+    <div class="qcard-top">
+      <b>${esc(x.name)}</b>
+      <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
+    </div>
+    <p class="qcard-sub">${esc(x.sub)}</p>
+    <div class="qsheet">
+      ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}${fig(x.stemDiagram)}</div>` : ''}
+      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
+      <div class="qsheet-part">
+        <div class="qsheet-pb">${x.html || ''}${
+          /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. Empty on all but two rows
+             so far — see the `diagram` column in js/library.js. */''}${fig(x.diagram)}</div>
+      </div>
+    </div>
+    ${answerBlock_(x)}
+  </div>`;
 }
 
-/* By id, always. The name lookup is what remains for a row written before ids existed, and it is
-   the one that picks the wrong "Quadratics" — so it is the fallback and not the rule. */
-const topicBy = key => {
-  const list = allTopics();
-  return list.find(x => x.id && x.id === key)
-      || list.find(x => norm(x.name) === norm(key)) || null;
-};
+
+/* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
+   up any more; see the note above `questionItems`. */
 
 /* WHAT A PRINTED COPY COSTS. Paper and toner, at the rate in the sheet — no multipliers, no
    discounts. This is the one price in the app that is not tuition and does not behave like it.
@@ -1458,14 +1358,12 @@ function laminatePrice(pages) {
 const cartMoney_ = c => (Number(c && c.money) || 0)
   + (c && c.laminate ? (laminatePrice(c.pages) || 0) : 0);
 
-/* Whether a printed copy is offered at all. An explicit FALSE in the sheet wins over any page
-   count — countable and worth printing are different questions, and a 400-page textbook answers
-   the first one yes. */
-function canPrint(t) {
-  const flag = String(t.printable ?? '').trim().toLowerCase();
-  if (flag === 'false' || flag === 'no') return false;
-  return printPrice(t.pages) !== null;
-}
+/* `canPrint` WAS HERE — whether a printed copy is offered at all, an explicit FALSE in the sheet
+   beating any page count. Its two callers were `topicTiles_`'s Paper tile and `cart-add`'s `print`
+   branch, both gone with the documents. `printPrice` above stays: `cartMoney_` and `laminatePrice`
+   still read it for a basket line saved before this change. */
+
+
 
 /* ---------- THE THREE PASSES WERE HERE, AND THEY ARE NOT COMING BACK IN THIS SHAPE ---------------
    `myTicks`, `tickRow`, `on('ticks')` AND `on('tick')` drew three checkboxes under every trackable
@@ -1716,22 +1614,12 @@ function stuffItems() {
       resourceType: '', examWave: '', year: (f.date || '').slice(0, 4), paper: false,
     })),
 
-    ...allTopics()
-      /* A deleted resource is still on the screen for an admin, greyed. It has to be: something
-         invisible cannot be put back, which is the whole reason the tutor switch works this way. */
-      .filter(x => x.active || isAdmin())
-      .map(x => ({
-        kind: 'topic', name: x.name, key: x.id || x.name, sub: x.subject || '', image: x.image,
-        cost: 0, slot: '', subject: x.subject || '', grade: x.grade || '', off: !x.active,
-        /* Straight through onto the flat item, so one funnel can ask one question of a past paper
-           and a beanie without knowing which it has. */
-        bandType: x.bandType, bandValue: x.bandValue, keystage: x.keystage, tier: x.tier,
-        examBoard: x.examBoard, company: x.company, resourceType: x.resourceType,
-        examWave: x.examWave, year: x.year, paper: x.paper,
-        /* The topic itself rides along, so the card can draw its ticks without looking it up
-           again — a lookup per card is four hundred scans of four hundred rows to draw a list. */
-        topic: x,
-      })),
+    /* ---------- THE QUESTIONS, AND NOT THE DOCUMENTS THEY CAME OUT OF ---------------------------
+       `...allTopics()` WAS HERE — 642 documents, one item each, drawn as covers. It is questions
+       now, one item per part, and the documents are not in this list at all. The long note above
+       `questionItems` says why; the short version is that a document and its questions answer the
+       same facets, so listing both meant every search returned two kinds of thing. */
+    ...questionItems(),
   ];
 }
 
@@ -2910,124 +2798,30 @@ function stuffQuestion() {
    which is exactly what `facet-pick` does — except that it only ever knew about the one grouping,
    so it could jump you to a subject and never to a key stage. */
 
-/** IS THIS ACTUALLY AN EXAM PAPER? An exam board, a tier, or a name that says which paper it is.
-    Anything else — a worksheet, a video, a topic list — is an ordinary card, because a costume that
-    everything wears is not a costume. */
-function paperish_(x) {
-  /* AN EXAM BOARD IS NOT ENOUGH, and that was the mistake. Half the library carries a board —
-     a revision sheet written to the Edexcel syllabus is an Edexcel resource and is not an exam
-     paper — so "3D Trig and Pythagoras Edexcel" was being drawn as the cover of one. A costume
-     everything wears is not a costume, and the ones that earn it stop meaning anything.
+/* `paperish_` WAS HERE — "is this row actually an exam paper", by its `resource_type` or a paper
+   number in its name. It chose between the exam cover and an ordinary card, and both callers went
+   with the cover. */
 
-     TWO WAYS IN, and both of them say PAPER rather than merely implying it:
 
-       THE TYPE SAYS SO. `resource_type` is the column where somebody has already answered this
-       question — "Past paper", "Paper 2" — and an answer somebody gave beats anything inferred
-       from the other fields.
 
-       OR THE NAME NAMES ONE. "Paper 1", "Paper 2 (Calculator)" — a numbered paper is a paper, and
-       the number is the thing that makes it one rather than a worksheet about the same topic.
+/* ---------- `paperCard`, `openPaper_` AND `on('paper-read')` WERE ALL HERE ------------------------
+   `paperCard` DREW A PAST PAPER AS THE COVER OF ONE — the board across the top, the tier in its
+   box, the subject, the paper number, a ruled line for a candidate's name, and the year with the
+   page count and "Answer all questions" along the foot. Nothing on it was invented; every line was
+   a column, arranged the way an exam paper arranges them, and it was the best-looking card here.
 
-     Everything else is an ordinary card, including a worksheet with a board and a tier on it. */
-  const type = S_(x.resourceType);
-  return /past\s*paper|^paper\b|\bpaper\s*\d/i.test(type)
-      || /\bpaper\s*\d/i.test(S_(x.name));
-}
+   IT IS GONE BECAUSE THE THING IT DREW IS NOT A RESULT. See the long note above `questionItems`:
+   this screen finds questions, and a document is the box they came in. Three drawings of that card
+   were tried and the third was still wrong, which is what finally said the card was not the fault.
 
-/**
- * THE COVER, laid out the way the real one is: board top-left, subject and paper under it, the
- * tier and the sitting on the right, a ruled box for a candidate's name, and the instructions
- * along the bottom.
- *
- * NOTHING HERE IS INVENTED. Every line is a column on the resources tab — and where a column is
- * blank the line is simply absent, which is what a real cover does too: a paper with no tier does
- * not print an empty tier.
- */
-function paperCard(x) {
-  const board = S_(x.examBoard);
-  const paper = (S_(x.name).match(/paper\s*\d+[a-z]?/i) || [''])[0];
-  const when = yearOf(x) || waveOf(x);
-  return `<div class="paper${x.off ? ' is-off' : ''}">
-    <div class="paper-top">
-      <span class="paper-board">${esc(board || '@family.')}</span>
-      ${x.tier ? `<span class="paper-tier">${esc(x.tier)} Tier</span>` : ''}
-    </div>
+   `openPaper_` LASTED ONE COMMIT. It opened the whole paper in a sheet off a `Read` tile, which was
+   the right fix for the version before it — but a sheet full of questions is the collection again
+   with a lid on.
 
-    <div class="paper-mid">
-      <span class="paper-subject">${mark(S_(x.subject) || S_(x.sub) || '')}</span>
-      <span class="paper-name">${esc(paper ? paper.replace(/^\w/, c => c.toUpperCase())
-                                           : S_(x.name))}</span>
-      ${paper && S_(x.name) !== paper
-        ? `<span class="paper-of">${esc(S_(x.name).replace(paper, '').replace(/^[\s·—-]+/, ''))}</span>`
-        : ''}
-    </div>
-
-    ${/* THE BOX FOR A CANDIDATE'S NAME. Empty, ruled, and the single detail that makes the whole
-          thing land — every one of these you have ever been handed had this, and you wrote in it. */''}
-    <div class="paper-box">
-      <span class="paper-box-k">Candidate name</span>
-      <span class="paper-box-line"></span>
-    </div>
-
-    ${/* THE FOOT OF A REAL PAPER: when it is from, how long it is, and the instruction. The length
-          belongs HERE, printed on the cover, rather than beside a button — it is a fact about the
-          paper in the same way the year and the board are, and it is the thing you want to know
-          before you decide to print it.
-
-          THE PRICE IS NOT ON THE COVER. It was, worked out from the pages and set in the third
-          slot — but a price is a fact about buying a copy, not about the paper, and no real exam
-          paper has ever had one printed on it. It rides on the trolley's name instead, where the
-          person who is actually spending something will meet it. */''}
-    <div class="paper-foot">
-      <span>${esc(when || '')}</span>
-      <span>${x.pages ? esc(x.pages) + ' pages' : ''}</span>
-      <span>Answer all questions</span>
-    </div>
-  </div>`;
-}
-
-/* ---------- THE CARD IS THE COVER. THE PAPER OPENS. ----------------------------------------------
-   `paperInline_` WAS HERE AND IT PRINTED THE WHOLE PAPER ONTO EVERY CARD. The argument written
-   above it was: "the funnel has already done the narrowing a list needs, so by the time you are
-   looking at one paper there is nothing else on the page." THAT IS NOT TRUE AND A SCREENSHOT IS
-   WHAT SETTLED IT. The funnel is a paged LIST — five paper covers on one page is ordinary — so what
-   it actually produced was a search result that unrolled a complete A-Level paper, forty-seven
-   parts and forty-seven answer boxes, between one cover and the next. You scrolled through an exam
-   to reach the next exam.
-
-   A CARD IS A THUMBNAIL. That is what a card is everywhere else in this app — a tutor, a venue, a
-   shop item — and a past paper's thumbnail is its cover, which `paperCard` above already draws
-   properly: board, tier, subject, the candidate-name box, the year and the page count. Nothing was
-   needed except stopping.
-
-   SO READING IS A TAP AGAIN, AND THE TILE IS BACK. It was removed on the same wrong reading — the
-   note in `topicTiles_` called it "a button that opened what you were already looking at", which it
-   only was because of the line above. `openSheet` is the app's one overlay and already exists; this
-   adds no screen, no route and no CSS. `paperBody_` is untouched, so what opens is exactly what was
-   printing inline, at the width it was measured at.
+   WHAT COULD STILL OPEN A REAL PAPER: `source_url` on the question rows, which is the PDF on the
+   exam board's own site. 2,073 rows carry one. If a way back to the original is ever wanted, that
+   link is what it should open — a real paper rather than a rebuilt one.
 --------------------------------------------------------------------------------------------- */
-function openPaper_(t) {
-  if (!t || typeof paperBody_ !== 'function') return;
-  let body = null;
-  try { body = paperBody_(t); } catch (e) { body = null; }
-  if (!body || !body.html) { toast('No questions written up for this one yet'); return; }
-  const head = [t.examBoard, t.examWave || t.year, t.keystage].filter(Boolean).join(' \u00b7 ');
-  /* THE METHOD FIRST, WHEN THERE IS ONE. A practical's guide is what you read BEFORE the questions —
-     apparatus out, method understood. Blank on every past paper, and blank draws nothing. */
-  const guide = String((t && t.guide) || '').trim();
-  openSheet(t.name || 'Paper', `<div class="qpaper">
-    ${head ? `<p class="qp-head">${esc(head)}${
-      body.marks ? ` \u00b7 <b>${body.marks} marks</b>` : ''}</p>` : ''}
-    ${guide ? `<div class="qp-guide"><h3>Method</h3>${guide}</div>` : ''}
-    ${body.html}
-    <p class="qp-end">END OF QUESTIONS</p>
-  </div>`);
-}
-
-on('paper-read', el => {
-  const t = topicBy(el.dataset.key);
-  if (t) openPaper_(t);
-});
 
 /* `stuffCount` was here. Removed with the line it fed — a function whose only caller has gone is
    the thing `check-dead.js` would name next time anyway. */
