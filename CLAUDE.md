@@ -439,7 +439,46 @@ It is now three files, **split by who writes the rows**:
 |---|---|---|
 | **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, ticks — the business as it happened |
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
-| **Library** | you, in bulk | questions (documents AND their questions), boxers, cheatsheet |
+| **Library** | you, in bulk | boxers, cheatsheet — and `questions` has left, see below |
+
+### `questions` lives in this repository, not in a spreadsheet
+
+`data/questions.json` — 3,913 rows, 44 columns, 2.4 MB, one row per line so a diff names the rows
+that changed. `js/library.js` fetches it and builds `DATA.questions` and `dropdowns.checklists` from
+it; `doGet` no longer builds either.
+
+**Why that tab and no other.** Three questions decide where a thing lives, and the first one that
+answers wins:
+
+1. **Is it secret?** → a sheet, never here. This repository is **public**; anything committed is
+   published, and git history is permanent. PINs, e-mail addresses, dates of birth.
+2. **Does the app write to it?** → a sheet. Code cannot be written to at runtime.
+3. **Do you edit it, or does Claude?** → `questions` is the one tab nobody hand-edits. It arrives in
+   bulk, and every edit went export → CSV → download → File → Import, twice. `brand`, `config`,
+   `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
+   must never need a deploy.
+
+**Three columns did not come.** `ticks_1`, `ticks_2`, `ticks_3` — 529 cells holding the handles of
+real people, most of them children. They are stripped at source. A tick is a fact about a PERSON and
+a document; it was never library data, and if it returns it returns in `Ledger`.
+
+**What was checked before publishing**, because the decision is irreversible: every Library tab
+scanned against the Ledger's handles (only the tick columns matched), and the 1,508 Drive links
+sampled for sharing — `anyone: reader`, already public by link, and already served to anonymous
+visitors by the payload. Publishing the ids exposes nothing the site did not.
+
+**`libraryInto_` is not a second `doGet`.** It is the same two blocks, moved: the rows they read no
+longer reach the backend at all, so there is one implementation. The shapes are exact down to the
+key names, because `allTopics`, `paperBody_`, `paperText_` and every facet were written against them.
+
+**The payload went 3.6 MB → 452 KB**, measured, and the file it replaces is cacheable where a
+payload never is. `index.html` starts both requests in parallel; `load()` merges them before `DATA`
+is wrapped, so `missingKeys()` is not told about two keys on every load.
+
+**The fixture no longer holds `questions` or `checklists`.** `check/ui.js` serves the repo, so the
+real file wins and anything a fixture said about them was overwritten a moment later — a fixture key
+that silently does nothing is the fault the suite exists to catch. The library is committed data
+now, so it is as fixed as the fixture ever was.
 
 The ids are in `FILES` in `constants.gs`, and `WHERE` says which file each tab is in. The tab
 colours inside each spreadsheet say the same thing a third time — green written by the app, gold

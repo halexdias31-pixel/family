@@ -1986,6 +1986,30 @@ async function load() {
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
          `find.js` because this is the moment a payload becomes DATA, and a favourite read before
          that is the last device's guess. */
+      /* ---------- THE LIBRARY, MERGED IN BEFORE THIS BECOMES `DATA` ------------------------------
+         `questions` AND `dropdowns.checklists` NO LONGER COME FROM THE BACKEND. They are built from
+         `data/questions.json` in this repository — see the header of `library.js` for why, and for
+         the three columns that were left behind in the spreadsheet because they held children's
+         handles.
+
+         BEFORE THE PROXY, DELIBERATELY. `DATA` is wrapped to record keys nothing sends; writing
+         these two afterwards would record both as missing on every single load, which is the list
+         `missingKeys()` exists to keep honest.
+
+         AWAITED, AND IT HAS USUALLY LANDED. `index.html` starts the request in parallel with the
+         payload's, so by here the slower of the two is what we are waiting on rather than the sum.
+
+         A FAILURE IS AN EMPTY LIBRARY, not a dead app: `libraryRows_` answers `[]` and every
+         section reads as an empty tab, which is what the rest of this payload does with anything
+         it cannot read. */
+      try {
+        d = libraryInto_(d, await libraryRows_());
+      } catch (e) {
+        d.questions = d.questions || [];
+        d.dropdowns = d.dropdowns || {};
+        d.dropdowns.checklists = d.dropdowns.checklists || {};
+      }
+
       DATA = new Proxy(d, {
         get(t, k) {
           /* `then` is asked for by anything that awaits an object, to find out whether it is a

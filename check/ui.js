@@ -84,6 +84,14 @@ const arg   = n => (process.argv.find(a => a.startsWith('--' + n + '=')) || '').
    NEVER COMMIT THE FILE IT READS. A real payload has PINs, e-mail addresses and dates of birth in
    it, and this repository is public. `check/live.js` refuses to write one into the working tree and
    `.gitignore` carries the path as well. */
+/* ---------- `questions` AND `checklists` ARE NOT IN THE FIXTURE ANY MORE --------------------------
+   THEY WOULD BE IGNORED IF THEY WERE. `js/library.js` builds both from `data/questions.json`, which
+   this server serves out of the repository like any other file — so whatever a fixture said about
+   them was overwritten a moment after the payload landed, and editing it would have changed
+   nothing. A fixture key that silently does nothing is the fault this whole suite exists to catch.
+
+   THE LIBRARY IS COMMITTED DATA NOW, so it is as fixed as the fixture ever was: the same rows every
+   run, versioned, and diffable. There is nothing to stand in for. */
 const PAYLOAD_AT = arg('payload');
 const FIXTURE = PAYLOAD_AT
   ? fs.readFileSync(PAYLOAD_AT, 'utf8')

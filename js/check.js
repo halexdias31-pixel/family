@@ -36,9 +36,26 @@ const {freeVars,eagerFree}=require('./_scope.js');
    IT MUST MATCH index.html, IN ORDER. That is not documentation, it is the third check below:
    whether a const is read before the file declaring it has loaded. Get the order wrong here and
    that check answers a question about an app that does not exist. */
-const ORDER=['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-             'resource','arcade','map','book','receipt','flyer','mat','games','overworld','select',
-             'collections','tiles','terms','boot'];
+/* ---------- THE ORDER IS READ FROM index.html, NOT KEPT HERE ---------------------------------------
+   THIS WAS A HAND-MAINTAINED COPY of the list in `index.html`, and CLAUDE.md already records what
+   that costs: `select`, `collections` and `tiles` were added there and never here, so this checker
+   read twenty-one files and was silent about three — one of them `tiles.js`, where every card
+   action in the app is built.
+
+   IT DRIFTED AGAIN THE MOMENT `library.js` WAS ADDED, which is the second time and the reason it is
+   now derived. `index.html` IS the order — it is the file the browser obeys — so anything that
+   needs the order asks it rather than remembering it. */
+function loadOrder_() {
+  const html = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'index.html'), 'utf8');
+  const m = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(html);
+  if (!m) {
+    console.error('cannot read window.FILES out of index.html — that list IS the load order');
+    process.exit(1);
+  }
+  return [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+}
+const ORDER = loadOrder_();
 
 const GLOBALS=new Set(('window document navigator localStorage sessionStorage console Math JSON Date '+
 'Array Object String Number Boolean Set Map WeakMap WeakSet Promise RegExp Error TypeError Symbol '+
