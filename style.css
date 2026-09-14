@@ -6817,17 +6817,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the card carries a reference, the marks and the first line — and the question itself opens on a
    tap. Showing the whole thing on every card would be ninety pages in a list.
 ================================================================================================== */
-.qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
-         padding: .7rem .8rem; margin-bottom: .5rem; }
-.qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
-.qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
-.qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
-.qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
-/* THE PEEK IS ONE LINE AND CLIPPED. Two lines of question on every card and the list stops being
-   a list — the point is to find the one you want, not to read them all here. */
-.qcard-peek { margin: .4rem 0 0; font: 400 .78rem/1.4 Georgia, "Times New Roman", serif;
-              color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qcard:active { transform: scale(.99); }
+/* `.qcard`, `.qcard-top`, `.qcard-sub`, `.qcard-peek` and `.qcard:active` were the
+   per-question card. It is gone — see the note in find.js where the `question` kind was. */
 
 /* ---------- THE OPENED QUESTION ------------------------------------------------------------------
    Stem, then lead, then the part, in the order it is printed. The stem is dimmed because it is
@@ -6877,31 +6868,42 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   font: 400 .74rem/1.45 var(--font); color: var(--dim);
 }
 
-.qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
+/* ---------- THE TYPESETTING MOVED FROM `.qsheet` TO `.qpaper` -------------------------------------
+   EVERY RULE BELOW USED TO BE `.qsheet …` AND `.qsheet` IS NOT EMITTED ANY MORE. It was the wrapper
+   in `questionCard_`, the per-question card that drew each question of a paper a second time
+   alongside the paper itself; that card is gone and so is its wrapper.
+
+   SO THIS WAS STYLING NOTHING — and, worse, it had never styled the place these questions are
+   actually read. `paperBody_` prints the whole paper inside `.qpaper`, and `.qpaper` has no rule
+   for a table, a roman-numeral list or an SVG figure anywhere in this file. The diagrams, the
+   mark tables and the (i)/(ii)/(iii) parts have been arriving on the paper page unstyled the whole
+   time, which is most of what made it look wrong.
+
+   `.qpaper` IS THE ANCESTOR OF BOTH the stem and the parts, so one prefix covers what two did. */
+.qpaper { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
 .qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
 .qsheet-lead { opacity: .9; margin-bottom: .6rem; }
-.qsheet-part { display: flex; gap: .6rem; }
 .qsheet-pn { font-weight: 700; color: var(--gold); }
-.qsheet-pb { flex: 1; min-width: 0; }
-.qsheet-marks { display: block; text-align: right; font-weight: 700; font-size: .86rem; }
-.qsheet p:first-child { margin-top: 0; }
-.qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
-.qsheet ol.roman { list-style: lower-roman; }
-.qsheet ul { padding-left: 1.2rem; }
-.qsheet .stat { text-align: center; margin: .9rem 0; }
-.qsheet table { border-collapse: collapse; margin: .9rem auto; }
-.qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+/* `.qsheet-part`, `.qsheet-pb` and `.qsheet-marks` went with the card. `paperBody_` has always
+   written `.qp-part`, `.qp-body` and `.qp-marks` for the same three jobs. */
+.qp-body p:first-child { margin-top: 0; }
+.qpaper ol.parts, .qpaper ol.roman { padding-left: 2rem; }
+.qpaper ol.roman { list-style: lower-roman; }
+.qpaper ul { padding-left: 1.2rem; }
+.qpaper .stat { text-align: center; margin: .9rem 0; }
+.qpaper table { border-collapse: collapse; margin: .9rem auto; }
+.qpaper th, .qpaper td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
    on this black screen without a second copy of it. */
-.qsheet figure { margin: 1rem 0; text-align: center; }
-.qsheet figure svg { width: min(100%, 20rem); height: auto; }
-.qsheet .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
-.qsheet .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
-.qsheet .ax { font: italic 9px serif; fill: currentColor; }
-.qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
-.qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
-.qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+.qpaper figure { margin: 1rem 0; text-align: center; }
+.qpaper figure svg { width: min(100%, 20rem); height: auto; }
+.qpaper .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
+.qpaper .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
+.qpaper .ax { font: italic 9px serif; fill: currentColor; }
+.qpaper .axis { stroke: currentColor; stroke-width: 1.2; }
+.qpaper .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+.qpaper .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
 /* ==================================================================================================
    BOXING — THE FIGHTER AND THE FIGHT
 
@@ -7180,12 +7182,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .widget-slot:empty { display: none; }
 .widget-slot { margin-top: .45rem; }
 
-/* THE WHOLE QUESTION, ON THE CARD. `.qcard-peek` is gone with the 96-character truncation it
-   styled; what replaces it is the same `.qsheet` markup the panel used, which is why the question
-   looks identical to how it always did — it is the same three fields in the same order, one layer
-   further out. */
-.qcard .qsheet { margin-top: .5rem; }
-.qcard .qsheet-part { margin-top: .4rem; }
+/* THE LAST TWO `.qcard` RULES WENT WITH THE CARD. They spaced the question's markup inside it;
+   there is no card and no `.qsheet` wrapper now — the questions are read on the paper's own page,
+   where `.qp-part` does this job. */
 
 
 /* ---------- FILLED MEANS DONE --------------------------------------------------------------------
