@@ -66,10 +66,32 @@ const fs   = require('fs');
 const path = require('path');
 
 const ROOT    = path.resolve(__dirname, '..');
-const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const PORT    = 8731;
 
 const arg   = n => (process.argv.find(a => a.startsWith('--' + n + '=')) || '').split('=')[1];
+
+/* ---------- THE FIXTURE, OR THE REAL PAYLOAD ------------------------------------------------------
+   `--payload <file>` SWAPS THE HAND-WRITTEN FIXTURE FOR ONE `check/live.js` BUILT, which is the
+   real `doGet` run over the real spreadsheets. The fixture stays the default and stays what CI
+   would run: it is stable, and a check whose answer changes when somebody edits a cell is a check
+   nobody can act on.
+
+   THE REAL ONE IS FOR LOOKING. Three faults in one week were invisible to the fixture because the
+   fixture was written from the same belief as the code — a `landmarks` tab with columns it has
+   never had, a `link` that "no resource has", a paper drawn twice. None of those is a shape error,
+   so none of them could be caught by a shape nobody questioned.
+
+   NEVER COMMIT THE FILE IT READS. A real payload has PINs, e-mail addresses and dates of birth in
+   it, and this repository is public. `check/live.js` refuses to write one into the working tree and
+   `.gitignore` carries the path as well. */
+const PAYLOAD_AT = arg('payload');
+const FIXTURE = PAYLOAD_AT
+  ? fs.readFileSync(PAYLOAD_AT, 'utf8')
+  : fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+if (PAYLOAD_AT) {
+  console.log('payload: ' + PAYLOAD_AT + '  (the real one — findings here are about the DATA as');
+  console.log('         much as the code, and the numbers move when a cell does)\n');
+}
 const SHOTS = process.argv.includes('--shots');
 const ONLY  = arg('screen');
 

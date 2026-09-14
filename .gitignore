@@ -10,3 +10,8 @@ Thumbs.db
 
 # Generated deliverables — TSV for pasting into the sheet. Not code, not shipped.
 out/
+
+# A payload built by check/live.js is the REAL database — PINs, e-mail addresses, dates of
+# birth. This repository is public. check/live.js refuses to write one in here; this is the belt.
+check/payload*.json
+check/sheets*.json
