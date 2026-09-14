@@ -283,7 +283,8 @@ function paperBody_(t) {
     /* THE STEM IS THE SHARED PART and prints once, above the parts that need it — which is the
        whole reason it is a row of its own rather than a copy on each part. */
     if (r.kind === 'stem') {
-      h += `<div class="qsheet-stem">${r.html || ''}</div>`;
+      h += `<div class="qsheet-stem">${r.html || ''}${
+        r.diagram ? `<figure>${r.diagram}</figure>` : ''}</div>`;
       return;
     }
     marks += Number(r.marks) || 0;
@@ -292,6 +293,11 @@ function paperBody_(t) {
       <div class="qp-body">
         ${r.lead ? `<div class="qsheet-lead">${r.lead}</div>` : ''}
         ${r.html || ''}
+        ${/* THE DIAGRAM AFTER THE PROSE AND BEFORE THE MARKS, which is where a printed paper puts
+              it: you read what is being asked, you look at the picture, and the marks are the last
+              thing on the part. A `<figure>` because `.qpaper figure` and `.qpaper figure svg` have
+              been in style.css since before anything could produce one. */''}
+        ${r.diagram ? `<figure>${r.diagram}</figure>` : ''}
         ${r.marks ? `<p class="qp-marks">[${esc(r.marks)} mark${
           Number(r.marks) === 1 ? '' : 's'}]</p>` : ''}
         ${ansBox_(t, r)}

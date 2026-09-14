@@ -458,6 +458,22 @@ answers wins:
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
 
+**`diagram` is a column and `figure` is not.** `figure` has been on the payload since it was
+written and nothing has ever drawn it — it is 253 one-word labels (`venn`, `scatter`, `grid-blank`,
+31 of them) saying which KIND of picture a row wants. `diagram` holds the picture, as inline SVG:
+committed beside the question so the two cannot separate, where a URL is a second thing that has to
+stay alive and cannot take the page's own ink. `style.css` has had `.qpaper figure svg` and the
+label classes (`.lbl`, `.num`, `.axis`, `.grid`, `.pt`) since before anything could produce one.
+Two rows carry a diagram — both were already inline SVG inside their `html` and were moved, or they
+would draw twice.
+
+**Do not read `figure` as "a diagram is missing here".** It is two columns under one name and the
+labels do not say which: `venn`, `scatter`, `pie-chart` mean the paper had a picture nobody
+transcribed; `grid-blank` (20), `fractions` (30), `boxes` (10), `long-method` (7) mean the paper had
+somewhere to WRITE THE ANSWER, and those questions are complete as they stand. A first version of
+the renderer printed "not drawn yet" off that column and was wrong on about 120 questions — a
+screenshot caught it and no check could have. Sorting them apart is editorial work on 253 rows.
+
 **Three columns did not come.** `ticks_1`, `ticks_2`, `ticks_3` — 529 cells holding the handles of
 real people, most of them children. They are stripped at source. A tick is a fact about a PERSON and
 a document; it was never library data, and if it returns it returns in `Ledger`.

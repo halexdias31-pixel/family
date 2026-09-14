@@ -115,7 +115,15 @@ function libraryInto_(d, rows) {
       resourceId: libS(r.resource_id),
       q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'part',
       section: libS(r.section), marks: libN(r.marks),
-      figure: libS(r.figure), lead: libS(r.lead), html: libS(r.html),
+      /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. `figure` has been on the
+         payload since it was written and nothing has ever drawn it, because it was never a
+         picture — it is 253 one-word labels (`venn`, `scatter`, `grid-blank`) left by whoever
+         transcribed the paper. `diagram` is the column that holds one, as inline SVG rather than a
+         URL: a link is a second thing that has to stay alive, and `style.css` has had
+         `.qpaper figure svg` and the label classes waiting for it since before anything could
+         produce one. Empty on all but two rows today. */
+      figure: libS(r.figure), diagram: libS(r.diagram),
+      lead: libS(r.lead), html: libS(r.html),
       company: libS(r.company),
       answer: libS(r.answer), answerType: norm(r.answer_type),
       needsPrint: libTrue(r.needs_print),
