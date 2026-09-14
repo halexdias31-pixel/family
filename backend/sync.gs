@@ -209,12 +209,32 @@ function apiTrouble_(res) {
 
   let guidance;
   if (code === 403 && /has not been used in project|is disabled/i.test(body)) {
+    /* ---------- THE PROJECT IN THAT MESSAGE MAY NOT BE OPENABLE ----------------------------------
+       THIS IS WHAT HAPPENED, so the advice is written from the far side of it. The link below was
+       opened and the Cloud console answered `resourcemanager.projects.get (missing)` — TO THE
+       PROJECT'S OWN OWNER. `hermes` sits on an auto-created DEFAULT Cloud project, and a default
+       project is not reachable through the console at all; there is no role to grant yourself.
+
+       AND THE ACCOUNT-LEVEL SWITCH IS A DIFFERENT SWITCH. It was already on when this failed.
+       It governs what CLASP may do, because clasp calls this API as its own OAuth client. This
+       call comes from `ScriptApp.getOAuthToken()`, so the caller is the script's own Cloud project
+       — which is the one Google names, and the one that needs it. Turning the first on does
+       nothing for the second, and the two are easy to mistake for each other because they are
+       both spelled "enable the Apps Script API". */
     guidance = 'The Apps Script API is not enabled for the Cloud project behind this script. '
              + 'TWO PLACES CAN BE MEANT BY THAT and Google is specific about which — read the '
              + 'message below. If it names a project number and a console.developers.google.com '
              + 'link, open the link, press ENABLE, wait a minute and run this again. If it does '
              + 'not, the account-level switch at https://script.google.com/home/usersettings is '
-             + 'the one, and toggling it off and on again is worth trying before anything else.';
+             + 'the one, and toggling it off and on again is worth trying before anything else.\n\n'
+             + 'IF THAT LINK SAYS YOU DO NOT HAVE ACCESS TO THE PROJECT, it is a default Cloud '
+             + 'project and no permission will fix it. Use one of the other two routes instead — '
+             + 'the GitHub Assistant extension in the editor toolbar, or the clasp workflow in '
+             + '.github/workflows/apps-script.yml, neither of which calls this API as this '
+             + 'project. Moving the script to a standard Cloud project also works and is the last '
+             + 'resort: it needs an OAuth consent screen, and re-authorising a web app that runs '
+             + 'as USER_DEPLOYING with ANYONE_ANONYMOUS access means every visitor is relying on '
+             + 'that authorisation being back in place. See CLAUDE.md.';
   } else if (code === 401 || code === 403) {
     guidance = 'Google refused the call (' + code + '). The usual cause is that '
              + '"https://www.googleapis.com/auth/script.projects" is missing from oauthScopes in '

@@ -118,14 +118,47 @@ still fails loudly; absent and broken are different answers.
 **Both routes replace the project's files wholesale**, so the warning below holds either way: what
 is typed into the Apps Script editor and not committed here is gone at the next sync.
 
-What `pullFromGitHub` needs, all of it already true:
+What `pullFromGitHub` needs:
 
 | | Why |
 |---|---|
-| the Apps Script API on, at <https://script.google.com/home/usersettings> | it writes through that API |
-| `script.projects` in `oauthScopes` | without it Google answers 403 and `apiTrouble_` says so |
-| the repo **public** | the raw URLs are fetched unauthenticated |
-| `backend/files.json` naming every file | it pulls by that list; `check-manifest.js` keeps it honest |
+| `script.projects` in `oauthScopes` | ✅ without it Google answers 403 and `apiTrouble_` says so |
+| the repo **public** | ✅ the raw URLs are fetched unauthenticated |
+| `backend/files.json` naming every file | ✅ it pulls by that list; `check-manifest.js` keeps it honest |
+| the Apps Script API on **for the script's own Cloud project** | ❌ **and this is the one that blocks it** |
+
+#### THERE ARE TWO APPS SCRIPT API SWITCHES AND THEY ARE NOT THE SAME ONE
+
+This cost a run and it is not written down anywhere obvious:
+
+- **The account-level toggle** at <https://script.google.com/home/usersettings>. This is what
+  **clasp** needs, because clasp calls the API as its own Google OAuth client.
+- **The Cloud-project-level enablement**, in the Cloud console, for the project the call is billed
+  to. `sync.gs` calls the API with `ScriptApp.getOAuthToken()`, so the caller IS the script's own
+  Cloud project and that project needs the API switched on. The 403 names it outright —
+  `consumer: projects/850507942585`.
+
+`apiTrouble_` already tells the two apart by whether Google's message carries a project number, and
+it was right. **The account toggle being on does nothing for `pullFromGitHub`.**
+
+**AND THAT PROJECT CANNOT BE OPENED.** `hermes` sits on an auto-created default Cloud project, and
+the console answers `resourcemanager.projects.get (missing)` to its own owner. There is no
+permission to grant yourself; a default project is not reachable that way. So `pullFromGitHub` is
+blocked until the script is moved to a standard Cloud project, which means an OAuth consent screen
+and a re-authorisation — and since the web app is `ANYONE_ANONYMOUS` running as `USER_DEPLOYING`,
+that re-authorisation is what every anonymous visitor depends on. **Not a thing to do casually on a
+live site**, which is why it is the third choice and not the first.
+
+#### So: three routes, and the ranking changed
+
+1. **The GitHub Assistant browser extension** — the `Repository ▾ / Branch ▾ / ↓ ↑` controls in the
+   editor toolbar. It works through the editor's own session rather than the public API, so none of
+   the above applies to it. Nothing to enable, nothing to authorise.
+2. **clasp, via the workflow.** Needs a terminal exactly once for `clasp login`, and the
+   account-level toggle it depends on **is already on** — so this is closer to working than the nine
+   red runs suggest. The secrets were never the only blocker, and they were never the wrong one.
+3. **`pullFromGitHub`.** The best-fitting route on paper and the one currently blocked. Leave it
+   until moving the Cloud project is worth the re-auth risk.
 
 `sync.js` in the repo root watches the folder and pushes on save. It now stages `backend/` too.
 
