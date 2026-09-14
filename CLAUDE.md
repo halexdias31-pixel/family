@@ -226,7 +226,7 @@ budget before lunch and stop the nightly jobs.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 22 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 23 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -321,6 +321,7 @@ node js/check-tabs.js            # every tab routed to one of the three files, a
 node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
+node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -614,6 +615,108 @@ not, because half the list has no board. Nothing on screen says so, so it reads 
 its mind. **`whyThisQuestion()` in the console prints every facet with its answer count, its
 coverage and the reason it was or was not chosen** — the same instrument as `layout()`, pointed at
 the funnel instead of the boxes.
+
+### The arithmetic was incomplete, and that is what "the funnel feels unclear" was
+
+`nextFacet` asked two things of a question — **are there at least two answers**, and **can at least
+half the list answer it**. It never asked the third: **does answering it actually split anything.**
+Three faults had accumulated in that gap, all of them invisible to twenty-two green checks, because
+none of them is a crash, a missing name or a malformed row.
+
+| | what it was |
+|---|---|
+| **`paper` / "Printed?"** | `questionItems` wrote `paper: true` on every item and this facet was its ONLY reader. Measured: **3,753 answered `Printed`, 17 answered `Digital`** — and those 17 were widgets, which have no such field. A literal, drawn as a choice, asked of everybody on every search. |
+| **`exam_wave`** | **three spellings of one sitting.** `June 2018` from the old import, `First wave` / `Second wave` from the transcriptions. For 2018 the funnel offered both as separate answers: picking `June 2018` gave 16 questions and hid 151, with nothing on screen saying a second 2018 existed. |
+| **`level` vs `stage`** | two columns, one meaning, two facets, **two different answer sets**. `A-Level` gave 135 items or 263 depending which question you were asked first — and it was spelled `Alevel`, `A-Level` and `A-Level` on one screen. |
+
+**`paper` IS THE `cost: 0` FAULT, SECOND OCCURRENCE.** That entry is a few sections up: *"3,262 of
+3,265 items answered `Free`, which made that bucket mean everything."* Both were fixed **in the
+data** and neither was fixed **in the rule**, so the shape recurred — which is the whole argument
+for `ACCEPTED`, for `VOCAB` and for every other list in this repo. A rule applied by hand is not a
+rule.
+
+**So the rule is written down now.** `FACET_MIN_MINORITY = 0.02`: unless at least one in fifty of
+the items that can answer land somewhere other than the commonest answer, the question cannot
+narrow and is skipped. **The test is on the minority, not the biggest answer**, and that distinction
+is the whole of it — measured against the real library, `Subject` has Maths at 91.3% and `Level` has
+GCSE at 93.9%, and both are worth asking because the 8.7% who want Physics get a real narrowing.
+`Printed?` was not, because everything outside its biggest answer was 0.45% of the list.
+
+**A share, not a count, because the list shrinks.** Nineteen-to-one across twenty items is a real
+distinction between real things; the same split across four thousand is a rounding error with a
+button on it. And it is **self-correcting like the coverage rule** — a question that cannot narrow
+the whole library starts being offered the moment the list is small enough for its answers to
+matter.
+
+**`always: true` marks the two facets that are DOORS rather than filters**, and nothing else may
+carry it. `What for` and `What kind` navigate — they take somebody from the whole app to a
+department — and on this library `Learning` holds 99.5%, so the balance rule would have dropped the
+app's first question on the floor. It would have been right about the arithmetic and wrong about the
+job: hiding the door to the booking form because the question bank got big is the funnel getting
+*worse* as you add content. Every other rule still applies to them.
+
+**One sitting, one vocabulary.** `waveOf` already existed to collapse `2018-06-01` and `June 2018`
+onto one button — its own comment says *"two ways of writing the same sitting are two DIFFERENT
+buttons"* — and then a third spelling arrived that it did not handle. It resolves phase words
+through the row's own `month` and `year` now, and **`seriesOf_` names the series rather than the
+month**: Edexcel's 2018 summer papers sat on 24 May, 7 June and 12 June, so naming each by its own
+month splits one series into `May 2018` and `June 2018`, which is two buttons for three papers every
+student thinks of as one thing. Summer months become `June <year>` and autumn months `November
+<year>`; anything else keeps its own month, because a January sitting was a real thing until 2013
+and collapsing it would invent a fact.
+
+**`levelOf_` reads whichever of the two columns has it** — `band_value` where `band_type` is
+`stage`, falling back to the `level` column — and normalises the spelling. Naming the code facet
+`level` rather than `stage` is what collapses the two questions into one: `facetList` treats a
+`facets` row whose field is already declared in code as a *relabel* of that facet and one whose
+field is unknown as a *new* question, so renaming it moved the sheet's row from the second pile to
+the first. The sheet still owns the label, the order and whether it is asked at all.
+
+### `node js/check-funnel.js` — the funnel, run over the real library
+
+The three faults above have one shape: **each looked fine in the code and only showed up in the
+arithmetic over real data.** So this check does what `whyThisQuestion()` does in the console — builds
+the real items, interrogates the real facets — and fails on four things:
+
+1. **a question that cannot narrow** — offered, not marked `always`, minority under 2%
+2. **one answer wearing two coats** — two values in one facet that normalise to the same word
+3. **a facet fed by a literal** — the general form of `paper: true`: a reader whose answer never
+   moves across thousands of items is reporting a constant, not reading a column. Reported, not
+   failed, because an absent field looks the same from here
+4. **a second spelling of a sitting** — any `examWave` answer that is not `<Month> <year>`
+
+**It uses `data/questions.json`, not the fixture**, on purpose: the fixture has four question rows
+and every fault above needs thousands to become visible. The fixture still supplies everything that
+is not the library, which is why a *thin* facet is never a failure here — only a lopsided or
+incoherent one.
+
+**Proved in both directions on three mutants**, because a check that cannot fail is not a check: a
+facet returning a constant (fires at 0.45%, the exact `paper` reproduction), a facet offering
+`Alevel` beside `A-Level`, and `waveOf` with the phase-word branch switched off (fires naming
+`"First wave", "Second wave"`). All three exit 1; the real file exits 0. **The first attempt at the
+second mutant was inert and passing it proved nothing** — after the merge the `level` facet
+genuinely cannot emit both spellings, because the band wins on every row that has one. A mutation
+that does not change behaviour is not a test, and the only way to know is to watch it fail.
+
+**Two cross-facet overlaps are reported and left alone**: `A-Level` answers both `Level` (263) and
+`Tier` (135), and `Edexcel` answers both `Exam board` (2,283) and `Company` (873). Both are arguably
+true twice — a board and a publisher are different facts that share a name — so they are a note
+rather than a failure. It is still how "which one did I answer?" starts.
+
+### What the audit found healthy, which is the other half of trusting it
+
+Measured, not assumed: **stem attachment works** — 29 parts across two papers correctly carry the
+shared preamble they cannot be answered without. **Search is not the bottleneck** — 31–125 ms across
+3,753 items, built once onto the item rather than per keystroke. **And the search does not leak mark
+schemes**: three apparent hits in a 200-row sample were all coincidence, where the question is
+*about* a regular hexagon so the words recur in both. `text:` is deliberately built from the stem,
+the lead and the part and never the answer, and that holds.
+
+**The one thing this cannot measure is everything that is not the library.** The fixture has one
+tutor and one venue, so `What for` reading 99.5% here is partly an artefact of it, and only
+`check/live.js` against the real spreadsheets could settle it — every Google host is blocked from
+the agent's environment by network policy. That is exactly why `always` is a declared flag rather
+than a threshold tuned to numbers I cannot see.
 
 ### The `facets` tab can now INVENT a question, not just rename one
 

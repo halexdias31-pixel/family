@@ -107,6 +107,14 @@ const SUITE = [
      content — the library the whole Find screen is about — and no check had ever opened it. A wrong
      row does not throw; it is simply a question somebody is taught wrongly. */
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
+  /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
+     `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
+     that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels
+     arbitrary" turns out to mean. Three of those had accumulated behind twenty-two green checks:
+     a question fed by a literal, a sitting spelled three ways, and one word answering two
+     questions with different result sets. This runs the real funnel over the real library and
+     asks the arithmetic. */
+  { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
 ];
 
