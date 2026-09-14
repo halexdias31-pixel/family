@@ -226,7 +226,7 @@ budget before lunch and stop the nightly jobs.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 18 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 22 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -242,6 +242,72 @@ and how many files were already uncommitted before you arrived.
 added to `js/core.js` produced `2 of 18 checks found something wrong` and 25 of 27 broken journeys;
 removing it went back to green.
 
+**The count is read off the run, not typed into the sentence.** It said "all 18 checks pass" for as
+long as there were eighteen, and went on saying it when there were twenty-two — a number in a
+sentence nobody re-reads. The hook counts the `PASS`/`note` lines now.
+
+### Three checks existed and none of them ran
+
+`check-lifecycle.js`, `check-spine.js` and `check-surfaces.js` were written, committed, and left out
+of the roster in `check-all.js`. All three pass, and all three had been passing in silence — this
+file even cites `check-spine.js` finding two missing receipt rows "the first time it ran", which was
+also the last time anything ran it.
+
+**The roster is the only thing that makes a check real.** This is the `check-booking.js` fault in a
+different costume: there, a check that could not find its subject printed "nothing to check" and
+exited 0; here, four good checks sat on disk and were never invoked. Adding a file to `js/` does not
+add it to `npm run check`.
+
+### `node js/check-library.js` — the data, which nothing had ever read
+
+Every other check reads the CODE. `data/questions.json` is 4,264 rows and 2.4 MB of committed
+content — the library the whole Find screen is about — and **no check had ever opened it**. A wrong
+row does not throw and does not fail a build; it is simply a question somebody is taught wrongly.
+
+What it refuses, each drawn from a mistake made or nearly made:
+
+| | |
+|---|---|
+| **the shape** | line 1 a bare `[`, last line a bare `]`, and **each line parsed on its own** |
+| **row ids** | present, and unique — a repeat silently replaces a question |
+| **`ticks_*`** | never, in any spelling. See below |
+| **orphans** | a question naming a `paper_id` with no `kind:'paper'` row can be found and never opened |
+| **80 marks** | every Edexcel 1MA1 Higher paper, by definition of the qualification |
+| **the vocabulary** | a closed list per facet column; anything else fails |
+
+**The vocabulary is the one that prompted the file.** `exam_wave`, `tier`, `subject` and the rest are
+FACETS — `facetFromSheet_` turns a column into a question the funnel asks, and every distinct value
+becomes an answer somebody is offered. Transcribing the November papers I tagged them
+`exam_wave: 'Resit'`, a perfectly sensible word, beside the `'Second wave'` this file had used for
+exactly that meaning since before I arrived. Two answers, one meaning, and a filter that reads as
+arbitrary. I caught it by looking afterwards, which is luck. Now a new value has to be added to
+`VOCAB` deliberately, by somebody who has just read what is already in use — the same argument as
+`ACCEPTED` in `check-payload.js` and `ACCEPTED_TAP` in `check/ui.js`.
+
+**Two vocabulary entries are untidy and kept anyway**, with the reason written beside them, because
+silently "correcting" content is worse than describing it: `exam_wave` carries both the words
+(`First wave`, `Second wave` — the summer and November sittings) and ISO dates from an older import,
+and `pages_checked` is a flag everywhere except one import that wrote a date into it.
+
+**The tick rule is a disclosure rule, not a data-quality one.** `ticks_1/2/3` held the handles of
+real people, most of them children, and were stripped when this file was built. This repository is
+public and git history is permanent, so a tick column reappearing is not untidy, it is a leak. This
+file already said so twice in prose; the check says it where it can act.
+
+**It reports 14 questions the transcriber could not recover** — rows carrying an `examiner_note`
+saying a diagram never came across, or that the text layer had flattened the maths past reading.
+Every one is in `P-1MA1-2306-1H`, transcribed before the render-the-page-as-an-image method existed.
+They are real questions being taught in a broken state and nothing surfaced them until now. Reported
+rather than failed: it is editorial work on fourteen rows, not a build error.
+
+**Proved in both directions, on six mutated copies** — a duplicate id, a stray facet value, a
+returned tick column, a paper totalling 82, a file flattened onto one line, and an orphaned
+`paper_id`. All six exit 1; the real file exits 0. **The one-line mutant is why the shape test parses
+each line rather than checking its last character**: a whole file concatenated onto a single line
+still ends in `}`, so the first version of that rule passed the very mutant written to catch it.
+`node js/check-library.js <path>` takes a file to test against, which is the only thing that argument
+is for.
+
 ```bash
 npm install                      # the hook does this for you on a fresh clone
                                  # acorn, jsdom and playwright — for the checks only.
@@ -254,6 +320,7 @@ node js/check-backend.js         # one Apps Script scope: every name declared ex
 node js/check-tabs.js            # every tab routed to one of the three files, and the ids look sane
 node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
+node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at

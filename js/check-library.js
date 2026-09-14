@@ -1,0 +1,239 @@
+/* ==================================================================================================
+   check-library.js — THE ONE DATA FILE IN THIS REPOSITORY, GUARDED
+
+   `data/questions.json` is 4,264 rows and 2.4 MB of committed content, and until this file existed
+   NOTHING CHECKED IT AT ALL. Every other check in here reads the code; this one reads the data the
+   code is about. A wrong row does not throw, does not fail a build, and looks exactly like a right
+   one — it is simply a question somebody is taught wrongly.
+
+   Each rule below is a mistake that was actually made, or came within one step of being made.
+
+   THE SHAPE. Line one is a bare `[`, the last line a bare `]`, and every row is ONE JSON OBJECT ON
+   ONE LINE so a diff names the rows that changed. Every insert written for this file appends inside
+   those brackets by splitting on newlines — so the shape is not cosmetic, it is the contract those
+   scripts rely on. The first insert of the session assumed no brackets at all and would have
+   written a broken file; it was caught by reading the first line, which is not a method that scales.
+
+   ROW IDS ARE UNIQUE. A repeated id is a question that silently replaces another. Papers were
+   transcribed one per sitting, and a paper keyed on the month it was sat (`P-1MA1-1906-2H`) rather
+   than the year alone is the only thing that keeps a June paper from colliding with a November one.
+
+   NO TICK COLUMNS, EVER. `ticks_1`, `ticks_2` and `ticks_3` held the handles of real people, most of
+   them children, and were stripped at source when this file was built. THIS REPOSITORY IS PUBLIC and
+   git history is permanent, so a tick column reappearing is not a data-quality problem, it is a
+   disclosure. CLAUDE.md says this twice; this says it where it can act.
+
+   A QUESTION'S PAPER MUST EXIST. `kind: 'paper'` is the one row a document gets, and it carries the
+   link, the page count and the print flag. A question naming a `paper_id` with no paper row behind
+   it is a question that can be found and never opened. (The reverse is fine and expected: 440 papers
+   carry no questions yet. That is the backlog written down, not a fault, so it is reported and does
+   not fail.)
+
+   EVERY EDEXCEL 1MA1 HIGHER PAPER IS 80 MARKS. That is a fact about the qualification, not a
+   convention, which makes it the strongest check available here: a dropped part, a doubled part or a
+   mistyped mark shows up as a total that is not 80. Twelve papers, twelve 80s. It caught nothing
+   when written because every paper was checked against its own stated total before insertion — which
+   is the point. The check is the thing that keeps that true after the person who was being careful
+   has gone.
+
+   THE FACET VOCABULARY IS CLOSED. This is the near-miss that prompted the file. `exam_wave`, `tier`,
+   `subject` and the rest are FACETS: `facetFromSheet_` turns a column into a question the funnel
+   asks, and every distinct value becomes an answer somebody is offered. Transcribing the November
+   papers I tagged them `exam_wave: 'Resit'` — a perfectly sensible word, next to the `'Second wave'`
+   the file had used for exactly that meaning since before I arrived. Two answers, one meaning, and a
+   filter that reads as arbitrary. I caught it by looking afterwards, which is luck.
+
+   So the vocabulary is written down and anything outside it FAILS. The point is not that these
+   values are beautiful — two of them are not, and say so below — it is that a NEW one has to be
+   added here deliberately, by somebody who has just read what is already in use. Same argument as
+   `ACCEPTED` in check-payload.js and `ACCEPTED_TAP` in check/ui.js: a list exists so that the next
+   arrival fails loudly instead of joining a red nobody reads.
+
+   Run:  node js/check-library.js
+================================================================================================== */
+
+const fs = require('fs');
+const path = require('path');
+
+/* A path may be passed in — `node js/check-library.js /tmp/mutated.json` — which is only ever used to
+   prove this file can still fail. A check nobody has watched fail is a check nobody should trust. */
+const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.json');
+
+/* ---------- THE CLOSED VOCABULARY ---------------------------------------------------------------
+   Every value here is one the file already uses. Adding to this list is how you add an answer to a
+   facet, and it should take a moment's thought — that moment is the whole feature.
+
+   TWO ENTRIES ARE UNTIDY AND KEPT ANYWAY, with the reason written down, because silently
+   "correcting" content is worse than describing it:
+
+     exam_wave  carries both words (`First wave`, `Second wave` — the summer and November sittings)
+                and ISO dates from an older import. They mean different things to whoever wrote
+                them and nothing in the app reads the dates, so they stay until somebody decides
+                what the column is for. NEW rows use the words.
+     pages_checked  is a flag everywhere except one import that wrote a date into it. Left as found. */
+const VOCAB = {
+  kind:          ['paper', 'part', 'stem'],
+  active:        ['True', 'False'],
+  subject:       ['Combined Science', 'English Language', 'Maths', 'Physics', 'Religious Studies'],
+  resource_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
+  key_stage:     ['KS1', 'KS1, KS2', 'KS2', 'KS3', 'KS3, KS4', 'KS4', 'KS5'],
+  band_type:     ['grade', 'stage', 'tier', 'year'],
+  tier:          ['A-Level', 'AS', 'Foundation', 'Higher'],
+  level:         ['AS', 'Alevel', 'GCSE'],
+  exam_board:    ['AQA', 'Edexcel', 'STA'],
+  exam_wave:     ['First wave', 'Second wave',
+                  '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
+                  '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
+  answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'proof', 'short', 'written'],
+  month:         ['5', '6', '11'],
+  paper:         ['1', '2', '3'],
+  needs_print:   ['True', 'False'],
+  printable:     ['True', 'False'],
+  trackable:     ['True', 'False'],
+  print_required:['True', 'False'],
+  pages_checked: ['True', '2026-08-06'],
+  currency:      ['GBP'],
+};
+
+/* Columns that must never come back. See the header. */
+const FORBIDDEN = /^ticks?(_\d+)?$/i;
+
+const fail = [];
+const note = [];
+
+/* ---------- THE SHAPE, READ AS TEXT ---------------------------------------------------------------
+   Before parsing, because the one-object-per-line layout is invisible to JSON.parse: a file written
+   as one long line parses perfectly and makes every future diff useless. */
+const raw = fs.readFileSync(FILE, 'utf8').replace(/\n$/, '').split('\n');
+
+if (raw[0] !== '[') fail.push(`line 1 is ${JSON.stringify(raw[0].slice(0, 40))}, not a bare [`);
+if (raw[raw.length - 1] !== ']') fail.push('the last line is not a bare ]');
+
+/* EACH LINE IS PARSED ON ITS OWN, not merely checked for the right last character. The first version
+   of this asked whether the line ended in `}` — and the whole file concatenated onto a single line
+   ends in `}` too, so the one mutant that should have caught it sailed through. Parsing is the only
+   test that actually says "exactly one object here". */
+const body = raw.slice(1, -1);
+body.forEach((line, i) => {
+  const last = i === body.length - 1;
+  if (!(last ? line.endsWith('}') : line.endsWith('},'))) {
+    fail.push(`line ${i + 2} does not end in ${last ? '}' : '},'}`);
+    return;
+  }
+  try {
+    const one = JSON.parse(last ? line : line.slice(0, -1));
+    if (!one || typeof one !== 'object' || Array.isArray(one)) {
+      fail.push(`line ${i + 2} is not a JSON object`);
+    }
+  } catch (e) {
+    fail.push(`line ${i + 2} is not ONE object on ONE line — ${e.message.slice(0, 60)}`);
+  }
+});
+
+let rows = [];
+try {
+  rows = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+  if (!Array.isArray(rows)) fail.push('the file is not a JSON array');
+} catch (e) {
+  fail.push('the file does not parse: ' + e.message);
+}
+
+/* ---------- IDS ---------------------------------------------------------------------------------- */
+const seen = new Map();
+const dupes = [];
+const idless = [];
+rows.forEach((r, i) => {
+  const id = r && r.row_id;
+  if (!id) { idless.push(i + 2); return; }
+  if (seen.has(id)) dupes.push({ id, first: seen.get(id), again: i + 2 });
+  else seen.set(id, i + 2);
+});
+idless.forEach(l => fail.push(`the row on line ${l} has no row_id`));
+dupes.forEach(d => fail.push(`row_id ${d.id} is used twice — lines ${d.first} and ${d.again}`));
+
+/* ---------- COLUMNS THAT MUST NOT EXIST ----------------------------------------------------------- */
+const banned = new Set();
+rows.forEach(r => Object.keys(r || {}).forEach(k => { if (FORBIDDEN.test(k)) banned.add(k); }));
+banned.forEach(k => fail.push(
+  `the column "${k}" is back. It held the handles of real people and this repository is public.`));
+
+/* ---------- A QUESTION'S PAPER ------------------------------------------------------------------- */
+const papers = new Set(rows.filter(r => r && r.kind === 'paper').map(r => r.paper_id).filter(Boolean));
+const orphans = new Map();
+rows.forEach(r => {
+  if (!r || r.kind === 'paper' || !r.paper_id) return;
+  if (!papers.has(r.paper_id)) {
+    if (!orphans.has(r.paper_id)) orphans.set(r.paper_id, []);
+    orphans.get(r.paper_id).push(r.row_id);
+  }
+});
+orphans.forEach((ids, p) => fail.push(
+  `${ids.length} question${ids.length > 1 ? 's' : ''} name paper_id ${p}, which has no kind:'paper' row`));
+
+/* Papers with nothing under them are the backlog, not a fault. */
+const used = new Set(rows.filter(r => r && r.kind !== 'paper').map(r => r.paper_id));
+const empty = [...papers].filter(p => !used.has(p));
+
+/* ---------- 80 MARKS ------------------------------------------------------------------------------
+   Only Edexcel 1MA1 Higher, because that is the qualification whose total is 80 by definition.
+   Anything else in here (worksheets, A-level, other boards) has no single right answer to compare
+   against and is left alone rather than guessed at. */
+const marks = new Map();
+rows.forEach(r => {
+  if (!r || r.kind !== 'part') return;
+  if (!/^P-1MA1-\d+-\dH$/.test(String(r.paper_id || ''))) return;
+  const n = Number(r.marks);
+  if (!Number.isFinite(n)) {
+    fail.push(`${r.row_id} has marks ${JSON.stringify(r.marks)}, which is not a number`);
+    return;
+  }
+  marks.set(r.paper_id, (marks.get(r.paper_id) || 0) + n);
+});
+[...marks.entries()].sort().forEach(([p, m]) => {
+  if (m !== 80) fail.push(`${p} totals ${m} marks; every Edexcel 1MA1 Higher paper is 80`);
+});
+
+/* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
+const strays = [];
+Object.keys(VOCAB).forEach(col => {
+  const allowed = new Set(VOCAB[col]);
+  const bad = new Map();
+  rows.forEach(r => {
+    if (!r || !(col in r)) return;
+    const v = String(r[col]);
+    if (!allowed.has(v)) bad.set(v, (bad.get(v) || 0) + 1);
+  });
+  bad.forEach((n, v) => strays.push({ col, v, n }));
+});
+strays.forEach(s => fail.push(
+  `${s.col} = ${JSON.stringify(s.v)} on ${s.n} row${s.n > 1 ? 's' : ''} — not in the vocabulary. ` +
+  `Read what the column already uses before adding it to VOCAB in this file.`));
+
+/* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
+   `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
+   across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
+   These are real questions being taught in a broken state, and nothing surfaced them until now.
+   Reported rather than failed: it is editorial work on a handful of rows, not a build error. */
+const flagged = rows.filter(r => r && r.examiner_note);
+
+/* ---------- SAY IT --------------------------------------------------------------------------------- */
+const say = (title, list, draw) => {
+  console.log('\n' + title + '  (' + list.length + ')');
+  if (!list.length) { console.log('  none'); return; }
+  list.forEach(x => console.log('  ' + draw(x)));
+};
+
+console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel 1MA1 Higher papers`);
+
+say('BROKEN', fail, x => x);
+
+say('QUESTIONS THE TRANSCRIBER COULD NOT RECOVER — worth a person and the original PDF', flagged,
+    r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
+
+console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
+
+if (fail.length) {
+  console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');
+  process.exit(1);
+}
+console.log('\nOK — the library parses, its ids are unique, every paper is 80 marks, and no facet has grown a new answer.');

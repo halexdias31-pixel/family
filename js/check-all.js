@@ -90,6 +90,23 @@ const SUITE = [
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },
+  /* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN -------------------------------------------
+     `check-lifecycle`, `check-spine` and `check-surfaces` were written, committed, and left off this
+     list. All three pass, and all three have passed in silence for however long they have been
+     here — CLAUDE.md even cites `check-spine.js` finding two missing receipt rows "the first time it
+     ran", which is the last time anything ran it.
+
+     A CHECK THAT IS NOT IN THE ROSTER SAYS NOTHING, which is the same fault as `check-booking`
+     printing "nothing to check" and exiting 0 — recorded a few paragraphs up this very file. The
+     roster is the only thing that makes a check real, so it is the thing to add to. */
+  { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
+  { file: 'check-spine.js',     what: 'one row order, both documents' },
+  { file: 'check-surfaces.js',  what: 'nothing opens over the app' },
+  /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ ------------------------------------
+     Every check above this line reads the CODE. `data/questions.json` is 4,264 rows of committed
+     content — the library the whole Find screen is about — and no check had ever opened it. A wrong
+     row does not throw; it is simply a question somebody is taught wrongly. */
+  { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
 ];
 
