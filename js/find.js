@@ -603,6 +603,20 @@ function kindOf_(x) {
   return (x && kindMap_()[x.kind]) || { group: 'Shop', label: 'Things' };
 }
 
+/* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO --------------------------------
+   `Number(t.rate) || 0` WAS THE PATTERN and it folds three different things into one number: a
+   rate of 0, a blank cell, and a cell holding "ask me". All three came out 0, and 0 means FREE to
+   the Price facet — so a tutor whose rate nobody has filled in was advertised as free.
+
+   `undefined` IS THE ANSWER FOR ALL THREE. It is what "I have no price" looks like everywhere else
+   in this file: `asList_` drops it, the facet skips it, and the card draws nothing. A real 0 still
+   gets through, because `Number('0')` is 0 and `isFinite(0)` is true. */
+function priced_(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return undefined;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? n : undefined;
+}
+
 const FACETS = [
   /* What sort of thing, first. It is the one question that changes which of the others make any
      sense at all — a wearable has a slot and no exam board, a paper the reverse. */
@@ -722,10 +736,25 @@ const FACETS = [
   /* `qNumber` AND `qPart` WERE HERE. Nothing sets either field now — they were written by
      `questionItems`, which drew the duplicate cards these two existed to narrow. */
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
-  /* Last, because it is the one somebody asks when they already know what they want. */
-  { field: 'afford',    label: 'Price',       of: x => x.cost === 0 ? 'Free'
-                                                    : x.cost <= (USER ? USER.credits || 0 : 0)
-                                                      ? 'Can afford' : '' },
+  /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
+     MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
+     `cost: 0` whether or not the thing had a price at all — a subject, a level, a link, a friend,
+     a timer, a question — because it was part of a block of blanks everybody copied. This facet
+     tests `x.cost === 0`, strictly, so all of them came back Free and the `Free` bucket meant
+     "everything in the app".
+
+     THE BLANKS WERE CEREMONY AND THIS ONE WAS NOT, which is the trap: fifteen fields in that block
+     behave identically whether you write them or not — `asList_` cannot tell `''` from `undefined`
+     — and the sixteenth silently decided a filter. One load-bearing line hidden among fifteen
+     decorative ones is exactly the kind of thing that makes a funnel feel arbitrary.
+
+     SO: NO `cost` MEANS NO ANSWER, and the thing drops out of this question rather than claiming to
+     be free. `cost: 0` still means free, because a shop item priced at nought IS free. `priced_`
+     below is what tells an unset rate from a rate of zero. */
+  { field: 'afford',    label: 'Price',
+    of: x => x.cost == null ? ''
+           : x.cost === 0 ? 'Free'
+           : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
 ];
 
 /* ==================================================================================================
@@ -911,6 +940,75 @@ function nextFacet(items) {
   }
   return null;
 }
+
+/* ==================================================================================================
+   `whyThisQuestion()` — THE FUNNEL, SHOWING ITS WORKING.
+
+   WHY THIS EXISTS. The funnel picks the next question with `nextFacet` above, and the rule is not
+   a rule about MEANING — it is arithmetic over whatever happens to be in the list right now:
+
+     ask it only if two or more different answers exist, and
+     ask it only if at least half the current results can answer it at all.
+
+   THAT IS A GOOD RULE AND IT FEELS RANDOM FROM OUTSIDE, because the same data reached two ways asks
+   two different questions. Narrow to Maths and `Exam board` appears; narrow to Maths and Boxing
+   together and it does not, because half the list has no board. Nothing on screen says so, so it
+   reads as the app changing its mind.
+
+   EVERY LAYOUT FAULT IN THIS APP WAS FIXED BY ASKING THE BROWSER RATHER THAN READING THE CODE —
+   `layout()` exists for exactly that, and CLAUDE.md says so at length. This is the same instrument
+   pointed at the funnel: it prints, for the list you are looking at, every question in order and
+   the number that decided it. No guessing about why `Tier` did not come up.
+
+     whyThisQuestion()          the list you are actually looking at
+     whyThisQuestion(true)      the whole pile, ignoring what you have already answered
+
+   READ THE `why` COLUMN. `asked` means you already answered it. `1 answer` means everything left
+   agrees, so the question has nothing to decide. `thin` means it is below its coverage bar — the
+   number beside it is how many of the current results could answer, and the bar it missed.
+================================================================================================== */
+function whyThisQuestion(all) {
+  const items = all ? stuffItems() : stuffFiltered();
+  const asked = STUFF.filters.map(f => f.field);
+  /* BUILT AS STRINGS, NOT WITH `%s`. `console.log`'s format substitution is the browser's, and
+     anything else reading this output — a test harness capturing console, a copy-paste into a
+     message — gets the literal `%-14s` instead. This is meant to be pasted. */
+  const pad = (v, n) => (String(v) + '                  ').slice(0, n);
+  const num = (v, n) => ('        ' + String(v)).slice(-n);
+  console.log('');
+  console.log(items.length + ' result(s) in hand'
+              + (asked.length ? '   answered: ' + asked.join(', ') : '   nothing answered yet'));
+  console.log('');
+  console.log('  ' + pad('field', 14) + pad('label', 18)
+              + num('answers', 8) + num('cover', 7) + '  why');
+  let chosen = null;
+  facetList().forEach(f => {
+    const vals = facetValues(items, f);
+    const cov = facetCoverage(items, f);
+    const min = isFinite(f.min) ? f.min : FACET_COVERAGE;
+    let why;
+    if (asked.indexOf(f.field) !== -1) why = 'asked already';
+    else if (vals.length < 2) why = (vals.length ? 'one answer' : 'nobody can answer it')
+                                    + ' — nothing to decide';
+    else if (cov < min) why = 'thin — needs ' + Math.round(min * 100) + '%';
+    else if (!chosen) { why = '← THIS ONE'; chosen = f.field; }
+    else why = 'would do, but comes after ' + chosen;
+    console.log('  ' + pad(f.field, 14) + pad(f.label, 18)
+                + num(vals.length, 8) + num(Math.round(cov * 100) + '%', 7) + '  ' + why);
+  });
+  if (!chosen) console.log('\n  nothing left to ask — the list is the answer');
+  console.log('');
+  /* THE VALUES TOO, for the one it chose, because "seven answers" and WHICH seven are different
+     facts and the second is the one you act on. */
+  if (chosen) {
+    const f = facetList().find(x => x.field === chosen);
+    console.log('  ' + f.label + ': ' + facetValues(items, f)
+      .map(v => v.value + ' (' + v.n + ')').join(', '));
+    console.log('');
+  }
+  return chosen;
+}
+
 
 /* THE RESOURCES, flattened out of where the payload actually puts them.
 
@@ -1243,7 +1341,6 @@ function questionItems() {
       name: 'Q' + r.q + qPartName_(r.part),
       key: 'q:' + r.id,
       sub: r.name || '',
-      image: '', cost: 0, slot: '', off: false,
       subject: r.subject || '',
       /* THE SAME DERIVATION `allTopics` DID, and the only one it did: a grade is a band value when
          the band is a grade, and blank when it is a stage. Two ladders, one column. */
@@ -1366,21 +1463,15 @@ function questionCard_(x) {
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
    up any more; see the note above `questionItems`. */
 
-/* WHAT A PRINTED COPY COSTS. Paper and toner, at the rate in the sheet — no multipliers, no
-   discounts. This is the one price in the app that is not tuition and does not behave like it.
+/* `printPrice` WAS HERE, AND I SAID ONE COMMIT AGO THAT `cartMoney_` STILL READ IT. It does not —
+   `cartMoney_` reads `laminatePrice`, which is a different function with the same shape, and I
+   checked the shape rather than the caller. `check-dead.js` named it on the next run, which is what
+   that check is for.
 
-   NO PAGE COUNT, NO PRICE. Zero pages means nobody has counted this one yet, and pricing it at
-   £0.00 would be the site answering a question it has not asked anybody. It returns null, and null
-   is rendered as a sentence rather than as a number. */
-function printPrice(pages) {
-  const n = Number(pages) || 0;
-  if (n <= 0) return null;
-  const v = (DATA.constants || {}).vars || {};
-  const rate = num(v.print_rate_per_page);
-  if (isNaN(rate) || rate <= 0) return null;      // rate not set: printing is off, not free
-  const min = num(v.print_minimum) || 0;
-  return Math.max(min, Math.round(n * rate * 100) / 100);
-}
+   WHAT A PRINT COSTS is `laminatePrice` below plus nothing, until something lists whole papers
+   again. See the note above `topicTiles_` in tiles.js for why nothing does. */
+
+
 
 /* ---------- AND WHAT LAMINATING ONE COSTS ---------------------------------------------------------
    THE SAME SHAPE AS `printPrice` AND FOR THE SAME REASONS, which is the point of writing it here
@@ -1466,17 +1557,11 @@ function stuffItems() {
     ...(typeof docItems_ === 'function' ? docItems_() : []),
     ...(DATA.tutors || []).filter(t => t.title).map(t => ({
       kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
-      cost: Number(t.rate) || 0, slot: '', subject: '', grade: '', off: t.listed === false,
-      row: t,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      cost: priced_(t.rate), off: t.listed === false, row: t,
     })),
     ...(DATA.venues || []).filter(v => v.title).map(v => ({
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
-      cost: Number(v.bestRate) || 0, slot: '', subject: '', grade: '', off: false,
-      row: v, borough: v.borough || v.city || '',
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
     })),
     /* A LINK IS A THING YOU ARE LOOKING FOR TOO. It lives on its own tab as a wall of tiles —
        which is the right way to SCAN ninety of them — and it was reachable no other way, so
@@ -1508,9 +1593,7 @@ function stuffItems() {
       /* AND WHAT THE SECOND QUESTION CALLS IT. A widget filed under Booking would otherwise offer
          `Tools` as its kind — the word it was moved away from. Blank for the ordinary tools. */
       kindLabel: wgt.label || '',
-      cost: 0, slot: '', subject: '', grade: '', off: false, row: wgt,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      row: wgt,
     })),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You,
        which made them a setting about yourself rather than a set of people you can look through.
@@ -1520,9 +1603,7 @@ function stuffItems() {
       const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
       return {
         kind: 'friend', name: s2.name || h, key: 'friend:' + h, sub: h, image: '',
-        cost: 0, slot: '', subject: '', grade: '', off: false, row: Object.assign({ handle: h }, s2),
-        bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-        resourceType: '', examWave: '', year: '', paper: false,
+        row: Object.assign({ handle: h }, s2),
       };
     }) : []),
     /* ---------- THE POSTS -------------------------------------------------------------------
@@ -1543,16 +1624,11 @@ function stuffItems() {
        them now. */
     ...(DATA.links || []).filter(l => l.title).map(l => ({
       kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
-      cost: 0, slot: '', subject: '', grade: '', off: false, row: l,
-      category: l.category || '',
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      row: l, category: l.category || '',
     })),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
-      cost: 0, slot: '', subject: x.name, grade: '', off: false, row: x,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      subject: x.name, row: x,
     })),
     /* ---------- LEVELS -------------------------------------------------------------------------
        `subject` IS BLANK, and it is the one field somebody would be tempted to fill. A level runs
@@ -1584,10 +1660,8 @@ function stuffItems() {
       name: [j.subject || 'Session', j.level].filter(Boolean).join(' · '),
       key: 'job:' + (j.id || j.jobId || ''),
       sub: [j.tutor, j.venue, j.weekday].filter(Boolean).join(' · '),
-      image: '', cost: Number(j.price) || 0, slot: '',
-      subject: j.subject || '', grade: '', off: false, row: j,
-      bandType: '', bandValue: j.level || '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      cost: priced_(j.price), subject: j.subject || '', row: j,
+      bandValue: j.level || '',
     })),
     /* YOU WERE AN ITEM HERE, under `People`, when you had no tutor row of your own. Removed with
        that group — the account column is your card, in full, one swipe right. The merge it guarded
@@ -1597,19 +1671,19 @@ function stuffItems() {
       kind: 'level', name: x.name, key: 'lvl:' + x.name,
       /* The subjects, under the name, so the list is readable before anything is opened. */
       sub: (x.subjects || []).join(' · '), image: '',
-      cost: 0, slot: '', subject: '', grade: '', off: false, row: x,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      row: x,
     })),
     /* `name` and `price`, which is what the payload actually calls them. I had written `title`
        and `cost` — so every shop item drew with no name and a price of zero. */
     ...(DATA.shop || []).map(x => ({
       kind: 'shop', name: x.name, key: x.name, sub: x.description || '', image: x.image,
-      cost: Number(x.price) || 0, slot: x.slot || '', subject: '', grade: '', off: false,
-      /* Blank on a shop row, and blank is what makes the funnel skip them: a facet whose values
-         are all empty is never offered, so choosing Wearables never shows an exam board. */
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: '', paper: false,
+      /* A SHOP ROW IS THE ONE PLACE `0` GENUINELY MEANS FREE — it is priced, and the price is
+         nought. Everything else that used to write `cost: 0` was saying "I have no price", which
+         is a different answer; see `priced_`. */
+      cost: Number(x.price) || 0, slot: x.slot || '',
+      /* THE EXAM FIELDS ARE NOT WRITTEN BLANK ANY MORE. `asList_` cannot tell `''` from `undefined`
+         — both come out as no answer — so the ten blanks per row were ceremony. Leaving them off
+         is the same behaviour and says the true thing: a beanie has no exam board. */
       /* WHETHER IT IS A WEARABLE, AND WHAT IT COSTS TO REACH.
          A wearable is priced in one of two currencies and the card only ever read one of them: a
          level-gated item has a price of zero, which was being drawn as "free" — an item saying
@@ -1648,10 +1722,8 @@ function stuffItems() {
          that goes from Boxing straight to twenty weight classes has skipped the question anybody
          actually has first. */
       boxKind: 'Boxers',
-      cost: 0, slot: '', subject: 'Boxing', division: divisionOf_(b.bestDivision), grade: '',
-      off: false, row: b,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: b.activeTo || '', paper: false,
+      subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
+      year: b.activeTo || '',
     })),
 
     /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: Boxing as the subject, the weight as the
@@ -1663,10 +1735,8 @@ function stuffItems() {
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
       boxKind: 'Fights',
-      cost: 0, slot: '', subject: 'Boxing', division: divisionOf_(f.division), grade: '',
-      off: false, row: f,
-      bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-      resourceType: '', examWave: '', year: (f.date || '').slice(0, 4), paper: false,
+      subject: 'Boxing', division: divisionOf_(f.division), row: f,
+      year: (f.date || '').slice(0, 4),
     })),
 
     /* ---------- THE QUESTIONS, AND NOT THE DOCUMENTS THEY CAME OUT OF ---------------------------

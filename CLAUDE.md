@@ -458,6 +458,41 @@ answers wins:
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
 
+### The funnel is an engine fed by a hand-written loader, and that seam is where it feels arbitrary
+
+Three layers, each half-generalised:
+
+| Layer | The sheet can | The sheet cannot |
+|---|---|---|
+| **Items** — `stuffItems()` | nothing | everything. 11 hand-written mappers |
+| **Kinds** — `KINDS` + the `kinds` tab | rename, regroup, reorder, switch off | **add one** — `card:` is a function |
+| **Questions** — `FACETS` + the `facets` tab | relabel, reorder, set coverage, switch off | **add one** — `of:` is a function |
+
+**You can edit the funnel from a spreadsheet; you cannot extend it.** Boxing cost seven places — a
+mapper, `boxKind` invented, a `division` facet, `divisionOf_`, `boxerCard_`, a `KINDS` entry and a
+comment explaining why the division is not in `subject`. Six of the seven are code. That is the
+ducktape, and it is worth knowing it is structural rather than sloppiness.
+
+**The next question is chosen by arithmetic over the current list, not by meaning.** `nextFacet`
+offers the first facet with ≥2 distinct answers and ≥50% coverage — so the same data reached two
+ways asks two different questions. Narrow to Maths and `Exam board` appears; add Boxing and it does
+not, because half the list has no board. Nothing on screen says so, so it reads as the app changing
+its mind. **`whyThisQuestion()` in the console prints every facet with its answer count, its
+coverage and the reason it was or was not chosen** — the same instrument as `layout()`, pointed at
+the funnel instead of the boxes.
+
+**Fifteen fields of ceremony hid one that decided a filter.** Every mapper wrote
+`bandType: '', bandValue: '', keystage: '', …, paper: false` — ten identical blocks. All of it was
+ceremony: `asList_` cannot tell `''` from `undefined`, so writing them and omitting them are the
+same behaviour. **`cost: 0` was not ceremony.** The Price facet tests `x.cost === 0` strictly, so
+every unpriced thing — a subject, a level, a link, a friend, a timer, a question — claimed to be
+FREE. Measured: **3,262 of 3,265 items answered `Free`**, which made that bucket mean "everything".
+
+`priced_` now tells an unset rate from a rate of zero, and no `cost` means no answer to the
+question rather than a claim of free. `cost: 0` still means free, because a shop item priced at
+nought is. **One load-bearing line among fifteen decorative ones is exactly what makes a funnel feel
+arbitrary**, and the blanks are gone so the next one cannot hide the same way.
+
 ### The funnel lists QUESTIONS. There are no collections on it.
 
 **Three goes at drawing a past paper card, and the card was never the problem.** A document and the

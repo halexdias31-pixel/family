@@ -60,22 +60,10 @@ const libTrue = v => {
   return s === 'true' || s === 'yes' || s === '1' || s === 'y' || s === 'on';
 };
 
-/* WHAT A PRINTED COPY COSTS — `printPrice` and `canPrint` from `content.gs`, reading the same two
-   config values, which are on the payload as `constants.vars`. A rate of zero means printing is
-   OFF rather than free, which is why this returns null and not 0. */
-function libPrintPrice_(pages, cfg) {
-  const n = libN(pages);
-  if (n <= 0) return null;
-  const rate = libN(cfg.print_rate_per_page);
-  if (rate <= 0) return null;
-  const min = libN(cfg.print_minimum);
-  return Math.max(min, Math.round(n * rate * 100) / 100);
-}
-function libCanPrint_(r, cfg) {
-  const p = String(r.printable === undefined ? '' : r.printable).toLowerCase().trim();
-  if (p === 'false' || p === 'no') return false;
-  return libPrintPrice_(r.pages, cfg) !== null;
-}
+/* `libPrintPrice_` AND `libCanPrint_` WERE HERE — what a printed copy costs, computed while the
+   checklists were built so a document arrived with its price on it. The checklists are not built
+   any more (see below), so both went with the block that called them. Orphaned by the same change
+   that orphaned `printPrice` in find.js, and found the same way, by `check-dead.js`. */
 
 /* ---------- ONE FETCH, STARTED EARLY ---------------------------------------------------------------
    `window.BOOT_LIB` is set by `index.html` before any of this has parsed, for the same reason
