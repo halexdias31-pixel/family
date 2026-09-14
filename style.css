@@ -6849,19 +6849,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the element stops being clickable in some older WebKits. `display: block` with the contents laid
    out inside is the arrangement that behaves everywhere. */
 .qans { margin-top: .9rem; border-top: 1px solid var(--line); }
-.qans-open {
-  display: block; list-style: none; cursor: pointer;
-  min-height: 44px; padding: .8rem 0 .4rem;
+/* ---------- A HEADING, NOT A CONTROL -------------------------------------------------------------
+   `.qans-open` WAS A `<summary>`: 44px tall, a pointer cursor, and a +/- glyph that swapped on
+   `[open]`. The answer is always shown now — see `answerBlock_` — so all four of those said a
+   thing that is no longer true. A 44px tap target on something nothing taps is the clearest of
+   them: this file's own rule is that 44px means a finger goes here.
+
+   THE WORD STAYS. "Answer" still has to separate the question above it from the mark scheme below,
+   and the rule on `.qans` still draws the line between them. It is a label now, so it loses the
+   height, the cursor and the glyph and keeps the colour and the weight. */
+.qans-head {
+  display: block;
+  padding: .8rem 0 .4rem;
   font: 600 .8rem/1.2 var(--font); color: var(--gold);
 }
-.qans-open::-webkit-details-marker { display: none; }
-.qans-open span { position: relative; padding-left: 1.4rem; }
-.qans-open span::before {
-  content: '+'; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  font: 700 1.1rem/1 var(--mono); color: var(--gold);
-}
-.qans[open] .qans-open span::before { content: '\2212'; }   /* a real minus, not a hyphen */
-.qans-open em { margin-left: .5rem; font-style: normal; font-size: .68rem; color: var(--faint); }
+.qans-head em { margin-left: .5rem; font-style: normal; font-size: .68rem; color: var(--faint); }
 /* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. */
 .qans-body { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; padding-bottom: .4rem; }
 .qans-body p:first-child { margin-top: 0; }

@@ -196,7 +196,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-19-avatar-price";
+const BACKEND_VERSION = "2026-09-20-papers";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -360,7 +360,23 @@ const SCHEMA = {
      yours is what you stood in front of with a ruler. Anything in this tab overrides the same
      building from `fetchMap`. */
   landmarks: [
-    "landmark_id", "name", "world", "kind",
+    /* ---------- THESE ARE THE TAB'S OWN NAMES, AND THEY DID NOT USED TO BE -----------------------
+       THIS ENTRY DESCRIBED A TAB THAT DOES NOT EXIST. It said `landmark_id`, `shape`, `width_m`,
+       `depth_m`, `height_m`, `colour` and `roof`; the sheet has `id`, `w`, `d`, `height`,
+       `wall_colour` and `roof_colour`, and no `shape` at all. So `content.gs` read seven names off
+       every landmark row that were not there, and **every building came through with width 0,
+       depth 0, height 0 and no colour** — drawn as a flat slab of nothing.
+
+       NEITHER CHECK COULD SEE IT. `check-columns` asks whether a name is a column of any tab and
+       `check-rows` asks whether it is a column of THIS tab — and both were answered by this entry,
+       which is the code's belief rather than the sheet. Found by downloading the spreadsheet and
+       comparing, which is the third question and the one nothing automates yet.
+
+       THE SHEET IS THE SIDE THAT IS RIGHT, so the names moved here rather than there — the same
+       conclusion this file reached about `SCHEMA.questions`. `shape` is gone entirely: it was read
+       into a variable that nothing used, and the comment beside it already said no row has ever
+       had one. */
+    "id", "parent", "name", "world", "kind",
     "lat", "lng",
     /* ---------- WHICH WAY ROUND IT STANDS ON THE BOARD --------------------------------------------
        DEGREES TO TURN IT, and the sign is the ordinary one: POSITIVE IS CLOCKWISE, negative is
@@ -376,8 +392,11 @@ const SCHEMA = {
        SO 0 IS RIGHT FOR MOST THINGS. Fill this in only when a site looks square and faces the wrong
        way, and then it is one of four numbers: 90, 180, -90, or 0. */
     "bearing",
-    "shape", "width_m", "depth_m", "points",
-    "height_m", "storeys", "colour", "note",
+    /* `x` and `z` are the board position when one is set by hand, and `active` is how a landmark
+       is retired without deleting the row. All three are on the tab and none was declared. */
+    "x", "z", "active",
+    "w", "d", "points",
+    "height", "storeys", "wall_colour", "note",
     /* ---------- WHAT THE SHEET ALREADY HAD AND THE SCHEMA DID NOT --------------------------------
        These four are on the landmarks tab and were never declared here — so `ensureSchema` would
        not create them on a fresh sheet, and `check-columns` reported them the moment anything read
@@ -389,7 +408,7 @@ const SCHEMA = {
          role    what it is TO THE APP rather than to the town: a venue, a start, a post
          marker  how it is drawn where there is no outline to draw
     */
-    "label", "icon", "role", "marker", "roof", "address",
+    "label", "icon", "role", "marker", "roof_colour", "address",
     /* ---------- WHAT MAKES A LANDMARK RECOGNISABLE ON THE BOARD ----------------------------------
        THE BOARD IS NOT A MAP AND NOTHING ON IT IS TO SCALE. Each landmark gets a plot of its own,
        in order along the path, and what has to carry it is the SHAPE — because you know a church

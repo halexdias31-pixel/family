@@ -716,25 +716,25 @@ function seedLandmarks() {
   const WORLD = 'Merton';
   const ROWS = [
   { name: "Merton Bus Garage", kind: "transport", lat: 51.41734, lng: -0.18152, bearing: 1,
-    shape: 'polygon', width_m: 215, depth_m: 60, height_m: 9, storeys: 1,
-    colour: "#c2bcae",
+    w: 215, d: 60, height: 9, storeys: 1,
+    wall_colour: "#c2bcae",
     points: "51.41837 -0.18190, 51.41839 -0.18147, 51.41841 -0.18124, 51.41774 -0.18113, 51.41772 -0.18142, 51.41705 -0.18130, 51.41684 -0.18118, 51.41662 -0.18118, 51.41655 -0.18113, 51.41652 -0.18124, 51.41648 -0.18138, 51.41654 -0.18142, 51.41677 -0.18143, 51.41702 -0.18158, 51.41699 -0.18196, 51.41716 -0.18198, 51.41783 -0.18200, 51.41810 -0.18195, 51.41837 -0.18190" },
   { name: "Priory Retail Park", kind: "retail", lat: 51.41586, lng: -0.17899, bearing: 84,
-    shape: 'polygon', width_m: 129, depth_m: 47, height_m: 8, storeys: 1,
-    colour: "#cfc7b8",
+    w: 129, d: 47, height: 8, storeys: 1,
+    wall_colour: "#cfc7b8",
     points: "51.41641 -0.17906, 51.41628 -0.17908, 51.41616 -0.17911, 51.41601 -0.17913, 51.41586 -0.17916, 51.41580 -0.17917, 51.41571 -0.17918, 51.41558 -0.17920, 51.41546 -0.17923, 51.41538 -0.17924, 51.41525 -0.17901, 51.41524 -0.17896, 51.41522 -0.17860, 51.41623 -0.17842, 51.41625 -0.17861, 51.41638 -0.17859, 51.41641 -0.17906" },
   { name: "Britannia Point", kind: "tower", lat: 51.41744, lng: -0.1784, bearing: 74,
-    shape: 'polygon', width_m: 41, depth_m: 38, height_m: 59.5, storeys: 17,
-    colour: "#d8d2c4",
+    w: 41, d: 38, height: 59.5, storeys: 17,
+    wall_colour: "#d8d2c4",
     note: '13,000 m2 is TOTAL FLOOR SPACE over 17 storeys, not the footprint.',
     points: "51.41736 -0.17873, 51.41749 -0.17867, 51.41746 -0.17848, 51.41749 -0.17846, 51.41765 -0.17839, 51.41761 -0.17822, 51.41743 -0.17830, 51.41739 -0.17812, 51.41739 -0.17810, 51.41726 -0.17816, 51.41736 -0.17873" },
   { name: "Premier Inn", kind: "civic", lat: 51.41398, lng: -0.18042, bearing: 40,
-    shape: 'polygon', width_m: 99, depth_m: 49, height_m: 22, storeys: 7,
-    colour: "#e0d6c2",
+    w: 99, d: 49, height: 22, storeys: 7,
+    wall_colour: "#e0d6c2",
     points: "51.41359 -0.18067, 51.41370 -0.18075, 51.41374 -0.18079, 51.41383 -0.18085, 51.41388 -0.18089, 51.41395 -0.18065, 51.41402 -0.18041, 51.41404 -0.18042, 51.41402 -0.18066, 51.41407 -0.18071, 51.41410 -0.18072, 51.41411 -0.18065, 51.41417 -0.18066, 51.41426 -0.17971, 51.41417 -0.17969, 51.41412 -0.17967, 51.41411 -0.17970, 51.41410 -0.17973, 51.41359 -0.18067" },
   { name: "Sainsbury's", kind: "retail", lat: 51.41521, lng: -0.18175, bearing: 15,
-    shape: 'polygon', width_m: 153, depth_m: 147, height_m: 10, storeys: 1,
-    colour: "#d6cdbd",
+    w: 153, d: 147, height: 10, storeys: 1,
+    wall_colour: "#d6cdbd",
     points: "51.41470 -0.18252, 51.41471 -0.18246, 51.41472 -0.18243, 51.41475 -0.18222, 51.41475 -0.18219, 51.41443 -0.18204, 51.41446 -0.18187, 51.41450 -0.18165, 51.41450 -0.18163, 51.41454 -0.18142, 51.41458 -0.18119, 51.41461 -0.18097, 51.41466 -0.18074, 51.41469 -0.18052, 51.41472 -0.18034, 51.41496 -0.18045, 51.41513 -0.18052, 51.41565 -0.18074, 51.41591 -0.18086, 51.41588 -0.18102, 51.41584 -0.18127, 51.41581 -0.18147, 51.41577 -0.18170, 51.41582 -0.18172, 51.41582 -0.18174, 51.41579 -0.18189, 51.41577 -0.18200, 51.41585 -0.18203, 51.41583 -0.18216, 51.41581 -0.18228, 51.41573 -0.18225, 51.41570 -0.18241, 51.41551 -0.18255, 51.41543 -0.18261, 51.41539 -0.18261, 51.41534 -0.18259, 51.41531 -0.18278, 51.41470 -0.18252" },
   ];
 
@@ -756,13 +756,16 @@ function seedLandmarks() {
       bearing: r.bearing,
       /* `polygon` is what makes the reader use `points`; anything else and it falls back to the
          width, depth and bearing below. Both are written, so either path draws the right building. */
-      shape: r.shape,
-      width_m: r.width_m,
-      depth_m: r.depth_m,
+      /* THE TAB'S OWN NAMES. These were `width_m`, `depth_m`, `height_m` and `colour`, none of
+         which is a column of the landmarks tab — so `addRow` dropped all four in silence and every
+         seeded landmark arrived with no size and no colour. `shape` is gone with them: there is no
+         such column and nothing reads one. */
+      w: r.w,
+      d: r.d,
       points: r.points,
-      height_m: r.height_m,
+      height: r.height,
       storeys: r.storeys,
-      colour: r.colour,
+      wall_colour: r.wall_colour,
       note: r.note || '',
     });
     have[k] = true;
@@ -1191,9 +1194,9 @@ function dataProblems(deep) {
      value of this tab is the measuring and a half-filled row looks finished in a spreadsheet. */
   {
     const ls = read(TAB.landmarks).rows.filter(r => S(r.name));
-    const unmeasured = ls.filter(r => !(N(r.width_m) && N(r.depth_m)) && !S(r.points))
+    const unmeasured = ls.filter(r => !(N(r.w) && N(r.d)) && !S(r.points))
       .map(r => S(r.name));
-    const flat = ls.filter(r => !N(r.height_m) && !N(r.storeys)).map(r => S(r.name));
+    const flat = ls.filter(r => !N(r.height) && !N(r.storeys)).map(r => S(r.name));
     if (unmeasured.length) {
       add('landmarks with no footprint', unmeasured.join(', '),
           'Measure the front and the side in metres and put them in width_m and depth_m, with '

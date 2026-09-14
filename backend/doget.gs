@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-19-avatar-price";
+const DOGET_VERSION = "2026-09-20-papers";
 
 
 function doGet(e) {
@@ -1512,9 +1512,25 @@ function doGet(e) {
         { bandField: S(r.band_type), topics: [] };
       const pages = N(r.pages);
       d.checklists[subject][band].topics.push({
-        /* THE ID. Every lookup on the phone was matching on the name, and two subjects can both
-           have "Quadratics" — reading the wrong one is invisible, deleting the wrong one is not. */
-        id: S(r.resource_id),
+        /* ---------- THE ID IS THE PAPER'S, NOT THE RESOURCE'S ------------------------------------
+           EVERY LOOKUP ON THE PHONE USED TO MATCH ON THE NAME, and two subjects can both have
+           "Quadratics" — reading the wrong one is invisible, deleting the wrong one is not. So it
+           became an id, and the id it became was `resource_id`. That was right while documents were
+           a tab of their own and wrong the moment they became rows on `questions`:
+
+             a question points at its paper with `paper_id`, and that is the only key it carries;
+             `resource_id` is blank on the 80 documents built from their own questions;
+             and the two differ on 173 of the 202 papers that have both.
+
+           So the checklist offered a topic under one id while every question pointed at another,
+           and 80 of them offered a topic under no id at all. `paper_id` is on every document row by
+           construction — it is what the rows are keyed on — so it is the identity, here and in the
+           four `rowById_` lookups in `dopost.gs` that write back to these rows.
+
+           The resource id still travels, because it is what `ticks` in the other spreadsheet
+           points at and the two have to be reconcilable. */
+        id: S(r.paper_id) || S(r.resource_id),
+        resourceId: S(r.resource_id),
         name, rowIndex: r._row, link: S(r.source_url),
         trackable: TRUE_(r.trackable),
         resourceType: S(r.resource_type),

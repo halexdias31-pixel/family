@@ -1059,20 +1059,21 @@ function questionCard_(x) {
   </div>`;
 }
 
-/* ---------- THE ANSWER, SHUT UNTIL IT IS ASKED FOR ------------------------------------------------
-   A REVISION SCREEN THAT SHOWS THE ANSWER UNDER THE QUESTION HAS NOT ASKED YOU ANYTHING. The whole
-   value of a past paper is the gap between reading it and knowing it, so the answer is behind one
-   tap and the question is what you land on.
+/* ---------- THE ANSWER, SHOWN ------------------------------------------------------------------
+   IT WAS BEHIND A `<details>` AND IT IS NOT ANY MORE, at the owner's decision. The argument for
+   hiding it is written out below because it is a real argument and somebody will make it again:
+   a revision screen that shows the answer under the question has not asked you anything, and the
+   value of a past paper is the gap between reading it and knowing it.
 
-   `<details>` RATHER THAN A `data-do` AND A HANDLER, and it is the first one in this app. Open and
-   shut is the entire state, the browser already keeps it, and it is reachable from a keyboard
-   without anybody writing that. A handler would have meant a flag somewhere, and cards are rebuilt
-   on every repaint — so the flag would need a key, and the key would need to survive a filter
-   changing underneath it. Nothing to store is better than somewhere to store it.
+   THE ANSWER TO IT is that this is not only a revision screen. It is the surface a tutor reads
+   FROM, in front of somebody, and a disclosure widget between the question and its mark scheme is
+   a tap in the middle of a sentence being spoken. Whoever wants the gap can stop reading; nobody
+   who wants the mark scheme can avoid the tap.
 
-   IT SHUTS AGAIN WHEN THE CARD IS REDRAWN, and that is the right way round. A repaint means the
-   facts moved; re-arriving at a question you have not answered yet with the answer already open is
-   the one failure mode worth avoiding here.
+   WHAT WENT WITH IT: `<details>` was the only one in this app, and it was chosen because open and
+   shut is the entire state and the browser keeps it for free — no flag, no key, and nothing to
+   survive a repaint. A static block needs even less, so nothing is lost. `.qans-open` in
+   `style.css` styled the summary and has no element left to style.
 
    THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
    lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
@@ -1087,13 +1088,13 @@ function answerBlock_(x) {
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
-  return `<details class="qans">
-    <summary class="qans-open">
+  return `<div class="qans">
+    <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
-    </summary>
+    </div>
     <div class="qans-body">${x.answer}</div>
     ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
-  </details>`;
+  </div>`;
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it
@@ -1371,8 +1372,71 @@ function allTopics() {
     marks[id] = (marks[id] || 0) + (Number(r.marks) || 0);
   });
 
+  /* ---------- THE DOCUMENTS THEMSELVES, WHICH EXIST AGAIN ----------------------------------------
+     EVERYTHING BELOW USED TO BE DERIVED FROM QUESTION ROWS, and every hardcoded blank in it was
+     true when it was written: the `resources` tab had gone, so there was no link to give, no page
+     count to read and nowhere for a tick to live. That is no longer the case. A document is a
+     `kind: 'paper'` row on the questions tab now, `doGet` builds `dropdowns.checklists` out of
+     those rows, and they carry the link, the real page count, the printable flag and the passes.
+
+     WHAT THAT COST WHILE IT LASTED, measured against the live sheet:
+
+       440 of 642 documents reached the screen not at all — deriving papers from question rows can
+           only ever find the 202 that HAVE questions;
+       328 documents have a `source_url` and every one displayed as having no PDF;
+       155 have a counted page number and the screen showed an estimate off the mark total;
+       169 carry tick data and every card drew three empty boxes it would not accept a tap on.
+
+     A UNION, NOT A SWITCH, and the reason is `active`. 538 of the 642 document rows carry
+     active=FALSE, and `doGet` drops an inactive row from the checklists for anyone but an admin. So
+     sourcing this from the checklists ALONE would take about a hundred papers off a student's
+     screen that are there today — papers whose question rows are live and whose document row is
+     not. The document wins where there is one; a paper with questions and no visible document
+     still derives, exactly as it did. Nothing disappears and 440 things appear. */
   const seen = {};
   const out = [];
+  const cl = (DATA.dropdowns && DATA.dropdowns.checklists) || {};
+  Object.keys(cl).forEach(subject => {
+    Object.keys(cl[subject] || {}).forEach(band => {
+      ((cl[subject][band] || {}).topics || []).forEach(t => {
+        const id = t.id;
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        out.push({
+          id,
+          name: t.name || id,
+          subject: subject === 'Other' ? '' : subject,
+          grade: t.grade || '',
+          /* THE LINK THE DOCUMENT ACTUALLY HAS. See above: this was `''` with a paragraph under it
+             explaining that no PDF existed. 328 of them do. */
+          link: t.link || '', image: '',
+          company: t.company || '',
+          type: t.resourceType || '', board: t.examBoard || '',
+          bandType: t.bandType || '', bandValue: t.bandValue || '',
+          keystage: t.keystage || '', tier: t.tier || '',
+          examBoard: t.examBoard || '', resourceType: t.resourceType || '',
+          text: paperText_(id),
+          examWave: t.examWave || '', year: t.year || '',
+          guide: guides[id] || '',
+          paper: true,
+          /* THE COUNTED PAGES WIN over the estimate. `paperPages_` works a length out of the mark
+             total, which is the right answer for a paper nobody has counted and the wrong one for
+             the 155 that somebody has. */
+          pages: Number(t.pages) || paperPages_(marks[id]),
+          printable: t.printable, printPrice: t.printPrice,
+          price: t.price || 0, currency: t.currency || 'credits', level: t.level || 0,
+          active: t.active !== false,
+          /* THE PASSES HAVE A HOME AGAIN — the three columns are on the document row, which is the
+             one row per document that `kind: 'paper'` exists to guarantee. `toggleTopicTick` writes
+             to it through `rowById_(t, 'paper_id', …)`, which is why the id above is the paper's. */
+          trackable: !!t.trackable,
+          rowIndex: t.rowIndex || 0,
+          ticks: [t.tick1 || '', t.tick2 || '', t.tick3 || ''],
+        });
+      });
+    });
+  });
+
   qs.forEach(r => {
     const id = paperIdOf_(r);
     if (!id || seen[id]) return;
@@ -1382,10 +1446,8 @@ function allTopics() {
       name: r.name || id,
       subject: r.subject || '',
       grade: r.bandType === 'grade' ? r.bandValue : '',
-      /* NO LINK. There is no PDF behind any of these, which is the whole point — there is nothing to
-         download and nothing to link to. PAGES is different: see `paperPages_` above. It is worked
-         out from the marks now rather than left at zero, which is what makes a printed copy
-         offerable at all. */
+      /* DERIVED, so there is genuinely nothing to link to and no count to read — this branch only
+         runs for a paper whose document row the viewer cannot see. */
       link: '', image: '',
       /* WHO WROTE IT. This was hardcoded empty, so the `Company` facet had nothing to offer and
          every worksheet in the library looked like it came from nowhere. The questions sheet
@@ -1407,13 +1469,11 @@ function allTopics() {
       guide: guides[id] || r.guide || '',
       paper: true, pages: paperPages_(marks[id]), printable: '',
       active: r.active !== false,
-      /* ---------- THE PASSES HAVE NOWHERE TO LIVE ---------------------------------------------
-         `ticks` WERE THREE COLUMNS ON THE `resources` TAB and that tab is gone, so there is nothing
-         to read and nothing to write to. Every card therefore draws none, and `tickRow` returns
-         empty for an untrackable topic — which is the honest state rather than three boxes that
-         accept a tap and lose it.
-         518 of them exist in the other spreadsheet. Until passes have a home of their own — a
-         `ticks` tab of person, paper and which pass — this stays false. */
+      /* NOT TRACKABLE ON THIS BRANCH, and now for a narrow reason rather than a general one. The
+         passes DO have a home — three columns on the document row — but this branch only runs when
+         the viewer cannot see that row, and a tick has to be written somewhere. Three boxes that
+         accept a tap and lose it are worse than none, so it stays false here and is read off the
+         document above wherever there is one. */
       trackable: false,
       rowIndex: 0,
       ticks: ['', '', ''],
