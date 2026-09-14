@@ -224,8 +224,27 @@ budget before lunch and stop the nightly jobs.
 
 ## Checking your work
 
+**The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
+`.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
+then runs the whole suite and prints one of two lines: `all 18 checks pass`, or the failures under
+**`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
+
+**That second sentence is the point.** Every check here was good and none of them ran unless
+somebody remembered; the failure mode left was starting work on a repo that was already broken and
+spending the session unable to tell which half was yours. Seventeen seconds buys an unambiguous
+baseline — a red after that is the thing you just did.
+
+**It exits 0 whatever happens**, deliberately: a hook that refuses to start a session is a hook
+somebody deletes. It reports and gets out of the way. It also prints the branch, the head commit,
+and how many files were already uncommitted before you arrived.
+
+**Tested in both directions**, because a check that cannot fail is not a check: an undeclared name
+added to `js/core.js` produced `2 of 18 checks found something wrong` and 25 of 27 broken journeys;
+removing it went back to green.
+
 ```bash
-npm install                      # ONCE. acorn, jsdom and playwright — for the checks only.
+npm install                      # the hook does this for you on a fresh clone
+                                 # acorn, jsdom and playwright — for the checks only.
 npm run check                    # everything, via js/check-all.js
 node js/check.js                 # names used but never declared. Two seconds. Run always.
 node js/check-flow.js            # 21 journeys through the real app in jsdom
