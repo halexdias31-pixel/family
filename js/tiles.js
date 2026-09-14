@@ -32,8 +32,8 @@
    the thing they maintain — and a colour that means "only you can see this" is the only way to tell
    those apart at a glance. Nothing a client can press is ever silver.
 
-   LOADED AFTER `find`, `resource` and `collections`: it reads `printPrice`, `canPrint` and
-   `tickRow` from find, `paperRows` and `CART` from resource, and `isSpot` from collections.
+   LOADED AFTER `find`, `resource` and `collections`: it reads `printPrice` and `canPrint` from
+   find, `paperRows` and `CART` from resource, and `isSpot` from collections.
    index.html lists them; the list is the order.
 ================================================================================================== */
 
@@ -183,27 +183,30 @@ function tileSet_(el, o) {
 }
 
 
-/* ---------- THE ADMIN ROWS -----------------------------------------------------------------------
-   SPOTLIGHT, EDIT, DELETE — the three things only an admin can do to a row, in the same order on
-   every kind of card, stacked like everything else.
+/* ---------- THE ADMIN ROW ------------------------------------------------------------------------
+   SPOTLIGHT, AND IT USED TO BE SPOTLIGHT, EDIT, DELETE — the things only an admin can do to a row,
+   in the same order on every kind of card.
+
+   EDIT AND DELETE ARE GONE, and only for a paper — they were the only two that took `t`, the
+   document behind the card, and wrote a cell on its row. The library is `data/questions.json` in
+   this repository now: a relabel is a commit and a delete is a line changed, neither of which a
+   phone can do. `check-doors.js` pairs every `act` against a handler, so leaving a silver Edit tile
+   here pointed at a removed `on('topic-edit')` would have failed the build — which is exactly the
+   guard that should catch it.
+
+   `t` IS STILL TAKEN AND STILL IGNORED-IF-ABSENT, so every caller is unchanged; it costs one unused
+   argument and saves touching nine call sites for a row that may yet get an admin control back.
 
    `x.key` rather than the row's id: the spotlight set is keyed on whatever the CARD is keyed on,
-   which for a widget is `w:123` and for a venue is its name. Edit and delete want the resource's
-   own id, which is a different thing — so two keys go across. */
+   which for a widget is `w:123` and for a venue is its name. */
 function adminTiles_(x, t) {
   if (!isAdmin()) return '';
-  const id = t ? (t.id || t.name) : x.key;
   /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
      the group for a screen reader, which is the half of the old wrapper worth having. */
   return `<span class="tile-group is-admin" role="group" aria-label="Admin">
     ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
               on: isSpot(x.key), act: 'spot',
               data: { key: x.key, kind: x.kind || 'item' } })}
-    ${t ? tile_({ icon: 'edit', label: 'Edit', tone: 'admin',
-                  act: 'topic-edit', data: { key: id } }) : ''}
-    ${t ? tile_({ icon: t.active ? 'bin' : 'undo', label: t.active ? 'Delete' : 'Restore',
-                  tone: 'admin',
-                  act: 'topic-delete', data: { key: id, on: t.active ? '' : '1' } }) : ''}
   </span>`;
 }
 
@@ -281,8 +284,10 @@ function topicTiles_(x) {
     isAdmin() ? 'No questions written up for this one yet.'
               : 'Not ready to read yet.'}</p>`;
 
-  /* THE TICKS ARE NOT AN ACTION ROW and stay with the card, above the marks. */
-  return `${tickRow(t)}${rows.length ? rows.join('') : none}`;
+  /* `tickRow(t)` WAS PREPENDED HERE — three checkboxes that were not an action row and stayed with
+     the card, above the marks. The passes are gone; see the note where `tickRow` used to be in
+     find.js. */
+  return rows.length ? rows.join('') : none;
 }
 
 

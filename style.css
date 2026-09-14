@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-08-07-resize";
+  --css-version: "2026-09-22-no-passes";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -565,9 +565,12 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   /* The box is small, but the LABEL around it is the target — .7rem of padding above and below
      gives the whole row a 44px reach without a 44px square, which would look absurd. */
   flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); border-radius: 2px;
-  /* THE SAME TREATMENT AS `.tick-box`, for the same reason: `--line` on `--sunk` is a dark square on
-     a dark card, and a checkbox that does not look like a checkbox is a control nobody presses.
-     Two boxes doing one job should not be findable by how differently they fail. */
+  /* THE EDGE AND THE GROUND ARE THE ARGUMENT, not the values. `--line` on `--sunk` is #232323 on
+     near-black — a dark square on a dark card, and a checkbox that does not look like a checkbox is
+     a control nobody presses. 14% white has an edge on any screen in any light.
+     `.tick-box` WAS THE OTHER ONE, built the same way and for the same reason, and this note used
+     to point at it as the pair. It is gone with the passes, so this is the only checkbox in the app
+     and the reasoning now lives here rather than in two places agreeing. */
   border: 1.5px solid rgb(255 255 255 / .14);
   background: rgb(255 255 255 / .04);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
@@ -1349,67 +1352,19 @@ button.text-drop { color: var(--bad); }
    THE THINGS THAT WERE BUILT AFTER THE SCREENS.
 ================================================================================================ */
 
-/* ---------- THREE PASSES ------------------------------------------------------------------------
-   A numbered box each, because they are not one tick three times: the number is WHICH pass, and a
-   row of identical boxes could not say that.
-   Right-aligned on their own line rather than beside the name — a phone card is a row, and three
-   44px targets plus a picture plus two lines of text do not fit on one.
+/* ---------- THE THREE PASSES WERE HERE — `.ticks`, `.tick`, `.tick-box`, `.tick-said` -----------
+   SEVENTY LINES FOR THREE CHECKBOXES, and most of it was the argument for why an EMPTY box has to
+   look pressable: `--sunk` behind a `--line` border is #232323 on near-black, a small grey smudge
+   at 1.6rem, indistinguishable from the marks beside it that genuinely cannot be pressed. The
+   answer was an edge at 14% white, a ghost ✓ at 16% inside it, and a lit edge on `:active` because
+   `:hover` is a desktop luxury and `:active` is what a phone has. That reasoning is worth keeping
+   even though the rules are not — `.check .box` is the surviving control built the same way, and
+   any new checkbox in this app should be.
+
+   NOTHING DRAWS THEM. `tickRow` in find.js did; the tick columns held the handles of real children
+   and were stripped out of `data/questions.json` before it was committed to a public repository.
+   See the note where `tickRow` used to be. The card-scoped overrides below went with these.
 --------------------------------------------------------------------------------------------- */
-.ticks { display: flex; align-items: center; justify-content: flex-end; gap: .3rem;
-         margin: .3rem 0 0; }
-.tick { display: flex; align-items: center; justify-content: center; cursor: pointer;
-        /* The LABEL is the target, not the box: 44px of reach around a 1.6rem square, which is
-           the same trick `.check` uses and for the same reason. */
-        min-width: max(44px, 2.9rem); min-height: max(44px, 2.9rem); }
-.tick input { position: absolute; opacity: 0; width: 0; height: 0; }
-/* ---------- AN EMPTY TICK HAS TO LOOK LIKE SOMETHING YOU COULD TICK -------------------------------
-   IT WAS A DARK SQUARE ON A DARK CARD. `--sunk` behind a `--line` border is #232323 on near-black —
-   at 1.6rem that is a small grey smudge, and there was nothing about it saying it could be pressed.
-   Beside it on the same card sit marks that genuinely cannot be pressed, and the two were the same
-   shade of nothing.
-
-   THREE THINGS TELL YOU, and each does a different job:
-
-     THE EDGE, bright enough to be an edge. A control needs a visible boundary; at 14% white it has
-     one on any screen in any light, where #232323 vanishes on a phone held outdoors.
-
-     A GHOST OF THE TICK INSIDE. The strongest possible signal that a box is a checkbox is a faint
-     ✓ already sitting in it — it says what will happen here rather than that something might. It is
-     the same glyph the filled state uses, at a tenth of the strength, so ticking one is that mark
-     arriving rather than a different mark appearing.
-
-     A LIT EDGE UNDER THE FINGER. `:hover` is a desktop luxury; `:active` is what a phone has, and
-     the box brightens before it fills so the press is answered even if the save is slow. */
-.tick-box {
-  display: flex; align-items: center; justify-content: center;
-  width: 1.6rem; height: 1.6rem; border-radius: 3px;
-  border: 1px solid rgb(255 255 255 / .14);
-  background: rgb(255 255 255 / .04);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
-  font-size: .82rem; color: #1a1409;
-  transition: background var(--quick) ease, border-color var(--quick) ease,
-              transform var(--quick) ease, box-shadow var(--quick) ease;
-}
-/* THE GHOST. Same glyph, a tenth of the strength — the box says what would go in it. */
-.tick-box::after {
-  content: '✓';
-  color: rgb(255 255 255 / .16);
-  font-weight: 700;
-  transition: color var(--quick) ease;
-}
-/* Pressed: the edge lights before anything is saved, so the tap is answered even if the save is
-   slow. The scale that was already on this selector further down does the rest. */
-/* A TICK, not a number. Drawn the same way `.check .box` draws one, so a box on this screen and a
-   box on a form are the same object — which is the whole reason a checkbox needs no explaining. */
-/* FILLED. The ghost becomes the mark — same glyph, same place, now in ink on gold — so ticking one
-   reads as the tick ARRIVING rather than as a second thing appearing over the first. */
-.tick.on .tick-box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
-.tick.on .tick-box::after { color: #1a1409; }
-.tick:active .tick-box { transform: scale(.9);
-                         border-color: var(--gold); background: rgb(240 169 60 / .12); }
-/* The count in words, at the far end of the row — "twice" is what somebody would say out loud,
-   and two filled boxes out of three is a shape they have to read. */
-.tick-said { margin-right: auto; }
 
 /* ---------- THE DOCKET --------------------------------------------------------------------------
    A row is a tick, a line of text, and a way to drop it. No card and no border around each one —
@@ -7169,22 +7124,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @media (prefers-reduced-motion: reduce) { .tile:active { transform: none; } }
 
 
-/* ---------- THE PASSES, ON ONE LINE ---------------------------------------------------------------
-   THREE BOXES ARE ONE ACTION, not three, so they stay on a single row where the stack below is one
-   line each. The count in words sits at the left where a label sits on every other row here, and
-   the boxes at the right where a value does — which is the same shape as a tile and is why the two
-   sit together without either being restyled to match the other. */
-.card .ticks { display: flex; align-items: center; justify-content: space-between;
-               gap: .6rem; padding: .5rem .6rem; margin-top: .45rem;
-               border: 1px solid var(--line-soft); border-radius: var(--r); }
-/* `color: var(--dim)` WAS HERE AND NEVER ONCE APPLIED. The same selector sets colour again at line
-   7149, unconditionally and at identical specificity, so the later one has always won. Two rules
-   disagreeing about one property is a question with a settled answer and a reader who cannot see it
-   — you find this line, believe it, and wonder why the screen says otherwise. The colour is stated
-   once now, where the decision was actually made. Found by `node js/check-css.js`. */
-.card .ticks .tick-said { font: 400 .8rem/1.2 var(--mono); }
-.card .ticks .tick-said:empty::before { content: 'Passes'; color: var(--faint); }
-
+/* `.card .ticks` AND ITS TWO CHILDREN WERE HERE — the row that put the count in words at the left
+   and the three boxes at the right, the same shape as a tile, which is why the two sat together
+   without either being restyled. Gone with the boxes; see above. */
 
 /* ---------- WHAT THE CARDS NEEDED ONCE THEY STOPPED OPENING PANELS -------------------------------
    THE PASS GAINED A PLACE. It is the one fact the tutor sheet had that the pass did not, and it is
@@ -7248,21 +7190,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .tile-row.is-admin .tile .tile-i { width: 15px; height: 15px; }
 .tile-row.is-admin .tile.on { opacity: 1; }
 
-/* ---------- THE TICKS STOP SHOUTING ---------------------------------------------------------------
-   AN OUTLINE, NOT A FILL. A pass is a record of something you did, not an offer — so it is marked
-   the way a record is marked, and the gold goes back to the one row on this card that spends money.
-   Still unmistakably done: a filled outline at this size is as readable as a solid block and does
-   not compete with the thing underneath it. */
-.card .ticks .tick .tick-box { background: rgb(255 255 255 / .04); box-shadow: none; }
-.card .ticks .tick.on .tick-box { background: transparent; border-color: var(--gold); }
-/* THE MARK ITSELF IS THE GOLD. `.tick.on .tick-box::after` sets it to #1a1409 — ink, for reading on
-   a solid gold square — so removing the fill without this leaves a near-black tick on near-black
-   and the box comes out looking empty. */
-.card .ticks .tick.on .tick-box::after { color: var(--gold); }
-.card .ticks .tick-said { color: var(--faint); }
-
-
-
+/* `.card .ticks .tick*` WERE HERE — an outline rather than a fill, so a pass read as a record of
+   something done rather than as an offer, and the gold stayed on the one row that spends money.
+   Gone with the boxes. */
 
 /* ---------- THE BOOKER IS THE PAPER, AND NOTHING ELSE --------------------------------------------
    IT WAS AN `.rc` INSIDE A `.card` INSIDE A `.pane` — a receipt, in a panel, in glass. Three

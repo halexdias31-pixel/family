@@ -2068,7 +2068,11 @@ async function load() {
          other file has not been pasted yet", which is true, harmless, and self-correcting — and an
          orange bar across the top of every screen is a heavy way to say it.
          Both versions are still on the You screen, which is where you look when you want to know. */
-      const NEEDS = ['editPost', 'deletePost', 'editResource', 'deleteResource'];
+      /* `editResource` AND `deleteResource` WERE IN THIS LIST. They are not actions any more —
+         the library is `data/questions.json` in this repository and a relabel is a commit — so
+         leaving them here would have put a permanent orange bar across every screen saying the
+         backend cannot do something nothing asks it to. */
+      const NEEDS = ['editPost', 'deletePost'];
       const missing = NEEDS.filter(f => (d.features || []).indexOf(f) === -1);
       if (missing.length) {
         /* THE VERSION IT ACTUALLY REACHED, said out loud. "The backend is older" was true and

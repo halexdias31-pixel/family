@@ -61,26 +61,23 @@ function sheetFor_(name) {
            make: name, away: w.file };
 }
 
-/* ---------- THE DOCUMENTS, WHICH USED TO BE A TAB OF THEIR OWN ------------------------------------
-   `read(TAB.resources)` APPEARED IN NINETEEN PLACES and there is no resources tab any more: one row
-   per document and the questions inside it are the same table, so they are one — `kind` is `paper`
-   on a document row and `part` or `stem` on a question. This is that filter, in one place, because
-   nineteen copies of `.filter(r => r.kind === 'paper')` is nineteen chances to forget it and start
-   treating a question as a document.
+/* ---------- `documents_()` WAS HERE, AND THERE IS NOTHING LEFT FOR IT TO READ --------------------
+   IT WENT THROUGH TWO HOMES IN A FORTNIGHT. `read(TAB.resources)` appeared in nineteen places; the
+   resources tab and the questions tab turned out to be one table written twice, so this became the
+   `kind === 'paper'` filter over `read(TAB.questions)` and those nineteen callers were otherwise
+   untouched. Now the questions tab has left the spreadsheet altogether — 3,913 rows in
+   `data/questions.json`, read by js/library.js in the browser — so there is no tab under either
+   name and no row for this to hand back.
 
-   THE SHAPE `read` RETURNS, DELIBERATELY, so every one of those callers is otherwise untouched.
-   `setCell` writes through `t.sheet` and `row._row`, and neither is disturbed by handing back a
-   subset of the rows — a write still lands on the row it came from. `t.headers` is the whole tab's
-   headers, which is what `setCell` and `rowById_` check a column name against.
+   ALL SIXTEEN CALLERS ARE GONE RATHER THAN REPOINTED, and that is the honest outcome rather than a
+   tidy-up: five of them WROTE to a document row (a relabel, a delete, a page count, a tick, a print
+   order), and Apps Script cannot write to a file in git. Repointing them at a fetched copy of the
+   JSON would have produced five handlers that read the right data, reported success, and changed
+   nothing anybody would ever see. The reading ones — the `resourceInUse` dropdown, the health
+   check's page-count tally, `countTicks` — went with them because they described a tab.
 
-   NOT CACHED SEPARATELY. `read` already caches the questions tab for the request, so this is a
-   filter over rows that are in memory; caching the subset as well would mean two things to clear
-   and one of them forgotten after a write. */
-function documents_() {
-  const t = read(TAB.questions);
-  return { sheet: t.sheet, headers: t.headers,
-           rows: t.rows.filter(r => String(r.kind || '').toLowerCase() === 'paper') };
-}
+   SO A PAPER IS EDITED BY EDITING `data/questions.json` AND PUSHING IT. That is a deploy, which is
+   exactly the trade the move was made for: `questions` is the one tab nobody hand-edits. */
 
 /* ---------- ONE OPEN PER FILE PER REQUEST ---------------------------------------------------------
    `openById` WAS CALLED ONCE PER TAB. `read` caches its ROWS, so a tab is only read once — but the
@@ -765,28 +762,29 @@ function config() {
   return out;
 }
 
-/* WHAT A PRINTED COPY COSTS, in pounds. The one price on this site that is not tuition and does
-   not behave like it: no multipliers, no discounts, no per-child anything. Paper and toner.
+/* ---------- `printPrice` AND `canPrint` WERE HERE, AND THE BACKEND NO LONGER PRICES PAPER ---------
+   A PRINT COSTS PAGES x RATE, floored at a minimum, and null rather than £0.00 when nobody has
+   counted the pages — because zero pages means uncounted and a free price is the site answering a
+   question it has not asked anybody. That argument still holds and the code that holds it still
+   exists; it is just not here any more.
 
-   NO PAGE COUNT, NO PRICE. Zero pages means nobody has counted this one yet, and £0.00 would be
-   the site answering a question it has not asked anybody. Null, and the phone renders null as a
-   sentence rather than as a number. */
-function printPrice(pages) {
-  const n = N(pages);
-  if (n <= 0) return null;
-  const cfg = config();
-  const rate = N(cfg.print_rate_per_page);
-  if (rate <= 0) return null;                 // rate not set: printing is off, not free
-  const min = N(cfg.print_minimum);
-  return Math.max(min, Math.round(n * rate * 100) / 100);
-}
+   THE THREE CALLERS WENT IN ONE CHANGE. `orderPrints` priced a basket, the health check counted
+   what could not be sold, and the `?run` report printed the rate — all three read a document row
+   off the `questions` tab, and that tab is `data/questions.json` in this repository now.
 
-/** Whether a paper copy is offered at all. An explicit FALSE beats any page count — countable and
-    worth printing are different questions, and a 400-page textbook answers the first one yes. */
-function canPrint(row) {
-  if (norm(row.printable) === 'false' || norm(row.printable) === 'no') return false;
-  return printPrice(row.pages) !== null;
-}
+   IT IS COMPUTED ON THE PHONE INSTEAD, twice and deliberately: `printPrice` / `canPrint` in
+   js/find.js for a card, and `libPrintPrice_` / `libCanPrint_` in js/library.js while the
+   checklists are built. Both read `print_rate_per_page` and `print_minimum` off `constants.vars`,
+   which is the same config tab this did, so the figure has not moved — only what computes it.
+
+   AND THAT IS A REAL LOSS IF A CHECKOUT IS EVER BUILT. A total worked out on the phone is a total
+   the client chose, which is exactly why `orderPrints` re-priced everything server-side and said so
+   at length. Whatever takes payment will have to price it somewhere the client cannot reach — and
+   the page counts it needs are in a file in git, not in a cell. Worth knowing before, not during.
+
+   `driveIdFrom` in content.gs went the same way and for the same reason: it pulled a file id out of
+   a document's `source_url` so a PDF could be counted. The posts folder uses `folderIdFrom`, which
+   is a different function and stays. */
 
 /* `optionList` was here — one named list from the options tab. `allOptions` returns every list in
    a single pass and the payload has used that since it was written, so this read the same tab again

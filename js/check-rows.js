@@ -23,7 +23,6 @@
    HOW IT KNOWS WHICH TAB. By parsing rather than by matching, because the binding is structural:
 
      const t = read(TAB.people)        t is that tab
-     const t = documents_()            the questions tab, filtered to its `paper` rows
      t.rows.forEach(r => …)            r is one of its rows
      read(TAB.jobs).rows.map(r => …)   and so is this one
      const r = t.rows[i]               and this
@@ -118,10 +117,15 @@ const SCHEMA = {};
 const TABKEY = {};
 for (const m of (objectAfter_('TAB') || '').matchAll(/(\w+)\s*:\s*'([^']+)'/g)) TABKEY[m[1]] = m[1];
 
-/* `documents_()` IS THE QUESTIONS TAB, filtered to the rows that are documents rather than
-   questions. It returns `read`'s own shape on purpose — see core.gs — so a row off it is a
-   questions row and is checked against those columns. */
-const HELPERS = { documents_: 'questions' };
+/* A FUNCTION THAT HANDS BACK `read`'s OWN SHAPE, mapped to the tab behind it — so a row off it is
+   bound and checked exactly as a row off `read(TAB.x)` is.
+
+   `documents_: 'questions'` WAS THE ONLY ENTRY and both halves of it are gone: `documents_()` read
+   the questions tab filtered to its `paper` rows, and there is no questions tab. The map stays
+   because the NEXT such helper should be one line here rather than a row this check silently
+   declines to trace — `untraced` counts those and the summary prints the count, which is the
+   difference between "nothing to report" and "I could not look". */
+const HELPERS = {};
 
 const NOT_A_COLUMN = new Set(('length forEach map filter find some every reduce indexOf slice join '
   + 'split trim push pop concat sort reverse includes toString valueOf hasOwnProperty '

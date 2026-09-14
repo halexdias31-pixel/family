@@ -309,377 +309,22 @@ function migrateLikes() {
   return out;
 }
 
-/**
- * AN ID FOR EVERY RESOURCE.
- *
- * Run once, and then it costs nothing — rows that have one are skipped. Posts already carry a
- * post_id, so there is no equivalent for them.
- *
- * The sleep is not decoration: Date.now() called twice inside the same millisecond returns the
- * same number, and two resources sharing an id is worse than neither having one, because the
- * second is a collision nothing will ever report.
- */
-function ensureResourceIds() {
-  const t = documents_();
-  if (!t.sheet) return 0;
-  const cId = t.headers.indexOf('resource_id');
-  const cName = t.headers.indexOf('name');
-  if (cId < 0 || cName < 0) return 0;
+/* ---------- FOUR PAPER JOBS WERE HERE, AND CLAUDE.md ALREADY SAID NOT TO RUN THEM ----------------
+   `ensureResourceIds` gave every document row an id. `seedPastPapers` wrote 78 Edexcel GCSE Maths
+   papers, `seedALevelPapers` 42 A-Level and AS ones, and `dropOldALevelPapers` removed eight empty
+   rows before them. Between them they are most of what is in the library today, and every one of
+   them appended to the `questions` tab.
 
-  const last = t.sheet.getLastRow();
-  if (last < 2) return 0;
+   THAT TAB IS `data/questions.json` IN THIS REPOSITORY NOW, and CLAUDE.md has carried the line "do
+   not seed that tab" since the real rows were found in a file that had been written off as junk. A
+   seeder is the sharpest version of that warning: `sheetFor_` answers a blank id for an unrouted
+   name, `read` cannot tell that from an empty tab, and `appendRow` on nothing succeeds. It would
+   report "78 papers added" and add none — or worse, find a tab of that name somebody recreated and
+   fill it with a second copy of a library that already exists in git.
 
-  /* ONE READ AND ONE WRITE, not one per row.
-     This wrote each id with its own setValue — a separate round trip to the spreadsheet — and
-     slept 2ms between them. On four hundred resources that is four hundred round trips, which is
-     slow enough to run past the limit on a web request and return an HTML error page instead of a
-     payload. It did, the moment the schema check started running on first load after a deploy.
-
-     THE SLEEP WAS NEVER NEEDED. It was guarding against `Date.now()` returning the same
-     millisecond twice — but the row index is already in the id, so two rows written in the same
-     millisecond were never going to collide. It was protecting against nothing, slowly. */
-  const ids = t.sheet.getRange(2, cId + 1, last - 1, 1).getValues();
-  const names = t.sheet.getRange(2, cName + 1, last - 1, 1).getValues();
-  const stamp = Date.now();
-
-  let made = 0;
-  for (let i = 0; i < ids.length; i++) {
-    if (String(ids[i][0]).trim()) continue;
-    if (!String(names[i][0]).trim()) continue;     // a blank row is not a resource
-    ids[i][0] = 'RS' + stamp + '-' + i;
-    made++;
-  }
-  if (made) t.sheet.getRange(2, cId + 1, last - 1, 1).setValues(ids);
-
-  /* The in-memory rows were bypassed by writing the range directly, so anything reading them
-     afterwards in this same request would see the old blanks. */
-  clearCache();
-  return made;
-}
-
-/**
- * THE EDEXCEL GCSE MATHS PAST PAPERS, ADDED ONCE.
- *
- * Seventy-eight of them: every series from June 2017 to November 2024, three papers each, both
- * tiers. Read off revisionmaths.com, which publishes them as plain HTML rather than as a
- * JavaScript app, so every link here is one that was actually on the page rather than a pattern
- * somebody guessed at.
- *
- * IDEMPOTENT, AND BY LINK. A row already holding one of these addresses is left exactly as it is,
- * whatever else has been done to it — somebody may have priced it, ticked it off, or corrected its
- * name, and none of that should be undone by running this again. The link is the identity because
- * it is the one thing that says WHICH paper this is; a name can be edited and a subject renamed.
- *
- * WHAT IT DOES NOT FILL. `resource_id` is left to `ensureResourceIds`, and `pages` to the nightly
- * count — both already have an owner, and a second thing writing them is a second thing to keep in
- * step. Every row arrives active and printable, so they are in the library the moment this runs and
- * priced for paper as soon as the counts land.
- */
-function seedPastPapers() {
-  const t = documents_();
-  if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
-
-  /* name, tier, month, year, wave, link */
-  const PAPERS = [
-  ["Paper 1 (Non-calculator) — November 2024","Foundation",11,2024,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-1f-que-20241107.pdf"],
-  ["Paper 1 (Non-calculator) — November 2024","Higher",11,2024,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-1h-que-20241107.pdf"],
-  ["Paper 2 (Calculator) — November 2024","Foundation",11,2024,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-2f-que-20241109.pdf"],
-  ["Paper 2 (Calculator) — November 2024","Higher",11,2024,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-2h-que-20241109.pdf"],
-  ["Paper 3 (Calculator) — November 2024","Foundation",11,2024,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-3f-que-20241112.pdf"],
-  ["Paper 3 (Calculator) — November 2024","Higher",11,2024,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-3h-que-20241112.pdf"],
-  ["Paper 1 (Non-calculator) — June 2024","Foundation",6,2024,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PMG24P1F.pdf"],
-  ["Paper 1 (Non-calculator) — June 2024","Higher",6,2024,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PMG24P1H.pdf"],
-  ["Paper 2 (Calculator) — June 2024","Foundation",6,2024,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PMG24P2F.pdf"],
-  ["Paper 2 (Calculator) — June 2024","Higher",6,2024,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PMG24P2H.pdf"],
-  ["Paper 3 (Calculator) — June 2024","Foundation",6,2024,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PMG24P3F.pdf"],
-  ["Paper 3 (Calculator) — June 2024","Higher",6,2024,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PMG24P3H.pdf"],
-  ["Paper 1 (Non-calculator) — November 2023","Foundation",11,2023,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/NOV231ma1-1f-que-20231109.pdf"],
-  ["Paper 1 (Non-calculator) — November 2023","Higher",11,2023,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/NOV231ma1-1h-que-20231109.pdf"],
-  ["Paper 2 (Calculator) — November 2023","Foundation",11,2023,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/NOV231ma1-2f-que-20231111.pdf"],
-  ["Paper 2 (Calculator) — November 2023","Higher",11,2023,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/NOV231ma1-2h-que-20231111.pdf"],
-  ["Paper 3 (Calculator) — November 2023","Foundation",11,2023,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/NOV231ma1-3f-que-20231114.pdf"],
-  ["Paper 3 (Calculator) — November 2023","Higher",11,2023,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/NOV231ma1-3h-que-20231114.pdf"],
-  ["Paper 1 (Non-calculator) — June 2023","Foundation",6,2023,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EdM23F1P1ma1-1f-que-20230520.pdf"],
-  ["Paper 1 (Non-calculator) — June 2023","Higher",6,2023,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EdM23H1P1ma1-1h-que-20230520.pdf"],
-  ["Paper 2 (Calculator) — June 2023","Foundation",6,2023,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EdM23F2P1ma1-2f-que-20230608.pdf"],
-  ["Paper 2 (Calculator) — June 2023","Higher",6,2023,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EdM23H2P1ma1-2h-que-20230608.pdf"],
-  ["Paper 3 (Calculator) — June 2023","Foundation",6,2023,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EdM23F3P1ma1-3f-que-20230615.pdf"],
-  ["Paper 3 (Calculator) — June 2023","Higher",6,2023,"First wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EdM23H3P1ma1-3hque-20230615.pdf"],
-  ["Paper 1 (Non-calculator) — November 2022","Foundation",11,2022,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-1f-que-20221102.pdf"],
-  ["Paper 1 (Non-calculator) — November 2022","Higher",11,2022,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-1h-que-20221102.pdf"],
-  ["Paper 2 (Calculator) — November 2022","Foundation",11,2022,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-2f-que-20221104.pdf"],
-  ["Paper 2 (Calculator) — November 2022","Higher",11,2022,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-2h-que-20221104.pdf"],
-  ["Paper 3 (Calculator) — November 2022","Foundation",11,2022,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-3f-que-20221108.pdf"],
-  ["Paper 3 (Calculator) — November 2022","Higher",11,2022,"Second wave","https://revisionmaths.com/sites/default/files/revisionmaths/documents/1ma1-3h-que-20221108.pdf"],
-  ["Paper 1 (Non-calculator) — June 2022","Foundation",6,2022,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1ma1-1f-que-20220521.pdf"],
-  ["Paper 1 (Non-calculator) — June 2022","Higher",6,2022,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1ma1-1h-que-20220521.pdf"],
-  ["Paper 2 (Calculator) — June 2022","Foundation",6,2022,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1ma1-2f-que-20220608.pdf"],
-  ["Paper 2 (Calculator) — June 2022","Higher",6,2022,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1ma1-2h-que-20220608.pdf"],
-  ["Paper 3 (Calculator) — June 2022","Foundation",6,2022,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1ma1-3f-que-20220614.pdf"],
-  ["Paper 3 (Calculator) — June 2022","Higher",6,2022,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1ma1-3h-que-20220614.pdf"],
-  ["Paper 1 (Non-calculator) — November 2021","Foundation",11,2021,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1F_que_20211103.pdf"],
-  ["Paper 1 (Non-calculator) — November 2021","Higher",11,2021,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1H_que_20211103.pdf"],
-  ["Paper 2 (Calculator) — November 2021","Foundation",11,2021,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2F_que_20211105.pdf"],
-  ["Paper 2 (Calculator) — November 2021","Higher",11,2021,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2H_que_20211105.pdf"],
-  ["Paper 3 (Calculator) — November 2021","Foundation",11,2021,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3F_que_20211109.pdf"],
-  ["Paper 3 (Calculator) — November 2021","Higher",11,2021,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3H_que_20211109.pdf"],
-  ["Paper 1 (Non-calculator) — November 2020","Foundation",11,2020,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1F_que_20201104_0.pdf"],
-  ["Paper 1 (Non-calculator) — November 2020","Higher",11,2020,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1H_que_20201104.pdf"],
-  ["Paper 2 (Calculator) — November 2020","Foundation",11,2020,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2F_que_20201106.pdf"],
-  ["Paper 2 (Calculator) — November 2020","Higher",11,2020,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2H_que_20201106.pdf"],
-  ["Paper 3 (Calculator) — November 2020","Foundation",11,2020,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3F_que_20201110.pdf"],
-  ["Paper 3 (Calculator) — November 2020","Higher",11,2020,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3H_que_20201110.pdf"],
-  ["Paper 1 (Non-calculator) — June 2019","Foundation",6,2019,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1F_que_20190522.pdf"],
-  ["Paper 1 (Non-calculator) — June 2019","Higher",6,2019,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1H_que_20190522.pdf"],
-  ["Paper 2 (Calculator) — June 2019","Foundation",6,2019,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2F_que_20190607.pdf"],
-  ["Paper 2 (Calculator) — June 2019","Higher",6,2019,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2H_que_20190607.pdf"],
-  ["Paper 3 (Calculator) — June 2019","Foundation",6,2019,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3F_que_20190612.pdf"],
-  ["Paper 3 (Calculator) — June 2019","Higher",6,2019,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3H_que_20190612.pdf"],
-  ["Paper 1 (Non-calculator) — November 2018","Foundation",11,2018,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/Questionpaper-Paper1F-November2018.pdf"],
-  ["Paper 1 (Non-calculator) — November 2018","Higher",11,2018,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/Questionpaper-Paper1H-November2018.pdf"],
-  ["Paper 2 (Calculator) — November 2018","Foundation",11,2018,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/Questionpaper-Paper2F-November2018.pdf"],
-  ["Paper 2 (Calculator) — November 2018","Higher",11,2018,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/Questionpaper-Paper2H-November2018.pdf"],
-  ["Paper 3 (Calculator) — November 2018","Foundation",11,2018,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/Questionpaper-Paper3F-November2018.pdf"],
-  ["Paper 3 (Calculator) — November 2018","Higher",11,2018,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/Questionpaper-Paper3H-November2018.pdf"],
-  ["Paper 1 (Non-calculator) — June 2018","Foundation",6,2018,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1F_QP_0.pdf"],
-  ["Paper 1 (Non-calculator) — June 2018","Higher",6,2018,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1H_QP_0.pdf"],
-  ["Paper 2 (Calculator) — June 2018","Foundation",6,2018,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2F_QP_0.pdf"],
-  ["Paper 2 (Calculator) — June 2018","Higher",6,2018,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2H_QP_0.pdf"],
-  ["Paper 3 (Calculator) — June 2018","Foundation",6,2018,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3F_QP_0.pdf"],
-  ["Paper 3 (Calculator) — June 2018","Higher",6,2018,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3H_QP_0.pdf"],
-  ["Paper 1 (Non-calculator) — November 2017","Foundation",11,2017,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1F_QP_1.pdf"],
-  ["Paper 1 (Non-calculator) — November 2017","Higher",11,2017,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1H_QP_1.pdf"],
-  ["Paper 2 (Calculator) — November 2017","Foundation",11,2017,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2F_QP_1.pdf"],
-  ["Paper 2 (Calculator) — November 2017","Higher",11,2017,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2H_QP_1.pdf"],
-  ["Paper 3 (Calculator) — November 2017","Foundation",11,2017,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3F_QP_1.pdf"],
-  ["Paper 3 (Calculator) — November 2017","Higher",11,2017,"Second wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3H_QP_1.pdf"],
-  ["Paper 1 (Non-calculator) — June 2017","Foundation",6,2017,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1F_QP.pdf"],
-  ["Paper 1 (Non-calculator) — June 2017","Higher",6,2017,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_1H_QP.pdf"],
-  ["Paper 2 (Calculator) — June 2017","Foundation",6,2017,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2F_QP.pdf"],
-  ["Paper 2 (Calculator) — June 2017","Higher",6,2017,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_2H_QP.pdf"],
-  ["Paper 3 (Calculator) — June 2017","Foundation",6,2017,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3F_QP.pdf"],
-  ["Paper 3 (Calculator) — June 2017","Higher",6,2017,"First wave","https://revisionmaths.com/sites/mathsrevision.net/files/imce/1MA1_3H_QP.pdf"],
-  ];
-
-  /* Every link already on the tab, so a second run costs one read and writes nothing. */
-  const have = {};
-  t.rows.forEach(r => { const l = S(r.source_url); if (l) have[l] = true; });
-
-  let added = 0, already = 0;
-  PAPERS.forEach(p => {
-    if (have[p[5]]) { already++; return; }
-    addRow(t, {
-      subject: 'Maths',
-      name: p[0],
-      link: p[5],
-      month: p[2],
-      year: p[3],
-      tier: p[1],
-      key_stage: 'KS4',
-      exam_board: 'Edexcel',
-      /* THE WORD THE PAPER CARD LOOKS FOR. `paperish_` on the phone draws the cover of an exam
-         paper when the type says so — anything else stays an ordinary card. */
-      resource_type: 'Past paper',
-      exam_wave: p[4],
-      trackable: 'TRUE',
-      printable: 'TRUE',
-      active: 'TRUE',
-    });
-    have[p[5]] = true;
-    added++;
-  });
-
-  clearCache();
-  const out = { added: added, alreadyThere: already, ofTotal: PAPERS.length };
-  Logger.log(JSON.stringify(out, null, 2));
-  return out;
-}
-
-/**
- * THE EDEXCEL A-LEVEL AND AS MATHS PAST PAPERS.
- *
- * Forty-two of them, June 2018 to June 2024, read off the same page as the GCSE ones.
- *
- * TWO QUALIFICATIONS, NOT ONE. A-Level is 9MA0 and AS is 8MA0 — different papers, different
- * lengths, sat by different students in different years. They are marked apart in `tier`, which is
- * the column that already answers "which version of this qualification", so the funnel can offer
- * one or the other without a new field being invented for it.
- *
- * `key_stage` IS KS5 for both. That is what separates these from the GCSE papers seeded beside
- * them, and it is the first thing a student narrowing the library will pick.
- *
- * TWO THINGS THE GCSE SET DID NOT HAVE:
- *   The paper NUMBERING changed. June 2018 had one combined "Paper 3: Statistics and Mechanics";
- *   from 2019 it split into 31 and 32. Both are recorded as they were actually sat rather than
- *   tidied into a shape they never had.
- *   There is no November series before 2020 and no June 2020 or 2021 — the pandemic years ran
- *   autumn sittings instead. The gaps are real and nothing is missing.
- *
- * Idempotent by link, exactly like `seedPastPapers`.
- */
-function seedALevelPapers() {
-  const t = documents_();
-  if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
-
-  /* name, level, month, year, wave, code, link */
-  const PAPERS = [
-  ["Paper 1: Pure Mathematics 1 — June 2024","A-Level",6,2024,"First wave","9MA0/01","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P1.pdf"],
-  ["Paper 2: Pure Mathematics 2 — June 2024","A-Level",6,2024,"First wave","9MA0/02","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P2.pdf"],
-  ["Paper 31: Statistics — June 2024","A-Level",6,2024,"First wave","9MA0-31","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P3.pdf"],
-  ["Paper 32: Mechanics — June 2024","A-Level",6,2024,"First wave","9MA0-32","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P4.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2024","AS",6,2024,"First wave","8MA0/01","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P5.pdf"],
-  ["Paper 21: Statistics — June 2024","AS",6,2024,"First wave","8MA0-21","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P6.pdf"],
-  ["Paper 22: Mechanics — June 2024","AS",6,2024,"First wave","8MA0-22","https://revisionmaths.com/sites/default/files/revisionmaths/documents/PAMA24P7.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2023","A-Level",6,2023,"First wave","9MA0/01","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EAM319ma0-01-que-20230607.pdf"],
-  ["Paper 2: Pure Mathematics 2 — June 2023","A-Level",6,2023,"First wave","9MA0/02","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EAM339ma0-02-que-20230614.pdf"],
-  ["Paper 31: Statistics — June 2023","A-Level",6,2023,"First wave","9MA0-31","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EAM359ma0-31-que-20230621.pdf"],
-  ["Paper 32: Mechanics — June 2023","A-Level",6,2023,"First wave","9MA0-32","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EAM379ma0-32-que-20230621.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2023","AS",6,2023,"First wave","8MA0/01","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EASM318ma0-01-que-20230519.pdf"],
-  ["Paper 21: Statistics — June 2023","AS",6,2023,"First wave","8MA0-21","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EASM338ma0-21-que-20230526.pdf"],
-  ["Paper 22: Mechanics — June 2023","AS",6,2023,"First wave","8MA0-22","https://revisionmaths.com/sites/default/files/revisionmaths/documents/EASM358ma0-22-que-20230526.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2022","A-Level",6,2022,"First wave","9MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9ma0-01-que-20220608.pdf"],
-  ["Paper 2: Pure Mathematics 2 — June 2022","A-Level",6,2022,"First wave","9MA0/02","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9ma0-02-que-20220615.pdf"],
-  ["Paper 31: Statistics — June 2022","A-Level",6,2022,"First wave","9MA0-31","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9ma0-31-que-20220622.pdf"],
-  ["Paper 32: Mechanics — June 2022","A-Level",6,2022,"First wave","9MA0-32","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9ma0-32-que-20220622.pdf"],
-  ["Paper 1: Pure Mathematics 1 — November 2021","A-Level",11,2021,"Second wave","9MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_01_que_20211007.pdf"],
-  ["Paper 2: Pure Mathematics 2 — November 2021","A-Level",11,2021,"Second wave","9MA0/02","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_02_que_20211014.pdf"],
-  ["Paper 31: Statistics — November 2021","A-Level",11,2021,"Second wave","9MA0-31","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_31_que_20211019.pdf"],
-  ["Paper 32: Mechanics — November 2021","A-Level",11,2021,"Second wave","9MA0-32","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_32_que_20211019.pdf"],
-  ["Paper 1: Pure Mathematics 1 — November 2021","AS",11,2021,"Second wave","8MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_01_que_20211007.pdf"],
-  ["Paper 21: Statistics — November 2021","AS",11,2021,"Second wave","8MA0-21","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_21_que_20211014.pdf"],
-  ["Paper 22: Mechanics — November 2021","AS",11,2021,"Second wave","8MA0-22","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_22_que_20211014.pdf"],
-  ["Paper 1: Pure Mathematics 1 — November 2020","A-Level",11,2020,"Second wave","9MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_01_que_20201008.pdf"],
-  ["Paper 2: Pure Mathematics 2 — November 2020","A-Level",11,2020,"Second wave","9MA0/02","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_02_que_20201015.pdf"],
-  ["Paper 31: Statistics — November 2020","A-Level",11,2020,"Second wave","9MA0-31","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_31_que_20201020.pdf"],
-  ["Paper 32: Mechanics — November 2020","A-Level",11,2020,"Second wave","9MA0-32","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_32_que_20201020.pdf"],
-  ["Paper 1: Pure Mathematics 1 — November 2020","AS",11,2020,"Second wave","8MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_01_que_20201008.pdf"],
-  ["Paper 21: Statistics — November 2020","AS",11,2020,"Second wave","8MA0-21","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_21_que_20201015.pdf"],
-  ["Paper 22: Mechanics — November 2020","AS",11,2020,"Second wave","8MA0-22","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_22_que_20201015.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2019","A-Level",6,2019,"First wave","9MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_01_que_20190606.pdf"],
-  ["Paper 2: Pure Mathematics 2 — June 2019","A-Level",6,2019,"First wave","9MA0/02","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_02_que_20190613.pdf"],
-  ["Paper 31: Statistics — June 2019","A-Level",6,2019,"First wave","9MA0-31","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_31_que_20190615.pdf"],
-  ["Paper 32: Mechanics — June 2019","A-Level",6,2019,"First wave","9MA0-32","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_32_que_20190615.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2019","AS",6,2019,"First wave","8MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_01_que_20190516.pdf"],
-  ["Paper 21: Statistics — June 2019","AS",6,2019,"First wave","8MA0-21","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_21_que_20190523.pdf"],
-  ["Paper 22: Mechanics — June 2019","AS",6,2019,"First wave","8MA0-22","https://revisionmaths.com/sites/mathsrevision.net/files/imce/8MA0_22_que_20190523.pdf"],
-  ["Paper 1: Pure Mathematics 1 — June 2018","A-Level",6,2018,"First wave","9MA0/01","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_01%20Pure%20Mathematics%201.pdf"],
-  ["Paper 2: Pure Mathematics 2 — June 2018","A-Level",6,2018,"First wave","9MA0/02","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_02%20Pure%20Mathematics%202.pdf"],
-  ["Paper 3: Statistics and Mechanics — June 2018","A-Level",6,2018,"First wave","9MA0/3","https://revisionmaths.com/sites/mathsrevision.net/files/imce/9MA0_03%20Statistics%20and%20Mechanics.pdf"],
-  ];
-
-  const have = {};
-  t.rows.forEach(r => { const l = S(r.source_url); if (l) have[l] = true; });
-
-  let added = 0, already = 0;
-  PAPERS.forEach(p => {
-    if (have[p[6]]) { already++; return; }
-    addRow(t, {
-      subject: 'Maths',
-      name: p[0],
-      link: p[6],
-      month: p[2],
-      year: p[3],
-      /* A-Level or AS. The same column the GCSE papers use for Higher and Foundation — in both
-         cases it answers "which version of this qualification", which is what a student picking
-         between them is asking. */
-      tier: p[1],
-      key_stage: 'KS5',
-      exam_board: 'Edexcel',
-      /* The paper code, kept because it is how these are referred to everywhere else — a student
-         says "9MA0/01" and a teacher writes it on a worksheet. */
-      company: p[5],
-      resource_type: 'Past paper',
-      exam_wave: p[4],
-      trackable: 'TRUE',
-      printable: 'TRUE',
-      active: 'TRUE',
-    });
-    have[p[6]] = true;
-    added++;
-  });
-
-  clearCache();
-  const out = { added: added, alreadyThere: already, ofTotal: PAPERS.length };
-  Logger.log(JSON.stringify(out, null, 2));
-  return out;
-}
-
-/**
- * REMOVE THE OLD A-LEVEL PAST PAPERS, so the seeded ones are not sitting beside them.
- *
- * Eight rows, and every one of them is a NAME AND NOTHING ELSE — no link, no board, no tier, no
- * key stage. Nobody can open one, print one or tick one off; they are eight entries in a library
- * that answer no question and cannot be used.
- *
- * DELETED, NOT SWITCHED OFF, and this is the one place in this file where that is right. `active`
- * FALSE is for something REFERENCED — a resource in somebody's basket, a print already paid for, a
- * tick carrying a student's progress — where removing the row turns every one of those into a
- * lookup that finds nothing. These are referenced by nothing: no ticks, no orders, no link for a
- * basket to point at. There is nothing to strand.
- *
- * MATCHED BY ID, not by name. `R0404` and the seven after it are what these rows ARE; a name can
- * be edited between reading this and running it, and matching on one would either miss the row or
- * take a different one. The ids were read off the tab as it actually stands.
- *
- * AND IT CHECKS BEFORE IT CUTS. A row whose id matches but which has since been given a link is
- * left alone and reported — somebody has done work on it since, and this was written on the
- * understanding that nobody had.
- *
- * BOTTOM UP, because deleting row 404 makes what was 405 into 404, and working downwards would
- * remove the wrong rows from the second one onward — silently, since every delete still succeeds.
- */
-function dropOldALevelPapers() {
-  const t = documents_();
-  if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
-
-  const IDS = ['R0404', 'R0405', 'R0406', 'R0407', 'R0408', 'R0409', 'R0410', 'R0411'];
-
-  const gone = [], kept = [], missing = [];
-  const hits = [];
-  IDS.forEach(id => {
-    const r = t.rows.find(x => S(x.resource_id) === id);
-    if (!r) { missing.push(id); return; }
-    /* SOMEBODY HAS WORKED ON IT SINCE. A link, or a tick against somebody's name, means this is no
-       longer the empty row this job was written to remove. */
-    const used = S(r.source_url) || S(r.ticks_1) || S(r.ticks_2) || S(r.ticks_3);
-    if (used) { kept.push(id + ' — ' + S(r.name) + ' (it has a link or a tick now)'); return; }
-    hits.push(r);
-  });
-
-  hits.sort((a, b) => b._row - a._row).forEach(r => {
-    gone.push(S(r.resource_id) + ' — ' + S(r.name));
-    t.sheet.deleteRow(r._row);
-  });
-
-  clearCache();
-  const out = { removed: gone.length, rows: gone, leftAlone: kept, notFound: missing };
-  Logger.log(JSON.stringify(out, null, 2));
-  return out;
-}
-
-/**
- * THE LANDMARKS OF COLLIERS WOOD, WRITTEN INTO THE TAB.
- *
- * Five buildings, each with its real outline: the corners as surveyed, in order, going round. Read
- * off the OpenStreetMap export of the town centre, except Britannia Point's height, which is the
- * published figure — 59.5 metres over seventeen floors — and beats the survey's guess.
- *
- * THE OUTLINE IS THE ONLY THING THAT CARRIES SHAPE, and everything else about the shape falls out of
- * it: area by the shoelace formula, perimeter by summing the edges, the angle it stands at by the
- * corners themselves. So `width_m`, `depth_m` and `bearing` are left EMPTY on purpose rather than
- * filled in — a width and a depth describe a rectangle, and none of these five is one. Britannia
- * Point fills forty-eight per cent of its bounding box and the Premier Inn forty-six; a rectangle
- * round either claims twice the ground the building stands on.
- *
- * AND A CONCAVE BUILDING OCCUPIES MORE THAN ITS AREA. On anything that lays these out on a grid, what
- * a building takes up is the tiles its OUTLINE covers — including the notch, where there is no floor
- * and the building is still in the way. Area cannot say that. Vertices can, which is the whole reason
- * they are the thing stored.
- *
- * IDEMPOTENT, BY NAME AND WORLD. A landmark already on the tab is left exactly as it is — somebody
- * may have corrected a height or measured a better outline, and a seeder that overwrites that is a
- * seeder that undoes work every time it runs.
- */
+   ADDING A PAPER IS A COMMIT NOW. One JSON object per line in `data/questions.json`, which is what
+   made moving it worth doing: a diff names the rows that changed, and there is no export, no CSV,
+   no File → Import, and no wondering whether it landed. */
 
 /**
  * THE COLLIERS WOOD LANDMARKS, WRITTEN INTO THE TAB.
@@ -956,11 +601,6 @@ function ensureSchema() {
   if (seeded.length) report.config = (report.config || 'up to date') + ' | seeded: ' + seeded.join(', ');
   const idsAdded = ensurePersonIds();
   if (idsAdded) report.people = (report.people || 'up to date') + ' | gave ' + idsAdded + ' rows an id';
-  /* Straight after the columns exist. Doing it here rather than as a separate thing to remember
-     is the difference between resource editing working the moment this deploys and failing
-     silently on every row until somebody runs a second function nobody mentioned. */
-  const resIds = ensureResourceIds();
-  if (resIds) report.resources = (report.resources || 'up to date') + ' | gave ' + resIds + ' rows an id';
   const seededItems = seedAvatarItems();
   if (seededItems) report.shop = (report.shop || 'up to date') + ' | seeded ' + seededItems + ' wearables';
   const lists = seedOptions();
@@ -1167,27 +807,10 @@ function dataProblems(deep) {
     }
   }
 
-  /* HOW MANY RESOURCES CANNOT BE SOLD ON PAPER YET. A page count is what prices a print, so a
-     resource with a Drive link and no count is one nobody can order — and there is nothing on any
-     screen that says how many of those there are, or whether the number is going down. */
-  {
-    const rows = documents_().rows.filter(r => S(r.name));
-    const linked = rows.filter(r => driveIdFrom(r.source_url));
-    const counted = linked.filter(r => N(r.pages) > 0).length;
-    const left = linked.length - counted;
-    if (left > 0) {
-      add('not priced for printing yet',
-          left + ' of ' + linked.length + ' resources with a file have no page count',
-          'The nightly sweep fills these in a few hundred at a time. To do it now: '
-          + '?run=refreshPageCounts&name=…&pin=… — and again until `stillToDo` is 0.');
-    }
-    const noLink = rows.length - linked.length;
-    if (noLink > 0) {
-      add('nothing to count', noLink + ' resources have no file attached',
-          'Nothing can read a page count off a link that is not there. These can still be ticked '
-          + 'off and filtered; they just cannot be printed.');
-    }
-  }
+  /* A PAGE-COUNT TALLY WAS HERE, and so was a second one under `printing` below. Both counted
+     document rows with a Drive link and no `pages`, because a count is what prices a print. There
+     are no document rows in any spreadsheet — the library is `data/questions.json` — so this check
+     could only ever have reported 0 of 0, which is the most convincing kind of wrong answer. */
 
   /* LANDMARKS THAT HAVE NOT BEEN MEASURED. A row with a position and no size can be put on the
      map as a point and cannot be drawn as a building — which is worth saying, because the whole
@@ -1268,17 +891,6 @@ function dataProblems(deep) {
   if (!S(logoRow && logoRow.value)) {
     add('looks unfinished', 'brand!logo_square is empty',
         'Every @family. post shows a letter in a circle instead of the mark.');
-  }
-
-  /* --- printing --- */
-  if (N(cfg.print_rate_per_page) > 0) {
-    const noCount = documents_().rows
-      .filter(r => S(r.name) && ON_(r.active) && !N(r.pages) && S(r.source_url)).length;
-    if (noCount) {
-      add('cannot be sold', noCount + ' resource(s) have no page count',
-          'No paper copy can be priced for them. Run refreshPageCounts(), and type in the ones '
-          + 'that come back blank — a compressed PDF cannot be counted from a script.');
-    }
   }
 
   /* MONEY OWED BACK. A client who paid and then withdrew is kept on the roster marked `Withdrawn`
@@ -1487,20 +1099,9 @@ function checkEverything() {
       + 'feed. Press ⟳ on the site to read the dates off the files.');
   } catch (err) { say('  no posts tab — run ensureSchema()'); }
 
-  /* 4. RESOURCES — ids, page counts, and what can actually be sold on paper. */
-  say('');
-  say('RESOURCES');
-  try {
-    const rows = documents_().rows.filter(r => S(r.name));
-    const noId = rows.filter(r => !S(r.resource_id)).length;
-    const noPages = rows.filter(r => !N(r.pages)).length;
-    const sellable = rows.filter(r => ON_(r.active) && canPrint(r)).length;
-    say('  ' + rows.length + ' resource(s)');
-    say('  without an id     : ' + noId + (noId ? '   ← run ensureSchema()' : ''));
-    say('  without a page count: ' + noPages + (noPages ? '   ← run refreshPageCounts()' : ''));
-    say('  offered on paper  : ' + sellable);
-    say('  print rate        : ' + (N(config().print_rate_per_page) * 100) + 'p a page');
-  } catch (err) { say('  no resources tab — run ensureSchema()'); }
+  /* 4. RESOURCES WAS HERE — ids, page counts and what could be sold on paper. This report reads
+     spreadsheets, and the library is not one: `data/questions.json` in this repository is where the
+     642 documents and 3,271 questions live, and `node js/check-rows.js` is what inspects it. */
 
   /* 5. THE THINGS PEOPLE DO TO POSTS. */
   say('');
@@ -1608,13 +1209,16 @@ function installTriggers() {
   /* `geocodeVenues` is here so a postcode typed on Tuesday is placed on Tuesday night without
      anybody being told to go and run something. It costs one request and does nothing at all when
      every venue is already placed, which is almost every night. */
+  /* `refreshPageCounts` WAS THE THIRD. It read PDFs out of Drive to price a print and wrote the
+     number into a document row; there is no document row. It is still NAMED here so that a project
+     which has already installed the old trigger has it deleted rather than left running nightly
+     against a function that no longer exists. */
   const wanted = ['refreshPageCounts', 'closeFinishedJobs', 'geocodeVenues'];
   ScriptApp.getProjectTriggers().forEach(tr => {
     if (wanted.indexOf(tr.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(tr);
   });
   // 3am: after midnight so "today" is settled for the date comparisons, and long before anyone
   // is using the site.
-  ScriptApp.newTrigger('refreshPageCounts').timeBased().everyDays(1).atHour(3).create();
   ScriptApp.newTrigger('closeFinishedJobs').timeBased().everyDays(1).atHour(3).create();
   ScriptApp.newTrigger('geocodeVenues').timeBased().everyDays(1).atHour(3).create();
 

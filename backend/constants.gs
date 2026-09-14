@@ -175,7 +175,10 @@ const WHERE = {
   herd:           { file: 'settings' },
 
   /* ---- subject content, edited in bulk ---- */
-  questions:      { file: 'library' },
+  /* `questions` WAS HERE and is not routed anywhere, because there is no longer a tab to route to:
+     the 3,913 rows are `data/questions.json` in this repository and `js/library.js` reads them. An
+     unrouted name resolves to a blank id, which `read` cannot tell from an empty tab — so leaving
+     the line in would have been a tab nothing fills, read on every load, for ever. */
   cheatsheet:     { file: 'library', alsoTry: 'cheatsheetcomp' },
   boxers:         { file: 'library' },
   fights:         { file: 'library' },
@@ -196,13 +199,13 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-21-library";
+const BACKEND_VERSION = "2026-09-22-no-questions-tab";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
   people: 'people', venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
-  /* `resources` WAS HERE. It is folded into `questions` — see the note at the bottom of
-     SCHEMA.questions. `documents_()` in core.gs is what callers use now. */
+  /* `resources` WAS HERE, then `questions` was. Both are gone: the documents and the questions
+     inside them are one table, and that table is `data/questions.json` in this repository now. */
   links: 'links', shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
@@ -228,8 +231,7 @@ const TAB = {
   kinds: 'kinds',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
-  /* One row per exam question — see SCHEMA.questions. */
-  questions: 'questions',
+  /* `questions` WAS HERE. The tab is gone — see the note where SCHEMA.questions used to be. */
   /* Every professional boxer worth a row — see SCHEMA.boxers. */
   boxers: 'boxers',
   /* The bouts themselves. `boxers` is who; this is what happened — see SCHEMA.fights. */
@@ -651,9 +653,10 @@ const SCHEMA = {
      still works. An empty tab must never produce an empty game — see `herdPack_`. */
   herd: ["question_id", "question", "sort_order", "active", "notes"],
 
-  /* ---------- `resources` WAS A TAB AND IS NOW A KIND OF ROW ---------------------------------
-     Its 559 rows and every column it had are on the `questions` tab now; see the note at the
-     bottom of SCHEMA.questions for why, and `documents_()` in core.gs for how they are reached.
+  /* ---------- `resources` WAS A TAB, THEN A KIND OF ROW, AND IS NOW NEITHER --------------------
+     Its 559 rows and every column it had went onto the `questions` tab as `kind: 'paper'` rows —
+     and that tab has since left the spreadsheet altogether for `data/questions.json` in this
+     repository. See the note where `SCHEMA.questions` used to be, a few hundred lines down.
 
      REMOVED RATHER THAN LEFT EMPTY, ON PURPOSE. `ensureSchema` walks SCHEMA and CREATES any tab
      it cannot find, so an entry left here would quietly rebuild an empty `resources` tab on the
@@ -1049,153 +1052,23 @@ const SCHEMA = {
      `kind` + `item_id` RATHER THAN A FOREIGN KEY PER TABLE, because the searcher already speaks in
      exactly those terms — a result IS a kind and an id — so this table needs no knowledge of what
      the kinds are, and a kind invented next year works without touching it. */
-  /* ---------- QUESTIONS ---------------------------------------------------------------------------
-     ONE ROW PER QUESTION, not per paper. Every query a tutor actually makes — "question 5b",
-     "section B only", "the whole paper", "every binomial question since 2018" — is a filter on
-     this tab, and only the third of those can be answered by a file per paper.
+  /* ---------- `questions` WAS HERE, AND IT IS NOT A TAB ANY MORE --------------------------------
+     THE 3,913 ROWS LIVE IN `data/questions.json` IN THIS REPOSITORY. `js/library.js` fetches that
+     file and builds `DATA.questions` and `dropdowns.checklists` out of it; the backend no longer
+     reads a question, a paper, a link or a page count, and there is nothing left here for it to
+     read one FROM.
 
-     A PAPER IS NOT STORED. It is every row with one `paper_id`, in order, which is why there is
-     nothing to keep in step: change a question and the paper changes with it.
+     SO THE ENTRY IS DELETED RATHER THAN EMPTIED, and that distinction is the whole reason this note
+     sits where the column list used to. `ensureSchema` walks `SCHEMA` and CREATES any tab it cannot
+     find — so an entry left behind would quietly rebuild an empty `questions` tab on the next
+     `?setup=1`: a decoy with the right headers and no rows, which is EXACTLY the shape of the fault
+     that hid the real resource rows in another file for months. `SCHEMA.resources` was deleted for
+     this reason a fortnight ago, and this is the same argument a second time.
 
-     `html` IS A FRAGMENT AND CARRIES NO STYLING. That is what makes sixteen hundred of them
-     uniform — the look lives in one stylesheet in the app, and a question cannot look different
-     because it has no look of its own. A figure is drawn inline as SVG rather than pointed at, so
-     a question can never lose the diagram it cannot be answered without.
-
-     A ROW IS A PART, and a question's stem is a row of its own with `part` blank and `kind` set
-     to stem. Six copies of question 5's table on its six parts would be six chances to disagree,
-     with nothing to say which was right.
-
-     AND A PART CARRIES A `lead`. A question is not a stem followed by parts: on this paper the
-     sentence "The cost of producing a single metal rod is 20p" sits BETWEEN (b) and (c), and (c)
-     cannot be answered without it. The prose immediately before a part belongs to that part.
-
-     SO "SHOW ME 2c" IS stem + lead + part, and it is answerable on its own — which is the whole
-     test of whether this split was done at the right seam. */
-  questions: [
-    "row_id", "paper_id", "question", "part", "kind", "section",
-    "marks", "figure", "lead", "html",
-
-    /* ---------- WHICH DOCUMENT THIS QUESTION CAME OUT OF -----------------------------------------
-       `paper_id` NAMES A PAPER AND `resource_id` NAMES THE PDF, and until now only the first
-       existed — so every fact about the document a question came from (its link, its page count,
-       whether it is printable, who has ticked it off) had to be copied onto every question row, and
-       about twenty columns on this tab are exactly that copy.
-
-       IT WAS NOT ARBITRARY TO ADD. The join was already there and nobody could see it: every one of
-       the 99 distinct `source_url`s on this tab is also a `link` on the resources tab, no link
-       points at two resources, and no paper resolves to two of them. 1,745 of 3,271 rows resolve;
-       102 of 202 papers. The rest have no `source_url` to join on and are blank here, which is the
-       honest answer rather than a guess.
-
-       TWO ID SYSTEMS MEET HERE and that is why this is a column rather than a rule. 29 papers have a
-       `paper_id` that IS a `resource_id` (the `RS1786…` ones, entered together); the other 173 use
-       the `R0001` series and match only through the URL. Anything deriving one from the other would
-       be right 29 times out of 202. */
-    "resource_id",
-
-    /* ---------- WHAT THE ANSWER IS, AND WHAT KIND OF ANSWER IT IS -------------------------------
-       THE QUESTIONS WERE HERE WITHOUT THEIR MARK SCHEME, which makes marking a paper impossible and
-       makes a revision answer impossible too — two of the things this tab exists to serve.
-
-       `answer_type` IS NOT `kind`. That one says whether a row is a question or the shared wording
-       above several — structure, not format. This says what an answer LOOKS like: essay, short,
-       multiple choice, calculation, annotate, table. A 25-mark essay and a one-mark recall question
-       need different marking and a different screen, and `marks` only implies it.
-
-       `needs_print` IS A FACT ABOUT THE QUESTION, NOT A SETTING. An individual question is never
-       printed — printing is a whole paper, priced per page. This records that the question cannot
-       honestly be answered on a screen: a diagram to annotate, a table to fill, a graph to plot. The
-       paper still decides whether to print; this is what tells it, and what stops the HTML view
-       offering something nobody can do in it. */
-    "answer", "answer_type", "needs_print",
-
-    /* ---------- THE METHOD, FOR A PRACTICAL ------------------------------------------------------
-       ON THE PAPER ROW, NOT A TAB OF ITS OWN. A practical's guide — the apparatus, the method, the
-       safety line — belongs to the practical the way a paper's board and tier belong to the paper,
-       so it goes on the `kind: paper` row beside them rather than in a second tab that would have
-       to be joined back on every read.
-
-       BLANK ON EVERYTHING ELSE, and blank is the normal state: a past paper has no method. The card
-       draws nothing at all when this is empty, so an ordinary paper is unchanged by its existence. */
-    "guide",
-
-    /* ---------- WHAT THE EXAMINER SAID -----------------------------------------------------------
-       PER QUESTION AND PER PAPER, because reports are written both ways. `examiner_note` is the
-       paragraph about THIS question — what most candidates missed, what earned the top band — which
-       is the most useful thing a student can read straight after attempting it. `examiner_report`
-       is the whole report, or a link to it, and sits with the other paper-level facts below.
-
-       BOTH BLANK FOR NOW. Named here so the sheet does not have to be recut when the reports go
-       in. */
-    "examiner_note", "examiner_report",
-
-    "active",
-    /* ---------- THE PAPER DESCRIBING ITSELF ----------------------------------------------------
-       Blank on every part row. Filled only on the one `kind: paper` row per paper, whose `row_id`
-       IS the paper id the parts point at.
-
-       These are the resource row's columns, moved to where the questions are — because a paper
-       that exists only as HTML has no resource row to carry them, and a question with no subject
-       is a question no filter can find. */
-    "name", "subject", "resource_type", "key_stage",
-    "band_type", "band_value", "tier", "exam_board", "exam_wave", "year",
-
-    /* ---------- TEN COLUMNS THE TAB HAS AND THIS LIST DID NOT --------------------------------------
-       READ OFF THE REAL `questions` TAB, not designed here. Every one of these is already in the
-       sheet with values in it, and `SCHEMA` is what `ensureSchema` builds a tab FROM — so a fresh
-       database would have come out missing them, and the existing one has columns the code has
-       never heard of.
-
-       `company` IS THE ONE THAT WAS COSTING SOMETHING. `allTopics` reads it to build the `Company`
-       facet and `doGet` was not sending it; see the note where it now does.
-
-       `source_url` IS THE PAPER'S PDF, and it contradicts a comment in `allTopics` that says "there
-       is no PDF behind any of these, which is the whole point". That is true of a worksheet built
-       out of questions and false of a past paper, which has one and is on the sheet. Named here so
-       the disagreement is visible; nothing is changed about what the funnel does with it yet.
-
-       `topics` IS WHAT I SAID DID NOT EXIST. Writing the practice paper I put the topic in
-       `section`, saw "SECTION NUMBER" on the page, moved it out, and wrote in the comment that
-       there was nowhere for it because `SCHEMA` had no topic column. The SHEET has had one all
-       along. The lesson is the one this file keeps relearning from the other direction: the schema
-       in the code is a description of the tab and the tab is the thing that is true.
-
-       `pages`, `price`, `currency`, `level_required`, `trackable`, `printable`, `pages_checked` are
-       the library facts a past paper carries — what it costs to print, whether it may be, whether
-       the count has been done. They live on the question row because a paper IS its questions here.
-
-       `ensureSchema` ONLY EVER ADDS, so listing them cannot disturb a tab that already has them. */
-    "source_url", "pages", "price", "currency", "level_required",
-    "trackable", "printable", "pages_checked", "company", "topics",
-
-    /* ---------- THE RESOURCES TAB, FOLDED IN ---------------------------------------------------
-       THERE IS NO `resources` TAB ANY MORE. It held one row per document — a worksheet, a past
-       paper — and this tab held the questions inside 99 of them. Every fact it carried about a
-       document is true of every question in that document, so the two were one table written twice,
-       and keeping them apart cost a join that nothing but a person could perform.
-
-       A ROW IS EITHER A DOCUMENT OR A QUESTION, and `kind` says which: `paper` is the document
-       itself, `part` and `stem` are the questions inside it. Every `paper_id` has exactly one
-       `paper` row — 642 of them, 202 with questions under them and 440 with none yet, which is not
-       a gap but the backlog written down. `documents_()` in core.gs is the filtered view; every
-       caller that used to `read(TAB.resources)` calls that instead and is otherwise unchanged,
-       because `setCell` writes through `row._row` and a filtered view keeps it.
-
-       THE TICKS LIVE ON THE `paper` ROW AND ONLY THERE. A tick is a fact about a person and a
-       DOCUMENT, and `toggleTopicTick` writes one cell. Copy those columns onto every question and
-       `P-1MA1-2306-1H` has 31 rows that must agree while one of them is written — so they stay
-       where there is exactly one of them. Everything else here is immutable and copies down safely;
-       that difference is the whole reason `kind: 'paper'` is a row rather than a convention. */
-    /* THREE COLUMNS FOR ONE DATE, and that was the resources tab's own choice rather than a
-       mistake: a past paper is often a month and a year with no day at all, and one date cell
-       cannot hold "June 2024" without inventing the 1st. `year` is already above — it is what the
-       funnel asks about, since a filter on the day of the month would be a facet with thirty-one
-       answers and no meaning. `day` is empty on every row that came across and is here because the
-       checklist reads it; a column read and not declared is the fault `check-columns` exists for. */
-    "description", "level", "paper", "day", "month", "print_required",
-    "ticks_1", "ticks_2", "ticks_3",
-  ],
+     SO THE TAB CAN BE DELETED FROM `Library`, which is the whole point of the change. Nothing in
+     `TAB`, `WHERE` or `SCHEMA` names it, `documents_()` is gone from core.gs, and the five handlers
+     that wrote to it are gone from dopost.gs. See the header of js/library.js for what moved, and
+     what was deliberately left behind. */
 
   /* ---------- ONE ROW PER FIGHTER --------------------------------------------------------------
      A RECORD IS A READING, NOT A FACT. 50-6 is true of Tyson for ever and true of a working
@@ -1607,12 +1480,20 @@ const RENAMEABLE = [
   /* NOT JUST THE SUBJECT. A rename is asked of a VALUE, and a value can be in any of these — the
      exam board was reachable in none of them, so `edexcel>Edexcel` would have reported success
      and changed nothing at all. Every column on this tab that holds a name somebody typed. */
-  /* `resources` UNTIL THE TAB WAS FOLDED INTO `questions`. A rename has to reach every row that
-     holds the value, and the document rows and the question rows both hold these now — so it is
-     the whole tab here, not `documents_()`. Renaming the exam board on a paper and not on its
-     questions would split the facet in two, which is the fault this list exists to prevent. */
-  ['questions', ['subject', 'exam_board', 'company', 'resource_type',
-                 'tier', 'key_stage', 'exam_wave', 'band_type']],
+  /* ---------- A RENAME NO LONGER REACHES THE LIBRARY, AND THAT HAS TO BE SAID ------------------
+     `questions` WAS HERE — eight columns of it, every value on a paper that a facet is built from.
+     The tab is gone: those 3,913 rows are `data/questions.json` in this repository, and Apps Script
+     cannot write to a file in git.
+
+     LEAVING THE LINE IN WOULD HAVE BEEN WORSE THAN REMOVING IT. `renameValue` does
+     `read(TAB[name] || name)` and an unrouted name comes back `{ rows: [] }` — so the rename would
+     have reported success, changed the options list and the pricing row, and left every paper in
+     the library spelling it the old way. A subject nothing matches is not an error; it is a subject
+     with no resources, which is the exact fault the paragraph above this list warns about.
+
+     SO A RENAME IS NOW TWO JOBS: `?run=rename` for the sheets, and a find-and-replace over
+     `data/questions.json` committed here. `check-rename.js` does not exist and this note is the
+     only thing that will remind anybody — which is why it is this long. */
   ['jobs',      ['subject', 'level']],
   ['people',    ['teaches_1', 'teaches_2', 'teaches_3', 'teaches_4', 'teaches_5',
                  'subjects', 'level']],
@@ -1929,29 +1810,11 @@ const STUDENT_GROUPS = {
   'Where':     ['borough','city','town'],
   'Where you are': ['address','postcode'],
 };
-const RESOURCE_GROUPS = {
-  'What it is': ['name', 'subject', 'resource_type', 'link'],
-  'Level':      ['band_type', 'band_value', 'key_stage', 'tier'],
-  // Which sitting a paper belongs to. Summer is the main series; autumn is the resit and
-  // absentee series, and a paper from one is not a substitute for the other — so it needs saying
-  // on the resource rather than being inferred from a date nobody records.
-  /* `year` sits with the source rather than with the level: it is a fact about which paper this
-     IS, not about who it is for. And it is separate from the wave because a filter wants the year
-     on its own — "June 2024" and "November 2024" are two waves and one year. */
-  'Source':     ['exam_board', 'exam_wave', 'day', 'month', 'year', 'company'],
-  'Flags':      ['trackable', 'print_required'],
-  // Filled by refreshPageCounts(), editable here so a wrong count can be corrected by hand — and
-  // a compressed PDF has to be, because no script can read one.
-  'Pages':      ['pages', 'printable'],
-  // Deleting IS setting this to FALSE. It is a field rather than a button on the server side, so
-  // there is one write path and one allow-list rather than two.
-  /* WHAT IT COSTS, if anything. Every resource is free today and this changes nothing until
-     somebody prices one — which is the point of it being a cell rather than a schema change.
-     `level_required` is the other currency: something earned rather than bought, the same way a
-     wearable unlocks. A past paper behind Level 5 is now expressible. */
-  'Costs':      ['price', 'currency', 'level_required'],
-  'Admin':      ['active'],
-};
+/* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
+   `RESOURCE_EDITABLE` was its flattened allow-list. Both are gone with the tab they wrote to. The
+   form was built FROM this object (`resourceFields` on the payload, read by js/resource.js), which
+   is why deleting it here takes the form with it rather than leaving one that offers fields the
+   server would refuse. */
 
 /* ONE map: which list in `options` fills a field's dropdown. Every form on the site reads this —
    the tutor's profile, the venue editor, the resource relabeller — so a field and a booking
@@ -1976,9 +1839,10 @@ const FIELD_OPTIONS = {
   tier: 'tier', exam_board: 'exam_board', exam_wave: 'exam_wave',
   company: 'company', band_type: 'band_type',
 };
-// Kept as the old name too: the resource form reads resourceOptions, and there is no reason for
-// two maps when one will do.
-const RESOURCE_OPTIONS = FIELD_OPTIONS;
+/* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it
+   under that name. There is no resource form. `FIELD_OPTIONS` itself stays — it fills the tutor
+   profile, the venue editor and every booking dropdown, and its `subject` / `exam_board` / `tier`
+   entries are still the lists those forms offer. */
 
 const VENUE_GROUPS = {
   'Details':  ['name','description','photo','link'],
@@ -2053,7 +1917,6 @@ const LINK_GROUPS = {
 };
 const LINK_EDITABLE = flat(LINK_GROUPS);
 
-const RESOURCE_EDITABLE = flat(RESOURCE_GROUPS);
 const VENUE_EDITABLE = [...new Set(flat(VENUE_GROUPS).concat(
   AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), [])))];
 
@@ -2139,7 +2002,6 @@ const PAGES_TIME_BUDGET = 4 * 60 * 1000;
    Usage:
      /exec?run=checkEverything&name=Halex%20Dias&pin=1234
      /exec?run=makeBrandAccount&name=Halex%20Dias&pin=1234&arg=4821
-     /exec?run=refreshPageCounts&name=…&pin=…&arg=all
 
    THE CHICKEN AND EGG: if no admin row has a working PIN, nothing here can be reached, and the
    editor is the only way back. `dataProblems` reports that case for exactly this reason.
@@ -2149,10 +2011,8 @@ const RUNNABLE = {
      actually on the sheet afterwards. Those had never been the same question. */
   ensureSchema:      () => ({ ran: ensureSchema(), stillMissing: schemaGaps() }),
   schemaGaps:        () => schemaGaps(),
-  ensureResourceIds: () => ensureResourceIds(),
   makeBrandAccount:  a => makeBrandAccount(a),
   migrateLikes:      () => migrateLikes(),
-  refreshPageCounts: a => refreshPageCounts(String(a).toLowerCase() === 'all'),
   installTriggers:   () => installTriggers(),
   listTriggers:      () => listTriggers(),
   /* ---------- THE SPREADSHEET AS THE CONTROL PANEL ----------------------------------------------
@@ -2184,11 +2044,11 @@ const RUNNABLE = {
   /* Write the known families into the family tab. Safe to run whenever — it never changes a link
      that already exists. */
   seedFamilies:      () => seedFamilies(),
-  /* The Edexcel GCSE Maths past papers. Safe to run whenever — a paper already on the tab is left
-     alone, matched by its link. */
-  seedPastPapers:    () => seedPastPapers(),
-  /* The A-Level and AS ones. Same rule: matched by link, never overwrites. */
-  seedALevelPapers:  () => seedALevelPapers(),
+  /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
+     All four wrote rows into the `questions` tab, and there is no such tab — the papers are
+     `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since
+     the real rows were found. A seeder pointed at nothing is worse than no seeder: it appends to
+     whatever tab the name happens to resolve to, reports how many it wrote, and is believed. */
   /* The Colliers Wood landmarks, with their surveyed outlines. Safe to run whenever — a landmark
      already on the tab is left exactly as it is. */
   seedLandmarks:     () => seedLandmarks(),
@@ -2198,8 +2058,6 @@ const RUNNABLE = {
   /* The British holidays of a year, computed. `&arg=2027` for a different one; without an arg it
      does the year we are in. Safe to run whenever — a row already there is left alone. */
   seedHolidays:      a => seedHolidays(a),
-  /* Remove the eight empty A-Level rows. Reports anything it left alone. */
-  dropOldALevelPapers: () => dropOldALevelPapers(),
   /* FORGET A ONE-OFF JOB, so it runs again on the next request. For the case where it failed and
      was marked attempted — which is the right default, and leaves no way back without this.
        ?run=rerun&name=…&pin=…&arg=likes-to-reactions
@@ -2251,8 +2109,8 @@ const RUNNABLE = {
      · IT MUST BE FAST. This runs inside somebody's page load. Read a range, change the array,
        write the range. A loop doing one write per row is what turned the site into an HTML error
        page the first time the schema check ran on a request.
-     · IF IT CANNOT BE FAST, IT IS A TRIGGER. `refreshPageCounts` reads PDFs out of Drive and can
-       take minutes, so it is not here — `installTriggers` is, and the trigger does the slow work
+     · IF IT CANNOT BE FAST, IT IS A TRIGGER. `closeFinishedJobs` and `geocodeVenues` are the two
+       that qualify: they are not here, `installTriggers` is, and the trigger does the slow work
        overnight with nobody waiting on it.
 --------------------------------------------------------------------------------------------- */
 const MIGRATIONS = [
@@ -2352,26 +2210,15 @@ const MIGRATIONS = [
     what: 'the families we already know get their links, so a booking can say who it is for',
     run: () => seedFamilies() },
 
-  /* SEVENTY-EIGHT PAST PAPERS, in one go. Every Edexcel GCSE Maths series from June 2017 to
-     November 2024, both tiers, with a real link on each — which is the half of a resource that
-     cannot be invented and the half that decides whether it can be opened, printed or sold.
-     Safe to repeat: a paper already on the tab is matched by its link and left exactly as it is,
-     including anything somebody has since changed about it. */
-  { id: 'edexcel-maths-past-papers',
-    retry: true,
-    what: 'the Edexcel GCSE Maths past papers, June 2017 to November 2024',
-    run: () => seedPastPapers() },
+  /* ---------- THREE PAPER MIGRATIONS WERE HERE, AND THEIR IDS STAY SPENT -------------------------
+     `edexcel-maths-past-papers`, `drop-empty-alevel-papers` and `edexcel-alevel-maths-past-papers`
+     seeded 120 rows into the `questions` tab between them. The tab is gone; the papers they wrote
+     are in `data/questions.json` along with everything else, which is where a bulk edit belongs.
 
-  /* AND THE A-LEVELS. Forty-two more: 9MA0 and 8MA0, June 2018 to June 2024, marked KS5 so they
-     sit apart from the GCSE set rather than mixed in with them. */
-  /* THE EMPTY ONES GO FIRST. Eight A-Level rows carrying a name and nothing else — no link, no
-     board, no tier. They are removed before the real ones arrive so the library is never showing
-     both at once, which for the minute in between would look like duplicates rather than a
-     replacement. */
-  { id: 'drop-empty-alevel-papers',
-    retry: true,
-    what: 'the eight A-Level rows with no link are removed',
-    run: () => dropOldALevelPapers() },
+     THE IDS ARE NOT REUSED. A migration is remembered by its id in script properties, so a NEW job
+     given one of these names would be marked already-done on every database that has ever run the
+     old one and would never run at all. That is the fault this whole ledger exists to prevent, and
+     it is invisible — nothing fails, the job simply does not happen. */
 
   /* THE LANDMARKS TAB HAS BEEN EMPTY SINCE IT WAS ADDED. Five real buildings with their real
      outlines — every corner as surveyed, not a rectangle drawn round them. */
@@ -2379,11 +2226,6 @@ const MIGRATIONS = [
     retry: true,
     what: 'the Colliers Wood landmarks get their outlines',
     run: () => seedLandmarks() },
-
-  { id: 'edexcel-alevel-maths-past-papers',
-    retry: true,
-    what: 'the Edexcel A-Level and AS Maths past papers, June 2018 to June 2024',
-    run: () => seedALevelPapers() },
 
   /* A SECOND `colliers-wood-landmarks` WAS HERE, with the same id as the one above. `pending` is
      worked out before the loop runs, so both were attempted on the same request — twice the work
@@ -2432,7 +2274,7 @@ const ACTION_ACCESS = {
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   myReferral: 'self',        // your own code, and who came through it
-  saveTopics: 'self', toggleTopicTick: 'self', toggleVenueComfort: 'self',
+  saveTopics: 'self', toggleVenueComfort: 'self',
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two
      counts of the same gesture. The action is gone rather than left working-but-unused: an
@@ -2443,9 +2285,11 @@ const ACTION_ACCESS = {
   /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
      been posted yet — which is a view of your Drive rather than of the site. */
   folderFiles: 'admin',
-  /* Asking for paper copies. `self`, and the handler prices them from the SHEET rather than from
-     the request — a total posted by the browser is a total the client chose. */
-  orderPrints: 'self',
+  /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a
+     total posted by a browser is a total the client chose. There is no sheet to price it from —
+     the page counts are in `data/questions.json` now, which the backend cannot read — and nothing
+     on the front end ever called it: `cart-send` in js/resource.js has always been a toast saying
+     checkout is the next thing to build. A door with no handle on either side. */
   /* A parent asks; only the named child may answer. Both `self` — the handlers check WHO, which
      is the part that matters and the part a gate cannot see. */
   claimChild: 'self', answerClaim: 'self',
@@ -2485,10 +2329,10 @@ const ACTION_ACCESS = {
   updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',
   updateShop: 'admin', deleteShopItem: 'admin',
   updateLink: 'admin', addLink: 'admin', deleteLink: 'admin',
-  saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin', updateResource: 'admin',
-  /* Editing and deleting one thing at a time, from the phone, by id. `updateResource` stays for
-     the row-indexed admin form; these are what a card in the app calls. */
-  editResource: 'admin', deleteResource: 'admin',
+  saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin',
+  /* `updateResource`, `editResource` and `deleteResource` WERE HERE. All three wrote cells on a
+     document row of the `questions` tab, and the tab is in this repository now — a relabel is a
+     commit to `data/questions.json`, which is the whole reason that tab was the one to move. */
   editPost: 'admin', deletePost: 'admin',
   setListed: 'admin', scanPosts: 'admin',
   /* ANYBODY SIGNED IN MAY POST. What differs is what happens next: an admin's goes up, and
