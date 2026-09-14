@@ -1715,17 +1715,25 @@ function stuffItems() {
        and a calculator; it matters the moment one of them prints your flyers.
        `admin` on a widget means admins only. Anything without it is for everybody, which is what
        the other nine are. */
-    /* ---------- ONLY THE WIDGETS THAT SAY WHERE THEY BELONG ------------------------------------
-       TOOLS AND GAMES HAVE COLUMNS, so the funnel stops carrying the plain ones — `Tools` and
-       `Games` disappear as answers because nothing answers them, which is how `facetValues` builds
-       the list: from the items that exist, not from the kinds table.
+    /* ---------- EVERY WIDGET, BECAUSE `wgt.groups` FOUND NONE OF THEM ---------------------------
+     THIS READ `.filter(wgt => (!wgt.admin || isAdmin()) && wgt.groups)` AND THE SECOND TEST WAS
+     ALWAYS FALSE. Measured: 16 widgets declared in `WIDGETS`, **0 of them carry `groups`** — the
+     only thing that has ever set it is `liveWidgets_` in book.js, one per session you are in. So
+     the calculator, the timer, chess, the notepad, the flyer maker and eleven others were invisible
+     to search. `stuffItems()` returned zero items of kind `tool` or `game`.
 
-       `wgt.groups` IS THE TEST AND IT IS NOT A PROXY FOR ONE. A widget that names a group has been
-       deliberately filed somewhere else — `book.js` gives every live session `groups: 'Booking'` so
-       it answers beside the receipts — and those are exactly the ones that have nowhere else to be
-       reached from. Filtering on `kind` instead would have taken them with it, because a session
-       widget's kind is `tool` too. */
-    ...allWidgets().filter(wgt => (!wgt.admin || isAdmin()) && wgt.groups).map(wgt => ({
+     THE ARGUMENT FOR THE FILTER WAS GOOD AND THE PREMISE WAS WRONG. It said: tools and games have
+     columns of their own, so the funnel need not carry the plain ones, and `Tools` and `Games`
+     vanish as answers because nothing answers them. The second half is the tell — those two answers
+     vanishing was read as the design working, and it was the filter emptying the list.
+
+     WHAT IT COST: typing `calculator` into the search box found nothing, on a screen whose entire
+     job is finding things. The widget was two swipes away on Tools the whole time, which is why
+     this looked like a widget that had disappeared rather than a search that had stopped looking.
+
+     `wgt.admin` STAYS. That one is a real test and a real column — a widget marked admin is for you
+     and not for a parent, and `roles` on the widgets tab exists for exactly it. */
+    ...allWidgets().filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
       kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
       /* WHERE THIS ONE ANSWERS FROM, if it says. See the note on `forLabel`. */
       groups: wgt.groups || null,
