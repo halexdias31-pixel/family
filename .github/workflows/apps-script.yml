@@ -64,11 +64,15 @@ jobs:
     if: github.repository == 'halexdias31-pixel/family'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      # v4 AND NODE 20 BOTH WARNED AND WERE ABOUT TO STOP. The runner deprecated Node 20 and
+      # was already forcing these two actions onto Node 24 — a warning on every run, and a
+      # failure on whatever date they stop forcing it. The clasp pin below is the version that
+      # matters; this one is just the runtime it runs on.
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
 
       # PINNED. clasp 3 changed its authentication and its flags; an unpinned `@latest` would turn a
       # working deploy into a broken one on somebody else's release schedule, with no commit here to
@@ -76,7 +80,23 @@ jobs:
       - name: Install clasp
         run: npm install -g @google/clasp@2.4.2
 
+      # ---------- NOT CONFIGURED IS NOT BROKEN -----------------------------------------------------
+      # THIS FAILED NINE TIMES OUT OF NINE and every one was this step saying the secrets are not
+      # set. They are not set because THIS IS NOT THE PATH THIS PROJECT TOOK: `clasp login` wants a
+      # terminal, and the person who owns this repo does not use one. `pullFromGitHub` in
+      # backend/sync.gs does the same job from a dropdown in the Apps Script editor, needs no token
+      # kept here, and is what to reach for.
+      #
+      # SO AN UNCONFIGURED RUN NOW SKIPS RATHER THAN FAILS. A red cross on every merge, permanently,
+      # for a deploy route nobody has chosen, is a red that teaches you to ignore red — the same
+      # argument as the ACCEPTED lists in check-payload.js and check/ui.js. The workflow stays
+      # because the clasp route is still the better one the day a terminal stops being a problem;
+      # it just no longer shouts about not being set up.
+      #
+      # A SECRET THAT IS PRESENT AND WRONG STILL FAILS, loudly, below. Absent and broken are
+      # different answers and only one of them is yours to act on.
       - name: Check the secrets exist before touching anything
+        id: secrets
         env:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
           CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
@@ -85,16 +105,21 @@ jobs:
           [ -n "$SCRIPT_ID" ]         || missing="$missing SCRIPT_ID"
           [ -n "$CLASP_CREDENTIALS" ] || missing="$missing CLASP_CREDENTIALS"
           if [ -n "$missing" ]; then
-            echo "::error::Missing repository secret(s):$missing"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped — no clasp secrets set:$missing"
             echo ""
-            echo "Settings > Secrets and variables > Actions > New repository secret."
+            echo "Nothing is wrong. This repo deploys the backend the other way round:"
+            echo "  open the hermes Apps Script project, choose pullFromGitHub from the function"
+            echo "  dropdown, press Run. It downloads backend/ from main and writes it in."
+            echo ""
+            echo "To use THIS route instead, add both secrets under"
+            echo "Settings > Secrets and variables > Actions > New repository secret:"
             echo "  SCRIPT_ID         the id in the Apps Script project URL"
             echo "  CLASP_CREDENTIALS the whole contents of ~/.clasprc.json after: clasp login"
-            echo ""
-            echo "Also switch the Apps Script API on at:"
-            echo "  https://script.google.com/home/usersettings"
-            exit 1
+            echo "and switch the Apps Script API on at https://script.google.com/home/usersettings"
+            exit 0
           fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
           # A credentials file that is not JSON fails inside clasp as an opaque token error.
           echo "$CLASP_CREDENTIALS" | node -e \
             'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{JSON.parse(s)}catch(e){
@@ -102,6 +127,7 @@ jobs:
              process.exit(1)}})'
 
       - name: Write the credentials and point clasp at the project
+        if: steps.secrets.outputs.configured == 'true'
         env:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
           CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
@@ -116,6 +142,7 @@ jobs:
       # "overwrite harder" — clasp replaces the project's files either way, which is the thing the
       # header above is careful to say out loud.
       - name: Push backend/ to Apps Script
+        if: steps.secrets.outputs.configured == 'true'
         run: clasp push --force
 
       # ---------- AND THE PART THAT ACTUALLY PUTS IT LIVE -----------------------------------------
@@ -131,6 +158,7 @@ jobs:
       # SO IT IS SKIPPED RATHER THAN GUESSED. No DEPLOYMENT_ID means the source is updated and the
       # live URL is not, and the log says so plainly instead of quietly creating a second deployment.
       - name: Update the Active deployment
+        if: steps.secrets.outputs.configured == 'true'
         env:
           DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
         run: |

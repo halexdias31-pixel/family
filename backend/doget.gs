@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-17-laminate";
+const DOGET_VERSION = "2026-09-19-avatar-price";
 
 
 function doGet(e) {
@@ -112,8 +112,8 @@ function doGet(e) {
       }
     }
 
-    /* ?setup=1 brings the sheet's tabs and columns up to date in place, so a schema change never
-       means re-uploading the file and repointing SPREADSHEET_ID.
+    /* ?setup=1 brings the sheets' tabs and columns up to date in place, so a schema change never
+       means re-uploading a file and repointing the ids in FILES.
        Left open, unlike `?run=`: it can only ADD tabs, columns and missing config rows, and it
        never touches a value anybody has set. The worst somebody can do with it is run it. */
     if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema(),
@@ -232,12 +232,29 @@ function doGet(e) {
                            'links', 'shop', 'pricing', 'config', 'options'];
     const missingTabs = REQUIRED_TABS.filter(name => !read(name).sheet);
     if (missingTabs.length) {
-      return jsonOut({ error: 'This spreadsheet has no ' + missingTabs.join(', ') + ' tab' +
-        (missingTabs.length > 1 ? 's' : '') + '. SPREADSHEET_ID in hermes.gs is probably still ' +
-        'pointing at the old sheet — set it to the id in the new spreadsheet\'s URL ' +
-        '(docs.google.com/spreadsheets/d/<THIS PART>/edit).',
-        version: BACKEND_VERSION, sawTabs: SpreadsheetApp.openById(SPREADSHEET_ID)
-          .getSheets().map(s2 => s2.getName()) });
+      /* ---------- WHICH FILE THE TAB SHOULD HAVE BEEN IN ----------------------------------------
+         THIS USED TO NAME ONE ID and list one file's tabs, because there was one database. With
+         three, "no shop tab" is useless on its own: the question is which of the three was looked
+         in, and whether that file opened at all. So each missing tab is reported with the file
+         `WHERE` routes it to, and the tab listing is per file — an id pointing at an .xlsx upload
+         shows up here as a file that opened with no tabs, which is the fault this exact message
+         failed to catch the first time. */
+      const sawTabs = {};
+      Object.keys(FILES).forEach(which => {
+        const id = String(FILES[which] || '');
+        if (!id) { sawTabs[which] = 'no id set'; return; }
+        try {
+          sawTabs[which] = SpreadsheetApp.openById(id).getSheets().map(s2 => s2.getName());
+        } catch (err) {
+          sawTabs[which] = 'CANNOT OPEN — ' + String(err && err.message || err) +
+            ' (an .xlsx upload in Drive cannot be opened; it must be a Google Sheet)';
+        }
+      });
+      return jsonOut({ error: 'No ' + missingTabs.map(name => name + ' (expected in ' +
+          ((WHERE[name] && WHERE[name].file) || 'NO FILE — not routed in WHERE') + ')').join(', ') +
+        '. Either an id in hermes.gs points at the wrong file, or the tab has been renamed — ' +
+        'the id is the part of the URL in docs.google.com/spreadsheets/d/<THIS PART>/edit.',
+        version: BACKEND_VERSION, sawTabs: sawTabs });
     }
 
     /* WHO IS LOOKING, asked ONCE. It was asked inside the people loop, which is a full scan of the
@@ -353,7 +370,7 @@ function doGet(e) {
       // ones that need it. This keeps itself current with no maintenance.
       resourceInUse: (function () {
         const out = {};
-        read(TAB.resources).rows.forEach(r => Object.keys(RESOURCE_OPTIONS).forEach(f => {
+        documents_().rows.forEach(r => Object.keys(RESOURCE_OPTIONS).forEach(f => {
           const v = S(r[f]);
           if (!v) return;
           out[f] = out[f] || [];
@@ -1343,8 +1360,20 @@ function doGet(e) {
     try {
       read(TAB.questions).rows.forEach(r => {
         if (!S(r.row_id) || !ON_(r.active)) return;
+        /* ---------- A DOCUMENT IS NOT A QUESTION -------------------------------------------------
+           The tab holds both since `resources` was folded into it: `kind: 'paper'` is the document,
+           `part` and `stem` are the questions inside it. Without this line all 642 documents arrive
+           on the Find screen as questions with no text, no marks and no answer — a funnel a fifth
+           full of blank cards. They are not dropped; they reach the app as the checklists that
+           `documents_()` builds further down, which is what they were when they were a tab. */
+        if (String(r.kind || '').toLowerCase() === 'paper') return;
         payload.questions.push({
           id: S(r.row_id), paper: S(r.paper_id),
+          /* THE DOCUMENT THIS CAME OUT OF, so a question can reach its PDF — the link, the page
+             count, whether it prints — without a lookup the phone cannot do. Blank where a paper
+             has no row in the old resources data to point at; a blank id is a lookup that finds
+             nothing, which is how every other optional reference on this payload behaves. */
+          resourceId: S(r.resource_id),
           q: S(r.question), part: S(r.part), kind: norm(r.kind) || 'part',
           section: S(r.section), marks: N(r.marks),
           figure: S(r.figure), lead: S(r.lead), html: S(r.html),
@@ -1467,7 +1496,7 @@ function doGet(e) {
     /* The nest the checklist needs: subject, then band, then topics. The SHOP screen wants them
        flat and flattens them itself on the phone — carrying the same four hundred rows twice to
        satisfy both would be a waste of every phone's morning. */
-    read(TAB.resources).rows.forEach((r, i) => {
+    documents_().rows.forEach((r, i) => {
       const name = S(r.name);
       if (!name) return;
       /* A deleted resource still reaches an admin, marked, for the same reason a deleted post
@@ -1486,7 +1515,7 @@ function doGet(e) {
         /* THE ID. Every lookup on the phone was matching on the name, and two subjects can both
            have "Quadratics" — reading the wrong one is invisible, deleting the wrong one is not. */
         id: S(r.resource_id),
-        name, rowIndex: r._row, link: S(r.link),
+        name, rowIndex: r._row, link: S(r.source_url),
         trackable: TRUE_(r.trackable),
         resourceType: S(r.resource_type),
         /* BOTH HALVES, as well as the split. `grade` and `stage` are the same column read two
@@ -1668,7 +1697,7 @@ function doGet(e) {
 
     if (p.debugTiming) return jsonOut({ version: BACKEND_VERSION, timings,
       counts: { people: people.length, venues: venuesTab.length, jobs: jobsTab.length,
-                resources: read(TAB.resources).rows.length, options: read(TAB.options).rows.length } });
+                resources: documents_().rows.length, options: read(TAB.options).rows.length } });
 
     payload.timings = timings;
     /* ---------- KEPT, AND THEN SENT --------------------------------------------------------------

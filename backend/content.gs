@@ -699,7 +699,7 @@ function pdfPageCount(fileId) {
  * overwrite a number you've corrected by hand. ?pages=all re-reads everything.
  */
 function refreshPageCounts(force) {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab' };
   // Anything checked longer ago than this is re-read, so a count doesn't just get filled once and
   // then drift if the file is replaced. Tunable in config; 30 days is plenty for past papers.
@@ -711,7 +711,7 @@ function refreshPageCounts(force) {
   const failed = [];
   for (let i = 0; i < t.rows.length; i++) {
     const r = t.rows[i];
-    const id = driveIdFrom(r.link);
+    const id = driveIdFrom(r.source_url);
     if (!id) { skipped++; continue; }
     if (!force) {
       const when = parseDate(r.pages_checked);

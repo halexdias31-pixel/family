@@ -17,6 +17,7 @@
      check          every name declared, nothing read before it exists   (a compiler's job)
      check-strings  no ${…} stranded inside quotes, drawn as characters
      check-css      no dead rules, no silent overrides, no contradictions
+     check-tabs     every tab the backend reads is routed to a file that exists
      check-columns  every column the backend reads and writes exists
      check-doors    every handler has a button and every button a handler
      check-dead     functions nothing calls, on both sides
@@ -57,7 +58,20 @@ const SUITE = [
      browser concatenates `js/`, so a name declared twice is a name declared once — and nothing
      warned. It ran before `check-columns` because a project that cannot load has no columns. */
   { file: 'check-backend.js', what: 'one scope, one declaration per name' },
+  /* ---------- BEFORE THE COLUMNS, BECAUSE A TAB NOBODY CAN OPEN HAS NO COLUMNS -------------------
+     The database is three spreadsheets now and `WHERE` says which tab is in which. A tab with no
+     line there resolves to no file and reads back as an empty list — the same shape as an empty
+     database, which is precisely how five unreachable tabs went unnoticed until all four of the old
+     spreadsheets were read by hand. */
+  { file: 'check-tabs.js',    what: 'every tab routed to a file that can hold it' },
   { file: 'check-columns.js', what: 'every column the backend touches' },
+  /* ---------- THE SAME QUESTION, ASKED OF ONE TAB AT A TIME -------------------------------------
+     `check-columns` asks "is this a column ANYWHERE", because it works by regex and a bare `r.name`
+     carries no clue which tab it came from. That union is why seven reads of `r.link` on rows that
+     had no `link` passed clean — `venues` has one. This parses instead, binds each row back to its
+     `read(TAB.x)`, and asks the narrower question. Both are worth running: the union catches a
+     column NO tab has, this catches a column the WRONG tab has. */
+  { file: 'check-rows.js',    what: 'each column read, against the tab the row came from' },
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE --------------------------------------
      "A key the site asks for and the backend does not send fails silently." Nothing checked it, and
      `missingKeys()` only knows about screens somebody opened while signed in as the right person.

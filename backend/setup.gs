@@ -320,7 +320,7 @@ function migrateLikes() {
  * second is a collision nothing will ever report.
  */
 function ensureResourceIds() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return 0;
   const cId = t.headers.indexOf('resource_id');
   const cName = t.headers.indexOf('name');
@@ -376,7 +376,7 @@ function ensureResourceIds() {
  * priced for paper as soon as the counts land.
  */
 function seedPastPapers() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
 
   /* name, tier, month, year, wave, link */
@@ -463,7 +463,7 @@ function seedPastPapers() {
 
   /* Every link already on the tab, so a second run costs one read and writes nothing. */
   const have = {};
-  t.rows.forEach(r => { const l = S(r.link); if (l) have[l] = true; });
+  t.rows.forEach(r => { const l = S(r.source_url); if (l) have[l] = true; });
 
   let added = 0, already = 0;
   PAPERS.forEach(p => {
@@ -518,7 +518,7 @@ function seedPastPapers() {
  * Idempotent by link, exactly like `seedPastPapers`.
  */
 function seedALevelPapers() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
 
   /* name, level, month, year, wave, code, link */
@@ -568,7 +568,7 @@ function seedALevelPapers() {
   ];
 
   const have = {};
-  t.rows.forEach(r => { const l = S(r.link); if (l) have[l] = true; });
+  t.rows.forEach(r => { const l = S(r.source_url); if (l) have[l] = true; });
 
   let added = 0, already = 0;
   PAPERS.forEach(p => {
@@ -629,7 +629,7 @@ function seedALevelPapers() {
  * remove the wrong rows from the second one onward — silently, since every delete still succeeds.
  */
 function dropOldALevelPapers() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
 
   const IDS = ['R0404', 'R0405', 'R0406', 'R0407', 'R0408', 'R0409', 'R0410', 'R0411'];
@@ -641,7 +641,7 @@ function dropOldALevelPapers() {
     if (!r) { missing.push(id); return; }
     /* SOMEBODY HAS WORKED ON IT SINCE. A link, or a tick against somebody's name, means this is no
        longer the empty row this job was written to remove. */
-    const used = S(r.link) || S(r.ticks_1) || S(r.ticks_2) || S(r.ticks_3);
+    const used = S(r.source_url) || S(r.ticks_1) || S(r.ticks_2) || S(r.ticks_3);
     if (used) { kept.push(id + ' — ' + S(r.name) + ' (it has a link or a tick now)'); return; }
     hits.push(r);
   });
@@ -904,7 +904,16 @@ function ensureSchema() {
        `boxers`, and creates a fresh empty one — so the app would read the real boxers from the
        subjects file while a decoy sat in the database looking like the real thing. */
     const at = sheetFor_(name);
-    if (!at.id) { report[name] = 'skipped — SUBJECTS_ID is blank'; return; }
+    /* TWO DIFFERENT FAULTS, AND THEY NEED DIFFERENT WORDS. `sheetFor_` returns a blank id both for a
+       tab routed at a file whose id is not filled in, and for a tab with no line in `WHERE` at all.
+       The first is a configuration step somebody has not done yet; the second is a tab in SCHEMA
+       that nothing can ever reach, and it stays invisible until something says the word `WHERE`. */
+    if (!at.id) {
+      report[name] = at.away === '(not in WHERE)'
+        ? 'SKIPPED — no line in WHERE, so nothing can reach this tab'
+        : 'skipped — the id for the ' + at.away + ' file is blank';
+      return;
+    }
     const ss = SpreadsheetApp.openById(at.id);
     /* ---------- `at.tab` HAS NEVER EXISTED -------------------------------------------------------
        `sheetFor_` RETURNS `id`, `names`, `make` AND `away`. There is no `tab`, and there never was —
@@ -1159,8 +1168,8 @@ function dataProblems(deep) {
      resource with a Drive link and no count is one nobody can order — and there is nothing on any
      screen that says how many of those there are, or whether the number is going down. */
   {
-    const rows = read(TAB.resources).rows.filter(r => S(r.name));
-    const linked = rows.filter(r => driveIdFrom(r.link));
+    const rows = documents_().rows.filter(r => S(r.name));
+    const linked = rows.filter(r => driveIdFrom(r.source_url));
     const counted = linked.filter(r => N(r.pages) > 0).length;
     const left = linked.length - counted;
     if (left > 0) {
@@ -1260,8 +1269,8 @@ function dataProblems(deep) {
 
   /* --- printing --- */
   if (N(cfg.print_rate_per_page) > 0) {
-    const noCount = read(TAB.resources).rows
-      .filter(r => S(r.name) && ON_(r.active) && !N(r.pages) && S(r.link)).length;
+    const noCount = documents_().rows
+      .filter(r => S(r.name) && ON_(r.active) && !N(r.pages) && S(r.source_url)).length;
     if (noCount) {
       add('cannot be sold', noCount + ' resource(s) have no page count',
           'No paper copy can be priced for them. Run refreshPageCounts(), and type in the ones '
@@ -1405,10 +1414,17 @@ function checkEverything() {
   /* WHICH SHEET. "I changed the cell and nothing happened" is answered here more often than
      anywhere else — two spreadsheets open in two tabs is the easiest mistake in this whole
      system to make, and from the outside it is indistinguishable from a broken feature. */
-  say('spreadsheet id    : ' + SPREADSHEET_ID);
-  try {
-    say('spreadsheet name  : ' + SpreadsheetApp.openById(SPREADSHEET_ID).getName());
-  } catch (err) { say('spreadsheet name  : CANNOT OPEN IT — ' + err); }
+  Object.keys(FILES).forEach(which => {
+    const id = String(FILES[which] || '');
+    say((which + ' id').padEnd(18) + ': ' + (id || 'NOT SET'));
+    if (!id) return;
+    /* THE NAME IS THE CHECK, not decoration. Opening it proves the id is a Google Sheet rather than
+       an .xlsx upload — the fault that made every section load empty, and that no amount of reading
+       the id could have caught, because both files have the same title and the same owner. */
+    try {
+      say((which + ' name').padEnd(18) + ': ' + SpreadsheetApp.openById(id).getName());
+    } catch (err) { say((which + ' name').padEnd(18) + ': CANNOT OPEN IT — ' + err); }
+  });
   say('');
   say('If the site says the backend is older than it is, this number is not the question —');
   say('the DEPLOYMENT is. Deploy → Manage deployments → pencil → Version: New version.');
@@ -1472,7 +1488,7 @@ function checkEverything() {
   say('');
   say('RESOURCES');
   try {
-    const rows = read(TAB.resources).rows.filter(r => S(r.name));
+    const rows = documents_().rows.filter(r => S(r.name));
     const noId = rows.filter(r => !S(r.resource_id)).length;
     const noPages = rows.filter(r => !N(r.pages)).length;
     const sellable = rows.filter(r => ON_(r.active) && canPrint(r)).length;
@@ -1902,10 +1918,14 @@ function autoMigrate() {
 /* ==================================================================================================
    WHERE IS EVERY TAB, AND IS IT THERE?
 
-   Four tabs now live in a second spreadsheet, which means a new way for things to go quietly wrong:
-   a blank SUBJECTS_ID, a renamed tab, a file you moved to another Drive account. None of those
-   throw. They all just make a section empty, and an empty section looks exactly like a section
-   nobody has put anything in yet.
+   The tabs are spread across three spreadsheets, which means several ways for things to go quietly
+   wrong: a blank id in FILES, a tab with no line in WHERE, a renamed tab, a file moved to another
+   Drive account, an id pointing at an .xlsx upload rather than a Google Sheet. None of those throw.
+   They all just make a section empty, and an empty section looks exactly like a section nobody has
+   put anything in yet.
+
+   `check-tabs.js` asks the half of this that can be answered from the source alone, before a
+   deploy. This is the other half — it needs the documents open, so it can only run in here.
 
    So this asks the question directly. Run it after moving anything.
 ================================================================================================== */

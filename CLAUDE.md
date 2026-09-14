@@ -1,6 +1,6 @@
 # @family. — the map
 
-A tutoring business's site. Static front end on GitHub Pages, Google Apps Script backend, two
+A tutoring business's site. Static front end on GitHub Pages, Google Apps Script backend, three
 spreadsheets as the database. No build step, no framework, no package.json for the site itself —
 `index.html` lists the JavaScript files and the browser concatenates them into one global scope.
 
@@ -60,7 +60,11 @@ almost never writes to it directly.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
-  tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it.
+  tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
+  file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing
+  can open; `WHERE` without `SCHEMA` is a tab `ensureSchema` will never repair. `check-tabs.js` is
+  the instrument, and it runs before `check-columns.js` because a tab nobody can open has no
+  columns.
 
 **A key the site asks for and the backend does not send fails silently.** `|| []` turns it into an
 empty list, which looks exactly like an empty database.
@@ -88,8 +92,73 @@ dead key fails loudly instead of joining a red that nobody reads.
 | What changed | How it goes live |
 |---|---|
 | `index.html`, `js/`, `style.css` | `git push` → GitHub Pages. About a minute. |
-| `backend/*.gs` | `git push` to `main` → the **Apps Script** workflow runs `clasp push`. |
+| `backend/*.gs` | push to `main`, then run **`pullFromGitHub`** in the Apps Script editor. |
 | Spreadsheet contents | Immediately — *if* the edit watch is installed. See below. |
+
+### Two routes, and the one that is actually used pulls
+
+There are two ways `backend/` reaches Apps Script and they run in opposite directions:
+
+- **`pullFromGitHub` in `backend/sync.gs`** — run from the function dropdown in the Apps Script
+  editor. It downloads `backend/` from `main` over `raw.githubusercontent.com` and writes it into
+  the project through the Apps Script API. **This is the one in use.** No terminal, no token stored
+  anywhere, nothing to configure beyond the API switch. `previewFromGitHub` does the same read and
+  writes nothing — run it first, every time, because it is the only thing that shows a **deletion**
+  before it happens.
+- **`.github/workflows/apps-script.yml`** — `clasp push` on every push to `main`. Better in
+  principle (nobody has to remember to run it) and unused in practice, because `clasp login` needs a
+  terminal.
+
+**The workflow failed nine times out of nine and every failure was the same line**: `SCRIPT_ID` and
+`CLASP_CREDENTIALS` are not set. They are not set because that route was never taken. It now
+**skips rather than fails** when the secrets are absent — a permanent red cross on every merge, for
+a route nobody chose, is a red that teaches you to ignore red. A secret that is present and *wrong*
+still fails loudly; absent and broken are different answers.
+
+**Both routes replace the project's files wholesale**, so the warning below holds either way: what
+is typed into the Apps Script editor and not committed here is gone at the next sync.
+
+What `pullFromGitHub` needs:
+
+| | Why |
+|---|---|
+| `script.projects` in `oauthScopes` | ✅ without it Google answers 403 and `apiTrouble_` says so |
+| the repo **public** | ✅ the raw URLs are fetched unauthenticated |
+| `backend/files.json` naming every file | ✅ it pulls by that list; `check-manifest.js` keeps it honest |
+| the Apps Script API on **for the script's own Cloud project** | ❌ **and this is the one that blocks it** |
+
+#### THERE ARE TWO APPS SCRIPT API SWITCHES AND THEY ARE NOT THE SAME ONE
+
+This cost a run and it is not written down anywhere obvious:
+
+- **The account-level toggle** at <https://script.google.com/home/usersettings>. This is what
+  **clasp** needs, because clasp calls the API as its own Google OAuth client.
+- **The Cloud-project-level enablement**, in the Cloud console, for the project the call is billed
+  to. `sync.gs` calls the API with `ScriptApp.getOAuthToken()`, so the caller IS the script's own
+  Cloud project and that project needs the API switched on. The 403 names it outright —
+  `consumer: projects/850507942585`.
+
+`apiTrouble_` already tells the two apart by whether Google's message carries a project number, and
+it was right. **The account toggle being on does nothing for `pullFromGitHub`.**
+
+**AND THAT PROJECT CANNOT BE OPENED.** `hermes` sits on an auto-created default Cloud project, and
+the console answers `resourcemanager.projects.get (missing)` to its own owner. There is no
+permission to grant yourself; a default project is not reachable that way. So `pullFromGitHub` is
+blocked until the script is moved to a standard Cloud project, which means an OAuth consent screen
+and a re-authorisation — and since the web app is `ANYONE_ANONYMOUS` running as `USER_DEPLOYING`,
+that re-authorisation is what every anonymous visitor depends on. **Not a thing to do casually on a
+live site**, which is why it is the third choice and not the first.
+
+#### So: three routes, and the ranking changed
+
+1. **The GitHub Assistant browser extension** — the `Repository ▾ / Branch ▾ / ↓ ↑` controls in the
+   editor toolbar. It works through the editor's own session rather than the public API, so none of
+   the above applies to it. Nothing to enable, nothing to authorise.
+2. **clasp, via the workflow.** Needs a terminal exactly once for `clasp login`, and the
+   account-level toggle it depends on **is already on** — so this is closer to working than the nine
+   red runs suggest. The secrets were never the only blocker, and they were never the wrong one.
+3. **`pullFromGitHub`.** The best-fitting route on paper and the one currently blocked. Leave it
+   until moving the Cloud project is worth the re-auth risk.
 
 `sync.js` in the repo root watches the folder and pushes on save. It now stages `backend/` too.
 
@@ -141,10 +210,11 @@ row — so **a row typed by hand into the spreadsheet did not reach the site for
 which is indistinguishable from the sheet not being connected at all.
 
 Fixed by `onSheetChange` in `backend/core.gs`, an installable trigger that retires the payload the
-moment anyone edits either spreadsheet, plus `warmAfterEdit` which rebuilds once a minute after the
-last edit. **It has to be installed** — paste `core.gs`, then run `installSheetWatch` from the editor's
-function dropdown, or open `/exec?triggers=1`. `?run=sheetWatchStatus&name=…&pin=…` says whether it
-is on.
+moment anyone edits any of the spreadsheets, plus `warmAfterEdit` which rebuilds once a minute after
+the last edit. **It has to be installed** — paste `core.gs`, then run `installSheetWatch` from the
+editor's function dropdown, or open `/exec?triggers=1`. `?run=sheetWatchStatus&name=…&pin=…` says
+whether it is on. `installSheetWatch` walks `FILES`, so it covers all three without being told they
+exist — **but a file added to `FILES` is not watched until it is run again.**
 
 `installWarmTrigger` exists and is deliberately **not** installed: every 5 minutes × ~35 s a rebuild
 is about five hours of script time a day against a 90-minute daily allowance. It would spend the
@@ -162,6 +232,8 @@ node js/check-flow.js            # 21 journeys through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
 node js/check-backend.js         # one Apps Script scope: every name declared exactly once
+node js/check-tabs.js            # every tab routed to one of the three files, and the ids look sane
+node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
@@ -300,21 +372,168 @@ which of the two each check uses and why.
 **Both spreadsheet IDs pointed at an `.xlsx` and `SpreadsheetApp` cannot open one.** Every section
 loaded empty, which is also exactly what a blank database looks like — and the comment above
 `SPREADSHEET_ID` said "if every section ever loads empty, this line is the first thing to check". It
-was right and the line was wrong. There are two files of each name, same title, same owner:
-
-| | was (unopenable `.xlsx`) | is (Google Sheet) |
-|---|---|---|
-| businessDB | `1WeY0AD7dEz…` | `1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s` |
-| SubjectsDB | `1jDEeRoUTtL…` | `1eUmrhFQBmqXTJF4OYVtxb4C6OjuVjbwrVDF0IdzsRkw` |
+was right and the line was wrong. There were two files of each name, same title, same owner, and
+the code named the unopenable one: `1WeY0AD7dEz…` for businessDB, `1jDEeRoUTtL…` for SubjectsDB.
 
 **The URL is how you tell them apart**, because the title does not: a Google Sheet lives at
 `docs.google.com/spreadsheets/d/<id>/edit`, an uploaded `.xlsx` at `drive.google.com/file/d/<id>`.
-If the address says `file/d`, Apps Script cannot read a cell of it.
+If the address says `file/d`, Apps Script cannot read a cell of it. `check-tabs.js` now fails on an
+id in that spelling, which is the only half of this a checker can see without opening Drive.
 
-This is why the past papers looked missing. They are not — `questions` in SubjectsDB has the real
-Edexcel papers in it, stems, parts and mark schemes, and has had for a while. Nothing was reading
-the file they are in. **Do not seed that tab.** It is content, it is maintained in the sheet, and
-the sheet is the only place it lives.
+This is why the past papers looked missing. They are not — `questions` has the real Edexcel papers
+in it, stems, parts and mark schemes, and has had for a while. Nothing was reading the file they are
+in. **Do not seed that tab.** It is content, it is maintained in the sheet, and the sheet is the
+only place it lives.
+
+### Four spreadsheets became three, and the split is now a question with one answer
+
+It was businessDB, SubjectsDB, Widget_Settings and Engine — and a fifth, "full pdf datbase", which
+nobody counted because it had been written off (see `resources` below; it was not junk) — **split by
+subject matter**, which is a split nothing could check. Nobody could say where a tab belonged without knowing the history, and
+the cost of that showed up as duplicates with different column sets: `kinds` and `widgets` each
+existed in two files, and **the live copy of each was the empty one**.
+
+It is now three files, **split by who writes the rows**:
+
+| File | Who writes it | Tabs |
+|---|---|---|
+| **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, ticks — the business as it happened |
+| **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
+| **Library** | you, in bulk | questions (documents AND their questions), boxers, cheatsheet |
+
+The ids are in `FILES` in `constants.gs`, and `WHERE` says which file each tab is in. The tab
+colours inside each spreadsheet say the same thing a third time — green written by the app, gold
+read by it, grey read by nobody — so a tab whose colour and whose file disagree is visible without
+opening it.
+
+**`WHERE` replaced two maps and a default, and the default was the bug.** It was `ELSEWHERE` for
+tabs in the subjects file, `HERE` for tabs renamed in the main one, and anything in neither fell
+through to `SPREADSHEET_ID`. That is fine with one main file and a trap with three: a name nobody
+routed still resolved to a real file, found no tab, and came back `{ rows: [] }`. **Five tabs the
+backend reads existed in no file at all** — `resources`, `herd`, `map`, `landmark_parts`,
+`post_votes` — and nothing anywhere said so. They are created now, empty, with headers from
+`SCHEMA`, so they read as an empty tab rather than a missing one.
+
+`sheetFor_` returns a blank id for an unrouted name on purpose. `read()` cannot tell that from any
+other empty result and does not try; `check-tabs.js` and `checkTabs()` are what tell them apart.
+
+### There is no `resources` tab. A document is a kind of row.
+
+The resources tab held one row per document; `questions` held the questions inside 99 of them and
+already carried about twenty columns copied off the document. They were one table written twice, so
+they are one table now. **`kind` says which a row is** — `paper` is the document, `part` and `stem`
+are the questions in it. 3,913 rows: 3,271 questions and **642 documents**, 202 with questions under
+them and 440 with none yet, which is not a gap but the backlog written down.
+
+**`documents_()` in `core.gs` is the filter, in one place.** `read(TAB.resources)` appeared in
+**19 places** and every one of them now calls that instead, otherwise unchanged — it returns `read`'s
+own shape, and `setCell` writes through `t.sheet` and `row._row`, so handing back a subset of the
+rows still lands a write on the row it came from. Nineteen copies of `.filter(r => r.kind ===
+'paper')` would be nineteen chances to forget it and treat a question as a document.
+
+**The ticks live on the `paper` row and only there.** Everything else about a document is immutable
+and copies down to its questions safely — exam board, year, link, page count, 4,963 blanks filled.
+A tick is not: it is a fact about a person and a document, `toggleTopicTick` writes one cell, and
+copying those columns down would give `P-1MA1-2306-1H` 31 rows that must agree while one of them is
+written. **That difference is the whole reason `kind: 'paper'` is a row rather than a convention** —
+it gives a document exactly one row to be written to, which is what it had when it was a tab.
+
+**Documents are keyed on `paper_id`, and keying them on `resource_id` was a real bug in the build.**
+Two id systems meet on this tab: 29 papers have a `paper_id` that IS a `resource_id`, the rest use
+the `R0001` series and match only through the URL. Keying on the resource put a covered paper's
+document row under the resource's id while its questions carried `paper_id` — **93 papers ended up
+with questions and no document row** to hang a link or a tick on. The questions decide the key,
+because they are what points at it.
+
+**`SCHEMA.resources` was deleted rather than left empty, on purpose.** `ensureSchema` walks `SCHEMA`
+and CREATES any tab it cannot find, so an entry left behind would quietly rebuild an empty
+`resources` tab on the next `?setup=1` — a decoy with the right headers and no rows, which is the
+exact shape of the fault that hid the real rows in another file for months.
+
+`doGet`'s questions push skips `kind: 'paper'`, or 642 documents arrive on the Find screen as
+questions with no text, no marks and no answer. They reach the app as the checklists instead —
+which went from **0 topics to 101 for a student and 642 for an admin**, having built nothing from
+nothing for as long as the tab was empty.
+
+`check-columns` caught `day` on the way through: it lived only in `SCHEMA.resources` and the
+checklist still reads it. Kept as a column rather than dropped from the read — a past paper is often
+a month and a year with no day at all.
+
+**It did NOT catch `link`, and that is a gap in the check rather than bad luck.** The resources tab
+called the URL `link` and the questions tab calls it `source_url`. Folding the two left **seven**
+reads of `r.link` on rows that no longer have one — the checklist push in `doget.gs`, the page
+counter in `content.gs`, five places in `setup.gs`. Every checklist topic would have arrived with no
+link on it, which is the entire point of a resource, and nothing would have thrown.
+
+`check-columns.js` compares every `r.<name>` against the **union of every tab's columns**, not
+against the columns of the tab that row came from. `venues` and `trips` both have a `link`, so
+`r.link` is a known column somewhere and the check was satisfied. The seven now read `source_url` —
+one tab, one name for the URL.
+
+### `node js/check-rows.js` — the same question, asked of one tab at a time
+
+Built because of those seven. It parses the `.gs` files with acorn instead of matching them, binds
+each row identifier back to the `read(TAB.x)` or `documents_()` it came from, and checks every
+`r.<name>` against **that** tab. Both checks are worth running: **the union catches a column NO tab
+has; this catches a column the WRONG tab has**, and the second is the commoner fault.
+
+**The first thing it found was a live bug nothing else could see.** `avatarCatalogue()` in
+`people.gs` read `r.price` off a **shop** row. The shop tab prices in three currencies —
+`price_pence`, `price_ticks`, `price_coins` — and has never had a bare `price`, so `N(r.price)` was
+`N(undefined)`, which is 0, on every row. **Every avatar item arrived costing nothing and flagged
+`free`, including the seven that carry a `price_coins` of 15, 20 or 30.** Paid items, given away,
+silently. `check-columns` was right not to report it: `price` IS a column — on `resources`, where it
+means something else entirely.
+
+**Scope is what makes it trustworthy, and the first version did not have it.** One binding map per
+FILE reported **95 findings, nearly all wrong**: `dopost.gs` binds `r` to a `family` row in one
+handler and a `people` row in the next, so the first binding was still standing when the second was
+walked. Two fixes took it to 2, and both of those were real:
+
+- **A scope chain**, pushed per function, so a binding made inside one dies with it.
+- **A declaration always writes a binding, even when the right-hand side is unrecognised.**
+  `const r = findPerson(…)` does not make `r` a row of anything — but leaving no entry lets the
+  lookup walk outwards and answer with the handler above's row. "Nearest declaration made it
+  something I do not recognise" is an answer, not an absence.
+
+That second one is the subtle half and it is the difference between a check and a noise generator:
+95 findings with 2 real ones in them is worse than no check at all, because the seven `r.link` reads
+would have been sitting in that list indistinguishable from the rest. What it cannot trace — a row
+arriving as a function argument — it does not report, and the summary says how many rows it managed
+to trace (210) and how many reads it checked (888) rather than implying it looked at everything.
+
+**How it was found, which is the part worth keeping.**
+A fifth spreadsheet called "full pdf datbase" — set aside as "trash, disregard it" — turned out to
+be the resources tab: 27 columns that are this tab's columns almost exactly, and **every one of the
+166 `resource_id`s that `ticks` points at is in it**, with no orphans left over. The checklist
+builder in `doget.gs` walks `TAB.resources` to build `dropdowns.checklists`, so it had been
+producing nought checklists from nought rows for as long as the tab has been empty.
+
+Three of its columns were new and are now on `questions`: `description` (a paragraph under the
+`name`), `level` (GCSE / AS / Alevel — **not** `level_required`, which `doget.gs` reads with `N()`
+as a membership NUMBER, and merging the two would have read "GCSE" as 0 and shown a paywalled paper
+to everybody), and `paper` (which paper of the set — 1, 2 or 3). One column was dropped: `html`,
+empty on all 559 rows.
+
+**`resource_id` on a question was the join, and it was already there unseen.** Every one of the 99
+distinct `source_url`s on the questions tab is also a `link` in that file; no link points at two
+documents and no paper resolves to two of them. 1,745 of 3,271 question rows resolve, 102 of 202
+papers — which is what made folding the two tables together an observation rather than a guess.
+
+**538 of the 559 rows came across with `active` FALSE**, and `doget.gs` does `if (!live &&
+!viewerIsAdmin) return;`. The 21 that are true are the most recently added, so this reads as a stale
+default rather than a decision — but it is data, not a bug, and flipping it is editorial. A student
+currently sees 101 documents (those 21, plus the 80 papers whose questions are live) against an
+admin's 642.
+
+Also empty, in case any are meant not to be: `kinds`, `widgets`, `laws`, `rooms`, `trips`, `orders`,
+`invites`, `messages`, `exams`.
+
+**`shop` was never broken, and I said it was.** There is a `HERE` map — now folded into `WHERE` as
+`alsoTry` — that resolved `shop` to the tab actually called `items&shop`. I checked `TAB` and
+`ELSEWHERE`, found no `shop` tab, and reported 62 rows of stock as unreachable. They were always
+reachable. **A resolution path has three maps in it and reading two of them is not reading it**;
+`check-tabs.js` exists partly so that this question is answered by something that reads all of them.
 
 **`SCHEMA.questions` was ten columns behind the real tab** — `source_url`, `pages`, `price`,
 `currency`, `level_required`, `trackable`, `printable`, `pages_checked`, `company`, `topics`, all

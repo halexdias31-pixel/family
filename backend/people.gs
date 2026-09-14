@@ -136,7 +136,7 @@ function isAdminPerson(name) {
 function countTicks(row) {
   const me = key(row && row.handle) || key(personDisplayName(row || {}));
   if (!me) return 0;
-  return read(TAB.resources).rows.reduce((n, r) =>
+  return documents_().rows.reduce((n, r) =>
     n + ['ticks_1', 'ticks_2', 'ticks_3'].filter(col =>
       S(r[col]).split(/[,\n]/).some(h => key(h) === me)).length, 0);
 }
@@ -345,8 +345,20 @@ function avatarCatalogue() {
   const rows = read(TAB.shop).rows.filter(r => norm(r.kind) === 'avatar' && S(r.art_id) && S(r.slot));
   const fromShop = rows.map(r => ({
     id: S(r.art_id), slot: norm(r.slot), name: S(r.name) || S(r.art_id),
-    level: N(r.level_required) || 0, cost: N(r.price) || 0,
-    free: !N(r.level_required) && !N(r.price), _row: r._row
+    /* ---------- `r.price` IS NOT A COLUMN OF THIS TAB --------------------------------------------
+       THE SHOP TAB PRICES IN THREE CURRENCIES — `price_pence`, `price_ticks`, `price_coins` — and
+       has never had a bare `price`. So `N(r.price)` was `N(undefined)`, which is 0, on every row:
+       every avatar item arrived costing nothing AND flagged `free`, including the seven that carry
+       a `price_coins` of 15, 20 or 30. Paid items, given away, silently.
+
+       `price_coins` is the one, because this is the wardrobe and `find.js` renders `x.cost` as
+       "credits" — the same column the shop's own price line reads first in `doget.gs`.
+
+       `check-columns.js` COULD NOT SEE THIS: it asks whether a name is a column of ANY tab, and
+       `price` is one — on `resources`, where it means something else entirely. `check-rows.js`
+       asks it of the tab the row actually came from, and this was the first thing it found. */
+    level: N(r.level_required) || 0, cost: N(r.price_coins) || 0,
+    free: !N(r.level_required) && !N(r.price_coins), _row: r._row
   }));
 
   /* THE FREE ITEMS ARE ALWAYS IN, whether or not the shop knows about them.

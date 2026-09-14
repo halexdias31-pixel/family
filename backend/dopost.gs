@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-17-laminate";
+const DOPOST_VERSION = "2026-09-19-avatar-price";
 
 
 function doPost(e) {
@@ -604,7 +604,7 @@ function doPost(e) {
        The existing admin form, unchanged. The tick columns holding students' progress are
        deliberately NOT in RESOURCE_EDITABLE, so a relabel can never wipe anybody's checklist. --- */
     if (action === 'updateResource') {
-      const t = read(TAB.resources);
+      const t = documents_();
       const r = t.rows.find(x => x._row === Number(body.rowIndex));
       if (!r) return jsonOut({ error: 'Resource not found.' });
       const fields = body.fields || {};
@@ -625,7 +625,7 @@ function doPost(e) {
        ONLY THE FIELDS SENT ARE WRITTEN. A form that posts every column overwrites the ones it did
        not show with blanks, which is how an edit to a link quietly erases a page count. --- */
     if (action === 'editResource') {
-      const t = read(TAB.resources);
+      const t = documents_();
       const r = rowById_(t, 'resource_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No resource with that id — it may have been deleted.' });
 
@@ -656,7 +656,7 @@ function doPost(e) {
        a lookup that finds nothing, which renders as an empty card rather than as an error.
        A row removed is also a row you cannot un-remove. --- */
     if (action === 'deleteResource') {
-      const t = read(TAB.resources);
+      const t = documents_();
       const r = rowById_(t, 'resource_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No resource with that id.' });
       if (t.headers.indexOf('active') < 0) {
@@ -800,7 +800,7 @@ function doPost(e) {
         return jsonOut({ error: 'Paper copies are not being offered at the moment.' });
       }
 
-      const res = read(TAB.resources);
+      const res = documents_();
       const wanted = (body.items || []).map(S).filter(Boolean);
       if (!wanted.length) return jsonOut({ error: 'Nothing to print.' });
 
@@ -1796,7 +1796,7 @@ function doPost(e) {
         return jsonOut({ error: 'You can only tick your own topics.' });
       }
 
-      const t = read(TAB.resources);
+      const t = documents_();
       /* By id where there is one, so a tick cannot land on the wrong resource after a deletion
          has shifted every row below it. */
       const r = rowById_(t, 'resource_id', body.id, body.rowIndex);
