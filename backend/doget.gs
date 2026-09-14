@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-18-resources";
+const DOGET_VERSION = "2026-09-19-one-tab";
 
 
 function doGet(e) {
@@ -370,7 +370,7 @@ function doGet(e) {
       // ones that need it. This keeps itself current with no maintenance.
       resourceInUse: (function () {
         const out = {};
-        read(TAB.resources).rows.forEach(r => Object.keys(RESOURCE_OPTIONS).forEach(f => {
+        documents_().rows.forEach(r => Object.keys(RESOURCE_OPTIONS).forEach(f => {
           const v = S(r[f]);
           if (!v) return;
           out[f] = out[f] || [];
@@ -1360,13 +1360,19 @@ function doGet(e) {
     try {
       read(TAB.questions).rows.forEach(r => {
         if (!S(r.row_id) || !ON_(r.active)) return;
+        /* ---------- A DOCUMENT IS NOT A QUESTION -------------------------------------------------
+           The tab holds both since `resources` was folded into it: `kind: 'paper'` is the document,
+           `part` and `stem` are the questions inside it. Without this line all 642 documents arrive
+           on the Find screen as questions with no text, no marks and no answer — a funnel a fifth
+           full of blank cards. They are not dropped; they reach the app as the checklists that
+           `documents_()` builds further down, which is what they were when they were a tab. */
+        if (String(r.kind || '').toLowerCase() === 'paper') return;
         payload.questions.push({
           id: S(r.row_id), paper: S(r.paper_id),
           /* THE DOCUMENT THIS CAME OUT OF, so a question can reach its PDF — the link, the page
-             count, whether it prints — without twenty more columns being copied onto every row.
-             Blank for a question whose paper has no `source_url` to join on, which is 100 of the
-             202 papers; a blank id is a lookup that finds nothing, which is already how every
-             other optional reference on this payload behaves. */
+             count, whether it prints — without a lookup the phone cannot do. Blank where a paper
+             has no row in the old resources data to point at; a blank id is a lookup that finds
+             nothing, which is how every other optional reference on this payload behaves. */
           resourceId: S(r.resource_id),
           q: S(r.question), part: S(r.part), kind: norm(r.kind) || 'part',
           section: S(r.section), marks: N(r.marks),
@@ -1490,7 +1496,7 @@ function doGet(e) {
     /* The nest the checklist needs: subject, then band, then topics. The SHOP screen wants them
        flat and flattens them itself on the phone — carrying the same four hundred rows twice to
        satisfy both would be a waste of every phone's morning. */
-    read(TAB.resources).rows.forEach((r, i) => {
+    documents_().rows.forEach((r, i) => {
       const name = S(r.name);
       if (!name) return;
       /* A deleted resource still reaches an admin, marked, for the same reason a deleted post
@@ -1691,7 +1697,7 @@ function doGet(e) {
 
     if (p.debugTiming) return jsonOut({ version: BACKEND_VERSION, timings,
       counts: { people: people.length, venues: venuesTab.length, jobs: jobsTab.length,
-                resources: read(TAB.resources).rows.length, options: read(TAB.options).rows.length } });
+                resources: documents_().rows.length, options: read(TAB.options).rows.length } });
 
     payload.timings = timings;
     /* ---------- KEPT, AND THEN SENT --------------------------------------------------------------

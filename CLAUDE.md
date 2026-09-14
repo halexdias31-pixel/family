@@ -333,7 +333,7 @@ It is now three files, **split by who writes the rows**:
 |---|---|---|
 | **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, ticks — the business as it happened |
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
-| **Library** | you, in bulk | questions, boxers, cheatsheet — subject content |
+| **Library** | you, in bulk | questions (documents AND their questions), boxers, cheatsheet |
 
 The ids are in `FILES` in `constants.gs`, and `WHERE` says which file each tab is in. The tab
 colours inside each spreadsheet say the same thing a third time — green written by the app, gold
@@ -351,31 +351,71 @@ backend reads existed in no file at all** — `resources`, `herd`, `map`, `landm
 `sheetFor_` returns a blank id for an unrouted name on purpose. `read()` cannot tell that from any
 other empty result and does not try; `check-tabs.js` and `checkTabs()` are what tell them apart.
 
-**`resources` was empty, and the 559 rows that belong in it were in a file written off as junk.**
+### There is no `resources` tab. A document is a kind of row.
+
+The resources tab held one row per document; `questions` held the questions inside 99 of them and
+already carried about twenty columns copied off the document. They were one table written twice, so
+they are one table now. **`kind` says which a row is** — `paper` is the document, `part` and `stem`
+are the questions in it. 3,913 rows: 3,271 questions and **642 documents**, 202 with questions under
+them and 440 with none yet, which is not a gap but the backlog written down.
+
+**`documents_()` in `core.gs` is the filter, in one place.** `read(TAB.resources)` appeared in
+**19 places** and every one of them now calls that instead, otherwise unchanged — it returns `read`'s
+own shape, and `setCell` writes through `t.sheet` and `row._row`, so handing back a subset of the
+rows still lands a write on the row it came from. Nineteen copies of `.filter(r => r.kind ===
+'paper')` would be nineteen chances to forget it and treat a question as a document.
+
+**The ticks live on the `paper` row and only there.** Everything else about a document is immutable
+and copies down to its questions safely — exam board, year, link, page count, 4,963 blanks filled.
+A tick is not: it is a fact about a person and a document, `toggleTopicTick` writes one cell, and
+copying those columns down would give `P-1MA1-2306-1H` 31 rows that must agree while one of them is
+written. **That difference is the whole reason `kind: 'paper'` is a row rather than a convention** —
+it gives a document exactly one row to be written to, which is what it had when it was a tab.
+
+**Documents are keyed on `paper_id`, and keying them on `resource_id` was a real bug in the build.**
+Two id systems meet on this tab: 29 papers have a `paper_id` that IS a `resource_id`, the rest use
+the `R0001` series and match only through the URL. Keying on the resource put a covered paper's
+document row under the resource's id while its questions carried `paper_id` — **93 papers ended up
+with questions and no document row** to hang a link or a tick on. The questions decide the key,
+because they are what points at it.
+
+**`SCHEMA.resources` was deleted rather than left empty, on purpose.** `ensureSchema` walks `SCHEMA`
+and CREATES any tab it cannot find, so an entry left behind would quietly rebuild an empty
+`resources` tab on the next `?setup=1` — a decoy with the right headers and no rows, which is the
+exact shape of the fault that hid the real rows in another file for months.
+
+`doGet`'s questions push skips `kind: 'paper'`, or 642 documents arrive on the Find screen as
+questions with no text, no marks and no answer. They reach the app as the checklists instead —
+which went from **0 topics to 101 for a student and 642 for an admin**, having built nothing from
+nothing for as long as the tab was empty.
+
+`check-columns` caught `day` on the way through: it lived only in `SCHEMA.resources` and the
+checklist still reads it. Kept as a column rather than dropped from the read — a past paper is often
+a month and a year with no day at all.
+
+**How it was found, which is the part worth keeping.**
 A fifth spreadsheet called "full pdf datbase" — set aside as "trash, disregard it" — turned out to
 be the resources tab: 27 columns that are this tab's columns almost exactly, and **every one of the
 166 `resource_id`s that `ticks` points at is in it**, with no orphans left over. The checklist
 builder in `doget.gs` walks `TAB.resources` to build `dropdowns.checklists`, so it had been
 producing nought checklists from nought rows for as long as the tab has been empty.
 
-Three columns were new and are now in `SCHEMA.resources`: `description` (a paragraph under the
+Three of its columns were new and are now on `questions`: `description` (a paragraph under the
 `name`), `level` (GCSE / AS / Alevel — **not** `level_required`, which `doget.gs` reads with `N()`
 as a membership NUMBER, and merging the two would have read "GCSE" as 0 and shown a paywalled paper
 to everybody), and `paper` (which paper of the set — 1, 2 or 3). One column was dropped: `html`,
 empty on all 559 rows.
 
-**`questions` gained `resource_id`, and the join was already there unseen.** Every one of the 99
-distinct `source_url`s on the questions tab is also a `link` on the resources tab; no link points at
-two resources and no paper resolves to two of them. 1,745 of 3,271 question rows resolve, 102 of 202
-papers. The rest have no `source_url` to join on and are blank, which is the honest answer.
-**Two id systems meet here** — 29 papers have a `paper_id` that IS a `resource_id` (the `RS1786…`
-ones), the other 173 use the `R0001` series and match only through the URL — so anything deriving
-one from the other would be right 29 times out of 202. It has to be a stored column.
+**`resource_id` on a question was the join, and it was already there unseen.** Every one of the 99
+distinct `source_url`s on the questions tab is also a `link` in that file; no link points at two
+documents and no paper resolves to two of them. 1,745 of 3,271 question rows resolve, 102 of 202
+papers — which is what made folding the two tables together an observation rather than a guess.
 
-**538 of the 559 rows have `active` FALSE**, and `doget.gs` does `if (!live && !viewerIsAdmin)
-return;`. The 21 that are true are the most recently added, so this reads as a stale default rather
-than a decision — but it is data, not a bug, and flipping it is editorial. Until somebody does, a
-student sees 21 resources and an admin sees all 559.
+**538 of the 559 rows came across with `active` FALSE**, and `doget.gs` does `if (!live &&
+!viewerIsAdmin) return;`. The 21 that are true are the most recently added, so this reads as a stale
+default rather than a decision — but it is data, not a bug, and flipping it is editorial. A student
+currently sees 101 documents (those 21, plus the 80 papers whose questions are live) against an
+admin's 642.
 
 Also empty, in case any are meant not to be: `kinds`, `widgets`, `laws`, `rooms`, `trips`, `orders`,
 `invites`, `messages`, `exams`.

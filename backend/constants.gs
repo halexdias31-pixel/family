@@ -177,7 +177,6 @@ const WHERE = {
   /* ---- subject content, edited in bulk ---- */
   questions:      { file: 'library' },
   cheatsheet:     { file: 'library', alsoTry: 'cheatsheetcomp' },
-  resources:      { file: 'library' },
   boxers:         { file: 'library' },
   fights:         { file: 'library' },
 };
@@ -197,12 +196,14 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-18-resources";
+const BACKEND_VERSION = "2026-09-19-one-tab";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
   people: 'people', venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
-  resources: 'resources', links: 'links', shop: 'shop', pricing: 'pricing',
+  /* `resources` WAS HERE. It is folded into `questions` — see the note at the bottom of
+     SCHEMA.questions. `documents_()` in core.gs is what callers use now. */
+  links: 'links', shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
   herd: 'herd',
@@ -631,72 +632,14 @@ const SCHEMA = {
      still works. An empty tab must never produce an empty game — see `herdPack_`. */
   herd: ["question_id", "question", "sort_order", "active", "notes"],
 
-  resources: [
-    /* A PERMANENT NAME FOR THE ROW. Editing needs to name one, and a name is not a name: two
-       subjects can both have "Quadratics", and every lookup takes the first match. Reading the
-       wrong one is invisible; deleting the wrong one is not.
-       NOT the row number — rows shift the moment one is removed, so an index read when the payload
-       loaded points at a different resource by the time a button is pressed. */
-    "resource_id",
-    /* `year` is new. Everything else on this tab has been here from the beginning; this is the one
-       thing the filters ask for that nothing was recording — a past paper's YEAR, which is not its
-       exam wave: "June 2024" is a wave, "2024" is a year, and a filter wants the year on its own
-       or every wave becomes its own bucket.
-       Blank on every existing row until somebody fills it in, and a filter whose values are all
-       blank is simply not offered. */
-    /* THREE COLUMNS FOR ONE DATE, and that is the sheet's own choice rather than a mistake: a
-       past paper is often a month and a year with no day at all, and a single date cell cannot
-       hold "June 2024" without inventing the 1st. Kept as three, because the thing being recorded
-       genuinely has three parts and any two of them may be missing.
-       `year` is what the funnel asks about — a filter on the day of the month would be a facet
-       with thirty-one answers and no meaning. */
-    "subject", "name", "link", "day", "month", "year",
-    /* ---------- THE COLUMNS THE SHOP ALSO HAS -------------------------------------------------
-       A resource and a shop item are the same KIND of thing to somebody looking for one: something
-       you get. They are found in the same place on the phone and always have been — `stuffItems`
-       has merged them since the screen was written.
-       What was not shared was the vocabulary. A wearable could cost credits and a past paper could
-       not, so "everything costs credits now" meant a schema change rather than filling in a cell.
-       These three make that a cell.
+  /* ---------- `resources` WAS A TAB AND IS NOW A KIND OF ROW ---------------------------------
+     Its 559 rows and every column it had are on the `questions` tab now; see the note at the
+     bottom of SCHEMA.questions for why, and `documents_()` in core.gs for how they are reached.
 
-       NOT one tab. A resource has twenty-one columns and a bike has six; putting them in one is
-       the flat 112-column table this database was migrated away from, and it would leave every one
-       of the eleven filters blank on every shop row. Shared columns, separate tabs: the same
-       questions answerable of both, and neither carrying the other's blanks. */
-    "price", "currency", "level_required",
-    "trackable", "band_type", "band_value", "key_stage",
-    "tier", "exam_board", "company", "resource_type",
-    "print_required", "exam_wave", "pages", "pages_checked",
-    /* Whether a paper copy is OFFERED, and whether the resource is offered at all.
-       `printable` is a judgement the page count cannot make — a 400-page textbook is perfectly
-       countable and you still do not want it in anybody's basket. Blank means decide from the
-       page count; an explicit FALSE wins over it.
-       `active` is how deleting works. The row is still referenced — by a basket on somebody's
-       phone, by a print already paid for, by a checklist tick — so removing it turns all of those
-       into a lookup that finds nothing, which renders as an empty card rather than an error. */
-    "printable", "active",
-    "ticks_1", "ticks_2", "ticks_3",
-    /* ---------- THE THREE THAT CAME BACK WITH THE ROWS ----------------------------------------
-       THIS TAB WAS EMPTY FOR AS LONG AS ANYBODY CAN CHECK, and the 559 rows that belong in it were
-       in a fourth spreadsheet called "full pdf datbase" that had been written off as junk. It was
-       not junk: every one of the 166 `resource_id`s that `ticks` points at is in it, and the
-       checklist builder in `doget.gs` has been walking nought rows and producing nought checklists.
-
-       Its columns were this tab's columns almost exactly — these three are the difference, and the
-       reason they are added rather than folded into something existing:
-
-         `description`  a sentence about the resource. `name` is a title and gets shown on a tile;
-                        this is the paragraph under it. 223 of 559 rows have one.
-         `level`        GCSE / AS / Alevel. NOT `level_required`, which `doget.gs` reads with `N()`
-                        as a NUMBER — the membership level needed to see the row. Two different
-                        questions that a shared name would have silently merged, and the merge
-                        would have read "GCSE" as 0 and shown a paywalled paper to everybody.
-         `paper`        which paper of the set: 1, 2 or 3. Not the paper's id and not `paper_id` on
-                        the questions tab — those name a document, this numbers it within a series.
-
-       ONE COLUMN WAS DROPPED: `html`, empty on all 559 rows. An empty column is not information. */
-    "description", "level", "paper"
-  ],
+     REMOVED RATHER THAN LEFT EMPTY, ON PURPOSE. `ensureSchema` walks SCHEMA and CREATES any tab
+     it cannot find, so an entry left here would quietly rebuild an empty `resources` tab on the
+     next `?setup=1` — a decoy with the right headers and no rows in it, which is the exact shape
+     of the fault that hid the real rows in another file for months. */
   links: [
     "link_id", "name", "category", "url",
     /* The tile's colour. Left blank it is derived from the name, which gives every link a
@@ -1206,6 +1149,33 @@ const SCHEMA = {
        `ensureSchema` ONLY EVER ADDS, so listing them cannot disturb a tab that already has them. */
     "source_url", "pages", "price", "currency", "level_required",
     "trackable", "printable", "pages_checked", "company", "topics",
+
+    /* ---------- THE RESOURCES TAB, FOLDED IN ---------------------------------------------------
+       THERE IS NO `resources` TAB ANY MORE. It held one row per document — a worksheet, a past
+       paper — and this tab held the questions inside 99 of them. Every fact it carried about a
+       document is true of every question in that document, so the two were one table written twice,
+       and keeping them apart cost a join that nothing but a person could perform.
+
+       A ROW IS EITHER A DOCUMENT OR A QUESTION, and `kind` says which: `paper` is the document
+       itself, `part` and `stem` are the questions inside it. Every `paper_id` has exactly one
+       `paper` row — 642 of them, 202 with questions under them and 440 with none yet, which is not
+       a gap but the backlog written down. `documents_()` in core.gs is the filtered view; every
+       caller that used to `read(TAB.resources)` calls that instead and is otherwise unchanged,
+       because `setCell` writes through `row._row` and a filtered view keeps it.
+
+       THE TICKS LIVE ON THE `paper` ROW AND ONLY THERE. A tick is a fact about a person and a
+       DOCUMENT, and `toggleTopicTick` writes one cell. Copy those columns onto every question and
+       `P-1MA1-2306-1H` has 31 rows that must agree while one of them is written — so they stay
+       where there is exactly one of them. Everything else here is immutable and copies down safely;
+       that difference is the whole reason `kind: 'paper'` is a row rather than a convention. */
+    /* THREE COLUMNS FOR ONE DATE, and that was the resources tab's own choice rather than a
+       mistake: a past paper is often a month and a year with no day at all, and one date cell
+       cannot hold "June 2024" without inventing the 1st. `year` is already above — it is what the
+       funnel asks about, since a filter on the day of the month would be a facet with thirty-one
+       answers and no meaning. `day` is empty on every row that came across and is here because the
+       checklist reads it; a column read and not declared is the fault `check-columns` exists for. */
+    "description", "level", "paper", "day", "month", "print_required",
+    "ticks_1", "ticks_2", "ticks_3",
   ],
 
   /* ---------- ONE ROW PER FIGHTER --------------------------------------------------------------
@@ -1618,7 +1588,11 @@ const RENAMEABLE = [
   /* NOT JUST THE SUBJECT. A rename is asked of a VALUE, and a value can be in any of these — the
      exam board was reachable in none of them, so `edexcel>Edexcel` would have reported success
      and changed nothing at all. Every column on this tab that holds a name somebody typed. */
-  ['resources', ['subject', 'exam_board', 'company', 'resource_type',
+  /* `resources` UNTIL THE TAB WAS FOLDED INTO `questions`. A rename has to reach every row that
+     holds the value, and the document rows and the question rows both hold these now — so it is
+     the whole tab here, not `documents_()`. Renaming the exam board on a paper and not on its
+     questions would split the facet in two, which is the fault this list exists to prevent. */
+  ['questions', ['subject', 'exam_board', 'company', 'resource_type',
                  'tier', 'key_stage', 'exam_wave', 'band_type']],
   ['jobs',      ['subject', 'level']],
   ['people',    ['teaches_1', 'teaches_2', 'teaches_3', 'teaches_4', 'teaches_5',

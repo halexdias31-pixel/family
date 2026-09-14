@@ -61,6 +61,27 @@ function sheetFor_(name) {
            make: name, away: w.file };
 }
 
+/* ---------- THE DOCUMENTS, WHICH USED TO BE A TAB OF THEIR OWN ------------------------------------
+   `read(TAB.resources)` APPEARED IN NINETEEN PLACES and there is no resources tab any more: one row
+   per document and the questions inside it are the same table, so they are one — `kind` is `paper`
+   on a document row and `part` or `stem` on a question. This is that filter, in one place, because
+   nineteen copies of `.filter(r => r.kind === 'paper')` is nineteen chances to forget it and start
+   treating a question as a document.
+
+   THE SHAPE `read` RETURNS, DELIBERATELY, so every one of those callers is otherwise untouched.
+   `setCell` writes through `t.sheet` and `row._row`, and neither is disturbed by handing back a
+   subset of the rows — a write still lands on the row it came from. `t.headers` is the whole tab's
+   headers, which is what `setCell` and `rowById_` check a column name against.
+
+   NOT CACHED SEPARATELY. `read` already caches the questions tab for the request, so this is a
+   filter over rows that are in memory; caching the subset as well would mean two things to clear
+   and one of them forgotten after a write. */
+function documents_() {
+  const t = read(TAB.questions);
+  return { sheet: t.sheet, headers: t.headers,
+           rows: t.rows.filter(r => String(r.kind || '').toLowerCase() === 'paper') };
+}
+
 /* ---------- ONE OPEN PER FILE PER REQUEST ---------------------------------------------------------
    `openById` WAS CALLED ONCE PER TAB. `read` caches its ROWS, so a tab is only read once — but the
    cache is checked after `findSheet_` has already opened the file, and the file is opened again for

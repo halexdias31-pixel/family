@@ -136,7 +136,7 @@ function isAdminPerson(name) {
 function countTicks(row) {
   const me = key(row && row.handle) || key(personDisplayName(row || {}));
   if (!me) return 0;
-  return read(TAB.resources).rows.reduce((n, r) =>
+  return documents_().rows.reduce((n, r) =>
     n + ['ticks_1', 'ticks_2', 'ticks_3'].filter(col =>
       S(r[col]).split(/[,\n]/).some(h => key(h) === me)).length, 0);
 }

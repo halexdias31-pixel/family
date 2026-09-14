@@ -320,7 +320,7 @@ function migrateLikes() {
  * second is a collision nothing will ever report.
  */
 function ensureResourceIds() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return 0;
   const cId = t.headers.indexOf('resource_id');
   const cName = t.headers.indexOf('name');
@@ -376,7 +376,7 @@ function ensureResourceIds() {
  * priced for paper as soon as the counts land.
  */
 function seedPastPapers() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
 
   /* name, tier, month, year, wave, link */
@@ -518,7 +518,7 @@ function seedPastPapers() {
  * Idempotent by link, exactly like `seedPastPapers`.
  */
 function seedALevelPapers() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
 
   /* name, level, month, year, wave, code, link */
@@ -629,7 +629,7 @@ function seedALevelPapers() {
  * remove the wrong rows from the second one onward — silently, since every delete still succeeds.
  */
 function dropOldALevelPapers() {
-  const t = read(TAB.resources);
+  const t = documents_();
   if (!t.sheet) return { error: 'no resources tab — run ensureSchema()' };
 
   const IDS = ['R0404', 'R0405', 'R0406', 'R0407', 'R0408', 'R0409', 'R0410', 'R0411'];
@@ -1168,7 +1168,7 @@ function dataProblems(deep) {
      resource with a Drive link and no count is one nobody can order — and there is nothing on any
      screen that says how many of those there are, or whether the number is going down. */
   {
-    const rows = read(TAB.resources).rows.filter(r => S(r.name));
+    const rows = documents_().rows.filter(r => S(r.name));
     const linked = rows.filter(r => driveIdFrom(r.link));
     const counted = linked.filter(r => N(r.pages) > 0).length;
     const left = linked.length - counted;
@@ -1269,7 +1269,7 @@ function dataProblems(deep) {
 
   /* --- printing --- */
   if (N(cfg.print_rate_per_page) > 0) {
-    const noCount = read(TAB.resources).rows
+    const noCount = documents_().rows
       .filter(r => S(r.name) && ON_(r.active) && !N(r.pages) && S(r.link)).length;
     if (noCount) {
       add('cannot be sold', noCount + ' resource(s) have no page count',
@@ -1488,7 +1488,7 @@ function checkEverything() {
   say('');
   say('RESOURCES');
   try {
-    const rows = read(TAB.resources).rows.filter(r => S(r.name));
+    const rows = documents_().rows.filter(r => S(r.name));
     const noId = rows.filter(r => !S(r.resource_id)).length;
     const noPages = rows.filter(r => !N(r.pages)).length;
     const sellable = rows.filter(r => ON_(r.active) && canPrint(r)).length;
