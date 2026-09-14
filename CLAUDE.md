@@ -557,6 +557,21 @@ question rather than a claim of free. `cost: 0` still means free, because a shop
 nought is. **One load-bearing line among fifteen decorative ones is exactly what makes a funnel feel
 arbitrary**, and the blanks are gone so the next one cannot hide the same way.
 
+### Sixteen widgets were unsearchable and the filter looked deliberate
+
+`stuffItems()` read `.filter(wgt => (!wgt.admin || isAdmin()) && wgt.groups)` and **the second test
+was always false**. Measured: 16 widgets in `WIDGETS`, **0 carry `groups`** — the only thing that has
+ever set it is `liveWidgets_` in book.js, one per session you are in. So `stuffItems()` returned
+**zero** items of kind `tool` or `game`, and typing `calculator` into the search box found nothing.
+
+**The argument for the filter was good and its premise was wrong.** It said tools and games have
+columns of their own, so the funnel need not carry the plain ones — and that `Tools` and `Games`
+vanish as answers "because nothing answers them". That second half is the tell: the two answers
+disappearing was read as the design working, and it was the filter emptying the list.
+
+It looked like a widget that had gone missing, because the widget was two swipes away on Tools the
+whole time. What had gone missing was the search. `wgt.admin` stays — that test is real.
+
 ### A collection is a SHAPE IN THE DATA, not a row in a sheet
 
 **What tells a paper from a subject is arithmetic.** Measured over the 3,271 question rows:
