@@ -1,6 +1,6 @@
 # @family. — the map
 
-A tutoring business's site. Static front end on GitHub Pages, Google Apps Script backend, two
+A tutoring business's site. Static front end on GitHub Pages, Google Apps Script backend, three
 spreadsheets as the database. No build step, no framework, no package.json for the site itself —
 `index.html` lists the JavaScript files and the browser concatenates them into one global scope.
 
@@ -60,7 +60,11 @@ almost never writes to it directly.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
-  tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it.
+  tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
+  file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing
+  can open; `WHERE` without `SCHEMA` is a tab `ensureSchema` will never repair. `check-tabs.js` is
+  the instrument, and it runs before `check-columns.js` because a tab nobody can open has no
+  columns.
 
 **A key the site asks for and the backend does not send fails silently.** `|| []` turns it into an
 empty list, which looks exactly like an empty database.
@@ -141,10 +145,11 @@ row — so **a row typed by hand into the spreadsheet did not reach the site for
 which is indistinguishable from the sheet not being connected at all.
 
 Fixed by `onSheetChange` in `backend/core.gs`, an installable trigger that retires the payload the
-moment anyone edits either spreadsheet, plus `warmAfterEdit` which rebuilds once a minute after the
-last edit. **It has to be installed** — paste `core.gs`, then run `installSheetWatch` from the editor's
-function dropdown, or open `/exec?triggers=1`. `?run=sheetWatchStatus&name=…&pin=…` says whether it
-is on.
+moment anyone edits any of the spreadsheets, plus `warmAfterEdit` which rebuilds once a minute after
+the last edit. **It has to be installed** — paste `core.gs`, then run `installSheetWatch` from the
+editor's function dropdown, or open `/exec?triggers=1`. `?run=sheetWatchStatus&name=…&pin=…` says
+whether it is on. `installSheetWatch` walks `FILES`, so it covers all three without being told they
+exist — **but a file added to `FILES` is not watched until it is run again.**
 
 `installWarmTrigger` exists and is deliberately **not** installed: every 5 minutes × ~35 s a rebuild
 is about five hours of script time a day against a 90-minute daily allowance. It would spend the
@@ -162,6 +167,7 @@ node js/check-flow.js            # 21 journeys through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
 node js/check-backend.js         # one Apps Script scope: every name declared exactly once
+node js/check-tabs.js            # every tab routed to one of the three files, and the ids look sane
 node js/check-post.js            # an action that names a person by a cell they can edit
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
@@ -300,21 +306,61 @@ which of the two each check uses and why.
 **Both spreadsheet IDs pointed at an `.xlsx` and `SpreadsheetApp` cannot open one.** Every section
 loaded empty, which is also exactly what a blank database looks like — and the comment above
 `SPREADSHEET_ID` said "if every section ever loads empty, this line is the first thing to check". It
-was right and the line was wrong. There are two files of each name, same title, same owner:
-
-| | was (unopenable `.xlsx`) | is (Google Sheet) |
-|---|---|---|
-| businessDB | `1WeY0AD7dEz…` | `1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s` |
-| SubjectsDB | `1jDEeRoUTtL…` | `1eUmrhFQBmqXTJF4OYVtxb4C6OjuVjbwrVDF0IdzsRkw` |
+was right and the line was wrong. There were two files of each name, same title, same owner, and
+the code named the unopenable one: `1WeY0AD7dEz…` for businessDB, `1jDEeRoUTtL…` for SubjectsDB.
 
 **The URL is how you tell them apart**, because the title does not: a Google Sheet lives at
 `docs.google.com/spreadsheets/d/<id>/edit`, an uploaded `.xlsx` at `drive.google.com/file/d/<id>`.
-If the address says `file/d`, Apps Script cannot read a cell of it.
+If the address says `file/d`, Apps Script cannot read a cell of it. `check-tabs.js` now fails on an
+id in that spelling, which is the only half of this a checker can see without opening Drive.
 
-This is why the past papers looked missing. They are not — `questions` in SubjectsDB has the real
-Edexcel papers in it, stems, parts and mark schemes, and has had for a while. Nothing was reading
-the file they are in. **Do not seed that tab.** It is content, it is maintained in the sheet, and
-the sheet is the only place it lives.
+This is why the past papers looked missing. They are not — `questions` has the real Edexcel papers
+in it, stems, parts and mark schemes, and has had for a while. Nothing was reading the file they are
+in. **Do not seed that tab.** It is content, it is maintained in the sheet, and the sheet is the
+only place it lives.
+
+### Four spreadsheets became three, and the split is now a question with one answer
+
+It was businessDB, SubjectsDB, Widget_Settings and Engine, **split by subject matter**, which is a
+split nothing could check. Nobody could say where a tab belonged without knowing the history, and
+the cost of that showed up as duplicates with different column sets: `kinds` and `widgets` each
+existed in two files, and **the live copy of each was the empty one**.
+
+It is now three files, **split by who writes the rows**:
+
+| File | Who writes it | Tabs |
+|---|---|---|
+| **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, ticks — the business as it happened |
+| **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
+| **Library** | you, in bulk | questions, boxers, cheatsheet — subject content |
+
+The ids are in `FILES` in `constants.gs`, and `WHERE` says which file each tab is in. The tab
+colours inside each spreadsheet say the same thing a third time — green written by the app, gold
+read by it, grey read by nobody — so a tab whose colour and whose file disagree is visible without
+opening it.
+
+**`WHERE` replaced two maps and a default, and the default was the bug.** It was `ELSEWHERE` for
+tabs in the subjects file, `HERE` for tabs renamed in the main one, and anything in neither fell
+through to `SPREADSHEET_ID`. That is fine with one main file and a trap with three: a name nobody
+routed still resolved to a real file, found no tab, and came back `{ rows: [] }`. **Five tabs the
+backend reads existed in no file at all** — `resources`, `herd`, `map`, `landmark_parts`,
+`post_votes` — and nothing anywhere said so. They are created now, empty, with headers from
+`SCHEMA`, so they read as an empty tab rather than a missing one.
+
+`sheetFor_` returns a blank id for an unrouted name on purpose. `read()` cannot tell that from any
+other empty result and does not try; `check-tabs.js` and `checkTabs()` are what tell them apart.
+
+**`resources` is empty and `ticks` has 518 rows pointing into it** — 166 distinct `resource_id`s
+(`R0044`, `R0057`…) with no table describing what any of them is. The paper half is intact: all 86
+`paper_id`s in `ticks` resolve against `questions`. **Do not invent those rows.** Also empty, in
+case any are meant not to be: `kinds`, `widgets`, `laws`, `rooms`, `trips`, `orders`, `invites`,
+`messages`, `exams`.
+
+**`shop` was never broken, and I said it was.** There is a `HERE` map — now folded into `WHERE` as
+`alsoTry` — that resolved `shop` to the tab actually called `items&shop`. I checked `TAB` and
+`ELSEWHERE`, found no `shop` tab, and reported 62 rows of stock as unreachable. They were always
+reachable. **A resolution path has three maps in it and reading two of them is not reading it**;
+`check-tabs.js` exists partly so that this question is answered by something that reads all of them.
 
 **`SCHEMA.questions` was ten columns behind the real tab** — `source_url`, `pages`, `price`,
 `currency`, `level_required`, `trackable`, `printable`, `pages_checked`, `company`, `topics`, all

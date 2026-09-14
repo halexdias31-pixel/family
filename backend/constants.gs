@@ -77,59 +77,109 @@
    `docs.google.com/spreadsheets/d/<id>/edit` and an uploaded .xlsx at `drive.google.com/file/d/<id>`.
    If the address says `file/d`, Apps Script cannot open it, whatever the title says.
 ================================================================================================== */
-const SPREADSHEET_ID = "1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s";
+const LEDGER_ID = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
 
 /* ==================================================================================================
-   TABS THAT LIVE IN ANOTHER FILE.
+   THE OTHER TWO FILES, AND WHY THERE ARE THREE OF THEM.
 
-   The main database grew to forty tabs, and four of them had nothing to do with running the
-   business: boxers, fights, questions and cheatsheet are subject CONTENT — they are what gets
-   taught, not who teaches it or when. So they moved into a second spreadsheet, and the ones that
-   moved were renamed on the way.
+   IT WAS FOUR SPREADSHEETS AND THE SPLIT WAS BY SUBJECT MATTER: businessDB held forty tabs of
+   everything, SubjectsDB held the content, and Widget_Settings and Engine held notes. That split
+   could not be checked by anything. Nobody could say where a tab belonged without knowing the
+   history, so `kinds` existed in two files with two different column sets, `widgets` did too, and
+   the live copy of each was the EMPTY one.
 
-   NOTHING ELSE IN THE CODE KNOWS THEY MOVED, and that is the point of doing it here. Every tab in
-   this system is reached through `read(name)`, so one lookup in one function covers all of it —
-   the boxer cards, the question rows, the past-paper builder, the cheat sheet maker. They still
-   ask for `boxers`; they just get it from somewhere else.
+   IT IS NOW THREE FILES AND THE SPLIT IS BY WHO WRITES THE ROWS, which is a question with one
+   answer per tab:
 
-   THE KEY IS THE NAME THE CODE USES — the one `read('cheatsheet')` asks for, which appears in
-   SCHEMA and in a dozen callers. `alsoTry` is a second name to look under if there is no tab with
-   the first, which is what lets the tab in the spreadsheet be called something else without any of
-   those callers having to know.
+     ledger    the app writes it.   people, jobs, receipts, posts, ticks — the business as it
+                                    happened. Hand-editing these races doPost.
+     settings  you write it, the app reads it. brand, config, pricing, venues, facets — editorial.
+                                    Changing any of it is a cell, never a deploy.
+     library   you write it in bulk. questions, boxers, cheatsheet — subject content.
 
-   THREE OF THESE NEEDED THAT AND NO LONGER DO: boxers, fights and questions are now named exactly
-   as the code asks, so their lines are one word long. Only `cheatsheet` still differs, because the
-   tab is called `cheatsheetcomp` — a better name for what is in it, since those rows are the PARTS
-   a cheat sheet is built from rather than a cheat sheet. Renaming it in the sheet is not worth
-   doing; one line here is cheaper than a dozen edits elsewhere, and this is exactly what the line
-   is for.
+   THAT IS WHY THE TAB COLOURS IN EACH FILE SAY THE SAME THING: green written by the app, gold read
+   by it, grey read by nobody. A tab whose colour and whose file disagree is a mistake you can see
+   without opening it.
 
-   A BLANK SUBJECTS_ID IS NOT AN ERROR, it is four empty sections — the same as any tab that is not
-   there. `checkTabs()` says so plainly rather than leaving you to work out why boxing vanished.
+   ALL THREE ARE GOOGLE SHEETS AND THAT IS LOAD-BEARING — see the note on LEDGER_ID above. The four
+   they replace are in a folder called `old sheets`; moving a file in Drive does not change its id,
+   so those ids still resolve and the old data is still there if any of this turns out wrong.
 ================================================================================================== */
-/* THE SAME FAULT, ON THE SAME DAY. `1jDEeRoUTtLW-9ImOVyCyNaGZKCSox_Ao` is SubjectsDB.xlsx — an
-   upload, unopenable — and this is the Google Sheet of the same name. It is the one holding the
-   questions tab, so this single line is the difference between a library of past papers and a
-   library of nothing. See the note on SPREADSHEET_ID above. */
-const SUBJECTS_ID = "1eUmrhFQBmqXTJF4OYVtxb4C6OjuVjbwrVDF0IdzsRkw";
+const SETTINGS_ID = "1Ums80E1B1lWJhOEe-TgGMBq88Rv8yIhTvVC-f1zKLoQ";
+const LIBRARY_ID  = "1mBxk2zlNJQZM8SslN_0yts28RvdoTeBtPseIBcSxPUg";
 
-const FILES = { main: SPREADSHEET_ID, subjects: SUBJECTS_ID };
+/* `installSheetWatch` walks this to put an edit trigger on every file, so a fourth database is one
+   line here and nothing else. A BLANK ID IS NOT AN ERROR — it is that file's tabs coming back
+   empty, the same as a tab that is not there, and `checkTabs()` says which. */
+const FILES = { ledger: LEDGER_ID, settings: SETTINGS_ID, library: LIBRARY_ID };
 
-/* ---------- TABS IN THE MAIN FILE THAT ARE NOT CALLED WHAT THE CODE CALLS THEM --------------------
-   THE KEY IS THE NAME THE CODE ASKS FOR; the value is what the tab is actually called. Renaming a
-   tab in the sheet is a thing somebody does for good reasons — `items&shop` says what is in it far
-   better than `shop` did once the wearables and the stationery became one list — and it should not
-   mean renaming a key that thirty lines of code read.
-   Tried in order: the code's own name first, so a tab that has not been renamed still wins. */
-const HERE = {
-  shop: 'items&shop',
-};
+/* ---------- WHICH FILE EACH TAB IS IN -------------------------------------------------------------
+   EVERY TAB IS LISTED, and that is the change. This was two maps — `HERE` for renamed tabs in the
+   main file, `ELSEWHERE` for the four that had moved — and everything absent from both fell through
+   to the main file by default. A default is fine until there is no main file, and with three there
+   is not: a typo'd key, or a new tab nobody routed, would have silently resolved to the ledger and
+   come back empty, which reads exactly like an empty database. `checkTabs()` now reports a tab in
+   SCHEMA with no line here, because "I did not look" must not print as "I looked and it was fine".
 
-const ELSEWHERE = {
-  boxers:     { file: 'subjects' },
-  fights:     { file: 'subjects' },
-  questions:  { file: 'subjects' },
-  cheatsheet: { file: 'subjects', alsoTry: 'cheatsheetcomp' },
+   NOTHING ELSE IN THE CODE KNOWS WHERE A TAB LIVES, which is the point of doing it in one place.
+   Every tab is reached through `read(name)`, so this one lookup covers the boxer cards, the
+   question rows, the past-paper builder and the cheat sheet maker alike. They still ask for
+   `boxers`; they just get it from wherever this says.
+
+   `alsoTry` IS A SECOND TAB NAME to look under, tried after the code's own name, so renaming a tab
+   in the spreadsheet never has to be atomic with a deploy. The two below are both satisfied by the
+   current files and are kept anyway: they cost one word each and they are what makes reverting to
+   the old spreadsheets a change of three ids rather than a change of three ids and two tab names.
+   `make` — the name used if a tab has to be CREATED — is always the plain one, so nothing new is
+   ever born under an alias. */
+const WHERE = {
+  /* ---- the app writes these ---- */
+  people:         { file: 'ledger' },
+  family:         { file: 'ledger' },
+  jobs:           { file: 'ledger' },
+  events:         { file: 'ledger' },
+  receipts:       { file: 'ledger' },
+  orders:         { file: 'ledger' },
+  invites:        { file: 'ledger' },
+  messages:       { file: 'ledger' },
+  exams:          { file: 'ledger' },
+  posts:          { file: 'ledger' },
+  post_likes:     { file: 'ledger' },
+  post_votes:     { file: 'ledger' },
+  post_reactions: { file: 'ledger' },
+  favourites:     { file: 'ledger' },
+
+  /* ---- you write these, the app reads them ---- */
+  brand:          { file: 'settings' },
+  config:         { file: 'settings' },
+  facets:         { file: 'settings' },
+  kinds:          { file: 'settings' },
+  options:        { file: 'settings' },
+  pricing:        { file: 'settings' },
+  shop:           { file: 'settings', alsoTry: 'items&shop' },
+  splashes:       { file: 'settings' },
+  terms:          { file: 'settings' },
+  links:          { file: 'settings' },
+  laws:           { file: 'settings' },
+  widgets:        { file: 'settings' },
+  campaigns:      { file: 'settings' },
+  copy:           { file: 'settings' },
+  venues:         { file: 'settings' },
+  rooms:          { file: 'settings' },
+  trips:          { file: 'settings' },
+  holidays:       { file: 'settings' },
+  landmarks:      { file: 'settings' },
+  landmark_parts: { file: 'settings' },
+  map:            { file: 'settings' },
+  facts:          { file: 'settings' },
+  herd:           { file: 'settings' },
+
+  /* ---- subject content, edited in bulk ---- */
+  questions:      { file: 'library' },
+  cheatsheet:     { file: 'library', alsoTry: 'cheatsheetcomp' },
+  resources:      { file: 'library' },
+  boxers:         { file: 'library' },
+  fights:         { file: 'library' },
 };
 /* WHO GETS TOLD when something needs doing by hand. A name rather than an address, because
    notify() looks the address up on the people tab — so changing your email is one cell, not a
@@ -147,7 +197,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-17-laminate";
+const BACKEND_VERSION = "2026-09-18-three-files";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -198,7 +248,7 @@ const TAB = {
 
 /* ---------- SCHEMA, AND KEEPING IT IN STEP ---------------------------------------------------
    The shape of every tab, so the sheet can be brought up to date IN PLACE. This exists because
-   re-uploading a spreadsheet gives it a new file id, which means editing SPREADSHEET_ID and
+   re-uploading a spreadsheet gives it a new file id, which means editing an id in FILES and
    redeploying every single time — a change to one column costing two config edits.
 
    Run ensureSchema() instead:

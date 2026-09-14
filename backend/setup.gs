@@ -904,7 +904,16 @@ function ensureSchema() {
        `boxers`, and creates a fresh empty one — so the app would read the real boxers from the
        subjects file while a decoy sat in the database looking like the real thing. */
     const at = sheetFor_(name);
-    if (!at.id) { report[name] = 'skipped — SUBJECTS_ID is blank'; return; }
+    /* TWO DIFFERENT FAULTS, AND THEY NEED DIFFERENT WORDS. `sheetFor_` returns a blank id both for a
+       tab routed at a file whose id is not filled in, and for a tab with no line in `WHERE` at all.
+       The first is a configuration step somebody has not done yet; the second is a tab in SCHEMA
+       that nothing can ever reach, and it stays invisible until something says the word `WHERE`. */
+    if (!at.id) {
+      report[name] = at.away === '(not in WHERE)'
+        ? 'SKIPPED — no line in WHERE, so nothing can reach this tab'
+        : 'skipped — the id for the ' + at.away + ' file is blank';
+      return;
+    }
     const ss = SpreadsheetApp.openById(at.id);
     /* ---------- `at.tab` HAS NEVER EXISTED -------------------------------------------------------
        `sheetFor_` RETURNS `id`, `names`, `make` AND `away`. There is no `tab`, and there never was —
@@ -1405,10 +1414,17 @@ function checkEverything() {
   /* WHICH SHEET. "I changed the cell and nothing happened" is answered here more often than
      anywhere else — two spreadsheets open in two tabs is the easiest mistake in this whole
      system to make, and from the outside it is indistinguishable from a broken feature. */
-  say('spreadsheet id    : ' + SPREADSHEET_ID);
-  try {
-    say('spreadsheet name  : ' + SpreadsheetApp.openById(SPREADSHEET_ID).getName());
-  } catch (err) { say('spreadsheet name  : CANNOT OPEN IT — ' + err); }
+  Object.keys(FILES).forEach(which => {
+    const id = String(FILES[which] || '');
+    say((which + ' id').padEnd(18) + ': ' + (id || 'NOT SET'));
+    if (!id) return;
+    /* THE NAME IS THE CHECK, not decoration. Opening it proves the id is a Google Sheet rather than
+       an .xlsx upload — the fault that made every section load empty, and that no amount of reading
+       the id could have caught, because both files have the same title and the same owner. */
+    try {
+      say((which + ' name').padEnd(18) + ': ' + SpreadsheetApp.openById(id).getName());
+    } catch (err) { say((which + ' name').padEnd(18) + ': CANNOT OPEN IT — ' + err); }
+  });
   say('');
   say('If the site says the backend is older than it is, this number is not the question —');
   say('the DEPLOYMENT is. Deploy → Manage deployments → pencil → Version: New version.');
@@ -1902,10 +1918,14 @@ function autoMigrate() {
 /* ==================================================================================================
    WHERE IS EVERY TAB, AND IS IT THERE?
 
-   Four tabs now live in a second spreadsheet, which means a new way for things to go quietly wrong:
-   a blank SUBJECTS_ID, a renamed tab, a file you moved to another Drive account. None of those
-   throw. They all just make a section empty, and an empty section looks exactly like a section
-   nobody has put anything in yet.
+   The tabs are spread across three spreadsheets, which means several ways for things to go quietly
+   wrong: a blank id in FILES, a tab with no line in WHERE, a renamed tab, a file moved to another
+   Drive account, an id pointing at an .xlsx upload rather than a Google Sheet. None of those throw.
+   They all just make a section empty, and an empty section looks exactly like a section nobody has
+   put anything in yet.
+
+   `check-tabs.js` asks the half of this that can be answered from the source alone, before a
+   deploy. This is the other half — it needs the documents open, so it can only run in here.
 
    So this asks the question directly. Run it after moving anything.
 ================================================================================================== */

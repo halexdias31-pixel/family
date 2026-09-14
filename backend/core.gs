@@ -45,18 +45,17 @@ function clearCache() {
    the tabs in the spreadsheet is therefore something you can do one at a time, in any order, with
    the site up the whole way through — which is the state this was actually in when it was written,
    with one of four renamed and three not. `make` is the name to use if a tab has to be CREATED,
-   and it is always the plain one, so nothing new is ever born with a prefix. */
+   and it is always the plain one, so nothing new is ever born with a prefix.
+
+   AN UNROUTED NAME RETURNS NO FILE, and that is deliberate. This used to read the two maps `HERE`
+   and `ELSEWHERE` and fall back to `SPREADSHEET_ID` for anything in neither — which was right while
+   one file held everything, and became a trap the moment there were three: a misspelled key would
+   have resolved to a real file, found no tab of that name, and come back as an empty list, which is
+   indistinguishable from an empty database. An empty `id` is the same empty list to `read`, but
+   `checkTabs()` can see it and name it, and that is the whole difference between the two. */
 function sheetFor_(name) {
-  const w = ELSEWHERE[name];
-  /* ---------- A TAB IN THE MAIN FILE MAY ALSO GO BY ANOTHER NAME ---------------------------------
-     `ELSEWHERE` CARRIED `alsoTry` AND ONLY FOR TABS IN ANOTHER FILE, which was the only case there
-     had been — `cheatsheet` living on a tab called `cheatsheetcomp`. `shop` and `items` have now
-     been merged into one tab called `items&shop` in the main file, which is the same situation with
-     the file part removed, and there was nowhere to say so.
-     `HERE` is that place. Same shape, same meaning, one line per renamed tab. */
-  const also = HERE[name];
-  if (!w) return { id: SPREADSHEET_ID, names: also ? [name, also] : [name],
-                   make: name, away: '' };
+  const w = WHERE[name];
+  if (!w) return { id: '', names: [name], make: name, away: '(not in WHERE)' };
   return { id: FILES[w.file] || '',
            names: w.alsoTry ? [name, w.alsoTry] : [name],
            make: name, away: w.file };
@@ -95,8 +94,9 @@ function findSheet_(at) {
 function read(name) {
   if (_cache[name]) return _cache[name];
   /* NO FILE, OR NO TAB UNDER EITHER NAME, is answered the same way — an empty result. That is what
-     it is from every caller's point of view, and an unfilled SUBJECTS_ID is the ordinary case on
-     the day this deploys. */
+     it is from every caller's point of view: a tab nobody has filled in, a file id not yet set, and
+     a tab with no line in `WHERE` all leave the caller with nothing to draw. They are not the same
+     FAULT, though, and telling them apart is `checkTabs()`'s job and `check-tabs.js`'s. */
   const sheet = findSheet_(sheetFor_(name));
   if (!sheet) return (_cache[name] = { sheet: null, headers: [], rows: [] });
   /* ---------- THE LAST ROW WITH DATA, NOT THE LAST ROW SOMETHING TOUCHED --------------------------

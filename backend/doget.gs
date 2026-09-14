@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-17-laminate";
+const DOGET_VERSION = "2026-09-18-three-files";
 
 
 function doGet(e) {
@@ -112,8 +112,8 @@ function doGet(e) {
       }
     }
 
-    /* ?setup=1 brings the sheet's tabs and columns up to date in place, so a schema change never
-       means re-uploading the file and repointing SPREADSHEET_ID.
+    /* ?setup=1 brings the sheets' tabs and columns up to date in place, so a schema change never
+       means re-uploading a file and repointing the ids in FILES.
        Left open, unlike `?run=`: it can only ADD tabs, columns and missing config rows, and it
        never touches a value anybody has set. The worst somebody can do with it is run it. */
     if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema(),
@@ -232,12 +232,29 @@ function doGet(e) {
                            'links', 'shop', 'pricing', 'config', 'options'];
     const missingTabs = REQUIRED_TABS.filter(name => !read(name).sheet);
     if (missingTabs.length) {
-      return jsonOut({ error: 'This spreadsheet has no ' + missingTabs.join(', ') + ' tab' +
-        (missingTabs.length > 1 ? 's' : '') + '. SPREADSHEET_ID in hermes.gs is probably still ' +
-        'pointing at the old sheet — set it to the id in the new spreadsheet\'s URL ' +
-        '(docs.google.com/spreadsheets/d/<THIS PART>/edit).',
-        version: BACKEND_VERSION, sawTabs: SpreadsheetApp.openById(SPREADSHEET_ID)
-          .getSheets().map(s2 => s2.getName()) });
+      /* ---------- WHICH FILE THE TAB SHOULD HAVE BEEN IN ----------------------------------------
+         THIS USED TO NAME ONE ID and list one file's tabs, because there was one database. With
+         three, "no shop tab" is useless on its own: the question is which of the three was looked
+         in, and whether that file opened at all. So each missing tab is reported with the file
+         `WHERE` routes it to, and the tab listing is per file — an id pointing at an .xlsx upload
+         shows up here as a file that opened with no tabs, which is the fault this exact message
+         failed to catch the first time. */
+      const sawTabs = {};
+      Object.keys(FILES).forEach(which => {
+        const id = String(FILES[which] || '');
+        if (!id) { sawTabs[which] = 'no id set'; return; }
+        try {
+          sawTabs[which] = SpreadsheetApp.openById(id).getSheets().map(s2 => s2.getName());
+        } catch (err) {
+          sawTabs[which] = 'CANNOT OPEN — ' + String(err && err.message || err) +
+            ' (an .xlsx upload in Drive cannot be opened; it must be a Google Sheet)';
+        }
+      });
+      return jsonOut({ error: 'No ' + missingTabs.map(name => name + ' (expected in ' +
+          ((WHERE[name] && WHERE[name].file) || 'NO FILE — not routed in WHERE') + ')').join(', ') +
+        '. Either an id in hermes.gs points at the wrong file, or the tab has been renamed — ' +
+        'the id is the part of the URL in docs.google.com/spreadsheets/d/<THIS PART>/edit.',
+        version: BACKEND_VERSION, sawTabs: sawTabs });
     }
 
     /* WHO IS LOOKING, asked ONCE. It was asked inside the people loop, which is a full scan of the
