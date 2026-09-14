@@ -535,6 +535,37 @@ Also empty, in case any are meant not to be: `kinds`, `widgets`, `laws`, `rooms`
 reachable. **A resolution path has three maps in it and reading two of them is not reading it**;
 `check-tabs.js` exists partly so that this question is answered by something that reads all of them.
 
+### SCHEMA against the LIVE SHEET is a third question, and it found two things
+
+`check-columns` asks "is this a column of any tab". `check-rows` asks "is it a column of THIS tab",
+against `SCHEMA`. Neither can ask the one that matters most: **is it a column of the actual
+spreadsheet**. `SCHEMA` is the code's belief about a tab and the tab is the thing that is true —
+this file already says so about `SCHEMA.questions`, and it happened twice more.
+
+**`landmarks` is broken and has been.** The code reads `r.width_m` (×4), `r.depth_m` (×4),
+`r.height_m` (×3), `r.colour` (×6), `r.shape` (×2), `r.landmark_id` (×2) and `r.roof` — **not one
+of those is a column of the sheet.** The tab has `w`, `d`, `height`, `wall_colour`, `roof_colour`,
+`id`, `form` and `roof_shape`, and the code reads none of them except `id`. So every landmark
+arrives with width 0, depth 0, height 0 and no colour. Both checks pass, because `SCHEMA.landmarks`
+faithfully describes a tab that does not exist. **The sheet is right and the schema is the thing to
+change** — 22 reads and one schema entry, not a spreadsheet edit.
+
+**`terms` is two different tabs sharing a name, and it degrades quietly rather than breaking.**
+`SCHEMA.terms` describes SCHOOL terms — `term_name`, `start_date`, `end_date`, `last_sunday`. The
+tab in Settings holds LEGAL documents — `docid`, `audience`, `version`, `mustsign`. I first read
+this as the booking calendar being empty. **It is not**: `termsFor(y)` COMPUTES the year's terms and
+uses the tab only to override them, `have[norm(c.name)] || c`. With the wrong tab `have` is empty
+and every term falls back to its computed default, which is why nobody has noticed. What is lost is
+the ability to correct a term's dates by hand.
+
+**So do not run `?setup=1` against `terms` without thinking.** `ensureSchema` only ever ADDS, which
+is normally what makes it safe — here it would add nine school-term columns to a legal-documents
+tab and leave something that is neither.
+
+Smaller, and all the same shape: `facts` is missing `sort_order` and `notes`; `jobs`, `boxers` and
+`links` carry columns (`tutor_a_status`, `client_1`, `image_credit`, `visibility`) that `SCHEMA` has
+never heard of. The last kind is harmless — the sheet knowing more than the code costs nothing.
+
 **`SCHEMA.questions` was ten columns behind the real tab** — `source_url`, `pages`, `price`,
 `currency`, `level_required`, `trackable`, `printable`, `pages_checked`, `company`, `topics`, all
 present in the sheet with values in them. Two things fell out of that. `company` is read by
