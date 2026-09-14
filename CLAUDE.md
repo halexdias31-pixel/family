@@ -168,6 +168,7 @@ node js/check-payload.js         # every DATA key the site reads vs every key do
 node js/check-booking.js         # the booking state machine, folded in Node
 node js/check-backend.js         # one Apps Script scope: every name declared exactly once
 node js/check-tabs.js            # every tab routed to one of the three files, and the ids look sane
+node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
@@ -401,13 +402,40 @@ link on it, which is the entire point of a resource, and nothing would have thro
 
 `check-columns.js` compares every `r.<name>` against the **union of every tab's columns**, not
 against the columns of the tab that row came from. `venues` and `trips` both have a `link`, so
-`r.link` is a known column somewhere and the check was satisfied. **A per-tab check would have named
-all seven immediately.** That needs each `r.` traced back to its `read(TAB.x)` or `documents_()`,
-which is presumably why it was written globally in the first place. Until it exists, folding one tab
-into another means reading every column name on both sides by hand — the scan that found these is
-in the session, not in the repo, and that is the wrong place for it.
+`r.link` is a known column somewhere and the check was satisfied. The seven now read `source_url` —
+one tab, one name for the URL.
 
-The seven now read `source_url`. One tab, one name for the URL.
+### `node js/check-rows.js` — the same question, asked of one tab at a time
+
+Built because of those seven. It parses the `.gs` files with acorn instead of matching them, binds
+each row identifier back to the `read(TAB.x)` or `documents_()` it came from, and checks every
+`r.<name>` against **that** tab. Both checks are worth running: **the union catches a column NO tab
+has; this catches a column the WRONG tab has**, and the second is the commoner fault.
+
+**The first thing it found was a live bug nothing else could see.** `avatarCatalogue()` in
+`people.gs` read `r.price` off a **shop** row. The shop tab prices in three currencies —
+`price_pence`, `price_ticks`, `price_coins` — and has never had a bare `price`, so `N(r.price)` was
+`N(undefined)`, which is 0, on every row. **Every avatar item arrived costing nothing and flagged
+`free`, including the seven that carry a `price_coins` of 15, 20 or 30.** Paid items, given away,
+silently. `check-columns` was right not to report it: `price` IS a column — on `resources`, where it
+means something else entirely.
+
+**Scope is what makes it trustworthy, and the first version did not have it.** One binding map per
+FILE reported **95 findings, nearly all wrong**: `dopost.gs` binds `r` to a `family` row in one
+handler and a `people` row in the next, so the first binding was still standing when the second was
+walked. Two fixes took it to 2, and both of those were real:
+
+- **A scope chain**, pushed per function, so a binding made inside one dies with it.
+- **A declaration always writes a binding, even when the right-hand side is unrecognised.**
+  `const r = findPerson(…)` does not make `r` a row of anything — but leaving no entry lets the
+  lookup walk outwards and answer with the handler above's row. "Nearest declaration made it
+  something I do not recognise" is an answer, not an absence.
+
+That second one is the subtle half and it is the difference between a check and a noise generator:
+95 findings with 2 real ones in them is worse than no check at all, because the seven `r.link` reads
+would have been sitting in that list indistinguishable from the rest. What it cannot trace — a row
+arriving as a function argument — it does not report, and the summary says how many rows it managed
+to trace (210) and how many reads it checked (888) rather than implying it looked at everything.
 
 **How it was found, which is the part worth keeping.**
 A fifth spreadsheet called "full pdf datbase" — set aside as "trash, disregard it" — turned out to

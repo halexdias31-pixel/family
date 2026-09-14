@@ -65,6 +65,13 @@ const SUITE = [
      spreadsheets were read by hand. */
   { file: 'check-tabs.js',    what: 'every tab routed to a file that can hold it' },
   { file: 'check-columns.js', what: 'every column the backend touches' },
+  /* ---------- THE SAME QUESTION, ASKED OF ONE TAB AT A TIME -------------------------------------
+     `check-columns` asks "is this a column ANYWHERE", because it works by regex and a bare `r.name`
+     carries no clue which tab it came from. That union is why seven reads of `r.link` on rows that
+     had no `link` passed clean — `venues` has one. This parses instead, binds each row back to its
+     `read(TAB.x)`, and asks the narrower question. Both are worth running: the union catches a
+     column NO tab has, this catches a column the WRONG tab has. */
+  { file: 'check-rows.js',    what: 'each column read, against the tab the row came from' },
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE --------------------------------------
      "A key the site asks for and the backend does not send fails silently." Nothing checked it, and
      `missingKeys()` only knows about screens somebody opened while signed in as the right person.
