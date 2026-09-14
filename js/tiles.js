@@ -497,6 +497,19 @@ function cardActions_(x) {
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'me') return meTiles_(x);
   if (x.kind === 'receipt') return jobTiles_(x);
+  /* ---------- A COLLECTION HAS ONE ACTION AND IT IS "OPEN" ---------------------------------------
+     A collection is a THING — it has tiles, by the rule in CLAUDE.md — and the only thing you can
+     do to one is look inside. `group-open` sets the same filter `facet-pick` sets, so opening a
+     paper and narrowing to it by name end in the same state with the same removable chip.
+
+     THE COUNT IS THE NOTE because it is the fact that decides whether to press: 4 questions and 47
+     questions are different decisions and the name says neither. */
+  if (x.kind === 'group') {
+    return tile_({ icon: 'doc', label: 'Open', tone: 'go',
+                   note: x.groupCount + (x.groupCount === 1 ? ' thing' : ' things'),
+                   act: 'group-open',
+                   data: { field: x.groupField, value: x.groupValue } });
+  }
   return '';
 }
 

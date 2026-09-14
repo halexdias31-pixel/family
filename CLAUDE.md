@@ -510,6 +510,41 @@ twenty and `Division` seventeen, so nothing real is near it.
 **And `name` having exactly 212 answers is the collection showing through** — 212 distinct paper
 names across 3,265 questions. That is the `contains` idea from the audit, visible in the data.
 
+### And the `kinds` tab can invent a kind — which is where the hand-written part ends
+
+**The same gap, the same three-line fix.** `kindMap_` walked `Object.keys(KINDS)` and overlaid the
+sheet onto each, so a `kinds` row for a kind the code does not declare was read and thrown away.
+The backend already sent those rows through.
+
+**What makes it three lines rather than a project is that the card already fell back.**
+`(kindOf_(x).card || thingCard_)(x, credits)` has always been the call — a kind with no card draws
+as an ordinary thing: name, subtitle, picture, price. Proved: a `podcast` row that exists nowhere in
+the code came back `group: Learning, label: Podcasts` and **drew a card**.
+
+**The old fallback was wrong and silent.** `kindOf_` answers `{ group: 'Shop', label: 'Things' }`
+for an unknown kind, so an unrouted kind did not vanish — it appeared under Shop labelled Things,
+which is worse than vanishing because it looks deliberate.
+
+**So adding a domain is now: one mapper in `stuffItems`, and rows.** That mapper is the honest
+floor — something has to say "boxers live on `DATA.boxers` and a boxer is called `name`". Everything
+after it is editorial.
+
+**I dropped the source-table idea from the audit.** It would have turned an 8-line mapper into a
+4-line config entry, and that is moving code rather than removing a cost. The facet and the kind
+were the real costs and they are gone.
+
+### `row` carries the whole row, because an enumeration goes stale
+
+`libraryInto_` names 29 of `data/questions.json`'s 44 columns, so `topics` (2,918 rows),
+`description`, `level`, `pages`, `source_url` and nine more reached the browser inside
+`LIBRARY_ROWS` and stopped there.
+
+**That became a fault the moment the sheet could invent a facet.** `facetFromSheet_` falls back to
+`x.row[field]`, and `row` was the payload object rather than the file row — so `field: topics` found
+nothing: 0% coverage, question never offered, nothing anywhere saying why. Attaching the row fixed
+it in one line and `topics` came back **11 answers, 77% coverage**. It is a reference, not a copy:
+`LIBRARY_ROWS` holds those rows for the life of the page anyway.
+
 **Fifteen fields of ceremony hid one that decided a filter.** Every mapper wrote
 `bandType: '', bandValue: '', keystage: '', …, paper: false` — ten identical blocks. All of it was
 ceremony: `asList_` cannot tell `''` from `undefined`, so writing them and omitting them are the
@@ -522,7 +557,56 @@ question rather than a claim of free. `cost: 0` still means free, because a shop
 nought is. **One load-bearing line among fifteen decorative ones is exactly what makes a funnel feel
 arbitrary**, and the blanks are gone so the next one cannot hide the same way.
 
-### The funnel lists QUESTIONS. There are no collections on it.
+### A collection is a SHAPE IN THE DATA, not a row in a sheet
+
+**What tells a paper from a subject is arithmetic.** Measured over the 3,271 question rows:
+
+| column | distinct | rows each | what it is |
+|---|---|---|---|
+| `row_id` | 3,271 | 1.0 | **identifies a row** |
+| `paper_id` | 202 | 16.2 | **a collection** |
+| `name` | 196 | 16.7 | the same collection, by name |
+| `subject` | 5 | 654 | **a category** — a question |
+| `tier` | 3 | 1,090 | a category |
+
+**And the boundary between "question" and "collection" already existed.** `FACET_MAX_ANSWERS = 40`
+was added for an unrelated reason — the `facets` tab can invent a question now, and `field: name`
+would have offered 212 answers as multiple choice. "Too many answers to be a question" turns out to
+be the definition of a collection. One threshold, two jobs, no new number to argue about.
+
+**Nothing is declared and nothing is stored.** No `isCollection` column, no `kind: 'paper'` row to
+keep in step. A paper that gains a question is a bigger collection on the next load. The card is
+derived from its members: the name they share, how many there are, and the facts they all agree on —
+so a collection *cannot* disagree with its contents, which is exactly what went wrong when a paper
+was a row (538 of 642 carried `active: FALSE` while their questions were live).
+
+**One flag, and it is worth being honest about which half is automatic.** Counting tells you whether
+grouping by a field is *useful*. It cannot tell you that `P-1MA1-2306-1H` is an IDENTITY and
+`Higher` is a CATEGORY — both are just strings that repeat. So `collect: true` on a facet says
+"this field names a thing", `nextFacet` skips it (its answers are ids, unreadable as a question) and
+only `collectionAxes_` looks at it. Everything else is counted.
+
+**The list is never both.** That was the fault the paper card died of three drawings deep.
+`stuffFiltered` *replaces* rather than appends, so "2,935 questions or 176 papers" is always exactly
+one of them. Measured: press the control → 176 items, `every(x => x.kind === 'group')` true; open
+one → 36 questions, matching its stated count exactly; press again → 2,935 back.
+
+**A collection comes back as an ITEM**, which is why nothing downstream changed. Same shape, same
+paging, same card — `stuffPageCount`, `fillStuffPages` and `stuffPageHtml` cannot tell the
+difference. `kind: 'group'` has no `KINDS` entry and needs none, because
+`(kindOf_(x).card || thingCard_)` falls back. Opening one sets the same filter `facet-pick` sets,
+so "show me the papers, then open one" and "narrow by paper" end in the same state with the same
+removable chip.
+
+**`n / 2`, not `< n`, and I caught that measuring.** `html` is 3,028 distinct over 3,267 rows — not
+equal to the row count, so `< n` let it through as a "collection" of 1.08 questions each. A
+collection whose groups average fewer than two members is the list again with a heading on every
+item.
+
+**It works on anything.** Fights collect by boxer, sessions by tutor — none of that is written down.
+What is written down is the shape.
+
+### The funnel lists QUESTIONS, and the collections are derived from them.
 
 **Three goes at drawing a past paper card, and the card was never the problem.** A document and the
 questions inside it answer the *same* facets — the paper's board, tier, year and wave are copied
