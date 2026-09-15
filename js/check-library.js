@@ -369,6 +369,34 @@ rows.forEach(r => {
   }
 });
 
+/* ---------- A PICTURE THIS SITE DREW MUST SAY SO ---------------------------------------------------
+   SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET HAD NO ANSWER IN THEM. "Natalie has these coins.
+   How much money does Natalie have?" — and no coins: the data was entirely in an image and a
+   transcription is a text layer. corbettmaths.com is blocked from the agent's environment by the
+   same policy that blocks every Google host, so the real coins cannot be recovered; the set that is
+   drawn now is ours, and so is the answer.
+
+   `diagram_by` IS A DISCLOSURE FIELD AND IT IS CLOSED. Absent means the picture came off the paper;
+   `family` means this site drew it. Anything else is a spelling nobody has agreed, and it would go
+   straight onto a card under a credit line that would then be wrong — which is worse than no credit
+   at all. Same argument as `VOCAB`, one column over.
+
+   AND A PICTURE CANNOT BE CREDITED IF THERE IS NO PICTURE. A `diagram_by` on a row with no
+   `diagram` is a claim about nothing, and it is exactly what a half-finished edit leaves behind. */
+const DIAGRAM_BY = ['family'];
+rows.forEach(r => {
+  if (!r || !r.diagram_by) return;
+  if (!DIAGRAM_BY.includes(r.diagram_by)) {
+    fail.push(`${r.row_id} says diagram_by: ${JSON.stringify(r.diagram_by)}. The only value that `
+      + `means anything is ${DIAGRAM_BY.map(v => JSON.stringify(v)).join(', ')} — absent means the `
+      + `picture came off the paper. Add it to DIAGRAM_BY with a reason, or fix the row.`);
+  }
+  if (!r.diagram) {
+    fail.push(`${r.row_id} credits a diagram it does not have. Draw it or drop the credit.`);
+  }
+});
+const drawnHere = rows.filter(r => r && r.diagram_by === 'family').length;
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
@@ -452,6 +480,7 @@ say('QUESTIONS THE TRANSCRIBER COULD NOT RECOVER — worth a person and the orig
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
 console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
+console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
 
 if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');

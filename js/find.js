@@ -1836,6 +1836,9 @@ function questionItems() {
       topic: topicOf_({ row: r.row || r }),
       marks: r.marks, section: r.section,
       lead: r.lead, html: r.html, diagram: r.diagram || '',
+      /* WHO DREW IT. See `figCredit_` — a picture this site made to replace one that did not come
+         across is not the same object as a picture off the paper, and the card says which. */
+      diagramBy: r.diagramBy || (r.row && r.row.diagram_by) || '',
       /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. `answer`, `answerType` and
          `examinerNote` have been in the payload since the tab was cut, and the first version of
          this function dropped all three — the other direction of the fault `check-payload.js`
@@ -1930,6 +1933,32 @@ document.addEventListener('input', e => {
   try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
 });
 
+/* ==================================================================================================
+   A PICTURE THIS SITE DREW IS LABELLED AS ONE.
+
+   SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET COULD NOT BE ANSWERED AT ALL. "Natalie has these
+   coins. How much money does Natalie have?" — and there were no coins: the whole of the data was in
+   an image, and the transcription is a text layer. They sat in the library looking complete, which
+   is worse than being absent, because a child is served a question with no answer in it and assumes
+   the fault is theirs.
+
+   THE ORIGINALS CANNOT BE RECOVERED. corbettmaths.com is blocked from the agent's environment by
+   the same network policy that blocks every Google host, so the coins Natalie actually had are not
+   knowable from here. The choice was to leave six broken questions or to draw a set.
+
+   SO THE SET IS DRAWN AND THE CARD SAYS SO. Choosing the coins CHOOSES THE ANSWER — this is no
+   longer Corbettmaths' question, it is one of ours wearing their words, and passing it off as
+   theirs would be the same class of mistake as a transcription that swallowed a coefficient: it
+   still reads sensibly and it is a different question. One line under the figure is the whole cost
+   of being honest about it.
+
+   `diagram_by` IS THE COLUMN, and it has exactly two meanings: absent means the picture came off
+   the paper, `family` means this site drew it. Anything that ever lists a question's provenance
+   reads that one field rather than guessing from the SVG. */
+const figCredit_ = x => (x.diagramBy === 'family'
+  ? `<figcaption class="fig-by">drawn for @family. — the original worksheet's picture did not
+       come across in the text, so these are our coins and our answer</figcaption>` : '');
+
 function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
   return `<div class="qcard">
@@ -1944,8 +1973,9 @@ function questionCard_(x) {
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${
-          /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. Empty on all but two rows
-             so far — see the `diagram` column in js/library.js. */''}${fig(x.diagram)}</div>
+          /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. See the `diagram`
+             column in js/library.js, and `figCredit_` above for the ones we drew. */''}${
+          x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}</div>
       </div>
     </div>
     ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you

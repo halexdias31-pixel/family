@@ -260,6 +260,11 @@ function libraryInto_(d, rows) {
          `.qpaper figure svg` and the label classes waiting for it since before anything could
          produce one. Empty on all but two rows today. */
       figure: libS(r.figure), diagram: libS(r.diagram),
+      /* WHO DREW THE PICTURE — absent means it came off the paper, `family` means this site drew it
+         because the original's did not survive the text layer. Named here as well as read off
+         `row` so the fact travels with the payload object rather than only with the file row; see
+         `figCredit_` in find.js for why a question has to say which. */
+      diagramBy: libS(r.diagram_by),
       lead: libS(r.lead), html: libS(r.html),
       company: libS(r.company),
       answer: libS(r.answer), answerType: norm(r.answer_type),

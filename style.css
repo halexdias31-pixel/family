@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-24-topics";
+  --css-version: "2026-09-25-coins";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6835,7 +6835,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    from the first version is NOT back: `questionCard_` prints the marks in its own header row, hard
    right beside the reference, which is where somebody scanning a list looks for them. */
 .qsheet-part { display: flex; gap: .6rem; }
-.qsheet-pb { flex: 1; min-width: 0; }
+/* ---------- A LINE TO WRITE ON IS ONE LONG WORD -------------------------------------------------
+   FIFTY-ONE QUESTIONS CARRY A RUN OF DOTS OR UNDERSCORES — the answer line the printed paper has —
+   and the longest is 128 characters with no space in it. To a browser that is a single word, so it
+   cannot be wrapped and it takes the card, the pane and the page sideways with it.
+
+   `min-width: 0` WAS ALREADY HERE AND IS NOT ENOUGH. It lets the flex child give way; it does not
+   let the TEXT inside it break, so the box shrank to zero and the word ran out of it anyway. That
+   is the same half-fix `.row .k` needed, recorded a few thousand lines up.
+
+   `break-word` RATHER THAN `anywhere`, because the difference is what happens to ordinary prose:
+   `anywhere` will split a word mid-letter whenever it helps the layout, and a maths question broken
+   across "coeffi / cient" is the `|·| rul / er` fault this repository already has a paragraph
+   about. `break-word` only breaks a word that cannot fit on a line of its own, which is exactly the
+   dotted rule and nothing else. */
+.qsheet-pb { flex: 1; min-width: 0; overflow-wrap: break-word; }
 .qsheet p:first-child { margin-top: 0; }
 .qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
 .qsheet ol.roman { list-style: lower-roman; }
@@ -6853,6 +6867,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
 .qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
 .qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+
+/* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM -------------------------------------------
+   THE SIZES CARRY INFORMATION, which is why the coins are not all one circle: a child recognises a
+   50p by being the big seven-sided one, so the real diameters are scaled and 20p and 50p are drawn
+   as heptagons. A picture that is drawn to scale is measured rather than eyeballed — CLAUDE.md
+   makes that rule about READING a diagram and it applies just as much to drawing one.
+
+   `currentColor` THROUGHOUT, like the two diagrams that were here before, so one drawing works on
+   both of this app's palettes without a second copy of it. */
+.qsheet .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
+.qsheet .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
+.qsheet .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
+
+/* A CREDIT IS NOT A CAPTION AND MUST NOT READ AS ONE. It is the smallest, quietest thing on the
+   card, because it is a disclosure rather than part of the question — but it is on the card, every
+   time, because the alternative is this site passing its own question off as the exam board's. */
+.fig-by { margin: .4rem 0 0; font-size: .7rem; line-height: 1.35; opacity: .55; text-align: center; }
 /* ==================================================================================================
    BOXING — THE FIGHTER AND THE FIGHT
 
