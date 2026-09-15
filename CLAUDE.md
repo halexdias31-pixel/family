@@ -683,9 +683,33 @@ concluded 2024 was missing transcribed June 2024 Paper 1 a second time — 33 ro
 past every check in the suite, because nothing here knew what a real paper WAS. `check-library.js`
 knows now; see "the same paper, transcribed twice" in that file.
 
-Still to do, and all eighteen are named only by their Edexcel paper code — `P64…`, `P66…`, `P68…`,
-`S48…`/`S49…`/`S50…` — so each has to be opened before it can be named: the November 2020, 2021 and
-2022 sittings, November 2023, and the specimen sets.
+Still to do: eighteen PDFs in the Drive folder named only by their Edexcel paper code. **Edexcel
+took the exam date off the front page in 2021**, so for those a code is all there is — the © line
+narrows it to a year and no further, because June and November of the same year both print the same
+one.
+
+**What names them is the PDF's own metadata.** `P68721A0128.pdf` carries `dc:title` = *"Question
+paper - Paper 1H - November 2022"* and `/Subject` = *"Paper 1H - Non-Calculator (Higher)"*, and so
+do its two siblings. Three papers identified from a field nothing in the reading pipeline looks at,
+because the pipeline reads pages. **Check `r.metadata` and `r.xmp_metadata` before reading a single
+page of a paper you cannot name.**
+
+| code | what it is |
+|---|---|
+| `P68721A` / `P68723A` / `P68725A` | **November 2022** Higher 1/2/3 — stated in the metadata |
+| `P64630A` / `P64632A` / `P64634A` | Higher 1/2/3, ©2021, no metadata title — **which 2021 sitting is not settled** |
+| `P66305A` / `P66303A` / `P66381A` | Higher 1/2/3, ©2021, no metadata title — **same** |
+| nine `S48…`/`S49…`/`S50…` | not yet opened; `S` is Edexcel's specimen prefix |
+
+**The two ©2021 sets are an open question and guessing would be worse than waiting.** 2021 ran one
+GCSE maths series (November); there are two sets. The InDesign version in each PDF's `/Creator`
+splits them — 16.0/16.1 for the `P64` set against 17.0 for the `P66` set, and 17.0 was not released
+until 26 October 2021 — but that dates the export, not the sitting. Filing thirty questions under
+the wrong sitting puts a wrong answer on the funnel's `Sitting` chip and nothing downstream can tell.
+The library holds empty document rows for November 2020, November 2021, June 2022 and November 2022,
+and **their `source_url`s carry the real exam dates** (`1MA1_1H_que_20211103.pdf`), which is where a
+comparison would have to start if the PDFs ever become reachable — they are on revisionmaths.com,
+and the agent environment can reach GitHub and nothing else.
 
 **Every number in a transcription is checked against the paper's own stated total**, which is 80 for
 every one of these by definition of the qualification — `check-library.js` refuses a paper that does
