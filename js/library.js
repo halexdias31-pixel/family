@@ -264,6 +264,18 @@ function libraryInto_(d, rows) {
          `.qpaper figure svg` and the label classes waiting for it since before anything could
          produce one. Empty on all but two rows today. */
       figure: libS(r.figure), diagram: libS(r.diagram),
+      /* ---------- PICTURES THAT ARE PHOTOGRAPHS OR SCANS, NOT DRAWINGS ------------------------
+         `diagram` IS INLINE SVG DRAWN HERE and takes the page's own ink; `images` is a list of
+         addresses. AQA's Paper 1 Question 5 is the case that asked for it — the writing task offers
+         a photograph as one of its two prompts, and a question whose prompt is a picture is not a
+         question without it.
+
+         A COMMA-SEPARATED LIST, NOT `image_1`, `image_2`, `image_3`. Numbered columns were the
+         obvious shape and they are the one that does not scale: three of them are empty on 4,005
+         rows, and the day something needs a fourth is a schema change in the data, the mapping, the
+         renderer and the check. `topics` and `keystage` are already comma-lists in this file for
+         exactly this reason, and `asList_` has read them since before any of it. */
+      images: libS(r.images),
       /* WHO DREW THE PICTURE — absent means it came off the paper, `family` means this site drew it
          because the original's did not survive the text layer. Named here as well as read off
          `row` so the fact travels with the payload object rather than only with the file row; see

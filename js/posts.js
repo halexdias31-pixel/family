@@ -1159,17 +1159,40 @@ screen('reel', () => {
      `height: auto` and as tall as its card; a reel is as tall as the SCREEN, and `.reels` asks for
      `height: 100%` of it. See the note on `.page.reel-page` in style.css — without a parent that
      has a height, that 100% resolved to nothing and every slide was zero pixels tall. */
-  return `<section class="page reel-page"><div class="reels" id="reels">${facts.map((f, i) => `
-    <div class="reel" data-reel="${i}" style="--h:${(i * 47) % 360}">
-      <div class="reel-art">
-        <div class="over">
-          <span class="faint">${esc(f.subject)}</span>
-          <h3>${esc(f.heading)}</h3>
-          <p>${esc(f.body)}</p>
-          <p class="credit faint"></p>
-        </div>
+  /* ---------- ON A CARD, LIKE EVERY OTHER SCREEN IN THE APP ---------------------------------------
+     THIS WAS THE ONE SCREEN WITH NO PANE. `pages()` and `stack()` both wrap what they are given in
+     `.page > .pane`, and all eight other screens go through one of them; this returned its own
+     markup and drew straight onto the black. The note above defended it — the pane sets
+     `touch-action: none` so the grid can own the vertical drag, and here the drag IS the scroll —
+     and that argument is about the SCROLL, not about the glass. Both are available: the card is
+     ordinary, and `.reels` inside it keeps `touch-action: pan-y`, which is what actually made the
+     swipe work.
+
+     SO IT IS `.card.is-widget` WITH A HEADING AND A SLOT, which is exactly what `widgetColumn_` in
+     arcade.js builds for the calculator and the timer. A reel is a thing you use, on a screen of
+     its own, which is the definition that column is built from — and the app now has one shape for
+     that instead of two.
+
+     THE SLIDES KEEP THEIR SNAP. `.reels` is a fixed-height scroller inside the card rather than the
+     screen, so one fact still fills it and a flick still moves exactly one; what changed is that it
+     has an edge, a heading and the same glass as everything else. */
+  return `<section class="page"><div class="pane"><div class="card is-widget">
+    <div class="widget-slot">
+      <div class="card"><h3>Reels</h3>
+      <div class="reels" id="reels">${facts.map((f, i) => `
+        <div class="reel" data-reel="${i}" style="--h:${(i * 47) % 360}">
+          <div class="reel-art">
+            <div class="over">
+              <span class="faint">${esc(f.subject)}</span>
+              <h3>${esc(f.heading)}</h3>
+              <p>${esc(f.body)}</p>
+              <p class="credit faint"></p>
+            </div>
+          </div>
+        </div>`).join('')}</div>
       </div>
-    </div>`).join('')}</div></section>`;
+    </div>
+  </div></div></section>`;
 });
 
 /* ---------- THE PHOTOGRAPH ARRIVES WHEN THE REEL DOES ---------------------------------------------

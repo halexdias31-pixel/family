@@ -1010,9 +1010,29 @@ function facetList() {
         min: facetMin_(f.minCoverage),
       })))
     .filter(Boolean)
-    /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a
-       column of blank cells leaves the funnel exactly as it asks today. */
-    .sort((a, b) => a.at - b.at);
+    /* ---------- A DOOR IS ASKED BEFORE A FILTER, AND THE SHEET CANNOT REORDER THAT ---------------
+       THE SHEET PUT `subject` AT ORDER 1 AND TUTORS BECAME UNREACHABLE. That is not a hypothetical:
+       measured on the real `facets` rows, the first question the funnel asked was Subject, and
+       there is no answer to Subject that keeps a tutor — a tutor has none, `filterHit` finds no
+       value, and every tutor, venue and friend is dropped by the first tap. The Message control on
+       a tutor's pass was reported missing; it was on the card, and the card could not be got to.
+
+       WHY THE COVERAGE RULE DID NOT CATCH IT. `FACET_COVERAGE` refuses a question fewer than half
+       the list can answer — and `subject` has 100% coverage, because 4,005 of the 4,007 items are
+       questions. The library is now so much larger than everything else that ANY library facet
+       looks universal. The rule is still right; it is measuring a list in which the minority is
+       three items.
+
+       SO `always` MEANS WHAT ITS NOTE SAYS IT MEANS. `What for` and `What kind` are DOORS — they
+       take somebody from the whole app to a department — and a door that is asked third is a door
+       behind two filters. The sheet still owns the order of the doors among themselves, and the
+       order of everything else, and whether any of them is asked at all. What it cannot do is put a
+       filter in front of a door, because that is not an ordering preference: it is a dead end for
+       everything the filter cannot describe.
+
+       NOT A THIRD SETTING. It is the flag that already exists, doing the other half of the job it
+       was declared for. */
+    .sort((a, b) => (b.always ? 1 : 0) - (a.always ? 1 : 0) || a.at - b.at);
   return FACET_LIVE;
 }
 
@@ -1897,6 +1917,8 @@ function questionItems() {
       topic: topicOf_({ row: r.row || r }),
       marks: r.marks, section: r.section,
       lead: r.lead, html: r.html, diagram: r.diagram || '',
+      /* THE SAME SPLIT `topics` AND `keystage` GET — one helper, because a comma is a comma. */
+      images: topicAtoms_(r.images || (r.row && r.row.images)),
       /* WHO DREW IT. See `figCredit_` — a picture this site made to replace one that did not come
          across is not the same object as a picture off the paper, and the card says which. */
       diagramBy: r.diagramBy || (r.row && r.row.diagram_by) || '',
@@ -2016,6 +2038,18 @@ document.addEventListener('input', e => {
    `diagram_by` IS THE COLUMN, and it has exactly two meanings: absent means the picture came off
    the paper, `family` means this site drew it. Anything that ever lists a question's provenance
    reads that one field rather than guessing from the SVG. */
+/* ---------- A PICTURE THE QUESTION CAME WITH -----------------------------------------------------
+   `loading="lazy"` BECAUSE A RESULT PAGE HOLDS SEVERAL AND YOU ARE LOOKING AT ONE. `fillStuffPages`
+   already only builds the pages you are near, and this is the same argument one level down.
+
+   NO ALT TEXT INVENTED. A photograph used as a writing prompt is the subject of the question — a
+   description of it written here would be a different prompt, and a wrong one. The figure is
+   labelled as the question's picture and the question's own words say what to do with it, which is
+   what a printed paper does too. */
+const pics_ = list => (list || []).map(src =>
+  `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
+     loading="lazy" decoding="async"></figure>`).join('');
+
 const figCredit_ = x => (x.diagramBy === 'family'
   ? `<figcaption class="fig-by">drawn for @family. — the original worksheet's picture did not
        come across in the text, so these are our coins and our answer</figcaption>` : '');
@@ -2036,13 +2070,14 @@ function questionCard_(x) {
             the two they are looking at; the same argument as `figCredit_` one screen down. */''}
       ${(x.stems || []).map(p =>
         `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${p.html || ''}${
-          fig(p.diagram)}</div>`).join('')}
+          fig(p.diagram)}${pics_(p.images)}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${
           /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. See the `diagram`
              column in js/library.js, and `figCredit_` above for the ones we drew. */''}${
-          x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}</div>
+          x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}${
+          pics_(x.images)}</div>
       </div>
     </div>
     ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you

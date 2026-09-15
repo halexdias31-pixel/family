@@ -83,6 +83,22 @@ const widgets = arr.elements.filter(Boolean).filter(e => e.type === 'ObjectExpre
 const str = v => (v == null ? '' : String(v).replace(/^['"`]|['"`]$/g, ''));
 
 const missingKey = [], badKind = [], dupes = [], orphanInto = [], startNoInto = [], intoNoStart = [];
+/* A WIDGET WHOSE OWN MARKUP HAS NO HEADING — see the note beside the rule below. */
+const noTitle = [];
+
+/* ---------- AND THE ONE THAT MEANS IT, WITH ITS REASON WRITTEN DOWN -------------------------------
+   `chess` HAS NO HEADING ON PURPOSE and says so in its own comment: "A title saying 'Chess' above a
+   chessboard... A board is self-explanatory in a way almost nothing else in this app is." That was
+   true and it was not what happened — `widgetColumn_` printed the roster's `name` above it anyway,
+   so the widget's argument had been overruled by a line in another file for as long as both
+   existed. Removing that heading is what finally does what this comment asked for.
+
+   LISTED RATHER THAN EXEMPTED BY SHAPE, for the same reason as `ACCEPTED` in check-payload.js and
+   `ACCEPTED_TAP` in check/ui.js: the next untitled widget should fail loudly instead of joining a
+   red nobody reads. */
+const ACCEPTED_UNTITLED = {
+  chess: 'a chessboard names itself; the widget says so in its own comment and always has.',
+};
 const seen = {};
 
 widgets.forEach(w => {
@@ -101,6 +117,20 @@ widgets.forEach(w => {
   }
 
   if (seen[id]) dupes.push(id); else seen[id] = 1;
+
+  /* ---------- THE WIDGET'S OWN MARKUP CARRIES ITS TITLE ------------------------------------------
+     `widgetColumn_` USED TO PRINT THE ROSTER'S `name` ABOVE THE WIDGET and every widget's html
+     already had a heading, so every tool on the column showed its name twice — "Calculator ||
+     Calculator" — and the cheat sheet showed three headings under two different names, because the
+     roster label and the card's own title had drifted apart with nothing comparing them.
+
+     THE WIDGET'S HEADING IS NOW THE ONLY ONE DRAWN. Which makes its absence a widget with no title
+     at all rather than a widget with one — silent, and only on the column, because `name` still
+     labels it everywhere else. So it is checked here, where the contract already lives. */
+  if (w.html && !/<h3[\s>]/.test(w.html) && !ACCEPTED_UNTITLED[id]) {
+    noTitle.push(id + ' has no <h3> in its html. `widgetColumn_` draws the widget\'s own markup and '
+               + 'nothing else, so this one appears on the column with no title on it.');
+  }
 
   const into = str(w.into);
   const hasStart = w._keys.includes('start');
@@ -178,6 +208,7 @@ let bad = 0, noted = 0;
  [ 'AN `into` NAMING AN ID ITS OWN HTML DOES NOT CONTAIN', orphanInto ],
  [ 'A `start` WITH NOWHERE TO DRAW', startNoInto ],
  [ 'A WIDGET STARTER WITH NO WIDGET \u2014 deleted by accident, or never added', orphanEngine ],
+ [ 'A WIDGET WITH NO TITLE \u2014 the column draws its own markup and nothing else', noTitle ],
 ].forEach(([t, l]) => { if (say(t, l) === 'hard') bad += l.length; });
 
 /* SOFT: a slot waiting for its widget is how a placeholder looks, and `drill` is deliberately one. */
@@ -189,6 +220,13 @@ console.log('');
 /* THE ROSTER, PRINTED EVERY RUN. A count alone does not say WHICH \u2014 and the whole failure above
    was three names quietly leaving a list. Printed in full so a disappearance shows in a diff of this
    check's own output, which is the cheapest alarm there is. */
+const untitled = Object.keys(ACCEPTED_UNTITLED);
+if (untitled.length) {
+  console.log('');
+  console.log('A WIDGET WITH NO TITLE, ON PURPOSE  (' + untitled.length + ')');
+  untitled.forEach(k => console.log('  ' + k + ' \u2014 ' + ACCEPTED_UNTITLED[k]));
+}
+
 const acceptedEngine = Object.keys(ACCEPTED_ENGINE);
 if (acceptedEngine.length) {
   console.log('');

@@ -145,8 +145,23 @@ function widgetColumn_(kind) {
        SO THE MARKUP CARRIES THE WIDGET ITSELF, in the slot the card has always had, and
        `toolsStart_` brings them to life once they are in the document. No tiles, no Open, no
        press. */
+    /* ---------- AND THE NAME IS PRINTED ONCE ------------------------------------------------------
+       THIS PUT AN `<h3>` ABOVE THE WIDGET AND EVERY WIDGET'S OWN MARKUP ALREADY HAS ONE. Measured
+       on the tools column: "Calculator || Calculator", "Timer || Timer", and the cheat sheet worse
+       than either — "Cheat sheet maker (maths mat) || Cheat sheet maker || Cheat sheet — SATs",
+       three headings under two different names, because the roster's `name` and the card's own
+       heading had drifted apart with nothing comparing them.
+
+       THE WIDGET'S OWN HEADING IS THE ONE THAT STAYS. It is the one that has been on screen, it is
+       the one the widget was designed around, and it is inside the markup it belongs to — where the
+       roster's `name` has three other jobs (the search, the tile, the pager) and is a label rather
+       than a title. Two sources for one heading is the fault this repo records under `kinds`, under
+       `link`/`source_url` and under `childrenOf`; the difference here is that both were being drawn
+       at once, so it was visible rather than silent.
+
+       `widget-slot` STAYS, and so does its id. `tiles.js` looks up `wgt-<id>` to drop a widget into
+       a card in the funnel, and `startWidget_` finds its parts inside it. */
     .map(w => `<div class="card is-widget">
-      <h3>${esc(w.name)}</h3>
       <div class="widget-slot" id="wgt-${esc(String(w.id))}">${w.html}</div>
     </div>`);
 }

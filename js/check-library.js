@@ -428,6 +428,39 @@ rows.forEach(r => {
   }
 });
 
+/* ---------- AN ADDRESS THAT IS NOT AN ADDRESS ------------------------------------------------------
+   `images` IS A COMMA-SEPARATED LIST OF PLACES A PICTURE IS, and the one way it fails silently is a
+   value that is not a place: a filename with no folder, a Drive *page* rather than a Drive file, a
+   path copied off somebody's desktop. None of those throw — the browser asks, gets nothing, and the
+   question is served with a broken picture where its prompt should be, which on AQA Paper 1
+   Question 5 is the whole question.
+
+   TWO SHAPES ARE ADDRESSES: `http(s)://…`, and a `data:image/…` URI for a picture committed into the
+   row itself. Anything else is refused here rather than at the end of a wire.
+
+   `drive.google.com/file/d/<id>` IS NAMED SEPARATELY because this repository has already paid for
+   that distinction once: a Drive FILE page is HTML, not an image, so it renders as nothing in an
+   `<img>`. The same spelling trap as the `.xlsx` ids in `check-tabs.js`. */
+const pic = [];
+rows.forEach(r => {
+  if (!r || !r.images) return;
+  String(r.images).split(',').map(v => v.trim()).filter(Boolean).forEach(src => {
+    if (/^data:image\//.test(src)) { pic.push(src); return; }
+    if (!/^https?:\/\//.test(src)) {
+      fail.push(`${r.row_id} has an image "${src.slice(0, 60)}" that is not an address. `
+        + `It must start http:// or https://, or be a data:image/… URI.`);
+      return;
+    }
+    if (/drive\.google\.com\/file\/d\//.test(src)) {
+      fail.push(`${r.row_id} points an image at ${src.slice(0, 60)} — that is a Drive FILE PAGE, `
+        + `which is HTML. An <img> asking for it gets a web page and draws nothing. Use a direct `
+        + `image address.`);
+      return;
+    }
+    pic.push(src);
+  });
+});
+
 /* ---------- A PICTURE THIS SITE DREW MUST SAY SO ---------------------------------------------------
    SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET HAD NO ANSWER IN THEM. "Natalie has these coins.
    How much money does Natalie have?" — and no coins: the data was entirely in an image and a
@@ -554,6 +587,7 @@ console.log(`documents with a stub row beside their transcription: ${stubPairs} 
 console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
+console.log(`pictures carried by rows as an address: ${pic.length}`);
 if (standingIn.length) {
   console.log(`\nSTANDING IN FOR SOMETHING NOT YET TYPED — a list, not a fault  (${standingIn.length})`);
   standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));
