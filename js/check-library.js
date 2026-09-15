@@ -175,13 +175,31 @@ const used = new Set(rows.filter(r => r && r.kind !== 'paper').map(r => r.paper_
 const empty = [...papers].filter(p => !used.has(p));
 
 /* ---------- 80 MARKS ------------------------------------------------------------------------------
-   Only Edexcel 1MA1 Higher, because that is the qualification whose total is 80 by definition.
-   Anything else in here (worksheets, A-level, other boards) has no single right answer to compare
-   against and is left alone rather than guessed at. */
+   Every Edexcel GCSE maths past paper is 80 marks, Foundation and Higher alike, by definition of the
+   qualification. It is the only end-to-end check a transcription has — nothing else in here knows
+   what the paper said — so it catches a dropped part, a misread mark and a doubled question at once.
+   Anything else (worksheets, A-level, other boards) has no single right answer to compare against
+   and is left alone rather than guessed at.
+
+   THE PAPER IS IDENTIFIED BY WHAT IT IS, NOT BY HOW ITS ID IS SPELLED. This used to test
+   `/^P-1MA1-\d+-\dH$/` against the paper_id, and the June 2024 series — six papers, both tiers,
+   filed under `RS…` ids — was therefore never checked at all. That is the same fault as the
+   duplicate above wearing different clothes: an id prefix is a naming habit, and a check that keys
+   on one only sees the papers somebody happened to name that way. All six do total 80; nothing was
+   wrong, and nothing would have said so. */
+const paperFacts = new Map();
+rows.forEach(r => {
+  if (r && r.kind === 'paper' && r.paper_id) paperFacts.set(r.paper_id, r);
+});
+const isEdexcelGcseMaths = pid => {
+  const p = paperFacts.get(pid);
+  return !!p && p.exam_board === 'Edexcel' && p.subject === 'Maths' && p.key_stage === 'KS4'
+      && p.resource_type === 'Past paper' && (p.tier === 'Higher' || p.tier === 'Foundation');
+};
 const marks = new Map();
 rows.forEach(r => {
   if (!r || r.kind !== 'part') return;
-  if (!/^P-1MA1-\d+-\dH$/.test(String(r.paper_id || ''))) return;
+  if (!isEdexcelGcseMaths(r.paper_id)) return;
   const n = Number(r.marks);
   if (!Number.isFinite(n)) {
     fail.push(`${r.row_id} has marks ${JSON.stringify(r.marks)}, which is not a number`);
@@ -190,7 +208,7 @@ rows.forEach(r => {
   marks.set(r.paper_id, (marks.get(r.paper_id) || 0) + n);
 });
 [...marks.entries()].sort().forEach(([p, m]) => {
-  if (m !== 80) fail.push(`${p} totals ${m} marks; every Edexcel 1MA1 Higher paper is 80`);
+  if (m !== 80) fail.push(`${p} totals ${m} marks; every Edexcel GCSE maths paper is 80`);
 });
 
 /* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
@@ -330,7 +348,7 @@ const say = (title, list, draw) => {
   list.forEach(x => console.log('  ' + draw(x)));
 };
 
-console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel 1MA1 Higher papers`);
+console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel GCSE maths papers checked at 80 marks`);
 
 say('BROKEN', fail, x => x);
 
