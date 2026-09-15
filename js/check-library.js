@@ -175,13 +175,31 @@ const used = new Set(rows.filter(r => r && r.kind !== 'paper').map(r => r.paper_
 const empty = [...papers].filter(p => !used.has(p));
 
 /* ---------- 80 MARKS ------------------------------------------------------------------------------
-   Only Edexcel 1MA1 Higher, because that is the qualification whose total is 80 by definition.
-   Anything else in here (worksheets, A-level, other boards) has no single right answer to compare
-   against and is left alone rather than guessed at. */
+   Every Edexcel GCSE maths past paper is 80 marks, Foundation and Higher alike, by definition of the
+   qualification. It is the only end-to-end check a transcription has — nothing else in here knows
+   what the paper said — so it catches a dropped part, a misread mark and a doubled question at once.
+   Anything else (worksheets, A-level, other boards) has no single right answer to compare against
+   and is left alone rather than guessed at.
+
+   THE PAPER IS IDENTIFIED BY WHAT IT IS, NOT BY HOW ITS ID IS SPELLED. This used to test
+   `/^P-1MA1-\d+-\dH$/` against the paper_id, and the June 2024 series — six papers, both tiers,
+   filed under `RS…` ids — was therefore never checked at all. That is the same fault as the
+   duplicate above wearing different clothes: an id prefix is a naming habit, and a check that keys
+   on one only sees the papers somebody happened to name that way. All six do total 80; nothing was
+   wrong, and nothing would have said so. */
+const paperFacts = new Map();
+rows.forEach(r => {
+  if (r && r.kind === 'paper' && r.paper_id) paperFacts.set(r.paper_id, r);
+});
+const isEdexcelGcseMaths = pid => {
+  const p = paperFacts.get(pid);
+  return !!p && p.exam_board === 'Edexcel' && p.subject === 'Maths' && p.key_stage === 'KS4'
+      && p.resource_type === 'Past paper' && (p.tier === 'Higher' || p.tier === 'Foundation');
+};
 const marks = new Map();
 rows.forEach(r => {
   if (!r || r.kind !== 'part') return;
-  if (!/^P-1MA1-\d+-\dH$/.test(String(r.paper_id || ''))) return;
+  if (!isEdexcelGcseMaths(r.paper_id)) return;
   const n = Number(r.marks);
   if (!Number.isFinite(n)) {
     fail.push(`${r.row_id} has marks ${JSON.stringify(r.marks)}, which is not a number`);
@@ -190,7 +208,7 @@ rows.forEach(r => {
   marks.set(r.paper_id, (marks.get(r.paper_id) || 0) + n);
 });
 [...marks.entries()].sort().forEach(([p, m]) => {
-  if (m !== 80) fail.push(`${p} totals ${m} marks; every Edexcel 1MA1 Higher paper is 80`);
+  if (m !== 80) fail.push(`${p} totals ${m} marks; every Edexcel GCSE maths paper is 80`);
 });
 
 /* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
@@ -209,12 +227,119 @@ strays.forEach(s => fail.push(
   `${s.col} = ${JSON.stringify(s.v)} on ${s.n} row${s.n > 1 ? 's' : ''} — not in the vocabulary. ` +
   `Read what the column already uses before adding it to VOCAB in this file.`));
 
+/* ---------- THE SAME PAPER, TRANSCRIBED TWICE ------------------------------------------------------
+   This file had no idea what a real-world exam paper IS, only what a row is, so the ids being
+   unique was the whole of its protection. That is not enough: the June 2024 Higher papers were
+   already in here under `RS…` ids, and a session that listed `paper_id` prefixes, saw no
+   `P-1MA1-24…`, and went off to transcribe Paper 1 again produced 33 fresh rows with fresh ids
+   and no complaint from anything. A duplicate paper is worse than a duplicate row, because a
+   duplicate row at least LOOKS wrong in the funnel; two copies of a paper just make the library
+   bigger and every search return each question twice.
+
+   So the key is what identifies a SITTING: subject, board, year, series, paper number and tier.
+   Two details matter.
+
+   THE MONTH IS COLLAPSED TO A SERIES, because the same sitting is dated both ways in here — the
+   2024 Higher Paper 1 sat on 16 May and is filed under month 6, and the duplicate was filed under
+   month 5. Comparing months exactly would have let the pair through, which is precisely the
+   `waveOf` problem `find.js` already solves for the funnel: two spellings of one sitting.
+
+   ONLY PAPERS THAT HAVE QUESTIONS COUNT. Most `kind: 'paper'` rows are documents with nothing
+   under them yet — a link and a page count — and a document row sitting beside the transcription
+   of the same paper is the normal, intended state. Seventeen of those pairs exist right now and
+   not one is a fault. */
+const ACCEPTED_TWICE = {
+  'Maths|Edexcel|2024|summer|3|A-Level':
+    'Papers 31 (Statistics) and 32 (Mechanics) are two different A-level papers and both carry ' +
+    'paper: 3, so the key collides on something that is not a duplicate.',
+};
+const seriesOf = m => (['5', '6', '7'].includes(String(m)) ? 'summer'
+                    : ['10', '11', '12'].includes(String(m)) ? 'autumn' : String(m || ''));
+const withQuestions = new Set(rows.filter(r => r && r.kind === 'part').map(r => r.paper_id));
+const sittings = new Map();
+rows.forEach(r => {
+  if (!r || r.kind !== 'paper' || !withQuestions.has(r.paper_id)) return;
+  const bits = [r.subject, r.exam_board, r.year, seriesOf(r.month), r.paper, r.tier];
+  if (bits.some(b => !b)) return;
+  const key = bits.join('|');
+  if (!sittings.has(key)) sittings.set(key, []);
+  sittings.get(key).push(r.paper_id);
+});
+const twice = [];
+sittings.forEach((ids, key) => {
+  if (ids.length < 2) return;
+  if (ACCEPTED_TWICE[key]) return;
+  twice.push(`${key} is transcribed ${ids.length} times: ${ids.join(', ')}. One sitting, one paper ` +
+             `— delete the newer copy, or add the key to ACCEPTED_TWICE with a written reason.`);
+});
+twice.forEach(t => fail.push(t));
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
    These are real questions being taught in a broken state, and nothing surfaced them until now.
    Reported rather than failed: it is editorial work on a handful of rows, not a build error. */
 const flagged = rows.filter(r => r && r.examiner_note);
+
+/* ==================================================================================================
+   THE OTHER THREE LIBRARY FILES, WHICH ARE MID-MIGRATION.
+
+   `data/boxers.json`, `data/fights.json` and `data/cheatsheet.json` are the next three tabs out of
+   the spreadsheet — see the header of `js/library.js` for why they qualify and why the move is two
+   steps. They ship EMPTY, with the payload still supplying those keys, because the rows live in a
+   Google sheet that the agent environment cannot reach.
+
+   TWO THINGS ARE WORTH CHECKING AND THEY ARE DIFFERENT SEVERITIES. The SHAPE is a rule: whatever
+   ends up in the file must be a JSON array with one object per line, or the next script to append
+   to it by splitting on newlines corrupts it — the same rule, for the same reason, as the one this
+   file already applies to `questions.json`. Whether the migration is FINISHED is a note: the moment
+   a file has rows in it, `doget.gs` is still walking the same tab and shipping it to every phone
+   for nobody, and that is when the block should go. Nothing can work that out except by holding the
+   two facts side by side, so it is printed rather than remembered. */
+const EXTRA_FILES = ['boxers', 'fights', 'cheatsheet'];
+const DOGET_SRC = (() => {
+  for (const rel of ['backend/doget.gs', 'doget.gs']) {
+    try { return fs.readFileSync(path.join(__dirname, '..', rel), 'utf8'); } catch (e) {}
+  }
+  try { return fs.readFileSync(path.join(__dirname, 'doget.gs'), 'utf8'); } catch (e) {}
+  return null;
+})();
+
+EXTRA_FILES.forEach(name => {
+  const f = path.join(__dirname, '..', 'data', name + '.json');
+  let raw;
+  try { raw = fs.readFileSync(f, 'utf8'); }
+  catch (e) {
+    fail.push('data/' + name + '.json is missing — library.js fetches it on every load');
+    return;
+  }
+  const lines = raw.replace(/\n$/, '').split('\n');
+  if (lines[0] !== '[' || lines[lines.length - 1] !== ']') {
+    fail.push('data/' + name + '.json must open with a bare [ and close with a bare ]');
+    return;
+  }
+  const body = lines.slice(1, -1);
+  body.forEach((line, i) => {
+    const last = i === body.length - 1;
+    if (!(last ? line.endsWith('}') : line.endsWith('},'))) {
+      fail.push('data/' + name + '.json line ' + (i + 2) + ' is not ONE object on ONE line');
+      return;
+    }
+    try {
+      const one = JSON.parse(last ? line : line.slice(0, -1));
+      if (!one || typeof one !== 'object' || Array.isArray(one))
+        fail.push('data/' + name + '.json line ' + (i + 2) + ' is not an object');
+    } catch (e) {
+      fail.push('data/' + name + '.json line ' + (i + 2) + ' does not parse — '
+                + e.message.slice(0, 60));
+    }
+  });
+  if (body.length && DOGET_SRC && new RegExp('read\\(TAB\\.' + name + '\\)').test(DOGET_SRC)) {
+    note.push('data/' + name + '.json now has ' + body.length + ' row(s) AND doget.gs still builds '
+              + 'payload.' + name + ' — step 2 of that migration is due: delete that block so the '
+              + 'tab stops being walked for every phone on every load');
+  }
+});
 
 /* ---------- SAY IT --------------------------------------------------------------------------------- */
 const say = (title, list, draw) => {
@@ -223,7 +348,7 @@ const say = (title, list, draw) => {
   list.forEach(x => console.log('  ' + draw(x)));
 };
 
-console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel 1MA1 Higher papers`);
+console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel GCSE maths papers checked at 80 marks`);
 
 say('BROKEN', fail, x => x);
 

@@ -226,7 +226,7 @@ budget before lunch and stop the nightly jobs.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 23 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 24 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -260,8 +260,10 @@ add it to `npm run check`.
 
 ### `node js/check-library.js` — the data, which nothing had ever read
 
-Every other check reads the CODE. `data/questions.json` is 4,264 rows and 2.4 MB of committed
-content — the library the whole Find screen is about — and **no check had ever opened it**. A wrong
+Every other check reads the CODE. `data/questions.json` was 4,264 rows and 2.4 MB of committed
+content when this was written — the library the whole Find screen is about — and **no check had ever
+opened it**. It grows every time a paper is transcribed, so take the number off the file
+(`node -e "console.log(require('./data/questions.json').length)"`) rather than off this sentence. A wrong
 row does not throw and does not fail a build; it is simply a question somebody is taught wrongly.
 
 What it refuses, each drawn from a mistake made or nearly made:
@@ -322,6 +324,7 @@ node js/check-rows.js            # each column read, against the tab that row ac
 node js/check-post.js            # an action that names a person by a cell they can edit
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
+node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -576,11 +579,82 @@ It is now three files, **split by who writes the rows**:
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
 | **Library** | you, in bulk | boxers, fights, cheatsheet. `questions` has left — see below |
 
+### The rest of `Library` is following it, in two steps because the sheet is unreachable
+
+`boxers`, `fights` and `cheatsheet` are the three tabs left in that file, and they pass the same
+three-question test `questions` passed. **The one that decides it is the second**: measured,
+`read(TAB.boxers)`, `read(TAB.fights)` and `read(TAB.cheatsheet)` appear **exactly once each, all
+three in `doget.gs`**, and no `setCell` or `append` anywhere names them. Nothing writes to them, so
+code can hold them.
+
+**Step 1 is done and step 2 needs you.** The rows are in a Google sheet and every Google host is
+blocked from the agent's environment by network policy, so this could only be built, not populated:
+
+| | |
+|---|---|
+| `data/boxers.json`, `data/fights.json`, `data/cheatsheet.json` | committed, currently `[]` |
+| `libraryExtras_` in `js/library.js` | the three mappings, copied from `doget.gs` line for line |
+| the fallback | **a file with no rows leaves the payload's copy alone** |
+
+So the app is byte-identical today, and the moment a file has rows in it the file wins. **Cutting
+the backend first would have taken the boxing screens and the cheat sheet dark** for however long
+the export took, over a migration nobody was waiting on.
+
+**The files hold the sheet's own column names** — `boxer_id`, `height_cm`, `part_id` — not the
+camelCase the phone reads. A file that is a faithful export is one you can paste a row into without
+translating it, and the single place that renames a column is the mapping. Two spellings in two
+places is what `r.link` against `source_url` cost: seven silent reads.
+
+**`check-library.js` says when step 2 is due** rather than leaving it to memory: once a file has
+rows AND `doget.gs` still builds that key, it prints that the block should go. Until then it only
+enforces the shape, which is the same one-object-per-line rule `questions.json` has and for the same
+reason — the next script to append by splitting on newlines.
+
+### `d = libraryInto_(d, …)` had been throwing on every single load
+
+`d` is `const` — `const d = await res.json()` some forty lines above — so that line threw
+**"Assignment to constant variable" every time `load()` ran**, and the `try` around it swallowed it.
+
+**Nothing looked wrong, which is why it survived.** `libraryInto_` **mutates** `d` and returns the
+same object, so the questions were already written by the time the assignment was attempted; the
+throw came *after* the useful work, and the catch's own repair — `d.questions = d.questions || []` —
+found the key populated and left it alone. A correct fallback standing over a broken line, which is
+the same shape as the `check-flow` stub with no `text()` and as `.mat-out` being "fixed" twice on a
+measurement nobody took.
+
+**What it cost was that nothing after that line inside the try could ever run**, and while the line
+was last in its block that was invisible. The three extra library tabs were the first code to sit on
+the next line and they simply never executed — found by booting the app with a row in
+`data/boxers.json` and watching the payload's copy win anyway. The fix is to drop the assignment:
+both functions mutate in place, so the return value was never needed.
+
+### `node js/check-const.js` — the rule, not just the instance
+
+Within **one function body**, a name declared `const` and later assigned or incremented. Narrow on
+purpose, and the narrowing was learned twice in one sitting:
+
+- **The first version reported ~90 findings and every one was wrong.** It gathered the bodies
+  correctly and then walked each with the ordinary walker, which descends into nested functions — so
+  the top-level pass collected every `const` and every assignment in the whole file and matched them
+  across scopes. It "found" a `const` declared at line 552 assigned at line 153, four hundred lines
+  earlier, in a different function. **That is the `check-rows.js` fault exactly**, and CLAUDE.md
+  already says what 95 findings with 2 real ones in them is worth.
+- **Scoping the walk left three, and all three were still wrong**: `for (let k = 0; …; k++)` beside
+  a separate `const k` further down. Different blocks, different bindings. Getting that right
+  properly needs a block-level scope tree, so instead **it declines to answer**: if a name is also
+  declared `let`/`var` (or is a parameter) anywhere in the same function, it says nothing. A missed
+  case is an incomplete check; a false one is a check nobody reads.
+
+**Proved by mutation**, which is the only thing that shows the exemption did not gut it: putting
+`d = libraryInto_(…)` back makes it report `shell.js:2021 — d is declared const at line 1967`, and
+removing it goes green across 26 files.
+
 ### `questions` lives in this repository, not in a spreadsheet
 
-`data/questions.json` — 3,913 rows, 44 columns, 2.4 MB, one row per line so a diff names the rows
-that changed. `js/library.js` fetches it and builds `DATA.questions` and `dropdowns.checklists` from
-it; `doGet` no longer builds either.
+`data/questions.json` — 4,638 rows at the last count, 40 columns, 3.1 MB, one row per line so a
+diff names the rows that changed. The count moves with every transcription; the shape does not.
+`js/library.js` fetches it and builds `DATA.questions` and `dropdowns.checklists` from it; `doGet`
+no longer builds either.
 
 **Why that tab and no other.** Three questions decide where a thing lives, and the first one that
 answers wins:
@@ -592,6 +666,77 @@ answers wins:
    bulk, and every edit went export → CSV → download → File → Import, twice. `brand`, `config`,
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
+
+#### Which papers are in, and how a new one gets there
+
+Thirty Edexcel GCSE maths papers are transcribed, **and they are not all named the same way** —
+which is the trap, so read both rows of this table before starting a new one.
+
+| ids | what is in them |
+|---|---|
+| `P-1MA1-<yy><mm>-<n>H` | 24 Higher papers: **2017, 2018 and 2019 complete** (both sittings, six papers each), **summer 2020**, **summer 2023** |
+| `RS1786302107764-415…420` | the **June 2024** series, six papers — Foundation AND Higher, Papers 1, 2 and 3 |
+
+**`node js/check-library.js` prints the count, and the list above is the thing that goes stale.**
+The two id schemes are why: a session that listed `paper_id` prefixes, saw no `P-1MA1-24…` and
+concluded 2024 was missing transcribed June 2024 Paper 1 a second time — 33 rows with fresh ids,
+past every check in the suite, because nothing here knew what a real paper WAS. `check-library.js`
+knows now; see "the same paper, transcribed twice" in that file.
+
+Still to do: eighteen PDFs in the Drive folder named only by their Edexcel paper code. **Edexcel
+took the exam date off the front page in 2021**, so for those a code is all there is — the © line
+narrows it to a year and no further, because June and November of the same year both print the same
+one.
+
+**What names them is the PDF's own metadata.** `P68721A0128.pdf` carries `dc:title` = *"Question
+paper - Paper 1H - November 2022"* and `/Subject` = *"Paper 1H - Non-Calculator (Higher)"*, and so
+do its two siblings. Three papers identified from a field nothing in the reading pipeline looks at,
+because the pipeline reads pages. **Check `r.metadata` and `r.xmp_metadata` before reading a single
+page of a paper you cannot name.**
+
+| code | what it is |
+|---|---|
+| `P68721A` / `P68723A` / `P68725A` | **November 2022** Higher 1/2/3 — stated in the metadata |
+| `P64630A` / `P64632A` / `P64634A` | Higher 1/2/3, ©2021, no metadata title — **which 2021 sitting is not settled** |
+| `P66305A` / `P66303A` / `P66381A` | Higher 1/2/3, ©2021, no metadata title — **same** |
+| nine `S48…`/`S49…`/`S50…` | not yet opened; `S` is Edexcel's specimen prefix |
+
+**The two ©2021 sets are an open question and guessing would be worse than waiting.** 2021 ran one
+GCSE maths series (November); there are two sets. The InDesign version in each PDF's `/Creator`
+splits them — 16.0/16.1 for the `P64` set against 17.0 for the `P66` set, and 17.0 was not released
+until 26 October 2021 — but that dates the export, not the sitting. Filing thirty questions under
+the wrong sitting puts a wrong answer on the funnel's `Sitting` chip and nothing downstream can tell.
+The library holds empty document rows for November 2020, November 2021, June 2022 and November 2022,
+and **their `source_url`s carry the real exam dates** (`1MA1_1H_que_20211103.pdf`), which is where a
+comparison would have to start if the PDFs ever become reachable — they are on revisionmaths.com,
+and the agent environment can reach GitHub and nothing else.
+
+**Every number in a transcription is checked against the paper's own stated total**, which is 80 for
+every one of these by definition of the qualification — `check-library.js` refuses a paper that does
+not sum to it, and the insert script asserts it before writing a row. That single number catches a
+dropped part, a misread mark count and a duplicated question, and it is the only end-to-end check
+available, because nothing else knows what the paper said.
+
+**The text layer is the enemy and it fails in four different ways**, each recorded here because each
+cost a reading:
+
+| | |
+|---|---|
+| **mangled maths** | fractions and radicals arrive as loose digits: `x x n n + = − − 1 22 4` is `x(n+1) = −2 − 4/x(n)²`, and reads equally well as a cube root |
+| **a Caesar-shifted font** | `)DFWRULVH IXOO\` is `Factorise fully`. Obvious, and harmless once seen |
+| **the same shift with the digits gone** | November 2017 Paper 2. The prose is readable and every NUMBER has silently vanished: "The pack costs 5" where the paper says £5.64. Nothing looks wrong |
+| **a swallowed coefficient** | the worst, because the question still reads sensibly and is now a different question |
+
+So: extract the text, then **render every page and read it**. A rough tell is size — about 13 KB of
+text over 20 pages is a clean extraction and anything well under it is thin — but 16.5 KB has lost a
+square root before now, and the last two failure modes leave the size untouched. The tell is not a
+test.
+
+**A picture that carries data is measured, not eyeballed.** Box plots, cumulative frequency curves,
+pie charts drawn to scale: render at scale 5, find the gridlines by their regular spacing, and read
+the marks off them. A cumulative-frequency curve read by eye gave 50 at 160 cm where the pixels said
+48.1 — one gave the answer 10 and the other 12, and the gap between them was the whole of the mark
+scheme's tolerance.
 
 ### The funnel is an engine fed by a hand-written loader, and that seam is where it feels arbitrary
 
@@ -671,6 +816,89 @@ and collapsing it would invent a fact.
 `facets` row whose field is already declared in code as a *relabel* of that facet and one whose
 field is unknown as a *new* question, so renaming it moved the sheet's row from the second pile to
 the first. The sheet still owns the label, the order and whether it is asked at all.
+
+### The funnel never asked what the maths was ABOUT, and that is the whole complaint
+
+**Six chips deep it said "Nothing left to narrow" over 193 questions.** What for · Learning, What
+kind · Questions, Subject · Maths, Type · Worksheet, Key stage · KS2, School year · Year 4 — and the
+193 left were about eleven different things: fractions, area, roman numerals, telling the time.
+
+**Every question on the way down was about where the question CAME FROM.** Subject, level, type, key
+stage, school year, exam board, tier, publisher. Not one about what it is OF. That is "I click the
+filters and then it just feels like it shows all of them", exactly: each tap took a real bite out of
+the list, and none of them took the bite that was wanted.
+
+**The column was already there and nothing read it.** `topics` is on 91.5% of the question rows and
+has reached the browser on `row` since `libraryInto_` stopped enumerating columns — see "`row`
+carries the whole row" above, which was written about this same shape. `topicOf_` reads it, a
+`Topic` facet sits straight after `Subject`, and the comma in a cell is a list the way `keystage`'s
+is. **A worksheet transcribed tomorrow is filterable the moment its `topics` cell is filled in**,
+with nothing in code to edit and no deploy.
+
+**Nothing new decides when it is asked.** 389 distinct topics is past `FACET_MAX_ANSWERS`, so it is
+not offered at the top; almost nothing outside the library carries one, so its coverage is low until
+the list IS questions. Both rules that keep it out of the way are the ones that were already there.
+Measured, it arrives at the point the funnel used to give up: 193 items, 15 topics, 100% coverage.
+
+**It is in the search box too**, which it had never been. `searchText_` reads the question's own
+words, so `fractions` found a question only if the word was printed in it — and on a worksheet whose
+every question is a fraction, the one place that says so is the `topics` cell. Measured: `fractions`
+176 → 235 hits, `surds` 40 → 55. Built onto the item, not matched per keystroke.
+
+#### The spelling is settled by a vote, because a list would go stale and Title Case invents words
+
+**46 of the 389 topic values differ from another only by case** — `Linear Equations` (81 rows) beside
+`linear equations` (4), `Histograms` (20) beside `histograms` (13). Two buttons for one topic is the
+`Alevel` / `A-Level` fault in a new column, and `check-funnel.js` fails the build on it.
+
+**Title Case was the obvious fix and it would have been wrong.** `HCF and LCM` title-cased is
+`Hcf And Lcm` — a spelling nobody typed, invented by code, printed on a button. So the library
+votes: every spelling is counted and the commonest wins for all of them, which can only ever pick a
+word somebody actually wrote. **Only the first letter is raised**, because `estimation` outnumbers
+`Estimation` in the file and the vote alone put a lower-case button in a column of capitalised ones.
+
+**Not fixed in the data, for the reason `levelOf_` gives**: the rows are bulk-imported and will keep
+arriving both ways, so a migration is something the next import undoes — and 4,000 committed content
+rows edited to make a filter work is a diff nobody can review. Proved by mutation: switching the
+vote off makes `check-funnel.js` name `Simultaneous Equations` / `simultaneous equations` and eleven
+more; the real file is green.
+
+#### "Doesn't matter", under every question
+
+**"sometimes i just know its roughly ks2".** `School year` was the only thing on the screen after
+Key stage, so somebody who does not care which year had a choice between answering it wrongly and
+going no further — and picking Year 4 took 1,093 questions to 193, silently throwing away nine
+hundred KS2 questions that were just as relevant.
+
+`{ any: true }` **is a filter that filters nothing**, and that is the entire mechanism: it sits in
+`STUFF.filters` so `nextFacet` moves on, and `stuffFind` skips it so nothing is removed. One entry,
+two behaviours, no second piece of state. It is a chip like any other, reading `any`, with the same
+✕ — a question silently dropped with nothing on screen saying so is the funnel "changing its mind"
+again.
+
+**On every facet, not on the one that annoyed somebody.** Every question here was compulsory and a
+person narrowing a list knows some things and not others. Writing a rule for `School year` alone is
+how the `cost: 0` fault came back as `paper: true`.
+
+#### "Only the first collection" was right about the wrong thing
+
+`stuffQuestion` drew `coll[0]` and nothing else, and the argument was sound: `paper_id` and `name`
+are the same 202 papers by two columns, so offering both is offering one thing twice with different
+numbers on it. **The rule written from that threw away every other axis as well** — with `Topic` in
+the list, papers group harder (227 groups against 343) and won the sort, so the screen offered "the
+227 papers these are in" and never "the 343 topics".
+
+**So the folding moved to where it belongs and is measured rather than declared**: two axes are the
+same collection when they cut the list the same way — the same number of groups holding the same
+numbers of things. `paper_id` and `name` match on that exactly; `Topic` and `Papers` do not. It is a
+signature and not a proof, and the cost of being wrong is the old behaviour.
+
+**And "Nothing left to narrow" was not true.** It said it over 1,093 questions with 48 topics in
+them, one line under a control offering exactly those 48 topics — the funnel had run out of
+QUESTIONS, which is a different claim. It says which of the two it means now.
+
+**What it costs**: the first draw of the Find screen went 65 ms → 88 ms and a search 32 ms → 43 ms,
+measured over 4,045 items. That is one extra facet walked twice per filter change, not per keystroke.
 
 ### `node js/check-funnel.js` — the funnel, run over the real library
 

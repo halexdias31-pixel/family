@@ -696,6 +696,27 @@ const FACETS = [
      rule again, doing what a per-kind filter list would otherwise need code for. */
   { field: 'category',  label: 'Category',    of: x => x.category || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
+  /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
+     STRAIGHT AFTER `Subject`, because "Maths, and it is about fractions" is how somebody says what
+     they are looking for — and because `nextFacet` walks this list IN ORDER, so anything below the
+     provenance questions is a question you only reach after answering five that are not it.
+
+     IT STAYS SILENT UNTIL IT IS USEFUL, WITHOUT BEING TOLD TO. There are 389 distinct topics across
+     the library, which is past `FACET_MAX_ANSWERS`, so it is not offered at the top — and 91.5% of
+     the question rows carry one but almost nothing else in the app does, so its coverage is low
+     until the list IS questions. Both rules that keep it out of the way are the ones already here,
+     doing the job they were written for; there is no number in this entry.
+
+     SO IT ARRIVES WHERE IT IS ANSWERABLE. Learning · Maths · Worksheet · KS2 leaves 54 topics —
+     still a list, so the funnel keeps narrowing — and by the point it used to say "nothing left"
+     it is eleven. See `topicOf_` for the reader and for why the spelling is voted on rather than
+     listed.
+
+     AND IT IS A COLLECTION AS WELL AS A QUESTION, for free: 389 groups is past the same constant
+     `collectionAxes_` reads, so "or the 352 topics these are in" becomes available wherever
+     grouping by topic would collapse the list harder than grouping by paper. Neither of those
+     behaviours is written here. */
+  { field: 'topic',     label: 'Topic',       of: x => topicOf_(x) },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
      else — the same rule that hides `borough` unless you are looking at venues. */
   /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
@@ -1624,7 +1645,13 @@ function questionItems() {
          THE ANSWER IS DELIBERATELY NOT IN HERE. This is what the search box matches, and including
          it means typing a value finds the question it answers, which is the one search a revision
          screen must not do. */
-      text: searchText_(r) + (stem ? ' ' + searchText_(stem) : ''),
+      /* AND THE TOPICS, WHICH THE SEARCH BOX COULD NOT SEE EITHER. `searchText_` reads the
+         question's own words, so `fractions` found a question only if the word `fractions` was
+         printed in it — and on a worksheet whose every question is a fraction, the one place that
+         says so is the `topics` cell. Typed here rather than matched in the filter for the reason
+         `searchText_` gives: this runs once per item, and the filter runs per keystroke. */
+      text: searchText_(r) + (stem ? ' ' + searchText_(stem) : '')
+            + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' '),
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */
@@ -2027,6 +2054,97 @@ function stuffItems() {
  *
  * So: the column when it is filled, and the four digits out of the wave when it is not.
  */
+/* ==================================================================================================
+   `topicOf_` — WHAT THE QUESTION IS ABOUT, WHICH THE FUNNEL HAD NEVER ASKED.
+
+   SIX CHIPS DEEP IT SAID "NOTHING LEFT TO NARROW" OVER 193 QUESTIONS. Learning, Questions, Maths,
+   Worksheet, KS2, Year 4 — six taps — and the 193 left were about eleven different things:
+   fractions, area, roman numerals, telling the time. Every question the funnel asked on the way
+   down was about where the question CAME FROM — subject, level, type, key stage, school year,
+   board, tier, publisher — and not one about what it is OF.
+
+   THAT IS THE WHOLE OF "I CLICK THE FILTERS AND IT JUST FEELS LIKE IT SHOWS ALL OF THEM". The
+   filters were narrowing provenance while the person was looking for a topic, so every tap took a
+   real bite out of the list and none of them took the bite that was wanted.
+
+   THE COLUMN WAS ALREADY THERE, AND NOTHING READ IT. `topics` is on 91.5% of the question rows and
+   has reached the browser on `row` since `libraryInto_` stopped enumerating columns — see the note
+   on `row:` in js/library.js, which was written about exactly this: an enumeration goes stale and a
+   reference does not. So this is a reader over data that already exists, which is the only kind of
+   facet that scales — a worksheet transcribed tomorrow is filterable the moment its `topics` cell
+   is filled in, with nothing here to edit and no deploy.
+
+   A CELL HOLDS A LIST. `Fractions, Ordering` is two topics the same way `KS1, KS2` is two key
+   stages; see `keystage` in FACETS for the same split and the same reason.
+
+   ---------- AND THE SPELLING IS SETTLED BY A VOTE, NOT BY A LIST KEPT HERE ------------------------
+
+   46 OF THE 389 DISTINCT TOPIC VALUES DIFFER FROM ANOTHER ONLY BY CASE. `Linear Equations` (81
+   rows) beside `linear equations` (4); `Histograms` (20) beside `histograms` (13); `Expanding
+   Brackets` (37) beside `expanding brackets` (9). Two buttons for one topic is the `Alevel` /
+   `A-Level` fault in a new column, and `check-funnel.js` fails the build on it by design.
+
+   TITLE CASE WOULD HAVE BEEN THE OBVIOUS FIX AND IT WOULD HAVE BEEN WRONG. `HCF and LCM`
+   title-cased is `Hcf And Lcm` — a spelling nobody ever typed, invented by code, printed on a
+   button. So instead THE LIBRARY VOTES: every spelling of a topic is counted and the commonest one
+   is used for all of them. That can only ever pick a word somebody actually wrote, it needs no
+   vocabulary list to keep in step with the transcriptions, and a new spelling arriving in a bulk
+   import is absorbed rather than split off into a chip of its own.
+
+   NORMALISED HERE RATHER THAN IN THE DATA, for the reason `levelOf_` gives one screen down: the
+   rows are bulk-imported and will keep arriving in both cases, so a migration is something the next
+   import undoes. 4,000 committed content rows edited to make a filter work is also a diff nobody
+   can review.
+================================================================================================== */
+let TOPIC_SAID = null;   /* the key of a topic -> the spelling the library uses most */
+let TOPIC_FROM = null;   /* the rows it was counted off, held by identity, like `stuffFiltered` */
+
+/* A COMMA IS A LIST SEPARATOR AND NOTHING ELSE IS. Same shape as `keystage`'s split, kept as a
+   helper because three places need it and the third is the search haystack. */
+const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()).filter(Boolean);
+
+/* STRIPPED TO THE LETTERS, which is deliberately the same reduction `check-funnel.js` applies when
+   it looks for one answer wearing two coats. A key that is weaker than the check's is a key that
+   lets exactly the pairs the check fails on straight through. */
+const topicKey_ = t => String(t == null ? '' : t).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function topicSaid_() {
+  const rows = (DATA && DATA.questions) || [];
+  if (TOPIC_SAID && TOPIC_FROM === rows) return TOPIC_SAID;
+  const tally = {};
+  rows.forEach(r => {
+    topicAtoms_(r && ((r.row && r.row.topics) || r.topics)).forEach(t => {
+      const k = topicKey_(t);
+      if (!k) return;
+      (tally[k] = tally[k] || {})[t] = (tally[k][t] || 0) + 1;
+    });
+  });
+  const said = {};
+  Object.keys(tally).forEach(k => {
+    /* MOST ROWS WINS, AND THE ALPHABET SETTLES A TIE — so the answer does not depend on the order
+       the file happens to be in, which is the sort of dependency that changes a button's label on
+       an unrelated commit. */
+    const won = Object.keys(tally[k])
+      .sort((a, b) => (tally[k][b] - tally[k][a]) || cmpText(a, b))[0];
+    /* AND THE FIRST LETTER IS RAISED, WHICH IS THE ONE THING THE VOTE SHOULD NOT DECIDE.
+       `estimation` outnumbers `Estimation` in the file, so the vote alone put a lower-case button
+       in a column of capitalised ones — a label reading "estimation" beside "Linear Equations"
+       looks like a fault in the data, and it is not one. Only the first letter, never the interior
+       words: `HCF and LCM` stays exactly as somebody typed it, which is the whole reason Title Case
+       was rejected at the top of this block. */
+    said[k] = won.charAt(0).toUpperCase() + won.slice(1);
+  });
+  TOPIC_SAID = said;
+  TOPIC_FROM = rows;
+  return said;
+}
+
+function topicOf_(x) {
+  const said = topicSaid_();
+  return topicAtoms_(x && ((x.row && x.row.topics) || x.topics))
+    .map(t => said[topicKey_(t)] || t);
+}
+
 /**
  * WHAT LEVEL A THING IS TAUGHT AT, FROM WHICHEVER OF THE TWO COLUMNS HAS IT.
  *
@@ -2218,7 +2336,21 @@ function stuffFind(items, credits) {
      one from EVERY group — `some` within a field, `every` across them, which is exactly what
      "either / both" means written out. */
   const byField = {};
-  STUFF.filters.forEach(f => { (byField[f.field] = byField[f.field] || []).push(f); });
+  /* ---------- A SKIPPED QUESTION IS ASKED AND ANSWERED "ANY" -------------------------------------
+     `{ any: true }` IS A FILTER THAT FILTERS NOTHING, and that is the entire mechanism. It sits in
+     `STUFF.filters` so `nextFacet` — which reads that list to know what has been asked — moves on
+     to the next question, and it is skipped here so it removes nothing from the list. One entry,
+     two behaviours, and no second piece of state to keep in step with the first.
+
+     WHY IT EXISTS: "sometimes i just know its roughly ks2". `School year` is a real question and it
+     was the ONLY thing on the screen after Key stage — so somebody who does not care which year
+     had a choice between answering it wrongly and going no further. Picking Year 4 took 1,093
+     questions to 193 and silently threw away nine hundred KS2 questions that were just as
+     relevant. */
+  STUFF.filters.forEach(f => {
+    if (f.any) return;
+    (byField[f.field] = byField[f.field] || []).push(f);
+  });
   Object.keys(byField).forEach(field => {
     out = out.filter(x => byField[field].some(f => filterHit(x, f, credits)));
   });
@@ -2338,7 +2470,11 @@ function collectionAxes_(items) {
   if (n < 2) return [];
   return facetList().map(f => {
     const vals = facetValues(items, f);
-    return { facet: f, groups: vals.length };
+    /* THE GROUP SIZES, SORTED — kept from the walk that is happening anyway, because the duplicate
+       test at the bottom needs them and asking `facetValues` a second time per axis is the whole
+       list walked twice per facet on every draw. */
+    return { facet: f, groups: vals.length,
+             sizes: vals.map(v => v.n).sort((a, b) => a - b).join(',') };
   })
   /* BETWEEN THE TWO EDGES. `> FACET_MAX_ANSWERS` because at or under it the funnel will simply ask
      the question, which is better.
@@ -2353,7 +2489,37 @@ function collectionAxes_(items) {
   .filter(g => (g.facet.collect ? g.groups > 1 : g.groups > FACET_MAX_ANSWERS)
                && g.groups <= n / 2)
   /* FEWEST GROUPS FIRST — the one that collapses the list hardest is the one worth offering. */
-  .sort((a, b) => a.groups - b.groups);
+  .sort((a, b) => a.groups - b.groups)
+  /* ---------- AND THE SAME COLLECTION REACHED TWICE IS ONE COLLECTION ---------------------------
+     THIS USED TO BE "ONLY THE FIRST", AND THE REASON WAS RIGHT ABOUT THE WRONG THING. `paper_id`
+     and `name` are the same 202 papers by two columns, so offering both is offering one thing twice
+     with different numbers on it — true, and the rule written from it threw away every OTHER axis
+     as well. `Topic` groups the same questions by what they are ABOUT, which is not the papers
+     under a different name; it is the second door on the screen, and "only the first" was hiding
+     it behind the first.
+
+     SO TWO AXES ARE THE SAME COLLECTION WHEN THEY CUT THE LIST THE SAME WAY, measured rather than
+     declared: the same number of groups holding the same numbers of things. `paper_id` and `name`
+     match on that exactly, because they ARE the same partition; `Topic` and `Papers` do not.
+
+     IT IS A SIGNATURE, NOT A PROOF. Two unrelated axes could in principle produce identical group
+     sizes and be folded together — at which point the screen offers one door instead of two, which
+     is what it did for everything until now. The cost of being wrong here is the old behaviour. */
+  .filter((g, i, all) => all.findIndex(o => o.sizes === g.sizes) === i);
+}
+
+/* MORE THAN ONE OF IT. A collection line reads "or the 48 topics these are in", and the facet's
+   label is the word for ONE of them — `Topic`, `Company`, `Sitting`. Written out by the ordinary
+   English rules rather than by a plural column beside every label, so a question invented in the
+   `facets` tab gets a readable line with nothing typed anywhere.
+   A LABEL THAT IS ALREADY PLURAL IS LEFT ALONE. `Papers` is the one in the code today, and the
+   test is the same one that decides `-es` — it is the letters at the end that say which. */
+function plural_(word) {
+  const w = String(word || '');
+  if (!w || /s$/i.test(w)) return w;
+  if (/(x|z|ch|sh)$/i.test(w)) return w + 'es';
+  if (/[^aeiou]y$/i.test(w)) return w.slice(0, -1) + 'ies';
+  return w + 's';
 }
 
 /* ---------- ONE ITEM PER COLLECTION, BUILT FROM ITS MEMBERS --------------------------------------
@@ -2903,7 +3069,11 @@ function filterChips() {
     ${STUFF.filters.map((f, i) => `
       <button class="chip" data-do="filter-drop" data-i="${i}">
         <span class="chip-k">${esc((facetBy(f.field) || {}).label || f.field)}</span>
-        ${esc(f.value)}<span class="chip-x">✕</span>
+        ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody
+             made and has to be able to unmake. A question silently dropped with nothing on screen
+             saying so is the funnel "changing its mind" again — the complaint `whyThisQuestion()`
+             was written for. */''}
+        ${f.any ? 'any' : esc(f.value)}<span class="chip-x">✕</span>
       </button>`).join('')}
     ${/* `clear` WAS GREY TEXT ON NOTHING — no border, no fill, the faint colour — sitting at the end
           of a row of bordered chips. It read as a caption rather than a control, which is the one
@@ -2953,6 +3123,13 @@ on('group-open', el => {
 
 on('facet-pick', el => {
   STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
+  paintStuff();
+});
+/* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
+   Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
+   does not do. */
+on('facet-skip', el => {
+  STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuff();
 });
 on('filter-drop', el => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); });
@@ -3389,12 +3566,18 @@ function stuffQuestion() {
      AND ONLY THE FIRST. `collectionAxes_` may find two — `paper_id` and `name` are the same 202
      papers reached two ways — and offering both is offering the same thing twice with different
      numbers on it. Fewest groups wins, which is the one that collapses the list hardest. */
+  /* ---------- EVERY DOOR, NOT JUST THE NARROWEST ONE ---------------------------------------------
+     THIS DREW `coll[0]` AND NOTHING ELSE. With `Topic` in the list that is the difference between
+     a screen that offers "the 343 topics these are in" and one that offers only "the 227 papers",
+     because papers group harder and won the sort. Somebody revising wants the topics; somebody
+     sitting a mock wants the papers; the funnel cannot know which, and picking for them by group
+     count is picking by arithmetic that is not about the question.
+     THE REASON FOR "ONLY THE FIRST" IS NOW IN `collectionAxes_`, where it belongs — it was about
+     the same collection appearing twice, and that is folded there by measuring the partition. */
   const coll = STUFF.groupBy ? [] : collectionAxes_(items);
-  const collLine = coll.length
-    ? `<p class="stuff-coll"><button class="text-action" data-do="group-by"
-         data-field="${esc(coll[0].facet.field)}">or the ${coll[0].groups}
-         ${esc(String(coll[0].facet.label).toLowerCase())} these are in</button></p>`
-    : '';
+  const collLine = coll.map(c => `<p class="stuff-coll"><button class="text-action"
+         data-do="group-by" data-field="${esc(c.facet.field)}">or the ${c.groups}
+         ${esc(plural_(String(c.facet.label)).toLowerCase())} these are in</button></p>`).join('');
   /* AND THE WAY BACK, which is the same control saying the opposite thing. A collection view with
      no way out is a screen you have to use the back button on. */
   const collBack = STUFF.groupBy
@@ -3407,9 +3590,19 @@ function stuffQuestion() {
     ? `<p style="margin:.6rem 0 0"><span class="text-action" data-do="friend-add-open"
         >Add someone by their handle</span></p>` : '';
   if (!facet) {
+    /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN ----
+       IT SAID IT OVER 1,093 QUESTIONS WITH 48 TOPICS IN THEM, one line under a control offering
+       exactly those 48 topics. The funnel had run out of QUESTIONS — no facet left with between
+       two and forty answers — and the sentence reported that as having run out of ways to narrow,
+       which is a different claim and a false one. Somebody reading it stops, which is what the
+       screenshot was of.
+       SO IT SAYS WHICH OF THE TWO IT MEANS. With a collection on offer the way on is the line
+       above, and the sentence points at it instead of contradicting it. */
+    const n = items.length === 1 ? 'one' : items.length;
     return collLine + collBack
-      + `<p class="faint" style="margin:.6rem 0 0">Nothing left to narrow.
-      Swipe up for the ${items.length === 1 ? 'one' : items.length}.</p>` + adding;
+      + `<p class="faint" style="margin:.6rem 0 0">${coll.length
+          ? `No more questions — swipe up for the ${n}, or take one of the groupings above.`
+          : `Nothing left to narrow. Swipe up for the ${n}.`}</p>` + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first
@@ -3429,11 +3622,33 @@ function stuffQuestion() {
      so is the count — so on a one-digit number it appeared beside the digit and on a four-digit one
      it disappeared behind them. Five rows, chevrons on two of them, and the two were whichever
      happened to have small numbers. It marked nothing and read as litter. */
+  /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION -----------------------------------------------
+     ON EVERY FACET, NOT ON THE ONE THAT PROMPTED IT. `School year` is where this was noticed —
+     somebody who knows a sheet is "roughly KS2" was being asked to name a year and had no way past
+     it — but the fault is the funnel's shape rather than that question's: EVERY question here is
+     compulsory, and a person narrowing a list knows some things and not others. Writing a rule for
+     the facet that annoyed somebody is how the `cost: 0` fault came back as `paper: true`.
+
+     NO COUNT ON IT, deliberately. The number beside an answer says how many things are behind it,
+     and the number behind "doesn't matter" is the count already printed above this list — a second
+     copy of it here reads as a sixth answer that happens to be the biggest, which is exactly the
+     shape of a button that does nothing.
+
+     IT IS LAST because it is the way out of the question, not one of its answers. */
+  /* `counted` WITHOUT A COUNT, which is not a contradiction: that class is what makes an answer a
+     44px surface with a press animation instead of a 33px fact row with a hairline under it — see
+     the block it names in style.css. A bare `.row.tap` here would have been the third conviction of
+     the tap-target rule this repo already records twice. `is-skip` takes the fill back off, so it
+     reads as the quiet way out of the question rather than a sixth answer. */
+  const skip = `<div class="row tap counted is-skip" data-do="facet-skip"
+        data-field="${esc(facet.field)}">
+        <span class="k">Doesn't matter</span>
+      </div>`;
   return collLine + collBack + values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
         <span class="k">${mark(v.value)}</span>
         <span class="v mono">${v.n}</span>
-      </div>`).join('');
+      </div>`).join('') + skip;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,

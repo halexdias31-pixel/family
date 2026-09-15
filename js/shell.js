@@ -2002,8 +2002,27 @@ async function load() {
          A FAILURE IS AN EMPTY LIBRARY, not a dead app: `libraryRows_` answers `[]` and every
          section reads as an empty tab, which is what the rest of this payload does with anything
          it cannot read. */
+      /* ---------- NOT `d = ...`, AND THAT LINE HAD BEEN THROWING ON EVERY LOAD --------------
+         `d` IS `const` — declared `const d = await res.json()` about forty lines up — so
+         `d = libraryInto_(d, …)` threw "Assignment to constant variable" every single time this
+         ran, and the catch below swallowed it.
+
+         NOTHING LOOKED WRONG, WHICH IS WHY IT LASTED. `libraryInto_` MUTATES `d` in place and
+         returns the same object, so the questions were already written by the time the assignment
+         was attempted; the throw happened after the useful work and the catch's repair
+         (`d.questions = d.questions || []`) found the key already populated and left it alone. A
+         correct fallback hiding a broken line, which is the shape CLAUDE.md records under
+         `check-flow` and `.mat-out` and now here.
+
+         IT ONLY BECAME VISIBLE WHEN SOMETHING WAS PUT AFTER IT. The three extra library tabs are
+         the first code to sit on the next line, and they simply never ran — proved by booting the
+         app with a row in `data/boxers.json` and watching the payload's copy win anyway. */
       try {
-        d = libraryInto_(d, await libraryRows_());
+        libraryInto_(d, await libraryRows_());
+        /* THE OTHER THREE TABS, WHICH MAY STILL BE EMPTY. `libraryExtras_` leaves a key alone
+           unless its file has rows in it, so while `data/boxers.json` and the rest are `[]` the
+           payload's own copy stands and nothing here changes. See the header of library.js. */
+        libraryExtras_(d, await libraryExtraRows_());
       } catch (e) {
         d.questions = d.questions || [];
         d.dropdowns = d.dropdowns || {};
