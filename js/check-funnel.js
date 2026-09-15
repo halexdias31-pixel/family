@@ -102,13 +102,21 @@ boot(f => {
 
     /* ---------- 1. A QUESTION EVERYBODY ANSWERS THE SAME WAY --------------------------------------
        The `paper` fault. Marked `always` means it is a door rather than a filter — see FACETS —
-       and doors are allowed to be lopsided. */
+       and doors are allowed to be lopsided.
+
+       `facetSplit_` IS NOW A SHARE OF THE LIST, not of the tally, and that repair was found by this
+       check's own subject rather than by this check. `Key stage` scored 35.4% at a real state of the
+       real funnel — five times the floor — and pressing its commonest answer left 1,314 items of
+       1,331, because a multi-valued facet counts one item against several answers and the old
+       denominator was that count rather than the list. Nothing here changed; the number it reads
+       stopped lying. */
     if (offered && !facet.always) {
       const split = f.facetSplit_(items, facet);
       if (split < f.FACET_MIN_MINORITY) {
-        bad.push('`' + facet.field + '` (' + facet.label + ') is offered but cannot narrow: only '
-                 + (split * 100).toFixed(2) + '% of the items that can answer it fall outside the '
-                 + 'commonest answer. A question with one real answer is a tap that does nothing.');
+        bad.push('`' + facet.field + '` (' + facet.label + ') is offered but cannot narrow: '
+                 + 'pressing its commonest answer would leave ' + (split * 100).toFixed(2)
+                 + '% of the list standing. A question whose obvious answer changes nothing is a '
+                 + 'tap that does nothing.');
       }
     }
 

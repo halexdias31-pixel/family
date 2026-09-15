@@ -274,6 +274,129 @@ sittings.forEach((ids, key) => {
 });
 twice.forEach(t => fail.push(t));
 
+/* ---------- THE SAME DOCUMENT, TRANSCRIBED TWICE — AND THIS IS THE STRONGER TEST -------------------
+   THE SITTING KEY ABOVE CANNOT SEE A WORKSHEET. It is built from subject, board, year, series,
+   paper number and tier, and a Corbettmaths or 1st Class Maths sheet has none of those — so five
+   sets sat in the library, three of them a SECOND transcription of a PDF that was already in here,
+   past every check in the suite. Found by noticing that five of the sixty-nine `W-CBM-` sets carry
+   a `source_url` and the other sixty-four do not: the URL is the 1st Class Maths tell, because that
+   publisher's sheets are Drive files and Corbettmaths' are not.
+
+   AND THE URLS WERE IDENTICAL — the same Drive file id, character for character. `W-CBM-reflections`
+   (9 parts, terse) and `W-1CM-reflections` (15 parts, carrying the sheet's own title) are one PDF
+   read twice, at different granularity, by two different sessions. Nothing about the text matched,
+   which is why comparing questions said "different worksheets" and was wrong: the questions ARE
+   different, because the two transcriptions disagree about where a question ends.
+
+   SO THE DOCUMENT IS THE THING, AND ITS URL IS ITS IDENTITY. A `source_url` is a file somewhere;
+   two `paper_id`s pointing at one file is one document entered twice, whatever either is called and
+   whatever the rows under them say. It needs no vocabulary, no id convention and no knowledge of
+   what an exam is, which is what makes it the test the sitting key should have been.
+
+   COMPARED ON THE DRIVE ID, NOT THE URL. The same file is written both `drive.google.com/file/d/<id>/view`
+   and `drive.google.com/open?id=<id>&usp=drive_copy` in this very library, on rows of the same set —
+   two spellings of one address, which is the `waveOf` fault in a third column.
+
+   TWO PAPERS WITH QUESTIONS IS A FAILURE; A STUB BESIDE A TRANSCRIPTION IS A NOTE. Twenty-five of
+   the twenty-eight pairs are an empty `R0xxx` document row — a link and a page count, no questions —
+   sitting beside the real transcription of that paper. That is the normal, intended state and the
+   sitting key above already says so in its own words. What cannot be normal is the same file read
+   into questions twice. */
+const driveId = u => {
+  const m = String(u || '').match(/[-\w]{25,}/);
+  return m ? m[0] : String(u || '');
+};
+const partsPer = {};
+rows.forEach(r => { if (r && r.kind === 'part') partsPer[r.paper_id] = (partsPer[r.paper_id] || 0) + 1; });
+const byDoc = new Map();
+rows.forEach(r => {
+  if (!r || !r.source_url || !r.paper_id) return;
+  const k = driveId(r.source_url);
+  if (!k) return;
+  if (!byDoc.has(k)) byDoc.set(k, new Set());
+  byDoc.get(k).add(r.paper_id);
+});
+let stubPairs = 0;
+byDoc.forEach((ids, k) => {
+  if (ids.size < 2) return;
+  const withParts = [...ids].filter(id => partsPer[id]);
+  if (withParts.length < 2) { stubPairs++; return; }
+  fail.push(`one document is transcribed ${withParts.length} times — `
+    + withParts.map(id => `${id} (${partsPer[id]} parts)`).join(', ')
+    + `. They share the file ${k}, so they are one PDF read twice: keep the fuller transcription `
+    + `and delete the other, or the library teaches the same question under two names.`);
+});
+
+/* ---------- A PREAMBLE THAT NOTHING SITS UNDER ------------------------------------------------------
+   A `kind: 'stem'` ROW IS A PARAGRAPH SEVERAL QUESTIONS HANG FROM, and its scope is read off the
+   columns it carries — see `preamble_` in find.js. Three things can go wrong with that and none of
+   them throws:
+
+   AN ORPHAN. A stem naming a question number that has no parts is a paragraph nothing will ever
+   draw. It reads as content in the file and is content nowhere, which is the `dropdowns.checklists`
+   fault in miniature: a builder producing nothing from nothing, silently, for as long as nobody
+   looks.
+
+   A STEM THAT CLAIMS MARKS. A preamble is scene-setting; the marks are on the parts. One carrying
+   a mark count would be double-counted by the 80-mark rule above, and that rule is the only
+   end-to-end check this library has.
+
+   AND A PART WHOSE SCENE IS MISSING is NOT reported, deliberately. 3,976 of the 4,005 parts carry
+   their preamble inside their own `html` because that is how they were transcribed, and a check
+   that fires on all of them says nothing anybody can act on. The model is thinly populated on
+   purpose — filling it in is editorial work on rows that already exist. */
+const partKeys = new Set();
+const sectionKeys = new Set();
+rows.forEach(r => {
+  if (!r || r.kind !== 'part' || !r.paper_id) return;
+  partKeys.add(r.paper_id + '|' + r.question);
+  if (r.section) sectionKeys.add(r.paper_id + '|' + r.section);
+});
+const paperKeys = new Set(rows.filter(r => r && r.kind === 'part').map(r => r.paper_id));
+rows.forEach(r => {
+  if (!r || r.kind !== 'stem') return;
+  if (Number(r.marks)) {
+    fail.push(`${r.row_id} is a stem carrying ${r.marks} mark(s). A preamble is scene-setting and `
+      + `the marks belong to the parts under it — this one is counted twice by the 80-mark rule.`);
+  }
+  const has = (r.question !== undefined && r.question !== null && r.question !== '')
+    ? partKeys.has(r.paper_id + '|' + r.question)
+    : r.section ? sectionKeys.has(r.paper_id + '|' + r.section)
+    : paperKeys.has(r.paper_id);
+  if (!has) {
+    fail.push(`${r.row_id} is a stem nothing sits under — nothing in ${r.paper_id} matches its `
+      + `scope, so the paragraph is in the file and on no screen. Point a part at it or delete it.`);
+  }
+});
+
+/* ---------- A PICTURE THIS SITE DREW MUST SAY SO ---------------------------------------------------
+   SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET HAD NO ANSWER IN THEM. "Natalie has these coins.
+   How much money does Natalie have?" — and no coins: the data was entirely in an image and a
+   transcription is a text layer. corbettmaths.com is blocked from the agent's environment by the
+   same policy that blocks every Google host, so the real coins cannot be recovered; the set that is
+   drawn now is ours, and so is the answer.
+
+   `diagram_by` IS A DISCLOSURE FIELD AND IT IS CLOSED. Absent means the picture came off the paper;
+   `family` means this site drew it. Anything else is a spelling nobody has agreed, and it would go
+   straight onto a card under a credit line that would then be wrong — which is worse than no credit
+   at all. Same argument as `VOCAB`, one column over.
+
+   AND A PICTURE CANNOT BE CREDITED IF THERE IS NO PICTURE. A `diagram_by` on a row with no
+   `diagram` is a claim about nothing, and it is exactly what a half-finished edit leaves behind. */
+const DIAGRAM_BY = ['family'];
+rows.forEach(r => {
+  if (!r || !r.diagram_by) return;
+  if (!DIAGRAM_BY.includes(r.diagram_by)) {
+    fail.push(`${r.row_id} says diagram_by: ${JSON.stringify(r.diagram_by)}. The only value that `
+      + `means anything is ${DIAGRAM_BY.map(v => JSON.stringify(v)).join(', ')} — absent means the `
+      + `picture came off the paper. Add it to DIAGRAM_BY with a reason, or fix the row.`);
+  }
+  if (!r.diagram) {
+    fail.push(`${r.row_id} credits a diagram it does not have. Draw it or drop the credit.`);
+  }
+});
+const drawnHere = rows.filter(r => r && r.diagram_by === 'family').length;
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
@@ -356,6 +479,8 @@ say('QUESTIONS THE TRANSCRIBER COULD NOT RECOVER — worth a person and the orig
     r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
+console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
+console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
 
 if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');

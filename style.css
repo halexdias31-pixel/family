@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-24-topics";
+  --css-version: "2026-09-25-topics";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1399,7 +1399,18 @@ button.text-drop { color: var(--bad); }
 .chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .6rem; }
 .chip {
   display: flex; align-items: center; gap: .3rem;
-  min-height: max(38px, 2.3rem); padding: 0 .6rem;
+  /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE ---------------------------
+     IT READ `max(38px, 2.3rem)`, WHICH IS `.btn.tiny` EXACTLY. The root is `clamp(13.5px, 3.8vw,
+     16px)`, so 2.3rem is 34px on a phone and the `max` never once chose the rem — every chip in the
+     app has been 38px tall on every device, which is tall enough to look deliberate and under the
+     44px a fingertip needs. CLAUDE.md records this same arithmetic for `.btn.tiny`, `.post-act` and
+     `.fm-adds label`; this is the fourth.
+
+     IT SURVIVED BECAUSE NOTHING HAD EVER SEEN A CHIP. `check/ui.js` measures the Find screen in the
+     state it opens in, and in that state there are no filters, so there are no chips — 63 known tap
+     targets, four widths, two visitors, and the control that removes a filter was in none of them.
+     It appeared the moment the check was given a state six answers deep. */
+  min-height: 44px; padding: 0 .6rem;
   background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
   color: var(--ink); font: inherit; font-size: .78rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
@@ -6725,7 +6736,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    results rather than being one of the answers — so it must not look like a row you could pick, or
    the first question would appear to have an extra option on it. `.text-action` already carries the
    app's underlined pressable-text look; this only places it. */
-.stuff-coll { margin: 0 0 .5rem; font-size: .78rem; }
+/* `.stuff-coll` WAS HERE — the "or the 227 papers these are in" line above the funnel's answers.
+   The collection went; a paper is an answer to an ordinary question now. */
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
@@ -6834,7 +6846,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    from the first version is NOT back: `questionCard_` prints the marks in its own header row, hard
    right beside the reference, which is where somebody scanning a list looks for them. */
 .qsheet-part { display: flex; gap: .6rem; }
-.qsheet-pb { flex: 1; min-width: 0; }
+/* ---------- A LINE TO WRITE ON IS ONE LONG WORD -------------------------------------------------
+   FIFTY-ONE QUESTIONS CARRY A RUN OF DOTS OR UNDERSCORES — the answer line the printed paper has —
+   and the longest is 128 characters with no space in it. To a browser that is a single word, so it
+   cannot be wrapped and it takes the card, the pane and the page sideways with it.
+
+   `min-width: 0` WAS ALREADY HERE AND IS NOT ENOUGH. It lets the flex child give way; it does not
+   let the TEXT inside it break, so the box shrank to zero and the word ran out of it anyway. That
+   is the same half-fix `.row .k` needed, recorded a few thousand lines up.
+
+   `break-word` RATHER THAN `anywhere`, because the difference is what happens to ordinary prose:
+   `anywhere` will split a word mid-letter whenever it helps the layout, and a maths question broken
+   across "coeffi / cient" is the `|·| rul / er` fault this repository already has a paragraph
+   about. `break-word` only breaks a word that cannot fit on a line of its own, which is exactly the
+   dotted rule and nothing else. */
+.qsheet-pb { flex: 1; min-width: 0; overflow-wrap: break-word; }
 .qsheet p:first-child { margin-top: 0; }
 .qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
 .qsheet ol.roman { list-style: lower-roman; }
@@ -6852,6 +6878,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
 .qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
 .qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+
+/* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM -------------------------------------------
+   THE SIZES CARRY INFORMATION, which is why the coins are not all one circle: a child recognises a
+   50p by being the big seven-sided one, so the real diameters are scaled and 20p and 50p are drawn
+   as heptagons. A picture that is drawn to scale is measured rather than eyeballed — CLAUDE.md
+   makes that rule about READING a diagram and it applies just as much to drawing one.
+
+   `currentColor` THROUGHOUT, like the two diagrams that were here before, so one drawing works on
+   both of this app's palettes without a second copy of it. */
+.qsheet .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
+.qsheet .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
+.qsheet .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
+
+/* A CREDIT IS NOT A CAPTION AND MUST NOT READ AS ONE. It is the smallest, quietest thing on the
+   card, because it is a disclosure rather than part of the question — but it is on the card, every
+   time, because the alternative is this site passing its own question off as the exam board's. */
+.fig-by { margin: .4rem 0 0; font-size: .7rem; line-height: 1.35; opacity: .55; text-align: center; }
 /* ==================================================================================================
    BOXING — THE FIGHTER AND THE FIGHT
 
@@ -7322,7 +7365,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .row.tap.counted:last-child { margin-bottom: 0; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
-.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem; }
+/* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW -----------------------
+   `.row .k` IS `flex: 0 0 auto` AND THAT WAS RIGHT WHEN IT WAS A LABEL. "Credits", "You have",
+   "Where" — two words beside a value, and a label that shrinks away from its own number is worse
+   than one that does not. The note a few thousand lines up adds `min-width: 0` for the basket,
+   where the title went in the `k` slot; `min-width: 0` lets a flex child give way and `flex-shrink:
+   0` then refuses to, so it only ever helped the case that also overflowed.
+
+   TAKING THE COUNT OFF THE ANSWER ROWS MADE THIS VISIBLE. There is no `.v` beside it any more, so
+   the row holds one child and that child is the answer — "Angles in Triangles & Quadrilaterals" ran
+   past the card and was CLIPPED, not wrapped, with nothing reporting it: the pane hides its
+   overflow, so no box scrolled sideways and `check/ui.js` measures exactly that. The measurement
+   was green and the layout was wrong, which this repository has now written down three times.
+
+   `flex: 1 1 auto` — take the room, and give way when there is not enough, at which point the
+   `overflow-wrap` it already carries does the rest. */
+.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem;
+  flex: 1 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is

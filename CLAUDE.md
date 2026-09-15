@@ -226,7 +226,7 @@ budget before lunch and stop the nightly jobs.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 24 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 25 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -336,6 +336,117 @@ node check/ui.js --payload=/tmp/p.json                 # and the real app render
 `index.html` loads `js/*.js` and the browser concatenates them. Nothing in `node_modules` is ever
 shipped. Before it existed, a fresh clone ran `node js/check.js` and got `Cannot find module 'acorn'`
 with nothing anywhere saying what to install.
+
+### `node check/cards.js` — every question in the library, laid out. A sample is not a sweep
+
+**`check/ui.js` had never rendered a question card.** It drives the real app through its own `go()`
+and measures nine screens at four widths as two visitors — 72 combinations, on every commit, for as
+long as it has existed. The Find screen opens on the funnel's *question*; the results are a strip of
+pages filled five either side of where you are. So the app's largest surface, four thousand rows of
+it, was never on the screen it was measuring.
+
+**It cost exactly what you would expect.** Fifty-one questions carry the printed paper's dotted
+answer line — the longest 128 characters with no space in it, which to a browser is one unbreakable
+word — and every one took the card, the pane and the page sideways at 320px. `ui.js` measures
+sideways scroll. It reported nothing, because the page it was on never happened to hold one.
+
+**This is the `check-flow` stub in a third costume**: a check that cannot reach its subject
+reporting a pass. The summary said 72 combinations and meant it; what it did not say is that 72
+combinations is nine screens seen once each.
+
+**Two fixes, and only one of them is the real answer.**
+
+`check/ui.js` gains **declared states** — `STATES` at the top names, per screen, the states worth
+measuring, each a name and a line of the app's own code. The Find screen now has two: the question
+and the results. A state that does not arrive fails loudly (`expect` says what must be on the
+screen), for the same reason the signed-in seed does. 72 combinations became 80.
+
+**But that is still a sample, and widening a sample makes the odds better without making the claim
+truer.** Measured: searching a common word gives 1,063 hits and puts SIX cards in the DOM, all from
+the same worksheet. What is actually needed is to measure the **content** rather than the screen — a
+question's markup either fits a 320px column or it does not, and that has nothing to do with which
+page of the funnel you are on.
+
+**So `check/cards.js` lays all 4,005 of them out in one page load**, in batches of 500, and asks one
+question: is anything wider than the column. No navigation, no lazy fill, no app. **Proved both
+ways**: with `overflow-wrap` removed it names 47 rows and exits 1, up to 199px past the column; with
+it, zero.
+
+**It must not grow into a second `ui.js`.** That one owns the app — navigation, tap targets,
+contrast, the parked screens, who is looking. This owns the library, at one width, with one
+question. The line between them is whether the answer could change when somebody edits a cell.
+
+### The dead end came back once the collection door was gone, and the cap was the wrong tool
+
+**Six chips deep with School year skipped: 1,070 questions, `Topic` holding 45 answers, and the
+screen saying "Nothing left to narrow."** Every other facet exhausted, and the one that was not
+barred by `FACET_MAX_ANSWERS` — a question about the only thing left, refused for being five answers
+too long. The collection line used to paper over this ("or the 48 topics these are in"); with that
+gone, the dead end is bare.
+
+**The cap is right and it is about READING, not about narrowing.** `field: name` is 212 paper names
+and nobody chooses from 212 buttons. What was wrong was treating "too long to read all at once" as
+"not a question" — two different problems with different answers. The first is solved by showing
+fewer; the funnel was solving it by showing none.
+
+**So `overFacet_` is the last resort**: when nothing qualifies, take the over-sized question with
+the FEWEST answers — the one closest to being an ordinary question — and draw the biggest forty.
+Biggest first to choose them, alphabetical to show them, because which forty is a question about
+size and the order is a question about finding one. The rest get a line pointing at the search box,
+which is on the same page and filters the same items.
+
+### Three faults found by pointing the existing measurement at a screen somebody is actually on
+
+**The Find screen's first question is "What for" and its answers are one word each.** So every
+answer row `check/ui.js` had ever measured was `Learning`, `Shop`, `Games` — the row layout proved
+against the shortest labels in the app and nothing else. Adding one state, six answers deep, on the
+path from the complaint:
+
+- **The filter chips are 38px.** `min-height: max(38px, 2.3rem)` — the root is `clamp(13.5px, 3.8vw,
+  16px)`, so 2.3rem is 34px and the `max` never once chose the rem. **This is `.btn.tiny` exactly,
+  and the fourth conviction of that rule** after `.post-act` and `.fm-adds label`. It survived
+  because in the state the screen opens in there are no filters, so there are no chips: 63 known tap
+  targets, four widths, two visitors, and the control that removes a filter was in none of them.
+- **The answer labels were clipped, not wrapped.** Taking the counts off left `.k` the only child of
+  its row, and `.row .k` is `flex: 0 0 auto` — right for a two-word label beside a value, wrong for
+  the answer itself.
+- **And a check I wrote for that second one was inert.** I assumed rule 1 could not see it, because
+  an inline `<span>` has no `clientWidth`. Wrong: the span pushes its parent `.row`'s `scrollWidth`,
+  and `.row` is an ordinary block — 23 findings, up to 84px, the moment the fault goes back. My new
+  rule fired zero times on the fault it was written for. **Deleted.** A check that cannot fail is
+  not a check, and one that cannot fail while carrying a confident comment about what it protects is
+  a green light with nothing behind it.
+
+**What was missing was never a rule. It was a state.** No amount of new measuring code would have
+found any of this — only pointing the measurement that already existed at the screen somebody is on.
+
+### Can the app be built so that reading the code is enough?
+
+Partly, and this session is an honest measure of which half. **What a reader can settle, a check
+already settles**: a name used and never declared, a handler with no door, a column read off the
+wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-five of those now run on every
+session start.
+
+**What a reader cannot settle is what happens when two correct things meet.** Three faults this
+session, all from valid code that read fine:
+
+- **the coins overlapped.** Valid SVG, no overflow, nothing to read. The viewBox scaled at 0.60 put
+  a 5p at 5px across, and the browser stretched it to 20rem so a 13px label was three times the
+  width of its coin.
+- **every diagram rendered at a different scale.** `.qsheet figure svg` is `width: min(100%, 20rem)`,
+  so the viewBox width IS the scale. Three coins came out enormous and two price tags unreadable, on
+  one screen, from one stylesheet. Nothing in either file is wrong.
+- **51 dotted answer lines took the page sideways.** A legal string in a legal box.
+
+**So the lever is not static analysis — it is to replace emergent properties with declared ones, and
+to make the lab see more.** The scale fault is now impossible because every drawing lays out inside
+one constant, `W`; that is a rule a reader can check. The dotted line is now caught because
+something renders all four thousand rows. **Both are the same move**: take a fact that was only true
+by accident of interaction, and give it somewhere to be stated and somewhere to be tested.
+
+**A screenshot is still the last word on a drawing**, and this file has now written that sentence
+three times — `.mat-face`, `.mat-out`, and the coins. What changed is that it is the last word on
+fewer things.
 
 ### `check/live.js` — the real backend over the real database
 
@@ -899,6 +1010,179 @@ QUESTIONS, which is a different claim. It says which of the two it means now.
 
 **What it costs**: the first draw of the Find screen went 65 ms → 88 ms and a search 32 ms → 43 ms,
 measured over 4,045 items. That is one extra facet walked twice per filter change, not per keystroke.
+
+### The collection line is gone, and a paper is an answer like any other
+
+**Two ways of narrowing one list, stacked on one screen, is a pivot table.** `stuffQuestion` drew a
+sentence above the funnel — *"or the 227 papers these are in"* — that turned the results into one
+card per paper until you pressed it again. You had to know what it meant before you could use it,
+and it named a thing the funnel could simply ASK about once the list was small enough.
+
+**So `collect: true` came off `paperId` and the ordinary rules do the job better.** 227 answers keeps
+the question silent at the top exactly as `FACET_MAX_ANSWERS` intends; narrow to one board, tier and
+sitting and it is twelve, under the cap, and the funnel asks "which paper" as a plain question —
+same chip, same ✕, same handler. Measured at the six-chip state: `Paper`, 12 answers, 100% coverage,
+offered. **The name is shown and the id decides who answers**, because `P-1MA1-2211-1H` is a join
+and the paper's name is on every one of its questions already.
+
+`collectionAxes_`, `groupItems_`, `one_`, `plural_`, `STUFF.groupBy`, `on('group-by')`,
+`on('group-open')`, the `group` tile in `tiles.js` and `.stuff-coll` are all gone. **The arithmetic
+in them was right and is kept in prose** where they were: one distinct value per row identifies a
+row, ~16 rows each is a collection, 654 rows each is a category, and the boundary between the last
+two is the same constant.
+
+**Two other things went off that screen for the same reason.** The count beside each answer — it was
+defended as "the thing doing the work", and that is true of a list you are deciding between and
+false of this one: four digits wide, changing on every tap, and never the reason you pick a topic.
+It is still computed, because `facetSplit_` is a share of those counts and that is what keeps a
+useless question off the screen. And the credits card, which was a balance on the app's front door;
+nothing on the Find screen is spent.
+
+### The Find screen was slow because it walked the same list twenty-one times
+
+**Measured, first draw at 4,045 items: 200 ms.** Where it went, and all four are the same mistake —
+work repeated that could not have changed:
+
+| | |
+|---|---|
+| `collectionAxes_` | **71 ms** — every facet tallied over every item, to draw one sentence |
+| the sort | **88 ms** — four `localeCompare` calls per comparison, ~200,000 of them |
+| the facet rules | **3 walks per facet**: `facetValues`, `facetCoverage`, `facetSplit_`, each its own pass |
+| `stuffItems` | **33 ms rebuilt on every keystroke**, and nothing in it reads a filter |
+
+**`facetTally_` walks once and answers all three**, because they are three readings of one count:
+the keys are the answers, the number of items contributing a key is the coverage, and the share
+outside the biggest key is the split. The three old functions are thin readers of it, so every
+caller — `check-funnel.js` included — is untouched. Held in a `WeakMap` on the items array itself:
+a new list is a new array, so there is no key to get wrong and nothing to invalidate.
+
+**`sortKey_` bakes the order into one string per item** and the comparator becomes `<`. Case folded
+and every run of digits zero-padded to eight, which is what `numeric: true` does — so "Paper 10"
+still sorts after "Paper 2". Cached on the item, so a second sort of the same items is free.
+
+**`stuffItems` is memoised on `DATA`, admin, and which person you are** — the only three things any
+mapper reads. That is also what makes the sort keys worth caching: rebuilding the items every call
+was throwing that cache away at the rate it was filled.
+
+| | before | after |
+|---|---|---|
+| first draw, cold | ~200 ms | **50 ms** |
+| answering a question | ~200 ms | **15–28 ms** |
+| a keystroke | ~40 ms | **5–9 ms** |
+
+**And a dead reader that was not a bug, which is the part worth keeping.** The sort's second and
+third terms read `qNumber` and `qPart`, and nothing has written either since the paper card was
+deleted. I read that as Q1, Q10, Q11, Q12, Q2 down every paper — and went to measure it before
+writing it down. It is not: `cmpText` carries `numeric: true`, so the LAST term, on the name,
+already put Q2 before Q10. Identical order on both versions, 32 parts, checked both ways. **A dead
+reader standing over a live one** — the same shape as `d = libraryInto_(…)`, where the broken line
+came after the useful work and a correct fallback hid it. The fields are written again because the
+key is built from them, not because anything was broken.
+
+### One answer, one button — the spelling fault, fixed as a rule instead of a fourth time
+
+**It has arrived in four columns and been repaired by hand in three.** `level` (`Alevel` / `A-level`
+/ `A-Level`, fixed in `levelOf_`), `exam_wave` (`June 2018` against `First wave`, fixed in
+`waveOf`), `topics` (46 of 389 values differing only by case, fixed by a vote in `topicOf_`), and
+`company` — `1stclassmaths` on 1,372 rows against `1st class maths` on 109, invisible only because
+the funnel lists questions and every question row used the first. **Each fix was to the instance and
+none was to the rule**, which is this file's own sentence about `cost: 0` and `paper: true`.
+
+**So it is two lines in the engine now.** An answer's IDENTITY is its letters and digits
+(`spellKey_`); its SPELLING is whichever variant is most worth showing. `facetTally_` folds the
+variants together *as it counts* — before, not after, because the coverage and the split that decide
+whether a question is asked at all are read off those counts — and `filterHit` matches on the
+identity rather than the text, so a chip saved as `1st Class Maths` finds a row that says
+`1stclassmaths`. Measured: both spellings return the same 1,370 items.
+
+**Which spelling wins, and every rule in it is about not inventing a word:**
+
+| | |
+|---|---|
+| **the one a person would write** | most separators — `1st Class Maths` over `1stclassmaths`, `A-Level` over `Alevel`. A squashed spelling is a machine's; a spaced one was typed |
+| **then the commonest, then the alphabet** | so a button's label never depends on the order the file is in |
+| **first letter raised** | `estimation` outnumbers `Estimation`; a lower-case button in a capitalised column reads as a fault. Only the first letter — `HCF and LCM` stays as typed |
+
+**The plain vote gets the first one wrong**, which is why it is first: `1stclassmaths` outnumbers
+`1st class maths` twelve to one and is still not the publisher's name.
+
+**It folds within the list on screen**, not against the whole library — `facetTally_` is already
+walking exactly the items whose answers are about to be drawn. Narrowing cannot change which ITEMS
+an answer holds; only which of its spellings is on the button.
+
+**`check-funnel.js` test 2 can no longer fire and that is the point, not a loss.** It looks for two
+values in one facet reducing to the same key, and `spellKey_` is that same reduction — the fault is
+impossible now rather than detected. It is kept because it also guards the facets a spreadsheet
+invents at runtime.
+
+**`levelOf_` kept exactly one branch**: `AS level` → `AS`. That reduces to `aslevel` against `as` —
+two identities, so no spelling rule can join them, and joining them is a fact about English exams.
+**The engine folds spellings; a reader resolves meanings.** `waveOf` is on the same side of that line.
+
+### Four things were wrong in the data, and one of them was a document read twice
+
+**`company` was holding spec codes on 53 rows** — `9MA0-31`, `8700-01-01`, `7357-02-01`. Every one
+also carries a real `exam_board`, so the code went to a new `spec_code` column and `company` became
+the board. That column is not decoration: `8700` is AQA GCSE English Language, which is the next
+thing going in.
+
+**Five `W-CBM-` sets carried a 1st Class Maths attribution, and the id was the thing that was
+wrong** — but that is not what they turned out to be. Five of the sixty-nine `W-CBM-` sets have a
+`source_url`; the other sixty-four have none, and 81 of 82 `W-1CM-` sets have one. **The URL is the
+1st Class Maths tell**, because that publisher's sheets are Drive files and Corbettmaths' are not.
+
+**And for three of the five the URL was IDENTICAL to an existing set's** — the same Drive file id,
+character for character. `W-CBM-reflections` (9 parts, terse) and `W-1CM-reflections` (15 parts,
+carrying the sheet's own title) are one PDF read twice by two sessions at different granularity.
+**I had compared the questions, found nothing in common, and reported "genuinely different
+worksheets" — which was exactly backwards**: the questions differ *because* the two transcriptions
+disagree about where a question ends. The fuller three are kept; the other three are deleted. The
+remaining two had unique URLs and were simply mis-prefixed, so they are `W-1CM-` now, row ids and
+all.
+
+#### `check-library.js` — the document is the thing, and its URL is its identity
+
+**The sitting key cannot see a worksheet.** It is built from subject, board, year, series, paper
+number and tier, and a Corbettmaths sheet has none of those — which is how three duplicate
+transcriptions sat in the library past every check in the suite.
+
+**So two `paper_id`s pointing at one file is one document entered twice**, whatever either is called
+and whatever the rows under them say. It needs no vocabulary, no id convention and no knowledge of
+what an exam is, which is what makes it the test the sitting key should have been.
+
+- **Compared on the Drive id, not the URL.** The same file is written `drive.google.com/file/d/<id>/view`
+  *and* `drive.google.com/open?id=<id>&usp=drive_copy` on rows of the same set — two spellings of one
+  address, the same fault in a third column.
+- **Two papers with questions is a failure; a stub beside a transcription is a note.** 25 of the 28
+  pairs are an empty `R0xxx` document row sitting beside the real transcription, which is the
+  intended state. The count is printed.
+- Proved by mutation: putting four rows of `W-1CM-reflections` back under the old id fires it.
+
+### The lopsided rule was measuring the wrong denominator, and it is the `cost: 0` shape a third time
+
+**`Key stage` scored 35.4% — five times the floor — and pressing its commonest answer left 1,314
+items of 1,331.** Measured at a real state of the real funnel: Learning · Questions · Maths · GCSE ·
+Worksheet. A tap that removes seventeen things out of thirteen hundred, offered as the next
+question, looking healthy to the one rule written to stop exactly that.
+
+**The cause is that `facetSplit_` was a share of the TALLY, not of the list.** The tally counts an
+item once per answer — which is right, and is what makes the counts beside the answers true: a
+worksheet tagged `KS3, KS4` really is in both. But it means the total is bigger than the list, so a
+facet where nearly everything answers the commonest answer *and* something else scores well on a
+share of a number that is not the list.
+
+**So the question is asked of the list, which is what it was always about**: press the biggest
+answer — what is left? For a single-valued facet at full coverage that is arithmetically the same
+number as before, which is why nothing that was working changed. It differs exactly where the old
+one was lying.
+
+The greedy walk before and after says it plainly. Before: 2,344 → Type → 1,354 → **Key stage →
+1,314** → Grade. After: 2,344 → Type → 1,331 → Grade → 419 → Topic → 45 → Paper → 11. Every step is
+now a real narrowing.
+
+**This is `cost: 0` and `paper: true` a third time**, and the sentence this file already carries is
+the right one: both of those were fixed in the data and neither was fixed in the rule, so the shape
+recurred. The rule is the fix.
 
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
