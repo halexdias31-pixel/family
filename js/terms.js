@@ -147,7 +147,7 @@ function docItems_() {
     row: d,
     image: '', cost: 0, slot: '', subject: '', grade: '', off: false,
     bandType: '', bandValue: '', keystage: '', tier: '', examBoard: '', company: '',
-    resourceType: '', examWave: '', year: '', paper: false,
+    documentType: '', examWave: '', year: '', paper: false,
   }));
 }
 

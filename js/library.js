@@ -249,8 +249,8 @@ function libraryInto_(d, rows) {
     if (String(r.kind || '').toLowerCase() === 'paper') return;
     qs.push({
       id: libS(r.row_id), paper: libS(r.paper_id),
-      resourceId: libS(r.resource_id),
-      q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'part',
+      sourceId: libS(r.source_id),
+      q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'question',
       section: libS(r.section), marks: libN(r.marks),
       /* A ROW STANDING IN FOR SOMETHING NOT YET TYPED — see `placeholder` in check-library.js and
          `.qsheet-stem.is-standin` in the stylesheet. A boolean the card reads, not prose it has to
@@ -276,7 +276,7 @@ function libraryInto_(d, rows) {
       examinerNote: libS(r.examiner_note), examinerReport: libS(r.examiner_report),
       guide: libS(r.guide),
       name: libS(r.name), subject: libS(r.subject),
-      resourceType: libS(r.resource_type), keystage: libS(r.key_stage),
+      documentType: libS(r.document_type), keystage: libS(r.key_stage),
       bandType: libS(r.band_type), bandValue: libS(r.band_value),
       tier: libS(r.tier), examBoard: libS(r.exam_board),
       examWave: libS(r.exam_wave), year: libS(r.year),
