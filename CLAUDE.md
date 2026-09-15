@@ -968,6 +968,85 @@ reader standing over a live one** — the same shape as `d = libraryInto_(…)`,
 came after the useful work and a correct fallback hid it. The fields are written again because the
 key is built from them, not because anything was broken.
 
+### One answer, one button — the spelling fault, fixed as a rule instead of a fourth time
+
+**It has arrived in four columns and been repaired by hand in three.** `level` (`Alevel` / `A-level`
+/ `A-Level`, fixed in `levelOf_`), `exam_wave` (`June 2018` against `First wave`, fixed in
+`waveOf`), `topics` (46 of 389 values differing only by case, fixed by a vote in `topicOf_`), and
+`company` — `1stclassmaths` on 1,372 rows against `1st class maths` on 109, invisible only because
+the funnel lists questions and every question row used the first. **Each fix was to the instance and
+none was to the rule**, which is this file's own sentence about `cost: 0` and `paper: true`.
+
+**So it is two lines in the engine now.** An answer's IDENTITY is its letters and digits
+(`spellKey_`); its SPELLING is whichever variant is most worth showing. `facetTally_` folds the
+variants together *as it counts* — before, not after, because the coverage and the split that decide
+whether a question is asked at all are read off those counts — and `filterHit` matches on the
+identity rather than the text, so a chip saved as `1st Class Maths` finds a row that says
+`1stclassmaths`. Measured: both spellings return the same 1,370 items.
+
+**Which spelling wins, and every rule in it is about not inventing a word:**
+
+| | |
+|---|---|
+| **the one a person would write** | most separators — `1st Class Maths` over `1stclassmaths`, `A-Level` over `Alevel`. A squashed spelling is a machine's; a spaced one was typed |
+| **then the commonest, then the alphabet** | so a button's label never depends on the order the file is in |
+| **first letter raised** | `estimation` outnumbers `Estimation`; a lower-case button in a capitalised column reads as a fault. Only the first letter — `HCF and LCM` stays as typed |
+
+**The plain vote gets the first one wrong**, which is why it is first: `1stclassmaths` outnumbers
+`1st class maths` twelve to one and is still not the publisher's name.
+
+**It folds within the list on screen**, not against the whole library — `facetTally_` is already
+walking exactly the items whose answers are about to be drawn. Narrowing cannot change which ITEMS
+an answer holds; only which of its spellings is on the button.
+
+**`check-funnel.js` test 2 can no longer fire and that is the point, not a loss.** It looks for two
+values in one facet reducing to the same key, and `spellKey_` is that same reduction — the fault is
+impossible now rather than detected. It is kept because it also guards the facets a spreadsheet
+invents at runtime.
+
+**`levelOf_` kept exactly one branch**: `AS level` → `AS`. That reduces to `aslevel` against `as` —
+two identities, so no spelling rule can join them, and joining them is a fact about English exams.
+**The engine folds spellings; a reader resolves meanings.** `waveOf` is on the same side of that line.
+
+### Four things were wrong in the data, and one of them was a document read twice
+
+**`company` was holding spec codes on 53 rows** — `9MA0-31`, `8700-01-01`, `7357-02-01`. Every one
+also carries a real `exam_board`, so the code went to a new `spec_code` column and `company` became
+the board. That column is not decoration: `8700` is AQA GCSE English Language, which is the next
+thing going in.
+
+**Five `W-CBM-` sets carried a 1st Class Maths attribution, and the id was the thing that was
+wrong** — but that is not what they turned out to be. Five of the sixty-nine `W-CBM-` sets have a
+`source_url`; the other sixty-four have none, and 81 of 82 `W-1CM-` sets have one. **The URL is the
+1st Class Maths tell**, because that publisher's sheets are Drive files and Corbettmaths' are not.
+
+**And for three of the five the URL was IDENTICAL to an existing set's** — the same Drive file id,
+character for character. `W-CBM-reflections` (9 parts, terse) and `W-1CM-reflections` (15 parts,
+carrying the sheet's own title) are one PDF read twice by two sessions at different granularity.
+**I had compared the questions, found nothing in common, and reported "genuinely different
+worksheets" — which was exactly backwards**: the questions differ *because* the two transcriptions
+disagree about where a question ends. The fuller three are kept; the other three are deleted. The
+remaining two had unique URLs and were simply mis-prefixed, so they are `W-1CM-` now, row ids and
+all.
+
+#### `check-library.js` — the document is the thing, and its URL is its identity
+
+**The sitting key cannot see a worksheet.** It is built from subject, board, year, series, paper
+number and tier, and a Corbettmaths sheet has none of those — which is how three duplicate
+transcriptions sat in the library past every check in the suite.
+
+**So two `paper_id`s pointing at one file is one document entered twice**, whatever either is called
+and whatever the rows under them say. It needs no vocabulary, no id convention and no knowledge of
+what an exam is, which is what makes it the test the sitting key should have been.
+
+- **Compared on the Drive id, not the URL.** The same file is written `drive.google.com/file/d/<id>/view`
+  *and* `drive.google.com/open?id=<id>&usp=drive_copy` on rows of the same set — two spellings of one
+  address, the same fault in a third column.
+- **Two papers with questions is a failure; a stub beside a transcription is a note.** 25 of the 28
+  pairs are an empty `R0xxx` document row sitting beside the real transcription, which is the
+  intended state. The count is printed.
+- Proved by mutation: putting four rows of `W-1CM-reflections` back under the old id fires it.
+
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
 The three faults above have one shape: **each looked fine in the code and only showed up in the

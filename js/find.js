@@ -1055,8 +1055,12 @@ function filterHit(x, f) {
   const facet = facetBy(f.field);
   if (!facet) return true;
   /* ANY OF THEM COUNTS. A tutor is in Booking and in People, and choosing either has to keep them —
-     an `===` against a joined string would have matched neither. */
-  return asList_(facet.of(x)).some(v => norm(v) === norm(f.value));
+     an `===` against a joined string would have matched neither.
+     ON THE IDENTITY, NOT THE TEXT. The chip holds the spelling that was DRAWN and the item holds
+     whatever the sheet says, and after the folding above those are often not the same characters:
+     a chip reading `1st Class Maths` has to find a row that says `1stclassmaths`. `norm` only
+     lowercases and trims, so it would have found neither — see `spellKey_`. */
+  return asList_(facet.of(x)).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
@@ -1073,6 +1077,74 @@ function filterHit(x, f) {
 
    ANYTHING NOT LISTED FALLS TO THE END, alphabetically among itself, so a group added tomorrow
    appears without needing a line here. */
+
+/* ==================================================================================================
+   ONE ANSWER, ONE BUTTON, WHATEVER IT IS SPELLED LIKE.
+
+   THIS FAULT HAS NOW ARRIVED IN FOUR COLUMNS AND BEEN REPAIRED BY HAND IN THREE:
+
+     `level`     `Alevel`, `A-level`, `A-Level` — three answers on one screen, fixed in `levelOf_`
+     `exam_wave` `June 2018` against `First wave` — fixed in `waveOf`
+     `topics`    46 of 389 values differ from another only by case — fixed by a vote in `topicOf_`
+     `company`   `1stclassmaths` on 1,372 rows and `1st class maths` on 109 — invisible only
+                 because the funnel lists questions and every question row used the first
+
+   EACH FIX WAS TO THE INSTANCE AND NONE WAS TO THE RULE, which is the exact sentence this file
+   already carries about `cost: 0` and `paper: true`. The fourth one was waiting in a column nobody
+   had looked at, and the fifth will be in a column added next month.
+
+   SO IT IS A RULE NOW, AND IT IS TWO LINES. An answer's IDENTITY is its letters and digits; its
+   SPELLING is whichever of the variants is most worth showing. `facetTally_` folds the variants
+   together when it counts, and `filterHit` matches on the identity rather than the text — so a chip
+   saved as `A-Level` still finds an item that says `Alevel`, and there is no migration, no
+   vocabulary list and nothing to keep in step with the next bulk import.
+
+   WHICH SPELLING WINS, in order, and every rule in it is about not inventing a word:
+
+     THE ONE A PERSON WOULD WRITE.  `1st Class Maths` over `1stclassmaths`, `A-Level` over `Alevel`.
+     Counted as separators — spaces and hyphens — because a squashed spelling is a machine's (a
+     slug, an id, a filename) and a spaced one was typed by somebody. This is the half a plain vote
+     gets wrong: `1stclassmaths` outnumbers `1st class maths` by twelve to one and is still not the
+     publisher's name.
+
+     THEN THE COMMONEST, then the alphabet — so the answer never depends on the order the file
+     happens to be in, which is the sort of dependency that changes a button's label on an unrelated
+     commit.
+
+     AND THE FIRST LETTER IS RAISED, which is the one thing neither test should decide. `estimation`
+     outnumbers `Estimation` in the library, and a lower-case button in a column of capitalised ones
+     reads as a fault in the data. Only the first letter, never the interior words: `HCF and LCM`
+     stays as somebody typed it, which is the whole reason Title Case was rejected for this job —
+     `Hcf And Lcm` is a spelling nobody has ever written.
+
+   IT FOLDS WITHIN THE LIST ON SCREEN, not against the whole library, and that is deliberate rather
+   than a shortcut: `facetTally_` is already walking exactly the items whose answers are about to be
+   drawn, so the spelling shown is one that is actually in front of you. Narrowing cannot change
+   which ITEMS an answer holds — the identity does that — only which of its spellings is on the
+   button, and after the first-letter rule the variants differ by so little that it is not visible.
+
+   `check-funnel.js` TEST 2 CANNOT FIRE AGAIN, and that is the point rather than a loss. It looks
+   for two values in one facet that reduce to the same key; `spellKey_` is that same reduction, so
+   the fault is now impossible instead of detected. A check that cannot fail is not a check — this
+   one is kept because it also guards the facets a spreadsheet invents at runtime, where the wrapper
+   below is the only thing standing between the sheet and the screen.
+================================================================================================== */
+const spellKey_ = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/* HOW MANY PIECES THE WRITER BROKE IT INTO. Not a score out of ten — just "did a person put gaps in
+   this", which is what tells a name from a slug. */
+const spellGaps_ = v => (String(v).match(/[\s\-_/&.,()]/g) || []).length;
+
+function spellBetter_(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const ga = spellGaps_(a.value), gb = spellGaps_(b.value);
+  if (ga !== gb) return ga > gb ? a : b;
+  if (a.n !== b.n) return a.n > b.n ? a : b;
+  return cmpText(a.value, b.value) <= 0 ? a : b;
+}
+
+const spellShow_ = v => String(v).charAt(0).toUpperCase() + String(v).slice(1);
 
 /* ==================================================================================================
    `facetTally_` — ONE WALK OF THE LIST PER QUESTION, NOT THREE.
@@ -1125,7 +1197,23 @@ function facetTally_(items, facet) {
   const order = facet.field === 'forLabel'
     ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
     : cmpText;
-  const values = Object.keys(by).sort(order).map(v => ({ value: v, n: by[v] }));
+  /* ---------- THE VARIANTS ARE FOLDED HERE, BEFORE ANYTHING COUNTS THEM ---------------------------
+     BEFORE, NOT AFTER, because every number below is read off this list: the answers the funnel
+     draws, the coverage, and the split that decides whether the question is asked at all. Two
+     spellings of one answer counted apart make a question look more balanced than it is — which is
+     the same arithmetic fault as `paper: true`, reached from the other direction. See the block
+     above for which spelling wins. */
+  const folded = {};
+  Object.keys(by).forEach(v => {
+    const k = spellKey_(v);
+    if (!k) return;
+    const seen = folded[k];
+    const best = spellBetter_(seen && seen.best, { value: v, n: by[v] });
+    folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
+  });
+  const values = Object.keys(folded)
+    .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
+    .sort((a, b) => order(a.value, b.value));
 
   let top = 0, total = 0;
   values.forEach(v => { total += v.n; if (v.n > top) top = v.n; });
@@ -2179,53 +2267,22 @@ function stuffItemsBuild_() {
    import undoes. 4,000 committed content rows edited to make a filter work is also a diff nobody
    can review.
 ================================================================================================== */
-let TOPIC_SAID = null;   /* the key of a topic -> the spelling the library uses most */
-let TOPIC_FROM = null;   /* the rows it was counted off, held by identity, like `stuffFiltered` */
-
 /* A COMMA IS A LIST SEPARATOR AND NOTHING ELSE IS. Same shape as `keystage`'s split, kept as a
-   helper because three places need it and the third is the search haystack. */
+   helper because two places need it and the second is the search haystack. */
 const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()).filter(Boolean);
 
-/* STRIPPED TO THE LETTERS, which is deliberately the same reduction `check-funnel.js` applies when
-   it looks for one answer wearing two coats. A key that is weaker than the check's is a key that
-   lets exactly the pairs the check fails on straight through. */
-const topicKey_ = t => String(t == null ? '' : t).toLowerCase().replace(/[^a-z0-9]/g, '');
+/* ---------- THE VOTE MOVED, AND IT NOW APPLIES TO EVERY QUESTION ---------------------------------
+   `TOPIC_SAID`, `topicSaid_` AND `topicKey_` WERE HERE — a tally of every spelling of every topic,
+   picking the commonest for all of them, so `Linear Equations` and `linear equations` were one
+   button. It was right and it was written one column too low: the same fault is in `company`
+   (`1stclassmaths` against `1st class maths`, 1,372 rows against 109) and was in `level`
+   (`Alevel` / `A-Level`), and each was being repaired by hand, in its own reader, after somebody
+   noticed. A rule applied by hand is not a rule — this file says so twice already.
 
-function topicSaid_() {
-  const rows = (DATA && DATA.questions) || [];
-  if (TOPIC_SAID && TOPIC_FROM === rows) return TOPIC_SAID;
-  const tally = {};
-  rows.forEach(r => {
-    topicAtoms_(r && ((r.row && r.row.topics) || r.topics)).forEach(t => {
-      const k = topicKey_(t);
-      if (!k) return;
-      (tally[k] = tally[k] || {})[t] = (tally[k][t] || 0) + 1;
-    });
-  });
-  const said = {};
-  Object.keys(tally).forEach(k => {
-    /* MOST ROWS WINS, AND THE ALPHABET SETTLES A TIE — so the answer does not depend on the order
-       the file happens to be in, which is the sort of dependency that changes a button's label on
-       an unrelated commit. */
-    const won = Object.keys(tally[k])
-      .sort((a, b) => (tally[k][b] - tally[k][a]) || cmpText(a, b))[0];
-    /* AND THE FIRST LETTER IS RAISED, WHICH IS THE ONE THING THE VOTE SHOULD NOT DECIDE.
-       `estimation` outnumbers `Estimation` in the file, so the vote alone put a lower-case button
-       in a column of capitalised ones — a label reading "estimation" beside "Linear Equations"
-       looks like a fault in the data, and it is not one. Only the first letter, never the interior
-       words: `HCF and LCM` stays exactly as somebody typed it, which is the whole reason Title Case
-       was rejected at the top of this block. */
-    said[k] = won.charAt(0).toUpperCase() + won.slice(1);
-  });
-  TOPIC_SAID = said;
-  TOPIC_FROM = rows;
-  return said;
-}
-
+   SO IT IS `spellOne_` AND `spellKey_` IN THE FUNNEL ENGINE, applied to the answers of every facet
+   including the ones a spreadsheet invents. See them above `facetTally_`. */
 function topicOf_(x) {
-  const said = topicSaid_();
-  return topicAtoms_(x && ((x.row && x.row.topics) || x.topics))
-    .map(t => said[topicKey_(t)] || t);
+  return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
 }
 
 /**
@@ -2244,11 +2301,17 @@ function levelOf_(x) {
   const band = (x && x.bandType === 'stage' && x.bandValue) ? String(x.bandValue) : '';
   const own  = band || String((x && x.level) || (x && x.row && x.row.level) || '').trim();
   if (!own) return '';
-  /* `A LEVEL`, `A-LEVEL`, `ALEVEL` — one thing. Matched on the letters alone so a space, a hyphen
-     or nothing between the A and the L all land on the same button. */
-  if (/^a\s*-?\s*level$/i.test(own)) return 'A-Level';
+  /* ---------- ONLY THE ONE THE GENERAL RULE CANNOT DO -------------------------------------------
+     `A LEVEL`, `A-LEVEL`, `ALEVEL` AND `gcse` ARE HANDLED UPSTREAM NOW. `spellKey_` reduces an
+     answer to its letters, so all three spellings of A-level are one identity and the folding in
+     `facetTally_` picks the one a person would write — which is the same repair this function was
+     doing by hand for one column. The three branches that did it are gone.
+
+     `AS level` IS NOT THAT. It reduces to `aslevel` and `AS` reduces to `as`: two different
+     identities, so no general rule can join them, and joining them is a fact about English exams
+     rather than about spelling. That is exactly the line — the engine folds SPELLINGS and a reader
+     like this one resolves MEANINGS. `waveOf` sits on the same side of it. */
   if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
-  if (/^gcse$/i.test(own)) return 'GCSE';
   return own;
 }
 

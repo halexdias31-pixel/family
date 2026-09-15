@@ -274,6 +274,59 @@ sittings.forEach((ids, key) => {
 });
 twice.forEach(t => fail.push(t));
 
+/* ---------- THE SAME DOCUMENT, TRANSCRIBED TWICE — AND THIS IS THE STRONGER TEST -------------------
+   THE SITTING KEY ABOVE CANNOT SEE A WORKSHEET. It is built from subject, board, year, series,
+   paper number and tier, and a Corbettmaths or 1st Class Maths sheet has none of those — so five
+   sets sat in the library, three of them a SECOND transcription of a PDF that was already in here,
+   past every check in the suite. Found by noticing that five of the sixty-nine `W-CBM-` sets carry
+   a `source_url` and the other sixty-four do not: the URL is the 1st Class Maths tell, because that
+   publisher's sheets are Drive files and Corbettmaths' are not.
+
+   AND THE URLS WERE IDENTICAL — the same Drive file id, character for character. `W-CBM-reflections`
+   (9 parts, terse) and `W-1CM-reflections` (15 parts, carrying the sheet's own title) are one PDF
+   read twice, at different granularity, by two different sessions. Nothing about the text matched,
+   which is why comparing questions said "different worksheets" and was wrong: the questions ARE
+   different, because the two transcriptions disagree about where a question ends.
+
+   SO THE DOCUMENT IS THE THING, AND ITS URL IS ITS IDENTITY. A `source_url` is a file somewhere;
+   two `paper_id`s pointing at one file is one document entered twice, whatever either is called and
+   whatever the rows under them say. It needs no vocabulary, no id convention and no knowledge of
+   what an exam is, which is what makes it the test the sitting key should have been.
+
+   COMPARED ON THE DRIVE ID, NOT THE URL. The same file is written both `drive.google.com/file/d/<id>/view`
+   and `drive.google.com/open?id=<id>&usp=drive_copy` in this very library, on rows of the same set —
+   two spellings of one address, which is the `waveOf` fault in a third column.
+
+   TWO PAPERS WITH QUESTIONS IS A FAILURE; A STUB BESIDE A TRANSCRIPTION IS A NOTE. Twenty-five of
+   the twenty-eight pairs are an empty `R0xxx` document row — a link and a page count, no questions —
+   sitting beside the real transcription of that paper. That is the normal, intended state and the
+   sitting key above already says so in its own words. What cannot be normal is the same file read
+   into questions twice. */
+const driveId = u => {
+  const m = String(u || '').match(/[-\w]{25,}/);
+  return m ? m[0] : String(u || '');
+};
+const partsPer = {};
+rows.forEach(r => { if (r && r.kind === 'part') partsPer[r.paper_id] = (partsPer[r.paper_id] || 0) + 1; });
+const byDoc = new Map();
+rows.forEach(r => {
+  if (!r || !r.source_url || !r.paper_id) return;
+  const k = driveId(r.source_url);
+  if (!k) return;
+  if (!byDoc.has(k)) byDoc.set(k, new Set());
+  byDoc.get(k).add(r.paper_id);
+});
+let stubPairs = 0;
+byDoc.forEach((ids, k) => {
+  if (ids.size < 2) return;
+  const withParts = [...ids].filter(id => partsPer[id]);
+  if (withParts.length < 2) { stubPairs++; return; }
+  fail.push(`one document is transcribed ${withParts.length} times — `
+    + withParts.map(id => `${id} (${partsPer[id]} parts)`).join(', ')
+    + `. They share the file ${k}, so they are one PDF read twice: keep the fuller transcription `
+    + `and delete the other, or the library teaches the same question under two names.`);
+});
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
@@ -356,6 +409,7 @@ say('QUESTIONS THE TRANSCRIBER COULD NOT RECOVER — worth a person and the orig
     r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
+console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
 
 if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');
