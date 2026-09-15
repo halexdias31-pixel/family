@@ -252,6 +252,10 @@ function libraryInto_(d, rows) {
       resourceId: libS(r.resource_id),
       q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'part',
       section: libS(r.section), marks: libN(r.marks),
+      /* A ROW STANDING IN FOR SOMETHING NOT YET TYPED — see `placeholder` in check-library.js and
+         `.qsheet-stem.is-standin` in the stylesheet. A boolean the card reads, not prose it has to
+         match against. */
+      placeholder: String(r.placeholder) === 'True',
       /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. `figure` has been on the
          payload since it was written and nothing has ever drawn it, because it was never a
          picture — it is 253 one-word labels (`venn`, `scatter`, `grid-blank`) left by whoever
