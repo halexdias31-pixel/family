@@ -1215,14 +1215,36 @@ function facetTally_(items, facet) {
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
 
-  let top = 0, total = 0;
-  values.forEach(v => { total += v.n; if (v.n > top) top = v.n; });
+  let top = 0;
+  values.forEach(v => { if (v.n > top) top = v.n; });
 
   const out = {
     facet: facet,
     values: values,
     coverage: items.length ? answered / items.length : 0,
-    split: values.length < 2 || !total ? 0 : (total - top) / total,
+    /* ---------- HOW MUCH OF THE LIST THE COMMONEST ANSWER DOES *NOT* KEEP ------------------------
+       THIS WAS `(total - top) / total` — the share of the TALLY outside the biggest answer — and
+       that denominator is wrong the moment a facet can return more than one value.
+
+       MEASURED, ON A REAL STATE OF THE REAL FUNNEL. Learning · Questions · Maths · GCSE · Worksheet
+       leaves 1,331 items, and `Key stage` there scored 35.4% — five times the floor, comfortably
+       "worth asking". Then picking its commonest answer left 1,314 of the 1,331. A tap that removes
+       seventeen things out of thirteen hundred, offered as the next question, looking healthy to
+       the one rule written to stop exactly that.
+
+       THE CAUSE IS THE TALLY COUNTING AN ITEM ONCE PER ANSWER, which is right and is what makes the
+       counts beside the answers true — a worksheet tagged `KS3, KS4` really is in both. But it
+       means `total` is bigger than the list, so a facet where nearly everything answers the
+       commonest AND something else scores well on a share of a number that is not the list.
+
+       SO THE QUESTION IS ASKED OF THE LIST, WHICH IS WHAT IT WAS ALWAYS ABOUT: press the biggest
+       answer — what is left? For a single-valued facet with full coverage this is arithmetically
+       the same number as before, which is why nothing that was working changes. It differs exactly
+       where the old one was lying.
+
+       THIS IS THE THIRD TIME THIS SHAPE HAS BEEN WRITTEN DOWN — `cost: 0`, then `paper: true`, and
+       both were fixed in the data while the rule stayed as it was. The rule is the fix. */
+    split: values.length < 2 || !items.length ? 0 : (items.length - top) / items.length,
   };
   perList[facet.field] = out;
   return out;
@@ -1399,8 +1421,8 @@ function whyThisQuestion(all) {
     /* THE NEW RULE HAS TO BE VISIBLE HERE OR IT IS THE OLD FAULT WEARING A HAT. A question that
        vanishes for a reason nothing prints is exactly what `whyThisQuestion` was written for. */
     else if (!f.always && facetSplit_(items, f) < FACET_MIN_MINORITY)
-      why = 'lopsided — ' + Math.round(facetSplit_(items, f) * 1000) / 10
-            + '% fall outside the commonest answer, needs '
+      why = 'lopsided — pressing its commonest answer would leave '
+            + Math.round(facetSplit_(items, f) * 1000) / 10 + '% of the list, needs '
             + Math.round(FACET_MIN_MINORITY * 100) + '%';
     else if (!chosen) { why = '← THIS ONE'; chosen = f.field; }
     else why = 'would do, but comes after ' + chosen;

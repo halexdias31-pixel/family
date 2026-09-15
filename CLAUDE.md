@@ -226,7 +226,7 @@ budget before lunch and stop the nightly jobs.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 24 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 25 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -1113,6 +1113,32 @@ what an exam is, which is what makes it the test the sitting key should have bee
   pairs are an empty `R0xxx` document row sitting beside the real transcription, which is the
   intended state. The count is printed.
 - Proved by mutation: putting four rows of `W-1CM-reflections` back under the old id fires it.
+
+### The lopsided rule was measuring the wrong denominator, and it is the `cost: 0` shape a third time
+
+**`Key stage` scored 35.4% — five times the floor — and pressing its commonest answer left 1,314
+items of 1,331.** Measured at a real state of the real funnel: Learning · Questions · Maths · GCSE ·
+Worksheet. A tap that removes seventeen things out of thirteen hundred, offered as the next
+question, looking healthy to the one rule written to stop exactly that.
+
+**The cause is that `facetSplit_` was a share of the TALLY, not of the list.** The tally counts an
+item once per answer — which is right, and is what makes the counts beside the answers true: a
+worksheet tagged `KS3, KS4` really is in both. But it means the total is bigger than the list, so a
+facet where nearly everything answers the commonest answer *and* something else scores well on a
+share of a number that is not the list.
+
+**So the question is asked of the list, which is what it was always about**: press the biggest
+answer — what is left? For a single-valued facet at full coverage that is arithmetically the same
+number as before, which is why nothing that was working changed. It differs exactly where the old
+one was lying.
+
+The greedy walk before and after says it plainly. Before: 2,344 → Type → 1,354 → **Key stage →
+1,314** → Grade. After: 2,344 → Type → 1,331 → Grade → 419 → Topic → 45 → Paper → 11. Every step is
+now a real narrowing.
+
+**This is `cost: 0` and `paper: true` a third time**, and the sentence this file already carries is
+the right one: both of those were fixed in the data and neither was fixed in the rule, so the shape
+recurred. The rule is the fix.
 
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
