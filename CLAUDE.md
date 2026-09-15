@@ -260,8 +260,10 @@ add it to `npm run check`.
 
 ### `node js/check-library.js` — the data, which nothing had ever read
 
-Every other check reads the CODE. `data/questions.json` is 4,264 rows and 2.4 MB of committed
-content — the library the whole Find screen is about — and **no check had ever opened it**. A wrong
+Every other check reads the CODE. `data/questions.json` was 4,264 rows and 2.4 MB of committed
+content when this was written — the library the whole Find screen is about — and **no check had ever
+opened it**. It grows every time a paper is transcribed, so take the number off the file
+(`node -e "console.log(require('./data/questions.json').length)"`) rather than off this sentence. A wrong
 row does not throw and does not fail a build; it is simply a question somebody is taught wrongly.
 
 What it refuses, each drawn from a mistake made or nearly made:
@@ -649,9 +651,10 @@ removing it goes green across 26 files.
 
 ### `questions` lives in this repository, not in a spreadsheet
 
-`data/questions.json` — 3,913 rows, 44 columns, 2.4 MB, one row per line so a diff names the rows
-that changed. `js/library.js` fetches it and builds `DATA.questions` and `dropdowns.checklists` from
-it; `doGet` no longer builds either.
+`data/questions.json` — 4,638 rows at the last count, 40 columns, 3.1 MB, one row per line so a
+diff names the rows that changed. The count moves with every transcription; the shape does not.
+`js/library.js` fetches it and builds `DATA.questions` and `dropdowns.checklists` from it; `doGet`
+no longer builds either.
 
 **Why that tab and no other.** Three questions decide where a thing lives, and the first one that
 answers wins:
@@ -663,6 +666,45 @@ answers wins:
    bulk, and every edit went export → CSV → download → File → Import, twice. `brand`, `config`,
    `pricing`, `facets` are the opposite and stay in Settings: you change them, and changing them
    must never need a deploy.
+
+#### Which papers are in, and how a new one gets there
+
+Twenty-four Edexcel 1MA1 Higher papers are transcribed: **2017, 2018 and 2019 complete** (both
+sittings, six papers each), **summer 2020** and **summer 2023**. `paper_id` is
+`P-1MA1-<yy><mm>-<n>H`, so `P-1MA1-1711-2H` is Paper 2 of the November 2017 sitting, and a document
+row for each carries `kind: 'paper'` under `D-<paper_id>`.
+
+Still in the Drive folder and not transcribed: **summer 2024** (three, named by date) and eighteen
+PDFs named only by their Edexcel paper code — `P64…` and `P66…` are the November 2020 and 2021
+sittings, `P68…` 2022, `S48…`/`S49…`/`S50…` the specimen sets. Those need opening before they can
+be named, which is why they are last.
+
+**Every number in a transcription is checked against the paper's own stated total**, which is 80 for
+every one of these by definition of the qualification — `check-library.js` refuses a paper that does
+not sum to it, and the insert script asserts it before writing a row. That single number catches a
+dropped part, a misread mark count and a duplicated question, and it is the only end-to-end check
+available, because nothing else knows what the paper said.
+
+**The text layer is the enemy and it fails in four different ways**, each recorded here because each
+cost a reading:
+
+| | |
+|---|---|
+| **mangled maths** | fractions and radicals arrive as loose digits: `x x n n + = − − 1 22 4` is `x(n+1) = −2 − 4/x(n)²`, and reads equally well as a cube root |
+| **a Caesar-shifted font** | `)DFWRULVH IXOO\` is `Factorise fully`. Obvious, and harmless once seen |
+| **the same shift with the digits gone** | November 2017 Paper 2. The prose is readable and every NUMBER has silently vanished: "The pack costs 5" where the paper says £5.64. Nothing looks wrong |
+| **a swallowed coefficient** | the worst, because the question still reads sensibly and is now a different question |
+
+So: extract the text, then **render every page and read it**. A rough tell is size — about 13 KB of
+text over 20 pages is a clean extraction and anything well under it is thin — but 16.5 KB has lost a
+square root before now, and the last two failure modes leave the size untouched. The tell is not a
+test.
+
+**A picture that carries data is measured, not eyeballed.** Box plots, cumulative frequency curves,
+pie charts drawn to scale: render at scale 5, find the gridlines by their regular spacing, and read
+the marks off them. A cumulative-frequency curve read by eye gave 50 at 160 cm where the pixels said
+48.1 — one gave the answer 10 and the other 12, and the gap between them was the whole of the mark
+scheme's tolerance.
 
 ### The funnel is an engine fed by a hand-written loader, and that seam is where it feels arbitrary
 
