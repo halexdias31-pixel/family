@@ -77,13 +77,26 @@ function serve() {
    eleven lines and `check.js` would name any class in it that the stylesheet does not have. */
 function cardHtml(r, stems) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
-  const pre = (stems[r.paper_id + '|' + r.question] ? [stems[r.paper_id + '|' + r.question]] : []);
+  /* ---------- EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST -------------------------------
+     THIS LOOKED UP ONE SCOPE AND THE APP DRAWS THREE. `preamble_` in find.js walks paper → section
+     → question, which is what makes an AQA English insert — a source shared by every question in
+     Section A — the same object as a maths question's shared opening paragraph. This asked only
+     for the question-scope one, so the longest preamble in the library was the one it could not
+     see, and a check that lays out every card was laying out a card the app does not draw.
+
+     Caught the day the first insert went in, which is the only reason it is not still true. */
+  const at = (scope, key) => (stems[scope] || {})[key];
+  const pre = [at('paper', r.paper_id),
+               r.section ? at('section', r.paper_id + '|' + r.section) : null,
+               (r.question !== undefined && r.question !== null && r.question !== '')
+                 ? at('question', r.paper_id + '|' + r.question) : null].filter(Boolean);
   return `<div class="qcard" data-row="${r.row_id}">
     <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
       <span>${r.marks || 0} marks</span></div>
     <p class="qcard-sub">${r.name || ''}</p>
     <div class="qsheet">
-      ${pre.map(p => `<div class="qsheet-stem">${p.html || ''}${fig(p.diagram)}</div>`).join('')}
+      ${pre.map(p => `<div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
+        >${p.html || ''}${fig(p.diagram)}</div>`).join('')}
       ${r.lead ? `<div class="qsheet-lead">${r.lead}</div>` : ''}
       <div class="qsheet-part"><div class="qsheet-pb">${r.html || ''}${fig(r.diagram)}</div></div>
     </div>
@@ -93,8 +106,19 @@ function cardHtml(r, stems) {
 (async () => {
   const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
   const parts = rows.filter(r => r && r.kind === 'part');
-  const stems = {};
-  rows.forEach(r => { if (r && r.kind === 'stem') stems[r.paper_id + '|' + r.question] = r; });
+  /* THE SAME INDEX `stemIndex_` BUILDS, by the same rule: a stem naming a question belongs to that
+     question, one naming only a section to the section, one naming neither to the paper. */
+  const stems = { paper: {}, section: {}, question: {} };
+  rows.forEach(r => {
+    if (!r || r.kind !== 'stem' || !r.paper_id) return;
+    if (r.question !== undefined && r.question !== null && r.question !== '') {
+      stems.question[r.paper_id + '|' + r.question] = r;
+    } else if (r.section) {
+      stems.section[r.paper_id + '|' + r.section] = r;
+    } else {
+      stems.paper[r.paper_id] = r;
+    }
+  });
 
   if (!parts.length) {
     console.error('no question rows found — this check cannot see its subject, which is not a pass');
@@ -160,7 +184,14 @@ function cardHtml(r, stems) {
   await browser.close();
   server.close();
 
-  console.log(`\n${parts.length} question rows laid out at ${WIDTH}px`);
+  const withPre = parts.filter(r => {
+    const at = (scope, key) => (stems[scope] || {})[key];
+    return at('paper', r.paper_id)
+        || (r.section && at('section', r.paper_id + '|' + r.section))
+        || (r.question !== '' && at('question', r.paper_id + '|' + r.question));
+  }).length;
+  console.log(`\n${parts.length} question rows laid out at ${WIDTH}px `
+            + `(${withPre} of them under a preamble)`);
   if (!bad.length) {
     console.log('\nOK — every question in the library fits the narrowest phone.');
     process.exit(0);

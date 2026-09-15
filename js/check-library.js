@@ -191,15 +191,40 @@ const paperFacts = new Map();
 rows.forEach(r => {
   if (r && r.kind === 'paper' && r.paper_id) paperFacts.set(r.paper_id, r);
 });
+/* ---------- AND THE PAPER SAYS WHAT IT IS OUT OF ---------------------------------------------------
+   THIS KNEW ABOUT ONE QUALIFICATION. `isEdexcelGcseMaths` is a predicate over five columns, written
+   because the id prefix it used before was blind to six papers filed under `RS…` ids — a real fix,
+   and still a rule that only works for the board and subject somebody had in front of them. The
+   first AQA GCSE English paper walked straight past it, and so would every A-level paper already in
+   the library.
+
+   SO THE PAPER DECLARES ITS OWN TOTAL. `total_marks` on the `kind: 'paper'` row, and the parts under
+   it must sum to it. That is one cell per paper, set by whoever transcribes it from the front page
+   of the thing they are looking at — which is where the number is printed, and the one moment
+   anybody is certain of it. No board, subject, tier or key stage appears in the rule at all.
+
+   THE OLD PREDICATE STAYS AS A DEFAULT, not as the rule. Thirty Edexcel GCSE maths papers are in
+   here without a `total_marks` cell, and 80 is true of every one of them by definition of the
+   qualification — so they go on being checked while the column fills in behind them. A paper that
+   matches neither is not checked, and the count below says how many that is rather than letting it
+   pass as coverage. */
 const isEdexcelGcseMaths = pid => {
   const p = paperFacts.get(pid);
   return !!p && p.exam_board === 'Edexcel' && p.subject === 'Maths' && p.key_stage === 'KS4'
       && p.resource_type === 'Past paper' && (p.tier === 'Higher' || p.tier === 'Foundation');
 };
+const outOf = pid => {
+  const p = paperFacts.get(pid);
+  const said = p && Number(p.total_marks);
+  if (Number.isFinite(said) && said > 0) return { total: said, why: 'its own total_marks' };
+  if (isEdexcelGcseMaths(pid)) return { total: 80, why: 'every Edexcel GCSE maths paper is 80' };
+  return null;
+};
 const marks = new Map();
+const unchecked = new Set();
 rows.forEach(r => {
   if (!r || r.kind !== 'part') return;
-  if (!isEdexcelGcseMaths(r.paper_id)) return;
+  if (!outOf(r.paper_id)) { if (r.paper_id) unchecked.add(r.paper_id); return; }
   const n = Number(r.marks);
   if (!Number.isFinite(n)) {
     fail.push(`${r.row_id} has marks ${JSON.stringify(r.marks)}, which is not a number`);
@@ -208,7 +233,12 @@ rows.forEach(r => {
   marks.set(r.paper_id, (marks.get(r.paper_id) || 0) + n);
 });
 [...marks.entries()].sort().forEach(([p, m]) => {
-  if (m !== 80) fail.push(`${p} totals ${m} marks; every Edexcel GCSE maths paper is 80`);
+  const want = outOf(p);
+  if (m !== want.total) {
+    fail.push(`${p} totals ${m} marks and should be ${want.total} — ${want.why}. `
+      + `A paper that does not sum is a dropped part, a misread mark count or a duplicated `
+      + `question, and this is the only end-to-end check the library has.`);
+  }
 });
 
 /* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
@@ -397,6 +427,18 @@ rows.forEach(r => {
 });
 const drawnHere = rows.filter(r => r && r.diagram_by === 'family').length;
 
+/* ---------- WHAT IS STILL STANDING IN FOR SOMETHING ------------------------------------------------
+   `placeholder` MARKS A ROW WHOSE CONTENT IS A DESCRIPTION OF THE REAL THING. The AQA English
+   inserts are the first: the sources are a separate booklet and third-party copyright, so they are
+   not in the paper and cannot be reproduced here — what is in the row is enough to teach around and
+   is explicitly not the text.
+
+   IT IS A LIST, NOT A FAILURE. A placeholder is a decision somebody made on purpose and a job
+   somebody means to finish; a build that refuses it would just mean nobody marks anything. Printed,
+   counted, and named, so the list of what is outstanding is read off the data rather than
+   remembered. Same argument as the questions the transcriber could not recover. */
+const standingIn = rows.filter(r => r && String(r.placeholder) === 'True');
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
@@ -480,10 +522,16 @@ say('QUESTIONS THE TRANSCRIBER COULD NOT RECOVER — worth a person and the orig
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
 console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
+console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
+          + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
+if (standingIn.length) {
+  console.log(`\nSTANDING IN FOR SOMETHING NOT YET TYPED — a list, not a fault  (${standingIn.length})`);
+  standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));
+}
 
 if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');
   process.exit(1);
 }
-console.log('\nOK — the library parses, its ids are unique, every paper is 80 marks, and no facet has grown a new answer.');
+console.log('\nOK — the library parses, its ids are unique, every paper checked sums to its own\n     stated total, and no facet has grown a new answer.');

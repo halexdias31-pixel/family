@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-26-reels";
+  --css-version: "2026-09-27-insert";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -321,15 +321,16 @@ body {
      `--card-w` — because this rule draws the card and that file works out where the next one goes,
      and the two being separate numbers is how the columns came to be spaced for a 90% card while
      an 80% one was drawn. The neighbour ended up sixteen pixels off the side of the screen.
-     The 80% here is only what to draw before the script has run. It is not the setting; `CARD_W`
-     is the setting.
+     The percentage here is only what to draw before the script has run. It is not the setting;
+     `CARD_W` is the setting — and it still has to match, or the first paint is one width and every
+     one after it is another, which reads as the app flinching as it opens.
 
-     WAS: 80% is `CARD_W` in shell.js, and the two must agree: this draws
+     WAS: this percentage is `CARD_W` in shell.js, and the two must agree: this draws
      the card and that one works out where the next card goes, so a card wider here than there
      would overlap its neighbour and one narrower would leave a gap nobody asked for.
      Written as a percentage in both places for the same reason — a card on a small phone and a
      card on a large one should be the same SHARE of the screen, not the same number of pixels. */
-  width: var(--card-w, 80%); height: auto;
+  width: var(--card-w, 84%); height: auto;
   display: flex; flex-direction: column; justify-content: center;
   padding: 0;
 }
@@ -6837,6 +6838,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    in black ink on white paper read on a black screen — they all take `currentColor`, so there is
    one drawing rather than two. See the `diagram` column in js/library.js. */
 .qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
+/* ---------- A PREAMBLE THAT IS STANDING IN FOR THE REAL ONE ---------------------------------------
+   AN AQA ENGLISH INSERT IS A SEPARATE BOOKLET AND THIRD-PARTY COPYRIGHT, so the source is not in
+   the question paper and cannot be reproduced here. What sits in the row is a description accurate
+   enough to teach around — and a student looking at an exam question has to be able to tell at a
+   glance which of the two they are reading.
+
+   THE DASHED EDGE ALL THE WAY ROUND, where an ordinary preamble has one underneath it. Same line,
+   same colour, no new token: it reads as a box waiting to be filled rather than as a warning, which
+   is what it is. The same argument as the credit under a drawn figure. */
+.qsheet-stem.is-standin { border: 1px dashed var(--line); border-radius: .5rem;
+  padding: .7rem .8rem; }
+.qsheet-stem.is-standin h4 { margin: 0 0 .4rem; font-size: .82rem; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--dim); }
+.qsheet ol.levels { margin: .2rem 0 .6rem; padding-left: 1.6rem; }
+.qsheet ol.levels li { margin: .15rem 0; }
+
 .qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
 .qsheet-lead { opacity: .9; margin-bottom: .6rem; }

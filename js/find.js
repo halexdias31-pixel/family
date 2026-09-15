@@ -2029,8 +2029,14 @@ function questionCard_(x) {
     </div>
     <p class="qcard-sub">${esc(x.sub)}</p>
     <div class="qsheet">
+      ${/* `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT.
+            An AQA English insert is a separate booklet of third-party copyright, so the source is
+            not in the paper and cannot be here either — what is in the row is enough to teach
+            around. A student reading an exam question has to be able to tell at a glance which of
+            the two they are looking at; the same argument as `figCredit_` one screen down. */''}
       ${(x.stems || []).map(p =>
-        `<div class="qsheet-stem">${p.html || ''}${fig(p.diagram)}</div>`).join('')}
+        `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${p.html || ''}${
+          fig(p.diagram)}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${
