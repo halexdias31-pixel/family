@@ -82,6 +82,155 @@ async function libraryRows_() {
   return LIBRARY_ROWS;
 }
 
+/* ==================================================================================================
+   THE OTHER THREE TABS OF `Library`, ON THE SAME ROAD AND ONE STEP BEHIND.
+
+   `questions` LEFT THE SPREADSHEET AND THE ARGUMENT APPLIES UNCHANGED to `boxers`, `fights` and
+   `cheatsheet`. CLAUDE.md sets the test in three questions, first one to answer wins:
+
+     Is it secret?            No. Boxers and bouts are public record; the cheat sheet is a list of
+                              which components a revision card may carry. Nothing here is a PIN, an
+                              e-mail address or a date of birth, which is what keeps `Ledger` in a
+                              sheet and out of this public repository.
+     Does the app write to it? No — and this is the one that decides it. Measured: `read(TAB.boxers)`,
+                              `read(TAB.fights)` and `read(TAB.cheatsheet)` appear exactly once each,
+                              all three in `doget.gs`, and no `setCell` or `append` anywhere names
+                              them. Code cannot be written to at runtime, so a tab the app writes to
+                              can never move here; these three it only ever reads.
+     Who edits it?            You, in bulk. Which is the same answer `questions` gave.
+
+   SO WHY IS THIS A FALLBACK AND NOT A CUT. When `questions` moved, the 3,913 rows were in hand and
+   `doGet` stopped building them in the same commit. These rows are in a spreadsheet that the agent
+   environment cannot reach — every Google host is blocked by network policy — so the move is two
+   steps and only the first can be taken from here:
+
+     1. the machinery, with the FILE WINNING and the payload still answering while the file is empty
+     2. paste the rows in, confirm, then delete the three blocks from `doget.gs`
+
+   CUTTING THE BACKEND FIRST WOULD HAVE TAKEN THE FEATURES DARK for however long step 2 took, over a
+   migration nobody was waiting on. This way the app is identical today, identical the moment the
+   rows land, and `check-library.js` says when step 2 is due rather than leaving it to memory.
+
+   THE FILES HOLD THE SHEET'S OWN COLUMN NAMES — `boxer_id`, `height_cm`, `part_id` — not the
+   camelCase the phone reads. That is deliberate and it is what `questions.json` does too: the file
+   is a faithful export of the tab, so a person can paste a row in without translating it, and the
+   one place that renames a column is the mapping below. Two spellings in two places is how
+   `r.link` and `source_url` cost seven silent reads, recorded in CLAUDE.md.
+================================================================================================== */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet'];
+let LIBRARY_EXTRA = null;
+
+/* One fetch per tab, all started before this file parsed — see `index.html`. A tab that 404s, fails
+   or has not been exported yet answers `[]`, which is the signal `libraryExtras_` reads as "the
+   payload still owns this one". */
+async function libraryExtraRows_() {
+  if (LIBRARY_EXTRA) return LIBRARY_EXTRA;
+  const out = {};
+  await Promise.all(LIB_EXTRA.map(async name => {
+    let rows = null;
+    try {
+      const early = (window.BOOT_LIB_EXTRA || {})[name] || null;
+      if (window.BOOT_LIB_EXTRA) window.BOOT_LIB_EXTRA[name] = null;
+      const res = early ? await early : await fetch('data/' + name + '.json', { cache: 'default' });
+      if (res && res.ok) rows = await res.json();
+    } catch (e) { rows = null; }
+    out[name] = Array.isArray(rows) ? rows : [];
+  }));
+  LIBRARY_EXTRA = out;
+  return LIBRARY_EXTRA;
+}
+
+/* ---------- THE THREE BLOCKS, COPIED FROM `doget.gs` LINE FOR LINE --------------------------------
+   Every field name, every guard and every three-state null below is the backend's, not a rewrite:
+   `mat.js` and the boxing screens were written against those exact keys, and a mapping that is
+   nearly the same is worse than one that is obviously the same. When step 2 deletes those blocks
+   this becomes the only implementation; until then the two must agree exactly or the app changes
+   behaviour on the day the file stops being empty. */
+function libraryExtras_(d, extra) {
+  if (!d || !extra) return d;
+
+  /* --- the cheat sheet's components ------------------------------------------------------------
+     BLANK IS NOT ZERO and three states are not two. An empty height means "whatever the code says"
+     and a typed 0 is a real answer; `in_exam` has to be able to say "nobody has checked" rather
+     than saying "no". Both distinctions are the backend's and both are why this is `=== ''` rather
+     than a truthiness test. */
+  if (extra.cheatsheet && extra.cheatsheet.length) {
+    const out = [];
+    extra.cheatsheet.forEach(r => {
+      const id = libS(r.part_id).trim();
+      if (!id || !libOn(r.active)) return;
+      out.push({
+        id: id, name: libS(r.name), levels: libS(r.levels), tier: libS(r.tier),
+        heightMm: libS(r.height_mm) === '' ? null : libN(r.height_mm),
+        half: libS(r.half_width) === '' ? null : libOn(r.half_width),
+        startOn: libOn(r.start_on),
+        inExam: libS(r.in_exam) === '' ? null : libOn(r.in_exam),
+        order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+      });
+    });
+    d.cheatsheet = out;
+  }
+
+  /* --- the boxers ------------------------------------------------------------------------------ */
+  if (extra.boxers && extra.boxers.length) {
+    const out = [];
+    extra.boxers.forEach(r => {
+      if (!libS(r.name) || !libOn(r.active)) return;
+      out.push({
+        id: libS(r.boxer_id), name: libS(r.name), nickname: libS(r.nickname),
+        sex: libS(r.sex), country: libS(r.country), bornIn: libS(r.born_in),
+        stance: libS(r.stance), dob: libS(r.dob), dod: libS(r.dod),
+        heightCm: libN(r.height_cm), reachCm: libN(r.reach_cm),
+        divisions: libS(r.divisions), bestDivision: libS(r.best_division),
+        activeFrom: libS(r.active_from), activeTo: libS(r.active_to), status: libS(r.status),
+        wins: libN(r.wins), winsKo: libN(r.wins_ko),
+        losses: libN(r.losses), lossesKo: libN(r.losses_ko),
+        draws: libN(r.draws), noContests: libN(r.no_contests), recordAsOf: libS(r.record_as_of),
+        worldTitles: libS(r.world_titles), lineal: libOn(r.lineal),
+        hallOfFame: libOn(r.hall_of_fame), ringRank: libS(r.ring_rank),
+        promoter: libS(r.promoter), trainer: libS(r.trainer),
+        notableWins: libS(r.notable_wins), notableLosses: libS(r.notable_losses),
+        image: libS(r.image), notes: libS(r.notes),
+      });
+    });
+    d.boxers = out;
+  }
+
+  /* --- the bouts -------------------------------------------------------------------------------
+     SORTED OLDEST FIRST, because a rivalry only reads correctly in order — the second fight is an
+     answer to the first. Sorted here rather than on each screen so they cannot disagree, which is
+     the backend's reason and still the reason. */
+  if (extra.fights && extra.fights.length) {
+    const out = [];
+    extra.fights.forEach(r => {
+      if (!libOn(r.active)) return;
+      const a = libS(r.boxer_a), b = libS(r.boxer_b);
+      if (!a || !b) return;
+      out.push({
+        id: libS(r.fight_id), rivalryId: libS(r.rivalry_id),
+        boutNo: libN(r.bout_no), boutTotal: libN(r.bout_total), series: libS(r.series),
+        event: libS(r.event_name),
+        aId: libS(r.boxer_a_id), a: a, bId: libS(r.boxer_b_id), b: b,
+        /* CUT TO THE DAY HERE, ONCE. A date cell arrives as a timestamp, and the exam wave column
+           taught this the hard way — a cell meaning "June 2018" reached the phone as sixty
+           characters of clock and timezone and was drawn on a filter button exactly as it came. */
+        date: libS(r.date).slice(0, 10),
+        venue: libS(r.venue), city: libS(r.city), country: libS(r.country),
+        division: libS(r.division), titles: libS(r.titles), rounds: libN(r.scheduled_rounds),
+        result: libS(r.result), winnerId: libS(r.winner_id), winner: libS(r.winner),
+        method: libS(r.method), endRound: libN(r.end_round),
+        scorecards: libS(r.scorecards), attendance: libS(r.attendance), notes: libS(r.notes),
+        video: libS(r.video_url) || libS(r.video_search_url),
+        verified: libOn(r.verified),
+      });
+    });
+    out.sort((p, q) => libS(p.date).localeCompare(libS(q.date)));
+    d.fights = out;
+  }
+
+  return d;
+}
+
 /* ---------- THE TWO BLOCKS, MOVED OUT OF `doget.gs` ------------------------------------------------
    `d` is the payload as it arrived. Both keys are written onto it before it becomes `DATA`, so
    every reader downstream sees exactly what it saw when the backend built them. */

@@ -216,6 +216,66 @@ strays.forEach(s => fail.push(
    Reported rather than failed: it is editorial work on a handful of rows, not a build error. */
 const flagged = rows.filter(r => r && r.examiner_note);
 
+/* ==================================================================================================
+   THE OTHER THREE LIBRARY FILES, WHICH ARE MID-MIGRATION.
+
+   `data/boxers.json`, `data/fights.json` and `data/cheatsheet.json` are the next three tabs out of
+   the spreadsheet — see the header of `js/library.js` for why they qualify and why the move is two
+   steps. They ship EMPTY, with the payload still supplying those keys, because the rows live in a
+   Google sheet that the agent environment cannot reach.
+
+   TWO THINGS ARE WORTH CHECKING AND THEY ARE DIFFERENT SEVERITIES. The SHAPE is a rule: whatever
+   ends up in the file must be a JSON array with one object per line, or the next script to append
+   to it by splitting on newlines corrupts it — the same rule, for the same reason, as the one this
+   file already applies to `questions.json`. Whether the migration is FINISHED is a note: the moment
+   a file has rows in it, `doget.gs` is still walking the same tab and shipping it to every phone
+   for nobody, and that is when the block should go. Nothing can work that out except by holding the
+   two facts side by side, so it is printed rather than remembered. */
+const EXTRA_FILES = ['boxers', 'fights', 'cheatsheet'];
+const DOGET_SRC = (() => {
+  for (const rel of ['backend/doget.gs', 'doget.gs']) {
+    try { return fs.readFileSync(path.join(__dirname, '..', rel), 'utf8'); } catch (e) {}
+  }
+  try { return fs.readFileSync(path.join(__dirname, 'doget.gs'), 'utf8'); } catch (e) {}
+  return null;
+})();
+
+EXTRA_FILES.forEach(name => {
+  const f = path.join(__dirname, '..', 'data', name + '.json');
+  let raw;
+  try { raw = fs.readFileSync(f, 'utf8'); }
+  catch (e) {
+    fail.push('data/' + name + '.json is missing — library.js fetches it on every load');
+    return;
+  }
+  const lines = raw.replace(/\n$/, '').split('\n');
+  if (lines[0] !== '[' || lines[lines.length - 1] !== ']') {
+    fail.push('data/' + name + '.json must open with a bare [ and close with a bare ]');
+    return;
+  }
+  const body = lines.slice(1, -1);
+  body.forEach((line, i) => {
+    const last = i === body.length - 1;
+    if (!(last ? line.endsWith('}') : line.endsWith('},'))) {
+      fail.push('data/' + name + '.json line ' + (i + 2) + ' is not ONE object on ONE line');
+      return;
+    }
+    try {
+      const one = JSON.parse(last ? line : line.slice(0, -1));
+      if (!one || typeof one !== 'object' || Array.isArray(one))
+        fail.push('data/' + name + '.json line ' + (i + 2) + ' is not an object');
+    } catch (e) {
+      fail.push('data/' + name + '.json line ' + (i + 2) + ' does not parse — '
+                + e.message.slice(0, 60));
+    }
+  });
+  if (body.length && DOGET_SRC && new RegExp('read\\(TAB\\.' + name + '\\)').test(DOGET_SRC)) {
+    note.push('data/' + name + '.json now has ' + body.length + ' row(s) AND doget.gs still builds '
+              + 'payload.' + name + ' — step 2 of that migration is due: delete that block so the '
+              + 'tab stops being walked for every phone on every load');
+  }
+});
+
 /* ---------- SAY IT --------------------------------------------------------------------------------- */
 const say = (title, list, draw) => {
   console.log('\n' + title + '  (' + list.length + ')');

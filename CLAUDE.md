@@ -226,7 +226,7 @@ budget before lunch and stop the nightly jobs.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 23 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 24 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -322,6 +322,7 @@ node js/check-rows.js            # each column read, against the tab that row ac
 node js/check-post.js            # an action that names a person by a cell they can edit
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
+node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -575,6 +576,76 @@ It is now three files, **split by who writes the rows**:
 | **Ledger** | the app, via `doPost` | people, jobs, receipts, posts, orders — the business as it happened |
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
 | **Library** | you, in bulk | boxers, fights, cheatsheet. `questions` has left — see below |
+
+### The rest of `Library` is following it, in two steps because the sheet is unreachable
+
+`boxers`, `fights` and `cheatsheet` are the three tabs left in that file, and they pass the same
+three-question test `questions` passed. **The one that decides it is the second**: measured,
+`read(TAB.boxers)`, `read(TAB.fights)` and `read(TAB.cheatsheet)` appear **exactly once each, all
+three in `doget.gs`**, and no `setCell` or `append` anywhere names them. Nothing writes to them, so
+code can hold them.
+
+**Step 1 is done and step 2 needs you.** The rows are in a Google sheet and every Google host is
+blocked from the agent's environment by network policy, so this could only be built, not populated:
+
+| | |
+|---|---|
+| `data/boxers.json`, `data/fights.json`, `data/cheatsheet.json` | committed, currently `[]` |
+| `libraryExtras_` in `js/library.js` | the three mappings, copied from `doget.gs` line for line |
+| the fallback | **a file with no rows leaves the payload's copy alone** |
+
+So the app is byte-identical today, and the moment a file has rows in it the file wins. **Cutting
+the backend first would have taken the boxing screens and the cheat sheet dark** for however long
+the export took, over a migration nobody was waiting on.
+
+**The files hold the sheet's own column names** — `boxer_id`, `height_cm`, `part_id` — not the
+camelCase the phone reads. A file that is a faithful export is one you can paste a row into without
+translating it, and the single place that renames a column is the mapping. Two spellings in two
+places is what `r.link` against `source_url` cost: seven silent reads.
+
+**`check-library.js` says when step 2 is due** rather than leaving it to memory: once a file has
+rows AND `doget.gs` still builds that key, it prints that the block should go. Until then it only
+enforces the shape, which is the same one-object-per-line rule `questions.json` has and for the same
+reason — the next script to append by splitting on newlines.
+
+### `d = libraryInto_(d, …)` had been throwing on every single load
+
+`d` is `const` — `const d = await res.json()` some forty lines above — so that line threw
+**"Assignment to constant variable" every time `load()` ran**, and the `try` around it swallowed it.
+
+**Nothing looked wrong, which is why it survived.** `libraryInto_` **mutates** `d` and returns the
+same object, so the questions were already written by the time the assignment was attempted; the
+throw came *after* the useful work, and the catch's own repair — `d.questions = d.questions || []` —
+found the key populated and left it alone. A correct fallback standing over a broken line, which is
+the same shape as the `check-flow` stub with no `text()` and as `.mat-out` being "fixed" twice on a
+measurement nobody took.
+
+**What it cost was that nothing after that line inside the try could ever run**, and while the line
+was last in its block that was invisible. The three extra library tabs were the first code to sit on
+the next line and they simply never executed — found by booting the app with a row in
+`data/boxers.json` and watching the payload's copy win anyway. The fix is to drop the assignment:
+both functions mutate in place, so the return value was never needed.
+
+### `node js/check-const.js` — the rule, not just the instance
+
+Within **one function body**, a name declared `const` and later assigned or incremented. Narrow on
+purpose, and the narrowing was learned twice in one sitting:
+
+- **The first version reported ~90 findings and every one was wrong.** It gathered the bodies
+  correctly and then walked each with the ordinary walker, which descends into nested functions — so
+  the top-level pass collected every `const` and every assignment in the whole file and matched them
+  across scopes. It "found" a `const` declared at line 552 assigned at line 153, four hundred lines
+  earlier, in a different function. **That is the `check-rows.js` fault exactly**, and CLAUDE.md
+  already says what 95 findings with 2 real ones in them is worth.
+- **Scoping the walk left three, and all three were still wrong**: `for (let k = 0; …; k++)` beside
+  a separate `const k` further down. Different blocks, different bindings. Getting that right
+  properly needs a block-level scope tree, so instead **it declines to answer**: if a name is also
+  declared `let`/`var` (or is a parameter) anywhere in the same function, it says nothing. A missed
+  case is an incomplete check; a false one is a check nobody reads.
+
+**Proved by mutation**, which is the only thing that shows the exemption did not gut it: putting
+`d = libraryInto_(…)` back makes it report `shell.js:2021 — d is declared const at line 1967`, and
+removing it goes green across 26 files.
 
 ### `questions` lives in this repository, not in a spreadsheet
 

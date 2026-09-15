@@ -276,6 +276,22 @@
          so a second visit pays nothing for it. */
       window.BOOT_LIB = fetch('data/questions.json?t=' + LOAD, { cache: 'default' })
         .catch(function () { return null; });
+
+      /* ---------- AND THE OTHER THREE LIBRARY TABS, THE SAME WAY ------------------------------
+         `boxers`, `fights` and `cheatsheet` are moving out of the spreadsheet for the reasons set
+         out at the top of `js/library.js`. They are small next to the questions file, so the cost
+         of asking for them is one round trip each and they start in parallel with everything else
+         — the boot waits on the slowest, not the sum.
+
+         AN EMPTY OR MISSING FILE IS NOT A FAILURE HERE. While a tab has not been exported yet its
+         file is `[]` and the payload goes on supplying it, so this can ship before the data does
+         and the app is identical either way. */
+      window.BOOT_LIB_EXTRA = {};
+      ['boxers', 'fights', 'cheatsheet'].forEach(function (name) {
+        window.BOOT_LIB_EXTRA[name] =
+          fetch('data/' + name + '.json?t=' + LOAD, { cache: 'default' })
+            .catch(function () { return null; });
+      });
     }
   } catch (e) {}
 
