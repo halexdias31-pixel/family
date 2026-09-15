@@ -222,6 +222,112 @@ budget before lunch and stop the nightly jobs.
 
 ---
 
+## The app took itself down, and its own diagnostic was the thing that did it
+
+**"The app did not load. None of its code arrived."** Reported from the live site, and it was not
+true: the code arrived. The message is the app's own boot check, and what it used to do was wait one
+second after parsing, and if `go` was not defined, run `document.body.innerHTML = …`.
+
+**That destroys the markup.** Every screen, every pane, every element the deferred scripts are about
+to paint into. So the app cannot come up underneath and replace anything — the note above it claimed
+"a false alarm you can watch disappear costs nothing", and the false alarm is the page killing
+itself half a second before its own code arrives.
+
+**Reproduced, because a bug this expensive should not be argued about.** Served locally with a delay
+added to each file in `js/`: at 900ms the app comes up fine; at **1400ms `go` IS a function, nothing
+404s, and the body is wiped with nine screens destroyed.** A working app reporting itself as broken,
+permanently, on any connection slow enough.
+
+**The report itself named the cause.** The message lists missing files when it knows of any, under
+"None of these arrived" — and that line was absent, so no file 404'd. Nothing missing, `go` not yet
+defined: a race, not a fault.
+
+**One second was always a guess, and the app outgrew it.** Twenty-five files, 492 KB of JavaScript
+gzipped, 152 KB of stylesheet, and a 342 KB library fetched alongside. The number was chosen when
+there were eighteen smaller ones.
+
+### So it asks at the moment the answer exists
+
+`window.load` **fires when every deferred script and subresource has finished.** If `go` is missing
+then, the scripts really did finish and really did not define it — a fact rather than a race, true on
+the fastest connection and the slowest alike. No number to tune, and nothing to get wrong when the
+app grows another file.
+
+- **The backstop is for the one case `load` cannot cover**: a request that never returns, so the
+  event never fires. That gets "The app is still loading", which is the honest description of that
+  state, and it keeps looking.
+- **It never destroys anything.** The message is an overlay laid *over* the app rather than instead
+  of it, and it is removed if the code turns up late — which is the exact case that caused this.
+- **The count is read off `window.FILES`.** It said "one of the eighteen names" for as long as there
+  were eighteen and went on saying it at twenty-five, which is the same fault this file records about
+  the session hook's "all 18 checks pass".
+
+**Proved in all four directions**: nothing broken → silence; one file 404s → the banner names it;
+every file 404s → the overlay, over an intact page; a slow link at 0/900/1400/2500ms → the app comes
+up every time.
+
+### `.nojekyll`, one empty file, closing a trap nobody had hit yet
+
+GitHub Pages runs Jekyll by default, and **Jekyll silently drops any file or folder beginning with an
+underscore**. `js/_scope.js` exists. It is not in `window.FILES`, so nothing is broken today — but a
+file starting with `_` that ever joined that list would 404 in production and work perfectly
+everywhere else, which is the worst shape a bug can have. One empty file at the repo root turns
+Jekyll off entirely.
+
+## Messaging had a working half and a door with no handle
+
+**Measured across the app**: of the four message actions, `messages` (the read) had one caller and
+`sendMessage`, `readMessage` and `flagMessage` had none. The backend has had the whole thing since
+messages were built — a role policy, a five-minute gap, a 2,000-character cap and an email to the
+recipient — and no version of the app had ever posted to it. **This is `orderPrints` again**:
+access-listed, published in the feature list, never called.
+
+**The note in `me.js` said where the missing half belonged and it was right**: *"there is no picker
+for WHO — that belongs with the roster, where the people you are talking to are already on screen."*
+A tutor's pass IS the picker. The `Message` tile is on it; the sheet names the person, takes the
+text and posts. Nothing is typed, searched for or guessed.
+
+**By id, not by name**, and the backend had to change for it: `doGet` sent a tutor's display name
+and an array position and no `person_id`. `findPerson` falls back to matching the name — right for a
+row typed into the sheet before anybody has an id, and silently wrong the day two tutors share one.
+**On a private message that is not a denial, it is a disclosure.** Publishing the id costs nothing:
+every action checks the signed-in user, `mayMessage` checks the roles, and `handle` has been public
+in that payload since it was written.
+
+**`readMessage` is called now too.** `messageThreads_` counts a message unread when it has no
+`read_at`, and only the server writes that cell — so the badge beside a conversation could only ever
+have gone up. A count that never falls is decoration within a day.
+
+**The role policy is not repeated on the phone.** `MESSAGING` in `constants.gs` is the rule — a
+student may reach an admin and nobody else, parents cannot write to each other — and copying it into
+the app is two rules to keep in step, which is the fault recorded here under `kinds`, under
+`link`/`source_url` and under `childrenOf`. The sheet shows the server's own sentence, which already
+says what to do instead.
+
+### `node js/check-replies.js` — a refusal reported as a refusal
+
+**I posted it through `api()` and it told somebody it had worked when it had not.** There are two
+ways to post: `api()` resolves with whatever the server said, `{ error: … }` included; `send()` is
+the same request and throws on an error. Both are right for something — a read, or a
+fire-and-forget, wants `api`. **A caller that is about to say "Sent" wants `send`.**
+
+Stubbing a refusal showed it: the sheet closed, what had been typed was thrown away, and a toast
+said *"Sent to Ada Tutor"* about a message that was never written. **Nothing in the app would have
+shown it** — the backend's refusals are the one thing a happy path never reaches, and all four that
+`sendMessage` can give are real.
+
+**`loadMessages` had the same fault and its own comment described it**: *"an unreachable backend is
+not the same fact as an empty inbox, and showing the second for the first is how a network blip
+reads as everything having been deleted."* Through `api()` a refusal resolved with no `messages`
+key, `|| []` made it an empty list, and it reached that guard as a success.
+
+**So the rule is narrow enough to be certain about** — the `check-rows.js` lesson, where the first
+version had 95 findings and 2 real ones. One question: does an `api()` call have a `.then` that says
+success (`toast()`, `closeSheet()`) without the reply being examined for an error anywhere in that
+handler? Everything else is left alone. **Proved both ways on the bug that prompted it**, and it
+finds nothing else across the app — which is the answer, not an empty check: 23 `api()` callers, and
+the one that made a claim was mine.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
@@ -1183,6 +1289,47 @@ now a real narrowing.
 **This is `cost: 0` and `paper: true` a third time**, and the sentence this file already carries is
 the right one: both of those were fixed in the data and neither was fixed in the rule, so the shape
 recurred. The rule is the fix.
+
+### Reels was never broken. It had nothing to show, and two rules were missing
+
+**Reported as "the widget has disappeared".** Measured in a browser before touching anything: the
+column is in `TABS`, `go('reel')` works, there are no JS errors, and `screen('reel')` draws its
+"Nothing here yet. Add a row to the **facts** tab" card. **A column that works and has nothing to
+show is indistinguishable from one that does not work, and it is read as the second.**
+
+**The move to a tab only half happened.** Fifty-eight facts live in `FEED_FACTS` in `chess.js` — a
+subject, a headline, a paragraph and a photograph search term each. `screen('reel')` was rewritten
+to read `DATA.facts` instead, which is the right change and the note in `shell.js` says why. The
+backend sends that tab. **The tab has no rows in it**, and has had none since.
+
+**`factsNow_` is the rule, and it is `libraryExtras_`'s rule pointed the other way.** That one says
+*a file with no rows leaves the payload's copy alone*, so cutting over could never take a screen
+dark. This says *a tab with no rows leaves the code's copy alone* — which is also the house rule
+this file opens with: an empty or broken sheet must still produce a working site. The sheet wins the
+moment it has a row, so nothing about the migration is undone; it just stops being a cliff.
+Measured: 58 built-in, one row in the tab → 1 from the tab, tab emptied → 58 again.
+
+**And the two surfaces were reading two sources.** The Reels column read `DATA.facts`; the "One more
+thing" widget read `FEED_FACTS` directly. Filling the tab would have changed one of them. Both ask
+`factsNow_` now — the same argument as `documents_()` and `paperIdOf_`: a second reader of one thing
+is a second chance to disagree about it. `reelsWatch_` was a third, reading `DATA.facts` for the
+photograph while the slides beside it were drawn from somewhere else.
+
+#### And then every slide was zero pixels tall
+
+**`.reels` asks for `height: 100%` and `.page` is `height: auto`.** Circular — the thing asking for
+the height *is* the content — so the container resolved to 0 and so did all 58 slides. The markup
+was all there, the text was in the DOM, and every box measured 0px.
+
+**It had never been rendered, which is why nobody had seen it.** The `facts` tab has always been
+empty, so the screen has always returned the "Nothing here yet" card instead — an ordinary `.pane`
+that sizes itself perfectly well. **The slide rules were written, committed, and never once put on a
+screen.** Filling the column is what exposed them, and it took measuring the boxes in a browser:
+`.page.reel-page { height: 100% }`, one class on the one page that wants it, because `.screen` is
+`position: absolute; inset: 0` and so has a height for a percentage to resolve against.
+
+**This is the same shape as the check that could not reach its subject**, one layer down: CSS that
+cannot be wrong until something renders it.
 
 ### `node js/check-funnel.js` — the funnel, run over the real library
 

@@ -93,6 +93,12 @@ const SUITE = [
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   /* AND WHO THE ACTION IS ABOUT. `check-access` asks whether an action may be performed; this asks
      whether the person it names can be found again tomorrow. */
+  /* ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE -------------------------------------------
+     `api()` RESOLVES ON `{ error: … }`; `send()` THROWS. A caller that posts through the first and
+     then toasts "Sent" tells somebody a write worked on the strength of an answer it never read —
+     written after making exactly that mistake on the Message control, where a stubbed refusal
+     closed the sheet, discarded what had been typed, and said it had gone. */
+  { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },

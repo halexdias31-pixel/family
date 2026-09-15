@@ -866,12 +866,114 @@ let MESSAGES = null;
 
 function loadMessages() {
   if (!USER) return Promise.resolve([]);
-  return api({ action: 'messages', name: USER.name, personId: USER.personId })
+  /* `send` FOR THE SAME REASON, and the comment below was written as though it already did. With
+     `api()` a refusal — "Not signed in." — resolves with no `messages` key, `|| []` turns it into an
+     empty list, and the inbox reads as empty rather than as unreachable. That is the exact fault
+     the next four lines say they are guarding against, and it was reaching them as a success. */
+  return send({ action: 'messages', name: USER.name, personId: USER.personId })
     .then(d => (MESSAGES = (d && d.messages) || []))
     /* A failure leaves whatever was already there rather than emptying the list — an unreachable
        backend is not the same fact as an empty inbox, and showing the second for the first is how
        a network blip reads as everything having been deleted. */
     .catch(() => MESSAGES || []);
+}
+
+/* ==================================================================================================
+   WRITING ONE — THE HALF THAT HAS NEVER EXISTED.
+
+   `sendMessage` WAS A DOOR WITH NO HANDLE. The backend has had the whole of it since messages were
+   built: a role policy (`MESSAGING`), a five-minute gap between sends, a 2,000-character cap, and
+   an email to the recipient because nobody sits on a tutoring site waiting for a message. Measured
+   across the app: of the four message actions, `messages` had one caller and `sendMessage`,
+   `readMessage` and `flagMessage` had none. This is the same shape as `orderPrints` — access
+   listed, priced, published in the feature list, and never once posted to.
+
+   THE NOTE ABOVE SAID WHERE IT BELONGED and it was right: "there is no picker for WHO — that
+   belongs with the roster, where the people you are talking to are already on screen." A tutor's
+   pass IS the picker. You are looking at the person; the control names them, and nothing has to be
+   typed, searched or guessed.
+
+   BY ID, NOT BY NAME. `findPerson(name, id)` prefers the id and falls back to matching the name —
+   right for a row typed into the sheet before anybody has an id, and silently wrong the day two
+   people share one. On a private message that is not a denial, it is a disclosure. The id is on the
+   payload now; see the note beside `personId` in doget.gs for why publishing it costs nothing.
+
+   THE SERVER DECIDES WHETHER YOU MAY, and its sentence is what the sheet shows. Repeating
+   `MESSAGING` on the phone would be two copies of one rule — the fault recorded here under `kinds`,
+   under `link`/`source_url` and under `childrenOf` — and the server's own words already say what to
+   do instead: "You cannot message them directly. An admin can pass it on."
+================================================================================================== */
+function messageSheet(to, toId) {
+  openSheet('Message ' + to, `
+    <label class="field"><span>your message</span>
+      <textarea id="msg-text" rows="5" maxlength="2000"
+        placeholder="Keep it short — they get this by e-mail."></textarea></label>
+    <button class="btn" data-do="msg-send"
+      data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
+    <p class="faint" id="msg-said" style="margin:.6rem 0 0">
+      One message every five minutes. It goes to their e-mail and appears in Messages for both of
+      you.</p>`);
+}
+
+on('msg-open', el => messageSheet(el.dataset.to, el.dataset.id));
+
+on('msg-send', el => {
+  const box = $('msg-text'), said = $('msg-said');
+  const text = ((box && box.value) || '').trim();
+  if (!text) { box && box.focus(); return; }
+  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
+
+  /* THE BUTTON SAYS WHAT IT IS DOING, and stops being pressable while it does. A five-minute gap
+     on the server means a second press is refused with a countdown rather than duplicated — which
+     is the better failure, and still a confusing one to read when you did not know you had sent
+     anything. */
+  el.disabled = true;
+  const was = el.textContent;
+  el.textContent = 'Sending…';
+  const done = () => { el.disabled = false; el.textContent = was; };
+
+  /* ---------- `send`, NOT `api` — AND THE DIFFERENCE IS THE WHOLE POINT OF THIS CONTROL ---------
+     `api()` RESOLVES ON A REFUSAL. It hands back `{ error: '…' }` as an ordinary answer, so a
+     `.then` runs on "You cannot message them directly" exactly as it runs on success — which here
+     meant closing the sheet, throwing away what somebody had typed, and telling them "Sent to Ada
+     Tutor" about a message that was never written. Caught by stubbing a refusal and watching it say
+     the wrong thing; nothing in the app would have shown it, because the backend's refusals are the
+     one thing a happy path never sees.
+     `send()` is `api()` that throws on `error`, and it exists for precisely this. */
+  send({ action: 'sendMessage', name: USER.name, personId: USER.personId,
+         to: el.dataset.to, toId: el.dataset.id, body: text })
+    .then(() => {
+      closeSheet();
+      toast('Sent to ' + el.dataset.to);
+      /* SO IT IS THERE WHEN YOU LOOK. Without this the thread you have just started does not exist
+         on the phone until something else happens to fetch — and the first place anybody looks
+         after sending a message is the place messages are. */
+      loadMessages().then(() => { if (AT === 'dm') paint('dm'); });
+    })
+    /* THE SERVER'S OWN SENTENCE, not a generic failure. Every refusal it can give is already
+       written for a person to read — the role policy, the five-minute gap, the length — and
+       replacing them with "Not sent" would throw away the only part that says what to do. */
+    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not sent.'); });
+});
+
+/* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE -----------------------------------
+   `readMessage` IS THE THIRD DOOR WITH NO HANDLE. `messageThreads_` counts a message unread when it
+   has no `read_at`, and only the server can write that cell — so the badge beside a conversation
+   could only ever have gone up. A count that never falls stops being a count and becomes decoration
+   within about a day.
+
+   ONE CALL PER MESSAGE, and only for the ones that are actually unread and actually yours: the
+   server refuses anybody else's, so asking about them would be a round trip to be told no.
+
+   NOTHING WAITS FOR IT. The screen has already drawn; this is bookkeeping, and a failed round trip
+   leaves the message unread, which is true rather than wrong. */
+function markRead_(msgs) {
+  if (!USER) return;
+  (msgs || []).filter(m => m && !m.mine && !m.read && m.id).forEach(m => {
+    m.read = true;                                   /* so a redraw before the reply does not re-ask */
+    api({ action: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
+      .catch(() => { m.read = false; });
+  });
 }
 
 const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">Messages about a
@@ -928,6 +1030,9 @@ function fillThread_(withId) {
     if (!now) return;                                   // the widget was closed while we waited
     const t = messageThreads_().find(x => String(x.id) === String(withId));
     now.innerHTML = t ? messagesHtml_(t.msgs) : emptyMessages_;
+    /* OPENED IS READ. This widget shows one conversation and nothing else, so being here is the
+       clearest statement anywhere in the app that somebody has seen these. */
+    if (t) markRead_(t.msgs);
   });
 }
 
