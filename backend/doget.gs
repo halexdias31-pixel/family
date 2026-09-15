@@ -452,6 +452,21 @@ function doGet(e) {
       if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || hasRole(r, 'admin'))) {
         payload.tutors.push({
           id: i, type: 'tutor', role: ROLE_LABEL[mainRole(r)] || 'Tutor',
+          /* ---------- WHO THEY ARE, NOT WHAT THEY ARE CALLED ------------------------------------
+             `id` ABOVE IS A POSITION IN THIS ARRAY and `title` is a display name; neither is the
+             person. The Message control on a tutor's pass has to name a recipient, and naming one
+             by display name is the fault this project already has a check for — `findPerson` falls
+             back to matching the NAME, which is right for a row typed into the sheet before anybody
+             has an id, and silently wrong the day two tutors share one. On a PRIVATE MESSAGE that
+             is not a denial, it is a disclosure: the note goes to the wrong person and neither of
+             them can tell.
+
+             PUBLISHING IT COSTS NOTHING. The payload is served to anonymous visitors, and this is
+             an internal identifier rather than a secret — every action checks the signed-in user
+             and `mayMessage` checks the roles, so knowing an id grants nothing. `handle` has been
+             public here since the file was written. The PINs, addresses and dates of birth that
+             ARE secret live on rows this loop never touches. */
+          personId: S(r.person_id),
           listed: listed,      // so the site can show which ones are hidden, and offer the switch
           title: name, handle: S(r.handle) || S(r.username) || S(r.first_name),
           subtitle: S(r.city) || 'London',

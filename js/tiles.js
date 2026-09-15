@@ -79,6 +79,11 @@ const TILE_ICONS = {
   close: '<path d="M4 4.5 14 14"/><path d="M14 4.5 4 14"/>',
   /* THE SHARE MARK. An arrow leaving a tray — the same idea the ↗ on a post was reaching for, drawn
      properly so it is the same weight and the same size as every other mark in the row. */
+  /* AN ENVELOPE, WHICH IS THE ONE PICTURE EVERYBODY ALREADY READS. The paper aeroplane below means
+     SEND — the act — and this means a message as a thing, which is what the control on a person's
+     pass offers: it opens a sheet, it does not post anything. Two marks, two meanings, and the tile
+     that actually sends sits inside the sheet using the aeroplane. */
+  mail:  '<path d="M2.5 4h13v9.5h-13z"/><path d="m2.5 4.6 6.5 4.4 6.5-4.4"/>',
   share: '<path d="M9 11.5V2.5"/><path d="M5.8 5.7 9 2.5l3.2 3.2"/>'
        + '<path d="M3.5 9.5v5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-5"/>',
   /* THE PAPER AEROPLANE. Sending, and nothing else in the app sends — so it can be the one mark
@@ -282,6 +287,15 @@ function shopTiles_(x) {
    THE ROW WRAPPER GOES TOO. Every other `*Tiles_` returns bare tiles and lets `cardTiles_` do the
    wrapping; this one built its own `<div class="tile-row is-admin">`, which is how it ended up
    beside a second one rather than inside it. */
+/* IS THIS CARD ME? By id where there is one and by name where there is not — the same order
+   `findPerson` uses on the server, so the two agree about who somebody is. */
+function isMe_(x) {
+  if (!USER) return false;
+  const id = (x.row && x.row.personId) || '';
+  if (id && USER.personId) return String(id) === String(USER.personId);
+  return norm(x.name) === norm(USER.name);
+}
+
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
@@ -297,6 +311,31 @@ function tutorTiles_(x) {
     ${/* SILVER, IN THE ORDINARY ROW. Every other admin mark sits in its own silver row below —
           `adminTiles_` builds that — and `Listed` cannot join it, because that row is built for
           every kind and this control exists only for a tutor. The tone still says who it is for. */''}
+    ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM --------------------
+          `sendMessage` HAS BEEN A DOOR WITH NO HANDLE SINCE MESSAGES WERE BUILT. The backend has
+          the whole thing — a role policy, a five-minute gap, a length cap and an email to the
+          recipient — and nothing in the app has ever posted to it. Measured: of the four message
+          actions, one (`messages`, the read) had a caller and three had none. The note in me.js
+          says exactly why and where it belongs: "there is no picker for WHO — that belongs with
+          the roster, where the people you are talking to are already on screen."
+
+          THIS IS THAT PLACE. A tutor's pass IS the picker: you are already looking at the person,
+          so the control names them and nothing has to be typed or searched for.
+
+          ONLY WHEN SIGNED IN, because a stranger has nobody to send it as — and the sheet would
+          have to explain that instead of taking a message. Not shown on your own pass either;
+          `sendMessage` answers "That is you." and a control whose only outcome is that sentence is
+          a control that should not be there.
+
+          WHETHER YOU MAY IS THE BACKEND'S TO SAY, and it is not repeated here. `MESSAGING` in
+          constants.gs is the policy — a student may reach an admin and nobody else, parents cannot
+          write to each other — and copying it into the phone is two rules to keep in step, which
+          is the fault this repository records under `kinds`, under `link`/`source_url` and under
+          `childrenOf`. The sheet shows the server's own sentence, which already says what to do
+          instead: "You cannot message them directly. An admin can pass it on." */''}
+    ${(USER && !isMe_(x)) ? tile_({ icon: 'mail', label: 'Message',
+              note: 'a note to them', act: 'msg-open',
+              data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',

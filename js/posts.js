@@ -1271,6 +1271,15 @@ function dmCards_() {
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
+  /* ---------- DRAWN IS READ, ON THIS SCREEN ONLY -------------------------------------------------
+     EVERY THREAD IS OPEN HERE. The Messages column is not a list of conversations to tap into — it
+     is the conversations, one card each, with the messages in them. So drawing this screen IS
+     somebody reading them, and `readMessage` is owed for each one.
+
+     SAFE TO CALL FROM A DRAW, which is normally the wrong place for a round trip. `markRead_` sets
+     `read` on the message the moment it asks, so a second paint before the reply finds nothing left
+     to send and a failed one puts it back. */
+  threads.forEach(t2 => markRead_(t2.msgs));
   return [head].concat(threads.map(t => `<div class="card${t.unread ? ' unread' : ''}">
       <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
       ${messagesHtml_(t.msgs)}
