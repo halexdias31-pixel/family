@@ -900,6 +900,74 @@ QUESTIONS, which is a different claim. It says which of the two it means now.
 **What it costs**: the first draw of the Find screen went 65 ms → 88 ms and a search 32 ms → 43 ms,
 measured over 4,045 items. That is one extra facet walked twice per filter change, not per keystroke.
 
+### The collection line is gone, and a paper is an answer like any other
+
+**Two ways of narrowing one list, stacked on one screen, is a pivot table.** `stuffQuestion` drew a
+sentence above the funnel — *"or the 227 papers these are in"* — that turned the results into one
+card per paper until you pressed it again. You had to know what it meant before you could use it,
+and it named a thing the funnel could simply ASK about once the list was small enough.
+
+**So `collect: true` came off `paperId` and the ordinary rules do the job better.** 227 answers keeps
+the question silent at the top exactly as `FACET_MAX_ANSWERS` intends; narrow to one board, tier and
+sitting and it is twelve, under the cap, and the funnel asks "which paper" as a plain question —
+same chip, same ✕, same handler. Measured at the six-chip state: `Paper`, 12 answers, 100% coverage,
+offered. **The name is shown and the id decides who answers**, because `P-1MA1-2211-1H` is a join
+and the paper's name is on every one of its questions already.
+
+`collectionAxes_`, `groupItems_`, `one_`, `plural_`, `STUFF.groupBy`, `on('group-by')`,
+`on('group-open')`, the `group` tile in `tiles.js` and `.stuff-coll` are all gone. **The arithmetic
+in them was right and is kept in prose** where they were: one distinct value per row identifies a
+row, ~16 rows each is a collection, 654 rows each is a category, and the boundary between the last
+two is the same constant.
+
+**Two other things went off that screen for the same reason.** The count beside each answer — it was
+defended as "the thing doing the work", and that is true of a list you are deciding between and
+false of this one: four digits wide, changing on every tap, and never the reason you pick a topic.
+It is still computed, because `facetSplit_` is a share of those counts and that is what keeps a
+useless question off the screen. And the credits card, which was a balance on the app's front door;
+nothing on the Find screen is spent.
+
+### The Find screen was slow because it walked the same list twenty-one times
+
+**Measured, first draw at 4,045 items: 200 ms.** Where it went, and all four are the same mistake —
+work repeated that could not have changed:
+
+| | |
+|---|---|
+| `collectionAxes_` | **71 ms** — every facet tallied over every item, to draw one sentence |
+| the sort | **88 ms** — four `localeCompare` calls per comparison, ~200,000 of them |
+| the facet rules | **3 walks per facet**: `facetValues`, `facetCoverage`, `facetSplit_`, each its own pass |
+| `stuffItems` | **33 ms rebuilt on every keystroke**, and nothing in it reads a filter |
+
+**`facetTally_` walks once and answers all three**, because they are three readings of one count:
+the keys are the answers, the number of items contributing a key is the coverage, and the share
+outside the biggest key is the split. The three old functions are thin readers of it, so every
+caller — `check-funnel.js` included — is untouched. Held in a `WeakMap` on the items array itself:
+a new list is a new array, so there is no key to get wrong and nothing to invalidate.
+
+**`sortKey_` bakes the order into one string per item** and the comparator becomes `<`. Case folded
+and every run of digits zero-padded to eight, which is what `numeric: true` does — so "Paper 10"
+still sorts after "Paper 2". Cached on the item, so a second sort of the same items is free.
+
+**`stuffItems` is memoised on `DATA`, admin, and which person you are** — the only three things any
+mapper reads. That is also what makes the sort keys worth caching: rebuilding the items every call
+was throwing that cache away at the rate it was filled.
+
+| | before | after |
+|---|---|---|
+| first draw, cold | ~200 ms | **50 ms** |
+| answering a question | ~200 ms | **15–28 ms** |
+| a keystroke | ~40 ms | **5–9 ms** |
+
+**And a dead reader that was not a bug, which is the part worth keeping.** The sort's second and
+third terms read `qNumber` and `qPart`, and nothing has written either since the paper card was
+deleted. I read that as Q1, Q10, Q11, Q12, Q2 down every paper — and went to measure it before
+writing it down. It is not: `cmpText` carries `numeric: true`, so the LAST term, on the name,
+already put Q2 before Q10. Identical order on both versions, 32 parts, checked both ways. **A dead
+reader standing over a live one** — the same shape as `d = libraryInto_(…)`, where the broken line
+came after the useful work and a correct fallback hid it. The fields are written again because the
+key is built from them, not because anything was broken.
+
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
 The three faults above have one shape: **each looked fine in the code and only showed up in the

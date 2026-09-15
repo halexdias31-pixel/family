@@ -6725,7 +6725,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    results rather than being one of the answers — so it must not look like a row you could pick, or
    the first question would appear to have an extra option on it. `.text-action` already carries the
    app's underlined pressable-text look; this only places it. */
-.stuff-coll { margin: 0 0 .5rem; font-size: .78rem; }
+/* `.stuff-coll` WAS HERE — the "or the 227 papers these are in" line above the funnel's answers.
+   The collection went; a paper is an answer to an ordinary question now. */
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
