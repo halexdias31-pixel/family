@@ -171,7 +171,7 @@ const STATES = {
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
-                         { field: 'resourceType', value: 'Worksheet' },
+                         { field: 'documentType', value: 'Worksheet' },
                          { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', any: true }];
         paintStuff();

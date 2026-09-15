@@ -51,7 +51,7 @@
    perfectly well as "exam board". */
 const FIELD_LABEL = {
   band_type: 'grade or stage', band_value: 'which one', key_stage: 'key stage',
-  exam_board: 'exam board', exam_wave: 'exam wave', resource_type: 'type',
+  exam_board: 'exam board', exam_wave: 'exam wave', document_type: 'type',
   print_required: 'needs printing', level_required: 'unlocks at level',
   pages_checked: 'page count checked', trackable: 'can be ticked off',
 };

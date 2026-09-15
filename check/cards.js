@@ -105,12 +105,12 @@ function cardHtml(r, stems) {
 
 (async () => {
   const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
-  const parts = rows.filter(r => r && r.kind === 'part');
+  const parts = rows.filter(r => r && r.kind === 'question');
   /* THE SAME INDEX `stemIndex_` BUILDS, by the same rule: a stem naming a question belongs to that
      question, one naming only a section to the section, one naming neither to the paper. */
   const stems = { paper: {}, section: {}, question: {} };
   rows.forEach(r => {
-    if (!r || r.kind !== 'stem' || !r.paper_id) return;
+    if (!r || r.kind !== 'preamble' || !r.paper_id) return;
     if (r.question !== undefined && r.question !== null && r.question !== '') {
       stems.question[r.paper_id + '|' + r.question] = r;
     } else if (r.section) {

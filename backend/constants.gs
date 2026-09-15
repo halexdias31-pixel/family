@@ -1835,7 +1835,7 @@ const FIELD_OPTIONS = {
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',
   borough: 'borough', city: 'city', town: 'town', focus: 'focus',
   // resources
-  subject: 'subject', resource_type: 'resource_type', key_stage: 'key_stage',
+  subject: 'subject', document_type: 'document_type', key_stage: 'key_stage',
   tier: 'tier', exam_board: 'exam_board', exam_wave: 'exam_wave',
   company: 'company', band_type: 'band_type',
 };

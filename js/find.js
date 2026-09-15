@@ -729,7 +729,7 @@ const FACETS = [
      revising and somebody sitting a mock are not looking for the same thing — so it is the
      question that most changes what should come next. 412 of 417 rows can answer it, which is
      the other half of what makes a good early question. */
-  { field: 'resourceType', label: 'Type',     of: x => x.resourceType },
+  { field: 'documentType', label: 'Type',     of: x => x.documentType },
   /* ---------- A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE -------------------------------------
      PRIMARY WORKSHEETS DO NOT RESPECT THE BOUNDARY. Column addition, times tables, telling the time,
      naming 2-D shapes — Year 2 meets all of them and Year 6 is still practising them. Forcing one
@@ -1831,7 +1831,7 @@ function searchText_(r) {
 function stemIndex_(all) {
   const at = { paper: {}, section: {}, question: {} };
   all.forEach(r => {
-    if (!r || r.kind !== 'stem') return;
+    if (!r || r.kind !== 'preamble') return;
     const pid = paperIdOf_(r);
     if (!pid) return;
     if (r.q !== undefined && r.q !== null && r.q !== '') at.question[pid + '|' + r.q] = r;
@@ -1861,7 +1861,7 @@ function questionItems() {
 
   const stems = stemIndex_(all);
 
-  return all.filter(r => r.kind !== 'stem' && r.kind !== 'paper').map(r => {
+  return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
     return {
       kind: 'question',
@@ -1877,7 +1877,7 @@ function questionItems() {
       bandType: r.bandType || '', bandValue: r.bandValue || '',
       keystage: r.keystage || '', tier: r.tier || '',
       examBoard: r.examBoard || '', company: r.company || '',
-      resourceType: r.resourceType || '', examWave: r.examWave || '',
+      documentType: r.documentType || '', examWave: r.examWave || '',
       year: r.year || '',
       /* `paper: true` WAS HERE and it was write-only — see the deleted `Printed?` facet above,
          which was its one reader. It also clobbered something: `library.js` puts the paper's ID
@@ -2193,33 +2193,23 @@ function stuffItemsBuild_() {
        and a calculator; it matters the moment one of them prints your flyers.
        `admin` on a widget means admins only. Anything without it is for everybody, which is what
        the other nine are. */
-    /* ---------- EVERY WIDGET, BECAUSE `wgt.groups` FOUND NONE OF THEM ---------------------------
-     THIS READ `.filter(wgt => (!wgt.admin || isAdmin()) && wgt.groups)` AND THE SECOND TEST WAS
-     ALWAYS FALSE. Measured: 16 widgets declared in `WIDGETS`, **0 of them carry `groups`** — the
-     only thing that has ever set it is `liveWidgets_` in book.js, one per session you are in. So
-     the calculator, the timer, chess, the notepad, the flyer maker and eleven others were invisible
-     to search. `stuffItems()` returned zero items of kind `tool` or `game`.
+    /* ---------- THE WIDGETS ARE NOT IN THE FUNNEL, AND THIS IS THE SECOND DECISION ON IT ---------
+       THEY WERE PUT BACK HERE ON A MEASUREMENT AND TAKEN OUT AGAIN ON A JUDGEMENT, so both halves
+       are worth keeping. The measurement was real: `.filter(wgt => … && wgt.groups)` had a second
+       test that was ALWAYS FALSE — 16 widgets declared, 0 carrying `groups` — so `stuffItems()`
+       returned zero items of kind `tool` or `game` and typing `calculator` into the search box
+       found nothing. That was a filter emptying a list while looking like a design.
 
-     THE ARGUMENT FOR THE FILTER WAS GOOD AND THE PREMISE WAS WRONG. It said: tools and games have
-     columns of their own, so the funnel need not carry the plain ones, and `Tools` and `Games`
-     vanish as answers because nothing answers them. The second half is the tell — those two answers
-     vanishing was read as the design working, and it was the filter emptying the list.
+       THE JUDGEMENT IS THE OWNER'S AND IT OVERRULES IT. A tool is not a thing you FIND, it is a
+       thing you OPEN, and it has a column of its own where all sixteen are laid out as tiles — two
+       swipes, no question to answer first. Putting them in the funnel made the app's search return
+       a calculator beside a past paper, and `What kind` grew two answers that are two other
+       screens. The Find screen is for the library and the people; Tools and Games are where tools
+       and games are.
 
-     WHAT IT COST: typing `calculator` into the search box found nothing, on a screen whose entire
-     job is finding things. The widget was two swipes away on Tools the whole time, which is why
-     this looked like a widget that had disappeared rather than a search that had stopped looking.
-
-     `wgt.admin` STAYS. That one is a real test and a real column — a widget marked admin is for you
-     and not for a parent, and `roles` on the widgets tab exists for exactly it. */
-    ...allWidgets().filter(wgt => !wgt.admin || isAdmin()).map(wgt => ({
-      kind: wgt.kind, name: wgt.name, key: 'w:' + wgt.id, sub: '', image: '',
-      /* WHERE THIS ONE ANSWERS FROM, if it says. See the note on `forLabel`. */
-      groups: wgt.groups || null,
-      /* AND WHAT THE SECOND QUESTION CALLS IT. A widget filed under Booking would otherwise offer
-         `Tools` as its kind — the word it was moved away from. Blank for the ordinary tools. */
-      kindLabel: wgt.label || '',
-      row: wgt,
-    })),
+       WHAT THAT COSTS, SO IT IS NOT REDISCOVERED AS A BUG: typing `calculator` here finds nothing
+       again, deliberately. If it should, this is the four lines that were here — the fix is these,
+       not another `wgt.groups`. */
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You,
        which made them a setting about yourself rather than a set of people you can look through.
        Only somebody who has a checklist and a score has any: a parent has no scoreboard to compare

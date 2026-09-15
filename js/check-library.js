@@ -72,10 +72,10 @@ const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.js
                 what the column is for. NEW rows use the words.
      pages_checked  is a flag everywhere except one import that wrote a date into it. Left as found. */
 const VOCAB = {
-  kind:          ['paper', 'part', 'stem'],
+  kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
   subject:       ['Combined Science', 'English Language', 'Maths', 'Physics', 'Religious Studies'],
-  resource_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
+  document_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   key_stage:     ['KS1', 'KS1, KS2', 'KS2', 'KS3', 'KS3, KS4', 'KS4', 'KS5'],
   band_type:     ['grade', 'stage', 'tier', 'year'],
   tier:          ['A-Level', 'AS', 'Foundation', 'Higher'],
@@ -158,10 +158,10 @@ banned.forEach(k => fail.push(
   `the column "${k}" is back. It held the handles of real people and this repository is public.`));
 
 /* ---------- A QUESTION'S PAPER ------------------------------------------------------------------- */
-const papers = new Set(rows.filter(r => r && r.kind === 'paper').map(r => r.paper_id).filter(Boolean));
+const papers = new Set(rows.filter(r => r && r.kind === 'document').map(r => r.paper_id).filter(Boolean));
 const orphans = new Map();
 rows.forEach(r => {
-  if (!r || r.kind === 'paper' || !r.paper_id) return;
+  if (!r || r.kind === 'document' || !r.paper_id) return;
   if (!papers.has(r.paper_id)) {
     if (!orphans.has(r.paper_id)) orphans.set(r.paper_id, []);
     orphans.get(r.paper_id).push(r.row_id);
@@ -171,7 +171,7 @@ orphans.forEach((ids, p) => fail.push(
   `${ids.length} question${ids.length > 1 ? 's' : ''} name paper_id ${p}, which has no kind:'paper' row`));
 
 /* Papers with nothing under them are the backlog, not a fault. */
-const used = new Set(rows.filter(r => r && r.kind !== 'paper').map(r => r.paper_id));
+const used = new Set(rows.filter(r => r && r.kind !== 'document').map(r => r.paper_id));
 const empty = [...papers].filter(p => !used.has(p));
 
 /* ---------- 80 MARKS ------------------------------------------------------------------------------
@@ -189,7 +189,7 @@ const empty = [...papers].filter(p => !used.has(p));
    wrong, and nothing would have said so. */
 const paperFacts = new Map();
 rows.forEach(r => {
-  if (r && r.kind === 'paper' && r.paper_id) paperFacts.set(r.paper_id, r);
+  if (r && r.kind === 'document' && r.paper_id) paperFacts.set(r.paper_id, r);
 });
 /* ---------- AND THE PAPER SAYS WHAT IT IS OUT OF ---------------------------------------------------
    THIS KNEW ABOUT ONE QUALIFICATION. `isEdexcelGcseMaths` is a predicate over five columns, written
@@ -211,7 +211,7 @@ rows.forEach(r => {
 const isEdexcelGcseMaths = pid => {
   const p = paperFacts.get(pid);
   return !!p && p.exam_board === 'Edexcel' && p.subject === 'Maths' && p.key_stage === 'KS4'
-      && p.resource_type === 'Past paper' && (p.tier === 'Higher' || p.tier === 'Foundation');
+      && p.document_type === 'Past paper' && (p.tier === 'Higher' || p.tier === 'Foundation');
 };
 const outOf = pid => {
   const p = paperFacts.get(pid);
@@ -223,7 +223,7 @@ const outOf = pid => {
 const marks = new Map();
 const unchecked = new Set();
 rows.forEach(r => {
-  if (!r || r.kind !== 'part') return;
+  if (!r || r.kind !== 'question') return;
   if (!outOf(r.paper_id)) { if (r.paper_id) unchecked.add(r.paper_id); return; }
   const n = Number(r.marks);
   if (!Number.isFinite(n)) {
@@ -246,11 +246,28 @@ const strays = [];
 Object.keys(VOCAB).forEach(col => {
   const allowed = new Set(VOCAB[col]);
   const bad = new Map();
+  let seen = 0;
   rows.forEach(r => {
     if (!r || !(col in r)) return;
+    seen++;
     const v = String(r[col]);
     if (!allowed.has(v)) bad.set(v, (bad.get(v) || 0) + 1);
   });
+  /* ---------- A VOCABULARY FOR A COLUMN NOTHING HAS IS A VOCABULARY NOTHING ENFORCES -------------
+     CAUGHT BY DOING IT. `resource_type` was renamed to `document_type` across the file and the code,
+     and this list kept the old name — so the loop above found the column on zero rows, reported zero
+     strays, and printed a pass. The closed vocabulary for the funnel's `Type` question had stopped
+     existing and nothing said so.
+
+     THAT IS THE SHAPE THIS WHOLE FILE IS ABOUT: a check that cannot reach its subject reporting that
+     the subject is fine. `check-booking.js` printed "nothing to check" and exited 0; this printed
+     nothing at all. So a name in VOCAB that no row carries is now a failure — either the column was
+     renamed and this list did not follow, or the entry is for a column that never existed. */
+  if (!seen) {
+    fail.push(`VOCAB has a closed list for \`${col}\` and not one row has that column. It has been `
+      + `renamed out from under this list, or it never existed — either way the vocabulary for it `
+      + `is being enforced on nothing.`);
+  }
   bad.forEach((n, v) => strays.push({ col, v, n }));
 });
 strays.forEach(s => fail.push(
@@ -285,10 +302,10 @@ const ACCEPTED_TWICE = {
 };
 const seriesOf = m => (['5', '6', '7'].includes(String(m)) ? 'summer'
                     : ['10', '11', '12'].includes(String(m)) ? 'autumn' : String(m || ''));
-const withQuestions = new Set(rows.filter(r => r && r.kind === 'part').map(r => r.paper_id));
+const withQuestions = new Set(rows.filter(r => r && r.kind === 'question').map(r => r.paper_id));
 const sittings = new Map();
 rows.forEach(r => {
-  if (!r || r.kind !== 'paper' || !withQuestions.has(r.paper_id)) return;
+  if (!r || r.kind !== 'document' || !withQuestions.has(r.paper_id)) return;
   const bits = [r.subject, r.exam_board, r.year, seriesOf(r.month), r.paper, r.tier];
   if (bits.some(b => !b)) return;
   const key = bits.join('|');
@@ -337,7 +354,7 @@ const driveId = u => {
   return m ? m[0] : String(u || '');
 };
 const partsPer = {};
-rows.forEach(r => { if (r && r.kind === 'part') partsPer[r.paper_id] = (partsPer[r.paper_id] || 0) + 1; });
+rows.forEach(r => { if (r && r.kind === 'question') partsPer[r.paper_id] = (partsPer[r.paper_id] || 0) + 1; });
 const byDoc = new Map();
 rows.forEach(r => {
   if (!r || !r.source_url || !r.paper_id) return;
@@ -378,17 +395,29 @@ byDoc.forEach((ids, k) => {
 const partKeys = new Set();
 const sectionKeys = new Set();
 rows.forEach(r => {
-  if (!r || r.kind !== 'part' || !r.paper_id) return;
+  if (!r || r.kind !== 'question' || !r.paper_id) return;
   partKeys.add(r.paper_id + '|' + r.question);
   if (r.section) sectionKeys.add(r.paper_id + '|' + r.section);
 });
-const paperKeys = new Set(rows.filter(r => r && r.kind === 'part').map(r => r.paper_id));
+const paperKeys = new Set(rows.filter(r => r && r.kind === 'question').map(r => r.paper_id));
 rows.forEach(r => {
-  if (!r || r.kind !== 'stem') return;
+  if (!r || r.kind !== 'preamble') return;
   if (Number(r.marks)) {
     fail.push(`${r.row_id} is a stem carrying ${r.marks} mark(s). A preamble is scene-setting and `
       + `the marks belong to the parts under it — this one is counted twice by the 80-mark rule.`);
   }
+  /* ---------- A PAPER WITH NO QUESTIONS AT ALL IS ONE BEING BUILT --------------------------------
+     THE INSERT CAN ARRIVE BEFORE THE QUESTIONS DO, and on AQA English it usually will: the source
+     is a separate booklet, so somebody holding the insert and not the question paper has exactly
+     half of a real paper and should be able to put that half in. Failing them for it would mean
+     the only way to add an insert is to invent the questions that point at it — which is the one
+     outcome this whole file exists to prevent.
+
+     SO THE RULE IS ABOUT A SCOPE THAT MISSED, not about a paper that is unfinished. A stem under a
+     paper that HAS parts and matches none of them is a paragraph nothing will ever draw. A stem
+     under a paper with no parts yet is the backlog, and the backlog is already counted below —
+     440 document rows are in exactly that state. */
+  if (!paperKeys.has(r.paper_id)) return;
   const has = (r.question !== undefined && r.question !== null && r.question !== '')
     ? partKeys.has(r.paper_id + '|' + r.question)
     : r.section ? sectionKeys.has(r.paper_id + '|' + r.section)
@@ -517,7 +546,7 @@ console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${m
 
 say('BROKEN', fail, x => x);
 
-say('QUESTIONS THE TRANSCRIBER COULD NOT RECOVER — worth a person and the original PDF', flagged,
+say('WHAT THE TRANSCRIBER COULD NOT RECOVER — worth a person and the original paper', flagged,
     r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
