@@ -156,6 +156,29 @@ const STATES = {
       /* WHAT MUST BE ON THE SCREEN FOR THIS TO HAVE WORKED. */
       expect: () => document.querySelectorAll('#s-stuff .qcard').length,
       wants: 'at least one question card' },
+    /* ---------- AND THE FUNNEL SEVERAL ANSWERS DEEP -------------------------------------------
+       THE FIRST QUESTION IS "WHAT FOR" AND ITS ANSWERS ARE ONE WORD EACH. Every answer row this
+       check had ever measured was `Learning`, `Shop`, `Games` — so the row layout was proved
+       against the shortest labels in the app and nothing else. Six answers down it is asking about
+       TOPICS, where an answer is "Angles in Triangles & Quadrilaterals", and that is where the row
+       was clipping its own text.
+
+       THE PATH IS THE ONE FROM THE COMPLAINT, including the skipped question, because a state
+       reached by a route nobody takes is a state nobody is in. */
+    { name: 'six answers in',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'resourceType', value: 'Worksheet' },
+                         { field: 'keystage', value: 'KS2' },
+                         { field: 'yearGroup', any: true }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => document.querySelectorAll('#stuff-groups .row').length,
+      wants: 'a question with answers on it' },
   ],
 };
 
@@ -404,6 +427,29 @@ function inspect(opts) {
         by: over, width: el.clientWidth });
     }
   }
+
+  /* ---------- A "TEXT CLIPPED RATHER THAN WRAPPED" RULE WAS HERE, AND IT WAS INERT ---------------
+     I WROTE IT, IT NEVER FIRED ONCE, AND DELETING IT IS THE HONEST OUTCOME. The fault it was for is
+     real: the funnel's answer rows lost their counts, which left `.k` — `flex: 0 0 auto` — the only
+     child of its row, and "Angles in Triangles & Quadrilaterals" was CLIPPED rather than wrapped at
+     390px. A screenshot caught it and I assumed rule 1 could not, because an inline `<span>` has no
+     `clientWidth` for it to measure.
+
+     THAT ASSUMPTION WAS WRONG AND RULE 1 CATCHES IT PERFECTLY. The span pushes its parent `.row`'s
+     `scrollWidth` past its `clientWidth`, and `.row` is an ordinary block — so the browser's own
+     answer was right about it all along: 23 findings, up to 84px, the moment the fault is put back.
+
+     WHAT WAS MISSING WAS NOT A RULE, IT WAS A STATE. The Find screen's first question is "What for"
+     and its answers are one word each, so every answer row this file had ever measured was
+     `Learning`, `Shop`, `Games`. Six answers down it is asking about topics. The row layout was
+     proved against the shortest labels in the app and nothing else, and no amount of new measuring
+     code would have found that — only pointing the existing measurement at the screen somebody is
+     actually on. See `STATES`.
+
+     A CHECK THAT CANNOT FAIL IS NOT A CHECK, and one that cannot fail while carrying a confident
+     comment about what it protects is worse: it is a green light with nothing behind it. Proved by
+     putting the fault back and counting: zero findings from it, twenty-three from the rule it was
+     supposed to be helping. */
 
   /* ---------- 2. THINGS A FINGER CANNOT HIT ------------------------------------------------------ */
   for (const el of inside) {

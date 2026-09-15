@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-25-coins";
+  --css-version: "2026-09-25-topics";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1399,7 +1399,18 @@ button.text-drop { color: var(--bad); }
 .chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .6rem; }
 .chip {
   display: flex; align-items: center; gap: .3rem;
-  min-height: max(38px, 2.3rem); padding: 0 .6rem;
+  /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE ---------------------------
+     IT READ `max(38px, 2.3rem)`, WHICH IS `.btn.tiny` EXACTLY. The root is `clamp(13.5px, 3.8vw,
+     16px)`, so 2.3rem is 34px on a phone and the `max` never once chose the rem — every chip in the
+     app has been 38px tall on every device, which is tall enough to look deliberate and under the
+     44px a fingertip needs. CLAUDE.md records this same arithmetic for `.btn.tiny`, `.post-act` and
+     `.fm-adds label`; this is the fourth.
+
+     IT SURVIVED BECAUSE NOTHING HAD EVER SEEN A CHIP. `check/ui.js` measures the Find screen in the
+     state it opens in, and in that state there are no filters, so there are no chips — 63 known tap
+     targets, four widths, two visitors, and the control that removes a filter was in none of them.
+     It appeared the moment the check was given a state six answers deep. */
+  min-height: 44px; padding: 0 .6rem;
   background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
   color: var(--ink); font: inherit; font-size: .78rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
@@ -7354,7 +7365,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .row.tap.counted:last-child { margin-bottom: 0; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
-.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem; }
+/* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW -----------------------
+   `.row .k` IS `flex: 0 0 auto` AND THAT WAS RIGHT WHEN IT WAS A LABEL. "Credits", "You have",
+   "Where" — two words beside a value, and a label that shrinks away from its own number is worse
+   than one that does not. The note a few thousand lines up adds `min-width: 0` for the basket,
+   where the title went in the `k` slot; `min-width: 0` lets a flex child give way and `flex-shrink:
+   0` then refuses to, so it only ever helped the case that also overflowed.
+
+   TAKING THE COUNT OFF THE ANSWER ROWS MADE THIS VISIBLE. There is no `.v` beside it any more, so
+   the row holds one child and that child is the answer — "Angles in Triangles & Quadrilaterals" ran
+   past the card and was CLIPPED, not wrapped, with nothing reporting it: the pane hides its
+   overflow, so no box scrolled sideways and `check/ui.js` measures exactly that. The measurement
+   was green and the layout was wrong, which this repository has now written down three times.
+
+   `flex: 1 1 auto` — take the room, and give way when there is not enough, at which point the
+   `overflow-wrap` it already carries does the rest. */
+.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem;
+  flex: 1 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is

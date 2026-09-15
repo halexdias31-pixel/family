@@ -1367,6 +1367,45 @@ function nextFacet(items) {
 }
 
 /* ==================================================================================================
+   AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END.
+
+   MEASURED, AND IT IS THE STATE THE WHOLE OF THIS STARTED FROM. Learning · Questions · Maths ·
+   Worksheet · KS2, with School year skipped: 1,070 questions left, `Topic` holding 48 answers, and
+   the screen saying "Nothing left to narrow." Every other facet is exhausted and the one that is
+   not is barred by `FACET_MAX_ANSWERS` — a question about the only thing left, refused for being
+   eight answers too long.
+
+   THE CAP IS RIGHT AND IT IS ABOUT READING, NOT ABOUT NARROWING. `field: name` is 212 paper names
+   and nobody can choose from 212 buttons; that is why the cap exists and it has not changed. What
+   was wrong was treating "too long to read all at once" as "not a question", when the two are
+   different problems with different answers — the first is solved by showing fewer, and the funnel
+   was solving it by showing none.
+
+   THIS USED TO HAVE A DOOR AND IT WAS THE WRONG SHAPE. A line above the funnel offered "or the 48
+   topics these are in", which is the same information as a sentence you had to decode, sitting
+   above the question rather than being one. It is gone — see the note where `collectionAxes_` was —
+   and this is what replaces it: the funnel simply asks, and draws as many answers as anybody can
+   read.
+
+   FEWEST ANSWERS WINS, because it is the one closest to being an ordinary question. Everything else
+   a facet has to pass is unchanged: not asked, enough coverage, and it must still narrow.
+================================================================================================== */
+function overFacet_(items) {
+  const asked = STUFF.filters.map(f => f.field);
+  let best = null;
+  for (const facet of facetList()) {
+    if (asked.indexOf(facet.field) !== -1) continue;
+    const vals = facetValues(items, facet).length;
+    if (vals <= FACET_MAX_ANSWERS) continue;
+    const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
+    if (facetCoverage(items, facet) < min) continue;
+    if (!facet.always && facetSplit_(items, facet) < FACET_MIN_MINORITY) continue;
+    if (!best || vals < best.n) best = { facet: facet, n: vals };
+  }
+  return best ? best.facet : null;
+}
+
+/* ==================================================================================================
    `whyThisQuestion()` — THE FUNNEL, SHOWING ITS WORKING.
 
    WHY THIS EXISTS. The funnel picks the next question with `nextFacet` above, and the rule is not
@@ -3690,7 +3729,11 @@ function stuffQuestion() {
   }
   if (!items.length) return '';
 
-  const facet = nextFacet(items);
+  /* THE ORDINARY QUESTION FIRST, and only if there is none, the one that is too long to draw whole.
+     `over` is what says which of the two this is, so the row list below can trim itself without
+     having to work out why it is being drawn. */
+  const facet = nextFacet(items) || overFacet_(items);
+  const over = facet && facetValues(items, facet).length > FACET_MAX_ANSWERS;
   const adding = STUFF.filters.some(f => f.value === 'Friends')
     ? `<p style="margin:.6rem 0 0"><span class="text-action" data-do="friend-add-open"
         >Add someone by their handle</span></p>` : '';
@@ -3713,7 +3756,20 @@ function stuffQuestion() {
      question this screen exists to ask, and the form is not hard to reach: "What for · Booking" is
      the first answer in the list, and the Book buttons on tutor and venue cards go straight to it. */
 
-  const values = facetValues(items, facet);
+  /* ---------- AS MANY ANSWERS AS ANYBODY READS, BIGGEST FIRST, THEN BACK INTO ORDER --------------
+     BIGGEST FIRST TO CHOOSE THEM, ALPHABETICAL TO SHOW THEM. Which forty are worth drawing is a
+     question about size; the order they are drawn in is a question about finding one, and those
+     want opposite sorts. Taking the top forty and then putting them back into the order every other
+     question uses is both.
+     AND THE REST ARE NOT HIDDEN, they are one line below, pointing at the search box — which is
+     already on this page, already filters these same items, and is the only control that can reach
+     one specific answer out of three hundred. */
+  const all = facetValues(items, facet);
+  const values = over
+    ? all.slice().sort((a, b) => b.n - a.n).slice(0, FACET_MAX_ANSWERS)
+         .sort((a, b) => all.indexOf(a) - all.indexOf(b))
+    : all;
+  const more = all.length - values.length;
   /* THE HEADING IS GONE — it read `> WHAT FOR   5` above five rows that were about to say the same
      thing. The label named a question whose answers were already on the screen, and the number
      counted rows you could see: a caption on a photograph of itself.
@@ -3757,10 +3813,14 @@ function stuffQuestion() {
      IT IS STILL COMPUTED, and has to be — `facetSplit_` is a share of those counts and it is what
      keeps a question that cannot narrow off the screen. What changed is that it is arithmetic now
      rather than furniture. */
+  const rest = more
+    ? `<p class="faint" style="margin:.5rem 0 0;font-size:.78rem">and ${more} more
+        ${esc(String(facet.label).toLowerCase())} answers — type one into the search box above.</p>`
+    : '';
   return values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
         <span class="k">${mark(v.value)}</span>
-      </div>`).join('') + skip;
+      </div>`).join('') + skip + rest;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,

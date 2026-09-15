@@ -376,6 +376,50 @@ it, zero.
 contrast, the parked screens, who is looking. This owns the library, at one width, with one
 question. The line between them is whether the answer could change when somebody edits a cell.
 
+### The dead end came back once the collection door was gone, and the cap was the wrong tool
+
+**Six chips deep with School year skipped: 1,070 questions, `Topic` holding 45 answers, and the
+screen saying "Nothing left to narrow."** Every other facet exhausted, and the one that was not
+barred by `FACET_MAX_ANSWERS` — a question about the only thing left, refused for being five answers
+too long. The collection line used to paper over this ("or the 48 topics these are in"); with that
+gone, the dead end is bare.
+
+**The cap is right and it is about READING, not about narrowing.** `field: name` is 212 paper names
+and nobody chooses from 212 buttons. What was wrong was treating "too long to read all at once" as
+"not a question" — two different problems with different answers. The first is solved by showing
+fewer; the funnel was solving it by showing none.
+
+**So `overFacet_` is the last resort**: when nothing qualifies, take the over-sized question with
+the FEWEST answers — the one closest to being an ordinary question — and draw the biggest forty.
+Biggest first to choose them, alphabetical to show them, because which forty is a question about
+size and the order is a question about finding one. The rest get a line pointing at the search box,
+which is on the same page and filters the same items.
+
+### Three faults found by pointing the existing measurement at a screen somebody is actually on
+
+**The Find screen's first question is "What for" and its answers are one word each.** So every
+answer row `check/ui.js` had ever measured was `Learning`, `Shop`, `Games` — the row layout proved
+against the shortest labels in the app and nothing else. Adding one state, six answers deep, on the
+path from the complaint:
+
+- **The filter chips are 38px.** `min-height: max(38px, 2.3rem)` — the root is `clamp(13.5px, 3.8vw,
+  16px)`, so 2.3rem is 34px and the `max` never once chose the rem. **This is `.btn.tiny` exactly,
+  and the fourth conviction of that rule** after `.post-act` and `.fm-adds label`. It survived
+  because in the state the screen opens in there are no filters, so there are no chips: 63 known tap
+  targets, four widths, two visitors, and the control that removes a filter was in none of them.
+- **The answer labels were clipped, not wrapped.** Taking the counts off left `.k` the only child of
+  its row, and `.row .k` is `flex: 0 0 auto` — right for a two-word label beside a value, wrong for
+  the answer itself.
+- **And a check I wrote for that second one was inert.** I assumed rule 1 could not see it, because
+  an inline `<span>` has no `clientWidth`. Wrong: the span pushes its parent `.row`'s `scrollWidth`,
+  and `.row` is an ordinary block — 23 findings, up to 84px, the moment the fault goes back. My new
+  rule fired zero times on the fault it was written for. **Deleted.** A check that cannot fail is
+  not a check, and one that cannot fail while carrying a confident comment about what it protects is
+  a green light with nothing behind it.
+
+**What was missing was never a rule. It was a state.** No amount of new measuring code would have
+found any of this — only pointing the measurement that already existed at the screen somebody is on.
+
 ### Can the app be built so that reading the code is enough?
 
 Partly, and this session is an honest measure of which half. **What a reader can settle, a check
