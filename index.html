@@ -1464,44 +1464,124 @@
      wrongly for a moment and then be replaced by the app itself, which is the right way round: a
      false alarm you can watch disappear costs nothing, and a silence costs an evening.
   ============================================================================================== */
-  setTimeout(function () {
-    var gone = window.__gone || [];
+  /* ==============================================================================================
+     A ONE-SECOND TIMER WAS ASKING A QUESTION NOBODY COULD YET ANSWER, AND IT DEMOLISHED THE PAGE.
+
+     WHAT THIS USED TO DO: wait one second after parsing, and if `go` was not defined, replace
+     `document.body.innerHTML` with the message below. The note above it said a slow connection
+     "will say this wrongly for a moment and then be replaced by the app itself, which is the right
+     way round: a false alarm you can watch disappear costs nothing."
+
+     THAT SENTENCE IS WRONG AND IT COST AN EVENING. `document.body.innerHTML = …` DESTROYS THE
+     MARKUP. Every screen, every pane, every element the deferred scripts are about to paint into is
+     gone — so the app cannot come up underneath and replace anything. The false alarm is not
+     something you watch disappear; it is the page killing itself half a second before its own code
+     arrives.
+
+     REPRODUCED, BECAUSE A BUG THIS EXPENSIVE SHOULD NOT BE ARGUED ABOUT: served locally with a
+     delay added to each file in `js/`, at 900ms the app comes up fine, and at 1400ms `go` IS a
+     function, no file 404s, and the body is wiped with nine screens destroyed. That is a working
+     app reporting itself as broken, permanently, on any connection slow enough.
+
+     AND ONE SECOND WAS ALWAYS A GUESS. There are twenty-five files and 1.5 MB of them, plus half a
+     megabyte of stylesheet — a phone on mobile data has no chance, and the number was chosen when
+     there were eighteen smaller ones.
+
+     ---------- SO IT ASKS AT THE MOMENT THE ANSWER EXISTS ----------------------------------------
+
+     `window.load` FIRES WHEN EVERY DEFERRED SCRIPT AND SUBRESOURCE HAS FINISHED. If `go` is missing
+     THEN, the scripts really did finish and really did not define it — a fact rather than a race,
+     and true on the fastest connection and the slowest alike. No number to tune and nothing to get
+     wrong when the app grows another file.
+
+     THE BACKSTOP IS FOR THE ONE CASE `load` CANNOT COVER: a request that never returns, so the
+     event never fires. That gets the banner and not the wipe, because "still waiting" and "it is
+     not coming" are different facts and only one of them is worth taking the page down for.
+
+     AND IT NEVER DESTROYS ANYTHING NOW. The message is an overlay laid over the app rather than
+     instead of it, so if the code does turn up late — which is the exact case that caused this —
+     the overlay is taken away and the app is underneath, intact.
+  ============================================================================================== */
+  (function () {
+    var sheet = null;
+    var up = function () { return typeof go === 'function'; };
 
     /* SOME OF IT ARRIVED AND SOME DID NOT — the worst case, and the one that produces a message
        about a variable rather than a file. The app may even draw before it throws. */
-    if (gone.length && typeof go === 'function') {
+    function partly(gone) {
       var b = document.getElementById('banner');
-      if (b) {
-        b.className = '';
-        b.innerHTML = '<b>' + gone.length + ' file' + (gone.length === 1 ? '' : 's')
-          + ' did not load:</b> ' + gone.join(', ')
-          + '.<br>Anything they hold is missing, so parts of the app will fail with errors that '
-          + 'name something else. Check those names against the files in <code>js/</code>.';
-      }
-      return;
+      if (!b) return;
+      b.className = '';
+      b.innerHTML = '<b>' + gone.length + ' file' + (gone.length === 1 ? '' : 's')
+        + ' did not load:</b> ' + gone.join(', ')
+        + '.<br>Anything they hold is missing, so parts of the app will fail with errors that '
+        + 'name something else. Check those names against the files in <code>js/</code>.';
     }
-    if (typeof go === 'function') return;                 // all here; nothing to say
 
-    var tried = 'js/shell.js?t=' + LOAD;
-    var here = location.href.replace(/[^/]*$/, '');
-    document.body.innerHTML =
-      '<div style="font:14px/1.6 ui-monospace,Menlo,monospace;color:#f4f1e8;padding:2rem;' +
-      'max-width:34rem;margin:0 auto">' +
-      '<p style="color:#f0a93c;font-weight:700;font-size:1.1rem">The app did not load.</p>' +
-      '<p>None of its code arrived, so nothing on this page does anything. The markup is here, ' +
-      'which is why it still looks like the app.</p>' +
-      '<p>It asked for:<br><code style="color:#7de6ff">' + here + tried + '</code></p>' +
-      (gone.length ? '<p>None of these arrived:<br><code style="color:#7de6ff">'
-        + gone.join(', ') + '</code></p>' : '') +
-      '<p>Almost always this is one of two things:</p>' +
-      '<p>1. The files are not in a <code>js/</code> folder beside this page. Either move them ' +
-      'there, or change the one line in index.html that says <code>"js/"</code>.<br>' +
-      '2. One of the eighteen names in that list does not match a file. The list is in order and ' +
-      'the order matters — <code>boot</code> is last on purpose.</p>' +
-      '<p style="color:#8a8175">Open the console and look for 404s: whichever addresses are red ' +
-      'are the ones to fix.</p>' +
-      '</div>';
-  }, 1000);
+    function say(gone, waiting) {
+      if (sheet) return;
+      /* THE COUNT IS READ OFF THE LIST, NOT TYPED INTO THE SENTENCE. This said "one of the eighteen
+         names" for as long as there were eighteen, and went on saying it at twenty-five — the same
+         fault CLAUDE.md records about the session hook's "all 18 checks pass". */
+      var n = (window.FILES || []).length;
+      var first = (window.FILES || ['shell'])[0];
+      var here = location.href.replace(/[^/]*$/, '');
+      sheet = document.createElement('div');
+      sheet.id = 'boot-trouble';
+      sheet.setAttribute('style',
+        'position:fixed;inset:0;z-index:99999;overflow:auto;background:#0b0b0b;'
+        + 'font:14px/1.6 ui-monospace,Menlo,monospace;color:#f4f1e8;padding:2rem');
+      sheet.innerHTML =
+        '<div style="max-width:34rem;margin:0 auto">'
+        + '<p style="color:#f0a93c;font-weight:700;font-size:1.1rem">'
+        + (waiting ? 'The app is still loading.' : 'The app did not load.') + '</p>'
+        + (waiting
+          ? '<p>Its code has been asked for and has not arrived. The markup is here, which is why '
+            + 'this still looks like the app — nothing on it will do anything until the rest '
+            + 'turns up. If it does, this message goes away on its own.</p>'
+          : '<p>None of its code arrived, so nothing on this page does anything. The markup is '
+            + 'here, which is why it still looks like the app.</p>')
+        + '<p>It asked for:<br><code style="color:#7de6ff">' + here + 'js/' + first + '.js</code>'
+        + ' and ' + (n - 1) + ' more.</p>'
+        + (gone.length ? '<p>None of these arrived:<br><code style="color:#7de6ff">'
+          + gone.join(', ') + '</code></p>' : '')
+        + '<p>Almost always this is one of two things:</p>'
+        + '<p>1. The files are not in a <code>js/</code> folder beside this page. Either move them '
+        + 'there, or change the one line in index.html that says <code>"js/"</code>.<br>'
+        + '2. One of the ' + n + ' names in that list does not match a file. The list is in order '
+        + 'and the order matters — <code>boot</code> is last on purpose.</p>'
+        + '<p style="color:#8a8175">Open the console and look for 404s: whichever addresses are '
+        + 'red are the ones to fix.</p></div>';
+      document.body.appendChild(sheet);
+    }
+
+    function clear() {
+      if (!sheet) return;
+      sheet.parentNode.removeChild(sheet);
+      sheet = null;
+    }
+
+    function judge(waiting) {
+      var gone = window.__gone || [];
+      if (up()) { clear(); if (gone.length) partly(gone); return true; }
+      say(gone, waiting);
+      return false;
+    }
+
+    /* A LITTLE AFTER `load`, NOT ON IT. A deferred script runs before the event, but a browser is
+       entitled to fire it in the same task — and asking in the same tick as the thing you are
+       asking about has finished is how a check ends up racing the code it is checking, which is the
+       whole fault above in miniature. */
+    function atLoad() { setTimeout(function () { judge(false); }, 60); }
+    if (document.readyState === 'complete') atLoad();
+    else window.addEventListener('load', atLoad);
+
+    /* AND IF SOMETHING NEVER COMES BACK, `load` NEVER FIRES. Ten seconds of a dead screen with no
+       explanation is the silence this whole block exists to break — so it says "still loading",
+       which is the honest description of that state, and keeps looking. */
+    setTimeout(function () { if (!up()) judge(true); }, 10000);
+    setInterval(function () { if (up()) { clear(); } }, 500);
+  })();
 </script>
 <noscript>
   <p style="padding:2rem;text-align:center;color:#9a9a9a;font-family:monospace">
