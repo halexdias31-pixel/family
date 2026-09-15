@@ -266,6 +266,33 @@ function search(pos, depth, alpha, beta) {
 
 
 
+/* ==================================================================================================
+   FIFTY-EIGHT FACTS, AND THE TAB THEY WERE MOVED TO WAS NEVER FILLED.
+
+   THESE MOVED TO A SPREADSHEET AND ONLY HALF THE MOVE HAPPENED. `screen('reel')` was rewritten to
+   read `DATA.facts` — the right change, and the note in shell.js says why: "they are a tab now, so
+   the column can be built from data rather than from a list nobody could edit." The backend sends
+   that tab. The tab has no rows in it. So the Reels column has said "Nothing here yet. Add a row to
+   the facts tab" to every visitor since, with fifty-eight perfectly good facts sitting in this file
+   ten lines below, unread by the screen that was written to show them.
+
+   MEASURED, IN A BROWSER, BEFORE CHANGING ANYTHING: the tab is present, `go('reel')` works, no JS
+   errors, `DATA.facts` is 0 and `FEED_FACTS` is 58. Nothing is broken. A column that works and has
+   nothing to show is indistinguishable from one that does not work, and it is read as the second.
+
+   THIS IS THE `libraryExtras_` SHAPE AND IT ALREADY HAS THE ANSWER. `data/boxers.json` ships empty
+   and the rule written beside it is that **a file with no rows leaves the payload's copy alone** —
+   so cutting over could never take a screen dark for however long the export took. The same rule,
+   pointed the other way: a TAB with no rows leaves the code's copy alone. `factsNow_` below is the
+   whole of it, and it is also the house rule this repository opens with — an empty or broken sheet
+   must still produce a working site.
+
+   ONE READER FOR BOTH SURFACES. The Reels column and the "One more thing" widget are two views of
+   the same facts and were reading two different sources: the column the tab, the widget this array
+   directly. So filling the tab would have changed one of them. `factsNow_` is what both ask now,
+   which is the same argument as `documents_()` and as `paperIdOf_` — a second reader of one thing
+   is a second chance to disagree about it.
+================================================================================================== */
 const FEED_FACTS = [
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
@@ -400,6 +427,31 @@ const FEED_FACTS = [
    'Feefle, flindrikin, snitter, spitters, unbrak. A language grows vocabulary where its speakers need precision, which is why English has so many words for rain.', 'snow scotland landscape'],
 ];
 
+/* ---------- WHAT THE APP SHOWS TODAY, FROM WHICHEVER SOURCE HAS ANYTHING IN IT -------------------
+   THE SHEET WINS WHERE IT HAS ROWS, because that is the whole point of the move — somebody editing
+   a spreadsheet must be able to replace these without a deploy. Where it is empty, these stand.
+
+   THE SHAPES ARE MADE THE SAME HERE rather than at each reader. `doget.gs` sends
+   `{subject, heading, body, pic, order, row}` and this file holds `[subject, heading, body, pic]`;
+   translating at the two call sites is two places to get it wrong, which is exactly what the seven
+   silent `r.link` reads cost.
+
+   HELD BY THE PAYLOAD'S OWN IDENTITY, the same test `stuffFiltered` and `facetTally_` make: a new
+   payload is a new object, so a reload that filled the tab is picked up and nothing else rebuilds
+   fifty-eight objects on every slide that scrolls past. */
+let FACTS_NOW = null;
+let FACTS_FROM = null;
+
+function factsNow_() {
+  const said = ((typeof DATA !== 'undefined' && DATA.facts) || []).filter(f => f && f.heading);
+  const from = (typeof DATA !== 'undefined') ? DATA : null;
+  if (said.length) return said;
+  if (FACTS_NOW && FACTS_FROM === from) return FACTS_NOW;
+  FACTS_NOW = FEED_FACTS.map(f => ({ subject: f[0], heading: f[1], body: f[2], pic: f[3] }));
+  FACTS_FROM = from;
+  return FACTS_NOW;
+}
+
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. Removed.
    They were endless, which was their whole justification, and endless arithmetic is still
    arithmetic: a feed that keeps handing you 7 x 8 is a feed you stop opening. Length comes from
@@ -407,7 +459,8 @@ const FEED_FACTS = [
 
 
 function feedShuffle() {
-  const deck = FEED_FACTS.map((_, i) => i);
+  const facts = factsNow_();
+  const deck = facts.map((_, i) => i);
   /* Seeded by the day and by how many decks have been through, so:
        · reloading gives the SAME order, which is what makes remembering your place worth anything
        · tomorrow gives a different one
@@ -421,8 +474,8 @@ function feedShuffle() {
   }
   /* Never open on the card that just closed. Reshuffling can otherwise deal the same one twice in
      a row across the join, which is the one repeat anybody actually notices. */
-  if (FEED_SEEN.length && FEED_FACTS[deck[0]] &&
-      FEED_FACTS[deck[0]][1] === FEED_SEEN[FEED_SEEN.length - 1]) {
+  if (FEED_SEEN.length && facts[deck[0]] &&
+      facts[deck[0]].heading === FEED_SEEN[FEED_SEEN.length - 1]) {
     deck.push(deck.shift());
   }
   FEED_DECK = deck;
@@ -433,7 +486,10 @@ function feedItem(n) {
   if (FEED_BUILT[n]) return FEED_BUILT[n];       // going back shows what you already saw
 
   if (!FEED_DECK.length) feedShuffle();
-  const [subject, heading, body, pic] = FEED_FACTS[FEED_DECK.shift()];
+  /* THROUGH `factsNow_` LIKE EVERYTHING ELSE, so a filled `facts` tab reaches the widget as well as
+     the column. It read `FEED_FACTS` directly, which is how the two surfaces came to disagree about
+     where a fact comes from. */
+  const { subject, heading, body, pic } = factsNow_()[FEED_DECK.shift()] || {};
 
   FEED_SEEN.push(heading);
   if (FEED_SEEN.length > 4) FEED_SEEN.shift();

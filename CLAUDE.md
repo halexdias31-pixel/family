@@ -1184,6 +1184,47 @@ now a real narrowing.
 the right one: both of those were fixed in the data and neither was fixed in the rule, so the shape
 recurred. The rule is the fix.
 
+### Reels was never broken. It had nothing to show, and two rules were missing
+
+**Reported as "the widget has disappeared".** Measured in a browser before touching anything: the
+column is in `TABS`, `go('reel')` works, there are no JS errors, and `screen('reel')` draws its
+"Nothing here yet. Add a row to the **facts** tab" card. **A column that works and has nothing to
+show is indistinguishable from one that does not work, and it is read as the second.**
+
+**The move to a tab only half happened.** Fifty-eight facts live in `FEED_FACTS` in `chess.js` — a
+subject, a headline, a paragraph and a photograph search term each. `screen('reel')` was rewritten
+to read `DATA.facts` instead, which is the right change and the note in `shell.js` says why. The
+backend sends that tab. **The tab has no rows in it**, and has had none since.
+
+**`factsNow_` is the rule, and it is `libraryExtras_`'s rule pointed the other way.** That one says
+*a file with no rows leaves the payload's copy alone*, so cutting over could never take a screen
+dark. This says *a tab with no rows leaves the code's copy alone* — which is also the house rule
+this file opens with: an empty or broken sheet must still produce a working site. The sheet wins the
+moment it has a row, so nothing about the migration is undone; it just stops being a cliff.
+Measured: 58 built-in, one row in the tab → 1 from the tab, tab emptied → 58 again.
+
+**And the two surfaces were reading two sources.** The Reels column read `DATA.facts`; the "One more
+thing" widget read `FEED_FACTS` directly. Filling the tab would have changed one of them. Both ask
+`factsNow_` now — the same argument as `documents_()` and `paperIdOf_`: a second reader of one thing
+is a second chance to disagree about it. `reelsWatch_` was a third, reading `DATA.facts` for the
+photograph while the slides beside it were drawn from somewhere else.
+
+#### And then every slide was zero pixels tall
+
+**`.reels` asks for `height: 100%` and `.page` is `height: auto`.** Circular — the thing asking for
+the height *is* the content — so the container resolved to 0 and so did all 58 slides. The markup
+was all there, the text was in the DOM, and every box measured 0px.
+
+**It had never been rendered, which is why nobody had seen it.** The `facts` tab has always been
+empty, so the screen has always returned the "Nothing here yet" card instead — an ordinary `.pane`
+that sizes itself perfectly well. **The slide rules were written, committed, and never once put on a
+screen.** Filling the column is what exposed them, and it took measuring the boxes in a browser:
+`.page.reel-page { height: 100% }`, one class on the one page that wants it, because `.screen` is
+`position: absolute; inset: 0` and so has a height for a percentage to resolve against.
+
+**This is the same shape as the check that could not reach its subject**, one layer down: CSS that
+cannot be wrong until something renders it.
+
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
 The three faults above have one shape: **each looked fine in the code and only showed up in the

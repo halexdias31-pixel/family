@@ -1130,9 +1130,24 @@ screen('feed', () => pages('feed', postsBlocks()));
    Wikimedia Commons when the slide comes into view, which is `reelsWatch_` below. A gradient is the
    floor, not a placeholder: fifty-eight slides that each flash grey first is a column that looks
    broken while it works. */
+/* ---------- AND IT WAS EMPTY, FOR EVERYBODY, SINCE THE DAY IT WAS WRITTEN --------------------------
+   THIS READ `DATA.facts` AND NOTHING ELSE, AND THAT TAB HAS NEVER HAD A ROW IN IT. So the column
+   showed "Nothing here yet. Add a row to the facts tab" to every visitor, while fifty-eight facts
+   sat in `FEED_FACTS` in chess.js being shown by the "One more thing" widget two columns over.
+   Nothing was broken — measured in a browser: the tab is there, `go('reel')` works, no errors, 0
+   facts sent and 58 in the code. **A column that works and has nothing to show is read as a column
+   that does not work**, which is the whole of the report that started this.
+
+   `factsNow_` IS THE FIX AND IT IS THE HOUSE RULE. An empty or broken sheet must still produce a
+   working site; a tab with no rows leaves the code's copy alone, which is `libraryExtras_`'s rule
+   pointed the other way. The sheet still wins the moment it has a row, so nothing about the
+   migration is undone — it just stops being a cliff. */
 screen('reel', () => {
-  const facts = (DATA.facts || []).filter(f => f && f.heading);
+  const facts = factsNow_();
   if (!LOADED) return `<section class="page"><div class="pane">${skeleton()}</div></section>`;
+  /* KEPT, AND IT CAN STILL HAPPEN — somebody switching every fact off in the sheet leaves a filled
+     tab with no live rows, and `factsNow_` hands back the built-in list; somebody emptying that list
+     too lands here. A screen with no branch for "nothing to show" is a screen that draws a blank. */
   if (!facts.length) {
     return `<section class="page"><div class="pane"><div class="card">
       <h3>Reels</h3>
@@ -1140,7 +1155,11 @@ screen('reel', () => {
         and a few words to find a photograph by.</p>
     </div></div></section>`;
   }
-  return `<section class="page"><div class="reels" id="reels">${facts.map((f, i) => `
+  /* `reel-page` IS WHY THIS SCREEN NEEDS A CLASS OF ITS OWN. Every other page in the app is
+     `height: auto` and as tall as its card; a reel is as tall as the SCREEN, and `.reels` asks for
+     `height: 100%` of it. See the note on `.page.reel-page` in style.css — without a parent that
+     has a height, that 100% resolved to nothing and every slide was zero pixels tall. */
+  return `<section class="page reel-page"><div class="reels" id="reels">${facts.map((f, i) => `
     <div class="reel" data-reel="${i}" style="--h:${(i * 47) % 360}">
       <div class="reel-art">
         <div class="over">
@@ -1168,7 +1187,10 @@ function reelsWatch_() {
     const el = e.target, n = el.dataset.reel;
     if (seen[n]) return;
     seen[n] = true; io.unobserve(el);
-    const f = (DATA.facts || [])[Number(n)];
+    /* THE SAME LIST THE SLIDES WERE DRAWN FROM. This read `DATA.facts` while the markup above was
+       drawn from `factsNow_`, so with the tab empty every index would have missed and no slide
+       would ever have asked for a photograph — the two halves of one screen reading two sources. */
+    const f = factsNow_()[Number(n)];
     if (!f || !f.pic) return;
     feedPicture(f.pic).then(found => {
       if (!found) return;

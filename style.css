@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-25-topics";
+  --css-version: "2026-09-26-reels";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7428,6 +7428,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THIS IS THE ONE SCREEN WHERE A PAGER IS RIGHT, and it is worth saying because the same shape is
    wrong on the feed: a feed is read by flicking past six things; a reel is watched one at a time.
 ================================================================================================== */
+/* ---------- A PAGE AS TALL AS THE SCREEN, WHICH NO OTHER PAGE IS --------------------------------
+   `.reels` ASKED FOR `height: 100%` OF A PARENT THAT HAD NO HEIGHT, so it got nothing, and so did
+   all fifty-eight slides inside it. `.page` is `flex: 0 0 auto; height: auto` — it is as tall as the
+   card on it, which is right for every other screen in the app and circular here, because the thing
+   asking for the height IS the content.
+
+   IT HAD NEVER BEEN RENDERED, WHICH IS WHY NOBODY SAW IT. The `facts` tab has always been empty, so
+   `screen('reel')` has always returned the "Nothing here yet" card instead — an ordinary `.pane`
+   that sizes itself perfectly well. The slide rules below were written, committed, and never once
+   put on a screen. Filling the column is what exposed them, and it took measuring the boxes in a
+   browser to see it: the markup was all there and the text was in the DOM, and every box was 0px.
+
+   `.screen` HAS A DEFINITE HEIGHT — `position: absolute; inset: 0` — so a percentage resolves
+   against it. One class, on the one page that wants it. */
+.page.reel-page { height: 100%; min-height: 0; }
+
 .reels {
   height: 100%;
   overflow-y: scroll;
