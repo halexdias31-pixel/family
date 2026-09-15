@@ -653,11 +653,28 @@ const AXES = {
    phone shows less of the next card than a large one, so the thing that tells you there IS a next
    card is weakest exactly where the screen is tightest.
 
-   Stated the way it is actually looked at instead: the card is 88% of the screen and you see 4% of
-   each neighbour. Both hold on every phone, and the gap is whatever is left — about 8px at 390px
-   wide, more on a larger screen, which is right, because a bigger card wants a bigger gap. */
-const CARD_W       = 0.80;    // a card, as a fraction of the screen's width
-const EDGE_SHOWING = 0.08;    // how much of the card either side you can see, same units
+   Stated the way it is actually looked at instead: the card is a share of the screen and you see a
+   share of each neighbour. Both hold on every phone, and the gap is whatever is left — about 8px at
+   390px wide, more on a larger screen, which is right, because a bigger card wants a bigger gap.
+
+   THE PROSE HERE USED TO NAME 88% AND 4% AND THE CONSTANTS SAID 80 AND 8. Both pairs are
+   self-consistent — either way the two edges and two gaps account for the other 20% — so nothing
+   was broken and nothing could have caught it; it is simply a sentence that stopped being true when
+   the numbers under it changed. The numbers are named once now, below, and the sentence describes
+   the SHAPE rather than repeating them, which is the only version of this that cannot go stale.
+
+   ---------- WIDENED FROM 0.80, AND THE ROOM CAME FROM THE EDGE ---------------------------------
+   THE GAP IS DELIBERATELY UNCHANGED. There are only two places the extra width can come from and
+   they are not equivalent: take it from the gap and the cards close up on each other, which is the
+   one thing this layout must not do and the thing `stepX_` refuses outright. Take it from the edge
+   and you see slightly less of the neighbour — which still does its whole job, because that edge
+   exists to say "there is another one of these beside you", and 6% of a phone is 23px, which is a
+   band of colour nobody can mistake for the end of the screen.
+
+   MEASURED AT EVERY WIDTH the checks use: the card goes 256 → 269 at 320px, 312 → 328 at 390px,
+   and 329 → 345 wherever `--app` caps the column. The gap stays at 2% throughout. */
+const CARD_W       = 0.84;    // a card, as a fraction of the screen's width
+const EDGE_SHOWING = 0.06;    // how much of the card either side you can see, same units
 
 /* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing
    either. Across the screen sits: an edge, a gap, the card, a gap, an edge —
