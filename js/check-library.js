@@ -209,6 +209,53 @@ strays.forEach(s => fail.push(
   `${s.col} = ${JSON.stringify(s.v)} on ${s.n} row${s.n > 1 ? 's' : ''} — not in the vocabulary. ` +
   `Read what the column already uses before adding it to VOCAB in this file.`));
 
+/* ---------- THE SAME PAPER, TRANSCRIBED TWICE ------------------------------------------------------
+   This file had no idea what a real-world exam paper IS, only what a row is, so the ids being
+   unique was the whole of its protection. That is not enough: the June 2024 Higher papers were
+   already in here under `RS…` ids, and a session that listed `paper_id` prefixes, saw no
+   `P-1MA1-24…`, and went off to transcribe Paper 1 again produced 33 fresh rows with fresh ids
+   and no complaint from anything. A duplicate paper is worse than a duplicate row, because a
+   duplicate row at least LOOKS wrong in the funnel; two copies of a paper just make the library
+   bigger and every search return each question twice.
+
+   So the key is what identifies a SITTING: subject, board, year, series, paper number and tier.
+   Two details matter.
+
+   THE MONTH IS COLLAPSED TO A SERIES, because the same sitting is dated both ways in here — the
+   2024 Higher Paper 1 sat on 16 May and is filed under month 6, and the duplicate was filed under
+   month 5. Comparing months exactly would have let the pair through, which is precisely the
+   `waveOf` problem `find.js` already solves for the funnel: two spellings of one sitting.
+
+   ONLY PAPERS THAT HAVE QUESTIONS COUNT. Most `kind: 'paper'` rows are documents with nothing
+   under them yet — a link and a page count — and a document row sitting beside the transcription
+   of the same paper is the normal, intended state. Seventeen of those pairs exist right now and
+   not one is a fault. */
+const ACCEPTED_TWICE = {
+  'Maths|Edexcel|2024|summer|3|A-Level':
+    'Papers 31 (Statistics) and 32 (Mechanics) are two different A-level papers and both carry ' +
+    'paper: 3, so the key collides on something that is not a duplicate.',
+};
+const seriesOf = m => (['5', '6', '7'].includes(String(m)) ? 'summer'
+                    : ['10', '11', '12'].includes(String(m)) ? 'autumn' : String(m || ''));
+const withQuestions = new Set(rows.filter(r => r && r.kind === 'part').map(r => r.paper_id));
+const sittings = new Map();
+rows.forEach(r => {
+  if (!r || r.kind !== 'paper' || !withQuestions.has(r.paper_id)) return;
+  const bits = [r.subject, r.exam_board, r.year, seriesOf(r.month), r.paper, r.tier];
+  if (bits.some(b => !b)) return;
+  const key = bits.join('|');
+  if (!sittings.has(key)) sittings.set(key, []);
+  sittings.get(key).push(r.paper_id);
+});
+const twice = [];
+sittings.forEach((ids, key) => {
+  if (ids.length < 2) return;
+  if (ACCEPTED_TWICE[key]) return;
+  twice.push(`${key} is transcribed ${ids.length} times: ${ids.join(', ')}. One sitting, one paper ` +
+             `— delete the newer copy, or add the key to ACCEPTED_TWICE with a written reason.`);
+});
+twice.forEach(t => fail.push(t));
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.

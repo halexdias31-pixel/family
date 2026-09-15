@@ -669,15 +669,23 @@ answers wins:
 
 #### Which papers are in, and how a new one gets there
 
-Twenty-four Edexcel 1MA1 Higher papers are transcribed: **2017, 2018 and 2019 complete** (both
-sittings, six papers each), **summer 2020** and **summer 2023**. `paper_id` is
-`P-1MA1-<yy><mm>-<n>H`, so `P-1MA1-1711-2H` is Paper 2 of the November 2017 sitting, and a document
-row for each carries `kind: 'paper'` under `D-<paper_id>`.
+Thirty Edexcel GCSE maths papers are transcribed, **and they are not all named the same way** —
+which is the trap, so read both rows of this table before starting a new one.
 
-Still in the Drive folder and not transcribed: **summer 2024** (three, named by date) and eighteen
-PDFs named only by their Edexcel paper code — `P64…` and `P66…` are the November 2020 and 2021
-sittings, `P68…` 2022, `S48…`/`S49…`/`S50…` the specimen sets. Those need opening before they can
-be named, which is why they are last.
+| ids | what is in them |
+|---|---|
+| `P-1MA1-<yy><mm>-<n>H` | 24 Higher papers: **2017, 2018 and 2019 complete** (both sittings, six papers each), **summer 2020**, **summer 2023** |
+| `RS1786302107764-415…420` | the **June 2024** series, six papers — Foundation AND Higher, Papers 1, 2 and 3 |
+
+**`node js/check-library.js` prints the count, and the list above is the thing that goes stale.**
+The two id schemes are why: a session that listed `paper_id` prefixes, saw no `P-1MA1-24…` and
+concluded 2024 was missing transcribed June 2024 Paper 1 a second time — 33 rows with fresh ids,
+past every check in the suite, because nothing here knew what a real paper WAS. `check-library.js`
+knows now; see "the same paper, transcribed twice" in that file.
+
+Still to do, and all eighteen are named only by their Edexcel paper code — `P64…`, `P66…`, `P68…`,
+`S48…`/`S49…`/`S50…` — so each has to be opened before it can be named: the November 2020, 2021 and
+2022 sittings, November 2023, and the specimen sets.
 
 **Every number in a transcription is checked against the paper's own stated total**, which is 80 for
 every one of these by definition of the qualification — `check-library.js` refuses a paper that does
