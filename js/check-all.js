@@ -123,6 +123,15 @@ const SUITE = [
      asks the arithmetic. */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
+  /* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
+     `check/ui.js` MEASURES THE APP AND SAMPLES THE LIBRARY. The Find screen's results are pages
+     filled five either side of where you are, so one run renders about six question cards out of
+     four thousand — and fifty-one rows carrying an unbreakable 128-character dotted answer line
+     took the card, the pane and the page sideways at every width while `ui.js` reported nothing on
+     every commit for weeks. It was measuring exactly that fault and never landed on a row with one.
+     A sample is not a sweep. This lays every question out in a 320px column and asks whether it
+     fits — one page load, no navigation, no lazy fill. */
+  { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width' },
 ];
 
 let failed = 0, noted = 0;
@@ -130,7 +139,10 @@ const notes = [];
 
 console.log('');
 for (const c of SUITE) {
-  const p = path.join(dir, c.file);
+  /* A CHECK MAY LIVE OUTSIDE `js/`. `check/cards.js` needs a browser, which is what puts it in
+     `check/` beside `ui.js` rather than here — and the roster is the only thing that makes a check
+     real, so the roster has to be able to name it. A `/` in the entry means "from the repo root". */
+  const p = c.file.includes('/') ? path.join(dir, '..', c.file) : path.join(dir, c.file);
   if (!fs.existsSync(p)) {
     console.log('  ????  ' + c.file.padEnd(18) + 'not here');
     continue;

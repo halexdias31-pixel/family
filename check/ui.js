@@ -115,6 +115,53 @@ const SCREENS = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'make'
    is twenty more seconds on a check that has to be quick enough to run every time. */
 const WIDTHS = [320, 390, 768, 1280];
 
+/* ==================================================================================================
+   A SCREEN IS NOT ONE PICTURE, AND THIS FILE HAD ONLY EVER TAKEN ONE OF EACH.
+
+   `go(id)` PUTS A SCREEN IN FRONT OF YOU IN THE STATE IT OPENS IN, and for the Find screen that
+   state is the funnel's question — a search box, some chips and a short list of answers. The
+   RESULTS are pages you swipe to, and they are where every question card in the library is drawn.
+   So this check has measured 72 combinations, on every run, for as long as it has existed, and
+   NEVER ONCE RENDERED A QUESTION. The app's largest surface, four thousand rows of it.
+
+   IT COST EXACTLY WHAT YOU WOULD EXPECT. Fifty-one questions carry the printed paper's dotted
+   answer line, the longest 128 characters with no space in it — one unbreakable word that took the
+   card, the pane and the page sideways at every width. `check/ui.js` measures sideways scroll and
+   would have named it on the first run. Nothing did, because nothing ever turned the page.
+
+   THIS IS THE `check-flow` STUB AGAIN, AND THE `check-booking` PATH BEFORE IT: a check that cannot
+   reach its subject reporting a pass. The count in the summary said 72 combinations and meant it;
+   what it did not say is that 72 combinations is nine screens seen once each.
+
+   SO A SCREEN DECLARES ITS STATES. A state is a name and a line of the app's own code — no new
+   navigation, no reaching past `go()`, just the same calls a finger would make. Anything not listed
+   here is measured exactly as it was before, in the one state it opens in.
+
+   AND A STATE THAT DOES NOT ARRIVE FAILS LOUDLY, for the same reason the signed-in seed does: a
+   search that finds nothing would render an empty results page and report it as a clean sweep of
+   the library. It asserts what it expects to be looking at. */
+const STATES = {
+  stuff: [
+    { name: 'the question' },
+    /* A WORD THAT IS IN THOUSANDS OF QUESTIONS, so the results are real cards rather than a lucky
+       one. `goPage` is what the pager calls, and `stuffFirstResult_` is the app's own answer to
+       "which page is the first result" — asking it rather than assuming page 1 is the whole
+       reason that function exists. */
+    { name: 'the results',
+      enter: () => {
+        STUFF.q = 'work out';
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      /* WHAT MUST BE ON THE SCREEN FOR THIS TO HAVE WORKED. */
+      expect: () => document.querySelectorAll('#s-stuff .qcard').length,
+      wants: 'at least one question card' },
+  ],
+};
+
+const statesOf = id => STATES[id] || [{ name: '' }];
+
+
 /* ---------- AND THE VISITOR, WHICH THIS FILE HAD NEVER THOUGHT ABOUT ------------------------------
    NINE SCREENS AT FOUR WIDTHS, AND EVERY ONE OF THEM SIGNED OUT. Nothing here ever set a user, so
    every run measured what a stranger sees — and this app shows a stranger very little. The booking
@@ -553,20 +600,53 @@ function inspect(opts) {
       if (!went) { rows.push({ width, id, as: who.as, skipped: 'no go()' }); continue; }
       await page.waitForTimeout(450);
 
-      const { found, counted, guessed } = await page.evaluate(inspect,
-        { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
-      if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
-                              + `which pane is in front, so this row may be measuring the wrong thing.`);
+      /* ONE PASS PER DECLARED STATE — see `STATES`. A screen with none listed has exactly one, with
+         no `enter`, which is precisely what every screen had before this existed. */
+      for (const state of statesOf(id)) {
+        const label = state.name ? `${id} · ${state.name}` : id;
+        if (state.enter) {
+          const entered = await page.evaluate(src => {
+            try { (0, eval)('(' + src + ')')(); return true; } catch (e) { return String(e.message); }
+          }, String(state.enter));
+          if (entered !== true) {
+            console.warn(`  ! could not reach "${label}" at ${width}px: ${entered}`);
+            failures++;
+            continue;
+          }
+          await page.waitForTimeout(500);
+        }
 
-      /* COUNTED IN THE REPORT, NOT HERE. Every finding used to be a failure the moment it was
-         measured, which left no place to ask whether it is one of the known ones — the accepted
-         list has to be consulted where the findings are grouped, because that is where a finding
-         has a class attached to it. Rows carry what was found; the report decides what it means. */
-      rows.push({ width, id, as: who.as, counted, guessed, ...found });
+        /* AND IT HAS TO HAVE ARRIVED. A state that silently did not happen leaves this measuring
+           the previous one twice and reporting it as coverage — which is the whole fault this file
+           exists to stop repeating. */
+        if (state.expect) {
+          const got = await page.evaluate(src => {
+            try { return (0, eval)('(' + src + ')')(); } catch (e) { return 0; }
+          }, String(state.expect));
+          if (!got) {
+            console.warn(`  ! "${label}" at ${width}px was entered and shows no ${state.wants} — `
+                       + `that state was NOT measured.`);
+            failures++;
+            continue;
+          }
+        }
 
-      if (SHOTS) await page.screenshot({
-        path: path.join(__dirname, 'shots',
-          `${id}-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+        const { found, counted, guessed } = await page.evaluate(inspect,
+          { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
+        if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
+                                + `which pane is in front, so this row may be measuring the wrong thing.`);
+
+        /* COUNTED IN THE REPORT, NOT HERE. Every finding used to be a failure the moment it was
+           measured, which left no place to ask whether it is one of the known ones — the accepted
+           list has to be consulted where the findings are grouped, because that is where a finding
+           has a class attached to it. Rows carry what was found; the report decides what it means. */
+        rows.push({ width, id: label, as: who.as, counted, guessed, ...found });
+
+        if (SHOTS) await page.screenshot({
+          path: path.join(__dirname, 'shots',
+            `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
+            + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+      }
     }
 
     if (jsErrors.length) {
@@ -619,7 +699,8 @@ function inspect(opts) {
 
   const checked = rows.filter(r => !r.skipped && r.id !== '—').length;
   console.log(`\nchecked ${checked} screen/width/visitor combinations `
-            + `(${screens.length} screens x ${WIDTHS.length} widths x `
+            + `(${screens.reduce((n, id) => n + statesOf(id).length, 0)} screen states x `
+            + `${WIDTHS.length} widths x `
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
 

@@ -337,6 +337,73 @@ node check/ui.js --payload=/tmp/p.json                 # and the real app render
 shipped. Before it existed, a fresh clone ran `node js/check.js` and got `Cannot find module 'acorn'`
 with nothing anywhere saying what to install.
 
+### `node check/cards.js` — every question in the library, laid out. A sample is not a sweep
+
+**`check/ui.js` had never rendered a question card.** It drives the real app through its own `go()`
+and measures nine screens at four widths as two visitors — 72 combinations, on every commit, for as
+long as it has existed. The Find screen opens on the funnel's *question*; the results are a strip of
+pages filled five either side of where you are. So the app's largest surface, four thousand rows of
+it, was never on the screen it was measuring.
+
+**It cost exactly what you would expect.** Fifty-one questions carry the printed paper's dotted
+answer line — the longest 128 characters with no space in it, which to a browser is one unbreakable
+word — and every one took the card, the pane and the page sideways at 320px. `ui.js` measures
+sideways scroll. It reported nothing, because the page it was on never happened to hold one.
+
+**This is the `check-flow` stub in a third costume**: a check that cannot reach its subject
+reporting a pass. The summary said 72 combinations and meant it; what it did not say is that 72
+combinations is nine screens seen once each.
+
+**Two fixes, and only one of them is the real answer.**
+
+`check/ui.js` gains **declared states** — `STATES` at the top names, per screen, the states worth
+measuring, each a name and a line of the app's own code. The Find screen now has two: the question
+and the results. A state that does not arrive fails loudly (`expect` says what must be on the
+screen), for the same reason the signed-in seed does. 72 combinations became 80.
+
+**But that is still a sample, and widening a sample makes the odds better without making the claim
+truer.** Measured: searching a common word gives 1,063 hits and puts SIX cards in the DOM, all from
+the same worksheet. What is actually needed is to measure the **content** rather than the screen — a
+question's markup either fits a 320px column or it does not, and that has nothing to do with which
+page of the funnel you are on.
+
+**So `check/cards.js` lays all 4,005 of them out in one page load**, in batches of 500, and asks one
+question: is anything wider than the column. No navigation, no lazy fill, no app. **Proved both
+ways**: with `overflow-wrap` removed it names 47 rows and exits 1, up to 199px past the column; with
+it, zero.
+
+**It must not grow into a second `ui.js`.** That one owns the app — navigation, tap targets,
+contrast, the parked screens, who is looking. This owns the library, at one width, with one
+question. The line between them is whether the answer could change when somebody edits a cell.
+
+### Can the app be built so that reading the code is enough?
+
+Partly, and this session is an honest measure of which half. **What a reader can settle, a check
+already settles**: a name used and never declared, a handler with no door, a column read off the
+wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-five of those now run on every
+session start.
+
+**What a reader cannot settle is what happens when two correct things meet.** Three faults this
+session, all from valid code that read fine:
+
+- **the coins overlapped.** Valid SVG, no overflow, nothing to read. The viewBox scaled at 0.60 put
+  a 5p at 5px across, and the browser stretched it to 20rem so a 13px label was three times the
+  width of its coin.
+- **every diagram rendered at a different scale.** `.qsheet figure svg` is `width: min(100%, 20rem)`,
+  so the viewBox width IS the scale. Three coins came out enormous and two price tags unreadable, on
+  one screen, from one stylesheet. Nothing in either file is wrong.
+- **51 dotted answer lines took the page sideways.** A legal string in a legal box.
+
+**So the lever is not static analysis — it is to replace emergent properties with declared ones, and
+to make the lab see more.** The scale fault is now impossible because every drawing lays out inside
+one constant, `W`; that is a rule a reader can check. The dotted line is now caught because
+something renders all four thousand rows. **Both are the same move**: take a fact that was only true
+by accident of interaction, and give it somewhere to be stated and somewhere to be tested.
+
+**A screenshot is still the last word on a drawing**, and this file has now written that sentence
+three times — `.mat-face`, `.mat-out`, and the coins. What changed is that it is the last word on
+fewer things.
+
 ### `check/live.js` — the real backend over the real database
 
 Everything else measures the app against `check/fixture.json`: four question rows, fifteen people,
