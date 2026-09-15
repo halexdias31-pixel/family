@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-23-collections";
+  --css-version: "2026-09-24-topics";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7342,6 +7342,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    a highlight that means nothing. */
 @media (hover: hover) {
   .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
+}
+
+/* ---------- "DOESN'T MATTER" IS A WAY OUT, NOT AN ANSWER ------------------------------------------
+   IT IS THE SAME OBJECT AS AN ANSWER AND IT MUST NOT READ AS ONE. Everything the class above gives
+   it is wanted — 44px, the radius, the press that moves a pixel — and the FILL is the one thing
+   that is not: a filled row in a column of filled rows is a sixth answer, and the last one, which
+   is where the eye stops. Taking the background off and leaving the border leaves it plainly
+   pressable and plainly not one of the choices.
+
+   NO NEW COLOUR. `--dim` is the token an unemphasised label already uses on every `.row` in the
+   app; this is the answer row handing back the foreground colour the block above gave it. */
+.row.tap.counted.is-skip { background: none; }
+.row.tap.counted.is-skip .k { color: var(--dim); font-weight: 500; }
+@media (hover: hover) {
+  .row.tap.counted.is-skip:hover { background: rgb(255 255 255 / .04); }
 }
 
 

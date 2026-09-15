@@ -817,6 +817,89 @@ and collapsing it would invent a fact.
 field is unknown as a *new* question, so renaming it moved the sheet's row from the second pile to
 the first. The sheet still owns the label, the order and whether it is asked at all.
 
+### The funnel never asked what the maths was ABOUT, and that is the whole complaint
+
+**Six chips deep it said "Nothing left to narrow" over 193 questions.** What for · Learning, What
+kind · Questions, Subject · Maths, Type · Worksheet, Key stage · KS2, School year · Year 4 — and the
+193 left were about eleven different things: fractions, area, roman numerals, telling the time.
+
+**Every question on the way down was about where the question CAME FROM.** Subject, level, type, key
+stage, school year, exam board, tier, publisher. Not one about what it is OF. That is "I click the
+filters and then it just feels like it shows all of them", exactly: each tap took a real bite out of
+the list, and none of them took the bite that was wanted.
+
+**The column was already there and nothing read it.** `topics` is on 91.5% of the question rows and
+has reached the browser on `row` since `libraryInto_` stopped enumerating columns — see "`row`
+carries the whole row" above, which was written about this same shape. `topicOf_` reads it, a
+`Topic` facet sits straight after `Subject`, and the comma in a cell is a list the way `keystage`'s
+is. **A worksheet transcribed tomorrow is filterable the moment its `topics` cell is filled in**,
+with nothing in code to edit and no deploy.
+
+**Nothing new decides when it is asked.** 389 distinct topics is past `FACET_MAX_ANSWERS`, so it is
+not offered at the top; almost nothing outside the library carries one, so its coverage is low until
+the list IS questions. Both rules that keep it out of the way are the ones that were already there.
+Measured, it arrives at the point the funnel used to give up: 193 items, 15 topics, 100% coverage.
+
+**It is in the search box too**, which it had never been. `searchText_` reads the question's own
+words, so `fractions` found a question only if the word was printed in it — and on a worksheet whose
+every question is a fraction, the one place that says so is the `topics` cell. Measured: `fractions`
+176 → 235 hits, `surds` 40 → 55. Built onto the item, not matched per keystroke.
+
+#### The spelling is settled by a vote, because a list would go stale and Title Case invents words
+
+**46 of the 389 topic values differ from another only by case** — `Linear Equations` (81 rows) beside
+`linear equations` (4), `Histograms` (20) beside `histograms` (13). Two buttons for one topic is the
+`Alevel` / `A-Level` fault in a new column, and `check-funnel.js` fails the build on it.
+
+**Title Case was the obvious fix and it would have been wrong.** `HCF and LCM` title-cased is
+`Hcf And Lcm` — a spelling nobody typed, invented by code, printed on a button. So the library
+votes: every spelling is counted and the commonest wins for all of them, which can only ever pick a
+word somebody actually wrote. **Only the first letter is raised**, because `estimation` outnumbers
+`Estimation` in the file and the vote alone put a lower-case button in a column of capitalised ones.
+
+**Not fixed in the data, for the reason `levelOf_` gives**: the rows are bulk-imported and will keep
+arriving both ways, so a migration is something the next import undoes — and 4,000 committed content
+rows edited to make a filter work is a diff nobody can review. Proved by mutation: switching the
+vote off makes `check-funnel.js` name `Simultaneous Equations` / `simultaneous equations` and eleven
+more; the real file is green.
+
+#### "Doesn't matter", under every question
+
+**"sometimes i just know its roughly ks2".** `School year` was the only thing on the screen after
+Key stage, so somebody who does not care which year had a choice between answering it wrongly and
+going no further — and picking Year 4 took 1,093 questions to 193, silently throwing away nine
+hundred KS2 questions that were just as relevant.
+
+`{ any: true }` **is a filter that filters nothing**, and that is the entire mechanism: it sits in
+`STUFF.filters` so `nextFacet` moves on, and `stuffFind` skips it so nothing is removed. One entry,
+two behaviours, no second piece of state. It is a chip like any other, reading `any`, with the same
+✕ — a question silently dropped with nothing on screen saying so is the funnel "changing its mind"
+again.
+
+**On every facet, not on the one that annoyed somebody.** Every question here was compulsory and a
+person narrowing a list knows some things and not others. Writing a rule for `School year` alone is
+how the `cost: 0` fault came back as `paper: true`.
+
+#### "Only the first collection" was right about the wrong thing
+
+`stuffQuestion` drew `coll[0]` and nothing else, and the argument was sound: `paper_id` and `name`
+are the same 202 papers by two columns, so offering both is offering one thing twice with different
+numbers on it. **The rule written from that threw away every other axis as well** — with `Topic` in
+the list, papers group harder (227 groups against 343) and won the sort, so the screen offered "the
+227 papers these are in" and never "the 343 topics".
+
+**So the folding moved to where it belongs and is measured rather than declared**: two axes are the
+same collection when they cut the list the same way — the same number of groups holding the same
+numbers of things. `paper_id` and `name` match on that exactly; `Topic` and `Papers` do not. It is a
+signature and not a proof, and the cost of being wrong is the old behaviour.
+
+**And "Nothing left to narrow" was not true.** It said it over 1,093 questions with 48 topics in
+them, one line under a control offering exactly those 48 topics — the funnel had run out of
+QUESTIONS, which is a different claim. It says which of the two it means now.
+
+**What it costs**: the first draw of the Find screen went 65 ms → 88 ms and a search 32 ms → 43 ms,
+measured over 4,045 items. That is one extra facet walked twice per filter change, not per keystroke.
+
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
 The three faults above have one shape: **each looked fine in the code and only showed up in the
