@@ -1733,17 +1733,75 @@ function searchText_(r) {
    EVERY PAPER-LEVEL FIELD IS ALREADY ON THE ROW. Board, tier, key stage, year, wave, company,
    subject — copied down onto every question when the two tables were folded together, which is the
    fact that makes this function short and makes the document unnecessary. */
+/* ==================================================================================================
+   A PREAMBLE IS ONE IDEA AT THREE SCOPES, NOT THREE FEATURES.
+
+   A QUESTION IS RARELY JUST ITS INSTRUCTION. "Work out the size of angle x" is unanswerable on its
+   own; what makes it a question is the paragraph above it, and that paragraph belongs at whichever
+   level it was printed at:
+
+     THE PAPER      "Answer all questions in the spaces provided." Rare, and real.
+     THE SECTION    AQA's English Language papers put an unseen EXTRACT in front of Section A and
+                    every question in that section refers to it. It is not question 3's text, it is
+                    the section's, and questions 1 to 4 all need it.
+     THE QUESTION   "ABCDE is a pentagon." Shared by parts (a), (b) and (c) — one paragraph the
+                    three of them hang from, which is why it cannot live on any one of them.
+     THE PART       `lead` — "George now throws the ball 250 times." This part's own, never shared.
+
+   THE MODEL WAS HALF BUILT AND HALF NAMED. A question-scope preamble was a `kind: 'stem'` ROW; a
+   part-scope one was a `lead` COLUMN; and there was no way at all to say "this belongs to the
+   section", which is precisely what the next set of papers going in needs. Two mechanisms for one
+   idea is the fault this repository has recorded three times under other names — `kinds` and
+   `widgets` in two files, `link` against `source_url`, `childrenOf` declared twice.
+
+   SO THE SCOPE IS READ OFF THE ROW rather than declared in a column, which means no migration and
+   no default to get wrong: a stem row that names a question belongs to that question, one that
+   names only a section belongs to the section, and one that names neither belongs to the paper.
+   Every one of those columns is already on every row.
+
+   `lead` STAYS A COLUMN, and that is not an inconsistency. Everything above is SHARED, so it has to
+   live in one place that several parts point at or the copies can disagree. A lead is one part's
+   own, always, so a row of its own would be a join with exactly one member on each side.
+
+   MEASURED BEFORE BUILDING: 9 stem rows, 29 parts reached by one, 341 parts with a lead, and 368
+   question numbers carrying more than one part. So the shape is real and thinly populated — filling
+   it in is transcription work on rows that exist, not a change here.
+================================================================================================== */
+function stemIndex_(all) {
+  const at = { paper: {}, section: {}, question: {} };
+  all.forEach(r => {
+    if (!r || r.kind !== 'stem') return;
+    const pid = paperIdOf_(r);
+    if (!pid) return;
+    if (r.q !== undefined && r.q !== null && r.q !== '') at.question[pid + '|' + r.q] = r;
+    else if (r.section) at.section[pid + '|' + r.section] = r;
+    else at.paper[pid] = r;
+  });
+  return at;
+}
+
+/* OUTERMOST FIRST, because that is the order the paper prints them in and the order they have to be
+   read in: the extract, then the scene, then the instruction. A part with none of them gets an empty
+   list, which every caller already handles — `stems: []` draws nothing and adds nothing to the
+   search haystack. */
+function preamble_(r, at) {
+  const pid = paperIdOf_(r);
+  const out = [];
+  const add = x => { if (x && (x.html || x.diagram)) out.push(x); };
+  add(at.paper[pid]);
+  if (r.section) add(at.section[pid + '|' + r.section]);
+  if (r.q !== undefined && r.q !== null && r.q !== '') add(at.question[pid + '|' + r.q]);
+  return out;
+}
+
 function questionItems() {
   const all = DATA.questions || [];
   if (!all.length) return [];
 
-  const stems = {};
-  all.forEach(r => {
-    if (r.kind === 'stem') stems[paperIdOf_(r) + '|' + r.q] = r;
-  });
+  const stems = stemIndex_(all);
 
   return all.filter(r => r.kind !== 'stem' && r.kind !== 'paper').map(r => {
-    const stem = stems[paperIdOf_(r) + '|' + r.q] || null;
+    const lead = preamble_(r, stems);
     return {
       kind: 'question',
       /* "Q5b" IS THE NAME AND THE PAPER IS THE SUBTITLE. A list of parts all called
@@ -1784,8 +1842,10 @@ function questionItems() {
          exists for: sent, and never read. Only 91 of 3,271 rows carry one today. */
       answer: r.answer || '', answerType: r.answerType || '',
       examinerNote: r.examinerNote || '',
-      stemHtml: stem ? stem.html : '',
-      stemDiagram: stem ? (stem.diagram || '') : '',
+      /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. It was one stem or
+         none; a list is what makes an AQA source text and a question's own scene-setting the same
+         thing at two scopes rather than two features. */
+      stems: lead,
       /* THE STEM'S WORDS TOO. A part reading "work out the value of x" says nothing on its own and
          everything alongside the paragraph it hangs from — see `searchText_`.
 
@@ -1797,7 +1857,7 @@ function questionItems() {
          printed in it — and on a worksheet whose every question is a fraction, the one place that
          says so is the `topics` cell. Typed here rather than matched in the filter for the reason
          `searchText_` gives: this runs once per item, and the filter runs per keystroke. */
-      text: searchText_(r) + (stem ? ' ' + searchText_(stem) : '')
+      text: searchText_(r) + lead.map(p => ' ' + searchText_(p)).join('')
             + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' '),
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
@@ -1879,7 +1939,8 @@ function questionCard_(x) {
     </div>
     <p class="qcard-sub">${esc(x.sub)}</p>
     <div class="qsheet">
-      ${x.stemHtml ? `<div class="qsheet-stem">${x.stemHtml}${fig(x.stemDiagram)}</div>` : ''}
+      ${(x.stems || []).map(p =>
+        `<div class="qsheet-stem">${p.html || ''}${fig(p.diagram)}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${

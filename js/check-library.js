@@ -327,6 +327,48 @@ byDoc.forEach((ids, k) => {
     + `and delete the other, or the library teaches the same question under two names.`);
 });
 
+/* ---------- A PREAMBLE THAT NOTHING SITS UNDER ------------------------------------------------------
+   A `kind: 'stem'` ROW IS A PARAGRAPH SEVERAL QUESTIONS HANG FROM, and its scope is read off the
+   columns it carries — see `preamble_` in find.js. Three things can go wrong with that and none of
+   them throws:
+
+   AN ORPHAN. A stem naming a question number that has no parts is a paragraph nothing will ever
+   draw. It reads as content in the file and is content nowhere, which is the `dropdowns.checklists`
+   fault in miniature: a builder producing nothing from nothing, silently, for as long as nobody
+   looks.
+
+   A STEM THAT CLAIMS MARKS. A preamble is scene-setting; the marks are on the parts. One carrying
+   a mark count would be double-counted by the 80-mark rule above, and that rule is the only
+   end-to-end check this library has.
+
+   AND A PART WHOSE SCENE IS MISSING is NOT reported, deliberately. 3,976 of the 4,005 parts carry
+   their preamble inside their own `html` because that is how they were transcribed, and a check
+   that fires on all of them says nothing anybody can act on. The model is thinly populated on
+   purpose — filling it in is editorial work on rows that already exist. */
+const partKeys = new Set();
+const sectionKeys = new Set();
+rows.forEach(r => {
+  if (!r || r.kind !== 'part' || !r.paper_id) return;
+  partKeys.add(r.paper_id + '|' + r.question);
+  if (r.section) sectionKeys.add(r.paper_id + '|' + r.section);
+});
+const paperKeys = new Set(rows.filter(r => r && r.kind === 'part').map(r => r.paper_id));
+rows.forEach(r => {
+  if (!r || r.kind !== 'stem') return;
+  if (Number(r.marks)) {
+    fail.push(`${r.row_id} is a stem carrying ${r.marks} mark(s). A preamble is scene-setting and `
+      + `the marks belong to the parts under it — this one is counted twice by the 80-mark rule.`);
+  }
+  const has = (r.question !== undefined && r.question !== null && r.question !== '')
+    ? partKeys.has(r.paper_id + '|' + r.question)
+    : r.section ? sectionKeys.has(r.paper_id + '|' + r.section)
+    : paperKeys.has(r.paper_id);
+  if (!has) {
+    fail.push(`${r.row_id} is a stem nothing sits under — nothing in ${r.paper_id} matches its `
+      + `scope, so the paragraph is in the file and on no screen. Point a part at it or delete it.`);
+  }
+});
+
 /* ---------- WHAT THE TRANSCRIBER COULD NOT RECOVER -------------------------------------------------
    `examiner_note` is where somebody transcribing a paper wrote down that a question did not come
    across — a diagram the PDF had no text for, or maths the text layer had flattened past reading.
