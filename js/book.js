@@ -1470,7 +1470,9 @@ function breakdownRows(L) {
       }
     }
 
-    push('Stage', 'Not asked for yet', '', '', '', { free: true });
+    /* A DASH, for the same reason as the one on the ordinary form below — every unanswered row on
+       this card prints one, and a waiting list nobody has joined is not a special case. */
+    push('Stage', '—', '', '', '', { free: true });
     return rows;
   }
 
@@ -1550,9 +1552,24 @@ function breakdownRows(L) {
      seats — true, and the wrong conclusion: the point of these two lines is that the document reads
      the SAME from the first question to the last payment, and a row that appears only once the
      thing is saved is a row that changes shape at exactly the moment somebody is checking it.
-     It says what it is: nobody in it yet. Which is a fact about the booking, not a blank. */
-  push('Stage', 'Not asked for yet', '', '', '', { free: true });
-  push('Status', 'nobody in it yet', '', '', '', { free: true });
+     It says what it is: nobody in it yet. Which is a fact about the booking, not a blank.
+
+     ---------- AND THEY ARE DASHES NOW, WHICH IS THE ASKED-FOR BEHAVIOUR AND THE CONSISTENT ONE ----
+     The paragraph above argued for sentences: that a row appearing only once the booking is saved
+     changes shape at the moment somebody is checking it. The first half of that still holds and is
+     why the rows are still HERE rather than added on send.
+
+     WHAT IT GOT WRONG IS THE FILLING. Every other unanswered row on this form already prints `—`
+     — see the `plain || (asked ? '—' : '')` a few lines up — so two rows carrying sentences while
+     the twenty above them carry dashes is the inconsistency, not the fix for one. A blank that
+     reads like every other blank is a blank somebody can skim past; "Not asked for yet" reads as
+     content and stops the eye on the one row that has nothing to say.
+
+     The sentences have not gone anywhere. `jobSaid_` still writes them, on the SECOND widget — the
+     one that appears under the form once a booking exists and has something true to report. Same
+     vocabulary, same one place; it is simply used where there is a booking to describe. */
+  push('Stage', '—', '', '', '', { free: true });
+  push('Status', '—', '', '', '', { free: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
      "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
      has sent, all reporting that it has not been sent — which the card already says at the bottom,

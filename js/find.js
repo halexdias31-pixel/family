@@ -667,10 +667,28 @@ const FACETS = [
      what they have booked.
      `groups` ON THE ITEM WINS WHEN IT IS THERE. Same list-or-string shape `asList_` already reads,
      so nothing else had to learn a new form. Nothing sets it but the widgets, and only the one. */
-  { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
+  /* ---------- A DOOR IS NOT A FILTER, AND THE BALANCE RULE HAD TO BE TOLD -----------------------
+     `FACET_MIN_MINORITY` SKIPS A QUESTION NOBODY ANSWERS DIFFERENTLY, and on this library that is
+     very nearly this one: 3,753 of 3,770 items are questions, so `Learning` holds 99.5% and the
+     rule would drop the app's first question on the floor.
+
+     IT WOULD BE RIGHT ABOUT THE ARITHMETIC AND WRONG ABOUT THE JOB. Every other facet NARROWS a
+     list of like things — which subject, which tier, which board — and there the rule is exactly
+     correct: an answer nobody gives is a button that does nothing. These two NAVIGATE. `What for`
+     and `What kind` are how somebody gets from the whole app to a department, and the person who
+     came to book a tutor needs that door whether it leads to one tutor or to a thousand. Hiding it
+     because the library is large would mean the funnel got harder to use the more content you
+     added, which is precisely backwards.
+
+     SO `always` MARKS THE TWO THAT ARE DOORS, and nothing else may carry it. It exempts a facet
+     from the balance rule ONLY — the coverage rule, the answer-count cap and "everything agrees"
+     all still apply, so a group question with one answer left still goes away. */
+  { field: 'forLabel',  label: 'What for',    always: true,
+    of: x => x.groups || kindOf_(x).group },
   /* `kindLabel` ON THE ITEM WINS, the same way `groups` does on the line above — so a thing placed
      under a group its kind does not belong to can also say what it is called there. */
-  { field: 'kindLabel', label: 'What kind',   of: x => x.kindLabel || kindOf_(x).label },
+  { field: 'kindLabel', label: 'What kind',   always: true,
+    of: x => x.kindLabel || kindOf_(x).label },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to. */
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
@@ -728,21 +746,63 @@ const FACETS = [
      that reads as a bug in the data rather than in the label. */
   { field: 'yearGroup', label: 'School year',        of: x => x.bandValue && x.bandType === 'year'
                                                     ? 'Year ' + x.bandValue : '' },
-  { field: 'stage',     label: 'Stage',       of: x => x.bandValue && x.bandType === 'stage'
-                                                    ? x.bandValue : '' },
+  /* ---------- ONE LADDER, NOT TWO, AND THE SPELLING IS PART OF THE FAULT ------------------------
+     THIS WAS `stage`, READING ONLY `band_value` WHERE `band_type` IS `stage`. The `level` column
+     says the same thing on a different set of rows, and because the code had no `level` facet the
+     `facets` tab invented one — exactly as `facetFromSheet_` is designed to. So the funnel asked
+     the same question twice, off two columns, and the two disagreed:
+
+         level = Alevel   ->  135 items          stage = A-Level  ->  263 items
+         level = GCSE     -> 2092 items          stage = GCSE     ->  345 items
+
+     MEASURED, AND THE OVERLAP IS THE POINT: 128 A-level items carry a stage and no level, 135
+     carry both. Which result set you got depended on which of the two questions the funnel
+     happened to offer you first — the same word, twice, meaning different things. That is the
+     "it feels arbitrary" complaint in its most literal form.
+
+     NAMED `level` SO THE SHEET'S ROW BECOMES AN OVERRIDE. `facetList` treats a `facets` row whose
+     field is already declared in code as a relabel/reorder of that facet, and one whose field is
+     unknown as a new question. Renaming this from `stage` to `level` moves the sheet's row from
+     the second pile to the first, so there is one question again and the sheet still owns its
+     label, its order and whether it is asked at all.
+
+     THE BAND WINS WHERE IT EXISTS, because `band_type: stage` is a deliberate statement about a
+     row; the `level` column is the bulk-import's version of the same fact and is the fallback.
+
+     AND `Alevel` IS A MISSPELLING OF A PROPER NOUN. Three spellings were on screen at once —
+     `Alevel`, `A-Level`, `A-Level` — reading as three different things. Normalised here rather
+     than in the data because the data is bulk-imported and will keep arriving both ways. */
+  { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
   { field: 'tier',      label: 'Tier',        of: x => x.tier },
   /* Through `waveOf`, for the same reason `year` goes through `yearOf` one line below: the cell
      may hold a DATE rather than a wave, and a filter button sixty characters wide reading
      "Fri Jun 01 2024 08:00:00 GMT+0100 (British Summer Time)" is what that looks like untouched. */
-  { field: 'examWave',  label: 'Exam wave',   of: x => waveOf(x) },
+  /* `Sitting`, NOT `Exam wave`. "Wave" is the column's name and nobody outside this repo says it;
+     the answers under it are now "June 2018" and "November 2018", which is what a student calls
+     the thing. The `facets` tab can still relabel it. */
+  { field: 'examWave',  label: 'Sitting',     of: x => waveOf(x) },
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
   { field: 'company',   label: 'Company',     of: x => x.company },
-  /* A yes-or-no, phrased as the two answers rather than as the question. "Printed / Digital" is a
-     choice; "Print required: true" is a database column somebody left showing. */
-  { field: 'paper',     label: 'Printed?',    of: x => x.paper ? 'Printed' : 'Digital' },
+  /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION ------------------------
+     IT READ `x.paper`, AND `questionItems` SET THAT TO `true` ON EVERY QUESTION. So the only
+     reader of the field was this facet, and the only writer was a literal. Measured: 3,753 items
+     answered `Printed` and 17 answered `Digital` — and those 17 were the widgets, which have no
+     such field at all. It passed every test `nextFacet` had (two answers, 100% coverage) and
+     narrowed nothing, on every search, for everybody.
+
+     THIS IS THE `cost: 0` FAULT AGAIN. CLAUDE.md records it: "3,262 of 3,265 items answered Free,
+     which made that bucket mean everything." That one was fixed in the data and the RULE that
+     would have caught the next one was never written, so the next one arrived here. It is written
+     now — see `FACET_MAX_SHARE` — and this facet is gone rather than repaired, because there is
+     nothing left for it to ask: the print line was deleted with the paper card (CLAUDE.md, "What
+     IS lost, and it is the print line"), so nothing in the app sells a printed anything.
+
+     THE THREE COLUMNS IT MIGHT HAVE READ disagree anyway — `printable` is True on 882 rows,
+     `needs_print` on 248, `print_required` on 100 — so an honest version of this question would
+     have had to pick one and say why. When something sells paper again, that is the moment to. */
   /* ---------- `paperName` — "WHICH PAPER" — WAS HERE ------------------------------------------
      IT EXISTED BECAUSE THE PAPER WAS A RESULT. Its own note said so: the facet kept a paper's card
      in the list beside its questions rather than filtering it out. There are no paper cards; the
@@ -1031,6 +1091,57 @@ const FACET_COVERAGE = 0.5;
    answer to "my question is not showing" is `whyThisQuestion()`, which names this by name. */
 const FACET_MAX_ANSWERS = 40;
 
+/* ---------- AND A QUESTION EVERYBODY ANSWERS THE SAME WAY IS NOT A QUESTION EITHER ----------------
+   THE COUNT RULE ABOVE CATCHES A QUESTION WITH TOO MANY ANSWERS. Nothing caught the opposite: a
+   question with two answers where one of them holds the entire list. `nextFacet` asked whether two
+   different answers EXIST and whether half the items can answer — never whether answering it
+   actually splits anything.
+
+   THIS HAS NOW HAPPENED TWICE, WITH THE SAME SHAPE BOTH TIMES.
+
+     `cost: 0`      3,262 of 3,265 items answered `Free`, so the Free bucket meant "everything".
+                    CLAUDE.md records it. Fixed in the DATA, via `priced_`.
+     `paper`        3,753 of 3,770 items answered `Printed`, because `questionItems` wrote
+                    `paper: true` on every one of them. Fixed by deleting the facet.
+
+   BOTH FIXES WERE TO THE INSTANCE AND NEITHER WAS TO THE RULE, which is why the second one was
+   able to sit in the funnel being asked of everybody, on every search, narrowing nothing, while
+   twenty-two checks stayed green. A rule that is only ever applied by hand is not a rule.
+
+   MEASURED AGAINST THE REAL LIBRARY, so the number is not a guess. The share of the biggest answer
+   among the items that can answer at all:
+
+     paper      99.5%   <- a literal, not a fact about anything
+     level      93.9%   GCSE dwarfs A-Level, and the question is still worth asking
+     subject    91.3%   Maths dwarfs the rest, and the question is still worth asking
+
+   SO THE CAP IS NOT ABOUT THE BIGGEST ANSWER, IT IS ABOUT THE REST. `Subject` earns its place
+   because the 8.7% who want Physics get a real narrowing from it; `Printed?` does not, because
+   everything outside its biggest answer is 0.45% of the list and those 17 are widgets. The test is
+   therefore on the MINORITY: unless at least one in fifty of the items that can answer land
+   somewhere other than the biggest bucket, the question cannot narrow and is skipped.
+
+   A SHARE, NOT A COUNT, BECAUSE THE LIST SHRINKS. Once the funnel has narrowed to twenty items a
+   two-way split of nineteen-to-one is still a real distinction between real things; the same split
+   across four thousand is a rounding error with a button on it.
+
+   SELF-CORRECTING, LIKE THE COVERAGE RULE ABOVE IT. A question that cannot narrow the whole library
+   starts being offered the moment the list is small enough for its answers to matter — so this
+   never permanently hides anything, it only declines to ask it too early. */
+const FACET_MIN_MINORITY = 0.02;
+
+/* Does answering this actually split the list? The share of answerable items that do NOT give the
+   commonest answer. Counted over values, not items, so a thing answering `Booking` and `People`
+   is a mark against each — the same tally `facetValues` builds the counts beside the buttons from,
+   so the number a person sees and the number this decides on are the same number. */
+function facetSplit_(items, facet) {
+  const vals = facetValues(items, facet);
+  if (vals.length < 2) return 0;
+  let top = 0, total = 0;
+  vals.forEach(v => { total += v.n; if (v.n > top) top = v.n; });
+  return total ? (total - top) / total : 0;
+}
+
 /**
  * THE NEXT QUESTION WORTH ASKING, or nothing.
  *
@@ -1066,6 +1177,10 @@ function nextFacet(items) {
        given a lower bar to is one somebody decided is worth asking early even though it is thin. */
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
     if (facetCoverage(items, facet) < min) continue;
+    /* AND IT HAS TO SPLIT SOMETHING. See `FACET_MIN_MINORITY` — two answers where one of them is
+       the whole list is a tap that changes nothing, which is the same complaint the "everything
+       agrees" rule above makes about one answer, one step less obvious. */
+    if (!facet.always && facetSplit_(items, facet) < FACET_MIN_MINORITY) continue;
     return facet;
   }
   return null;
@@ -1124,6 +1239,12 @@ function whyThisQuestion(all) {
     else if (vals.length > FACET_MAX_ANSWERS)
       why = 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
     else if (cov < min) why = 'thin — needs ' + Math.round(min * 100) + '%';
+    /* THE NEW RULE HAS TO BE VISIBLE HERE OR IT IS THE OLD FAULT WEARING A HAT. A question that
+       vanishes for a reason nothing prints is exactly what `whyThisQuestion` was written for. */
+    else if (!f.always && facetSplit_(items, f) < FACET_MIN_MINORITY)
+      why = 'lopsided — ' + Math.round(facetSplit_(items, f) * 1000) / 10
+            + '% fall outside the commonest answer, needs '
+            + Math.round(FACET_MIN_MINORITY * 100) + '%';
     else if (!chosen) { why = '← THIS ONE'; chosen = f.field; }
     else why = 'would do, but comes after ' + chosen;
     console.log('  ' + pad(f.field + (f.fromSheet ? ' *' : ''), 14) + pad(f.label, 18)
@@ -1345,14 +1466,10 @@ function qPartName_(part) {
   return b ? b.letter + '(' + b.roman + ')' : s;
 }
 
-/* The marker down the left of an open question, where the paper's own bracket belongs:
-   1) · b) · a(i) */
-function qPartShow_(part) {
-  const s = String(part == null ? '' : part).trim();
-  if (!s) return '';
-  const b = qPartBits_(s);
-  return b ? b.letter + '(' + b.roman + ')' : s + ')';
-}
+/* `qPartShow_` WAS HERE — the marker down the left of an open question, "1) · b) · a(i)". It was
+   declared, never called, and differed from `qPartName_` twelve lines above only in a trailing
+   bracket. Two functions one letter apart doing almost the same thing is the `childrenOf` /
+   `childNamesOf` trap CLAUDE.md records, and this one had no callers to be wrong about yet. */
 
 /* ---------- ONE READER FOR THE PAPER'S ID ---------------------------------------------------------
    THREE NAMES WERE IN USE for one column — `paper`, `paperId`, `paper_id` — and the backend sends
@@ -1485,7 +1602,12 @@ function questionItems() {
       keystage: r.keystage || '', tier: r.tier || '',
       examBoard: r.examBoard || '', company: r.company || '',
       resourceType: r.resourceType || '', examWave: r.examWave || '',
-      year: r.year || '', paper: true,
+      year: r.year || '',
+      /* `paper: true` WAS HERE and it was write-only — see the deleted `Printed?` facet above,
+         which was its one reader. It also clobbered something: `library.js` puts the paper's ID
+         in `paper` (`paper: libS(r.paper_id)`), which is the third of the three spellings
+         `paperIdOf_` exists to read. Nothing called `paperIdOf_` on an item, so it never fired —
+         but a field that holds an id everywhere except here is the exact trap that note describes. */
       marks: r.marks, section: r.section,
       lead: r.lead, html: r.html, diagram: r.diagram || '',
       /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. `answer`, `answerType` and
@@ -1905,6 +2027,30 @@ function stuffItems() {
  *
  * So: the column when it is filled, and the four digits out of the wave when it is not.
  */
+/**
+ * WHAT LEVEL A THING IS TAUGHT AT, FROM WHICHEVER OF THE TWO COLUMNS HAS IT.
+ *
+ * Two columns hold this fact and neither holds all of it: `band_value` with `band_type: stage` is
+ * the deliberate per-row statement, and `level` is what the bulk imports wrote. 128 A-level items
+ * carry only the second, 135 carry both. Reading one column meant a question that was right about
+ * a third of the library and silently wrong about the rest.
+ *
+ * THE SPELLINGS ARE NORMALISED, not the data. `Alevel`, `A-level` and `A-Level` were three answers
+ * on one screen; the data is bulk-imported and will keep arriving in all three, so the repair
+ * belongs here where every reader gets it, rather than in a migration that the next import undoes.
+ */
+function levelOf_(x) {
+  const band = (x && x.bandType === 'stage' && x.bandValue) ? String(x.bandValue) : '';
+  const own  = band || String((x && x.level) || (x && x.row && x.row.level) || '').trim();
+  if (!own) return '';
+  /* `A LEVEL`, `A-LEVEL`, `ALEVEL` — one thing. Matched on the letters alone so a space, a hyphen
+     or nothing between the A and the L all land on the same button. */
+  if (/^a\s*-?\s*level$/i.test(own)) return 'A-Level';
+  if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
+  if (/^gcse$/i.test(own)) return 'GCSE';
+  return own;
+}
+
 function yearOf(x) {
   const own = String((x && x.year) || '').trim();
 
@@ -1942,6 +2088,32 @@ function yearOf(x) {
 }
 
 /**
+ * THE NAME OF AN EXAM SERIES, FROM THE MONTH IT SAT IN.
+ *
+ * A BOARD RUNS TWO SERIES A YEAR AND SPREADS EACH OVER SEVERAL WEEKS. Edexcel's 2018 summer papers
+ * sat on 24 May, 7 June and 12 June; its autumn papers on 6, 8 and 12 November. Naming a sitting by
+ * its own month splits one series into `May 2018` and `June 2018` — two buttons for three papers
+ * every student thinks of as one thing, and the question "which paper" cannot be asked underneath
+ * a split like that.
+ *
+ * SO THE SUMMER MONTHS ARE ONE ANSWER AND THE AUTUMN MONTHS ANOTHER, under the names the boards
+ * and every past-paper site actually use: "June 2018" and "November 2018".
+ *
+ * ANYTHING ELSE KEEPS ITS OWN MONTH. January sittings were a real thing until 2013 and a March or
+ * an August is somebody being deliberate; collapsing those into a season invents a fact. The rule
+ * only merges where two months are certainly one series.
+ */
+function seriesOf_(m) {
+  const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December'];
+  const n = Number(m);
+  if (!isFinite(n) || n < 1 || n > 12) return '';
+  if (n >= 5 && n <= 7) return 'June';         /* the summer series */
+  if (n >= 10 && n <= 12) return 'November';   /* the autumn series */
+  return MONTH[n - 1];
+}
+
+/**
  * THE WAVE OF A THING, AS A HUMAN WOULD SAY IT.
  *
  * `exam_wave` is meant to hold "June 2024" — a sitting, which is a month and a year. What is
@@ -1967,11 +2139,33 @@ function waveOf(x) {
   const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
                  'July', 'August', 'September', 'October', 'November', 'December'];
 
+  /* ---------- A PHASE WORD IS A THIRD SPELLING OF THE SAME THING -------------------------------
+     THE COMMENT ABOVE ALREADY NAMES THIS FAULT — "two ways of writing the same sitting are two
+     DIFFERENT buttons" — and then a third way arrived: `First wave` and `Second wave`, written
+     onto 850 rows by the transcriptions. They carry no month and no year, so they fell through
+     every branch below and came back verbatim, as their own buttons, beside the dates.
+
+     MEASURED, AND IT BROKE THE FILTER IN BOTH DIRECTIONS. For 2018 the funnel offered `June 2018`
+     (16 questions, from the old import) AND `First wave`/`Second wave` (151 questions, from the
+     transcriptions) as separate answers to one question. Picking either hid the other, and nothing
+     on screen said a second 2018 existed.
+
+     A WAVE IS A SEASON, so it is resolved through the row's own month and year rather than by
+     trusting the phrase. `First wave` means the summer series and `Second wave` the autumn one —
+     which is what a month of 5, 6 or 7 and a month of 10, 11 or 12 already say on the same row. */
+  const phase = raw.match(/^(first|second|third)\s+wave$/i);
+  if (phase) {
+    const mth = Number((x && x.month) || (x && x.row && x.row.month) || 0);
+    const yr  = yearOf(x);
+    const series = seriesOf_(mth) || (/^first$/i.test(phase[1]) ? 'June' : 'November');
+    return yr ? series + ' ' + yr : raw;
+  }
+
   /* ALREADY A SITTING. "June 2024", "Nov 2023" — somebody typed what they meant. */
   const said = raw.match(/^([A-Za-z]{3,9})\s+((?:19|20)\d{2})$/);
   if (said) {
     const i = MONTH.findIndex(m => m.toLowerCase().startsWith(said[1].toLowerCase().slice(0, 3)));
-    return i < 0 ? raw : MONTH[i] + ' ' + said[2];
+    return i < 0 ? raw : seriesOf_(i + 1) + ' ' + said[2];
   }
 
   /* A DATE THAT CAME THROUGH AS TEXT. Read by pattern rather than by `new Date`, which reads the
@@ -1980,13 +2174,12 @@ function waveOf(x) {
   const long = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b[^]*?\b((?:19|20)\d{2})\b/);
   if (long) {
     const i = MONTH.findIndex(m => m.slice(0, 3) === long[1]);
-    return i < 0 ? long[2] : MONTH[i] + ' ' + long[2];
+    return i < 0 ? long[2] : seriesOf_(i + 1) + ' ' + long[2];
   }
 
   const iso = raw.match(/\b((?:19|20)\d{2})-(\d{2})-\d{2}\b/);
   if (iso) {
-    const i = parseInt(iso[2], 10) - 1;
-    return (MONTH[i] ? MONTH[i] + ' ' : '') + iso[1];
+    return seriesOf_(parseInt(iso[2], 10)) + ' ' + iso[1];
   }
 
   /* Nothing recognisable but a year in it somewhere — better than the whole string. */

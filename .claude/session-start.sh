@@ -35,8 +35,12 @@ DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 [ "$DIRTY" != "0" ] && echo "· $DIRTY uncommitted file(s) — these were here BEFORE this session"
 
 OUT=$(npm run check 2>&1)
+# COUNTED, NOT TYPED. This line said "all 18 checks pass" for as long as there were 18, and went on
+# saying it when there were 22 — a number in a sentence nobody re-reads. It is read off the run now,
+# so it cannot be wrong again.
+N=$(printf '%s\n' "$OUT" | grep -cE "^[[:space:]]+(PASS|note)[[:space:]]")
 if printf '%s' "$OUT" | grep -q "OK — nothing is broken"; then
-  echo "· all 18 checks pass"
+  echo "· all $N checks pass"
 else
   echo "· CHECKS ARE RED ON ARRIVAL — this is not something this session did:"
   printf '%s\n' "$OUT" | grep -E "^\s+(FAIL|PASS)|FAILED" | grep -v PASS | sed 's/^/    /'
