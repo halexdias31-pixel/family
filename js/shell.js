@@ -1814,7 +1814,9 @@ document.addEventListener('click', e => {
      whatever was pressed; if none does, this is cleared on the next press and nothing has happened.
      The visible CARD rather than the exact target, so pressing a word inside a card opens from the
      card and not from the word. */
-  SHEET_FROM = e.target.closest('.card, .rc, .rc-stub, .paper, .pass, .slip, .post, .thing') || doer;
+  /* `.pass` WAS IN THIS LIST and the class no longer exists — a person is `.card.is-widget` now,
+     which the first entry already catches. See `findCard`. */
+  SHEET_FROM = e.target.closest('.card, .rc, .rc-stub, .paper, .slip, .post, .thing') || doer;
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`.
      A click on a select is the dropdown OPENING — its value is still the old one — so running the
      handler here fired every action with a stale answer and then redrew the markup out from under
@@ -2122,6 +2124,31 @@ async function load() {
       if (LIBRARY_FAILED) {
         banner('The questions did not load — ' + LIBRARY_FAILED
           + '. Everything else is here; reload the page to try again.');
+      }
+
+      /* ---------- THE MESSAGE WIDGETS COULD NOT EXIST UNTIL YOU OPENED THE MESSAGE SCREEN --------
+         REPORTED AS "I just sent a message to George but I don't see it pop up in my messages
+         widget", and the dependency was circular.
+
+         `msgWidgets_()` BUILDS ONE WIDGET PER CONVERSATION out of `MESSAGES`. `MESSAGES` starts
+         `null` and `loadMessages()` — measured, every caller — was reachable from exactly four
+         places: the first draw of the `dm` screen, the `dm-refresh` button on it, `fillThread_`
+         (which needs a thread widget that cannot exist yet), and after a send. So on a phone that
+         had never opened the Messages column there were NO message widgets, and nothing anywhere
+         said why: `messageThreads_` reads `MESSAGES || []` and an empty list looks exactly like
+         having no conversations.
+
+         THAT IS THE `liveJobs` SHAPE AND THE `DATA.messages` SHAPE, which the note above
+         `loadMessages` already describes about this very feature: "the widget and the sheet both
+         read undefined, fell to `|| []`, and said 'Nothing yet.' to everybody for ever". It was
+         fixed there and reintroduced one layer out, in what loads it.
+
+         SO IT IS FETCHED WITH THE PAYLOAD. One POST, once per load, only when somebody is signed
+         in — a conversation is private and there is nobody to fetch for otherwise. It cannot fail
+         loudly: `loadMessages` swallows its own errors by design (an unreachable backend is not an
+         empty inbox), so this can only make widgets appear, never take a screen down. */
+      if (USER && typeof loadMessages === 'function') {
+        loadMessages().then(() => { try { repaint(); } catch (e) {} });
       }
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE.
          It was built when a cached stylesheet was a real and invisible problem — twice a rule had

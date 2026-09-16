@@ -91,7 +91,18 @@ function passFor_(name) {
   return (DATA.tutors || []).find(t => norm(t.title) === n) || null;
 }
 
-function meCard() {
+/* ---------- ONE ROW FOR ONE PERSON, PASSED IN RATHER THAN LOOKED UP A SECOND TIME -----------------
+   `passFor_(USER.name)` MATCHES ON THE DISPLAY NAME ALONE, and CLAUDE.md is emphatic about what
+   that costs: `findPerson` on the backend falls back to matching a name, which is right for a row
+   typed into a sheet before anybody has an id and silently wrong the day two tutors share one.
+   `accountPages_` already does this properly — `mineIs_` tries `personId`, then `handle`, then the
+   name, in the order the backend uses — and it has the answer in its hand when it calls this.
+
+   SO THE ROW IS AN ARGUMENT. Passing it is what makes the two agree by construction; `passFor_`
+   stays as the fallback for a caller that has no row, which today is `KINDS.tutor.card` — the
+   funnel's renderer, currently unreached because Booking has left the funnel, and still correct if
+   the `kinds` tab ever puts a tutor back in it. */
+function meCard(given) {
   if (!USER) return '';
   const face = pic(USER.photo || (USER.profile || {}).photo || '');
   const p = USER.profile || {};
@@ -107,15 +118,27 @@ function meCard() {
     ['Where', p.city || p.borough || ''],
   ].filter(([, v]) => String(v || '').trim());
 
-  const mine = passFor_(USER.name);
+  const mine = given || passFor_(USER.name);
   if (mine) {
-    return `<div class="card">
-      ${findCard({ kind: 'tutor', row: mine })}
-      ${rows.filter(([k]) => k !== 'Role').map(([k, v]) => row(k, v)).join('')}
-    </div>`;
+    /* ---------- TWO WIDGETS, NOT A CARD INSIDE A CARD ---------------------------------------------
+       THIS WRAPPED `findCard` IN `<div class="card">` and appended the private rows inside it. That
+       was right while a tutor was a `.pass` — a bare object with no container of its own. It is a
+       `.card.is-widget` now, so a wrapper would be a card in a card, which is the nesting
+       `accountPages_` has just stopped doing.
+
+       AND THEY ARE TWO DIFFERENT THINGS ANYWAY, which is the better reason. The profile is what
+       everybody else sees of you; credits, e-mail and where you are are what only you see. One box
+       holding both says they are the same kind of fact, and the heading on the second is what tells
+       a reader that the rows under it are private — which nothing on the merged card ever did. */
+    const priv = rows.filter(([k]) => k !== 'Role');
+    return findCard({ kind: 'tutor', row: mine })
+      + (priv.length
+         ? `<div class="card is-widget"><h3>Only you see this</h3>${
+              priv.map(([k, v]) => row(k, v)).join('')}</div>`
+         : '');
   }
 
-  return `<div class="card">
+  return `<div class="card is-widget">
     <div class="thing">
       ${face
         ? `<img class="thing-pic" src="${esc(face)}" alt="">`
@@ -133,68 +156,175 @@ function meCard() {
   </div>`;
 }
 
+/* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER -------------
+   THE FIRST VERSION OF THIS CARD DID `(t.focus || []).join(' · ')` AND IT THREW. `doget.gs` sends
+   `focus` as an array and the fixture holds the string `"Maths"`, and a string has no `.join` — so
+   `paint` caught the TypeError, drew its "This screen did not draw" card, and `check/ui.js`
+   measured that card across eight combinations and reported nothing to report.
+
+   THE SHAPE IS NOT SOMETHING THIS CARD GETS TO ASSUME. Four of the thirteen fields it reads are
+   list-shaped, they arrive from a spreadsheet through a mapper, and this file has already paid for
+   the opposite belief twice — `r.link` against `source_url` cost seven silent reads, and
+   `extraQuals` is sent as a STRING while the fixture holds an empty ARRAY, which is truthy, so the
+   naive test printed an `Also` row with nothing after it.
+
+   SO IT READS ALL THREE FORMS, exactly as `asList_` in find.js does for the funnel: an array, a
+   comma-separated cell, or a single value. Declared here rather than borrowed because `cards.js`
+   loads before `find.js` — see `window.FILES` — and a card that works only once the funnel has
+   loaded is a card that breaks on the first screen somebody opens. */
+function profList_(v) {
+  return (Array.isArray(v) ? v : String(v == null ? '' : v).split(','))
+    .map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+}
+
+/* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` --------------------------------
+   THE SHEET STORES A FLOOR AND A CEILING and a reader wants a range, so the joining happens once
+   here rather than on every card that shows one. Three cases and they read differently:
+     · both, and equal   → "1 student"        — a tutor who only takes one is stating a policy
+     · both, and apart   → "1 to 4 students"
+     · a floor only      → "1 student or more" — `maxStudents` of 0 is "no limit set", which
+                            `doget.gs` says outright, so it must not be printed as a ceiling of nought
+   NOTHING AT ALL when there is no floor either: an unanswered question is not a range, and a row
+   reading "0 students" is the `cost: 0` shape one more time. */
+function profRange_(lo, hi, one, many) {
+  const a = Number(lo) || 0, b = Number(hi) || 0;
+  if (!a && !b) return '';
+  const word = n => n === 1 ? one : many;
+  const label = one === 'hour' ? 'Session length' : 'Group size';
+  if (a && b && a !== b) return row(label, a + ' to ' + b + ' ' + word(b));
+  if (a && b) return row(label, a + ' ' + word(a));
+  if (a) return row(label, a + ' ' + word(a) + ' or more');
+  return row(label, 'up to ' + b + ' ' + word(b));
+}
+
+/* A YEAR OLD. `fmtDate` sends `dd/mm/yyyy`, which `parseDMY` is the one reader of in this app —
+   `new Date('03/12/2026')` is March in New York and December in London, and that timezone fault
+   already cost this project seven buttons under `waveOf`. Anything unparseable is not stale: an
+   unreadable date is a fact about the cell, and marking it red would accuse somebody of letting
+   their profile rot because a spreadsheet holds a word. */
+/* THE DATE AS TYPED, or nothing. Anything that is not `dd/mm/yyyy` is not a date this app can
+   reason about, and the two callers below want the same answer to that question. */
+function profDate_(v) {
+  const t = String(v == null ? '' : v).trim();
+  return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(t) ? t : '';
+}
+
+function profStale_(s) {
+  const d = typeof parseDMY === 'function' ? parseDMY(String(s || '')) : null;
+  if (!d || isNaN(+d)) return false;
+  const year = new Date(); year.setFullYear(year.getFullYear() - 1);
+  return d < year;
+}
+
 function findCard(x) {
   const t = x.row;
-  /* ---------- A TUTOR IS A STAFF PASS ------------------------------------------------------------
-     The thing a parent is actually checking, in the form they already know how to read.
+  /* ---------- A PERSON IS A WIDGET, AND THE LANYARD HAS GONE ------------------------------------
+     REPORTED AS "get rid of that lanyard looking thing mate. just a normal widget." — the second
+     complaint about this card in two days, and the first one ("I want them standardised like the
+     other widgets") was answered by putting the pass INSIDE a widget, which is not what was asked
+     and left a lanyard in a box.
 
-     A pass carries a photograph, a name, what the person does, and — the whole reason a pass exists
-     — whether they have been CLEARED. DBS was a boolean in a row of fields, which is where a fact
-     goes to be skipped. On a pass it is a stamp, and a pass without one is visibly a pass without
-     one, which is exactly the right amount of alarming.
+     WHAT THE PASS WAS FOR, so the argument is not lost with the markup. It carried a photograph, a
+     name, what the person does and whether they had been CLEARED, and the defence of it was that
+     the SHAPE did the explaining: a rectangle with a hole punched in the top reads as something
+     worn round a neck, and once it reads as that the DBS stamp reads as clearance without anybody
+     saying so. That was true and it is not the point. A pass is an object you are handed at a
+     reception desk; this app is a column of widgets you scroll, and one object among nine widgets
+     reads as a thing that has not been finished rather than as a thing with a shape of its own.
 
-     THE HOLE AT THE TOP is not decoration. It is what makes the eye read the whole thing as a card
-     hanging round somebody's neck rather than as a rectangle with a photograph in it — and once it
-     reads as that, the DBS stamp reads as clearance without anybody explaining it. */
+     AND IT COULD NOT HOLD WHAT IS ACTUALLY IN THE SHEET. That is the half that matters more than
+     the taste. `doget.gs` has sent thirteen public facts about a tutor since it was written and the
+     pass drew four of them: a photograph, a name, three subjects and a rate. The headline they
+     wrote about themselves, the three adjectives, the years they have been doing it, their
+     qualifications and grades, the group sizes and session lengths they accept, what they focus on,
+     and when they last confirmed any of it were all on every phone, on every load, drawn nowhere.
+     THIRTEEN COLUMNS WRITTEN AND NEVER READ is this repository's oldest shape — `figure`,
+     `orderPrints`, the four message actions, `exam_date` — and a pass is 3.4rem of card wide, so
+     there was nowhere to put them even once somebody noticed.
+
+     SO IT IS `.card.is-widget`, the same container the calculator and the notepad sit in, with the
+     role as its label and rows underneath. Asked for twice; the rows are what makes it worth it.
+
+     THE DBS STAMP SURVIVES THE MOVE, because the one thing on here a parent is actually scanning
+     for should not become a row of text among twelve others. It is a marked chip beside the name,
+     green or red, and the `undefined` rule below is unchanged and still the sharp edge. */
   if (x.kind === 'tutor') return `
-    ${/* NO LONGER A TAP TARGET. The sheet it opened repeated this pass and added three facts and a
-          button; the facts are on the pass now — see `pass-line` below and `pass-where` in the
-          foot — and the button is a row under it. */''}
-    <div class="pass${t.listed === false ? ' is-off' : ''}">
-      <span class="pass-hole"></span>
-      <div class="pass-top">
-        <span class="pass-org">@family.</span>
-        <span class="pass-role">${esc(t.role || 'Tutor')}</span>
-      </div>
-      <div class="pass-body">
+    <div class="card is-widget is-prof${t.listed === false ? ' is-off' : ''}">
+      <h3>${esc(t.role || 'Tutor')}${
+        t.listed === false ? ' <span class="prof-off">· not listed</span>' : ''}</h3>
+      <div class="prof-top">
         ${t.image
-          ? `<img class="pass-pic" src="${esc(pic(t.image))}" alt="" loading="lazy">`
-          : `<span class="pass-pic pass-none">${esc((t.title || '?').slice(0, 1).toUpperCase())}</span>`}
-        <div class="pass-who">
-          <span class="pass-name">${esc(t.title)}</span>
-          ${/* WHAT THEY TEACH, as printed lines. Two at most: a pass lists a person's post, not
-                their whole history, and four subjects in this space is a paragraph. */''}
-          ${/* THREE, NOT TWO. The sheet's "Teaches" row held the whole list and the pass held the
-                first two, so the fact you had to open a panel for was the third subject. Three is
-                what fits; anything past that is a paragraph and belongs on a profile. */''}
-          ${(t.teaches || []).slice(0, 3).map(v =>
-            `<span class="pass-line">${mark(v)}</span>`).join('')}
-          ${t.rate ? `<span class="pass-line pass-rate">${money(t.rate)}/h</span>` : ''}
+          ? `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy">`
+          : `<span class="prof-pic prof-none">${esc((t.title || '?').slice(0, 1).toUpperCase())}</span>`}
+        <div class="prof-who">
+          <span class="prof-name">${esc(t.title)}</span>
+          ${t.subtitle || t.city || t.borough
+            ? `<span class="prof-where">${esc(t.subtitle || t.city || t.borough)}</span>` : ''}
+          ${/* ---------- ABSENT IS NOT `false`, AND IT IS THE ONLY EXCEPTION ON THIS CARD ----------
+                A TUTOR ROW'S `dbs` COMES FROM `TRUE_(r.dbs_checked)` and is therefore always
+                answered — true or false — so every person a parent can look up gets a mark either
+                way, and a missing one is meant to be alarming. A row built somewhere that has no
+                such cell (your own account, when you are not staff) has the key ABSENT, and
+                stamping NO DBS ON FILE across it would report a fact nobody has recorded: the
+                `cost: 0` shape, a blank read as a negative. Omitting the key is what tells the two
+                apart. See `accountPages_`. */''}
+          ${t.dbs === undefined ? ''
+            : `<span class="prof-dbs ${t.dbs ? 'yes' : 'no'}">${
+                t.dbs ? 'DBS checked' : 'No DBS on file'}</span>`}
         </div>
       </div>
-      ${/* AN EMPTY FOOT IS NOT DRAWN. The dashed rule is the pass's perforation and it reads as one
-            only when something is torn off below it — so on a row with no stamp, no place and no
-            NOT LISTED flag it was a dashed line over twenty pixels of nothing. Caught on a
-            screenshot of the account column, which is where the first such row appeared. */''}
-      ${!(t.dbs !== undefined || t.city || t.borough || t.listed === false) ? '' : `
-      <div class="pass-foot">
-        ${/* THE STAMP. Present and green, or absent and said so — never quietly missing, which is
-              what a blank field is. A parent scanning a list of these is looking for exactly one
-              thing and it should be findable at arm's length. */''}
-        ${/* ABSENT IS NOT `false`, AND THAT IS THE ONLY EXCEPTION TO THE PARAGRAPH ABOVE. A tutor
-              row's `dbs` comes from `TRUE_(r.dbs_checked)` and is therefore always answered, so
-              every person a parent can look up still gets a stamp either way. A row built somewhere
-              that has no such cell — your own account, when you are not staff — has the key absent,
-              and stamping NO DBS ON FILE across it would report a fact nobody has recorded. That is
-              the `cost: 0` shape: a blank read as a negative. See `accountPages_`. */''}
-        ${t.dbs === undefined ? ''
-          : `<span class="pass-dbs ${t.dbs ? 'yes' : 'no'}">${
-              t.dbs ? 'DBS CHECKED' : 'NO DBS ON FILE'}</span>`}
-        ${/* WHERE THEY ARE. The one fact on the sheet that was not already on the pass, and the one
-              a parent scanning a list of tutors is actually sorting by. */''}
-        ${t.city || t.borough ? `<span class="pass-where">${esc(t.city || t.borough)}</span>` : ''}
-        ${t.listed === false ? '<span class="pass-off">NOT LISTED</span>' : ''}
-      </div>`}
+      ${/* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already wraps it in quotation marks, so it
+            is printed as said rather than as a field with a label — which is the difference between
+            a profile and a form. */''}
+      ${t.description ? `<p class="prof-say">${esc(t.description)}</p>` : ''}
+      ${/* THE THREE ADJECTIVES OFF THE SHEET. Chips rather than a comma list because they are three
+            separate claims and not a sentence; and capped at three because the tab has exactly
+            three columns and a fourth would mean somebody changed the sheet, not the card. */''}
+      ${profList_(t.tags).length
+        ? `<div class="prof-tags">${profList_(t.tags).slice(0, 3)
+             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
+      ${/* ---------- THE ROWS, AND EVERY ONE OF THEM IS DROPPED WHEN IT IS EMPTY -------------------
+            `.filter(Boolean)` AT THE END IS THE WHOLE RULE. A tutor with no qualifications typed in
+            should show a shorter card, not a card with `Qualifications —` on it: a labelled blank
+            is a claim that somebody looked and there was nothing, which is the sentence this
+            repository has written down five times. `row` prints a dash for an empty value, so the
+            emptiness has to be decided here, before it is asked for. */''}
+      ${[
+        profList_(t.teaches).length
+          ? rowHtml('Teaches', profList_(t.teaches).map(v => mark(v)).join(', ')) : '',
+        t.yrsExp ? row('Experience', String(t.yrsExp).replace(/^(\d+)$/, '$1 years')) : '',
+        profList_(t.quals).length ? row('Qualifications', profList_(t.quals).join(' · ')) : '',
+        profList_(t.extraQuals).length ? row('Also', profList_(t.extraQuals).join(' · ')) : '',
+        profList_(t.focus).length ? row('Focus', profList_(t.focus).join(' · ')) : '',
+        /* WHAT A SESSION WITH THEM LOOKS LIKE. Two rows rather than four, because "1 to 4 students"
+           is the fact and `minStudents` / `maxStudents` are how it is stored — and a card that
+           prints storage has made the reader do the joining. `maxStudents` of 0 means no limit set,
+           which `doget.gs` says outright, so it is read as no limit rather than as nought. */
+        profRange_(t.minStudents, t.maxStudents, 'student', 'students'),
+        profRange_(t.minHours, t.maxHours, 'hour', 'hours'),
+        t.rate ? row('Rate', money(t.rate) + '/h') : '',
+        /* THE SECOND SEAT IS A DIFFERENT PRICE and a parent booking for two children is the person
+           most likely to be looking at this card. `core.js` already prices it; this says so. */
+        Number(t.extraSeat) > 0 ? row('Each extra seat', money(t.extraSeat) + '/h') : '',
+        /* ---------- WHEN THEY LAST SAID ANY OF THIS WAS TRUE --------------------------------------
+           `doget.gs` SENDS THE DATE AND SAYS WHY: "a profile nobody has looked at for a year is
+           worse than one that's obviously incomplete, because it reads as true" — and then "the
+           site decides what counts as recent, so the rule lives in one place". This is that one
+           place, and until now it was nowhere: the column has been on every phone since it was
+           written, drawn by nothing.
+
+           A YEAR, AND IT IS MARKED RATHER THAN HIDDEN. Hiding a stale date leaves the card looking
+           exactly like a fresh one, which is the fault the sentence above describes. */
+        /* ONLY IF IT IS A DATE. `doget.gs` sends `fmtDate(r.details_confirmed)` — `dd/mm/yyyy` — and
+           the fixture holds the boolean `true`, which would have printed a row reading
+           `Details confirmed  true`. A cell holding a tick instead of a day is a fact about the
+           spreadsheet and not about the tutor, and printing it is the same mistake as the `figure`
+           column's "not drawn yet": a value drawn as though somebody had meant it that way. */
+        profDate_(t.detailsConfirmed)
+          ? row('Details confirmed', profDate_(t.detailsConfirmed),
+                profStale_(t.detailsConfirmed) ? 'bad' : '')
+          : '',
+      ].filter(Boolean).join('')}
     </div>`;
 
   /* ---------- A VENUE IS THE SLIP ON THE DOOR ----------------------------------------------------

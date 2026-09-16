@@ -948,7 +948,17 @@ on('msg-send', el => {
       /* SO IT IS THERE WHEN YOU LOOK. Without this the thread you have just started does not exist
          on the phone until something else happens to fetch — and the first place anybody looks
          after sending a message is the place messages are. */
-      loadMessages().then(() => { if (AT === 'dm') paint('dm'); });
+      /* ---------- AND REDRAWN WHEREVER YOU ARE, NOT ONLY ON THE MESSAGE SCREEN ------------------
+         THIS WAS `if (AT === 'dm') paint('dm')`, and the one place you can send from is a person's
+         pass — which is on the ACCOUNT column and on the Find screen, never on `dm`. So the
+         condition was false every single time it ran: the fetch happened, `MESSAGES` was updated,
+         and nothing on screen was told. The new conversation existed and was invisible until
+         something else happened to repaint.
+
+         `repaint()` REDRAWS WHAT IS SHOWING, which is the honest answer to "where should this
+         appear": the message widgets are built from `MESSAGES` by `msgWidgets_()` and they live in
+         the widget roster, so the column that has to change is whichever one you are looking at. */
+      loadMessages().then(() => { try { repaint(); } catch (e) {} });
     })
     /* THE SERVER'S OWN SENTENCE, not a generic failure. Every refusal it can give is already
        written for a person to read — the role policy, the five-minute gap, the length — and

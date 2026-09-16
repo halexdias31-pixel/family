@@ -2611,7 +2611,51 @@ function stuffItems() {
   return built;
 }
 
+/* ---------- BOOKING IS NOT IN THE FUNNEL, AND THIS IS THE TOOLS AND GAMES DECISION AGAIN -------
+   REPORTED AS "remove booking from the finder", and the argument is the one already written a few
+   hundred lines below about the widgets: a booking is not a thing you FIND, it is a thing you DO,
+   and it has a column of its own where the form, the basket and your sessions all are. Answering
+   `What for · Booking` on the Find screen put that same twelve-question form in front of somebody
+   who had come to look for a past paper, and then offered Tutors, Venues, Subjects, Levels and
+   Receipts underneath it — five answers that are one swipe away on a screen built for them.
+
+   IT IS THE GROUP, NOT A LIST OF KINDS. `kindOf_(x).group` is what the `forLabel` facet reads, so
+   a kind added to Booking tomorrow leaves the funnel with nothing added here — and a rule naming
+   `tutor, venue, subject, level, receipt` is a rule that goes stale on the sixth. `kindMap_`
+   overlays the `kinds` tab, so moving a kind out of Booking in the spreadsheet puts it back in the
+   funnel: that is the escape hatch and it is deliberate.
+
+   NOTHING WENT DARK, AND THAT IS THE WHOLE CARE IN THIS CHANGE. Each of the five had to have
+   somewhere else to be BEFORE the answer was removed, because a thing that is only reachable
+   through a door you have just bricked up is a deletion wearing a tidy-up's clothes:
+     · TUTORS      — the account column, one page each, with the Message tile. See `accountPages_`.
+     · RECEIPTS    — the Booking column. `bookBlocks` draws one page per session again; the note
+                     there says they were taken out precisely BECAUSE they were results here, so
+                     this change had to undo that half in the same commit.
+     · VENUES      — the booking form's venue dropdown, which is the only thing anybody did with
+                     one. The slip card is not drawn anywhere now, and that is the real cost.
+     · SUBJECTS
+       AND LEVELS  — the same: dropdowns on the form. `subjectRows` and `levelRows` still build,
+                     because the booking form and the pricing read them.
+
+   WHAT IT COSTS, WRITTEN WHERE THE CODE WAS so it is not rediscovered as a bug: typing `richmond`
+   into Find returns nothing, deliberately, and so does a tutor's name. The fix is this filter, not
+   another mapper. */
+const FUNNEL_NOT_FOR = 'Booking';
+
 function stuffItemsBuild_() {
+  return stuffItemsAll_().filter(x => {
+    /* READ EXACTLY AS THE `forLabel` FACET READS IT — `x.groups || kindOf_(x).group`, through
+       `asList_` — so what leaves the funnel is what would have answered `Booking` and nothing
+       else. A thing in Booking AND another group still answers the other door, so it stays: the
+       array form has been supported since a tutor was two things, and a filter that ignored it
+       would silently drop a kind from a group it belongs in. */
+    const g = asList_(x.groups || kindOf_(x).group);
+    return !(g.length === 1 && g[0] === FUNNEL_NOT_FOR);
+  });
+}
+
+function stuffItemsAll_() {
   return [
     /* ---------- PEOPLE, PLACES AND SUBJECTS -----------------------------------------------------
        Find and Stuff were two tabs asking the same question — where is the thing I want — split by
@@ -3540,8 +3584,24 @@ function accountPages_() {
   const withTiles_ = t => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
     + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
 
+  /* ---------- AND THE PRIVATE HALF WENT DARK WHEN BOOKING LEFT THE FUNNEL -----------------------
+     `meCard` HOLDS THE FACTS ONLY YOU SEE — your credits, your e-mail, where you are — and the one
+     thing that reached it was `KINDS.tutor.card`, which is the funnel's renderer for a tutor. The
+     funnel does not list tutors any more (see `FUNNEL_NOT_FOR`), so the whole of your private half
+     became unreachable in the same commit that removed the answer, silently, on a column whose
+     entire job is to show you your own account.
+
+     CAUGHT BY ASKING WHAT `meCard` IS FOR rather than by anything running. That is the shape this
+     file records under `d = libraryInto_(…)` and under `resource_type` in `VOCAB`: a correct
+     function left standing with nothing calling it, doing nothing, looking fine.
+
+     SO THIS COLUMN CALLS IT, which is where it always belonged — `meCard`'s own note says the
+     private rows hang off the public card, and this is the one screen that is yours. It is given
+     the row `mineIs_` found rather than looking a second time: two lookups for one person is two
+     answers to "which row are you", which is the fault `mineIs_` exists to prevent. */
   const me = [
-    withTiles_(myRow),
+    typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
+    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow)) : '',
     `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
   ].join('');
 
@@ -3554,18 +3614,17 @@ function accountPages_() {
     .filter(t => !mineIs_(t))
     .map(withTiles_);
 
-  /* ---------- EVERY PAGE IN THIS COLUMN IS A CARD ------------------------------------------------
-     REPORTED AS "I want them standardised like the other widgets", with a screenshot: your account
-     sat in an ordinary `.card` and every person under it was a bare `.pass` returned straight out
-     of `findCard`. Measured — page 1 `.card`, page 2 `.pass` — so the column drew two different
-     kinds of object down one scroll.
+  /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS -----
+     THIS RETURNED `<div class="card is-widget">${html}</div>` AROUND EVERY PAGE. It was the answer
+     to "I want them standardised like the other widgets" when a person was a `.pass` — a bare
+     object with none of a card's rules, drawn straight onto the pane while page one was an ordinary
+     card. Putting the pass in a box made the column consistent without changing the pass.
 
-     THIS IS THE REELS FAULT EXACTLY, one screen along. That one "returned its own markup instead of
-     going through `pages()` or `stack()`, so it drew straight onto the black with no pane", and the
-     fix was to make it an ordinary card with its own markup inside. Same here: the pass keeps every
-     one of its own rules — the hole, the stamp, the lanyard shadow — and sits in the pane everything
-     else on this screen sits in. */
-  return [me].concat(others).map(html => `<div class="card is-widget">${html}</div>`);
+     ASKED AGAIN, AND THE SECOND ANSWER IS THE REAL ONE: the pass is gone and `findCard` returns
+     `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
+     two borders, two backgrounds, two lots of padding — which is visibly worse than what was
+     reported in the first place and is exactly what "just a normal widget" rules out. */
+  return [me].concat(others);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
@@ -4273,7 +4332,40 @@ function stuffQuestion() {
     return `<p class="empty">No friends yet.<br>
       <span class="text-action" data-do="friend-add-open">Add someone by their handle</span></p>`;
   }
-  if (!items.length) return '';
+  /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS -------
+     `return ''` WAS HERE, AND IT DREW A SEARCH BOX OVER A BLANK SCREEN. No question, no sentence,
+     no reason — because `stuffPageCount` returns 0 until somebody has answered something, so the
+     `nothingHere` branch in `stuffPageHtml` is not reached on arrival and this was the only thing
+     with a chance to speak.
+
+     FOUND BY THE `every tab draws something` JOURNEY the moment Booking left the funnel: with the
+     check's payload holding two tutors, two venues and no library, `stuff` drew 0 characters of
+     text. The journey was right, the fixture was not the fault, and the app has been one empty
+     payload away from a blank front door for as long as this line has been here.
+
+     FIFTH OCCURRENCE OF THIS REPOSITORY'S OLDEST SHAPE, and CLAUDE.md lists the other four —
+     `loadMessages` showing an empty inbox for an unreachable backend, `check-booking.js` printing
+     "nothing to check" and exiting 0, Reels drawing "Nothing here yet" for a column that worked,
+     and `libraryRows_` reporting a dropped 3.4 MB file as an empty library. Every one is the same
+     sentence: I did not manage to look, reported as I looked and there was nothing there. This one
+     does not even get that far — it reports nothing whatsoever.
+
+     `nothingHere` IS THE SENTENCE, because it is the one place that can tell an empty database from
+     a request that failed: a dropped payload and a dropped library both land here, and both deserve
+     a reason and a `Try again` rather than an invitation to go and fill in a spreadsheet.
+
+     AND THE TWO EMPTIES ARE NOT THE SAME EMPTY. Nothing anywhere is the app having no content;
+     nothing LEFT is a filter that has excluded everything, and the way out of the second is to take
+     a chip off — which is on this page, one row up. `stuffPageHtml` already draws exactly that
+     distinction for the results; this is the same two sentences at the point they are first true. */
+  if (!items.length) {
+    return FIND_MEMO.total
+      ? `<p class="empty">Nothing matches.<br><span class="faint">${
+           STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
+         : STUFF.q                          ? 'Try fewer words.'
+         :                                    'Nothing matches all of those together.'}</span></p>`
+      : nothingHere('Nothing in the shop or the library yet.');
+  }
 
   /* THE ORDINARY QUESTION FIRST, and only if there is none, the one that is too long to draw whole.
      `over` is what says which of the two this is, so the row list below can trim itself without

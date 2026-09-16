@@ -677,6 +677,42 @@ function inspect(opts) {
           }
         }
 
+        /* ---------- A SCREEN THAT THREW WAS BEING MEASURED AND REPORTED CLEAN ---------------------
+           `pageerror` ABOVE CATCHES AN UNCAUGHT THROW, and `paint` in shell.js catches every one
+           this can be about first: it wraps `s.draw()` in a try/catch and replaces the screen with
+           a card reading "This screen did not draw". That card is short, has no overflow, no small
+           tap target and no low-contrast text — so it measures perfectly, and every one of the
+           eight account combinations came back "nothing to report" while the app was rendering an
+           error message where a person's profile should have been.
+
+           FOUND BY BREAKING IT FOR REAL. A profile card did `(t.focus || []).join(...)` while the
+           fixture held a string; the TypeError went into `paint`'s catch, `pageerror` never fired,
+           and this file printed `nothing to report.` across 88 combinations.
+
+           THIS IS THE `check-booking.js` FAULT IN A FIFTH COSTUME — a check that cannot reach its
+           subject reporting that the subject is fine. `paint`'s catch is right and stays: the rest
+           of the app genuinely is fine, and taking the whole page down would be worse for a person
+           using it. What was missing is that the LAB has to be able to tell the difference.
+
+           ASKED OF THE RENDERED PAGE, not of the source, because that is the only place the answer
+           exists — the throw is in data the app was given, and no amount of reading `cards.js`
+           would show it. See the note at the top of this file on which of the two each check uses. */
+        const threw = await page.evaluate(sid => {
+          const el = document.getElementById('s-' + sid);
+          if (!el) return '';
+          const h = [...el.querySelectorAll('h3')]
+            .find(x => x.textContent.trim() === 'This screen did not draw');
+          return h ? ((h.parentElement.querySelector('.sub') || {}).textContent || '').trim() : '';
+        }, id);
+        if (threw) {
+          /* REPORTED THROUGH `rows` LIKE EVERY OTHER FINDING, not counted here. The summary reads
+             `nothing to report` off the grouped buckets, so a fault that bumps `failures` without
+             joining them makes the run exit 1 while printing that nothing is wrong — which is the
+             overstatement the note above the summary already warns about, upside down. */
+          rows.push({ width, id: label, as: who.as, drawFailed: threw });
+          continue;
+        }
+
         const { found, counted, guessed } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -731,6 +767,9 @@ function inspect(opts) {
     const at = `${r.id}@${r.width}${r.as === 'in' ? ' signed in' : ''}`;
     (r.jsErrors || []).forEach(e => add('JS ERROR', e,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`));
+    /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
+       visitors is one line to fix rather than eight, and so it is counted exactly once. */
+    if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.tinyTargets || []).forEach(t => {

@@ -327,7 +327,13 @@ function cameraCard() {
       </div>
     </div>
     <div class="btn-row cam-row">
-      <button class="btn quiet" data-do="cam-shoot" id="cam-shoot" hidden>Take one</button>
+      ${/* `Photo`, `Video`, `Photos` — asked for by name. It said `Take one`, which is a sentence
+            about the button rather than a name for what you get, and there was no way to record at
+            all. The other three controls in this row are all CONDITIONAL — `Again` and `Save it`
+            appear once there is something to save, `Try the camera again` only after a refusal —
+            so the row a person actually sees is these three and nothing else. */''}
+      <button class="btn quiet" data-do="cam-shoot" id="cam-shoot" hidden>Photo</button>
+      <button class="btn quiet" data-do="cam-video" id="cam-video" hidden>Video</button>
       <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
       <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
       ${/* A LABEL, NOT A BUTTON, so the file input opens with no script at all — a `for` reaches a
@@ -392,6 +398,7 @@ async function camStart_() {
       try { await v.play(); } catch (e) {}
       $('cam-off')   && ($('cam-off').hidden = true);
       $('cam-shoot') && ($('cam-shoot').hidden = false);
+      $('cam-video') && ($('cam-video').hidden = !canRecord_());
     }
     return;
   }
@@ -513,6 +520,93 @@ on('cam-again', () => {
   camStart_();
 });
 
+/* ---------- RECORDING, WHICH IS THE SAME SHAPE AS A PHOTOGRAPH ------------------------------------
+   A PHOTO HERE IS A DOWNLOAD, and the note on `cam-save` says why: this app holds no write
+   permission on your Drive and the backend has no endpoint that takes a file. A video is the same
+   fact one size larger, so it takes the same way out — record, stop, download — rather than
+   inventing an upload that has nowhere to arrive.
+
+   `MediaRecorder` IS ASKED ABOUT RATHER THAN ASSUMED. It is absent on older iOS and its codec
+   support differs per browser, so the button is only shown when the API exists and only ever uses
+   a type the browser says it can write. A control that appears and then throws is worse than one
+   that is not there — which is the `orderPrints` lesson in a different costume.
+
+   THE STREAM IS THE ONE ALREADY RUNNING. `camStart_` owns it and `camStop_` releases it; this
+   never opens or closes the camera itself, or stopping a recording would fight the column leaving. */
+let CAM_REC = null;
+let CAM_BITS = [];
+
+function canRecord_() {
+  return typeof MediaRecorder === 'function' && !!CAM_STREAM;
+}
+
+/* THE FIRST TYPE THE BROWSER ADMITS TO. Chrome writes webm, Safari writes mp4, and passing a type
+   neither supports makes the constructor throw — so it is asked rather than guessed, and an empty
+   string lets the browser pick its own default as a last resort. */
+function recType_() {
+  const want = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+  for (const t of want) {
+    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function recStop_() {
+  if (CAM_REC && CAM_REC.state !== 'inactive') { try { CAM_REC.stop(); } catch (e) {} }
+}
+
+on('cam-video', () => {
+  const said = $('cam-said'), btn = $('cam-video');
+  if (!canRecord_()) { if (said) said.textContent = 'This browser cannot record video.'; return; }
+
+  if (CAM_REC && CAM_REC.state === 'recording') { recStop_(); return; }
+
+  CAM_BITS = [];
+  try {
+    const type = recType_();
+    CAM_REC = new MediaRecorder(CAM_STREAM, type ? { mimeType: type } : undefined);
+  } catch (err) {
+    if (said) said.textContent = 'Could not start recording: ' + String((err && err.message) || err);
+    return;
+  }
+
+  CAM_REC.ondataavailable = e => { if (e.data && e.data.size) CAM_BITS.push(e.data); };
+  CAM_REC.onstop = () => {
+    if (btn) { btn.textContent = 'Video'; btn.classList.remove('is-rec'); }
+    const blob = new Blob(CAM_BITS, { type: (CAM_REC && CAM_REC.mimeType) || 'video/webm' });
+    CAM_BITS = [];
+    if (!blob.size) { if (said) said.textContent = 'Nothing was recorded.'; return; }
+    /* THE SAME WAY OUT AS A PHOTOGRAPH — see `cam-save`. The object URL is revoked immediately
+       after the click: a video blob is megabytes and leaving it attached to the document holds all
+       of them for as long as the page is open. */
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'family-' + stamp_() + (/mp4/.test(blob.type) ? '.mp4' : '.webm');
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      if (said) said.textContent = 'Saved.';
+    } catch (err) {
+      if (said) said.textContent = 'Could not save that: ' + String((err && err.message) || err);
+    }
+  };
+
+  try { CAM_REC.start(); } catch (err) {
+    if (said) said.textContent = 'Could not start recording: ' + String((err && err.message) || err);
+    return;
+  }
+  if (btn) { btn.textContent = 'Stop'; btn.classList.add('is-rec'); }
+  if (said) said.textContent = 'Recording. Press Stop when you are done.';
+});
+
+/* ONE PLACE THAT NAMES A FILE. `cam-save` built this inline and the recorder needed the same thing;
+   two copies of a filename format is two things to keep in step, which is this repository's most
+   repeated fault. */
+function stamp_() {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+}
+
 on('cam-save', () => {
   const c = $('cam-still'), said = $('cam-said');
   if (!c) return;
@@ -521,7 +615,7 @@ on('cam-save', () => {
   try {
     const a = document.createElement('a');
     a.href = c.toDataURL('image/jpeg', 0.92);
-    a.download = 'family-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.jpg';
+    a.download = 'family-' + stamp_() + '.jpg';
     document.body.appendChild(a); a.click(); a.remove();
     if (said) said.textContent = 'Saved. Put it in the posts folder and it will be in the list below.';
   } catch (err) {
@@ -544,11 +638,20 @@ on('cam-save', () => {
    meant swiping away and back left a `Try the camera again` button sitting over a camera that had
    just started itself perfectly well. */
 function camStop_(keepShown) {
+  /* ---------- A RECORDING IN PROGRESS IS STOPPED FIRST, AND THAT ORDER MATTERS -------------------
+     STOPPING THE TRACKS FIRST WOULD LOSE THE FILE. `MediaRecorder.onstop` is where the blob is
+     assembled and downloaded, and a recorder whose source tracks have already ended may never fire
+     it — so leaving the column mid-record would take the camera light off and silently throw away
+     what had been recorded. Stopped here, before the stream goes, so the download still happens. */
+  try { recStop_(); } catch (e) {}
   try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
   CAM_STREAM = null;
   const v = $('cam-view');
   if (v) { try { v.srcObject = null; } catch (e) {} }
   if (keepShown) return;
+
+  const rec = $('cam-video');
+  if (rec) { rec.hidden = true; rec.textContent = 'Video'; rec.classList.remove('is-rec'); }
 
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
