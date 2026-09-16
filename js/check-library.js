@@ -464,7 +464,31 @@ rows.forEach(r => {
     fail.push(`${r.row_id} is dated ${r.exam_date} and its month column says ${r.month}. `
       + `The funnel files it by one and a person searches by the other.`);
   }
+  /* ---------- AND A THIRD, WHICH IS THE ONLY ONE THAT CATCHES THE WRONG DATE -------------------
+     NOBODY SITS A GCSE ON A SATURDAY. The two rules above compare `exam_date` against columns
+     that were filled in by the same person in the same sitting, so a date that is simply WRONG —
+     a day out, or a publication date mistaken for an exam date — agrees with both of them and
+     sails past.
+
+     THIS IS NOT HYPOTHETICAL AND IT NEARLY HAPPENED HERE. 41 documents carry a `source_url` with a
+     full date in the filename (`1MA1_1H_que_20211103.pdf`), which looked like 41 free exam dates
+     waiting to be copied across. **Eight of the 41 land on a Saturday** — `P-1MA1-2306-1H` on
+     2023-05-20, four November Paper 2s, and the 2022 and 2023 summer Paper 1s. So that slug is the
+     date the FILE was published at least some of the time, and there is no way to tell from here
+     which of the other 33 are exam dates and which are not. Bulk-filling from it would have put a
+     confident wrong day on a third of the library.
+
+     A WEEKEND IS THE ONE HALF A CHECKER CAN SETTLE without knowing the timetable. It cannot tell a
+     Tuesday that is wrong from a Tuesday that is right — only a person holding the paper can — but
+     it is enough to refuse the whole class of mistake that produced those eight. */
+  const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  if (real.getUTCDay() === 0 || real.getUTCDay() === 6) {
+    fail.push(`${r.row_id} has exam_date ${r.exam_date}, which is a ${DAY[real.getUTCDay()]}. `
+      + `Boards do not sit papers at the weekend, so this is a publication date or a typo — `
+      + `see the note above: eight of the 41 dates in source_url filenames are Saturdays.`);
+  }
 });
+
 const datedPapers = new Set(rows.filter(r => r && r.exam_date && r.paper_id).map(r => r.paper_id));
 
 /* ---------- AN ADDRESS THAT IS NOT AN ADDRESS ------------------------------------------------------
@@ -627,7 +651,13 @@ console.log(`papers checked against a total: ${marks.size}   papers with no tota
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
 console.log(`pictures carried by rows as an address: ${pic.length}`);
-console.log(`papers carrying the date they were sat: ${datedPapers.size}`);
+/* WITH A DENOMINATOR, because "1" is a number and "1 of 665" is a backlog. Same argument as the
+   `total_marks` line three above it: what is uncovered has to be a figure somebody can act on
+   rather than a silence. A date is read off the front page of the paper, so this moves only when
+   somebody has one in front of them — see the weekend rule for why it is not derived. */
+const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
+console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
+  + `   (the rest are known to a month only)`);
 if (standingIn.length) {
   console.log(`\nSTANDING IN FOR SOMETHING NOT YET TYPED — a list, not a fault  (${standingIn.length})`);
   standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));

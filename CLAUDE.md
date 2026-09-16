@@ -1301,7 +1301,32 @@ second column, and that one cost seven buttons.
 **On one paper so far, and that is the design.** Edexcel took the exam date off the front page in
 2021 and the © line narrows it to a year, so a date is a fact somebody has to know rather than
 derive. An absent one draws nothing rather than guessing, and the paper's own name — which always
-carries its month — goes on being the subtitle either way.
+carries its month — goes on being the subtitle either way. `check-library.js` prints
+`1 of 665`, with a denominator for the same reason `total_marks` has one.
+
+#### The URL slug is NOT the exam date, and eight Saturdays are the proof
+
+**41 documents carry a `source_url` with a full date in the filename** — `1MA1_1H_que_20211103.pdf`
+— which reads as 41 free exam dates waiting to be copied across, and this file's own note about the
+©2021 papers points straight at them. **Eight of the 41 land on a Saturday**: `P-1MA1-2306-1H` on
+2023-05-20, four November Paper 2s, and both the 2022 and 2023 summer Paper 1s. Nobody sits a GCSE
+on a Saturday, so that slug is a PUBLICATION date at least some of the time — and there is no way
+from inside this environment to tell which of the other 33 are exam dates and which are not, because
+every exam-board host is blocked by network policy. Bulk-filling from it would have put a confident
+wrong day on a third of the library, and a wrong day is worse than no day: a tutor reads "sat
+Thursday" and knows it was a Friday.
+
+**The weekend is the one half a checker can settle**, and it is now a rule. The two rules that were
+already there compare `exam_date` against the `year` and `month` on the same row — filled in by the
+same person in the same sitting, so a date that is simply wrong agrees with both and sails past.
+A Saturday needs no timetable to refuse. It cannot tell a Tuesday that is wrong from a Tuesday that
+is right — only somebody holding the paper can — but it refuses the whole class of mistake that
+produced those eight. Proved by mutation: `2023-05-20` on the June 2023 Higher paper exits 1.
+
+**And nothing in the data needed correcting.** Checked across all 665 documents: **zero** rows whose
+name names one month while the `month` column says another. The Edexcel Paper 1s always said May and
+always carried `month: 5`; what was wrong was the button above them, and that is the rename in the
+section before this one.
 
 **`levelOf_` reads whichever of the two columns has it** — `band_value` where `band_type` is
 `stage`, falling back to the `level` column — and normalises the spelling. Naming the code facet
