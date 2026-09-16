@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-02-camera";
+  --css-version: "2026-10-03-profile";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1067,6 +1067,14 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .price { font-size: .8rem; color: var(--dim); }
 .price.free { color: var(--green); }
 .price.can  { color: var(--gold); }
+/* NOBODY HAS PRICED IT. Its own class rather than `.faint`, which was the first attempt and does
+   nothing here: `.faint` and `.price` are both one class, so the cascade settles it on which comes
+   later in this file, and `.price` does. A class that silently loses a specificity race is the
+   `--fly-ink` fault wearing a different hat — it reads as a decision and behaves as nothing.
+   ITALIC RATHER THAN A COLOUR. `--dim` is what `.price` already uses and already passes contrast
+   on this background; inventing a fainter grey for the one state a visitor can do nothing about is
+   how a check/ui.js contrast finding gets added on purpose. */
+.price.is-unpriced { font-style: italic; }
 
 /* Something an admin has switched off — a tutor, a resource, a post. Dimmed rather than hidden:
    only an admin ever sees these, and an admin needs to find one to switch it back on. Hiding it

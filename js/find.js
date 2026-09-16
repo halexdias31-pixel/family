@@ -441,10 +441,25 @@ function thingCard_(x, credits) {
          credits    — bought. Gold when you can afford it.
          nothing    — genuinely free, which for a wearable means everybody starts with it. */
     const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
+    /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT --------------------------------------
+         not priced — the cell is empty. Said out loud, faintly, rather than folded into `free`.
+       THE LIST ABOVE SAID THREE AND THE CODE GAVE THREE, and the fourth state existed the whole
+       time: `Number('') || 0` made a blank price a price of nought, so every wearable
+       `seedAvatarItems` wrote — seven of them, at 15 to 40 coins in `AVATAR_ITEMS` — was drawn as
+       FREE on every phone. `priced_` on the mapper is what tells the two apart now, and this is the
+       half that has to say so, because `undefined` printed straight into the old branch reads
+       `undefined credits`.
+
+       FAINT AND NOT ALARMING. An unpriced row is an admin's unfinished cell, not a fault a visitor
+       can do anything about — and calling it "free" is the one thing it must not do, because
+       somebody presses that. Same argument as the DBS stamp: absent is not a negative, it is a
+       blank, and the two are different sentences. */
     const price = x.kind !== 'shop' ? ''
       : x.level > 0
         ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
             myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
+      : x.cost === undefined
+        ? `<span class="price is-unpriced">not priced yet</span>`
       : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
           free ? 'free' : x.cost + ' credits'}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
@@ -2793,7 +2808,20 @@ function stuffItemsAll_() {
       /* A SHOP ROW IS THE ONE PLACE `0` GENUINELY MEANS FREE — it is priced, and the price is
          nought. Everything else that used to write `cost: 0` was saying "I have no price", which
          is a different answer; see `priced_`. */
-      cost: Number(x.price) || 0, slot: x.slot || '',
+      /* ---------- AND A BLANK PRICE CELL IS NOT A PRICE OF NOUGHT, ON THIS MAPPER TOO ------------
+         `Number(x.price) || 0` WAS HERE, under a comment defending the zero: "a shop row is the one
+         place `0` genuinely means free — it is priced, and the price is nought." That is true of a
+         cell holding `0` and false of a cell holding nothing, and `Number('') || 0` cannot tell
+         them apart. This is the `cost: 0` fault on the one mapper that was exempted from the fix,
+         because the exemption was written about the value and the bug is about the blank.
+
+         AND THE BLANK IS NOT HYPOTHETICAL. `seedAvatarItems` wrote `price` and `currency` into a
+         tab whose columns are `price_pence`, `price_ticks`, `price_coins` and `acquire`, so every
+         wearable it seeded has an empty price and an empty `acquire` — and `doGet` reads `acquire`
+         to decide which column to look in. Seven paid wearables, priced at nothing, drawn as FREE.
+         `repairShopPrices` in setup.gs fixes the sheet; this stops the app claiming a price nobody
+         has typed, which is a different job and the one that survives the next blank cell. */
+      cost: priced_(x.price), slot: x.slot || '',
       /* THE EXAM FIELDS ARE NOT WRITTEN BLANK ANY MORE. `asList_` cannot tell `''` from `undefined`
          — both come out as no answer — so the ten blanks per row were ceremony. Leaving them off
          is the same behaviour and says the true thing: a beanie has no exam board. */

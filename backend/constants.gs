@@ -199,7 +199,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-22-no-questions-tab";
+const BACKEND_VERSION = "2026-10-03-price-the-wearables";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2044,6 +2044,10 @@ const RUNNABLE = {
   /* Write the known families into the family tab. Safe to run whenever — it never changes a link
      that already exists. */
   seedFamilies:      () => seedFamilies(),
+  /* Fill in the wearable prices the code already holds, for a sheet that ran `seedAvatarItems`
+     before it knew which columns the merged tab had. Never overwrites a cell with anything in it,
+     so it is safe to run whenever and tells you how many it left alone. */
+  priceWearables:    () => repairShopPrices(),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
      `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since
@@ -2231,6 +2235,17 @@ const MIGRATIONS = [
      worked out before the loop runs, so both were attempted on the same request — twice the work
      for one job, and the ledger could only ever remember one of them. Harmless because the seeder
      is idempotent, which is exactly why it survived: nothing broke and nothing said anything. */
+
+  /* EVERY WEARABLE IN THE SHOP HAS BEEN FREE SINCE THE TWO TABS WERE MERGED, and `seedAvatarItems`
+     cannot fix it: its first line returns early once any avatar row exists. So the seven paid
+     wearables have had an empty `price_coins` and — the half that actually breaks it — an empty
+     `acquire`, which is the word `doGet` reads to decide which price column to look in.
+     Safe to repeat, and the reason is the whole of why this is a migration rather than a reset: it
+     writes only into cells that are empty, so a price somebody has typed survives it. */
+  { id: 'price-the-wearables',
+    retry: true,
+    what: 'the wearables get the prices they have in the code, without touching one anybody typed',
+    run: () => repairShopPrices() },
 ];
 
 /* ============================== POST ========================================================= */
