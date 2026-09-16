@@ -655,6 +655,38 @@ console.log(`pictures carried by rows as an address: ${pic.length}`);
    `total_marks` line three above it: what is uncovered has to be a figure somebody can act on
    rather than a silence. A date is read off the front page of the paper, so this moves only when
    somebody has one in front of them — see the weekend rule for why it is not derived. */
+/* ---------- A QUESTION WHOSE PICTURE NEVER CAME ACROSS ------------------------------------------
+   REPORTED BY SOMEBODY TEACHING FROM THE PAPER: "this is what question 4 looks like but on the app
+   it's just text." It was — `Q-1MA1-1705-1H-4` carried `figure: 'diagram'` and no `diagram`, so the
+   square ABCD arrived as a sentence describing a square, which you can only sit an exam from if you
+   already know what the square looked like.
+
+   `figure` IS TWO COLUMNS UNDER ONE NAME and that is why this is a count rather than a rule.
+   CLAUDE.md records it: `venn`, `scatter`, `pie-chart` mean the paper had a picture nobody
+   transcribed, while `grid-blank`, `fractions`, `boxes`, `long-method` mean it had somewhere to
+   WRITE THE ANSWER — and those questions are complete as they stand. A first renderer printed "not
+   drawn yet" off this column and was wrong on about 120 questions. So the answer-space labels are
+   named here and everything else is counted.
+
+   PRINTED, NOT FAILED. It is editorial work needing the original paper open beside you, and drawing
+   one from the row's own prose is how a wrong figure gets onto a card wearing the exam's authority —
+   see tools/draw-1705-1h-more.py for the line between the two. A number is something somebody can
+   act on; a silence is how 486 of them accumulated unnoticed. */
+const ANSWER_SPACE = ['grid-blank', 'fractions', 'boxes', 'long-method', 'lines', 'working',
+                      'answer-space', 'table-blank'];
+const noPicture = rows.filter(r => r && r.kind === 'question'
+  && String(r.figure || '').trim()
+  && ANSWER_SPACE.indexOf(String(r.figure).trim()) === -1
+  && !r.diagram && !String(r.images || '').trim());
+const perPaper = {};
+noPicture.forEach(r => { perPaper[r.paper_id] = (perPaper[r.paper_id] || 0) + 1; });
+const worst = Object.keys(perPaper).sort((a, b) => perPaper[b] - perPaper[a]).slice(0, 5);
+console.log(`questions whose picture never came across: ${noPicture.length}`
+  + `  (the paper had a figure, the row has neither a drawing nor an image)`);
+if (worst.length) {
+  console.log(`   worst papers: ${worst.map(k => `${k} (${perPaper[k]})`).join(', ')}`);
+}
+
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
 console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
   + `   (the rest are known to a month only)`);

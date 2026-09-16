@@ -1286,6 +1286,50 @@ without noticing that the funnel's sitting vocabulary had changed underneath it,
 `check-library.js`, and the same fault `resource_type` sitting in `VOCAB` after the rename already
 cost once. Proved by mutation — `Sumer` fires it, the real file is green.
 
+### "On the app it's just text" — a question whose picture never came across
+
+**Reported with a photograph of the paper beside it.** `Q-1MA1-1705-1H-4` is a square ABCD split
+3 cm / *x* cm on two sides, with two dashed lines and four dimension arrows, and the app drew the
+sentence *"A square ABCD is divided so that one side is made of a 3 cm piece and an x cm piece."*
+That is enough to sit the question from only if you already know what the picture looked like.
+
+**Drawn rather than photographed**, which is the rule this file already carries under `diagram`, and
+it has two halves: the drawing takes the page's own ink, so it works on both palettes, offline and
+at any zoom — and a photograph of an Edexcel page is their copyright where a figure redrawn from the
+data printed on it is not. `diagram_by: family` carries the credit and `figCredit_` prints it.
+
+**Not to scale, and the paper's isn't either.** *x* works out at about 0.16 cm, which drawn to scale
+is a hairline nobody can label. The split is 3 : 1.3, the paper's own proportion. Q5's rectangle IS
+drawn to scale, because there the shape is the question — seeing the diagonal as the hypotenuse of a
+12-5-13 triangle is the method.
+
+**Arrowheads are triangles, not `<marker>`s.** A marker needs an id, and `fillStuffPages` keeps about
+five question cards in the DOM at once, so two questions carrying a diagram would put two elements
+with the same id on one page and the browser would resolve both to whichever came first.
+
+**A table is not a picture.** `Q-1MA1-1705-1H-13a` carried `figure: 'table'` and the transcription
+had turned the printed table into a sentence — *"a table gives y = 9, 2¼, 1 and 9/16 for x = 1, 2, 3
+and 4"* — which is four pairs a reader has to re-pair by counting along two lists. `.qsheet table`
+has been in the stylesheet since before anything here could produce one.
+
+#### Which ones are safe to draw, and the count of the rest
+
+**Only where the row's own words determine the picture.** Sixteen questions in this one paper are in
+this state and they are not one problem. *"The four sides of a 12 m by 5 m rectangle and one
+diagonal"* is a drawing instruction — exactly one figure answers it. *"A scatter graph… thirteen of
+the points climb steadily from about (9.5, 11.5) to (15, 20)"* is a SUMMARY of fourteen plotted
+points, and a drawing made from it would be fourteen points nobody plotted, on a card carrying the
+exam's authority. That is the shape this file already records twice: a renderer that printed "not
+drawn yet" off the `figure` column and was wrong on ~120 questions, and a curve read by eye that
+gave 50 where the pixels said 48.1.
+
+**So `check-library.js` counts them: 485 questions across the library**, worst papers named, with
+the answer-space labels (`grid-blank`, `fractions`, `boxes`, `long-method`) excluded because those
+questions are complete as they stand — `figure` is two columns under one name and this is why the
+rule is a count and not a refusal. Printed, not failed: it is editorial work needing the original
+paper open beside you. A number is something somebody can act on; a silence is how 485 of them
+accumulated unnoticed.
+
 ### An answer is labelled with the shortest form that is still unique
 
 **Reported as "it should say paper 1 paper 2 paper 3".** What it said, six chips deep on Maths ·
