@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-30-needs";
+  --css-version: "2026-10-01-english";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6865,6 +6865,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   padding: .7rem .8rem; }
 .qsheet-stem.is-standin h4 { margin: 0 0 .4rem; font-size: .82rem; letter-spacing: .04em;
   text-transform: uppercase; color: var(--dim); }
+/* ---------- A BLANK THE PAPER FILLS IN --------------------------------------------------------
+   THE AQA ENGLISH SKELETONS ARE THE REAL QUESTION WITH ITS SOURCE-SPECIFIC WORDS MISSING — "look
+   in detail at the extract from [the lines the paper names]". The wording is the specification's
+   and is the same every series; the bracketed part is the only thing that changes, and it is the
+   only thing that could not be read, because every Google host is blocked from the agent's
+   environment and the papers are in Drive.
+
+   SO IT HAS TO LOOK LIKE A BLANK RATHER THAN LIKE TEXT. A dashed underline and the dim ink say
+   "something goes here" without a sentence explaining it — and the row also carries
+   `placeholder: True`, so the whole card already sits in the dashed box `.qsheet-stem.is-standin`
+   draws and `check-library.js` lists it by name on every run. Two signals for one fact, and that
+   is deliberate: this is content somebody must not mistake for the exam's own. */
+.qsheet .gap {
+  color: var(--faint);
+  border-bottom: 1px dashed var(--line);
+  padding: 0 .12rem;
+}
+
 .qsheet ol.levels { margin: .2rem 0 .6rem; padding-left: 1.6rem; }
 .qsheet ol.levels li { margin: .15rem 0; }
 
