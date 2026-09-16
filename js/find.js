@@ -975,6 +975,41 @@ const facetFromSheet_ = f => ({
   },
 });
 
+/**
+ * FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT.
+ *
+ * REPORTED FROM A SCREENSHOT OF THE LIVE FUNNEL: a chip reading **`PRINTED OR DIGITAL  1`**.
+ *
+ * WHAT HAPPENED IS THE SHARPEST EDGE ON `facetFromSheet_` AND IT HAD NEVER FIRED BEFORE.
+ * `facetList` sorts a `facets` row into one of two piles: a field the code declares is a RELABEL
+ * of that facet, and a field the code has never heard of is a NEW question read straight off the
+ * column. Deleting the `paper` facet from `FACETS` moved the sheet's row from the first pile to
+ * the second — silently, in a commit that was about something else entirely.
+ *
+ * AND `paper` IS A COLUMN THAT MEANS SOMETHING ELSE. CLAUDE.md records the collision under its own
+ * heading: `kind: 'paper'` was the document and `paper: '1'` is WHICH PAPER OF THE SET. The deleted
+ * facet read `x.paper`, a literal `true` on every question; the column holds `1`, `2` and `3` on
+ * 1,158 rows. So the funnel offered a question labelled "Printed or digital" whose answers were the
+ * numbers 1, 2 and 3 — and a person who pressed one had quietly filtered the whole library to
+ * Paper 1s while believing they had asked about printing.
+ *
+ * NEITHER RULE COULD SEE IT. It is not lopsided (three answers, a real split), it is not a literal
+ * (the answers move), and no check compares a LABEL against what a column holds — nothing can.
+ *
+ * SO A DELETION IS REMEMBERED. The list is the `ACCEPTED` / `VOCAB` / `ACCEPTED_TAP` pattern for a
+ * fourth time: one entry, one written reason, and the sheet cannot undo a decision the code made on
+ * purpose. The label still has to be fixed in the `facets` tab — this only stops it drawing.
+ *
+ * IT DOES NOT BAR THE COLUMN FOR EVER. If "which paper of the set" is wanted as a question, it is
+ * one entry in `FACETS` with a label somebody has read — which is the point: a label is exactly the
+ * thing a spreadsheet cell cannot get reviewed.
+ */
+const RETIRED_FACETS = {
+  paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
+       + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
+       + 'completely different data. Use `Paper`, which asks the same thing by name.',
+};
+
 function facetList() {
   const src = DATA.facets || null;
   if (FACET_LIVE && FACET_FROM === src) return FACET_LIVE;
@@ -1004,7 +1039,7 @@ function facetList() {
        it behind all of them until a `sort_order` says otherwise. Sorting it in front of `What for`
        by accident would rearrange the first question every search passes through. */
     .concat((src || [])
-      .filter(f => f && f.field && !known[f.field] && f.active !== false)
+      .filter(f => f && f.field && !known[f.field] && f.active !== false && !RETIRED_FACETS[f.field])
       .map((f, i) => Object.assign(facetFromSheet_(f), {
         at:  facetNum_(f.order, 1000 + i),
         min: facetMin_(f.minCoverage),
@@ -1856,6 +1891,21 @@ function paperIdOf_(r) {
 
    TAGS OUT, ENTITIES BACK. `&amp;` in a haystack means searching for `&` finds nothing and
    searching for `amp` finds everything. */
+/* THE PUBLISHER'S NAME IN BOTH SPELLINGS, because the file holds one and people type the other.
+   `company` was normalised to `1st Class Maths` on all 1,481 rows — see the spelling-vote note —
+   and the squashed form `1stclassmaths` is what that publisher writes on its own sheets and what
+   somebody copying a filename types. A substring search cannot see through a space, so one of the
+   two would find 1,370 and the other 325 coincidental hits, which reads as the search half-working.
+
+   `spellKey_` IS ALREADY THE REDUCTION, so this is that function and not a second opinion about
+   what a spelling is. Two tokens per item, built once when the item is. */
+function companyAtoms_(v) {
+  const said = String(v || '').trim();
+  if (!said) return '';
+  const key = spellKey_(said);
+  return key && key !== said.toLowerCase() ? said + ' ' + key : said;
+}
+
 function searchText_(r) {
   return String((r && (r.html || '')) + ' ' + (r && (r.lead || '')))
     .replace(/<[^>]*>/g, ' ')
@@ -2059,8 +2109,34 @@ function questionItems() {
          printed in it — and on a worksheet whose every question is a fraction, the one place that
          says so is the `topics` cell. Typed here rather than matched in the filter for the reason
          `searchText_` gives: this runs once per item, and the filter runs per keystroke. */
+      /* ---------- AND WHO PUBLISHED IT, WHICH WAS NEITHER ASKABLE NOR SEARCHABLE ---------------
+         REPORTED AS "how would I get to 1st Class Maths worksheets?" and the honest answer was
+         that you could not. Measured both ways:
+
+           the FUNNEL never asks. `Company` qualifies everywhere — 5 answers, 99% coverage, a
+           65.8% split on the whole library, comfortably the best narrowing available — and it
+           sits near the END of `FACETS`, so Subject, Level, Type, Grade, Topic and Paper are all
+           asked first. By the time its turn comes the list is Maths · KS4 · Worksheet and every
+           one of those 1,370 rows IS 1st Class Maths, so the facet has one answer and is
+           correctly skipped. A question that can only be asked once its answer is already
+           decided is a question that is never asked.
+
+           the SEARCH BOX did not find it either. Typing `corbettmaths` returned 0 of 1,020.
+           `1st class maths` returned 325, which reads like it works and does not — those are
+           coincidental hits on other fields, against 1,370 rows that carry the name in a cell.
+
+         THIS IS THE `topics` FIX, ONE COLUMN ALONG, and the sentence above it is the same one: a
+         publisher's name is printed nowhere in the question, so the one place that says
+         Corbettmaths is the `company` cell. Typed onto the item here rather than matched in the
+         filter, for the reason that note gives — this runs once per item, the filter runs per
+         keystroke.
+
+         THE FUNNEL'S ORDER IS NOT CHANGED HERE, deliberately. `at` is editorial and the `facets`
+         sheet owns it: putting `company` at a low `order` asks it early, with no deploy. That is
+         a judgement about what somebody wants asked first, and it is not mine to make. */
       text: searchText_(r) + lead.map(p => ' ' + searchText_(p)).join('')
-            + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' '),
+            + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' ')
+            + ' ' + companyAtoms_(r.row ? r.row.company : r.company),
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */

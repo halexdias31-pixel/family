@@ -644,6 +644,73 @@ is an admin's problem with saving, and this is every visitor's problem with the 
 genuinely empty file, and everything working. The flag is set in the first three and empty in the
 last two, and the banner appears and clears to match.
 
+## A chip read "PRINTED OR DIGITAL 1", and the sheet had resurrected a deleted question
+
+**Reported from a screenshot of the live funnel.** The deleted `Printed?` facet was back, wearing its
+old label over a completely different column.
+
+**`facetList` sorts a `facets` row into one of two piles** — a field the code declares is a RELABEL
+of that facet; a field the code has never heard of is a NEW question read straight off the column.
+**Deleting `paper` from `FACETS` moved the sheet's row from the first pile to the second**, silently,
+in a commit that was about something else.
+
+**And `paper` is a column that means something else.** This file already has the collision under its
+own heading: `kind: 'paper'` was the document and `paper: '1'` is WHICH PAPER OF THE SET. The deleted
+facet read `x.paper`, a literal `true` on every question; the column holds `1`, `2` and `3` on 1,158
+rows. So the funnel offered a question labelled *"Printed or digital"* whose answers were **1, 2 and
+3** — and pressing one quietly filtered the library to Paper 1s while the person believed they had
+answered a question about printing.
+
+**No rule could have caught it.** It is not lopsided — three answers and a real split. It is not a
+literal — the answers move. And **nothing compares a LABEL against what a column holds**, because
+nothing can.
+
+**So a deletion is remembered.** `RETIRED_FACETS` is the `ACCEPTED` / `VOCAB` / `ACCEPTED_TAP`
+pattern for a fourth time: one entry, one written reason, and a spreadsheet cannot undo a decision
+the code made on purpose. It does not bar the column for ever — if "which paper of the set" is wanted
+as a question it is one entry in `FACETS` with a label somebody has read, **which is the whole
+point: a label is exactly the thing a spreadsheet cell never gets reviewed.**
+
+**The sheet still needs fixing**; this only stops it drawing. Proved by mutation — without the guard
+the facet comes back as `label "Printed or digital", answers: 1 / 2 / 3`, which is the screenshot —
+and a legitimate invented facet (`field: pages`) is untouched.
+
+## The publisher was neither askable nor searchable
+
+**Reported as "how would I get to 1st Class Maths worksheets?" and the honest answer was that you
+could not.** Measured both ways:
+
+- **The funnel never asks.** `Company` qualifies everywhere — 5 answers, 99% coverage, **a 65.8%
+  split on the whole library**, comfortably the best narrowing available — and it sits near the end
+  of `FACETS`, so Subject, Level, Type, Grade, Topic and Paper are all asked first. By the time its
+  turn comes the list is Maths · KS4 · Worksheet and **every one of those 1,370 rows already IS 1st
+  Class Maths**, so the facet has one answer and is correctly skipped. A question that can only be
+  asked once its answer is decided is a question that is never asked.
+- **The search box did not find it either.** `corbettmaths` returned **0 of 1,020**. `1st class
+  maths` returned 325, which reads like it works and does not — coincidental hits on other fields,
+  against 1,370 rows carrying the name in a cell.
+
+**This is the `topics` fix one column along**, and the sentence is the same: a publisher's name is
+printed nowhere in the question, so the one place that says Corbettmaths is the `company` cell. Built
+onto the item, not matched per keystroke.
+
+| typing | before | after |
+|---|---|---|
+| `corbettmaths` | 0 | **1,020** |
+| `1st class maths` | 325 | **1,370** |
+| `1stclassmaths` | 325 | **1,370** |
+| `edexcel` | — | 1,148 |
+
+**Both spellings, because the file holds one and people type the other.** `company` was normalised to
+`1st Class Maths` by the spelling vote, and `1stclassmaths` is what that publisher writes on its own
+sheets. A substring search cannot see through a space, so one form found 1,370 and the other 325 —
+a search that half-works. `companyAtoms_` emits the shown spelling and `spellKey_`'s reduction of it,
+so it is that function rather than a second opinion about what a spelling is.
+
+**The funnel's order is deliberately NOT changed.** `at` is editorial and the `facets` tab owns it:
+a low `order` on the `company` row asks it early, with no deploy. Which question somebody wants asked
+first is a judgement, and it belongs in the sheet.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
