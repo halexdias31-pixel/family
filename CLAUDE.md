@@ -798,6 +798,56 @@ where a paper-level fact lives, and `needsIndex_` reads them straight out of tha
 the skip would have taken that away; leaving a dead line would have left the next reader believing
 the opposite of what happens.
 
+## You were the one person on the screen `findCard` did not draw
+
+**Reported as "why can't I see my own info like theirs?", with a screenshot**: two tutors with a
+photograph, what they teach, a rate and a DBS stamp — and above them your own account as a name, a
+role and a button.
+
+**The paragraph directly above the code is the answer, and the code underneath it broke the rule it
+states**: *"`findCard` draws them, which is the point. It is the same function the funnel used for a
+tutor, so a person looks identical wherever they are seen — two renderers for one person is two
+things to keep in step."* The next line was a hand-rolled `<div class="card">` — a second renderer
+for one person, three lines under the sentence forbidding it.
+
+**Your row goes through the same function now.** Found by `personId` first, then `handle`, then name
+— the order `findPerson` uses on the backend, and for the reason `changePin` records: matching a
+person by their display name was a real denial. `mineIs_` is one test used twice, so "which row is
+yours" and "which row to leave out of the list below" can never disagree.
+
+**And if you are not staff there is no row**, so one is built from what signing in already returned.
+That is not a second renderer; it is a second SOURCE for the same renderer, which is the whole
+distinction.
+
+### Absent is not `false`, and the DBS stamp is where that matters
+
+**The stamp is a real claim.** A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is always
+answered, and the pass defends the negative outright: *"a pass without one is visibly a pass without
+one, which is exactly the right amount of alarming."* Right for somebody a parent is checking.
+
+**Nobody has made that claim about a row built in the app.** A parent looking at their own account
+has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it is the `cost: 0` shape one
+more time — a missing fact rendered as a negative one. The key is simply absent on a row built here,
+`t.dbs === undefined` tells the two apart, and every person a parent can actually look up still gets
+a stamp either way.
+
+**And an empty foot is not drawn.** The dashed rule is the pass's perforation and reads as one only
+when something is torn off below it; on a row with no stamp, no place and no NOT LISTED flag it was
+a dashed line over twenty pixels of nothing. Caught on a screenshot, which is where the first such
+row appeared.
+
+### Every page in the account column is a card
+
+**Reported as "I want them standardised like the other widgets".** Measured: page 1 `.card`, page 2
+`.pass` — your account in an ordinary card and every person under it a bare pass returned straight
+out of `findCard`, so the column drew two different kinds of object down one scroll.
+
+**This is the Reels fault one screen along.** That one *"returned its own markup instead of going
+through `pages()` or `stack()`, so it drew straight onto the black with no pane"*, and the fix was to
+make it an ordinary card with its own markup inside. Same here: the pass keeps every one of its own
+rules — the hole, the stamp, the lanyard shadow — and sits in the pane everything else sits in.
+Measured after: three pages, all `.pane > .card.is-widget > .pass`.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —

@@ -172,16 +172,29 @@ function findCard(x) {
           ${t.rate ? `<span class="pass-line pass-rate">${money(t.rate)}/h</span>` : ''}
         </div>
       </div>
+      ${/* AN EMPTY FOOT IS NOT DRAWN. The dashed rule is the pass's perforation and it reads as one
+            only when something is torn off below it — so on a row with no stamp, no place and no
+            NOT LISTED flag it was a dashed line over twenty pixels of nothing. Caught on a
+            screenshot of the account column, which is where the first such row appeared. */''}
+      ${!(t.dbs !== undefined || t.city || t.borough || t.listed === false) ? '' : `
       <div class="pass-foot">
         ${/* THE STAMP. Present and green, or absent and said so — never quietly missing, which is
               what a blank field is. A parent scanning a list of these is looking for exactly one
               thing and it should be findable at arm's length. */''}
-        <span class="pass-dbs ${t.dbs ? 'yes' : 'no'}">${t.dbs ? 'DBS CHECKED' : 'NO DBS ON FILE'}</span>
+        ${/* ABSENT IS NOT `false`, AND THAT IS THE ONLY EXCEPTION TO THE PARAGRAPH ABOVE. A tutor
+              row's `dbs` comes from `TRUE_(r.dbs_checked)` and is therefore always answered, so
+              every person a parent can look up still gets a stamp either way. A row built somewhere
+              that has no such cell — your own account, when you are not staff — has the key absent,
+              and stamping NO DBS ON FILE across it would report a fact nobody has recorded. That is
+              the `cost: 0` shape: a blank read as a negative. See `accountPages_`. */''}
+        ${t.dbs === undefined ? ''
+          : `<span class="pass-dbs ${t.dbs ? 'yes' : 'no'}">${
+              t.dbs ? 'DBS CHECKED' : 'NO DBS ON FILE'}</span>`}
         ${/* WHERE THEY ARE. The one fact on the sheet that was not already on the pass, and the one
               a parent scanning a list of tutors is actually sorting by. */''}
         ${t.city || t.borough ? `<span class="pass-where">${esc(t.city || t.borough)}</span>` : ''}
         ${t.listed === false ? '<span class="pass-off">NOT LISTED</span>' : ''}
-      </div>
+      </div>`}
     </div>`;
 
   /* ---------- A VENUE IS THE SLIP ON THE DOOR ----------------------------------------------------

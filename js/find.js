@@ -3354,23 +3354,75 @@ function accountPages_() {
      `doget.gs` deliberately never sends the `people` tab, which holds PINs, bank details, addresses
      and dates of birth. Reading from anything else here would put all of that on every phone, and
      the leak would be invisible because the data would already have arrived. */
-  const me = `<div class="card">
-    <h3>${esc(USER.name || 'Signed in')}</h3>
-    <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
-    <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
-  </div>`;
+  /* ---------- AND YOU WERE THE ONE PERSON `findCard` DID NOT DRAW ------------------------------
+     REPORTED AS "why can't I see my own info like theirs?" — and the paragraph directly above this
+     one is the answer, stating the rule that the code underneath it then broke: *"a person looks
+     identical wherever they are seen — two renderers for one person is two things to keep in
+     step."* Everybody else got a staff pass with a photograph, what they teach, a rate and a DBS
+     stamp. You got a hand-rolled `<div class="card">` holding a name, a role and a button.
+
+     SO YOUR ROW GOES THROUGH THE SAME FUNCTION. Found by `personId` first — CLAUDE.md is emphatic
+     that an id beats a name, and `changePin` is the entry where matching a person by their display
+     name was a real denial — then by handle, then by name, which is the same order `findPerson`
+     uses on the backend and for the same reason.
+
+     AND IF YOU ARE NOT STAFF THERE IS NO ROW, so one is built from what signing in already
+     returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
+     the distinction the note above is about. */
+  const mineIs_ = t => !!t && (
+    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
+    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
+    (USER.name && t.title && norm(t.title) === norm(USER.name)));
+
+  const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
+    title: USER.name || 'Signed in',
+    role:  roleOf(USER.role || 'student'),
+    handle: USER.handle,
+    image: USER.image || USER.photo || '',
+    rate:  USER.rate,
+    teaches: [],
+    personId: USER.personId,
+    /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` --------------------
+       THE STAMP IS A REAL CLAIM. A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is
+       always answered — true or false — and the note on the pass defends the negative outright:
+       "a pass without one is visibly a pass without one, which is exactly the right amount of
+       alarming". That is right for somebody a parent is checking.
+
+       IT IS NOT A CLAIM ANYBODY HAS MADE ABOUT A ROW BUILT HERE. A parent looking at their own
+       account has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it would be
+       the `cost: 0` shape one more time: a missing fact rendered as a negative one. Omitting the
+       key is what tells the two apart — see `findCard`. */
+  };
+
+  const me = [
+    (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: myRow })
+                                    : `<h3>${esc(myRow.title)}</h3>`),
+    `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
+  ].join('');
 
   const others = (DATA.tutors || [])
     .filter(t => t && t.title && t.listed !== false)
     /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
        account and again below as a tutor — the same duplication the `me` kind was merged away to
-       avoid. Matched on the normalised name, which is what every other lookup here uses. */
-    .filter(t => !(USER.name && norm(t.title) === norm(USER.name)))
+       avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never
+       disagree about which person you are. */
+    .filter(t => !mineIs_(t))
     .map(t => (typeof findCard === 'function'
       ? findCard({ kind: 'tutor', row: t })
-      : `<div class="card"><h3>${esc(t.title)}</h3></div>`));
+      : `<h3>${esc(t.title)}</h3>`));
 
-  return [me].concat(others);
+  /* ---------- EVERY PAGE IN THIS COLUMN IS A CARD ------------------------------------------------
+     REPORTED AS "I want them standardised like the other widgets", with a screenshot: your account
+     sat in an ordinary `.card` and every person under it was a bare `.pass` returned straight out
+     of `findCard`. Measured — page 1 `.card`, page 2 `.pass` — so the column drew two different
+     kinds of object down one scroll.
+
+     THIS IS THE REELS FAULT EXACTLY, one screen along. That one "returned its own markup instead of
+     going through `pages()` or `stack()`, so it drew straight onto the black with no pane", and the
+     fix was to make it an ordinary card with its own markup inside. Same here: the pass keeps every
+     one of its own rules — the hole, the stamp, the lanyard shadow — and sits in the pane everything
+     else on this screen sits in. */
+  return [me].concat(others).map(html => `<div class="card is-widget">${html}</div>`);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
