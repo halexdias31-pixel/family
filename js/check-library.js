@@ -428,6 +428,45 @@ rows.forEach(r => {
   }
 });
 
+/* ---------- THE DATE A PAPER WAS SAT, AND THE TWO WAYS IT CAN LIE --------------------------------
+   `exam_date` IS HOW A PERSON NAMES A PAPER. "Thursday 25 May 2017, Paper 1 Higher" is what a tutor
+   and a student both say out loud, and the library held `year` and `month` and nothing finer — so
+   the one identifier everybody actually uses was the one that could not be matched on.
+
+   IT IS ALSO WHERE THE 2021 ANSWER GOES. Edexcel took the date off the front page in 2021 and two
+   ©2021 sets of Higher papers sit unidentified because of it; CLAUDE.md records that the empty
+   document rows' `source_url`s carry the real dates (`1MA1_1H_que_20211103.pdf`). There was nowhere
+   to put that answer once somebody worked it out. There is now.
+
+   TWO RULES, AND THE SECOND IS THE ONE WORTH HAVING. A date that is not a date is obvious and
+   caught at once. A date that disagrees with the `year` and `month` already on the row is not: both
+   halves read perfectly, the funnel files the paper by one of them and the person searching uses
+   the other, and nothing anywhere says they are different. Same shape as the two spellings of a
+   sitting, one column further in. */
+rows.forEach(r => {
+  if (!r || !r.exam_date) return;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(r.exam_date));
+  if (!m) {
+    fail.push(`${r.row_id} has exam_date ${JSON.stringify(r.exam_date)}, which is not YYYY-MM-DD.`);
+    return;
+  }
+  const [y, mo, d] = m.slice(1).map(Number);
+  const real = new Date(Date.UTC(y, mo - 1, d));
+  if (real.getUTCFullYear() !== y || real.getUTCMonth() + 1 !== mo || real.getUTCDate() !== d) {
+    fail.push(`${r.row_id} has exam_date ${r.exam_date}, which is not a day that exists.`);
+    return;
+  }
+  if (r.year && String(r.year) !== String(y)) {
+    fail.push(`${r.row_id} is dated ${r.exam_date} and its year column says ${r.year}. `
+      + `Both read perfectly and one of them is wrong.`);
+  }
+  if (r.month && String(r.month) !== String(mo)) {
+    fail.push(`${r.row_id} is dated ${r.exam_date} and its month column says ${r.month}. `
+      + `The funnel files it by one and a person searches by the other.`);
+  }
+});
+const datedPapers = new Set(rows.filter(r => r && r.exam_date && r.paper_id).map(r => r.paper_id));
+
 /* ---------- AN ADDRESS THAT IS NOT AN ADDRESS ------------------------------------------------------
    `images` IS A COMMA-SEPARATED LIST OF PLACES A PICTURE IS, and the one way it fails silently is a
    value that is not a place: a filename with no folder, a Drive *page* rather than a Drive file, a
@@ -588,6 +627,7 @@ console.log(`papers checked against a total: ${marks.size}   papers with no tota
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
 console.log(`pictures carried by rows as an address: ${pic.length}`);
+console.log(`papers carrying the date they were sat: ${datedPapers.size}`);
 if (standingIn.length) {
   console.log(`\nSTANDING IN FOR SOMETHING NOT YET TYPED — a list, not a fault  (${standingIn.length})`);
   standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));
