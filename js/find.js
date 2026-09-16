@@ -3515,9 +3515,33 @@ function accountPages_() {
        key is what tells the two apart — see `findCard`. */
   };
 
+  /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING -------------------
+     REPORTED FOR THE SECOND TIME: "I don't see a message tile on tutors." The first time the tile
+     was real and the CARD could not be reached — the `facets` sheet had put a filter in front of
+     the doors. This time the card is right here on the account column and the tile is genuinely
+     not drawn, for a different reason.
+
+     `cardTiles_` IS APPENDED BY `stuffCard`, NOT BY `findCard`. Its own note says why — "one place
+     instead of nine... a kind added tomorrow gets its actions without anybody doing anything" —
+     and that is right, except this column calls `findCard` directly and so gets the card without
+     the row of actions under it. A person seen on the Find screen has a Message tile; the same
+     person seen here had none.
+
+     AND A ROW IS NOT AN ITEM. `cardTiles_` reads `x.name`, `x.key` and `x.row.personId`; passing
+     `{ kind, row }` gives it a card and an empty tile row, which is worse than no tiles because it
+     draws a Message button addressed to nobody. So the shape is built the way `stuffItems` builds
+     it, in one helper used for you and for everybody else — the same argument as `mineIs_` above:
+     two places constructing one thing is two chances to construct it differently. */
+  const asItem_ = t => ({
+    kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
+    cost: priced_(t.rate), off: t.listed === false, row: t,
+  });
+
+  const withTiles_ = t => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
+    + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
+
   const me = [
-    (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: myRow })
-                                    : `<h3>${esc(myRow.title)}</h3>`),
+    withTiles_(myRow),
     `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
   ].join('');
 
@@ -3528,9 +3552,7 @@ function accountPages_() {
        avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never
        disagree about which person you are. */
     .filter(t => !mineIs_(t))
-    .map(t => (typeof findCard === 'function'
-      ? findCard({ kind: 'tutor', row: t })
-      : `<h3>${esc(t.title)}</h3>`));
+    .map(withTiles_);
 
   /* ---------- EVERY PAGE IN THIS COLUMN IS A CARD ------------------------------------------------
      REPORTED AS "I want them standardised like the other widgets", with a screenshot: your account
