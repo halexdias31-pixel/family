@@ -1083,6 +1083,84 @@ function filterHit(x, f) {
   return asList_(facet.of(x)).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
+/**
+ * THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT.
+ *
+ * REPORTED AS "it should say paper 1 paper 2 paper 3". What it said, six chips deep on Maths ·
+ * GCSE · Higher · Summer 2017, was:
+ *
+ *     Paper 1 (Non-Calculator) — May 2017
+ *     Paper 2 (Calculator) — June 2017
+ *     Paper 3 (Calculator) — June 2017
+ *
+ * EVERY WORD AFTER THE NUMBER IS SOMETHING THE PERSON HAS ALREADY ANSWERED. They chose the sitting
+ * one question ago, so "— May 2017" is the funnel reading their own chip back to them, three times,
+ * in three different spellings — and it is the spelling that caused the complaint before this one,
+ * because the sitting chip says `Summer 2017` and the answers underneath it say May and June.
+ *
+ * THE NAME IS A COMPOSITE AND ITS SEPARATORS SAY WHERE TO CUT. `Paper 1 (Non-Calculator) — May
+ * 2017` is a number, a qualifier and a date, in that order, and the same shape holds for
+ * `Paper 2A: Study of religion (Christianity) — June 2017` and for a venue called
+ * `St Mary's Hall (Room 2)`. So the forms are the whole name cut at each separator, and the ladder
+ * is tried shortest-first.
+ *
+ * UNIQUENESS IS THE ONLY THING THAT STOPS IT, and it is measured over the answers on screen rather
+ * than declared. Narrowed to maths the three answers are `Paper 1`, `Paper 2`, `Paper 3`. Widen to
+ * the whole of Summer 2017 and the RS papers join them, so `Paper 1` would be two different papers
+ * on one button — the "one answer wearing two coats" fault `check-funnel.js` fails the build on —
+ * and the rule falls back a rung to `Paper 1 (Non-Calculator)` / `Paper 1: Philosophy of religion
+ * and ethics`. Measured both ways.
+ *
+ * IT NEVER INVENTS A WORD. Every form is a prefix of a name somebody typed, which is the same
+ * argument as the spelling vote above: `Hcf And Lcm` is what happens when code writes the label.
+ *
+ * `value` IS UNTOUCHED, and that is the half that makes it safe. `filterHit` matches the chip
+ * against `facet.of(x)` through `spellKey_`, so a chip holding a SHORTENED name would find nothing
+ * — narrowing by paper would silently return an empty list. The row carries the full name in
+ * `data-value` and the short one in its text, which is exactly how `spellShow_` already separates
+ * the two.
+ *
+ * ON EVERY FACET, NOT ON THE ONE THAT PROMPTED IT — the `cost: 0` / `paper: true` lesson, twice
+ * recorded. A name with no separator in it has one form and comes back unchanged, so every
+ * one-word answer in the app (`Maths`, `Higher`, `Summer 2017`) is untouched by construction.
+ */
+function nameForms_(s) {
+  const full = String(s == null ? '' : s).trim();
+  const out = [];
+  const cut = re => {
+    const m = re.exec(full);
+    if (!m || !m.index) return;
+    const v = full.slice(0, m.index).trim();
+    if (v && v !== full && out.indexOf(v) === -1) out.push(v);
+  };
+  /* AN EM DASH WITH SPACES ROUND IT, and an en dash for the same reason. NOT a plain hyphen: this
+     library writes `A-Level` and `Capture-recapture`, and cutting at those would offer `A` as an
+     answer. A dash that is a separator is spaced and long; a dash inside a word is neither. */
+  cut(/\s[—–]\s/);
+  cut(/\s*[:(]/);
+  out.sort((a, b) => a.length - b.length);
+  out.push(full);
+  return out;
+}
+
+/* Sets `show` on each value in place. Ascending rungs, first one where every label is distinct —
+   and the last rung is always the full name, which is distinct by construction because these are
+   the keys of a tally. */
+function shortLabels_(values) {
+  const forms = values.map(v => nameForms_(v.value));
+  let deepest = 0;
+  forms.forEach(f => { if (f.length > deepest) deepest = f.length; });
+  for (let rung = 0; rung < deepest; rung++) {
+    const at = forms.map(f => f[Math.min(rung, f.length - 1)]);
+    if (new Set(at).size === at.length) {
+      values.forEach((v, i) => { v.show = at[i]; });
+      return values;
+    }
+  }
+  values.forEach(v => { v.show = v.value; });
+  return values;
+}
+
 /** The distinct values of one facet across a set, with how many each would leave. */
 /* ---------- THE FIRST QUESTION IS NOT ALPHABETICAL ------------------------------------------------
    EVERY FACET SORTS ITS ANSWERS BY NAME, which is right for subjects, venues, exam boards and
@@ -1269,6 +1347,9 @@ function facetTally_(items, facet) {
   const values = Object.keys(folded)
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
+  /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
+     `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
+  shortLabels_(values);
 
   let top = 0;
   values.forEach(v => { if (v.n > top) top = v.n; });
@@ -3938,9 +4019,11 @@ function stuffQuestion() {
     ? `<p class="faint" style="margin:.5rem 0 0;font-size:.78rem">and ${more} more
         ${esc(String(facet.label).toLowerCase())} answers — type one into the search box above.</p>`
     : '';
+  /* `data-value` IS THE FULL NAME AND THE TEXT IS THE SHORT ONE — see `shortLabels_`. The chip this
+     row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
   return values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
-        <span class="k">${mark(v.value)}</span>
+        <span class="k">${mark(v.show || v.value)}</span>
       </div>`).join('') + skip + rest;
 }
 

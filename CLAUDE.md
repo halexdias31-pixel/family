@@ -1286,6 +1286,51 @@ without noticing that the funnel's sitting vocabulary had changed underneath it,
 `check-library.js`, and the same fault `resource_type` sitting in `VOCAB` after the rename already
 cost once. Proved by mutation — `Sumer` fires it, the real file is green.
 
+### An answer is labelled with the shortest form that is still unique
+
+**Reported as "it should say paper 1 paper 2 paper 3".** What it said, six chips deep on Maths ·
+GCSE · Higher · Summer 2017, was `Paper 1 (Non-Calculator) — May 2017`, `Paper 2 (Calculator) —
+June 2017`, `Paper 3 (Calculator) — June 2017`.
+
+**Every word after the number is something the person has already answered.** They chose the sitting
+one question ago, so the date is the funnel reading their own chip back to them three times — and in
+the spelling that caused the complaint before this one, because the chip above says `Summer 2017`
+and the answers under it say May and June.
+
+**The name is a composite and its separators say where to cut.** `Paper 1 (Non-Calculator) — May
+2017` is a number, a qualifier and a date in that order, and so are
+`Paper 2A: Study of religion (Christianity) — June 2017` and a venue called `St Mary's Hall
+(Room 2)`. `nameForms_` cuts at the spaced em dash and at `:` or `(`, and `shortLabels_` tries the
+rungs shortest-first.
+
+**Uniqueness is the only thing that stops it, and it is measured over the answers on screen.**
+Measured both ways: narrowed to maths the answers are `Paper 1`, `Paper 2`, `Paper 3`; widen to the
+whole of Summer 2017 and the RS papers join them, so `Paper 1` would be two papers on one button and
+the rule falls back one rung to `Paper 1 (Non-Calculator)` beside `Paper 1: Philosophy of religion
+and ethics`. Same reasoning as `spellShow_` folding within the list: narrowing cannot change which
+ITEMS an answer holds, only how short its label can safely be.
+
+**A plain hyphen is not a separator**, deliberately: this library writes `A-Level` and
+`Capture-recapture`, and cutting there would offer `A` as an answer. A dash that separates is spaced
+and long.
+
+**`value` is untouched, and that is the half that makes it safe.** `filterHit` matches the chip
+against `facet.of(x)` through `spellKey_`, so a chip holding a shortened name would find nothing and
+narrowing by paper would silently return an empty list. The row carries the full name in
+`data-value` and the short one in its text — exactly how `spellShow_` already separates the two.
+Measured: pressing the row labelled `Paper 1` stores `Paper 1 (Non-Calculator) — May 2017` and
+returns the 31 questions the row counted.
+
+**On every facet, not on the one that prompted it** — the `cost: 0` / `paper: true` lesson twice
+recorded. A name with no separator has one form and comes back unchanged, so `Maths`, `Higher` and
+`Summer 2017` are untouched by construction.
+
+**`check-funnel.js` test 4b is the guard, and the mutation proves the rung test is load-bearing.**
+Forcing the shortest rung regardless of uniqueness collapses `Trigonometry` onto
+`Trigonometry (A-Level)`, and three pairs of Corbettmaths worksheets onto one another — real answers
+made unreachable with nothing on screen saying so, which is the `Alevel` / `A-Level` fault with the
+spelling hidden instead of shown. The real file is green.
+
 ### `exam_date` — the day the paper was sat, which nothing had ever drawn
 
 **A series is not a date, and somebody asked for the date.** `exam_date` went into the file, passed
