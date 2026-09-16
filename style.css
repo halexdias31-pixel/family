@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-27-insert";
+  --css-version: "2026-09-29-sat-on";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6816,6 +6816,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
 .qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
+
+/* THE DAY THE PAPER WAS SAT, UNDER ITS NAME. `display: block` because it is a second line rather
+   than a second clause — the name already ends in a month ("Paper 1 (Non-Calculator) — May 2017")
+   and running an exact date straight on from it reads as one long sentence saying the month twice.
+   Dimmer than the subtitle it hangs from, because it is a detail confirming the paper rather than
+   the thing you are scanning for. Drawn on the rows that carry `exam_date` and nowhere else —
+   see `satOn_` in find.js for why that is almost all of them. */
+.qcard-sat { display: block; margin-top: .1rem; font-size: .62rem; color: var(--faint); }
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
@@ -6888,6 +6896,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
    on this black screen without a second copy of it. */
 .qsheet figure { margin: 1rem 0; text-align: center; }
+
+/* A PHOTOGRAPH OR A SCAN, WHERE `figure svg` IS A DRAWING. It is sized to the column rather than to
+   itself — a scan of an exam page is whatever resolution the scanner felt like, and a picture that
+   sets its own width is the one thing on a card that can push the card sideways. `height: auto`
+   with `max-width` keeps the aspect ratio without anybody stating it. */
+.qsheet .qpic { margin: 1rem 0; }
+.qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
+  border-radius: .4rem; background: var(--sunk); }
 .qsheet figure svg { width: min(100%, 20rem); height: auto; }
 .qsheet .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
 .qsheet .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
@@ -7445,24 +7461,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THIS IS THE ONE SCREEN WHERE A PAGER IS RIGHT, and it is worth saying because the same shape is
    wrong on the feed: a feed is read by flicking past six things; a reel is watched one at a time.
 ================================================================================================== */
-/* ---------- A PAGE AS TALL AS THE SCREEN, WHICH NO OTHER PAGE IS --------------------------------
-   `.reels` ASKED FOR `height: 100%` OF A PARENT THAT HAD NO HEIGHT, so it got nothing, and so did
-   all fifty-eight slides inside it. `.page` is `flex: 0 0 auto; height: auto` — it is as tall as the
-   card on it, which is right for every other screen in the app and circular here, because the thing
-   asking for the height IS the content.
+/* ---------- `.page.reel-page` WAS HERE, AND THE REEL IS AN ORDINARY CARD NOW ----------------------
+   IT EXISTED BECAUSE `.reels` ASKED FOR `height: 100%` OF A PAGE THAT HAD NONE — `.page` is
+   `height: auto` and the thing asking for the height was the content, which is circular and
+   resolved to nothing. The fix then was to give that one page the screen's height.
 
-   IT HAD NEVER BEEN RENDERED, WHICH IS WHY NOBODY SAW IT. The `facts` tab has always been empty, so
-   `screen('reel')` has always returned the "Nothing here yet" card instead — an ordinary `.pane`
-   that sizes itself perfectly well. The slide rules below were written, committed, and never once
-   put on a screen. Filling the column is what exposed them, and it took measuring the boxes in a
-   browser to see it: the markup was all there and the text was in the DOM, and every box was 0px.
-
-   `.screen` HAS A DEFINITE HEIGHT — `position: absolute; inset: 0` — so a percentage resolves
-   against it. One class, on the one page that wants it. */
-.page.reel-page { height: 100%; min-height: 0; }
+   THE REEL IS INSIDE A CARD NOW, like every other screen, so there is no percentage to resolve:
+   the scroller is a fixed height of its own, stated below, and the card is as tall as it. One rule
+   fewer and one fewer page that is special. */
 
 .reels {
-  height: 100%;
+  /* TALL ENOUGH THAT ONE FACT FILLS IT AND NOTHING ELSE DOES, and stated here rather than taken
+     from the screen: a reel inside a card cannot be as tall as the viewport without pushing its own
+     heading off the top. `svh` rather than `vh` so the mobile browser's collapsing address bar does
+     not change it mid-scroll and land the snap between two slides. */
+  height: min(62svh, 30rem);
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   /* THE SCROLL IS THE GESTURE HERE. `.pane` sets `touch-action: none` so the grid can own the

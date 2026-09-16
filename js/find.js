@@ -1010,9 +1010,29 @@ function facetList() {
         min: facetMin_(f.minCoverage),
       })))
     .filter(Boolean)
-    /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a
-       column of blank cells leaves the funnel exactly as it asks today. */
-    .sort((a, b) => a.at - b.at);
+    /* ---------- A DOOR IS ASKED BEFORE A FILTER, AND THE SHEET CANNOT REORDER THAT ---------------
+       THE SHEET PUT `subject` AT ORDER 1 AND TUTORS BECAME UNREACHABLE. That is not a hypothetical:
+       measured on the real `facets` rows, the first question the funnel asked was Subject, and
+       there is no answer to Subject that keeps a tutor — a tutor has none, `filterHit` finds no
+       value, and every tutor, venue and friend is dropped by the first tap. The Message control on
+       a tutor's pass was reported missing; it was on the card, and the card could not be got to.
+
+       WHY THE COVERAGE RULE DID NOT CATCH IT. `FACET_COVERAGE` refuses a question fewer than half
+       the list can answer — and `subject` has 100% coverage, because 4,005 of the 4,007 items are
+       questions. The library is now so much larger than everything else that ANY library facet
+       looks universal. The rule is still right; it is measuring a list in which the minority is
+       three items.
+
+       SO `always` MEANS WHAT ITS NOTE SAYS IT MEANS. `What for` and `What kind` are DOORS — they
+       take somebody from the whole app to a department — and a door that is asked third is a door
+       behind two filters. The sheet still owns the order of the doors among themselves, and the
+       order of everything else, and whether any of them is asked at all. What it cannot do is put a
+       filter in front of a door, because that is not an ordering preference: it is a dead end for
+       everything the filter cannot describe.
+
+       NOT A THIRD SETTING. It is the flag that already exists, doing the other half of the job it
+       was declared for. */
+    .sort((a, b) => (b.always ? 1 : 0) - (a.always ? 1 : 0) || a.at - b.at);
   return FACET_LIVE;
 }
 
@@ -1194,8 +1214,43 @@ function facetTally_(items, facet) {
     const i = ord.indexOf(v);
     return i === -1 ? ord.length : i;
   };
+  /* ---------- AND AN ANSWER THAT IS A DATE SORTS AS A DATE ---------------------------------------
+     THE SITTINGS CAME OUT ALPHABETICALLY AND IT READ AS BROKEN. June 2017, June 2018, June 2019,
+     June 2020, June 2023, June 2024, November 2017, November 2018, November 2019 — every June
+     stacked before any November, 2024 sitting above 2017, and each academic year split in half
+     down a list nobody could scan.
+
+     `cmpText` IS RIGHT ABOUT EVERYTHING ELSE and the note above says why: there is no reason to
+     prefer one of forty tutors, and alphabetical is the order somebody can predict. A date is the
+     exception because it HAS an order, and it is not the one its letters give.
+
+     THE TEST IS ON THE ANSWERS, NOT ON THE FACET. Nothing here knows that `examWave` is a sitting —
+     it asks whether every answer in front of it parses as `<Month> <year>`, and sorts by the date
+     if they all do. So a `facets` row inventing a question over any dated column gets the same
+     treatment with nothing added, and a facet with one date and nine words falls straight through
+     to the alphabet rather than sorting nine things by a rule that fits one.
+
+     NEWEST FIRST, and that is the half that is a judgement rather than arithmetic. Chronological
+     either way fixes the June/November split; which end leads is a choice, and the newest paper is
+     the one closest to the specification somebody is actually sitting — which is why every
+     past-paper site on earth lists them that way. One `-` on the line below flips it. */
+  const dateKey_ = v => {
+    const m = /^([A-Za-z]+)\s+((?:19|20)\d{2})$/.exec(String(v));
+    if (!m) return null;
+    /* A SEASON IS A POSITION IN THE YEAR TOO. `seriesOf_` names most sittings "Summer 2017" and
+       "Autumn 2017" rather than by a month, and a rule that only knows the twelve months would
+       have read those as words, found `allDates` false, and put the whole list back in the
+       alphabet — undoing this sort silently the moment the series were renamed. */
+    const i = SERIES_AT[m[1]] !== undefined ? SERIES_AT[m[1]] - 1 : MONTH_NAMES.indexOf(m[1]);
+    return i === -1 ? null : Number(m[2]) * 12 + i;
+  };
+  const answers = Object.keys(by);
+  const allDates = answers.length > 1 && answers.every(v => dateKey_(v) !== null);
+
   const order = facet.field === 'forLabel'
     ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
+    : allDates
+    ? (a, b) => dateKey_(b) - dateKey_(a)
     : cmpText;
   /* ---------- THE VARIANTS ARE FOLDED HERE, BEFORE ANYTHING COUNTS THEM ---------------------------
      BEFORE, NOT AFTER, because every number below is read off this list: the answers the funnel
@@ -1897,6 +1952,8 @@ function questionItems() {
       topic: topicOf_({ row: r.row || r }),
       marks: r.marks, section: r.section,
       lead: r.lead, html: r.html, diagram: r.diagram || '',
+      /* THE SAME SPLIT `topics` AND `keystage` GET — one helper, because a comma is a comma. */
+      images: topicAtoms_(r.images || (r.row && r.row.images)),
       /* WHO DREW IT. See `figCredit_` — a picture this site made to replace one that did not come
          across is not the same object as a picture off the paper, and the card says which. */
       diagramBy: r.diagramBy || (r.row && r.row.diagram_by) || '',
@@ -2016,18 +2073,63 @@ document.addEventListener('input', e => {
    `diagram_by` IS THE COLUMN, and it has exactly two meanings: absent means the picture came off
    the paper, `family` means this site drew it. Anything that ever lists a question's provenance
    reads that one field rather than guessing from the SVG. */
+/* ---------- A PICTURE THE QUESTION CAME WITH -----------------------------------------------------
+   `loading="lazy"` BECAUSE A RESULT PAGE HOLDS SEVERAL AND YOU ARE LOOKING AT ONE. `fillStuffPages`
+   already only builds the pages you are near, and this is the same argument one level down.
+
+   NO ALT TEXT INVENTED. A photograph used as a writing prompt is the subject of the question — a
+   description of it written here would be a different prompt, and a wrong one. The figure is
+   labelled as the question's picture and the question's own words say what to do with it, which is
+   what a printed paper does too. */
+const pics_ = list => (list || []).map(src =>
+  `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
+     loading="lazy" decoding="async"></figure>`).join('');
+
 const figCredit_ = x => (x.diagramBy === 'family'
   ? `<figcaption class="fig-by">drawn for @family. — the original worksheet's picture did not
        come across in the text, so these are our coins and our answer</figcaption>` : '');
 
+/**
+ * THE DAY A PAPER WAS SAT, WHEN THE ROW SAYS — "Thursday 25 May 2017".
+ *
+ * WRITTEN BECAUSE A SERIES IS NOT A DATE AND SOMEBODY ASKED FOR THE DATE. `seriesOf_` names the
+ * button "Summer 2017", which is true of every paper in the series and is what a filter needs; the
+ * note above it records the day that stopped being enough. What a tutor sitting down with a student
+ * says is "the Thursday 25 May 2017 paper", and until now that sentence existed nowhere in the app:
+ * `exam_date` went into the file, passed `check-library.js`, and NOTHING READ IT. A column written
+ * and never read is this repository's oldest fault, and it is on the second page of CLAUDE.md under
+ * `figure`, under `ticks_*` and under `orderPrints`.
+ *
+ * READ BY PATTERN AND BUILT IN UTC, never `new Date('2017-05-25')` against the machine's clock — a
+ * paper that is Thursday in London and Wednesday in New York is the `waveOf` timezone fault in a
+ * second column, and that one cost seven buttons.
+ *
+ * ABSENT ON ALMOST EVERY ROW, AND THAT IS THE DESIGN. One paper carries a date so far, because a
+ * date is a fact somebody has to know rather than derive: Edexcel took the exam date off the front
+ * page in 2021 and the © line narrows it to a year. So this draws nothing rather than guessing, and
+ * the paper's own name — which always carries its month — goes on being the subtitle either way.
+ */
+function satOn_(x) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String((x && x.row && x.row.exam_date) || ''));
+  if (!m) return '';
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (!isFinite(d.getTime()) || d.getUTCMonth() !== Number(m[2]) - 1) return '';
+  /* `WEEKDAYS` RUNS MONDAY-FIRST — it is the booking grid's list, and a week that starts on Monday
+     is what every UK timetable in this app already assumes. `getUTCDay()` counts from Sunday. */
+  return `${WEEKDAYS[(d.getUTCDay() + 6) % 7]} ${d.getUTCDate()} `
+       + `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
 function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
+  const sat = satOn_(x);
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
       <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
     </div>
-    <p class="qcard-sub">${esc(x.sub)}</p>
+    <p class="qcard-sub">${esc(x.sub)}${
+      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}</p>
     <div class="qsheet">
       ${/* `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT.
             An AQA English insert is a separate booklet of third-party copyright, so the source is
@@ -2036,13 +2138,14 @@ function questionCard_(x) {
             the two they are looking at; the same argument as `figCredit_` one screen down. */''}
       ${(x.stems || []).map(p =>
         `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${p.html || ''}${
-          fig(p.diagram)}</div>`).join('')}
+          fig(p.diagram)}${pics_(p.images)}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${
           /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. See the `diagram`
              column in js/library.js, and `figCredit_` above for the ones we drew. */''}${
-          x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}</div>
+          x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}${
+          pics_(x.images)}</div>
       </div>
     </div>
     ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you
@@ -2506,24 +2609,47 @@ function yearOf(x) {
  * sat on 24 May, 7 June and 12 June; its autumn papers on 6, 8 and 12 November. Naming a sitting by
  * its own month splits one series into `May 2018` and `June 2018` — two buttons for three papers
  * every student thinks of as one thing, and the question "which paper" cannot be asked underneath
- * a split like that.
+ * a split like that. So the summer months are one answer and the autumn months another.
  *
- * SO THE SUMMER MONTHS ARE ONE ANSWER AND THE AUTUMN MONTHS ANOTHER, under the names the boards
- * and every past-paper site actually use: "June 2018" and "November 2018".
+ * THE SEASON IS THE NAME, AND IT USED TO BE THE MONTH. It was "June 2018" and "November 2018",
+ * because that is what the boards and every past-paper site print — and it was reported as a bug
+ * the day the first May paper went in: **the card said "Paper 1 (Non-Calculator) — May 2017" and
+ * the filter offering it said "June 2017"**, so the paper looked absent from the one list somebody
+ * was scanning for it. Every Paper 1 of every summer series sits in May and Papers 2 and 3 sit in
+ * June, so that is not one odd row — it is a third of the library disagreeing with its own filter.
+ *
+ * "SUMMER 2017" IS TRUE OF A PAPER SAT IN MAY AND OF ONE SAT IN JUNE, which "June 2017" is not,
+ * and it is the word the boards themselves use for the series when they are not naming a month
+ * (JCQ publishes the summer and autumn series). Nothing is invented and nothing goes stale: a
+ * paper arriving in a month nobody expected still lands on the season its month belongs to.
+ *
+ * SEARCH IS THE OTHER HALF AND IT WAS ALREADY RIGHT. A paper's own name carries its own month, so
+ * typing "may 2017" or "june 2017" finds the questions either way — the season is the name of the
+ * BUTTON, not a replacement for the date on the paper.
  *
  * ANYTHING ELSE KEEPS ITS OWN MONTH. January sittings were a real thing until 2013 and a March or
  * an August is somebody being deliberate; collapsing those into a season invents a fact. The rule
  * only merges where two months are certainly one series.
  */
 function seriesOf_(m) {
-  const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
-                 'July', 'August', 'September', 'October', 'November', 'December'];
+  /* `MONTH_NAMES` FROM data.js — this file had TWO private copies of the twelve months and games.js
+     had a third until somebody deleted it with a note saying why. One list, one place. */
+  const MONTH = MONTH_NAMES;
   const n = Number(m);
   if (!isFinite(n) || n < 1 || n > 12) return '';
-  if (n >= 5 && n <= 7) return 'June';         /* the summer series */
-  if (n >= 10 && n <= 12) return 'November';   /* the autumn series */
+  if (n >= 5 && n <= 7) return SERIES_SUMMER;
+  if (n >= 10 && n <= 12) return SERIES_AUTUMN;
   return MONTH[n - 1];
 }
+
+/* THE TWO SEASON WORDS ARE CONSTANTS BECAUSE TWO OTHER PLACES HAVE TO AGREE WITH THEM, and a word
+   spelled out in three files is the fault this whole file is about. `waveOf` falls back to them
+   when a phase word arrives with no month on the row, and `dateKey_` has to know where in the year
+   each one sits or the sittings sort alphabetically again — which is the exact complaint ("Here
+   look! Jarring") that put the date sort in. `SERIES_AT` is the month each season is centred on. */
+const SERIES_SUMMER = 'Summer';
+const SERIES_AUTUMN = 'Autumn';
+const SERIES_AT = { Summer: 6, Autumn: 11 };
 
 /**
  * THE WAVE OF A THING, AS A HUMAN WOULD SAY IT.
@@ -2548,8 +2674,7 @@ function waveOf(x) {
   const raw = String((x && x.examWave) || '').trim();
   if (!raw) return '';
 
-  const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
-                 'July', 'August', 'September', 'October', 'November', 'December'];
+  const MONTH = MONTH_NAMES;
 
   /* ---------- A PHASE WORD IS A THIRD SPELLING OF THE SAME THING -------------------------------
      THE COMMENT ABOVE ALREADY NAMES THIS FAULT — "two ways of writing the same sitting are two
@@ -2569,7 +2694,7 @@ function waveOf(x) {
   if (phase) {
     const mth = Number((x && x.month) || (x && x.row && x.row.month) || 0);
     const yr  = yearOf(x);
-    const series = seriesOf_(mth) || (/^first$/i.test(phase[1]) ? 'June' : 'November');
+    const series = seriesOf_(mth) || (/^first$/i.test(phase[1]) ? SERIES_SUMMER : SERIES_AUTUMN);
     return yr ? series + ' ' + yr : raw;
   }
 

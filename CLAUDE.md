@@ -458,6 +458,110 @@ Venues.
 `calculator` into Find returns nothing, deliberately, and the fix is those four lines rather than
 another `wgt.groups`.
 
+## The Message tile was on the card and the card could not be reached
+
+**Reported as "I don't see the message tile".** It was there — measured, `cardTiles_` on a tutor
+returns `data-do="msg-open"`. What could not be done is get to a tutor card at all.
+
+**The `facets` sheet put `subject` at order 1, which is a filter in front of the doors.** The first
+question the funnel asked was Subject, and there is no answer to Subject that keeps a tutor — a
+tutor has none, `filterHit` finds no value, and every tutor, venue and friend is dropped by the
+first tap.
+
+**The coverage rule could not catch it, and the reason matters.** `FACET_COVERAGE` refuses a
+question fewer than half the list can answer — and `subject` has **100% coverage**, because 4,005 of
+the 4,007 items are questions. The library is now so much larger than everything else that ANY
+library facet looks universal. The rule is right; it is measuring a list whose minority is three
+items.
+
+**So `always` does the other half of the job its own note describes.** `What for` and `What kind`
+are DOORS — they take somebody from the whole app to a department — and a door asked third is a door
+behind two filters. Doors sort before filters; the sheet still owns the order of the doors among
+themselves, the order of everything else, and whether any of them is asked at all. **What it cannot
+do is put a filter in front of a door**, because that is not an ordering preference, it is a dead
+end for everything the filter cannot describe. Measured after: What for → People → the tutor, in two
+taps.
+
+## Every widget printed its name twice
+
+`widgetColumn_` drew an `<h3>` from the roster's `name` above the widget, and **every widget's own
+markup already had one**. Measured on the tools column: `Calculator || Calculator`, `Timer ||
+Timer`, and the cheat sheet worse than either — `Cheat sheet maker (maths mat) || Cheat sheet maker
+|| Cheat sheet — SATs`, three headings under two different names, because the roster label and the
+card's own title had drifted apart with nothing comparing them.
+
+**The widget's own heading is the one that stays.** It is inside the markup it belongs to, where the
+roster's `name` has three other jobs — the search, the tile, the pager — and is a label rather than
+a title. Two sources for one heading is this repo's recurring fault; the difference here is that
+both were being drawn at once, so it was visible rather than silent.
+
+**The check caught a real one on the way in.** `chess` has no heading of its own, and its comment
+says so deliberately: *"A title saying 'Chess' above a chessboard... A board is self-explanatory in
+a way almost nothing else in this app is."* That was true and it was not what happened — the roster
+heading overruled it from another file. Removing that heading is what finally does what the comment
+asked for, and `ACCEPTED_UNTITLED` records it with its reason so the NEXT untitled widget fails.
+
+**Reels is an ordinary card now.** It was the only screen of the nine that returned its own markup
+instead of going through `pages()` or `stack()`, so it drew straight onto the black with no pane.
+The note defending that was about the SCROLL — a pane sets `touch-action: none` — and both are
+available: the card is ordinary and `.reels` inside it keeps `touch-action: pan-y`, which is what
+made the swipe work. The `.page.reel-page { height: 100% }` rule went with it; the scroller states
+its own height, so there is no percentage to resolve and one fewer page that is special.
+
+## `images` — a list, not `image_1`, `image_2`, `image_3`
+
+**AQA's Paper 1 Question 5 is the case that asked for it**: the writing task offers a photograph as
+one of its two prompts, and a question whose prompt is a picture is not a question without it.
+
+**Numbered columns were the obvious shape and the one that does not scale.** Three of them would be
+empty on 4,005 rows, and the day something needs a fourth is a schema change in the data, the
+mapping, the renderer and the check. `topics` and `keystage` are already comma-lists for exactly
+this reason and `asList_` has read them since before any of it — so `images` is one column holding
+as many as there are, on a question row or a preamble row alike.
+
+**`diagram` and `images` are different things and both stay.** `diagram` is inline SVG drawn here,
+which takes the page's own ink and works offline; `images` is a list of addresses. A scan of an exam
+page is one, a drawn Venn diagram is the other.
+
+**Two shapes are addresses and everything else fails**: `http(s)://…` and `data:image/…`. A Drive
+FILE page is named separately, because it is HTML and an `<img>` asking for it draws nothing — the
+same spelling trap as the `.xlsx` ids in `check-tabs.js`. Proved on three mutants: two refused, one
+counted.
+
+## An answer that is a date sorts as a date
+
+**The sittings came out alphabetically and it read as broken.** (Under the month names they carried
+at the time.) June 2017, June 2018, June 2019,
+June 2020, June 2023, June 2024, November 2017, November 2018, November 2019 — every June stacked
+before any November, 2024 sitting above 2017, and each academic year split in half down a list
+nobody could scan.
+
+**`cmpText` is right about everything else** and the note above it says why: there is no reason to
+prefer one of forty tutors, and alphabetical is the order somebody can predict. **A date is the
+exception because it HAS an order, and it is not the one its letters give.**
+
+**The test is on the answers, not on the facet.** Nothing in `facetTally_` knows that `examWave` is
+a sitting — it asks whether every answer in front of it parses as `<series word> <year>` and sorts by
+the date if they all do. So a `facets` row inventing a question over any dated column gets the same
+treatment with nothing added, and a facet with one date and nine words falls straight through to the
+alphabet rather than sorting nine things by a rule that fits one. Measured: `Sitting` comes back
+newest-first; `Subject` is still alphabetical.
+
+**A season is a position in the year too**, and that half was added a commit later with the rename
+below. The first version knew the twelve months only, so `Summer 2017` parsed as a word and the
+whole list would have gone back into the alphabet the moment `seriesOf_` stopped naming months —
+this sort undone silently by an unrelated change. `SERIES_AT` in `find.js` is the one place that
+says where in the year each season sits, and `seriesOf_`, `waveOf` and `dateKey_` all read it.
+
+**Newest first, and that half is a judgement rather than arithmetic.** Chronological either way
+fixes the June/November split; which end leads is a choice, and the newest paper is the one closest
+to the specification somebody is actually sitting — which is why every past-paper site lists them
+that way. One `-` flips it.
+
+**And the twelve month names were written out three times.** `MONTH_NAMES` is in `data.js`; `find.js`
+had two private copies inside `seriesOf_` and `waveOf`, and `games.js` had a third until somebody
+deleted it with a note saying why. One list, one place.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
@@ -1153,9 +1257,76 @@ buttons"* — and then a third spelling arrived that it did not handle. It resol
 through the row's own `month` and `year` now, and **`seriesOf_` names the series rather than the
 month**: Edexcel's 2018 summer papers sat on 24 May, 7 June and 12 June, so naming each by its own
 month splits one series into `May 2018` and `June 2018`, which is two buttons for three papers every
-student thinks of as one thing. Summer months become `June <year>` and autumn months `November
-<year>`; anything else keeps its own month, because a January sitting was a real thing until 2013
-and collapsing it would invent a fact.
+student thinks of as one thing. Anything outside the two series keeps its own month, because a
+January sitting was a real thing until 2013 and collapsing it would invent a fact.
+
+### The series is named for its season, and it used to be named for a month
+
+**Summer months became `June <year>` and autumn months `November <year>`**, because that is what the
+boards and every past-paper site print. **Reported as a bug the day the first May paper went in**:
+the card read *"Paper 1 (Non-Calculator) — May 2017"* and the filter offering it read *"June 2017"*,
+so somebody scanning the Sitting list for their paper concluded it was not there. Measured, and it
+is not one odd row — **every Paper 1 of every summer series sits in May and Papers 2 and 3 sit in
+June**, so a third of the Edexcel library was disagreeing with its own filter.
+
+**`Summer 2017` is true of a paper sat in May and of one sat in June, and `June 2017` is not.** It
+is also the boards' own word for a series when they are not naming a month — JCQ publishes the
+summer and the autumn series — so nothing is invented, and a paper arriving in a month nobody
+expected still lands on the season its month belongs to rather than opening a thirteenth button.
+Measured after: twelve answers, newest first, `Summer 2017` holding 100 questions across five
+papers, one of which is the May one.
+
+**Search was the other half and it was already right.** A paper's own name carries its own month, so
+`may 2017` finds 34 questions and `june 2017` finds 70 — the season names the BUTTON, not the paper.
+
+**And `check-funnel.js` rule 4 went from a shape to a list, which is the repair.** It was the regex
+`^[A-Z][a-z]+ (19|20)\d{2}$` — any capitalised word and a year — so it passed the whole rename
+without noticing that the funnel's sitting vocabulary had changed underneath it, and it passes
+`Sumer 2017` too. It is a closed list of the fourteen series words now: same argument as `VOCAB` in
+`check-library.js`, and the same fault `resource_type` sitting in `VOCAB` after the rename already
+cost once. Proved by mutation — `Sumer` fires it, the real file is green.
+
+### `exam_date` — the day the paper was sat, which nothing had ever drawn
+
+**A series is not a date, and somebody asked for the date.** `exam_date` went into the file, passed
+`check-library.js`, and **nothing read it** — a column written and never read, which is this
+repository's oldest shape and already recorded here under `figure`, under `orderPrints` and under
+the four message actions. `satOn_` draws it under the paper's name: *"sat Thursday 25 May 2017"*,
+which is the sentence a tutor sitting down with a student actually says.
+
+**Read by pattern and built in UTC**, never `new Date('2017-05-25')` against the machine's clock — a
+paper that is Thursday in London and Wednesday in New York is the `waveOf` timezone fault in a
+second column, and that one cost seven buttons.
+
+**On one paper so far, and that is the design.** Edexcel took the exam date off the front page in
+2021 and the © line narrows it to a year, so a date is a fact somebody has to know rather than
+derive. An absent one draws nothing rather than guessing, and the paper's own name — which always
+carries its month — goes on being the subtitle either way. `check-library.js` prints
+`1 of 665`, with a denominator for the same reason `total_marks` has one.
+
+#### The URL slug is NOT the exam date, and eight Saturdays are the proof
+
+**41 documents carry a `source_url` with a full date in the filename** — `1MA1_1H_que_20211103.pdf`
+— which reads as 41 free exam dates waiting to be copied across, and this file's own note about the
+©2021 papers points straight at them. **Eight of the 41 land on a Saturday**: `P-1MA1-2306-1H` on
+2023-05-20, four November Paper 2s, and both the 2022 and 2023 summer Paper 1s. Nobody sits a GCSE
+on a Saturday, so that slug is a PUBLICATION date at least some of the time — and there is no way
+from inside this environment to tell which of the other 33 are exam dates and which are not, because
+every exam-board host is blocked by network policy. Bulk-filling from it would have put a confident
+wrong day on a third of the library, and a wrong day is worse than no day: a tutor reads "sat
+Thursday" and knows it was a Friday.
+
+**The weekend is the one half a checker can settle**, and it is now a rule. The two rules that were
+already there compare `exam_date` against the `year` and `month` on the same row — filled in by the
+same person in the same sitting, so a date that is simply wrong agrees with both and sails past.
+A Saturday needs no timetable to refuse. It cannot tell a Tuesday that is wrong from a Tuesday that
+is right — only somebody holding the paper can — but it refuses the whole class of mistake that
+produced those eight. Proved by mutation: `2023-05-20` on the June 2023 Higher paper exits 1.
+
+**And nothing in the data needed correcting.** Checked across all 665 documents: **zero** rows whose
+name names one month while the `month` column says another. The Edexcel Paper 1s always said May and
+always carried `month: 5`; what was wrong was the button above them, and that is the rename in the
+section before this one.
 
 **`levelOf_` reads whichever of the two columns has it** — `band_value` where `band_type` is
 `stage`, falling back to the `level` column — and normalises the spelling. Naming the code facet

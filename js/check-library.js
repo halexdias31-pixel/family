@@ -428,6 +428,102 @@ rows.forEach(r => {
   }
 });
 
+/* ---------- THE DATE A PAPER WAS SAT, AND THE TWO WAYS IT CAN LIE --------------------------------
+   `exam_date` IS HOW A PERSON NAMES A PAPER. "Thursday 25 May 2017, Paper 1 Higher" is what a tutor
+   and a student both say out loud, and the library held `year` and `month` and nothing finer — so
+   the one identifier everybody actually uses was the one that could not be matched on.
+
+   IT IS ALSO WHERE THE 2021 ANSWER GOES. Edexcel took the date off the front page in 2021 and two
+   ©2021 sets of Higher papers sit unidentified because of it; CLAUDE.md records that the empty
+   document rows' `source_url`s carry the real dates (`1MA1_1H_que_20211103.pdf`). There was nowhere
+   to put that answer once somebody worked it out. There is now.
+
+   TWO RULES, AND THE SECOND IS THE ONE WORTH HAVING. A date that is not a date is obvious and
+   caught at once. A date that disagrees with the `year` and `month` already on the row is not: both
+   halves read perfectly, the funnel files the paper by one of them and the person searching uses
+   the other, and nothing anywhere says they are different. Same shape as the two spellings of a
+   sitting, one column further in. */
+rows.forEach(r => {
+  if (!r || !r.exam_date) return;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(r.exam_date));
+  if (!m) {
+    fail.push(`${r.row_id} has exam_date ${JSON.stringify(r.exam_date)}, which is not YYYY-MM-DD.`);
+    return;
+  }
+  const [y, mo, d] = m.slice(1).map(Number);
+  const real = new Date(Date.UTC(y, mo - 1, d));
+  if (real.getUTCFullYear() !== y || real.getUTCMonth() + 1 !== mo || real.getUTCDate() !== d) {
+    fail.push(`${r.row_id} has exam_date ${r.exam_date}, which is not a day that exists.`);
+    return;
+  }
+  if (r.year && String(r.year) !== String(y)) {
+    fail.push(`${r.row_id} is dated ${r.exam_date} and its year column says ${r.year}. `
+      + `Both read perfectly and one of them is wrong.`);
+  }
+  if (r.month && String(r.month) !== String(mo)) {
+    fail.push(`${r.row_id} is dated ${r.exam_date} and its month column says ${r.month}. `
+      + `The funnel files it by one and a person searches by the other.`);
+  }
+  /* ---------- AND A THIRD, WHICH IS THE ONLY ONE THAT CATCHES THE WRONG DATE -------------------
+     NOBODY SITS A GCSE ON A SATURDAY. The two rules above compare `exam_date` against columns
+     that were filled in by the same person in the same sitting, so a date that is simply WRONG —
+     a day out, or a publication date mistaken for an exam date — agrees with both of them and
+     sails past.
+
+     THIS IS NOT HYPOTHETICAL AND IT NEARLY HAPPENED HERE. 41 documents carry a `source_url` with a
+     full date in the filename (`1MA1_1H_que_20211103.pdf`), which looked like 41 free exam dates
+     waiting to be copied across. **Eight of the 41 land on a Saturday** — `P-1MA1-2306-1H` on
+     2023-05-20, four November Paper 2s, and the 2022 and 2023 summer Paper 1s. So that slug is the
+     date the FILE was published at least some of the time, and there is no way to tell from here
+     which of the other 33 are exam dates and which are not. Bulk-filling from it would have put a
+     confident wrong day on a third of the library.
+
+     A WEEKEND IS THE ONE HALF A CHECKER CAN SETTLE without knowing the timetable. It cannot tell a
+     Tuesday that is wrong from a Tuesday that is right — only a person holding the paper can — but
+     it is enough to refuse the whole class of mistake that produced those eight. */
+  const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  if (real.getUTCDay() === 0 || real.getUTCDay() === 6) {
+    fail.push(`${r.row_id} has exam_date ${r.exam_date}, which is a ${DAY[real.getUTCDay()]}. `
+      + `Boards do not sit papers at the weekend, so this is a publication date or a typo — `
+      + `see the note above: eight of the 41 dates in source_url filenames are Saturdays.`);
+  }
+});
+
+const datedPapers = new Set(rows.filter(r => r && r.exam_date && r.paper_id).map(r => r.paper_id));
+
+/* ---------- AN ADDRESS THAT IS NOT AN ADDRESS ------------------------------------------------------
+   `images` IS A COMMA-SEPARATED LIST OF PLACES A PICTURE IS, and the one way it fails silently is a
+   value that is not a place: a filename with no folder, a Drive *page* rather than a Drive file, a
+   path copied off somebody's desktop. None of those throw — the browser asks, gets nothing, and the
+   question is served with a broken picture where its prompt should be, which on AQA Paper 1
+   Question 5 is the whole question.
+
+   TWO SHAPES ARE ADDRESSES: `http(s)://…`, and a `data:image/…` URI for a picture committed into the
+   row itself. Anything else is refused here rather than at the end of a wire.
+
+   `drive.google.com/file/d/<id>` IS NAMED SEPARATELY because this repository has already paid for
+   that distinction once: a Drive FILE page is HTML, not an image, so it renders as nothing in an
+   `<img>`. The same spelling trap as the `.xlsx` ids in `check-tabs.js`. */
+const pic = [];
+rows.forEach(r => {
+  if (!r || !r.images) return;
+  String(r.images).split(',').map(v => v.trim()).filter(Boolean).forEach(src => {
+    if (/^data:image\//.test(src)) { pic.push(src); return; }
+    if (!/^https?:\/\//.test(src)) {
+      fail.push(`${r.row_id} has an image "${src.slice(0, 60)}" that is not an address. `
+        + `It must start http:// or https://, or be a data:image/… URI.`);
+      return;
+    }
+    if (/drive\.google\.com\/file\/d\//.test(src)) {
+      fail.push(`${r.row_id} points an image at ${src.slice(0, 60)} — that is a Drive FILE PAGE, `
+        + `which is HTML. An <img> asking for it gets a web page and draws nothing. Use a direct `
+        + `image address.`);
+      return;
+    }
+    pic.push(src);
+  });
+});
+
 /* ---------- A PICTURE THIS SITE DREW MUST SAY SO ---------------------------------------------------
    SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET HAD NO ANSWER IN THEM. "Natalie has these coins.
    How much money does Natalie have?" — and no coins: the data was entirely in an image and a
@@ -554,6 +650,14 @@ console.log(`documents with a stub row beside their transcription: ${stubPairs} 
 console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
+console.log(`pictures carried by rows as an address: ${pic.length}`);
+/* WITH A DENOMINATOR, because "1" is a number and "1 of 665" is a backlog. Same argument as the
+   `total_marks` line three above it: what is uncovered has to be a figure somebody can act on
+   rather than a silence. A date is read off the front page of the paper, so this moves only when
+   somebody has one in front of them — see the weekend rule for why it is not derived. */
+const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
+console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
+  + `   (the rest are known to a month only)`);
 if (standingIn.length) {
   console.log(`\nSTANDING IN FOR SOMETHING NOT YET TYPED — a list, not a fault  (${standingIn.length})`);
   standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));
