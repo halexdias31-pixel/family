@@ -739,6 +739,30 @@ const FACETS = [
   /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
      are two answers to it, not twenty. */
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  /* ---------- THE DECADE COMES BEFORE THE WEIGHT -------------------------------------------------
+     REPORTED AS "boxers and fights shouldn't be organised by weight category before the decade/s
+     involved of fighter or boxer", and it is the same judgement `boxKind` above already records
+     one rung up: the question somebody has FIRST is the one that should be asked first, and
+     `nextFacet` walks this list in order.
+
+     WHICH IS RIGHT, AND NOT BECAUSE OF THE ARITHMETIC. A division narrows harder — twenty answers
+     against six or seven — so every rule in this file would pick it, and every rule in this file is
+     about how much a question narrows rather than about what somebody came for. A person who wants
+     to look at boxing wants an ERA: the heavyweights of the seventies are a subject, and
+     "heavyweight" across a century is a list of strangers. The weight is the second question, and
+     it is a good one once the era is chosen.
+
+     A DECADE, NOT A YEAR. `year` further down would give forty answers, past `FACET_MAX_ANSWERS`,
+     so the question would be refused outright and the funnel would go straight to the weight — the
+     exact complaint. Ten years is the unit boxing is actually discussed in.
+
+     AND A FIGHTER IS IN AS MANY AS HE FOUGHT IN, which is what "decade/s" means. A career from
+     1975 to 1992 answers the 1970s, the 1980s and the 1990s, so narrowing to the eighties finds him
+     — a fighter filed under his last year alone disappears from the decade he was famous in. That
+     is the same fault `keystage` had, where a primary worksheet forced into one key stage vanished
+     from the other, and the machinery is the same: `asList_` reads a list, so a facet returning
+     several answers already filters and counts against all of them. */
+  { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
   /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
      revising and somebody sitting a mock are not looking for the same thing — so it is the
@@ -1864,8 +1888,22 @@ const QUESTION_CLASSES = ['roman', 'lbl', 'num', 'ax', 'axis', 'grid', 'pt',
    list somebody can actually work through. */
 function fightCard_(x) {
   const f = x.row;
-  const wonA = f.winner && norm(f.winner) === norm(f.a);
-  const wonB = f.winner && norm(f.winner) === norm(f.b);
+  /* ---------- WHO WON, BY ID WHERE THERE IS ONE ---------------------------------------------------
+     THIS COMPARED `f.winner` AGAINST `f.a` BY NAME ALONE, and the sheet sends `winner_id`,
+     `boxer_a_id` and `boxer_b_id` beside them — three columns shipped to every phone and read by
+     nothing. CLAUDE.md's rule is the one this repository has already paid for twice: an id beats a
+     name, because a name is a cell somebody can edit. `changePin` checking a PIN against the wrong
+     person is the sharp version; this is the quiet one — `winner` typed as "Ali" against
+     `boxer_a` "Muhammad Ali" highlights neither corner and looks exactly like a draw.
+
+     THE NAME IS STILL THE FALLBACK, and that is not a hedge: it is what reads a row typed into the
+     sheet before anybody has assigned ids, which is how this tab is filled in. Same order
+     `findPerson` uses on the backend, for the same reason. */
+  const byId = f.winnerId && (f.aId || f.bId);
+  const wonA = byId ? String(f.winnerId) === String(f.aId)
+                    : !!(f.winner && norm(f.winner) === norm(f.a));
+  const wonB = byId ? String(f.winnerId) === String(f.bId)
+                    : !!(f.winner && norm(f.winner) === norm(f.b));
   const corner = (name, won) => `<span class="fight-who${won ? ' won' : ''}">${esc(name)}</span>`;
 
   /* HOW IT ENDED, AS A PHRASE. "KO" and "round 2" are two facts and one sentence; a card that
@@ -1903,6 +1941,48 @@ function divisionOf_(v) {
   const s = String(v || '').trim();
   if (!s) return '';
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/* ---------- EVERY DECADE A CAREER TOUCHED ---------------------------------------------------------
+   A BOUT HAS A DATE AND A FIGHTER HAS A SPAN, and the two want the same answer in the end: which
+   ten-year block. So one reader, off the row, rather than a field written by each mapper — the
+   boxer mapper already wrote `year: b.activeTo`, which is his LAST year and nothing else, and a
+   facet built on it would file Ali under the 1980s alone.
+
+   READ OFF THE ROW, NOT OFF THE ITEM, so a column added to the boxers tab is filterable without a
+   mapper edit — the same reason `facetFromSheet_` falls back to `x.row`. `activeFrom` / `activeTo`
+   for a fighter, `date` for a bout.
+
+   A FIGHTER STILL FIGHTING has no `activeTo`. That is not a career of length nought: it is a career
+   with no end yet, and the honest ceiling is the newest decade anything in the library reaches —
+   but nothing here knows the library, so it stops at the decade the sheet's own `record_as_of`
+   names, and failing that at `activeFrom`'s own decade. A single decade for somebody mid-career is
+   incomplete; inventing "to the present day" from a clock this function cannot see would be wrong
+   in a way nobody could spot, which is the rule this file keeps under `figure` and under
+   `exam_date`.
+
+   A SPAN THAT RUNS BACKWARDS, or one longer than a human career, gives just its own two ends
+   rather than a hundred buttons. A typo in a cell must not be able to fill the funnel. */
+const DECADE_MAX = 9;
+
+function decadeOf_(v) {
+  const m = /\b(1[89]\d{2}|20\d{2})\b/.exec(String(v == null ? '' : v));
+  return m ? (Math.floor(Number(m[1]) / 10) * 10) : 0;
+}
+
+function decadesOf_(x) {
+  const r = (x && x.row) || {};
+  if (!r || (x && x.kind !== 'boxer' && x.kind !== 'fight')) return [];
+  const one = d => d ? String(d) + 's' : '';
+  /* A BOUT IS ONE DAY. `date` is the fight; everything else on the row is about the fighters. */
+  if (x.kind === 'fight') return [one(decadeOf_(r.date))].filter(Boolean);
+  const from = decadeOf_(r.activeFrom);
+  const to = decadeOf_(r.activeTo) || decadeOf_(r.recordAsOf) || from;
+  if (!from && !to) return [];
+  if (!from || !to || to < from) return [...new Set([one(from), one(to)])].filter(Boolean);
+  const out = [];
+  for (let d = from; d <= to && out.length <= DECADE_MAX; d += 10) out.push(one(d));
+  return out;
 }
 
 function boxerCard_(x) {
@@ -2617,9 +2697,44 @@ const printRatePence = () => {
    AND HOLDING THE ITEMS IS WHAT MAKES THE SORT KEYS FREE. `sortKey_` caches on the item; rebuilding
    the items every call threw that cache away at the same rate it was filled. */
 let ITEM_MEMO = { key: null, from: null, items: null };
+/* ---------- AND THE SAME MEMO AGAIN FOR THE UNFILTERED LIST ---------------------------------------
+   TWO LISTS, TWO MEMOS, ONE BUILD. `stuffItemsAll_` is what `stuffItemsBuild_` filters and what the
+   saved things are looked up in, and both are asked for on every repaint — so caching only the
+   filtered one would rebuild four thousand items every time anything wanted the other.
+
+   A SEPARATE ARRAY EACH, deliberately, not one array read two ways. `facetTally_` holds its counts
+   in a `WeakMap` keyed on the items array itself and `FIND_MEMO` tests `DATA` by identity; handing
+   the same array to both lists would make a tally of the funnel answer for the saved list too.
+   Same key on both, so they are filled and dropped together. */
+let ALL_MEMO = { key: null, from: null, items: null };
+
+const itemMemoKey_ = () =>
+  (isAdmin() ? 'a' : '-') + '|' + (USER ? (USER.personId || USER.name || 'u') : '-');
+
+/* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER ------------------
+   THE FUNNEL'S EDITORIAL DECISIONS ARE ABOUT WHAT TO OFFER, NOT ABOUT WHAT EXISTS. Booking is not a
+   question this screen asks any more, and tools and games have not been for longer — but a thing
+   somebody STARRED is theirs, and a list they kept should not empty itself because a question
+   stopped being asked.
+
+   FOUND BY AUDITING FAVOURITES, and it was a fault I had just made: `collItems_` filters
+   `stuffItems()`, so the moment Booking left the funnel every starred tutor, venue and session
+   vanished from Saved — silently, on a list whose whole job is to not lose things. `savedPages_`
+   reads this instead. The star still works, the row is still in the sheet, and the card comes back.
+
+   TOOLS AND GAMES ARE NOT IN EITHER LIST, and that is untouched: they were removed from the build
+   itself rather than filtered out of it, so nothing here can bring them back. Worth knowing the
+   two decisions are made in different places, because only one of them is reversible from here. */
+function stuffItemsAll_() {
+  const key = itemMemoKey_();
+  if (ALL_MEMO.from === DATA && ALL_MEMO.key === key) return ALL_MEMO.items;
+  const built = stuffItemsRaw_();
+  ALL_MEMO = { key: key, from: DATA, items: built };
+  return built;
+}
 
 function stuffItems() {
-  const key = (isAdmin() ? 'a' : '-') + '|' + (USER ? (USER.personId || USER.name || 'u') : '-');
+  const key = itemMemoKey_();
   if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
   const built = stuffItemsBuild_();
   ITEM_MEMO = { key: key, from: DATA, items: built };
@@ -2670,7 +2785,7 @@ function stuffItemsBuild_() {
   });
 }
 
-function stuffItemsAll_() {
+function stuffItemsRaw_() {
   return [
     /* ---------- PEOPLE, PLACES AND SUBJECTS -----------------------------------------------------
        Find and Stuff were two tabs asking the same question — where is the thing I want — split by
@@ -2864,7 +2979,18 @@ function stuffItemsAll_() {
          actually has first. */
       boxKind: 'Boxers',
       subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
-      year: b.activeTo || '',
+      /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" ----------
+         FOUND BY THE AUDIT THAT ADDED `Decade` and only visible once that question existed: the
+         funnel went Boxers → Decade → **Year** → Division, and the answers to Year were `1981` and
+         `2005`. Those are the years Ali and Tyson STOPPED, which is not a fact anybody narrows a
+         list of fighters by, and it sat between the decade and the weight saying it.
+
+         A CAREER IS NOT A YEAR, and writing one into a field called `year` is the shape this file
+         records under `cost: 0` and under `paper: true` — a column filled in with something nearly
+         right, then read by a question that means something else. `Decade` asks the real version
+         off `activeFrom` and `activeTo` together.
+
+         A BOUT KEEPS ITS `year`, on the mapper below, because a fight really did happen in one. */
     })),
 
     /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: Boxing as the subject, the weight as the

@@ -219,7 +219,7 @@ function renameValue(arg) {
     /* FROM THE BOTTOM UP. Deleting row 4 makes what was row 5 into row 4, so working downwards
        deletes the wrong rows from the second one onwards — and silently, because every delete
        still succeeds. */
-    kill.sort((a, b) => b._row - a._row).forEach(r => t.sheet.deleteRow(r._row));
+    kill.sort((a, b) => b._row - a._row).forEach(r => delRow(t, r));
     if (kill.length) merged.push(pair[0] + ' — ' + kill.length + ' duplicate row(s) removed');
   });
 

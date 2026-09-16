@@ -168,6 +168,44 @@ function addRow(t, obj) {
   return row;
 }
 
+/* ---------- THE THIRD WAY TO CHANGE A SHEET, AND IT WAS NOT WRITTEN DOWN --------------------------
+   `POST_WROTE`'s OWN NOTE SAYS: "`setCell` and `addRow` are the two functions that put anything into
+   a spreadsheet, and the payload is stale if and only if one of them succeeded." That sentence was
+   true of everything that ADDS and false of everything that REMOVES. Nine places call
+   `t.sheet.deleteRow(row._row)` straight through to the sheet — un-starring a favourite, deleting a
+   link, taking a reaction off a post, withdrawing from a class — and not one of them set the flag.
+
+   SO A DELETION NEVER RETIRED THE STORED PAYLOAD. The row went from the sheet and stayed in the
+   six-hour copy every phone is served, which on a favourite means the star you just took off comes
+   back on the next load: `adoptFavourites_` replaces the local set with the payload's, and the
+   payload still has it. Nothing fails, nothing is logged, and it looks like the app ignoring a tap.
+
+   FOUND BY AUDITING FAVOURITES — asked "does it work, and does it work well" — and the answer for
+   the star was yes and for the unstar was no, for up to six hours at a time.
+
+   THE FIX IS THE RULE AND NOT THE INSTANCE, which is the argument this repository makes about
+   `cost: 0` and `paper: true`: both were repaired in the data and neither in the rule, so the shape
+   came back. One function that removes a row, beside the two that write one, all three setting the
+   same flag — and nine call sites that can no longer forget.
+
+   IT DROPS THE ROW FROM `t.rows` TOO. `setCell` keeps the in-memory object in step deliberately
+   ("read-after-write within this request now sees the truth") and a delete owes the same debt: a
+   handler that removes a row and then counts what is left was counting the row it had just removed.
+   Every later `_row` shifts up by one when a sheet row goes, so those are corrected as well — the
+   nine callers all delete one row and return, which is why nobody had been bitten yet. */
+function delRow(t, row) {
+  if (!t || !t.sheet || !row || !row._row) return false;
+  const at = row._row;
+  t.sheet.deleteRow(at);
+  POST_WROTE = true;               // the stored payload still has a row the sheet no longer does
+  if (Array.isArray(t.rows)) {
+    const i = t.rows.indexOf(row);
+    if (i >= 0) t.rows.splice(i, 1);
+    t.rows.forEach(r => { if (r && r._row > at) r._row -= 1; });
+  }
+  return true;
+}
+
 /** One entry per tab-and-field, however many rows tried to write it. */
 function missedWrite_(t, field) {
   let tab = '?';

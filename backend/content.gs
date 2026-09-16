@@ -267,7 +267,11 @@ function fetchMap(arg) {
        doubles. Bottom up, because deleting a row moves every row below it. */
     t.rows.filter(r => key(S(r.world)) === key(world))
       .sort((a, b) => b._row - a._row)
-      .forEach(r => t.sheet.deleteRow(r._row));
+      /* NEWEST ROW FIRST, WHICH `delRow` ALSO NEEDS. Deleting from the top shifts every row
+         below it up by one, so a list walked forwards deletes the wrong rows after the first —
+         `sort((a, b) => b._row - a._row)` above is what makes it safe, and `delRow` corrects the
+         in-memory `_row`s the same way so the two cannot disagree. */
+      .forEach(r => delRow(t, r));
 
     const rows = [];
     (data.elements || []).forEach(el => {
