@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-28-images";
+  --css-version: "2026-09-29-sat-on";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6816,6 +6816,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
 .qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
+
+/* THE DAY THE PAPER WAS SAT, UNDER ITS NAME. `display: block` because it is a second line rather
+   than a second clause — the name already ends in a month ("Paper 1 (Non-Calculator) — May 2017")
+   and running an exact date straight on from it reads as one long sentence saying the month twice.
+   Dimmer than the subtitle it hangs from, because it is a detail confirming the paper rather than
+   the thing you are scanning for. Drawn on the rows that carry `exam_date` and nowhere else —
+   see `satOn_` in find.js for why that is almost all of them. */
+.qcard-sat { display: block; margin-top: .1rem; font-size: .62rem; color: var(--faint); }
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */

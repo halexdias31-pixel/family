@@ -147,15 +147,28 @@ boot(f => {
 
   /* ---------- 4. THE SITTING HAS ONE VOCABULARY -------------------------------------------------
      `waveOf` collapses dates, month-names and phase words onto one set of buttons. If a new spelling
-     ever reaches the funnel it shows up here as an answer that is not `<Month> <year>`, which is
-     what "First wave" was doing for 850 rows while every other check passed. */
+     ever reaches the funnel it shows up here as an answer that is not `<series word> <year>`, which
+     is what "First wave" was doing for 850 rows while every other check passed.
+
+     THE LIST IS CLOSED RATHER THAN A SHAPE, and that is a repair. The rule used to be the regex
+     `^[A-Z][a-z]+ (19|20)\d{2}$` — any capitalised word and a year — so when `seriesOf_` was
+     renamed from "June 2017" to "Summer 2017" this check went on passing without noticing that the
+     funnel's entire sitting vocabulary had changed underneath it. A shape cannot tell a series word
+     from a typo that happens to be capitalised; a list can. Same argument as `VOCAB` in
+     check-library.js, and the same one that let `resource_type` sit in it after the rename. */
+  const SERIES_WORDS = ['Summer', 'Autumn', 'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
   const wave = facets.find(x => x.field === 'examWave');
   if (wave) {
     const odd = f.facetValues(items, wave)
       .map(v => String(v.value))
-      .filter(v => v && !/^[A-Z][a-z]+ (?:19|20)\d{2}$/.test(v));
+      .filter(v => {
+        const m = /^([A-Za-z]+) ((?:19|20)\d{2})$/.exec(v);
+        return v && (!m || SERIES_WORDS.indexOf(m[1]) === -1);
+      });
     if (odd.length) {
-      bad.push('the sitting facet offers ' + odd.length + ' answer(s) that are not "<Month> <year>": '
+      bad.push('the sitting facet offers ' + odd.length + ' answer(s) that are not "<series> <year>", '
+               + 'where <series> is one of ' + SERIES_WORDS.join('/') + ': '
                + odd.slice(0, 6).map(v => '"' + v + '"').join(', ')
                + ' — a second spelling of a sitting splits it into two buttons and hides half the '
                + 'questions behind whichever one nobody picks. See waveOf().');

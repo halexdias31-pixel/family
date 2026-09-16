@@ -530,7 +530,8 @@ counted.
 
 ## An answer that is a date sorts as a date
 
-**The sittings came out alphabetically and it read as broken.** June 2017, June 2018, June 2019,
+**The sittings came out alphabetically and it read as broken.** (Under the month names they carried
+at the time.) June 2017, June 2018, June 2019,
 June 2020, June 2023, June 2024, November 2017, November 2018, November 2019 — every June stacked
 before any November, 2024 sitting above 2017, and each academic year split in half down a list
 nobody could scan.
@@ -540,11 +541,17 @@ prefer one of forty tutors, and alphabetical is the order somebody can predict. 
 exception because it HAS an order, and it is not the one its letters give.**
 
 **The test is on the answers, not on the facet.** Nothing in `facetTally_` knows that `examWave` is
-a sitting — it asks whether every answer in front of it parses as `<Month> <year>` and sorts by the
-date if they all do. So a `facets` row inventing a question over any dated column gets the same
+a sitting — it asks whether every answer in front of it parses as `<series word> <year>` and sorts by
+the date if they all do. So a `facets` row inventing a question over any dated column gets the same
 treatment with nothing added, and a facet with one date and nine words falls straight through to the
 alphabet rather than sorting nine things by a rule that fits one. Measured: `Sitting` comes back
 newest-first; `Subject` is still alphabetical.
+
+**A season is a position in the year too**, and that half was added a commit later with the rename
+below. The first version knew the twelve months only, so `Summer 2017` parsed as a word and the
+whole list would have gone back into the alphabet the moment `seriesOf_` stopped naming months —
+this sort undone silently by an unrelated change. `SERIES_AT` in `find.js` is the one place that
+says where in the year each season sits, and `seriesOf_`, `waveOf` and `dateKey_` all read it.
 
 **Newest first, and that half is a judgement rather than arithmetic.** Chronological either way
 fixes the June/November split; which end leads is a choice, and the newest paper is the one closest
@@ -1250,9 +1257,51 @@ buttons"* — and then a third spelling arrived that it did not handle. It resol
 through the row's own `month` and `year` now, and **`seriesOf_` names the series rather than the
 month**: Edexcel's 2018 summer papers sat on 24 May, 7 June and 12 June, so naming each by its own
 month splits one series into `May 2018` and `June 2018`, which is two buttons for three papers every
-student thinks of as one thing. Summer months become `June <year>` and autumn months `November
-<year>`; anything else keeps its own month, because a January sitting was a real thing until 2013
-and collapsing it would invent a fact.
+student thinks of as one thing. Anything outside the two series keeps its own month, because a
+January sitting was a real thing until 2013 and collapsing it would invent a fact.
+
+### The series is named for its season, and it used to be named for a month
+
+**Summer months became `June <year>` and autumn months `November <year>`**, because that is what the
+boards and every past-paper site print. **Reported as a bug the day the first May paper went in**:
+the card read *"Paper 1 (Non-Calculator) — May 2017"* and the filter offering it read *"June 2017"*,
+so somebody scanning the Sitting list for their paper concluded it was not there. Measured, and it
+is not one odd row — **every Paper 1 of every summer series sits in May and Papers 2 and 3 sit in
+June**, so a third of the Edexcel library was disagreeing with its own filter.
+
+**`Summer 2017` is true of a paper sat in May and of one sat in June, and `June 2017` is not.** It
+is also the boards' own word for a series when they are not naming a month — JCQ publishes the
+summer and the autumn series — so nothing is invented, and a paper arriving in a month nobody
+expected still lands on the season its month belongs to rather than opening a thirteenth button.
+Measured after: twelve answers, newest first, `Summer 2017` holding 100 questions across five
+papers, one of which is the May one.
+
+**Search was the other half and it was already right.** A paper's own name carries its own month, so
+`may 2017` finds 34 questions and `june 2017` finds 70 — the season names the BUTTON, not the paper.
+
+**And `check-funnel.js` rule 4 went from a shape to a list, which is the repair.** It was the regex
+`^[A-Z][a-z]+ (19|20)\d{2}$` — any capitalised word and a year — so it passed the whole rename
+without noticing that the funnel's sitting vocabulary had changed underneath it, and it passes
+`Sumer 2017` too. It is a closed list of the fourteen series words now: same argument as `VOCAB` in
+`check-library.js`, and the same fault `resource_type` sitting in `VOCAB` after the rename already
+cost once. Proved by mutation — `Sumer` fires it, the real file is green.
+
+### `exam_date` — the day the paper was sat, which nothing had ever drawn
+
+**A series is not a date, and somebody asked for the date.** `exam_date` went into the file, passed
+`check-library.js`, and **nothing read it** — a column written and never read, which is this
+repository's oldest shape and already recorded here under `figure`, under `orderPrints` and under
+the four message actions. `satOn_` draws it under the paper's name: *"sat Thursday 25 May 2017"*,
+which is the sentence a tutor sitting down with a student actually says.
+
+**Read by pattern and built in UTC**, never `new Date('2017-05-25')` against the machine's clock — a
+paper that is Thursday in London and Wednesday in New York is the `waveOf` timezone fault in a
+second column, and that one cost seven buttons.
+
+**On one paper so far, and that is the design.** Edexcel took the exam date off the front page in
+2021 and the © line narrows it to a year, so a date is a fact somebody has to know rather than
+derive. An absent one draws nothing rather than guessing, and the paper's own name — which always
+carries its month — goes on being the subtitle either way.
 
 **`levelOf_` reads whichever of the two columns has it** — `band_value` where `band_type` is
 `stage`, falling back to the `level` column — and normalises the spelling. Naming the code facet

@@ -1237,7 +1237,11 @@ function facetTally_(items, facet) {
   const dateKey_ = v => {
     const m = /^([A-Za-z]+)\s+((?:19|20)\d{2})$/.exec(String(v));
     if (!m) return null;
-    const i = MONTH_NAMES.indexOf(m[1]);
+    /* A SEASON IS A POSITION IN THE YEAR TOO. `seriesOf_` names most sittings "Summer 2017" and
+       "Autumn 2017" rather than by a month, and a rule that only knows the twelve months would
+       have read those as words, found `allDates` false, and put the whole list back in the
+       alphabet — undoing this sort silently the moment the series were renamed. */
+    const i = SERIES_AT[m[1]] !== undefined ? SERIES_AT[m[1]] - 1 : MONTH_NAMES.indexOf(m[1]);
     return i === -1 ? null : Number(m[2]) * 12 + i;
   };
   const answers = Object.keys(by);
@@ -2085,14 +2089,47 @@ const figCredit_ = x => (x.diagramBy === 'family'
   ? `<figcaption class="fig-by">drawn for @family. — the original worksheet's picture did not
        come across in the text, so these are our coins and our answer</figcaption>` : '');
 
+/**
+ * THE DAY A PAPER WAS SAT, WHEN THE ROW SAYS — "Thursday 25 May 2017".
+ *
+ * WRITTEN BECAUSE A SERIES IS NOT A DATE AND SOMEBODY ASKED FOR THE DATE. `seriesOf_` names the
+ * button "Summer 2017", which is true of every paper in the series and is what a filter needs; the
+ * note above it records the day that stopped being enough. What a tutor sitting down with a student
+ * says is "the Thursday 25 May 2017 paper", and until now that sentence existed nowhere in the app:
+ * `exam_date` went into the file, passed `check-library.js`, and NOTHING READ IT. A column written
+ * and never read is this repository's oldest fault, and it is on the second page of CLAUDE.md under
+ * `figure`, under `ticks_*` and under `orderPrints`.
+ *
+ * READ BY PATTERN AND BUILT IN UTC, never `new Date('2017-05-25')` against the machine's clock — a
+ * paper that is Thursday in London and Wednesday in New York is the `waveOf` timezone fault in a
+ * second column, and that one cost seven buttons.
+ *
+ * ABSENT ON ALMOST EVERY ROW, AND THAT IS THE DESIGN. One paper carries a date so far, because a
+ * date is a fact somebody has to know rather than derive: Edexcel took the exam date off the front
+ * page in 2021 and the © line narrows it to a year. So this draws nothing rather than guessing, and
+ * the paper's own name — which always carries its month — goes on being the subtitle either way.
+ */
+function satOn_(x) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String((x && x.row && x.row.exam_date) || ''));
+  if (!m) return '';
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (!isFinite(d.getTime()) || d.getUTCMonth() !== Number(m[2]) - 1) return '';
+  /* `WEEKDAYS` RUNS MONDAY-FIRST — it is the booking grid's list, and a week that starts on Monday
+     is what every UK timetable in this app already assumes. `getUTCDay()` counts from Sunday. */
+  return `${WEEKDAYS[(d.getUTCDay() + 6) % 7]} ${d.getUTCDate()} `
+       + `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
 function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
+  const sat = satOn_(x);
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
       <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
     </div>
-    <p class="qcard-sub">${esc(x.sub)}</p>
+    <p class="qcard-sub">${esc(x.sub)}${
+      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}</p>
     <div class="qsheet">
       ${/* `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT.
             An AQA English insert is a separate booklet of third-party copyright, so the source is
@@ -2572,10 +2609,23 @@ function yearOf(x) {
  * sat on 24 May, 7 June and 12 June; its autumn papers on 6, 8 and 12 November. Naming a sitting by
  * its own month splits one series into `May 2018` and `June 2018` — two buttons for three papers
  * every student thinks of as one thing, and the question "which paper" cannot be asked underneath
- * a split like that.
+ * a split like that. So the summer months are one answer and the autumn months another.
  *
- * SO THE SUMMER MONTHS ARE ONE ANSWER AND THE AUTUMN MONTHS ANOTHER, under the names the boards
- * and every past-paper site actually use: "June 2018" and "November 2018".
+ * THE SEASON IS THE NAME, AND IT USED TO BE THE MONTH. It was "June 2018" and "November 2018",
+ * because that is what the boards and every past-paper site print — and it was reported as a bug
+ * the day the first May paper went in: **the card said "Paper 1 (Non-Calculator) — May 2017" and
+ * the filter offering it said "June 2017"**, so the paper looked absent from the one list somebody
+ * was scanning for it. Every Paper 1 of every summer series sits in May and Papers 2 and 3 sit in
+ * June, so that is not one odd row — it is a third of the library disagreeing with its own filter.
+ *
+ * "SUMMER 2017" IS TRUE OF A PAPER SAT IN MAY AND OF ONE SAT IN JUNE, which "June 2017" is not,
+ * and it is the word the boards themselves use for the series when they are not naming a month
+ * (JCQ publishes the summer and autumn series). Nothing is invented and nothing goes stale: a
+ * paper arriving in a month nobody expected still lands on the season its month belongs to.
+ *
+ * SEARCH IS THE OTHER HALF AND IT WAS ALREADY RIGHT. A paper's own name carries its own month, so
+ * typing "may 2017" or "june 2017" finds the questions either way — the season is the name of the
+ * BUTTON, not a replacement for the date on the paper.
  *
  * ANYTHING ELSE KEEPS ITS OWN MONTH. January sittings were a real thing until 2013 and a March or
  * an August is somebody being deliberate; collapsing those into a season invents a fact. The rule
@@ -2587,10 +2637,19 @@ function seriesOf_(m) {
   const MONTH = MONTH_NAMES;
   const n = Number(m);
   if (!isFinite(n) || n < 1 || n > 12) return '';
-  if (n >= 5 && n <= 7) return 'June';         /* the summer series */
-  if (n >= 10 && n <= 12) return 'November';   /* the autumn series */
+  if (n >= 5 && n <= 7) return SERIES_SUMMER;
+  if (n >= 10 && n <= 12) return SERIES_AUTUMN;
   return MONTH[n - 1];
 }
+
+/* THE TWO SEASON WORDS ARE CONSTANTS BECAUSE TWO OTHER PLACES HAVE TO AGREE WITH THEM, and a word
+   spelled out in three files is the fault this whole file is about. `waveOf` falls back to them
+   when a phase word arrives with no month on the row, and `dateKey_` has to know where in the year
+   each one sits or the sittings sort alphabetically again — which is the exact complaint ("Here
+   look! Jarring") that put the date sort in. `SERIES_AT` is the month each season is centred on. */
+const SERIES_SUMMER = 'Summer';
+const SERIES_AUTUMN = 'Autumn';
+const SERIES_AT = { Summer: 6, Autumn: 11 };
 
 /**
  * THE WAVE OF A THING, AS A HUMAN WOULD SAY IT.
@@ -2635,7 +2694,7 @@ function waveOf(x) {
   if (phase) {
     const mth = Number((x && x.month) || (x && x.row && x.row.month) || 0);
     const yr  = yearOf(x);
-    const series = seriesOf_(mth) || (/^first$/i.test(phase[1]) ? 'June' : 'November');
+    const series = seriesOf_(mth) || (/^first$/i.test(phase[1]) ? SERIES_SUMMER : SERIES_AUTUMN);
     return yr ? series + ' ' + yr : raw;
   }
 
