@@ -71,7 +71,8 @@ function boot(cb) {
   const src = loadOrder_().map(n => fs.readFileSync(path.join(ROOT, 'js', n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
-      ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, asList_ };');
+      ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, asList_,' +
+      ' filterHit };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -199,6 +200,45 @@ boot(f => {
       seen[label] = v.value;
     });
   });
+
+  /* ---------- 4c. AN ANSWER MUST RETURN WHAT ITS OWN ROW PROMISED -------------------------------
+     THE ONE INVARIANT THAT TIES THE DRAWER TO THE FILTER, and the only rule here that would have
+     caught any of the last three faults on its own.
+
+     EVERY ANSWER ROW IS A PROMISE. `facetValues` says "Paper 1, 31 questions" and draws a row; the
+     chip that row creates goes through `filterHit`, which matches a completely different way — on
+     `spellKey_`, or on numeric membership for a band. **Nothing had ever checked that the two agree**,
+     and three separate mechanisms now sit between them:
+
+       `spellShow_`    the chip holds the spelling that was drawn, the row holds whatever the sheet
+                       says — `1st Class Maths` against `1stclassmaths`
+       `shortLabels_`  the row's TEXT is shortened and its `data-value` is not
+       `bandNumbers_`  the answer is `11\u201320` and no row anywhere holds that string
+
+     EACH ONE IS A CHANCE FOR A CHIP TO FIND NOTHING, silently — the list empties, the screen says
+     "Nothing matches", and no error is thrown anywhere. Proved on the last of them: removing the
+     band branch from `filterHit` makes pressing `11\u201320` return **0 questions where the row
+     promised 15**, and every other check in this suite still passed.
+
+     CHECKED AT TWO STATES, because a bug here is about a value, not about a state: the whole
+     library, and one paper deep, where the bands and the short labels actually appear. */
+  const promises = (label, list) => {
+    facets.forEach(facet => {
+      if (facet.collect) return;
+      f.facetValues(list, facet).forEach(v => {
+        const got = list.filter(x => f.filterHit(x, { field: facet.field, value: v.value })).length;
+        if (got !== v.n) {
+          bad.push('`' + facet.field + '` draws the answer "' + (v.show || v.value) + '" saying it '
+            + 'holds ' + v.n + ' item(s) ' + label + ', and pressing it returns ' + got
+            + ' — the row and `filterHit` disagree, so that chip empties the list with nothing '
+            + 'on screen saying why. See shortLabels_, spellShow_ and bandNumbers_.');
+        }
+      });
+    });
+  };
+  promises('in the whole library', items);
+  const onePaper = items.filter(x => x.row && x.row.paper_id === 'P-1MA1-1705-1H');
+  if (onePaper.length) promises('inside one paper', onePaper);
 
   /* ---------- 5. TWO FACETS, ONE MEANING --------------------------------------------------------
      The `level` / `stage` fault ACROSS facets: two questions offering the same answer word but

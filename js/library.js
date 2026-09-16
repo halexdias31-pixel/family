@@ -266,10 +266,24 @@ function libraryInto_(d, rows) {
   const qs = [];
   rows.forEach(r => {
     if (!libS(r.row_id) || !libOn(r.active)) return;
-    /* A DOCUMENT IS NOT A QUESTION. `kind: 'paper'` is the document itself and belongs in the
-       checklists below; without this line all 642 arrive on the Find screen as questions with no
-       text, no marks and no answer. */
-    if (String(r.kind || '').toLowerCase() === 'paper') return;
+    /* ---------- A DOCUMENT IS NOT A QUESTION, AND IT COMES THROUGH ANYWAY -----------------------
+       THIS LINE USED TO SKIP THEM AND IT HAD STOPPED. It tested `kind === 'paper'`, and the rename
+       recorded in CLAUDE.md made that value `document` — so the guard has been permanently false
+       since, and all 665 document rows have been arriving in `DATA.questions`. The funnel is not
+       wrong, because `questionItems` filters `kind !== 'document'` itself; the guard was simply
+       dead, wearing a comment describing what it no longer did. Same shape as `resource_type` in
+       `VOCAB` and `isEdexcelGcseMaths`, which the same rename also broke in silence.
+
+       SO IT IS DELIBERATE NOW RATHER THAN ACCIDENTAL, because the app needs those rows. A document
+       row is where a PAPER-LEVEL fact lives — `needs` carries "No calculator" once per paper
+       instead of once per question — and `needsIndex_` in find.js reads them straight out of this
+       list. Restoring the skip would have taken that away; leaving a dead line would have left the
+       next reader believing the opposite of what happens.
+
+       WHAT STOPS THEM BEING DRAWN is `questionItems`, in one place, where the funnel's own filter
+       already is. A document has no text, no marks and no answer, and one arriving as a question
+       is the fault this comment was written about. */
+    const docRow = norm(r.kind) === 'document';
     qs.push({
       id: libS(r.row_id), paper: libS(r.paper_id),
       sourceId: libS(r.source_id),
@@ -287,6 +301,13 @@ function libraryInto_(d, rows) {
          `.qpaper figure svg` and the label classes waiting for it since before anything could
          produce one. Empty on all but two rows today. */
       figure: libS(r.figure), diagram: libS(r.diagram),
+      /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — a comma-list, the way `topics` and `keystage` are.
+         On a DOCUMENT row it is the paper's own front page ("You must not use a calculator") and
+         covers every question inside; on a question row it is what that one question needs on top.
+         `needsOf_` in find.js unions the two. See tools/set-needs.py for why it is one column and
+         not three booleans. */
+      needs: libS(r.needs),
+      isDoc: docRow,
       /* ---------- PICTURES THAT ARE PHOTOGRAPHS OR SCANS, NOT DRAWINGS ------------------------
          `diagram` IS INLINE SVG DRAWN HERE and takes the page's own ink; `images` is a list of
          addresses. AQA's Paper 1 Question 5 is the case that asked for it — the writing task offers
@@ -307,7 +328,13 @@ function libraryInto_(d, rows) {
       lead: libS(r.lead), html: libS(r.html),
       company: libS(r.company),
       answer: libS(r.answer), answerType: norm(r.answer_type),
-      needsPrint: libTrue(r.needs_print),
+      /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. `needs_print` is True on 252 rows and
+         `print_required` on 104, and **not one row is True in both** — two imports over two
+         subsets, neither ever given the other's rows. `find.js` noticed and said so where the
+         deleted `Printed?` facet used to be. Unioned here rather than in 356 content rows: a union
+         is safe precisely because they are disjoint, so nothing is adjudicated. `printable` is NOT
+         folded in — True on 1,287 and a different question, whether a PDF exists to print at all. */
+      needsPrint: libTrue(r.needs_print) || libTrue(r.print_required),
       examinerNote: libS(r.examiner_note), examinerReport: libS(r.examiner_report),
       guide: libS(r.guide),
       name: libS(r.name), subject: libS(r.subject),

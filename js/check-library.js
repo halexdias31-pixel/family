@@ -76,7 +76,9 @@ const VOCAB = {
   active:        ['True', 'False'],
   subject:       ['Combined Science', 'English Language', 'Maths', 'Physics', 'Religious Studies'],
   document_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
-  key_stage:     ['KS1', 'KS1, KS2', 'KS2', 'KS3', 'KS3, KS4', 'KS4', 'KS5'],
+  /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
+     see LIST_COLS below for why a list column is checked per item. */
+  key_stage:     ['KS1', 'KS2', 'KS3', 'KS4', 'KS5'],
   band_type:     ['grade', 'stage', 'tier', 'year'],
   tier:          ['A-Level', 'AS', 'Foundation', 'Higher'],
   level:         ['AS', 'Alevel', 'GCSE'],
@@ -87,6 +89,12 @@ const VOCAB = {
   answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'proof', 'short', 'written'],
   month:         ['5', '6', '11'],
   paper:         ['1', '2', '3'],
+  /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. A closed list for
+     the reason every list here is closed: `calc`, `Calculator` and `calculator` would be three
+     buttons on the funnel for one fact, which is the `Alevel` / `A-Level` fault in a new column.
+     `Calculator` and `No calculator` live on the DOCUMENT row (the front cover says it once for the
+     whole paper); the kit lives on the question that asks for it. See tools/set-needs.py. */
+  needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper'],
   needs_print:   ['True', 'False'],
   printable:     ['True', 'False'],
   trackable:     ['True', 'False'],
@@ -243,6 +251,20 @@ rows.forEach(r => {
 
 /* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
 const strays = [];
+/* ---------- A LIST COLUMN IS CHECKED PER ITEM, NOT PER CELL --------------------------------------
+   `key_stage` GAVE THIS AWAY AND IT TOOK A SECOND LIST COLUMN TO NOTICE. Its vocabulary reads
+   `KS1`, `KS1, KS2`, `KS2`, `KS3`, `KS3, KS4`, `KS4`, `KS5` — five values and two COMBINATIONS of
+   them, listed because the loop compared the whole cell. That is fine at two combinations and
+   combinatorial after: `needs` holds six atoms, so a cell-wise list would need sixty-three entries
+   to permit what six atoms already say, and a real pair like "Compass, Ruler" fails until somebody
+   types it out.
+
+   THE COLUMN IS A LIST WHEREVER THE APP READS IT AS ONE — `asList_` and a comma, which is how
+   `topics`, `keystage` and `images` have always worked. So the vocabulary is the ATOMS, and the
+   combinations come out of `key_stage` because they were never facts, only an artefact of how this
+   loop asked the question. */
+const LIST_COLS = new Set(['needs', 'key_stage']);
+
 Object.keys(VOCAB).forEach(col => {
   const allowed = new Set(VOCAB[col]);
   const bad = new Map();
@@ -250,8 +272,10 @@ Object.keys(VOCAB).forEach(col => {
   rows.forEach(r => {
     if (!r || !(col in r)) return;
     seen++;
-    const v = String(r[col]);
-    if (!allowed.has(v)) bad.set(v, (bad.get(v) || 0) + 1);
+    const parts = LIST_COLS.has(col)
+      ? String(r[col]).split(',').map(x => x.trim()).filter(Boolean)
+      : [String(r[col])];
+    parts.forEach(v => { if (!allowed.has(v)) bad.set(v, (bad.get(v) || 0) + 1); });
   });
   /* ---------- A VOCABULARY FOR A COLUMN NOTHING HAS IS A VOCABULARY NOTHING ENFORCES -------------
      CAUGHT BY DOING IT. `resource_type` was renamed to `document_type` across the file and the code,
@@ -686,6 +710,23 @@ console.log(`questions whose picture never came across: ${noPicture.length}`
 if (worst.length) {
   console.log(`   worst papers: ${worst.map(k => `${k} (${perPaper[k]})`).join(', ')}`);
 }
+
+/* ---------- WHAT A PAPER REQUIRES, AND HOW MUCH OF IT IS KNOWN ----------------------------------
+   THE SAME BACKLOG SHAPE AS `total_marks` AND `exam_date`: a number somebody can act on beats a
+   silence. Calculator is read off the paper's own front page and covers every question inside, so
+   it is counted per DOCUMENT; the kit is per question and mostly absent, because only twelve
+   questions in the whole library print the word themselves — see tools/set-needs.py for why the
+   rest are left blank rather than inferred from what the question is about. */
+const saysCalc = rows.filter(r => r && r.kind === 'document'
+  && /calculator/i.test(String(r.needs || ''))).length;
+const docCount = rows.filter(r => r && r.kind === 'document').length;
+const kitRows = rows.filter(r => r && r.kind === 'question'
+  && /Compass|Ruler|Protractor|Tracing paper/.test(String(r.needs || ''))).length;
+const printRows = rows.filter(r => r && r.kind === 'question'
+  && (String(r.needs_print) === 'True' || String(r.print_required) === 'True')).length;
+console.log(`papers saying whether a calculator is allowed: ${saysCalc} of ${docCount}`
+  + `   questions naming kit they need: ${kitRows}`
+  + `   questions needing the printed sheet: ${printRows}`);
 
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
 console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`

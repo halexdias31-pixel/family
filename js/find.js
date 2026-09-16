@@ -809,6 +809,18 @@ const FACETS = [
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
   { field: 'company',   label: 'Company',     of: x => x.company },
+  /* ---------- WHAT YOU NEED IN FRONT OF YOU ------------------------------------------------------
+     A LIST, so a question needing compasses AND the printed sheet answers both — `asList_` and the
+     comma are doing here exactly what they do for `keystage` two screens up. The values come from a
+     closed vocabulary in `check-library.js`, so a fifth spelling of "calculator" fails the build
+     rather than becoming a fifth button.
+
+     ITS COVERAGE IS LOW ON PURPOSE AND NOTHING NEW DECIDES WHEN IT IS ASKED. 1,013 of 4,005
+     questions inherit a calculator answer from their paper's front page and the rest say nothing
+     yet, so `FACET_COVERAGE` keeps the question quiet until the list on screen is mostly papers
+     that declare it — which is the same self-correcting rule that keeps `Topic` out of the way
+     until the list IS questions. */
+  { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
   /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION ------------------------
      IT READ `x.paper`, AND `questionItems` SET THAT TO `true` ON EVERY QUESTION. So the only
      reader of the field was this facet, and the only writer was a literal. Measured: 3,753 items
@@ -1115,6 +1127,17 @@ function filterHit(x, f) {
      whatever the sheet says, and after the folding above those are often not the same characters:
      a chip reading `1st Class Maths` has to find a row that says `1stclassmaths`. `norm` only
      lowercases and trims, so it would have found neither — see `spellKey_`. */
+  /* ---------- A BAND MATCHES BY MEMBERSHIP, NOT BY LETTERS -------------------------------------
+     `bandNumbers_` REPLACES `1`…`13` WITH `1\u201310` AND `11\u201320`, so the chip holds a range and the
+     row holds a number and no amount of spelling reduction will ever make those equal. Tested
+     through `bandOf_`, the same function that drew the label, so the drawer and the filter cannot
+     disagree about where a band's edges are — which is the `documents_()` argument: a second
+     reader of one thing is a second chance to disagree about it. */
+  const band = /^(\d+)\u2013(\d+)$/.exec(String(f.value || ''));
+  if (band) {
+    return asList_(facet.of(x)).some(v => intAnswer_(v)
+      && Number(v) >= Number(band[1]) && Number(v) <= Number(band[2]));
+  }
   return asList_(facet.of(x)).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
@@ -1194,6 +1217,65 @@ function shortLabels_(values) {
   }
   values.forEach(v => { v.show = v.value; });
   return values;
+}
+
+/**
+ * A LONG LIST OF PLAIN NUMBERS IS ASKED IN TENS.
+ *
+ * REPORTED WITH A SCREENSHOT: "look what happens when the options are too long. there should be a
+ * filter to fix this. e.g. q1-10, q11-20." — thirteen rows reading `1`, `2`, `3` … down past the
+ * bottom of the phone, each one a tap target the height of a button and none of them any easier to
+ * choose between than the number beside it.
+ *
+ * THE CAP DID NOT CATCH IT AND SHOULD NOT HAVE. `FACET_MAX_ANSWERS = 40` is about a list nobody can
+ * READ — 212 paper names — and thirteen numbers are perfectly readable. They are just not worth
+ * thirteen rows, because **a run of consecutive integers is the one answer set where the reader
+ * already knows what is in the gaps.** Nobody scans 1…13 to find out whether 7 is there.
+ *
+ * SO IT IS NOT A NEW CAP, IT IS A DIFFERENT SHAPE FOR ONE KIND OF ANSWER. Every value has to be a
+ * plain non-negative integer — `1`, not `1a`, not `Grade 4`, not `Paper 1` — and there have to be
+ * more than `FACET_BAND_AT` of them. Anything else falls straight through, so subjects, topics,
+ * papers and sittings are untouched by construction. Measured before writing it: of the twenty-odd
+ * facets, only the sheet-invented `question` column is all-integer.
+ *
+ * TENS, AND NOT A COMPUTED BUCKET SIZE. An exam paper is numbered 1 to about 25 and a person asks
+ * for "the first ten" or "the twenties" — those are the words, and a band of 7 chosen to make the
+ * columns even would be arithmetic nobody asked for. Bands are aligned to the ten, so the first is
+ * `1–10` rather than `1–10` sliding with wherever the data starts, and an empty band is never
+ * drawn because it is built from the values that exist.
+ *
+ * AND THE BAND IS A REAL ANSWER, NOT A VIEW. It becomes a chip with the same ✕, and `filterHit`
+ * tests membership rather than equality — see the note there. Answering `11–20` and then being
+ * asked again, now with ten ordinary numbers, is the funnel doing what it always does: ask the
+ * question the list in front of it deserves.
+ */
+const FACET_BAND_AT = 12;
+const FACET_BAND_BY = 10;
+
+/* A plain non-negative integer and nothing else. `+v` alone would accept ` 4 `, `4.0` and `1e3`,
+   and `parseInt` would accept `4a` — which is a real value in this library, because an exam
+   question is numbered `4a`. The test has to be on the characters. */
+const intAnswer_ = v => /^\d+$/.test(String(v == null ? '' : v).trim());
+
+/* THE BAND A NUMBER FALLS IN, as a label. One function so the drawer and `filterHit` cannot
+   disagree about where the edges are — the fault this file records under `documents_()`. */
+function bandOf_(n) {
+  const lo = Math.floor((n - 1) / FACET_BAND_BY) * FACET_BAND_BY + 1;
+  return lo + '\u2013' + (lo + FACET_BAND_BY - 1);
+}
+
+function bandNumbers_(values) {
+  if (values.length <= FACET_BAND_AT) return values;
+  if (!values.every(v => intAnswer_(v.value))) return values;
+  const by = {};
+  values.forEach(v => {
+    const k = bandOf_(Number(v.value));
+    if (!by[k]) by[k] = { value: k, n: 0, band: true, lo: Number(v.value) };
+    by[k].n += v.n;
+    by[k].lo = Math.min(by[k].lo, Number(v.value));
+  });
+  return Object.keys(by).map(k => by[k]).sort((a, b) => a.lo - b.lo)
+    .map(b => ({ value: b.value, show: b.value, n: b.n }));
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
@@ -1379,12 +1461,17 @@ function facetTally_(items, facet) {
     const best = spellBetter_(seen && seen.best, { value: v, n: by[v] });
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
-  const values = Object.keys(folded)
+  let values = Object.keys(folded)
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
   shortLabels_(values);
+  /* ---------- AND A LONG LIST OF PLAIN NUMBERS IS ASKED IN TENS ---------------------------------
+     See `bandNumbers_`. Applied AFTER the labels, because a band replaces the answers rather than
+     relabelling them, and BEFORE the counts below, because the split and the coverage that decide
+     whether the question is asked at all are read off this list. */
+  values = bandNumbers_(values);
 
   let top = 0;
   values.forEach(v => { if (v.n > top) top = v.n; });
@@ -1518,10 +1605,56 @@ function facetSplit_(items, facet) {
  * you have narrowed to the rows that do carry a board, its coverage rises and it starts being
  * offered. The sparse questions arrive exactly when they stop being sparse.
  */
+/**
+ * A QUESTION WHOSE ANSWERS ARE ONLY UNIQUE INSIDE ANOTHER QUESTION'S ANSWER.
+ *
+ * REPORTED AS "it seems there are two question 1s for summer? maybe it hasn't distinguished the 3
+ * papers?" — and the library had distinguished them perfectly. Measured at that exact state
+ * (Learning · Questions · Maths · KS4 · Higher · Summer 2017, 88 questions), `Question number = 1`
+ * matches **seven rows across three different papers**: Paper 1's Q1a–d, Paper 2's Q1, and Paper
+ * 3's Q1a–b. Nothing is duplicated. "Question 1" is simply not a thing until you have said which
+ * paper, and the funnel was offering it as though it were.
+ *
+ * THIS IS NOT AN ORDERING PREFERENCE, WHICH IS WHY IT IS IN CODE. The `facets` sheet owns `at` and
+ * should: which question somebody wants asked first is a judgement. **Whether an answer means one
+ * thing is not** — it is the same distinction `always` draws for doors, one level down. A sheet
+ * can put `question` at order 1 and the funnel will still not ask it until `paperId` is answered,
+ * because before that the answer `1` names seven questions and the person pressing it cannot know.
+ *
+ * AND THE FACET IS THE SHEET'S, NOT THE CODE'S — measured, `facetList()` has no `qNumber`, so the
+ * chip in the screenshot is `facetFromSheet_` reading the `question` column. Both spellings are
+ * named here because the sheet may use either, and a rule that only covers the code's own facets
+ * would not have covered the one that actually caused this.
+ *
+ * `part` NEEDS BOTH. Part `a` means nothing without a question number, which means nothing without
+ * a paper — so it names the rung below it and the chain resolves itself.
+ */
+const FACET_NEEDS_FIRST = {
+  question: 'paperId',
+  qNumber:  'paperId',
+  part:     'question',
+  qPart:    'qNumber',
+};
+
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
+  /* ---------- A BAND IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -------------------------
+     `11\u201320` narrows to ten questions and does not say which. Treating it as answered would make
+     the band a dead end — the list is small enough to name a question and the funnel would refuse
+     to, which is the "Nothing left to narrow" complaint `overFacet_` was written for. So a facet is
+     "asked" only when its answer is a single value; a band leaves it open and the next draw offers
+     the ten numbers inside it, which are now under `FACET_BAND_AT` and drawn plainly. */
+  const settled = STUFF.filters
+    .filter(f => !/^\d+\u2013\d+$/.test(String(f.value || '')))
+    .map(f => f.field);
+
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1) continue;
+    if (settled.indexOf(facet.field) !== -1) continue;
+    /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
+       See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
+       still ask it of a list holding three papers, which is the same wrong answer further down. */
+    const first = FACET_NEEDS_FIRST[facet.field];
+    if (first && asked.indexOf(first) === -1) continue;
     const vals = facetValues(items, facet).length;
     if (vals < 2 || vals > FACET_MAX_ANSWERS) continue;
     /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
@@ -2041,11 +2174,62 @@ function preamble_(r, at) {
   return out;
 }
 
+/**
+ * WHAT YOU HAVE TO HAVE IN FRONT OF YOU, FROM THE PAPER AND FROM THE QUESTION.
+ *
+ * ASKED FOR AS THREE THINGS — calculator or not, a print, a compass — AND IT IS ONE COLUMN. The
+ * `images` note in CLAUDE.md is the argument and it was paid for once already: three booleans is
+ * three schema changes, three mappings, three renderers and three checks, and the day somebody
+ * needs a fourth (a protractor, tracing paper, squared paper) it is all four again. `needs` is a
+ * comma-list, read by `asList_`, exactly as `topics` and `keystage` already are.
+ *
+ * THE TWO SCOPES ARE NOT THE SAME AND THAT IS THE WHOLE OF THIS FUNCTION. "You must not use a
+ * calculator" is printed on the front cover and is true of all 31 questions inside, so it lives
+ * ONCE on the `kind: 'document'` row — 103 cells covering 1,013 questions. Writing it onto every
+ * question row instead would be a thousand chances for row 4 to disagree with row 3, which is the
+ * denormalisation hazard `paperMismatches` exists for. A COMPASS is the other way round: one
+ * question asks you to construct a bisector and the other thirty do not.
+ *
+ * SO IT IS A UNION, OUTERMOST FIRST, which is the same shape and the same order as `preamble_`
+ * directly above — the paper's fact, then the question's own. Deduplicated on the way, because a
+ * question that names a ruler inside a paper that already asks for one should not say it twice.
+ */
+function needsIndex_(all) {
+  const at = {};
+  all.forEach(r => {
+    if (!r || !r.isDoc) return;
+    const pid = paperIdOf_(r);
+    if (pid) at[pid] = asList_(String(r.needs || '').split(','));
+  });
+  return at;
+}
+
+function needsOf_(r, at) {
+  const out = [];
+  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  ((at && at[paperIdOf_(r)]) || []).forEach(add);
+  asList_(String((r && r.needs) || '').split(',')).forEach(add);
+  /* ---------- AND THE PRINTED SHEET, WHICH IS READ RATHER THAN RE-TYPED ------------------------
+     "WHETHER A PRINT IS REQUIRED" WAS ASKED FOR AND THE LIBRARY ALREADY HELD IT TWICE. Measured:
+     `needs_print` True on 252 rows, `print_required` True on 104, and **zero rows True in both** —
+     two imports over two disjoint subsets. `libraryInto_` unions them onto `needsPrint`; this puts
+     the answer in the same list as everything else so the card and the facet have one reader.
+
+     A THIRD COLUMN WOULD HAVE BEEN THE FOURTH SPELLING OF ONE ANSWER, which is the fault this file
+     fixed as a RULE in `spellKey_` rather than by hand a fourth time. The first version of
+     tools/set-needs.py derived it from `figure` and would have written exactly that. */
+  if (r && r.needsPrint) add('Printed sheet');
+  return out;
+}
+
 function questionItems() {
   const all = DATA.questions || [];
   if (!all.length) return [];
 
   const stems = stemIndex_(all);
+  /* BUILT ONCE PER DRAW, not looked up per question — `all` is 4,682 rows and this walks it once.
+     Same reason `stemIndex_` is a map rather than a filter inside the loop. */
+  const kit = needsIndex_(all);
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -2140,6 +2324,9 @@ function questionItems() {
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */
+      /* THE PAPER'S REQUIREMENT AND THE QUESTION'S OWN, already unioned — see `needsOf_`. A list,
+         so the facet is multi-valued the way `keystage` is, and so a question can need two things. */
+      needs: needsOf_(r, kit),
       row: r.row || r,
     };
   });
@@ -2280,13 +2467,20 @@ function satOn_(x) {
 function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
   const sat = satOn_(x);
+  const needs = asList_(x.needs);
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
       <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
     </div>
     <p class="qcard-sub">${esc(x.sub)}${
-      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}</p>
+      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
+      /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
+         the person who needs this most is the one who has already chosen the question and is about
+         to walk into a lesson — so it belongs on the card, not only on a chip. Drawn only when the
+         row says something; a blank one prints nothing rather than "nothing needed", because those
+         are different claims and only one of them has been checked. */''}${
+      needs.length ? `<span class="qcard-needs">${esc(needs.join(' · '))}</span>` : ''}</p>
     <div class="qsheet">
       ${/* `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT.
             An AQA English insert is a separate booklet of third-party copyright, so the source is
@@ -3281,23 +3475,97 @@ function accountPages_() {
      `doget.gs` deliberately never sends the `people` tab, which holds PINs, bank details, addresses
      and dates of birth. Reading from anything else here would put all of that on every phone, and
      the leak would be invisible because the data would already have arrived. */
-  const me = `<div class="card">
-    <h3>${esc(USER.name || 'Signed in')}</h3>
-    <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
-    <button class="btn quiet" data-do="signout" style="margin-top:.6rem">Sign out</button>
-  </div>`;
+  /* ---------- AND YOU WERE THE ONE PERSON `findCard` DID NOT DRAW ------------------------------
+     REPORTED AS "why can't I see my own info like theirs?" — and the paragraph directly above this
+     one is the answer, stating the rule that the code underneath it then broke: *"a person looks
+     identical wherever they are seen — two renderers for one person is two things to keep in
+     step."* Everybody else got a staff pass with a photograph, what they teach, a rate and a DBS
+     stamp. You got a hand-rolled `<div class="card">` holding a name, a role and a button.
+
+     SO YOUR ROW GOES THROUGH THE SAME FUNCTION. Found by `personId` first — CLAUDE.md is emphatic
+     that an id beats a name, and `changePin` is the entry where matching a person by their display
+     name was a real denial — then by handle, then by name, which is the same order `findPerson`
+     uses on the backend and for the same reason.
+
+     AND IF YOU ARE NOT STAFF THERE IS NO ROW, so one is built from what signing in already
+     returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
+     the distinction the note above is about. */
+  const mineIs_ = t => !!t && (
+    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
+    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
+    (USER.name && t.title && norm(t.title) === norm(USER.name)));
+
+  const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
+    title: USER.name || 'Signed in',
+    role:  roleOf(USER.role || 'student'),
+    handle: USER.handle,
+    image: USER.image || USER.photo || '',
+    rate:  USER.rate,
+    teaches: [],
+    personId: USER.personId,
+    /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` --------------------
+       THE STAMP IS A REAL CLAIM. A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is
+       always answered — true or false — and the note on the pass defends the negative outright:
+       "a pass without one is visibly a pass without one, which is exactly the right amount of
+       alarming". That is right for somebody a parent is checking.
+
+       IT IS NOT A CLAIM ANYBODY HAS MADE ABOUT A ROW BUILT HERE. A parent looking at their own
+       account has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it would be
+       the `cost: 0` shape one more time: a missing fact rendered as a negative one. Omitting the
+       key is what tells the two apart — see `findCard`. */
+  };
+
+  /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING -------------------
+     REPORTED FOR THE SECOND TIME: "I don't see a message tile on tutors." The first time the tile
+     was real and the CARD could not be reached — the `facets` sheet had put a filter in front of
+     the doors. This time the card is right here on the account column and the tile is genuinely
+     not drawn, for a different reason.
+
+     `cardTiles_` IS APPENDED BY `stuffCard`, NOT BY `findCard`. Its own note says why — "one place
+     instead of nine... a kind added tomorrow gets its actions without anybody doing anything" —
+     and that is right, except this column calls `findCard` directly and so gets the card without
+     the row of actions under it. A person seen on the Find screen has a Message tile; the same
+     person seen here had none.
+
+     AND A ROW IS NOT AN ITEM. `cardTiles_` reads `x.name`, `x.key` and `x.row.personId`; passing
+     `{ kind, row }` gives it a card and an empty tile row, which is worse than no tiles because it
+     draws a Message button addressed to nobody. So the shape is built the way `stuffItems` builds
+     it, in one helper used for you and for everybody else — the same argument as `mineIs_` above:
+     two places constructing one thing is two chances to construct it differently. */
+  const asItem_ = t => ({
+    kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
+    cost: priced_(t.rate), off: t.listed === false, row: t,
+  });
+
+  const withTiles_ = t => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
+    + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
+
+  const me = [
+    withTiles_(myRow),
+    `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
+  ].join('');
 
   const others = (DATA.tutors || [])
     .filter(t => t && t.title && t.listed !== false)
     /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
        account and again below as a tutor — the same duplication the `me` kind was merged away to
-       avoid. Matched on the normalised name, which is what every other lookup here uses. */
-    .filter(t => !(USER.name && norm(t.title) === norm(USER.name)))
-    .map(t => (typeof findCard === 'function'
-      ? findCard({ kind: 'tutor', row: t })
-      : `<div class="card"><h3>${esc(t.title)}</h3></div>`));
+       avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never
+       disagree about which person you are. */
+    .filter(t => !mineIs_(t))
+    .map(withTiles_);
 
-  return [me].concat(others);
+  /* ---------- EVERY PAGE IN THIS COLUMN IS A CARD ------------------------------------------------
+     REPORTED AS "I want them standardised like the other widgets", with a screenshot: your account
+     sat in an ordinary `.card` and every person under it was a bare `.pass` returned straight out
+     of `findCard`. Measured — page 1 `.card`, page 2 `.pass` — so the column drew two different
+     kinds of object down one scroll.
+
+     THIS IS THE REELS FAULT EXACTLY, one screen along. That one "returned its own markup instead of
+     going through `pages()` or `stack()`, so it drew straight onto the black with no pane", and the
+     fix was to make it an ordinary card with its own markup inside. Same here: the pass keeps every
+     one of its own rules — the hole, the stamp, the lanyard shadow — and sits in the pane everything
+     else on this screen sits in. */
+  return [me].concat(others).map(html => `<div class="card is-widget">${html}</div>`);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
