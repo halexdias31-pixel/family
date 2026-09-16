@@ -115,6 +115,14 @@
    "minCoverage": 0,
    "active": true,
    "null": ""
+  },
+  {
+   "field": "question",
+   "label": "Question number",
+   "order": 205,
+   "minCoverage": 0,
+   "active": true,
+   "null": ""
   }
  ],
  "people": [

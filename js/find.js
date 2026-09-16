@@ -1127,6 +1127,17 @@ function filterHit(x, f) {
      whatever the sheet says, and after the folding above those are often not the same characters:
      a chip reading `1st Class Maths` has to find a row that says `1stclassmaths`. `norm` only
      lowercases and trims, so it would have found neither — see `spellKey_`. */
+  /* ---------- A BAND MATCHES BY MEMBERSHIP, NOT BY LETTERS -------------------------------------
+     `bandNumbers_` REPLACES `1`…`13` WITH `1\u201310` AND `11\u201320`, so the chip holds a range and the
+     row holds a number and no amount of spelling reduction will ever make those equal. Tested
+     through `bandOf_`, the same function that drew the label, so the drawer and the filter cannot
+     disagree about where a band's edges are — which is the `documents_()` argument: a second
+     reader of one thing is a second chance to disagree about it. */
+  const band = /^(\d+)\u2013(\d+)$/.exec(String(f.value || ''));
+  if (band) {
+    return asList_(facet.of(x)).some(v => intAnswer_(v)
+      && Number(v) >= Number(band[1]) && Number(v) <= Number(band[2]));
+  }
   return asList_(facet.of(x)).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
@@ -1206,6 +1217,65 @@ function shortLabels_(values) {
   }
   values.forEach(v => { v.show = v.value; });
   return values;
+}
+
+/**
+ * A LONG LIST OF PLAIN NUMBERS IS ASKED IN TENS.
+ *
+ * REPORTED WITH A SCREENSHOT: "look what happens when the options are too long. there should be a
+ * filter to fix this. e.g. q1-10, q11-20." — thirteen rows reading `1`, `2`, `3` … down past the
+ * bottom of the phone, each one a tap target the height of a button and none of them any easier to
+ * choose between than the number beside it.
+ *
+ * THE CAP DID NOT CATCH IT AND SHOULD NOT HAVE. `FACET_MAX_ANSWERS = 40` is about a list nobody can
+ * READ — 212 paper names — and thirteen numbers are perfectly readable. They are just not worth
+ * thirteen rows, because **a run of consecutive integers is the one answer set where the reader
+ * already knows what is in the gaps.** Nobody scans 1…13 to find out whether 7 is there.
+ *
+ * SO IT IS NOT A NEW CAP, IT IS A DIFFERENT SHAPE FOR ONE KIND OF ANSWER. Every value has to be a
+ * plain non-negative integer — `1`, not `1a`, not `Grade 4`, not `Paper 1` — and there have to be
+ * more than `FACET_BAND_AT` of them. Anything else falls straight through, so subjects, topics,
+ * papers and sittings are untouched by construction. Measured before writing it: of the twenty-odd
+ * facets, only the sheet-invented `question` column is all-integer.
+ *
+ * TENS, AND NOT A COMPUTED BUCKET SIZE. An exam paper is numbered 1 to about 25 and a person asks
+ * for "the first ten" or "the twenties" — those are the words, and a band of 7 chosen to make the
+ * columns even would be arithmetic nobody asked for. Bands are aligned to the ten, so the first is
+ * `1–10` rather than `1–10` sliding with wherever the data starts, and an empty band is never
+ * drawn because it is built from the values that exist.
+ *
+ * AND THE BAND IS A REAL ANSWER, NOT A VIEW. It becomes a chip with the same ✕, and `filterHit`
+ * tests membership rather than equality — see the note there. Answering `11–20` and then being
+ * asked again, now with ten ordinary numbers, is the funnel doing what it always does: ask the
+ * question the list in front of it deserves.
+ */
+const FACET_BAND_AT = 12;
+const FACET_BAND_BY = 10;
+
+/* A plain non-negative integer and nothing else. `+v` alone would accept ` 4 `, `4.0` and `1e3`,
+   and `parseInt` would accept `4a` — which is a real value in this library, because an exam
+   question is numbered `4a`. The test has to be on the characters. */
+const intAnswer_ = v => /^\d+$/.test(String(v == null ? '' : v).trim());
+
+/* THE BAND A NUMBER FALLS IN, as a label. One function so the drawer and `filterHit` cannot
+   disagree about where the edges are — the fault this file records under `documents_()`. */
+function bandOf_(n) {
+  const lo = Math.floor((n - 1) / FACET_BAND_BY) * FACET_BAND_BY + 1;
+  return lo + '\u2013' + (lo + FACET_BAND_BY - 1);
+}
+
+function bandNumbers_(values) {
+  if (values.length <= FACET_BAND_AT) return values;
+  if (!values.every(v => intAnswer_(v.value))) return values;
+  const by = {};
+  values.forEach(v => {
+    const k = bandOf_(Number(v.value));
+    if (!by[k]) by[k] = { value: k, n: 0, band: true, lo: Number(v.value) };
+    by[k].n += v.n;
+    by[k].lo = Math.min(by[k].lo, Number(v.value));
+  });
+  return Object.keys(by).map(k => by[k]).sort((a, b) => a.lo - b.lo)
+    .map(b => ({ value: b.value, show: b.value, n: b.n }));
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
@@ -1391,12 +1461,17 @@ function facetTally_(items, facet) {
     const best = spellBetter_(seen && seen.best, { value: v, n: by[v] });
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
-  const values = Object.keys(folded)
+  let values = Object.keys(folded)
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
   shortLabels_(values);
+  /* ---------- AND A LONG LIST OF PLAIN NUMBERS IS ASKED IN TENS ---------------------------------
+     See `bandNumbers_`. Applied AFTER the labels, because a band replaces the answers rather than
+     relabelling them, and BEFORE the counts below, because the split and the coverage that decide
+     whether the question is asked at all are read off this list. */
+  values = bandNumbers_(values);
 
   let top = 0;
   values.forEach(v => { if (v.n > top) top = v.n; });
@@ -1530,10 +1605,56 @@ function facetSplit_(items, facet) {
  * you have narrowed to the rows that do carry a board, its coverage rises and it starts being
  * offered. The sparse questions arrive exactly when they stop being sparse.
  */
+/**
+ * A QUESTION WHOSE ANSWERS ARE ONLY UNIQUE INSIDE ANOTHER QUESTION'S ANSWER.
+ *
+ * REPORTED AS "it seems there are two question 1s for summer? maybe it hasn't distinguished the 3
+ * papers?" — and the library had distinguished them perfectly. Measured at that exact state
+ * (Learning · Questions · Maths · KS4 · Higher · Summer 2017, 88 questions), `Question number = 1`
+ * matches **seven rows across three different papers**: Paper 1's Q1a–d, Paper 2's Q1, and Paper
+ * 3's Q1a–b. Nothing is duplicated. "Question 1" is simply not a thing until you have said which
+ * paper, and the funnel was offering it as though it were.
+ *
+ * THIS IS NOT AN ORDERING PREFERENCE, WHICH IS WHY IT IS IN CODE. The `facets` sheet owns `at` and
+ * should: which question somebody wants asked first is a judgement. **Whether an answer means one
+ * thing is not** — it is the same distinction `always` draws for doors, one level down. A sheet
+ * can put `question` at order 1 and the funnel will still not ask it until `paperId` is answered,
+ * because before that the answer `1` names seven questions and the person pressing it cannot know.
+ *
+ * AND THE FACET IS THE SHEET'S, NOT THE CODE'S — measured, `facetList()` has no `qNumber`, so the
+ * chip in the screenshot is `facetFromSheet_` reading the `question` column. Both spellings are
+ * named here because the sheet may use either, and a rule that only covers the code's own facets
+ * would not have covered the one that actually caused this.
+ *
+ * `part` NEEDS BOTH. Part `a` means nothing without a question number, which means nothing without
+ * a paper — so it names the rung below it and the chain resolves itself.
+ */
+const FACET_NEEDS_FIRST = {
+  question: 'paperId',
+  qNumber:  'paperId',
+  part:     'question',
+  qPart:    'qNumber',
+};
+
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
+  /* ---------- A BAND IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -------------------------
+     `11\u201320` narrows to ten questions and does not say which. Treating it as answered would make
+     the band a dead end — the list is small enough to name a question and the funnel would refuse
+     to, which is the "Nothing left to narrow" complaint `overFacet_` was written for. So a facet is
+     "asked" only when its answer is a single value; a band leaves it open and the next draw offers
+     the ten numbers inside it, which are now under `FACET_BAND_AT` and drawn plainly. */
+  const settled = STUFF.filters
+    .filter(f => !/^\d+\u2013\d+$/.test(String(f.value || '')))
+    .map(f => f.field);
+
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1) continue;
+    if (settled.indexOf(facet.field) !== -1) continue;
+    /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
+       See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
+       still ask it of a list holding three papers, which is the same wrong answer further down. */
+    const first = FACET_NEEDS_FIRST[facet.field];
+    if (first && asked.indexOf(first) === -1) continue;
     const vals = facetValues(items, facet).length;
     if (vals < 2 || vals > FACET_MAX_ANSWERS) continue;
     /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
