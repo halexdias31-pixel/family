@@ -562,6 +562,88 @@ that way. One `-` flips it.
 had two private copies inside `seriesOf_` and `waveOf`, and `games.js` had a third until somebody
 deleted it with a note saying why. One list, one place.
 
+## The app downloaded itself again on every open
+
+**Reported as "the loading when site is starting is also taking long".** Measured, gzipped, off a
+server sending GitHub Pages' own headers, at 4× CPU throttling on a 1.6 Mbps link with 80 ms latency:
+
+| | before | after |
+|---|---|---|
+| first visit | 1863 ms, 1059 KB, 31 requests | unchanged — nothing is in the cache yet |
+| every visit after | **1537 ms, 1025 KB** | **473 ms, 346 KB, 1 request** |
+| `?dev` | — | 1771 ms, 1060 KB — the publisher's door, still uncached |
+
+**Nothing was ever cached.** `LOAD` was `Date.now()`, so every file was asked for as
+`name.js?t=<a number that changes every load>` — a URL the browser has never seen — and all 25
+scripts, the stylesheet and the library came down again from nothing on every single open.
+
+**`index.html` already argues both sides of this at length and the argument is still sound.** The
+clock was chosen deliberately, because the cost of a stale file falls on the PUBLISHER, who cannot
+tell "my fix did not work" from "I am looking at yesterday's file", and that cost eleven hours once.
+**What it quotes as the price is "about 230KB", and that number was measured before the library moved
+into the repository.** It is 1025 KB now and it grows with every paper transcribed — the same shape
+as "all 18 checks pass" and "one of the eighteen names": a number in a sentence nobody re-reads.
+
+**The fix is not to pick the other side.** The two readers want different answers and can have them:
+
+- **a visitor** gets `document.lastModified`, rounded to five minutes — when Pages last built the
+  page, so it moves on a deploy and at no other time. Between deploys every URL is one they already
+  hold; the moment you push, every URL changes at once. Nothing to remember, which is the whole
+  point: a step that must be remembered is a step that will be forgotten.
+- **the publisher** gets **`?dev`** back. It is a page no browser has a copy of, so the entry point
+  itself arrives fresh — the one thing the version system cannot do for itself — and it dates
+  everything by the clock so no file can be held. A link, not a setting: a parent opening the
+  ordinary address gets the ordinary fast path.
+
+**Still never cached, deliberately**: the payload (`cache: 'no-store'` — it is the database, and six
+hours old is wrong) and `index.html` itself, which has no URL of its own to put a version on.
+
+**One thing is not fixed and is not claimed to be.** `data/questions.json` still refetches on every
+visit. It is requested with the same versioned URL as everything else and every script beside it
+caches; `force-cache` made no difference and the container has 29 GB free, so it is not a cache-size
+ceiling. Whether that is Chromium or the app is not established, so it is written down rather than
+guessed at — and it is why the "after" row above says 346 KB rather than 0.
+
+**The Find screen itself was already fast** and is not what the complaint was about: measured in the
+browser at 4,007 items, `stuffItems` 0 ms memoised, a repaint 0 ms, a search 8 ms, a filter change
+19 ms. The four-fold speedup recorded further down held.
+
+## A question file that did not arrive said the library was empty
+
+**`libraryRows_` caught every failure and said nothing.** A 404, a refused request and a body that
+stops halfway all came out as `[]` — which is also what a legitimately empty file gives. Downstream,
+`stuffPageHtml` drew *"Nothing in the shop or the library yet."*: a confident sentence about an empty
+library, printed for a library of 4,682 rows that simply had not come.
+
+**Fourth occurrence of this repository's recurring fault.** `loadMessages` showed an empty inbox for
+an unreachable backend and its own comment named it — *"a network blip reads as everything having
+been deleted"*. `check-booking.js` printed "nothing to check" and exited 0. Reels drew "Nothing here
+yet" for a column that worked. Every one is the same sentence: **I did not manage to look, reported
+as I looked and there was nothing there.**
+
+**And it matters most on the phone that cannot do it.** `data/questions.json` is 346 KB compressed
+and 3.4 MB parsed — the largest single request the app makes, and the only one big enough to be
+dropped by a weak signal or an old handset that everything else survives. The person who sees that
+message is precisely the person whose library did not load.
+
+**`LIBRARY_FAILED` is separate from `LOAD_FAILED`** because they are separate requests with separate
+failures: the backend can be down while the library sits in the browser's cache, and the library can
+drop while the payload sails through. `nothingHere` reports whichever happened — it has drawn a
+reason and a `Try again` for the backend since it was written, and the library was simply never
+wired into it. **`Try again` had to clear the memo**: `libraryRows_` returns `LIBRARY_ROWS` untouched
+once set, so the button would have repainted the same failure for ever.
+
+**And `nothingHere` alone was not enough — the harness is what showed it.** On this site the list is
+NEVER empty, because the payload carries tutors and venues. Measured: 2 items, `LIBRARY_FAILED` set,
+and the empty-state branch never reached once. **A dropped library leaves a Find screen holding three
+venues and no questions**, with nothing anywhere saying why. So there is a banner too, which does not
+depend on the list being empty, written last of the three banner checks so it wins — a missing column
+is an admin's problem with saving, and this is every visitor's problem with the thing the app is for.
+
+**Proved in five directions**: a body that stops halfway, a 404, a request that never returns, a
+genuinely empty file, and everything working. The flag is set in the first three and empty in the
+last two, and the banner appears and clears to match.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
