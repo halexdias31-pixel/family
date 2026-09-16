@@ -175,6 +175,31 @@ boot(f => {
     }
   }
 
+  /* ---------- 4b. TWO ANSWERS, ONE LABEL --------------------------------------------------------
+     `shortLabels_` DRAWS THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE — `Paper 1` rather than
+     `Paper 1 (Non-Calculator) — May 2017` once the funnel has already asked which sitting. It
+     chooses that rung by testing uniqueness itself, so this cannot fire on the code's own facets,
+     and it is here for the same reason test 2 is kept: a `facets` row can invent a question at
+     runtime over any column, and every one of those goes through the same shortening.
+
+     THE COST OF BEING WRONG IS THE WHOLE POINT. Two papers on one button is not a cosmetic fault —
+     the row's `data-value` is the FULL name, so two rows reading `Paper 1` would send you to
+     whichever one you happened to press with nothing on screen saying the other existed. That is
+     the `Alevel` / `A-Level` fault with the spelling hidden instead of shown. */
+  facets.forEach(facet => {
+    if (facet.collect) return;
+    const seen = {};
+    f.facetValues(items, facet).forEach(v => {
+      const label = String(v.show === undefined ? v.value : v.show);
+      if (seen[label] && seen[label] !== v.value) {
+        bad.push('`' + facet.field + '` draws two different answers with the same label "' + label
+                 + '": ' + JSON.stringify(seen[label]) + ' and ' + JSON.stringify(v.value)
+                 + ' — one of them is unreachable, and nothing on screen says so. See shortLabels_.');
+      }
+      seen[label] = v.value;
+    });
+  });
+
   /* ---------- 5. TWO FACETS, ONE MEANING --------------------------------------------------------
      The `level` / `stage` fault ACROSS facets: two questions offering the same answer word but
      landing on different result sets. Reported rather than failed — two facets legitimately share a
