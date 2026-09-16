@@ -809,6 +809,18 @@ const FACETS = [
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
   { field: 'company',   label: 'Company',     of: x => x.company },
+  /* ---------- WHAT YOU NEED IN FRONT OF YOU ------------------------------------------------------
+     A LIST, so a question needing compasses AND the printed sheet answers both — `asList_` and the
+     comma are doing here exactly what they do for `keystage` two screens up. The values come from a
+     closed vocabulary in `check-library.js`, so a fifth spelling of "calculator" fails the build
+     rather than becoming a fifth button.
+
+     ITS COVERAGE IS LOW ON PURPOSE AND NOTHING NEW DECIDES WHEN IT IS ASKED. 1,013 of 4,005
+     questions inherit a calculator answer from their paper's front page and the rest say nothing
+     yet, so `FACET_COVERAGE` keeps the question quiet until the list on screen is mostly papers
+     that declare it — which is the same self-correcting rule that keeps `Topic` out of the way
+     until the list IS questions. */
+  { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
   /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION ------------------------
      IT READ `x.paper`, AND `questionItems` SET THAT TO `true` ON EVERY QUESTION. So the only
      reader of the field was this facet, and the only writer was a literal. Measured: 3,753 items
@@ -2041,11 +2053,62 @@ function preamble_(r, at) {
   return out;
 }
 
+/**
+ * WHAT YOU HAVE TO HAVE IN FRONT OF YOU, FROM THE PAPER AND FROM THE QUESTION.
+ *
+ * ASKED FOR AS THREE THINGS — calculator or not, a print, a compass — AND IT IS ONE COLUMN. The
+ * `images` note in CLAUDE.md is the argument and it was paid for once already: three booleans is
+ * three schema changes, three mappings, three renderers and three checks, and the day somebody
+ * needs a fourth (a protractor, tracing paper, squared paper) it is all four again. `needs` is a
+ * comma-list, read by `asList_`, exactly as `topics` and `keystage` already are.
+ *
+ * THE TWO SCOPES ARE NOT THE SAME AND THAT IS THE WHOLE OF THIS FUNCTION. "You must not use a
+ * calculator" is printed on the front cover and is true of all 31 questions inside, so it lives
+ * ONCE on the `kind: 'document'` row — 103 cells covering 1,013 questions. Writing it onto every
+ * question row instead would be a thousand chances for row 4 to disagree with row 3, which is the
+ * denormalisation hazard `paperMismatches` exists for. A COMPASS is the other way round: one
+ * question asks you to construct a bisector and the other thirty do not.
+ *
+ * SO IT IS A UNION, OUTERMOST FIRST, which is the same shape and the same order as `preamble_`
+ * directly above — the paper's fact, then the question's own. Deduplicated on the way, because a
+ * question that names a ruler inside a paper that already asks for one should not say it twice.
+ */
+function needsIndex_(all) {
+  const at = {};
+  all.forEach(r => {
+    if (!r || !r.isDoc) return;
+    const pid = paperIdOf_(r);
+    if (pid) at[pid] = asList_(String(r.needs || '').split(','));
+  });
+  return at;
+}
+
+function needsOf_(r, at) {
+  const out = [];
+  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  ((at && at[paperIdOf_(r)]) || []).forEach(add);
+  asList_(String((r && r.needs) || '').split(',')).forEach(add);
+  /* ---------- AND THE PRINTED SHEET, WHICH IS READ RATHER THAN RE-TYPED ------------------------
+     "WHETHER A PRINT IS REQUIRED" WAS ASKED FOR AND THE LIBRARY ALREADY HELD IT TWICE. Measured:
+     `needs_print` True on 252 rows, `print_required` True on 104, and **zero rows True in both** —
+     two imports over two disjoint subsets. `libraryInto_` unions them onto `needsPrint`; this puts
+     the answer in the same list as everything else so the card and the facet have one reader.
+
+     A THIRD COLUMN WOULD HAVE BEEN THE FOURTH SPELLING OF ONE ANSWER, which is the fault this file
+     fixed as a RULE in `spellKey_` rather than by hand a fourth time. The first version of
+     tools/set-needs.py derived it from `figure` and would have written exactly that. */
+  if (r && r.needsPrint) add('Printed sheet');
+  return out;
+}
+
 function questionItems() {
   const all = DATA.questions || [];
   if (!all.length) return [];
 
   const stems = stemIndex_(all);
+  /* BUILT ONCE PER DRAW, not looked up per question — `all` is 4,682 rows and this walks it once.
+     Same reason `stemIndex_` is a map rather than a filter inside the loop. */
+  const kit = needsIndex_(all);
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -2140,6 +2203,9 @@ function questionItems() {
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */
+      /* THE PAPER'S REQUIREMENT AND THE QUESTION'S OWN, already unioned — see `needsOf_`. A list,
+         so the facet is multi-valued the way `keystage` is, and so a question can need two things. */
+      needs: needsOf_(r, kit),
       row: r.row || r,
     };
   });
@@ -2280,13 +2346,20 @@ function satOn_(x) {
 function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
   const sat = satOn_(x);
+  const needs = asList_(x.needs);
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
       <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
     </div>
     <p class="qcard-sub">${esc(x.sub)}${
-      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}</p>
+      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
+      /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
+         the person who needs this most is the one who has already chosen the question and is about
+         to walk into a lesson — so it belongs on the card, not only on a chip. Drawn only when the
+         row says something; a blank one prints nothing rather than "nothing needed", because those
+         are different claims and only one of them has been checked. */''}${
+      needs.length ? `<span class="qcard-needs">${esc(needs.join(' · '))}</span>` : ''}</p>
     <div class="qsheet">
       ${/* `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT.
             An AQA English insert is a separate booklet of third-party copyright, so the source is

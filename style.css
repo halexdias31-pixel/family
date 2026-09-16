@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-29-sat-on";
+  --css-version: "2026-09-30-needs";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6824,6 +6824,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the thing you are scanning for. Drawn on the rows that carry `exam_date` and nowhere else —
    see `satOn_` in find.js for why that is almost all of them. */
 .qcard-sat { display: block; margin-top: .1rem; font-size: .62rem; color: var(--faint); }
+
+/* WHAT TO BRING. Gold rather than faint, and that is the one difference from the line above it: a
+   sitting date confirms you have the right paper, where "No calculator · Printed sheet" is an
+   instruction you have to act on before the lesson starts. It is the only thing on this card a
+   person has to DO something about, so it is the only thing wearing the accent. */
+.qcard-needs { display: block; margin-top: .15rem; font-size: .64rem; color: var(--gold); }
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
