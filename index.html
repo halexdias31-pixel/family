@@ -9,10 +9,12 @@
      THESE ARE A REQUEST, NOT A GUARANTEE. GitHub Pages sends its own Cache-Control and a browser is
      free to prefer it, so treat this as help rather than the mechanism.
 
-     IT MATTERS LESS THAN IT LOOKS. A held copy of this page still runs the block below, which still
-     asks for every script and stylesheet by the clock — so a stale index.html serves a fresh app.
-     The only thing that can actually go stale is this file's own markup, which is the section list
-     and little else, and it changes about once a month. -->
+     IT MATTERS LESS THAN IT LOOKS, AND THIS IS THE ONE FILE THE VERSION SYSTEM CANNOT COVER. Every
+     script and stylesheet below is asked for with a version on it, so none of them can go stale;
+     this page has no URL of its own to put a version on, which is exactly why `?dev` exists — see
+     the long note beside `LOAD`. A held copy of this page names the versions that were current when
+     it was fetched, so the worst case is an app one deploy behind for as long as Pages' own
+     `max-age` lasts, and `?dev` is the address that cannot be held at all. -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -195,7 +197,48 @@
 
      `?dev` IS GONE WITH IT. It existed to make exactly this happen on demand, and a switch that is
      always on is not a switch. */
-  LOAD = String(Date.now());
+
+  /* ---------- AND THEN THE 230KB WAS A MEGABYTE --------------------------------------------------
+     REPORTED AS "the loading when site is starting is also taking long", and the paragraph above is
+     why. It was a fair trade at the price it quotes and **that price was measured before the
+     library moved into the repository**: the honest figure now, gzipped, off a server sending
+     GitHub Pages' own headers, is
+
+         visit 1:  1059 KB over the wire, 31 requests
+         visit 2:  1059 KB
+         visit 3:  1059 KB
+
+     — 346KB of `data/questions.json`, 503KB of JavaScript and 153KB of stylesheet, downloaded again
+     from nothing, on every single open, for ever. Four and a half times the number the trade was
+     made at, and it grows every time a paper is transcribed.
+
+     THE FIX IS NOT TO PICK THE OTHER SIDE, because both costs are real and the argument above does
+     not stop being true. It is that the two readers want different answers and can have them:
+
+       - a VISITOR wants the files they already hold. `document.lastModified` is when GitHub Pages
+         last built this page, so it moves on a deploy and at no other time. Between deploys every
+         URL is one the browser has a file for; the moment you push, every URL changes at once.
+       - the PUBLISHER wants certainty that what is on screen is what they pushed, and that is what
+         `?dev` was for. It is a page no browser has a copy of, so the entry point itself arrives
+         fresh — the one thing the version system could never do for itself — and it dates
+         everything by the clock, so no file can be held either.
+
+     SO THE SWITCH IS BACK AND IT IS A SWITCH AGAIN. `https://…/?dev` is the never-cached address
+     and the plain one is the fast one. It is a link rather than a setting, so it cannot be left on
+     for somebody else: a parent opening the ordinary address gets the ordinary cached fast path.
+
+     ROUNDED TO FIVE MINUTES, WHICH IS THE SAFETY NET, and the reason is four paragraphs up: if a
+     server ever fails to send `Last-Modified`, `lastModified` quietly becomes "now", and a version
+     that changes every load is the never-cache disaster again but silent. Rounding cannot hurt a
+     real build time — a fixed instant stays a fixed instant — and it puts a floor under the
+     failure: one refetch every five minutes rather than one on every load.
+
+     WHAT IS STILL NEVER CACHED, deliberately, and neither is affected by any of this: the payload
+     (`cache: 'no-store'`, because it is the database and six hours old is wrong) and THIS FILE,
+     which carries the meta tags at the top of the page and has no URL of its own to date. */
+  LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
+    ? String(Date.now())                        /* the publisher: nothing may be held */
+    : String(Math.floor(LOAD_AT / 300000));     /* everybody else: changes on a deploy, and then */
 
   /* WHAT THE FOOTER SHOWS, from the same instant — so the version on screen is a MEASUREMENT of
      what is running rather than a second thing to remember to type. It read `2026-08-15m` for four

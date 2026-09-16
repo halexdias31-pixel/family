@@ -454,9 +454,14 @@ function paint(id) {
  * wording improves it everywhere at once.
  */
 function nothingHere(whenEmpty) {
-  return LOAD_FAILED
+  /* EITHER REQUEST CAN BE THE ONE THAT FAILED. `LOAD_FAILED` is the backend and `LIBRARY_FAILED` is
+     `data/questions.json`, and they fail independently — the library is a 3.4 MB static file that a
+     weak signal can drop while the payload sails through. Reporting only the first meant a dropped
+     library was drawn as "nothing in the library yet". See `libraryRows_` for the whole note. */
+  const why = LOAD_FAILED || LIBRARY_FAILED;
+  return why
     ? `<p class="empty">Couldn’t load.<br>
-        <span class="faint">${esc(LOAD_FAILED)}</span><br>
+        <span class="faint">${esc(why)}</span><br>
         <span class="text-action" data-do="retry">Try again</span></p>`
     : `<p class="empty">${whenEmpty}</p>`;
 }
@@ -1741,7 +1746,12 @@ function on(name, fn) { ACTIONS[name] = fn; }
 
 /* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
    reload is the thing most likely to lose whatever was half-typed on another screen. */
-on('retry', () => { LOADED = false; LOAD_FAILED = ''; banner(''); splashOn_(); repaint(); load(); });
+on('retry', () => { LOADED = false; LOAD_FAILED = ''; LIBRARY_FAILED = '';
+  /* THE LIBRARY IS MEMOISED and `Try again` has to actually try again: `libraryRows_`
+     returns `LIBRARY_ROWS` untouched once it is set, so leaving the empty array in place
+     would make the button repaint the same failure for ever. */
+  LIBRARY_ROWS = null;
+  banner(''); splashOn_(); repaint(); load(); });
 
 /* CARDS OPEN A SHEET, and an attempt to open them in place has been taken out again.
 
@@ -2094,6 +2104,24 @@ async function load() {
         banner('The sheet is missing columns: '
           + d.unwritten.map(x => x.tab + '.' + x.field).join(', ')
           + '. Anything saved to them is discarded.');
+      }
+      /* ---------- AND THE QUESTION FILE, WHICH FAILS SEPARATELY AND USED TO FAIL SILENTLY --------
+         `nothingHere` REPORTS A DROPPED LIBRARY ONLY WHEN THE LIST IS EMPTY, AND ON THIS SITE THE
+         LIST IS NEVER EMPTY. The payload carries tutors and venues, so a question file that did not
+         arrive leaves a Find screen holding three venues and no questions — measured in the harness:
+         2 items, `LIBRARY_FAILED` set, and the empty-state branch never reached once. The person
+         sees an app that works and has no questions in it, which is the complaint this came from.
+
+         SO IT IS A BANNER, because a banner does not depend on the list being empty. Written last
+         of the three so it wins: a missing column is an admin's problem with saving, and this is
+         every visitor's problem with the thing the app is for.
+
+         IT IS ALSO THE REQUEST MOST LIKELY TO FAIL. 346 KB compressed, 3.4 MB parsed — the largest
+         single thing the app asks for, and the only one big enough to be dropped by a weak signal
+         or an old handset that everything else survives. */
+      if (LIBRARY_FAILED) {
+        banner('The questions did not load — ' + LIBRARY_FAILED
+          + '. Everything else is here; reload the page to try again.');
       }
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE.
          It was built when a cached stylesheet was a real and invisible problem — twice a rule had

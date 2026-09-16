@@ -151,6 +151,11 @@ let LOADED = false;
    words on that screen were "add a row to the posts tab", which is advice for a problem the person
    does not have and no mention of the one they do. */
 let LOAD_FAILED = '';
+/* WHY THE QUESTION FILE DID NOT ARRIVE, when it did not. Separate from `LOAD_FAILED` because they
+   are separate requests with separate failures: the backend can be down while the library is in the
+   browser's cache, and — the case that prompted this — the library can fail on a phone while the
+   backend answers fine. See `libraryRows_`, and `nothingHere`, which reports whichever happened. */
+let LIBRARY_FAILED = '';
 
 /* WHETHER THE 30-SECOND WATCHDOG IN index.html HAS SPOKEN.
    It writes straight to the banner element, and until now nothing ever took that message down — so

@@ -72,13 +72,36 @@ const libTrue = v => {
 async function libraryRows_() {
   if (LIBRARY_ROWS) return LIBRARY_ROWS;
   let rows = null;
+  /* ---------- A FILE THAT DID NOT ARRIVE IS NOT AN EMPTY LIBRARY -------------------------------
+     THIS CAUGHT AND SAID NOTHING, and `[]` is what came out either way. Downstream, `stuffPageHtml`
+     then drew "Nothing in the shop or the library yet." — a confident sentence about the library
+     being empty, printed for a library that is 4,682 rows and simply had not come.
+
+     IT IS THE FAULT THIS REPOSITORY HAS NOW RECORDED FOUR TIMES. `loadMessages` showed an empty
+     inbox for an unreachable backend and its own comment named it: "a network blip reads as
+     everything having been deleted". `check-booking.js` printed "nothing to check" and exited 0.
+     Reels drew "Nothing here yet" for a column that worked. Every one is the same sentence — I did
+     not manage to look, reported as I looked and there was nothing there.
+
+     AND IT MATTERS MOST ON THE PHONE THAT CANNOT DO IT. This file is 346 KB compressed and 3.4 MB
+     parsed, which is the one request in the app big enough to fail on a weak signal or an old
+     handset — so the person who sees this message is exactly the person whose library did NOT load,
+     and the message told them it was empty. `nothingHere` has drawn a reason and a `Try again` for
+     the backend since it was written; the library just was never wired into it. */
   try {
     const early = window.BOOT_LIB || null;
     window.BOOT_LIB = null;
     const res = early ? await early : await fetch('data/questions.json', { cache: 'default' });
-    if (res && res.ok) rows = await res.json();
-  } catch (e) { rows = null; }
+    if (!res) LIBRARY_FAILED = 'the question file did not come back';
+    else if (!res.ok) LIBRARY_FAILED = 'the question file answered ' + res.status;
+    else rows = await res.json();          /* a truncated body throws here, and that is the point */
+  } catch (e) {
+    LIBRARY_FAILED = String((e && e.message) || 'the question file did not arrive');
+  }
+  /* AN EMPTY ARRAY IS A REAL ANSWER and is left alone — the file legitimately parses to `[]` on a
+     fresh clone. Only a throw or a refusal sets the flag, so "empty" and "absent" stay different. */
   LIBRARY_ROWS = Array.isArray(rows) ? rows : [];
+  if (Array.isArray(rows)) LIBRARY_FAILED = '';
   return LIBRARY_ROWS;
 }
 
