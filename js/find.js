@@ -1214,8 +1214,39 @@ function facetTally_(items, facet) {
     const i = ord.indexOf(v);
     return i === -1 ? ord.length : i;
   };
+  /* ---------- AND AN ANSWER THAT IS A DATE SORTS AS A DATE ---------------------------------------
+     THE SITTINGS CAME OUT ALPHABETICALLY AND IT READ AS BROKEN. June 2017, June 2018, June 2019,
+     June 2020, June 2023, June 2024, November 2017, November 2018, November 2019 — every June
+     stacked before any November, 2024 sitting above 2017, and each academic year split in half
+     down a list nobody could scan.
+
+     `cmpText` IS RIGHT ABOUT EVERYTHING ELSE and the note above says why: there is no reason to
+     prefer one of forty tutors, and alphabetical is the order somebody can predict. A date is the
+     exception because it HAS an order, and it is not the one its letters give.
+
+     THE TEST IS ON THE ANSWERS, NOT ON THE FACET. Nothing here knows that `examWave` is a sitting —
+     it asks whether every answer in front of it parses as `<Month> <year>`, and sorts by the date
+     if they all do. So a `facets` row inventing a question over any dated column gets the same
+     treatment with nothing added, and a facet with one date and nine words falls straight through
+     to the alphabet rather than sorting nine things by a rule that fits one.
+
+     NEWEST FIRST, and that is the half that is a judgement rather than arithmetic. Chronological
+     either way fixes the June/November split; which end leads is a choice, and the newest paper is
+     the one closest to the specification somebody is actually sitting — which is why every
+     past-paper site on earth lists them that way. One `-` on the line below flips it. */
+  const dateKey_ = v => {
+    const m = /^([A-Za-z]+)\s+((?:19|20)\d{2})$/.exec(String(v));
+    if (!m) return null;
+    const i = MONTH_NAMES.indexOf(m[1]);
+    return i === -1 ? null : Number(m[2]) * 12 + i;
+  };
+  const answers = Object.keys(by);
+  const allDates = answers.length > 1 && answers.every(v => dateKey_(v) !== null);
+
   const order = facet.field === 'forLabel'
     ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
+    : allDates
+    ? (a, b) => dateKey_(b) - dateKey_(a)
     : cmpText;
   /* ---------- THE VARIANTS ARE FOLDED HERE, BEFORE ANYTHING COUNTS THEM ---------------------------
      BEFORE, NOT AFTER, because every number below is read off this list: the answers the funnel
@@ -2551,8 +2582,9 @@ function yearOf(x) {
  * only merges where two months are certainly one series.
  */
 function seriesOf_(m) {
-  const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
-                 'July', 'August', 'September', 'October', 'November', 'December'];
+  /* `MONTH_NAMES` FROM data.js — this file had TWO private copies of the twelve months and games.js
+     had a third until somebody deleted it with a note saying why. One list, one place. */
+  const MONTH = MONTH_NAMES;
   const n = Number(m);
   if (!isFinite(n) || n < 1 || n > 12) return '';
   if (n >= 5 && n <= 7) return 'June';         /* the summer series */
@@ -2583,8 +2615,7 @@ function waveOf(x) {
   const raw = String((x && x.examWave) || '').trim();
   if (!raw) return '';
 
-  const MONTH = ['January', 'February', 'March', 'April', 'May', 'June',
-                 'July', 'August', 'September', 'October', 'November', 'December'];
+  const MONTH = MONTH_NAMES;
 
   /* ---------- A PHASE WORD IS A THIRD SPELLING OF THE SAME THING -------------------------------
      THE COMMENT ABOVE ALREADY NAMES THIS FAULT — "two ways of writing the same sitting are two
