@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-03-delrow";
+const DOGET_VERSION = "2026-10-05-library-cut";
 
 
 function doGet(e) {
@@ -672,30 +672,29 @@ function doGet(e) {
       if (k) payload.brand[k] = S(r.value);
     });
 
-    /* ---------- WHAT MAY GO ON A CHEAT SHEET -----------------------------------------------------
-       THE TAB EXISTED, THE SCHEMA KNEW IT, `mat.js` READ IT — AND NOTHING EVER SENT IT. Nineteen
-       rows saying which components exist, how tall each is and which levels it suits, and the
-       phone has been falling back to the copy hard-coded in the frontend every single time.
+    /* ---------- THE LIBRARY SPREADSHEET IS NOT READ HERE ANY MORE --------------------------------
+       THREE BLOCKS STOOD HERE — the cheat sheet's components, the boxers and the bouts — each
+       walking a tab of the `Library` file and pushing it onto the payload for every phone on every
+       load. They are `data/cheatsheet.json`, `data/boxers.json` and `data/fights.json` in the
+       repository now: 77, 103 and 157 rows, fetched beside `questions.json` and mapped by
+       `libraryExtras_` in js/library.js, which is the same mapping this was — compared key for key
+       and column for column before either block was touched, and byte-identical.
 
-       NOT A BUG ANYBODY COULD SEE, which is what made it survive: the fallback is correct, so the
-       tool worked perfectly and the sheet did nothing at all. Editing a row changed nothing and
-       there was no error to notice. */
-    read(TAB.cheatsheet).rows.forEach(r => {
-      const id = S(r.part_id).trim();
-      if (!id || !ON_(r.active)) return;
-      payload.cheatsheet.push({
-        id: id, name: S(r.name), levels: S(r.levels), tier: S(r.tier),
-        /* BLANK IS NOT ZERO. An empty height means "whatever the code says"; a typed 0 is a real
-           answer. Distinguishing them is what lets a row set one column and leave the rest alone. */
-        heightMm: S(r.height_mm) === '' ? null : N(r.height_mm),
-        half: S(r.half_width) === '' ? null : ON_(r.half_width),
-        startOn: ON_(r.start_on),
-        /* THREE STATES, NOT TWO. `ON_` would fold "nobody has checked" into "no", and the picker
-           has to be able to say nothing rather than say the wrong thing. */
-        inExam: S(r.in_exam) === '' ? null : ON_(r.in_exam),
-        order: S(r.sort_order) === '' ? null : N(r.sort_order),
-      });
-    });
+       THE EMPTY DECLARATIONS IN THE PAYLOAD LITERAL STAY, and that is deliberate rather than
+       leftover. `check-payload.js` builds its "sent" set from `doget.gs` alone, so removing
+       `boxers: []`, `fights: []` and `cheatsheet: []` would report three keys as read-and-never-sent
+       — a true sentence about this file and a false one about the app, because the phone fills them
+       from the repo. `questions` has been in exactly this state since it moved, for the same reason.
+
+       WHY IT MOVED AT ALL, in the words of the three-question test in CLAUDE.md: it is not secret,
+       the app never writes to it, and it arrives in bulk rather than being hand-edited. All three
+       answers point at code. What it buys is a tab that is no longer walked on every uncached
+       build, and a file a diff can show you.
+
+       THE SPREADSHEET ITSELF IS NOT DELETED BY THIS and must not be assumed gone: it still holds
+       thirteen tabs nothing here reads — `bible` alone is 31,102 rows — and a `questions` tab whose
+       `ticks_1/2/3` columns still carry 498 cells naming people. That is a decision for whoever owns
+       the data, not a consequence of this commit. */
 
     /* THE FUNNEL'S QUESTIONS. To EVERY phone, not just an admin's — this decides what the search
        asks, and search is the thing everybody uses. A row for a field the code does not know is
@@ -1396,65 +1395,7 @@ function doGet(e) {
       payload.herd.sort((a, b) => (a.sort || 0) - (b.sort || 0));
     } catch (err) { payload.herd = []; }
 
-    /* --- boxers ---------------------------------------------------------------------------------
-       SAME GUARD AS THE QUESTIONS TAB. A sheet that has not had `?setup=1` run on it has no boxers
-       tab, and `read` on a missing tab throws — which would take the whole payload down over a
-       feature nobody has switched on yet. */
-    try {
-      read(TAB.boxers).rows.forEach(r => {
-        if (!S(r.name) || !ON_(r.active)) return;
-        payload.boxers.push({
-          id: S(r.boxer_id), name: S(r.name), nickname: S(r.nickname),
-          sex: S(r.sex), country: S(r.country), bornIn: S(r.born_in), stance: S(r.stance),
-          dob: S(r.dob), dod: S(r.dod),
-          heightCm: N(r.height_cm), reachCm: N(r.reach_cm),
-          divisions: S(r.divisions), bestDivision: S(r.best_division),
-          activeFrom: S(r.active_from), activeTo: S(r.active_to), status: S(r.status),
-          wins: N(r.wins), winsKo: N(r.wins_ko),
-          losses: N(r.losses), lossesKo: N(r.losses_ko),
-          draws: N(r.draws), noContests: N(r.no_contests), recordAsOf: S(r.record_as_of),
-          worldTitles: S(r.world_titles), lineal: ON_(r.lineal), hallOfFame: ON_(r.hall_of_fame),
-          ringRank: S(r.ring_rank),
-          promoter: S(r.promoter), trainer: S(r.trainer),
-          notableWins: S(r.notable_wins), notableLosses: S(r.notable_losses),
-          image: S(r.image), notes: S(r.notes),
-        });
-      });
-    } catch (err) { payload.boxers = []; }
 
-    /* THE BOUTS. Same guard as the boxers above: a site whose sheet predates this tab has no such
-       tab, and `read` on one that is not there throws — which would take the entire payload down
-       over a feature nobody has switched on yet.
-
-       SORTED OLDEST FIRST, because a rivalry only reads correctly in order — the second fight is
-       an answer to the first. Sorted here rather than on the phone so every screen that shows them
-       agrees without each one remembering to. */
-    try {
-      read(TAB.fights).rows.forEach(r => {
-        if (!ON_(r.active)) return;
-        const a = S(r.boxer_a), b = S(r.boxer_b);
-        if (!a || !b) return;
-        payload.fights.push({
-          id: S(r.fight_id), rivalryId: S(r.rivalry_id),
-          boutNo: N(r.bout_no), boutTotal: N(r.bout_total), series: S(r.series),
-          event: S(r.event_name),
-          aId: S(r.boxer_a_id), a: a, bId: S(r.boxer_b_id), b: b,
-          /* THE DATE IS A DATE CELL AND ARRIVES AS A TIMESTAMP. Cut to the day here, once, rather
-             than by every screen that shows it — the exam wave column taught this the hard way,
-             where a cell meaning "June 2018" reached the phone as sixty characters of clock and
-             timezone and got drawn on a filter button exactly as it arrived. */
-          date: S(r.date).slice(0, 10),
-          venue: S(r.venue), city: S(r.city), country: S(r.country),
-          division: S(r.division), titles: S(r.titles), rounds: N(r.scheduled_rounds),
-          result: S(r.result), winnerId: S(r.winner_id), winner: S(r.winner),
-          method: S(r.method), endRound: N(r.end_round),
-          scorecards: S(r.scorecards), attendance: S(r.attendance), notes: S(r.notes),
-          video: S(r.video_url) || S(r.video_search_url),
-          verified: ON_(r.verified),
-        });
-      });
-      payload.fights.sort((x, y) => String(x.date).localeCompare(String(y.date)));
-    } catch (err) { payload.fights = []; }
 
     // --- resources -> checklists --------------------------------------------------------------
     /* The nest the checklist needs: subject, then band, then topics. The SHOP screen wants them

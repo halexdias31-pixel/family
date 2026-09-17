@@ -1105,7 +1105,15 @@ function initMat() {
           row still holds its gap and reads as something that failed to load. */''}
     <div class="mat-lev" id="mat-tier"></div>
     <div class="mat-lev mat-exam" id="mat-exam"></div>
-    <div class="mat-list" id="mat-list"></div>
+    ${/* ---------- THE LIST IS THE PART THAT GIVES UP ITS HEIGHT ------------------------------
+          MEASURED ON THE TOOLS COLUMN AT 390px: this list is 464px of a 1263px card inside an
+          805px pane, so 458px of the card was clipped — the A4 preview below it entirely, and the
+          Print button all but nineteen pixels. Everything else here is short and fixed: three rows
+          of pills, a gauge, a line of text, a button and the sheet.
+          `widget-squeeze` is the class that says so; the rules are in style.css beside
+          `.card.is-widget`, and the reason a list may scroll where a card may not is the same one
+          `#docket-body` already carries. */''}
+    <div class="mat-list widget-squeeze" id="mat-list"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
     <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>
@@ -1472,7 +1480,32 @@ function matFit() {
   const room = out.getBoundingClientRect().width;
   if (!room) return;                     /* not on screen yet; the observer will call again */
   const px = matPx();
-  const k = Math.min(1, room / (210 * px));
+  /* ---------- A4 IS TALLER THAN IT IS WIDE, AND THIS ONLY EVER MEASURED THE WIDTH -----------------
+     THE SHEET FITTED THE COLUMN AND THEN RAN OFF THE BOTTOM. Measured on the Tools column once the
+     card stopped being clipped wholesale: 16px of the sheet past the cut at 390 and 50px at 768 —
+     the wider the column, the bigger the sheet, and 297/210 of the extra width goes downwards.
+
+     SO IT FITS THE BOX RATHER THAN THE COLUMN. Whichever of the two is tighter wins, which is the
+     same shape as `CARD_W`: one number decides the scale, and nothing else can disagree with it.
+
+     THE HEIGHT IS WORKED OUT FROM THE SIBLINGS, NOT FROM `out` ITSELF. `out.style.height` is set by
+     the line below and the `ResizeObserver` watches `out` — so reading its own height here would be
+     a loop that re-scaled on every frame. What is left for the sheet is the box minus everything
+     BESIDE it, which this function never writes to, so one pass settles it.
+
+     A FLOOR OF HALF, because past that the preview stops being a preview. A sheet at 0.3 of a phone
+     column is a grey stamp you cannot read a word of, and clipping the bottom margin of a legible
+     one is the better of the two — the same judgement `.mat-out` already records about `overflow:
+     hidden` versus a scrollbar under a sheet that is entirely on screen. */
+  const box = out.parentElement;
+  let beside = 0;
+  if (box) [].forEach.call(box.children, c => {
+    if (c !== out) beside += c.getBoundingClientRect().height;
+  });
+  const tall = box ? Math.max(0, box.clientHeight - beside) : 0;
+  const byW = room / (210 * px);
+  const byH = tall ? tall / (297 * px) : Infinity;
+  const k = Math.max(Math.min(1, byW, byH), Math.min(1, byW) * 0.5);
   sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
   /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full unscaled height, so
      without this the sheet sits in a column of white taller than the phone. */

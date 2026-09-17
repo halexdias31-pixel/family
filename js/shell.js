@@ -1106,6 +1106,41 @@ const PAGER = {
   tools:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('tool') : []).map(w => w.name || ''),
   games:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('game') : []).map(w => w.name || ''),
 
+  /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
+     `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
+     what that costs, in the words of the two columns it already happened to: *"a paged screen
+     without an entry here gets no `paged` class and no axis: the pages exist and nothing reaches
+     them."* The booking form is page 0 and every session receipt is a page after it — so none of
+     them could be swiped to, and the column looked like one card that sometimes changed.
+
+     FOUND BY TRYING TO TURN TO ONE. `goPage` opens with `if (!PAGER[id]) return;`, so sending
+     somebody from the week planner to a session's page returned silently and left them on the form.
+     The pieces were all correct and the pager had never heard of the screen.
+
+     THE COUNT COMES FROM THE BUILDER, one call, because "a pager that counts for itself is a pager
+     that can disagree" — which is the rule the `stuff` entry below follows and the fault
+     `check-flow`'s pager journey exists for. The NAMES are derived from the same list the pages are
+     built from, so page n and name n cannot drift.
+
+     A SESSION IS NAMED FOR WHAT IT IS, not "3 of 7". On a column of receipts the subject and the day
+     are what somebody is looking for; the position is not a fact about the session. Same judgement
+     as `tools` naming the widget above. */
+  booking: () => {
+    if (typeof bookingPages_ !== 'function') return [];
+    let n = 0;
+    try { n = bookingPages_({ column: true }).length; } catch (e) { return []; }
+    if (!n) return [];
+    const jobs = typeof myJobsOrdered_ === 'function' ? myJobsOrdered_() : [];
+    return Array.from({ length: n }, (_, i) => {
+      if (i === 0) return typeof USER !== 'undefined' && USER ? 'Book' : 'Sign in';
+      const j = jobs[i - 1];
+      /* PAST THE SESSIONS IS THE BASKET — `bookingPages_` appends it in column mode only. Derived
+         from running off the end of the job list rather than from a second count of it. */
+      if (!j) return 'Basket';
+      return [j.subject, j.weekday].filter(Boolean).join(' \u00b7 ') || 'Session';
+    });
+  },
+
   /* `.concat(USER ? [''] : [])` WAS HERE, COUNTING THE ＋ CARD. That card is gone from the feed —
      it was drawn there AND as the column to its left, one swipe apart, which is the duplicate you
      could see. Counting a page that is no longer built pages once past the end onto nothing. */

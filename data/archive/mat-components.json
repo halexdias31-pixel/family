@@ -1,0 +1,19 @@
+[
+{"component_id": "M02", "name": "Number square", "levels": "SATs, 11+, Y1 Mocks, Y2 Mocks", "height_mm": "94", "draws": "hundred", "half_width": "True", "active": "True"},
+{"component_id": "M03", "name": "Times tables", "levels": "SATs, 11+, Y1 Mocks, Y2 Mocks", "height_mm": "100", "draws": "tables", "half_width": "True", "active": "True"},
+{"component_id": "M04", "name": "Number line", "levels": "SATs, 11+, Y1 Mocks, Y2 Mocks", "height_mm": "20", "draws": "numberline", "half_width": "False", "active": "True"},
+{"component_id": "M05", "name": "Place value", "levels": "SATs, 11+, Y1 Mocks, Y2 Mocks", "height_mm": "15", "draws": "place", "half_width": "True", "active": "True"},
+{"component_id": "M06", "name": "Measures", "levels": "SATs, 11+, Y9 Mocks, GCSE", "height_mm": "39", "draws": "measures", "half_width": "True", "active": "True"},
+{"component_id": "M07", "name": "Angles named", "levels": "SATs, 11+, Y9 Mocks, GCSE", "height_mm": "28", "draws": "angles", "half_width": "True", "active": "True"},
+{"component_id": "M08", "name": "Protractor", "levels": "SATs, 11+, Y9 Mocks, GCSE", "height_mm": "54", "draws": "protractor", "half_width": "True", "active": "True"},
+{"component_id": "M09", "name": "2D shapes", "levels": "SATs, 11+, Y2 Mocks", "height_mm": "35", "draws": "shapes", "half_width": "False", "active": "True"},
+{"component_id": "M10", "name": "Roman numerals", "levels": "SATs, 11+", "height_mm": "13", "draws": "roman", "half_width": "True", "active": "True"},
+{"component_id": "M11", "name": "Fraction = decimal = %", "levels": "SATs, 11+, Y9 Mocks, GCSE", "height_mm": "15", "draws": "fdp", "half_width": "True", "active": "True"},
+{"component_id": "M12", "name": "Formulae not given", "levels": "GCSE, AS, Alevel", "height_mm": "49", "draws": "formulae", "half_width": "True", "active": "True"},
+{"component_id": "M13", "name": "Exact trig values", "levels": "GCSE, AS, Alevel", "height_mm": "33", "draws": "trig", "half_width": "True", "active": "True"},
+{"component_id": "M14", "name": "The trig trick", "levels": "GCSE, AS, Alevel", "height_mm": "33", "draws": "trigtrick", "half_width": "True", "active": "True"},
+{"component_id": "M15", "name": "Index laws", "levels": "GCSE, AS, Alevel, B-TEC", "height_mm": "21", "draws": "indices", "half_width": "True", "active": "True"},
+{"component_id": "M16", "name": "Graph shapes", "levels": "GCSE, AS, Alevel", "height_mm": "40", "draws": "graphs", "half_width": "False", "active": "True"},
+{"component_id": "M17", "name": "Straight line", "levels": "Y9 Mocks, GCSE, AS", "height_mm": "29", "draws": "line", "half_width": "True", "active": "True"},
+{"component_id": "M18", "name": "Averages", "levels": "SATs, 11+, Y9 Mocks, GCSE, B-TEC", "height_mm": "24", "draws": "averages", "half_width": "True", "active": "True"}
+]

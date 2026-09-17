@@ -115,16 +115,48 @@ function bookBlocks() {
    because the form is page one, so the first swipe should land on what is happening now rather than
    on a receipt from two years ago. `myJobs_` is the one place that knows whose sessions are whose;
    nothing here re-derives it. */
-function myJobPages_() {
-  if (!USER || typeof myJobs_ !== 'function' || typeof jobPage_ !== 'function') return [];
-  return myJobs_().slice()
-    .sort((a, b) => String((b && b.startDate) || '').localeCompare(String((a && a.startDate) || '')))
+/* ---------- THE ORDER IS ONE FUNCTION, BECAUSE TWO THINGS NEED TO AGREE ABOUT IT ------------------
+   `myJobPages_` BUILDS THE PAGES AND `on('job')` HAS TO FIND ONE. Sorting in both places is two
+   sorts that must stay identical for ever — the fault this file records under `documents_()`, under
+   `paperIdOf_` and under `factsNow_`: a second reader of one thing is a second chance to disagree
+   about it. Tapping Thursday and landing on Tuesday's receipt is what that disagreement looks like.
+
+   `OPEN_JOB` IS THE SECOND HALF, AND IT IS `ASKED_JOB`'S OWN PATTERN. The week grid draws
+   `DATA.liveJobs` — every session, because an admin's week is everybody's — and `myJobs_` returns
+   only the ones you are in. So an admin tapping a session they are neither the tutor nor the client
+   of has no page to be sent to, and sending them nowhere is the silent failure this whole change is
+   about. One id, held in memory, drawn as a page: a reload drops it, which is right for something
+   you opened rather than something you own. */
+let OPEN_JOB = '';
+
+function myJobsOrdered_() {
+  if (!USER || typeof myJobs_ !== 'function') return [];
+  const mine = myJobs_().slice();
+  /* THE ONE BEING LOOKED AT, IF IT IS NOT ALREADY YOURS. Added at the front rather than sorted in,
+     because it is the thing that was just tapped and the first swipe past the form should land on
+     it — the same reasoning `askedBlock_` uses for the booking just sent. */
+  const all = (DATA.liveJobs || DATA.jobs || []);
+  const idOf = j => String((j && (j.id || j.jobId)) || '');
+  const open = OPEN_JOB && !mine.some(j => idOf(j) === String(OPEN_JOB))
+    ? all.find(j => idOf(j) === String(OPEN_JOB)) : null;
+  return (open ? [open] : []).concat(mine
+    .sort((a, b) => String((b && b.startDate) || '').localeCompare(String((a && a.startDate) || ''))))
     /* NOT THE ONE ALREADY UNDER THE FORM. `askedBlock_` draws the booking just sent, on page one,
        and drawing it again three pages down is the same receipt twice — which is how a person comes
        to believe they booked two sessions. Matched on the id, which is what `ASKED_JOB` holds. */
-    .filter(j => !(ASKED_JOB && String((j && (j.id || j.jobId)) || '') === String(ASKED_JOB)))
-    .map(j => jobPage_(j))
-    .filter(Boolean);
+    .filter(j => !(ASKED_JOB && idOf(j) === String(ASKED_JOB)));
+}
+
+function myJobPages_() {
+  if (typeof jobPage_ !== 'function') return [];
+  return myJobsOrdered_().map(j => jobPage_(j)).filter(Boolean);
+}
+
+/* WHICH PAGE OF THE BOOKING COLUMN A SESSION IS ON, or -1. Page 0 is the form, so the receipts
+   start at 1 — read off the same list that builds them rather than counted a second time. */
+function jobPageAt_(id) {
+  const n = myJobsOrdered_().findIndex(j => String((j && (j.id || j.jobId)) || '') === String(id));
+  return n < 0 ? -1 : n + 1;
 }
 
 /* THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list.

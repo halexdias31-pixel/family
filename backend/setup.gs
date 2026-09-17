@@ -605,9 +605,9 @@ function seedHolidays(arg) {
 function ensureSchema() {
   const report = {};
   Object.keys(SCHEMA).forEach(name => {
-    /* THE SAME LOOKUP `read` USES. Without it this walks the main spreadsheet, fails to find
-       `boxers`, and creates a fresh empty one — so the app would read the real boxers from the
-       subjects file while a decoy sat in the database looking like the real thing. */
+    /* THE SAME LOOKUP `read` USES. Without it this walks the ledger, fails to find `venues`, and
+       creates a fresh empty one — so the app would read the real venues from the settings file
+       while a decoy sat in the database looking like the real thing. */
     const at = sheetFor_(name);
     /* TWO DIFFERENT FAULTS, AND THEY NEED DIFFERENT WORDS. `sheetFor_` returns a blank id both for a
        tab routed at a file whose id is not filled in, and for a tab with no line in `WHERE` at all.

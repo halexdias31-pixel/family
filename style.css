@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-profile";
+  --css-version: "2026-10-04-squeeze";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -3187,7 +3187,9 @@ textarea, select, [data-noswipe],
    swipe to one of those is not a fault — it is what you reached for.
    The sheet is the other one, and it is not listed here because it covers everything: while it is
    open there is no grid behind it to compete with. `axisFree` refuses every drag then. */
-.msg-body, #docket-body, #notepad, .feed-text, textarea { touch-action: pan-y; }
+/* `.widget-squeeze` joins them for the same reason: it is a list you work down rather than a card
+   you swipe past. See the block by `.card.is-widget` for the whole argument. */
+.msg-body, #docket-body, #notepad, .feed-text, textarea, .widget-squeeze { touch-action: pan-y; }
 
 /* The map is dragged and pinched in both directions by its own code, so it wants the lot. */
 .map, .map-svg { touch-action: none; }
@@ -7649,6 +7651,86 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   margin-bottom: var(--gap);
 }
 .card.is-widget:last-child { margin-bottom: 0; }
+
+/* ---------- ONE REGION INSIDE A WIDGET GIVES UP ITS HEIGHT FIRST ---------------------------------
+   REPORTED AS "I can't scroll down on some". Measured on the Tools column at 320/390/768: the cheat
+   sheet maker's card is 1263px inside an 805px pane and the flyer's is 1252px — so **409 to 494
+   pixels are clipped**, and what is in them is the whole point of both tools. The A4 preview starts
+   34px below the cut, the Print button is off the bottom entirely, and the pane is
+   `touch-action: none`, so dragging up to look for them moves to the next widget instead.
+
+   THE PANE'S OWN NOTE IS RIGHT AND STAYS RIGHT. `overflow: hidden` on a card is what makes every
+   vertical drag belong to the grid, and it says the cost out loud: *"a card taller than the screen
+   has its bottom cut off… Anything genuinely long should be PAGED."* These two are that card. What
+   was missing is not permission to scroll the card — it is a way to say WHICH PART of a widget
+   should shrink when there is not enough room.
+
+   THE PRECEDENT IS ALREADY IN THIS FILE, twenty lines from here, and it is exactly this bug already
+   solved: `.widget-full #docket-body { flex: 1 1 auto; overflow-y: auto }`, with the reason written
+   beside it — *"the list scrolls INSIDE the card so the add-a-line box stays on screen with twenty
+   things on the docket — a control that scrolls away is a control you have to go and find."* That
+   is the Print button, word for word. It did not apply here because `.widget-full` matches a widget
+   that IS the page in the FUNNEL, and on a column the markup is `.card.is-widget`.
+
+   SO IT IS DECLARED RATHER THAN DERIVED, which is the move CLAUDE.md argues for under "replace
+   emergent properties with declared ones": a widget says which of its own children is the elastic
+   one, and everything else on the card keeps its natural height. A tool added tomorrow gets this by
+   adding one class, and a tool that does not need it is untouched — `:has()` means a card with no
+   squeeze region is not made into a flex column at all, so nothing else on any column moves.
+
+   `axisFree` NEEDS NO CHANGES. It walks up from the finger looking for a box with `overflow: auto`
+   that has more than six pixels to scroll, hands that box the drag, and takes it back at the ends —
+   so the grid keeps the gesture everywhere except inside this one region. That is why the region
+   has to be a real scroll container rather than a taller card. */
+/* ---------- AND IT IS THE WHOLE CHAIN, NOT THE CARD ----------------------------------------------
+   THE FIRST VERSION WROTE `:has(> .widget-squeeze, > * > .widget-squeeze)` AND CHANGED NOTHING.
+   Measured after it: 1263px inside 805px, exactly as before. The region is FOUR boxes down —
+   `.card.is-widget > .widget-slot > .card > #mat-box > .widget-squeeze` — because `widgetColumn_`
+   wraps every widget in a slot and the widget's own markup carries its own `.card`. So the selector
+   matched nothing, and a rule that matches nothing looks exactly like a rule that did not work.
+
+   ONE SHRINKING BOX IS NOT ENOUGH EITHER: a flex item refuses to shrink below its content unless it
+   is told `min-height: 0`, so every box between the card and the region has to be a flex column
+   that is allowed to shrink. Any one of them left at `min-height: auto` pins the whole card open —
+   which is what `.card.is-widget` itself was doing here.
+
+   SO THE CHAIN IS SELECTED RATHER THAN ENUMERATED. `:has(.widget-squeeze)` inside the card matches
+   exactly the ancestors of the region and nothing else, at whatever depth they happen to be — so a
+   widget that nests its markup one box deeper tomorrow needs no rule added. Everything hanging off
+   those boxes keeps its own height; the chain and the region take the squeeze, and the chain rules
+   win on specificity (0,4,0 against 0,3,0) rather than on order. */
+.card.is-widget:has(.widget-squeeze),
+.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) {
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+/* THE PANE IS THE CAP. It is already a flex column with a `max-height` in screen units, and a flex
+   item shrinks by default — so the card only needs to be allowed to. */
+.card.is-widget:has(.widget-squeeze) { max-height: 100%; }
+
+/* Everything that is NOT on the chain keeps exactly the height it asks for. Stated positively, so a
+   child added to one of these widgets later does not silently start absorbing the squeeze. */
+.card.is-widget:has(.widget-squeeze) > *,
+.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) > * { flex: 0 0 auto; }
+
+/* …except the boxes leading to the region, and the region itself. */
+.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze),
+.card.is-widget:has(.widget-squeeze) .widget-squeeze { flex: 1 1 auto; }
+
+.widget-squeeze {
+  /* ---------- THE FLOOR, AND IT IS A JUDGEMENT WITH NUMBERS UNDER IT ----------------------------
+     MEASURED AT 320px, WHICH IS THE TIGHTEST CASE, with the cheat sheet maker — the one widget where
+     the list and the preview genuinely compete for the same card:
+       4.5rem → list  67px (a row and a half), sheet 302px
+       6rem   → list  81px,                    sheet 302px
+       8rem   → list 108px (about three rows), sheet 290px
+       10rem  → list 135px,                    sheet 263px
+     EIGHT. Three rows is enough to see that it IS a list and to work down it; the twelve pixels it
+     takes off the sheet are its bottom margin. Below that the list reads as a slot that something
+     failed to load into, which is the fault this repository keeps recording in other columns. */
+  min-height: 8rem;
+  overflow-y: auto;
+}
 .card.is-widget > h3 {
   margin: 0 0 .6rem;
   font: 700 .72rem/1 var(--mono);

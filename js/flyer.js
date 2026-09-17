@@ -510,7 +510,21 @@ on('fm-preset', el => {
 function initFlyer() {
   const wrap = $('fm-wrap');
   if (!wrap) return;
-  wrap.innerHTML = flyControls()
+  /* ---------- THE CONTROLS ARE THE PART THAT GIVES UP ITS HEIGHT --------------------------------
+     MEASURED ON THE TOOLS COLUMN AT 390px: two `.fm-bar` rows (185 each), `.fm-adds` (189) and a
+     note (50) come to 609px of controls, and with a 378px flyer and a 44px button under them the
+     card is 1252px inside an 805px pane. **447px clipped** — the whole flyer and the whole Print
+     button — and this file's own note says the tool got its page back precisely to undo that loss:
+     *"Its preview, its print button and its scaling all went."*
+
+     WRAPPED, BECAUSE THE ELASTIC PART IS FOUR ELEMENTS AND NOT ONE. `flyControls()` builds them and
+     is shared with whatever else asks for it, so the wrapper goes here rather than inside it — the
+     shared builder should not know which column it is being drawn on. `widget-squeeze` is the
+     declared class; see style.css beside `.card.is-widget`.
+
+     THE PREVIEW IS NOT THE ELASTIC ONE, deliberately. It is what somebody opened the tool to look
+     at, and a flyer that shrinks to a strip to make room for a dropdown has the trade backwards. */
+  wrap.innerHTML = '<div class="widget-squeeze">' + flyControls() + '</div>'
     + '<div class="fm-out" id="fm-out"></div>'
     + '<button class="btn" data-do="fm-print" style="margin-top:.5rem">Print</button>';
   flyBind(wrap, flyDraw);          /* binds, loads the campaign, and draws once */

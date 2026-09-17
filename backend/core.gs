@@ -37,9 +37,9 @@ function clearCache() {
 
 /* ---------- WHICH FILE, AND WHAT IT IS CALLED IN THERE --------------------------------------------
    One lookup, used by `read`, `ensureSchema` and `checkTabs`. Those are the only places that turn
-   a tab name into an actual sheet, and they have to agree — if `read` fetched boxers from the
-   subjects file while `ensureSchema` looked for it in the main one, `ensureSchema` would helpfully
-   create a second empty `boxers` tab back in the database you just moved it out of.
+   a tab name into an actual sheet, and they have to agree — if `read` fetched venues from the
+   settings file while `ensureSchema` looked for them in the ledger, `ensureSchema` would helpfully
+   create a second empty `venues` tab back in the database you just moved it out of.
 
    TWO NAMES, TRIED IN ORDER. The name the code asks for wins; `alsoTry` is the fallback. Renaming
    the tabs in the spreadsheet is therefore something you can do one at a time, in any order, with
@@ -669,10 +669,15 @@ function warmAfterEdit() {
 /**
  * PUT THE WATCH ON THE SPREADSHEETS. Run once; safe to run again.
  *
- * ONE PER FILE, because a trigger watches a file and the data lives in two — the main spreadsheet
- * and the subjects one. A watch on only the main file means editing the boxers tab changes nothing
- * on the site, which is the original fault surviving in half the sheet and is far harder to spot
- * than the whole of it.
+ * ONE PER FILE, because a trigger watches a file and the data lives in more than one. A watch on
+ * only the ledger means editing the pricing tab changes nothing on the site, which is the original
+ * fault surviving in half the sheet and is far harder to spot than the whole of it.
+ *
+ * SO IT HAS TO BE RE-RUN WHEN `FILES` CHANGES, and that is the sharp edge: this function deletes
+ * every trigger by handler name and rebuilds one per id in `FILES`, so a file removed from that
+ * list keeps its trigger until somebody runs this again. `Library` left on 2026-09-17 and its
+ * trigger is still booked against a spreadsheet nothing reads — harmless, and still a rebuild
+ * nobody needs, once a minute, after every edit somebody makes to it.
  *
  * THE IDS ARE DEDUPED. `FILES` maps both names to the same id when everything lives in one file,
  * and two triggers on one spreadsheet means two bumps and two bookings per keystroke.

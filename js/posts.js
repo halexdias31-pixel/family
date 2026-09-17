@@ -726,7 +726,9 @@ on('who-reacted', el => {
 });
 
 on('react', el => {
-  if (!USER) { toast('Sign in to react'); goFor_('You'); return; }
+  /* THE COLUMN THAT HOLDS THE SIGN-IN CARD. This said `goFor_('You')`, which filtered the Find
+     screen to a group nothing is in — see the note where `goFor_` used to be. */
+  if (!USER) { toast('Sign in to react'); go('account'); return; }
   const id = el.dataset.id, emoji = el.dataset.emoji;
   const post = (DATA.posts || []).find(x => x.id === id);
   if (!post || !post.reactions) return;
@@ -739,15 +741,52 @@ on('react', el => {
   }
   if (typeof r.total !== 'number') r.total = r.counts.reduce((a, b) => a + b, 0);
 
-  const before = { yours: r.yours, counts: r.counts.slice(), total: r.total };
+  /* ---------- `by` IS THE FOURTH THING THAT MOVES, AND IT WAS THE ONE LEFT BEHIND -----------------
+     THREE FIELDS WERE UPDATED AND FOUR CHANGE. `yours`, `counts` and `total` were moved here before
+     the server answered — which is right, and is what makes the row respond to a tap — and
+     `r.by`, the list of WHO reacted with WHAT, was not. `on('who-reacted')` builds its groups by
+     filtering `by` per emoji and prints the count off `counts`, so the two disagree the moment
+     anybody presses a face:
+
+       · react for the first time  → the sheet says `😂 1` with no name under it and the line
+                                     "…and 1 more", which is the branch written for a person the
+                                     site cannot resolve. You are not unresolvable; you are missing.
+       · change which face         → your name stays listed under the emoji you moved AWAY from
+       · take a reaction back      → the header says 2 and three names are printed under it
+
+     AND NOTHING REPAIRED IT. The `send` has no `.then`, so no reload follows a successful react —
+     deliberately, because a whole payload per tap is what the optimistic update exists to avoid —
+     and `by` stayed wrong for the rest of the session.
+
+     SO IT MOVES WITH THE COUNTS, in the same three lines, which is the only version that cannot
+     drift: a fifth field would have to be forgotten in one place rather than in one of two.
+     `before` carries it too, because the `.catch` below puts everything back and a restore that
+     misses one field is this same bug with a network failure in front of it.
+
+     BY NAME, because that is what `by` holds — `doget.gs` sends names rather than ids on purpose
+     ("a reaction is a public thing and an id is not"). So this is the one comparison in the app
+     that is SUPPOSED to be on a display name: it is matching the entry the server will write for
+     you against the one you are looking at, and both sides are the same string from the same
+     source. */
+  const before = { yours: r.yours, counts: r.counts.slice(), total: r.total,
+                   by: (r.by || []).slice() };
   const at = e => r.emoji.indexOf(e);
   if (at(emoji) < 0) return;
 
   /* Moved before the server answers. The whole row is redrawn rather than one face, because
      changing your reaction moves two counts at once. */
   if (r.yours) { r.counts[at(r.yours)]--; r.total--; }
+  /* MINE OUT OF THE LIST FIRST, whichever face it was on. Dropping it unconditionally and adding it
+     back below is what makes changing your face one move rather than two that have to agree.
+     `by` IS CAPPED AT FORTY by the backend, so on a very popular post you may not be in the list at
+     all — removing an entry that is not there is a no-op, and adding one takes the list to 41 for
+     this session only. Both are better than the count and the names disagreeing. */
+  r.by = (r.by || []).filter(x => !x || norm(x.name) !== norm(USER.name));
   if (r.yours === emoji) { r.yours = ''; }
-  else { r.yours = emoji; r.counts[at(emoji)]++; r.total++; }
+  else {
+    r.yours = emoji; r.counts[at(emoji)]++; r.total++;
+    r.by.push({ name: USER.name, emoji: emoji });
+  }
   repaint();
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
@@ -759,6 +798,7 @@ on('react', el => {
          postId: id, emoji })
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
+      r.by = before.by;             // the fourth field, or the sheet disagrees after a failed save
       repaint();
       toast(String(err.message || 'Could not save that'));
     });
@@ -857,9 +897,14 @@ function openSharedPost() {
      absolutely-positioned page moves nothing at all, silently, which would look exactly like a
      shared link going to the top of the feed. */
   const n = feedPosts().findIndex(p => String(p.id) === String(id));
-  if (n < 0) { goFor_('Posts'); return; }
+  /* ---------- THE FEED IS A COLUMN AND THIS WAS ASKING THE FUNNEL FOR IT ------------------------
+     BOTH LINES SAID `goFor_('Posts')` while `PAGE.feed` was being set between them, which is the
+     whole argument in one place: the page index belongs to the `feed` screen, so the screen is
+     where this was trying to go. `Posts` is not a group any kind declares, so the filter matched
+     nothing and the funnel was left holding an empty list behind a dead chip. */
+  if (n < 0) { go('feed'); return; }
   PAGE.feed = n;                 // the screen is `feed`; `PAGE.posts` went nowhere — see PAGER
-  goFor_('Posts');
+  go('feed');
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.querySelector(`[data-post="${CSS.escape(id)}"]`)?.classList.add('post-lit');
   }));

@@ -93,6 +93,24 @@ function payload() {
       slots: [seat('Waiting', 'Danile Cristina'), seat('Waiting', 'Phoebe Wickes')],
       tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true },
   ];
+  /* ---------- `client` IS SENT AND THIS PAYLOAD DID NOT SEND IT --------------------------------
+     `doget.gs` CARRIES A NOTE ABOUT THIS EXACT FIELD: *"`myJobs_` ON THE PHONE FILTERS ON
+     `j.client` AND `j.tutor`, AND NEITHER WAS EVER SENT."* It was found and fixed at that end, and
+     this payload — whose own heading says "anything the app reads has to be here under the name
+     `doGet` actually uses, which is the whole risk of a fake" — was never brought into line.
+
+     WHAT IT COST IS A WHOLE COLUMN. `myJobs_` returned nothing for anybody here, so the Booking
+     column drew one page — the form — for every journey in this file, and the receipts that are
+     pages after it were never on a screen any of them looked at. That is how a paged column with
+     no `PAGER` entry survived: the journey written to catch exactly that could only see one page,
+     and one page is not a disagreement.
+
+     DERIVED FROM THE SEAT rather than typed a second time, so the roster and the client cannot
+     disagree — which is the same reason `seat()` takes a default at all. The tutor is already on
+     each row. */
+  jobs.forEach(j => {
+    if (!j.client) j.client = ((j.slots || [])[0] || {}).client || '';
+  });
   return {
     ok: true, version: 'test', features: [],
     tutors: [
@@ -704,9 +722,20 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   await wait(300);
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
 
+  /* ---------- PAGE ZERO, WHICH IS THE FORM — NOT THE WHOLE COLUMN ------------------------------
+     THIS JOINED EVERY PAGE AND ASKED WHETHER `J-ASK` WAS ANYWHERE IN IT, which was a true reading
+     of the column while `myJobs_` returned nothing for anybody: one page, the form, and nothing
+     else. With the payload sending `client` — see the note above `jobs` — this visitor has three
+     sessions of her own and one of them IS J-ASK, so "a booking is shown before one has been asked
+     for" became trivially true about a page this journey is not about.
+
+     WHAT IT MEANS TO ASSERT is that `askedBlock_` draws nothing until something has been sent, and
+     that is a fact about the form page. `blocks()[0]` is that page — `bookBlocks` returns the form
+     first and the receipts after it. */
   const pagesBefore = w.__t.blocks().length;
-  const before = w.__t.blocks().join('');
-  if (before.includes('J-ASK')) bad.push('a booking is shown before one has been asked for');
+  const formPage = () => w.__t.blocks()[0] || '';
+  const before = formPage();
+  if (before.includes('J-ASK')) bad.push('a booking is shown under the form before one was asked for');
   if (w.__t.asked()) bad.push('something is remembered as asked for before any send');
 
   /* ---------- THE THREE STATE ROWS ARE ON THE BLANK FORM, AND THEY ARE BLANK ----------------------
@@ -750,7 +779,7 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   P.how = 'A session of your own'; P.level = 'GCSE'; P.loc = 'Colliers Wood Library';
   P.subjects = ['Maths']; P.n = '1'; P.hosting = 'No — we book the room';
   P.slots = ['m16']; P.interval = 'Autumn 1';
-  const priced = w.__t.blocks().join('');
+  const priced = formPage();
   if (!w.__t.paper || w.__t.paper()) dashes(priced, 'priced');
 
   const B = w.__t.BOOKING;
@@ -770,16 +799,26 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   if (w.__t.asked() !== 'J-ASK') {
     bad.push('the booking just made was not remembered (asked = "' + w.__t.asked() + '")');
   }
-  const after = w.__t.blocks().join('');
+  const after = formPage();
   if (!after.includes('J-ASK')) bad.push('the booking just made is not drawn under the form');
   /* THE STAGE ROW, TWICE: the blank form still says "Not asked for yet" and the receipt under it
      says where the real booking has got to. One of them is the answer to the other. */
   if ((after.split('Stage').length - 1) < 2) {
     bad.push('the second document has no Stage row, so it is not the booking widget');
   }
-  if (w.__t.blocks().length !== pagesBefore) {
+  /* ---------- IT MUST NOT GROW, AND IT IS ALLOWED TO SHRINK -------------------------------------
+     THE RULE IS "BELOW, NOT BESIDE" — the booking just sent goes under the form rather than
+     becoming another page to swipe to, which is the note `askedBlock_` carries. This asserted the
+     count was UNCHANGED, which was the same statement while nobody had any other sessions.
+
+     A SESSION ALREADY ON THE COLUMN MOVES ONTO THE FORM. `myJobsOrdered_` filters out whatever
+     `ASKED_JOB` holds, precisely so the same receipt is not drawn twice — so asking for a session
+     you already had legitimately takes the column from four pages to three. Growing is the fault;
+     shrinking by one is the duplicate being removed. */
+  const pagesAfter = w.__t.blocks().length;
+  if (pagesAfter > pagesBefore) {
     bad.push('the booking was added as a separate page (' + pagesBefore + ' -> '
-      + w.__t.blocks().length + '), not below the form');
+      + pagesAfter + '), not below the form');
   }
   return bad;
 });
@@ -789,9 +828,19 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
   await wait(300);
   w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
   const bad = [];
+  /* ---------- IT LOOKED IN THE SHEET, AND THERE IS NO SHEET ------------------------------------
+     `on('job')` OPENED A PANEL OVER THE APP and now turns to the session's page on the Booking
+     column — reported twice by the owner as "your week planner has pop ups… I told you I don't like
+     that". So this reads `#s-booking`, which is where `paint` writes.
+
+     THE JOURNEY WAS RIGHT TO BREAK, and that is the reason to repoint it rather than relax it: what
+     it asserts — an admin can Accept a booking that is waiting and cannot Accept one already paid
+     for — is true of the app either way, and it was checking the one renderer that has gone. The
+     tiles it looks for are `jobAdminTiles_`'s, which `jobPage_` now draws, so this is the same
+     question asked of the surviving surface. */
   const buttonsOn = id => {
     try { w.__t.ACTIONS['job']({ dataset: { id } }); } catch (e) { return ['THREW: ' + e.message]; }
-    const b = w.document.getElementById('sheet-body');
+    const b = w.document.getElementById('s-booking');
     return b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   };
   const ask = buttonsOn('J-ASK');
@@ -845,7 +894,9 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
   try { w.__t.ACTIONS['job']({ dataset: { id: 'W-LIST' } }); }
   catch (e) { return ['opening the class threw: ' + e.message]; }
-  const b = w.document.getElementById('sheet-body');
+  /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. `joinBlock` is
+     what offers the seat and `jobPage_` draws it, so the control is on the page the app turns to. */
+  const b = w.document.getElementById('s-booking');
   const dos = b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   if (dos.includes('job-join')) {
     return ['a class offers "Ask to join", which is the act for somebody else\'s booking — '
@@ -1010,12 +1061,37 @@ check('every pager counts the pages its screen actually draws', async () => {
   await wait(200);
 
   const bad = [];
-  for (const id of Object.keys(w.__t.PAGER)) {
+  /* ---------- AND IT WALKED `PAGER`, SO A SCREEN WITH NO ENTRY WAS INVISIBLE TO IT ---------------
+     THIS IS THE FAULT THE JOURNEY IS NAMED FOR, IN THE JOURNEY. It asked every screen that HAS a
+     pager whether that pager agrees with what is drawn — and the worst version of this bug is a
+     paged screen with no entry at all, which `Object.keys(PAGER)` cannot enumerate. `booking` was
+     exactly that: `screen('booking')` uses `pages()`, `PAGER` had never heard of it, and so the
+     form and every session receipt on that column could not be swiped to. `shell.js`'s own note
+     over `tools` describes the state precisely — "the pages exist and nothing reaches them" — and
+     names the two columns it had already happened to.
+
+     SO IT WALKS `TABS`, which is the app's own list of screens, and a screen that draws pages with
+     no pager is a failure rather than a row that is never visited. Fourth costume of the
+     check-that-cannot-reach-its-subject fault, and the first one inside a check written about
+     pagers. */
+  const ids = (w.__t.TABS || []).map(t => t.id);
+  if (!ids.length) return ['TABS is empty — cannot tell which screens exist'];
+  for (const id of ids) {
     try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw on go(): ' + e.message); continue; }
     await wait(120);
     const el = w.document.getElementById('s-' + id);
     if (!el) { bad.push(id + ' has no #s-' + id + ' to draw into'); continue; }
     const drawn = el.querySelectorAll('.page').length;
+    /* A SCREEN THAT DRAWS PAGES AND HAS NO PAGER gets no `paged` class and no axis — see the note
+       above. Said as its own sentence rather than as "0 against 3", because the repair is an entry
+       in `PAGER` and not a number to correct. */
+    if (!w.__t.PAGER[id]) {
+      if (drawn > 1) {
+        bad.push(id + ': ' + drawn + ' pages drawn and no PAGER entry \u2014 so the screen gets no '
+                    + 'axis and none of them can be reached');
+      }
+      continue;
+    }
     let says;
     try { says = (w.__t.PAGER[id]() || []).length; }
     catch (e) { bad.push(id + ' pager threw: ' + e.message); continue; }

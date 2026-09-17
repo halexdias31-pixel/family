@@ -1597,7 +1597,7 @@ It is now three files, **split by who writes the rows**:
 | **Settings** | you; the app reads it | brand, config, pricing, venues, facets — editorial, never a deploy |
 | **Library** | you, in bulk | boxers, fights, cheatsheet. `questions` has left — see below |
 
-### The rest of `Library` is following it, in two steps because the sheet is unreachable
+### `Library` is out of the backend entirely — all four tabs, both steps
 
 `boxers`, `fights` and `cheatsheet` are the three tabs left in that file, and they pass the same
 three-question test `questions` passed. **The one that decides it is the second**: measured,
@@ -1605,28 +1605,76 @@ three-question test `questions` passed. **The one that decides it is the second*
 three in `doget.gs`**, and no `setCell` or `append` anywhere names them. Nothing writes to them, so
 code can hold them.
 
-**Step 1 is done and step 2 needs you.** The rows are in a Google sheet and every Google host is
-blocked from the agent's environment by network policy, so this could only be built, not populated:
+**Both steps are taken and the spreadsheet is unreachable from the code now.** Step 1 built the
+machinery with the payload still answering while the files were empty; step 2 exported the rows and
+cut the backend. It took two commits because every Google *host* is blocked from this environment by
+network policy — but the **Drive MCP connector is not**, and that is what finally reached the sheet.
 
 | | |
 |---|---|
-| `data/boxers.json`, `data/fights.json`, `data/cheatsheet.json` | committed, currently `[]` |
-| `libraryExtras_` in `js/library.js` | the three mappings, copied from `doget.gs` line for line |
-| the fallback | **a file with no rows leaves the payload's copy alone** |
+| `data/boxers.json`, `data/fights.json`, `data/cheatsheet.json` | **103 + 157 + 77 = 337 rows**, committed |
+| `libraryExtras_` in `js/library.js` | the three mappings — now the ONLY implementation |
+| `doget.gs` | the three `read(TAB.x)` blocks deleted; `boxers: []`, `fights: []`, `cheatsheet: []` kept in the payload literal |
+| `constants.gs` | `SCHEMA`, `TAB` and `WHERE` ×3 deleted, `LIBRARY_ID` and `FILES.library` gone |
 
-So the app is byte-identical today, and the moment a file has rows in it the file wins. **Cutting
-the backend first would have taken the boxing screens and the cheat sheet dark** for however long
-the export took, over a migration nobody was waiting on.
+**The cutover was proved byte-identical before it was made**, which is the only reason it was safe
+to make in one commit. The exported rows were run through `libraryExtras_` and compared cell by cell
+against what `doGet` built from the same tabs: **337 rows, 0 cells differ.** Getting there found
+three real helper drifts that a "looks the same" reading would have shipped — `ON_` and `libOn`
+disagreed about `✓`, `S` trims where `libS` did not, and `N` and `libN` differ on a blank — so the
+mappings were made to agree rather than assumed to.
+
+**`SCHEMA` had to go in the SAME commit as the `doGet` blocks, in both directions.** Deleting the
+`SCHEMA` entries alone fails `check-columns.js` with 77 findings — every `r.boxer_id` in a block
+that still exists, against a tab the code no longer describes. And leaving them behind is worse than
+untidy: `ensureSchema` walks `SCHEMA` and **CREATES any tab it cannot find**, so an entry left in
+rebuilds an empty `boxers` tab on the next `?setup=1` — right headers, no rows, exactly the decoy
+that hid the real resource rows in another file for months. That is the third time this file records
+that argument, after `SCHEMA.resources` and `SCHEMA.questions`.
+
+**What the `[]` fallback means now, because it changed and nothing else would say so.** It was *a
+file with no rows leaves the payload's copy alone*, which made step 1 incapable of taking anything
+dark. There is no payload copy left — `doGet` sends three empty arrays and nothing fills them — so a
+file that 404s is now three dark screens rather than a quiet reversion. It stays that shape anyway:
+the alternative is a throw on a file that has not deployed yet, and that takes the whole of `load()`
+with it. Written down here and in `library.js` so it is not rediscovered as a bug.
+
+**`check-library.js`'s step-2 notice is what confirmed the cut, and it was proved in both
+directions.** Putting one `read(TAB.boxers)` back makes it print *"data/boxers.json now has 103
+row(s) AND doget.gs still builds payload.boxers"*; the real files print `none`. That rule had been
+pushing to an array nothing printed for as long as it existed — it could not fire, because all three
+files held `[]` from the day they were committed, so the first run that could say anything was the
+run after the export.
+
+**And `installSheetWatch` has to be re-run after this deploys.** It deletes every trigger by handler
+name and rebuilds one per id in `FILES`, so a file *removed* from that list keeps its trigger until
+somebody runs it again. `Library`'s is still booked against a spreadsheet nothing reads: harmless,
+and still a payload rebuild a minute after every edit somebody makes to it.
 
 **The files hold the sheet's own column names** — `boxer_id`, `height_cm`, `part_id` — not the
 camelCase the phone reads. A file that is a faithful export is one you can paste a row into without
 translating it, and the single place that renames a column is the mapping. Two spellings in two
 places is what `r.link` against `source_url` cost: seven silent reads.
 
-**`check-library.js` says when step 2 is due** rather than leaving it to memory: once a file has
-rows AND `doget.gs` still builds that key, it prints that the block should go. Until then it only
-enforces the shape, which is the same one-object-per-line rule `questions.json` has and for the same
-reason — the next script to append by splitting on newlines.
+**The one-object-per-line shape is enforced on all four files** and for the reason `questions.json`
+has it: the next script to append by splitting on newlines.
+
+#### The spreadsheet itself is NOT deleted, and there is a reason to look before it is
+
+Nothing in this project opens `Library` any more, so deleting it breaks no code. **Do not delete it
+yet.** It has **16 tabs and 13 of them are read by nothing** — `bible` (31,102 rows), `questions`
+(3,913), `P&R` (273×42), `topicstuff` (269), `english-devices` (180), `M&Pformulas` (96), `icons`
+(81), `graphemes` (72), `practicals` (41×41), `_mat-components` (17), `orth` (15), `Verbs command`
+(12), `_README` (8). Some of that is the old `questions` tab this repository replaced; some of it is
+content nobody has looked at, and a deletion is the one thing here that cannot be undone by a
+revert.
+
+**And the `questions` tab still carries `ticks_1/2/3`** — 498 non-empty cells across 169 rows, 469
+of which look like people's names. This file says those columns were *"stripped at source"*, and
+that sentence is true of `data/questions.json` and **false of the spreadsheet it came from**. They
+are not published — the sheet is private and this repository holds none of them — but "stripped at
+source" reads as *they are gone*, and they are not. The tick rule in `check-library.js` guards the
+public file, which is the half that can leak; the sheet is the owner's to decide about.
 
 ### `d = libraryInto_(d, …)` had been throwing on every single load
 
