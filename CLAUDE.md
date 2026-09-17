@@ -1321,11 +1321,114 @@ export from a Google sheet, and every Google host is blocked from this environme
 Everything above is the code path, which is where a data fault would show; the rows themselves are
 still unread by anything.
 
+## A fraction has four spellings and a child types the one the marker did not know
+
+**The marking is the one thing in this app that tells a child they are wrong, and there is nobody
+for them to appeal to.** Every other check here measures whether the app WORKS; this is the first
+one that measures whether it is FAIR, and the two failures are not symmetrical — a wrong answer
+marked right is a thing learned wrong and found out in an exam, and a right answer marked wrong is
+a student who stops trusting the marking and then stops using it.
+
+**The first one was live while somebody was sitting the paper.** `answer` writes Q23(b) of the June
+2024 Foundation paper as `5&frasl;9`, which strips to `5⁄9` carrying **U+2044 FRACTION SLASH** — a
+character no phone keyboard has. What gets typed is `5/9`. Two different strings, so the answer a
+student is most likely to write was marked wrong; **91 rows in the library are spelled that way**,
+four of them on that paper. `markNorm_` folds the fraction slash, the division slash and the vulgar
+characters (`⅓` is what the Corbettmaths signpost prints) onto `/`, and takes the spaces off either
+side of it.
+
+**Only there, and that restraint is the whole of it.** Stripping every space instead would fold
+`1 1/6` onto `11/6` — 1.17 and 1.83, two different numbers — so a wrong answer would be marked
+right in order to fix a right one being marked wrong.
+
+**And `strip()` in `set-accept.py` ate the space out of a mixed number.**
+`<b>2<sup>2</sup>&frasl;<sub>15</sub></b>` came out as `22⁄15`, which is 1.47 where the answer is
+2.13. A child typing the right answer was told it was wrong, and one typing 22/15 was told it was
+right. Nine rows, every one a mixed number, `317⁄20` standing for 3 17/20 among them.
+
+**The rule is as narrow as the fault, on the second attempt.** Turning every tag into a space fixed
+this and **broke 141 algebraic answers in the same run** — `<i>n</i><sup>2</sup>` became `n 2`,
+`4<i>n</i> − 3` became `4 n − 3` — so a hundred answers that were right by the old rule went wrong
+by the new one. What needs the space is one shape: a digit, then a superscript that the `&frasl;`
+after it proves is a numerator. Same lesson as `check-rows.js`, where the first version had 95
+findings and 2 real ones.
+
+### "Or equivalent" is what the mark scheme literally says
+
+**A fraction is a number, and the marker was comparing it as a string.** Q23(b)'s own scheme spells
+it out in the line beside the answer: *"oe … any equivalent fraction, or the decimal 0.55(5…) or
+0.56, or the percentage"*. A child who writes 15/20 on the Corbettmaths sheet before cancelling, or
+10/18, or 7/3 for 2 1/3, has not made a mistake. `markFrac_` parses `a/b`, `w a/b` and a decimal,
+and `markAnswer_` compares them **as two whole numbers** — `a*d === c*b`, never as a decimal,
+because 1/3 and 0.3333 are different numbers and a float would eventually call them equal.
+
+**There is exactly one place that would be wrong, and it is now impossible rather than merely
+absent.** A question asking for the SIMPLEST FORM has the unsimplified fraction as its question,
+so accepting it back marks a non-answer right. Measured: **83 answers are a bare fraction and none
+of them asks for simplest form**, which is what made the fold safe to write — and
+`check-library.js` fails the build on the first one that does, naming the row and saying to leave
+`accept` off it so a person marks it. Proved by mutation in both directions.
+
+### `node js/check-marking.js` — and the roster is the only thing that makes a check real
+
+It cuts the six marking functions out of `find.js` by name and runs them on their own — they touch
+nothing else in the app, which is what makes that safe and is also why they are worth checking in
+isolation. **A second implementation here would be a second thing to keep in step**, which is the
+fault this file already records under `childrenOf`, under `link`/`source_url` and under `kinds`.
+**Every one of its 29 cases is a fault that happened or nearly did**: the thousands separator is the
+first question of that same Foundation paper, and the `11/6` case is the reason spaces are not
+stripped wholesale. It is in `check-all.js`, because three good checks once sat on disk for months
+without ever running.
+
+## Two Corbettmaths worksheets had no fractions in them at all
+
+**Reported by nothing, which is the point.** `Q-CBM-adding-fractions-same-denominators-1` was the
+single character `+`. Corbettmaths sets its fractions as stacked artwork rather than text, so the
+PDF's text layer holds the operator and nothing else — and it is not only the bare sums:
+*"1/12 of the cupcakes in a box are lemon"* arrived as *"of the cupcakes in a box are lemon"*.
+**Thirty-nine rows across the two sheets and not one carried a numerator or a denominator.** A
+child opening either worksheet got a question with no numbers in it, which reads as the app being
+broken rather than as the row being unfinished.
+
+**Counted rather than guessed at**: question rows with no words and no picture went **25 → 4**, and
+those four are the June 2023 text-layer casualties that already carry a note saying so.
+
+**The method is the one this file already records** — extract the text, find it is not there, then
+render every page and read it. Positional extraction settles it in advance rather than by
+suspicion: page 2 of the same-denominators sheet holds **four text spans in total**, `1.`, `2.`,
+`3.` and `+`, so there is nothing to recover by reading harder.
+
+**Question 24 of the different-denominators sheet is on the page and had never been in the library
+at all.** It is built from its neighbour's own row rather than typed out, so every column that
+places a question — subject, key stage, year, publisher, topic — agrees with the rest of the sheet
+by construction. Same shape as the Q23 preamble below.
+
+**Every answer is computed from the transcribed question and never typed beside it.** Corbettmaths
+publishes no mark scheme for these and does not need to: a sum of two fractions is settled by
+`Fraction`, exactly. What arithmetic cannot catch is a MISREAD numerator — so the sum and the words
+live in one table and the card is rendered from both, which makes "a question that says 7/15 and an
+answer worked from 7/5" a shape that cannot occur rather than one to check for.
+
+## The Venn diagram had 10 and 15 swapped, and part (b) had no diagram at all
+
+**Q23 of the June 2024 Foundation paper, settled by the mark scheme rather than by reading the
+row again.** The scheme prints P′ as 10, 11, 13, 14, 16, 17, which makes P = {12, 15, 18} — so 15
+sits in the overlap and 10 sits in Q alone, the reverse of what the transcription said. The (b)
+working, P ∪ Q = 10, 12, 14, 15, 18, is the same five numbers under either reading and so does not
+distinguish them; the first does. A student copying the card would have been wrong by two numbers
+against the scheme.
+
+**And the description moved off part (a).** It is a fact about the FIGURE and both parts hang from
+it: (b) asks for P ∪ Q and carried no description of the diagram at all, so the card was asking
+about a picture it never showed. That is what a question-scoped preamble is for, and it is the same
+argument as the AQA insert — one thing several questions hang from belongs to the question, not to
+one part of it.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 25 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 27 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -1422,6 +1525,7 @@ node js/check-tabs.js            # every tab routed to one of the three files, a
 node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
+node js/check-marking.js         # a right answer marked right, a wrong one wrong
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
@@ -1523,7 +1627,7 @@ found any of this — only pointing the measurement that already existed at the 
 
 Partly, and this session is an honest measure of which half. **What a reader can settle, a check
 already settles**: a name used and never declared, a handler with no door, a column read off the
-wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-five of those now run on every
+wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-seven of those now run on every
 session start.
 
 **What a reader cannot settle is what happens when two correct things meet.** Three faults this
