@@ -2895,6 +2895,37 @@ cannot return one without a clip. A reader left standing over a permanently fals
 shape this file records under `resource_type` in `VOCAB` and under `libraryInto_`'s dead
 `kind === 'paper'` guard. `feedPicture` is untouched and still draws the widget.
 
+##### "No clips yet" was two different answers wearing one sentence
+
+**Reported with a screenshot of that card**, and I could not tell from it which of two things had
+happened — so the first fix was to the SCREEN rather than to the cause. A column that has looked at
+fifty-eight reel rows and found a clip on none of them is a data problem. A column that has looked
+at **nothing** is a code problem: `chess.js` holds the built-in list, and a browser serving a copy
+of it from before clips existed reports exactly the same empty card. The count is the only thing
+that can say which, and it is this repository's oldest fault for the fifth time — *I did not manage
+to look*, printed as *I looked and there was nothing there*.
+
+**Measured against the real Settings spreadsheet while looking for the cause: there is no `facts`
+tab at all.** `fact_id` appears nowhere in it and neither does `clip`; every hit on the word "facts"
+is inside a campaign's `blocks` column. So the sheet is not the explanation, and that is worth
+writing down because this file has said "the tab is empty" for a while when the truth is that
+`?setup=1` has never created it.
+
+**And the hunt found a real trap underneath.** `factsNow_` is all-or-nothing — the tab has rows, so
+the tab is the answer — which was right while both surfaces wanted the same list. The Reels column
+wants only the clips, so **one ordinary fact typed into the sheet would have hidden every built-in
+clip** and taken the column dark. The house rule is per LIST: `clipsNow_` asks the sheet for rows
+with a clip and falls through to the code's when it has none, exactly as `factsNow_` does for facts.
+
+**`reelItem_` was a SECOND reader of "which clips" and the mutant is what caught it.** It still
+filtered `factsNow_` while the screen asked `clipsNow_`, and the two disagree precisely in the case
+being fixed: one typed fact gave `{slides: 0}` under a card reading just "Reels" — heading,
+scroller, no slides, no empty state either. A second reader of one thing is a second chance to
+disagree about it, which is what this file says about `documents_()`, `paperIdOf_` and `factsNow_`
+itself. **Proved on four payloads**: the real files (6 slides), the built-in clips stripped ("Looked
+at 60 reel rows and none of them has a clip"), the list emptied ("no reel rows at all"), and one
+sheet fact beside the code's clips (6 slides, where it was 0 before).
+
 ### AQA Chemistry, as two document rows and nothing else yet
 
 **What was added to Drive as "higher 2024 bio" is AQA GCSE CHEMISTRY 8462**, Higher, Papers 1 and 2,
