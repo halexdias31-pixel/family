@@ -669,6 +669,24 @@ say('BROKEN', fail, x => x);
 say('WHAT THE TRANSCRIBER COULD NOT RECOVER — worth a person and the original paper', flagged,
     r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
 
+/* ---------- `note` WAS PUSHED TO AND NEVER PRINTED -----------------------------------------------
+   CLAUDE.md STATES THIS FILE'S JOB OUTRIGHT: "`check-library.js` says when step 2 is due rather
+   than leaving it to memory: once a file has rows AND `doget.gs` still builds that key, it prints
+   that the block should go." It did not print it. `const note = []` was declared, `note.push(…)`
+   was called, and nothing anywhere read the array — so the signal went into a list that was
+   dropped on the floor every run.
+
+   IT SURVIVED BECAUSE THE CONDITION HAD NEVER BEEN TRUE. All three files held `[]` from the day
+   they were committed, so `body.length` was 0 and the push never happened; the first run that
+   could have printed anything is the run after the export. A rule that cannot fire is a rule
+   nobody finds out is broken, which is this repository's oldest shape and is recorded here about
+   three checks that were never in the roster, a check that could not find its subject, and a
+   `check/ui.js` rule that fired zero times on the fault it was written for.
+
+   PRINTED, NOT FAILED, deliberately. Step 2 is a decision about a live backend and a deploy, not a
+   thing a build should refuse over — the same footing as the transcriber's list above it. */
+say('WORTH DOING NEXT — not a fault', note, x => x);
+
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
 console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
 console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
