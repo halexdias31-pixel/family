@@ -434,6 +434,11 @@ function doGet(e) {
          reads that appears nowhere here is what `check-payload.js` fails on -- correctly, because
          it cannot tell a key filled in the browser from one nobody sends. */
       topicTree: [],
+      /* AND `practicals` IS THE FIFTH, for exactly the same reason. `data/practicals.json` is
+         41 experiments filled in on the phone by `libraryExtras_`; this line is what stops
+         `check-payload.js` reporting the key as read-and-never-sent, which it would be right
+         to do — it cannot tell a key filled in the browser from one nobody sends. */
+      practicals: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one

@@ -156,7 +156,10 @@ async function libraryRows_() {
    funnel needed it: the `Topic` facet reads a free-text cell with 389 distinct values in it, folded
    by a spelling vote at runtime, and 343 of them can be on one card. This is the curated version of
    that question -- somebody wrote the tree down, so the app stops guessing. */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics'];
+/* `practicals` JOINED THIS LIST LAST and is the first entry that is not a boxing row or a
+   lookup table: 41 experiments, each naming the library's own topics, so a practical and a
+   past-paper question about the same thing answer the same question in the funnel. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -218,6 +221,52 @@ function libraryExtras_(d, extra) {
      the parent links intact, so there is nothing to rename here -- the one mapping this file exists
      to do is a mapping onto keys the phone already reads, and a tree has none. */
   if (extra.topics && extra.topics.length) d.topicTree = extra.topics;
+
+  /* --- the practicals --------------------------------------------------------------------------
+     TWO COLUMNS ARE PIPE-SEPARATED AND THAT IS MEASURED, NOT PREFERRED. `asList_` splits on commas
+     and is right about `topics` and `keystage`, where no value has ever carried one. It is wrong
+     here: 14 of the 410 equipment cells hold a comma INSIDE one item -- "Nichrome wire (about 1 m,
+     taped to a metre rule)" is one thing and "Bunsen burner, tripod, gauze, heatproof mat" is four,
+     and no comma rule can tell those apart. Nothing in either column holds a pipe.
+
+     `required` IS DERIVED AND NOT STORED. The export carried the same fact twice -- a `category` of
+     `required`/`fun` beside a `compliance` naming which of the three states a practical is in --
+     and they agreed on all 41 rows, which is luck rather than a guarantee. One cell, read here.
+     That is the `needs_print` / `print_required` lesson, which cost 356 rows of disagreement. */
+  if (extra.practicals && extra.practicals.length) {
+    const out = [];
+    extra.practicals.forEach(r => {
+      const id = libS(r.practical_id).trim();
+      if (!id || !libOn(r.active)) return;
+      out.push({
+        id: id, name: libS(r.name), subject: libS(r.subject), level: libS(r.level),
+        board: libS(r.exam_board), specRef: libS(r.spec_ref),
+        compliance: libS(r.compliance),
+        /* AN EXACT MATCH, NOT A SUBSTRING, AND THE DIFFERENCE IS FIVE PRACTICALS. The first
+           version tested /required practical/ — which is inside `AQA-aligned, NOT A REQUIRED
+           PRACTICAL` as well, so the five that say they are not one were flagged as one. The
+           check caught it by printing a count that disagreed with the data (33 against 28),
+           which is the whole argument for printing counts: nothing threw and the card simply
+           told a tutor the exam board demands an experiment it does not. */
+        required: libS(r.compliance) === 'AQA required practical',
+        topics: libS(r.topics), aim: libS(r.aim), outcome: libS(r.outcome),
+        venue: libS(r.venue), feasible: libS(r.feasible),
+        groupSize: libN(r.group_size), minutes: libN(r.minutes),
+        safety: libS(r.safety), mathsLink: libS(r.maths_link),
+        equipment: libS(r.equipment).split('|').map(s => s.trim()).filter(Boolean),
+        steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
+        /* THE SHOP JOIN, BY ID, AND NOTHING READS IT YET. 20 of the 41 name the stock they need --
+           `I023,I026,I045,I022` is the trundle wheel, the tape measure, the cones and the first aid
+           kit. The shop rows live in the Settings spreadsheet, so this stays an id list until they
+           are there: a name would be the `findPerson`-by-name fault, and inventing the rows here
+           would be a second shop. */
+        itemIds: libS(r.item_ids),
+        notes: libS(r.notes),
+        order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+      });
+    });
+    d.practicals = out;
+  }
 
   /* --- the boxers ------------------------------------------------------------------------------ */
   if (extra.boxers && extra.boxers.length) {

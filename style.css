@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-07-mark-your-work";
+  --css-version: "2026-10-08-practicals";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6997,6 +6997,45 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE WINNER IS A WEIGHT, NOT A LABEL. Two names, one bold, and the eye has the result before it
    has read a word. A draw leaves both light, which says draw without a line saying draw.
 ================================================================================================== */
+/* ---------- A PRACTICAL ---------------------------------------------------------------------------
+   ON THE BLACK, NOT ON PAPER. The two-palette rule turns on what a thing STANDS IN FOR: a receipt,
+   a job stub or a print sheet is paper and takes the cream tokens. A practical is not a document
+   you hand anybody — it is a card you read off a phone in a room, so it belongs to the screen.
+
+   NO TAP TARGET ANYWHERE IN IT, which is why there is no `px` in this block. Every rule here sizes
+   text, and text is the one thing that SHOULD scale with the root; the px rule is about fingertips
+   and this card has nothing to press. */
+.prac-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.prac-head h3 { margin: 0; }
+/* THE ONE THING SOMEBODY SCANS FOR — whether the exam board makes them do this one. It is a flag
+   rather than a line of prose because it is the answer to a yes/no question, and it is gold only
+   when the answer is yes: an "Extra" in the same colour would make the distinction decorative. */
+.prac-flag { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
+             text-transform: uppercase; color: var(--faint); border: 1px solid var(--line);
+             border-radius: .5rem; padding: .22rem .4rem; }
+.prac-flag.is-req { color: var(--gold); border-color: var(--gold); }
+.prac-aim { margin: .45rem 0 0; font-size: .86rem; line-height: 1.5; }
+/* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
+   you run this today, on one line, in the mono face the rest of the app uses for measurements. */
+.prac-strip { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
+              letter-spacing: .03em; }
+.prac-out { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
+.prac-kit, .prac-steps { margin: .65rem 0 0; }
+.prac-kit h4, .prac-steps h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
+                               letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.prac-kit ul, .prac-steps ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li { margin: 0; }
+.prac-steps li { margin: 0 0 .25rem; }
+/* A REAL WARNING, GIVEN THE ROOM A WARNING NEEDS. The house rule puts one paragraph under a row
+   rather than three words on a tile, and these sentences are the reason it exists: "Adult operates
+   the microwave" does not survive being trimmed to fit. */
+.prac-safety { margin: .65rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--ink);
+               border-left: 2px solid var(--gold); padding-left: .55rem; }
+.prac-maths { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
+.prac-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+.prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
+
 .boxer-nick { font-weight: 400; color: var(--dim); }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
 
