@@ -69,7 +69,7 @@ const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
    That is the same request the wardrobe makes, which is why buying has no separate path that
    could succeed while the wearing failed. */
 on('wear', el => {
-  if (!USER) { toast('Sign in first'); goFor_('You'); return; }
+  if (!USER) { toast('Sign in first'); go('account'); return; }
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   cfg[el.dataset.slot] = el.dataset.id;
   /* SAID BEFORE IT IS TRUE, because it almost always becomes true and the wait is the only part
@@ -127,7 +127,7 @@ try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch {}
 const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch {} };
 
 on('cart-add', el => {
-  if (!USER) { toast('Sign in first'); goFor_('You'); return; }
+  if (!USER) { toast('Sign in first'); go('account'); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
   /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the

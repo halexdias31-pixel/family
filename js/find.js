@@ -3544,21 +3544,37 @@ const jobPage_ = j => (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);
 
-/* ---------- THE WAY BACK TO WHAT USED TO BE A TAB -------------------------------------------------
-   `go('me')` AND `go('posts')` WERE SCATTERED AROUND — "sign in first", then jump to the You column.
-   With the columns gone those calls do not fail: `go` falls back to `TABS[0]`, which is Find, so a
-   person told to sign in was silently dropped on the search box with no sign-in card in sight. A
-   fallback that lands somewhere plausible is worse than one that lands nowhere, because nobody
-   reports it.
+/* ---------- `goFor_` WAS HERE, AND IT WAS NAVIGATING TO ANSWERS THAT NO LONGER EXIST --------------
+   IT REPLACED `go('me')` AND `go('posts')` when the columns became answers, and its note gave the
+   right reason: `go` falls back to `TABS[0]` for an id it does not know, so a person told to sign in
+   was silently dropped on the search box with no sign-in card in sight — *"a fallback that lands
+   somewhere plausible is worse than one that lands nowhere, because nobody reports it."*
 
-   ANSWERING THE QUESTION IS THE NAVIGATION NOW. This clears whatever was filtered and sets the one
-   answer, which is exactly what tapping it would have done — so `goFor_('People')` puts somebody on
-   the account pages, the same place `go('me')` used to. */
-function goFor_(label) {
-  STUFF.filters = [{ field: 'forLabel', value: label }];
-  STUFF.q = '';
-  if (typeof paintStuff === 'function') paintStuff();
-}
+   THEN THE ANSWERS WERE DELETED AND THE CALLS WERE NOT. `You` and `People` went with the `me` kind
+   and the `People` group; `Posts` went when the feed stopped being built here. Nothing declares any
+   of the three, so `goFor_('You')` set a filter that matches nothing at all — and that is worse than
+   the fallback it was written to avoid, because it does not merely fail to navigate:
+
+     · it CLEARS `STUFF.q`, so whatever was typed in the search box is thrown away
+     · it REPLACES `STUFF.filters`, so every chip somebody had narrowed with is gone
+     · it leaves ONE dead chip reading `You`, which no item can answer, over zero results
+     · and `paintStuff` deliberately never rewrites `#stuff-q`, so the box still shows the old text
+       while the results ignore it
+
+   MEASURED: signed out, pressing a reaction on the feed toasted "Sign in to react", offered no way
+   to sign in, and left the Find screen holding 0 of 4,110 behind a chip nobody set. Three callers
+   did it — the reaction, and both `resource.js` sign-in guards — and two more called
+   `goFor_('Posts')` with `PAGE.feed` set on the line beside them, which says plainly that the
+   intent was the feed COLUMN.
+
+   SO THE COLUMNS ARE THE NAVIGATION AGAIN, and the note's original objection no longer applies:
+   `account` and `feed` are real ids in `TABS`, so `go` does not fall back, and `accountPages_`
+   returns `signInCard_()` for a visitor who is not signed in — which is the thing all three sites
+   were trying to reach. One call each, and nothing to keep in step with a list of group names.
+
+   `forIs_` STAYS. `bookingPages_` and `feedPages_` still read it, and a `kinds` row can still put a
+   kind into either group and make the answer real — see `FUNNEL_NOT_FOR`. What has gone is the app
+   setting that filter on somebody's behalf. */
 
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY ------------------------------------------------------
