@@ -95,7 +95,11 @@ const LEDGER_ID = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
                                     happened. Hand-editing these races doPost.
      settings  you write it, the app reads it. brand, config, pricing, venues, facets — editorial.
                                     Changing any of it is a cell, never a deploy.
-     library   you write it in bulk. questions, boxers, cheatsheet — subject content.
+     library   IT IS TWO FILES NOW. `Library` held four tabs and the code reads none of them:
+                                    questions, cheatsheet, boxers and fights are all files in the
+                                    repository, read by js/library.js. The third id is gone from
+                                    FILES below rather than left blank, because a blank id is a
+                                    file `installSheetWatch` still books a trigger against.
 
    THAT IS WHY THE TAB COLOURS IN EACH FILE SAY THE SAME THING: green written by the app, gold read
    by it, grey read by nobody. A tab whose colour and whose file disagree is a mistake you can see
@@ -106,12 +110,16 @@ const LEDGER_ID = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
    so those ids still resolve and the old data is still there if any of this turns out wrong.
 ================================================================================================== */
 const SETTINGS_ID = "1Ums80E1B1lWJhOEe-TgGMBq88Rv8yIhTvVC-f1zKLoQ";
-const LIBRARY_ID  = "1mBxk2zlNJQZM8SslN_0yts28RvdoTeBtPseIBcSxPUg";
+/* `LIBRARY_ID` WAS HERE. The id itself is not secret — every Drive link in the library is
+   already public and already served to anonymous visitors — but a constant nothing reads is a
+   thing the next reader has to work out the status of, and this one would read as "there is a
+   third database" when there is not. The spreadsheet still exists; nothing in this project
+   opens it. */
 
 /* `installSheetWatch` walks this to put an edit trigger on every file, so a fourth database is one
    line here and nothing else. A BLANK ID IS NOT AN ERROR — it is that file's tabs coming back
    empty, the same as a tab that is not there, and `checkTabs()` says which. */
-const FILES = { ledger: LEDGER_ID, settings: SETTINGS_ID, library: LIBRARY_ID };
+const FILES = { ledger: LEDGER_ID, settings: SETTINGS_ID };
 
 /* ---------- WHICH FILE EACH TAB IS IN -------------------------------------------------------------
    EVERY TAB IS LISTED, and that is the change. This was two maps — `HERE` for renamed tabs in the
@@ -122,9 +130,8 @@ const FILES = { ledger: LEDGER_ID, settings: SETTINGS_ID, library: LIBRARY_ID };
    SCHEMA with no line here, because "I did not look" must not print as "I looked and it was fine".
 
    NOTHING ELSE IN THE CODE KNOWS WHERE A TAB LIVES, which is the point of doing it in one place.
-   Every tab is reached through `read(name)`, so this one lookup covers the boxer cards, the
-   question rows, the past-paper builder and the cheat sheet maker alike. They still ask for
-   `boxers`; they just get it from wherever this says.
+   Every tab is reached through `read(name)`, so this one lookup covers the pricing, the venues and
+   the facets alike. They still ask for `venues`; they just get it from wherever this says.
 
    `alsoTry` IS A SECOND TAB NAME to look under, tried after the code's own name, so renaming a tab
    in the spreadsheet never has to be atomic with a deploy. The two below are both satisfied by the
@@ -175,13 +182,12 @@ const WHERE = {
   herd:           { file: 'settings' },
 
   /* ---- subject content, edited in bulk ---- */
-  /* `questions` WAS HERE and is not routed anywhere, because there is no longer a tab to route to:
-     the 3,913 rows are `data/questions.json` in this repository and `js/library.js` reads them. An
-     unrouted name resolves to a blank id, which `read` cannot tell from an empty tab — so leaving
-     the line in would have been a tab nothing fills, read on every load, for ever. */
-  cheatsheet:     { file: 'library', alsoTry: 'cheatsheetcomp' },
-  boxers:         { file: 'library' },
-  fights:         { file: 'library' },
+  /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than
+     merely absent. `questions` went first — 4,807 rows to `data/questions.json` — and
+     `cheatsheet`, `boxers` and `fights` have followed, so the `Library` spreadsheet has no tab
+     this code reads and `LIBRARY_ID` is gone from `FILES` above. An unrouted name resolves to a
+     blank id, which `read` cannot tell from an empty tab, so leaving any of these lines in would
+     have been four tabs nothing fills, read on every load, for ever. */
 };
 /* WHO GETS TOLD when something needs doing by hand. A name rather than an address, because
    notify() looks the address up on the people tab — so changing your email is one cell, not a
@@ -199,7 +205,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-03-delrow";
+const BACKEND_VERSION = "2026-10-05-library-cut";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -231,15 +237,11 @@ const TAB = {
   kinds: 'kinds',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
-  /* `questions` WAS HERE. The tab is gone — see the note where SCHEMA.questions used to be. */
-  /* Every professional boxer worth a row — see SCHEMA.boxers. */
-  boxers: 'boxers',
-  /* The bouts themselves. `boxers` is who; this is what happened — see SCHEMA.fights. */
-  fights: 'fights',
+  /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
+     their SCHEMA entries used to be. */
   /* Which loading splashes are in the pool — see SCHEMA.splashes. */
   splashes: 'splashes',
-  /* What may go on a printed cheat sheet, and at which level — see SCHEMA.cheatsheet. */
-  cheatsheet: 'cheatsheet',
+  /* `cheatsheet` WAS HERE. Gone the same way — see the note where SCHEMA.cheatsheet used to be. */
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
   facts: 'facts',
@@ -988,49 +990,13 @@ const SCHEMA = {
     "splash_id", "name", "kind", "shows", "note", "active",
   ],
 
-  /* ---------- THE CHEAT SHEET COMPONENTS -----------------------------------------------------------
-     WHAT MAY GO ON A PRINTED SHEET, AND AT WHICH LEVEL. The same bargain as the splashes above, and
-     for the same reason: each component is DRAWN in code — `MAT_HTML` in js/mat.js holds a function
-     per `part_id`, and a hundred-square, a protractor and a set of curves are not things a spreadsheet
-     can express. So this tab cannot invent a component or change how one looks.
+  /* `cheatsheet` WAS HERE and is gone for the reason `questions` is gone, one file along:
+     the 77 rows are `data/cheatsheet.json` in this repository and `libraryExtras_` in
+     js/library.js reads them. THE ENTRY HAD TO GO WITH THE TAB, because `ensureSchema` walks
+     this object and CREATES any tab it cannot find — so an entry left behind rebuilds an empty
+     `cheatsheet` tab on the next `?setup=1`, with the right headers and no rows, which is the
+     exact shape of the fault that hid the real resource rows in another file for months. */
 
-     WHAT IT DOES OWN IS EVERYTHING ELSE, and that turns out to be most of what gets edited:
-
-       name         what it is called in the picker and above the block
-       levels       which levels offer it, comma-separated, in the sheet's own words
-       tier         `Higher` where a component is Higher-only. Blank means both papers
-       height_mm    what it costs on the page, for the picker's label
-       half_width   TRUE if two of them pair up in a row
-       sort_order   where it comes on the sheet. THIS IS THE ONE THAT WAS IMPOSSIBLE BEFORE:
-                    the order was the order of an array in a file, so moving the times tables
-                    above the number line was a code edit and a deploy
-       active       FALSE retires it without deleting the row
-
-     IT IS A LIST OF OVERRIDES, NOT A WHITELIST. A component in the code and absent from this tab
-     still appears, with the code's own tags — the same rule the splashes follow, and the reason a
-     component added in code works on the day it ships rather than on the day somebody remembers to
-     type a row for it. An empty cell means "no opinion", so filling in `levels` alone leaves the
-     name, height and order exactly as the code has them.
-
-     A ROW WHOSE `part_id` HAS NO DRAWING IS IGNORED, because there is nothing to render and a blank
-     box with a heading is worse than an absent one. `check-mat` is what tells you it is there. */
-  cheatsheet: [
-    "part_id", "name", "levels", "tier", "height_mm", "half_width",
-    /* TICKED WHEN THE TOOL OPENS. Six were hard-coded in mat.js, chosen so the sheet opens on a
-       working example rather than over-full with the print button already dead. That was the right
-       instinct in the wrong place: WHICH six is a decision about teaching, not about code. */
-    "start_on",
-    /* ---------- IS IT ON THE PAPER ANYWAY -------------------------------------------------------
-       TRUE means the exam gives you this, so putting it on a cheat sheet spends paper on something
-       the candidate will already be holding. FALSE means they must know it or bring it.
-
-       BLANK MEANS NOBODY HAS CHECKED, and blank is not FALSE. Which formulae are printed on the
-       paper differs by board and changes between specifications, so a guess written here is a
-       wrong fact in the database that reads exactly like a checked one. Left empty until somebody
-       has the specification open. */
-    "in_exam",
-    "sort_order", "active", "notes",
-  ],
 
   /* ---------- FAVOURITES ---------------------------------------------------------------------------
      ONE ROW PER FAVOURITE, not a column on every table.
@@ -1070,57 +1036,14 @@ const SCHEMA = {
      that wrote to it are gone from dopost.gs. See the header of js/library.js for what moved, and
      what was deliberately left behind. */
 
-  /* ---------- ONE ROW PER FIGHTER --------------------------------------------------------------
-     A RECORD IS A READING, NOT A FACT. 50-6 is true of Tyson for ever and true of a working
-     fighter only until Saturday — so `record_as_of` sits beside the counts and says which. A row
-     without it is a number nobody can date, which is the same as a number nobody can trust.
+  /* `boxers` AND `fights` WERE HERE, and they leave together for the same reason and by the
+     same route: 103 fighters are `data/boxers.json` and 157 bouts are `data/fights.json`, both
+     read by `libraryExtras_`. The columns they describe are not lost — the files hold the
+     SHEET'S OWN column names, `boxer_id`, `height_cm`, `winner_id`, so an export is a row you
+     can paste back without translating it, and js/library.js holds the one mapping that renames
+     them for the phone. Same `ensureSchema` argument as `cheatsheet` above: an entry left here
+     would quietly rebuild the tab this change exists to delete. */
 
-     COUNTS, NOT PERCENTAGES. `wins_ko` over `wins` is one division away whenever anybody wants
-     it; a stored KO percentage cannot be added up, recounted, or corrected by one bout.
-
-     TWO COLUMNS FOR DIVISION, for the same reason band_type and band_value are two: `divisions`
-     is the list he actually fought at and `best_division` is the one value a filter can group by.
-     Pacquiao held eight and is remembered at one.
-
-     AND WHAT HE BEAT, not just how often. `notable_wins` is the argument every boxing conversation
-     is actually having — the resume, not the record. Free text for now, and the seed of a `bouts`
-     tab keyed on boxer_id the day the counts should be derived rather than typed. */
-  boxers: [
-    "boxer_id", "name", "nickname", "sex", "country", "born_in", "stance",
-    "dob", "dod", "height_cm", "reach_cm",
-    "divisions", "best_division", "active_from", "active_to", "status",
-    "wins", "wins_ko", "losses", "losses_ko", "draws", "no_contests", "record_as_of",
-    "world_titles", "lineal", "hall_of_fame", "ring_rank",
-    "promoter", "trainer", "notable_wins", "notable_losses",
-    "image", "notes", "active",
-  ],
-
-  /* ---------- THE BOUTS ------------------------------------------------------------------------
-     `boxers` HOLDS A RECORD AND THIS HOLDS THE FIGHTS THAT MADE IT. A win count is a summary of
-     rows like these, and the day the counts should be derived rather than typed, this is the tab
-     they are derived from.
-
-     TWO NAMES AND TWO IDS FOR EACH CORNER, deliberately. The id links to `boxers` and is what a
-     card follows; the name is what the row SAYS, and it survives a fighter who has no row yet.
-     Half these bouts are from before the roster existed, so a tab that could only name people it
-     already knew would have been empty of exactly the fights worth reading about.
-
-     `rivalry_id`, `bout_no` AND `bout_total` ARE WHAT MAKE A TRILOGY ONE THING. Three separate
-     rows about Ali and Frazier are three fights; the same three carrying the same rivalry are a
-     story with an order, and the third one means nothing without the first two.
-
-     `result` IS THE SENTENCE AND `winner` IS THE FACT. One is for reading and one is for counting,
-     and a tab that only had the sentence could never total anything. */
-  fights: [
-    "fight_id", "rivalry_id", "bout_no", "bout_total", "series", "event_name",
-    "boxer_a_id", "boxer_a", "boxer_b_id", "boxer_b",
-    "date", "venue", "city", "country",
-    "division", "titles", "scheduled_rounds",
-    "result", "winner_id", "winner", "method", "end_round",
-    "scorecards", "attendance", "notes",
-    "video_url", "video_search_url",
-    "verified", "active",
-  ],
 
   favourites: [
     "fav_id", "person_id",

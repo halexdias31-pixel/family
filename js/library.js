@@ -106,7 +106,7 @@ async function libraryRows_() {
 }
 
 /* ==================================================================================================
-   THE OTHER THREE TABS OF `Library`, ON THE SAME ROAD AND ONE STEP BEHIND.
+   THE OTHER THREE TABS OF `Library`, AND BOTH STEPS ARE TAKEN. THIS IS THE ONLY IMPLEMENTATION.
 
    `questions` LEFT THE SPREADSHEET AND THE ARGUMENT APPLIES UNCHANGED to `boxers`, `fights` and
    `cheatsheet`. CLAUDE.md sets the test in three questions, first one to answer wins:
@@ -122,17 +122,28 @@ async function libraryRows_() {
                               can never move here; these three it only ever reads.
      Who edits it?            You, in bulk. Which is the same answer `questions` gave.
 
-   SO WHY IS THIS A FALLBACK AND NOT A CUT. When `questions` moved, the 3,913 rows were in hand and
-   `doGet` stopped building them in the same commit. These rows are in a spreadsheet that the agent
-   environment cannot reach — every Google host is blocked by network policy — so the move is two
-   steps and only the first can be taken from here:
+   IT WAS BUILT AS A FALLBACK AND IT RAN AS ONE FOR A FORTNIGHT, which is the part worth keeping.
+   When `questions` moved, the rows were in hand and `doGet` stopped building them in the same
+   commit. These three could not be done that way: the rows were in a spreadsheet the agent
+   environment cannot open — every Google host is blocked by network policy — so it went in two
+   steps, and only the first could be taken from here:
 
      1. the machinery, with the FILE WINNING and the payload still answering while the file is empty
      2. paste the rows in, confirm, then delete the three blocks from `doget.gs`
 
    CUTTING THE BACKEND FIRST WOULD HAVE TAKEN THE FEATURES DARK for however long step 2 took, over a
-   migration nobody was waiting on. This way the app is identical today, identical the moment the
-   rows land, and `check-library.js` says when step 2 is due rather than leaving it to memory.
+   migration nobody was waiting on. Step 2 is done — the rows came out through the Drive connector,
+   337 of them, and were compared cell by cell against what `doGet` was building from the same tabs:
+   **337 rows, 0 cells differ**, so the cutover changed nothing anybody could see. `doget.gs` no
+   longer reads those tabs, `SCHEMA`, `TAB` and `WHERE` no longer name them, and `LIBRARY_ID` is
+   gone from `FILES`, so nothing in this project opens that spreadsheet at all.
+
+   THE `[]` FALLBACK BELOW STAYS AND IS NOW LOAD-BEARING IN ONE DIRECTION ONLY. There is no payload
+   copy left to fall back TO — `doGet` sends `boxers: []`, `fights: []` and `cheatsheet: []` and
+   nothing fills them — so a file that 404s is three dark screens rather than a quiet reversion.
+   That is worse than what it replaces and it is still the right shape: the alternative is a throw
+   on a file that has not been deployed yet, which takes the whole of `load()` with it. What it
+   costs is written down here so it is not rediscovered as a bug.
 
    THE FILES HOLD THE SHEET'S OWN COLUMN NAMES — `boxer_id`, `height_cm`, `part_id` — not the
    camelCase the phone reads. That is deliberate and it is what `questions.json` does too: the file
@@ -143,9 +154,10 @@ async function libraryRows_() {
 const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet'];
 let LIBRARY_EXTRA = null;
 
-/* One fetch per tab, all started before this file parsed — see `index.html`. A tab that 404s, fails
-   or has not been exported yet answers `[]`, which is the signal `libraryExtras_` reads as "the
-   payload still owns this one". */
+/* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
+   fails answers `[]`, and `libraryExtras_` reads that as "leave the payload's key alone" — which
+   since the cut means leaving an empty array alone. See the note above for why that is still the
+   right shape now that there is nothing behind it. */
 async function libraryExtraRows_() {
   if (LIBRARY_EXTRA) return LIBRARY_EXTRA;
   const out = {};
@@ -163,12 +175,14 @@ async function libraryExtraRows_() {
   return LIBRARY_EXTRA;
 }
 
-/* ---------- THE THREE BLOCKS, COPIED FROM `doget.gs` LINE FOR LINE --------------------------------
-   Every field name, every guard and every three-state null below is the backend's, not a rewrite:
-   `mat.js` and the boxing screens were written against those exact keys, and a mapping that is
-   nearly the same is worse than one that is obviously the same. When step 2 deletes those blocks
-   this becomes the only implementation; until then the two must agree exactly or the app changes
-   behaviour on the day the file stops being empty. */
+/* ---------- THE THREE BLOCKS, MOVED OUT OF `doget.gs` ---------------------------------------------
+   Every field name, every guard and every three-state null below WAS the backend's, copied line for
+   line rather than rewritten: `mat.js` and the boxing screens were written against those exact keys,
+   and a mapping that is nearly the same is worse than one that is obviously the same. That was
+   written while both existed and the two had to agree exactly. They no longer both exist — the
+   blocks are gone from `doget.gs` and this is the only implementation, so the sentence is now
+   history rather than a rule. It is kept because it says why the key names are what they are, which
+   is the question the next reader asks about `heightMm` sitting over a column called `height_mm`. */
 function libraryExtras_(d, extra) {
   if (!d || !extra) return d;
 

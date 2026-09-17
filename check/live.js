@@ -30,9 +30,14 @@
    e-mail addresses, phone numbers and dates of birth, and this repository is PUBLIC. The dump path
    is in `.gitignore` and this file refuses to write one into the working tree.
 
-   To make one, export the three spreadsheets and flatten them to:
+   To make one, export the two spreadsheets and flatten them to:
 
-     { "ledger": { "<tab>": [[row], [row], …] }, "settings": { … }, "library": { … } }
+     { "ledger": { "<tab>": [[row], [row], …] }, "settings": { … } }
+
+   IT WAS THREE. `Library` held the questions, the cheat sheet components, the boxers and the
+   bouts; all four are files in `data/` now and no backend code opens that spreadsheet, so a dump
+   of it would be three keys this cannot use. A dump made before that change still works — an
+   extra key is ignored.
 
    first row = headers, every cell a string, number or boolean. Then:
 
@@ -121,15 +126,17 @@ function bookOf(key) {
   };
 }
 
-/* The ids in constants.gs, mapped back to the three keys in the dump. Read out of the source rather
-   than typed here, so renaming a file in `FILES` cannot silently point this at nothing. */
+/* The ids in constants.gs, mapped back to the keys in the dump. Read out of the source rather than
+   typed here, so renaming a file in `FILES` cannot silently point this at nothing — and so that
+   removing one, as `Library` was, fails here loudly rather than resolving to a file that is not in
+   the dump. */
 const constants = fs.readFileSync(path.join(repo, 'backend', 'constants.gs'), 'utf8');
 const idFor = {};
-for (const m of constants.matchAll(/const\s+(LEDGER|SETTINGS|LIBRARY)_ID\s*=\s*"([^"]+)"/g)) {
+for (const m of constants.matchAll(/const\s+(LEDGER|SETTINGS)_ID\s*=\s*"([^"]+)"/g)) {
   idFor[m[2]] = m[1].toLowerCase();
 }
-if (Object.keys(idFor).length !== 3) {
-  console.error('check/live.js: could not read three ids out of constants.gs — found ' +
+if (Object.keys(idFor).length !== 2) {
+  console.error('check/live.js: could not read two ids out of constants.gs — found ' +
                 Object.keys(idFor).length);
   process.exit(1);
 }
@@ -226,8 +233,13 @@ console.log('');
 console.log('THE REAL PAYLOAD, FROM THE REAL SHEETS');
 console.log('  version   : ' + payload.version);
 console.log('  keys      : ' + Object.keys(payload).length);
-for (const k of ['people', 'venues', 'questions', 'shop', 'links', 'posts', 'intervals',
-                 'facts', 'landmarks', 'jobs', 'boxers', 'fights']) {
+/* `boxers`, `fights`, `cheatsheet` and `questions` are deliberately NOT in this list. The payload
+   still carries those keys as empty arrays — see the note in doget.gs — and printing `boxers: 0`
+   here would say "the boxers are empty" about 103 rows that are simply somewhere else. That is the
+   fault this repository records five times over: I did not look, reported as I looked and there was
+   nothing there. js/check-library.js is what counts those files. */
+for (const k of ['people', 'venues', 'shop', 'links', 'posts', 'intervals',
+                 'facts', 'landmarks', 'jobs']) {
   if (k in payload) console.log('  %s: %s', (k + '           ').slice(0, 10), n(k));
 }
 const cl = payload.dropdowns && payload.dropdowns.checklists;
