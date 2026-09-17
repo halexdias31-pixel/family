@@ -120,6 +120,11 @@ const SUITE = [
      content — the library the whole Find screen is about — and no check had ever opened it. A wrong
      row does not throw; it is simply a question somebody is taught wrongly. */
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
+  /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG -----------------------
+     Everything above measures whether the app works. This measures whether the marking is FAIR,
+     and it is here because it caught a live one: the library spells a fraction with U+2044, a
+     phone types `/`, and `5/9` was marked wrong against `5⁄9` on a paper somebody was sitting. */
+  { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
      `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
      that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels

@@ -2055,12 +2055,29 @@ function boxerCard_(x) {
 
    NOTHING AT ALL WHEN THERE IS NO ANSWER. A summary reading "Answer" that opens on emptiness is
    worse than no summary: it says one exists. */
+/* ---------- AND WHEN IT IS NOT SHOWN, WHICH IS A SECOND READER RATHER THAN A CHANGED MIND ------
+   THE ARGUMENT ABOVE IS ABOUT THE TUTOR AND IT STILL STANDS. A disclosure widget between a
+   question and its mark scheme is a tap in the middle of a sentence being spoken, and that is
+   exactly what this screen is for when somebody is reading FROM it.
+
+   WHAT CHANGED IS THAT THERE IS NOW A SECOND READER: a student working through the paper on the
+   tutor's phone while the tutor is with somebody else, typing into the answer box and pressing
+   Check. For that reader the open mark scheme is not a convenience, it is the answer printed
+   under the question -- and marking your own work against an answer you have already read is not
+   marking.
+
+   SO IT TURNS ON WHO IS WORKING, WHICH IS A FACT THE APP ALREADY HAS. No student named -- the
+   tutor's own default -- and nothing about this card has changed. A student named, and the answer
+   waits behind one tap that says what is behind it, and opens itself the moment they get it right.
+   Neither reader is asked to put up with the other's screen. */
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
+  const hide = !!whoIs_();
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
-  return `<div class="qans">
+  return `<div class="qans${hide ? ' is-shut' : ''}">
+    ${hide ? `<button type="button" class="qp-reveal" data-do="qp-reveal">Show the answer</button>` : ''}
     <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
     </div>
@@ -2426,6 +2443,7 @@ function questionItems() {
          this function dropped all three — the other direction of the fault `check-payload.js`
          exists for: sent, and never read. Only 91 of 3,271 rows carry one today. */
       answer: r.answer || '', answerType: r.answerType || '',
+      accept: r.accept || '',
       examinerNote: r.examinerNote || '',
       /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. It was one stem or
          none; a list is what makes an AQA source text and a question's own scene-setting the same
@@ -2519,20 +2537,259 @@ function questionItems() {
 
    EVERY READ AND WRITE IS WRAPPED. Private mode THROWS on `localStorage` rather than returning
    null, and a thrown getter here would take the whole results list down with it. */
-const ansKey_ = x => 'ans:' + ((x && (x.key || x.name)) || '?');
+/* ---------- WHOSE ANSWER IT IS -------------------------------------------------------------------
+   TWO BOYS ON ONE PHONE WAS THE CASE THAT ASKED FOR THIS. The key was `ans:<row_id>` and nothing
+   else, so a second person working through the same paper on the same device typed over the
+   first one's answers with no warning and no way back. On a tutor's phone, passed between two
+   students in one session, that is not an edge case -- it is the ordinary way it gets used.
+
+   THE SIGNED-IN PERSON WHERE THERE IS ONE, otherwise whoever the Working-as control names. Signing
+   in needs a row in the Ledger and a PIN, which is not something a tutor can do at the kitchen
+   table for a boy who turned up today; a name typed into the app is. It is not a login and does
+   not pretend to be one -- nothing is protected by it and nothing is sent anywhere. It is a label
+   on a drawer.
+
+   THE OLD UNPREFIXED KEY IS STILL READ, once, for whoever had answers before this existed. */
+function whoIs_() {
+  try {
+    if (typeof USER !== 'undefined' && USER && (USER.personId || USER.name)) {
+      return 'u:' + (USER.personId || USER.name);
+    }
+    return localStorage.getItem('workingAs') || '';
+  } catch (e) { return ''; }
+}
+
+const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
 
 function ansRead_(k) {
-  try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
+  try {
+    const v = localStorage.getItem(k);
+    if (v !== null) return v;
+    /* BEFORE THERE WAS A WHO, every answer lived under the bare key. Read it once so nobody's
+       working vanishes the day the name box appears; it is copied forward on the next keystroke. */
+    const bare = k.replace(/^ans:[^:]*:/, 'ans:');
+    return (bare !== k && localStorage.getItem(bare)) || '';
+  } catch (e) { return ''; }
+}
+
+/* ---------- MARKING IT -----------------------------------------------------------------------
+   THE ONE FAILURE THAT MATTERS IS MARKING A RIGHT ANSWER WRONG. A student has nobody to appeal
+   to: told they are wrong when they are right, they either lose the thread or stop believing the
+   tick, and the second is worse because it takes the correct marks with it. So every rule here
+   is deliberately generous, and where it cannot be generous enough to be safe it declines to
+   mark at all -- `accept` is simply absent on 427 questions and those offer the answer instead
+   of a verdict. See tools/set-accept.py.
+
+   WHAT IS FORGIVEN, each because a child writing it has not made a mistake:
+     case, spaces, a trailing full stop        "Banana And Pear."
+     the thousands comma                        1000 for 1,000
+     a unit or a currency sign the answer names £4,655 for 4,655, "1000 envelopes" for 1000
+     a minus sign in any of its three spellings -5, &minus;5, en dash
+     a trailing zero on a decimal               8.50 for 8.5
+     a list in a different order                10, 5, 2, 1 for 1, 2, 5, 10
+     "and" or "&" between parts of an answer    "4000 and 820000"
+
+   WHAT IS NOT FORGIVEN is a different number. Everything above is notation; the value is the
+   answer. */
+function markNorm_(s) {
+  return String(s == null ? '' : s)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .toLowerCase()
+    .replace(/[−–—]/g, '-')          /* minus, en dash, em dash */
+    .replace(/[£$€]/g, '')
+    /* A THOUSANDS SEPARATOR IS A COMMA, A SPACE, OR A THIN SPACE, and which one you get depends
+       on who printed the paper. Edexcel writes 18 000; the KS2 papers write 1,000; a child types
+       18000. All three are the same number and only the last one is what anybody actually types
+       into a box. Caught by a real row: the very first question of the June 2024 Foundation
+       paper, whose scheme answer is "18 000", marked "18000" wrong. */
+    .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
+    /* A FRACTION HAS FOUR SPELLINGS AND A CHILD TYPES ONE OF THEM. The library writes the answer
+       to Q23(b) of the June 2024 Foundation paper as `5&frasl;9`, which strips to `5\u20449` with the
+       FRACTION SLASH; a phone keyboard has no such key and what gets typed is `5/9`. Before this
+       line those were different strings, so the one answer a student is most likely to write was
+       marked wrong -- on a live paper, to a child sitting beside you, with no appeal. The vulgar
+       characters are the same fault a third way (`3\u2153` is the sign on the Corbettmaths signpost),
+       and they need the space `3 1/3` or the mixed number folds into the improper 31/3.
+
+       THE SPACE IS REMOVED ONLY WHERE IT TOUCHES THE SLASH. Stripping every space instead would
+       fold `1 1/6` onto `11/6` -- 1.17 and 1.83, two different numbers -- so a wrong answer would
+       be marked right, which is the one thing worse than the fault being fixed. */
+    .replace(/[\u2044\u2215]/g, '/')
+    .replace(/[\u00bc\u00bd\u00be\u2150-\u215e]/g, c => ' ' + {
+      '\u00bc': '1/4', '\u00bd': '1/2', '\u00be': '3/4', '\u2150': '1/7', '\u2151': '1/9',
+      '\u2152': '1/10', '\u2153': '1/3', '\u2154': '2/3', '\u2155': '1/5', '\u2156': '2/5',
+      '\u2157': '3/5', '\u2158': '4/5', '\u2159': '1/6', '\u215a': '5/6', '\u215b': '1/8',
+      '\u215c': '3/8', '\u215d': '5/8', '\u215e': '7/8' }[c] + ' ')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\band\b|&/g, ',')
+    .replace(/[.\s]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* A LIST IS A SET. "1, 2, 5, 10" and "10, 5, 2, 1" are the same answer to "list the factors",
+   and a child who works outwards from the middle writes the second. Compared as sorted parts,
+   so order is free and a missing or extra factor is still wrong. */
+function markParts_(s) {
+  return markNorm_(s).split(/\s*,\s*/).map(p => markNum_(p.trim())).filter(Boolean).sort();
+}
+
+/* A NUMBER IS COMPARED AS A NUMBER, so 8.50 is 8.5 and 07 is 7. Anything that is not a bare
+   number is left as text -- "banana" has no numeric value and must not become NaN. */
+function markNum_(p) {
+  const m = /^-?\d+(\.\d+)?$/.exec(p);
+  if (!m) return p;
+  const n = Number(p);
+  return isFinite(n) ? String(n) : p;
+}
+
+/* THE UNIT IS PART OF THE ANSWER'S SENTENCE AND NOT PART OF THE ANSWER. The library writes
+   "1,000 envelopes" and "70.5 kg" because that is what a person says; a student writing 1000 is
+   right. So a trailing word is dropped from the EXPECTED side only -- never from what was typed,
+   or "1000 cats" would pass. */
+/* The solidus is in the leading class because a fraction is a number too: `1/2 km` is a value
+   and a unit exactly as `70.5 kg` is, and without it the km stayed attached and a student
+   typing `6/12` against it was marked wrong. */
+const markBare_ = s => markNorm_(s).replace(/^([-\d.,\/\s]+)\s*[a-z°%]+.*$/, '$1').trim();
+
+/* A FRACTION IS A NUMBER, AND "OR EQUIVALENT" IS WHAT THE MARK SCHEME ACTUALLY SAYS.
+   Q23(b) of the June 2024 Foundation paper is marked `5/9` and its scheme adds, in the same line,
+   "oe ... any equivalent fraction, or the decimal 0.55(5...) or 0.56, or the percentage". A child
+   who writes 10/18 on a primary sheet has not made a mistake either: Corbettmaths Q3 of the
+   different-denominators sheet comes out as 15/20 before anybody cancels it, and telling that child
+   they are wrong is the one failure this marking cannot afford.
+
+   COMPARED AS TWO WHOLE NUMBERS, never as a decimal. 1/3 and 0.3333 are different numbers and a
+   float would eventually call them equal; `a*d === c*b` cannot. A denominator of 0 is refused
+   rather than rounded to infinity.
+
+   WHERE THIS WOULD BE WRONG IS A QUESTION THAT ASKS FOR THE SIMPLEST FORM, because there the
+   unsimplified fraction is the question rather than the answer. There is no such row in the
+   library -- measured: 83 answers are a bare fraction and none of them asks for simplest form --
+   and `check-library.js` fails the build on the first one, so this cannot quietly become wrong. */
+function markFrac_(s) {
+  const t = markNorm_(s).replace(/^\(|\)$/g, '').trim();
+  let m = /^(-?)(?:(\d+)\s+)?(\d+)\/(\d+)$/.exec(t);
+  if (m) {
+    const d = Number(m[4]);
+    if (!d) return null;
+    const n = Number(m[2] || 0) * d + Number(m[3]);
+    return { n: m[1] ? -n : n, d: d };
+  }
+  m = /^(-?\d+)(?:\.(\d+))?$/.exec(t);
+  if (m) {
+    const dec = m[2] || '';
+    const d = Math.pow(10, dec.length);
+    return { n: Number(m[1]) * d + (m[1][0] === '-' ? -1 : 1) * Number(dec || 0), d: d };
+  }
+  return null;
+}
+
+function markAnswer_(typed, accept) {
+  const t = markNorm_(typed);
+  if (!t) return null;                              /* nothing typed is not a wrong answer */
+  const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean);
+  for (let i = 0; i < ways.length; i++) {
+    const w = ways[i];
+    if (t === markNorm_(w)) return true;
+    if (markNum_(t) === markNum_(markNorm_(w))) return true;
+    if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
+    const a = markParts_(t), b = markParts_(w);
+    if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;
+    /* the same value written another way -- see `markFrac_` above */
+    const p = markFrac_(t), q = markFrac_(markBare_(w));
+    if (p && q && p.n * q.d === q.n * p.d) return true;
+  }
+  return false;
 }
 
 function ansBox_(x) {
   const k = ansKey_(x);
+  /* MARKABLE ONLY WHERE `accept` SAYS SO. A question with no machine-checkable answer gets the
+     box it always had and no button, rather than a Check that shrugs -- a control that sometimes
+     does nothing is worse than one that is not there. */
+  const can = String(x && x.accept || '').trim();
+  const who = whoIs_().replace(/^u:/, '');
   return `<label class="qp-ans">
-    <span class="qp-ans-k">Your answer</span>
+    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}<button
+      type="button" class="qp-who" data-do="qp-who">${who ? 'not ' + esc(who) + '?' : 'who is this?'
+      }</button></span>
     <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
       rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
-  </label>`;
+  </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
+    <button type="button" class="qp-check" data-do="qp-check">Check</button>
+    <span class="qp-verdict" role="status" aria-live="polite"></span>
+  </div>` : ''}`;
 }
+
+/* ---------- THE VERDICT ------------------------------------------------------------------------
+   IT SAYS "NOT YET" AND NOT "WRONG", and that is not softness. These are practice sheets a child
+   works through alone while a tutor is with somebody else; the whole value of marking your own
+   work is that you get another go at it, and a verdict that reads as final is one that ends the
+   attempt. The mark scheme is one tap below either way.
+
+   NOTHING TYPED IS NOT A WRONG ANSWER. Pressing Check on an empty box asks for the answer, it
+   does not award a cross. */
+on('qp-check', (el) => {
+  const box = el.closest('.qp-mark');
+  const card = el.closest('.qcard');
+  const inp = card && card.querySelector('.qp-ans-in');
+  const out = box && box.querySelector('.qp-verdict');
+  if (!box || !inp || !out) return;
+  const verdict = markAnswer_(inp.value, box.getAttribute('data-accept'));
+  box.classList.remove('is-right', 'is-near');
+  if (verdict === null) {
+    out.textContent = 'Write something first';
+    return;
+  }
+  box.classList.add(verdict ? 'is-right' : 'is-near');
+  out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
+  /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Getting it right and then having to hunt
+     for the method is backwards: the working is the thing worth reading at the moment you know
+     you were right. A wrong one is left shut, because the next thing to do is try again. */
+  /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Having to hunt for the method at the
+     moment you have just been told you were right is backwards -- that is when the working is
+     worth reading. A wrong one is left shut, because the next thing to do is try again. */
+  const ans = card.querySelector('.qans');
+  if (verdict && ans) ans.classList.remove('is-shut');
+});
+
+on('qp-reveal', (el) => {
+  const ans = el.closest('.qans');
+  if (ans) ans.classList.remove('is-shut');
+});
+
+/* ---------- WHO IS WORKING ---------------------------------------------------------------------
+   NOT A LOGIN AND IT DOES NOT PRETEND TO BE ONE. Signing in needs a row in the Ledger and a PIN,
+   which is a spreadsheet edit -- not something a tutor can do at a kitchen table for a boy who
+   turned up today. This is a name in `localStorage`, it protects nothing and is sent nowhere, and
+   it does exactly two jobs: it keeps two students' answers in separate drawers on one phone, and
+   it tells the card that somebody is being ASKED the question rather than reading from it.
+
+   CLEARING IT IS THE TUTOR'S OWN VIEW, which is why the empty answer is not a refusal. Leaving
+   the box blank puts the screen back the way it is for whoever is reading from it: every mark
+   scheme open, no Check button in the way.
+
+   `prompt` RATHER THAN A SHEET, deliberately. openSheet is the app's own dialog and is the right
+   thing for a form; this is one word, typed once a lesson, and a sheet that has to be built,
+   opened, read and closed for one word is slower to use and far more to go wrong in the middle
+   of a lesson. */
+on('qp-who', () => {
+  let name;
+  try {
+    name = window.prompt('Who is working? Leave it empty for the tutor\u2019s own view.',
+                         whoIs_().replace(/^u:/, ''));
+  } catch (e) { return; }
+  if (name === null) return;
+  name = String(name).trim().slice(0, 24);
+  try {
+    if (name) localStorage.setItem('workingAs', name);
+    else localStorage.removeItem('workingAs');
+  } catch (e) {}
+  toast(name ? 'Working as ' + name : 'Back to the tutor\u2019s view');
+  repaint();
+});
 
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are
    thousands of these and only one of them is ever being typed into. No Save button, because there
@@ -2880,7 +3137,12 @@ function questionCard_(x) {
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
-      <span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>
+      ${/* NOTHING RATHER THAN "0 marks". A Corbettmaths worksheet prints no mark allocation --
+            it is practice, not an exam -- and a row with no `marks` cell was reading "0 marks",
+            which says the question is worth nothing rather than that nobody has said. Same
+            distinction as a blank price reading "free": absent is not zero. */''}${
+        Number(x.marks) > 0
+          ? `<span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>` : ''}
     </div>
     <p class="qcard-sub">${esc(x.sub)}${
       sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${

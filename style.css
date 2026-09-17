@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-draw-on-it";
+  --css-version: "2026-10-07-mark-your-work";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7931,6 +7931,51 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   font: 400 .9rem/1.6 Georgia, "Times New Roman", serif;
 }
 .qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
+
+/* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
+   TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
+   `clamp(13.5px, 3.8vw, 16px)`, so 2.75rem is 40.75px on a phone. Fifth conviction of that rule
+   after `.btn.tiny`, `.post-act`, `.fm-adds label` and the filter chips. */
+.qp-mark { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .5rem 0 .2rem; }
+.qp-check {
+  min-height: 44px; min-width: 88px; padding: 0 1rem;
+  background: var(--gold); color: var(--bg); border: 0; border-radius: var(--r-sm);
+  font: 600 .78rem/1 var(--font); letter-spacing: .04em; cursor: pointer;
+}
+.qp-check:active { transform: translateY(1px); }
+/* GREEN AND AMBER, NOT GREEN AND RED. The verdict says "not yet" rather than "wrong" and the
+   colour has to agree with the words: these are practice sheets a child works through alone, and
+   a red cross reads as final where the whole value of self-marking is the next attempt. */
+.qp-verdict { font: 600 .78rem/1.3 var(--font); }
+.qp-mark.is-right .qp-verdict { color: #6ee7a8; }
+.qp-mark.is-near  .qp-verdict { color: var(--gold); }
+
+/* WHO IS WORKING, AND IT IS DELIBERATELY QUIET. It sits in the answer label because that is where
+   it is relevant and where it is needed, and it is the smallest thing on the card because it is
+   set once a lesson. 44px tall all the same — small to look at is not small to hit. */
+.qp-who {
+  margin-left: .5rem; min-height: 44px; padding: 0 .2rem;
+  background: none; border: 0; color: var(--faint); cursor: pointer;
+  font: 400 .62rem/1 var(--font); letter-spacing: .06em; text-transform: none;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.qp-who:hover { color: var(--gold); }
+
+/* THE MARK SCHEME, WAITING. Only ever shut when a student is named — see `answerBlock_` for why
+   the tutor's own view is untouched. `display: none` rather than height, because a collapsed
+   block that is still in the document is still readable by anyone who looks. */
+.qans.is-shut > .qans-head,
+.qans.is-shut > .qans-body,
+.qans.is-shut > .qans-note { display: none; }
+.qans.is-shut { border: 0; padding: 0; }
+.qp-reveal {
+  min-height: 44px; width: 100%; padding: 0 1rem;
+  background: var(--sunk); color: var(--ink);
+  border: 1px dashed var(--line); border-radius: var(--r-sm);
+  font: 600 .74rem/1 var(--font); letter-spacing: .04em; cursor: pointer;
+}
+.qp-reveal:hover { border-color: var(--gold); color: var(--gold); }
+.qans:not(.is-shut) > .qp-reveal { display: none; }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------
    THE PEN IS OFF UNTIL THE PAD SAYS `is-drawing`, and that is not a nicety. `touch-action: none` is
