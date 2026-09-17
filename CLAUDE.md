@@ -2866,6 +2866,35 @@ Measured in four states: waiting, loaded, errored, and sound on and off again.
 in a form, wrong absolutely positioned. `.btn-row .btn` already says the same thing for the same
 reason. 44px, in px, which is this file's fifth conviction of that rule.
 
+#### And then the facts came off it, because a reel is a video
+
+**Reported from a screenshot of the column: "no more factoids on this yh? its just the videos".**
+It opened on a green gradient reading *"Notre-Dame took nearly 200 years"* — a perfectly good fact,
+and not a reel. The clips were pinned in front of the deck and the deck was still underneath them.
+
+**One list, two surfaces, and they want different halves of it.** So it is a filter here rather than
+a second source: `factsNow_` still answers both, the sheet still wins over the code, and a clip row
+is still just a row with a `clip` in it. The "One more thing" widget goes on dealing the whole deck,
+which is where the facts belong — they are a thing you tap for, not a thing you scroll past.
+Splitting the data instead would be two tabs, two empty states and two things to keep in step.
+
+**A column with no clips says so rather than filling itself with facts.** Showing the next best
+thing is exactly how this screen came to be showing the wrong thing.
+
+**"For ever" is a LAP now, and with two clips that is plainly a repeat.** Saying so beats a column
+that stops dead two flicks in and reads as broken; it stops being a repeat the moment there is a
+third clip, with nothing here to change. **And it is bounded**, because a video is not a div: every
+watched slide holds a decoded `<video>` with a `src`, so an unbounded append is a megabyte a flick
+with nothing released. `REEL_MAX = 60` is a stated ceiling — thirty laps of two — rather than a leak
+nobody measures until a phone gets hot. Measured: every slide a clip, the two ids alternating, 6 on
+open and 60 at the cap after forty flicks.
+
+**And the photograph fetch went with the facts.** It asked Commons for a picture off the slide's
+`pic`, one screen ahead — right while a slide could be a fact, and dead the moment `reelItem_`
+cannot return one without a clip. A reader left standing over a permanently false condition is the
+shape this file records under `resource_type` in `VOCAB` and under `libraryInto_`'s dead
+`kind === 'paper'` guard. `feedPicture` is untouched and still draws the widget.
+
 ### AQA Chemistry, as two document rows and nothing else yet
 
 **What was added to Drive as "higher 2024 bio" is AQA GCSE CHEMISTRY 8462**, Higher, Papers 1 and 2,
