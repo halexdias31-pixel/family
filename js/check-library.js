@@ -74,7 +74,8 @@ const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.js
 const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
-  subject:       ['Combined Science', 'English Language', 'Maths', 'Physics', 'Religious Studies'],
+  subject:       ['Chemistry', 'Combined Science', 'English Language', 'Maths', 'Physics',
+                  'Religious Studies'],
   document_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
      see LIST_COLS below for why a list column is checked per item. */
@@ -94,7 +95,12 @@ const VOCAB = {
      buttons on the funnel for one fact, which is the `Alevel` / `A-Level` fault in a new column.
      `Calculator` and `No calculator` live on the DOCUMENT row (the front cover says it once for the
      whole paper); the kit lives on the question that asks for it. See tools/set-needs.py. */
-  needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper'],
+  /* `Periodic table` IS THE SCIENCES' VERSION OF THE SAME FACT and arrived with the first AQA
+     chemistry paper: its front cover lists it beside the ruler and the calculator, in the same
+     sentence, as a thing you must have. Paper-level like the calculator — the cover says it once
+     for all the questions inside. */
+  needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper',
+                  'Periodic table'],
   needs_print:   ['True', 'False'],
   printable:     ['True', 'False'],
   trackable:     ['True', 'False'],

@@ -205,7 +205,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-05-library-cut";
+const BACKEND_VERSION = "2026-09-17-reel-clips";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -784,6 +784,15 @@ const SCHEMA = {
   facts: [
     "fact_id", "subject", "heading", "body",
     "pic",
+    /* `clip` IS WHAT MAKES A ROW A VIDEO, and it is one column rather than a second tab. A reel
+       with a clip plays it; a reel without one keeps the photograph `pic` finds. Two tabs would be
+       two schemas, two reads, two mappings and two empty states describing one object — the
+       `needs_print` / `print_required` lesson, which cost 356 rows of disagreement.
+
+       A DRIVE FILE ID, OR A WHOLE URL. `clipSrc_` in games.js decides by whether there is a slash
+       in it, so a clip hosted anywhere else is typed in as it stands. A row with a clip does not
+       need a heading — see `factsNow_`. */
+    "clip",
     "sort_order", "active", "notes",
   ],
 

@@ -281,6 +281,11 @@ const KINDS = {
      `question` work, and it is the reason Boxing can then turn up under Subject beside Maths and
      English rather than as a department of its own. */
   boxer: { group: 'Learning', label: 'Resources', card: x => boxerCard_(x) },
+  /* A PRACTICAL IS A THING YOU FIND, which is why it is in the funnel at all and tools and games
+     are not. You do not know which experiment you want -- you know the topic, or the subject, or
+     that you have forty minutes and no lab. All four of those are questions the funnel already
+     asks, so this needed a mapper and a card and nothing else. */
+  practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
@@ -2012,6 +2017,51 @@ function decadesOf_(x) {
   return out;
 }
 
+/* ---------- A PRACTICAL --------------------------------------------------------------------------
+   WHAT A PERSON NEEDS BEFORE THEY RUN ONE, in the order they need it. The aim says what it is for,
+   the strip says whether it can happen at all — how long, how many, where, and whether this room
+   can host it — and only then the kit and the steps.
+
+   THE SAFETY LINE IS NOT A TILE AND NOT A `note`. The house rule says a tile has room for about
+   three words; "Heater and block stay hot after switch-off. Do not touch. Mop spills at once —
+   mains electricity near water." is not three words, and a warning trimmed to fit is a warning
+   that stops being one. One paragraph under the row, which is what `jobAdminTiles_` already does.
+
+   THE STEPS ARE AN `<ol>` AND THE KIT IS A `<ul>`, because the first is an order and the second is
+   a set. That is the whole reason the export's `step_1 … step_10` columns had to become a list
+   that keeps its order rather than a bag. */
+function practicalCard_(x) {
+  const p = x.row;
+  /* THE STRIP SAID "lab · needs a lab" AND A SCREENSHOT IS WHAT CAUGHT IT. `venue` and `feasible`
+     are two columns that overlap on 14 of the 41 rows: every lab practical is `lab` + `needs a
+     lab`, which is one fact printed twice. Measured across all five combinations that exist, the
+     only thing `feasible` adds that the venue does not already say is the kit — `yes` adds
+     nothing at all, and `needs a lab` is what `lab` means. So the venue is shown and `feasible`
+     contributes one phrase, when it has one. */
+  const kit = /with kit/i.test(p.feasible) ? 'needs kit' : '';
+  const strip = [p.minutes ? p.minutes + ' min' : '', p.groupSize ? p.groupSize + ' students' : '',
+                 p.venue, kit].filter(Boolean).join(' · ');
+  return `<div class="card prac">
+    <div class="prac-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="prac-flag${p.required ? ' is-req' : ''}">${
+        p.required ? 'Required practical' : 'Extra'}</span>
+    </div>
+    <p class="sub">${esc([p.subject, p.specRef || p.level].filter(Boolean).join(' · '))}</p>
+    <p class="prac-aim">${esc(p.aim)}</p>
+    <p class="prac-strip">${esc(strip)}</p>
+    ${p.outcome ? `<p class="prac-out"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
+    ${p.equipment.length ? `<div class="prac-kit"><h4>What you need</h4><ul>${
+      p.equipment.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+    ${p.steps.length ? `<div class="prac-steps"><h4>How it runs</h4><ol>${
+      p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></div>` : ''}
+    ${p.safety ? `<p class="prac-safety"><b>Safety</b> ${esc(p.safety)}</p>` : ''}
+    ${p.mathsLink ? `<p class="prac-maths"><b>The maths in it</b> ${esc(p.mathsLink)}</p>` : ''}
+    ${p.notes ? `<p class="prac-note">${esc(p.notes)}</p>` : ''}
+  </div>`;
+}
+
+
 function boxerCard_(x) {
   const b = x.row;
   const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
@@ -3603,6 +3653,33 @@ function stuffItemsRaw_() {
        now, one item per part, and the documents are not in this list at all. The long note above
        `questionItems` says why; the short version is that a document and its questions answer the
        same facets, so listing both meant every search returned two kinds of thing. */
+    /* ---------- THE PRACTICALS --------------------------------------------------------------
+       THE JOIN IS `topics`, AND IT IS THE SAME COLUMN THE QUESTIONS USE. That is the whole design:
+       a practical carrying `Perimeter, Area of 2-D Shapes` is found by the Topic question that a
+       past paper about perimeter is found by, and by the Topic area above it, with nothing added
+       to the engine. The alternative was an id column joining to `data/topics.json`, which would
+       have been a second vocabulary to keep in step with the one 4,000 rows already use.
+
+       `subject` IS THE SCIENCE, NOT "Practicals". A physics required practical IS physics, and
+       filing all 41 under a subject of their own would have put Biology, Chemistry and Physics
+       behind a door marked something else — the mistake `boxKind` records one rung up, where the
+       division was written into `subject` and the Subject question then offered Heavyweight
+       beside Maths. What KIND of thing it is, is what `kind` is for. */
+    ...(DATA.practicals || []).map(p => ({
+      kind: 'practical', name: p.name, key: 'pr:' + p.id,
+      sub: [p.subject, p.required ? 'Required practical' : 'Extra',
+            p.minutes ? p.minutes + ' min' : ''].filter(Boolean).join(' · '),
+      image: '',
+      subject: p.subject, topics: p.topics, level: p.level,
+      examBoard: p.board, company: p.board,
+      /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU, in the column that already means that. A practical
+         needing a lab is the same kind of fact as a question needing a compass, and `needsOf_`
+         already reads `needs` as a comma-list. */
+      needs: [p.venue === 'lab' ? 'Lab' : '', p.feasible === 'needs a lab' ? 'Lab' : '']
+             .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', '),
+      row: p,
+    })),
+
     ...questionItems(),
   ];
 }

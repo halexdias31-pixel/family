@@ -1375,7 +1375,7 @@ It cuts the six marking functions out of `find.js` by name and runs them on thei
 nothing else in the app, which is what makes that safe and is also why they are worth checking in
 isolation. **A second implementation here would be a second thing to keep in step**, which is the
 fault this file already records under `childrenOf`, under `link`/`source_url` and under `kinds`.
-**Every one of its 29 cases is a fault that happened or nearly did**: the thousands separator is the
+**Every one of its 35 cases is a fault that happened or nearly did**: the thousands separator is the
 first question of that same Foundation paper, and the `11/6` case is the reason spaces are not
 stripped wholesale. It is in `check-all.js`, because three good checks once sat on disk for months
 without ever running.
@@ -1424,11 +1424,174 @@ about a picture it never showed. That is what a question-scoped preamble is for,
 argument as the AQA insert — one thing several questions hang from belongs to the question, not to
 one part of it.
 
+## June 2024 Foundation Papers 2 and 3, against the schemes rather than against me
+
+**82 questions, every one read off `1MA1_2F_2406_MS` and `1MA1_3F_2406_MS`.** The 2017 Highers are
+why that is the rule and not a preference: four answers there were subtly wrong because they were
+DERIVED — a reading off a grid the algebra disagrees with, two single values where the scheme takes
+a range, a ratio in a form the scheme also accepts.
+
+**The arithmetic is still recomputed, because a scheme can be mis-READ.** Every intermediate the two
+schemes print — 638 miles, 40.113, 6.333482454, 12.25, 18200, 942478, 29775, the whole two-way
+table — is asserted in the script that writes the rows, so a number mistyped into this file fails
+instead of shipping.
+
+### Four rows were wrong about the paper, and two of them no check could have caught
+
+| | |
+|---|---|
+| **2F Q19(a)** | carried *"[EXPRESSION NOT EXTRACTED — a fraction with 3.5 squared and 2.17 above, 46.891 cubed below]"*, **wrong in every term**. It is &radic;(35.2 + 1.7³) over 4.6² − 8.91 |
+| **3F Q29(b)** | carried *"[FORMULA NOT EXTRACTED]"*. It is *p* = (*h* − 5)/3 |
+| **2F Q24(a)** | said the table gives 0 at *x* = 1. The paper gives it at *x* = **0** |
+| **3F Q13** | said Year 10 has German 34 and that 67 is the German total. Both are **Spanish** |
+
+**The mark scheme proves the first one without the paper**, which is the part worth keeping: 1.7³ =
+4.913, 35.2 + 4.913 = **40.113**, &radic;40.113 = **6.333482454**, 4.6² − 8.91 = **12.25**, and the
+quotient is **0.5170189759**. All four of those numbers are printed in the scheme as partial credit.
+The garbled version reproduces none of them. The page was rendered as an image anyway, because the
+text layer gives `35 2 1 7 4 6 8 91 3 2 . . . .` — loose digits, the failure mode this file already
+records four ways.
+
+**And it proves the last one too.** The scheme's completed grid computes 27 **between** the two
+numbers the paper gives Year 10, so those two cannot be adjacent columns — which settles that 34 is
+Spanish without opening the paper at all. **Both of the last two are invisible to every check here**:
+0 at *x* = 1 and 0 at *x* = 0 are the same value, and a two-way table with the right numbers in the
+wrong columns is still a valid row. A student filling either in from the card would have been
+writing in the wrong blank.
+
+### Two faults in the marking column, found by reading what came out of it
+
+**`12 km/h` was being split into the two acceptable answers `12 km` and `h`.** `set-accept.py` treated
+the solidus as an "or", with a lookahead that protected `3/4` and did nothing for a unit — so the
+single letter **h** was marked RIGHT. `2 g/cm3` split the same way. Measured across the library:
+every `/` in an answer value is a unit or a fraction and **not one is a genuine alternative**, so the
+slash no longer separates and the word "or", which a person wrote deliberately, still does.
+
+**And a superscript that is not a fraction numerator is a POWER.** Deleting its tags ran it into the
+base: `m<sup>4</sup>` was stored as `m4` and `10<sup>7</sup>` as `107` — values nobody would type,
+so `3.42 × 10^7` was marked wrong. **88 accept values corrected**, and the one that looked wrong on
+review (`9891` → `98^91`) turned out to be the row where the answer really is 98 to the power 91.
+
+**This is the third round of the same shape** — after the fraction slash and the mixed number — and
+the lesson each time is that the marking column is DERIVED, so it has to be read rather than
+assumed. Six new cases in `check-marking.js`, which is 35 now.
+
+### `.frac`, and the class name that would have collided
+
+The library writes a bare fraction as `<sup>a</sup>&frasl;<sub>b</sub>`, which is right inside a
+sentence and unreadable for an expression: Q19(a) is a square root over a difference of two squares.
+`.frac` is a real component now — **and its classes are `frac-n` and `frac-d` rather than `num` and
+`den`, which is not fussiness**: `.qsheet .num` already exists in this stylesheet as the SVG label
+class for a drawn diagram, and these cards render INSIDE `.qsheet`. A second `.num` would have
+inherited a 13px serif and a text-anchor meant for an SVG — **the `.price.faint` collision again**,
+where a class reads as a decision and behaves as something else.
+
+## The practicals are data now, and the join is the whole feature
+
+**Asked for as "database the practicals... i guess they would be linked to topics? like measuring
+wheel practical goes with area and perimeter".** That guess is right, and the file it needed was
+already in the repository: `data/archive/practicals.json`, 41 experiments, 41 columns, exported
+when the `Library` spreadsheet was emptied and read by nothing since. **This is `topicstuff` a
+second time** — the archive holds what is unread, which is not the same as unusable, and that
+folder's own README says so.
+
+### What was wrong with the export, and all three faults are ones already paid for once
+
+| | |
+|---|---|
+| `equipment_1 … equipment_10` | **the numbered-column fault, third occurrence.** `images` and `needs` both record the argument |
+| `step_1 … step_10` | the same again — and `step_9`/`step_10` are empty on all 41 rows, two columns that exist so one practical could have had them |
+| `category` beside `compliance` | **one fact in two columns.** Measured, they agree on all 41: `required` is exactly `AQA required practical` (28) and `fun` is the other two values (13). The finer one stays; a derived word does not need a cell. Same shape as `needs_print` / `print_required`, which cost 356 rows of disagreement |
+
+**And the separator is a PIPE, which is measured rather than preferred.** `asList_` splits on commas
+and is right about `topics` and `keystage`, where no value has ever held one. It is wrong here:
+**14 of the 410 equipment cells carry a comma inside one item** — *"Nichrome wire (about 1 m, taped
+to a metre rule)"* is one thing and *"Bunsen burner, tripod, gauze, heatproof mat"* is four, and no
+comma rule can tell those apart. 73 of the 297 steps hold one too. Nothing in either column holds a
+pipe.
+
+### The topic that reached one question out of ninety-four
+
+**The export had ONE topic per practical and the trundle wheel's was `Perimeter and area`.** It
+reads perfectly. Measured against the library it matched **exactly one question**, because the
+library spells that `Perimeter` (23), `Area of 2-D Shapes` (71) and eleven other ways. A join that
+silently reaches nothing is this repository's oldest shape — `figure`, `orderPrints`, the four
+message actions — and here it would have been worse than silent, because `Practicals` would have
+been an answer in the funnel that quietly returned the wrong list.
+
+**So every practical names topics in the library's own spellings, and carries two kinds:**
+
+- **the subject topic** — the AQA unit it is assessed under, which is what a science teacher calls it
+- **the maths topics** — what the practical actually makes a student *do*. The export already had
+  this and called it `maths_link`. **This is the half that matters for a maths tutor**: "resistance
+  of a wire" IS a straight-line graph through the origin, and a student stuck on direct proportion
+  should find it.
+
+**Written out by hand, not derived from the `maths_link` prose.** Parsing *"why intuition fails"*
+into a topic is the mistake this file records twice — a scatter graph summarised in a sentence is
+not a drawing instruction. Measured after: **2.8 topics per practical, median reach 64 questions**,
+and the trundle wheel went from 1 to **107**. Three pure-chemistry practicals reach nothing and
+that is correct rather than a gap: the library is a maths library, and Electrolysis shares no topic
+with a past paper in it.
+
+### The tree had to grow, and the risk was the other direction
+
+`topicAreaOf_` answers "which branch is this on" from `data/topics.json` — ten roots, 269 rows, all
+maths and English. **Twenty of the export's twenty-four topics are science**, so they resolved to
+nothing. Three roots were added, **with AQA's own unit names** (`Cell Biology`, `Bioenergetics`,
+`Homeostasis & Response` are printed headings of spec 8461), and the short forms the export already
+used as aliases so no cell has to be retyped.
+
+**Adding a root changes `topicAreaOf_` for every item, questions included** — its third pass
+resolves by containment and only when all candidates agree, so a new root can take a maths topic
+away from maths. `Energy`, `Forces`, `Waves` and `Rates` are ordinary English and were the danger.
+**So it was diffed over the whole library before it was kept: one question of 4,152 moved**, and it
+moved from a *wrong* answer to a right one — a GCSE lava-flow question tagged `compound units,
+rates` had been resolving to **A-Level Pure Maths**, because "rates" is inside `Connected Rates of
+Change`. `Compound Measures` answers to `rates`, `compound units` and `flow rate` now. Questions
+with an area: 3,548 before, 3,548 after.
+
+**`Density` is deliberately NOT a physics branch.** The maths tree already carries it as an alias of
+`Compound Measures`, and a second home is two branches for one word — the `A-Level` / `Tier` overlap
+`check-funnel.js` already reports. The one practical that called itself Density is filed under
+`Compound Measures`, which is where a tutor looks.
+
+### A substring said five practicals were required when they are not
+
+`required: /required practical/i.test(compliance)` — and **`AQA-aligned, not a required practical`
+contains the words "required practical"**. So the five that say outright they are not one were
+flagged as one, on the card, in gold. **Found by the check printing a count that disagreed with the
+data**: 33 against the transform's 28. Nothing threw. That is the whole argument for printing a
+number rather than a pass — the same argument `papers checked against a total` already records,
+where a rename took it 34 → 2 under a green tick.
+
+### `subject` is the science, and `kind` is what it is
+
+A physics required practical IS physics. Filing all 41 under a subject of their own would have put
+Biology, Chemistry and Physics behind a door marked something else — **the `boxKind` mistake one rung
+up**, where the division was written into `subject` and the Subject question then offered
+Heavyweight beside Maths. So `kind: 'practical'` says what it is, `subject` says what it is about,
+and the funnel needed a mapper and a card and nothing else.
+
+**`item_ids` is the shop join and nothing reads it yet.** 20 of the 41 name the stock they need —
+`I023,I026,I045,I022` is the trundle wheel, the tape measure, the cones and the first aid kit. The
+shop rows live in the Settings spreadsheet, so this stays an id list until they are there: a name
+would be the `findPerson`-by-name fault, and inventing the rows here would be a second shop.
+
+### The strip said "lab · needs a lab", and a screenshot is what caught it
+
+`venue` and `feasible` overlap on 14 of the 41 rows: every lab practical is `lab` **and** `needs a
+lab`. Measured across all five combinations that exist, the only thing `feasible` adds that the
+venue does not already say is the kit. So the venue is shown and `feasible` contributes one phrase
+when it has one. **Fifth time this file writes that a screenshot is the last word on something
+drawn** — all 41 cards laid out at 320px, no overflow, no error, and the repetition visible in the
+first one.
+
 ## Checking your work
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 27 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all 28 checks pass`, or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -1526,6 +1689,7 @@ node js/check-rows.js            # each column read, against the tab that row ac
 node js/check-post.js            # an action that names a person by a cell they can edit
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-marking.js         # a right answer marked right, a wrong one wrong
+node js/check-practicals.js      # the 41 practicals, and whether their topics join to anything
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
@@ -1627,7 +1791,7 @@ found any of this — only pointing the measurement that already existed at the 
 
 Partly, and this session is an honest measure of which half. **What a reader can settle, a check
 already settles**: a name used and never declared, a handler with no door, a column read off the
-wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-seven of those now run on every
+wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-eight of those now run on every
 session start.
 
 **What a reader cannot settle is what happens when two correct things meet.** Three faults this
@@ -2631,6 +2795,93 @@ screen.** Filling the column is what exposed them, and it took measuring the box
 
 **This is the same shape as the check that could not reach its subject**, one layer down: CSS that
 cannot be wrong until something renders it.
+
+#### And its observer had never run, because one timer was holding three jobs
+
+**`afterSlide_` kept one `setTimeout` and cleared it on every call.** That is exactly right for one
+caller asked twice — a run of quick swipes should fill the pages once, at the end — and silently
+wrong the moment two DIFFERENT jobs are booked for the same slide.
+
+**`paint()` books two, four lines apart**: `reelsWatch_`, and then `startScreen_(AT)`. The second
+always won. **So the reel column's observer has never once run** — no slide has ever asked Commons
+for its photograph, and every reel anybody has ever seen has been the bare gradient that
+`.feed-art`'s own comment calls "the floor, not a placeholder". Nothing threw, nothing was missing,
+the screen worked, and it quietly did half of what it was written to do.
+
+**Found by counting the observers in a browser, which is the only way it could have been found.**
+Both lines are correct; the fault is in the thing they meet in. `REEL_IO_ART` came back `false` and
+`.reel.is-watched` came back 0 on a screen with four slides on it.
+
+**Coalesced per job now, not across jobs.** The key is the function itself where the caller passes a
+named one, and a word where it passes an arrow — a fresh arrow is a different key every call, so
+keying on identity alone would queue one `startScreen_` per swipe and undo the coalescing the timer
+was built for. Last booking of a key wins; every key runs, each in its own `try`. Proved in both
+directions on the reel column: 0 observers before, 4 after, and 28 journeys plus 100 UI combinations
+unchanged.
+
+### A reel is a video, and the column was drawing the widget's card in its own words
+
+**Asked for as "the reels will look like the other widgets. most like the one more thing widget. but
+infinite going down."** Three things, and each one was a different fault.
+
+**`.reel .over` WAS A SECOND DESCRIPTION OF `.feed-art`.** The same object — a subject, a heading, a
+paragraph and a credit over a picture — written twice in one stylesheet and twice in two files, with
+its own gradient, its own scrim and its own type sizes. `factsNow_` had already settled where a fact
+COMES from and the two surfaces still did not look alike, because nothing had settled how one is
+DRAWN. `feedSlide` is the one renderer now and `.reels` keeps only the column: how a stack of slides
+scrolls and snaps, which is the half the widget genuinely does not have.
+
+**IT DREW ALL FIFTY-EIGHT AND STOPPED.** Fifty-eight is a lot of slides and it is still a bottom —
+and it was fifty-eight boxes and fifty-eight observed elements on the first paint of a screen showing
+one of them. **`feedItem(n)` has never had an end**: the "One more thing" widget has walked it
+forwards since it was written, because `feedShuffle` deals another pass whenever the deck runs out,
+seeded by the day and by how many passes have gone before. The infinite column is that function read
+one index at a time — four slides on open, four more when the last is two away. Nothing new decides
+what comes next. Measured: 4 on open, 28 after six flicks to the bottom, no sideways scroll at 320.
+
+**`clip` is a fifth field, not a second tab.** A reel with one plays it; a reel without one keeps the
+photograph `pic` finds. Two tabs would be two schemas, two reads, two mappings and two empty states
+describing one object — the `needs_print` / `print_required` lesson, which cost 356 rows of
+disagreement. **A row with a clip needs no heading**: `factsNow_` kept a row only if it had one,
+which is right for a fact and wrong for a video, and is the same argument as the chessboard that was
+made to stop drawing its own title.
+
+**TWO ADDRESSES FOR ONE DRIVE FILE AND THEY ARE NOT INTERCHANGEABLE.** `uc?export=download` answers
+with the BYTES, which is the only form a `<video>` can mute, autoplay, loop and pause; `/preview`
+answers with an HTML PLAYER, which can only be an iframe with Google's own chrome and a play button.
+The first is the one worth having and it is also the undocumented one — and **every Google host is
+blocked from this environment by network policy**, so which of the two a real browser gets is a fact
+one open of the live site settles and nothing here can. That is exactly why there are two: `error`
+on the `<video>` swaps in the iframe. Proved by answering the Drive request with a 404 — the iframe
+arrives and the sound button, which cannot reach inside one, is removed with it.
+
+**And the video was painted black, which a screenshot caught.** An opaque element over `.feed-art`
+covers the gradient, so a clip that has not loaded is a black rectangle where every other slide is a
+finished thing — the exact fault the gradient exists to prevent, one rule along. It is transparent,
+and `has-photo` (the scrim, the white words, the vanished initial) arrives on `loadeddata` rather
+than on the first paint, which is the same moment and the same reason the photograph branch adds it.
+Measured in four states: waiting, loaded, errored, and sound on and off again.
+
+**`.reel-sound` was a gold bar across the top of the slide**, because `.btn` is `width: 100%` — right
+in a form, wrong absolutely positioned. `.btn-row .btn` already says the same thing for the same
+reason. 44px, in px, which is this file's fifth conviction of that rule.
+
+### AQA Chemistry, as two document rows and nothing else yet
+
+**What was added to Drive as "higher 2024 bio" is AQA GCSE CHEMISTRY 8462**, Higher, Papers 1 and 2,
+June 2024, question papers and mark schemes — read off the front cover of each rather than the
+filename, which is AQA's own generic `Question paper (Higher)_ Paper 1 - June 2024.pdf` and names no
+subject at all. Paper 1 is uploaded twice, byte for byte, under `(1)` and `(2)`.
+
+**The paper row is the part that can be right before anything is transcribed**, and it is the part
+that decides where every question under it lands: board, spec code, tier, paper number, the month,
+the exam date off the cover, and the total the cover states. **100 marks each**, so
+`check-library.js` will refuse a transcription that does not sum to it — the one end-to-end check the
+library has, in place before there is anything to check.
+
+**`Periodic table` is a seventh `needs`.** The chemistry cover lists it beside the ruler and the
+calculator, in the same sentence, as a thing you must have — and like the calculator it is a fact
+about the PAPER, so it sits on the document row and covers every question inside.
 
 ### `node js/check-funnel.js` — the funnel, run over the real library
 

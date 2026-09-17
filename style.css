@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-07-mark-your-work";
+  --css-version: "2026-09-17-reels-infinite-clips";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6997,6 +6997,63 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE WINNER IS A WEIGHT, NOT A LABEL. Two names, one bold, and the eye has the result before it
    has read a word. A draw leaves both light, which says draw without a line saying draw.
 ================================================================================================== */
+/* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE -----------------------------------
+   THE LIBRARY ALREADY HAD `<sup>a</sup>&frasl;<sub>b</sub>`, and it is right for a bare fraction
+   inside a sentence -- two thirds, five ninths. It is wrong for an EXPRESSION: Q19(a) of the June
+   2024 Foundation Paper 2 is the square root of 35.2 + 1.7 cubed, all over 4.6 squared minus 8.91,
+   and a numerator that long set as a superscript is unreadable at any size.
+
+   THE CLASS NAMES ARE `frac-n` AND `frac-d`, NOT `num` AND `den`, and that is deliberate rather
+   than fussy: `.qsheet .num` already exists in this file as the SVG label class for a drawn
+   diagram, and these cards render INSIDE `.qsheet`. A second `.num` would have inherited a 13px
+   serif and a text-anchor meant for an SVG -- the `.price.faint` collision again, where a class
+   reads as a decision and behaves as something else.
+
+   `inline-block` so it sits in the line of prose it belongs to, and the rule between the two halves
+   is a border rather than a character, so it is exactly as wide as the wider half. */
+.frac { display: inline-block; vertical-align: middle; text-align: center; margin: 0 .15em; }
+.frac-n, .frac-d { display: block; padding: 0 .3em; line-height: 1.25; }
+.frac-n { border-bottom: 1px solid currentColor; }
+
+/* ---------- A PRACTICAL ---------------------------------------------------------------------------
+   ON THE BLACK, NOT ON PAPER. The two-palette rule turns on what a thing STANDS IN FOR: a receipt,
+   a job stub or a print sheet is paper and takes the cream tokens. A practical is not a document
+   you hand anybody — it is a card you read off a phone in a room, so it belongs to the screen.
+
+   NO TAP TARGET ANYWHERE IN IT, which is why there is no `px` in this block. Every rule here sizes
+   text, and text is the one thing that SHOULD scale with the root; the px rule is about fingertips
+   and this card has nothing to press. */
+.prac-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.prac-head h3 { margin: 0; }
+/* THE ONE THING SOMEBODY SCANS FOR — whether the exam board makes them do this one. It is a flag
+   rather than a line of prose because it is the answer to a yes/no question, and it is gold only
+   when the answer is yes: an "Extra" in the same colour would make the distinction decorative. */
+.prac-flag { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
+             text-transform: uppercase; color: var(--faint); border: 1px solid var(--line);
+             border-radius: .5rem; padding: .22rem .4rem; }
+.prac-flag.is-req { color: var(--gold); border-color: var(--gold); }
+.prac-aim { margin: .45rem 0 0; font-size: .86rem; line-height: 1.5; }
+/* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
+   you run this today, on one line, in the mono face the rest of the app uses for measurements. */
+.prac-strip { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
+              letter-spacing: .03em; }
+.prac-out { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
+.prac-kit, .prac-steps { margin: .65rem 0 0; }
+.prac-kit h4, .prac-steps h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
+                               letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.prac-kit ul, .prac-steps ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li { margin: 0; }
+.prac-steps li { margin: 0 0 .25rem; }
+/* A REAL WARNING, GIVEN THE ROOM A WARNING NEEDS. The house rule puts one paragraph under a row
+   rather than three words on a tile, and these sentences are the reason it exists: "Adult operates
+   the microwave" does not survive being trimmed to fit. */
+.prac-safety { margin: .65rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--ink);
+               border-left: 2px solid var(--gold); padding-left: .55rem; }
+.prac-maths { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
+.prac-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+.prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
+
 .boxer-nick { font-weight: 400; color: var(--dim); }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
 
@@ -7554,25 +7611,56 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   position: relative;
 }
 
-/* THE GRADIENT IS THE FLOOR, NOT A PLACEHOLDER. Fifty-eight slides that each flash grey before a
-   photograph is a column that looks broken while it works — so every slide is already a finished
-   thing, and the picture improves it rather than completing it. `--h` is the slide's own hue. */
-.reel-art {
-  position: absolute; inset: 0;
-  display: flex; align-items: flex-end;
-  background: linear-gradient(160deg, hsl(var(--h, 30) 22% 22%), hsl(var(--h, 30) 18% 10%));
-  background-size: cover; background-position: center;
-}
+/* ---------- A SLIDE IS THE "ONE MORE THING" CARD, AND THESE RULES WENT WITH IT --------------------
+   `.reel-art`, `.reel .over`, `.reel .credit` WERE A SECOND DESCRIPTION OF `.feed-art`. The same
+   object — a heading, a subject, a paragraph and a credit over a picture — written twice in one
+   stylesheet, with its own gradient, its own scrim and its own type sizes, drifting from the other
+   copy every time either was touched. This repository's oldest shape, and here it was visible:
+   the two surfaces showing one fact did not look alike.
 
-/* THE TEXT SITS ON THE PICTURE with a gradient under it rather than a panel — a panel is a card,
-   and the cards lost their surfaces for a reason. */
-.reel .over {
-  width: 100%; padding: 1rem var(--pad) 1.5rem;
-  background: linear-gradient(transparent, rgb(0 0 0 / .78));
+   `feedSlide` draws both now, so what is left here is the COLUMN — how a stack of slides scrolls
+   and snaps — and nothing about what a slide contains. `--h` went with the markup: `feedColours`
+   picks a slide's gradient from its subject, which is a fact about the fact rather than about its
+   position in a list. */
+.reel > .feed-art { border-radius: var(--r-sm); overflow: hidden; }
+
+/* ---------- A CLIP ------------------------------------------------------------------------------
+   THE VIDEO IS THE PICTURE. It sits where `background-image` sits on a photograph slide, fills the
+   frame the same way `background-size: cover` does, and everything over it — the scrim, the words,
+   the credit — is the photograph slide's own furniture, unchanged.
+
+   THE THREE LAYERS ARE NUMBERED RATHER THAN LEFT TO DOM ORDER. `::before` is the first child in the
+   box tree and `<video>` is a real element after it, so without a stated order the video paints
+   over the scrim that exists to make the words readable — white text on a moving picture, which is
+   legible until the picture is a white wall. Paint order by accident is the fault CLAUDE.md records
+   under `.price.faint`: it reads as a decision and behaves as nothing. */
+/* TRANSPARENT, NOT BLACK, AND A SCREENSHOT IS WHAT SETTLED IT. Painted black the element covers
+   `.feed-art`'s gradient from the first frame of the page, so a clip that has not loaded — or one
+   whose address the browser will not follow — is a black rectangle where every other slide is a
+   finished thing. That is the fault the gradient exists to prevent, written one rule along: "fifty-
+   eight slides that each flash grey first is a column that looks broken while it works." */
+.feed-vid {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  border: 0; background: transparent;
 }
-.reel .over h3 { margin: .25rem 0 .4rem; font-size: 1.15rem; font-weight: 700; }
-.reel .over p  { margin: 0; font-size: .92rem; line-height: 1.5; }
-.reel .credit  { margin-top: .6rem; font-size: .7rem; }
+.feed-art.is-clip::before { z-index: 1; }
+.feed-art.is-clip .feed-text,
+.feed-art.is-clip .feed-credit { z-index: 2; }
+
+/* IN PX, AND THAT IS THE RULE RATHER THAN A PREFERENCE. A fingertip is the same size on every
+   screen; `2.75rem` is 40.75px on a phone and CLAUDE.md has four convictions behind that sentence.
+   Top-right because the words are bottom-left and a control over what somebody is reading is a
+   control they hit by accident. */
+.reel-sound {
+  position: absolute; z-index: 3; top: .6rem; right: .6rem;
+  /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
+     Absolutely positioned it made a gold bar across the top of the slide, which is what the
+     screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the
+     same reason. */
+  width: auto; left: auto;
+  min-height: 44px; min-width: 44px;
+}
 
 /* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
    a count you can miss. */

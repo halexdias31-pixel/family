@@ -1291,8 +1291,8 @@ screen('feed', () => pages('feed', postsBlocks()));
    pointed the other way. The sheet still wins the moment it has a row, so nothing about the
    migration is undone — it just stops being a cliff. */
 screen('reel', () => {
-  const facts = factsNow_();
   if (!LOADED) return `<section class="page"><div class="pane">${skeleton()}</div></section>`;
+  const facts = factsNow_();
   /* KEPT, AND IT CAN STILL HAPPEN — somebody switching every fact off in the sheet leaves a filled
      tab with no live rows, and `factsNow_` hands back the built-in list; somebody emptying that list
      too lands here. A screen with no branch for "nothing to show" is a screen that draws a blank. */
@@ -1300,87 +1300,212 @@ screen('reel', () => {
     return `<section class="page"><div class="pane"><div class="card">
       <h3>Reels</h3>
       <p class="sub">Nothing here yet. Add a row to the <b>facts</b> tab: subject, heading, body,
-        and a few words to find a photograph by.</p>
+        a few words to find a photograph by, and a <b>clip</b> if it is a video.</p>
     </div></div></section>`;
   }
-  /* `reel-page` IS WHY THIS SCREEN NEEDS A CLASS OF ITS OWN. Every other page in the app is
-     `height: auto` and as tall as its card; a reel is as tall as the SCREEN, and `.reels` asks for
-     `height: 100%` of it. See the note on `.page.reel-page` in style.css — without a parent that
-     has a height, that 100% resolved to nothing and every slide was zero pixels tall. */
   /* ---------- ON A CARD, LIKE EVERY OTHER SCREEN IN THE APP ---------------------------------------
      THIS WAS THE ONE SCREEN WITH NO PANE. `pages()` and `stack()` both wrap what they are given in
      `.page > .pane`, and all eight other screens go through one of them; this returned its own
-     markup and drew straight onto the black. The note above defended it — the pane sets
-     `touch-action: none` so the grid can own the vertical drag, and here the drag IS the scroll —
-     and that argument is about the SCROLL, not about the glass. Both are available: the card is
-     ordinary, and `.reels` inside it keeps `touch-action: pan-y`, which is what actually made the
-     swipe work.
+     markup and drew straight onto the black. The note that defended it was about the SCROLL — a
+     pane sets `touch-action: none` — and both are available: the card is ordinary, and `.reels`
+     inside it keeps `touch-action: pan-y`, which is what actually made the swipe work.
 
-     SO IT IS `.card.is-widget` WITH A HEADING AND A SLOT, which is exactly what `widgetColumn_` in
-     arcade.js builds for the calculator and the timer. A reel is a thing you use, on a screen of
-     its own, which is the definition that column is built from — and the app now has one shape for
-     that instead of two.
-
-     THE SLIDES KEEP THEIR SNAP. `.reels` is a fixed-height scroller inside the card rather than the
-     screen, so one fact still fills it and a flick still moves exactly one; what changed is that it
-     has an edge, a heading and the same glass as everything else. */
+     THE SLIDES ARE THE "ONE MORE THING" WIDGET'S OWN MARKUP. They used to be `.reel .over`, a
+     second set of rules describing the same object as `.feed-art` two columns over — a heading, a
+     subject, a paragraph and a credit over a picture, written twice and drifting. `feedSlide` is
+     the one renderer now, so a change to how a fact looks lands on both surfaces at once. That is
+     the same argument `factsNow_` already settles about where a fact COMES from, one layer up.
+     (`.reels` keeps its own scroller and its own snap: how a column of slides behaves is not how a
+     slide looks, and the widget is one card with no scroll at all.) */
+  REEL_SHOWN = 0;
   return `<section class="page"><div class="pane"><div class="card is-widget">
     <div class="widget-slot">
       <div class="card"><h3>Reels</h3>
-      <div class="reels" id="reels">${facts.map((f, i) => `
-        <div class="reel" data-reel="${i}" style="--h:${(i * 47) % 360}">
-          <div class="reel-art">
-            <div class="over">
-              <span class="faint">${esc(f.subject)}</span>
-              <h3>${esc(f.heading)}</h3>
-              <p>${esc(f.body)}</p>
-              <p class="credit faint"></p>
-            </div>
-          </div>
-        </div>`).join('')}</div>
+      <div class="reels" id="reels">${reelBatch_(REEL_FIRST)}</div>
       </div>
     </div>
   </div></div></section>`;
 });
+
+/* ---------- IT GOES DOWN FOR EVER, AND THE DECK IT DRAWS FROM ALREADY DID ------------------------
+   THE OLD COLUMN DREW ALL FIFTY-EIGHT AND STOPPED. Fifty-eight is a lot of slides and it is still a
+   bottom — you reach it, and the column that is supposed to be endless is a list you have finished.
+   It was also fifty-eight `.reel-art` boxes and fifty-eight observed elements on the first paint of
+   a screen showing one of them.
+
+   `feedItem(n)` HAS NEVER HAD AN END. The "One more thing" widget has been walking it forwards
+   since it was written — its own comment says "No end to reach, so no wrapping and no going below
+   the first" — because `feedShuffle` deals another pass whenever the deck runs out, seeded by the
+   day and by how many passes have gone before, so a second lap today is a different order rather
+   than the same fifty-eight in the same run. The infinite column is that function read one index at
+   a time. Nothing new decides what comes next.
+
+   THE CLIPS ARE PINNED IN FRONT OF IT, IN THEIR OWN ORDER. A video is the thing somebody opened the
+   column to see, and burying it at a shuffled index is the same as not having it. They are in the
+   deck as well, so a clip comes round again once the facts have run out — which is what "for ever"
+   means and is worth saying rather than discovering. */
+const REEL_FIRST = 4;      // on the first paint. One is on screen; the rest are the next flick.
+const REEL_MORE  = 4;      // appended when the last one is two slides away.
+let REEL_SHOWN = 0;
+let REEL_IO_ART = null;
+let REEL_IO_PLAY = null;
+
+function reelItem_(n) {
+  const clips = factsNow_().filter(f => f && f.clip);
+  if (n < clips.length) return clips[n];
+  return typeof feedItem === 'function' ? feedItem(n - clips.length) : null;
+}
+
+function reelBatch_(count) {
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    const it = reelItem_(REEL_SHOWN);
+    if (!it) break;
+    /* `--h` IS THE SLIDE'S OWN HUE and `feedSlide` paints its own gradient from the subject, so
+       this is only the frame the snap happens in. The two were one element before and the reel had
+       to know what a fact looks like to draw it. */
+    out += `<div class="reel" data-reel="${REEL_SHOWN}">${feedSlide(it)}${
+      it.clip ? '<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button>' : ''
+    }</div>`;
+    REEL_SHOWN++;
+  }
+  return out;
+}
 
 /* ---------- THE PHOTOGRAPH ARRIVES WHEN THE REEL DOES ---------------------------------------------
    FIFTY-EIGHT LOOKUPS ON OPEN would be fifty-eight requests to Commons before anybody has seen the
    second one — and on a slow connection they compete, so the FIRST one, the only one being looked
    at, arrives last.
 
-   ONE SCREEN AHEAD, so it is there before you are, and only once per slide. */
+   ONE SCREEN AHEAD, so it is there before you are, and only once per slide.
+
+   TWO OBSERVERS, AND THEY ARE ASKING DIFFERENT QUESTIONS. A photograph wants "is this nearly on
+   screen", answered once, two hundred pixels early, and then never again. A video wants "is this
+   the slide being watched", answered every time that changes, for as long as the column is open —
+   one observer doing both would either fetch the picture for a slide nobody reaches or leave a clip
+   playing three slides above with its sound on. */
 function reelsWatch_() {
   const host = $('reels');
-  if (!host || !window.IntersectionObserver || typeof feedPicture !== 'function') return;
+  if (!host || !window.IntersectionObserver) return;
   const seen = {};
-  const io = new IntersectionObserver(es => es.forEach(e => {
+
+  REEL_IO_ART = new IntersectionObserver(es => es.forEach(e => {
     if (!e.isIntersecting) return;
-    const el = e.target, n = el.dataset.reel;
+    const el = e.target, n = Number(el.dataset.reel);
+    /* MORE SLIDES, BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts
+       a blank half-second where the flick should have been; two early is the same cost paid while
+       nobody is waiting. */
+    if (n >= REEL_SHOWN - 2) reelMore_(host);
     if (seen[n]) return;
-    seen[n] = true; io.unobserve(el);
-    /* THE SAME LIST THE SLIDES WERE DRAWN FROM. This read `DATA.facts` while the markup above was
-       drawn from `factsNow_`, so with the tab empty every index would have missed and no slide
-       would ever have asked for a photograph — the two halves of one screen reading two sources. */
-    const f = factsNow_()[Number(n)];
-    if (!f || !f.pic) return;
+    seen[n] = true;
+    REEL_IO_ART.unobserve(el);
+    /* THE SAME LIST THE SLIDES WERE DRAWN FROM. This read `DATA.facts` while the markup was drawn
+       from `factsNow_`, so with the tab empty every index would have missed and no slide would ever
+       have asked for a photograph — the two halves of one screen reading two sources. */
+    const f = reelItem_(n);
+    if (!f || f.clip || !f.pic || typeof feedPicture !== 'function') return;
     feedPicture(f.pic).then(found => {
       if (!found) return;
       /* DECODED FIRST, THEN SHOWN. Setting a background to a URL still downloading gives a slide
-         that flickers gradient, white, picture — and here there are fifty-eight of them. */
+         that flickers gradient, white, picture — and here there is no end to them. */
       const img = new Image();
       img.onload = () => {
-        const art = el.querySelector('.reel-art');
+        const art = el.querySelector('.feed-art');
         if (!art) return;
         art.style.backgroundImage = `url("${found.src}")`;
         art.classList.add('has-photo');
-        const c = el.querySelector('.credit');
+        const c = el.querySelector('.feed-credit');
         if (c && found.by) c.textContent = found.by;
       };
       img.src = found.src;
     });
   }), { root: host, rootMargin: '200px 0px' });
-  host.querySelectorAll('.reel').forEach(el => io.observe(el));
+
+  /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT. `0.6` rather than any intersection: the snap
+     means a slide is either most of the column or a sliver of it, and a sliver is the one you have
+     just flicked away from. */
+  REEL_IO_PLAY = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting && e.intersectionRatio > 0.55) reelPlay_(v);
+    else { try { v.pause(); } catch {} }
+  }), { root: host, threshold: [0, 0.55, 0.9] });
+
+  reelObserve_(host);
 }
+
+function reelObserve_(host) {
+  host.querySelectorAll('.reel:not(.is-watched)').forEach(el => {
+    el.classList.add('is-watched');
+    if (REEL_IO_ART) REEL_IO_ART.observe(el);
+    const v = el.querySelector('.feed-vid');
+    if (v && REEL_IO_PLAY) REEL_IO_PLAY.observe(v);
+  });
+}
+
+function reelMore_(host) {
+  const html = reelBatch_(REEL_MORE);
+  if (!html) return;
+  host.insertAdjacentHTML('beforeend', html);
+  reelObserve_(host);
+}
+
+/* ---------- A CLIP, AND THE ROUTE THAT CANNOT BE TESTED FROM HERE --------------------------------
+   THE `src` IS SET HERE AND NOT IN THE MARKUP, so a clip five slides down is not being downloaded
+   while you watch the first one. Seven megabytes each, and the browser decides for itself how much
+   of a `preload="none"` video to fetch anyway.
+
+   AND IF IT WILL NOT PLAY, GOOGLE'S OWN PLAYER DOES. `uc?export=download` hands back the bytes,
+   which is the only form a `<video>` can mute, loop and pause; it is also undocumented and every
+   Google host is blocked from the environment this was written in, so whether a real browser gets
+   the file or a redirect it will not follow is a fact the live site settles. `error` is the
+   browser saying which — and the `/preview` iframe that replaces it is the documented embed,
+   with Google's chrome and a play button instead of an autoplay, which is a worse reel and a
+   working one. A column that shows a black rectangle is neither. */
+function reelPlay_(v) {
+  if (!v || v.dataset.dead) return;
+  if (!v.getAttribute('src')) {
+    const src = clipSrc_(v.dataset.clip);
+    if (!src) return;
+    /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
+       waits for `img.onload`: until then the slide is its own gradient and its subject's initial,
+       which is a finished thing rather than a hole. */
+    v.addEventListener('loadeddata', () => {
+      const art = v.closest('.feed-art');
+      if (art) art.classList.add('has-photo');
+    }, { once: true });
+    v.addEventListener('error', () => {
+      if (v.dataset.dead) return;
+      v.dataset.dead = '1';
+      const frame = clipFrame_(v.dataset.clip);
+      const slide = v.closest('.reel');
+      if (!frame || !slide) return;
+      v.outerHTML = `<iframe class="feed-vid" src="${esc(frame)}" allow="autoplay"
+        referrerpolicy="no-referrer" title="Reel"></iframe>`;
+      const btn = slide.querySelector('.reel-sound');
+      if (btn) btn.remove();
+    }, { once: true });
+    v.src = src;
+  }
+  /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. Every browser refuses to start an
+     unmuted video nobody has tapped, and one that has been unmuted by the button below and then
+     scrolled back to is exactly that case. Caught and dropped: the slide is on screen with its
+     first frame showing, which is what a paused reel looks like. */
+  const p = v.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+/* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a
+   column nobody opens twice — and because a muted video is the only kind a browser will start by
+   itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
+   muted clip is what everything else in this app does with a switch. */
+on('reel-sound', (el) => {
+  const slide = el.closest('.reel');
+  const v = slide && slide.querySelector('video.feed-vid');
+  if (!v) return;
+  v.muted = !v.muted;
+  el.textContent = v.muted ? 'Sound off' : 'Sound on';
+  if (!v.muted) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+});
 
 /* ---------- MESSAGES -----------------------------------------------------------------------------
    THE TAB IS EMPTY AND THIS SAYS SO. An empty screen that is WIRED is a week ahead of one that looks

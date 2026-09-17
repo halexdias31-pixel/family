@@ -125,6 +125,11 @@ const SUITE = [
      and it is here because it caught a live one: the library spells a fraction with U+2044, a
      phone types `/`, and `5/9` was marked wrong against `5⁄9` on a paper somebody was sitting. */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
+  /* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL ----------------------
+     A practical's whole value is the join: name the topics a question names and a tutor looking at
+     perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one
+     question out of ninety-four — a join that looks like a feature and returns the wrong list. */
+  { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
      `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
      that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels
