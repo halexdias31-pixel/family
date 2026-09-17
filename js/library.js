@@ -340,6 +340,19 @@ function libraryInto_(d, rows) {
          `figCredit_` in find.js for why a question has to say which. */
       diagramBy: libS(r.diagram_by),
       lead: libS(r.lead), html: libS(r.html),
+      /* ---------- AN INSERT IS SEVERAL THINGS, AND IT USED TO BE ONE ---------------------------
+         AN AQA ENGLISH INSERT IS NOT ONE BLOCK OF PROSE. The paper prints it line-numbered and
+         every reading question names a span of it: "lines 1 to 6", "lines 10 to 19", "from line
+         20 to the end". One preamble row per paper could hold the whole insert and could not say
+         which part of it any question wanted, so a student on Q2 got the entire source and had to
+         find lines 10-19 in a row that carries no line numbers at all.
+
+         SO A PREAMBLE IS A LIST NOW, and these are the two columns that make one readable:
+         `lines` is the span this part covers, printed as its heading, and `sort_order` is the
+         order the paper prints them in. Both are empty on every row that is not an insert part,
+         and a single-row preamble needs neither -- which is what keeps this a addition rather
+         than a migration. */
+      lines: libS(r.lines), order: libN(r.sort_order),
       company: libS(r.company),
       answer: libS(r.answer), answerType: norm(r.answer_type),
       /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. `needs_print` is True on 252 rows and

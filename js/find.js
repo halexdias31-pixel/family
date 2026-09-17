@@ -2242,15 +2242,39 @@ function searchText_(r) {
    question numbers carrying more than one part. So the shape is real and thinly populated — filling
    it in is transcription work on rows that exist, not a change here.
 ================================================================================================== */
+/* ---------- A SCOPE HOLDS SEVERAL PREAMBLES, AND IT USED TO HOLD EXACTLY ONE ----------------------
+   EVERY LINE HERE WAS `at.section[key] = r` AND THE SECOND ROW WON. Measured before changing it,
+   by putting three insert rows into one section scope and asking the real app what reached the
+   cards: three went in, ONE came out, and it was the last one. Parts 1 and 2 were discarded with
+   nothing logged, nothing thrown and nothing on screen -- so an insert split in the spreadsheet
+   lost two thirds of itself and looked like it had worked. That is this repository's oldest shape
+   one more time, and the reason it had never been noticed is that nobody had yet had a reason to
+   write a second row in one scope.
+
+   AN AQA ENGLISH INSERT IS THE REASON TO. The paper prints one line-numbered source and its four
+   reading questions each name a different span of it, so the insert is a LIST of parts and always
+   was -- it was being flattened into one cell because one cell was all there was room for.
+
+   THE ORDER IS DECLARED, NOT INFERRED. `sort_order` on the row, and a stable sort so rows that do
+   not carry one keep the order the file has them in. Inferring it from `lines` would read the
+   first number of a span, which is right for "1-6" before "10-19" and silently wrong for a Source
+   A / Source B insert where neither part is numbered at all. */
 function stemIndex_(all) {
   const at = { paper: {}, section: {}, question: {} };
+  const put = (bag, key, r) => { (bag[key] || (bag[key] = [])).push(r); };
   all.forEach(r => {
     if (!r || r.kind !== 'preamble') return;
     const pid = paperIdOf_(r);
     if (!pid) return;
-    if (r.q !== undefined && r.q !== null && r.q !== '') at.question[pid + '|' + r.q] = r;
-    else if (r.section) at.section[pid + '|' + r.section] = r;
-    else at.paper[pid] = r;
+    if (r.q !== undefined && r.q !== null && r.q !== '') put(at.question, pid + '|' + r.q, r);
+    else if (r.section) put(at.section, pid + '|' + r.section, r);
+    else put(at.paper, pid, r);
+  });
+  /* Stable, because `sort` is stable in every engine this runs on and a preamble with no
+     `sort_order` must not be reordered against its neighbours by the sort that exists for the
+     ones that do. */
+  [at.paper, at.section, at.question].forEach(bag => {
+    Object.keys(bag).forEach(k => { bag[k].sort((a, b) => (a.order || 0) - (b.order || 0)); });
   });
   return at;
 }
@@ -2262,7 +2286,10 @@ function stemIndex_(all) {
 function preamble_(r, at) {
   const pid = paperIdOf_(r);
   const out = [];
-  const add = x => { if (x && (x.html || x.diagram)) out.push(x); };
+  /* EACH SCOPE IS A LIST NOW — see `stemIndex_` above for what a single row cost. `|| []` rather
+     than a guard, because a scope nothing wrote has no key at all and every caller below already
+     handles an empty list. */
+  const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram)) out.push(x); });
   add(at.paper[pid]);
   if (r.section) add(at.section[pid + '|' + r.section]);
   if (r.q !== undefined && r.q !== null && r.q !== '') add(at.question[pid + '|' + r.q]);
@@ -2583,7 +2610,14 @@ function questionCard_(x) {
             around. A student reading an exam question has to be able to tell at a glance which of
             the two they are looking at; the same argument as `figCredit_` one screen down. */''}
       ${(x.stems || []).map(p =>
-        `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${p.html || ''}${
+        `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
+          /* WHICH PART OF THE SOURCE THIS IS, when the insert has been split into several. Every
+             AQA reading question names a span -- "lines 1 to 6", "from line 20 to the end" -- so
+             a part with no label leaves the student holding four blocks of prose and the same
+             problem the split was supposed to solve. Drawn only when the row says one: a paper
+             whose insert is a single part prints no heading, which is why this needed no
+             migration. */''}${
+          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${p.html || ''}${
           fig(p.diagram)}${pics_(p.images)}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">

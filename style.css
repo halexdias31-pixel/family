@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-04-squeeze";
+  --css-version: "2026-10-05-insert-parts";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6916,6 +6916,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 .qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
+/* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". A label rather than prose, so it reads
+   as an index into the insert instead of as the first sentence of it: the gold is `.qsheet-pn`'s,
+   which already marks a question number, and this is the same job one level out. Only drawn when
+   the row carries `lines`, so a single-part insert is untouched. */
+.qsheet-lines { margin: 0 0 .35rem; font-size: .74rem; letter-spacing: .06em;
+                text-transform: uppercase; color: var(--gold); opacity: .9; }
 .qsheet-lead { opacity: .9; margin-bottom: .6rem; }
 .qsheet-pn { font-weight: 700; color: var(--gold); }
 /* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text
