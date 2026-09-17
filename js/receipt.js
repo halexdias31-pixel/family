@@ -673,59 +673,60 @@ on('book-send', el => {
    It used to build its own six-row summary here — a THIRD rendering of the same booking, after the
    card and the receipt, and the one that would quietly stop matching them. Six rows where the
    receipt has fourteen, so tapping a session told you less than the list it was on. */
+/* ---------- A SESSION OPENS ON ITS OWN PAGE, NOT OVER THE TOP OF THE APP --------------------------
+   REPORTED TWICE: *"your week planner has pop ups. i click on a job and it goes. i told you i don't
+   like that."* — and "it goes" is the accurate description. `openSheet` lays a panel over
+   everything, so the week you were reading disappears behind the one session you tapped, and
+   getting back to it is a close you have to find.
+
+   THE PAGE ALREADY EXISTED, which is what makes this a deletion rather than a design. `jobPage_`
+   draws a session opened out and `bookBlocks` puts one per page on the Booking column — so this was
+   the app's SECOND way of showing one session, stacked by hand out of the same pieces, in a
+   different file, differing by a `moneyBlock` nobody had noticed was missing from it. Two renderers
+   for one thing is the fault this repository records under `childrenOf`, under `link`/`source_url`
+   and under the roster heading drawn twice.
+
+   SO IT NAVIGATES. `jobPageAt_` asks the list that BUILDS those pages which one this is, rather
+   than counting a second time, and `OPEN_JOB` covers the case the week grid creates and the Booking
+   column does not: an admin's week shows every session and `myJobs_` returns only their own.
+
+   NOT FOUND AT ALL is still said out loud. A session that has left the payload between the grid
+   being drawn and the tap — declined, cancelled — has no page and no receipt, and a tap that
+   silently does nothing is the thing this app keeps being reported for. */
 on('job', el => {
   const jobs = DATA.liveJobs || DATA.jobs || [];
-  const j = jobs.find(x => String(x.id || x.jobId || '') === String(el.dataset.id));
+  const want = String(el.dataset.id || '');
+  const j = jobs.find(x => String(x.id || x.jobId || '') === want);
   if (!j) { toast('That session is not in this list any more'); return; }
-  const id = String(j.id || j.jobId || '');
-  openSheet('Session ' + id, jobReceipt(j)
-    /* The way in, for somebody who is not in it yet. */
-    + joinBlock(j)
-    /* ---------- `payBlock(j)` WAS HERE AND THE FUNCTION WAS NOT ------------------------------------
-       IT WAS DELETED FROM book.js AND THIS CALL WAS LEFT BEHIND. The note at book.js:2828 says so
-       plainly — "`payBlock` AND `leaveBlock` WERE HERE. Both are marks in the tile row under the
-       card now" — and the move was right. Only this line did not go with it.
+  if (!USER) { toast('Sign in to open a session'); go('account'); return; }
 
-       SO EVERY SESSION RECEIPT THREW. `payBlock is not defined`, in the middle of building the
-       sheet's markup, which means nothing after this point in the expression was ever produced:
-       not the Pay affordance, not the admin's Accept and Decline, not the way to end a session.
-       Opening a receipt at all was the failure, so it is not that one button was missing — the
-       document did not exist.
+  OPEN_JOB = want;
+  /* ---------- AND THE COLUMN HAS TO BE TOLD IT IS OUT OF DATE -------------------------------------
+     `go` REPAINTS A SCREEN ONLY IF IT IS EMPTY OR STALE, deliberately — its own note says a second
+     identical paint costs the slide's animation and buys nothing. `OPEN_JOB` is state the Booking
+     column is BUILT from, so changing it is exactly the case `STALE` exists for: the note on it
+     records signing in and finding eight screens still saying "Sign in to post".
 
-       THREE SEPARATE THINGS READ AS THREE SEPARATE BUGS: a client could not pay for an accepted
-       booking, an admin had no Accept or Decline on a booking that was waiting, and taking a seat
-       on a class threw outright. One deleted function, one surviving call, the whole money path.
+     MEASURED, AND THIS WAS WRONG FIRST: with `OPEN_JOB` set and `jobPageAt_` answering 1, the
+     column still held what it had drawn at boot. The pieces were all correct and the screen was
+     the one nobody had told. */
+  STALE.booking = 1;
+  /* ---------- THE PAGE IS SET BEFORE THE SCREEN IS REACHED, NOT AFTER ------------------------------
+     `goPage` OPENS WITH `if (!PAGER[id]) return;` and the pager for a column is built when that
+     column is painted — so calling it straight after `go('booking')` asked for a page of a pager
+     that did not exist yet and returned silently. Measured: the receipt was on the column and the
+     column was showing page 0, the booking form, which is indistinguishable from the tap having
+     done nothing.
 
-       PAYING STILL EXISTS and is where the note says it is — `jobTiles_` in tiles.js offers
-       "Pay and confirm" when `jobAccepted_(j)` is true, the session is yours and it is not already
-       paid. Nothing needs to be put back here; this line needed to go. */
-    /* AND, FOR AN ADMIN, THE WAY TO END IT. Under the receipt rather than on the stub: deleting a
-       session from a list you are scanning is one mis-tap away from deleting the wrong one, and a
-       receipt is the one place you can see exactly which session you are looking at. */
-    + (isAdmin()
-      ? `${/* ---------- ONE RENDERER FOR ONE THING ----------------------------------------------
-              THESE WERE FOUR `<button>`s BUILT HERE, while `jobTiles_` in tiles.js was already
-              building the client's two for the same session. One object, two renderers, two files,
-              two shapes — and only one of them checked by anything.
+     `openSharedPost` IN posts.js ALREADY HAD THE IDIOM — `PAGE.feed = n; go('feed');` — with its
+     own note about why scrolling is not the mechanism here. Same shape: say where the column should
+     be, then go to it, and the paint that `go` performs builds the pager already on that page.
 
-              A THING HAS TILES; A FORM HAS BUTTONS. A session is a thing, so its actions are tiles
-              like every other thing's. The pay sheet and the booking form are forms and keep their
-              buttons. That rule is now written down in CLAUDE.md rather than left to be inferred.
-
-              THE CONSEQUENCES ARE SAID ONCE, UNDER THE ROW. Each button used to carry its own
-              paragraph and a tile has room for three words. Dropping them was not an option —
-              "everyone is withdrawn", "never as though Stripe had confirmed it" are the whole
-              reason an admin pauses — so they are one paragraph beneath, saying the same things. */''}
-         ${jobAdminTiles_(j, jobStage_(j), jobAccepted_(j))}
-         <p class="faint" style="margin:.6rem 0 0">Accepting settles the terms for everybody in it
-           and lets the family pay; declining turns the whole booking down and tells them.${
-           jobStage_(j) === 'application' && jobAccepted_(j)
-             ? ' Marking it paid is for cash, a transfer, or anything that did not go through the'
-               + ' card page \u2014 it is recorded as marked by you, never as though Stripe had'
-               + ' confirmed it.'
-             : ''} Deleting withdraws everyone and removes it from the list; nothing is erased, so
-           every event stays on the events tab and what happened is still on the record.</p>`
-      : ''));
+     `jobPageAt_` IS ASKED FIRST because it reads `OPEN_JOB`, which is set two lines up: the page
+     index and the page list are then worked out from one state in one order. */
+  const n = typeof jobPageAt_ === 'function' ? jobPageAt_(want) : -1;
+  if (n >= 0) PAGE.booking = n;
+  go('booking');
 });
 
 /* PAYING. `createCheckout` builds a Stripe session and hands back a URL; nothing about the booking

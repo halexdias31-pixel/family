@@ -3533,13 +3533,52 @@ const S_ = v => String(v == null ? '' : v);
    to pay once it has been accepted — the same three the sheet used to stack, in the same order,
    on the page itself. Each guards itself: `joinBlock` draws nothing for a session you are already
    in. */
-/* THE PAPER, AND NOTHING ELSE. Paying and withdrawing are marks in the tile row under the card —
-   `jobTiles_` in tiles.js — which is where every other kind keeps its actions. `joinBlock` stays
-   because it is not an action on your own session: it is the offer made to somebody who is not in
-   it yet, and it carries the seats left and the price, which are facts rather than buttons. */
-const jobPage_ = j => (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
-  + (typeof moneyBlock === 'function' ? moneyBlock(j) : '')
-  + (typeof joinBlock === 'function' ? joinBlock(j) : '');
+/* ---------- "THE PAPER, AND NOTHING ELSE" WAS TRUE WHILE SOMETHING ELSE ADDED THE TILES ----------
+   THE NOTE THAT STOOD HERE said paying and withdrawing are marks in the tile row *under the card*,
+   `jobTiles_` in tiles.js, "which is where every other kind keeps its actions". That was exactly
+   right and it depended on a caller that no longer exists: `stuffCard` appends `cardTiles_` to
+   every card it draws, and a receipt was a card it drew. Booking left the funnel, `bookBlocks`
+   draws these pages instead, and **the tile row did not come with them** — so on the Booking column
+   a client had no way to pay for an accepted session and an admin had no Accept or Decline.
+
+   THAT IS A REGRESSION THIS SESSION MADE, and it is the `meCard` fault twice in one week: a builder
+   that was only ever complete because of what wrapped it, moved somewhere nothing wraps it. Both
+   were found by asking what a function is FOR rather than by anything running, which is the honest
+   answer about what the checks can and cannot see.
+
+   SO THE PAGE IS THE WHOLE DOCUMENT NOW, and there is one of it. `on('job')` used to stack the same
+   pieces by hand into a sheet — receipt, join block, then an admin's tiles and the paragraph under
+   them — which is two renderers for one session, in two files, differing by a `moneyBlock`. This is
+   that stack, once, and the sheet is gone.
+
+   THE ADMIN PARAGRAPH TRAVELS WITH THE TILES. `jobAdminTiles_`'s own note says why it cannot live
+   on the tiles themselves — "a tile has room for a few words" and "everyone is withdrawn" is the
+   whole reason an admin pauses — so it is one paragraph under the row, which is the shape CLAUDE.md
+   records under "A THING has tiles; a FORM has buttons". */
+function jobPage_(j) {
+  const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
+  const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  return (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
+    + (typeof moneyBlock === 'function' ? moneyBlock(j) : '')
+    /* NOT AN ACTION ON YOUR OWN SESSION: the offer made to somebody who is not in it yet, carrying
+       the seats left and the price. Facts rather than buttons, so it is not a tile. */
+    + (typeof joinBlock === 'function' ? joinBlock(j) : '')
+    + `<div class="tile-row">${
+        (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
+      + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
+      }</div>`
+    + (admin
+      ? `<p class="faint" style="margin:.6rem 0 0">Accepting settles the terms for everybody in it
+           and lets the family pay; declining turns the whole booking down and tells them.${
+           stage === 'application' && yes
+             ? ' Marking it paid is for cash, a transfer, or anything that did not go through the'
+               + ' card page \u2014 it is recorded as marked by you, never as though Stripe had'
+               + ' confirmed it.'
+             : ''} Deleting withdraws everyone and removes it from the list; nothing is erased, so
+           every event stays on the events tab and what happened is still on the record.</p>`
+      : '');
+}
 
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);
