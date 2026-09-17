@@ -104,8 +104,20 @@ function drawFeed() {
      still downloading gives a card that flickers from gradient to white to picture.
      `at` is captured so a picture that arrives after three more taps is thrown away rather than
      landing on somebody else's fact. */
+  /* A CLIP PLAYS HERE TOO, AND IT HAS TO BE ASKED. `feedSlide` draws one renderer for both
+     surfaces — that is the whole of why the Reels column and this widget stopped disagreeing — but
+     a `<video>` with no `src` is a black rectangle until something sets one, and the only thing
+     that did was the reel column's observer. A fact reaches both surfaces and a clip reached one:
+     the same half-move `factsNow_` was written to end, one layer down.
+
+     NO SOUND BUTTON, AND THAT IS A DIFFERENCE WORTH KEEPING. This card is one tap target — the tap
+     deals the next fact — so a second control inside it would take the tap the widget is for. A
+     clip here is muted and looping, which is what it is on the column until somebody asks. */
+  const vid = host.querySelector('video.feed-vid');
+  if (vid && typeof reelPlay_ === 'function') reelPlay_(vid);
+
   const at = FEED_AT;
-  feedPicture(it.pic).then(found => {
+  if (it.pic) feedPicture(it.pic).then(found => {
     if (!found || at !== FEED_AT) return;
     const art = host.querySelector('.feed-art');
     if (!art) return;

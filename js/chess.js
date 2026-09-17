@@ -293,7 +293,19 @@ function search(pos, depth, alpha, beta) {
    which is the same argument as `documents_()` and as `paperIdOf_` — a second reader of one thing
    is a second chance to disagree about it.
 ================================================================================================== */
+/* ---------- A FIFTH FIELD, AND IT IS A CLIP -------------------------------------------------------
+   A REEL IS A VIDEO EVERYWHERE ELSE IN THE WORLD and here it was a photograph with a sentence over
+   it. Both are reels; what makes the difference is one field. `[subject, heading, body, pic]` gains
+   an optional `clip` — a Google Drive file id, or a full URL to a video file.
+
+   A ROW WITH NO WORDS IS ALLOWED, AND ONLY BECAUSE IT HAS A CLIP. `factsNow_` below used to keep a
+   row only if it had a heading, which is right for a fact: a fact with no words is nothing. A video
+   with no words is the same argument as the chessboard that was made to stop drawing its own title
+   — "a board is self-explanatory in a way almost nothing else in this app is" — and a clip you are
+   watching is too. So the test is heading OR clip, and `feedSlide` leaves the text block out
+   entirely rather than drawing an empty one. */
 const FEED_FACTS = [
+  ['@family.', '', '', '', '1AerJnQHL8Vk0rx5uB351POzz0jqfbUak'],
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
   ['Space', 'There is a planet where it rains glass, sideways',
@@ -443,11 +455,16 @@ let FACTS_NOW = null;
 let FACTS_FROM = null;
 
 function factsNow_() {
-  const said = ((typeof DATA !== 'undefined' && DATA.facts) || []).filter(f => f && f.heading);
+  /* HEADING OR CLIP. A fact with no words is nothing; a video with no words is a video — see the
+     note on the fifth field above. Testing the heading alone silently dropped every clip row the
+     sheet could hold, which is this repository's oldest shape wearing a filter. */
+  const said = ((typeof DATA !== 'undefined' && DATA.facts) || [])
+    .filter(f => f && (f.heading || f.clip));
   const from = (typeof DATA !== 'undefined') ? DATA : null;
   if (said.length) return said;
   if (FACTS_NOW && FACTS_FROM === from) return FACTS_NOW;
-  FACTS_NOW = FEED_FACTS.map(f => ({ subject: f[0], heading: f[1], body: f[2], pic: f[3] }));
+  FACTS_NOW = FEED_FACTS.map(f => ({ subject: f[0], heading: f[1], body: f[2], pic: f[3],
+                                     clip: f[4] || '' }));
   FACTS_FROM = from;
   return FACTS_NOW;
 }

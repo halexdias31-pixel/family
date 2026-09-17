@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-june-2024-2f-3f";
+  --css-version: "2026-09-17-reels-infinite-clips";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7611,25 +7611,56 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   position: relative;
 }
 
-/* THE GRADIENT IS THE FLOOR, NOT A PLACEHOLDER. Fifty-eight slides that each flash grey before a
-   photograph is a column that looks broken while it works — so every slide is already a finished
-   thing, and the picture improves it rather than completing it. `--h` is the slide's own hue. */
-.reel-art {
-  position: absolute; inset: 0;
-  display: flex; align-items: flex-end;
-  background: linear-gradient(160deg, hsl(var(--h, 30) 22% 22%), hsl(var(--h, 30) 18% 10%));
-  background-size: cover; background-position: center;
-}
+/* ---------- A SLIDE IS THE "ONE MORE THING" CARD, AND THESE RULES WENT WITH IT --------------------
+   `.reel-art`, `.reel .over`, `.reel .credit` WERE A SECOND DESCRIPTION OF `.feed-art`. The same
+   object — a heading, a subject, a paragraph and a credit over a picture — written twice in one
+   stylesheet, with its own gradient, its own scrim and its own type sizes, drifting from the other
+   copy every time either was touched. This repository's oldest shape, and here it was visible:
+   the two surfaces showing one fact did not look alike.
 
-/* THE TEXT SITS ON THE PICTURE with a gradient under it rather than a panel — a panel is a card,
-   and the cards lost their surfaces for a reason. */
-.reel .over {
-  width: 100%; padding: 1rem var(--pad) 1.5rem;
-  background: linear-gradient(transparent, rgb(0 0 0 / .78));
+   `feedSlide` draws both now, so what is left here is the COLUMN — how a stack of slides scrolls
+   and snaps — and nothing about what a slide contains. `--h` went with the markup: `feedColours`
+   picks a slide's gradient from its subject, which is a fact about the fact rather than about its
+   position in a list. */
+.reel > .feed-art { border-radius: var(--r-sm); overflow: hidden; }
+
+/* ---------- A CLIP ------------------------------------------------------------------------------
+   THE VIDEO IS THE PICTURE. It sits where `background-image` sits on a photograph slide, fills the
+   frame the same way `background-size: cover` does, and everything over it — the scrim, the words,
+   the credit — is the photograph slide's own furniture, unchanged.
+
+   THE THREE LAYERS ARE NUMBERED RATHER THAN LEFT TO DOM ORDER. `::before` is the first child in the
+   box tree and `<video>` is a real element after it, so without a stated order the video paints
+   over the scrim that exists to make the words readable — white text on a moving picture, which is
+   legible until the picture is a white wall. Paint order by accident is the fault CLAUDE.md records
+   under `.price.faint`: it reads as a decision and behaves as nothing. */
+/* TRANSPARENT, NOT BLACK, AND A SCREENSHOT IS WHAT SETTLED IT. Painted black the element covers
+   `.feed-art`'s gradient from the first frame of the page, so a clip that has not loaded — or one
+   whose address the browser will not follow — is a black rectangle where every other slide is a
+   finished thing. That is the fault the gradient exists to prevent, written one rule along: "fifty-
+   eight slides that each flash grey first is a column that looks broken while it works." */
+.feed-vid {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  border: 0; background: transparent;
 }
-.reel .over h3 { margin: .25rem 0 .4rem; font-size: 1.15rem; font-weight: 700; }
-.reel .over p  { margin: 0; font-size: .92rem; line-height: 1.5; }
-.reel .credit  { margin-top: .6rem; font-size: .7rem; }
+.feed-art.is-clip::before { z-index: 1; }
+.feed-art.is-clip .feed-text,
+.feed-art.is-clip .feed-credit { z-index: 2; }
+
+/* IN PX, AND THAT IS THE RULE RATHER THAN A PREFERENCE. A fingertip is the same size on every
+   screen; `2.75rem` is 40.75px on a phone and CLAUDE.md has four convictions behind that sentence.
+   Top-right because the words are bottom-left and a control over what somebody is reading is a
+   control they hit by accident. */
+.reel-sound {
+  position: absolute; z-index: 3; top: .6rem; right: .6rem;
+  /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
+     Absolutely positioned it made a gold bar across the top of the slide, which is what the
+     screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the
+     same reason. */
+  width: auto; left: auto;
+  min-height: 44px; min-width: 44px;
+}
 
 /* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
    a count you can miss. */

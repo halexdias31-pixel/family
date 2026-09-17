@@ -510,19 +510,70 @@ function feedColours(seed) {
 }
 
 /* The card. The HEADING is the fact, so it takes the space; the body is why, so it is small. */
+/* ---------- WHERE A CLIP IS ----------------------------------------------------------------------
+   A `clip` IS A DRIVE FILE ID OR A WHOLE URL, and the difference is a slash. An id is what somebody
+   copies out of the address bar of a file they have just uploaded; a URL is what a clip hosted
+   anywhere else looks like. Anything with a slash in it is left exactly as typed, so this can never
+   mangle an address it did not recognise — the `.xlsx` trap in `check-tabs.js` one column along.
+
+   TWO ADDRESSES FOR ONE DRIVE FILE, AND THEY ARE NOT INTERCHANGEABLE. `uc?export=download` answers
+   with the BYTES, which is what a `<video>` needs — it can be muted, autoplayed, paused when the
+   slide leaves and sized to the column. `/preview` answers with an HTML PLAYER, which can only be
+   an iframe: Google's own chrome, no autoplay, nothing this code can control. The first is the one
+   worth having and it is also the one that is not documented, so `reelClip_` in posts.js uses it
+   and falls back to the second the moment the browser says the video errored.
+
+   NEITHER CAN BE TESTED FROM HERE. Every Google host is blocked from the agent's environment by
+   network policy, so which of the two a real browser gets is a fact one open of the live site
+   settles and nothing in this repository can. That is exactly why there are two. */
+function clipSrc_(clip) {
+  const c = String(clip || '').trim();
+  if (!c) return '';
+  return /[:/]/.test(c) ? c : 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(c);
+}
+function clipFrame_(clip) {
+  const c = String(clip || '').trim();
+  if (!c) return '';
+  return /[:/]/.test(c) ? c : 'https://drive.google.com/file/d/' + encodeURIComponent(c) + '/preview';
+}
+
 function feedSlide(it) {
   const c = feedColours(it.subject);
+  /* A SLIDE WITH NO WORDS DRAWS NO WORDS. Every fact has a heading, so for fifty-eight of these
+     this branch never fires; a clip does not need one, and an empty `<h3>` over a video is a black
+     bar with a subject label floating in it. See the note on the fifth field in chess.js. */
+  const words = (it.heading || it.body) ? `<div class="feed-text">
+      <span class="feed-subject">${esc(it.subject)}</span>
+      ${it.heading ? `<h3 class="feed-head">${esc(it.heading)}</h3>` : ''}
+      ${it.body ? `<p class="feed-body">${esc(it.body)}</p>` : ''}
+    </div>` : '';
+
+  /* `has-photo` WHEN THERE ARE FRAMES, NOT WHEN THERE IS AN ELEMENT. It was on the first paint
+     here, on the argument that a video is a picture that moves — and a video that has not arrived
+     is not a picture at all: the class hides the subject's initial and whitens the words over a
+     slide that is still its own gradient. `reelPlay_` adds it on `loadeddata`, which is the same
+     moment and the same reason the photograph branch adds it in `reelsWatch_`. Caught on a
+     screenshot, which this file has now recorded as the last word on a drawing five times.
+
+     NO `src` YET. Fifty-eight videos asked for at once is fifty-eight downloads for the one you are
+     looking at, which is the same arithmetic `reelsWatch_` already makes about the photographs —
+     `preload="none"` is a hint browsers are free to ignore and an absent `src` is not. */
+  if (it.clip) {
+    return `<div class="feed-art is-clip" style="--a:${c[0]};--b:${c[1]};--c:${c[2]}">
+      <span class="feed-mark">${esc(initial(it.subject))}</span>
+      <video class="feed-vid" data-clip="${esc(it.clip)}" playsinline muted loop preload="none"></video>
+      <span class="feed-credit"></span>
+      ${words}
+    </div>`;
+  }
+
   return `<div class="feed-art" style="--a:${c[0]};--b:${c[1]};--c:${c[2]}">
     <span class="feed-mark">${esc(initial(it.subject))}</span>
     ${/* WHO THE PICTURE BELONGS TO. Empty until one arrives, and it has to be there from the
           start rather than added later — an element appearing under a photograph shifts the card
           the moment somebody starts reading it. */''}
     <span class="feed-credit"></span>
-    <div class="feed-text">
-      <span class="feed-subject">${esc(it.subject)}</span>
-      <h3 class="feed-head">${esc(it.heading)}</h3>
-      <p class="feed-body">${esc(it.body)}</p>
-    </div>
+    ${words}
   </div>`;
 }
 /* ==================================================================================================

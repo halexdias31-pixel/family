@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-05-library-cut";
+const DOGET_VERSION = "2026-09-17-reel-clips";
 
 
 function doGet(e) {
@@ -801,7 +801,10 @@ function doGet(e) {
        column is left empty — a reel that reshuffles itself every load is a column nobody can point
        somebody else at. */
     read(TAB.facts).rows.forEach(r => {
-      if (!S(r.heading)) return;
+      /* HEADING OR CLIP. A fact with no words is nothing and is dropped; a VIDEO with no words is a
+         video, and testing the heading alone would have dropped every clip row the tab can hold —
+         silently, which is the whole class of fault this file is a record of. */
+      if (!S(r.heading) && !S(r.clip)) return;
       if (!ON_(r.active)) return;
       payload.facts.push({
         subject: S(r.subject),
@@ -809,6 +812,8 @@ function doGet(e) {
         body: S(r.body),
         /* WORDS, NOT A LINK. Handed to Wikimedia Commons when the slide arrives. */
         pic: S(r.pic),
+        /* A LINK, OR A DRIVE FILE ID. The one field that makes a reel a video — see SCHEMA.facts. */
+        clip: S(r.clip),
         order: N(r.sort_order) || 0,
         row: r._row,
       });

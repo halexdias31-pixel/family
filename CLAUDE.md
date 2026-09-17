@@ -2796,6 +2796,93 @@ screen.** Filling the column is what exposed them, and it took measuring the box
 **This is the same shape as the check that could not reach its subject**, one layer down: CSS that
 cannot be wrong until something renders it.
 
+#### And its observer had never run, because one timer was holding three jobs
+
+**`afterSlide_` kept one `setTimeout` and cleared it on every call.** That is exactly right for one
+caller asked twice — a run of quick swipes should fill the pages once, at the end — and silently
+wrong the moment two DIFFERENT jobs are booked for the same slide.
+
+**`paint()` books two, four lines apart**: `reelsWatch_`, and then `startScreen_(AT)`. The second
+always won. **So the reel column's observer has never once run** — no slide has ever asked Commons
+for its photograph, and every reel anybody has ever seen has been the bare gradient that
+`.feed-art`'s own comment calls "the floor, not a placeholder". Nothing threw, nothing was missing,
+the screen worked, and it quietly did half of what it was written to do.
+
+**Found by counting the observers in a browser, which is the only way it could have been found.**
+Both lines are correct; the fault is in the thing they meet in. `REEL_IO_ART` came back `false` and
+`.reel.is-watched` came back 0 on a screen with four slides on it.
+
+**Coalesced per job now, not across jobs.** The key is the function itself where the caller passes a
+named one, and a word where it passes an arrow — a fresh arrow is a different key every call, so
+keying on identity alone would queue one `startScreen_` per swipe and undo the coalescing the timer
+was built for. Last booking of a key wins; every key runs, each in its own `try`. Proved in both
+directions on the reel column: 0 observers before, 4 after, and 28 journeys plus 100 UI combinations
+unchanged.
+
+### A reel is a video, and the column was drawing the widget's card in its own words
+
+**Asked for as "the reels will look like the other widgets. most like the one more thing widget. but
+infinite going down."** Three things, and each one was a different fault.
+
+**`.reel .over` WAS A SECOND DESCRIPTION OF `.feed-art`.** The same object — a subject, a heading, a
+paragraph and a credit over a picture — written twice in one stylesheet and twice in two files, with
+its own gradient, its own scrim and its own type sizes. `factsNow_` had already settled where a fact
+COMES from and the two surfaces still did not look alike, because nothing had settled how one is
+DRAWN. `feedSlide` is the one renderer now and `.reels` keeps only the column: how a stack of slides
+scrolls and snaps, which is the half the widget genuinely does not have.
+
+**IT DREW ALL FIFTY-EIGHT AND STOPPED.** Fifty-eight is a lot of slides and it is still a bottom —
+and it was fifty-eight boxes and fifty-eight observed elements on the first paint of a screen showing
+one of them. **`feedItem(n)` has never had an end**: the "One more thing" widget has walked it
+forwards since it was written, because `feedShuffle` deals another pass whenever the deck runs out,
+seeded by the day and by how many passes have gone before. The infinite column is that function read
+one index at a time — four slides on open, four more when the last is two away. Nothing new decides
+what comes next. Measured: 4 on open, 28 after six flicks to the bottom, no sideways scroll at 320.
+
+**`clip` is a fifth field, not a second tab.** A reel with one plays it; a reel without one keeps the
+photograph `pic` finds. Two tabs would be two schemas, two reads, two mappings and two empty states
+describing one object — the `needs_print` / `print_required` lesson, which cost 356 rows of
+disagreement. **A row with a clip needs no heading**: `factsNow_` kept a row only if it had one,
+which is right for a fact and wrong for a video, and is the same argument as the chessboard that was
+made to stop drawing its own title.
+
+**TWO ADDRESSES FOR ONE DRIVE FILE AND THEY ARE NOT INTERCHANGEABLE.** `uc?export=download` answers
+with the BYTES, which is the only form a `<video>` can mute, autoplay, loop and pause; `/preview`
+answers with an HTML PLAYER, which can only be an iframe with Google's own chrome and a play button.
+The first is the one worth having and it is also the undocumented one — and **every Google host is
+blocked from this environment by network policy**, so which of the two a real browser gets is a fact
+one open of the live site settles and nothing here can. That is exactly why there are two: `error`
+on the `<video>` swaps in the iframe. Proved by answering the Drive request with a 404 — the iframe
+arrives and the sound button, which cannot reach inside one, is removed with it.
+
+**And the video was painted black, which a screenshot caught.** An opaque element over `.feed-art`
+covers the gradient, so a clip that has not loaded is a black rectangle where every other slide is a
+finished thing — the exact fault the gradient exists to prevent, one rule along. It is transparent,
+and `has-photo` (the scrim, the white words, the vanished initial) arrives on `loadeddata` rather
+than on the first paint, which is the same moment and the same reason the photograph branch adds it.
+Measured in four states: waiting, loaded, errored, and sound on and off again.
+
+**`.reel-sound` was a gold bar across the top of the slide**, because `.btn` is `width: 100%` — right
+in a form, wrong absolutely positioned. `.btn-row .btn` already says the same thing for the same
+reason. 44px, in px, which is this file's fifth conviction of that rule.
+
+### AQA Chemistry, as two document rows and nothing else yet
+
+**What was added to Drive as "higher 2024 bio" is AQA GCSE CHEMISTRY 8462**, Higher, Papers 1 and 2,
+June 2024, question papers and mark schemes — read off the front cover of each rather than the
+filename, which is AQA's own generic `Question paper (Higher)_ Paper 1 - June 2024.pdf` and names no
+subject at all. Paper 1 is uploaded twice, byte for byte, under `(1)` and `(2)`.
+
+**The paper row is the part that can be right before anything is transcribed**, and it is the part
+that decides where every question under it lands: board, spec code, tier, paper number, the month,
+the exam date off the cover, and the total the cover states. **100 marks each**, so
+`check-library.js` will refuse a transcription that does not sum to it — the one end-to-end check the
+library has, in place before there is anything to check.
+
+**`Periodic table` is a seventh `needs`.** The chemistry cover lists it beside the ruler and the
+calculator, in the same sentence, as a thing you must have — and like the calculator it is a fact
+about the PAPER, so it sits on the document row and covers every question inside.
+
 ### `node js/check-funnel.js` — the funnel, run over the real library
 
 The three faults above have one shape: **each looked fine in the code and only showed up in the

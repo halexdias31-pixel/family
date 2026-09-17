@@ -284,7 +284,7 @@ function go(id, remember, instant) {
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
-  afterSlide_(() => startScreen_(AT));
+  afterSlide_(() => startScreen_(AT), 'start');
 
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
@@ -1331,11 +1331,37 @@ const pageCount = id => pagerNames(id).length;
    So it goes after. One booking at a time, so a run of quick swipes fills once at the end rather
    than once per swipe, and the timer is a little longer than the transition so the fill lands on a
    grid that has already settled. */
-let AFTER_SLIDE = null;
+/* ---------- ONE TIMER HELD ONE JOB, AND THERE HAVE ALWAYS BEEN THREE -----------------------------
+   IT KEPT ONE `setTimeout` AND CLEARED IT ON EVERY CALL. That is exactly right for one caller asked
+   twice — a run of quick swipes should fill once at the end — and it is silently wrong the moment
+   two DIFFERENT jobs are booked for the same slide, because the second cancels the first.
 
-function afterSlide_(fn) {
+   `paint()` books two, four lines apart: `reelsWatch_` and then `startScreen_(AT)`. The second
+   always wins. **So the reel column's observer has never once run**, which means no slide has ever
+   asked for its photograph and every reel anybody has ever seen has been the bare gradient the
+   comment above `.feed-art` calls "the floor, not a placeholder". Nothing threw, nothing was
+   missing, and the screen worked — it just quietly did half of what it was written to do. Found by
+   counting the observers in a browser rather than by reading, which is the only way this one could
+   have been found: both lines are correct and the fault is in what they meet in.
+
+   COALESCED PER JOB, NOT ACROSS JOBS. The key is the function itself where the caller passes a
+   named one, and a word where it passes an arrow — a fresh arrow is a different key every call, so
+   keying on identity alone would queue one `startScreen_` per swipe and undo the coalescing this
+   was built for. Last booking of a key wins; every key runs. */
+let AFTER_SLIDE = null;
+const AFTER_SLIDE_JOBS = new Map();
+
+function afterSlide_(fn, key) {
+  AFTER_SLIDE_JOBS.set(key || fn, fn);
   if (AFTER_SLIDE) clearTimeout(AFTER_SLIDE);
-  AFTER_SLIDE = setTimeout(() => { AFTER_SLIDE = null; fn(); }, 300);
+  AFTER_SLIDE = setTimeout(() => {
+    AFTER_SLIDE = null;
+    const jobs = [...AFTER_SLIDE_JOBS.values()];
+    AFTER_SLIDE_JOBS.clear();
+    /* ONE JOB THAT THROWS MUST NOT TAKE THE REST WITH IT. They are unrelated — an observer, a
+       widget's `start`, a page fill — and before there was a list there was nothing to protect. */
+    jobs.forEach(f => { try { f(); } catch (e) {} });
+  }, 300);
 }
 
 function paintPager(id, instant) {
