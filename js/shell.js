@@ -2327,30 +2327,24 @@ function banner(msg) {
   el.classList.remove('hidden');
 }
 
-/* ---------- NOTHING MAY BE HELD ------------------------------------------------------------------
-   A service worker outlives everything. It is installed once, it survives a reload, it survives
-   clearing history on some browsers, and while it is there it can serve a copy of this file from
-   months ago no matter what the server sends — which looks exactly like an edit not saving.
+/* ---------- NOTHING MAY BE HELD — AND THEN SOMETHING DELIBERATELY WAS -----------------------------
+   `purge()` WAS HERE AND IT UNREGISTERED EVERY SERVICE WORKER ON EVERY LOAD, emptying every cache
+   with it. Its argument was sound for as long as it was true: a worker outlives a reload, a hard
+   reload and on some browsers clearing history, and while one is installed it can serve a file from
+   months ago whatever the server sends — which looks exactly like an edit not saving. It ended
+   "This project has never deliberately registered one."
 
-   This project has never deliberately registered one. That is not the same as there not being
-   one: an experiment, a template, a tool that adds one for offline support, and it is there for
-   good. So any worker is removed and every cache it made is emptied, on every load. It costs
-   nothing when there is none, which is almost always.
+   IT DOES NOW. sw.js is ours, and what this function did to somebody else's leftover it did to
+   ours: the store came back holding one entry, every load, with nothing anywhere saying why.
 
-   Run before the first fetch, so a worker cannot intercept the payload on the way past.
+   THIS COPY WAS THE DANGEROUS ONE. Finding a worker, it unregistered it and then called
+   `location.reload()` — right when the only worker that could exist was an accident, and an
+   infinite loop the moment the site installs one on purpose: register at `load`, purge on the next
+   open, reload, register, purge. On a live site, for every visitor, with the app never finishing
+   opening. It would not have shown up in any check here; the harness that found the first copy
+   found this one by reading the file it was in.
+
+   THE ESCAPE IT PROVIDED IS STILL THERE AND IT IS `?dev`, which unregisters the worker and empties
+   the store — the publisher's link that already existed for exactly this class of problem. See the
+   registration and the long note at the foot of index.html.
 --------------------------------------------------------------------------------------------- */
-(function purge() {
-  try {
-    navigator.serviceWorker?.getRegistrations?.().then(rs => {
-      if (rs && rs.length) {
-        rs.forEach(r => r.unregister());
-        /* One reload, and only if there WAS one — otherwise this is a page that refreshes itself
-           for ever, which is a worse fault than the one it is fixing. */
-        caches?.keys?.().then(ks => Promise.all((ks || []).map(k => caches.delete(k))))
-          .finally(() => location.reload());
-      } else {
-        caches?.keys?.().then(ks => (ks || []).forEach(k => caches.delete(k)));
-      }
-    }).catch(() => {});
-  } catch {}
-})();

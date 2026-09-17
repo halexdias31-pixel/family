@@ -107,19 +107,61 @@
      written it.
 ================================================================================================== -->
 <script>
-  /* A SERVICE WORKER OUTLIVES EVERYTHING — a reload, a hard reload, and on some browsers clearing
-     history. While one is installed it can serve a copy of any file from months ago whatever the
-     server sends, which is indistinguishable from an edit not saving.
-     Nothing here has ever registered one deliberately. That is not the same as there not being
-     one. Removed first, before a single file is asked for, so it cannot intercept them. */
+  /* ---------- THE PURGE THAT USED TO BE HERE, AND WHY IT IS NOT ---------------------------------
+     THIS UNREGISTERED EVERY SERVICE WORKER AND EMPTIED EVERY CACHE, ON EVERY LOAD. Its note was
+     right about the danger and right about the facts at the time: a worker outlives a reload, a
+     hard reload and on some browsers clearing history, and while one is installed it can serve a
+     file from months ago whatever the server sends — which is indistinguishable from an edit not
+     saving. "Nothing here has ever registered one deliberately. That is not the same as there not
+     being one."
+
+     THE SECOND SENTENCE STOPPED BEING TRUE AT THE BOTTOM OF THIS FILE. There is a worker now, it
+     is ours, and this line existed to destroy exactly that.
+
+     IT TOOK FOUR HOURS TO FIND, because it does not look like a fault: the worker installed, took
+     control, reported `controller` set, saw every request and cached every one of them — and the
+     store came back holding a single entry. Everything written during the page's opening burst was
+     wiped a moment later by a promise started before any of it. The only file that survived was
+     the one fetched last, after the purge had already run.
+
+     AND ITS TWIN IN shell.js WOULD HAVE TAKEN THE LIVE SITE DOWN. That copy calls
+     `location.reload()` when it finds a worker to remove — correct when a worker could only ever
+     be somebody else's leftover, and an infinite reload the moment the site installs one of its
+     own: register at `load`, purge on the next open, reload, register again. See the note where it
+     used to be.
+
+     WHAT IT PROTECTED IS NOW A LINK YOU CAN TYPE. `?dev` unregisters the worker and empties its
+     store — see the registration at the foot of this file — which is the same escape as before,
+     on purpose rather than on every load. And sw.js cannot serve a stale file anyway: it asks the
+     server about anything whose URL has changed and hands over what it holds only when the server
+     says that copy is still current. */
+  /* ---------- ?dev: THE SAME ESCAPE, ON DEMAND, AND IT HAS TO BE HERE --------------------------
+     RUN BEFORE ANY FILE IS ASKED FOR, which is where the purge above ran and is the whole reason
+     this is at the top of the page rather than beside the registration at the foot. A page is
+     controlled by whatever worker was installed when it was NAVIGATED to — unregistering halfway
+     down does not un-control the page you are already looking at, so a `?dev` that fired late
+     would leave the publisher reading files handed over by the very worker they were trying to
+     get rid of.
+
+     ONE RELOAD, AND ONLY IF THERE WAS SOMETHING TO REMOVE. That is the other half: the reload is
+     what makes the NEXT page an uncontrolled one. It cannot loop, and the reason is worth stating
+     rather than trusting — after the unregister there is no worker for the second pass to find,
+     and the registration at the foot of this file does not run while `?dev` is in the URL. The
+     version of this in shell.js reloaded on finding ANY worker, with nothing to stop it finding
+     the site's own on the next open: register, purge, reload, register. */
   try {
-    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+    if (/(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
+        && navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
       navigator.serviceWorker.getRegistrations().then(function (rs) {
-        rs.forEach(function (r) { r.unregister(); });
-      });
-    }
-    if (window.caches && caches.keys) {
-      caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+        var had = rs && rs.length;
+        (rs || []).forEach(function (r) { r.unregister(); });
+        var done = (window.caches && caches.keys)
+          ? caches.keys().then(function (ks) {
+              return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+            })
+          : Promise.resolve();
+        return done.then(function () { if (had) location.reload(); });
+      }).catch(function () {});
     }
   } catch (e) {}
 
@@ -428,6 +470,57 @@
     document.write('<scr' + 'ipt defer src="js/' + f + '.js?t=' + LOAD
       + '" onerror="__missing(\'' + f + '\')"><\/scr' + 'ipt>');
   });
+</script>
+
+<script>
+/* ==================================================================================================
+   THE SERVICE WORKER, REGISTERED LAST AND ONLY WHEN THE PAGE IS ALREADY UP.
+
+   WHAT IT IS FOR is written at the top of sw.js with the measurements. The short version: `LOAD`
+   above is the whole site's stamp, so a deploy changes all twenty-seven versioned URLs at once and
+   the first open after a push costs 1,164 KB for a one-line change — 5.4 seconds on a phone.
+   sw.js asks the server, per file, whether the copy already held is still current, and thirty of
+   them answer 304 with no body.
+
+   AFTER `load`, NOT BEFORE. Registering a worker costs a request and some main-thread time, and
+   the one thing this must not do is make the paint somebody is waiting for any later. A worker
+   does not control the page that registered it anyway, so there is nothing to be early for.
+
+   `?dev` IS THE WAY OUT AND IT IS THE DOOR THAT ALREADY EXISTED. It is the publisher's link a few
+   lines above — the one that dates every file by the clock so nothing can be held — and it now
+   also unregisters the worker and empties its store. A service worker somebody cannot get rid of
+   is the worst object on the web; the escape has to be something you can type from memory, on the
+   phone in your hand, without looking anything up.
+
+   EVERY LINE IS WRAPPED. `serviceWorker` is absent in a private window in some browsers and throws
+   rather than answering undefined, and an exception here would be thrown from the last script on
+   the page, after everything else has worked. Nothing in the app depends on this; the site is
+   exactly what it was without it.
+
+   IT IS NOT AN OFFLINE PROMISE THE APP MAKES ANYWHERE. Being able to open with no signal falls out
+   of the caching and is genuinely useful in a back bedroom with one bar, but nothing on any screen
+   says "works offline" — the payload is the database and it is never cached, so what you get with
+   no signal is the app, the library and whatever the last load knew. Saying more than that would
+   be a promise the app cannot keep.
+================================================================================================== */
+(function () {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    /* THE PUBLISHER GETS NO WORKER AT ALL. Removing one is done at the top of this file, before a
+       single file is asked for — see the note there for why halfway down is too late. This is the
+       other half of the same decision: while `?dev` is in the URL nothing re-registers, which is
+       also what stops the reload up there from happening twice. */
+    if (/(?:^|[?&])dev(?:[=&]|$)/.test(location.search)) return;
+    window.addEventListener('load', function () {
+      /* `updateViaCache: 'none'` SO sw.js ITSELF IS NEVER THE STALE ONE. Without it the browser may
+         serve the worker out of its own HTTP cache for up to a day, which would mean a fault in
+         this file could not be fixed by pushing a new one — the one failure mode that has no floor
+         under it. */
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .catch(function () {});
+    });
+  } catch (e) {}
+}());
 </script>
 <noscript><link rel="stylesheet" href="style.css"></noscript>
 
