@@ -1009,6 +1009,46 @@ explaining the rule — so the comment block is tracked opener-to-closer rather 
 how a line happens to start. Its summary names which of its two questions failed, instead of always
 saying the first; same fault as "all 18 checks pass".
 
+### And underneath that, no favourite had ever been written at all
+
+**I got this audit wrong, and the correction is the entry.** I traced the round-trip by reading —
+star, POST, `favourites` tab, `doGet`, `adoptFavourites_` — found the `delRow` fault above, and
+wrote "does it work? yes, end to end". **It has never written a single row.** What is on the wire,
+measured rather than read, is:
+
+```
+{"0":"f","1":"a","2":"v","3":"o","4":"u","5":"r","6":"i","7":"t","8":"e","token":"TK"}
+```
+
+**`function send(body)` takes ONE argument and `toggleFav` passed two.** The object is dropped, the
+string becomes the body, and `api`'s `Object.assign({}, body)` spreads it into indexed keys. `doPost`
+reads `S(body.action)` as `''`, `accessDenied` refuses it before the handler, and `.catch(() => {})`
+threw the refusal away. The `delRow` fix above is still right and still needed; it was repairing the
+second-order problem while the first-order one was that nothing was ever written.
+
+**It is worse than device-only.** `DATA.favourites` therefore always comes back empty, and
+`adoptFavourites_` replaces `FAVS` with it AND overwrites `localStorage` — so a star survives until
+the next payload lands and is then wiped from the device too. One page view.
+
+**`collections.js` HAS THE WHOLE ARGUMENT WRITTEN OUT**, twenty lines of it, because `toggleSpot` was
+this exact bug and was fixed: *"the body was the STRING 'spotlight' and the whole object… was dropped
+on the floor"*, and *"`.catch(() => {})` MADE IT LOOK LIKE IT WORKED"*. The star it was copied from
+kept the fault. So did `claimChild` and `answerClaim` in `me.js` — and those two are **louder**,
+because they have no `.catch` at all: `send` throws on the refusal, the `.then` never runs, and a
+parent pressing "Add your child" gets no toast, no closed sheet and no error. Nothing happens.
+
+**So the rule is in `check-replies.js`**, which is the file named for exactly this — a refusal not
+reported as a refusal, one step earlier. It asks arity and nothing else: does a call to `send` pass
+more than one argument. One question, one right answer, no scope to get wrong — the `check-rows.js`
+lesson again. **Proved by mutation**: putting the old form back names `find.js:3969` and exits 1.
+
+**Three instances, two files, one fix each time, and the rule arrived on the fourth.** That is the
+sentence this file writes about `cost: 0`, about `paper: true`, about the spelling fold and about
+`delRow` above it. **The workflow that found it was right and I was wrong**, which is worth recording
+as plainly as the bug: I reasoned about the round-trip instead of measuring the request, which is the
+same mistake as `ansBox_` ("I reasoned about the DOM instead of asking it") and as `.mat-out` being
+fixed twice on a measurement nobody took.
+
 ## The wearables have been free since the two tabs were merged
 
 **"Shop items should be updated to price you think would be reasonable"** — and for the wearables the

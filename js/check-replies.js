@@ -76,6 +76,38 @@ for (const f of files) {
 
   (function walk(node) {
     if (!node || typeof node.type !== 'string') return;
+    /* ---------- AND THE SECOND QUESTION: HOW MANY ARGUMENTS DID `send` GET? ---------------------
+       `function send(body)` TAKES ONE, and it has been called with two in three places across two
+       files — `spotlight`, `favourite`, `claimChild` and `answerClaim`. Written as
+       `send('favourite', { … })` the second argument is DROPPED and the body is the string, which
+       `api` then spreads into `{"0":"f","1":"a","2":"v", …}`. There is no `action` in that, so the
+       backend refuses it before any handler is reached.
+
+       IT BELONGS IN THIS FILE because it is the same fault this file is named for, one step
+       earlier: a refusal not reported as a refusal. The other rule catches a `.then` that claims
+       success without looking; this catches a call that could never have succeeded at all. In both
+       cases the screen says the thing happened.
+
+       `toggleSpot` WAS FIXED AND ITS TWENTY-LINE NOTE EXPLAINS THE WHOLE FAULT — and the star it
+       was copied from kept it, and two handlers in `me.js` kept it. **A fix to an instance is not
+       a fix**, which is the sentence this repository writes about `cost: 0`, about `paper: true`
+       and about the spelling fold. This is the rule.
+
+       ARITY ONLY, WHICH IS WHY IT CAN BE TRUSTED. It does not ask what the arguments are or whether
+       the action exists — one question with exactly one right answer, the `check-rows.js` lesson
+       about the narrow rule being the believable one. A one-argument `send` is not looked at. */
+    if (node.type === 'CallExpression'
+        && node.callee && node.callee.type === 'Identifier'
+        && node.callee.name === 'send'
+        && node.arguments.length > 1) {
+      const line = src.slice(0, node.start).split('\n').length;
+      const first = node.arguments[0];
+      const act = (first && first.type === 'Literal') ? String(first.value) : 'that action';
+      bad.push(`${f}:${line} — \`send\` takes ONE argument and this passes ${node.arguments.length}. `
+        + `The body becomes the string "${act}", api() spreads it into indexed keys, and the `
+        + `backend sees no action at all. Write send({ action: '${act}', … }).`);
+    }
+
     if (node.type === 'CallExpression'
         && node.callee && node.callee.type === 'MemberExpression'
         && node.callee.property && node.callee.property.name === 'then') {
@@ -105,7 +137,7 @@ for (const f of files) {
 
 console.log(`\nfiles read: ${files.length}   api().then(…) call sites: ${calls}`);
 if (bad.length) {
-  console.log('\nA REFUSAL WOULD BE REPORTED AS A SUCCESS:');
+  console.log('\nA REFUSAL WOULD BE REPORTED AS A SUCCESS, OR NEVER MADE AT ALL:');
   bad.forEach(b => console.log('  ' + b));
   console.log('');
   process.exit(1);

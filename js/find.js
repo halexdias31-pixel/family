@@ -3944,11 +3944,43 @@ function toggleFav(k, kind) {
        "Colliers Wood Library" into kind "Colliers Wood Library" and lose the rest, and would give
        a tutor called "Smith: Maths" a kind of "Smith". The kind is passed separately by the caller,
        which knows it for certain, and the key goes across whole. */
-    send('favourite', {
+    /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS ----------------------------
+       `function send(body)` TAKES ONE. Written as `send('favourite', { … })` the body is the STRING
+       `'favourite'`, which `api` then runs through `Object.assign({}, body)` — so what left the
+       phone was `{"0":"f","1":"a","2":"v","3":"o","4":"u","5":"r","6":"i","7":"t","8":"e"}` and a
+       token. Measured on the wire, not read: no `action`, no `itemId`, no `personId`. `doPost`
+       reads `S(body.action)` as `''`, `accessDenied` refuses it before the handler is reached, and
+       `.catch(() => {})` threw the refusal away.
+
+       SO NO FAVOURITE HAS EVER BEEN WRITTEN, and the note above this one — which says every star
+       "has been device-only" because it called a `saveProfile` that does not exist — describes the
+       line under it accurately except for the action's name. The action was corrected and the
+       shape of the call was not.
+
+       IT IS WORSE THAN DEVICE-ONLY, and this is the half that makes it a live bug rather than a
+       missing feature. `DATA.favourites` therefore always comes back empty, and `adoptFavourites_`
+       replaces `FAVS` with it AND overwrites `localStorage` — so a star survives until the next
+       payload lands and is then wiped from the device too. One page view.
+
+       `collections.js` HAS THE WHOLE ARGUMENT WRITTEN OUT, twenty lines of it, because `toggleSpot`
+       was this exact bug and was fixed. The star it was copied from was not. **This is why a fix
+       to an instance is not a fix**, which is the sentence this repository keeps writing about
+       `cost: 0` — and the reason `check-replies.js` now refuses a two-argument `send` outright. */
+    send({
+      action: 'favourite',
       name: USER.name, personId: (USER && USER.personId) || '',
       kind: kind || 'item', itemId: key,
       on: FAVS.has(key) ? 'TRUE' : '',
-    }).catch(() => {});
+    }).catch(err => {
+      /* PUT THE STAR BACK. `.catch(() => {})` was the other half of the disguise: the set is
+         changed three lines up, so the star fills the moment it is pressed and the failure is
+         discarded without a word. Somebody stars six things, sees six stars, reloads and has none.
+         `toggleSpot` already does exactly this and its note says why. */
+      if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
+      try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
+      if (typeof repaint === 'function') { try { repaint(); } catch (e) {} }
+      toast(String((err && err.message) || 'That did not save'));
+    });
   }
 }
 
