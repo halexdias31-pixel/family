@@ -11,7 +11,9 @@
     "check:payload": "node js/check-payload.js",
     "check:widgets": "node js/check-widgets.js",
     "check:ui": "node check/ui.js",
-    "check:ui:shots": "node check/ui.js --shots"
+    "check:ui:shots": "node check/ui.js --shots",
+    "load": "node check/load.js",
+    "load:detail": "node check/load.js --detail"
   },
   "devDependencies": {
     "acorn": "^8.11.3",

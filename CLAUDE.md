@@ -513,6 +513,80 @@ available: the card is ordinary and `.reels` inside it keeps `touch-action: pan-
 made the swipe work. The `.page.reel-page { height: 100% }` rule went with it; the scroller states
 its own height, so there is no percentage to resolve and one fewer page that is special.
 
+## Some answers are a mark on the picture, and a textarea cannot hold one
+
+**Reported as "what about quesitions which have diagrams and you are meant to draw on them? the
+answer box bit will need a rework right."** Right. `ansBox_` offers a box for words, and "draw a box
+plot for this information" is worth three marks that no sentence can earn. Somebody working through
+November 2017 Paper 1 could write *the median is at 165* and could not do what the question asked.
+
+**So the diagram takes the pen.** `padWrap_` lays a transparent SVG over the question's own figure,
+at the figure's own coordinates, and a finger draws on it — which is what a printed paper is: the
+figure and the answer space are one object. The picture is drawn INSIDE the pad rather than in its
+usual `<figure>`, because a diagram rendered twice on one card is the fault every widget had when
+the roster's name sat above its own heading, and here the second copy is the one you cannot write on.
+
+**Only where there is a real picture, and that restraint is the design.** 135 questions in the
+library say `drawing` or `annotate` and 128 have no figure transcribed yet. Generating a blank grid
+for those would be worse than leaving them — *"on the grid, enlarge triangle T by scale factor −2
+with centre (−2, −2)"* over squared paper with no axes and no triangle T is a question you cannot
+answer dressed as one you can, which is the fault this file already records twice. `check-library.js`
+prints **7 of 135**, so it is a backlog rather than a silence, and the pen arrives on a question the
+moment its picture does.
+
+**The pen is off until you ask for it.** A surface that takes the finger has `touch-action: none`,
+and one taller than the phone is a surface you cannot scroll past. One 44px tap turns it on and a
+gold frame says so, because a mode you cannot see is a mode that surprises you.
+
+**Marks are stored in the picture's own coordinates, never in pixels.** Every diagram here lays out
+inside `viewBox="0 0 340 H"`, so a stroke recorded there is the same stroke on a 320px phone and a
+1280px laptop; pixels would put yesterday's answer half an inch off the axis the moment you turned
+the phone. `pad:<row_id>` sits beside `ans:<row_id>` and for the same reason — these cards are
+rebuilt on every repaint and a rebuilt SVG is an emptied one. Measured: a line and a single tap
+survive a full card rebuild and a full page reload.
+
+### Two faults a screenshot caught and no check could
+
+**The first version returned the pad INSTEAD of the preamble block, which threw the preamble's prose
+away with it.** Q12(a) is "draw a box plot for this information" and the information is the table in
+that prose — so the card offered an empty grid and no figures to put on it. A question made
+unanswerable by the feature meant to make it answerable. Valid markup, card fits at 320px, nothing
+throws, 26 checks green.
+
+**And `figCredit_` was written for the Corbettmaths coins.** *"these are our coins and our answer"* —
+true of six rows, printed under thirty others where the drawing is faithful and the answer is
+Edexcel's. A credit that overclaims is not a smaller problem than one that underclaims: it tells a
+student the figures in front of them were made up. `diagram_by` is two values now — `family` for a
+picture REDRAWN from what the paper prints, `family-set` for one whose CONTENT we chose because the
+original was lost — and `DIAGRAM_BY` carries both with a reason.
+
+**This file has now written "a screenshot is the last word on a drawing" four times.**
+
+## The 2017 Higher answers, against the mark schemes rather than against me
+
+**The answers on both Higher Paper 1s were derived rather than read.** The mark schemes arrived in
+Drive and every one of the 31 + 27 was checked against its own paper's. Four were worth changing:
+
+| | |
+|---|---|
+| **May Q11(c)** | read −2.75. The scheme says **−2.8 cao** — it is a reading off the grid, and the algebra on a perfect (x−1)²−3 is what gives −2.75 |
+| **May Q11(b)** | led with −0.7 and 2.7, at the edge of the tolerance. The scheme prints −0.75 and 2.75 |
+| **May Q1(c), Q15(a)** | single values where the scheme takes a range — 12 to 13 hours, and 3.5 to 4.5 |
+| **Nov Q2** | 2 : 3 : 6, which is right; the scheme prints 14 : 21 : 42 and takes either |
+
+**And November Q12(b) had three wrong numbers, found by arithmetic rather than by reading.** The
+transcription read the Year 7 box plot as 146 / 154 / 157 / 165 / 170, which gives an interquartile
+range of 11 — and the mark scheme's own stats say median 157.5, IQR 10.5, range 24.5. Measured off
+the paper's vectors against its axis, the five values are **146 / 154.5 / 157.5 / 165 / 170.5**,
+which reproduces all three of the scheme's figures exactly. A student reading the card would have
+got a different IQR from the mark scheme and assumed they were wrong.
+
+**The Foundation paper's 41 all match**, which is the other half of trusting the check.
+
+**And five questions across those three papers really ask you to draw and said `calculation`** — the
+probability scales, the pie chart, the line of best fit. Each is marked now from its own mark
+scheme's wording, which is where "what does this question want" is actually written down.
+
 ## `images` — a list, not `image_1`, `image_2`, `image_3`
 
 **AQA's Paper 1 Question 5 is the case that asked for it**: the writing task offers a photograph as
@@ -612,6 +686,124 @@ guessed at — and it is why the "after" row above says 346 KB rather than 0.
 **The Find screen itself was already fast** and is not what the complaint was about: measured in the
 browser at 4,007 items, `stuffItems` 0 ms memoised, a repaint 0 ms, a search 8 ms, a filter change
 19 ms. The four-fold speedup recorded further down held.
+
+### `node check/load.js` — and the slow visit was the one nobody had measured
+
+**Reported again as "the website is kinda slow when loading it up on mobile... i dont want to get to
+my clients house and get embarrased."** The section above is the last round of this and its numbers
+had gone stale exactly as it predicted: it quotes the cost of never caching as "about 230KB",
+measured before the library moved into the repository. So the first move was an instrument rather
+than a fix — `check/load.js`, which opens the real site through a throttled phone (1.6 Mbps, 80 ms,
+CPU at 4x) against a server sending GitHub Pages' own headers, and times **the app being on the
+screen** rather than the `load` event.
+
+| | app on screen | over the wire |
+|---|---|---|
+| **cold** — nobody has ever opened it | 5.5 s | 1,166 KB |
+| **warm** — opened before, nothing pushed since | **0.6 s** | **0 KB** |
+| **the first open after a push** | 5.4 s | 1,164 KB |
+
+**The caching works and the middle row proves it.** What nothing had ever measured is the third row,
+and it is the one the complaint is about: `LOAD` is `document.lastModified`, so a deploy changes
+**every** versioned URL at once — twenty-five scripts, the stylesheet, a 370 KB library — whether or
+not any of them changed. Push a fix in the morning and open the site at a client's house in the
+afternoon and you pay for the whole site to explain one line of `find.js`.
+
+**The server already knew the answer and nobody was asking it.** Pages sends an `ETag` with every
+file. `sw.js` holds what it fetched, and when a URL changes it asks with the ETag it already has:
+thirty files answer `304` and send no body at all. That is per-file versioning with **no manifest to
+generate and no build step**, which are the two reasons it was not already done that way.
+
+| after `check/load.js` | app on screen | over the wire |
+|---|---|---|
+| the first open after a push | **0.6 s** | **36 KB** — index.html, and 30 files answered "unchanged" |
+| a push that really changed one file | 0.6 s | 43 KB, and the changed file served **new** |
+| **no signal at all** | **0.5 s** | the app opens with the server switched off |
+
+**It is not stale-while-revalidate and that distinction is the whole safety argument.** Nothing held
+is handed over on a changed URL until the SERVER has said it is still current. The eleven hours this
+project lost to "my fix did not work" versus "I am looking at yesterday's file" are exactly what
+that rules out — proved by changing one file for real and watching the new body come back on that
+load, not the next one.
+
+### There was a service-worker purge, and it had been right until the moment it wasn't
+
+**Four hours went into a worker that installed, took control, saw every request, cached every one —
+and left a store holding a single entry.** Nothing threw, `controller` was set, every `put` reported
+success, and the app worked perfectly. The one file that survived was always the same one, and it
+was the one fetched last.
+
+**`index.html` and `shell.js` each carried a `purge()` that unregistered every service worker and
+emptied every cache, on every load.** Both were written deliberately and both notes are worth
+keeping: a worker outlives a reload, a hard reload and on some browsers clearing history, and while
+one is installed it can serve a file from months ago whatever the server sends — indistinguishable
+from an edit not saving. `shell.js`'s ended *"This project has never deliberately registered one."*
+
+**That sentence stopped being true, and nothing anywhere connected the two.** Every entry written
+during the page's opening burst was deleted a moment later by a promise started before any of it;
+`data/topics.json` survived because `library.js` fetches it after the purge has already run.
+
+**The `shell.js` copy would have taken the live site down.** It called `location.reload()` on finding
+a worker to remove — correct while a worker could only ever be somebody else's leftover, and an
+infinite loop the moment the site installs one of its own: register at `load`, purge on the next
+open, reload, register, purge. For every visitor, with the app never finishing opening. **No check
+here would have caught it**; it was found by reading the file the first purge was in.
+
+**What the purge protected is a link you can type now.** `?dev` was already the publisher's door —
+it dates every file by the clock so nothing can be held — and it unregisters the worker and empties
+the store as well. **At the top of `index.html`, not beside the registration at the foot**, because a
+page is controlled by whatever worker was installed when it was NAVIGATED to: unregistering halfway
+down leaves the publisher reading files handed over by the worker they were trying to be rid of.
+One reload, only when there was something to remove, and it cannot loop because nothing re-registers
+while `?dev` is in the URL. Measured after: `?dev` gives a page with no worker, no registration and
+no cache, and the next ordinary visit has one again.
+
+### The instrument was wrong three times before it was right, all in the flattering direction
+
+Worth the space, because every one of them would have been believed:
+
+- **`page.route` switches the browser's HTTP cache off** — for every request, not just the routed
+  one. `check/load.js` registers one to stand in for the backend, so its first honest run reported
+  the warm visit re-downloading all 1,176 KB and three identical rows: "the versioned URLs do not
+  cache". Proved rather than argued — with one route the server sees 32 requests on the second
+  visit, with none it sees 1. The backend is stubbed with `addInitScript` now.
+- **`encodedDataLength` on `Network.responseReceived` is the headers only.** The next version
+  counted it and reported 300 bytes for `find.js` and 9 KB for the whole app. The body's size
+  arrives on `loadingFinished`.
+- **A service worker's own `fetch` is a different CDP target**, so the page's `Network` events do not
+  carry it and the post-deploy row came back "0 requests, 0 bytes" — the number the whole exercise
+  was hoping for, about thirty conditional requests the instrument could not see. It counts at the
+  socket now, which cannot miss one.
+- **And `LOAD` buckets to five minutes**, so simulating a deploy by touching `index.html` changes
+  nothing four times out of five. Two separate rows were reported as "0 KB after a deploy" for a
+  deploy that had not happened. It moves the date an hour and reads the stamp back.
+
+**It prints and it does not fail a build**, and is not in `npm run check`: timings move with the
+machine, and a check whose answer depends on what else the container is doing is a check people
+learn to ignore. `npm run load`, and a person reads it.
+
+### Half of what a first visit downloads is English
+
+**Measured, gzipped, and not fixed:**
+
+| | shipped | of which comments |
+|---|---|---|
+| `style.css` | 161 KB | **129 KB** |
+| the 25 files in `js/` | 566 KB | **~421 KB** |
+
+**Seventy per cent of the raw JavaScript and sixty-seven per cent of the stylesheet is prose.** That
+prose is the most valuable thing in this repository and this file opens by saying so — but the
+browser throws every byte of it away, and it is 550 KB of the 1,166 KB a first visit pays for.
+
+**It is left alone because removing it is a build step, and this project does not have one.** Blanking
+each comment to newlines of the same count would keep every line number in a stack trace pointing at
+the right line in the repo and takes the two files to 33 KB and ~145 KB — but something has to do
+that between the repository and the phone, and a step somebody has to remember is a step that will
+be forgotten. That is the argument `LOAD` is built on. **It is a decision for whoever owns the
+deploy, not a fix to slip in**, so the number is written down here instead.
+
+**The service worker does not help the cold visit and does not claim to.** It is registered after
+`load` and a worker does not control the page that registered it.
 
 ## A question file that did not arrive said the library was empty
 

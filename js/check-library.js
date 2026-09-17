@@ -594,14 +594,28 @@ rows.forEach(r => {
    same policy that blocks every Google host, so the real coins cannot be recovered; the set that is
    drawn now is ours, and so is the answer.
 
-   `diagram_by` IS A DISCLOSURE FIELD AND IT IS CLOSED. Absent means the picture came off the paper;
-   `family` means this site drew it. Anything else is a spelling nobody has agreed, and it would go
-   straight onto a card under a credit line that would then be wrong — which is worse than no credit
-   at all. Same argument as `VOCAB`, one column over.
+   `diagram_by` IS A DISCLOSURE FIELD AND IT IS CLOSED. Absent means the picture came off the paper.
+   Anything else is a spelling nobody has agreed, and it would go straight onto a card under a credit
+   line that would then be wrong — which is worse than no credit at all. Same argument as `VOCAB`,
+   one column over.
+
+   AND THERE ARE TWO WAYS THIS SITE CAN HAVE DRAWN ONE, WHICH IS A DIFFERENCE THE CARD HAS TO SAY.
+   `family` is a picture REDRAWN from what the paper prints — the square ABCD, the box-plot grid, the
+   probability scale. The drawing is ours and the question, the figures and the answer are still the
+   board's. `family-set` is a picture whose CONTENT we chose, because the original was lost and the
+   question could not be answered without one: the six Corbettmaths money questions above, where
+   choosing the coins chose the answer.
+
+   ONE VALUE FOR BOTH WAS A REAL FAULT AND A SCREENSHOT CAUGHT IT. `figCredit_` was written for the
+   coins and said "these are our coins and our answer" — true of six rows, and printed under thirty
+   others where the drawing is faithful and the answer is Edexcel's. A credit line that overclaims
+   is not a smaller problem than one that underclaims: it tells a student the figures in front of
+   them were made up. Same shape as every sentence in this repository that was true when it was
+   written and stopped being true when the data under it grew.
 
    AND A PICTURE CANNOT BE CREDITED IF THERE IS NO PICTURE. A `diagram_by` on a row with no
    `diagram` is a claim about nothing, and it is exactly what a half-finished edit leaves behind. */
-const DIAGRAM_BY = ['family'];
+const DIAGRAM_BY = ['family', 'family-set'];
 rows.forEach(r => {
   if (!r || !r.diagram_by) return;
   if (!DIAGRAM_BY.includes(r.diagram_by)) {
@@ -613,7 +627,8 @@ rows.forEach(r => {
     fail.push(`${r.row_id} credits a diagram it does not have. Draw it or drop the credit.`);
   }
 });
-const drawnHere = rows.filter(r => r && r.diagram_by === 'family').length;
+const drawnHere = rows.filter(r => r && /^family/.test(String(r.diagram_by || ''))).length;
+const chosenHere = rows.filter(r => r && r.diagram_by === 'family-set').length;
 
 /* ---------- WHAT IS STILL STANDING IN FOR SOMETHING ------------------------------------------------
    `placeholder` MARKS A ROW WHOSE CONTENT IS A DESCRIPTION OF THE REAL THING. The AQA English
@@ -730,7 +745,8 @@ console.log(`\npapers with no questions under them yet: ${empty.length}  (the ba
 console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
 console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
-console.log(`pictures drawn here because the original's did not survive: ${drawnHere}  (each credited on its card)`);
+console.log(`pictures drawn here from what the paper prints: ${drawnHere - chosenHere}`
+  + `   pictures whose contents we had to choose: ${chosenHere}  (each credited on its card)`);
 console.log(`pictures carried by rows as an address: ${pic.length}`);
 /* WITH A DENOMINATOR, because "1" is a number and "1 of 665" is a backlog. Same argument as the
    `total_marks` line three above it: what is uncovered has to be a figure somebody can act on
@@ -784,6 +800,41 @@ const printRows = rows.filter(r => r && r.kind === 'question'
 console.log(`papers saying whether a calculator is allowed: ${saysCalc} of ${docCount}`
   + `   questions naming kit they need: ${kitRows}`
   + `   questions needing the printed sheet: ${printRows}`);
+
+/* ---------- A QUESTION THAT ASKS YOU TO DRAW, WITH NOWHERE TO DRAW --------------------------------
+   `answer_type` OF `drawing` OR `annotate` MEANS THE ANSWER IS A MARK ON A PICTURE — a box plot, an
+   enlargement, a cross on a probability scale, a line of best fit. `padSource_` in find.js lays a
+   pen over that picture so the question can actually be answered, and it can only do that where
+   there IS one: the question's own `diagram`, or a single diagram on a preamble the question sits
+   under, which is where a figure shared between parts (a) and (b) lives.
+
+   SO THE ONES WITH NO PICTURE ARE A BACKLOG AND THIS PRINTS THEM. They are not broken — the
+   question and its marks are right, and it reads exactly as it did before pads existed. What they
+   cannot do is be answered in the app, which is invisible from anywhere else: nothing throws, the
+   card draws, and the only tell is that the pen never appears. Same shape and same reason as the
+   `total_marks`, `exam_date` and missing-picture counts above it.
+
+   DELIBERATELY NOT REPAIRED BY GENERATING A GRID. "On the grid, enlarge triangle T by scale factor
+   -2 with centre (-2, -2)" over squared paper with no axes and no triangle T is a question you
+   cannot answer dressed as one you can — the exact fault CLAUDE.md records twice, where a renderer
+   printed "not drawn yet" off the `figure` column and was wrong on ~120 questions. The picture has
+   to be transcribed from the paper; then the pen arrives with nothing else to do. */
+const preDiag_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'preamble' || !r.diagram) return;
+  const k = String(r.paper_id) + '\u0000' + String(r.question || '');
+  preDiag_[k] = (preDiag_[k] || 0) + 1;
+});
+const drawQs = rows.filter(r => r && r.kind === 'question'
+  && /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim()));
+/* EXACTLY ONE, not "any". A question sitting under two pictures has no single answer to which of
+   them the pen belongs on, and guessing puts the marks on the wrong one — so it counts as having
+   none and stays in the backlog until somebody says. `padSource_` makes the same test for the same
+   reason, and the two have to agree or this number is about a different thing than the app does. */
+const withPad = drawQs.filter(r => r.diagram
+  || preDiag_[String(r.paper_id) + '\u0000' + String(r.question || '')] === 1);
+console.log(`questions answered by drawing, that you can draw on: ${withPad.length} of ${drawQs.length}`
+  + `   (the rest have no picture transcribed yet)`);
 
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
 console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
