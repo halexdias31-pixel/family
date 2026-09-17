@@ -180,6 +180,52 @@ const STATES = {
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
   ],
+
+  /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------
+     `--screen=tools` MEASURED PAGE ONE AND NOTHING ELSE. The Tools column is one widget per page,
+     so nine widgets were being reported on as one — and the two that did not fit were both further
+     down. Reported by the owner as "I can't scroll down on some"; measured at 390px, the cheat
+     sheet maker's card was 1263px inside an 805px pane and the flyer's 1252px, so 458px and 447px
+     were clipped, taking the A4 preview and the Print button with them.
+
+     THIS IS THE `check/cards.js` LESSON, one column along: the summary said eight combinations and
+     meant it, and what it did not say is that eight combinations is one page seen eight times. The
+     fix is not a new rule — `ui.js` already measures sideways scroll, tap targets and contrast, and
+     would have measured these — it is a STATE, which is the sentence CLAUDE.md already carries
+     about the funnel's answer rows.
+
+     BY NAME, NOT BY PAGE NUMBER. `widgetColumn_` builds from the roster, so a widget added or
+     switched off moves every index after it — and a state that silently lands on the wrong widget
+     is worse than one that fails, because it reports a pass about something it did not look at.
+     `expect` is what makes that loud. */
+  tools: [
+    { name: '' },
+    { name: 'the cheat sheet maker',
+      enter: () => {
+        const n = allWidgets().filter(w => w.kind === 'tool')
+          .findIndex(w => String(w.id) === 'mat');
+        if (n < 0) throw new Error('no cheat sheet widget in the roster');
+        goPage('tools', n, true);
+      },
+      expect: () => document.querySelector('#s-tools #mat-out .mat-sheet'),
+      wants: 'the A4 preview drawn on screen' },
+    /* ---------- AND THIS ONE IS NOT THERE FOR EVERYBODY -------------------------------------
+       `flyers` CARRIES `admin: true`, so it is not in a signed-out visitor's roster at all — and
+       "could not reach it" is the wrong sentence for a widget that correctly does not exist. A
+       warning nobody can act on is the kind of red this file's own `ACCEPTED_TAP` note is about.
+       `only` says who a state belongs to. It is skipped rather than failed, and the summary lists
+       it as not reachable — which is the honest answer and still not silence. */
+    { name: 'the flyer maker',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = allWidgets().filter(w => w.kind === 'tool')
+          .findIndex(w => String(w.id) === 'flyers');
+        if (n < 0) throw new Error('no flyer widget in the roster');
+        goPage('tools', n, true);
+      },
+      expect: () => document.querySelector('#s-tools #fm-out .fm-sheet'),
+      wants: 'the flyer drawn on screen' },
+  ],
 };
 
 const statesOf = id => STATES[id] || [{ name: '' }];
@@ -650,6 +696,14 @@ function inspect(opts) {
          no `enter`, which is precisely what every screen had before this existed. */
       for (const state of statesOf(id)) {
         const label = state.name ? `${id} · ${state.name}` : id;
+        /* WHOSE STATE IS THIS. A widget marked `admin` is not in a stranger's roster, so asking a
+           stranger to reach it would report a fault about the check rather than about the app. */
+        if (state.only) {
+          const mine = await page.evaluate(src => {
+            try { return !!(0, eval)('(' + src + ')')(); } catch (e) { return false; }
+          }, String(state.only));
+          if (!mine) { rows.push({ width, id: label, as: who.as, skipped: 'not this visitor' }); continue; }
+        }
         if (state.enter) {
           const entered = await page.evaluate(src => {
             try { (0, eval)('(' + src + ')')(); return true; } catch (e) { return String(e.message); }
