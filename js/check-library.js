@@ -709,6 +709,31 @@ EXTRA_FILES.forEach(name => {
   }
 });
 
+/* ---------- A SIMPLEST-FORM QUESTION MUST NOT HAVE A FRACTION FOR AN ANSWER -----------------------
+   `markAnswer_` compares two fractions BY VALUE, because "or equivalent" is what a mark scheme
+   actually says and a child who writes 15/20 before cancelling has not made a mistake. That is
+   right everywhere in this library and it would be wrong in exactly one place: a question that
+   asks for the simplest form, where the unsimplified fraction is the QUESTION and accepting it
+   back marks a non-answer right.
+
+   There is no such row today -- 83 answers are a bare fraction and none of them asks for the
+   simplest form, which is what made the value fold safe to write. This is here so that the first
+   one fails the build instead of quietly turning the marking wrong, and the fix when it does is to
+   leave `accept` off that row: a person marks it, which is what `set-accept.py` already does for
+   everything it cannot be sure about. */
+const BARE_FRACTION = /^-?\d*\s*\d+[\u2044\/]\d+$/;
+const SIMPLEST = /simplest form|lowest terms|fully simplif/i;
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  const a = String(r.accept || '').trim();
+  if (!a || !BARE_FRACTION.test(a)) return;
+  const asked = String(r.html || '') + ' ' + String(r.lead || '');
+  if (!SIMPLEST.test(asked.replace(/<[^>]+>/g, ' '))) return;
+  fail.push(r.row_id + ' asks for the simplest form and its `accept` is the fraction ' + a
+            + ' — the marker compares fractions by value, so the unsimplified fraction in the '
+            + 'question would be marked right. Leave `accept` off this row and let a person mark it.');
+});
+
 /* ---------- SAY IT --------------------------------------------------------------------------------- */
 const say = (title, list, draw) => {
   console.log('\n' + title + '  (' + list.length + ')');

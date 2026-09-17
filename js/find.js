@@ -2648,7 +2648,43 @@ function markNum_(p) {
    "1,000 envelopes" and "70.5 kg" because that is what a person says; a student writing 1000 is
    right. So a trailing word is dropped from the EXPECTED side only -- never from what was typed,
    or "1000 cats" would pass. */
-const markBare_ = s => markNorm_(s).replace(/^([-\d.,\s]+)\s*[a-z°%]+.*$/, '$1').trim();
+/* The solidus is in the leading class because a fraction is a number too: `1/2 km` is a value
+   and a unit exactly as `70.5 kg` is, and without it the km stayed attached and a student
+   typing `6/12` against it was marked wrong. */
+const markBare_ = s => markNorm_(s).replace(/^([-\d.,\/\s]+)\s*[a-z°%]+.*$/, '$1').trim();
+
+/* A FRACTION IS A NUMBER, AND "OR EQUIVALENT" IS WHAT THE MARK SCHEME ACTUALLY SAYS.
+   Q23(b) of the June 2024 Foundation paper is marked `5/9` and its scheme adds, in the same line,
+   "oe ... any equivalent fraction, or the decimal 0.55(5...) or 0.56, or the percentage". A child
+   who writes 10/18 on a primary sheet has not made a mistake either: Corbettmaths Q3 of the
+   different-denominators sheet comes out as 15/20 before anybody cancels it, and telling that child
+   they are wrong is the one failure this marking cannot afford.
+
+   COMPARED AS TWO WHOLE NUMBERS, never as a decimal. 1/3 and 0.3333 are different numbers and a
+   float would eventually call them equal; `a*d === c*b` cannot. A denominator of 0 is refused
+   rather than rounded to infinity.
+
+   WHERE THIS WOULD BE WRONG IS A QUESTION THAT ASKS FOR THE SIMPLEST FORM, because there the
+   unsimplified fraction is the question rather than the answer. There is no such row in the
+   library -- measured: 83 answers are a bare fraction and none of them asks for simplest form --
+   and `check-library.js` fails the build on the first one, so this cannot quietly become wrong. */
+function markFrac_(s) {
+  const t = markNorm_(s).replace(/^\(|\)$/g, '').trim();
+  let m = /^(-?)(?:(\d+)\s+)?(\d+)\/(\d+)$/.exec(t);
+  if (m) {
+    const d = Number(m[4]);
+    if (!d) return null;
+    const n = Number(m[2] || 0) * d + Number(m[3]);
+    return { n: m[1] ? -n : n, d: d };
+  }
+  m = /^(-?\d+)(?:\.(\d+))?$/.exec(t);
+  if (m) {
+    const dec = m[2] || '';
+    const d = Math.pow(10, dec.length);
+    return { n: Number(m[1]) * d + (m[1][0] === '-' ? -1 : 1) * Number(dec || 0), d: d };
+  }
+  return null;
+}
 
 function markAnswer_(typed, accept) {
   const t = markNorm_(typed);
@@ -2661,6 +2697,9 @@ function markAnswer_(typed, accept) {
     if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
     const a = markParts_(t), b = markParts_(w);
     if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;
+    /* the same value written another way -- see `markFrac_` above */
+    const p = markFrac_(t), q = markFrac_(markBare_(w));
+    if (p && q && p.n * q.d === q.n * p.d) return true;
   }
   return false;
 }

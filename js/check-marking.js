@@ -38,7 +38,7 @@ const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
    the code -- and this file is checking the one thing in the app that must not be approximately
    right. `markBare_` is a `const` arrow with no block, so a statement that ends at its semicolon is
    the other shape this has to handle. */
-const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markAnswer_'];
+const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markAnswer_'];
 
 function cut(name) {
   let i = src.indexOf('function ' + name + '(');
@@ -91,6 +91,15 @@ const CASES = [
   /* SEVERAL ANSWERS CAN BE RIGHT */
   ['16', '8 | 16', true, '"how many friends might she have" has two answers'],
   ['9', '8 | 16', false, 'and nine is not one of them'],
+  /* "OR EQUIVALENT", WHICH IS WHAT THE MARK SCHEME SAYS AND WHAT THE CANCELLING LEAVES BEHIND */
+  ['10/18', '5\u20449', true, 'Q23(b)\u2019s scheme says oe and means it'],
+  ['15/20', '3\u20444', true, 'what Corbettmaths Q3 gives you before you cancel'],
+  ['0.5', '1/2', true, 'a decimal is the same number'],
+  ['1/2', '0.5', true, 'and the other way round'],
+  ['7/3', '2 1/3', true, 'top-heavy against the mixed number'],
+  ['6/12', '1\u20442 km', true, 'with the unit still on the expected side'],
+  ['5/8', '3\u20444', false, 'close is not equal'],
+  ['1/0', '5', false, 'a denominator of nought is not a number'],
   /* THE MINUS SIGN THE PAPER PRINTS IS NOT THE ONE ON THE KEYBOARD */
   ['-3', '−3', true, 'U+2212 against the hyphen'],
   /* NOTHING TYPED IS NOT A WRONG ANSWER */
