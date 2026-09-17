@@ -1292,15 +1292,25 @@ screen('feed', () => pages('feed', postsBlocks()));
    migration is undone — it just stops being a cliff. */
 screen('reel', () => {
   if (!LOADED) return `<section class="page"><div class="pane">${skeleton()}</div></section>`;
-  const facts = factsNow_();
-  /* KEPT, AND IT CAN STILL HAPPEN — somebody switching every fact off in the sheet leaves a filled
-     tab with no live rows, and `factsNow_` hands back the built-in list; somebody emptying that list
-     too lands here. A screen with no branch for "nothing to show" is a screen that draws a blank. */
+  /* ---------- CLIPS ONLY, AND THE FACTS ARE NOT A FALLBACK ---------------------------------------
+     REPORTED FROM A SCREENSHOT OF THIS COLUMN: "no more factoids on this yh? its just the videos".
+     The column opened on a green gradient reading "Notre-Dame took nearly 200 years", which is a
+     perfectly good fact and is not a reel.
+
+     THE TWO SURFACES WANT DIFFERENT HALVES OF ONE LIST, which is why this is a filter here and not
+     a second source. `factsNow_` still answers both — the sheet wins over the code, a clip row is a
+     row with a `clip` — and the "One more thing" widget goes on dealing the whole deck. Splitting
+     the data instead would be two tabs, two empty states and two things to keep in step, which is
+     the `needs_print` / `print_required` lesson one more time.
+
+     AND A COLUMN WITH NO CLIPS SAYS SO RATHER THAN FILLING ITSELF WITH FACTS. Showing the next best
+     thing is exactly how this screen came to be showing the wrong thing. */
+  const facts = factsNow_().filter(f => f && f.clip);
   if (!facts.length) {
     return `<section class="page"><div class="pane"><div class="card">
       <h3>Reels</h3>
-      <p class="sub">Nothing here yet. Add a row to the <b>facts</b> tab: subject, heading, body,
-        a few words to find a photograph by, and a <b>clip</b> if it is a video.</p>
+      <p class="sub">No clips yet. Add a row to the <b>facts</b> tab with a <b>clip</b> — a Google
+        Drive file id, or a link to a video. The words are optional.</p>
     </div></div></section>`;
   }
   /* ---------- ON A CARD, LIKE EVERY OTHER SCREEN IN THE APP ---------------------------------------
@@ -1340,20 +1350,27 @@ screen('reel', () => {
    than the same fifty-eight in the same run. The infinite column is that function read one index at
    a time. Nothing new decides what comes next.
 
-   THE CLIPS ARE PINNED IN FRONT OF IT, IN THEIR OWN ORDER. A video is the thing somebody opened the
-   column to see, and burying it at a shuffled index is the same as not having it. They are in the
-   deck as well, so a clip comes round again once the facts have run out — which is what "for ever"
-   means and is worth saying rather than discovering. */
-const REEL_FIRST = 4;      // on the first paint. One is on screen; the rest are the next flick.
-const REEL_MORE  = 4;      // appended when the last one is two slides away.
+   THAT DECK IS THE WIDGET'S NOW AND NOT THIS COLUMN'S — see the note in the screen above. What is
+   left of "for ever" here is a LAP: the clips in the order they are written, then the same clips
+   again. With two of them that is plainly a repeat rather than an endless supply, and saying so is
+   better than a column that stops dead two flicks in and reads as broken. It stops being a repeat
+   the moment there are more clips, with nothing here to change.
+
+   AND IT IS BOUNDED, because a video is not a div. Every slide that has been watched holds a
+   decoded `<video>` with a `src` on it, so a column that appended for ever would be a megabyte a
+   flick with nothing ever released. `REEL_MAX` is the stated ceiling — thirty laps of two clips,
+   further than anybody scrolls — rather than a leak nobody measures until a phone gets hot. */
+const REEL_FIRST = 3;      // on the first paint. One is on screen; the rest are the next flick.
+const REEL_MORE  = 3;      // appended when the last one is two slides away.
+const REEL_MAX   = 60;     // the ceiling, in slides. See above.
 let REEL_SHOWN = 0;
 let REEL_IO_ART = null;
 let REEL_IO_PLAY = null;
 
 function reelItem_(n) {
   const clips = factsNow_().filter(f => f && f.clip);
-  if (n < clips.length) return clips[n];
-  return typeof feedItem === 'function' ? feedItem(n - clips.length) : null;
+  if (!clips.length || n >= REEL_MAX) return null;
+  return clips[n % clips.length];
 }
 
 function reelBatch_(count) {
@@ -1364,61 +1381,37 @@ function reelBatch_(count) {
     /* `--h` IS THE SLIDE'S OWN HUE and `feedSlide` paints its own gradient from the subject, so
        this is only the frame the snap happens in. The two were one element before and the reel had
        to know what a fact looks like to draw it. */
-    out += `<div class="reel" data-reel="${REEL_SHOWN}">${feedSlide(it)}${
-      it.clip ? '<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button>' : ''
-    }</div>`;
+    out += `<div class="reel" data-reel="${REEL_SHOWN}">${feedSlide(it)}` +
+      `<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button></div>`;
     REEL_SHOWN++;
   }
   return out;
 }
 
-/* ---------- THE PHOTOGRAPH ARRIVES WHEN THE REEL DOES ---------------------------------------------
-   FIFTY-EIGHT LOOKUPS ON OPEN would be fifty-eight requests to Commons before anybody has seen the
-   second one — and on a slow connection they compete, so the FIRST one, the only one being looked
-   at, arrives last.
+/* ---------- TWO OBSERVERS, ASKING DIFFERENT QUESTIONS ---------------------------------------------
+   ONE WATCHES THE BOTTOM and one watches what is being played. The first wants "is this slide
+   nearly on screen", answered two hundred pixels early so the next lap is built before anybody is
+   waiting for it; the second wants "is this the slide being watched", answered every time that
+   changes, for as long as the column is open. One observer doing both would either build late or
+   leave a clip playing three slides above with its sound on.
 
-   ONE SCREEN AHEAD, so it is there before you are, and only once per slide.
-
-   TWO OBSERVERS, AND THEY ARE ASKING DIFFERENT QUESTIONS. A photograph wants "is this nearly on
-   screen", answered once, two hundred pixels early, and then never again. A video wants "is this
-   the slide being watched", answered every time that changes, for as long as the column is open —
-   one observer doing both would either fetch the picture for a slide nobody reaches or leave a clip
-   playing three slides above with its sound on. */
+   THE PHOTOGRAPH FETCH WAS HERE AND IS GONE WITH THE FACTS. It asked Wikimedia Commons for a
+   picture off the slide's `pic`, one screen ahead — right when a slide could be a fact, and dead
+   the moment every slide is a clip, because `reelItem_` cannot return anything without one. A
+   reader left standing over a condition that is now permanently false is the shape this file
+   records under `resource_type` in `VOCAB` and under `libraryInto_`'s dead `kind === 'paper'`
+   guard: it reads as live and does nothing. `feedPicture` is untouched and still draws the "One
+   more thing" widget, which is where the facts went. */
 function reelsWatch_() {
   const host = $('reels');
   if (!host || !window.IntersectionObserver) return;
-  const seen = {};
 
   REEL_IO_ART = new IntersectionObserver(es => es.forEach(e => {
     if (!e.isIntersecting) return;
-    const el = e.target, n = Number(el.dataset.reel);
     /* MORE SLIDES, BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts
        a blank half-second where the flick should have been; two early is the same cost paid while
        nobody is waiting. */
-    if (n >= REEL_SHOWN - 2) reelMore_(host);
-    if (seen[n]) return;
-    seen[n] = true;
-    REEL_IO_ART.unobserve(el);
-    /* THE SAME LIST THE SLIDES WERE DRAWN FROM. This read `DATA.facts` while the markup was drawn
-       from `factsNow_`, so with the tab empty every index would have missed and no slide would ever
-       have asked for a photograph — the two halves of one screen reading two sources. */
-    const f = reelItem_(n);
-    if (!f || f.clip || !f.pic || typeof feedPicture !== 'function') return;
-    feedPicture(f.pic).then(found => {
-      if (!found) return;
-      /* DECODED FIRST, THEN SHOWN. Setting a background to a URL still downloading gives a slide
-         that flickers gradient, white, picture — and here there is no end to them. */
-      const img = new Image();
-      img.onload = () => {
-        const art = el.querySelector('.feed-art');
-        if (!art) return;
-        art.style.backgroundImage = `url("${found.src}")`;
-        art.classList.add('has-photo');
-        const c = el.querySelector('.feed-credit');
-        if (c && found.by) c.textContent = found.by;
-      };
-      img.src = found.src;
-    });
+    if (Number(e.target.dataset.reel) >= REEL_SHOWN - 2) reelMore_(host);
   }), { root: host, rootMargin: '200px 0px' });
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT. `0.6` rather than any intersection: the snap
