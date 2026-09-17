@@ -100,6 +100,17 @@ const CASES = [
   ['6/12', '1\u20442 km', true, 'with the unit still on the expected side'],
   ['5/8', '3\u20444', false, 'close is not equal'],
   ['1/0', '5', false, 'a denominator of nought is not a number'],
+  /* A UNIT IS NOT A LIST OF ALTERNATIVES. `set-accept.py` used to split an answer on `/`, so
+     `12 km/h` became the two acceptable answers `12 km` and `h` — and the bare letter **h** was
+     marked RIGHT. Found on Q14(a) of the June 2024 Foundation Paper 2. */
+  ['12 km/h', '12 km/h', true, 'the speed, written out'],
+  ['12', '12 km/h', true, 'and without the unit, which is the sentence not the answer'],
+  ['h', '12 km/h', false, 'the letter out of the unit is not an answer'],
+  ['cm3', '2 g/cm^3', false, 'nor half of a density'],
+  /* A SUPERSCRIPT THAT IS NOT A NUMERATOR IS A POWER. Deleting its tags ran it into the base, so
+     `m<sup>4</sup>` was stored as `m4` and `10<sup>7</sup>` as `107` — values nobody types. */
+  ['m^4', 'm^4', true, 'an index, with the caret a keyboard has'],
+  ['3.42 × 10^7', '3.42 × 10^7', true, 'standard form'],
   /* THE MINUS SIGN THE PAPER PRINTS IS NOT THE ONE ON THE KEYBOARD */
   ['-3', '−3', true, 'U+2212 against the hyphen'],
   /* NOTHING TYPED IS NOT A WRONG ANSWER */

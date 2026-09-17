@@ -76,6 +76,12 @@ def strip(s):
     that is wrong 141 times.
     """
     s = re.sub(r'(\d)(<sup>[^<]*</sup>\s*&frasl;)', r'\1 \2', s or '')
+    # A SUPERSCRIPT THAT IS NOT A NUMERATOR IS A POWER, and deleting its tags ran it into
+    # the base: `m<sup>4</sup>` became `m4` and `10<sup>7</sup>` became `107`, so the
+    # marking column held a value nobody would type and `3.42 x 10^7` was marked wrong.
+    # `^` is what a keyboard has. The `&frasl;` case above is excluded because there the
+    # superscript is the top of a fraction, not an index.
+    s = re.sub(r'<sup>([^<]*)</sup>(?!\s*&frasl;)', r'^\1', s)
     return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', s))).strip()
 
 
@@ -101,10 +107,18 @@ def value_of(answer_html):
     return cut
 
 
-SPLIT = re.compile(r'\s+or\s+|\s*/\s*(?![\d\s])', re.I)
+SPLIT = re.compile(r'\s+or\s+', re.I)
 
 def variants(v):
-    """"8 or 16" is two acceptable answers. A solidus inside a fraction is NOT a separator."""
+    """"8 or 16" is two acceptable answers, and the word "or" is the only thing that says so.
+
+    THE SOLIDUS USED TO SPLIT TOO AND IT WAS WRONG ABOUT UNITS. The rule was "/ unless a digit
+    follows", written to protect 3/4 -- but `12 km/h` has a letter after the slash, so it became the
+    two alternatives `12 km` and `h`, and a student typing the single letter **h** was marked RIGHT.
+    `2 g/cm3` split the same way. Measured across the library when this was found: every `/` in an
+    answer value is a unit or a fraction, and not one is a genuine alternative. So the slash does not
+    separate anything, and "or" -- which a person wrote deliberately -- does.
+    """
     parts = [p.strip(' .') for p in SPLIT.split(v) if p.strip(' .')]
     return parts if len(parts) > 1 else [v]
 

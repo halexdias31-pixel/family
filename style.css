@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-practicals";
+  --css-version: "2026-10-09-june-2024-2f-3f";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6997,6 +6997,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE WINNER IS A WEIGHT, NOT A LABEL. Two names, one bold, and the eye has the result before it
    has read a word. A draw leaves both light, which says draw without a line saying draw.
 ================================================================================================== */
+/* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE -----------------------------------
+   THE LIBRARY ALREADY HAD `<sup>a</sup>&frasl;<sub>b</sub>`, and it is right for a bare fraction
+   inside a sentence -- two thirds, five ninths. It is wrong for an EXPRESSION: Q19(a) of the June
+   2024 Foundation Paper 2 is the square root of 35.2 + 1.7 cubed, all over 4.6 squared minus 8.91,
+   and a numerator that long set as a superscript is unreadable at any size.
+
+   THE CLASS NAMES ARE `frac-n` AND `frac-d`, NOT `num` AND `den`, and that is deliberate rather
+   than fussy: `.qsheet .num` already exists in this file as the SVG label class for a drawn
+   diagram, and these cards render INSIDE `.qsheet`. A second `.num` would have inherited a 13px
+   serif and a text-anchor meant for an SVG -- the `.price.faint` collision again, where a class
+   reads as a decision and behaves as something else.
+
+   `inline-block` so it sits in the line of prose it belongs to, and the rule between the two halves
+   is a border rather than a character, so it is exactly as wide as the wider half. */
+.frac { display: inline-block; vertical-align: middle; text-align: center; margin: 0 .15em; }
+.frac-n, .frac-d { display: block; padding: 0 .3em; line-height: 1.25; }
+.frac-n { border-bottom: 1px solid currentColor; }
+
 /* ---------- A PRACTICAL ---------------------------------------------------------------------------
    ON THE BLACK, NOT ON PAPER. The two-palette rule turns on what a thing STANDS IN FOR: a receipt,
    a job stub or a print sheet is paper and takes the cream tokens. A practical is not a document
