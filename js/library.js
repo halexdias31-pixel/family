@@ -366,6 +366,10 @@ function libraryInto_(d, rows) {
       lines: libS(r.lines), order: libN(r.sort_order),
       company: libS(r.company),
       answer: libS(r.answer), answerType: norm(r.answer_type),
+      /* WHAT A STUDENT COULD TYPE AND BE RIGHT. `answer` is prose for a tutor -- the value, an
+         em dash, then the method -- and "16 &mdash; half it." does not equal "16". See
+         tools/set-accept.py for why the two are separate columns rather than one parsed twice. */
+      accept: libS(r.accept),
       /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. `needs_print` is True on 252 rows and
          `print_required` on 104, and **not one row is True in both** — two imports over two
          subsets, neither ever given the other's rows. `find.js` noticed and said so where the
