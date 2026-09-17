@@ -2604,6 +2604,24 @@ function markNorm_(s) {
        into a box. Caught by a real row: the very first question of the June 2024 Foundation
        paper, whose scheme answer is "18 000", marked "18000" wrong. */
     .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
+    /* A FRACTION HAS FOUR SPELLINGS AND A CHILD TYPES ONE OF THEM. The library writes the answer
+       to Q23(b) of the June 2024 Foundation paper as `5&frasl;9`, which strips to `5\u20449` with the
+       FRACTION SLASH; a phone keyboard has no such key and what gets typed is `5/9`. Before this
+       line those were different strings, so the one answer a student is most likely to write was
+       marked wrong -- on a live paper, to a child sitting beside you, with no appeal. The vulgar
+       characters are the same fault a third way (`3\u2153` is the sign on the Corbettmaths signpost),
+       and they need the space `3 1/3` or the mixed number folds into the improper 31/3.
+
+       THE SPACE IS REMOVED ONLY WHERE IT TOUCHES THE SLASH. Stripping every space instead would
+       fold `1 1/6` onto `11/6` -- 1.17 and 1.83, two different numbers -- so a wrong answer would
+       be marked right, which is the one thing worse than the fault being fixed. */
+    .replace(/[\u2044\u2215]/g, '/')
+    .replace(/[\u00bc\u00bd\u00be\u2150-\u215e]/g, c => ' ' + {
+      '\u00bc': '1/4', '\u00bd': '1/2', '\u00be': '3/4', '\u2150': '1/7', '\u2151': '1/9',
+      '\u2152': '1/10', '\u2153': '1/3', '\u2154': '2/3', '\u2155': '1/5', '\u2156': '2/5',
+      '\u2157': '3/5', '\u2158': '4/5', '\u2159': '1/6', '\u215a': '5/6', '\u215b': '1/8',
+      '\u215c': '3/8', '\u215d': '5/8', '\u215e': '7/8' }[c] + ' ')
+    .replace(/\s*\/\s*/g, '/')
     .replace(/\band\b|&/g, ',')
     .replace(/[.\s]+$/, '')
     .replace(/\s+/g, ' ')

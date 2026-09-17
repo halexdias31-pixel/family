@@ -58,7 +58,25 @@ VAGUE = re.compile(r'^(any |several|about |approx|two of|three of|four of|all of
 
 
 def strip(s):
-    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', s or ''))).strip()
+    """The answer's text with its markup taken off -- and ONE space put back, in one place.
+
+    `<b>2<sup>2</sup>&frasl;<sub>15</sub></b>` is the mixed number 2 and 2/15. Deleting the tags
+    outright ran the whole number into the numerator and produced `22/15`, which is 1.47 where the
+    answer is 2.13 -- a different number, written into the column a student's typing is checked
+    against. A child typing the right answer was told it was wrong, and one typing 22/15 was told
+    it was right. Found on Q21(a) of the June 2024 Foundation paper, the paper somebody was sitting
+    at the time.
+
+    THE RULE IS AS NARROW AS THE FAULT. Turning every tag into a space instead fixed this and broke
+    141 algebraic answers the same afternoon: `<i>n</i><sup>2</sup>` became `n 2` and `4<i>n</i>-3`
+    became `4 n - 3`, so a hundred answers that were right by the old rule went wrong by the new
+    one. What actually needs the space is one shape -- a digit, then a superscript that IS a
+    numerator, which is what the `&frasl;` after it says. Everything else loses its tags exactly as
+    before. Same lesson as `check-rows.js`: one question with one right answer beats a general rule
+    that is wrong 141 times.
+    """
+    s = re.sub(r'(\d)(<sup>[^<]*</sup>\s*&frasl;)', r'\1 \2', s or '')
+    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', s))).strip()
 
 
 def value_of(answer_html):
