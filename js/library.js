@@ -151,7 +151,12 @@ async function libraryRows_() {
    one place that renames a column is the mapping below. Two spellings in two places is how
    `r.link` and `source_url` cost seven silent reads, recorded in CLAUDE.md.
 ================================================================================================== */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet'];
+/* ---------- `topics` IS THE FOURTH, AND IT IS A TREE RATHER THAN A TABLE -------------------------
+   269 LABELS UNDER 10 ROOTS, with an `aliases` column. It sat unread in `data/archive/` until the
+   funnel needed it: the `Topic` facet reads a free-text cell with 389 distinct values in it, folded
+   by a spelling vote at runtime, and 343 of them can be on one card. This is the curated version of
+   that question -- somebody wrote the tree down, so the app stops guessing. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -207,6 +212,12 @@ function libraryExtras_(d, extra) {
     });
     d.cheatsheet = out;
   }
+
+  /* --- the topic tree --------------------------------------------------------------------------
+     PASSED THROUGH AS THE SHEET HAS IT. `topicAreaOf_` in find.js is the only reader and it wants
+     the parent links intact, so there is nothing to rename here -- the one mapping this file exists
+     to do is a mapping onto keys the phone already reads, and a tree has none. */
+  if (extra.topics && extra.topics.length) d.topicTree = extra.topics;
 
   /* --- the boxers ------------------------------------------------------------------------------ */
   if (extra.boxers && extra.boxers.length) {

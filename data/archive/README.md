@@ -14,7 +14,6 @@ distinction this folder draws is exactly "read by the app" against "kept so it i
 |---|---|---|---|
 | `bible.json` | `bible` | **31,102** | the complete KJV — all 66 books, and 31,102 is the canonical verse count, so it is whole |
 | `p-and-r.json` | `P&R` | 273 | Philosophy & Religion concepts for A-level RS — the ontological argument, a priori, ethics. 42 columns |
-| `topicstuff.json` | `topicstuff` | 269 | a maths topic TREE — 269 labels under 50 parents, with aliases. **See below** |
 | `english-devices.json` | `english-devices` | 180 | literary and language devices, core / extended / specialist |
 | `m-and-p-formulas.json` | `M&Pformulas` | 96 | maths and physics formulae, with which boards give them and which must be learnt |
 | `icons.json` | `icons` | 81 | Orthodox iconography — Christ Pantokrator, the Theotokos, feasts, by tradition |
@@ -25,15 +24,20 @@ distinction this folder draws is exactly "read by the app" against "kept so it i
 | `verbs-command.json` | `Verbs command` | 12 | exam command words — Examine, Evaluate, Analyse — and what each board means by them |
 | `library-readme.json` | `_README` | 8 | the tab-colour guide that sat at the front of the spreadsheet |
 
-## `topicstuff` is the one with obvious live value
+## `topicstuff` HAS LEFT THIS FOLDER — it is `data/topics.json` now
 
-CLAUDE.md records that the funnel's `Topic` facet reads a free-text `topics` cell with **389
-distinct values, 46 of which differ from another only by case**, folded by a spelling vote at
-runtime because the rows keep arriving both ways. This tab is the curated version of that: 269
-labels, a `parent_id` tree fifty deep, and an `aliases` column — which is a vote's worth of
-guessing replaced by a fact somebody wrote down. Nothing reads it. Wiring it up is a real
-change with a real design behind it, not a tidy-up, which is why it is written here rather
-than done.
+CLAUDE.md recorded that the funnel's `Topic` facet read a free-text cell with **389 distinct
+values, 46 differing only by case**, folded by a spelling vote at runtime — and that 343 of them
+could land on one card. This tab was the curated answer to that question and it was sitting here
+unread.
+
+It is wired up now: `data/topics.json`, loaded by `libraryExtras_`, read by `topicAreaOf_`, and
+offered as the **Topic area** facet one question before `Topic`. Measured, it resolves **4,112 of
+the library's 4,257 topic cells (96.6%)** into ten areas, of which a maths question only ever sees
+seven. Which is exactly what a card has room for.
+
+**So this folder is what is kept, not what is unusable.** A tab in here is unread today; that is
+not the same as unusable, and `topicstuff` is the proof.
 
 ## The shape, and what was taken out
 
