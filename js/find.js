@@ -2544,6 +2544,241 @@ document.addEventListener('input', e => {
   try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
 });
 
+
+/* ==================================================================================================
+   SOME ANSWERS ARE A MARK ON THE PICTURE, AND A TEXTAREA CANNOT HOLD ONE.
+
+   REPORTED AS "what about questions which have diagrams and you are meant to draw on them? the
+   answer box bit will need a rework right." Right. "Draw a box plot for this information",
+   "enlarge shape P by scale factor -1/2", "mark with a cross the probability that…", "draw a line
+   of best fit" — the paper's answer space IS the diagram, and `ansBox_` above offers a box for
+   words. Somebody working through November 2017 Paper 1 could write "the median is at 165" and
+   could not do what the question asked, which is worth three marks.
+
+   SO THE DIAGRAM ITSELF TAKES THE PEN. `padWrap_` lays a transparent SVG over the question's own
+   picture, at the picture's own coordinates, and a finger draws on it. That is what a printed paper
+   is: the figure and the answer space are one object.
+
+   ONLY WHERE THERE IS A REAL PICTURE TO DRAW ON, and that restraint is the whole design. 130
+   questions in the library say "draw" or "annotate" and 128 of them have no figure transcribed
+   yet. Generating a blank grid for those would be worse than leaving them: "on the grid, enlarge
+   triangle T by scale factor -2 with centre (-2, -2)" over squared paper with no axes and no
+   triangle T is a question you cannot answer wearing the clothes of one you can — the same fault
+   as the renderer that printed "not drawn yet" off the `figure` column and was wrong on ~120
+   questions. `check-library.js` prints how many are waiting, so it is a backlog and not a silence.
+
+   THE PEN IS OFF UNTIL YOU ASK FOR IT. A surface that takes the finger has `touch-action: none`,
+   and a `touch-action: none` region taller than the phone is a region you cannot scroll past —
+   the page would trap you on a diagram. Off, the pad is an ordinary picture and the screen behaves
+   exactly as it did. One tap on a 44px control turns it on, and the pad says so with a gold frame,
+   because a mode you cannot see is a mode that surprises you.
+
+   MARKS ARE STORED IN THE PICTURE'S OWN COORDINATES, not in pixels. Every diagram here lays out
+   inside `viewBox="0 0 340 H"` (see the note about `W` in CLAUDE.md), so a stroke recorded there is
+   the same stroke on a 320px phone and a 1280px laptop. Pixels would put yesterday's answer half an
+   inch off the axis the moment you turned the phone.
+
+   SAME STORAGE AND SAME REASON AS `ansBox_`: these cards are rebuilt on every repaint, and a
+   rebuilt SVG is an emptied one. `pad:<row_id>` sits beside `ans:<row_id>`, every read and write
+   wrapped, because private mode THROWS on `localStorage` rather than answering null.
+
+   GOLD, BECAUSE THE PAPER'S INK IS `currentColor`. Your marks have to be visibly yours — that is
+   what a pen on a printed paper does, and it is what lets you tell your line of best fit from the
+   axis it was drawn against.
+--------------------------------------------------------------------------------------------- */
+const padKey_ = x => 'pad:' + ((x && (x.key || x.name)) || '?');
+
+/* WHICH QUESTIONS GET ONE. The sheet says what kind of answer it wants, and two of its words mean
+   "make a mark": `drawing` (produce a figure) and `annotate` (add to one). Both need a surface and
+   neither has anywhere else to go. Everything else — a calculation, an explanation, a proof — is
+   words, and words already have a box. */
+const PAD_TYPES = { drawing: 1, annotate: 1 };
+const padWanted_ = x => !!PAD_TYPES[String((x && x.answerType) || '').trim().toLowerCase()];
+
+/* THE PICTURE IT DRAWS ON, WHICH IS NOT ALWAYS THE QUESTION'S OWN. November 2017 Q12(a) is "draw a
+   box plot for this information" and the empty grid is on the question's PREAMBLE, because parts
+   (a) and (b) share it — exactly what a preamble is for. So this reads the same list `preamble_`
+   built, innermost last, and takes the last picture on the card: the one nearest the part being
+   asked is the one the part is about.
+
+   IT RETURNS THE MARKUP, NOT A FLAG, so `questionCard_` can draw the picture in the pad INSTEAD of
+   in its usual figure. Drawing it in both is the fault where every widget printed its name twice. */
+function padSource_(x) {
+  if (!x || !padWanted_(x)) return null;
+  if (x.diagram) return { svg: x.diagram, from: 'part' };
+  const stems = (x.stems || []).filter(p => p && p.diagram);
+  if (stems.length === 1) return { svg: stems[0].diagram, from: stems[0] };
+  return null;
+}
+
+function padRead_(k) {
+  try {
+    const v = JSON.parse(localStorage.getItem(k) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+
+/* A STROKE IS A POLYLINE AND THAT IS THE WHOLE FORMAT. `[[x,y,x,y,…], …]` — one flat list of
+   rounded coordinates per stroke, because a list of {x,y} objects is three times the characters for
+   the same marks and `localStorage` is a few megabytes shared with everything else this app keeps.
+   Rounded to whole units of a 340-wide picture, which is finer than a finger. */
+const padPath_ = st => {
+  let d = '';
+  for (let i = 0; i + 1 < st.length; i += 2) d += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
+  /* A SINGLE TAP IS A DOT, and a dot is a real answer — "mark with a cross" starts as one, and a
+     `<path>` with one point paints nothing at all. Repeating the point gives it length, and
+     `stroke-linecap: round` makes that length a disc. */
+  return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
+};
+
+function padWrap_(x, svg, credit) {
+  const k = padKey_(x);
+  const marks = padRead_(k);
+  /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
+     than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
+     makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
+     whatever shape the box is, which is the same arithmetic `padAt_` does on a pointer. Reading
+     the drawing's own viewBox instead would mean trusting a string, and a diagram that ever
+     omitted one would silently put every mark in the wrong place.
+
+     WHAT `none` COSTS IS STROKE WIDTH — a vertical line and a horizontal one would come out
+     different thicknesses on any box that is not square. `vector-effect="non-scaling-stroke"` is
+     the answer to exactly that: the width is measured on the screen rather than in the stretched
+     user space, so the pen is one pen. */
+  return `<div class="qpad" data-k="${esc(k)}">
+    <div class="qpad-art">${svg}
+      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
+        <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
+          `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
+      </svg>
+    </div>${credit || ''}
+    <div class="qpad-bar">
+      <button type="button" class="qpad-btn" data-do="pad-draw" aria-pressed="false">Draw on it</button>
+      <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
+      <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
+    </div>
+    <p class="qpad-note">Kept on this phone only, like the answer box.</p>
+  </div>`;
+}
+
+/* ---------- THE PEN ------------------------------------------------------------------------------
+   ONE SET OF LISTENERS FOR THE WHOLE APP, delegated, for the reason the answer box gives: about
+   five question cards exist at any moment and only one of them is ever being drawn on.
+
+   POINTER EVENTS, NOT TOUCH EVENTS, so a mouse, a finger and a stylus are one code path. The
+   capture is what makes a stroke survive the finger leaving the picture — without it, drawing off
+   the edge of a diagram ends the line there and the next move starts a new one somewhere else.
+
+   THE STROKE IS BUILT IN THE PICTURE'S COORDINATES AS IT IS DRAWN, and written to storage once, at
+   the end. Writing per move would be a `localStorage` write every few milliseconds, which is
+   synchronous and on the main thread. */
+let PAD_ON = '';                  // the key of the pad currently taking the pen, '' for none
+let PAD_ST = null;                // the stroke being drawn
+
+function padAt_(ink, e) {
+  const r = ink.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  return [Math.round((e.clientX - r.left) / r.width * 340),
+          Math.round((e.clientY - r.top) / r.height * 340)];
+}
+
+document.addEventListener('pointerdown', e => {
+  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
+  if (!ink) return;
+  const pad = ink.closest('.qpad');
+  if (!pad || pad.getAttribute('data-k') !== PAD_ON) return;
+  const at = padAt_(ink, e);
+  if (!at) return;
+  e.preventDefault();
+  PAD_ST = at.slice();
+  const g = ink.querySelector('.qpad-g');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', padPath_(PAD_ST));
+  path.setAttribute('vector-effect', 'non-scaling-stroke');
+  path.setAttribute('data-live', '1');
+  if (g) g.appendChild(path);
+  try { ink.setPointerCapture(e.pointerId); } catch (err) {}
+});
+
+document.addEventListener('pointermove', e => {
+  if (!PAD_ST) return;
+  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
+  if (!ink) return;
+  const at = padAt_(ink, e);
+  if (!at) return;
+  /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
+     finger moves anything visible, and every duplicated point is two more characters in storage
+     for a mark nobody can see. */
+  if (PAD_ST[PAD_ST.length - 2] === at[0] && PAD_ST[PAD_ST.length - 1] === at[1]) return;
+  PAD_ST.push(at[0], at[1]);
+  const live = ink.querySelector('[data-live]');
+  if (live) live.setAttribute('d', padPath_(PAD_ST));
+});
+
+function padEnd_(e) {
+  if (!PAD_ST) return;
+  const st = PAD_ST; PAD_ST = null;
+  const ink = document.querySelector('.qpad-ink [data-live]');
+  const pad = ink && ink.closest('.qpad');
+  if (ink) ink.removeAttribute('data-live');
+  if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  const all = padRead_(k); all.push(st);
+  try { localStorage.setItem(k, JSON.stringify(all)); } catch (err) {}
+}
+document.addEventListener('pointerup', padEnd_);
+document.addEventListener('pointercancel', padEnd_);
+
+/* THE THREE CONTROLS. `Draw on it` is a MODE and not an action, so it says which it is with
+   `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
+   simply always be on. Only one pad takes the pen at a time: turning one on turns the last one
+   off, because two live `touch-action: none` regions on one scroller is the trap twice. */
+on('pad-draw', (el) => {
+  const pad = el.closest('.qpad'); if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  const want = PAD_ON !== k;
+  [].slice.call(document.querySelectorAll('.qpad.is-drawing'))
+    .forEach(p => p.classList.remove('is-drawing'));
+  [].slice.call(document.querySelectorAll('[data-do="pad-draw"]')).forEach(b => {
+    b.setAttribute('aria-pressed', 'false'); b.textContent = 'Draw on it';
+  });
+  PAD_ON = want ? k : '';
+  if (want) {
+    pad.classList.add('is-drawing');
+    el.setAttribute('aria-pressed', 'true');
+    el.textContent = 'Done drawing';
+  }
+});
+
+on('pad-undo', (el) => {
+  const pad = el.closest('.qpad'); if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  const all = padRead_(k);
+  if (!all.length) { toast('Nothing to undo'); return; }
+  all.pop();
+  try { localStorage.setItem(k, JSON.stringify(all)); } catch (err) {}
+  padRepaint_(pad, all);
+});
+
+on('pad-clear', (el) => {
+  const pad = el.closest('.qpad'); if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  if (!padRead_(k).length) return;
+  try { localStorage.removeItem(k); } catch (err) {}
+  padRepaint_(pad, []);
+  toast('Cleared');
+});
+
+/* REPAINTED FROM THE STORED MARKS RATHER THAN BY REMOVING A NODE, so that what is on the screen is
+   always exactly what would come back on a reload. An undo that deleted the last `<path>` and an
+   undo that rewrote the list from storage look identical until the two disagree, and then the one
+   that disagrees is the one you find out about a week later. */
+function padRepaint_(pad, all) {
+  const g = pad.querySelector('.qpad-g');
+  if (g) g.innerHTML = (all || [])
+    .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
+}
+
 /* ==================================================================================================
    A PICTURE THIS SITE DREW IS LABELLED AS ONE.
 
@@ -2578,9 +2813,29 @@ const pics_ = list => (list || []).map(src =>
   `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
 
-const figCredit_ = x => (x.diagramBy === 'family'
-  ? `<figcaption class="fig-by">drawn for @family. — the original worksheet's picture did not
-       come across in the text, so these are our coins and our answer</figcaption>` : '');
+/* TWO WAYS THIS SITE CAN HAVE DRAWN ONE, AND THE CARD HAS TO SAY WHICH. See the note on
+   `DIAGRAM_BY` in check-library.js: `family` is a picture REDRAWN from what the paper prints, where
+   the question, the figures and the answer are all still the board's; `family-set` is one whose
+   CONTENT we chose, because the original was lost and the question could not be answered without
+   one — and choosing the coins chose the answer.
+
+   ONE SENTENCE FOR BOTH WAS A REAL FAULT AND A SCREENSHOT CAUGHT IT. This said "these are our coins
+   and our answer" on every credited row, so an Edexcel probability scale, redrawn line for line off
+   the paper, carried a line telling the student the figures had been made up. Nothing could have
+   flagged it: the markup was valid, the card fitted, and the sentence had been true of every row
+   that existed on the day it was written. */
+const FIG_BY = {
+  'family': `drawn for @family. from the paper's own figures — the original is the board's and is
+             not reproduced here`,
+  'family-set': `drawn for @family. — the original worksheet's picture did not come across in the
+                 text, so these are our coins and our answer`,
+};
+/* THE ELEMENT IS AN ARGUMENT BECAUSE THE CREDIT SITS IN TWO DIFFERENT PLACES. Inside a `<figure>`
+   the right element is `<figcaption>`; a drawing pad is not a figure — it is a picture, an ink
+   layer, three controls and a line of prose — and a `<figcaption>` outside a `<figure>` is markup
+   no parser is obliged to keep. One sentence, two containers, and the class does the styling. */
+const figCredit_ = (x, tag) => (FIG_BY[x.diagramBy]
+  ? `<${tag || 'figcaption'} class="fig-by">${FIG_BY[x.diagramBy]}</${tag || 'figcaption'}>` : '');
 
 /**
  * THE DAY A PAPER WAS SAT, WHEN THE ROW SAYS — "Thursday 25 May 2017".
@@ -2617,6 +2872,11 @@ function questionCard_(x) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
   const sat = satOn_(x);
   const needs = asList_(x.needs);
+  /* THE PICTURE THAT TAKES THE PEN, IF THERE IS ONE — see `padSource_` above. It is drawn INSIDE
+     the pad and therefore not in its usual place: a diagram rendered twice on one card is the
+     fault every widget had when the roster's name sat above its own heading, and here the second
+     copy would be the one you cannot write on. */
+  const pad = padSource_(x);
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
@@ -2645,13 +2905,22 @@ function questionCard_(x) {
              whose insert is a single part prints no heading, which is why this needed no
              migration. */''}${
           p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${p.html || ''}${
-          fig(p.diagram)}${pics_(p.images)}</div>`).join('')}
+          /* THE PICTURE SWAPPED FOR THE PAD, AND NOTHING ELSE. The first version returned the pad
+             INSTEAD of this whole block, which threw the preamble's PROSE away with it: November
+             2017 Q12(a) is "draw a box plot for this information" and the information is the table
+             in that prose, so the card offered an empty grid and no figures to put on it. A
+             question made unanswerable by the feature meant to make it answerable, and no check
+             could see it — the markup was valid, the card fitted, nothing threw. A screenshot
+             caught it, which is the third time this file records that sentence. */''}${
+          pad && pad.from === p ? padWrap_(x, p.diagram) : fig(p.diagram)}${
+          pics_(p.images)}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${
           /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. See the `diagram`
              column in js/library.js, and `figCredit_` above for the ones we drew. */''}${
-          x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}${
+          pad && pad.from === 'part' ? padWrap_(x, x.diagram, figCredit_(x, 'p'))
+            : x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}${
           pics_(x.images)}</div>
       </div>
     </div>

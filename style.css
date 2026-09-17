@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-insert-parts";
+  --css-version: "2026-10-06-draw-on-it";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7931,6 +7931,50 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   font: 400 .9rem/1.6 Georgia, "Times New Roman", serif;
 }
 .qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
+
+/* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------
+   THE PEN IS OFF UNTIL THE PAD SAYS `is-drawing`, and that is not a nicety. `touch-action: none` is
+   what stops a finger scrolling the page while it draws, and a region with it that is taller than
+   the phone is a region you cannot scroll past — so the app would trap you on a box-plot grid. Off,
+   the ink layer is `pointer-events: none` and the pad is an ordinary picture.
+
+   THE FRAME IS THE MODE MADE VISIBLE. A surface that has quietly taken the finger, with nothing on
+   screen saying so, is the funnel "changing its mind" one screen along.
+
+   `.qpad-art` IS THE SHARED BOX. The drawing sizes it (`.qsheet figure svg` rules, 20rem cap) and
+   the ink layer is laid over it absolutely, so the two cannot disagree about where the picture is —
+   which is the only thing that makes a stored mark land back on the axis it was drawn against. */
+.qpad { margin: 1rem 0; }
+.qpad-art { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
+.qpad-art > svg:first-child { width: min(100%, 20rem); height: auto; display: block; }
+.qpad-ink {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; touch-action: auto; overflow: visible;
+}
+.qpad.is-drawing .qpad-ink { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.qpad.is-drawing .qpad-art { outline: 2px solid var(--gold); outline-offset: 4px;
+                             border-radius: var(--r-sm); }
+/* GOLD, BECAUSE THE PAPER'S OWN INK IS `currentColor`. Your marks have to be visibly yours — a line
+   of best fit in the same colour as the axis it crosses is a line you cannot check. */
+.qpad-g path { fill: none; stroke: var(--gold); stroke-width: 2.5;
+               stroke-linecap: round; stroke-linejoin: round; }
+
+/* TAP TARGETS IN px. `2.75rem` is 40.75px on a 390px phone and fails — the root font is
+   `clamp(13.5px, 3.8vw, 16px)`, and a fingertip is the same size on every screen. This is the rule
+   `.btn.tiny`, `.post-act`, `.fm-adds label` and the filter chips were each convicted of. */
+.qpad-bar { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; line-height: normal; }
+.qpad-btn {
+  min-height: 44px; min-width: 64px; padding: 0 .8rem;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font: 600 .74rem/1 var(--font); letter-spacing: .04em;
+  cursor: pointer;
+}
+.qpad-btn[aria-pressed="true"] { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.qpad-btn:active { transform: translateY(1px); }
+/* NOT SENT ANYWHERE, AND THE CARD SAYS SO. `ansBox_` makes the same promise in its label; a pad
+   that looked like homework going somewhere would be a promise the app cannot keep. */
+.qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
+             line-height: 1.4; }
 
 /* THE METHOD FOR A PRACTICAL, above the questions — read before you start, not beside them. */
 .qp-guide { margin: 0 0 1rem; padding: .8rem .9rem; background: var(--sunk);
