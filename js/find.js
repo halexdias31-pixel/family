@@ -732,6 +732,16 @@ const FACETS = [
      `collectionAxes_` reads, so "or the 352 topics these are in" becomes available wherever
      grouping by topic would collapse the list harder than grouping by paper. Neither of those
      behaviours is written here. */
+  /* ---------- THE BRANCH BEFORE THE TOPIC --------------------------------------------------------
+     ASKED FIRST BECAUSE IT IS THE QUESTION SOMEBODY HAS FIRST, the same judgement `boxKind` and
+     `Decade` below already record: "is this algebra or geometry" comes before "is it simultaneous
+     equations". It is also the only version of this question that fits on the card -- see
+     `topicAreaOf_` for the tree it reads and the 96.6% it resolves.
+     NOTHING NEW DECIDES WHEN IT IS ASKED. Ten answers is under the cap and almost nothing outside
+     the library carries a topic, so the coverage rule keeps it out of the way until the list is
+     questions -- both rules were already there. */
+  { field: 'topicArea', label: 'Topic area',
+    of: x => x.topicArea || topicAreaOf_(x) },
   { field: 'topic',     label: 'Topic',
     of: x => x.topic || topicOf_(x) },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
@@ -1574,6 +1584,23 @@ const FACET_COVERAGE = 0.5;
    NOT CONFIGURABLE. A second number in the sheet is a second thing to get wrong, and the honest
    answer to "my question is not showing" is `whyThisQuestion()`, which names this by name. */
 const FACET_MAX_ANSWERS = 40;
+/* ---------- HOW MANY ANSWERS ARE DRAWN, WHICH IS NOT HOW MANY MAKE A QUESTION ASKABLE ------------
+   REPORTED AS "when there are more than 7ish it gets clipped by the widget container". Measured
+   against the real library: `Sitting` offers 16 answers, `Year` 9 and `Grade` 8 at the top, and
+   `Topic` (343) and `Paper` (242) both fall under FACET_MAX_ANSWERS as the list narrows and are
+   then drawn whole. Every one of those runs past the bottom of the card.
+
+   TWO DIFFERENT NUMBERS FOR TWO DIFFERENT JOBS, and conflating them is what made this a bug.
+   FACET_MAX_ANSWERS asks "is this a question at all" -- 212 paper names is not multiple choice --
+   and it belongs where it is. This asks "how many fit on the card", which is a fact about the
+   card, and it is the same trim `overFacet_` was already doing for the oversized ones. Applying it
+   to every facet is the `cost: 0` lesson one more time: a rule written for the case that annoyed
+   somebody comes back wearing the next facet's name.
+
+   THE REST ARE NOT HIDDEN. The line below the rows names how many are left and points at the
+   search box, which is on the same page and filters the same items -- that machinery already
+   existed for the oversized case and needed nothing added. */
+const FACET_MAX_SHOWN = 7;
 
 /* ---------- AND A QUESTION EVERYBODY ANSWERS THE SAME WAY IS NOT A QUESTION EITHER ----------------
    THE COUNT RULE ABOVE CATCHES A QUESTION WITH TOO MANY ANSWERS. Nothing caught the opposite: a
@@ -3117,6 +3144,82 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
    including the ones a spreadsheet invents. See them above `facetTally_`. */
 function topicOf_(x) {
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
+}
+
+/* ---------- WHICH BRANCH OF THE SUBJECT A TOPIC IS ON --------------------------------------------
+   `Topic` HAS 343 ANSWERS AND A CARD HOLDS SEVEN. Trimming it to seven is honest but nearly
+   useless: seven topics out of three hundred is not a question, it is a sample. What was missing
+   is the LEVEL ABOVE — the handful of branches every one of those topics hangs off — and it turns
+   out somebody had already written it down. `data/topics.json` is 269 labels under ten roots with
+   an `aliases` column, and it sat unread in the archive.
+
+   MEASURED BEFORE BUILDING, because a tree that does not match the library is decoration: it
+   resolves 4,112 of the library's 4,257 topic cells, 96.6%, into TEN areas — and a maths question
+   only ever sees seven of them (Number, Algebra, Ratio & Proportion, Geometry & Measures,
+   Probability, Statistics, A-Level Pure Maths). English sees the other three. That is the seven
+   the card has room for, arrived at from the data rather than by picking a number.
+
+   THREE PASSES, EACH NARROWER THAN THE LAST, and the third is the one that needs the care:
+     1. the label, an alias, or the id read as words
+     2. the same again with a plural folded to its singular -- "box plots" against "Box Plots"
+     3. CONTAINMENT, and only when every candidate agrees on the same root. "scatter graphs" is
+        inside "Scatter Graphs & Correlation" and nothing else, so it resolves; "area" is inside
+        both "Area of 2-D Shapes" (Geometry) and "Area Under a Curve" (A-Level), so it resolves to
+        NOTHING rather than to a coin toss. Six cells lost against a wrong branch on a card that
+        looks authoritative — the trade this repository makes everywhere else.
+
+   NOT WRITTEN INTO THE ROWS. The library's `topics` cells keep arriving free-text from bulk
+   imports, so a migration is something the next import undoes -- the argument `levelOf_` and the
+   spelling vote both already make. */
+let TOPIC_AREA = null;
+const topicKey_ = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
+const topicOne_ = k => k.endsWith('ies') && k.length > 5 ? k.slice(0, -3) + 'y'
+                     : k.endsWith('ses') && k.length > 5 ? k.slice(0, -2)
+                     : k.endsWith('s')   && k.length > 3 ? k.slice(0, -1) : k;
+function topicIndex_() {
+  if (TOPIC_AREA) return TOPIC_AREA;
+  const tree = (DATA && DATA.topicTree) || [];
+  const byId = {}, exact = {}, roots = [];
+  tree.forEach(r => { if (r && r.topic_id) byId[r.topic_id] = r; });
+  const rootOf = (r, n) => {
+    const p = String((r && r.parent_id) || '').trim();
+    return (!p || !byId[p] || (n || 0) > 8) ? r : rootOf(byId[p], (n || 0) + 1);
+  };
+  tree.forEach(r => {
+    if (!r || !r.label) return;
+    const area = (rootOf(r) || r).label;
+    const names = [r.label, String(r.topic_id || '').replace(/-/g, ' ')]
+      .concat(String(r.aliases || '').split(',').filter(a => a.trim()));
+    /* A ROOT ANSWERS TO ITS OWN HALVES. "Ratio & Proportion" is one branch and the library writes
+       `ratio` and `proportion` as separate cells, so both have to reach it. */
+    if (!String(r.parent_id || '').trim()) names.push.apply(names, r.label.split(/[&/,]/));
+    names.forEach(nm => {
+      [topicKey_(nm), topicOne_(topicKey_(nm))].forEach(k => {
+        if (k && exact[k] === undefined) exact[k] = area;
+      });
+    });
+    roots.push([topicOne_(topicKey_(r.label)), area]);
+  });
+  return (TOPIC_AREA = { exact: exact, roots: roots });
+}
+function topicAreaOf_(x) {
+  const at = topicIndex_();
+  const out = [];
+  asList_(topicOf_(x)).forEach(t => {
+    const k = topicKey_(t), k1 = topicOne_(k);
+    let area = at.exact[k] !== undefined ? at.exact[k]
+             : at.exact[k1] !== undefined ? at.exact[k1] : null;
+    if (area === null && k1.length >= 4) {
+      let only = null, many = false;
+      at.roots.forEach(pair => {
+        if (pair[0].indexOf(k1) < 0) return;
+        if (only === null) only = pair[1]; else if (only !== pair[1]) many = true;
+      });
+      if (only !== null && !many) area = only;
+    }
+    if (area && out.indexOf(area) < 0) out.push(area);
+  });
+  return out;
 }
 
 /**
@@ -4678,8 +4781,11 @@ function stuffQuestion() {
      already on this page, already filters these same items, and is the only control that can reach
      one specific answer out of three hundred. */
   const all = facetValues(items, facet);
-  const values = over
-    ? all.slice().sort((a, b) => b.n - a.n).slice(0, FACET_MAX_ANSWERS)
+  /* ONE TRIM, NOT TWO. This used to trim only the oversized facet and draw every other one whole,
+     which is how a 16-answer `Sitting` ran off the bottom of the card. `FACET_MAX_SHOWN` is about
+     the card and applies to all of them. */
+  const values = all.length > FACET_MAX_SHOWN
+    ? all.slice().sort((a, b) => b.n - a.n).slice(0, FACET_MAX_SHOWN)
          .sort((a, b) => all.indexOf(a) - all.indexOf(b))
     : all;
   const more = all.length - values.length;

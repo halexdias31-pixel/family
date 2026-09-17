@@ -429,6 +429,11 @@ function doGet(e) {
       facts: [],
       questions: [], boxers: [], fights: [], herd: [],
       cheatsheet: [],
+      /* `topicTree` IS THE FOURTH OF THESE and it is declared for the same reason as the three
+         above: `libraryExtras_` fills it from `data/topics.json` on the phone, and a key the site
+         reads that appears nowhere here is what `check-payload.js` fails on -- correctly, because
+         it cannot tell a key filled in the browser from one nobody sends. */
+      topicTree: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one
