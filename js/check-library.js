@@ -416,6 +416,45 @@ byDoc.forEach((ids, k) => {
    their preamble inside their own `html` because that is how they were transcribed, and a check
    that fires on all of them says nothing anybody can act on. The model is thinly populated on
    purpose — filling it in is editorial work on rows that already exist. */
+/* ---------- SEVERAL PREAMBLES IN ONE SCOPE, AND NO ORDER BETWEEN THEM -------------------------------
+   AN INSERT IS A LIST NOW — see `stemIndex_` in find.js, and the measurement that prompted it:
+   three rows in one scope went in and ONE came out, silently, because the index held a row per
+   scope rather than a list. That is fixed, and the fix introduced a way to be wrong that did not
+   exist before: two rows in one scope with nothing saying which comes first.
+
+   THE ORDER IS THE CONTENT. "Lines 1-6" printed under "Lines 20 to the end" is not untidy, it is
+   the source in the wrong order, and a student reading it would have no way to tell. `sort_order`
+   is what declares it, so a scope holding several rows where two share an order — or where any
+   lacks one — is a paper whose insert reads differently depending on the order the file happens
+   to be in. Proved by mutation, both directions. */
+const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question
+                                          : r.section ? 's' + r.section : 'paper');
+const inScope = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'preamble' || !r.paper_id) return;
+  (inScope[scopeOf_(r)] || (inScope[scopeOf_(r)] = [])).push(r);
+});
+Object.keys(inScope).forEach(k => {
+  const list = inScope[k];
+  if (list.length < 2) return;
+  const orders = list.map(r => String(r.sort_order || '').trim());
+  const missing = list.filter((r, i) => !orders[i]);
+  if (missing.length) {
+    fail.push(`${k} has ${list.length} preamble rows and ${missing.length} of them ` + (missing.length === 1 ? `carries` : `carry`) + ` no `
+      + `sort_order (${missing.map(r => r.row_id).join(', ')}). Several parts in one scope are `
+      + `drawn in the order this column gives; without it the insert reads in whatever order the `
+      + `file happens to be in.`);
+    return;
+  }
+  const seen = {};
+  orders.forEach((o, i) => { (seen[o] || (seen[o] = [])).push(list[i].row_id); });
+  Object.keys(seen).filter(o => seen[o].length > 1).forEach(o => {
+    fail.push(`${k} has ${seen[o].length} preamble rows all at sort_order ${o} `
+      + `(${seen[o].join(', ')}). Which one is drawn first is then undefined, and for an insert `
+      + `the order IS the content.`);
+  });
+});
+
 const partKeys = new Set();
 const sectionKeys = new Set();
 rows.forEach(r => {
