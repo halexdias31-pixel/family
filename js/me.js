@@ -948,7 +948,17 @@ on('msg-send', el => {
       /* SO IT IS THERE WHEN YOU LOOK. Without this the thread you have just started does not exist
          on the phone until something else happens to fetch — and the first place anybody looks
          after sending a message is the place messages are. */
-      loadMessages().then(() => { if (AT === 'dm') paint('dm'); });
+      /* ---------- AND REDRAWN WHEREVER YOU ARE, NOT ONLY ON THE MESSAGE SCREEN ------------------
+         THIS WAS `if (AT === 'dm') paint('dm')`, and the one place you can send from is a person's
+         pass — which is on the ACCOUNT column and on the Find screen, never on `dm`. So the
+         condition was false every single time it ran: the fetch happened, `MESSAGES` was updated,
+         and nothing on screen was told. The new conversation existed and was invisible until
+         something else happened to repaint.
+
+         `repaint()` REDRAWS WHAT IS SHOWING, which is the honest answer to "where should this
+         appear": the message widgets are built from `MESSAGES` by `msgWidgets_()` and they live in
+         the widget roster, so the column that has to change is whichever one you are looking at. */
+      loadMessages().then(() => { try { repaint(); } catch (e) {} });
     })
     /* THE SERVER'S OWN SENTENCE, not a generic failure. Every refusal it can give is already
        written for a person to read — the role policy, the five-minute gap, the length — and
@@ -1082,7 +1092,15 @@ on('add-child-go', () => {
   const first = (document.getElementById('kid-first') || {}).value || '';
   const last = (document.getElementById('kid-last') || {}).value || '';
   if (!first.trim() || !last.trim()) { toast('Both names, please'); return; }
-  send('claimChild', {
+  /* ---------- `send` TAKES ONE ARGUMENT AND THIS PASSED TWO, so nothing was ever asked ----------
+     THE SAME FAULT AS THE STAR AND AS `toggleSpot` BEFORE IT, and this one is the loudest of the
+     three because there is no `.catch`: the body on the wire is `{"0":"c","1":"l","2":"a", …}`, the
+     backend refuses an action it cannot read, `send` THROWS on that refusal, and the `.then` below
+     never runs. So a parent presses "Add your child", types both names, presses go — and the sheet
+     stays open, no toast appears, and the rejection goes to the console.
+     Measured, not read: the POST body and the empty `#toast` were both checked in the harness. */
+  send({
+    action: 'claimChild',
     name: USER.name, personId: (USER && USER.personId) || '',
     firstName: first.trim(), lastName: last.trim(),
   }).then(d => {
@@ -1090,20 +1108,24 @@ on('add-child-go', () => {
     closeSheet();
     toast('Asked. They will see it when they next sign in.');
     load();
-  });
+  }).catch(err => toast(String((err && err.message) || 'That did not send')));
 });
 
 /* YES AND NO ARE ONE HANDLER WITH A FLAG. Two handlers doing the same call with one word different
    is two places to fix when the call changes, and the second one is always the one forgotten. */
 const answerClaim_ = (el, accept) => {
-  send('answerClaim', {
+  /* THE THIRD OF THE THREE. Same shape, same silence — see `add-child-go` above. A parent pressed
+     yes on their own child's request and nothing happened, on the one screen where "nothing
+     happened" is indistinguishable from "it worked and the list has not refreshed yet". */
+  send({
+    action: 'answerClaim',
     name: USER.name, personId: (USER && USER.personId) || '',
     rowIndex: el.getAttribute('data-row'), accept: accept,
   }).then(d => {
     if (d && d.error) { toast(d.error); return; }
     toast(accept ? 'Linked. They can book for you now.' : 'Turned down.');
     load();
-  });
+  }).catch(err => toast(String((err && err.message) || 'That did not send')));
 };
 on('claim-yes', el => answerClaim_(el, true));
 on('claim-no', el => answerClaim_(el, false));

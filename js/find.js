@@ -441,10 +441,25 @@ function thingCard_(x, credits) {
          credits    — bought. Gold when you can afford it.
          nothing    — genuinely free, which for a wearable means everybody starts with it. */
     const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
+    /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT --------------------------------------
+         not priced — the cell is empty. Said out loud, faintly, rather than folded into `free`.
+       THE LIST ABOVE SAID THREE AND THE CODE GAVE THREE, and the fourth state existed the whole
+       time: `Number('') || 0` made a blank price a price of nought, so every wearable
+       `seedAvatarItems` wrote — seven of them, at 15 to 40 coins in `AVATAR_ITEMS` — was drawn as
+       FREE on every phone. `priced_` on the mapper is what tells the two apart now, and this is the
+       half that has to say so, because `undefined` printed straight into the old branch reads
+       `undefined credits`.
+
+       FAINT AND NOT ALARMING. An unpriced row is an admin's unfinished cell, not a fault a visitor
+       can do anything about — and calling it "free" is the one thing it must not do, because
+       somebody presses that. Same argument as the DBS stamp: absent is not a negative, it is a
+       blank, and the two are different sentences. */
     const price = x.kind !== 'shop' ? ''
       : x.level > 0
         ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
             myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
+      : x.cost === undefined
+        ? `<span class="price is-unpriced">not priced yet</span>`
       : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
           free ? 'free' : x.cost + ' credits'}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
@@ -724,6 +739,30 @@ const FACETS = [
   /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
      are two answers to it, not twenty. */
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  /* ---------- THE DECADE COMES BEFORE THE WEIGHT -------------------------------------------------
+     REPORTED AS "boxers and fights shouldn't be organised by weight category before the decade/s
+     involved of fighter or boxer", and it is the same judgement `boxKind` above already records
+     one rung up: the question somebody has FIRST is the one that should be asked first, and
+     `nextFacet` walks this list in order.
+
+     WHICH IS RIGHT, AND NOT BECAUSE OF THE ARITHMETIC. A division narrows harder — twenty answers
+     against six or seven — so every rule in this file would pick it, and every rule in this file is
+     about how much a question narrows rather than about what somebody came for. A person who wants
+     to look at boxing wants an ERA: the heavyweights of the seventies are a subject, and
+     "heavyweight" across a century is a list of strangers. The weight is the second question, and
+     it is a good one once the era is chosen.
+
+     A DECADE, NOT A YEAR. `year` further down would give forty answers, past `FACET_MAX_ANSWERS`,
+     so the question would be refused outright and the funnel would go straight to the weight — the
+     exact complaint. Ten years is the unit boxing is actually discussed in.
+
+     AND A FIGHTER IS IN AS MANY AS HE FOUGHT IN, which is what "decade/s" means. A career from
+     1975 to 1992 answers the 1970s, the 1980s and the 1990s, so narrowing to the eighties finds him
+     — a fighter filed under his last year alone disappears from the decade he was famous in. That
+     is the same fault `keystage` had, where a primary worksheet forced into one key stage vanished
+     from the other, and the machinery is the same: `asList_` reads a list, so a facet returning
+     several answers already filters and counts against all of them. */
+  { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
   /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
      revising and somebody sitting a mock are not looking for the same thing — so it is the
@@ -1849,8 +1888,22 @@ const QUESTION_CLASSES = ['roman', 'lbl', 'num', 'ax', 'axis', 'grid', 'pt',
    list somebody can actually work through. */
 function fightCard_(x) {
   const f = x.row;
-  const wonA = f.winner && norm(f.winner) === norm(f.a);
-  const wonB = f.winner && norm(f.winner) === norm(f.b);
+  /* ---------- WHO WON, BY ID WHERE THERE IS ONE ---------------------------------------------------
+     THIS COMPARED `f.winner` AGAINST `f.a` BY NAME ALONE, and the sheet sends `winner_id`,
+     `boxer_a_id` and `boxer_b_id` beside them — three columns shipped to every phone and read by
+     nothing. CLAUDE.md's rule is the one this repository has already paid for twice: an id beats a
+     name, because a name is a cell somebody can edit. `changePin` checking a PIN against the wrong
+     person is the sharp version; this is the quiet one — `winner` typed as "Ali" against
+     `boxer_a` "Muhammad Ali" highlights neither corner and looks exactly like a draw.
+
+     THE NAME IS STILL THE FALLBACK, and that is not a hedge: it is what reads a row typed into the
+     sheet before anybody has assigned ids, which is how this tab is filled in. Same order
+     `findPerson` uses on the backend, for the same reason. */
+  const byId = f.winnerId && (f.aId || f.bId);
+  const wonA = byId ? String(f.winnerId) === String(f.aId)
+                    : !!(f.winner && norm(f.winner) === norm(f.a));
+  const wonB = byId ? String(f.winnerId) === String(f.bId)
+                    : !!(f.winner && norm(f.winner) === norm(f.b));
   const corner = (name, won) => `<span class="fight-who${won ? ' won' : ''}">${esc(name)}</span>`;
 
   /* HOW IT ENDED, AS A PHRASE. "KO" and "round 2" are two facts and one sentence; a card that
@@ -1888,6 +1941,48 @@ function divisionOf_(v) {
   const s = String(v || '').trim();
   if (!s) return '';
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/* ---------- EVERY DECADE A CAREER TOUCHED ---------------------------------------------------------
+   A BOUT HAS A DATE AND A FIGHTER HAS A SPAN, and the two want the same answer in the end: which
+   ten-year block. So one reader, off the row, rather than a field written by each mapper — the
+   boxer mapper already wrote `year: b.activeTo`, which is his LAST year and nothing else, and a
+   facet built on it would file Ali under the 1980s alone.
+
+   READ OFF THE ROW, NOT OFF THE ITEM, so a column added to the boxers tab is filterable without a
+   mapper edit — the same reason `facetFromSheet_` falls back to `x.row`. `activeFrom` / `activeTo`
+   for a fighter, `date` for a bout.
+
+   A FIGHTER STILL FIGHTING has no `activeTo`. That is not a career of length nought: it is a career
+   with no end yet, and the honest ceiling is the newest decade anything in the library reaches —
+   but nothing here knows the library, so it stops at the decade the sheet's own `record_as_of`
+   names, and failing that at `activeFrom`'s own decade. A single decade for somebody mid-career is
+   incomplete; inventing "to the present day" from a clock this function cannot see would be wrong
+   in a way nobody could spot, which is the rule this file keeps under `figure` and under
+   `exam_date`.
+
+   A SPAN THAT RUNS BACKWARDS, or one longer than a human career, gives just its own two ends
+   rather than a hundred buttons. A typo in a cell must not be able to fill the funnel. */
+const DECADE_MAX = 9;
+
+function decadeOf_(v) {
+  const m = /\b(1[89]\d{2}|20\d{2})\b/.exec(String(v == null ? '' : v));
+  return m ? (Math.floor(Number(m[1]) / 10) * 10) : 0;
+}
+
+function decadesOf_(x) {
+  const r = (x && x.row) || {};
+  if (!r || (x && x.kind !== 'boxer' && x.kind !== 'fight')) return [];
+  const one = d => d ? String(d) + 's' : '';
+  /* A BOUT IS ONE DAY. `date` is the fight; everything else on the row is about the fighters. */
+  if (x.kind === 'fight') return [one(decadeOf_(r.date))].filter(Boolean);
+  const from = decadeOf_(r.activeFrom);
+  const to = decadeOf_(r.activeTo) || decadeOf_(r.recordAsOf) || from;
+  if (!from && !to) return [];
+  if (!from || !to || to < from) return [...new Set([one(from), one(to)])].filter(Boolean);
+  const out = [];
+  for (let d = from; d <= to && out.length <= DECADE_MAX; d += 10) out.push(one(d));
+  return out;
 }
 
 function boxerCard_(x) {
@@ -2602,16 +2697,95 @@ const printRatePence = () => {
    AND HOLDING THE ITEMS IS WHAT MAKES THE SORT KEYS FREE. `sortKey_` caches on the item; rebuilding
    the items every call threw that cache away at the same rate it was filled. */
 let ITEM_MEMO = { key: null, from: null, items: null };
+/* ---------- AND THE SAME MEMO AGAIN FOR THE UNFILTERED LIST ---------------------------------------
+   TWO LISTS, TWO MEMOS, ONE BUILD. `stuffItemsAll_` is what `stuffItemsBuild_` filters and what the
+   saved things are looked up in, and both are asked for on every repaint — so caching only the
+   filtered one would rebuild four thousand items every time anything wanted the other.
+
+   A SEPARATE ARRAY EACH, deliberately, not one array read two ways. `facetTally_` holds its counts
+   in a `WeakMap` keyed on the items array itself and `FIND_MEMO` tests `DATA` by identity; handing
+   the same array to both lists would make a tally of the funnel answer for the saved list too.
+   Same key on both, so they are filled and dropped together. */
+let ALL_MEMO = { key: null, from: null, items: null };
+
+const itemMemoKey_ = () =>
+  (isAdmin() ? 'a' : '-') + '|' + (USER ? (USER.personId || USER.name || 'u') : '-');
+
+/* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER ------------------
+   THE FUNNEL'S EDITORIAL DECISIONS ARE ABOUT WHAT TO OFFER, NOT ABOUT WHAT EXISTS. Booking is not a
+   question this screen asks any more, and tools and games have not been for longer — but a thing
+   somebody STARRED is theirs, and a list they kept should not empty itself because a question
+   stopped being asked.
+
+   FOUND BY AUDITING FAVOURITES, and it was a fault I had just made: `collItems_` filters
+   `stuffItems()`, so the moment Booking left the funnel every starred tutor, venue and session
+   vanished from Saved — silently, on a list whose whole job is to not lose things. `savedPages_`
+   reads this instead. The star still works, the row is still in the sheet, and the card comes back.
+
+   TOOLS AND GAMES ARE NOT IN EITHER LIST, and that is untouched: they were removed from the build
+   itself rather than filtered out of it, so nothing here can bring them back. Worth knowing the
+   two decisions are made in different places, because only one of them is reversible from here. */
+function stuffItemsAll_() {
+  const key = itemMemoKey_();
+  if (ALL_MEMO.from === DATA && ALL_MEMO.key === key) return ALL_MEMO.items;
+  const built = stuffItemsRaw_();
+  ALL_MEMO = { key: key, from: DATA, items: built };
+  return built;
+}
 
 function stuffItems() {
-  const key = (isAdmin() ? 'a' : '-') + '|' + (USER ? (USER.personId || USER.name || 'u') : '-');
+  const key = itemMemoKey_();
   if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
   const built = stuffItemsBuild_();
   ITEM_MEMO = { key: key, from: DATA, items: built };
   return built;
 }
 
+/* ---------- BOOKING IS NOT IN THE FUNNEL, AND THIS IS THE TOOLS AND GAMES DECISION AGAIN -------
+   REPORTED AS "remove booking from the finder", and the argument is the one already written a few
+   hundred lines below about the widgets: a booking is not a thing you FIND, it is a thing you DO,
+   and it has a column of its own where the form, the basket and your sessions all are. Answering
+   `What for · Booking` on the Find screen put that same twelve-question form in front of somebody
+   who had come to look for a past paper, and then offered Tutors, Venues, Subjects, Levels and
+   Receipts underneath it — five answers that are one swipe away on a screen built for them.
+
+   IT IS THE GROUP, NOT A LIST OF KINDS. `kindOf_(x).group` is what the `forLabel` facet reads, so
+   a kind added to Booking tomorrow leaves the funnel with nothing added here — and a rule naming
+   `tutor, venue, subject, level, receipt` is a rule that goes stale on the sixth. `kindMap_`
+   overlays the `kinds` tab, so moving a kind out of Booking in the spreadsheet puts it back in the
+   funnel: that is the escape hatch and it is deliberate.
+
+   NOTHING WENT DARK, AND THAT IS THE WHOLE CARE IN THIS CHANGE. Each of the five had to have
+   somewhere else to be BEFORE the answer was removed, because a thing that is only reachable
+   through a door you have just bricked up is a deletion wearing a tidy-up's clothes:
+     · TUTORS      — the account column, one page each, with the Message tile. See `accountPages_`.
+     · RECEIPTS    — the Booking column. `bookBlocks` draws one page per session again; the note
+                     there says they were taken out precisely BECAUSE they were results here, so
+                     this change had to undo that half in the same commit.
+     · VENUES      — the booking form's venue dropdown, which is the only thing anybody did with
+                     one. The slip card is not drawn anywhere now, and that is the real cost.
+     · SUBJECTS
+       AND LEVELS  — the same: dropdowns on the form. `subjectRows` and `levelRows` still build,
+                     because the booking form and the pricing read them.
+
+   WHAT IT COSTS, WRITTEN WHERE THE CODE WAS so it is not rediscovered as a bug: typing `richmond`
+   into Find returns nothing, deliberately, and so does a tutor's name. The fix is this filter, not
+   another mapper. */
+const FUNNEL_NOT_FOR = 'Booking';
+
 function stuffItemsBuild_() {
+  return stuffItemsAll_().filter(x => {
+    /* READ EXACTLY AS THE `forLabel` FACET READS IT — `x.groups || kindOf_(x).group`, through
+       `asList_` — so what leaves the funnel is what would have answered `Booking` and nothing
+       else. A thing in Booking AND another group still answers the other door, so it stays: the
+       array form has been supported since a tutor was two things, and a filter that ignored it
+       would silently drop a kind from a group it belongs in. */
+    const g = asList_(x.groups || kindOf_(x).group);
+    return !(g.length === 1 && g[0] === FUNNEL_NOT_FOR);
+  });
+}
+
+function stuffItemsRaw_() {
   return [
     /* ---------- PEOPLE, PLACES AND SUBJECTS -----------------------------------------------------
        Find and Stuff were two tabs asking the same question — where is the thing I want — split by
@@ -2749,7 +2923,20 @@ function stuffItemsBuild_() {
       /* A SHOP ROW IS THE ONE PLACE `0` GENUINELY MEANS FREE — it is priced, and the price is
          nought. Everything else that used to write `cost: 0` was saying "I have no price", which
          is a different answer; see `priced_`. */
-      cost: Number(x.price) || 0, slot: x.slot || '',
+      /* ---------- AND A BLANK PRICE CELL IS NOT A PRICE OF NOUGHT, ON THIS MAPPER TOO ------------
+         `Number(x.price) || 0` WAS HERE, under a comment defending the zero: "a shop row is the one
+         place `0` genuinely means free — it is priced, and the price is nought." That is true of a
+         cell holding `0` and false of a cell holding nothing, and `Number('') || 0` cannot tell
+         them apart. This is the `cost: 0` fault on the one mapper that was exempted from the fix,
+         because the exemption was written about the value and the bug is about the blank.
+
+         AND THE BLANK IS NOT HYPOTHETICAL. `seedAvatarItems` wrote `price` and `currency` into a
+         tab whose columns are `price_pence`, `price_ticks`, `price_coins` and `acquire`, so every
+         wearable it seeded has an empty price and an empty `acquire` — and `doGet` reads `acquire`
+         to decide which column to look in. Seven paid wearables, priced at nothing, drawn as FREE.
+         `repairShopPrices` in setup.gs fixes the sheet; this stops the app claiming a price nobody
+         has typed, which is a different job and the one that survives the next blank cell. */
+      cost: priced_(x.price), slot: x.slot || '',
       /* THE EXAM FIELDS ARE NOT WRITTEN BLANK ANY MORE. `asList_` cannot tell `''` from `undefined`
          — both come out as no answer — so the ten blanks per row were ceremony. Leaving them off
          is the same behaviour and says the true thing: a beanie has no exam board. */
@@ -2792,7 +2979,18 @@ function stuffItemsBuild_() {
          actually has first. */
       boxKind: 'Boxers',
       subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
-      year: b.activeTo || '',
+      /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" ----------
+         FOUND BY THE AUDIT THAT ADDED `Decade` and only visible once that question existed: the
+         funnel went Boxers → Decade → **Year** → Division, and the answers to Year were `1981` and
+         `2005`. Those are the years Ali and Tyson STOPPED, which is not a fact anybody narrows a
+         list of fighters by, and it sat between the decade and the weight saying it.
+
+         A CAREER IS NOT A YEAR, and writing one into a field called `year` is the shape this file
+         records under `cost: 0` and under `paper: true` — a column filled in with something nearly
+         right, then read by a question that means something else. `Decade` asks the real version
+         off `activeFrom` and `activeTo` together.
+
+         A BOUT KEEPS ITS `year`, on the mapper below, because a fight really did happen in one. */
     })),
 
     /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: Boxing as the subject, the weight as the
@@ -3540,8 +3738,24 @@ function accountPages_() {
   const withTiles_ = t => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
     + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
 
+  /* ---------- AND THE PRIVATE HALF WENT DARK WHEN BOOKING LEFT THE FUNNEL -----------------------
+     `meCard` HOLDS THE FACTS ONLY YOU SEE — your credits, your e-mail, where you are — and the one
+     thing that reached it was `KINDS.tutor.card`, which is the funnel's renderer for a tutor. The
+     funnel does not list tutors any more (see `FUNNEL_NOT_FOR`), so the whole of your private half
+     became unreachable in the same commit that removed the answer, silently, on a column whose
+     entire job is to show you your own account.
+
+     CAUGHT BY ASKING WHAT `meCard` IS FOR rather than by anything running. That is the shape this
+     file records under `d = libraryInto_(…)` and under `resource_type` in `VOCAB`: a correct
+     function left standing with nothing calling it, doing nothing, looking fine.
+
+     SO THIS COLUMN CALLS IT, which is where it always belonged — `meCard`'s own note says the
+     private rows hang off the public card, and this is the one screen that is yours. It is given
+     the row `mineIs_` found rather than looking a second time: two lookups for one person is two
+     answers to "which row are you", which is the fault `mineIs_` exists to prevent. */
   const me = [
-    withTiles_(myRow),
+    typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
+    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow)) : '',
     `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
   ].join('');
 
@@ -3554,18 +3768,17 @@ function accountPages_() {
     .filter(t => !mineIs_(t))
     .map(withTiles_);
 
-  /* ---------- EVERY PAGE IN THIS COLUMN IS A CARD ------------------------------------------------
-     REPORTED AS "I want them standardised like the other widgets", with a screenshot: your account
-     sat in an ordinary `.card` and every person under it was a bare `.pass` returned straight out
-     of `findCard`. Measured — page 1 `.card`, page 2 `.pass` — so the column drew two different
-     kinds of object down one scroll.
+  /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS -----
+     THIS RETURNED `<div class="card is-widget">${html}</div>` AROUND EVERY PAGE. It was the answer
+     to "I want them standardised like the other widgets" when a person was a `.pass` — a bare
+     object with none of a card's rules, drawn straight onto the pane while page one was an ordinary
+     card. Putting the pass in a box made the column consistent without changing the pass.
 
-     THIS IS THE REELS FAULT EXACTLY, one screen along. That one "returned its own markup instead of
-     going through `pages()` or `stack()`, so it drew straight onto the black with no pane", and the
-     fix was to make it an ordinary card with its own markup inside. Same here: the pass keeps every
-     one of its own rules — the hole, the stamp, the lanyard shadow — and sits in the pane everything
-     else on this screen sits in. */
-  return [me].concat(others).map(html => `<div class="card is-widget">${html}</div>`);
+     ASKED AGAIN, AND THE SECOND ANSWER IS THE REAL ONE: the pass is gone and `findCard` returns
+     `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
+     two borders, two backgrounds, two lots of padding — which is visibly worse than what was
+     reported in the first place and is exactly what "just a normal widget" rules out. */
+  return [me].concat(others);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
@@ -3731,11 +3944,43 @@ function toggleFav(k, kind) {
        "Colliers Wood Library" into kind "Colliers Wood Library" and lose the rest, and would give
        a tutor called "Smith: Maths" a kind of "Smith". The kind is passed separately by the caller,
        which knows it for certain, and the key goes across whole. */
-    send('favourite', {
+    /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS ----------------------------
+       `function send(body)` TAKES ONE. Written as `send('favourite', { … })` the body is the STRING
+       `'favourite'`, which `api` then runs through `Object.assign({}, body)` — so what left the
+       phone was `{"0":"f","1":"a","2":"v","3":"o","4":"u","5":"r","6":"i","7":"t","8":"e"}` and a
+       token. Measured on the wire, not read: no `action`, no `itemId`, no `personId`. `doPost`
+       reads `S(body.action)` as `''`, `accessDenied` refuses it before the handler is reached, and
+       `.catch(() => {})` threw the refusal away.
+
+       SO NO FAVOURITE HAS EVER BEEN WRITTEN, and the note above this one — which says every star
+       "has been device-only" because it called a `saveProfile` that does not exist — describes the
+       line under it accurately except for the action's name. The action was corrected and the
+       shape of the call was not.
+
+       IT IS WORSE THAN DEVICE-ONLY, and this is the half that makes it a live bug rather than a
+       missing feature. `DATA.favourites` therefore always comes back empty, and `adoptFavourites_`
+       replaces `FAVS` with it AND overwrites `localStorage` — so a star survives until the next
+       payload lands and is then wiped from the device too. One page view.
+
+       `collections.js` HAS THE WHOLE ARGUMENT WRITTEN OUT, twenty lines of it, because `toggleSpot`
+       was this exact bug and was fixed. The star it was copied from was not. **This is why a fix
+       to an instance is not a fix**, which is the sentence this repository keeps writing about
+       `cost: 0` — and the reason `check-replies.js` now refuses a two-argument `send` outright. */
+    send({
+      action: 'favourite',
       name: USER.name, personId: (USER && USER.personId) || '',
       kind: kind || 'item', itemId: key,
       on: FAVS.has(key) ? 'TRUE' : '',
-    }).catch(() => {});
+    }).catch(err => {
+      /* PUT THE STAR BACK. `.catch(() => {})` was the other half of the disguise: the set is
+         changed three lines up, so the star fills the moment it is pressed and the failure is
+         discarded without a word. Somebody stars six things, sees six stars, reloads and has none.
+         `toggleSpot` already does exactly this and its note says why. */
+      if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
+      try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
+      if (typeof repaint === 'function') { try { repaint(); } catch (e) {} }
+      toast(String((err && err.message) || 'That did not save'));
+    });
   }
 }
 
@@ -4273,7 +4518,40 @@ function stuffQuestion() {
     return `<p class="empty">No friends yet.<br>
       <span class="text-action" data-do="friend-add-open">Add someone by their handle</span></p>`;
   }
-  if (!items.length) return '';
+  /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS -------
+     `return ''` WAS HERE, AND IT DREW A SEARCH BOX OVER A BLANK SCREEN. No question, no sentence,
+     no reason — because `stuffPageCount` returns 0 until somebody has answered something, so the
+     `nothingHere` branch in `stuffPageHtml` is not reached on arrival and this was the only thing
+     with a chance to speak.
+
+     FOUND BY THE `every tab draws something` JOURNEY the moment Booking left the funnel: with the
+     check's payload holding two tutors, two venues and no library, `stuff` drew 0 characters of
+     text. The journey was right, the fixture was not the fault, and the app has been one empty
+     payload away from a blank front door for as long as this line has been here.
+
+     FIFTH OCCURRENCE OF THIS REPOSITORY'S OLDEST SHAPE, and CLAUDE.md lists the other four —
+     `loadMessages` showing an empty inbox for an unreachable backend, `check-booking.js` printing
+     "nothing to check" and exiting 0, Reels drawing "Nothing here yet" for a column that worked,
+     and `libraryRows_` reporting a dropped 3.4 MB file as an empty library. Every one is the same
+     sentence: I did not manage to look, reported as I looked and there was nothing there. This one
+     does not even get that far — it reports nothing whatsoever.
+
+     `nothingHere` IS THE SENTENCE, because it is the one place that can tell an empty database from
+     a request that failed: a dropped payload and a dropped library both land here, and both deserve
+     a reason and a `Try again` rather than an invitation to go and fill in a spreadsheet.
+
+     AND THE TWO EMPTIES ARE NOT THE SAME EMPTY. Nothing anywhere is the app having no content;
+     nothing LEFT is a filter that has excluded everything, and the way out of the second is to take
+     a chip off — which is on this page, one row up. `stuffPageHtml` already draws exactly that
+     distinction for the results; this is the same two sentences at the point they are first true. */
+  if (!items.length) {
+    return FIND_MEMO.total
+      ? `<p class="empty">Nothing matches.<br><span class="faint">${
+           STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
+         : STUFF.q                          ? 'Try fewer words.'
+         :                                    'Nothing matches all of those together.'}</span></p>`
+      : nothingHere('Nothing in the shop or the library yet.');
+  }
 
   /* THE ORDINARY QUESTION FIRST, and only if there is none, the one that is too long to draw whole.
      `over` is what says which of the two this is, so the row list below can trim itself without

@@ -458,6 +458,11 @@ Venues.
 `calculator` into Find returns nothing, deliberately, and the fix is those four lines rather than
 another `wgt.groups`.
 
+**Booking went the same way later and by the same argument**, with one difference worth knowing:
+tools and games were removed from the BUILD, and Booking is filtered out of it by group — so the
+`kinds` tab can put a Booking kind back and cannot put a tool back. See "Booking is out of the
+funnel" below.
+
 ## The Message tile was on the card and the card could not be reached
 
 **Reported as "I don't see the message tile".** It was there — measured, `cardTiles_` on a tutor
@@ -847,6 +852,282 @@ through `pages()` or `stack()`, so it drew straight onto the black with no pane"
 make it an ordinary card with its own markup inside. Same here: the pass keeps every one of its own
 rules — the hole, the stamp, the lanyard shadow — and sits in the pane everything else sits in.
 Measured after: three pages, all `.pane > .card.is-widget > .pass`.
+
+### And then the pass went, because it was asked for twice
+
+**"Get rid of that lanyard looking thing mate. just a normal widget."** The section above is the
+first answer to that complaint and it put the pass INSIDE a widget, which made the column consistent
+without changing the thing anybody was looking at. This is the second answer and it is the real one.
+
+**What the pass was for, so the argument is not lost with the markup.** A rectangle with a hole
+punched in the top reads as something worn round a neck, and once it reads as that the DBS stamp
+reads as clearance without anybody explaining it. That is true, and it is not the point: a pass is
+an object you are handed at a reception desk, and one object among nine widgets reads as something
+unfinished rather than as something with a shape of its own.
+
+**And it could not hold what is in the sheet, which matters more than the taste.** `doget.gs` has
+sent thirteen public facts about a tutor since it was written and the pass drew four — a photograph,
+a name, three subjects and a rate. The headline they wrote about themselves, the three adjectives,
+the years they have been doing it, their qualifications and grades, the group sizes and session
+lengths they accept, what they focus on, and when they last confirmed any of it were on every phone,
+on every load, drawn nowhere. **Thirteen columns written and never read** is this repository's oldest
+shape — `figure`, `orderPrints`, the four message actions, `exam_date` — and a card 3.4rem wide had
+nowhere to put them even once somebody noticed.
+
+**`check-payload.js` cannot see this class of fault** and that is worth knowing: it compares
+top-level `DATA.*` keys, so a field inside a row that nothing reads is invisible to it. `DATA.tutors`
+is read, so `DATA.tutors[n].yrsExp` never being read is not a question it asks.
+
+**`detailsConfirmed` is the one that had a rule waiting for it.** `doget.gs` sends it with the
+sentence *"a profile nobody has looked at for a year is worse than one that's obviously incomplete,
+because it reads as true"* and then *"the site decides what counts as recent, so the rule lives in
+one place"*. That one place was nowhere. It is a row now, marked when it is over a year old — hidden
+would leave a stale profile looking exactly like a fresh one, which is the fault the sentence
+describes.
+
+### The first version threw, and 88 combinations reported nothing to report
+
+**`(t.focus || []).join(' · ')` against a fixture holding the string `"Maths"`.** A string has no
+`.join`, so it threw — and `paint` in shell.js wraps every `screen.draw()` in a try/catch and
+replaces the screen with a card reading *"This screen did not draw"*. That card is short, has no
+overflow, no small tap target and no low-contrast text, so **it measures perfectly**: `check/ui.js`
+printed `nothing to report.` across 88 combinations while the app rendered an error message where a
+person's profile should have been. `pageerror` never fired, because nothing was uncaught.
+
+**Fifth costume of the `check-booking.js` fault** — a check that cannot reach its subject reporting
+that the subject is fine. `paint`'s catch is right and stays: the rest of the app genuinely is fine
+and taking the page down would be worse for whoever is using it. What was missing is that the LAB
+has to be able to tell the difference. `check/ui.js` asks the rendered page whether that card is on
+it, groups it like every other finding so one broken card across eight combinations is one line, and
+exits 1. **Proved by mutation**: the rule names the thrown message at four widths.
+
+**Three separate faults from one bug, and the shape is worth the entry.** The card assumed a shape;
+the fixture stated a shape `doGet` does not send (`focus` as a string, `extraQuals` as an array,
+`detailsConfirmed` as a boolean); and the check could not see either. The card reads all three forms
+through `profList_` now — array, comma-separated cell, or single value, exactly as `asList_` does for
+the funnel — declared in `cards.js` rather than borrowed, because `cards.js` loads before `find.js`
+and a card that works only once the funnel has loaded is a card that breaks on the first screen
+somebody opens.
+
+## Booking is out of the funnel, and the receipts had to come back in the same commit
+
+**Reported as "remove booking from the finder"**, and it is the tools-and-games decision again: a
+booking is not a thing you FIND, it is a thing you DO, and it has a column of its own where the form,
+the basket and your sessions all are. Answering `What for · Booking` put a twelve-question form in
+front of somebody who came to look for a past paper, then offered Tutors, Venues, Subjects, Levels
+and Receipts underneath it — five answers that are one swipe away on a screen built for them.
+
+**It is the GROUP, not a list of kinds.** `stuffItemsBuild_` filters on `asList_(x.groups ||
+kindOf_(x).group)` — exactly what the `forLabel` facet reads — so a kind added to Booking tomorrow
+leaves the funnel with nothing added, and a rule naming `tutor, venue, subject, level, receipt` would
+go stale on the sixth. `kindMap_` overlays the `kinds` tab, so moving a kind out of Booking in the
+spreadsheet puts it back: that is the escape hatch and it is deliberate. Measured against the real
+library with the real (empty) `kinds` tab: 2 items leave and `What for` stops offering Booking. In
+`check/fixture.json` they stay, because that fixture's `kinds` rows regroup tutor→people and
+venue→places — which is the escape hatch proving itself.
+
+**Nothing may go dark, and that is the whole care.** Each of the five had to have somewhere else to
+be BEFORE the answer was removed, because a thing only reachable through a door you have just bricked
+up is a deletion wearing a tidy-up's clothes:
+
+| | |
+|---|---|
+| **tutors** | the account column, one page each, with the Message tile |
+| **receipts** | `bookBlocks` draws one page per session again — see below |
+| **venues, subjects, levels** | the booking form's dropdowns, which is the only thing anybody did with one. **The slip and level cards are drawn nowhere now, and that is the real cost** |
+
+**The receipts are the half that had to be undone.** `bookBlocks`'s own note says `pastCard_` was
+taken off that column *because* the receipts had become results in the funnel — *"a page holding a
+list of them AND a searchable list of the same rows is the duplication this evening has already
+produced twice"*. True while both existed. Removing the answer makes the half that was kept the half
+that was deleted, so every session a person has ever had would have been on no screen in the app.
+**Removing an answer and restoring what it was the only route to belong in one commit**, or the gap
+between them is a live site where nobody can find what they paid for in March.
+
+### The empty funnel said nothing at all, which is worse than saying the wrong thing
+
+**`stuffQuestion` returned `''` when there were no items**, and `stuffPageCount` returns 0 until
+something has been answered — so `stuffPageHtml`'s `nothingHere` branch is unreachable on arrival and
+this was the only thing with a chance to speak. A search box over a blank screen: no question, no
+sentence, no reason.
+
+**Found by `check-flow`'s "every tab draws something" the moment Booking left**, with the check's
+payload holding two tutors, two venues and no library: `stuff` drew 0 characters of text. The journey
+was right and the fixture was not the fault — the app has been one empty payload away from a blank
+front door for as long as that line has been there.
+
+**Fifth occurrence of this repository's oldest shape**, and the only one that does not manage even to
+report an empty list. `nothingHere` is the sentence because it is the one place that can tell an
+empty database from a request that failed — a dropped payload and a dropped library both land there,
+and both deserve a reason and a `Try again`. And the two empties are not the same empty: nothing
+anywhere is the app having no content; nothing LEFT is a filter that has excluded everything, and the
+way out of the second is one row up.
+
+### A decision about what to ASK is not a decision about what somebody KEPT
+
+**Starred tutors and venues vanished from Saved the moment Booking left the funnel.** `collItems_`
+filtered `stuffItems()` — the offered list — so the row was still in the `favourites` tab, the star
+still posted, and the card was simply not found. Silently, on the one list in the app whose entire
+job is to not lose things.
+
+**Found by auditing favourites on the same afternoon**, which is the only reason it is not a fault
+somebody reports in a month as "my saved things vanished". `stuffItemsAll_` is every item the app
+has, memoised the same way and in its own array — `facetTally_` keys its counts on the items array
+itself, so handing one array to both lists would make a tally of the funnel answer for the saved
+list too. Measured: 1 of 3 starred things found before, 3 of 3 after.
+
+**Tools and games are in neither list and that is untouched**: they were removed from the build
+rather than filtered out of it. Worth knowing the two decisions live in different places, because
+only one of them is reversible from here.
+
+## An unstar never reached the payload, and nine other deletions did not either
+
+**`POST_WROTE`'s own note says it plainly**: *"`setCell` and `addRow` are the two functions that put
+anything into a spreadsheet, and the payload is stale if and only if one of them succeeded."* They
+are the two that ADD. **Nine places called `t.sheet.deleteRow(row._row)` straight through to the
+sheet** and not one set the flag, so a deletion never retired the six-hour payload.
+
+**On a favourite that means the star comes back.** The row leaves the sheet and stays in the copy
+every phone is served; `adoptFavourites_` replaces the local set with the payload's, so the next load
+puts back what you just took off. Nothing fails, nothing is logged, and it reads as the app ignoring
+a tap. Deleting a link, taking a reaction off a post, changing a poll vote and withdrawing from a
+class were all the same.
+
+**The fix is the rule and not the instance**, which is the argument this file makes about `cost: 0`
+and `paper: true` — both repaired in the data, neither in the rule, so the shape came back.
+`delRow(t, row)` sits beside `setCell` and `addRow`, sets the same flag, and keeps `t.rows` in step:
+a handler that removes a row and then counts what is left was counting the row it had just removed,
+and every later `_row` shifts up by one when a sheet row goes. The nine callers got away with it only
+because each deletes one row and returns.
+
+**`check-backend.js` fails on a tenth.** A grep rather than a parse, because the question — does this
+string appear outside the one function allowed to use it — has exactly one right answer and no scope
+to get wrong. `setValue` and `appendRow` are deliberately not asked about: both are ordinary Apps
+Script and a future helper may legitimately want one, and a rule that fires on the honest case is a
+rule somebody switches off. **Proved by mutation**, and its first version fired on the block comment
+explaining the rule — so the comment block is tracked opener-to-closer rather than guessed at from
+how a line happens to start. Its summary names which of its two questions failed, instead of always
+saying the first; same fault as "all 18 checks pass".
+
+### And underneath that, no favourite had ever been written at all
+
+**I got this audit wrong, and the correction is the entry.** I traced the round-trip by reading —
+star, POST, `favourites` tab, `doGet`, `adoptFavourites_` — found the `delRow` fault above, and
+wrote "does it work? yes, end to end". **It has never written a single row.** What is on the wire,
+measured rather than read, is:
+
+```
+{"0":"f","1":"a","2":"v","3":"o","4":"u","5":"r","6":"i","7":"t","8":"e","token":"TK"}
+```
+
+**`function send(body)` takes ONE argument and `toggleFav` passed two.** The object is dropped, the
+string becomes the body, and `api`'s `Object.assign({}, body)` spreads it into indexed keys. `doPost`
+reads `S(body.action)` as `''`, `accessDenied` refuses it before the handler, and `.catch(() => {})`
+threw the refusal away. The `delRow` fix above is still right and still needed; it was repairing the
+second-order problem while the first-order one was that nothing was ever written.
+
+**It is worse than device-only.** `DATA.favourites` therefore always comes back empty, and
+`adoptFavourites_` replaces `FAVS` with it AND overwrites `localStorage` — so a star survives until
+the next payload lands and is then wiped from the device too. One page view.
+
+**`collections.js` HAS THE WHOLE ARGUMENT WRITTEN OUT**, twenty lines of it, because `toggleSpot` was
+this exact bug and was fixed: *"the body was the STRING 'spotlight' and the whole object… was dropped
+on the floor"*, and *"`.catch(() => {})` MADE IT LOOK LIKE IT WORKED"*. The star it was copied from
+kept the fault. So did `claimChild` and `answerClaim` in `me.js` — and those two are **louder**,
+because they have no `.catch` at all: `send` throws on the refusal, the `.then` never runs, and a
+parent pressing "Add your child" gets no toast, no closed sheet and no error. Nothing happens.
+
+**So the rule is in `check-replies.js`**, which is the file named for exactly this — a refusal not
+reported as a refusal, one step earlier. It asks arity and nothing else: does a call to `send` pass
+more than one argument. One question, one right answer, no scope to get wrong — the `check-rows.js`
+lesson again. **Proved by mutation**: putting the old form back names `find.js:3969` and exits 1.
+
+**Three instances, two files, one fix each time, and the rule arrived on the fourth.** That is the
+sentence this file writes about `cost: 0`, about `paper: true`, about the spelling fold and about
+`delRow` above it. **The workflow that found it was right and I was wrong**, which is worth recording
+as plainly as the bug: I reasoned about the round-trip instead of measuring the request, which is the
+same mistake as `ansBox_` ("I reasoned about the DOM instead of asking it") and as `.mat-out` being
+fixed twice on a measurement nobody took.
+
+## The wearables have been free since the two tabs were merged
+
+**"Shop items should be updated to price you think would be reasonable"** — and for the wearables the
+price is not a judgement anybody has to make. It is in `AVATAR_ITEMS`, in this repository, and has
+been since the wardrobe was built: bunches 15 coins, curls 20, beanie 20, shades 15, backpack 30,
+football 25, wand 40.
+
+**`seedAvatarItems`'s own note diagnosed this and then said what it could not do about it**:
+*"ALREADY-SEEDED ROWS ARE NOT REPAIRED BY THIS. The guard two lines above returns early once any
+avatar row exists, so a sheet that has run this before keeps its empty prices and needs `price_coins`
+and `acquire` filling in by hand."* **A repair described in a comment and left for somebody to do by
+hand is a repair that does not happen** — the same argument this file already makes about
+`geocodeVenues` being a URL somebody had to assemble.
+
+**`acquire` is the half that actually breaks it**, not the price. `doGet` reads that word to decide
+which of the three price columns to look in, so an empty one falls through to `price_coins ||
+price_pence` — both blank — and sends `price: ''`. Writing the coins without the word would still
+leave a level-gated hat looking purchasable; the two go together or neither is worth writing.
+
+**`repairShopPrices` is the machine doing it.** Matched on `art_id` + `slot` rather than on a name
+somebody can edit, writing only into cells that are empty — so a price the owner typed survives it,
+and a second run reports how many it left alone. On the migration ledger as `price-the-wearables` and
+on `?run=priceWearables`. **The physical stock is not touched**: those rows are the owner's, typed
+into the sheet, and this environment cannot reach a Google host to read them.
+
+**And the app claimed a price nobody had typed.** `Number(x.price) || 0` on the shop mapper made a
+blank cell a price of nought, under a comment defending the zero: *"a shop row is the one place `0`
+genuinely means free — it is priced, and the price is nought."* True of a cell holding `0`, false of
+a cell holding nothing. **This is the `cost: 0` fault on the one mapper that was exempted from the
+fix**, because the exemption was written about the value and the bug is about the blank. `priced_`
+tells them apart now, and `thingCard_` gained the fourth state its own comment listed three of.
+Measured on four rows: a blank price reads *not priced yet* where it used to read *free*, 15 coins
+reads *15 credits*, a level-gated crown *Level 10*, a real `0` *free*.
+
+**`.price.faint` was the first attempt at that state and did nothing.** `.faint` and `.price` are
+both one class, so the cascade settles it on which comes later in `style.css`, and `.price` does. A
+class that silently loses a specificity race is the `--fly-ink` fault wearing a different hat — it
+reads as a decision and behaves as nothing. Its own class instead.
+
+## The decade comes before the weight
+
+**"Boxers and fights shouldn't be organised by weight category before the decade/s involved."**
+`nextFacet` walks `FACETS` in order, so a `Decade` question sits above `Division`.
+
+**The arithmetic would never have chosen it, and that is the point.** A division narrows harder —
+twenty answers against seven — so every rule in `find.js` would pick it, and every rule in `find.js`
+is about how much a question narrows rather than about what somebody came for. Somebody who wants
+boxing wants an ERA: the heavyweights of the seventies are a subject, and "heavyweight" across a
+century is a list of strangers. The weight is the second question and a good one once the era is
+chosen. Same judgement `boxKind` already records one rung up.
+
+**A decade, not a year**, because `year` gives forty answers — past `FACET_MAX_ANSWERS`, so the
+question would be refused outright and the funnel would go straight to the weight, which is the
+complaint. Ten years is the unit boxing is discussed in.
+
+**Decades, plural**, off `activeFrom` and `activeTo` together: a career from 1975 to 1992 answers the
+seventies, eighties and nineties, because a fighter filed under his last year alone disappears from
+the decade he was famous in. Same shape as `keystage`, same machinery — `asList_` already filters and
+counts against several answers. A span that runs backwards gives its two ends rather than a hundred
+buttons; a fighter with no end date stops at `record_as_of` rather than inventing "the present day"
+from a clock the function cannot see. Measured: **Boxers or fights → Decade → Division**, with
+`welterweight` and `Welterweight` folded to one by `divisionOf_`.
+
+**`year: b.activeTo` came off the boxer mapper.** It was the year he STOPPED, drawn as "Year", and
+once `Decade` existed it sat between the decade and the weight offering `1981` and `2005`. A column
+filled in with something nearly right and then read by a question that means something else — the
+`cost: 0` shape again. A bout keeps its `year`, because a fight really did happen in one.
+
+**`fightCard_` picks the winner by id where there is one.** `winner_id`, `boxer_a_id` and `boxer_b_id`
+are shipped to every phone and were read by nothing, while the name comparison highlighted neither
+corner if `winner` was typed "Ali" against `boxer_a` "Muhammad Ali" — which looks exactly like a
+draw. The name stays as the fallback, because that is what reads a row typed in before anybody
+assigned ids; same order `findPerson` uses.
+
+**The boxing DATA could not be audited and that is not a finding, it is a blocker.**
+`data/boxers.json` and `data/fights.json` are both `[]` — step 2 of the Library migration needs an
+export from a Google sheet, and every Google host is blocked from this environment by network policy.
+Everything above is the code path, which is where a data fault would show; the rows themselves are
+still unread by anything.
 
 ## Checking your work
 

@@ -64,6 +64,10 @@ const GLOBALS=new Set(('window document navigator localStorage sessionStorage co
 'decodeURIComponent encodeURI decodeURI alert confirm prompt addEventListener removeEventListener '+
 'location history screen Image Audio Blob File FileReader FormData URL URLSearchParams TextEncoder '+
 'TextDecoder IntersectionObserver ResizeObserver MutationObserver AbortController CustomEvent Event '+
+/* MediaRecorder — the camera widget records video with it. A browser global like the observers
+   beside it, and NOT assumed to exist at runtime: `canRecord_` in posts.js tests for it before
+   the button is shown, because it is absent on older iOS. */
+'MediaRecorder Blob URL '+
 'Element HTMLElement Node NodeList crypto performance structuredClone globalThis undefined NaN '+
 'Infinity matchMedia getComputedStyle scrollTo innerWidth innerHeight devicePixelRatio '+
 'speechSynthesis SpeechSynthesisUtterance AudioContext webkitAudioContext caches indexedDB open '+

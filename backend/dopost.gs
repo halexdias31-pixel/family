@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-22-no-questions-tab";
+const DOPOST_VERSION = "2026-10-03-delrow";
 
 
 function doPost(e) {
@@ -501,7 +501,7 @@ function doPost(e) {
       const t = read(TAB.shop);
       const r = t.rows.find(x => x._row === Number(body.rowIndex));
       if (!r) return jsonOut({ error: 'Item not found.' });
-      t.sheet.deleteRow(r._row);
+      delRow(t, r);
       clearCache();
       return jsonOut({ success: true });
     }
@@ -520,7 +520,7 @@ function doPost(e) {
       }
       const r = t.rows.find(x => x._row === Number(body.rowIndex));
       if (!r) return jsonOut({ error: 'Link not found.' });
-      if (action === 'deleteLink') { t.sheet.deleteRow(r._row); clearCache(); return jsonOut({ success: true }); }
+      if (action === 'deleteLink') { delRow(t, r); clearCache(); return jsonOut({ success: true }); }
       Object.keys(body.fields || {}).forEach(f => {
         if (LINK_EDITABLE.indexOf(f) === -1) return;
         setCell(t, r, f, body.fields[f]);
@@ -544,7 +544,7 @@ function doPost(e) {
       const emptied = ROOM_EDITABLE.every(f => f === 'venue' || f === 'name' || f === 'active'
         || !S(fields[f])) && !S(body.availability);
       if (emptied) {
-        if (r) { t.sheet.deleteRow(r._row); clearCache(); }
+        if (r) { delRow(t, r); clearCache(); }
         return jsonOut({ success: true, removed: true });
       }
 
@@ -1031,7 +1031,7 @@ function doPost(e) {
                                  && S(x.person_id) === S(me.person_id));
       if (mine) {
         if (S(mine.emoji) === emoji) {          // the same one again takes it back
-          t.sheet.deleteRow(mine._row);
+          delRow(t, mine);
           clearCache();
           return jsonOut({ success: true, emoji: '' });
         }
@@ -1074,7 +1074,7 @@ function doPost(e) {
         /* Tapping the answer you already chose takes the vote back — the same gesture that cast
            it, which is how every poll a person has used already behaves. */
         if (S(mine.choice) === choice) {
-          t.sheet.deleteRow(mine._row);
+          delRow(t, mine);
           clearCache();
           return jsonOut({ success: true, choice: '' });
         }
@@ -1466,7 +1466,7 @@ function doPost(e) {
         if (S(r.person_id) !== mine && !isAdminPerson(S(body.name))) {
           return jsonOut({ error: 'Not yours to remove.' });
         }
-        t.sheet.deleteRow(r._row);
+        delRow(t, r);
         clearCache();
         return jsonOut({ success: true });
       }
@@ -2319,7 +2319,7 @@ function doPost(e) {
         /* DELETED, NOT FLAGGED. An unfavourite leaves nothing worth keeping — there is no history
            anybody wants of things somebody stopped liking, and a tab full of dead rows makes the
            live ones slower to find. */
-        t.sheet.deleteRow(mine._row);
+        delRow(t, mine);
       }
       clearCache();
       return jsonOut({ ok: true, on: TRUE_(body.on) });
@@ -2645,7 +2645,7 @@ function doPost(e) {
         /* REMOVED, not marked refused. `refused` is the CHILD's answer and means they were asked
            and said no — putting an admin's correction under the same word would make the tab lie
            about who decided. A link made in error should leave no trace of having been made. */
-        t.sheet.deleteRow(row._row);
+        delRow(t, row);
         clearCache();
         return jsonOut({ success: true, unlinked: true });
       }

@@ -90,7 +90,41 @@ function bookBlocks() {
     + (typeof moneyBlock === 'function'
        ? moneyBlock({ tutor: BOOKING.tutor, tutorPay: L && L.tutorPay, profit: L && L.profit })
        : '')
-    + askedBlock_()].filter(Boolean);
+    + askedBlock_()].concat(myJobPages_()).filter(Boolean);
+}
+
+/* ---------- YOUR SESSIONS CAME BACK TO THIS COLUMN, AND THE NOTE ABOVE IS WHY IT HAD TO ------------
+   READ THE PARAGRAPH TWO ABOVE THIS ONE BEFORE CHANGING ANYTHING HERE. It says `pastCard_` was
+   taken off this column *because* the receipts had become results in the funnel — "a page holding a
+   list of them AND a searchable list of the same rows is the duplication this evening has already
+   produced twice". That was right while both existed. Booking has now left the funnel entirely (see
+   `FUNNEL_NOT_FOR` in find.js), so the half that was kept is the half that was deleted, and every
+   session a person has ever had would have been on no screen in the app at all.
+
+   SO THE TWO CHANGES ARE ONE CHANGE. Removing an answer and restoring what it was the only route to
+   belong in the same commit, or the gap between them is a live site where somebody cannot find what
+   they paid for in March — which is the exact case the deleted note named.
+
+   ONE PAGE EACH, NOT A LIST, AND NOT A NEW RENDERER. `jobPage_` is the same builder `Booking ·
+   Receipts` drew with — the receipt, the money and the way in — so a session looks identical to how
+   it looked yesterday and there is still exactly one function that draws one. That is the rule this
+   file keeps breaking and the rule `accountPages_` cites: two renderers for one thing is two things
+   to keep in step.
+
+   NEWEST FIRST, because the session somebody is looking for is almost always the last one — and
+   because the form is page one, so the first swipe should land on what is happening now rather than
+   on a receipt from two years ago. `myJobs_` is the one place that knows whose sessions are whose;
+   nothing here re-derives it. */
+function myJobPages_() {
+  if (!USER || typeof myJobs_ !== 'function' || typeof jobPage_ !== 'function') return [];
+  return myJobs_().slice()
+    .sort((a, b) => String((b && b.startDate) || '').localeCompare(String((a && a.startDate) || '')))
+    /* NOT THE ONE ALREADY UNDER THE FORM. `askedBlock_` draws the booking just sent, on page one,
+       and drawing it again three pages down is the same receipt twice — which is how a person comes
+       to believe they booked two sessions. Matched on the id, which is what `ASKED_JOB` holds. */
+    .filter(j => !(ASKED_JOB && String((j && (j.id || j.jobId)) || '') === String(ASKED_JOB)))
+    .map(j => jobPage_(j))
+    .filter(Boolean);
 }
 
 /* THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list.

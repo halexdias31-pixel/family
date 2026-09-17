@@ -110,10 +110,62 @@ say('A NAME THAT IS BOTH A FUNCTION AND A VALUE', crossed.map(([k]) =>
   [k, (fn.get(k) || []).concat(val.get(k) || [])]),
   'the same collision; whichever is loaded second is the one that exists.');
 
+/* ---------- AND THE THREE WAYS A SHEET CHANGES, WHICH MUST ALL BE THE THREE FUNCTIONS -------------
+   `setCell`, `addRow` AND `delRow` EACH SET `POST_WROTE`, which is what `jsonOut` reads to retire
+   the six-hour payload. A call that reaches the sheet without going through one of them changes the
+   database and leaves every phone holding the old copy — silently, for up to six hours.
+
+   THAT IS NOT HYPOTHETICAL: nine places called `t.sheet.deleteRow(row._row)` directly, and the note
+   above `POST_WROTE` said in so many words that `setCell` and `addRow` were "the two functions that
+   put anything into a spreadsheet". They are the two that ADD. Un-starring a favourite deleted the
+   row and left it in the payload, so the star came back on the next load.
+
+   A GREP, NOT A PARSE, AND THAT IS ENOUGH HERE. The question is whether the string appears outside
+   the one function allowed to use it, which has exactly one right answer and no scope to get wrong
+   — the `check-rows.js` lesson about a narrow question being the trustworthy one. `delRow`'s own
+   body is the single exemption, named by line rather than by a pattern that could quietly widen.
+
+   `setValue`/`appendRow` ARE NOT ASKED ABOUT, deliberately. `setCell` and `addRow` are their only
+   callers today, but both names are ordinary Apps Script and a future helper may legitimately want
+   one. A rule that fires on the honest case is a rule somebody switches off. */
+const WRITERS = /\.(deleteRow)\s*\(/;
+const strays = [];
+files.forEach(f => {
+  const src = fs.readFileSync(path.join(dir, f), 'utf8').split('\n');
+  let inDelRow = false, inComment = false;
+  src.forEach((line, i) => {
+    /* ---------- THE COMMENT DESCRIBING THE FAULT IS NOT THE FAULT -------------------------------
+       THE FIRST VERSION SKIPPED A LINE STARTING `//`, `*` OR `/*` and fired on `core.gs:175` — a
+       CONTINUATION line inside the block comment that explains this very rule, which begins with
+       three spaces and a backtick. A check whose first finding is its own documentation is a check
+       that gets switched off within a day.
+       SO THE BLOCK IS TRACKED, opener to closer, rather than each line being guessed at from how it
+       happens to start. Same lesson as `check-const.js` reporting ninety findings: a rule that is
+       nearly right about where it is looking is a rule nobody can act on. */
+    const before = inComment;
+    if (!inComment && line.includes('/*') && !line.includes('*/')) inComment = true;
+    else if (inComment && line.includes('*/')) inComment = false;
+    if (before || inComment) return;
+    if (/^\s*\/\//.test(line)) return;
+    if (/^function\s+delRow\s*\(/.test(line)) inDelRow = true;
+    else if (inDelRow && /^\}/.test(line)) inDelRow = false;
+    if (inDelRow) return;
+    const m = WRITERS.exec(line);
+    if (m) strays.push([f + ':' + (i + 1), line.trim().slice(0, 78)]);
+  });
+});
+say('A SHEET CHANGED WITHOUT `delRow`, so the stored payload keeps the deleted row',
+  strays,
+  'route it through delRow(t, row) — it sets POST_WROTE, which is what retires the payload.');
+
 console.log('');
 console.log(files.length + ' file(s) in ' + path.relative(path.join(__dirname, '..'), dir)
           + '   top-level functions: ' + fn.size + '   values: ' + val.size);
+/* THE SUMMARY NAMES WHAT ACTUALLY FAILED. It said "one scope, two declarations" whatever fired,
+   which was true while that was the only question this file asked and became a wrong sentence the
+   moment it asked a second — the same fault as "all 18 checks pass" and "one of the eighteen
+   names", both of which CLAUDE.md records. */
 console.log(fail
-  ? 'FAILED — one scope, two declarations. Rename one of each pair.'
-  : 'OK — every top-level name in the Apps Script project is declared exactly once.');
+  ? 'FAILED — see above: a name declared twice, or a sheet changed outside setCell/addRow/delRow.'
+  : 'OK — every top-level name is declared once, and every deletion goes through delRow.');
 process.exit(fail ? 1 : 0);

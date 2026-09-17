@@ -97,9 +97,22 @@ on('spot', el => {
 
 /* ---------- A SET, AS CARDS ----------------------------------------------------------------------
    ONE FUNCTION FOR ALL THREE, because the only thing that varies is the test. */
+/* ---------- LOOKED UP IN EVERY ITEM, NOT IN THE ONES THE FUNNEL IS OFFERING ----------------------
+   THIS READ `stuffItems()` AND THAT IS THE FILTERED LIST. The funnel takes Booking out of what it
+   OFFERS — see `FUNNEL_NOT_FOR` in find.js — and this turned that into "your starred tutor has
+   disappeared", silently, on the one list in the app whose entire job is to not lose things. The
+   row was still in the `favourites` tab, the star still posted, and the card was simply not found.
+
+   A DECISION ABOUT WHAT TO ASK IS NOT A DECISION ABOUT WHAT SOMEBODY KEPT. `stuffItemsAll_` is
+   every item the app has, memoised the same way, so a thing stays saved whatever the funnel is
+   asking this week — and a kind taken out of the funnel next year cannot empty this list either.
+
+   FOUND BY AUDITING FAVOURITES on the same afternoon the funnel changed, which is the only reason
+   it is not a fault somebody reports in a month as "my saved things vanished". */
 function collItems_(has) {
-  return (typeof stuffItems === 'function' ? stuffItems() : [])
-    .filter(x => x.key && has(x.key));
+  const all = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_()
+            : (typeof stuffItems === 'function' ? stuffItems() : []);
+  return all.filter(x => x.key && has(x.key));
 }
 
 /* Empty is a SENTENCE, not a blank screen. A column with nothing in it and nothing to say reads as

@@ -167,14 +167,16 @@
    "description": "Ten years of GCSE and A-Level maths.",
    "rate": 30,
    "dbs": true,
-   "detailsConfirmed": true,
+   "detailsConfirmed": "04/02/2026",
    "yrsExp": 10,
    "minStudents": 1,
    "maxStudents": 4,
    "minHours": 1,
    "maxHours": 3,
    "extraSeat": 8,
-   "focus": "Maths",
+   "focus": [
+    "Maths"
+   ],
    "xp": 0,
    "credits": 0,
    "highscore": 0,
@@ -187,7 +189,7 @@
    "quals": [
     "MMath"
    ],
-   "extraQuals": [],
+   "extraQuals": "",
    "actionText": "Book this tutor",
    "personId": "P-@ada"
   }

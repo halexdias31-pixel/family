@@ -81,6 +81,63 @@ function seedAvatarItems() {
   return AVATAR_ITEMS.filter(it => !it.free).length;
 }
 
+/* ---------- THE WEARABLES HAVE BEEN FREE SINCE THE TWO TABS WERE MERGED ---------------------------
+   REPORTED AS "shop items should be updated to price you think would be reasonable", and the price
+   is not a judgement anybody has to make: it is in `AVATAR_ITEMS`, in this repository, and has been
+   since the wardrobe was built. Bunches cost 15 coins there and nothing in the shop.
+
+   THE NOTE ABOVE `seedAvatarItems` ALREADY DIAGNOSED THIS and then said what it could not do about
+   it: *"ALREADY-SEEDED ROWS ARE NOT REPAIRED BY THIS. The guard two lines above returns early once
+   any avatar row exists, so a sheet that has run this before keeps its empty prices and needs
+   `price_coins` and `acquire` filling in by hand."* A repair described in a comment and left for
+   somebody to do by hand is a repair that does not happen — which is the argument this file makes
+   about `geocodeVenues` being a URL somebody had to assemble, and about the rename that "has to be
+   remembered". The machine is right here.
+
+   `acquire` IS THE ONE THAT ACTUALLY BREAKS IT, not the price. `doGet` reads `acquire` to decide
+   WHICH of the three price columns to look in, and an empty `acquire` falls through to
+   `S(r.price_coins) || S(r.price_pence)` — both blank on every seeded row. So it sends `price: ''`,
+   which the phone reads as no price at all. Writing the coins without the word would still leave
+   a level-gated hat looking purchasable, and writing the word without the coins would price a
+   bought one at nothing: the two go together or neither is worth writing.
+
+   IT NEVER OVERWRITES A PRICE SOMEBODY HAS TYPED. That is what makes it safe to repeat and what
+   makes it a repair rather than a reset — the sheet is the owner's, and a job that quietly replaces
+   a considered figure with the code's default is the `renameValue` fault written into the money.
+   A cell with anything in it is left exactly as it is, whatever it says.
+
+   MATCHED ON `art_id` + `slot`, NOT ON `name`. Two slots can hold an item called Nothing, and a
+   name is a cell somebody can edit — which is the fault `check-post.js` exists for, one table
+   along. The pair is what the seeder wrote and what the wardrobe compares on. */
+function repairShopPrices() {
+  const t = read(TAB.shop);
+  if (!t.sheet) return { error: 'no shop tab' };
+  const want = {};
+  AVATAR_ITEMS.forEach(it => { want[norm(it.slot) + ':' + norm(it.id)] = it; });
+
+  const out = { priced: 0, levelled: 0, unknown: [], leftAlone: 0 };
+  t.rows.forEach(r => {
+    if (norm(r.kind) !== 'avatar') return;          // physical stock is the owner's to price
+    const it = want[norm(r.slot) + ':' + norm(r.art_id)];
+    if (!it) { out.unknown.push(S(r.name) || S(r.item_id)); return; }
+    /* ALREADY SAID SOMETHING? LEAVE IT. Both cells, independently: a row that has a price and no
+       `acquire` still needs the word, and one that has the word and no price still needs the
+       number. Counting the untouched ones is what makes a second run legible — "0 priced" on its
+       own reads the same whether everything was already right or nothing was found. */
+    let did = false;
+    if (!S(r.acquire)) {
+      setCell(t, r, 'acquire', it.free ? 'issued' : (it.cost ? 'buy' : 'level'));
+      did = true;
+    }
+    if (it.cost && !S(r.price_coins)) { setCell(t, r, 'price_coins', it.cost); did = true; }
+    if (it.level && !S(r.level_required)) { setCell(t, r, 'level_required', it.level); did = true; }
+    if (!did) { out.leftAlone++; return; }
+    if (it.cost) out.priced++; else out.levelled++;
+  });
+  clearCache();
+  return out;
+}
+
 /** Add any config key that's missing. Never overwrites a value you've set. */
 function seedConfig() {
   const t = read(TAB.config);
@@ -162,7 +219,7 @@ function renameValue(arg) {
     /* FROM THE BOTTOM UP. Deleting row 4 makes what was row 5 into row 4, so working downwards
        deletes the wrong rows from the second one onwards — and silently, because every delete
        still succeeds. */
-    kill.sort((a, b) => b._row - a._row).forEach(r => t.sheet.deleteRow(r._row));
+    kill.sort((a, b) => b._row - a._row).forEach(r => delRow(t, r));
     if (kill.length) merged.push(pair[0] + ' — ' + kill.length + ' duplicate row(s) removed');
   });
 
