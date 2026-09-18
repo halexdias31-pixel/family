@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-reel-controls";
+  --css-version: "2026-09-18-build-watch";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.

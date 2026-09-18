@@ -2385,12 +2385,99 @@ async function load() {
 function splashOff_() { const el = $('splash'); if (el) el.classList.add('done'); }
 function splashOn_()  { const el = $('splash'); if (el) el.classList.remove('done'); }
 
-function banner(msg) {
+/* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument
+   rather than a second function: a banner that says a column is missing is a statement, and one
+   that says a newer version is ready is a door. Same strip, same place, and the only difference is
+   whether pressing it does anything.
+
+   THE ACTION IS WRITTEN OUT HERE RATHER THAN PASSED IN, and that is for the checker rather than for
+   the code: `check-doors.js` reads `setAttribute('data-do', 'x')` with a LITERAL and cannot follow
+   a variable — so an action handed in as an argument becomes a handler it reports as unreachable,
+   which is a red with nothing behind it. There is one thing this strip can ever do, so it says
+   which one. */
+function banner(msg, tap) {
   const el = $('banner');
-  if (!msg) { el.classList.add('hidden'); return; }
+  if (!msg) { el.classList.add('hidden'); el.removeAttribute('data-do'); return; }
   el.textContent = msg;
+  if (tap) el.setAttribute('data-do', 'reload-build'); else el.removeAttribute('data-do');
   el.classList.remove('hidden');
 }
+
+/* ================================================================================================
+   THE VERSION THE SERVER HAS, ASKED FOR RATHER THAN ASSUMED
+
+   REPORTED FROM A PHONE, WITH A SCREENSHOT: the Reels column looked exactly as it had the day
+   before. Measured from the other end — GitHub had built and deployed the new files an hour before
+   that screenshot, and the screen was drawing a FACT, which the code on the server cannot do. So
+   the phone was holding files from at least fifteen hours earlier, across a deploy, and nothing
+   anywhere said so.
+
+   AND THAT IS THE SHAPE THIS REPOSITORY ALREADY KNOWS: "my fix did not work" against "I am looking
+   at yesterday's file" cost this project eleven hours once, and the whole `LOAD` / `sw.js`
+   arrangement exists because of it. What that arrangement gets right is the RELOAD: open the site
+   again and the new deploy arrives. What it cannot do is notice, because a tab that is never
+   reloaded never asks — an app left open on a phone yesterday is showing yesterday for as long as
+   it is left open, and switching back to it is not a reload.
+
+   SO IT ASKS, ONCE, WITH A HEAD REQUEST. The entry point's own `ETag` is the server's answer to
+   "which build is this" — no version file to bump, no second stamp to keep in step with the first,
+   and nothing new for anybody to remember. Held at boot and compared when the tab is returned to.
+
+   AND IT NEVER RELOADS BY ITSELF. `purge()` is a few lines down and its note is the reason: a
+   reload nobody asked for is an infinite loop one mistake away, and this project has already
+   written that loop once. The banner is a sentence and a tap.
+================================================================================================ */
+let BUILD_TAG = null;
+let BUILD_ASKED = 0;
+
+/* HEAD, so nothing is downloaded, and `no-store` so the answer is the server's rather than the
+   browser's copy of it. `sw.js` returns early on anything that is not a GET, so this goes past the
+   worker to the network — which is the whole point of asking. */
+async function buildTag_() {
+  try {
+    const res = await fetch(location.pathname.replace(/[^/]*$/, '') + 'index.html',
+                            { method: 'HEAD', cache: 'no-store' });
+    if (!res || !res.ok) return null;
+    return res.headers.get('etag') || res.headers.get('last-modified') || null;
+  } catch (e) { return null; }
+}
+
+async function watchBuild_() {
+  /* NO SIGNAL MEANS SAY NOTHING. A server that sends neither header cannot be compared against,
+     and a banner drawn on a guess is the fault this file records about `figure` and about the
+     boot check that killed the page: a confident sentence with nothing behind it. */
+  BUILD_TAG = await buildTag_();
+  if (!BUILD_TAG) return;
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkBuild_(); });
+  /* ---------- AND `pageshow`, BECAUSE OF THE HOME SCREEN ------------------------------------------
+     THIS SITE IS AN INSTALLED APP ON A PHONE. The manifest says `display: standalone` and
+     `apple-mobile-web-app-capable` is in the head, so an icon added to the home screen opens a
+     window with no address bar, its own storage, and — the part that caused this — iOS SUSPENDS AND
+     RESUMES it rather than reloading it. A web app left open yesterday is yesterday's page, restored
+     from a snapshot, with no request made at all.
+
+     THAT ALSO TAKES `?dev` AWAY. There is nowhere to type it, and the standalone window does not
+     share Safari's copies, so clearing it there clears the wrong one. Which makes this banner the
+     only door out that somebody holding the phone can actually reach.
+
+     BOTH EVENTS, because a restore is not always a visibility change: `pageshow` with
+     `persisted: true` is the page coming back from the browser's own hold, and the two fire in
+     different orders on different systems. `checkBuild_` is rate-limited, so two of them is one
+     request. */
+  window.addEventListener('pageshow', e => { if (e && e.persisted) checkBuild_(); });
+}
+
+async function checkBuild_() {
+  /* NOT ON EVERY GLANCE. Switching apps twice in a minute is not two deploys, and a HEAD per
+     switch is a request nobody asked for on somebody's data. */
+  if (Date.now() - BUILD_ASKED < 30000) return;
+  BUILD_ASKED = Date.now();
+  const now = await buildTag_();
+  if (!now || !BUILD_TAG || now === BUILD_TAG) return;
+  banner('A newer version of the app is ready. Tap to load it.', true);
+}
+
+on('reload-build', () => location.reload());
 
 /* ---------- NOTHING MAY BE HELD — AND THEN SOMETHING DELIBERATELY WAS -----------------------------
    `purge()` WAS HERE AND IT UNREGISTERED EVERY SERVICE WORKER ON EVERY LOAD, emptying every cache
