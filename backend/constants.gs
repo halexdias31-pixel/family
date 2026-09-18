@@ -153,6 +153,7 @@ const WHERE = {
   posts:          { file: 'ledger' },
   post_likes:     { file: 'ledger' },
   post_votes:     { file: 'ledger' },
+  post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
 
@@ -205,7 +206,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-17-reel-clips";
+const BACKEND_VERSION = "2026-09-18-comments";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -246,7 +247,8 @@ const TAB = {
      few words to find a photograph by — see SCHEMA.facts. */
   facts: 'facts',
   posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
-  post_reactions: 'post_reactions', laws: 'laws', brand: 'brand',
+  post_reactions: 'post_reactions', post_comments: 'post_comments',
+  laws: 'laws', brand: 'brand',
   family: 'family'
 };
 
@@ -888,6 +890,29 @@ const SCHEMA = {
      twice, and somebody can change their mind. A tally in a cell answers none of those. */
   post_votes: [
     "vote_id", "post_id", "person_id", "choice", "voted_on",
+  ],
+
+  /* A COMMENT is a row, and the shape is deliberately the reaction's and the vote's: a post_id, a
+     person_id, what they said and when. Three tabs with one shape is three things that behave the
+     same way, which is most of why this app stays quiet.
+
+     WHAT IT DOES NOT HAVE, and both absences are decisions:
+
+     NO `parent_id`. A reply to a comment is a tree, and a tree is a second reading order on a
+     surface whose whole job is one photograph and what people said about it. The day somebody
+     wants threads it is one column; inventing it now is a join nobody has asked for, which is the
+     `orderPrints` shape.
+
+     NO EDIT. A comment is a thing somebody said in public. It can be DELETED, by its author or by
+     an admin — and a deleted row is the one thing you cannot undo, so `active` is a cell rather
+     than a `deleteRow`, exactly as `approved` is on a post: a comment you took down is the one you
+     may need to show somebody afterwards.
+
+     `body` IS CAPPED AT 2,000 by the handler, which is the same cap `sendMessage` has and for the
+     same reason: a cell has a limit and a person typing an essay into a feed should be told so
+     rather than have it silently truncated by the sheet. */
+  post_comments: [
+    "comment_id", "post_id", "person_id", "body", "said_on", "active",
   ],
 
   /* MESSAGES. One row per message — a thread is messages sharing a pair, not a thing of its own,
@@ -2229,6 +2254,11 @@ const ACTION_ACCESS = {
      does not name, so an old phone still trying gets a sentence rather than a silent write to a
      tab the site no longer reads. */
   votePoll: 'self', reactPost: 'self',
+  /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. Both `self` for the same reason the message
+     actions are: the gate can only check that somebody is signed in, and WHOSE comment it is is a
+     question only the handler can answer — an admin may take down anybody's, an author only their
+     own, and neither of those is a thing this table can see. */
+  addComment: 'self', deleteComment: 'self',
   /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
      been posted yet — which is a view of your Drive rather than of the site. */
   folderFiles: 'admin',

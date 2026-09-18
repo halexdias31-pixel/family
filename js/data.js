@@ -334,6 +334,29 @@ function parseWhen(v) {
   if (typeof v === 'number' && v > 0) return new Date(v);      // the payload's `at`, in ms
   const t = String(v ?? '').trim();
   if (!t) return null;
+  /* ---------- AN ISO DATE IS READ FIRST, AND IT USED TO BE READ BACKWARDS -------------------------
+     `2026-09-15` CAME OUT AS 26 SEPTEMBER 2015. The day-month-year match below is NOT ANCHORED, so
+     on a four-digit year it simply started later in the string: `\d{1,2}` cannot take `2026`, the
+     engine slid along to `26-09-15`, and read it as day 26, month 9, year 15. A plausible date, a
+     confident sentence, and wrong by eleven years — the shape this file keeps recording, where the
+     failure looks exactly like a success.
+
+     `new Date(t)` ON LINE 343 WAS ALREADY RIGHT ABOUT THIS and never got the chance: an unanchored
+     regex earlier in the function had always matched first. So the fix is an anchored ISO branch
+     above it rather than a rule about what a date is.
+
+     BUILT FIELD BY FIELD, NOT HANDED TO `new Date(string)`. `new Date('2026-09-15')` is UTC
+     midnight and `new Date('2026-09-15 18:20')` is local, so the same function would put a date one
+     side or the other of midnight depending on whether somebody typed a time — which is the
+     timezone fault `waveOf` already cost this app seven buttons over.
+
+     Found by a comment timestamped `2026-09-15 18:20` printing `26 September 2015`. */
+  const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (iso) {
+    const d0 = new Date(+iso[1], +iso[2] - 1, +iso[3],
+                        +(iso[4] || 0), +(iso[5] || 0), +(iso[6] || 0));
+    return isNaN(d0) ? null : d0;
+  }
   const m = t.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (m) {
     const y = m[3].length === 2 ? 2000 + (+m[3]) : +m[3];

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-dm-bubbles";
+  --css-version: "2026-09-18-comments";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1211,6 +1211,73 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .post-cap { margin: .15rem 0 0; font-size: .88rem; line-height: 1.5; }
 .post-cap b { font-weight: 600; margin-right: .3rem; }
 .post-when { margin: .35rem 0 0; }
+
+/* ==================================================================================================
+   WHAT PEOPLE SAID UNDER A POST.
+
+   NOT BUBBLES, AND THAT IS THE DECISION WORTH WRITING DOWN. Messages got bubbles one screen along
+   because a conversation between TWO people is read by side — you know who said a thing from where
+   it sits. A comment thread is many people talking about one photograph, and there is no side for
+   a fourth person to be on. So it is what a feed comment has always been: the name, then what they
+   said, on one line that wraps — which is exactly `.post-cap` above, because the caption IS the
+   first comment.
+
+   RULED OFF AT THE TOP, NOT BOXED. It belongs to the post it is inside — a card of its own would
+   page separately on the feed and leave the photograph behind, which is the `.reel` fault one file
+   over. One hairline says "and then people said this".
+================================================================================================== */
+.post-said { margin: .5rem 0 0; padding: .5rem 0 0; border-top: 1px solid var(--line-soft); }
+.cmt-list { list-style: none; margin: 0 0 .1rem; padding: 0; }
+.cmt { margin: 0 0 .45rem; }
+.cmt:last-child { margin-bottom: .1rem; }
+.cmt-body { margin: 0; font-size: .84rem; line-height: 1.45; overflow-wrap: break-word; }
+.cmt-body b { font-weight: 600; margin-right: .3rem; }
+/* YOURS IS MARKED BY THE RULE DOWN THE LEFT that messages gave up when they became bubbles — which
+   is the shape that rule was always right for: a full-width row, in a list of them, where the mark
+   has to read at a glance without competing with the text. */
+.cmt.mine { border-left: 2px solid var(--gold); padding-left: .5rem; }
+.cmt-when { margin: .1rem 0 0; font-size: .64rem; }
+/* `Remove` LOOKS LIKE TEXT AND IS 44px, and the first version of it was 31x13. Underlined, because
+   `check-css.js` fails a tappable thing that would look like plain text; 44px in px, because
+   `check/ui.js` named it at three widths and it is right — taking your own comment down is rare,
+   and a control you cannot hit is not a control that is rarely used, it is one that is not there.
+
+   THE HEIGHT GOES ON THE LINE, AND ONLY WHERE THERE IS A BUTTON ON IT. A 44px time-line under every
+   comment is 44px of nothing under the ones nobody may remove — and an admin sees a Remove on every
+   comment in the thread, so that is not a rare case. `:has` asks the question the markup already
+   answers; without it every line takes the height, which is generous rather than wrong, and that is
+   the right way round for a fallback. */
+.cmt-x { background: none; border: 0; padding: 0 .5rem; min-width: 44px; min-height: 44px;
+         font: inherit; color: var(--faint); text-decoration: underline; cursor: pointer; }
+.cmt-x:disabled { opacity: .5; cursor: default; }
+.cmt-when:has(.cmt-x) { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
+@supports not selector(:has(*)) {
+  .cmt-when { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
+}
+
+/* THE BOX. `msg-form`'s shape and not its rules, because these two are on different surfaces and
+   will drift apart the day one of them changes — a composer under a photograph in a feed is not
+   the foot of a conversation. What they share is the one thing that must not drift: the 44px floor,
+   in px, which is this file's rule.
+
+   `quiet`, NOT GOLD, ON `Post`. Gold is the one action on a card, and on a post that is the
+   reaction row directly under the picture. */
+.cmt-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap; margin: .45rem 0 0; }
+.cmt-text {
+  flex: 1 1 7rem; min-width: 0;
+  min-height: 44px; max-height: 30dvh;
+  field-sizing: content;
+  padding: .5rem .65rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: .8rem;
+  color: var(--ink); font: inherit; font-size: .84rem; line-height: 1.4; resize: none;
+}
+.cmt-text:focus { outline: 0; border-color: var(--gold); }
+.cmt-text::placeholder { color: var(--faint); opacity: 1; }
+.cmt-form .btn.cmt-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 .9rem; }
+/* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
+   empty one under every post in the feed is a margin nobody asked for. */
+.cmt-said { flex: 1 0 100%; margin: .3rem 0 0; }
+.cmt-said:empty { display: none; }
 
 /* A post arrived at from a shared link. Marked briefly so it is obvious which one was meant —
    landing in a feed with no idea which photograph somebody sent you is the failure a deep link

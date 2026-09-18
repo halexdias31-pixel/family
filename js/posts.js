@@ -134,8 +134,122 @@ function postCard_(p, i) {
             looking at the photograph and the caption, which is everything the decision is about. */''}
       ${postTiles_(p)}
       ${p.waiting && !isAdmin() ? `<p class="faint">Waiting to be checked. Only you can see it.</p>` : ''}
+      ${commentsHtml_(p)}
     </article>`;
 }
+
+/* ==================================================================================================
+   WHAT PEOPLE SAID UNDER IT.
+
+   ASKED FOR AS "should be able to comment on posts". A reaction says how a photograph landed and
+   cannot say anything else; a post of a child's first A in a mock is a thing people want to write
+   a sentence about.
+
+   `post_comments` IS THE REACTION'S TAB ONE COLUMN WIDER — a post_id, a person_id, what they said
+   and when — and `addComment` is `reactPost` with the one-per-person lookup taken out, because a
+   remark is not a choice: somebody who says two things has said two things. The whole of that
+   argument is in `SCHEMA.post_comments`.
+
+   ---------------------------------------------------------------------------------------------
+   AND IT DRAWS NOTHING AT ALL UNTIL THE BACKEND HAS BEEN DEPLOYED, WHICH IS THE POINT OF THE
+   `Array.isArray` RATHER THAN A `|| []`.
+
+   `doGet` sends `comments` on every post from the version this was written for. An older deployment
+   sends no such key — and `|| []` would turn that into "no comments yet" under a composer that
+   posts into `accessDenied`, which is the exact fault this repository names as its worst: I did not
+   manage to look, reported as I looked and there was nothing there. An absent key is a feature that
+   has not arrived, and the honest drawing of that is nothing.
+
+   `pullFromGitHub` IS BLOCKED and clasp is unconfigured — see "Deploying" in CLAUDE.md — so the
+   gap between this reaching Pages and the backend answering is real and may be days. Which is
+   precisely why the phone must not pretend.
+================================================================================================== */
+function commentsHtml_(p) {
+  const c = p && p.comments;
+  if (!c || !Array.isArray(c.list)) return '';
+  const list = c.list;
+  const more = Math.max(0, Number(c.total || list.length) - list.length);
+
+  /* ---------- A CONVERSATION IS ONE ELEMENT, NOT A SECOND CARD -----------------------------------
+     `.post-said` SITS INSIDE THE `<article>` the post already is, under the tiles — because a
+     comment is part of the post rather than a thing beside it, and a card of its own would page
+     separately on the feed and leave the photograph behind.
+
+     OLDEST FIRST, which `doGet` has already done. Doing it again here is a second copy of the
+     ordering rule to get wrong later — the sentence `dmCards_` already carries about
+     `messageThreads_`. */
+  return `<div class="post-said">
+    ${list.length ? `<ul class="cmt-list">${list.map(x => `
+      <li class="cmt${x.mine ? ' mine' : ''}">
+        <p class="cmt-body"><b>${esc(x.name)}</b> ${mark(x.body)}</p>
+        <p class="faint cmt-when">${esc(ago(x.at) || x.at || '')}${x.canRemove
+          ? ` · <button class="cmt-x" data-do="cmt-del" data-id="${esc(x.id)}">Remove</button>`
+          : ''}</p>
+      </li>`).join('')}</ul>` : ''}
+    ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
+          a conversation that simply stops at sixty with nothing saying so is a conversation
+          somebody thinks they have read. */''}
+    ${more ? `<p class="faint">${more} more, not shown.</p>` : ''}
+    ${USER
+      ? `<div class="cmt-form">
+           <textarea class="cmt-text" rows="1" maxlength="2000"
+             placeholder="Say something…"></textarea>
+           <button class="btn quiet cmt-go" data-do="cmt-add"
+             data-id="${esc(p.id)}">Post</button>
+           <p class="faint cmt-said"></p>
+         </div>`
+      : `<p class="faint">Sign in to say something.</p>`}
+  </div>`;
+}
+
+/* ---------- POSTING ONE ---------------------------------------------------------------------------
+   `send`, NOT `api`, AND THIS IS THE FILE THAT RECORDS WHY. `api()` resolves with `{ error: … }` as
+   an ordinary answer, so a `.then` saying "Posted" runs on a refusal exactly as it runs on success
+   — which is how a toast once said "Sent to Ada Tutor" about a message that was never written.
+   `check-replies.js` asks this question of every caller; this one is about to make a claim.
+
+   THE BOX IS FOUND BY WALKING UP, not by an id. There is one composer per post and a feed has
+   several posts on screen — the fault `on('msg-send')` records one screen along, where a fixed id
+   would have handed every button the first textarea on the page.
+
+   AND THE FEED IS RELOADED RATHER THAN THE COMMENT INSERTED BY HAND. The row is on the sheet and
+   the payload is what draws it; splicing a copy into `DATA.posts` is a second source for the same
+   comment, and it would disagree with the server about the id the moment a Remove was pressed. */
+on('cmt-add', el => {
+  const form = el.closest ? el.closest('.cmt-form') : null;
+  const box  = form ? form.querySelector('.cmt-text') : null;
+  const said = form ? form.querySelector('.cmt-said') : null;
+  const text = ((box && box.value) || '').trim();
+  if (!text) { box && box.focus(); return; }
+  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
+
+  el.disabled = true;
+  const was = el.textContent;
+  el.textContent = 'Posting…';
+  const done = () => { el.disabled = false; el.textContent = was; };
+
+  send({ action: 'addComment', name: USER.name, personId: USER.personId,
+         postId: el.dataset.id, body: text })
+    .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
+                  if (said) said.textContent = ''; load(); })
+    /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
+       length, the post being gone, not being signed in — and "Not posted" would throw away the
+       only part that says what to do about it. */
+    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not posted.'); });
+});
+
+/* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where
+   the server has already said yes — and the server checks again, because a button is not a
+   permission. See `deleteComment`: it writes `active: FALSE` rather than deleting the row, which is
+   the argument `approved` already makes on a post. */
+on('cmt-del', el => {
+  if (!USER) return;
+  el.disabled = true;
+  send({ action: 'deleteComment', name: USER.name, personId: USER.personId,
+         commentId: el.dataset.id })
+    .then(() => load())
+    .catch(err => { el.disabled = false; toast(String(err.message || 'Not removed.')); });
+});
 
 function feedPosts() {
   return [...(DATA.posts || DATA.gallery || [])]

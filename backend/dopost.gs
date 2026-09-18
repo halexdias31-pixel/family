@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-17-reel-clips";
+const DOPOST_VERSION = "2026-09-18-comments";
 
 
 function doPost(e) {
@@ -1048,6 +1048,90 @@ function doPost(e) {
       }
       clearCache();
       return jsonOut({ success: true, emoji: emoji });
+    }
+
+    /* --- saying something under a post ------------------------------------------------------------
+       THE SAME SHAPE AS A REACTION AND A VOTE, one column wider: a post_id, a person_id, what they
+       said and when. Three tabs behaving the same way is three things a reader already understands.
+
+       IT IS NOT ONE PER PERSON, which is the one place it differs and the reason it is an `addRow`
+       with no lookup first. A reaction and a vote are a CHOICE — you have one, and pressing again
+       changes or takes it back. A remark is not a choice; somebody who says two things has said two
+       things.
+
+       THE POST HAS TO BE ONE THEY CAN SEE. A post waiting for approval is sent to nobody but its
+       author and an admin, so commenting on one is a request that could only have been made by
+       guessing an id — and answering it would confirm the id exists. Refused in the same sentence
+       as a post that is gone, because "no" and "not for you" are the same answer to somebody
+       guessing.
+
+       2,000 CHARACTERS, WHICH IS `sendMessage`'S CAP AND FOR ITS REASON: a cell has a limit, and a
+       person who typed an essay should be told rather than have the sheet quietly keep half of it.
+       Refused rather than truncated — a comment that posts as something other than what was typed
+       is worse than one that does not post. */
+    if (action === 'addComment') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Sign in to comment.' });
+
+      /* ---------- THE SAME THREE ANSWERS `doGet` GIVES, AND THEY ARE READ OFF THE SAME COLUMN ----
+         `post.person_id` WAS THE FIRST VERSION OF THIS AND THE POSTS TAB HAS NO SUCH COLUMN.
+         `check-rows.js` named it — the check that asks whether a name is a column of THIS tab
+         rather than of any tab, which is the fault it was written for. Whose post it is lives in
+         `author`, resolved through `findPerson` exactly as the payload resolves it; a second way of
+         asking "is this yours" is a second answer to get wrong on the one question that decides
+         who may write under somebody's photograph. */
+      const post = read(TAB.posts).rows.find(x => S(x.post_id) === S(body.postId));
+      const state = post ? norm(post.approved) : '';
+      const theirs = !!post && S(post.author) && findPerson(S(post.author))
+        && S(findPerson(S(post.author)).person_id) === S(me.person_id);
+      const seen = !!post && ON_(post.active) && state !== 'refused'
+        && (state !== 'pending' || theirs || isAdminPerson(S(body.name)));
+      if (!seen) return jsonOut({ error: 'That post is gone.' });
+
+      const text = S(body.body).trim();
+      if (!text) return jsonOut({ error: 'Nothing to say?' });
+      if (text.length > 2000) {
+        return jsonOut({ error: 'That is longer than 2,000 characters. Shorten it a little.' });
+      }
+
+      const t = read(TAB.post_comments);
+      const id = 'CM' + new Date().getTime();
+      addRow(t, {
+        comment_id: id,
+        post_id: S(body.postId),
+        person_id: S(me.person_id),
+        body: text,
+        said_on: new Date(),
+        active: 'TRUE',
+      });
+      clearCache();
+      return jsonOut({ success: true, commentId: id });
+    }
+
+    /* --- taking one down ---------------------------------------------------------------------------
+       A CELL, NOT A DELETED ROW, and the argument is the one `approved` already makes on a post: a
+       comment you took down is the one you may need to show somebody afterwards, and deleting it is
+       the single thing here that cannot be undone.
+
+       THE AUTHOR OR AN ADMIN. The gate can only see that somebody is signed in — whose comment it
+       is is a question only this can answer, which is why `deleteComment` is `self` in the access
+       table and the real rule is the next two lines. It is also the ONLY place that rule is
+       written: `doGet` sends `canRemove` per comment so the phone draws what the server decided
+       rather than deciding again. */
+    if (action === 'deleteComment') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Sign in first.' });
+
+      const t = read(TAB.post_comments);
+      const row = t.rows.find(x => S(x.comment_id) === S(body.commentId));
+      if (!row || !ON_(row.active)) return jsonOut({ error: 'That comment is gone.' });
+
+      if (S(row.person_id) !== S(me.person_id) && !isAdminPerson(S(body.name))) {
+        return jsonOut({ error: 'That is not yours to remove.' });
+      }
+      setCell(t, row, 'active', 'FALSE');
+      clearCache();
+      return jsonOut({ success: true });
     }
 
     /* --- voting in a poll -----------------------------------------------------------------------
