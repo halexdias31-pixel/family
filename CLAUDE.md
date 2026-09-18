@@ -3933,3 +3933,56 @@ lower-cased as well, so it reported all 46 of the file's case-only pairs — `Hi
 `histograms` — as faults. Those are correct: `spellKey_` folds them and `topicOf_`'s vote picks the
 spelling to show. The rule asks only the one question that fold cannot answer. **Proved by mutation
 in both directions**: one row changed back to `and` fires it and exits 1; the real file is green.
+
+## The Corbettmaths primary answers are computed, and the sheet with no mark scheme is the safe case
+
+**Asked for as the Factors sheet and it turned out to be nearly done** — 12 of its 13 questions
+already carried an answer. What is actually outstanding is the rest of the primary library:
+**708 Corbettmaths questions with no answer at all**, across 69 worksheets.
+
+**Corbettmaths publishes no mark scheme for these, which everywhere else in this file is the state
+that stops a transcription.** The 2017 Highers are why: four answers there were subtly wrong
+*because they were derived* — a reading off a grid the algebra disagreed with, two single values
+where the scheme takes a range. **What makes deriving safe here is that these questions have an
+exact inverse.** `XXIV` is 24 or it is not, and `nine thousand and nine` is 9,009 or it is not. So
+`tools/cbmnum.py` holds both directions of each conversion and **every answer is round-tripped
+against the question's own words before it is written** — convert, convert back, compare. A wrong
+answer is a shape that cannot occur rather than one to check for, which is the same move the
+fraction sheets already make by keeping the sum and the words in one table.
+
+**The converters are self-tested over their whole range** — all 3,999 Roman numerals and every
+number under ten thousand — and then separately against **the sheet's own printed convention**,
+which a round trip cannot see: a round trip only proves the two halves agree with each other.
+`nine thousand and nine`, `two thousand, three hundred and eighty` — a comma when the part below
+carries a hundreds digit, `and` when it does not. That is what is printed on the worksheet, so it
+is what a child's answer is marked against.
+
+**The explanation is computed too, not written out.** `roman(38)` and the sentence under it are
+built from the same decomposition, so the numeral and "XXX is 30, V is 5, III is 3" cannot
+disagree. The subtractive note names **the additive spelling a child actually writes** — `LXXXX`
+for `XC`, `IIII` for `IV` — computed by running the same table with the subtractive pairs removed.
+The first version invented `IIIIIIIIIX` as the slip for `IX`, which is not a mistake anybody makes;
+a sentence generated confidently and wrong is worse than no sentence.
+
+**One row asks two questions and a rule answering only the first would have reported it done.**
+Question 7 of the Roman numerals sheet was transcribed with question 6's tail on it. The rule
+collects every ask in the row, and a row with more than one gets no `accept` — there is one box on
+screen and two answers, exactly as the multi-part Factors rows already do.
+
+### Five rows cannot be answered, and one of them was nearly hidden by the right-sounding label
+
+**A clock face, a matching exercise, a calculator display, and George's four wrong answers.** Each
+is a question ABOUT a picture the transcription lost, so each gets a `figure` — which does not
+invent the picture; it puts the row into the number `check-library.js` prints every run. **629 →
+630**, read off the run.
+
+**`working` was the obvious label for George's answers and it is on `ANSWER_SPACE`.** That list
+exempts a row whose figure is somewhere to WRITE — a complete question with a blank beside it —
+and George's four printed answers are the opposite: a picture the row needs and does not have.
+Filed as `working` the row would have been exempted from the very count it belongs in. **`figure`
+is two columns under one name**, and this is the first time a row landed on the wrong side of that
+line by being labelled accurately.
+
+**708 left, and the script says so per sheet on every run.** A pass that answered what it
+understood and printed nothing about the rest would be this repository's oldest fault for the
+sixth time — *I did not manage to look*, reported as *I looked and there was nothing there*.
