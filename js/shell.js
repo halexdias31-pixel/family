@@ -281,6 +281,11 @@ function go(id, remember, instant) {
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
   if (typeof camStop_ === 'function' && AT !== 'make') camStop_();
+  /* AND THE REEL, which is the third of these and was the one nobody had written. Measured before
+     it existed: `go('reel')` then `go('tools')` left a `<video>` with `paused === false` — a clip
+     somebody may have turned the sound on for, talking from a screen two swipes away, with no
+     control on the screen they are now looking at. */
+  if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */

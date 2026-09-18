@@ -1387,8 +1387,12 @@ const REEL_FIRST = 3;      // on the first paint. One is on screen; the rest are
 const REEL_MORE  = 3;      // appended when the last one is two slides away.
 const REEL_MAX   = 60;     // the ceiling, in slides. See above.
 let REEL_SHOWN = 0;
-let REEL_IO_ART = null;
-let REEL_IO_PLAY = null;
+/* WHICH REEL SOMEBODY HAS DELIBERATELY STOPPED, by index, or −1 for none. A pause that undoes
+   itself is not a pause: `reelTurn_` runs on arrival and on every page turn, so without this the
+   clip you just stopped starts again the moment anything repaints the column. It is kept per
+   INDEX rather than as a flag, so stopping one and swiping to the next leaves the next playing —
+   and coming back to the stopped one finds it still stopped, with the mark still on it. */
+let REEL_HELD = -1;
 
 /* ONE READER FOR "WHICH CLIPS", and this function was a second one. It filtered `factsNow_` while
    the screen above asked `clipsNow_`, and the two disagree exactly when the sheet has an ordinary
@@ -1416,8 +1420,19 @@ function reelCards_(count) {
   for (let i = 0; i < count; i++) {
     const it = reelItem_(REEL_SHOWN);
     if (!it) break;
+    /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. The sound button
+       sits inside it and carries its own `data-do`, and the dispatcher takes the NEAREST one —
+       so reaching for the sound never stops the clip by accident.
+
+       `is-held` IS DRAWN FROM THE STATE RATHER THAN LEFT ON THE ELEMENT, and the measurement is
+       why: a repaint rebuilds this markup, so the class the tap added went with it while `REEL_HELD`
+       stayed — a column showing a stopped clip with nothing on it saying so, which is the exact
+       invisible mode the mark exists to prevent. The state decides and the markup is drawn from it,
+       which is this repository's own move: replace a fact that is only true by accident of what
+       happened with one that has somewhere to be stated. */
     out.push(`<div class="card is-widget"><div class="widget-slot">
-      <div class="reel" data-reel="${REEL_SHOWN}">${feedSlide(it)}` +
+      <div class="reel${REEL_SHOWN === REEL_HELD ? ' is-held' : ''}"
+           data-reel="${REEL_SHOWN}" data-do="reel-tap">${feedSlide(it)}` +
       `<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button></div>
     </div></div>`);
     REEL_SHOWN++;
@@ -1475,9 +1490,37 @@ function reelTurn_(n) {
   host.querySelectorAll('.reel').forEach(el => {
     const v = el.querySelector('video.feed-vid');
     if (!v) return;
-    if (Number(el.dataset.reel) === n) reelPlay_(v);
+    if (Number(el.dataset.reel) === n && REEL_HELD !== n) reelPlay_(v);
     else { try { v.pause(); } catch {} }
   });
+}
+
+/* ---------- AND IT STOPS WHEN YOU LEAVE THE COLUMN ------------------------------------------------
+   MEASURED, BECAUSE READING IT WOULD HAVE BEEN A GUESS: `go('reel')` then `go('tools')` left one
+   `<video>` with `paused === false` and nothing anywhere had asked it to stop. So a clip somebody
+   had turned the sound on for went on talking from a screen two swipes away, with no control on
+   the screen they were now looking at — and on a phone that is also a decoder running behind a
+   calculator.
+
+   `paint` ALREADY DOES THIS TWICE AND SAID SO. `toolsStop_` stops the widgets when their column
+   leaves and `camStop_` stops the camera, with the note "a canvas loop behind a screen nobody is
+   looking at is a flat battery, and a live camera behind one is a recording light on for nothing".
+   A reel is the third of those and was the one nobody had written.
+
+   IT DOES NOT CLEAR `REEL_HELD`, because leaving a column is not an answer to "did you want this
+   one stopped" — `reelsWatch_` starts the current one again on the way back in, which is what the
+   measurement shows and what somebody returning to a reel expects. */
+function reelsStop_() { clipsStop_($('s-reel')); }
+
+/* ONE FUNCTION, BECAUSE THERE ARE TWO SURFACES THAT PLAY A CLIP and they are the two this feature
+   has always had: the column, and the "One more thing" widget that draws from the same list through
+   the same `feedSlide`. The widget had the same fault and worse — it has no column of its own to
+   leave, so its clip played on behind the Games screen with no control anywhere on the screen you
+   had moved to. A second copy of "stop every clip under here" is the second reader this repository
+   keeps writing about. */
+function clipsStop_(root) {
+  if (!root) return;
+  root.querySelectorAll('video.feed-vid').forEach(v => { try { v.pause(); } catch {} });
 }
 
 /* ONE MORE LAP, AS PAGES. `pages()` is the same wrapper the screen's first draw used, so an
@@ -1540,6 +1583,32 @@ function reelPlay_(v) {
    column nobody opens twice — and because a muted video is the only kind a browser will start by
    itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
    muted clip is what everything else in this app does with a switch. */
+/* ---------- A REEL YOU CANNOT STOP ----------------------------------------------------------------
+   THERE WAS NO PAUSE. The column autoplays whatever page you are on, which is right, and the only
+   control on the slide was the sound — so a clip could be silenced and not stopped, and the only
+   way to make it stop was to swipe away from it. Every video surface anybody has used answers a tap
+   on the picture with a pause, and this one answered it with nothing.
+
+   THE MARK IS THE HALF THAT MATTERS. A stopped video whose first frame is still on the screen looks
+   exactly like a playing one that happens to be still, so `is-held` draws the ▶ over it — the same
+   argument this repository writes about the pen: "a mode you cannot see is a mode that surprises
+   you". An errored clip is a Google iframe with its own controls and there is nothing here to
+   toggle, so it is left alone rather than given a mark that does nothing. */
+on('reel-tap', (el) => {
+  const v = el.querySelector('video.feed-vid');
+  if (!v) return;
+  const n = Number(el.dataset.reel);
+  if (v.paused) {
+    REEL_HELD = -1;
+    el.classList.remove('is-held');
+    reelPlay_(v);
+  } else {
+    REEL_HELD = n;
+    el.classList.add('is-held');
+    try { v.pause(); } catch {}
+  }
+});
+
 on('reel-sound', (el) => {
   const slide = el.closest('.reel');
   const v = slide && slide.querySelector('video.feed-vid');

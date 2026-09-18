@@ -1005,7 +1005,12 @@ const WIDGETS = [
     <button class="btn" data-do="herd-next">Next question</button>
   </div>` },
 
+  /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so
+     leaving the column with one playing left it playing — the same fault the Reels column had,
+     with less to find it by: there is no column to come back to, just sound from a screen you are
+     not on. `clipsStop_` is the one the column uses. */
   { id: 'reels', kind: 'game', name: 'One more thing', start: () => initFeed?.(),
+    stop: () => clipsStop_($('feed-screen')),
     into: 'feed-screen', what: 'This',
     html: `<div class="card">
     <h3>One more thing</h3>

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-reel-widgets";
+  --css-version: "2026-09-18-reel-controls";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7650,12 +7650,51 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
 
+/* ---------- A STOPPED REEL SAYS SO ----------------------------------------------------------------
+   A VIDEO THAT IS PAUSED ON ITS FIRST FRAME LOOKS EXACTLY LIKE ONE THAT IS PLAYING A STILL SHOT,
+   and the tap that stopped it left nothing on the screen to say it had worked. That is the sentence
+   this stylesheet already carries about the pen's gold frame: a mode you cannot see is a mode that
+   surprises you.
+
+   OVER THE MIDDLE, WHERE THE FINGER JUST WAS, and `pointer-events: none` so the mark is not a
+   second thing to hit — the whole slide is the control and the mark is only the state. The disc is
+   the same charcoal wash the scrim uses rather than a new colour, so it reads on a bright frame and
+   on a dark one. */
+.reel.is-held::after {
+  content: '▶';
+  position: absolute; z-index: 3; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4rem; height: 4rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgb(0 0 0 / .55);
+  color: #fff; font-size: 1.5rem; line-height: 1;
+  /* The glyph's own bearing sits it left of centre in its box; a video's play mark is centred on
+     the disc by eye, which is what every player does and what a screenshot showed this needed. */
+  padding-left: .18em;
+  pointer-events: none;
+}
+
 /* IN PX, AND THAT IS THE RULE RATHER THAN A PREFERENCE. A fingertip is the same size on every
    screen; `2.75rem` is 40.75px on a phone and CLAUDE.md has four convictions behind that sentence.
    Top-right because the words are bottom-left and a control over what somebody is reading is a
    control they hit by accident. */
 .reel-sound {
   position: absolute; z-index: 3; top: .6rem; right: .6rem;
+  /* ---------- VIDEO CHROME, NOT THE APP'S PRIMARY ACTION -----------------------------------------
+     `.btn` IS GOLD, which is right for the one thing a form wants you to press and wrong laid over
+     a moving picture: a screenshot of a whole slide showed a gold slab reading "Sound off" as the
+     loudest thing on a card whose whole content is the clip. The same wash the paused mark uses,
+     which is also the wash `.feed-art.has-photo::before` lays under the words — so a control over a
+     picture looks the same wherever this feature draws one, on a bright frame and a dark one alike.
+
+     THE WORDS STAY. A glyph would have said the same thing in less room and the note below is the
+     reason it does not: the button says the state it is IN, which is what every other switch in
+     this app does, and "Sound off" cannot be read as "press to turn the sound off" by mistake the
+     way a crossed-out speaker can. */
+  background: rgb(0 0 0 / .55);
+  border-color: rgb(255 255 255 / .28);
+  color: #fff;
   /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
      Absolutely positioned it made a gold bar across the top of the slide, which is what the
      screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the

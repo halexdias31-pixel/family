@@ -4363,3 +4363,54 @@ at. A count of nothing over a page that exists is a column you cannot be on.
 **Two clips, and both are the ones that were sent.** `1AerJnQHL8Vk0…` and `15nJWyOpLC94…` in
 `FEED_FACTS`. With two, "for ever" is a lap and the column says so; it stops being a repeat the
 moment there is a third, with nothing here to change.
+
+### Refining it: a reel you could not stop, and one that did not stop when you left
+
+**Three things, and the first was found by measuring rather than reading.** `go('reel')` then
+`go('tools')` left a `<video>` with `paused === false` — nothing anywhere asked a clip to stop when
+its column left the screen. So a clip somebody had turned the sound on for went on talking from a
+screen two swipes away, with no control on the screen they were now looking at, and on a phone that
+is also a decoder running behind a calculator.
+
+**`paint` already does exactly this twice and says why.** `toolsStop_` stops the widgets when their
+column leaves and `camStop_` stops the camera — *"a canvas loop behind a screen nobody is looking at
+is a flat battery, and a live camera behind one is a recording light on for nothing"*. A reel is the
+third of those and was the one nobody had written. `reelsStop_` is that line.
+
+**And the "One more thing" widget had it worse.** It deals a fact on a tap and some of those facts
+are clips, and it has no column of its own to come back to — so a clip left playing there was sound
+from a screen with nothing on it to stop. Its roster entry had no `stop` at all. Both surfaces call
+one `clipsStop_(root)`, because a second copy of "stop every clip under here" is the second reader
+this file keeps writing about.
+
+**A reel had no pause.** The column autoplays whatever page you are on, which is right, and the only
+control on the slide was the sound — so a clip could be silenced and not stopped, and the only way
+to stop it was to swipe away from it. Every video surface anybody has used answers a tap on the
+picture with a pause. The whole slide is that tap now; the sound button sits inside it and carries
+its own `data-do`, and the dispatcher takes the nearest one, so reaching for the sound never stops
+the clip by accident. Measured.
+
+**`REEL_HELD` is an index, not a flag**, because `reelTurn_` runs on arrival and on every page turn:
+without it the clip you just stopped starts again the moment anything repaints. Per index means
+stopping one and swiping to the next leaves the next playing, and coming back to the stopped one
+finds it still stopped.
+
+**And the mark is drawn from that state rather than left on the element — which the measurement
+caught.** The first version added `is-held` in the tap handler only, so a repaint rebuilt the markup
+without it while `REEL_HELD` stayed: a column showing a stopped clip with nothing on it saying so,
+which is the exact invisible mode the mark exists to prevent. `reelCards_` writes the class from the
+state now. Proved in seven states: on arrival, after a tap, after a repaint, after a second tap,
+after the sound button (which must not toggle the pause, and does not), after leaving, and after
+coming back.
+
+**The sound button was a gold slab on a moving picture.** `.btn` is gold — right for the one thing a
+form wants you to press, wrong laid over a clip, where a screenshot showed it as the loudest thing
+on a card whose whole content is the video. It takes the same wash the paused mark uses, which is
+also the wash `.feed-art.has-photo::before` lays under the words, so every control this feature puts
+over a picture looks alike. **The words stay**: a glyph would say it in less room, and the button
+says the state it is IN, which "a crossed-out speaker" cannot do without being read as an
+instruction.
+
+**Eighth time this file writes that a screenshot is the last word on a drawing**, and here it is the
+last word on two: the gold slab, and the ▶ needing `padding-left: .18em` because the glyph's own
+bearing sits it left of centre in its disc.
