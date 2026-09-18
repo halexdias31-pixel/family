@@ -526,10 +526,36 @@ function feedColours(seed) {
    NEITHER CAN BE TESTED FROM HERE. Every Google host is blocked from the agent's environment by
    network policy, so which of the two a real browser gets is a fact one open of the live site
    settles and nothing in this repository can. That is exactly why there are two. */
-function clipSrc_(clip) {
+/* ---------- A LADDER, BECAUSE ONE ADDRESS WAS A GUESS AND THE PHONE SETTLED IT ------------------
+   REPORTED WITH A SCREENSHOT OF THE LIVE SITE: the reel was playing inside GOOGLE'S OWN PLAYER —
+   its scrubber, its 10-second skips, CC, 1x, an expand button and a black letterbox round the lot.
+   That is the `error` fallback doing exactly what it was written to do, which means the FIRST
+   address had failed on a real phone. Everything about the look and everything about "why does it
+   not start by itself" follows from that one fact: an iframe from another origin cannot be styled,
+   cannot be muted from here, and will not autoplay.
+
+   `uc?export=download` IS THE OLD SPELLING. Google moved direct downloads to
+   `drive.usercontent.google.com/download`, and the old address answers a redirect — or an HTML
+   interstitial, which a `<video>` reports as an error because it is not a video. So the newer one
+   is tried first and the old one second, which costs nothing when the first works.
+
+   IT IS A LIST RATHER THAN A CHOICE, because **no version of this can be tested from here**: every
+   Google host is blocked from this environment by network policy, which is why the wrong address
+   shipped in the first place. A ladder is the shape that does not need me to be right — each rung
+   is a real attempt, `error` moves to the next, and the iframe is the last one rather than the
+   second. One open of the live site settles which rung wins, and nothing here has to guess.
+
+   A FULL URL IS USED AS GIVEN AND IS THE REAL ANSWER. `clip` takes an address, so a file served
+   from anywhere — including beside this site — is one rung with no fallbacks and no chrome. */
+function clipSrcs_(clip) {
   const c = String(clip || '').trim();
-  if (!c) return '';
-  return /[:/]/.test(c) ? c : 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(c);
+  if (!c) return [];
+  if (/[:/]/.test(c)) return [c];
+  const id = encodeURIComponent(c);
+  return [
+    'https://drive.usercontent.google.com/download?id=' + id + '&export=download',
+    'https://drive.google.com/uc?export=download&id=' + id,
+  ];
 }
 function clipFrame_(clip) {
   const c = String(clip || '').trim();

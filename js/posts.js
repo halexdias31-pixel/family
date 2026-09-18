@@ -1611,8 +1611,8 @@ function reelMore_(host) {
 function reelPlay_(v) {
   if (!v || v.dataset.dead) return;
   if (!v.getAttribute('src')) {
-    const src = clipSrc_(v.dataset.clip);
-    if (!src) return;
+    const srcs = clipSrcs_(v.dataset.clip);
+    if (!srcs.length) return;
     /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
        waits for `img.onload`: until then the slide is its own gradient and its subject's initial,
        which is a finished thing rather than a hole. */
@@ -1620,8 +1620,25 @@ function reelPlay_(v) {
       const art = v.closest('.feed-art');
       if (art) art.classList.add('has-photo');
     }, { once: true });
+    /* ---------- THE NEXT RUNG, AND ONLY THEN GOOGLE'S PLAYER ------------------------------------
+       NOT `{ once: true }` ANY MORE, and that is the whole change: one listener that fired once
+       took the first failure straight to the iframe, so a second address never got a turn. It
+       counts down the list instead and the iframe is what is left when there is no rung below.
+
+       `load()` BEFORE THE NEXT `src`. A `<video>` that has already failed keeps its error state
+       until it is told to start again, and setting `src` alone on some browsers does not clear it —
+       so the second address would be reported broken without being asked for. */
     v.addEventListener('error', () => {
       if (v.dataset.dead) return;
+      const next = Number(v.dataset.rung || 0) + 1;
+      if (next < srcs.length) {
+        v.dataset.rung = String(next);
+        v.src = srcs[next];
+        try { v.load(); } catch (e) {}
+        const p2 = v.play();
+        if (p2 && p2.catch) p2.catch(() => {});
+        return;
+      }
       v.dataset.dead = '1';
       const frame = clipFrame_(v.dataset.clip);
       const slide = v.closest('.reel');
@@ -1630,8 +1647,9 @@ function reelPlay_(v) {
         referrerpolicy="no-referrer" title="Reel"></iframe>`;
       const btn = slide.querySelector('.reel-sound');
       if (btn) btn.remove();
-    }, { once: true });
-    v.src = src;
+    });
+    v.dataset.rung = '0';
+    v.src = srcs[0];
   }
   /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. Every browser refuses to start an
      unmuted video nobody has tapped, and one that has been unmuted by the button below and then
