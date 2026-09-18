@@ -4244,3 +4244,17 @@ sequence and the answer line together and it is **not recoverable from the row**
 number printed is a term or an answer that has leaked in.
 
 **Corbettmaths answers outstanding: 517 → 457.**
+
+### And two more sheets whose fractions were the question
+
+`Fractions: Division` had **twelve rows that read `÷ 3`, `÷ 2`, `÷ 5` and nothing else** — the
+divisor is ordinary text and the fraction is artwork, so the text layer of every page is exactly
+the divisors. `Fractions: Finding the Original Amount` lost six of its eight the same way: *"Jackson
+is of Sam's age"*, *"of the children in a class have brown hair"*, where the missing word is the
+fraction the whole question turns on. Both restored from the rendered pages and answered, 20 more.
+
+**The working for a division names WHICH of the two methods the numbers allow**, because that is
+the thing being taught: 9/10 ÷ 3 divides the top, and 1/3 ÷ 2 cannot, so it cuts every part in two
+and multiplies the bottom. Which branch applies is decided by the numbers rather than written out.
+
+**Corbettmaths answers outstanding: 457 → 437.**
