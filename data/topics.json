@@ -285,5 +285,16 @@
 {"topic_id": "phys-elec", "label": "Electricity", "parent_id": "physics", "aliases": "electricity, resistance, circuits", "active": "True"},
 {"topic_id": "phys-particle", "label": "Particle Model of Matter", "parent_id": "physics", "aliases": "particle model, particle model of matter", "active": "True"},
 {"topic_id": "phys-forces", "label": "Forces", "parent_id": "physics", "aliases": "forces, hooke, terminal velocity", "active": "True"},
-{"topic_id": "phys-waves", "label": "Waves", "parent_id": "physics", "aliases": "waves, refraction, reflection", "active": "True"}
+{"topic_id": "phys-waves", "label": "Waves", "parent_id": "physics", "aliases": "waves, refraction, reflection", "active": "True"},
+{"topic_id": "bio-inherit", "label": "Inheritance & Evolution", "parent_id": "biology", "aliases": "inheritance variation and evolution, natural selection, genetics, punnett", "active": "True"},
+{"topic_id": "chem-atomic", "label": "Atomic Structure & the Periodic Table", "parent_id": "chemistry", "aliases": "atomic structure and the periodic table, periodic table, isotopes, group 1, group 7", "active": "True"},
+{"topic_id": "chem-bonding", "label": "Bonding & Structure", "parent_id": "chemistry", "aliases": "bonding and structure, bonding structure and the properties of matter, ionic bonding", "active": "True"},
+{"topic_id": "chem-quant", "label": "Quantitative Chemistry", "parent_id": "chemistry", "aliases": "moles, relative formula mass, percentage yield, concentration", "active": "True"},
+{"topic_id": "chem-organic", "label": "Organic Chemistry", "parent_id": "chemistry", "aliases": "crude oil, alkanes, alkenes, polymers, fractional distillation", "active": "True"},
+{"topic_id": "chem-atmos", "label": "Chemistry of the Atmosphere", "parent_id": "chemistry", "aliases": "the atmosphere, greenhouse gases, global warming, air pollution", "active": "True"},
+{"topic_id": "chem-resources", "label": "Using Resources", "parent_id": "chemistry", "aliases": "potable water, life cycle assessment, corrosion, composites", "active": "True"},
+{"topic_id": "phys-atomic", "label": "Atomic Structure", "parent_id": "physics", "aliases": "radioactivity, half-life, nuclear fission, nuclear fusion, alpha beta gamma", "active": "True"},
+{"topic_id": "phys-magnet", "label": "Magnetism & Electromagnetism", "parent_id": "physics", "aliases": "magnetism and electromagnetism, generator effect, motor effect, transformers", "active": "True"},
+{"topic_id": "phys-emwaves", "label": "Electromagnetic Waves", "parent_id": "physics", "aliases": "electromagnetic spectrum, gamma rays, radio waves, infrared", "active": "True"},
+{"topic_id": "phys-space", "label": "Space Physics", "parent_id": "physics", "aliases": "the solar system, red-shift, life cycle of a star, big bang", "active": "True"}
 ]

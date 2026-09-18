@@ -40,7 +40,10 @@ DOC = dict(paper_id=PAPER, subject='Chemistry', key_stage='KS4', band_type='stag
            active='True', trackable='True', printable='False')
 
 AS = 'Atomic Structure and the Periodic Table'
-BN = 'Bonding, Structure and the Properties of Matter'
+BN = 'Bonding & Structure'   # NO COMMA: `topics` is a comma-list, so a comma in a
+                             # name is a second topic. Measured: it split into
+                             # 'Bonding' and 'Structure and the Properties of
+                             # Matter', neither of which joins data/topics.json.
 QC = 'Quantitative Chemistry'
 CC = 'Chemical Changes'
 EC = 'Energy Changes'

@@ -33,7 +33,7 @@ DOC = dict(paper_id=PAPER, subject='Chemistry', key_stage='KS4', band_type='stag
            exam_date='2024-06-11', document_type='Past paper', name='Paper 2 — June 2024',
            active='True', trackable='True', printable='False')
 
-RT = 'The Rate and Extent of Chemical Change'
+RT = 'Rate of Reaction'      # the branch data/topics.json already has for this unit
 OR = 'Organic Chemistry'
 AN = 'Chemical Analysis'
 AT = 'Chemistry of the Atmosphere'
