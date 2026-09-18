@@ -2895,6 +2895,146 @@ cannot return one without a clip. A reader left standing over a permanently fals
 shape this file records under `resource_type` in `VOCAB` and under `libraryInto_`'s dead
 `kind === 'paper'` guard. `feedPicture` is untouched and still draws the widget.
 
+##### "No clips yet" was two different answers wearing one sentence
+
+**Reported with a screenshot of that card**, and I could not tell from it which of two things had
+happened — so the first fix was to the SCREEN rather than to the cause. A column that has looked at
+fifty-eight reel rows and found a clip on none of them is a data problem. A column that has looked
+at **nothing** is a code problem: `chess.js` holds the built-in list, and a browser serving a copy
+of it from before clips existed reports exactly the same empty card. The count is the only thing
+that can say which, and it is this repository's oldest fault for the fifth time — *I did not manage
+to look*, printed as *I looked and there was nothing there*.
+
+**Measured against the real Settings spreadsheet while looking for the cause: there is no `facts`
+tab at all.** `fact_id` appears nowhere in it and neither does `clip`; every hit on the word "facts"
+is inside a campaign's `blocks` column. So the sheet is not the explanation, and that is worth
+writing down because this file has said "the tab is empty" for a while when the truth is that
+`?setup=1` has never created it.
+
+**And the hunt found a real trap underneath.** `factsNow_` is all-or-nothing — the tab has rows, so
+the tab is the answer — which was right while both surfaces wanted the same list. The Reels column
+wants only the clips, so **one ordinary fact typed into the sheet would have hidden every built-in
+clip** and taken the column dark. The house rule is per LIST: `clipsNow_` asks the sheet for rows
+with a clip and falls through to the code's when it has none, exactly as `factsNow_` does for facts.
+
+**`reelItem_` was a SECOND reader of "which clips" and the mutant is what caught it.** It still
+filtered `factsNow_` while the screen asked `clipsNow_`, and the two disagree precisely in the case
+being fixed: one typed fact gave `{slides: 0}` under a card reading just "Reels" — heading,
+scroller, no slides, no empty state either. A second reader of one thing is a second chance to
+disagree about it, which is what this file says about `documents_()`, `paperIdOf_` and `factsNow_`
+itself. **Proved on four payloads**: the real files (6 slides), the built-in clips stripped ("Looked
+at 60 reel rows and none of them has a clip"), the list emptied ("no reel rows at all"), and one
+sheet fact beside the code's clips (6 slides, where it was 0 before).
+
+### AQA Physics 8463/1H is transcribed, and the first wide table in the library broke a rule
+
+**43 questions, every answer read off AQA's own 8463/1H scheme.** The 2017 Highers are why that is
+the rule and not a preference, and `tools/insert-aqa-physics-8463-1H.py` asserts **both** totals
+before it writes a row: the cover's 100, and the ten boxes down the margin — 10, 10, 9, 10, 13, 9,
+8, 8, 11, 12. A dropped part or a misread mark count fails in the script rather than shipping.
+
+**Three answers are PICTURES and were rendered rather than remembered.** 03.2 asks which of four
+graphs shows resistance against length; 05.4 and 10.2 ask you to draw a thermistor and a fuse. All
+three print a drawing in the scheme and nothing in the text layer, so all three were rendered at
+scale and looked at — *a screenshot is the last word on a drawing*, for the sixth time. 03.2 is a
+straight line from the origin, which is also what R = ρL/A says, and the answer is written as that
+sentence rather than as a box letter nothing here can see.
+
+**What a figure carries is said, and attributed, and never written into the question.** Eight parts
+hang off artwork: a circuit, a fission diagram, three photographs, three graphs a value is read off.
+Each carries `figure` so `check-library.js` counts it, and where the SCHEME states the number the
+figure would have given — 80 Ω at 20 °C, about 3 cm of air, 7.1 × 10²⁰ Bq — it is in
+`examiner_note` saying it came from the scheme. The alternative is a question that reads as though
+the paper printed a number nobody transcribed, which is the fault this file records under the
+scatter graph and under the curve read by eye.
+
+#### `check/cards.js` caught my own table, and then it caught the check
+
+**Table 1 went 26px past a 320px column.** Four columns — method, energy stored per 100 kg,
+percentage wasted, installation — and every table in the library before it had three or fewer, so
+the rule had never met one that cannot shrink. Caught on the commit that added it, which is the
+whole argument for laying out all four thousand rows rather than sampling.
+
+**The house rule says which way it goes**: the page body never scrolls sideways and *"only wide
+tables, code and diagrams may run past it — each gets `overflow-x: auto` on its own container"*.
+Squeezing the columns instead would have been `.mat-face` again — the label that cannot shrink is
+the one that breaks, and "Percentage of stored energy wasted" is four words that have to stay.
+`display: block` is what makes it possible at all: a `table` box ignores `overflow` because it is
+not a block container.
+
+**And then the check went on reporting it**, because the overflow had moved from the card to the box
+now holding it deliberately. **CLAUDE.md already states the question this check is asking** — *"does
+this box scroll sideways when it was NOT told it could"* — and the code was asking the other one. It
+skips an element whose computed `overflow-x` is `auto` or `scroll` and **does not skip its
+ancestors**, which is the half that keeps it honest: a scroller cannot hide a card that is genuinely
+too wide, because the card is measured on its own pass. **Proved by mutation**: put the table back
+to `visible` and it fires on `.qsheet` at the same 26px.
+
+#### And the headline sentence had gone stale, which the transcription is what exposed
+
+**"61 Edexcel GCSE maths papers checked at 80 marks"** — `marks.size` is every paper summed against
+a declared total, whoever set it, and the whole point of `total_marks` was to stop that rule knowing
+about one board. It stayed readable while the only papers with a total WERE Edexcel maths at 80; the
+first AQA paper summed against its own 100 made it plainly false. Fourth time this file records the
+shape, after "all 18 checks pass", "one of the eighteen names", and the prose over `CARD_W` naming
+88% and 4% while the code said 80 and 8. It says what the number is now.
+
+### Eighteen science papers, named off their covers rather than their filenames
+
+**`newbatch` holds eighteen June 2024 science papers and not one filename says which subject it
+is.** AQA names every subject's download `Question paper (Higher)_ Paper 1 - June 2024.pdf`, so
+Drive had disambiguated them into `(1)`, `(2)`, `(3)` — an ordering that means nothing. Every one
+was identified by reading the front cover, which is the rule this file already records for the
+Edexcel codes: **check the metadata and the cover before reading a single page.**
+
+| | June 2024, all with mark schemes beside them |
+|---|---|
+| **AQA Biology 8461** | Foundation Papers 1 and 2 |
+| **AQA Chemistry 8462** | Foundation Papers 1 and 2, Higher Papers 1 and 2 |
+| **AQA Physics 8463** | Foundation Papers 1 and 2, Higher Papers 1 and 2 |
+| **Edexcel Combined Science 1SC0** | Higher Papers 1–6 — **no mark schemes** |
+
+**And the file named `Insert (Foundation)_ Paper 1` is not an insert.** It is AQA's **Physics
+Equations Sheet**, stamped "FOR USE IN JUNE 2024 ONLY". Read as the filename says it, an AQA insert
+means English Language — and this library already holds two English papers whose source is a
+`placeholder` row waiting to be replaced. Opening it is the only thing that stopped a formula sheet
+being filed as a reading source.
+
+**The Edexcel slug is a publication date, and this is the second proof.** Every one of the six
+carries a full date in its filename and **every one is a day after the date on its own cover** —
+`1sc0-1bh-que-20240511.pdf` over *Friday 10 May 2024*. One is worse: `1sc0-1ph-que-20240822.pdf`
+over *Wednesday 22 May 2024*, three months out. This file already refuses to bulk-fill `exam_date`
+from that slug on the evidence of eight Saturdays; six papers with a consistent +1 offset and one
+with a wrong month is the same finding from a different board.
+
+**`paper` goes to 6, and the cap was never a rule about exams.** 1SC0 is six papers — biology,
+chemistry and physics, each sat twice — and its own covers read "Combined Science PAPER 4" over the
+code `1SC0/2BH`. A vocabulary of `1, 2, 3` was the shape of the one qualification somebody had in
+front of them, which is the sentence this file writes about `isEdexcelGcseMaths`. `Equation booklet`
+is a seventh `needs` for the same reason `Periodic table` was a sixth: four 8463 covers and two
+1SC0 covers hand the student a sheet of formulae, and what is on the table beside them is what this
+column is for.
+
+#### The transcription queue was in neither count
+
+**`marks` is keyed off QUESTION rows**, so a document row carrying `total_marks` with nothing under
+it yet is in neither of the two numbers this check prints: not "checked against a total", because
+there is nothing to sum, and not "no total to check against", because it has one. **Sixteen science
+stubs went in across two sittings and both numbers stayed exactly where they were** — 60 and 186,
+before and after.
+
+**That is a count doing its job and hiding something at the same time**, which is the shape recorded
+here twice already: `papers checked against a total` going 34 → 2 under a green tick, and a
+substring calling five practicals required. So the third number is printed, and **it is 87** — the
+sixteen sciences plus seventy-one maths papers that have been identified, given a total, and never
+transcribed. Nobody had ever counted them. A stub with a total is not a fault and it is not nothing:
+it is the queue, already carrying the one number that will refuse a wrong transcription the moment
+anybody starts typing one.
+
+**Ten lines and a remainder**, because eighty-seven on every run is a list nobody reads. That is
+`ACCEPTED_TAP`'s argument pointed the other way: that one prints in full because it must not grow,
+and this one is meant to.
+
 ### AQA Chemistry, as two document rows and nothing else yet
 
 **What was added to Drive as "higher 2024 bio" is AQA GCSE CHEMISTRY 8462**, Higher, Papers 1 and 2,
@@ -3504,3 +3644,672 @@ Follow it. It is unusual and it is deliberate.
 - Version constants — `BACKEND_VERSION`, `DOGET_VERSION`, `DOPOST_VERSION`, `BOOKING_VERSION` — are
   compared on the **whole stamp**, so bump all four together or the You screen reports the untouched
   ones as "Not deployed".
+
+## AQA Physics 8463/2H, and the check that could not see inside a drawing
+
+**43 questions against `Mark scheme (Higher)_ Paper 2 - June 2024`**, read rather than derived. The
+cover says 100 and the scheme's own `Total Question n` lines say 13, 14, 16, 14, 9, 8, 18, 8; both
+are asserted in `tools/insert-aqa-physics-8463-2H.py` before a row is written. So are the numbers
+the scheme prints back inside its own working — ½ × 56 × 220 = 6160, 56 × 380 = 21 280, 36 ÷ 120 =
+0.3, 110 000 000 ÷ (1026 × 9.8) = 10 940, 3.6 × 10¹⁷ ÷ 3.0 × 10⁸ — because a scheme can be
+mis-READ, and a number mistyped into the script now fails there instead of shipping.
+
+**Four figures are drawn and seven are described, and the line between them is the one this file
+already draws twice.** Figure 2 IS Table 1 plotted, Figure 7 is one triplet of absorption lines at
+three shifts, Figure 9 is four letters at 45°, 90°, 135° and 180° round a circle, and Figure 12 is
+five coordinates the mark scheme quotes back — each is a drawing instruction with exactly one
+answer. The baby walker, the gears, the submarine, the headlight, the trolley runway, the ammeter
+demonstration and the microphone are apparatus photographs: they carry `figure` so
+`check-library.js` counts them, and what they show is said in prose. **Figure 7 is built from one
+base triplet and two offsets** rather than nine independent lines, because "the lines have the same
+pattern" is the question's own first sentence and a picture whose patterns did not match would
+contradict it.
+
+### `check/cards.js` was measuring inside the drawings, and CLAUDE.md already said why that is wrong
+
+**It reported 5 rows up to 21px past the column and every one was a false alarm.** A y-axis label is
+written once and rotated into place — `<text x="12" … transform="rotate(-90 12 98)">` — so its
+LAYOUT box runs from x = −51 while the glyphs it paints sit at x ≈ 12. **That is this file's own
+entry under `.mat-out`**: *"a transform is invisible to `scrollWidth`"*, which cost two wrong fixes
+the first time and would have cost the axis labels this time.
+
+**And nothing inside an `<svg>` can push the page sideways at all.** The outermost `<svg>` clips to
+its viewport — the UA default, not a rule this repository set. So the rule is narrow and provable:
+the `<svg>` is an ordinary replaced element in the HTML flow and is still measured; its descendants
+are not. **Proved by mutation in both directions** — forcing `.qsheet figure svg { width: 400px }`
+still fires, on the `<svg>`, at +104px across 66 rows.
+
+**`className` on an SVG element is an `SVGAnimatedString`, not a string**, so every finding inside a
+drawing printed as `[object Object]` — one grouping key for every cause, in the one report whose
+grouping exists so that fifty rows with one cause are one line.
+
+### A screenshot caught two more, and neither measured wrong
+
+**`text-anchor` as an attribute lost a specificity race it did not look like it was in.**
+`.qsheet .num` sets `text-anchor: middle`, and **CSS beats an SVG presentation attribute** — so
+`text-anchor="end"` on the y-axis numbers did nothing and all ten sat centred on the axis line.
+Same shape as `.price.faint`: it reads as a decision and behaves as nothing. Inline `style` now.
+
+**The same fault clipped the Earth's own layer names.** `Liquid outer core` is the widest text in
+Figure 9; anchored `middle` instead of `end` it ran off the left of the viewBox and the `<svg>`
+clipped it to `quid outer core`. The Earth sits right of centre now so the three names have room to
+read leftwards off their leader lines. **Seventh time this file writes that a screenshot is the last
+word on a drawing.**
+
+**And a plot is sized by how many labels it has to carry.** Ten values up a 136-unit axis at the
+13px this stylesheet sets for `.num` is ten labels in the space of ten labels, which came out as a
+grey smear. Both graphs go through one `axes()` now — one scale placing the marks, the ticks and the
+labels — and the box height is derived from the label count rather than guessed.
+
+## AQA Chemistry 8462/1H, and a figure with no text layer and no vectors
+
+**44 questions against `Mark scheme (Higher)_ Paper 1 - June 2024`.** Cover total 100, margin boxes
+10, 11, 8, 14, 10, 11, 15, 9, 12, and every intermediate the scheme prints inside its own working —
+232, 168/232, 40 000 ÷ 160, 250 × 3/2, 2(347) + 5(498), 6(805) + 8(464), 3139 ÷ 8 — recomputed in
+`tools/insert-aqa-chemistry-8462-1H.py` before a row is written.
+
+**Figure 3 is a raster image inside the PDF.** No text layer, no vectors, nothing to extract — so
+the gridlines were found by their own regular spacing, the scale fixed from them (2.5 °C and 0.10 g
+per major division), and the eight crosses located as dark blobs. That is this file's own rule for a
+picture carrying data, and **the mark scheme is what proves the scale**: it reads the crossing point
+of the two lines of best fit as 0.8 g and 47 °C, and that lands exactly on the fifth cross.
+
+**Two figures are drawn and the drawing IS the question.** 02.4 is *"plot the data from Table 1 on
+Figure 1"*, so the picture it needs is the grid with nothing on it — and with the grid there,
+`padSource_` lays a pen over it and the question can be answered on a phone. 04.1 asks for two lines
+of best fit on Figure 3, so Figure 3 is drawn with its eight measured crosses and nothing else. The
+library's drawable-question count went 8 of 139 to **10 of 141** — and the first version of
+this paragraph said 12 of 143, a number I wrote down instead of reading off the run, which is
+the fault this file records as "all 18 checks pass".
+
+**And where a picture decides the answer but cannot be drawn, what it shows is in the question's own
+words.** The blue patch by the negative electrode and the yellow by the positive; the four reaction
+profiles and which way each arrow points; the three-carbon chain of propane. A question about a
+picture you cannot see is not a question — which is the fault this file records under *"on the app
+it's just text"*, one paper along.
+
+### `tools/svgplot.py` — one plotter, because the third graph would have been the one that drifted
+
+`axes()` was written inside the Physics 2H insert script and the Chemistry paper needed it the same
+afternoon. **Two implementations of one thing is two chances to disagree about it** — this file's
+sentence about `documents_()`, `paperIdOf_`, `factsNow_` and `childrenOf` — so it is a file both
+import. **The extraction was proved byte-identical**: the physics rows were regenerated through the
+shared copy and compared cell by cell against what was already committed, which is how the one real
+difference showed up. Adding `ymin` (Figure 3 starts at 20 °C, not 0) changed the minor-grid loop,
+and `round()` where the old code had `int()` put one extra gridline 5px past the frame on a graph
+that had nothing to do with the change. Same move as the `libraryExtras_` cutover: prove it
+identical first, then make it.
+
+## AQA Chemistry 8462/2H, and a paper where nothing was drawn on purpose
+
+**47 questions against `Mark scheme (Higher)_ Paper 2 - June 2024`.** Cover total 100, margin boxes
+10, 8, 9, 13, 12, 11, 8, 13, 16, and every intermediate the scheme prints — 140 ÷ 4, 35.0 × 39.3/100,
+5.4 ÷ 0.48, 3.50 × ½ × 100/20, (39 − 25) ÷ 24 000 — recomputed before a row is written. So is the
+combustion equation, balanced element by element: `2 C₄H₆O₂ + 9 O₂ → 8 CO₂ + 6 H₂O`. **The first
+version of that assertion was wrong and it failed**, which is what an assertion is for — I had
+written the oxygen balance as one sum instead of two sides, so it compared 26 against 18 and
+refused. Three lines, one per element, is the form that cannot be written wrong by accident.
+
+**Eleven figures and not one drawn, which is a decision rather than a gap.** A Haber flow diagram, a
+water-treatment flow diagram, two chromatograms, a bicycle, a displayed formula, apparatus, two
+measuring cylinders and three graphs — none is a picture the row's own words determine. 09.3 is the
+sharp case: *"draw a tangent on Figure 12"*, and redrawing that curve by eye is precisely the
+mistake this file records where a cumulative-frequency curve read by eye gave 50 where the pixels
+said 48.1.
+
+**So what each figure SHOWS is written into the question in words**, with the numbers the scheme
+itself quotes: 25 cm³ and 39 cm³ off the two cylinders in Figure 11, the plateau at 0.0168 mol on
+Figure 12, half of it on Figure 13, which spot is higher in Experiment 2, which way the yield goes
+with temperature, and compound A written along a line as CH₂=CH—O—C(=O)—CH₃. A question about a
+picture you cannot see is not a question — the fault this file records under *"on the app it's just
+text"*. They all still carry `figure`, so `check-library.js` counts them in the backlog rather than
+letting the prose hide them: that count went 490 → 506 in this commit, which is the honest number.
+
+## AQA Biology 8461/1F, and the one figure AQA itself could not print
+
+**58 questions against `Mark scheme (Foundation)_ Paper 1 - June 2024`.** Cover total 100, margin
+boxes 12, 8, 10, 14, 14, 14, 14, 14, and every intermediate the scheme prints — 63/210 cancelled as
+an exact `Fraction`, 210 − 23, 216 − 185, (23 + 63)/2, 174 ÷ 3, 50 ÷ 800 × 1000, 1.1 ÷ 6.0 × 100 —
+recomputed before a row is written.
+
+**Figure 2 is the case this repository already had a rule for, arriving from the other direction.**
+Where the photograph should be, AQA's own question paper prints *"Figure 2 cannot be reproduced here
+due to third-party copyright restrictions"* and names the journal it came from. That is exactly the
+AQA English insert: a source that is not in the paper, and could not be in a public repository
+either. So the row says what the figure is OF, and `examiner_note` carries AQA's own sentence and
+the citation — nothing anywhere pretends to be the picture.
+
+**Figure 6 is drawn, because the drawing IS the question.** 07.7 is *"label the y-axis, add the
+correct scale, plot the data, label each bar"* on a blank grid with disease E's bar already on it —
+ten large squares by fifteen, five small to a large, and E standing 2.8 large squares tall. That
+last number is what makes the grid a drawing instruction rather than a sketch: the scale the scheme
+asks for (1 cm = 5%) is recoverable from the one bar that is already there, and fifteen squares is
+exactly the headroom disease H at 70% needs.
+
+**And what a figure shows is not what its answer is.** Figure 4 is described as a pie chart whose
+rim carries ten equal ticks, with four of them under the growth sector — not as "the growth stage is
+40%", which is 05.4's answer. The line is easy to cross while writing a description that has to be
+useful, and crossing it turns a question into a sentence with the answer in it.
+
+## A comma in a topic name is two topics, and eleven AQA units joined nothing
+
+**Found by auditing the four science papers I had just transcribed**, which is the only reason it is
+not a fault somebody reports in a month as "the filter has a topic called Bonding in it".
+
+**`Bonding, Structure and the Properties of Matter` is AQA's own heading for unit 4.2 and it cannot
+go in this column.** `topics` is a comma-list read by `asList_` — the same shape as `keystage` and
+`needs` — so that one name arrived as **two** topics, `Bonding` and `Structure and the Properties of
+Matter`, and neither joins `data/topics.json`. **Same lesson as the practicals' pipe separator**,
+where 14 of 410 equipment cells carried a comma inside one item and no comma rule could tell them
+apart. There the fix was a different separator; here the column is already committed with commas
+meaning "next topic", so the fix is that a topic name may not contain one. `Bonding & Structure`.
+
+**And `The Rate and Extent of Chemical Change` was a second home for a branch that already existed.**
+`data/topics.json` has carried `Rate of Reaction` with its aliases since before these papers. Adding
+the spec's longer heading beside it is the `Density` decision again — *"a second home is two branches
+for one word"* — so the rows say `Rate of Reaction` and the tree is untouched.
+
+**Eleven AQA units had no branch at all**, so 80 questions resolved to no `topicArea`: Atomic
+Structure (chemistry's and physics's are different units and both are there now), Bonding &
+Structure, Quantitative Chemistry, Organic Chemistry, Chemistry of the Atmosphere, Using Resources,
+Magnetism & Electromagnetism, Electromagnetic Waves, Space Physics, and Inheritance & Evolution for
+the Biology Paper 2 still to come. Each is a child of its subject root, with the short forms people
+type as aliases — **and no commas in a label or an alias either**, because both are comma-lists too.
+
+**Diffed over the whole library before it was kept**, exactly as the last three roots were:
+**80 questions gained an area, 0 lost one, and 0 moved from one area to another.** That third number
+is the one worth taking: `topicAreaOf_`'s containment pass resolves a name only when every candidate
+agrees, so a new branch can quietly take a maths topic away from maths — `Energy`, `Forces`, `Waves`
+and `Rates` are ordinary English and have done it before.
+
+## AQA Biology 8461/2F — eleven questions, and the grid whose x-axis is the question
+
+**61 questions against `Mark scheme (Foundation)_ Paper 2 - June 2024`.** Cover total 100, margin
+boxes 9, 10, 8, 8, 9, 10, 9, 8, 8, 10, 11, and the scheme's own arithmetic asserted: 30 − 20,
+100 ÷ 0.01, 32 − (9 + 7 + 10), 22 ÷ 60 × 100, and 10% of 340 for one trophic level.
+
+**Figure 15 is drawn because half of it is missing on purpose.** Its y-axis is printed and numbered
+0 to 70 in tens; its x-axis has no label and no scale, and supplying them is two of the four marks.
+Eleven large squares by seven, five small to a large — and the grid has room for every total it has
+to carry, which the script asserts rather than eyeballs.
+
+**Figure 11 is a table, not a picture.** A Punnett square with the female gametes filled in and the
+male column and four offspring cells blank is `<table>` markup that the stylesheet already knows how
+to draw, so it goes in as one rather than as SVG.
+
+**And the script refuses a comma in a topic name**, one line, because that is the fault the commit
+before this one repaired: `topics` is a comma-list, so a comma inside a name is a second topic. A
+rule applied by hand is not a rule — the sentence this file writes about `cost: 0` and `paper: true`
+— so it is an assertion in the writer rather than a thing to remember.
+
+## AQA Chemistry 8462/1F, and three questions that are on both tiers word for word
+
+**58 questions against `Mark scheme (Foundation)_ Paper 1 - June 2024`.** Cover total 100, margin
+boxes 9, 10, 14, 10, 10, 10, 8, 10, 11, 8, and the scheme's own arithmetic asserted: 63.5 ÷ 159.5,
+47 − 22, 6.75 ÷ 0.025, 6 × 4² and 4³ down to the 3 : 2 ratio, (27 × 2) + (16 × 3), 4 × 1.5.
+
+**Questions 8, 9 and 10 are questions 1, 2 and 3 of 8462/1H**, which is the overlap AQA prints on
+both tiers, and **the two mark schemes were read side by side rather than assumed to agree**. They
+are transcribed again rather than cross-referenced, because a row belongs to the paper a student is
+holding: somebody working through the Foundation paper should not be sent to the Higher one for
+question 8.
+
+**That is NOT the duplicate this library refuses**, and the distinction is worth stating because the
+rule is one screen away. `check-library.js` fails on two `paper_id`s pointing at one Drive file —
+one document entered twice. These are two different documents, with two different covers, two
+different totals down the margin and two different `source_url`s, that happen to share three
+questions. Nothing here is entered twice.
+
+**Figure 15 is the same empty grid as the Higher paper's Figure 1**, so it is the same `axes()` call
+with the same arguments rather than a second set of coordinates that could drift from it — which is
+the whole reason `tools/svgplot.py` exists.
+
+## AQA Chemistry 8462/2F, and an assertion that caught binary floating point
+
+**63 questions against `Mark scheme (Foundation)_ Paper 2 - June 2024`.** Cover total 100, margin
+boxes 12, 9, 9, 13, 11, 9, 10, 10, 8, 9. Questions 8, 9 and 10 are 1, 2 and 3 of 8462/2H word for
+word — the tier overlap again, both schemes read side by side.
+
+**`assert 2.4 / 6.0 == 0.4` failed, and it was right to.** The R_f value really is 0.4 and Python
+really computes 0.39999999999999997, because neither 2.4 nor 6.0 is exact in binary. Every other
+number on this paper compares exactly; this one had to be rounded, with the reason written beside
+it. **An assertion that only ever passes teaches nothing** — this one earned its line by refusing a
+true statement for a reason worth knowing.
+
+**Two grids are drawn and the marks are in them.** Figure 2 carries the hydrogen bar at 16% already,
+and that bar is what fixes the scale — one large square is 10% — so the carbon bar can be drawn to
+84 without guessing. Figure 3 has both axes printed and only the plotting left, so it comes straight
+out of `axes()`.
+
+**The tick-box structures are written out as they DIFFER.** "Which of these shows the compound
+produced when chlorine reacts with ethene" is three displayed formulae that are identical except for
+where the chlorines sit, so the row lists them that way — one Cl on the first carbon; one on each;
+two on the first. A question asking "which of these" is unanswerable without them, and a structural
+formula is text, not a picture.
+
+## AQA Physics 8463/2F — and `scatter()`, because two papers print one graph
+
+**60 questions against `Mark scheme (Foundation)_ Paper 2 - June 2024`.** Cover total 100, margin
+boxes 8, 9, 8, 13, 9, 8, 18, 13, 14, and the scheme's own arithmetic asserted — including
+√18.62 = 4.3 to two significant figures.
+
+**Questions 8 and 9 are questions 1 and 2 of 8463/2H word for word**, so <b>Figure 14 here is Figure
+2 there</b>: the same six points of Table 1 plotted on the same grid. Building that twice is two
+chances to disagree about where a cross goes, so the plotter moved to `tools/svgplot.py` as
+`scatter()` — **and the extraction was proved byte-identical against the Higher paper's already
+committed rows before it was kept**, which is the `libraryExtras_` move: prove it identical first,
+then make it.
+
+**Figure 9 is drawn from the corners the scheme quotes back.** A distance–time graph in three
+straight sections, 3200 m in 2000 s at a mean of 1.6 m/s, with B the shallowest — every one of those
+is a number the scheme prints, so the picture is determined and the script asserts the last corner
+gives the mean speed. **Figure 6, one question earlier, is NOT drawn**, and the two together are the
+line this repository keeps: 03.4 says only that the acceleration falls as the mass rises, and no
+point on it is stated anywhere in the paper, so redrawing it would be inventing data.
+
+**And `9.8` is not exact in binary either.** `25000 * 9.8` is 245000.00000000003, so the weight
+assertion needed rounding — the second time in two papers that an assertion refused a true statement
+for a reason worth writing down.
+
+### `and` against `&` is two buttons, and my own probe said there was nothing there
+
+**Nine AQA science papers went in over one session and three units ended up spelled both ways**:
+`Atomic Structure and the Periodic Table` beside `Atomic Structure & the Periodic Table`,
+`Magnetism and Electromagnetism` beside `Magnetism & Electromagnetism`, and `Infection and Response`
+where `data/topics.json` says `Infection & Response`.
+
+**`spellKey_` cannot fold these and is not meant to.** It reduces an answer to its letters and
+digits, which is what makes `Alevel` and `A-Level` one button — and `and` is four more letters, so
+the two spellings are two identities and two answers in the funnel for one unit.
+
+**The throwaway probe I wrote to look for exactly this reported clean.** It normalised `the` out of
+the middle of words and collapsed the wrong things; the raw tally of topic values, printed and read
+line by line, showed all three immediately. **Same shape as `check-booking.js` exiting 0** — an
+instrument that could not reach its subject, and I believed it. The rule is in `check-library.js`
+now, so the next one fails instead of being looked for.
+
+**And the first version of that rule was too wide, which is the `check-rows.js` lesson again.** It
+lower-cased as well, so it reported all 46 of the file's case-only pairs — `Histograms` beside
+`histograms` — as faults. Those are correct: `spellKey_` folds them and `topicOf_`'s vote picks the
+spelling to show. The rule asks only the one question that fold cannot answer. **Proved by mutation
+in both directions**: one row changed back to `and` fires it and exits 1; the real file is green.
+
+## The Corbettmaths primary answers are computed, and the sheet with no mark scheme is the safe case
+
+**Asked for as the Factors sheet and it turned out to be nearly done** — 12 of its 13 questions
+already carried an answer. What is actually outstanding is the rest of the primary library:
+**708 Corbettmaths questions with no answer at all**, across 69 worksheets.
+
+**Corbettmaths publishes no mark scheme for these, which everywhere else in this file is the state
+that stops a transcription.** The 2017 Highers are why: four answers there were subtly wrong
+*because they were derived* — a reading off a grid the algebra disagreed with, two single values
+where the scheme takes a range. **What makes deriving safe here is that these questions have an
+exact inverse.** `XXIV` is 24 or it is not, and `nine thousand and nine` is 9,009 or it is not. So
+`tools/cbmnum.py` holds both directions of each conversion and **every answer is round-tripped
+against the question's own words before it is written** — convert, convert back, compare. A wrong
+answer is a shape that cannot occur rather than one to check for, which is the same move the
+fraction sheets already make by keeping the sum and the words in one table.
+
+**The converters are self-tested over their whole range** — all 3,999 Roman numerals and every
+number under ten thousand — and then separately against **the sheet's own printed convention**,
+which a round trip cannot see: a round trip only proves the two halves agree with each other.
+`nine thousand and nine`, `two thousand, three hundred and eighty` — a comma when the part below
+carries a hundreds digit, `and` when it does not. That is what is printed on the worksheet, so it
+is what a child's answer is marked against.
+
+**The explanation is computed too, not written out.** `roman(38)` and the sentence under it are
+built from the same decomposition, so the numeral and "XXX is 30, V is 5, III is 3" cannot
+disagree. The subtractive note names **the additive spelling a child actually writes** — `LXXXX`
+for `XC`, `IIII` for `IV` — computed by running the same table with the subtractive pairs removed.
+The first version invented `IIIIIIIIIX` as the slip for `IX`, which is not a mistake anybody makes;
+a sentence generated confidently and wrong is worse than no sentence.
+
+**One row asks two questions and a rule answering only the first would have reported it done.**
+Question 7 of the Roman numerals sheet was transcribed with question 6's tail on it. The rule
+collects every ask in the row, and a row with more than one gets no `accept` — there is one box on
+screen and two answers, exactly as the multi-part Factors rows already do.
+
+### Five rows cannot be answered, and one of them was nearly hidden by the right-sounding label
+
+**A clock face, a matching exercise, a calculator display, and George's four wrong answers.** Each
+is a question ABOUT a picture the transcription lost, so each gets a `figure` — which does not
+invent the picture; it puts the row into the number `check-library.js` prints every run. **629 →
+630**, read off the run.
+
+**`working` was the obvious label for George's answers and it is on `ANSWER_SPACE`.** That list
+exempts a row whose figure is somewhere to WRITE — a complete question with a blank beside it —
+and George's four printed answers are the opposite: a picture the row needs and does not have.
+Filed as `working` the row would have been exempted from the very count it belongs in. **`figure`
+is two columns under one name**, and this is the first time a row landed on the wrong side of that
+line by being labelled accurately.
+
+**708 left, and the script says so per sheet on every run.** A pass that answered what it
+understood and printed nothing about the rest would be this repository's oldest fault for the
+sixth time — *I did not manage to look*, reported as *I looked and there was nothing there*.
+
+### The worksheet PDFs are in Drive, and that changes the job from answering to repairing
+
+**`Fraction of Amounts` had no fractions in it.** Fourteen questions reading *"Work out      of
+24"* — Corbettmaths sets a fraction as stacked artwork, so the text layer holds the word "of" and
+the number and nothing else. **This file already records that fault and fixed it for two sheets**;
+this one was never done, and nor were `Fractions: Division`, `Multiplying Fractions`, `Top Heavy
+Fractions`, `Equivalent Fractions` or `Fractions, Decimals and Percentages`. A child opening any of
+them gets a question with no numbers in it, which reads as the app being broken.
+
+**What makes it repairable is that the PDFs are in Drive** — all 71 of them, in one folder, every
+one shared `anyone: reader` (checked before anything was written). So the method this file already
+records applies: extract the text, find it is not there, then **render every page and read it**.
+
+**The rows were mis-split as well as empty.** Page 2 of that PDF holds questions 1, 2 and 3 and the
+transcription made it ONE row — `Work out of 24 Work out of 18 Work out of 60` — so four row ids
+were never created at all. Ten rows become fourteen, and the sheet now matches the paper it is a
+transcription of.
+
+**Every answer is computed from the restored question**, so a misread numerator and a wrong answer
+cannot come apart: the fraction in the `html` and the `Fraction` in the arithmetic are the same two
+numbers, which is the shape the adding-fractions repair already used.
+
+### All 69 Corbettmaths sheets had no link to themselves
+
+**A document row's URL is the point of the row.** It is what a tutor opens to print the sheet, and
+every Corbettmaths document in this library was missing it while its PDF sat in Drive, public by
+link. 63 of 64 carry one now.
+
+**The match is by name and it refuses to guess.** A Drive title is slugged, the document's own
+`name` is slugged, and a row is linked only on an exact match against exactly one file; twelve real
+differences are an `ALIAS` table with a reason each (`fdp`, `reverse-fractions`). **A link to the
+wrong worksheet is worse than no link**, because it prints the wrong homework — so everything else
+is printed rather than resolved: one sheet with no PDF, nine PDFs no sheet claims.
+
+**Five `P-1CMP-…` sheets were deliberately left alone**, and the reason is the one this file
+records about the `W-CBM-`/`W-1CM-` mix-up. Their names — `Adding Decimals`, `Area of Squares and
+Rectangles`, `Volume of a Cuboid` — match Corbettmaths PDFs exactly, and their ids say `1CM`, which
+is this library's prefix for **1st Class Maths**. Both publishers make a sheet on each of those
+topics. Their `company` cell is empty, so nothing states which, and attributing them from a name
+match is precisely how three duplicate transcriptions got in last time.
+
+## KS2 SATs 2019 Paper 1, and `&amp;` is a third spelling the rule did not fold
+
+**36 questions read off the 2019 mark scheme**, not derived — the 2017 Highers are why that is the
+rule. The paper is out of 40 and 32 one-mark questions plus four two-mark long multiplications and
+divisions is 40, asserted before a row is written.
+
+**Fourteen questions are artwork.** The text layer gives `16 3 3 =` for 3 cubed and
+`22 13 7 − 4 7 =` for 1³⁄₇ − ⁴⁄₇ — loose digits, the failure mode this file already records four
+ways. Every one was recovered by rendering its page and looking at it.
+
+**And this one CAN be reproduced**, where an exam board's cannot. The paper's own copyright page
+says it is Crown copyright under the Open Government Licence v3.0 and contains no third-party
+content, which is exactly the opposite of the AQA English insert a few sections up. The licence
+asks for attribution and the document row carries it.
+
+### The check that exists to catch two spellings did not catch mine
+
+**I wrote `Multiplying &amp; Dividing Fractions` into the insert script** — an HTML entity, in a
+column that is not HTML — beside the 22 rows already saying `Multiplying & Dividing Fractions`.
+Two buttons for one topic, which is the `and` against `&` fault one section up, wearing an escape.
+
+**The rule folded `&` onto `and` and left `&amp;` alone**, so it passed. That is this repository's
+own sentence about `cost: 0` and `paper: true` for the fifth time: the fault was repaired in the
+data and the rule that was supposed to stop it could not see the new spelling. Entities are
+unescaped before the fold now, and the insert script asserts the same thing at the other end so a
+topic cannot leave a writer carrying one. **Proved by mutation in both directions.**
+
+### Papers 2 and 3, and a backlog count that counted the wrong rows
+
+**46 more questions, 70 more marks**, read off the same scheme. The SATs student now has two full
+years — 2024 and 2019, six papers, 178 questions.
+
+**The first pass of Paper 2 marked seventeen rows as needing a picture. Five do.** The other twelve
+have their content in the row: the multiplication grid is reproduced as a `<table>`, the five
+temperatures are in the prose, the cuboid's three dimensions are stated. Filing those as missing
+pictures puts twelve questions nobody has to fix into the library's backlog — **which is the mirror
+of a silence, and this file has only ever recorded the other direction.** A number that counts work
+that does not exist stops meaning anything just as surely as a number nobody prints.
+
+**So the rule is the one `figure` already had, applied properly**: an `ANSWER_SPACE` label is what
+the column means when the paper printed somewhere to WRITE, and a counting label is for a picture
+the row genuinely lacks. Five on Paper 2 — a shape to reflect, a measuring container, shopping
+scales, a hexagon beside a square, a card marked with grid lines. Six on Paper 3 — a pictogram whose
+symbols ARE the data, a coordinate grid with three points already on it, six triangles arranged into
+a rectangle, and the labelled corners of ABDE.
+
+**And the script prints the number `check-library.js` will count**, not "rows with a figure". Those
+are different questions, and the first version printed the second while meaning the first.
+
+**Question 21 of Paper 3 is the one worth reading twice.** The text layer gives `(25, 30) (40, 22)
+A B E D C` — seven tokens with no geometry in them — and the scheme answers B = (55, 30) and
+D = (55, 14). Those two facts together settle which point is which: if A is (25, 30) and C at
+(40, 22) is the CENTRE, the corner opposite A is (2×40−25, 2×22−30) = (55, 14). The script asserts
+it, so the reading is checked rather than assumed.
+
+## AQA Biology 8461 Higher, and the paper that was in Drive under a filename naming no subject
+
+**I told the owner Biology Higher was missing. It was there.** AQA names every subject's download
+`Question paper (Higher)_ Paper 1 - June 2024.pdf`, so four subjects arrive under one filename and
+Drive disambiguates them into `(1)`, `(2)`, `(3)`. **The unsuffixed copies are 8461/1H and 8461/2H
+with both mark schemes**, and they were the first four files uploaded. What found them was not
+reading the folder again: it was noticing that four of the thirty-two files had a byte size matching
+nothing already transcribed, and then opening their covers. **This file's own rule — check the
+metadata and read the front cover before reading a single page — is the one that works, and a
+listing is what fails.**
+
+**91 questions against AQA's own two schemes**, 100 marks each. The covers say 100 and the margin
+boxes say 14, 14, 12, 12, 11, 8, 17, 12 and 8, 10, 11, 15, 14, 11, 13, 10, 8; both are asserted, and
+so is every intermediate the schemes print — the cylinder length 499.363 nm and the magnification
+×8010, the missing table value, 22 ÷ 60 × 100, both routes through the maize energy calculation
+(46 000 ÷ 209 920 and 46 000 ÷ 12.8), 2200 : 4200 = 11 : 21, and 1/50 × 1/50.
+
+### `blankgrid` moved to `tools/svgplot.py`, and the extraction was proved byte-identical first
+
+**8461/1H Figure 1 IS 8461/1F Figure 6** — the same four cardiovascular diseases, the same blank
+grid, the same bar for E already at 14%. That is the tier overlap this file already records for
+chemistry, and the same move: one builder, imported by both, rather than a second set of
+coordinates that can drift. **The committed 1F row was regenerated through the shared copy and
+compared character for character before the local one was deleted** — 10,440 bytes, identical — the
+`libraryExtras_` rule again: prove it identical, then make it.
+
+### Both grids on Paper 2 are RASTER images, so they were measured in pixels
+
+**`get_drawings()` returned nothing for either.** AQA sets these grids as images with no text layer
+and no vectors, so the majors were found by their own regular spacing — the rule this file already
+records for the chemistry Figure 3. Figure 4 is **8 columns by 7 rows** with the y-axis printed 0 to
+70 in tens and the x-axis deliberately blank, which is where two of its four marks are; Figure 11 is
+**14 by 6 with the zero line at column 7**, which is what its scheme's *"symmetrical around 0"*
+means and is not something you can eyeball.
+
+### A pedigree is DATA, and it is built from the facts rather than drawn
+
+**Figure 10 carries six marks of the paper.** Twelve people, who is affected, who is married to
+whom, who is whose child — every one of those facts is in the printed symbols, and 06.2 and 06.3
+cannot be answered without them. So it is not artwork to describe: it is a table of twelve rows and
+three couples that the SVG is generated from, which makes "the picture disagrees with the prose
+under it" a shape that cannot occur. Same argument as the Corbettmaths fraction sheets, where the
+sum and the words live in one table. The assertions are on the FACTS — only persons 1 and 6 are
+filled, all three grandchildren are male, every child sits one generation below its parents — so a
+coordinate typed wrongly fails in the writer rather than shipping.
+
+**Everything else on both papers is artwork and says so.** A hoverfly beside a wasp, a peat bog in
+section, a lettered body outline, a Petri dish, a variegated leaf, three photosynthesis curves, the
+endocrine glands, and Figure 7 — which is the drawing the STUDENT is asked to finish. Each carries
+`figure`, so the count went 699 → 711 rather than the prose hiding twelve.
+
+**And Figure 3 is the phloem photograph AQA itself could not print**, on both tiers: *"Figure 3
+cannot be reproduced here due to third-party copyright restrictions"*, with the journal named. The
+row says what the figure is OF and `examiner_note` carries AQA's own sentence — the same answer this
+file already gives for the AQA English insert and for 8461/1F.
+
+**One answer shipped with a mangled string and a sweep is what caught it.** `1 in 50` had become
+`1—44844—50` in the 06.4 answer — valid JSON, valid markup, no check anywhere could see it. Found by
+scanning every non-ASCII character in the 93 new rows and looking at an em dash that sat between two
+digits. Fixed in the script and in the file, because a repair to the data alone is the `cost: 0`
+fault this file records four times.
+
+## The six fraction sheets, and a text layer that dropped the numbers on ninety questions
+
+**Four Corbettmaths sheets and one 1st Class Maths sheet, repaired against their own PDFs.**
+`Multiplying Fractions` had **3 rows in the library and 17 questions on the paper**; `Top Heavy
+Fractions Mixed Numbers` had 7 and 15; `Equivalent Fractions Simplifying Fractions` had sixteen
+rows of which twelve read *"Find the missing number"* with no fraction anywhere; `Fractions,
+Decimals and Percentages` had fourteen of twenty-five with no numbers in them and thirteen with no
+answer; `Ordering Fractions` had twelve questions that all read *"Here are four fractions"* and
+named none of them.
+
+**Twenty-four rows were never created at all**, because Corbettmaths sets three questions to a page
+and the text layer of that page reads `1. 2. 3. Write as a mixed number Write as a mixed number
+Write as a mixed number` — so the transcription made the page ONE row. That is the `Fraction of
+Amounts` fault again, on four more sheets, and the fix is the same: extract, find the maths is not
+there, then **render every page and read it**.
+
+### The 1st Class Maths sheet DOES put its fractions in the text layer, and reading order still loses them
+
+**A numerator and its denominator are two separate words on two lines**, interleaved with the
+question numbers — so question 1 reads `1 2 13 20 3 5 3 4 1`, which is four fractions and a
+question number in an order nothing can recover. **Extracted by POSITION instead**: four fractions
+on one line at four x positions, and within each position the higher word is the numerator. Same
+method this file already records for the Edexcel papers whose text layer flattened the maths, and
+it was then **checked against all four rendered pages before anything was written** — a mis-paired
+numerator is a wrong question that still reads perfectly.
+
+### Every answer is computed from the transcribed question, and each kind has its own inverse
+
+| | |
+|---|---|
+| a product | `Fraction`, exactly — and the working shows the uncancelled form first, because that is the step the sheet is teaching |
+| a mixed number | **round-tripped** back to the top-heavy fraction it came from, the move `tools/cbmnum.py` already makes for Roman numerals |
+| an equivalence | the missing number is the one that makes the two fractions equal, checked back against the pair |
+| an ordering | the SORT, rendered from `sorted(...)` rather than remembered, with the common denominator computed as the LCM |
+
+**The first version of the multiplying working went straight from `30 × 1½` to "30 × 3 = 90".**
+There is no 3 anywhere in that question. A working holding a number the child cannot find is worse
+than no working, so a mixed number is now turned top-heavy out loud before it is used.
+
+### Three pictures were counted rather than guessed, and the rest are declared
+
+`Equivalent Fractions` question 16 is a shaded rectangle: its cell edges are 36 px apart over
+288 × 216, which is **8 columns by 6 rows = 48 squares**, and the question itself says 14 are
+shaded, so the answer is 7/24. The FDP sheet's question 15 grid is 4 across and 5 down with
+fourteen shaded, and its question 14 triangle is 1 + 3 + 5 + 7 = 16 small ones. All three are
+asserted rather than trusted. **Nine rows carry `figure`** so the count of pictures that never came
+across went 711 → 720 rather than the prose hiding them.
+
+### An ordering has no `accept`, and that is the fairness rule rather than a gap
+
+`markAnswer_` compares ONE number. The answer to "write these four in order" is four fractions in
+an order, so an `accept` value would tell a child who typed the right list that it was wrong —
+which is the failure this file calls the worse of the two, because a student who stops trusting the
+marking stops using it. The same rule already governs a row with more than one ask, and it is why
+`Top Heavy` question 15 became two rows: two answer boxes on the paper, two answers, one row.
+
+**Corbettmaths answers: 708 outstanding before this week, 517 now**, and the count is printed per
+sheet on every run.
+
+## Sixty more Corbettmaths answers, and a sheet whose question numbers were off by one
+
+**`Substitution`, `Think of a Number`, `Equations`, `Using Calculations`, `Inequality Signs`,
+`Proportion` and `Sequences`** — 60 answers, each computed from the transcribed question and then
+**checked back by putting it through the question it came from**: a substitution evaluated, a
+think-of-a-number run forwards through its own steps, an equation substituted into itself, a
+sequence generated. A misread number and a wrong answer cannot come apart.
+
+**Two answers look wrong and are not, and both were verified against the PDF before being
+written.** `Think of a Number` question 8 works back to **minus one**, and `Equations` question 9
+comes out at **7.5** on a sheet where every other answer is a whole number. Both are exactly what
+Corbettmaths prints — rendered and read, because an answer that surprises you is the one place a
+silent transcription error hides. The card says so out loud: *"If you got −1 and assumed you had
+gone wrong, you had not."* A child who distrusts a correct answer is the same failure as one who
+distrusts the marking.
+
+### The inequality sheet had five rows for six questions and nothing could have seen it
+
+**The row numbers were off by one from question 2 onwards.** What the library called row 3 held
+question **2** — the three four-digit comparisons — with question 3's *instruction* stuck on the
+end of it, and question 3 itself, the right-or-wrong statements, **was never transcribed at all**.
+Every one of those rows is valid markup with plausible content. Only the paper shows the gap, which
+is the fourth sheet this week whose SHAPE was wrong rather than its content.
+
+**And question 6's pairs were scrambled.** The paper prints two columns, `left ☐ right`, four rows
+down; the transcription read the left column and then the right, so the row held eight true
+expressions in an order that pairs none of them correctly — and an answer worked from that row
+would have been wrong four times out of four. `2 − 3` is **minus one** and `20 − 30` is minus ten,
+so the bigger-looking subtraction is the smaller number, which is the whole point of the question.
+
+### What is NOT answered says why, per row
+
+`Proportion` prints its recipes as artwork and `Sequences` prints its sequences as a row of boxes,
+so 14 rows arrived with the question's words and none of its numbers. `cbmwrite` refuses to let a
+script finish while a row is blank without a reason, so each carries a note naming what the text
+layer dropped — and `Sequences` question 5 gets the most careful one, because its row runs the
+sequence and the answer line together and it is **not recoverable from the row** whether the last
+number printed is a term or an answer that has leaked in.
+
+**Corbettmaths answers outstanding: 517 → 457.**
+
+### And two more sheets whose fractions were the question
+
+`Fractions: Division` had **twelve rows that read `÷ 3`, `÷ 2`, `÷ 5` and nothing else** — the
+divisor is ordinary text and the fraction is artwork, so the text layer of every page is exactly
+the divisors. `Fractions: Finding the Original Amount` lost six of its eight the same way: *"Jackson
+is of Sam's age"*, *"of the children in a class have brown hair"*, where the missing word is the
+fraction the whole question turns on. Both restored from the rendered pages and answered, 20 more.
+
+**The working for a division names WHICH of the two methods the numbers allow**, because that is
+the thing being taught: 9/10 ÷ 3 divides the top, and 1/3 ÷ 2 cannot, so it cuts every part in two
+and multiplies the bottom. Which branch applies is decided by the numbers rather than written out.
+
+**Corbettmaths answers outstanding: 457 → 437.**
+
+### `Multiples`, `Square`, `Cube` and `Prime Numbers` — 27 more, every list generated
+
+**"Write down all the square numbers between 40 and 110" is a filter over a generated list**, not
+four numbers typed out, and every other answer on these four sheets is built the same way: the
+squares, cubes, primes and multiples are produced and the question's own condition applied to them.
+The mistake that catches is the one nobody re-reads — a list that is right except for the last
+entry. It also settles the ones where the answer is *whether there is another*: 2, 7 and 31 is the
+**only** set of three different primes adding to 40, and the script knows that because it looked.
+
+**A third of the rows are not answered and each says why.** These sheets lean on sorting diagrams,
+number cards and a speech bubble, none of which came across. Two notes are worth reading:
+
+- `Square Numbers` question 15 starts with four numbers its own question never mentions — they are
+  question 14's sorting cards, **leaked across the row boundary**. The note on 14 says so, which is
+  the only place a reader of 15 would find out why it opens with `12 21 36 40`.
+- `Cube Numbers` question 10 holds the fragment `9² + 2³ = 100`, and **81 + 8 is 89**. Whatever the
+  question asked about that sum did not come with it, so answering it would mean inventing the
+  question — which is the fault this file records under the scatter graph and the curve read by eye.
+
+**Corbettmaths answers outstanding: 437 → 410.**
+
+### `Money`, `Percentages of Amounts`, `Order of Operations` and `The Mean` — 33 more
+
+**Everything on the money sheet is worked in PENCE and converted once at the end.** Money is where
+binary floating point would be believed: 0.1 + 0.2 is not 0.3, and a price is exactly the kind of
+number nobody re-checks. Nothing here is a float.
+
+**Question 15 is solved by SEARCH rather than by cleverness.** Five coins, three of them adding to
+£1.40, three to £2.40, all five to £3.60: the script enumerates every five-coin combination of real
+UK coins and keeps the ones that satisfy all three. It finds exactly one — three 20p, a £1 and a £2
+— which is what makes *"and it is the only answer"* a statement rather than a hope.
+
+**And the first version GENERATED the percentage method, which produced nonsense.** *"10% of 152 is
+76/5"* — a tenth of 152 is not a whole number and a `Fraction` printed itself. The value was right
+and the sentence was arithmetic rather than English, which is worse than no sentence: the point of
+the working is the ROUTE. The method is named per question now — *"50% is a half, and half of 152
+is 76"* — and only the value is computed.
+
+**Corbettmaths answers outstanding: 410 → 377.**
+
+### The two decimals sheets, powers of ten, and `Parts of the Circle` — 25 more
+
+**Every decimal goes through `Fraction`, never a float.** 4.99 + 3.45 + 4.80 is 13.24 exactly and
+13.240000000000002 in binary, and a money answer is the last place anybody would notice the
+difference — this library's insert scripts have already had two true assertions refused by that.
+
+**And `Parts of the Circle` question 9 is the one worth reading**: £6 of 2p coins laid in a line.
+Each coin lies on its DIAMETER, not its radius, so the answer is 7.8 m and not 3.9 — the card says
+which of the two the trap is, because a student who gets 3.9 has done every step right except the
+one the question is about.
+
+**Corbettmaths answers outstanding: 377 → 352**, and what is left is now mostly genuinely blocked:
+the angle, area, perimeter, coordinate and bar-chart sheets print their numbers ON the diagram, so
+answering them means transcribing the pictures first.

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-17-reels-infinite-clips";
+  --css-version: "2026-09-18-physics-1h";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6949,7 +6949,29 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet ol.roman { list-style: lower-roman; }
 .qsheet ul { padding-left: 1.2rem; }
 .qsheet .stat { text-align: center; margin: .9rem 0; }
-.qsheet table { border-collapse: collapse; margin: .9rem auto; }
+/* ---------- A WIDE TABLE SCROLLS IN ITS OWN BOX, AND NOTHING ELSE DOES ----------------------------
+   `check/cards.js` CAUGHT THE FIRST TABLE THAT COULD NOT FIT. Table 1 of AQA Physics 8463/1H is
+   four columns — method, energy stored per 100 kg, percentage wasted, installation — and it went
+   26px past a 320px column the moment it was transcribed. Every table in the library before it had
+   three columns or fewer, so the rule had never been tested against one that could not shrink.
+
+   CLAUDE.md ALREADY SAYS WHICH WAY THIS GOES: the page body never scrolls sideways, and "only wide
+   tables, code and diagrams may run past it — each gets `overflow-x: auto` on its own container".
+   So the table is wrapped rather than the card widened, and the scrollbar is on the one element
+   that has more to show. Squeezing the columns instead would have been the `.mat-face` mistake:
+   the label that cannot shrink to its column is the one that breaks, and a header reading
+   "Percentage of stored energy wasted" is four words that have to stay.
+
+   `display: block` IS WHAT MAKES A TABLE SCROLLABLE. A `table` box ignores `overflow` — it is not
+   a block container — so the wrapper is the table itself, re-laid as a block with the rows inside
+   it kept as a table by `table-layout` on an inner row group. One element rather than a `<div>`
+   round every table in the data, because the data is written by a transcription script and a
+   wrapper somebody has to remember is a wrapper that will be forgotten. */
+.qsheet table {
+  border-collapse: collapse; margin: .9rem auto;
+  display: block; width: max-content; max-width: 100%;
+  overflow-x: auto; overscroll-behavior-x: contain;
+}
 .qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
    on this black screen without a second copy of it. */

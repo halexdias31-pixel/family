@@ -74,8 +74,8 @@ const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.js
 const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
-  subject:       ['Chemistry', 'Combined Science', 'English Language', 'Maths', 'Physics',
-                  'Religious Studies'],
+  subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Maths',
+                  'Physics', 'Religious Studies'],
   document_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
      see LIST_COLS below for why a list column is checked per item. */
@@ -89,7 +89,12 @@ const VOCAB = {
                   '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
   answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'proof', 'short', 'written'],
   month:         ['5', '6', '11'],
-  paper:         ['1', '2', '3'],
+  /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. 1SC0 is six
+     papers — biology, chemistry and physics, each sat twice — and its own covers say "Combined
+     Science PAPER 4" over the code 1SC0/2BH. A cap of three was never a rule about exams; it was
+     the shape of the one qualification anybody had in front of them, which is the sentence this
+     file already writes about `isEdexcelGcseMaths`. */
+  paper:         ['1', '2', '3', '4', '5', '6'],
   /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. A closed list for
      the reason every list here is closed: `calc`, `Calculator` and `calculator` would be three
      buttons on the funnel for one fact, which is the `Alevel` / `A-Level` fault in a new column.
@@ -99,8 +104,12 @@ const VOCAB = {
      chemistry paper: its front cover lists it beside the ruler and the calculator, in the same
      sentence, as a thing you must have. Paper-level like the calculator — the cover says it once
      for all the questions inside. */
+  /* `Equation booklet` IS THE PHYSICS ONE, and AQA encloses it with the paper: "the Physics
+     Equations Sheet (enclosed)" on the cover of all four 8463 papers, and Edexcel says the same on
+     1SC0/1PH and /2PH. A sheet of formulae a student is HANDED in the exam is exactly the fact this
+     column carries — it changes what you put on the table beside them. */
   needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper',
-                  'Periodic table'],
+                  'Periodic table', 'Equation booklet'],
   needs_print:   ['True', 'False'],
   printable:     ['True', 'False'],
   trackable:     ['True', 'False'],
@@ -303,6 +312,52 @@ Object.keys(VOCAB).forEach(col => {
 strays.forEach(s => fail.push(
   `${s.col} = ${JSON.stringify(s.v)} on ${s.n} row${s.n > 1 ? 's' : ''} — not in the vocabulary. ` +
   `Read what the column already uses before adding it to VOCAB in this file.`));
+
+/* ---------- `AND` AND `&` ARE TWO BUTTONS FOR ONE TOPIC -------------------------------------------
+   `topics` HAS NO CLOSED VOCABULARY and cannot have one: it is 400-odd editorial values that grow
+   every time a paper goes in, which is why the funnel folds spellings instead (`spellKey_` in
+   find.js, and the vote in `topicOf_`). That fold reduces an answer to its letters and digits — so
+   `Alevel` and `A-Level` become one button, and `Magnetism and Electromagnetism` and
+   `Magnetism & Electromagnetism` DO NOT. They are different letters. Two buttons, one unit.
+
+   CAUGHT BY LOOKING AT THE LIST, AFTER A CHECK I WROTE FOR IT SAID THERE WAS NOTHING THERE. Nine
+   AQA science papers went in over one session and three units ended up spelled both ways — atomic
+   structure, magnetism, infection. The throwaway probe that was meant to find them normalised `the`
+   out of the middle of words and reported clean; the raw tally of values, printed and read, did not.
+   Same shape as `check-booking.js` exiting 0, one layer up: my own instrument could not reach its
+   subject and I believed it.
+
+   SO THE RULE IS THE NARROWEST ONE THAT IS CERTAIN, and it is about `and` against `&` and nothing
+   else. Case and spacing are already folded by `spellKey_`; a genuinely different topic never
+   differs from another only by that one word. Proved by mutation in both directions. */
+const AMP = new Map();
+rows.forEach(r => {
+  if (!r || !r.topics) return;
+  String(r.topics).split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
+    /* CASE IS DELIBERATELY NOT FOLDED HERE. `spellKey_` already reduces `Histograms` and
+       `histograms` to one identity and `topicOf_`'s vote picks which to show — 46 pairs in this
+       file are that, and every one is correct. The first version of this rule lower-cased and
+       reported all 46 as faults, which is `check-rows.js` with 95 findings and 2 real ones. The
+       question this rule asks is only the one the fold cannot: `and` against `&`. */
+    /* `&amp;` IS A THIRD SPELLING AND IT GOT PAST THIS RULE ONCE. A topic written into an
+       insert script as an HTML entity is a different string from the same topic written with a
+       bare ampersand, so it is a second button for one topic exactly as `and` is -- and this
+       rule, which exists to catch that, folded only the bare form. Caught on the KS2 2019
+       transcription, where one row said `Multiplying &amp; Dividing Fractions` beside 22 rows
+       saying `Multiplying & Dividing Fractions`. Entities are unescaped BEFORE the fold. */
+    const k = t.replace(/&amp;/g, '&').replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ');
+    if (!AMP.has(k)) AMP.set(k, new Map());
+    const m = AMP.get(k);
+    m.set(t, (m.get(t) || 0) + 1);
+  });
+});
+AMP.forEach(m => {
+  if (m.size < 2) return;
+  const shown = [...m.entries()].map(([t, n]) => `${JSON.stringify(t)} (${n})`).join(' and ');
+  fail.push(`one topic, two spellings: ${shown}. \`spellKey_\` folds case and punctuation but not `
+    + `the word \`and\` against \`&\`, so these are two answers in the funnel for one thing. `
+    + `Pick the spelling data/topics.json uses.`);
+});
 
 /* ---------- THE SAME PAPER, TRANSCRIBED TWICE ------------------------------------------------------
    This file had no idea what a real-world exam paper IS, only what a row is, so the ids being
@@ -747,7 +802,15 @@ const say = (title, list, draw) => {
   list.forEach(x => console.log('  ' + draw(x)));
 };
 
-console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel GCSE maths papers checked at 80 marks`);
+/* "EDEXCEL GCSE MATHS PAPERS CHECKED AT 80 MARKS" WAS TRUE WHEN IT WAS WRITTEN AND IS NOT NOW.
+   `marks.size` is every paper summed against a declared total, whoever set it — the whole point of
+   `total_marks` was to stop this rule knowing about one board. It stayed readable while the only
+   papers with a total were Edexcel maths at 80, and the first AQA physics paper transcribed against
+   its own 100 made the sentence plainly false. Fourth time this repository records the shape: "all
+   18 checks pass", "one of the eighteen names", and the prose over `CARD_W` naming 88% and 4% while
+   the code said 80 and 8. The sentence says what the number IS now, which is the only version that
+   cannot go stale. */
+console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} of them summed against a stated total`);
 
 say('BROKEN', fail, x => x);
 
@@ -774,6 +837,28 @@ say('WORTH DOING NEXT — not a fault', note, x => x);
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
 console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
+/* ---------- AND A PAPER THAT DECLARES A TOTAL AND HAS NO QUESTIONS IS IN NEITHER COUNT ------------
+   `marks` IS KEYED OFF QUESTION ROWS, so a `kind: 'document'` row carrying `total_marks` with
+   nothing under it yet enters neither bucket — it is not "checked", because there is nothing to
+   sum, and it is not "no total to check against", because it has one. Sixteen science papers went
+   in as stubs across two sittings and both numbers stayed exactly where they were.
+
+   THAT IS THE COUNT DOING ITS JOB AND HIDING SOMETHING AT THE SAME TIME, which is the shape this
+   file records under `papers checked against a total` going 34 to 2 under a green tick, and under
+   the practical that a substring called required. A stub with a total is not a fault and it is not
+   nothing: it is the TRANSCRIPTION QUEUE, already carrying the one number that will refuse a wrong
+   transcription the moment somebody starts typing one. Printed so it is a number rather than a
+   silence — the argument this file makes about 485 missing figures and 2 compasses of 4,005. */
+const queued = [...paperFacts.entries()]
+  .filter(([pid, p]) => Number(p.total_marks) > 0 && !marks.has(pid) && !unchecked.has(pid));
+console.log(`papers with a total and no questions yet: ${queued.length}  (the transcription queue)`);
+/* TEN AND A REMAINDER, because eighty-seven lines on every run is a list nobody reads — which is
+   the `ACCEPTED_TAP` argument pointed the other way: that one prints in full BECAUSE it must not
+   grow, and this one is meant to. The number is the thing to act on. */
+queued.sort().slice(0, 10).forEach(([pid, p]) =>
+  console.log(`  ${pid.padEnd(22)} ${String(p.name || '').slice(0, 42).padEnd(42)} out of ${p.total_marks}`));
+if (queued.length > 10) console.log(`  … and ${queued.length - 10} more`);
+
 console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here from what the paper prints: ${drawnHere - chosenHere}`

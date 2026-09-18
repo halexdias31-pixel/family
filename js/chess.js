@@ -455,19 +455,40 @@ const FEED_FACTS = [
 let FACTS_NOW = null;
 let FACTS_FROM = null;
 
-function factsNow_() {
-  /* HEADING OR CLIP. A fact with no words is nothing; a video with no words is a video — see the
-     note on the fifth field above. Testing the heading alone silently dropped every clip row the
-     sheet could hold, which is this repository's oldest shape wearing a filter. */
-  const said = ((typeof DATA !== 'undefined' && DATA.facts) || [])
-    .filter(f => f && (f.heading || f.clip));
+function factsBuilt_() {
   const from = (typeof DATA !== 'undefined') ? DATA : null;
-  if (said.length) return said;
   if (FACTS_NOW && FACTS_FROM === from) return FACTS_NOW;
   FACTS_NOW = FEED_FACTS.map(f => ({ subject: f[0], heading: f[1], body: f[2], pic: f[3],
                                      clip: f[4] || '' }));
   FACTS_FROM = from;
   return FACTS_NOW;
+}
+
+function factsNow_() {
+  /* HEADING OR CLIP. A fact with no words is nothing; a video with no words is a video — see the
+     note on the fifth field above. Testing the heading alone silently dropped every clip row the
+     sheet could hold, which is this repository's oldest shape wearing a filter. */
+  const said = sheetFacts_().filter(f => f && (f.heading || f.clip));
+  return said.length ? said : factsBuilt_();
+}
+
+const sheetFacts_ = () => ((typeof DATA !== 'undefined' && DATA.facts) || []);
+
+/* ---------- THE SHEET WINS PER LIST, NOT WHOLESALE -----------------------------------------------
+   ONE FACT ROW IN THE TAB WOULD HAVE HIDDEN EVERY BUILT-IN CLIP. `factsNow_` is all-or-nothing —
+   the tab has rows, so the tab is the answer — which was exactly right while both surfaces wanted
+   the same list. The Reels column wants only the clips, so the moment somebody types one ordinary
+   fact into the sheet, `said.length` is 1, the built-ins stop being consulted, and a column with
+   two working videos in the code goes dark saying "No clips yet".
+
+   Nobody had typed that row: measured against the real Settings spreadsheet, there is no `facts`
+   tab at all — `fact_id` appears nowhere in it. So this is a trap rather than a bug today, and it
+   is the trap this repository keeps paying for: a rule that is right about the case in front of it
+   and wrong one row later. The house rule is per LIST — a list the sheet has nothing for leaves the
+   code's copy alone — so the clips answer separately from the facts. */
+function clipsNow_() {
+  const said = sheetFacts_().filter(f => f && f.clip);
+  return said.length ? said : factsBuilt_().filter(f => f.clip);
 }
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. Removed.

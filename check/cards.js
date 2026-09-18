@@ -153,11 +153,50 @@ function cardHtml(r, stems) {
            does not is the commoner shape — an inner box with `overflow: hidden` would hide a real
            overflow from the card's own measurement. */
         const over = el => el.scrollWidth - el.clientWidth;
+        /* ---------- A BOX THAT WAS TOLD IT COULD SCROLL IS NOT A FAULT ------------------------
+           CLAUDE.md STATES THE QUESTION THIS CHECK IS ASKING: "does this box scroll sideways when
+           it was NOT told it could". Every element was measured the same way until the first
+           four-column table went into the library — AQA Physics 8463/1H Table 1, which cannot
+           shrink to 320px and is the question's own data. The house rule is that a wide table gets
+           `overflow-x: auto` on its own container, and with that rule applied the check went on
+           reporting the table: the overflow had simply moved from the card to the box now holding
+           it deliberately.
+
+           SO AN `auto` OR `scroll` BOX IS SKIPPED AND ITS ANCESTORS ARE NOT. That is the half that
+           keeps this honest — a scroller cannot hide a card that is genuinely too wide, because
+           the card is measured on its own pass and a scroller does not push it. Proved by mutation:
+           putting the table back to `overflow-x: visible` fires the check on `.qsheet` at the same
+           26px, and the rule as written reports nothing. */
+        const told = el => {
+          const o = getComputedStyle(el).overflowX;
+          return o === 'auto' || o === 'scroll';
+        };
+        /* ---------- NOTHING INSIDE A DRAWING CAN PUSH THE PAGE SIDEWAYS ----------------------
+           THE OUTERMOST `<svg>` CLIPS TO ITS VIEWPORT — that is the UA default and it is not a
+           rule this repository set, so a child whose box falls outside the viewBox is painted
+           nowhere rather than past the column. The `<svg>` itself is an ordinary replaced element
+           in the HTML flow and is still measured; only its descendants are skipped.
+
+           IT REPORTED A REAL DRAWING AND THE DRAWING WAS FINE. A y-axis label is written once and
+           rotated into place — `<text x="10" … transform="rotate(-90 10 82)">` — so its LAYOUT box
+           runs from x = −51 while the glyphs it paints sit at x ≈ 10. That is CLAUDE.md's own
+           entry under `.mat-out`: "a transform is invisible to `scrollWidth`", and it cost two
+           wrong fixes the first time. Here it would have cost the axis labels.
+
+           PROVED BY MUTATION IN BOTH DIRECTIONS: forcing `.qsheet figure svg { width: 400px }`
+           still fires on the `<svg>` at +80px, and the rotated label alone reports nothing. */
+        const inSvg = el => el.ownerSVGElement != null;
         let worst = { px: 0, sel: '' };
         [card, ...card.querySelectorAll('*')].forEach(el => {
-          if (!el.clientWidth) return;
+          if (!el.clientWidth || told(el) || inSvg(el)) return;
           const px = over(el);
-          if (px > worst.px) worst = { px, sel: el.className || el.tagName.toLowerCase() };
+          /* `className` ON AN SVG ELEMENT IS AN `SVGAnimatedString`, NOT A STRING, so every
+             finding inside a drawing printed as `[object Object]` — one grouping key for every
+             cause, which is the one thing this report's grouping exists to avoid. Caught the day
+             the first generated graph went into the library. */
+          const sel = (typeof el.className === 'string' && el.className)
+                    || el.getAttribute('class') || el.tagName.toLowerCase();
+          if (px > worst.px) worst = { px, sel };
         });
         if (worst.px > slack) out.push({ row: card.dataset.row, px: worst.px, sel: worst.sel });
       });

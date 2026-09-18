@@ -1305,12 +1305,30 @@ screen('reel', () => {
 
      AND A COLUMN WITH NO CLIPS SAYS SO RATHER THAN FILLING ITSELF WITH FACTS. Showing the next best
      thing is exactly how this screen came to be showing the wrong thing. */
-  const facts = factsNow_().filter(f => f && f.clip);
+  const facts = clipsNow_();
+  const rows = factsNow_().length;
   if (!facts.length) {
     return `<section class="page"><div class="pane"><div class="card">
       <h3>Reels</h3>
       <p class="sub">No clips yet. Add a row to the <b>facts</b> tab with a <b>clip</b> — a Google
         Drive file id, or a link to a video. The words are optional.</p>
+      ${/* ---------- WHICH OF TWO VERY DIFFERENT THINGS THIS IS ------------------------------
+            "No clips yet" WAS BOTH ANSWERS AT ONCE and I could not tell them apart from a
+            screenshot of it. A column that has looked at fifty-eight reel rows and found no clip
+            on any of them is a data problem; a column that has looked at NOTHING is a code
+            problem — chess.js holds the built-in list, and if the browser is serving a copy of it
+            from before clips existed, or did not get it at all, the count is the only thing on
+            the screen that says so.
+
+            This repository's oldest fault, one more time, and this is the fifth entry that names
+            it: "I did not manage to look" printed as "I looked and there was nothing there".
+            `nothingHere` gives the funnel a reason and a `Try again` for exactly this; a count is
+            the cheap version of the same honesty. */''}
+      <p class="faint">${rows
+        ? `Looked at ${rows} reel row${rows === 1 ? '' : 's'} and none of them has a clip.`
+        : 'There are no reel rows at all — not even the built-in ones. That is this page\'s own '
+          + 'code missing rather than an empty sheet, so open the site with <b>?dev</b>, which '
+          + 'clears the held copies and fetches every file fresh.'}</p>
     </div></div></section>`;
   }
   /* ---------- ON A CARD, LIKE EVERY OTHER SCREEN IN THE APP ---------------------------------------
@@ -1367,8 +1385,15 @@ let REEL_SHOWN = 0;
 let REEL_IO_ART = null;
 let REEL_IO_PLAY = null;
 
+/* ONE READER FOR "WHICH CLIPS", and this function was a second one. It filtered `factsNow_` while
+   the screen above asked `clipsNow_`, and the two disagree exactly when the sheet has an ordinary
+   fact row in it: `factsNow_` hands back the sheet, `clipsNow_` falls through to the built-ins, and
+   the column drew its heading, its scroller, and no slides at all. Caught by a mutant putting one
+   typed fact in the payload — `{"slides":0}` under a card reading just "Reels". A second reader of
+   one thing is a second chance to disagree about it, which is the sentence this repository already
+   carries about `documents_()`, `paperIdOf_` and `factsNow_` itself. */
 function reelItem_(n) {
-  const clips = factsNow_().filter(f => f && f.clip);
+  const clips = clipsNow_();
   if (!clips.length || n >= REEL_MAX) return null;
   return clips[n % clips.length];
 }
