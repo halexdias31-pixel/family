@@ -26,6 +26,7 @@ recorded in CLAUDE.md under the coins.
 """
 import json, datetime, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
+from svgplot import W, axes, scatter
 
 PAPER = 'P-AQA-8463-2406-2H'
 DOC = dict(paper_id=PAPER, subject='Physics', key_stage='KS4', band_type='stage',
@@ -37,14 +38,6 @@ DOC = dict(paper_id=PAPER, subject='Physics', key_stage='KS4', band_type='stage'
 WV = 'Waves'; F = 'Forces'; SP = 'Space Physics'; EM = 'Magnetism and Electromagnetism'
 EMW = 'Electromagnetic Waves'
 
-# ---------------------------------------------------------------------------------------------
-# FIGURE 2 — Table 1 plotted. The six crosses are the six rows of Table 1 and nothing else, which
-# is what makes this a drawing instruction rather than a summary: there is exactly one picture the
-# words can mean. 01.3 asks you to add the two rows of Table 2 to it, so the pad in find.js lays a
-# pen over this and the question becomes answerable.
-# ---------------------------------------------------------------------------------------------
-from svgplot import W, axes
-
 TABLE1 = [(10, 6), (20, 12), (30, 18), (40, 23), (50, 28), (60, 32)]
 TABLE2 = [(70, 35), (80, 37)]
 
@@ -53,21 +46,16 @@ TABLE2 = [(70, 35), (80, 37)]
 # is what makes this a drawing instruction rather than a summary: there is exactly one picture the
 # words can mean. 01.3 asks you to add the two rows of Table 2 to it, so the pad in find.js lays a
 # pen over this and the question becomes answerable.
+#
+# THE SAME PICTURE IS FIGURE 14 OF THE FOUNDATION PAPER, which shares this question, so the plotter
+# is in tools/svgplot.py rather than here. Extracting it was proved byte-identical against the rows
+# this script had already written.
 # ---------------------------------------------------------------------------------------------
 def fig2():
-    def crosses(sx, sy):
-        out = []
-        for x, y in TABLE1:
-            cx, cy = sx(x), sy(y)
-            out.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="pt"/>'
-                       % (cx - 3, cy - 3, cx + 3, cy + 3))
-            out.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="pt"/>'
-                       % (cx - 3, cy + 3, cx + 3, cy - 3))
-        return ''.join(out)
-    return axes(90, 45, 10, 5, 'Angle of incidence in degrees',
-                'Angle of refraction in degrees',
-                'Graph of angle of refraction against angle of incidence, six points plotted',
-                crosses)
+    return scatter(90, 45, 10, 5, 'Angle of incidence in degrees',
+                   'Angle of refraction in degrees',
+                   'Graph of angle of refraction against angle of incidence, six points plotted',
+                   TABLE1)
 
 # ---------------------------------------------------------------------------------------------
 # FIGURE 7 — ONE TRIPLET OF LINES AT THREE SHIFTS, which is the whole physics of the question. The

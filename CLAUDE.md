@@ -3886,3 +3886,27 @@ produced when chlorine reacts with ethene" is three displayed formulae that are 
 where the chlorines sit, so the row lists them that way — one Cl on the first carbon; one on each;
 two on the first. A question asking "which of these" is unanswerable without them, and a structural
 formula is text, not a picture.
+
+## AQA Physics 8463/2F — and `scatter()`, because two papers print one graph
+
+**60 questions against `Mark scheme (Foundation)_ Paper 2 - June 2024`.** Cover total 100, margin
+boxes 8, 9, 8, 13, 9, 8, 18, 13, 14, and the scheme's own arithmetic asserted — including
+√18.62 = 4.3 to two significant figures.
+
+**Questions 8 and 9 are questions 1 and 2 of 8463/2H word for word**, so <b>Figure 14 here is Figure
+2 there</b>: the same six points of Table 1 plotted on the same grid. Building that twice is two
+chances to disagree about where a cross goes, so the plotter moved to `tools/svgplot.py` as
+`scatter()` — **and the extraction was proved byte-identical against the Higher paper's already
+committed rows before it was kept**, which is the `libraryExtras_` move: prove it identical first,
+then make it.
+
+**Figure 9 is drawn from the corners the scheme quotes back.** A distance–time graph in three
+straight sections, 3200 m in 2000 s at a mean of 1.6 m/s, with B the shallowest — every one of those
+is a number the scheme prints, so the picture is determined and the script asserts the last corner
+gives the mean speed. **Figure 6, one question earlier, is NOT drawn**, and the two together are the
+line this repository keeps: 03.4 says only that the acceleration falls as the mass rises, and no
+point on it is stated anywhere in the paper, so redrawing it would be inventing data.
+
+**And `9.8` is not exact in binary either.** `25000 * 9.8` is 245000.00000000003, so the weight
+assertion needed rounding — the second time in two papers that an assertion refused a true statement
+for a reason worth writing down.

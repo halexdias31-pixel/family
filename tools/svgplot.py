@@ -57,3 +57,23 @@ def axes(xmax, ymax, xstep, ystep, xlab, ylab, label, extra='',
     p.append('<text x="12" y="%d" class="ax" style="text-anchor:middle" '
              'transform="rotate(-90 12 %d)">%s</text>' % ((T + B) / 2, (T + B) / 2, ylab))
     return ''.join(p) + '</svg>'
+
+
+def scatter(xmax, ymax, xstep, ystep, xlab, ylab, label, points, **kw):
+    """A grid with crosses on it — `axes()` with the one `extra` every plotted paper wants.
+
+    IT IS HERE AND NOT IN A PAPER'S OWN SCRIPT because two papers print the SAME graph: AQA Physics
+    8463/2H Figure 2 and 8463/2F Figure 14 are one picture, Table 1 of the refraction experiment
+    plotted, and the Foundation and Higher tiers share the question. Building it twice is two
+    chances to disagree about where a cross goes. Extracted from the 2H script and proved
+    byte-identical against the rows already committed from it."""
+    def crosses(sx, sy):
+        out = []
+        for x, y in points:
+            cx, cy = sx(x), sy(y)
+            out.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="pt"/>'
+                       % (cx - 3, cy - 3, cx + 3, cy + 3))
+            out.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="pt"/>'
+                       % (cx - 3, cy + 3, cx + 3, cy - 3))
+        return ''.join(out)
+    return axes(xmax, ymax, xstep, ystep, xlab, ylab, label, crosses, **kw)
