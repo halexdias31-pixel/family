@@ -4298,3 +4298,18 @@ the working is the ROUTE. The method is named per question now — *"50% is a ha
 is 76"* — and only the value is computed.
 
 **Corbettmaths answers outstanding: 410 → 377.**
+
+### The two decimals sheets, powers of ten, and `Parts of the Circle` — 25 more
+
+**Every decimal goes through `Fraction`, never a float.** 4.99 + 3.45 + 4.80 is 13.24 exactly and
+13.240000000000002 in binary, and a money answer is the last place anybody would notice the
+difference — this library's insert scripts have already had two true assertions refused by that.
+
+**And `Parts of the Circle` question 9 is the one worth reading**: £6 of 2p coins laid in a line.
+Each coin lies on its DIAMETER, not its radius, so the answer is 7.8 m and not 3.9 — the card says
+which of the two the trap is, because a student who gets 3.9 has done every step right except the
+one the question is about.
+
+**Corbettmaths answers outstanding: 377 → 352**, and what is left is now mostly genuinely blocked:
+the angle, area, perimeter, coordinate and bar-chart sheets print their numbers ON the diagram, so
+answering them means transcribing the pictures first.
