@@ -1876,9 +1876,18 @@ function dmCards_() {
   }
 
   const threads = messageThreads_();
+  /* `quiet`, NOT GOLD. `.btn` is the one action on a card and gold is what this app means by that —
+     fetching a list again is not it, and a full-width gold slab over a column of conversations was
+     the loudest thing on the screen. Same correction as `.reel-sound`, which was a gold bar across
+     a moving picture for the same reason. */
   const head = `<div class="card"><h3>Messages</h3>
-    <button class="btn" data-do="dm-refresh">Refresh</button></div>`;
-  if (!threads.length) return [`<div class="card"><h3>Messages</h3>${emptyMessages_}</div>`];
+    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>`;
+  /* ---------- AND AN EMPTY INBOX KEEPS THE WAY BACK ----------------------------------------------
+     IT RETURNED THE EMPTY CARD ALONE, so the one state that most needs a retry was the one state
+     with no button on it: `loadMessages` deliberately leaves `MESSAGES` alone on a failure, which
+     means a first fetch that never arrived shows exactly this card — "Nothing yet." over an inbox
+     nobody managed to read. This repository's oldest fault with no door out of it. */
+  if (!threads.length) return [head, `<div class="card">${emptyMessages_}</div>`];
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -1891,10 +1900,43 @@ function dmCards_() {
      `read` on the message the moment it asks, so a second paint before the reply finds nothing left
      to send and a failed one puts it back. */
   threads.forEach(t2 => markRead_(t2.msgs));
+  /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ ---------------------------------------
+     THE COLUMN SHOWED CONVERSATIONS YOU COULD NOT REPLY TO. The only composer in the app was in a
+     sheet on a person's pass — so reading a message here and answering it meant leaving, finding
+     the person on another column, and opening their card. `msgForm_` is that same composer, at the
+     foot of the thread, which is where every messaging app anybody has used puts it.
+
+     `t.id` IS THE PERSON'S ID and `t.name` their name, which is exactly what `sendMessage` takes —
+     `messageThreads_` groups on `withId` precisely so this is a fact from the sheet rather than a
+     name matched back into one. See the note over `findPerson`: on a private message, matching by
+     name is not a denial, it is a disclosure.
+
+     THE THREAD SCROLLS INSIDE THE CARD so the box stays on screen with fifty messages above it —
+     `.msg-body` is the widget's own scroller and is already in the `touch-action: pan-y` list, so
+     this is the same element doing the same job on a second surface rather than a new one. It is
+     scrolled to the newest by `dmFoot_`, booked from `startScreen_` with everything else a screen
+     has running. */
   return [head].concat(threads.map(t => `<div class="card${t.unread ? ' unread' : ''}">
       <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
-      ${messagesHtml_(t.msgs)}
+      <div class="msg-body">${messagesHtml_(t.msgs)}</div>
+      ${msgForm_(t.name, t.id)}
     </div>`));
+}
+
+/* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST -----------------------------
+   A THREAD SCROLLED TO THE TOP IS A THREAD OPENED AT LAST MONTH. Every messaging app opens at the
+   bottom because that is where the thing you came to read is, and a scroller's natural state is the
+   top — so this is the one line that has to say otherwise.
+
+   `scrollHeight` RATHER THAN A LARGE NUMBER, and per element rather than per screen: a card may
+   hold four messages and the next forty, and the foot of each is its own.
+
+   BOOKED FROM `startScreen_`, which is the one list of what a screen has running — the note there
+   records what happens to a job booked anywhere else. */
+function dmFoot_() {
+  const col = $('s-dm');
+  if (!col) return;
+  [].forEach.call(col.querySelectorAll('.msg-body'), el => { el.scrollTop = el.scrollHeight; });
 }
 
 /* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this

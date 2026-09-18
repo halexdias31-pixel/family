@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-camera-four";
+  --css-version: "2026-09-18-dm-bubbles";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1980,12 +1980,47 @@ button.text-drop { color: var(--bad); }
    Yours to the right, theirs to the left, which is the one convention every messaging app shares
    and the only thing that lets a thread be read without labels on every line.
 --------------------------------------------------------------------------------------------- */
-.msg { padding: .5rem 0; border-bottom: 1px solid var(--line-soft); }
-.msg:last-child { border-bottom: 0; }
+/* ==================================================================================================
+   A CONVERSATION, WHICH IS READ BY SIDE BEFORE IT IS READ BY NAME.
+
+   ASKED FOR AS "messages should look like IG DMs". What was here was full-width rows separated by
+   hairlines with `text-align: right` standing in for "this one is mine" — a transcript. You know
+   who said a thing from WHERE IT SITS; the name under it confirms rather than tells.
+
+   RUNS ARE THE HALF THAT MAKES IT A CHAT. Four messages in a row from one person is one turn, so
+   the ones above the last hug at 2px and only the last of a run carries the squared corner and the
+   name-and-time line. Without that, six bubbles read as six exchanges and the card is no calmer
+   than the hairlines were. See `messagesHtml_`, which is where the runs are worked out.
+
+   THE SQUARED CORNER IS THE TAIL, and it is on the LAST of a run rather than on every bubble: a
+   tail on each one points at a speaker four times over.
+
+   GOLD FOR MINE, BECAUSE GOLD IS ALREADY WHAT THIS APP MEANS BY "YOURS" — the one action, the
+   ticked hour, the starred thing. Black text on it, which is what `.hr.on` already does for the
+   same fill and the same reason.
+================================================================================================== */
+.msg { display: flex; flex-direction: column; align-items: flex-start;
+       padding: 0; border: 0; margin: 0 0 2px; }
+.msg.mine { align-items: flex-end; }
+/* THE GAP GOES BETWEEN TURNS, NOT BETWEEN MESSAGES. */
+.msg.run-end { margin-bottom: .55rem; }
+.msg.run-end:last-child { margin-bottom: 0; }
+.msg-bub {
+  /* NOT THE FULL WIDTH. A bubble that reaches both edges has no side to be on, which is the whole
+     mechanism — and a short answer under a long one is what tells you the turn changed. */
+  max-width: 78%;
+  padding: .4rem .7rem;
+  border-radius: 1.05rem;
+  background: var(--raised); border: 1px solid var(--line); color: var(--ink);
+}
+.msg.mine .msg-bub { background: var(--gold); border-color: var(--gold); color: #000; }
+.msg.run-end .msg-bub { border-bottom-left-radius: .35rem; }
+.msg.mine.run-end .msg-bub { border-bottom-left-radius: 1.05rem;
+                             border-bottom-right-radius: .35rem; }
 /* The TEXT of a message. Renamed from `.msg-body`, which the messages widget now uses for its own
    container — two different things under one name, one of them inside the other, is a rule that
    applies to both and was written for neither. */
-.msg-body-text { margin: 0; font-size: .88rem; line-height: 1.45; }
+.msg-body-text { margin: 0; font-size: .88rem; line-height: 1.45; overflow-wrap: break-word; }
 
 /* The widget's own space: the thread, scrolling inside the case. */
 /* `dvh`, FOR THE REASON STATED ON `body`: `vh` is the LARGE viewport, the one you get with the
@@ -1993,11 +2028,44 @@ button.text-drop { color: var(--bad); }
    bottom of it sits under the browser chrome where it cannot be read or scrolled to. */
 .msg-body { max-height: 60dvh; overflow-y: auto; scrollbar-width: none; }
 .msg-body::-webkit-scrollbar { width: 0; display: none; }
-.msg-when { margin: .2rem 0 0; }
-.msg.mine { text-align: right; }
-/* Unread. A rule down the left rather than a dot or a colour: it marks the whole message rather
-   than a point on it, and it reads at a glance down a list without competing with the text. */
-.msg.unread { border-left: 2px solid var(--gold); padding-left: .6rem; }
+.msg-when { margin: .16rem .55rem 0; font-size: .64rem; }
+/* Unread. It was a rule down the LEFT of a full-width row, which was right for a list of rows and
+   cannot survive a bubble that has a side: on `.mine` it drew a gold bar on the wrong edge of a
+   gold fill. The bubble's own outline says it instead — it marks the whole message rather than a
+   point on it, which is the argument the old rule made and the shape it could not keep. */
+.msg.unread .msg-bub { border-color: var(--gold); }
+
+/* ---------- THE BOX AT THE FOOT OF A THREAD -------------------------------------------------------
+   ONE ROW: the box takes what is left, `Send` takes what it needs. `.btn` is `width: 100%` because
+   most of them are the only thing on their row — the same fault `.btn-row .btn` and `.reel-sound`
+   already record — so it is told otherwise here.
+
+   THE TEXTAREA GROWS TO WHAT IS TYPED and starts at one line, because a five-line box under every
+   conversation is four lines of nothing per thread on a column that holds several. `field-sizing`
+   is what does it where it exists; `min-height` is the floor everywhere else, which is the honest
+   fallback — a one-line box that scrolls is worse than a two-line one that does not, and 44px is
+   the tap floor either way.
+
+   44px IN PX ON BOTH, which is this file's rule and its fifth conviction. */
+.msg-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap;
+            margin: .5rem 0 0; }
+.msg-text {
+  flex: 1 1 8rem; min-width: 0;
+  min-height: 44px; max-height: 40dvh;
+  field-sizing: content;
+  padding: .5rem .7rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 1.05rem;
+  color: var(--ink); font: inherit; font-size: .88rem; line-height: 1.4;
+  resize: none;
+}
+.msg-text:focus { outline: 0; border-color: var(--gold); }
+.msg-text::placeholder { color: var(--faint); opacity: 1; }
+.msg-form .btn.msg-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 1rem; }
+/* THE NOTE AND THE REFUSAL ARE THE SAME ELEMENT — see `msgForm_`. It takes the whole line under the
+   box, and it is not drawn at all when there is nothing to say: an empty paragraph under every
+   conversation is a margin nobody asked for. */
+.msg-said { flex: 1 0 100%; margin: .3rem 0 0; }
+.msg-said:empty { display: none; }
 
 /* ---------- THE RECEIPT ---------------------------------------------------------------------------
    The breakdown was always a receipt: a list of what you are buying, what each part cost, and a
