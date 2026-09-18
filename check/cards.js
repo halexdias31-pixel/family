@@ -153,9 +153,27 @@ function cardHtml(r, stems) {
            does not is the commoner shape — an inner box with `overflow: hidden` would hide a real
            overflow from the card's own measurement. */
         const over = el => el.scrollWidth - el.clientWidth;
+        /* ---------- A BOX THAT WAS TOLD IT COULD SCROLL IS NOT A FAULT ------------------------
+           CLAUDE.md STATES THE QUESTION THIS CHECK IS ASKING: "does this box scroll sideways when
+           it was NOT told it could". Every element was measured the same way until the first
+           four-column table went into the library — AQA Physics 8463/1H Table 1, which cannot
+           shrink to 320px and is the question's own data. The house rule is that a wide table gets
+           `overflow-x: auto` on its own container, and with that rule applied the check went on
+           reporting the table: the overflow had simply moved from the card to the box now holding
+           it deliberately.
+
+           SO AN `auto` OR `scroll` BOX IS SKIPPED AND ITS ANCESTORS ARE NOT. That is the half that
+           keeps this honest — a scroller cannot hide a card that is genuinely too wide, because
+           the card is measured on its own pass and a scroller does not push it. Proved by mutation:
+           putting the table back to `overflow-x: visible` fires the check on `.qsheet` at the same
+           26px, and the rule as written reports nothing. */
+        const told = el => {
+          const o = getComputedStyle(el).overflowX;
+          return o === 'auto' || o === 'scroll';
+        };
         let worst = { px: 0, sel: '' };
         [card, ...card.querySelectorAll('*')].forEach(el => {
-          if (!el.clientWidth) return;
+          if (!el.clientWidth || told(el)) return;
           const px = over(el);
           if (px > worst.px) worst = { px, sel: el.className || el.tagName.toLowerCase() };
         });

@@ -756,7 +756,15 @@ const say = (title, list, draw) => {
   list.forEach(x => console.log('  ' + draw(x)));
 };
 
-console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} Edexcel GCSE maths papers checked at 80 marks`);
+/* "EDEXCEL GCSE MATHS PAPERS CHECKED AT 80 MARKS" WAS TRUE WHEN IT WAS WRITTEN AND IS NOT NOW.
+   `marks.size` is every paper summed against a declared total, whoever set it — the whole point of
+   `total_marks` was to stop this rule knowing about one board. It stayed readable while the only
+   papers with a total were Edexcel maths at 80, and the first AQA physics paper transcribed against
+   its own 100 made the sentence plainly false. Fourth time this repository records the shape: "all
+   18 checks pass", "one of the eighteen names", and the prose over `CARD_W` naming 88% and 4% while
+   the code said 80 and 8. The sentence says what the number IS now, which is the only version that
+   cannot go stale. */
+console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} of them summed against a stated total`);
 
 say('BROKEN', fail, x => x);
 

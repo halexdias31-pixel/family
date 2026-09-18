@@ -2926,6 +2926,59 @@ itself. **Proved on four payloads**: the real files (6 slides), the built-in cli
 at 60 reel rows and none of them has a clip"), the list emptied ("no reel rows at all"), and one
 sheet fact beside the code's clips (6 slides, where it was 0 before).
 
+### AQA Physics 8463/1H is transcribed, and the first wide table in the library broke a rule
+
+**43 questions, every answer read off AQA's own 8463/1H scheme.** The 2017 Highers are why that is
+the rule and not a preference, and `tools/insert-aqa-physics-8463-1H.py` asserts **both** totals
+before it writes a row: the cover's 100, and the ten boxes down the margin — 10, 10, 9, 10, 13, 9,
+8, 8, 11, 12. A dropped part or a misread mark count fails in the script rather than shipping.
+
+**Three answers are PICTURES and were rendered rather than remembered.** 03.2 asks which of four
+graphs shows resistance against length; 05.4 and 10.2 ask you to draw a thermistor and a fuse. All
+three print a drawing in the scheme and nothing in the text layer, so all three were rendered at
+scale and looked at — *a screenshot is the last word on a drawing*, for the sixth time. 03.2 is a
+straight line from the origin, which is also what R = ρL/A says, and the answer is written as that
+sentence rather than as a box letter nothing here can see.
+
+**What a figure carries is said, and attributed, and never written into the question.** Eight parts
+hang off artwork: a circuit, a fission diagram, three photographs, three graphs a value is read off.
+Each carries `figure` so `check-library.js` counts it, and where the SCHEME states the number the
+figure would have given — 80 Ω at 20 °C, about 3 cm of air, 7.1 × 10²⁰ Bq — it is in
+`examiner_note` saying it came from the scheme. The alternative is a question that reads as though
+the paper printed a number nobody transcribed, which is the fault this file records under the
+scatter graph and under the curve read by eye.
+
+#### `check/cards.js` caught my own table, and then it caught the check
+
+**Table 1 went 26px past a 320px column.** Four columns — method, energy stored per 100 kg,
+percentage wasted, installation — and every table in the library before it had three or fewer, so
+the rule had never met one that cannot shrink. Caught on the commit that added it, which is the
+whole argument for laying out all four thousand rows rather than sampling.
+
+**The house rule says which way it goes**: the page body never scrolls sideways and *"only wide
+tables, code and diagrams may run past it — each gets `overflow-x: auto` on its own container"*.
+Squeezing the columns instead would have been `.mat-face` again — the label that cannot shrink is
+the one that breaks, and "Percentage of stored energy wasted" is four words that have to stay.
+`display: block` is what makes it possible at all: a `table` box ignores `overflow` because it is
+not a block container.
+
+**And then the check went on reporting it**, because the overflow had moved from the card to the box
+now holding it deliberately. **CLAUDE.md already states the question this check is asking** — *"does
+this box scroll sideways when it was NOT told it could"* — and the code was asking the other one. It
+skips an element whose computed `overflow-x` is `auto` or `scroll` and **does not skip its
+ancestors**, which is the half that keeps it honest: a scroller cannot hide a card that is genuinely
+too wide, because the card is measured on its own pass. **Proved by mutation**: put the table back
+to `visible` and it fires on `.qsheet` at the same 26px.
+
+#### And the headline sentence had gone stale, which the transcription is what exposed
+
+**"61 Edexcel GCSE maths papers checked at 80 marks"** — `marks.size` is every paper summed against
+a declared total, whoever set it, and the whole point of `total_marks` was to stop that rule knowing
+about one board. It stayed readable while the only papers with a total WERE Edexcel maths at 80; the
+first AQA paper summed against its own 100 made it plainly false. Fourth time this file records the
+shape, after "all 18 checks pass", "one of the eighteen names", and the prose over `CARD_W` naming
+88% and 4% while the code said 80 and 8. It says what the number is now.
+
 ### Eighteen science papers, named off their covers rather than their filenames
 
 **`newbatch` holds eighteen June 2024 science papers and not one filename says which subject it
