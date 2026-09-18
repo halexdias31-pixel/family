@@ -74,8 +74,8 @@ const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.js
 const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
-  subject:       ['Chemistry', 'Combined Science', 'English Language', 'Maths', 'Physics',
-                  'Religious Studies'],
+  subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Maths',
+                  'Physics', 'Religious Studies'],
   document_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
      see LIST_COLS below for why a list column is checked per item. */
@@ -89,7 +89,12 @@ const VOCAB = {
                   '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
   answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'proof', 'short', 'written'],
   month:         ['5', '6', '11'],
-  paper:         ['1', '2', '3'],
+  /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. 1SC0 is six
+     papers — biology, chemistry and physics, each sat twice — and its own covers say "Combined
+     Science PAPER 4" over the code 1SC0/2BH. A cap of three was never a rule about exams; it was
+     the shape of the one qualification anybody had in front of them, which is the sentence this
+     file already writes about `isEdexcelGcseMaths`. */
+  paper:         ['1', '2', '3', '4', '5', '6'],
   /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. A closed list for
      the reason every list here is closed: `calc`, `Calculator` and `calculator` would be three
      buttons on the funnel for one fact, which is the `Alevel` / `A-Level` fault in a new column.
@@ -99,8 +104,12 @@ const VOCAB = {
      chemistry paper: its front cover lists it beside the ruler and the calculator, in the same
      sentence, as a thing you must have. Paper-level like the calculator — the cover says it once
      for all the questions inside. */
+  /* `Equation booklet` IS THE PHYSICS ONE, and AQA encloses it with the paper: "the Physics
+     Equations Sheet (enclosed)" on the cover of all four 8463 papers, and Edexcel says the same on
+     1SC0/1PH and /2PH. A sheet of formulae a student is HANDED in the exam is exactly the fact this
+     column carries — it changes what you put on the table beside them. */
   needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper',
-                  'Periodic table'],
+                  'Periodic table', 'Equation booklet'],
   needs_print:   ['True', 'False'],
   printable:     ['True', 'False'],
   trackable:     ['True', 'False'],
@@ -774,6 +783,28 @@ say('WORTH DOING NEXT — not a fault', note, x => x);
 
 console.log(`\npapers with no questions under them yet: ${empty.length}  (the backlog, not a fault)`);
 console.log(`documents with a stub row beside their transcription: ${stubPairs}  (the intended state)`);
+/* ---------- AND A PAPER THAT DECLARES A TOTAL AND HAS NO QUESTIONS IS IN NEITHER COUNT ------------
+   `marks` IS KEYED OFF QUESTION ROWS, so a `kind: 'document'` row carrying `total_marks` with
+   nothing under it yet enters neither bucket — it is not "checked", because there is nothing to
+   sum, and it is not "no total to check against", because it has one. Sixteen science papers went
+   in as stubs across two sittings and both numbers stayed exactly where they were.
+
+   THAT IS THE COUNT DOING ITS JOB AND HIDING SOMETHING AT THE SAME TIME, which is the shape this
+   file records under `papers checked against a total` going 34 to 2 under a green tick, and under
+   the practical that a substring called required. A stub with a total is not a fault and it is not
+   nothing: it is the TRANSCRIPTION QUEUE, already carrying the one number that will refuse a wrong
+   transcription the moment somebody starts typing one. Printed so it is a number rather than a
+   silence — the argument this file makes about 485 missing figures and 2 compasses of 4,005. */
+const queued = [...paperFacts.entries()]
+  .filter(([pid, p]) => Number(p.total_marks) > 0 && !marks.has(pid) && !unchecked.has(pid));
+console.log(`papers with a total and no questions yet: ${queued.length}  (the transcription queue)`);
+/* TEN AND A REMAINDER, because eighty-seven lines on every run is a list nobody reads — which is
+   the `ACCEPTED_TAP` argument pointed the other way: that one prints in full BECAUSE it must not
+   grow, and this one is meant to. The number is the thing to act on. */
+queued.sort().slice(0, 10).forEach(([pid, p]) =>
+  console.log(`  ${pid.padEnd(22)} ${String(p.name || '').slice(0, 42).padEnd(42)} out of ${p.total_marks}`));
+if (queued.length > 10) console.log(`  … and ${queued.length - 10} more`);
+
 console.log(`papers checked against a total: ${marks.size}   papers with no total to check against: `
           + `${unchecked.size}  (put total_marks on the paper row and they are)`);
 console.log(`pictures drawn here from what the paper prints: ${drawnHere - chosenHere}`

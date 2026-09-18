@@ -2926,6 +2926,62 @@ itself. **Proved on four payloads**: the real files (6 slides), the built-in cli
 at 60 reel rows and none of them has a clip"), the list emptied ("no reel rows at all"), and one
 sheet fact beside the code's clips (6 slides, where it was 0 before).
 
+### Eighteen science papers, named off their covers rather than their filenames
+
+**`newbatch` holds eighteen June 2024 science papers and not one filename says which subject it
+is.** AQA names every subject's download `Question paper (Higher)_ Paper 1 - June 2024.pdf`, so
+Drive had disambiguated them into `(1)`, `(2)`, `(3)` — an ordering that means nothing. Every one
+was identified by reading the front cover, which is the rule this file already records for the
+Edexcel codes: **check the metadata and the cover before reading a single page.**
+
+| | June 2024, all with mark schemes beside them |
+|---|---|
+| **AQA Biology 8461** | Foundation Papers 1 and 2 |
+| **AQA Chemistry 8462** | Foundation Papers 1 and 2, Higher Papers 1 and 2 |
+| **AQA Physics 8463** | Foundation Papers 1 and 2, Higher Papers 1 and 2 |
+| **Edexcel Combined Science 1SC0** | Higher Papers 1–6 — **no mark schemes** |
+
+**And the file named `Insert (Foundation)_ Paper 1` is not an insert.** It is AQA's **Physics
+Equations Sheet**, stamped "FOR USE IN JUNE 2024 ONLY". Read as the filename says it, an AQA insert
+means English Language — and this library already holds two English papers whose source is a
+`placeholder` row waiting to be replaced. Opening it is the only thing that stopped a formula sheet
+being filed as a reading source.
+
+**The Edexcel slug is a publication date, and this is the second proof.** Every one of the six
+carries a full date in its filename and **every one is a day after the date on its own cover** —
+`1sc0-1bh-que-20240511.pdf` over *Friday 10 May 2024*. One is worse: `1sc0-1ph-que-20240822.pdf`
+over *Wednesday 22 May 2024*, three months out. This file already refuses to bulk-fill `exam_date`
+from that slug on the evidence of eight Saturdays; six papers with a consistent +1 offset and one
+with a wrong month is the same finding from a different board.
+
+**`paper` goes to 6, and the cap was never a rule about exams.** 1SC0 is six papers — biology,
+chemistry and physics, each sat twice — and its own covers read "Combined Science PAPER 4" over the
+code `1SC0/2BH`. A vocabulary of `1, 2, 3` was the shape of the one qualification somebody had in
+front of them, which is the sentence this file writes about `isEdexcelGcseMaths`. `Equation booklet`
+is a seventh `needs` for the same reason `Periodic table` was a sixth: four 8463 covers and two
+1SC0 covers hand the student a sheet of formulae, and what is on the table beside them is what this
+column is for.
+
+#### The transcription queue was in neither count
+
+**`marks` is keyed off QUESTION rows**, so a document row carrying `total_marks` with nothing under
+it yet is in neither of the two numbers this check prints: not "checked against a total", because
+there is nothing to sum, and not "no total to check against", because it has one. **Sixteen science
+stubs went in across two sittings and both numbers stayed exactly where they were** — 60 and 186,
+before and after.
+
+**That is a count doing its job and hiding something at the same time**, which is the shape recorded
+here twice already: `papers checked against a total` going 34 → 2 under a green tick, and a
+substring calling five practicals required. So the third number is printed, and **it is 87** — the
+sixteen sciences plus seventy-one maths papers that have been identified, given a total, and never
+transcribed. Nobody had ever counted them. A stub with a total is not a fault and it is not nothing:
+it is the queue, already carrying the one number that will refuse a wrong transcription the moment
+anybody starts typing one.
+
+**Ten lines and a remainder**, because eighty-seven on every run is a list nobody reads. That is
+`ACCEPTED_TAP`'s argument pointed the other way: that one prints in full because it must not grow,
+and this one is meant to.
+
 ### AQA Chemistry, as two document rows and nothing else yet
 
 **What was added to Drive as "higher 2024 bio" is AQA GCSE CHEMISTRY 8462**, Higher, Papers 1 and 2,
