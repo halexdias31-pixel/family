@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-tighter-finder";
+  --css-version: "2026-09-18-booking-blanks";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2382,12 +2382,24 @@ button.text-drop { color: var(--bad); }
 /* THE INDENT COSTS THE GRID A CELL AND A HALF. It reads as belonging to the When row from the rule
    underneath it and from being the only thing there; on a 307px card it does not also need to be
    inset. */
+/* ---------- THE WEEK IS ONE QUESTION DRAWN TEN ROWS TALL ------------------------------------------
+   MEASURED ON THE EMPTY FORM AT 390px: this block is 182px of an 807px card — a fifth of it, to ask
+   one of the form's fifteen questions, where every other question is a 19px row. That is the
+   disproportion somebody looking at this card sees, and it is worth saying what CAN and cannot be
+   done about it.
+
+   THE GRID ITSELF IS AT ITS FLOOR AND HAS BEEN TWICE MEASURED THERE. Seven rows at `max(20px,
+   1.55em)` plus six 1px gaps is 146px, and the 20px is a fingertip rather than a preference — the
+   note over `.hr` records this block going 222 → 174 → 146 and why it stops there. A week has seven
+   days and a day has to be pressable; there is no arrangement of those two facts under 140px.
+
+   SO WHAT COMES BACK IS THE SURROUND, which was 36px of margin and instruction around it. */
 .bk-open {
-  margin: .05rem 0 .25rem 0;
-  padding-bottom: .3rem;
+  margin: 0 0 .18rem 0;
+  padding-bottom: .2rem;
   border-bottom: 1px dashed var(--line);
 }
-.bk-open > p { margin: 0 0 .2rem; font-size: .66rem; line-height: 1.3; }
+.bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
@@ -2460,7 +2472,7 @@ button.text-drop { color: var(--bad); }
 
    THE DAY LABEL DROPS TO TWO LETTERS. `Mo Tu We Th Fr Sa Su` is unambiguous where one letter is not
    (T and S are each two days), and the 14px it gives back goes to the cells, which need it more. */
-.slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .25rem 0 .1rem; }
+.slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
 .slot-row.is-shut .hr { min-height: 11px; font-size: .55rem; }
 .slot-day { flex: 0 0 1.5rem; font-size: .62rem; color: var(--faint);
@@ -2532,6 +2544,24 @@ button.text-drop { color: var(--bad); }
    rows at half height is most of a phone screen's worth of card back. */
 .bk-row.is-blank { padding-top: 0; padding-bottom: 0; }
 .bk-row.is-blank .bk-v { opacity: .45; }
+/* ---------- AND TWO OF THEM COST TWICE WHAT A BLANK ROW COSTS -------------------------------------
+   MEASURED ON THE EMPTY FORM: thirteen rows are a dash, eleven of them 15px and `Extra subj.` and
+   `Per session` 30px — because those two are the only labels one character too long for a 6.2em
+   column, so they break in two. Twice the height of a row with nothing in it, on the two rows with
+   nothing in it.
+
+   THE NOTE OVER `SPINE_EXTRA` RECORDS THIS FAULT AND ITS FIX — four labels were shortened for
+   exactly this reason — and it came back on the two that are still eleven characters. Shortening
+   again would be a third round of the same hand-repair, which is what this repository keeps
+   finding: a rule applied by hand is not a rule.
+
+   SO THE RULE IS THE FIX. A blank row's value column holds one dash, so there is nothing beside the
+   label to make room for and no reason for it to wrap — at any length, for any label somebody adds
+   later. A row that HAS a value keeps the wrap, because there the two columns really are competing.
+
+   AND THE LEADING COMES DOWN WITH IT. 1.35 is a line for reading; a dash is not read, it is counted
+   past on the way to the row below. Thirteen rows at 12px instead of 15. */
+.bk-row.is-blank .bk-k, .bk-row.is-blank .bk-v { line-height: 1.1; }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
 .hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
@@ -5509,6 +5539,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    bare row's label started in a different place from a priced one's, on the same card. Third copy of
    the same fault: a width stated twice and the second one forgotten. */
 .bk-row.is-bare { grid-template-columns: 6.2em minmax(0, 1fr); }
+/* ---------- AND A BLANK ROW'S LABEL COLUMN GIVES WAY INSTEAD OF THE LABEL -------------------------
+   THE COLUMN GIVES WAY, NOT THE LABEL, and the first version of this got that backwards. `Extra
+   subj.` and `Per session` are the only two of the spine's twenty-eight labels one character too
+   long for 6.2em, so on an empty form those two blank rows were 30px where the other eleven were
+   15 — twice the height of a row with nothing in it, on the two rows with nothing in it. Setting
+   `white-space: nowrap` on them fixed the height and broke the width: `check/ui.js` named
+   `span.bk-k overflows by 3px` at four widths, which is the row taking the card sideways rather
+   than the row being tall.
+
+   `max-content` ASKS FOR EXACTLY WHAT THE LABEL NEEDS and the dash takes what is left, so nothing
+   wraps AND nothing overflows, at any label length somebody adds later. A row with a real value
+   keeps the fixed column, because there the two columns are genuinely competing for the width.
+
+   HERE RATHER THAN BESIDE `.bk-row.is-blank`, which is where it was written and where it did
+   nothing: both selectors are two classes, `.is-bare` comes 3,000 lines later, and the cascade
+   settles a tie by order. The measurement is what caught it — the rows went back to 481px under a
+   rule that read as though it had fixed them. Same fault as `.price.faint`. */
+.bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr); }
 
 /* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
    THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three
