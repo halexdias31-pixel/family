@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-build-watch";
+  --css-version: "2026-09-18-tighter-finder";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1405,9 +1405,20 @@ button.text-drop { color: var(--bad); }
    They WRAP rather than scroll sideways: a row that scrolls can hide a filter, and a filter you
    cannot see narrowing your list is the fault this replaced.
 --------------------------------------------------------------------------------------------- */
-.chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .6rem; }
+/* ---------- REPORTED AS "the tags don't need to be as big" -------------------------------------
+   MEASURED BEFORE ANYTHING WAS TOUCHED, six answers deep at 390px: the chips took **192px of a
+   673px pane** — seven of them over FOUR wrapped lines, more than a quarter of the screen, to say
+   what had already been answered. The answers themselves, which are the thing somebody is on this
+   screen to press, got 336px.
+
+   THE 44px STAYS AND EVERYTHING ELSE GIVES. A chip is a control and a fingertip does not scale —
+   this stylesheet has five convictions of that rule written into it and this is not the sixth. What
+   was costing the room is WIDTH: the label, the padding and the gaps decide how many fit on a line,
+   and a line is 44px whether it holds two chips or four. Narrower text, less padding, tighter gaps
+   — same target, fewer rows. */
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 .chip {
-  display: flex; align-items: center; gap: .3rem;
+  display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE ---------------------------
      IT READ `max(38px, 2.3rem)`, WHICH IS `.btn.tiny` EXACTLY. The root is `clamp(13.5px, 3.8vw,
      16px)`, so 2.3rem is 34px on a phone and the `max` never once chose the rem — every chip in the
@@ -1419,15 +1430,15 @@ button.text-drop { color: var(--bad); }
      state it opens in, and in that state there are no filters, so there are no chips — 63 known tap
      targets, four widths, two visitors, and the control that removes a filter was in none of them.
      It appeared the moment the check was given a state six answers deep. */
-  min-height: 44px; padding: 0 .6rem;
+  min-height: 44px; padding: 0 .45rem;
   background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
-  color: var(--ink); font: inherit; font-size: .78rem; cursor: pointer;
+  color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:active { transform: scale(.94); }
 /* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
    information, and with four chips on a line the second one is a puzzle. */
-.chip-k { color: var(--faint); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
+.chip-k { color: var(--faint); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
 .chip-x { color: var(--faint); margin-left: .15rem; }
 .chip:active .chip-x { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
@@ -1693,7 +1704,17 @@ button.text-drop { color: var(--bad); }
      `.pane.scrolls`, which script.js adds after measuring. Most panes never get it, so most of the
      screen behaves like the edges did, which is the half that was always working. */
   touch-action: none;
-  padding: 1rem 1rem 1.25rem;
+  /* ---------- THE GLASS'S OWN MARGIN, TRIMMED ONCE --------------------------------------------
+     EVERY SCREEN IN THE APP SITS INSIDE THIS. It was `1rem 1rem 1.25rem`, which on a 390px phone is
+     15px of the 328px card gone to the frame on each side and 33px down the middle of the height —
+     and the card is already inset from the screen by the grid, so this is the second margin round
+     the same content. Asked for as "everything should be a bit more efficient with space", and this
+     is the one number that answers it everywhere at once rather than per component.
+
+     TRIMMED, NOT REMOVED. A pane with no padding is content against a border, which is what makes a
+     card read as a box rather than as a surface — and the bottom keeps a little more than the top
+     because a list that ends flush with the glass reads as clipped. */
+  padding: .85rem .85rem 1rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */
@@ -6833,7 +6854,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    list is still something you run an eye down even though each card carries its whole question.
 ================================================================================================== */
 .qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
-         padding: .7rem .8rem; margin-bottom: .5rem; }
+         padding: .6rem .7rem; margin-bottom: .4rem; }
 .qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
@@ -6944,7 +6965,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    about. `break-word` only breaks a word that cannot fit on a line of its own, which is exactly the
    dotted rule and nothing else. */
 .qsheet-pb { flex: 1; min-width: 0; overflow-wrap: break-word; }
+/* ---------- AND THE LAST PARAGRAPH'S BOTTOM MARGIN, WHICH NOTHING NEEDED --------------------------
+   `p:first-child` HAS HAD ITS TOP MARGIN TAKEN OFF SINCE THIS WAS WRITTEN and the other end was
+   left on: a browser's own `1em` under the last paragraph of every question, measured at 14.8px,
+   sitting between the question's last line and a container that already supplies the gap. One
+   paragraph of white space per card, on every card in a list somebody scrolls. */
 .qsheet p:first-child { margin-top: 0; }
+.qsheet-pb > :last-child, .qsheet-stem > :last-child { margin-bottom: 0; }
 .qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
 .qsheet ol.roman { list-style: lower-roman; }
 .qsheet ul { padding-left: 1.2rem; }
@@ -7523,8 +7550,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border: 1px solid var(--line);
   border-radius: .7rem;
   background: var(--raised);
-  padding: .8rem .85rem;
-  margin-bottom: .5rem;
+  /* ---------- THE PADDING WAS PUSHING PAST THE TARGET IT ALREADY HAD ---------------------------
+     MEASURED: 48px a row, seven rows, 336px. `min-height: 44px` is the floor a fingertip needs and
+     `.8rem` of padding over a 24px line took every row four pixels past it — height bought from
+     nobody, because the tap target was already 44. At .55rem the box lands ON the floor: the same
+     44px to press and 4px less to scroll past, seven times over. */
+  padding: .55rem .7rem;
+  margin-bottom: .38rem;
   min-height: 44px;
   /* THE LABEL IS THE THING NOW, so it takes the foreground colour. `--dim` is right for the left
      half of a fact row and wrong for the text on a button. */
@@ -7550,7 +7582,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    `flex: 1 1 auto` — take the room, and give way when there is not enough, at which point the
    `overflow-wrap` it already carries does the rest. */
-.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem;
+.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .92rem;
   flex: 1 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
