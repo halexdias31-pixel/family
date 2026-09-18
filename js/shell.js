@@ -2449,6 +2449,22 @@ async function watchBuild_() {
   BUILD_TAG = await buildTag_();
   if (!BUILD_TAG) return;
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkBuild_(); });
+  /* ---------- AND `pageshow`, BECAUSE OF THE HOME SCREEN ------------------------------------------
+     THIS SITE IS AN INSTALLED APP ON A PHONE. The manifest says `display: standalone` and
+     `apple-mobile-web-app-capable` is in the head, so an icon added to the home screen opens a
+     window with no address bar, its own storage, and — the part that caused this — iOS SUSPENDS AND
+     RESUMES it rather than reloading it. A web app left open yesterday is yesterday's page, restored
+     from a snapshot, with no request made at all.
+
+     THAT ALSO TAKES `?dev` AWAY. There is nowhere to type it, and the standalone window does not
+     share Safari's copies, so clearing it there clears the wrong one. Which makes this banner the
+     only door out that somebody holding the phone can actually reach.
+
+     BOTH EVENTS, because a restore is not always a visibility change: `pageshow` with
+     `persisted: true` is the page coming back from the browser's own hold, and the two fire in
+     different orders on different systems. `checkBuild_` is rate-limited, so two of them is one
+     request. */
+  window.addEventListener('pageshow', e => { if (e && e.persisted) checkBuild_(); });
 }
 
 async function checkBuild_() {

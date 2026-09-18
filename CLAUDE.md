@@ -4515,6 +4515,31 @@ rate-limited to once in thirty seconds, because switching apps twice in a minute
 deployed leaves the banner hidden and empty, a deploy while the tab sits there raises it, and the
 tap lands on the new build.
 
+### It was added to the home screen, which is the whole explanation
+
+**Asked as "is it because I added it to homescreen?" and the answer is yes.** `index.html` carries a
+manifest saying `display: standalone` and an `apple-mobile-web-app-capable` tag, so an icon added
+from Safari opens a window with no address bar, **its own storage**, and — the part that caused
+this — **iOS suspends and resumes it rather than reloading it**. A web app left open yesterday is
+yesterday's page restored from a snapshot, with no request made at all. Nothing about that is a
+fault in the site; it is what an installed app is.
+
+**It also takes every existing way out of reach.** There is nowhere to type `?dev`, the standalone
+window does not share Safari's copies so clearing it there clears the wrong one, and the address it
+would need is not on screen to be edited. What is left is pulling down to refresh inside the window,
+force-quitting it from the app switcher so the next launch is cold, or deleting the icon and adding
+it again — and which of those an iOS version honours cannot be tested from here, which is said
+rather than asserted.
+
+**So the banner is the door somebody holding the phone can actually reach**, and `pageshow` is
+listened to beside `visibilitychange` for the same reason: a resume is not always a visibility
+change, `pageshow` with `persisted: true` is the page coming back from the browser's own hold, and
+the two fire in different orders on different systems. The check is rate-limited, so two events are
+one request. Measured on the resumed path as well as the returned-to-tab one.
+
+**And the build stamp on the You screen stops being a nicety.** In a window with no address bar it
+is the only thing on the phone that says which build is running.
+
 **And the action is written out inside `banner()` rather than passed in**, for the checker rather
 than for the code: `check-doors.js` follows `setAttribute('data-do', 'x')` with a literal and cannot
 follow a variable, so an action handed in as an argument becomes a handler reported as unreachable —
