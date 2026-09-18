@@ -4027,3 +4027,30 @@ Rectangles`, `Volume of a Cuboid` — match Corbettmaths PDFs exactly, and their
 is this library's prefix for **1st Class Maths**. Both publishers make a sheet on each of those
 topics. Their `company` cell is empty, so nothing states which, and attributing them from a name
 match is precisely how three duplicate transcriptions got in last time.
+
+## KS2 SATs 2019 Paper 1, and `&amp;` is a third spelling the rule did not fold
+
+**36 questions read off the 2019 mark scheme**, not derived — the 2017 Highers are why that is the
+rule. The paper is out of 40 and 32 one-mark questions plus four two-mark long multiplications and
+divisions is 40, asserted before a row is written.
+
+**Fourteen questions are artwork.** The text layer gives `16 3 3 =` for 3 cubed and
+`22 13 7 − 4 7 =` for 1³⁄₇ − ⁴⁄₇ — loose digits, the failure mode this file already records four
+ways. Every one was recovered by rendering its page and looking at it.
+
+**And this one CAN be reproduced**, where an exam board's cannot. The paper's own copyright page
+says it is Crown copyright under the Open Government Licence v3.0 and contains no third-party
+content, which is exactly the opposite of the AQA English insert a few sections up. The licence
+asks for attribution and the document row carries it.
+
+### The check that exists to catch two spellings did not catch mine
+
+**I wrote `Multiplying &amp; Dividing Fractions` into the insert script** — an HTML entity, in a
+column that is not HTML — beside the 22 rows already saying `Multiplying & Dividing Fractions`.
+Two buttons for one topic, which is the `and` against `&` fault one section up, wearing an escape.
+
+**The rule folded `&` onto `and` and left `&amp;` alone**, so it passed. That is this repository's
+own sentence about `cost: 0` and `paper: true` for the fifth time: the fault was repaired in the
+data and the rule that was supposed to stop it could not see the new spelling. Entities are
+unescaped before the fold now, and the insert script asserts the same thing at the other end so a
+topic cannot leave a writer carrying one. **Proved by mutation in both directions.**

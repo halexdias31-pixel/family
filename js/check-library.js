@@ -339,7 +339,13 @@ rows.forEach(r => {
        file are that, and every one is correct. The first version of this rule lower-cased and
        reported all 46 as faults, which is `check-rows.js` with 95 findings and 2 real ones. The
        question this rule asks is only the one the fold cannot: `and` against `&`. */
-    const k = t.replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ');
+    /* `&amp;` IS A THIRD SPELLING AND IT GOT PAST THIS RULE ONCE. A topic written into an
+       insert script as an HTML entity is a different string from the same topic written with a
+       bare ampersand, so it is a second button for one topic exactly as `and` is -- and this
+       rule, which exists to catch that, folded only the bare form. Caught on the KS2 2019
+       transcription, where one row said `Multiplying &amp; Dividing Fractions` beside 22 rows
+       saying `Multiplying & Dividing Fractions`. Entities are unescaped BEFORE the fold. */
+    const k = t.replace(/&amp;/g, '&').replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ');
     if (!AMP.has(k)) AMP.set(k, new Map());
     const m = AMP.get(k);
     m.set(t, (m.get(t) || 0) + 1);
