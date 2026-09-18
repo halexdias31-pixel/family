@@ -4414,3 +4414,54 @@ instruction.
 **Eighth time this file writes that a screenshot is the last word on a drawing**, and here it is the
 last word on two: the gold slab, and the ▶ needing `padding-left: .18em` because the glyph's own
 bearing sits it left of centre in its disc.
+
+### Making it stable: four things the column could not survive, and three were measured first
+
+**"Refine it to be more stable" was answered by looking for what breaks it rather than by reading
+it.** Four faults, each proved before it was fixed and after.
+
+**1. A REDRAW LOST THE PAGE YOU WERE ON.** Five pages down, `paint('reel')` took the column from 9
+pages to 3 while `PAGE.reel` stayed at 5 — a position outside its own column, with nothing playing
+because there is no reel 5 to play, until the next `paintPager` silently clamped it back to 2. A
+redraw is not a navigation: `load()` repaints when the payload lands, and so does signing in and
+every save. The draw builds as far as the page somebody is on plus the two kept ahead of it, and
+`REEL_AHEAD` is one constant so the top-up and the redraw cannot disagree about that number.
+
+**2. AND A REPAINT STARTED NOTHING, because the reels were booked outside the one list that exists
+for exactly this.** `repaint` calls `startScreen_(AT)` under a comment that says why — *"a repaint
+rebuilds the markup it was running in"* — and starts the widgets and the camera from it. The reel
+column was booked separately, `afterSlide_(reelsWatch_)` in `go`, so a repaint rebuilt the column
+and left it dead. Measured: `repaint()` at page 5, `playing: []`. It is in `startScreen_` now, with
+the other two.
+
+**That move answers a second fault for free, and it is the better fix for it.** Arrive at the column
+and leave again inside 300 ms and a clip was playing on a screen you were not on: `go` stops the
+reels as the new screen is drawn, and the booking held from the screen before fired afterwards and
+started one again. `go` books `startScreen_` through an arrow that reads `AT` **when the timer
+fires**, so the job now runs for the screen you ended on. The first version of this was a guard
+inside `reelsWatch_` — right, and a second place that had to know about the race. Being in the list
+makes it impossible instead of caught, which is the move this file already records as *replace an
+emergent property with a declared one*.
+
+**3. THE COLUMN COULD BE BUILT FROM TWO DIFFERENT LISTS.** `clipsNow_()` is a live answer — it asks
+the sheet, falls through to the code's list, and gives a different list the moment a payload lands.
+The pages are built one batch at a time and indexed by position, so a list that changes underneath
+them makes index 4 a different clip from the one index 4 was drawn as, with `REEL_HELD` pointing at
+whichever is there now. `REEL_CLIPS` is one snapshot per draw and the pages, the pager's count and
+the item at index n are three readings of it. Same sentence as `documents_()` and `factsNow_`, one
+layer down — and it also stops `reelPages_` rebuilding the whole fact list every time the pager
+counts.
+
+**4. THE ONE CLIP THAT HAD ALREADY GONE WRONG WAS THE ONE THAT COULD NOT BE STOPPED.** When Drive
+refuses the bytes the `<video>` is replaced by Google's player in an iframe, and a cross-origin
+iframe has no `pause` this page can call — so `clipsStop_` stopped every clip except that one, which
+went on playing behind another screen. **The half that was fixed was the half that was easy to
+reach**, which is a shape worth naming. Taking its address away is the only stop available:
+`about:blank`, with the real one kept in `data-src` so the slide can have it back, and `reelTurn_`
+gives it back to the reel you are on. Not removing the element, because a slide that loses its
+player has nothing left to look at and the card would resize under the column. Proved with Drive
+answering nothing: `https://drive.google.com…` → `about:blank` on leaving → back again on return.
+
+**Nothing regressed**, which is the other half of trusting it: the seven states of the pause and its
+mark are unchanged, the column is still 3 widgets on arrival topping up to 9, and `check/ui.js`
+reports nothing new across 100 combinations.

@@ -1305,7 +1305,12 @@ screen('reel', () => {
 
      AND A COLUMN WITH NO CLIPS SAYS SO RATHER THAN FILLING ITSELF WITH FACTS. Showing the next best
      thing is exactly how this screen came to be showing the wrong thing. */
-  const facts = clipsNow_();
+  /* ONE SNAPSHOT PER DRAW, and everything below reads it. `clipsNow_()` is a live answer — it asks
+     the sheet, falls through to the code's list, and can give a different list the moment a payload
+     lands. The pages of this column are built one batch at a time and indexed by position, so a list
+     that changes underneath them makes index 4 a different clip from the one index 4 was drawn as,
+     with `REEL_HELD` pointing at whichever is there now. A column is one reading of one list. */
+  const facts = REEL_CLIPS = clipsNow_();
   const rows = factsNow_().length;
   if (!facts.length) {
     return `<section class="page"><div class="pane"><div class="card">
@@ -1356,8 +1361,17 @@ screen('reel', () => {
      self-explanatory in a way almost nothing else in this app is", and a clip playing is too. The
      column before this drew "Reels" once above fifty-eight slides; one heading per widget would be
      that word printed down the whole column. */
+  /* ---------- A REDRAW MUST NOT LOSE THE PAGE YOU ARE ON ------------------------------------------
+     MEASURED: five pages down, `paint('reel')` took the column from 9 pages to 3 while `PAGE.reel`
+     stayed at 5 — a position outside its own column, with nothing playing because there is no reel
+     5 to play, until the next `paintPager` silently clamped it back to 2.
+
+     A REDRAW IS NOT A NAVIGATION. `load()` repaints when the payload lands, and so does anything
+     else that rebuilds this screen, so the column has to come back at least as long as it was where
+     it matters: as far as the page somebody is on, plus the two that are always kept ahead of it.
+     `reelItem_` still stops at `REEL_MAX`, so this cannot grow past the ceiling. */
   REEL_SHOWN = 0;
-  return pages('reel', reelCards_(REEL_FIRST));
+  return pages('reel', reelCards_(Math.max(REEL_FIRST, (PAGE.reel || 0) + 1 + REEL_AHEAD)));
 });
 
 /* ---------- IT GOES DOWN FOR EVER, AND THE DECK IT DRAWS FROM ALREADY DID ------------------------
@@ -1385,6 +1399,8 @@ screen('reel', () => {
    further than anybody scrolls — rather than a leak nobody measures until a phone gets hot. */
 const REEL_FIRST = 3;      // on the first paint. One is on screen; the rest are the next flick.
 const REEL_MORE  = 3;      // appended when the last one is two slides away.
+const REEL_AHEAD = 2;      // how far ahead of you the column is kept — the top-up and the redraw
+                           // read the same number, or one of them builds a page short of the other.
 const REEL_MAX   = 60;     // the ceiling, in slides. See above.
 let REEL_SHOWN = 0;
 /* WHICH REEL SOMEBODY HAS DELIBERATELY STOPPED, by index, or −1 for none. A pause that undoes
@@ -1401,8 +1417,19 @@ let REEL_HELD = -1;
    typed fact in the payload — `{"slides":0}` under a card reading just "Reels". A second reader of
    one thing is a second chance to disagree about it, which is the sentence this repository already
    carries about `documents_()`, `paperIdOf_` and `factsNow_` itself. */
+/* THE LIST THIS COLUMN WAS DRAWN FROM, held for as long as the column is. Taken in `screen('reel')`
+   and read by everything below, so the pages, the pager's count and the item at index n are three
+   readings of ONE list rather than three live calls that can disagree — which is the sentence this
+   repository writes about `documents_()` and `factsNow_`, one layer down. Null before the column has
+   ever been drawn, because the pager counts before then. */
+let REEL_CLIPS = null;
+function reelClips_() {
+  if (!REEL_CLIPS) REEL_CLIPS = (typeof clipsNow_ === 'function' ? clipsNow_() : []);
+  return REEL_CLIPS;
+}
+
 function reelItem_(n) {
-  const clips = clipsNow_();
+  const clips = reelClips_();
   if (!clips.length || n >= REEL_MAX) return null;
   return clips[n % clips.length];
 }
@@ -1449,7 +1476,7 @@ function reelCards_(count) {
    and says how many rows it looked at. A count of nothing over a page that exists is a column you
    cannot be on. */
 function reelPages_() {
-  const n = typeof clipsNow_ === 'function' && clipsNow_().length ? REEL_SHOWN : 1;
+  const n = reelClips_().length ? REEL_SHOWN : 1;
   return new Array(Math.max(1, n)).fill('');
 }
 
@@ -1470,6 +1497,12 @@ function reelPages_() {
    plays once at the end rather than starting and pausing a clip per swipe. That coalescing is the
    fix CLAUDE.md records under "one timer was holding three jobs" — and it only works because both
    callers pass the same named function rather than two arrows. */
+/* CALLED BY `startScreen_`, WHICH IS THE LIST OF WHAT A SCREEN HAS RUNNING — and it was booked on
+   its own from `go` until it was measured. Two things came of that: a repaint rebuilt this column's
+   markup and started nothing (five pages down, `playing: []`), and arriving here and leaving inside
+   300ms started a clip on the screen you had left. Both are answered by being in that list, because
+   `go` books it through an arrow that reads `AT` when the timer fires and `repaint` calls it
+   outright. */
 function reelsWatch_() {
   reelTurn_(PAGE.reel || 0);
 }
@@ -1481,17 +1514,30 @@ function reelTurn_(n) {
   /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts a
      blank page where the flick should have been; two early is the same cost paid while nobody is
      waiting. Same number and same reason as the observer that used to do it. */
-  if (n >= REEL_SHOWN - 2) reelMore_(host);
+  if (n >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen
      rather than gone, because the column peeks above and below. A clip left running up there is
      sound coming from something nobody can see, which is the one thing a muted-by-default column
      is arranged to avoid. */
   host.querySelectorAll('.reel').forEach(el => {
+    const here = Number(el.dataset.reel) === n && REEL_HELD !== n;
     const v = el.querySelector('video.feed-vid');
-    if (!v) return;
-    if (Number(el.dataset.reel) === n && REEL_HELD !== n) reelPlay_(v);
-    else { try { v.pause(); } catch {} }
+    if (v) {
+      if (here) reelPlay_(v);
+      else { try { v.pause(); } catch {} }
+      return;
+    }
+    /* THE IFRAME GETS ITS ADDRESS BACK, and only the one you are on — see `clipsStop_`, which took
+       it away. Google's player does not autoplay, so this is a slide with a play button on it
+       rather than a clip that starts talking; taking the address away is a stop and giving it back
+       is not a start. */
+    const f = el.querySelector('iframe.feed-vid');
+    if (here && f && f.dataset.src && f.getAttribute('src') !== f.dataset.src) {
+      f.setAttribute('src', f.dataset.src);
+    } else if (!here && f) {
+      clipsStop_(el);
+    }
   });
 }
 
@@ -1521,6 +1567,22 @@ function reelsStop_() { clipsStop_($('s-reel')); }
 function clipsStop_(root) {
   if (!root) return;
   root.querySelectorAll('video.feed-vid').forEach(v => { try { v.pause(); } catch {} });
+  /* ---------- AND THE ONE THIS PAGE CANNOT REACH INSIDE OF ---------------------------------------
+     WHEN DRIVE REFUSES THE BYTES the `<video>` is replaced by Google's own player in an iframe, and
+     an iframe from another origin has no `pause` anybody here can call — so the one clip that had
+     ALREADY gone wrong was also the one that could go on playing behind another screen for ever.
+     The half that was fixed was the half that was easy to reach, which is a shape worth naming.
+
+     TAKING ITS ADDRESS AWAY IS THE ONLY STOP AVAILABLE, and the address is kept so the slide can
+     have it back — `about:blank` rather than removing the element, because a slide that loses its
+     player has nothing left to look at and the card would resize under the column. It costs a
+     reload of the embed when you come back, which is what a stopped embed is. */
+  root.querySelectorAll('iframe.feed-vid').forEach(f => {
+    const src = f.getAttribute('src');
+    if (!src || src === 'about:blank') return;
+    f.dataset.src = src;
+    f.setAttribute('src', 'about:blank');
+  });
 }
 
 /* ONE MORE LAP, AS PAGES. `pages()` is the same wrapper the screen's first draw used, so an

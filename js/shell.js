@@ -268,10 +268,13 @@ function go(id, remember, instant) {
 
      So: if there is nothing on it yet, fill it now and let the slide be slightly less smooth once.
      After that, always after. */
-  /* THE REELS WATCH THEIR OWN SLIDES, and only once they are in the document. `screen('reel')`
-     builds the markup; the observer has to attach to elements that exist, which is here and not
-     there. Same shape as the `stuff` fill below. */
-  if (AT === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
+  /* THE REELS USED TO BE BOOKED HERE, ON THEIR OWN, AND THAT IS THE BUG THEY HAD. This line was
+     `afterSlide_(reelsWatch_)` — correct, and outside the one list that exists for exactly this
+     job. `repaint` calls `startScreen_(AT)` and says why: "a repaint rebuilds the markup it was
+     running in". It never ran this, so a repaint five pages down the reel column — a payload
+     landing, a sign-in, a save — came back with nothing playing and no way to tell why.
+     Measured: `paint('reel')` at page 5, `playing: []`. It is in `startScreen_` now, with the
+     camera and the widgets, which is the list the note above already points at. */
 
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
@@ -352,6 +355,15 @@ function startScreen_(id) {
      and then remembers — so the button was asking you to confirm, every single visit, a thing you
      had already allowed. */
   if (id === 'make' && typeof camStart_ === 'function') camStart_();
+  /* AND THE REEL COLUMN PLAYS THE ONE YOU ARE ON. Here rather than in `go` because both callers
+     need it and only one of them was doing it — see the note where that line used to be.
+
+     THE STALE BOOKING CANNOT HAPPEN FROM HERE, which is what the arrow in `go` is for: it reads
+     `AT` when the timer fires rather than when it was booked, so arriving at the reels and leaving
+     again inside 300ms calls this with the screen you ENDED on. Measured before that was true — a
+     clip playing on a screen nobody was looking at, started by a booking made for the screen
+     before. */
+  if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
 }
 
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
