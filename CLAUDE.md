@@ -3986,3 +3986,44 @@ line by being labelled accurately.
 **708 left, and the script says so per sheet on every run.** A pass that answered what it
 understood and printed nothing about the rest would be this repository's oldest fault for the
 sixth time — *I did not manage to look*, reported as *I looked and there was nothing there*.
+
+### The worksheet PDFs are in Drive, and that changes the job from answering to repairing
+
+**`Fraction of Amounts` had no fractions in it.** Fourteen questions reading *"Work out      of
+24"* — Corbettmaths sets a fraction as stacked artwork, so the text layer holds the word "of" and
+the number and nothing else. **This file already records that fault and fixed it for two sheets**;
+this one was never done, and nor were `Fractions: Division`, `Multiplying Fractions`, `Top Heavy
+Fractions`, `Equivalent Fractions` or `Fractions, Decimals and Percentages`. A child opening any of
+them gets a question with no numbers in it, which reads as the app being broken.
+
+**What makes it repairable is that the PDFs are in Drive** — all 71 of them, in one folder, every
+one shared `anyone: reader` (checked before anything was written). So the method this file already
+records applies: extract the text, find it is not there, then **render every page and read it**.
+
+**The rows were mis-split as well as empty.** Page 2 of that PDF holds questions 1, 2 and 3 and the
+transcription made it ONE row — `Work out of 24 Work out of 18 Work out of 60` — so four row ids
+were never created at all. Ten rows become fourteen, and the sheet now matches the paper it is a
+transcription of.
+
+**Every answer is computed from the restored question**, so a misread numerator and a wrong answer
+cannot come apart: the fraction in the `html` and the `Fraction` in the arithmetic are the same two
+numbers, which is the shape the adding-fractions repair already used.
+
+### All 69 Corbettmaths sheets had no link to themselves
+
+**A document row's URL is the point of the row.** It is what a tutor opens to print the sheet, and
+every Corbettmaths document in this library was missing it while its PDF sat in Drive, public by
+link. 63 of 64 carry one now.
+
+**The match is by name and it refuses to guess.** A Drive title is slugged, the document's own
+`name` is slugged, and a row is linked only on an exact match against exactly one file; twelve real
+differences are an `ALIAS` table with a reason each (`fdp`, `reverse-fractions`). **A link to the
+wrong worksheet is worse than no link**, because it prints the wrong homework — so everything else
+is printed rather than resolved: one sheet with no PDF, nine PDFs no sheet claims.
+
+**Five `P-1CMP-…` sheets were deliberately left alone**, and the reason is the one this file
+records about the `W-CBM-`/`W-1CM-` mix-up. Their names — `Adding Decimals`, `Area of Squares and
+Rectangles`, `Volume of a Cuboid` — match Corbettmaths PDFs exactly, and their ids say `1CM`, which
+is this library's prefix for **1st Class Maths**. Both publishers make a sheet on each of those
+topics. Their `company` cell is empty, so nothing states which, and attributing them from a name
+match is precisely how three duplicate transcriptions got in last time.
