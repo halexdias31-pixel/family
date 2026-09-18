@@ -3718,7 +3718,9 @@ of the two lines of best fit as 0.8 g and 47 °C, and that lands exactly on the 
 Figure 1"*, so the picture it needs is the grid with nothing on it — and with the grid there,
 `padSource_` lays a pen over it and the question can be answered on a phone. 04.1 asks for two lines
 of best fit on Figure 3, so Figure 3 is drawn with its eight measured crosses and nothing else. The
-library's drawable-question count went 8 of 139 to **12 of 143**.
+library's drawable-question count went 8 of 139 to **10 of 141** — and the first version of
+this paragraph said 12 of 143, a number I wrote down instead of reading off the run, which is
+the fault this file records as "all 18 checks pass".
 
 **And where a picture decides the answer but cannot be drawn, what it shows is in the question's own
 words.** The blue patch by the negative electrode and the yellow by the positive; the four reaction
