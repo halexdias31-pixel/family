@@ -27,7 +27,7 @@ its picture.
 """
 import json, datetime, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from svgplot import W
+from svgplot import blankgrid
 
 PAPER = 'P-AQA-8461-2406-1F'
 DOC = dict(paper_id=PAPER, subject='Biology', key_stage='KS4', band_type='stage',
@@ -46,33 +46,11 @@ CB = 'Cell Biology'; OG = 'Organisation'; IR = 'Infection & Response'; BE = 'Bio
 # ---------------------------------------------------------------------------------------------
 COLS, ROWS, CELL = 10, 15, 29
 def fig6():
-    L, T = 40, 12
-    R, B = L + COLS * CELL, T + ROWS * CELL
-    p = ['<svg viewBox="0 0 %d %d" role="img" aria-label="Blank graph grid with one bar, labelled '
-         'E, already plotted">' % (W, B + 26)]
-    for i in range(COLS * 5 + 1):
-        x = L + i * CELL / 5.0
-        p.append('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" class="grid"/>' % (x, T, x, B))
-    for i in range(ROWS * 5 + 1):
-        y = T + i * CELL / 5.0
-        p.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" class="grid"/>' % (L, y, R, y))
-    for i in range(COLS + 1):                                   # the major (centimetre) lines
-        x = L + i * CELL
-        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width=".9" '
-                 'opacity=".75"/>' % (x, T, x, B))
-    for i in range(ROWS + 1):
-        y = T + i * CELL
-        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width=".9" '
-                 'opacity=".75"/>' % (L, y, R, y))
-    h = 14 / 5.0 * CELL                                          # E is 14%, and one square is 5%
-    p.append('<rect x="%d" y="%.1f" width="%d" height="%.1f" fill="currentColor" '
-             'fill-opacity=".25" stroke="currentColor" stroke-width="1.2"/>'
-             % (L + CELL, B - h, CELL, h))
-    p.append('<text x="%.1f" y="%d" class="lbl" style="text-anchor:middle">E</text>'
-             % (L + CELL * 1.5, B + 18))
-    p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, T, L, B))
-    p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, B, R, B))
-    return ''.join(p) + '</svg>'
+    # PROVED BYTE-IDENTICAL against the rows already committed before the copy that used to be here
+    # was deleted. `blankgrid` is in tools/svgplot.py because 8461/1H prints this same figure as its
+    # Figure 1, and two sets of coordinates for one printed grid is two chances to disagree.
+    return blankgrid(COLS, ROWS, CELL, [(1, 14, 'E')], 5,
+                     'Blank graph grid with one bar, labelled E, already plotted')
 
 T1 = ('<table><tr><th>Time in hours</th><th>pH1</th><th>pH2</th><th>pH3</th><th>pH5</th></tr>'
       '<tr><td>0</td><td>210</td><td>210</td><td>210</td><td>216</td></tr>'

@@ -77,3 +77,63 @@ def scatter(xmax, ymax, xstep, ystep, xlab, ylab, label, points, **kw):
                        % (cx - 3, cy + 3, cx + 3, cy - 3))
         return ''.join(out)
     return axes(xmax, ymax, xstep, ystep, xlab, ylab, label, crosses, **kw)
+
+
+def blankgrid(cols, rows, cell, bars, per_square, label, left=40, ylab='', ynums=False,
+              zero_col=None):
+    """The squared grid a plotting question is drawn ON, with whatever the paper has already put on
+    it and nothing else — because labelling and scaling the empty axis is what the marks are for.
+
+    IT IS HERE BECAUSE THE SAME GRID IS PRINTED ON BOTH TIERS. AQA's 8461/1F Figure 6 and 8461/1H
+    Figure 1 are one question — the same four cardiovascular diseases, the same bar for E already
+    drawn — so a second set of coordinates is a second chance for one of them to drift. Same move
+    as `axes()`, and for the reason CLAUDE.md gives about `documents_()` and `factsNow_`.
+
+    EVERY GRID HERE IS MEASURED OFF THE PAPER, NOT ESTIMATED. AQA sets these as raster images with
+    no text layer and no vectors, so the majors were found by their own regular spacing in the
+    pixels — CLAUDE.md's rule for a picture that carries data. 8461/2H Figure 4 is 8 columns by 7
+    rows with the y-axis printed 0 to 70; its Figure 11 is 14 by 6 with a zero line up the middle.
+
+    `bars` is (column, value, text) and `per_square` says what one large square is worth, so a bar
+    is placed by the paper's own scale rather than by a height somebody measured off the page.
+    `ynums` numbers the y-axis in those same units; `zero_col` draws the heavier vertical the paper
+    prints for a pyramid, with its `0` beneath it, and leaves the left-hand axis off."""
+    L, T = left, 12
+    R, B = L + cols * cell, T + rows * cell
+    p = ['<svg viewBox="0 0 %d %d" role="img" aria-label="%s">' % (W, B + 26, label)]
+    for i in range(cols * 5 + 1):
+        x = L + i * cell / 5.0
+        p.append('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" class="grid"/>' % (x, T, x, B))
+    for i in range(rows * 5 + 1):
+        y = T + i * cell / 5.0
+        p.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" class="grid"/>' % (L, y, R, y))
+    for i in range(cols + 1):                                   # the major (centimetre) lines
+        x = L + i * cell
+        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width=".9" '
+                 'opacity=".75"/>' % (x, T, x, B))
+    for i in range(rows + 1):
+        y = T + i * cell
+        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width=".9" '
+                 'opacity=".75"/>' % (L, y, R, y))
+    for col, value, text in bars:
+        h = value / float(per_square) * cell
+        p.append('<rect x="%d" y="%.1f" width="%d" height="%.1f" fill="currentColor" '
+                 'fill-opacity=".25" stroke="currentColor" stroke-width="1.2"/>'
+                 % (L + col * cell, B - h, cell, h))
+        p.append('<text x="%.1f" y="%d" class="lbl" style="text-anchor:middle">%s</text>'
+                 % (L + cell * (col + 0.5), B + 18, text))
+    if ynums:
+        for i in range(rows + 1):
+            p.append('<text x="%d" y="%.1f" class="num" style="text-anchor:end">%g</text>'
+                     % (L - 5, B - i * cell + 4, i * per_square))
+    if ylab:
+        p.append('<text x="12" y="%.1f" class="ax" style="text-anchor:middle" '
+                 'transform="rotate(-90 12 %.1f)">%s</text>' % ((T + B) / 2.0, (T + B) / 2.0, ylab))
+    if zero_col is None:
+        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, T, L, B))
+    else:
+        x = L + zero_col * cell
+        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (x, T, x, B))
+        p.append('<text x="%d" y="%d" class="num" style="text-anchor:middle">0</text>' % (x, B + 18))
+    p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, B, R, B))
+    return ''.join(p) + '</svg>'
