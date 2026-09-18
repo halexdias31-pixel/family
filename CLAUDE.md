@@ -4258,3 +4258,24 @@ the thing being taught: 9/10 ÷ 3 divides the top, and 1/3 ÷ 2 cannot, so it cu
 and multiplies the bottom. Which branch applies is decided by the numbers rather than written out.
 
 **Corbettmaths answers outstanding: 457 → 437.**
+
+### `Multiples`, `Square`, `Cube` and `Prime Numbers` — 27 more, every list generated
+
+**"Write down all the square numbers between 40 and 110" is a filter over a generated list**, not
+four numbers typed out, and every other answer on these four sheets is built the same way: the
+squares, cubes, primes and multiples are produced and the question's own condition applied to them.
+The mistake that catches is the one nobody re-reads — a list that is right except for the last
+entry. It also settles the ones where the answer is *whether there is another*: 2, 7 and 31 is the
+**only** set of three different primes adding to 40, and the script knows that because it looked.
+
+**A third of the rows are not answered and each says why.** These sheets lean on sorting diagrams,
+number cards and a speech bubble, none of which came across. Two notes are worth reading:
+
+- `Square Numbers` question 15 starts with four numbers its own question never mentions — they are
+  question 14's sorting cards, **leaked across the row boundary**. The note on 14 says so, which is
+  the only place a reader of 15 would find out why it opens with `12 21 36 40`.
+- `Cube Numbers` question 10 holds the fragment `9² + 2³ = 100`, and **81 + 8 is 89**. Whatever the
+  question asked about that sum did not come with it, so answering it would mean inventing the
+  question — which is the fault this file records under the scatter graph and the curve read by eye.
+
+**Corbettmaths answers outstanding: 437 → 410.**
