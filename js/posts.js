@@ -312,6 +312,16 @@ function postsBlocks() {
    is three states to keep in step for no gain anybody can see.
 ================================================================================================== */
 let CAM_STREAM = null;
+/* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW --------------------------------
+   IT WAS `{ ideal: 'environment' }` WRITTEN INTO `camStart_` and there was no way to change it, so
+   a phone whose front camera is the one you want could take a photograph of the wall behind you and
+   nothing else. `Switch` is the fourth control on the whiteboard and this is the fact it moves.
+
+   `ideal` RATHER THAN `exact`, BOTH WAYS. A laptop with one front camera asked for `exact:
+   environment` throws OverconstrainedError; asked for `ideal` it gives what it has. The flip
+   control is only ever shown when the browser has said there are two — see `camWays_` — so the
+   `ideal` is a floor under a case that should not arise rather than the thing being relied on. */
+let CAM_FACE = 'environment';
 
 function cameraCard() {
   return `<div class="card cam-card">
@@ -326,22 +336,47 @@ function cameraCard() {
         <p class="sub">Starting the camera…</p>
       </div>
     </div>
-    <div class="btn-row cam-row">
-      ${/* `Photo`, `Video`, `Photos` — asked for by name. It said `Take one`, which is a sentence
-            about the button rather than a name for what you get, and there was no way to record at
-            all. The other three controls in this row are all CONDITIONAL — `Again` and `Save it`
-            appear once there is something to save, `Try the camera again` only after a refusal —
-            so the row a person actually sees is these three and nothing else. */''}
-      <button class="btn quiet" data-do="cam-shoot" id="cam-shoot" hidden>Photo</button>
-      <button class="btn quiet" data-do="cam-video" id="cam-video" hidden>Video</button>
-      <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
-      <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
+    ${/* ---------- FOUR CONTROLS, WHICH IS WHAT A CAMERA HAS ------------------------------------
+          ASKED FOR ON THE WHITEBOARD BY SHAPE AND COLOUR: "white circle for take pic, Red for
+          record, and switch camera, and photos". What was here was five `.btn quiet` rectangles
+          reading `Photo`, `Video`, `Again`, `Save it`, `Photos` — a form's buttons under a
+          viewfinder, where every camera anybody has used puts a shutter.
+
+          AND TWO OF THEM ARE NOT BUTTONS IN THIS APP'S SENSE. A white disc and a red disc are the
+          camera's own vocabulary, not this app's — the same case as the chessboard's cream and
+          charcoal, which the house style already settles: a colour belonging to ONE component is
+          declared on that component rather than offered to the whole stylesheet. `--cam-white` and
+          `--cam-red` live on `.cam-bar`.
+
+          THE SHUTTERS ARE DISABLED, NOT HIDDEN, UNTIL THE STREAM IS LIVE. A camera starting up
+          shows a greyed shutter; it does not remove it and grow the card back under your thumb when
+          the first frame arrives. `Switch` is the exception and it is a different question — see
+          `camWays_`: until the browser has said there are two cameras, a flip control is a button
+          that would do nothing, which is the `orderPrints` shape.
+
+          `Again` AND `Save it` ARE NOT IN THIS ROW ANY MORE. They belong to a picture you are
+          holding, not to a camera you are pointing — so they are the row underneath, and it is
+          empty until there is something to save. */''}
+    <div class="cam-bar">
       ${/* A LABEL, NOT A BUTTON, so the file input opens with no script at all — a `for` reaches a
             control the page is hiding, which is the one way to style a file picker without
             rebuilding it. `accept="image/*"` and NO `capture`: capture would reopen the camera,
             which is the thing this button exists to be an alternative to. */''}
-      <label class="btn quiet cam-pick" for="cam-pick">Photos</label>
+      <label class="cam-side cam-pick" for="cam-pick">Photos</label>
       <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*" hidden>
+      ${/* THE WORDS ARE IN `aria-label` AND `title` RATHER THAN IN THE DISC. A shutter with the
+            word "Photo" written across it is not a shutter, and a control with no name at all is
+            one a screen reader cannot offer. */''}
+      <button class="cam-shot" data-do="cam-shoot" id="cam-shoot"
+              aria-label="Take a photo" title="Take a photo" disabled></button>
+      <button class="cam-rec" data-do="cam-video" id="cam-video"
+              aria-label="Record a video" title="Record a video" disabled></button>
+      <button class="cam-side" data-do="cam-flip" id="cam-flip"
+              aria-label="Switch camera" title="Switch camera" hidden>Switch</button>
+    </div>
+    <div class="btn-row cam-row">
+      <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
+      <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
       ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
       <button class="btn" data-do="cam-on" id="cam-on" hidden>Try the camera again</button>
@@ -397,8 +432,8 @@ async function camStart_() {
       v.srcObject = CAM_STREAM;
       try { await v.play(); } catch (e) {}
       $('cam-off')   && ($('cam-off').hidden = true);
-      $('cam-shoot') && ($('cam-shoot').hidden = false);
-      $('cam-video') && ($('cam-video').hidden = !canRecord_());
+      camLive_(true);
+      camWays_();
     }
     return;
   }
@@ -419,7 +454,7 @@ async function camStart_() {
     /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
        camera gets that rather than an OverconstrainedError. */
     CAM_STREAM = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } }, audio: false });
+      video: { facingMode: { ideal: CAM_FACE } }, audio: false });
   } catch (err) {
     CAM_STREAM = null;
     if (said) said.textContent = camWhy_(err);
@@ -440,10 +475,77 @@ async function camStart_() {
   try { await v.play(); } catch (e) {}
   $('cam-off') && ($('cam-off').hidden = true);
   if (retry) { retry.hidden = true; retry.disabled = false; }
-  $('cam-shoot') && ($('cam-shoot').hidden = false);
+  camLive_(true);
   if (said) said.textContent = '';
+  /* ---------- AND ONLY NOW CAN ANYBODY ASK HOW MANY CAMERAS THERE ARE ----------------------------
+     `enumerateDevices` ANSWERS BEFORE PERMISSION AND ANSWERS WRONGLY. Without a granted stream a
+     browser may report one anonymous videoinput, or none, to keep the device list from being a
+     fingerprint — so asking at boot would hide the flip control on every phone that has two
+     cameras. Asked here, a frame after the prompt was granted, the list is the real one. */
+  camWays_();
 }
 
+/* ---------- THE TWO SHUTTERS ARE ONE FACT: IS THERE A LIVE STREAM ---------------------------------
+   THREE PLACES SET THIS AND ONE OF THEM FORGOT. The re-attach branch above did
+   `$('cam-video').hidden = !canRecord_()` and the success path did not — so the record control
+   appeared only after a `repaint`, which means the button added because "there was no way to record
+   at all" could not be reached on the path anybody actually takes. Found by reading the two
+   branches side by side after the row was rebuilt.
+
+   ONE FUNCTION, SO THE TWO CANNOT DISAGREE — the same argument as `factsNow_` and `documents_()`,
+   one screen along.
+
+   `disabled`, NOT `hidden`, FOR THE SHUTTERS. See the note in `cameraCard`: a control that appears
+   when the first frame arrives grows the card under the thumb that is reaching for it.
+
+   RECORDING IS THE ONE THAT CAN BE GENUINELY ABSENT. `MediaRecorder` is not on older iOS, and a
+   control that is there and throws is worse than one that is not — which is the `orderPrints`
+   lesson in a different costume. That is a fact about the browser rather than about the stream, so
+   it is asked once and the button goes rather than greys. */
+function camLive_(on) {
+  const shoot = $('cam-shoot'), rec = $('cam-video');
+  if (shoot) shoot.disabled = !on;
+  if (rec) {
+    rec.hidden = typeof MediaRecorder !== 'function';
+    rec.disabled = !on;
+  }
+}
+
+/* IS THERE A SECOND CAMERA TO SWITCH TO. A flip control on a laptop with one camera is a button
+   that does nothing, so it is not drawn until the browser has said there is somewhere to flip to.
+   Anything that throws or is absent answers no: a missing control is a smaller failure than one
+   that swaps the picture for the same picture. */
+async function camWays_() {
+  const flip = $('cam-flip');
+  if (!flip) return;
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    const list = await navigator.mediaDevices.enumerateDevices();
+    flip.hidden = list.filter(d => d.kind === 'videoinput').length < 2;
+  } catch (e) {}
+}
+
+/* ---------- TURNING IT ROUND --------------------------------------------------------------------
+   `camStop_(true)` THEN `camStart_()`, which is the only way there is: a track's `facingMode` is
+   fixed when it is opened, so the other camera is a new stream. `true` is what releases the
+   hardware without resetting the card — see `camStop_` — so the buttons do not flicker back to
+   their starting state for the third of a second the swap takes.
+
+   NOT WHILE IT IS RECORDING. Stopping the stream is what assembles and downloads the file, so a
+   flip mid-record would save a half-length video and look like the button having eaten it. Said
+   rather than silently refused, and said in the one place the card already says things. */
+async function camFlip_() {
+  const said = $('cam-said');
+  if (CAM_REC && CAM_REC.state === 'recording') {
+    if (said) said.textContent = 'Stop the recording first.';
+    return;
+  }
+  CAM_FACE = CAM_FACE === 'environment' ? 'user' : 'environment';
+  camStop_(true);
+  await camStart_();
+}
+
+on('cam-flip', () => camFlip_());
 on('cam-on', () => camStart_());
 
 /* ---------- A PICTURE OUT OF THE GALLERY ----------------------------------------------------------
@@ -477,7 +579,7 @@ document.addEventListener('change', e => {
     URL.revokeObjectURL(url);
     c.hidden = false;
     if (v) v.hidden = true;
-    $('cam-shoot') && ($('cam-shoot').hidden = true);
+    camLive_(false);
     $('cam-again') && ($('cam-again').hidden = false);
     $('cam-save')  && ($('cam-save').hidden = false);
     $('cam-off')   && ($('cam-off').hidden = true);
@@ -500,7 +602,9 @@ on('cam-shoot', () => {
   c.width = v.videoWidth; c.height = v.videoHeight;
   c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
   c.hidden = false; v.hidden = true;
-  $('cam-shoot').hidden = true;
+  /* THE SHUTTERS GREY WHILE A PICTURE IS BEING LOOKED AT. The stream is still running underneath —
+     see `Again` — so they would work; what they would do is throw away the shot you just took. */
+  camLive_(false);
   $('cam-again').hidden = false;
   $('cam-save').hidden = false;
 });
@@ -515,7 +619,7 @@ on('cam-again', () => {
   if (v) v.hidden = false;
   $('cam-again').hidden = true;
   $('cam-save').hidden = true;
-  $('cam-shoot').hidden = false;
+  camLive_(true);
   const said = $('cam-said'); if (said) said.textContent = '';
   camStart_();
 });
@@ -572,7 +676,7 @@ on('cam-video', () => {
 
   CAM_REC.ondataavailable = e => { if (e.data && e.data.size) CAM_BITS.push(e.data); };
   CAM_REC.onstop = () => {
-    if (btn) { btn.textContent = 'Video'; btn.classList.remove('is-rec'); }
+    camRecMark_(false);
     const blob = new Blob(CAM_BITS, { type: (CAM_REC && CAM_REC.mimeType) || 'video/webm' });
     CAM_BITS = [];
     if (!blob.size) { if (said) said.textContent = 'Nothing was recorded.'; return; }
@@ -596,9 +700,29 @@ on('cam-video', () => {
     if (said) said.textContent = 'Could not start recording: ' + String((err && err.message) || err);
     return;
   }
-  if (btn) { btn.textContent = 'Stop'; btn.classList.add('is-rec'); }
-  if (said) said.textContent = 'Recording. Press Stop when you are done.';
+  camRecMark_(true);
+  if (said) said.textContent = 'Recording. Press the square when you are done.';
 });
+
+/* ---------- THE DISC SAYS WHAT IT IS DOING, BECAUSE IT CANNOT SAY IT IN WORDS ----------------------
+   IT SAID `Stop` WHEN IT WAS A RECTANGLE WITH A LABEL IN IT. A 52px disc has no room for a word,
+   and a record control that stays a record control while it is recording is a mode you cannot see —
+   which is the fault this file already records for the reel that was paused with nothing on it
+   saying so.
+
+   SO THE SHAPE CHANGES: a red disc is record, a red rounded square is stop, and every camera
+   anybody has used does exactly that. `aria-label` moves with it, or the shape is the only thing
+   that says so and a screen reader is told the opposite of what is true.
+
+   NOT AN ANIMATION. A blinking control on a card somebody is filming with is a distraction in the
+   frame — the same sentence the old `.is-rec` rule carried, and it is still right. */
+function camRecMark_(on) {
+  const btn = $('cam-video');
+  if (!btn) return;
+  btn.classList.toggle('is-rec', !!on);
+  btn.setAttribute('aria-label', on ? 'Stop recording' : 'Record a video');
+  btn.setAttribute('title', on ? 'Stop recording' : 'Record a video');
+}
 
 /* ONE PLACE THAT NAMES A FILE. `cam-save` built this inline and the recorder needed the same thing;
    two copies of a filename format is two things to keep in step, which is this repository's most
@@ -650,8 +774,9 @@ function camStop_(keepShown) {
   if (v) { try { v.srcObject = null; } catch (e) {} }
   if (keepShown) return;
 
-  const rec = $('cam-video');
-  if (rec) { rec.hidden = true; rec.textContent = 'Video'; rec.classList.remove('is-rec'); }
+  camRecMark_(false);
+  camLive_(false);
+  const flip = $('cam-flip'); if (flip) flip.hidden = true;
 
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
@@ -659,7 +784,6 @@ function camStop_(keepShown) {
   if (off) { off.hidden = false;
              const t = off.querySelector('.sub'); if (t) t.textContent = 'Starting the camera…'; }
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
-  $('cam-shoot') && ($('cam-shoot').hidden = true);
   $('cam-again') && ($('cam-again').hidden = true);
   $('cam-save')  && ($('cam-save').hidden = true);
 }
