@@ -281,6 +281,11 @@ function go(id, remember, instant) {
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
   if (typeof camStop_ === 'function' && AT !== 'make') camStop_();
+  /* AND THE REEL, which is the third of these and was the one nobody had written. Measured before
+     it existed: `go('reel')` then `go('tools')` left a `<video>` with `paused === false` — a clip
+     somebody may have turned the sound on for, talking from a screen two swipes away, with no
+     control on the screen they are now looking at. */
+  if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
@@ -1147,6 +1152,18 @@ const PAGER = {
   feed:   () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
     .concat((DATA.festive || []).map(() => ''))
     .concat(feedPosts().map(() => '')),
+  /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY -----------
+     IT WAS THE ONE COLUMN THE DIAL DID NOTHING ON. `paint` does `classList.toggle('paged',
+     !!PAGER[id])` and `PAGER.reel` was undefined, so the class never went on and the vertical axis
+     was never registered — exactly the silent loss the note above records for `me` and `posts`.
+     What moved instead was a scroller inside the card, with its own snap and its own momentum, and
+     the pane's `touch-action: none` switched off so the browser could have the gesture. One widget
+     per reel makes it an ordinary column, and an ordinary column is counted here.
+
+     `reelPages_` IS THE SAME COUNTER THE SCREEN BUILDS FROM, which is the rule every other entry in
+     this table follows: a pager that counts for itself is a pager that can disagree with the screen
+     it is a pager for. */
+  reel:   () => (typeof reelPages_ === 'function' ? reelPages_() : ['']),
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
@@ -1261,7 +1278,7 @@ function applyBrandIcon_() {
 /* KEYED BY SCREEN ID, like `PAGER` and `PAGE_HOME` — and `posts` and `me` are not screen ids. See
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0 };
+const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
@@ -1411,6 +1428,16 @@ function goPage(id, to, instant) {
   if (bare) fillStuffPages();
   if (id === AT) placeCells('y', instant);
   if (id === 'stuff' && !bare) afterSlide_(fillStuffPages);
+  /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN -------------------------------------
+     THIS IS THE ONE PLACE `PAGE[id]` CHANGES, so it is the one place that can say a different reel
+     is on the screen. The column used to answer that question with an IntersectionObserver over a
+     scroller of its own — a ratio measuring a thing the app had already decided.
+
+     `reelsWatch_`, NOT AN ARROW, and the key is why: `paint()` books the same function on arrival,
+     and `afterSlide_` coalesces on identity — so a run of quick flicks plays the clip you stopped
+     on rather than starting and pausing one per swipe. A fresh arrow here would be a different key
+     every call and would undo exactly that. */
+  if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
   paintPager(id);
 }
 

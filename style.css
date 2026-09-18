@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-physics-1h";
+  --css-version: "2026-09-18-reel-controls";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7590,46 +7590,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 
 /* ==================================================================================================
-   REELS — one fact per screen
+   REELS — one reel per widget, one widget per page
 
-   `scroll-snap-type: y mandatory` IS THE WHOLE MECHANISM. No listener, no transform, no velocity
-   maths, and momentum that matches every other scroll on the phone because it is one.
+   THE COLUMN'S OWN SCROLLER IS GONE AND THE APP'S PAGER DOES IT. `.reels` was a box inside a card
+   with `height: min(62svh, 30rem)`, `overflow-y: scroll`, `scroll-snap-type: y mandatory` and
+   `touch-action: pan-y` — a second implementation of the vertical movement every other column in
+   this app already has, sitting inside a pane whose `touch-action: none` had to be undone for it.
+   Reported as "multiple widgets for each reel. One widget per reel", and that is what it is now:
+   `pages('reel', …)` gives each clip its own page, its own pane and its own `.card.is-widget`, the
+   same shape `widgetColumn_` builds for every tool and every game.
 
-   THIS IS THE ONE SCREEN WHERE A PAGER IS RIGHT, and it is worth saying because the same shape is
-   wrong on the feed: a feed is read by flicking past six things; a reel is watched one at a time.
+   WHAT IS LEFT HERE IS THE FRAME, and the height is the load-bearing half of it. `.feed-art` is
+   `position: absolute; inset: 0`, so the box around it has to state a height or there is nothing
+   for `inset: 0` to resolve against — which is the circularity this stylesheet already recorded
+   under `.page.reel-page`, where a scroller asked for `height: 100%` of a page that had none. The
+   number is the one the scroller used to carry: tall enough that one clip fills the screen, short
+   enough that the pane does not push the column past it.
 ================================================================================================== */
-/* ---------- `.page.reel-page` WAS HERE, AND THE REEL IS AN ORDINARY CARD NOW ----------------------
-   IT EXISTED BECAUSE `.reels` ASKED FOR `height: 100%` OF A PAGE THAT HAD NONE — `.page` is
-   `height: auto` and the thing asking for the height was the content, which is circular and
-   resolved to nothing. The fix then was to give that one page the screen's height.
-
-   THE REEL IS INSIDE A CARD NOW, like every other screen, so there is no percentage to resolve:
-   the scroller is a fixed height of its own, stated below, and the card is as tall as it. One rule
-   fewer and one fewer page that is special. */
-
-.reels {
-  /* TALL ENOUGH THAT ONE FACT FILLS IT AND NOTHING ELSE DOES, and stated here rather than taken
-     from the screen: a reel inside a card cannot be as tall as the viewport without pushing its own
-     heading off the top. `svh` rather than `vh` so the mobile browser's collapsing address bar does
-     not change it mid-scroll and land the snap between two slides. */
-  height: min(62svh, 30rem);
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  /* THE SCROLL IS THE GESTURE HERE. `.pane` sets `touch-action: none` so the grid can own the
-     vertical drag; this screen has no pane for exactly that reason, and says so positively rather
-     than relying on the absence. */
-  touch-action: pan-y;
-  scrollbar-width: none;
-  overscroll-behavior-y: contain;
-}
-.reels::-webkit-scrollbar { display: none; }
-
 .reel {
-  height: 100%;
-  scroll-snap-align: start;
-  /* A FLICK MOVES ONE, NEVER THREE. Without `always`, a fast swipe skips several and lands wherever
-     momentum ran out — fine on a feed, and on a reel it means missing the thing you were reading. */
-  scroll-snap-stop: always;
+  /* `svh` RATHER THAN `vh` so the mobile browser's collapsing address bar does not change the
+     card's height mid-flick and land the pager between two reels. */
+  height: min(62svh, 30rem);
   position: relative;
 }
 
@@ -7640,10 +7621,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    copy every time either was touched. This repository's oldest shape, and here it was visible:
    the two surfaces showing one fact did not look alike.
 
-   `feedSlide` draws both now, so what is left here is the COLUMN — how a stack of slides scrolls
-   and snaps — and nothing about what a slide contains. `--h` went with the markup: `feedColours`
-   picks a slide's gradient from its subject, which is a fact about the fact rather than about its
-   position in a list. */
+   `feedSlide` draws both now, so what is left here is the FRAME and nothing about what a slide
+   contains. `--h` went with the markup: `feedColours` picks a slide's gradient from its subject,
+   which is a fact about the fact rather than about its position in a list. */
 .reel > .feed-art { border-radius: var(--r-sm); overflow: hidden; }
 
 /* ---------- A CLIP ------------------------------------------------------------------------------
@@ -7670,12 +7650,51 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
 
+/* ---------- A STOPPED REEL SAYS SO ----------------------------------------------------------------
+   A VIDEO THAT IS PAUSED ON ITS FIRST FRAME LOOKS EXACTLY LIKE ONE THAT IS PLAYING A STILL SHOT,
+   and the tap that stopped it left nothing on the screen to say it had worked. That is the sentence
+   this stylesheet already carries about the pen's gold frame: a mode you cannot see is a mode that
+   surprises you.
+
+   OVER THE MIDDLE, WHERE THE FINGER JUST WAS, and `pointer-events: none` so the mark is not a
+   second thing to hit — the whole slide is the control and the mark is only the state. The disc is
+   the same charcoal wash the scrim uses rather than a new colour, so it reads on a bright frame and
+   on a dark one. */
+.reel.is-held::after {
+  content: '▶';
+  position: absolute; z-index: 3; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4rem; height: 4rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgb(0 0 0 / .55);
+  color: #fff; font-size: 1.5rem; line-height: 1;
+  /* The glyph's own bearing sits it left of centre in its box; a video's play mark is centred on
+     the disc by eye, which is what every player does and what a screenshot showed this needed. */
+  padding-left: .18em;
+  pointer-events: none;
+}
+
 /* IN PX, AND THAT IS THE RULE RATHER THAN A PREFERENCE. A fingertip is the same size on every
    screen; `2.75rem` is 40.75px on a phone and CLAUDE.md has four convictions behind that sentence.
    Top-right because the words are bottom-left and a control over what somebody is reading is a
    control they hit by accident. */
 .reel-sound {
   position: absolute; z-index: 3; top: .6rem; right: .6rem;
+  /* ---------- VIDEO CHROME, NOT THE APP'S PRIMARY ACTION -----------------------------------------
+     `.btn` IS GOLD, which is right for the one thing a form wants you to press and wrong laid over
+     a moving picture: a screenshot of a whole slide showed a gold slab reading "Sound off" as the
+     loudest thing on a card whose whole content is the clip. The same wash the paused mark uses,
+     which is also the wash `.feed-art.has-photo::before` lays under the words — so a control over a
+     picture looks the same wherever this feature draws one, on a bright frame and a dark one alike.
+
+     THE WORDS STAY. A glyph would have said the same thing in less room and the note below is the
+     reason it does not: the button says the state it is IN, which is what every other switch in
+     this app does, and "Sound off" cannot be read as "press to turn the sound off" by mistake the
+     way a crossed-out speaker can. */
+  background: rgb(0 0 0 / .55);
+  border-color: rgb(255 255 255 / .28);
+  color: #fff;
   /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
      Absolutely positioned it made a gold bar across the top of the slide, which is what the
      screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the
