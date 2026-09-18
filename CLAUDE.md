@@ -4279,3 +4279,22 @@ number cards and a speech bubble, none of which came across. Two notes are worth
   question — which is the fault this file records under the scatter graph and the curve read by eye.
 
 **Corbettmaths answers outstanding: 437 → 410.**
+
+### `Money`, `Percentages of Amounts`, `Order of Operations` and `The Mean` — 33 more
+
+**Everything on the money sheet is worked in PENCE and converted once at the end.** Money is where
+binary floating point would be believed: 0.1 + 0.2 is not 0.3, and a price is exactly the kind of
+number nobody re-checks. Nothing here is a float.
+
+**Question 15 is solved by SEARCH rather than by cleverness.** Five coins, three of them adding to
+£1.40, three to £2.40, all five to £3.60: the script enumerates every five-coin combination of real
+UK coins and keeps the ones that satisfy all three. It finds exactly one — three 20p, a £1 and a £2
+— which is what makes *"and it is the only answer"* a statement rather than a hope.
+
+**And the first version GENERATED the percentage method, which produced nonsense.** *"10% of 152 is
+76/5"* — a tenth of 152 is not a whole number and a `Fraction` printed itself. The value was right
+and the sentence was arithmetic rather than English, which is worse than no sentence: the point of
+the working is the ROUTE. The method is named per question now — *"50% is a half, and half of 152
+is 76"* — and only the value is computed.
+
+**Corbettmaths answers outstanding: 410 → 377.**
