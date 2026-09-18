@@ -4203,3 +4203,44 @@ marking stops using it. The same rule already governs a row with more than one a
 
 **Corbettmaths answers: 708 outstanding before this week, 517 now**, and the count is printed per
 sheet on every run.
+
+## Sixty more Corbettmaths answers, and a sheet whose question numbers were off by one
+
+**`Substitution`, `Think of a Number`, `Equations`, `Using Calculations`, `Inequality Signs`,
+`Proportion` and `Sequences`** — 60 answers, each computed from the transcribed question and then
+**checked back by putting it through the question it came from**: a substitution evaluated, a
+think-of-a-number run forwards through its own steps, an equation substituted into itself, a
+sequence generated. A misread number and a wrong answer cannot come apart.
+
+**Two answers look wrong and are not, and both were verified against the PDF before being
+written.** `Think of a Number` question 8 works back to **minus one**, and `Equations` question 9
+comes out at **7.5** on a sheet where every other answer is a whole number. Both are exactly what
+Corbettmaths prints — rendered and read, because an answer that surprises you is the one place a
+silent transcription error hides. The card says so out loud: *"If you got −1 and assumed you had
+gone wrong, you had not."* A child who distrusts a correct answer is the same failure as one who
+distrusts the marking.
+
+### The inequality sheet had five rows for six questions and nothing could have seen it
+
+**The row numbers were off by one from question 2 onwards.** What the library called row 3 held
+question **2** — the three four-digit comparisons — with question 3's *instruction* stuck on the
+end of it, and question 3 itself, the right-or-wrong statements, **was never transcribed at all**.
+Every one of those rows is valid markup with plausible content. Only the paper shows the gap, which
+is the fourth sheet this week whose SHAPE was wrong rather than its content.
+
+**And question 6's pairs were scrambled.** The paper prints two columns, `left ☐ right`, four rows
+down; the transcription read the left column and then the right, so the row held eight true
+expressions in an order that pairs none of them correctly — and an answer worked from that row
+would have been wrong four times out of four. `2 − 3` is **minus one** and `20 − 30` is minus ten,
+so the bigger-looking subtraction is the smaller number, which is the whole point of the question.
+
+### What is NOT answered says why, per row
+
+`Proportion` prints its recipes as artwork and `Sequences` prints its sequences as a row of boxes,
+so 14 rows arrived with the question's words and none of its numbers. `cbmwrite` refuses to let a
+script finish while a row is blank without a reason, so each carries a note naming what the text
+layer dropped — and `Sequences` question 5 gets the most careful one, because its row runs the
+sequence and the answer line together and it is **not recoverable from the row** whether the last
+number printed is a term or an answer that has leaked in.
+
+**Corbettmaths answers outstanding: 517 → 457.**
