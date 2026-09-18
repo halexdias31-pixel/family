@@ -36,7 +36,7 @@ DOC = dict(paper_id=PAPER, subject='Biology', key_stage='KS4', band_type='stage'
            exam_date='2024-05-10', document_type='Past paper', name='Paper 1 — June 2024',
            active='True', trackable='True', printable='False')
 
-CB = 'Cell Biology'; OG = 'Organisation'; IR = 'Infection and Response'; BE = 'Bioenergetics'
+CB = 'Cell Biology'; OG = 'Organisation'; IR = 'Infection & Response'; BE = 'Bioenergetics'
 
 # ---------------------------------------------------------------------------------------------
 # FIGURE 6 — the blank grid, with disease E's bar already on it. Ten major columns by fifteen, five

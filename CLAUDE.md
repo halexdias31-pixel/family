@@ -3910,3 +3910,26 @@ point on it is stated anywhere in the paper, so redrawing it would be inventing 
 **And `9.8` is not exact in binary either.** `25000 * 9.8` is 245000.00000000003, so the weight
 assertion needed rounding — the second time in two papers that an assertion refused a true statement
 for a reason worth writing down.
+
+### `and` against `&` is two buttons, and my own probe said there was nothing there
+
+**Nine AQA science papers went in over one session and three units ended up spelled both ways**:
+`Atomic Structure and the Periodic Table` beside `Atomic Structure & the Periodic Table`,
+`Magnetism and Electromagnetism` beside `Magnetism & Electromagnetism`, and `Infection and Response`
+where `data/topics.json` says `Infection & Response`.
+
+**`spellKey_` cannot fold these and is not meant to.** It reduces an answer to its letters and
+digits, which is what makes `Alevel` and `A-Level` one button — and `and` is four more letters, so
+the two spellings are two identities and two answers in the funnel for one unit.
+
+**The throwaway probe I wrote to look for exactly this reported clean.** It normalised `the` out of
+the middle of words and collapsed the wrong things; the raw tally of topic values, printed and read
+line by line, showed all three immediately. **Same shape as `check-booking.js` exiting 0** — an
+instrument that could not reach its subject, and I believed it. The rule is in `check-library.js`
+now, so the next one fails instead of being looked for.
+
+**And the first version of that rule was too wide, which is the `check-rows.js` lesson again.** It
+lower-cased as well, so it reported all 46 of the file's case-only pairs — `Histograms` beside
+`histograms` — as faults. Those are correct: `spellKey_` folds them and `topicOf_`'s vote picks the
+spelling to show. The rule asks only the one question that fold cannot answer. **Proved by mutation
+in both directions**: one row changed back to `and` fires it and exits 1; the real file is green.

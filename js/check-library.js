@@ -313,6 +313,46 @@ strays.forEach(s => fail.push(
   `${s.col} = ${JSON.stringify(s.v)} on ${s.n} row${s.n > 1 ? 's' : ''} — not in the vocabulary. ` +
   `Read what the column already uses before adding it to VOCAB in this file.`));
 
+/* ---------- `AND` AND `&` ARE TWO BUTTONS FOR ONE TOPIC -------------------------------------------
+   `topics` HAS NO CLOSED VOCABULARY and cannot have one: it is 400-odd editorial values that grow
+   every time a paper goes in, which is why the funnel folds spellings instead (`spellKey_` in
+   find.js, and the vote in `topicOf_`). That fold reduces an answer to its letters and digits — so
+   `Alevel` and `A-Level` become one button, and `Magnetism and Electromagnetism` and
+   `Magnetism & Electromagnetism` DO NOT. They are different letters. Two buttons, one unit.
+
+   CAUGHT BY LOOKING AT THE LIST, AFTER A CHECK I WROTE FOR IT SAID THERE WAS NOTHING THERE. Nine
+   AQA science papers went in over one session and three units ended up spelled both ways — atomic
+   structure, magnetism, infection. The throwaway probe that was meant to find them normalised `the`
+   out of the middle of words and reported clean; the raw tally of values, printed and read, did not.
+   Same shape as `check-booking.js` exiting 0, one layer up: my own instrument could not reach its
+   subject and I believed it.
+
+   SO THE RULE IS THE NARROWEST ONE THAT IS CERTAIN, and it is about `and` against `&` and nothing
+   else. Case and spacing are already folded by `spellKey_`; a genuinely different topic never
+   differs from another only by that one word. Proved by mutation in both directions. */
+const AMP = new Map();
+rows.forEach(r => {
+  if (!r || !r.topics) return;
+  String(r.topics).split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
+    /* CASE IS DELIBERATELY NOT FOLDED HERE. `spellKey_` already reduces `Histograms` and
+       `histograms` to one identity and `topicOf_`'s vote picks which to show — 46 pairs in this
+       file are that, and every one is correct. The first version of this rule lower-cased and
+       reported all 46 as faults, which is `check-rows.js` with 95 findings and 2 real ones. The
+       question this rule asks is only the one the fold cannot: `and` against `&`. */
+    const k = t.replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ');
+    if (!AMP.has(k)) AMP.set(k, new Map());
+    const m = AMP.get(k);
+    m.set(t, (m.get(t) || 0) + 1);
+  });
+});
+AMP.forEach(m => {
+  if (m.size < 2) return;
+  const shown = [...m.entries()].map(([t, n]) => `${JSON.stringify(t)} (${n})`).join(' and ');
+  fail.push(`one topic, two spellings: ${shown}. \`spellKey_\` folds case and punctuation but not `
+    + `the word \`and\` against \`&\`, so these are two answers in the funnel for one thing. `
+    + `Pick the spelling data/topics.json uses.`);
+});
+
 /* ---------- THE SAME PAPER, TRANSCRIBED TWICE ------------------------------------------------------
    This file had no idea what a real-world exam paper IS, only what a row is, so the ids being
    unique was the whole of its protection. That is not enough: the June 2024 Higher papers were

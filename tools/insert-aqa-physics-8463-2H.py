@@ -35,7 +35,7 @@ DOC = dict(paper_id=PAPER, subject='Physics', key_stage='KS4', band_type='stage'
            exam_date='2024-06-14', document_type='Past paper', name='Paper 2 — June 2024',
            active='True', trackable='True', printable='False')
 
-WV = 'Waves'; F = 'Forces'; SP = 'Space Physics'; EM = 'Magnetism and Electromagnetism'
+WV = 'Waves'; F = 'Forces'; SP = 'Space Physics'; EM = 'Magnetism & Electromagnetism'
 EMW = 'Electromagnetic Waves'
 
 TABLE1 = [(10, 6), (20, 12), (30, 18), (40, 23), (50, 28), (60, 32)]
