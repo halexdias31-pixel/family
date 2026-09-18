@@ -1331,28 +1331,33 @@ screen('reel', () => {
           + 'clears the held copies and fetches every file fresh.'}</p>
     </div></div></section>`;
   }
-  /* ---------- ON A CARD, LIKE EVERY OTHER SCREEN IN THE APP ---------------------------------------
-     THIS WAS THE ONE SCREEN WITH NO PANE. `pages()` and `stack()` both wrap what they are given in
-     `.page > .pane`, and all eight other screens go through one of them; this returned its own
-     markup and drew straight onto the black. The note that defended it was about the SCROLL — a
-     pane sets `touch-action: none` — and both are available: the card is ordinary, and `.reels`
-     inside it keeps `touch-action: pan-y`, which is what actually made the swipe work.
+  /* ---------- ONE WIDGET PER REEL, WHICH IS WHAT EVERY OTHER COLUMN IN THE APP IS ----------------
+     REPORTED AS "multiple widgets for each reel. One widget per reel." The screen before this was
+     ONE card holding a scroller of its own — `.reels`, `height: min(62svh, 30rem)`, its own
+     `scroll-snap-type: y mandatory`, its own momentum — with every clip inside it. So this column
+     moved in a way no other column did: the app's own vertical dial turned nothing (there was one
+     page), and the thing that actually moved was a box inside a card, with the pane's
+     `touch-action: none` switched off underneath it so the browser could have the gesture back.
 
-     THE SLIDES ARE THE "ONE MORE THING" WIDGET'S OWN MARKUP. They used to be `.reel .over`, a
-     second set of rules describing the same object as `.feed-art` two columns over — a heading, a
-     subject, a paragraph and a credit over a picture, written twice and drifting. `feedSlide` is
-     the one renderer now, so a change to how a fact looks lands on both surfaces at once. That is
-     the same argument `factsNow_` already settles about where a fact COMES from, one layer up.
-     (`.reels` keeps its own scroller and its own snap: how a column of slides behaves is not how a
-     slide looks, and the widget is one card with no scroll at all.) */
+     A SECOND SCROLLER IS A SECOND DESCRIPTION OF THE PAGER, and this repository has the sentence
+     for it under `.reel .over`, under `documents_()` and under `factsNow_`: a second reader of one
+     thing is a second chance to disagree about it. `pages()` already gives a screen a vertical
+     strip of cards with snap, a position remembered per column, and a dial — measured, that is
+     exactly the movement the hand-rolled scroller was reproducing.
+
+     SO A REEL IS A CARD ON A PAGE, like a tool on the Tools column: `pages('reel', …)` wraps each
+     in `.page > .pane`, and `widgetColumn_`'s own `.card.is-widget > .widget-slot` is the shape
+     everything else on a column already has. `.reels` is gone from the markup and from the
+     stylesheet; `.reel` keeps the height the scroller used to state, because a card whose content
+     is `position: absolute` has no height of its own — which is the circularity CLAUDE.md records
+     under `.page.reel-page`.
+
+     NO HEADING OVER IT, and that is the chessboard's argument rather than an omission: "a board is
+     self-explanatory in a way almost nothing else in this app is", and a clip playing is too. The
+     column before this drew "Reels" once above fifty-eight slides; one heading per widget would be
+     that word printed down the whole column. */
   REEL_SHOWN = 0;
-  return `<section class="page"><div class="pane"><div class="card is-widget">
-    <div class="widget-slot">
-      <div class="card"><h3>Reels</h3>
-      <div class="reels" id="reels">${reelBatch_(REEL_FIRST)}</div>
-      </div>
-    </div>
-  </div></div></section>`;
+  return pages('reel', reelCards_(REEL_FIRST));
 });
 
 /* ---------- IT GOES DOWN FOR EVER, AND THE DECK IT DRAWS FROM ALREADY DID ------------------------
@@ -1398,73 +1403,92 @@ function reelItem_(n) {
   return clips[n % clips.length];
 }
 
-function reelBatch_(count) {
-  let out = '';
+/* ONE CARD PER REEL, AND THE CARD IS THE WIDGET. `pages()` gives each of these its own page and
+   its own pane; `.card.is-widget > .widget-slot` is what `widgetColumn_` builds for every tool and
+   every game, so a reel sits in the column the same way a calculator does.
+
+   `feedSlide` DRAWS THE SLIDE AND THIS DRAWS THE FRAME, which is the split that stopped the two
+   surfaces showing one fact from looking different. `data-reel` is the index, and it is what says
+   which of these is the one being watched — read by `reelTurn_` below against the pager's own
+   position rather than by an observer guessing from how much of a box is on screen. */
+function reelCards_(count) {
+  const out = [];
   for (let i = 0; i < count; i++) {
     const it = reelItem_(REEL_SHOWN);
     if (!it) break;
-    /* `--h` IS THE SLIDE'S OWN HUE and `feedSlide` paints its own gradient from the subject, so
-       this is only the frame the snap happens in. The two were one element before and the reel had
-       to know what a fact looks like to draw it. */
-    out += `<div class="reel" data-reel="${REEL_SHOWN}">${feedSlide(it)}` +
-      `<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button></div>`;
+    out.push(`<div class="card is-widget"><div class="widget-slot">
+      <div class="reel" data-reel="${REEL_SHOWN}">${feedSlide(it)}` +
+      `<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button></div>
+    </div></div>`);
     REEL_SHOWN++;
   }
   return out;
 }
 
-/* ---------- TWO OBSERVERS, ASKING DIFFERENT QUESTIONS ---------------------------------------------
-   ONE WATCHES THE BOTTOM and one watches what is being played. The first wants "is this slide
-   nearly on screen", answered two hundred pixels early so the next lap is built before anybody is
-   waiting for it; the second wants "is this the slide being watched", answered every time that
-   changes, for as long as the column is open. One observer doing both would either build late or
-   leave a clip playing three slides above with its sound on.
+/* HOW MANY PAGES THIS COLUMN HAS, asked by `PAGER.reel` in shell.js — and it is the same counter
+   the markup is built from, so the pager and the screen cannot disagree about how many there are.
+   That disagreement is not hypothetical: CLAUDE.md records the You column, where `PAGER` counted
+   `mePages()` while the screen drew something else, and the whole axis quietly stopped working.
 
-   THE PHOTOGRAPH FETCH WAS HERE AND IS GONE WITH THE FACTS. It asked Wikimedia Commons for a
-   picture off the slide's `pic`, one screen ahead — right when a slide could be a fact, and dead
-   the moment every slide is a clip, because `reelItem_` cannot return anything without one. A
-   reader left standing over a condition that is now permanently false is the shape this file
-   records under `resource_type` in `VOCAB` and under `libraryInto_`'s dead `kind === 'paper'`
-   guard: it reads as live and does nothing. `feedPicture` is untouched and still draws the "One
-   more thing" widget, which is where the facts went. */
-function reelsWatch_() {
-  const host = $('reels');
-  if (!host || !window.IntersectionObserver) return;
-
-  REEL_IO_ART = new IntersectionObserver(es => es.forEach(e => {
-    if (!e.isIntersecting) return;
-    /* MORE SLIDES, BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts
-       a blank half-second where the flick should have been; two early is the same cost paid while
-       nobody is waiting. */
-    if (Number(e.target.dataset.reel) >= REEL_SHOWN - 2) reelMore_(host);
-  }), { root: host, rootMargin: '200px 0px' });
-
-  /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT. `0.6` rather than any intersection: the snap
-     means a slide is either most of the column or a sliver of it, and a sliver is the one you have
-     just flicked away from. */
-  REEL_IO_PLAY = new IntersectionObserver(es => es.forEach(e => {
-    const v = e.target;
-    if (e.isIntersecting && e.intersectionRatio > 0.55) reelPlay_(v);
-    else { try { v.pause(); } catch {} }
-  }), { root: host, threshold: [0, 0.55, 0.9] });
-
-  reelObserve_(host);
+   ONE WHEN THERE ARE NO CLIPS, because the screen still draws a page then — the card that says so
+   and says how many rows it looked at. A count of nothing over a page that exists is a column you
+   cannot be on. */
+function reelPages_() {
+  const n = typeof clipsNow_ === 'function' && clipsNow_().length ? REEL_SHOWN : 1;
+  return new Array(Math.max(1, n)).fill('');
 }
 
-function reelObserve_(host) {
-  host.querySelectorAll('.reel:not(.is-watched)').forEach(el => {
-    el.classList.add('is-watched');
-    if (REEL_IO_ART) REEL_IO_ART.observe(el);
-    const v = el.querySelector('.feed-vid');
-    if (v && REEL_IO_PLAY) REEL_IO_PLAY.observe(v);
+/* ---------- THE PAGER SAYS WHICH ONE IS BEING WATCHED, AND IT IS THE ONLY THING THAT DOES -------
+   THERE WERE TWO INTERSECTION OBSERVERS HERE and both existed to answer a question the app already
+   knew the answer to. One watched for the bottom of the hand-rolled scroller so more slides could
+   be appended before anybody was waiting; the other asked "is this slide more than 55% of the
+   column" to decide which clip should be playing. With one widget per reel there is no scroller to
+   watch and no ratio to guess from: `PAGE.reel` IS which reel is on the screen, maintained by the
+   same dial that moves every other column in the app, and `goPage` is the one place it changes.
+
+   MEASURING A THING THE APP HAS ALREADY DECIDED is how the two halves drift apart — the shape this
+   file records under `documents_()` and under `factsNow_`. A ratio over boxes cannot disagree with
+   a page number that is a page number.
+
+   BOOKED THROUGH `afterSlide_` BY BOTH CALLERS, under the same key. `paint()` books it on arrival
+   and `goPage` books it on every turn; the key is this function itself, so a run of quick flicks
+   plays once at the end rather than starting and pausing a clip per swipe. That coalescing is the
+   fix CLAUDE.md records under "one timer was holding three jobs" — and it only works because both
+   callers pass the same named function rather than two arrows. */
+function reelsWatch_() {
+  reelTurn_(PAGE.reel || 0);
+}
+
+function reelTurn_(n) {
+  const host = $('s-reel');
+  if (!host) return;
+
+  /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts a
+     blank page where the flick should have been; two early is the same cost paid while nobody is
+     waiting. Same number and same reason as the observer that used to do it. */
+  if (n >= REEL_SHOWN - 2) reelMore_(host);
+
+  /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen
+     rather than gone, because the column peeks above and below. A clip left running up there is
+     sound coming from something nobody can see, which is the one thing a muted-by-default column
+     is arranged to avoid. */
+  host.querySelectorAll('.reel').forEach(el => {
+    const v = el.querySelector('video.feed-vid');
+    if (!v) return;
+    if (Number(el.dataset.reel) === n) reelPlay_(v);
+    else { try { v.pause(); } catch {} }
   });
 }
 
+/* ONE MORE LAP, AS PAGES. `pages()` is the same wrapper the screen's first draw used, so an
+   appended reel is indistinguishable from one that was there at the start — and `paintPager` is
+   what tells the dial there are more of them. Without it the column would hold pages the pager
+   refuses to move to, which is the You-column failure the note on `reelPages_` names. */
 function reelMore_(host) {
-  const html = reelBatch_(REEL_MORE);
-  if (!html) return;
-  host.insertAdjacentHTML('beforeend', html);
-  reelObserve_(host);
+  const cards = reelCards_(REEL_MORE);
+  if (!cards.length) return;
+  host.insertAdjacentHTML('beforeend', pages('reel', cards));
+  paintPager('reel', true);
 }
 
 /* ---------- A CLIP, AND THE ROUTE THAT CANNOT BE TESTED FROM HERE --------------------------------

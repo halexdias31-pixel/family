@@ -4313,3 +4313,53 @@ one the question is about.
 **Corbettmaths answers outstanding: 377 → 352**, and what is left is now mostly genuinely blocked:
 the angle, area, perimeter, coordinate and bar-chart sheets print their numbers ON the diagram, so
 answering them means transcribing the pictures first.
+
+## One widget per reel, and the column stopped having a scroller of its own
+
+**Reported as "Multiple widgets for each reel. One widget per reel."** What was there was ONE card
+holding a scroller — `.reels`, `height: min(62svh, 30rem)`, `overflow-y: scroll`,
+`scroll-snap-type: y mandatory`, `touch-action: pan-y` — with every clip inside it as a `.reel`.
+
+**So this was the one column the app's own dial did nothing on.** `paint` does
+`classList.toggle('paged', !!PAGER[id])` and **`PAGER.reel` did not exist**, so the class never went
+on and the vertical axis was never registered. That is the silent loss this file already records for
+`me` and `posts`, where two of the nine screens lost an axis because a table of screen ids had not
+been renamed with the screens. What moved instead was a box inside a card, with its own snap and its
+own momentum, and the pane's `touch-action: none` switched off underneath it so the browser could
+have the gesture back.
+
+**A second scroller is a second description of the pager**, which is this repository's oldest
+sentence — `documents_()`, `paperIdOf_`, `factsNow_`, `childrenOf`. `pages()` already gives a screen
+a vertical strip of cards, a position remembered per column, and a dial; the hand-rolled scroller
+was reproducing all three, differently.
+
+**So a reel is a card on a page, exactly as a tool is.** `pages('reel', reelCards_(…))` wraps each in
+`.page > .pane`, and each card is `.card.is-widget > .widget-slot`, which is what `widgetColumn_`
+builds for every tool and every game. Measured in a browser at 390px: **3 widgets on arrival, 3
+pages, `pageCount('reel')` 3, `paged` true, 0 scrollers, each reel 445px** — and turning to page 4
+appends three more, 9 pages and 9 widgets, with the pager counting all of them.
+
+**`.reel` states its own height now** and that line is load-bearing rather than tidy: `.feed-art` is
+`position: absolute; inset: 0`, so the box around it must have a height or there is nothing for
+`inset: 0` to resolve against. That is the circularity recorded above under `.page.reel-page`, where
+a scroller asked for `height: 100%` of a page that had none and every slide came out 0px tall.
+
+**Which reel is playing is the page number, not a ratio.** Two IntersectionObservers went with the
+scroller: one watching for the bottom so more slides could be appended, one asking "is this slide
+more than 55% of the column" to decide what should be playing. `PAGE.reel` IS which reel is on the
+screen, and `goPage` is the one place it changes — so measuring it is measuring a thing the app has
+already decided, which is how two halves drift apart. `reelsWatch_` plays the one and pauses the
+rest, and it is booked through `afterSlide_` by both callers **under the same key**, because the key
+is the named function itself: a run of quick flicks plays the clip you stopped on rather than
+starting and pausing one per swipe. That is the coalescing fix this file records under "one timer was
+holding three jobs", and an arrow at either call site would undo it.
+
+**`reelPages_` is the same counter the markup is built from**, which is the rule every other `PAGER`
+entry follows — a pager that counts for itself is a pager that can disagree with its own screen, and
+that disagreement is what made the You column unmovable. It answers **one** when there are no clips,
+because the screen still draws a page then: the card that says so and says how many rows it looked
+at. A count of nothing over a page that exists is a column you cannot be on.
+
+**Two clips, and both are the ones that were sent.** `1AerJnQHL8Vk0…` and `15nJWyOpLC94…` in
+`FEED_FACTS`. With two, "for ever" is a lap and the column says so; it stops being a repeat the
+moment there is a third, with nothing here to change.
