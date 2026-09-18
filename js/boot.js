@@ -51,3 +51,9 @@ try {
 }
 
 load();
+
+/* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD ---------------------------
+   AFTER `load()`, because it is a HEAD against the entry point and the payload is what the app
+   actually needs first. See the long note over `watchBuild_`: a phone showed a fifteen-hour-old
+   Reels column an hour after the new one had deployed, and nothing anywhere could say so. */
+try { watchBuild_(); } catch (e) {}
