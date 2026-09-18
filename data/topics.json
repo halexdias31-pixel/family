@@ -280,6 +280,7 @@
 {"topic_id": "chem-energy", "label": "Energy Changes", "parent_id": "chemistry", "aliases": "energy changes, exothermic, endothermic", "active": "True"},
 {"topic_id": "chem-rate", "label": "Rate of Reaction", "parent_id": "chemistry", "aliases": "rate of reaction, rates of reaction", "active": "True"},
 {"topic_id": "chem-analysis", "label": "Chemical Analysis", "parent_id": "chemistry", "aliases": "chemical analysis, chromatography, identifying ions", "active": "True"},
+{"topic_id": "chem-separating", "label": "Separating Mixtures", "parent_id": "chemistry", "aliases": "separating mixtures, filtration, crystallisation, evaporation, distillation, solubility", "active": "True"},
 {"topic_id": "physics", "label": "Physics", "parent_id": "", "aliases": "", "active": "True"},
 {"topic_id": "phys-energy", "label": "Energy", "parent_id": "physics", "aliases": "energy transfer, specific heat capacity, insulation", "active": "True"},
 {"topic_id": "phys-elec", "label": "Electricity", "parent_id": "physics", "aliases": "electricity, resistance, circuits", "active": "True"},

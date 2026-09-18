@@ -49,6 +49,17 @@ let LIBRARY_ROWS = null;
    file that shares one scope with thirty-nine others is how a name gets taken twice. */
 const libS = v => (v === undefined || v === null ? '' : String(v));
 const libN = v => { const n = Number(String(v).replace(/[^0-9.-]/g, '')); return isFinite(n) ? n : 0; };
+/* ---------- `libN` BUT ABSENT STAYS ABSENT -------------------------------------------------------
+   `libN('')` IS 0, deliberately: a blank count is none of something, and every caller it was
+   written for wants that. It is exactly wrong for a PRICE and for an AGE, where nought and
+   unanswered are different facts — the `cost: 0` shape CLAUDE.md records four times, most recently
+   on the shop mapper where a blank cell read as "free" under a comment defending the zero.
+   Two functions rather than a flag, so a caller picks by saying which question it is asking. */
+const libNum = v => {
+  if (v === undefined || v === null || String(v).trim() === '') return null;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? n : null;
+};
 const libOn = v => {
   const s = String(v === undefined || v === null ? '' : v).toLowerCase().trim();
   /* BLANK IS ON. `active` empty means nobody has switched it off, which is not the same as off —
@@ -263,6 +274,28 @@ function libraryExtras_(d, extra) {
         itemIds: libS(r.item_ids),
         notes: libS(r.notes),
         order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+
+        /* ---------- THE TEN COLUMNS THE HOME EXPERIMENTS BROUGHT WITH THEM ---------------------
+           BLANK ON THE 41 LAB PRACTICALS AND THAT IS NOT A GAP. Nobody has costed a school
+           practical because the school owns the kit, and nobody has put a hazard word on one
+           because a lab has a technician in it. Every reader below treats absent as absent. */
+        ageMin: libNum(r.age_min), hazard: libS(r.hazard), wow: libS(r.wow),
+        science: libS(r.science),
+        log: libS(r.log).split('|').map(t => t.trim()).filter(Boolean),
+        variables: libS(r.variables).split('|').map(t => t.trim()).filter(Boolean),
+        /* ---------- A COST OF NOTHING IS NOT THE SAME FACT AS NO COST -------------------------
+           `libN('')` IS 0, AND THAT IS THE `cost: 0` FAULT THIS REPOSITORY RECORDS FOUR TIMES —
+           `Number(x.price) || 0` made a blank cell a price of nought, and 3,262 of 3,265 items
+           answered "Free" on a question that then meant nothing. Measuring car speeds really
+           does cost nothing to run; a lab practical has simply never been costed. `libNum`
+           answers `null` for the second, and `priced_` upstream already tells a card how to draw
+           the difference. */
+        costPerRun: libNum(r.cost_per_run_gbp), setupCost: libNum(r.setup_cost_gbp),
+        /* AND WHY IT IS NOT DONE, WHERE IT IS NOT DONE. See the note over these rows in
+           `check-practicals.js`: an excluded practical is live and carries its reason, because
+           `active` means deleted and a decision is not a deletion. */
+        excluded: libS(r.excluded_reason),
+        reconsiderAt: libNum(r.reconsider_at_age),
       });
     });
     d.practicals = out;

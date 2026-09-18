@@ -70,12 +70,26 @@ const COMPLIANCE = new Set([
   'Not assessed — enrichment',
 ]);
 
+/* FIVE LEVELS, LOWEST FIRST. `none` is a fish tank; `medium` is the only one in this library that
+   involves fire, and it is outdoors on a metal tray. Nothing here is `high` that is not also
+   refused outright. */
+const HAZARD = new Set(['none', 'very low', 'low', 'medium', 'high']);
+
+/* ---------- AND `wow` IS A CLOSED LIST FOR A REASON THIS FILE ALREADY LEARNED ---------------------
+   IT WENT IN AS FREE TEXT — "low to look at, high to learn from", "high — and he keeps it" — which
+   reads beautifully and cannot be compared. The card reads this column to mark the one or two worth
+   opening a session with, and a rule over free text is the fault recorded a few lines up, where
+   `/required practical/` matched `AQA-aligned, NOT a required practical` and called five extras
+   required. The nuance did not go anywhere: it is in `notes`, which is prose and is drawn as prose. */
+const WOW = new Set(['low', 'medium', 'medium-high', 'high', 'very high']);
+
 /* The numbered columns this file exists to have replaced. A returning `equipment_11` is not untidy,
    it is the fault coming back — the same argument `RETIRED_FACETS` makes about a deleted facet. */
 const NUMBERED = /^(equipment|step|topic)_\d+$/;
 
 const seen = new Set();
 let joined = 0, topicLinks = 0, required = 0;
+let excluded = 0, hazards = 0, ages = 0, costed = 0;
 const unknownTopics = new Map();
 
 rows.forEach(r => {
@@ -101,13 +115,82 @@ rows.forEach(r => {
      by this count disagreeing with the one the transform printed. */
   if (c === 'AQA required practical') required++;
 
-  /* Both list columns: present, and no value carrying the separator that splits them. */
-  ['equipment', 'steps'].forEach(col => {
-    const v = String(r[col] || '').trim();
-    if (!v) { fail.push(id + ' has no ' + col); return; }
-    v.split('|').forEach(part => {
-      if (!part.trim()) fail.push(id + ' has an empty item in ' + col + ' — a doubled pipe');
+  /* ---------- A REFUSED EXPERIMENT IS ASKED FOR A REASON WHERE A LIVE ONE IS ASKED FOR A METHOD --
+     FIVE ROWS ARE EXPERIMENTS THAT WERE CONSIDERED AND TURNED DOWN — burning magnesium ribbon,
+     magnesium and hydrochloric acid, flame tests, and two left out on preference. They are rows
+     rather than a deletion because "recorded so the reasoning is not lost" is the whole point of
+     them: a tutor asking why they are not doing the classic version has to be able to find the
+     answer.
+
+     `active` IS NOT THE COLUMN FOR THAT, and this repository already records the distinction on
+     the posts tab: `active` is whether a thing has been deleted and `approved` is whether it has
+     been let through, and folding them together makes undeleting and approving one act. So an
+     excluded row is LIVE and carries `excluded_reason`.
+
+     AND IT IS NOT ASKED FOR A METHOD. An experiment nobody will run does not need one, and
+     demanding it would mean writing out a procedure purely to satisfy a checker — inventing
+     content, which is the opposite of what this file is for. It is asked for the reason instead,
+     which is the thing that has to be there. */
+  const gone = String(r.excluded_reason || '').trim();
+  if (gone) {
+    excluded++;
+    if (String(r.steps || '').trim()) {
+      fail.push(id + ' is refused and carries a method anyway — an experiment nobody is going to '
+        + 'run does not need one, and one that is there will eventually get run');
+    }
+  } else {
+    /* Both list columns: present, and no value carrying the separator that splits them. */
+    ['equipment', 'steps'].forEach(col => {
+      const v = String(r[col] || '').trim();
+      if (!v) { fail.push(id + ' has no ' + col); return; }
+      v.split('|').forEach(part => {
+        if (!part.trim()) fail.push(id + ' has an empty item in ' + col + ' — a doubled pipe');
+      });
     });
+  }
+
+  /* ---------- THE HAZARD IS A CLOSED LIST, FOR `VOCAB`'S REASON ---------------------------------
+     It is the one word a tutor triages on before reading anything else — "medium, involves fire"
+     against "very low" — and free text turns a triage into a paragraph. A sixth level has to be
+     added here by somebody who has just read the five already in use, which is the argument
+     `check-library.js` makes about `exam_wave` and `Resit` beside `Second wave`. */
+  const hz = String(r.hazard || '').trim();
+  if (hz && !HAZARD.has(hz)) {
+    fail.push(id + ' has hazard "' + hz + '", which is not one of the five written down. '
+      + 'Add it to HAZARD here deliberately, or fix the row.');
+  }
+  if (hz) hazards++;
+
+  const ww = String(r.wow || '').trim();
+  if (ww && !WOW.has(ww)) {
+    fail.push(id + ' has wow "' + ww + '", which is not one of the five written down. It is read '
+      + 'by the card to mark what to open with, so it has to be comparable — put the nuance '
+      + 'in `notes`.');
+  }
+
+  /* ---------- AN AGE IS A NUMBER OR IT IS ABSENT ------------------------------------------------
+     `12+ with an adult` in this column would be a sentence nothing can compare, and the sentence
+     belongs in `safety` where it already is. */
+  if (r.age_min !== undefined && r.age_min !== null && r.age_min !== '') {
+    const a = Number(r.age_min);
+    if (!isFinite(a) || a < 4 || a > 18) {
+      fail.push(id + ' has age_min "' + r.age_min + '", which is not an age between 4 and 18');
+    } else { ages++; }
+  }
+
+  /* ---------- A COST OF NOTHING AND NO COST ARE DIFFERENT ANSWERS -------------------------------
+     THIS IS THE `cost: 0` FAULT AND THIS FILE IS WHERE IT IS REFUSED. CLAUDE.md records it four
+     times: `Number(x.price) || 0` made a blank cell a price of nought and 3,262 of 3,265 items
+     answered "Free". Measuring car speeds really does cost nothing per run; the 41 lab practicals
+     have never been costed at all. A `0` states the first and an absent value states the second,
+     and an empty STRING states neither — it is a blank wearing a number's clothes. */
+  ['cost_per_run_gbp', 'setup_cost_gbp'].forEach(col => {
+    const v = r[col];
+    if (v === undefined || v === null) return;
+    if (typeof v !== 'number' || !isFinite(v) || v < 0) {
+      fail.push(id + ' has ' + col + ' ' + JSON.stringify(v) + ' — a cost is a number, and '
+        + 'ABSENT where it has not been worked out. An empty string is neither.');
+    } else if (col === 'cost_per_run_gbp') { costed++; }
   });
 
   const topics = String(r.topics || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -143,6 +226,13 @@ console.log('\nTHE PRACTICALS  —  ' + rows.length + ' experiments, ' + require
 console.log('topic links: ' + topicLinks + ' across ' + rows.length + ' practicals ('
   + (rows.length ? (topicLinks / rows.length).toFixed(1) : 0) + ' each), '
   + joined + ' reaching at least one branch of the topic tree');
+
+/* ---------- PRINTED, BECAUSE A NUMBER IS SOMETHING SOMEBODY CAN ACT ON ------------------------
+   The argument `check-library.js` makes about its own counts, and the one that caught a rename
+   taking `papers checked against a total` from 34 to 2 under a green tick. A count that moves when
+   it should not is the only thing that would show these columns quietly emptying. */
+console.log('carrying an age: ' + ages + ' · a hazard level: ' + hazards
+  + ' · a cost per run: ' + costed + ' · refused with a reason: ' + excluded);
 
 const noItems = rows.filter(r => !String(r.item_ids || '').trim()).length;
 if (noItems) {

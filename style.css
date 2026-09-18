@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-comments";
+  --css-version: "2026-09-18-home-experiments";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7258,7 +7258,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    text, and text is the one thing that SHOULD scale with the root; the px rule is about fingertips
    and this card has nothing to press. */
 .prac-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
-.prac-head h3 { margin: 0; }
+/* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------
+   A FLEX ITEM'S MINIMUM IS `auto`, WHICH IS ITS MIN-CONTENT — the widest unbreakable word, not
+   nothing. So a one-word title beside a `flex: 0 0 auto` flag could not shrink to the card, and
+   `Photosynthesis`, `Field investigations`, `Chromatography` and `I–V characteristics` each took
+   `.prac-head` and then `.card` up to 19px past a 320px column.
+
+   NOTHING HAD EVER LOOKED. `check/cards.js` lays out every row of `data/questions.json` and
+   `check/ui.js` measures nine screens — and a practical card is in neither, because the funnel
+   fills five pages either side of where you are and never happened to stop on one of these four.
+   That is this file's own "a sample is not a sweep", one data file along, and it is why
+   `check/cards.js` now lays these out too. Found by laying all 56 out while adding ten more. */
+.prac-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
 /* THE ONE THING SOMEBODY SCANS FOR — whether the exam board makes them do this one. It is a flag
    rather than a line of prose because it is the answer to a yes/no question, and it is gold only
    when the answer is yes: an "Extra" in the same colour would make the distinction decorative. */
@@ -7286,6 +7297,87 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                border-left: 2px solid var(--gold); padding-left: .55rem; }
 .prac-maths { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
 .prac-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+/* `notes` IS A PIPE LIST NOW and each part takes its own line — three asides run together in one
+   paragraph is three things nobody reads. The margin goes on the element rather than on every `p`,
+   so a single-note card is unchanged. */
+.prac-note p { margin: 0 0 .3rem; }
+.prac-note p:last-child { margin-bottom: 0; }
+
+/* ==================================================================================================
+   THE HOME EXPERIMENTS.
+
+   Ten of the fifty-six run in somebody's front room rather than a lab, and five more were
+   considered and turned down. Everything below draws a column the 41 lab practicals do not carry,
+   so every one of these rules is on an element that is simply absent on those — no rule here
+   changes a card that existed before.
+================================================================================================== */
+
+/* ---------- WHAT IS GOING ON ---------------------------------------------------------------------
+   THE MOST VALUABLE FIELD ON THE CARD and it gets the ink to say so. `aim` is one line and
+   `outcome` is what you end up with; this is the paragraph that actually teaches, and it is the
+   one a tutor reads before deciding whether they can explain it. */
+.prac-why { margin: .65rem 0 0; }
+.prac-why h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
+               text-transform: uppercase; color: var(--faint); }
+.prac-why p { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--ink); }
+
+/* ---------- THE TWO HALVES OF THE RESULTS TABLE --------------------------------------------------
+   SIDE BY SIDE WHERE THERE IS ROOM, and stacked on a phone. They are two columns of one table —
+   "what I changed" and "what I measured" — and the whole point of drawing them together is that
+   the pair is the method. `minmax(0, 1fr)` rather than `1fr`: a grid track's default minimum is
+   `auto`, which is the widest word rather than nothing, so a long item would push the pair
+   sideways instead of wrapping. That is the `.bk-row` fault one card along. */
+.prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
+@media (min-width: 30rem) { .prac-tab { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.prac-tab h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
+               text-transform: uppercase; color: var(--faint); }
+.prac-tab ul { margin: 0; padding-left: 1.1rem; }
+.prac-tab li { font-size: .78rem; line-height: 1.5; color: var(--dim); }
+
+/* ---------- THE HAZARD WORD ----------------------------------------------------------------------
+   IT SITS IN THE STRIP AND IT IS THE ONE THING ON THE CARD THAT IS NOT GOLD. Every other figure up
+   there is a fact about the session — how long, how old, what it costs — and this one is the
+   triage: a tutor reading `medium hazard` on a card about burning steel wool in a client's garden
+   should not have to find it among five other gold words.
+
+   `--warn` AND `--red` ARE ALREADY TOKENS. Nothing new is declared: the house style says a colour
+   used by more than one component is a `:root` token, and both of these are. */
+.prac-haz { display: inline-block; margin-left: .15rem; padding: 0 .35rem;
+            border: 1px solid currentColor; border-radius: var(--r-sm);
+            font-size: .66rem; color: var(--faint); }
+.prac-haz.haz-medium { color: var(--warn); }
+.prac-haz.haz-high   { color: var(--red, #ff6b6b); }
+
+/* ---------- AND THE ONES THAT ARE NOT RUN --------------------------------------------------------
+   A CARD THAT COULD BE MISTAKEN FOR SOMETHING TO DO IS THE WHOLE RISK of keeping these rows at
+   all. The flag changes word and colour, the reason is the first thing under the subtitle, and the
+   card itself is dimmed — three signals for one fact, deliberately, which is the same doubling
+   `placeholder: True` already gets on a question whose source could not be reproduced.
+
+   THE HEADING AND THE REASON STAY AT FULL STRENGTH inside the dimmed card, because a refusal
+   nobody can read is a refusal that gets ignored. */
+.prac.is-off { opacity: .72; }
+.prac.is-off h3, .prac.is-off .prac-no { opacity: 1; }
+.prac-flag.is-no { color: var(--red, #ff6b6b); border-color: var(--red, #ff6b6b); }
+.prac-no { margin: .45rem 0 0; padding-left: .6rem; border-left: 2px solid var(--red, #ff6b6b);
+           font-size: .8rem; line-height: 1.5; color: var(--ink); }
+.prac-no b { color: var(--red, #ff6b6b); font-weight: 600; }
+/* WORTH ANOTHER LOOK AT FOURTEEN is a different sentence from "no", so it reads as its own clause
+   rather than running on from the reason. */
+.prac-again { display: block; margin-top: .2rem; color: var(--dim); }
+
+/* ---------- ONE SENTENCE THAT BELONGS TO THE VENUE, NOT TO ANY ROW -------------------------------
+   Public liability and a written parental agreement are true of every experiment run in somebody
+   else's house. Drawn from `venue`, so there is one copy of the wording — see the note in
+   `practicalCard_`. Bordered rather than dimmed: it is the one line on the card that is about the
+   tutor rather than the science. */
+.prac-home { margin: .65rem 0 0; padding: .45rem .6rem;
+             border: 1px dashed var(--line); border-radius: var(--r-sm);
+             font-size: .76rem; line-height: 1.5; color: var(--dim); }
+.prac-cost { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+/* The one line on the card that is a recommendation rather than a fact, so it is the one that
+   carries the gold. */
+.prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
 .prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
 
 .boxer-nick { font-weight: 400; color: var(--dim); }
