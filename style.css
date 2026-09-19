@@ -1767,9 +1767,16 @@ button.text-drop { color: var(--bad); }
      finger is on the page, which says `touch-action: none`, and the grid got it. Same swipe, two
      answers, decided by where you happened to put your thumb.
 
-     `none` here, and `pan-y` given back only to a pane that has genuinely overflowed — see
-     `.pane.scrolls`, which script.js adds after measuring. Most panes never get it, so most of the
-     screen behaves like the edges did, which is the half that was always working. */
+     `none` here, FULL STOP, and the second half of this sentence used to name an escape hatch that
+     no longer exists: `.pane.scrolls`, a class added after measuring, which gave an overflowing
+     pane its vertical gesture back. It was removed deliberately — the note by the `touch-action`
+     list near the foot of this file records it — and this comment was not removed with it, so it
+     has been describing a mechanism for longer than the mechanism existed. The `.price.faint`
+     shape in prose: it reads as a decision and there is nothing behind it.
+
+     SO THERE IS NO GIVING BACK, and a pane taller than its box is simply cut off. That is the right
+     trade and it is also a real cost, which is why `check/ui.js` now measures it — see OUT OF REACH
+     there, and the correction at the foot of this file. */
   touch-action: none;
   /* ---------- THE GLASS'S OWN MARGIN, TRIMMED ONCE --------------------------------------------
      EVERY SCREEN IN THE APP SITS INSIDE THIS. It was `1rem 1rem 1.25rem`, which on a 390px phone is
@@ -3480,8 +3487,18 @@ textarea, select, [data-noswipe],
 .map, .map-svg { touch-action: none; }
 
 /* `.pane.scrolls` was here — the class that gave a pane back its vertical gesture once it had
-   overflowed. A pane cannot overflow now, so there is nothing to give back. The measurement that
-   set it is gone from shell.js with it. */
+   overflowed. The measurement that set it went from shell.js with it.
+
+   THE SENTENCE THAT STOOD HERE WAS "A PANE CANNOT OVERFLOW NOW", AND IT WAS NOT TRUE. Measured at
+   390×844 with six conversations on the Messages column: 1,298px of content inside an 805px pane,
+   which is 493px of somebody's messages on the page with no scroll and no page to turn to. The
+   claim was an assertion about every screen in the app made from one screen, and it is exactly why
+   the fault survived — a pane that cannot overflow needs nothing measuring it.
+
+   A PANE CAN OVERFLOW ANY TIME SOMETHING STACKS MORE INTO IT THAN FITS, and the answer is the one
+   `.pane`'s own note gives: page it. `check/ui.js` asks the question now, on every pane of every
+   screen at four widths — OUT OF REACH — so the next column to do it says so instead of being
+   found by somebody with a full inbox. */
 
 /* ---------- NO SCROLLBAR ANYWHERE, ON ANYTHING -----------------------------------------------
    Belt and braces: the panes cannot scroll, but the few boxes that still do — a notepad, a docket,

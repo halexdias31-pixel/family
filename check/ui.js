@@ -363,6 +363,38 @@ const STATES = {
       expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
                  && document.querySelector('#s-dm .msg-text'),
       wants: 'five bubbles and a box to reply in' },
+    /* ---------- AND AN INBOX, WHICH IS THE STATE THE FAULT WAS IN ---------------------------------
+       ONE CONVERSATION IS NOT AN INBOX. The state above seeds a single thread — deliberately, for
+       what it measures: which side a bubble sits on and how a run of three collapses. It fits on one
+       pane, so for as long as it was the only seeded state this column could not have shown the
+       fault it actually had: `screen('dm')` stacked EVERY conversation into one `.pane`, which is
+       `overflow: hidden`, and at 390×844 with six of them 493px of somebody's messages were on the
+       page with no scroll and no page to turn to.
+
+       I WROTE THE RULE FIRST AND IT REPORTED NOTHING, which is the only reason this state exists:
+       putting the `stack()` back did not fire it either, because two cards fit. A rule that cannot
+       fail is not a rule — this file has deleted one for exactly that — and what was missing was
+       never the rule, it was the state. Same sentence as the filter chips six answers deep.
+
+       SIX, BECAUSE FIVE FITS. Measured at the tallest of the four widths: five conversations sit
+       inside the pane and the sixth is what pushes it over, so this is the smallest inbox that can
+       answer the question at every width rather than at 320 alone. */
+    { name: 'an inbox',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const who = ['Ada Tutor', 'The office', 'Ben Parent', 'Cara Tutor', 'Dev Admin', 'Eve Parent'];
+        MESSAGES = who.flatMap((n, i) => [
+          { id: 'i' + i + 'a', mine: false, read: true, withId: 'P10' + i, withName: n,
+            fromName: n, at: '2026-09-1' + i + ' 10:0' + i,
+            body: 'Hello from ' + n + ' \u2014 long enough to take a line or two on a phone.' },
+          { id: 'i' + i + 'b', mine: true, read: true, withId: 'P10' + i, withName: n,
+            fromName: 'You', at: '2026-09-1' + i + ' 10:1' + i, body: 'Thanks, noted.' },
+        ]);
+        DM_ASKED = true;
+        paint('dm');
+      },
+      expect: () => pageCount('dm') >= 7,
+      wants: 'six conversations, each a page of its own' },
   ],
 };
 
@@ -509,7 +541,7 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], tinyTargets: [], lowContrast: [] };
+  const found = { overflow: [], hidden: [], tinyTargets: [], lowContrast: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
      `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
@@ -610,6 +642,59 @@ function inspect(opts) {
         cls: String(el.className || '').slice(0, 40),
         by: over, width: el.clientWidth });
     }
+  }
+
+  /* ---------- AND THE OTHER AXIS, WHICH IS THE ONE THE APP IS NAVIGATED ON ------------------------
+     THIS FILE HAS ONLY EVER ASKED ABOUT SIDEWAYS. That is the right first question — a box that
+     scrolls sideways when it was not told it could is always a fault — and it is the axis nobody
+     travels: every screen in this app is a vertical strip of pages, and `.pane` is the glass each
+     page is drawn on.
+
+     `.pane` IS `overflow: hidden` AND `touch-action: none`, DELIBERATELY. Its own note says why: a
+     pane that scrolls its own contents and a grid that pages are two gestures competing for one
+     movement, and which one you got depended on whether the pane happened to be a pixel taller than
+     its box. So the pane clips and the vertical drag always belongs to the grid.
+
+     THE COST OF THAT IS STATED IN THE SAME COMMENT and is exactly what this measures: *"a card
+     taller than the screen has its bottom cut off … Anything genuinely long should be PAGED."*
+     Nothing anywhere was checking that anything genuinely long HAD been.
+
+     WHAT IT COST, MEASURED: the Messages column stacked every conversation into one pane, and at
+     390×844 with six of them that was 1,298px of content in an 805px box — 493px of somebody's
+     messages on the page, with no scroll and no page to turn to. Six columns have now lost their
+     vertical axis one way or another, and the reason it kept recurring is that the lab could not
+     see the axis at all.
+
+     EVERY PANE ON THE SCREEN, not just the one in front. A sixteen-page column has sixteen panes in
+     the document and every one of them is a page somebody can turn to — measuring only the front
+     one is `check/cards.js`'s own lesson about a sample and a sweep, on a second surface.
+
+     A PANE THAT WAS TOLD IT MAY SCROLL IS EXEMPT, which is the same first question the sideways
+     rule asks, and so is the widget's own scroller inside it — `.msg-body` and the notepad have
+     their own `clientHeight`, so they never push the pane's `scrollHeight` in the first place.
+
+     AND THE SAME SECOND QUESTION, IN PIXELS A VIEWER CAN SEE. A transform is invisible to
+     `scrollHeight` exactly as it is to `scrollWidth` — the cheat sheet and the flyer are A4 pages
+     scaled to a phone — so the lowest RENDERED child edge settles it. Without this the mat and the
+     flyer would report hundreds of pixels that are not on any screen, which is the finding that
+     cost this project two wrong fixes the first time round. */
+  const panes = live && live.querySelectorAll ? [...live.querySelectorAll('.pane')] : [];
+  for (const el of panes) {
+    const s2 = getComputedStyle(el);
+    if (/(auto|scroll)/.test(s2.overflowY)) continue;
+    const under = el.scrollHeight - el.clientHeight;
+    if (under <= 2 || el.clientHeight <= 0) continue;
+    const box = el.getBoundingClientRect();
+    let paintedBottom = null;
+    for (const kid of el.children) {
+      const k = kid.getBoundingClientRect();
+      if (k.height > 0 && (paintedBottom === null || k.bottom > paintedBottom)) paintedBottom = k.bottom;
+    }
+    if (paintedBottom !== null && paintedBottom - box.bottom <= 2) continue;
+    found.hidden.push({ tag: el.tagName.toLowerCase(),
+      cls: String((el.firstElementChild && el.firstElementChild.className) || el.className || '')
+             .slice(0, 40),
+      by: under, height: el.clientHeight });
   }
 
   /* ---------- A "TEXT CLIPPED RATHER THAN WRAPPED" RULE WAS HERE, AND IT WAS INERT ---------------
@@ -964,6 +1049,8 @@ function inspect(opts) {
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
+    (r.hidden || []).forEach(o => add('OUT OF REACH',
+      `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} hides ${o.by}px below its own fold`, at));
     (r.tinyTargets || []).forEach(t => {
       const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || ''));
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',

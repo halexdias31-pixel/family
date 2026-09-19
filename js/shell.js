@@ -1179,6 +1179,21 @@ const PAGER = {
      this table follows: a pager that counts for itself is a pager that can disagree with the screen
      it is a pager for. */
   reel:   () => (typeof reelPages_ === 'function' ? reelPages_() : ['']),
+  /* ---------- AND MESSAGES WAS THE SIXTH COLUMN TO LOSE ITS AXIS THIS WAY -------------------------
+     `screen('dm')` USED `stack()` AND THERE WAS NO KEY HERE, which is the pair of facts the note
+     over `tools` says costs a column: no `paged` class, no vertical axis, and a `.pane` that is
+     `overflow: hidden` holding every conversation in one box. **Measured at 390×844 with six
+     conversations: 1,298px of content inside an 805px pane — 493px of somebody's messages on the
+     page with no scroll and no page to turn to.**
+
+     `me` and `posts` lost it to a rename, `booking` and `reel` to having no key at all, `tools` and
+     `games` to `stack`. This is the same fault as the last two, and the reason it keeps recurring is
+     that nothing MEASURES the axis — `check/ui.js` has always asked whether a box scrolls sideways
+     and never whether one hides content below its own fold. It asks both now.
+
+     COUNTED FROM `dmPages_`, the one list `screen('dm')` maps its markup from, so page n and name n
+     are the same n. */
+  dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
@@ -1247,6 +1262,11 @@ const PAGE_HOME = {
      to see. Spotlight still wins when there is one. */
   feed:    () => 0,
   account: () => (USER ? 1 : 0),    // past the name card; signed out there is only the sign-in pane
+  /* PAST THE HEAD CARD AND ONTO THE NEWEST CONVERSATION, for the reason `account` skips its name
+     card: the Messages column opens on Messages-and-a-Refresh-button, which is the one page on it
+     nobody came to read. `dmPages_` puts the newest thread at 1 because `messageThreads_` sorts
+     most-recent-first. With no threads there is one page and `pageHome_` never runs. */
+  dm:      () => 1,
 };
 /* `book` WAS HERE — a column that no longer exists. */
 /* ---------- THE ICON, FROM THE SHEET ---------------------------------------------------------------
@@ -1293,7 +1313,10 @@ function applyBrandIcon_() {
 /* KEYED BY SCREEN ID, like `PAGER` and `PAGE_HOME` — and `posts` and `me` are not screen ids. See
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0 };
+/* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke:
+   every screen that pages needs an entry or its position is not remembered between visits. Both
+   page — `booking` since the receipts became pages, `dm` since the conversations did. */
+const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
