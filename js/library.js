@@ -180,7 +180,18 @@ let LIBRARY_EXTRA = null;
 async function libraryExtraRows_() {
   if (LIBRARY_EXTRA) return LIBRARY_EXTRA;
   const out = {};
-  await Promise.all(LIB_EXTRA.map(async name => {
+  /* ---------- AND THE SETTINGS TABS, THROUGH THE SAME MACHINE -----------------------------------
+     `SETTINGS_TABS` names them as paths — `settings/brand` is `data/settings/brand.json` — so this
+     loop is unchanged and there is one implementation of "fetch a tab, answer [] if it did not
+     come". A second copy beside it is the second reader this repository keeps recording, under
+     `documents_()`, under `paperIdOf_` and under `factsNow_`.
+
+     READ AT CALL TIME, NOT AT PARSE TIME. `settings.js` loads after this file, so naming
+     `SETTINGS_TABS` in the `LIB_EXTRA` literal above would be a temporal-dead-zone throw on every
+     load — the shape `d = libraryInto_(…)` already cost this project, where a broken line sat
+     inside a `try` and nothing after it in the block could run. */
+  const names = LIB_EXTRA.concat(typeof SETTINGS_TABS === 'undefined' ? [] : SETTINGS_TABS);
+  await Promise.all(names.map(async name => {
     let rows = null;
     try {
       const early = (window.BOOT_LIB_EXTRA || {})[name] || null;

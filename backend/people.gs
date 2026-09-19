@@ -133,8 +133,11 @@ function isAdminPerson(name) {
  * is written down, and changing it is a cell rather than a search through the source.
  */
 function brandName() {
-  const row = read(TAB.brand).rows.find(r => S(r.key) === 'name');
-  return (row && S(row.value)) || '@family.';
+  /* THE NAME CAME OFF THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW. The phone
+     reads it; this cannot, because Apps Script has no way into a file in git. `BRAND_NAME` is the
+     same string the fallback always was, in one place, so an e-mail and a post signature cannot
+     disagree — and changing it is the one line in constants.gs rather than a cell. */
+  return BRAND_NAME;
 }
 
 /** May this person write to that one? Roles in the SHEET's words. */

@@ -1,0 +1,23 @@
+[
+{"field": "forLabel", "label": "What for", "sort_order": 10, "min_coverage": "", "note": "", "active": true},
+{"field": "kindLabel", "label": "What kind", "sort_order": 20, "min_coverage": "", "note": "", "active": true},
+{"field": "subject", "label": "Subject", "sort_order": 30, "min_coverage": "", "note": "", "active": true},
+{"field": "boxKind", "label": "Boxers or fights", "sort_order": 34, "min_coverage": "", "note": "asked before the weight class", "active": true},
+{"field": "division", "label": "Division", "sort_order": 35, "min_coverage": "", "note": "boxers and bouts only; the coverage rule hides it elsewhere", "active": true},
+{"field": "resourceType", "label": "Type", "sort_order": 40, "min_coverage": "", "note": "", "active": true},
+{"field": "keystage", "label": "Key stage", "sort_order": 50, "min_coverage": "", "note": "", "active": true},
+{"field": "examBoard", "label": "Exam board", "sort_order": 60, "min_coverage": "", "note": "", "active": true},
+{"field": "tier", "label": "Tier", "sort_order": 70, "min_coverage": "", "note": "", "active": true},
+{"field": "examWave", "label": "Exam wave", "sort_order": 80, "min_coverage": "", "note": "", "active": true},
+{"field": "bandValue", "label": "Grade", "sort_order": 90, "min_coverage": "", "note": "one column asked twice: grade and stage both read band_value", "active": true},
+{"field": "stage", "label": "Stage", "sort_order": 100, "min_coverage": "", "note": "see grade", "active": true},
+{"field": "company", "label": "Paper code", "sort_order": 110, "min_coverage": 0.25, "note": "holds 9MA0/01 more often than a publisher; split the column when you can", "active": true},
+{"field": "paper", "label": "Printed or digital", "sort_order": 120, "min_coverage": "", "note": "was \"Printed?\", the only label that was a question", "active": true},
+{"field": "afford", "label": "Price", "sort_order": 130, "min_coverage": "", "note": "", "active": true},
+{"field": "borough", "label": "Where", "sort_order": 140, "min_coverage": "", "note": "venues only, so it sits after the questions everything can answer", "active": true},
+{"field": "category", "label": "Category", "sort_order": 150, "min_coverage": "", "note": "links only; same", "active": true},
+{"field": "slot", "label": "Goes on", "sort_order": 160, "min_coverage": "", "note": "", "active": true},
+{"field": "qNumber", "label": "Question number", "sort_order": 170, "min_coverage": "", "note": "", "active": true},
+{"field": "qPart", "label": "Question part", "sort_order": 180, "min_coverage": "", "note": "", "active": true},
+{"field": "year", "label": "Year", "sort_order": 999, "min_coverage": "", "note": "off: exam wave is the same fact, so asking both narrows twice", "active": false}
+]

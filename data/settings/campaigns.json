@@ -1,0 +1,14 @@
+[
+{"campaign_id": "C001", "name": "Back to School", "when": "late August", "note": "the big one — most enquiries all year", "style": "minimal", "ink": "#16160f", "accent": "#c8452f", "ground": "#ffffff", "blocks": "code head slogan say facts price foot", "active": true},
+{"campaign_id": "C002", "name": "Results Day", "when": "results week, August", "note": "short window, catch people the same week", "style": "minimal", "ink": "#16160f", "accent": "#c8452f", "ground": "#ffffff", "blocks": "code head say facts price foot", "active": true},
+{"campaign_id": "C003", "name": "New Year", "when": "first weeks of January", "note": "people plan in January and stop by February", "style": "elegant", "ink": "#16233a", "accent": "#3f7fa8", "ground": "#f4f6f8", "blocks": "code head slogan say facts price foot", "active": true},
+{"campaign_id": "C004", "name": "Mocks", "when": "November", "note": "", "style": "detailed", "ink": "#16160f", "accent": "#c8452f", "ground": "#ffffff", "blocks": "code head say facts price foot", "active": true},
+{"campaign_id": "C011", "name": "Before Christmas", "when": "", "note": "", "style": "elegant", "ink": "#1e2a20", "accent": "#a8452f", "ground": "#f7f4ec", "blocks": "code head slogan say facts foot", "active": true},
+{"campaign_id": "C005", "name": "Exam Season", "when": "April to May", "note": "shift the offer to past papers", "style": "detailed", "ink": "#16160f", "accent": "#2f6f4f", "ground": "#ffffff", "blocks": "code head say facts price foot", "active": true},
+{"campaign_id": "C006", "name": "Half Term", "when": "every half term", "note": "low effort, worth repeating", "style": "minimal", "ink": "#1a1a14", "accent": "#d08a2c", "ground": "#fdfaf2", "blocks": "code head slogan say facts price foot", "active": true},
+{"campaign_id": "C007", "name": "Easter Revision", "when": "Easter holidays", "note": "", "style": "detailed", "ink": "#241a2c", "accent": "#7a5aa8", "ground": "#faf7fb", "blocks": "code head say facts price foot", "active": true},
+{"campaign_id": "C008", "name": "Summer Holiday", "when": "July and August", "note": "keeping people going over the break", "style": "elegant", "ink": "#1c2620", "accent": "#3f8f6a", "ground": "#f6f8f4", "blocks": "code head slogan say facts price foot", "active": true},
+{"campaign_id": "C012", "name": "Better Call Halex", "when": "", "note": "", "style": "loud", "ink": "#141208", "accent": "#c8452f", "ground": "#ffd227", "blocks": "name head slogan facts price phone foot", "active": true},
+{"campaign_id": "C009", "name": "Open Evening", "when": "one-off", "note": "", "style": "minimal", "ink": "#16160f", "accent": "#c8452f", "ground": "#ffffff", "blocks": "code name head say facts foot qr", "active": true},
+{"campaign_id": "C010", "name": "Referral", "when": "all year", "note": "", "style": "", "ink": "", "accent": "", "ground": "", "blocks": "", "active": true}
+]

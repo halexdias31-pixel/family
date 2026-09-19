@@ -41,12 +41,6 @@
     "createCheckout",
     "finalizePayment"
   ],
-  "brand": {
-    "name": "@family.",
-    "area": "Merton & Wandsworth",
-    "phone": "020 0000 0000",
-    "site": "https://example.invalid/"
-  },
   "constants": {
     "vars": {
       "print_marks_per_page": "20",
@@ -95,32 +89,6 @@
       "group": "Booking",
       "label": "Sessions",
       "order": 3,
-      "active": true,
-      "null": ""
-    }
-  ],
-  "facets": [
-    {
-      "field": "subject",
-      "label": "Subject",
-      "order": 1,
-      "minCoverage": 0,
-      "active": true,
-      "null": ""
-    },
-    {
-      "field": "level",
-      "label": "Level",
-      "order": 2,
-      "minCoverage": 0,
-      "active": true,
-      "null": ""
-    },
-    {
-      "field": "question",
-      "label": "Question number",
-      "order": 205,
-      "minCoverage": 0,
       "active": true,
       "null": ""
     }
@@ -332,7 +300,6 @@
   ],
   "shop": [],
   "resources": [],
-  "links": [],
   "messages": [],
   "orders": [],
   "exams": [],
@@ -341,7 +308,6 @@
   "cheatsheet": [],
   "landmarks": [],
   "favourites": [],
-  "campaigns": [],
   "festive": [],
   "birthdays": [],
   "gallery": [],
@@ -386,7 +352,6 @@
   "studentFields": [],
   "clientFields": [],
   "profileReadonly": [],
-  "facts": [],
   "termsAccepted": false,
   "googleClientId": ""
 }

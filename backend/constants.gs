@@ -109,7 +109,19 @@ const LEDGER_ID = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
    they replace are in a folder called `old sheets`; moving a file in Drive does not change its id,
    so those ids still resolve and the old data is still there if any of this turns out wrong.
 ================================================================================================== */
-const SETTINGS_ID = "1Ums80E1B1lWJhOEe-TgGMBq88Rv8yIhTvVC-f1zKLoQ";
+/* ---------- `SETTINGS_ID` WAS HERE, AND THERE ARE TWO SPREADSHEETS NOW --------------------------
+   SEVEN TABS MOVED INTO `Ledger` AND NINE WERE DELETED. The seven are the ones this backend still
+   COMPUTES with rather than forwards — `config`, `pricing` and `venues` decide a price, and a total
+   posted by a browser is a total the client chose; `options`, `shop`, `holidays` and `landmarks`
+   are each reshaped by a function here before anybody sees them. The nine that went are the ones
+   `js/settings.js` reads straight out of `data/settings/*.json`.
+
+   THE ID IS NOT DELETED FOR SECRECY — it names a file that no longer exists. Leaving it would have
+   been worse than untidy: `ensureSchema` calls `SpreadsheetApp.openById(at.id)` with no `try`
+   around it, so one tab still routed at a binned file takes the whole of `?setup=1` down — and
+   `?setup=1` is the only thing that creates `post_comments`. Found by reading that function while
+   checking whether the spreadsheet was safe to delete, which is the only reason it is not a live
+   site with a broken setup route. It is wrapped now as well, because the rule is the fix. */
 /* `LIBRARY_ID` WAS HERE. The id itself is not secret — every Drive link in the library is
    already public and already served to anonymous visitors — but a constant nothing reads is a
    thing the next reader has to work out the status of, and this one would read as "there is a
@@ -119,7 +131,7 @@ const SETTINGS_ID = "1Ums80E1B1lWJhOEe-TgGMBq88Rv8yIhTvVC-f1zKLoQ";
 /* `installSheetWatch` walks this to put an edit trigger on every file, so a fourth database is one
    line here and nothing else. A BLANK ID IS NOT AN ERROR — it is that file's tabs coming back
    empty, the same as a tab that is not there, and `checkTabs()` says which. */
-const FILES = { ledger: LEDGER_ID, settings: SETTINGS_ID };
+const FILES = { ledger: LEDGER_ID };
 
 /* ---------- WHICH FILE EACH TAB IS IN -------------------------------------------------------------
    EVERY TAB IS LISTED, and that is the change. This was two maps — `HERE` for renamed tabs in the
@@ -158,29 +170,20 @@ const WHERE = {
   favourites:     { file: 'ledger' },
 
   /* ---- you write these, the app reads them ---- */
-  brand:          { file: 'settings' },
-  config:         { file: 'settings' },
-  facets:         { file: 'settings' },
-  kinds:          { file: 'settings' },
-  options:        { file: 'settings' },
-  pricing:        { file: 'settings' },
-  shop:           { file: 'settings', alsoTry: 'items&shop' },
-  splashes:       { file: 'settings' },
-  terms:          { file: 'settings' },
-  links:          { file: 'settings' },
-  laws:           { file: 'settings' },
-  widgets:        { file: 'settings' },
-  campaigns:      { file: 'settings' },
-  copy:           { file: 'settings' },
-  venues:         { file: 'settings' },
-  rooms:          { file: 'settings' },
-  trips:          { file: 'settings' },
-  holidays:       { file: 'settings' },
-  landmarks:      { file: 'settings' },
-  landmark_parts: { file: 'settings' },
-  map:            { file: 'settings' },
-  facts:          { file: 'settings' },
-  herd:           { file: 'settings' },
+  config:         { file: 'ledger' },
+  options:        { file: 'ledger' },
+  pricing:        { file: 'ledger' },
+  shop:           { file: 'ledger', alsoTry: 'items&shop' },
+  terms:          { file: 'ledger' },
+  widgets:        { file: 'ledger' },
+  venues:         { file: 'ledger' },
+  rooms:          { file: 'ledger' },
+  trips:          { file: 'ledger' },
+  holidays:       { file: 'ledger' },
+  landmarks:      { file: 'ledger' },
+  landmark_parts: { file: 'ledger' },
+  map:            { file: 'ledger' },
+  herd:           { file: 'ledger' },
 
   /* ---- subject content, edited in bulk ---- */
   /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than
@@ -206,14 +209,14 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-18-comments";
+const BACKEND_VERSION = "2026-09-19-one-fewer-spreadsheet";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
   people: 'people', venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
   /* `resources` WAS HERE, then `questions` was. Both are gone: the documents and the questions
      inside them are one table, and that table is `data/questions.json` in this repository now. */
-  links: 'links', shop: 'shop', pricing: 'pricing',
+  shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
   herd: 'herd',
@@ -229,26 +232,19 @@ const TAB = {
   /* The calendar of festivals, as rules rather than dates — see the schema. */
   holidays: 'holidays',
   /* When a particular message is worth putting out — see SCHEMA.campaigns. */
-  campaigns: 'campaigns',
   /* The words those campaigns say, one line per row — see SCHEMA.copy. */
-  copy: 'copy',
   /* What the search funnel asks, in what order, and what it calls things — see SCHEMA.facets. */
-  facets: 'facets',
   /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
-  kinds: 'kinds',
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
      their SCHEMA entries used to be. */
   /* Which loading splashes are in the pool — see SCHEMA.splashes. */
-  splashes: 'splashes',
   /* `cheatsheet` WAS HERE. Gone the same way — see the note where SCHEMA.cheatsheet used to be. */
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
-  facts: 'facts',
   posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
-  laws: 'laws', brand: 'brand',
   family: 'family'
 };
 
@@ -666,14 +662,6 @@ const SCHEMA = {
      it cannot find, so an entry left here would quietly rebuild an empty `resources` tab on the
      next `?setup=1` — a decoy with the right headers and no rows in it, which is the exact shape
      of the fault that hid the real rows in another file for months. */
-  links: [
-    "link_id", "name", "category", "url",
-    /* The tile's colour. Left blank it is derived from the name, which gives every link a
-       consistent look for free — but WhatsApp is green and nothing else will do, so a named
-       colour or a hex code overrides it. */
-    "colour",
-    "description", "photo"
-  ],
   /* ---------- ONE TAB FOR EVERYTHING THAT IS A THING -----------------------------------------------
      `shop` HELD THE WEARABLES AND `items` HELD THE STATIONERY, and `items` was never wired up at
      all — forty rows in a tab with no SCHEMA entry, no TAB entry and nothing reading it, which is
@@ -766,9 +754,6 @@ const SCHEMA = {
 
      Anything else you add appears too — the site passes the whole tab through, so a key it has
      never heard of is still available to whatever you write next. */
-  brand: [
-    "key", "value", "notes",
-  ],
 
   /* ---------- THE REELS, WHICH HAD NO TAB AT ALL --------------------------------------------------
      `screen('reel')` READS `DATA.facts` AND NOTHING EVER SENT IT. No `facts` in TAB, none in this
@@ -783,20 +768,6 @@ const SCHEMA = {
      `pic` IS A SEARCH TERM, NOT A URL. The photograph is found on Wikimedia Commons when the slide
      scrolls into view — see `reelsWatch_`. So the cell holds words like "Roman aqueduct", not a
      link, and a row with no `pic` simply keeps its gradient. */
-  facts: [
-    "fact_id", "subject", "heading", "body",
-    "pic",
-    /* `clip` IS WHAT MAKES A ROW A VIDEO, and it is one column rather than a second tab. A reel
-       with a clip plays it; a reel without one keeps the photograph `pic` finds. Two tabs would be
-       two schemas, two reads, two mappings and two empty states describing one object — the
-       `needs_print` / `print_required` lesson, which cost 356 rows of disagreement.
-
-       A DRIVE FILE ID, OR A WHOLE URL. `clipSrc_` in games.js decides by whether there is a slash
-       in it, so a clip hosted anywhere else is typed in as it stands. A row with a clip does not
-       need a heading — see `factsNow_`. */
-    "clip",
-    "sort_order", "active", "notes",
-  ],
 
   /* THE LAWS — how words are coloured, wherever they appear.
 
@@ -812,9 +783,6 @@ const SCHEMA = {
      look for it, and a person filling in this tab writes "green" rather than #3ddc84.
 
      `weight` decides which law wins when two match the same word. Higher goes first. */
-  laws: [
-    "law_id", "kind", "match", "colour", "weight", "notes", "active",
-  ],
 
   /* POSTS. What the front of the app is: a photograph, a line about it, and a date.
 
@@ -1020,9 +988,6 @@ const SCHEMA = {
      turning it off without touching any code.
 
      `kind` GROUPS THEM so the list is readable at thirty rows: proof, brand, game, tool. */
-  splashes: [
-    "splash_id", "name", "kind", "shows", "note", "active",
-  ],
 
   /* `cheatsheet` WAS HERE and is gone for the reason `questions` is gone, one file along:
      the 77 rows are `data/cheatsheet.json` in this repository and `libraryExtras_` in
@@ -1105,16 +1070,6 @@ const SCHEMA = {
 
      Leave a row's design columns empty and the built-in defaults are used, so a campaign added
      with nothing but a name still prints. */
-  campaigns: [
-    "campaign_id", "name",
-    /* WHEN IT RUNS. Roughly — "late August", "first week of January" — because that is how you
-       actually think about it, and a real date can be added to a row later without changing
-       anything that reads this. */
-    "when",
-    "note",
-    "style", "ink", "accent", "ground", "blocks",
-    "active",
-  ],
 
   /* ---------- THE WORDS, ONE LINE PER ROW ---------------------------------------------------------
      WHY THIS IS NOT MORE COLUMNS ON `campaigns`. A campaign has one style and one accent, so those
@@ -1133,9 +1088,6 @@ const SCHEMA = {
      `active` OFF TAKES IT OUT OF THE MENU without deleting it, which is what you want for a line
      that worked last year and is wrong for this term. A slot with no active row falls back to the
      campaign's built-in wording, so emptying this tab cannot produce a blank flyer. */
-  copy: [
-    "copy_id", "campaign_id", "slot", "variant", "text", "note", "active",
-  ],
 
   /* ---------- WHAT THE SEARCH ASKS, AND WHAT IT CALLS IT -------------------------------------------
      THE FUNNEL IS TWO DIFFERENT THINGS AND ONLY ONE OF THEM BELONGS IN CODE.
@@ -1157,9 +1109,6 @@ const SCHEMA = {
 
      A FIELD WITH NO ROW KEEPS ITS BUILT-IN SETTINGS, so this tab can be empty, or hold one row for
      the one thing you wanted to rename, and everything else carries on. */
-  facets: [
-    "field", "label", "sort_order", "min_coverage", "note", "active",
-  ],
 
   /* ---------- AND WHAT THE FIRST TWO QUESTIONS ANSWER ----------------------------------------------
      THE `facets` TAB MOVED THE QUESTIONS OUT OF CODE AND LEFT THE ANSWERS BEHIND. "What for" and
@@ -1183,9 +1132,6 @@ const SCHEMA = {
 
      A KIND WITH NO ROW KEEPS ITS BUILT-IN GROUP AND LABEL, so this tab can be empty and the funnel
      behaves exactly as it does today. */
-  kinds: [
-    "kind", "group", "label", "sort_order", "note", "active",
-  ],
 
   holidays: [
     "holiday_id", "name", "date", "year", "kind",
@@ -1632,6 +1578,17 @@ const POSTS_FOLDER = '1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw';
    Six is also the number that fits: `.react` is a 38px target, and on a 320px phone seven start
    looking like a grid rather than a row. */
 const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
+
+/* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
+   `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the
+   phone reads and Apps Script cannot. This is the string that function always fell back to, so
+   nothing changes for anybody — and it is one place rather than a fallback repeated at each caller,
+   which is the fault this repository records under `childrenOf` and under `MESSAGING`.
+
+   IT IS THE SERVER'S COPY AND THE FILE IS THE APP'S. Two spellings of one name is the shape CLAUDE.md
+   keeps writing about, so if it ever changes it changes in both — the file for every screen, this
+   line for an e-mail's signature. */
+const BRAND_NAME = '@family.';
 
 /* ---------- WHO MAY MESSAGE WHOM ---------------------------------------------------------------
    A TABLE, not a set of conditions. One place to read, one place to audit, and a change that has
@@ -2305,7 +2262,7 @@ const ACTION_ACCESS = {
   diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
   updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',
   updateShop: 'admin', deleteShopItem: 'admin',
-  updateLink: 'admin', addLink: 'admin', deleteLink: 'admin',
+
   saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. All three wrote cells on a
      document row of the `questions` tab, and the tab is in this repository now — a relabel is a

@@ -2154,7 +2154,13 @@ async function load() {
         /* THE OTHER THREE TABS, WHICH MAY STILL BE EMPTY. `libraryExtras_` leaves a key alone
            unless its file has rows in it, so while `data/boxers.json` and the rest are `[]` the
            payload's own copy stands and nothing here changes. See the header of library.js. */
-        libraryExtras_(d, await libraryExtraRows_());
+        const extra = await libraryExtraRows_();
+        libraryExtras_(d, extra);
+        /* AND THE SETTINGS TABS, ON THE SAME RULE AND FROM THE SAME FETCH. A file with no rows
+           leaves the payload's key alone, so this is identical while a tab has not been exported —
+           and it is what keeps the site standing if the spreadsheet is deleted before the Apps
+           Script sync has run, which is the ordering this project cannot control. */
+        settingsInto_(d, extra);
       } catch (e) {
         d.questions = d.questions || [];
         d.dropdowns = d.dropdowns || {};
