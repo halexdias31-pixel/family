@@ -203,6 +203,28 @@ const STATES = {
                  && document.querySelector('#sheet-body .prac-kit li'),
       wants: 'the guide open in the sheet, with its kit list and all seven boxes',
       leave: () => closeSheet() },
+    /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
+       `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
+       That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
+       `if (viewerIsAdmin)` and sends `[]` to everybody else, so a signed-out visitor has no rows,
+       no funnel answer and nothing to measure. Asking them to reach it would report a fault about
+       the check rather than about the app, which is what `only` is for.
+
+       THE FIXTURE'S THREE ROWS ARE INVENTED. That file is committed to a public repository and
+       holds nothing real — see the note on them. What they are for is the SHAPE: a very long
+       title against the flag, a series with no year, and a placeholder with no link, which are the
+       three ways this card can be drawn. */
+    { name: 'the films',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Films' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => document.querySelectorAll('#s-stuff .card.film').length >= 2,
+      wants: 'at least two film cards' },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------

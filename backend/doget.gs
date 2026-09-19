@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-19-a-payload-again";
+const DOGET_VERSION = "2026-09-19-b-films-admin-only";
 
 
 function doGet(e) {
@@ -300,6 +300,27 @@ function doGet(e) {
     const cfg = config(), opts = allOptions(), sur = surcharges();
     mark('config');
 
+    /* ---------- THE FILMS, READ ONLY IF THE PERSON LOOKING MAY SEE THEM ------------------------
+       NOT EVEN READ OTHERWISE. A read inside the guard rather than a filter after one: a tab that
+       is never opened cannot be forwarded by a later line that forgets to check, and it saves the
+       scan on every visit by everybody who is not an admin. `viewerIsAdmin` is settled a few lines
+       above — asked once, which is the note there. */
+    const filmsOut = [];
+    if (viewerIsAdmin) {
+      read(TAB.films).rows.forEach(function (r) {
+        if (!TRUE_(r.active)) return;
+        filmsOut.push({
+          id: S(r.film_id), title: S(r.title), year: S(r.year), kind: S(r.kind),
+          audience: S(r.audience), director: S(r.director), lead: S(r.lead),
+          seasons: S(r.seasons), url: S(r.drive_url), fileKind: S(r.file_kind),
+          sizeGb: S(r.size_gb), placeholder: TRUE_(r.placeholder), notes: S(r.notes)
+        });
+      });
+    }
+    /* `drive_id` IS DELIBERATELY NOT SENT. `drive_url` is built from it in the sheet and is the
+       only form anything opens, so shipping both would be one fact twice — the `handle`/`username`
+       shape this project has already paid for three times. */
+
     const people = read(TAB.people).rows;
     const venuesTab = read(TAB.venues).rows;
     const jobsTab = read(TAB.jobs).rows;
@@ -463,6 +484,19 @@ function doGet(e) {
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
       facts: [],
       questions: [], boxers: [], fights: [], herd: [],
+      /* ---------- EMPTY FOR EVERYBODY, AND FILLED FOR ONE PERSON ---------------------------------
+         THE GATE IS HERE RATHER THAN ON THE PHONE, and that distinction is the whole feature. This
+         payload goes to `ANYONE_ANONYMOUS` — a tab forwarded unconditionally is in the JSON of
+         every visitor who opens the site, whether or not any screen draws it, and "hidden" on the
+         phone is a filter anybody can read past with the network tab open.
+
+         SO A NON-ADMIN IS NOT FILTERED, THEY ARE NOT SENT. `filmsOut` is built inside
+         `if (viewerIsAdmin)` above and is an empty array for everybody else, so there is ONE place
+         that decides and it is the place that opens the tab. That makes it impossible rather than
+         caught, which is the move this project already records for the reel booking: replace a
+         property that was only true by accident of a renderer with one a reader can check in the
+         file that sends it. */
+      films: filmsOut,
       cheatsheet: [],
       /* `topicTree` IS THE FOURTH OF THESE and it is declared for the same reason as the three
          above: `libraryExtras_` fills it from `data/topics.json` on the phone, and a key the site

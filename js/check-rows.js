@@ -107,7 +107,18 @@ const SCHEMA = {};
       if (blk[j] === '[') depth++;
       else if (blk[j] === ']') { depth--; if (!depth) break; }
     }
-    SCHEMA[m[1]] = new Set([...blk.slice(i, j + 1).matchAll(/"([^"]+)"/g)].map(x => x[1]));
+    /* ---------- EITHER QUOTE, BECAUSE A TAB IS NOT LESS REAL FOR BEING SINGLE-QUOTED ------------
+       THIS MATCHED `"..."` ONLY, and every SCHEMA entry happened to be written that way — so the
+       rule held by luck rather than by design. The first tab added with single quotes came back
+       with ZERO columns, and the failure is loud in the wrong direction: fourteen findings saying
+       `the films tab has no title column` about a tab whose SCHEMA entry names it. Noise, and
+       noise in a report that exists precisely because 95 findings with 2 real ones in them is
+       worse than no check at all.
+
+       A CHECK THAT DEPENDS ON WHICH QUOTE SOMEBODY TYPED is a check with a trapdoor under it, and
+       nothing anywhere said so. Found by adding a tab and reading what came out. */
+    SCHEMA[m[1]] = new Set([...blk.slice(i, j + 1).matchAll(/"([^"]+)"|'([^']+)'/g)]
+      .map(x => x[1] || x[2]));
     re.lastIndex = j;
   }
 }

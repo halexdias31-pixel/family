@@ -168,6 +168,19 @@ const WHERE = {
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
+  /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY ------------
+     THE OWNER'S OWN SENTENCE WAS "i dont want people to be able to see them", and CLAUDE.md's
+     first question about where a thing lives answers it before any of the others get a turn: is
+     it secret -> a sheet, never here. That repository is PUBLIC and git history is permanent, so
+     a `data/films.json` would publish both the list and the Drive ids in it, for ever, with no
+     way to take it back. The Drive folder is already shared `anyone: reader`, which makes the ids
+     the whole of the protection — publishing them turns "anyone with the link" into "anyone".
+
+     AND A TAB IN A PRIVATE SHEET IS STILL NOT HIDDEN BY ITSELF. `doGet` serves
+     `ANYONE_ANONYMOUS`, so a tab the backend forwards lands in every visitor's JSON whether or
+     not a screen draws it. See where this is read in `doget.gs`: it is gated on the viewer, not
+     on the renderer. */
+  films:          { file: 'ledger' },
 
   /* ---- you write these, the app reads them ---- */
   config:         { file: 'ledger' },
@@ -209,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-19-a-payload-again";
+const BACKEND_VERSION = "2026-09-19-b-films-admin-only";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -243,6 +256,7 @@ const TAB = {
   /* `cheatsheet` WAS HERE. Gone the same way — see the note where SCHEMA.cheatsheet used to be. */
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
+  films: 'films',
   posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
   family: 'family'
@@ -798,6 +812,24 @@ const SCHEMA = {
 
      `image` is a Drive share link or any URL — the same treatment the showcase already had, so
      dropping a file in a folder and pasting the link is the whole workflow. */
+  /* ---------- ONE ROW PER FILM OR SERIES, NOT PER EPISODE --------------------------------------
+     AN EPISODE IS NOT A THING ANYBODY SEARCHES FOR. You choose the show and then the episode, and
+     Drive's own folder view already does the second half well — so a five-season show is ONE
+     row with a folder link on it rather than sixty-two rows of `5.7.mkv`. Same judgement the funnel already
+     makes about tools: the thing you choose is the thing that gets a row.
+
+     `placeholder` IS THE LIBRARY'S OWN COLUMN, one table along. It marks a row asked for by name
+     whose file is not in the Drive yet — a card that says so beats a link that opens nothing,
+     which is the argument `check-library.js` already prints an outstanding list for.
+
+     `audience` IS `adults` OR `kids` AND IT IS NOT A RATING. It is which of the owner's two
+     folders a thing came out of. Nothing in this app decides who may watch what from it; the
+     whole tab is admin-only before it leaves the server. */
+  films: [
+    "film_id", "title", "year", "kind", "audience", "director", "lead", "seasons",
+    "drive_id", "drive_url", "file_kind", "size_gb", "placeholder", "notes", "active"
+  ],
+
   posts: [
     /* `file_name` is what the caption was taken FROM. Without it a scan cannot tell a caption
        somebody typed from one it copied off a filename, so it must either never update a caption

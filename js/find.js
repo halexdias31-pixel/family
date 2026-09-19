@@ -286,6 +286,18 @@ const KINDS = {
      that you have forty minutes and no lab. All four of those are questions the funnel already
      asks, so this needed a mapper and a card and nothing else. */
   practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
+  /* ---------- THE FILMS, AND THEY ARE ABSENT RATHER THAN HIDDEN --------------------------------
+     THERE IS NO `admin` TEST ANYWHERE ON THIS KIND, DELIBERATELY. `doGet` builds `payload.films`
+     inside `if (viewerIsAdmin)` and sends `[]` to everybody else — see the note there — so a
+     parent's phone has no rows to map and this kind produces no items, no funnel answer and no
+     card, by construction. A `.filter(isAdmin())` here would be the same behaviour resting on the
+     renderer instead of on the server, and a filter is something a person can read past with the
+     network tab open.
+
+     `Films` RATHER THAN `Resources`. That word is taken — it is what `boxer` and `fight` wear, 260
+     rows of boxing — and putting a third meaning on it is the two-cupboards fault this file argues
+     itself out of two entries above. */
+  film: { group: 'Learning', label: 'Films', card: x => filmCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
@@ -2271,6 +2283,56 @@ on('prac-guide', el => {
   openSheet(x.name, practicalGuide_(x), null, null);
 });
 
+/* ==================================================================================================
+   `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
+
+   IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive is the ladder `clipSrcs_` spends
+   forty lines on — three addresses, an iframe fallback and a note saying none of it can be tested
+   from here — and that was worth building for a two-clip column this app owns. A three-gigabyte
+   `.mkv` is not: no browser plays Matroska, the file is somebody's whole evening of bandwidth, and
+   Drive's own player already does the job. So the tile is a door rather than a screen.
+
+   A SERIES LINKS TO ITS FOLDER, which is why `file_kind` is a column: Drive's folder view is the
+   season picker, and rebuilding one here would be sixty-two rows in a funnel nobody searches that
+   way.
+================================================================================================== */
+function filmCard_(x) {
+  const f = x.row;
+  const strip = [f.year, f.audience === 'kids' ? 'kids' : '',
+                 f.kind === 'series' ? (f.seasons ? f.seasons + ' seasons' : 'series') : '',
+                 f.sizeGb ? f.sizeGb + ' GB' : ''].filter(Boolean).join(' \u00b7 ');
+  return `<div class="card film${f.placeholder ? ' is-off' : ''}">
+    <div class="prac-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="prac-flag${f.placeholder ? ' is-no' : ''}">${
+        f.placeholder ? 'Not uploaded' : f.kind === 'documentary' ? 'Documentary'
+        : f.kind === 'series' ? 'Series' : 'Film'}</span>
+    </div>
+    ${(f.director || f.lead) ? `<p class="sub">${
+      esc([f.director ? 'dir. ' + f.director : '', f.lead].filter(Boolean).join(' \u00b7 '))}</p>` : ''}
+    ${strip ? `<p class="prac-strip">${esc(strip)}</p>` : ''}
+    ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
+          be. The library's `placeholder` column, one table along: a card that states the gap beats
+          a link that opens nothing, and it is the reason `There Will Be Blood` is a row at all. */''}
+    ${f.placeholder
+      ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>`
+      : `<div class="tile-row">${tile_({
+          icon: 'play', label: 'Watch',
+          note: f.fileKind === 'folder' ? 'opens the folder' : 'opens in Drive',
+          /* NO `act`. `tile_` answers an absolute http(s) address with an `<a target="_blank">`
+             and everything else with a button — and that test is where it is so `check-surfaces`
+             can see the address was checked rather than assumed. A Drive link is the one exception
+             the house style leaves open: somebody's Drive is not this app and should not pretend
+             to be. */
+          href: f.url })}</div>`}
+    ${/* A `<p>` INSIDE A `<p>` IS NOT NESTING, it is the browser closing the first one — so the
+          wrapper is a div. `.prac-note p` is the rule that wants a child, and it is the card's own
+          class rather than a new one, which is the sentence one commit old about the guide. */''}
+    ${(f.notes && !f.placeholder)
+      ? `<div class="prac-note"><p>${esc(f.notes)}</p></div>` : ''}
+  </div>`;
+}
+
 function boxerCard_(x) {
   const b = x.row;
   const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
@@ -3932,6 +3994,32 @@ function stuffItemsRaw_() {
          else on the card. See `practicalText_`. */
       text: practicalText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
+    })),
+
+    /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
+       EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
+       `|| []` is the ordinary fallback and here it is also the whole gate.
+
+       `audience` IS WHICH FOLDER IT CAME OUT OF and it is mapped onto its own field rather than
+       into `subject`: a Subject question offering `adults` beside `Maths` is the `boxKind` mistake
+       this file already records, where a weight division was written into `subject` and the funnel
+       then offered Heavyweight as a subject. */
+    ...(DATA.films || []).filter(f => f.title).map(f => ({
+      kind: 'film', name: f.title, key: 'fm:' + (f.id || f.title),
+      sub: [f.year, f.kind === 'series' ? 'Series' : f.kind === 'documentary' ? 'Documentary' : '',
+            f.director || f.lead].filter(Boolean).join(' \u00b7 '),
+      image: '',
+      year: f.year,
+      /* THE TWO FACETS IT BRINGS, both read straight off the row by `facetFromSheet_` if the sheet
+         ever invents a question over them. Nothing in code declares a facet for either: the funnel
+         narrows by `What kind` to Films and then by the search box, which is enough for 22 rows
+         and is one fewer thing to keep in step if the tab grows. */
+      audience: f.audience, filmKind: f.kind,
+      /* EVERY WORD SOMEBODY MIGHT TYPE. The lesson one commit old: a thing whose own words are not
+         in the haystack is findable by its title and by nothing else, so `daniel day-lewis`,
+         `gosling` and `documentary` have to be in here or they find nothing. */
+      text: [f.director, f.lead, f.kind, f.audience, f.notes, f.seasons].filter(Boolean).join(' '),
+      row: f,
     })),
 
     ...questionItems(),
