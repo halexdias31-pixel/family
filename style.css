@@ -1767,9 +1767,16 @@ button.text-drop { color: var(--bad); }
      finger is on the page, which says `touch-action: none`, and the grid got it. Same swipe, two
      answers, decided by where you happened to put your thumb.
 
-     `none` here, and `pan-y` given back only to a pane that has genuinely overflowed — see
-     `.pane.scrolls`, which script.js adds after measuring. Most panes never get it, so most of the
-     screen behaves like the edges did, which is the half that was always working. */
+     `none` here, FULL STOP, and the second half of this sentence used to name an escape hatch that
+     no longer exists: `.pane.scrolls`, a class added after measuring, which gave an overflowing
+     pane its vertical gesture back. It was removed deliberately — the note by the `touch-action`
+     list near the foot of this file records it — and this comment was not removed with it, so it
+     has been describing a mechanism for longer than the mechanism existed. The `.price.faint`
+     shape in prose: it reads as a decision and there is nothing behind it.
+
+     SO THERE IS NO GIVING BACK, and a pane taller than its box is simply cut off. That is the right
+     trade and it is also a real cost, which is why `check/ui.js` now measures it — see OUT OF REACH
+     there, and the correction at the foot of this file. */
   touch-action: none;
   /* ---------- THE GLASS'S OWN MARGIN, TRIMMED ONCE --------------------------------------------
      EVERY SCREEN IN THE APP SITS INSIDE THIS. It was `1rem 1rem 1.25rem`, which on a 390px phone is
@@ -3480,8 +3487,18 @@ textarea, select, [data-noswipe],
 .map, .map-svg { touch-action: none; }
 
 /* `.pane.scrolls` was here — the class that gave a pane back its vertical gesture once it had
-   overflowed. A pane cannot overflow now, so there is nothing to give back. The measurement that
-   set it is gone from shell.js with it. */
+   overflowed. The measurement that set it went from shell.js with it.
+
+   THE SENTENCE THAT STOOD HERE WAS "A PANE CANNOT OVERFLOW NOW", AND IT WAS NOT TRUE. Measured at
+   390×844 with six conversations on the Messages column: 1,298px of content inside an 805px pane,
+   which is 493px of somebody's messages on the page with no scroll and no page to turn to. The
+   claim was an assertion about every screen in the app made from one screen, and it is exactly why
+   the fault survived — a pane that cannot overflow needs nothing measuring it.
+
+   A PANE CAN OVERFLOW ANY TIME SOMETHING STACKS MORE INTO IT THAN FITS, and the answer is the one
+   `.pane`'s own note gives: page it. `check/ui.js` asks the question now, on every pane of every
+   screen at four widths — OUT OF REACH — so the next column to do it says so instead of being
+   found by somebody with a full inbox. */
 
 /* ---------- NO SCROLLBAR ANYWHERE, ON ANYTHING -----------------------------------------------
    Belt and braces: the panes cannot scroll, but the few boxes that still do — a notepad, a docket,
@@ -3619,6 +3636,25 @@ textarea, select, [data-noswipe],
   margin: -1px; padding: 0; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
 }
+
+/* ---------- THE LINE THAT ONLY A SLOW LOAD EVER SEES ---------------------------------------------
+   BELOW THE ART AND OUT OF ITS WAY. The splash centres one drawing; this sits under it rather than
+   beside it, so nothing about either of the two splashes has to know the other exists.
+
+   QUIET ON PURPOSE. It is not an alarm — the request may still land — so it is the faint ink this
+   app uses for an aside, at the size of one. The second line is quieter still because it is the
+   explanation rather than the fact.
+
+   NO ANIMATION. Everything else on this screen is moving, and a message that also moves reads as
+   part of the decoration rather than as something that has just been said. */
+#splash-wait {
+  position: absolute; left: 0; right: 0; bottom: max(12vh, 4.5rem);
+  margin: 0; padding: 0 1.25rem;
+  text-align: center; line-height: 1.5;
+  font-size: .82rem; color: var(--dim);
+}
+#splash-wait span { display: block; font-size: .74rem; color: var(--faint); }
+#splash-wait[hidden] { display: none; }
 
 /* SOMEBODY WHO HAS ASKED FOR LESS MOVEMENT gets the tag whole and still. The splash still does its
    job — it says the app is coming and covers the black — and nothing sweeps or pulses. */
@@ -5865,6 +5901,34 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    STARTS and not where it ends, and the end is the edge somebody reads. */
 .bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
 
+/* ---------- A CARD WITH NO FIGURES ON IT HAS NO FIGURE COLUMNS --------------------------------------
+   REPORTED FROM A SCREENSHOT OF THE LIVE FORM: "the grid shouldn't extend beyond the 1st column like
+   the other fields." Measured at 390px, it is the other way round and that is what made it look
+   wrong: the ROW spans 39→351 and so does the week grid — they already agree. What stops at 193 is
+   the dash, because the multiplier, the rate and the total are three reserved tracks holding
+   nothing on a booking nobody has priced yet. 145 pixels of every row, empty, on eighteen rows.
+
+   SO THE FIGURE COLUMNS GO WHEN THERE ARE NO FIGURES ON THE CARD, and the value takes the width
+   they were holding. One right edge: the dashes end where the week ends, which is the alignment
+   somebody was asking for.
+
+   PER CARD, NOT PER ROW, and that is the whole care. `is-bare` collapses a single row and the note
+   over it records what that did to a FORM — Subject ran the width of the card and Venue was cut to
+   "Sutton Li…", because which width a field got depended on whether its answer happened to cost
+   anything. Asked of the card, every row answers the same way, so the fields stay identical and
+   the columns still line up down the card.
+
+   AND IT UNDOES ITSELF THE MOMENT ANYTHING IS PRICED. `:has` reads the card's own totals rather
+   than a flag somebody has to set, so there is no second place for "is this priced" to be wrong —
+   which is the fault this stylesheet pays for every time a width is stated twice.
+
+   THE ONE THING IT MUST NOT REACH IS THE BASKET. `is-wide` is two columns already — a title and a
+   price — and hiding its total would take the price off a basket of free things. */
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-m,
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-r,
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-t { display: none; }
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-v { grid-column: 2 / -1; }
+
 /* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
    THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three
    figures beside it; a basket row is one long title and one number. In the 4.5em value column a
@@ -7456,12 +7520,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .prac-strip { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
               letter-spacing: .03em; }
 .prac-out { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
-.prac-kit, .prac-steps { margin: .65rem 0 0; }
-.prac-kit h4, .prac-steps h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
+.prac-kit, .prac-steps, .gd-sec { margin: .65rem 0 0; }
+.prac-kit h4, .prac-steps h4, .gd-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-.prac-kit ul, .prac-steps ol { margin: 0; padding-left: 1.1rem; }
-.prac-kit li, .prac-steps li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
-.prac-kit li { margin: 0; }
+.prac-kit ul, .prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li, .gd-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
 /* A REAL WARNING, GIVEN THE ROOM A WARNING NEEDS. The house rule puts one paragraph under a row
    rather than three words on a tile, and these sentences are the reason it exists: "Adult operates
@@ -7552,6 +7616,67 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    carries the gold. */
 .prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
 .prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
+
+/* ==================================================================================================
+   THE GUIDE.
+
+   FOUR RULES, BECAUSE EVERYTHING ELSE IN IT ALREADY HAD ONE. The kit list, the method, the safety
+   line, the home line, the two-column variables table and the notes are the CARD's blocks, moved —
+   so the guide draws them with the card's own classes and this block adds nothing for any of them.
+   The answer box is `ansBox_`'s box, `.qp-ans` and `.qp-ans-in`, for the same reason. A second set
+   of rules describing one object is the `.reel .over` fault, where a fact, a heading, a paragraph
+   and a credit over a picture were written twice in this stylesheet and drifted.
+
+   WHY IT IS IN THE SHEET AND NOT ON THE CARD, measured before a word of it was written: `.pane` is
+   `overflow: hidden` and caps at 805px on an 844px phone, and **51 of the 56 practical cards were
+   already taller than that**, median 921px. More than half the set had its kit, its method and its
+   safety line cut off with no scroll and no page to turn to. `#sheet-body` scrolls, which is this
+   app's own answer for anything longer than a card.
+
+   NO PAPER TOKENS. A guide is not a document you hand anybody — it is read off a phone in a room,
+   exactly as the card is, so it belongs to the screen. Same argument as `.prac-*` above it.
+================================================================================================== */
+
+/* THE SHEET SUPPLIES THE FIRST GAP, so the first line of the guide does not sit a section's margin
+   below the title it is under. Every block inside states its own top margin already. */
+.gd > :first-child { margin-top: 0; }
+
+/* ---------- THE QUESTION, AND THE LINE THAT SAYS WHY IT IS BEING ASKED ---------------------------
+   THE HINT IS THE HALF THAT TEACHES. "Independent variable" is a phrase a student has heard and
+   cannot use; "one only, everything else has to stay still or you will not know which of them did
+   it" is the rule. It is faint because it is read once and the question is read every time.
+
+   NOT UPPERCASE AND NOT LETTER-SPACED, which is what `.qp-ans-k` beside it is — see `guideBox_`. */
+.gd-ask { display: block; font-size: .8rem; line-height: 1.45; font-weight: 600; color: var(--ink); }
+.gd-hint { display: block; margin: .15rem 0 .35rem; font-size: .72rem; line-height: 1.45;
+           color: var(--faint); }
+
+/* ---------- AN INSTRUCTION, WHICH IS NOT A FACT ---------------------------------------------------
+   THE ONLY PROSE IN THE GUIDE THAT IS NOT A COLUMN. "Rule the table up before you start" and "no
+   hazards have been written out for this one yet" are the guide talking; the maths line, the
+   notes, the safety line and the home line all came out of the row and keep the card's classes.
+   So it recedes — `--dim` in here means a fact from the database and `--faint` means it is not.
+
+   ITS OWN CLASS RATHER THAN `.gd-sec p`, AND THAT IS NOT TIDINESS. A descendant rule is one class
+   plus a type, (0,1,1), against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both of which are
+   `<p>` inside a `.gd-sec` — so it would have won every declaration they make and flattened the
+   gold-ruled warning into ordinary body text. That is `.price.faint` and `.bk-row.is-blank` losing
+   to `.bk-row.is-bare` three thousand lines down: a rule that reads as a decision and behaves as
+   something else, for the sixth time in this stylesheet.
+
+   FOUND ON A SCREENSHOT, AND NOTHING COULD HAVE CAUGHT IT. Before this the guide's maths line and
+   its tutor notes were bare `<p>`s and drew at the browser's default 16px — a third larger than
+   every other paragraph on the card. Valid markup, no overflow, nothing to measure. Ninth time
+   this file records that a screenshot is the last word on something drawn. */
+.gd-none { margin: .35rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--faint); }
+
+/* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP ---------------------------------------
+   `textarea` IS `min-height: 5.8rem` GLOBALLY, which is a page-long box seven times over. These are
+   two or three lines each and the sheet is already long. In `px` at the floor and `rem` above it,
+   which is the shape the global rule uses and the reason it survives a fluid root — 4.2rem is 62px
+   on a 390px phone and 44px is the fingertip underneath it. Sixth conviction of that rule. */
+.gd-box { margin: .35rem 0 0; }
+.gd-box .qp-ans-in { min-height: max(44px, 4.2rem); }
 
 .boxer-nick { font-weight: 400; color: var(--dim); }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }

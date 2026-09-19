@@ -176,7 +176,7 @@ function commentsHtml_(p) {
      separately on the feed and leave the photograph behind.
 
      OLDEST FIRST, which `doGet` has already done. Doing it again here is a second copy of the
-     ordering rule to get wrong later — the sentence `dmCards_` already carries about
+     ordering rule to get wrong later — the sentence `dmPages_` already carries about
      `messageThreads_`. */
   return `<div class="post-said">
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
@@ -1482,10 +1482,23 @@ on('post-delete', el => {
    that second card had already been deleted from the top of the feed for being a duplicate of this
    column. Two of it on one column was one more than two of it across two. The composer it offered
    is a button on the camera now; see `cameraCard`. */
-screen('make', () => pages('make', USER
-  ? [cameraCard()]
-  : [`<div class="card"><h3>New post</h3>
-      <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`]));
+/* ---------- AND IT IS COUNTED, ALTHOUGH THERE IS ONE OF IT -----------------------------------------
+   `check-doors.js` NAMED THIS ON THE FIRST RUN OF THE RULE THAT ASKS: `pages('make', …)` is built
+   and `PAGER` had no `make`. Nothing is wrong on screen, because the list is one card either way —
+   and that is the whole reason it is worth fixing rather than exempting. It is correct by accident
+   of what is in it, and the day this column holds a second card that card is silently unreachable:
+   no `paged` class, no vertical axis, `goPage('make', 1)` returning early. Which is exactly how
+   `booking`, `reel` and `dm` each lost theirs.
+
+   COUNTED FROM THE LIST THE SCREEN DRAWS, one call, which is the rule every entry in that table
+   states. `makeCards_` exists so there is one list rather than two. */
+function makeCards_() {
+  return USER
+    ? [cameraCard()]
+    : [`<div class="card"><h3>New post</h3>
+      <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`];
+}
+screen('make', () => pages('make', makeCards_()));
 
 /* ---------- READING THEM -------------------------------------------------------------------------
    `postsBlocks` UNCHANGED, and that is the point: the feed under `What for · Posts` and the feed on
@@ -1947,7 +1960,25 @@ on('reel-sound', (el) => {
 
    ONE ROW PER CONVERSATION, the same row a resource and a person use. One shape doing three jobs is
    most of why this app stays quiet. */
-screen('dm', () => stack('dm', dmCards_()));
+/* ---------- ONE CONVERSATION PER PAGE, WHICH IS WHAT EVERY OTHER COLUMN ALREADY IS ---------------
+   IT WAS `stack('dm', …)` — one page holding every conversation — and that is exactly the shape
+   the note over `PAGER.tools` records for the two columns it already cost: *"Both screens used
+   `stack` — one page holding everything — and about sixty per cent of each was unreachable, because
+   `.pane` is `overflow-y: hidden` and one page means nothing to page to either."*
+
+   MEASURED WITH SIX CONVERSATIONS AT 390×844: the pane's contents were 1,298px inside an 805px box,
+   so **493 pixels of somebody's messages were on the page and could not be reached** — no scroll,
+   because `.pane` is `overflow: hidden` and `touch-action: none`, and no page to turn to, because
+   `PAGER` had never heard of this screen. Two conversations short on a phone, and silent.
+
+   `.pane`'s OWN COMMENT NAMES THE ANSWER: *"Anything genuinely long should be PAGED, which is what
+   the pager is for, rather than scrolled inside one card."* A conversation is a card with its own
+   scroller and its own composer, which is precisely what a page holds everywhere else in this app.
+
+   THE ASK MOVED OUT OF THE BUILDER, and that is what makes the pager safe. `PAGER.dm` has to count
+   the same list the screen draws — the rule every entry in that table states — and a builder that
+   starts a network request cannot be called twice. So the draw asks and `dmPages_` only reports. */
+screen('dm', () => { dmAsk_(); return pages('dm', dmPages_().map(p => p.html)); });
 
 /* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED ----------------------------------------
    IT SAID "No messages." TO EVERYBODY, FOR EVER, AND IT WAS NOT A BUG IN THE BACKEND. It took
@@ -1978,34 +2009,56 @@ screen('dm', () => stack('dm', dmCards_()));
    paint, re-ask, fail, paint, re-ask — a loop against the backend for as long as the tab was open.
    This records that the ASKING happened, which is the fact the redraw actually depends on. */
 let DM_ASKED = false;
+/* AND WHETHER IT CAME BACK, which `MESSAGES` cannot say. `loadMessages` leaves it alone on a
+   failure — deliberately, so a blip does not read as an empty inbox — so "still null" means both
+   *waiting* and *asked and refused*, and showing the skeleton for the second is a column that
+   never finishes loading. This is the fact the skeleton actually depends on. */
+let DM_DONE  = false;
 
-function dmCards_() {
-  if (!USER) return [`<div class="card"><h3>Messages</h3>
-    <p class="sub">Sign in to see your messages.</p></div>`];
-  if (!LOADED) return [skeleton()];
+/* THE ONE SIDE EFFECT, CALLED FROM THE DRAW AND NOWHERE ELSE. `loadMessages` swallows its own
+   failures and always resolves, so there is no rejection path to handle — and the repaint must
+   happen either way, or a failed first fetch leaves the skeleton on screen for ever with nothing
+   saying why. */
+function dmAsk_() {
+  if (DM_ASKED || !USER || !LOADED) return;
+  DM_ASKED = true;
+  loadMessages().then(() => { DM_DONE = true; paint('dm'); });
+}
 
-  if (!DM_ASKED) {
-    DM_ASKED = true;
-    /* `loadMessages` swallows its own failures and always resolves, so there is no rejection path to
-       handle — and the repaint must happen either way, or a failed first fetch leaves the skeleton
-       on screen for ever with nothing saying why. */
-    loadMessages().then(() => paint('dm'));
-    return [skeleton()];
-  }
+/* ---------- ONE LIST, TWO READINGS — THE MARKUP AND THE NAME IN THE HEADER ----------------------
+   IT RETURNED HTML STRINGS, and a pager needs a NAME per page. Deriving those from a second walk of
+   `messageThreads_` would be the fault the `PAGER` table states in every one of its entries: *"a
+   pager that counts for itself is a pager that can disagree with the screen it is a pager for"* —
+   which this column has now been on the wrong side of once already.
+
+   SO A PAGE IS `{ name, html }` and both readers map the same array. Page n and name n cannot
+   drift, because there is only one n.
+
+   AND IT IS PURE. Every branch reads state and returns; the asking is `dmAsk_` above. That is what
+   lets `PAGER.dm` call it on the app's first frame without starting a request from a header. */
+function dmPages_() {
+  if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
+    <p class="sub">Sign in to see your messages.</p></div>` }];
+  if (!LOADED || !DM_DONE) return [{ name: '', html: skeleton() }];
 
   const threads = messageThreads_();
   /* `quiet`, NOT GOLD. `.btn` is the one action on a card and gold is what this app means by that —
      fetching a list again is not it, and a full-width gold slab over a column of conversations was
      the loudest thing on the screen. Same correction as `.reel-sound`, which was a gold bar across
      a moving picture for the same reason. */
-  const head = `<div class="card"><h3>Messages</h3>
-    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>`;
+  const head = { name: threads.length ? 'Messages' : '', html: `<div class="card"><h3>Messages</h3>
+    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>` };
   /* ---------- AND AN EMPTY INBOX KEEPS THE WAY BACK ----------------------------------------------
      IT RETURNED THE EMPTY CARD ALONE, so the one state that most needs a retry was the one state
      with no button on it: `loadMessages` deliberately leaves `MESSAGES` alone on a failure, which
      means a first fetch that never arrived shows exactly this card — "Nothing yet." over an inbox
-     nobody managed to read. This repository's oldest fault with no door out of it. */
-  if (!threads.length) return [head, `<div class="card">${emptyMessages_}</div>`];
+     nobody managed to read. This repository's oldest fault with no door out of it.
+
+     ONE PAGE RATHER THAN TWO, now that a card is a page. "Nothing yet." and the Refresh that is the
+     answer to it were two swipes apart, which is the empty state hiding its own way out. */
+  if (!threads.length) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
+    ${emptyMessages_}
+    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>` }];
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2016,7 +2069,10 @@ function dmCards_() {
 
      SAFE TO CALL FROM A DRAW, which is normally the wrong place for a round trip. `markRead_` sets
      `read` on the message the moment it asks, so a second paint before the reply finds nothing left
-     to send and a failed one puts it back. */
+     to send and a failed one puts it back.
+
+     AND IT IS THE ONE THING IN HERE THAT REACHES OUT, which is why the pager may call this: the
+     marking is idempotent, where the fetch `dmAsk_` holds is not. */
   threads.forEach(t2 => markRead_(t2.msgs));
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ ---------------------------------------
      THE COLUMN SHOWED CONVERSATIONS YOU COULD NOT REPLY TO. The only composer in the app was in a
@@ -2034,11 +2090,17 @@ function dmCards_() {
      this is the same element doing the same job on a second surface rather than a new one. It is
      scrolled to the newest by `dmFoot_`, booked from `startScreen_` with everything else a screen
      has running. */
-  return [head].concat(threads.map(t => `<div class="card${t.unread ? ' unread' : ''}">
+  /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are
+     reading rather than "3 of 7", which is the same judgement `PAGER.tools` makes about naming the
+     widget and `PAGER.booking` about naming the session. */
+  return [head].concat(threads.map(t => ({
+    name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
+    html: `<div class="card${t.unread ? ' unread' : ''}">
       <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
-    </div>`));
+    </div>`,
+  })));
 }
 
 /* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST -----------------------------

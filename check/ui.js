@@ -179,6 +179,52 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
+    /* ---------- AND THE DOCUMENT BEHIND THE TILE -----------------------------------------------
+       THE LONGEST SURFACE IN THE APP, AND IT IS NOT ON A SCREEN. A practical's guide opens in the
+       sheet, which is where it had to go: 51 of the 56 practical cards were already taller than
+       the pane before a word of it was written, so a guide on the card would have been a guide
+       below the fold. `#sheet` is a sibling of the screens rather than a child of one, so nothing
+       here could see it until `inspect` was taught to — see the note there.
+
+       SEVEN TEXTAREAS, A RISK LIST AND A PAGE OF PROSE, none of it measured for a tap target, a
+       contrast ratio or a sideways scroll until this. `openSheet` is what the tile's handler
+       calls, so this is the app's own door and not a reach past it.
+
+       LAST IN THE LIST, AND IT PUTS THE SHEET BACK. States run in order down one page and `go()`
+       does not close a sheet, so an open guide would otherwise be measured again as part of Tools
+       and Games. `leave` is what says so. */
+    { name: 'a practical guide',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded);
+        if (!x) throw new Error('no practical in the list to open a guide on');
+        openSheet(x.name, practicalGuide_(x), null, null);
+      },
+      expect: () => document.querySelectorAll('#sheet-body .gd-box').length >= 7
+                 && document.querySelector('#sheet-body .prac-kit li'),
+      wants: 'the guide open in the sheet, with its kit list and all seven boxes',
+      leave: () => closeSheet() },
+    /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
+       `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
+       That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
+       `if (viewerIsAdmin)` and sends `[]` to everybody else, so a signed-out visitor has no rows,
+       no funnel answer and nothing to measure. Asking them to reach it would report a fault about
+       the check rather than about the app, which is what `only` is for.
+
+       THE FIXTURE'S THREE ROWS ARE INVENTED. That file is committed to a public repository and
+       holds nothing real — see the note on them. What they are for is the SHAPE: a very long
+       title against the flag, a series with no year, and a placeholder with no link, which are the
+       three ways this card can be drawn. */
+    { name: 'the films',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Films' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => document.querySelectorAll('#s-stuff .card.film').length >= 2,
+      wants: 'at least two film cards' },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------
@@ -363,6 +409,38 @@ const STATES = {
       expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
                  && document.querySelector('#s-dm .msg-text'),
       wants: 'five bubbles and a box to reply in' },
+    /* ---------- AND AN INBOX, WHICH IS THE STATE THE FAULT WAS IN ---------------------------------
+       ONE CONVERSATION IS NOT AN INBOX. The state above seeds a single thread — deliberately, for
+       what it measures: which side a bubble sits on and how a run of three collapses. It fits on one
+       pane, so for as long as it was the only seeded state this column could not have shown the
+       fault it actually had: `screen('dm')` stacked EVERY conversation into one `.pane`, which is
+       `overflow: hidden`, and at 390×844 with six of them 493px of somebody's messages were on the
+       page with no scroll and no page to turn to.
+
+       I WROTE THE RULE FIRST AND IT REPORTED NOTHING, which is the only reason this state exists:
+       putting the `stack()` back did not fire it either, because two cards fit. A rule that cannot
+       fail is not a rule — this file has deleted one for exactly that — and what was missing was
+       never the rule, it was the state. Same sentence as the filter chips six answers deep.
+
+       SIX, BECAUSE FIVE FITS. Measured at the tallest of the four widths: five conversations sit
+       inside the pane and the sixth is what pushes it over, so this is the smallest inbox that can
+       answer the question at every width rather than at 320 alone. */
+    { name: 'an inbox',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const who = ['Ada Tutor', 'The office', 'Ben Parent', 'Cara Tutor', 'Dev Admin', 'Eve Parent'];
+        MESSAGES = who.flatMap((n, i) => [
+          { id: 'i' + i + 'a', mine: false, read: true, withId: 'P10' + i, withName: n,
+            fromName: n, at: '2026-09-1' + i + ' 10:0' + i,
+            body: 'Hello from ' + n + ' \u2014 long enough to take a line or two on a phone.' },
+          { id: 'i' + i + 'b', mine: true, read: true, withId: 'P10' + i, withName: n,
+            fromName: 'You', at: '2026-09-1' + i + ' 10:1' + i, body: 'Thanks, noted.' },
+        ]);
+        DM_ASKED = true;
+        paint('dm');
+      },
+      expect: () => pageCount('dm') >= 7,
+      wants: 'six conversations, each a page of its own' },
   ],
 };
 
@@ -509,7 +587,7 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], tinyTargets: [], lowContrast: [] };
+  const found = { overflow: [], hidden: [], tinyTargets: [], lowContrast: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
      `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
@@ -554,7 +632,23 @@ function inspect(opts) {
     return r.width > 0 && r.height > 0;
   };
 
-  const inside = [...live.querySelectorAll('*')].filter(vis);
+  /* ---------- AND THE SHEET, WHEN ONE IS OPEN ----------------------------------------------------
+     `#sheet` IS A SIBLING OF THE SCREENS, NOT A CHILD OF ONE. So every surface this app opens in a
+     sheet — the details form, the pay sheet, the composer, a tutor's profile, the practical guide —
+     has been outside this measurement for as long as the file has existed. Nothing is wrong with
+     `#s-<id>`: it IS the screen, and a sheet is not on it.
+
+     WHICH MEANS A DECLARED STATE THAT OPENED ONE WOULD HAVE REPORTED A CLEAN SWEEP OF THE SCREEN
+     UNDERNEATH IT — the "a check that cannot reach its subject reporting a pass" fault this file's
+     own header records three times, and the reason `check-booking.js` read as a pass for months.
+
+     IT CHANGES NOTHING WHERE NO SHEET IS OPEN, which is all 120 combinations today: `openSheet` is
+     a finger's action and no state calls it yet. This is the road being built before the first
+     state drives down it, deliberately, because the alternative is a state that looks measured. */
+  const sheet = document.getElementById('sheet');
+  const onSheet = sheet && !sheet.classList.contains('hidden') && vis(sheet)
+    ? [sheet, ...sheet.querySelectorAll('*')] : [];
+  const inside = [...live.querySelectorAll('*'), ...onSheet].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR ------------------------------------------
      `scrollWidth > clientWidth` on a box whose overflow-x is not auto or scroll. This is the honest
@@ -610,6 +704,59 @@ function inspect(opts) {
         cls: String(el.className || '').slice(0, 40),
         by: over, width: el.clientWidth });
     }
+  }
+
+  /* ---------- AND THE OTHER AXIS, WHICH IS THE ONE THE APP IS NAVIGATED ON ------------------------
+     THIS FILE HAS ONLY EVER ASKED ABOUT SIDEWAYS. That is the right first question — a box that
+     scrolls sideways when it was not told it could is always a fault — and it is the axis nobody
+     travels: every screen in this app is a vertical strip of pages, and `.pane` is the glass each
+     page is drawn on.
+
+     `.pane` IS `overflow: hidden` AND `touch-action: none`, DELIBERATELY. Its own note says why: a
+     pane that scrolls its own contents and a grid that pages are two gestures competing for one
+     movement, and which one you got depended on whether the pane happened to be a pixel taller than
+     its box. So the pane clips and the vertical drag always belongs to the grid.
+
+     THE COST OF THAT IS STATED IN THE SAME COMMENT and is exactly what this measures: *"a card
+     taller than the screen has its bottom cut off … Anything genuinely long should be PAGED."*
+     Nothing anywhere was checking that anything genuinely long HAD been.
+
+     WHAT IT COST, MEASURED: the Messages column stacked every conversation into one pane, and at
+     390×844 with six of them that was 1,298px of content in an 805px box — 493px of somebody's
+     messages on the page, with no scroll and no page to turn to. Six columns have now lost their
+     vertical axis one way or another, and the reason it kept recurring is that the lab could not
+     see the axis at all.
+
+     EVERY PANE ON THE SCREEN, not just the one in front. A sixteen-page column has sixteen panes in
+     the document and every one of them is a page somebody can turn to — measuring only the front
+     one is `check/cards.js`'s own lesson about a sample and a sweep, on a second surface.
+
+     A PANE THAT WAS TOLD IT MAY SCROLL IS EXEMPT, which is the same first question the sideways
+     rule asks, and so is the widget's own scroller inside it — `.msg-body` and the notepad have
+     their own `clientHeight`, so they never push the pane's `scrollHeight` in the first place.
+
+     AND THE SAME SECOND QUESTION, IN PIXELS A VIEWER CAN SEE. A transform is invisible to
+     `scrollHeight` exactly as it is to `scrollWidth` — the cheat sheet and the flyer are A4 pages
+     scaled to a phone — so the lowest RENDERED child edge settles it. Without this the mat and the
+     flyer would report hundreds of pixels that are not on any screen, which is the finding that
+     cost this project two wrong fixes the first time round. */
+  const panes = live && live.querySelectorAll ? [...live.querySelectorAll('.pane')] : [];
+  for (const el of panes) {
+    const s2 = getComputedStyle(el);
+    if (/(auto|scroll)/.test(s2.overflowY)) continue;
+    const under = el.scrollHeight - el.clientHeight;
+    if (under <= 2 || el.clientHeight <= 0) continue;
+    const box = el.getBoundingClientRect();
+    let paintedBottom = null;
+    for (const kid of el.children) {
+      const k = kid.getBoundingClientRect();
+      if (k.height > 0 && (paintedBottom === null || k.bottom > paintedBottom)) paintedBottom = k.bottom;
+    }
+    if (paintedBottom !== null && paintedBottom - box.bottom <= 2) continue;
+    found.hidden.push({ tag: el.tagName.toLowerCase(),
+      cls: String((el.firstElementChild && el.firstElementChild.className) || el.className || '')
+             .slice(0, 40),
+      by: under, height: el.clientHeight });
   }
 
   /* ---------- A "TEXT CLIPPED RATHER THAN WRAPPED" RULE WAS HERE, AND IT WAS INERT ---------------
@@ -920,6 +1067,23 @@ function inspect(opts) {
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
             + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+
+        /* ---------- PUT IT BACK, BECAUSE THE NEXT STATE IS THE SAME PAGE -----------------------
+           STATES RUN IN ORDER DOWN ONE PAGE and screens after them on that same page, so anything
+           a state leaves standing is measured again under somebody else's name. `enter` is enough
+           for every state that only moves the app — `go()` and `goPage()` replace what came
+           before. A SHEET IS THE EXCEPTION: `go()` does not close one, so a guide left open would
+           be counted as part of Tools, Games and every width after it.
+
+           NOT A BLANKET `closeSheet()` AFTER EVERY STATE. That would be this file deciding what
+           the app's state should be rather than the state saying so, and the first state whose
+           whole point is a sheet still open would have no way to say it. */
+        if (state.leave) {
+          await page.evaluate(src => {
+            try { (0, eval)('(' + src + ')')(); } catch (e) {}
+          }, String(state.leave));
+          await page.waitForTimeout(250);
+        }
       }
     }
 
@@ -964,6 +1128,8 @@ function inspect(opts) {
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
+    (r.hidden || []).forEach(o => add('OUT OF REACH',
+      `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} hides ${o.by}px below its own fold`, at));
     (r.tinyTargets || []).forEach(t => {
       const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || ''));
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',

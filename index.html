@@ -1344,6 +1344,21 @@
 
   <!-- Said, as well as drawn: whichever one is showing, this is what it says. -->
   <p id="splash-say">@family.</p>
+  <!-- ---------- AND A LINE FOR A LOAD THAT IS TAKING LONGER THAN THIS BACKEND NORMALLY DOES -----
+       MEASURED: with the backend answering nothing at all, the splash stays up for the whole 60
+       second deadline in `load()` and says nothing — the animation plays cheerfully over an app
+       that is getting no answer, and there is no way to tell "still trying" from "stuck". Every
+       other failure in this app ends with a sentence and a Try again; this one was a minute of
+       silence.
+
+       IT IS IN THE MARKUP RATHER THAN BUILT, for the reason the two splashes above are: the boot
+       path is where this app once took itself down, and anything there that has to be constructed
+       is one more thing that can be missing. Hidden until something asks for it.
+
+       NOT AN ERROR, AND IT DOES NOT OFFER A WAY OUT. At fifteen seconds the request may well still
+       land — the deadline and its banner are what handle the case where it does not. This says the
+       one true thing nothing else on the screen was saying. -->
+  <p id="splash-wait" hidden>Still loading&#8230;<br><span>the connection looks slow.</span></p>
 
   <!-- ============================================================================================
        THE SLOW-LOAD MESSAGE LIVES ON THE SPLASH, NOT UNDER IT.

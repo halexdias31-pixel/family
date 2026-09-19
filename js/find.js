@@ -286,6 +286,18 @@ const KINDS = {
      that you have forty minutes and no lab. All four of those are questions the funnel already
      asks, so this needed a mapper and a card and nothing else. */
   practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
+  /* ---------- THE FILMS, AND THEY ARE ABSENT RATHER THAN HIDDEN --------------------------------
+     THERE IS NO `admin` TEST ANYWHERE ON THIS KIND, DELIBERATELY. `doGet` builds `payload.films`
+     inside `if (viewerIsAdmin)` and sends `[]` to everybody else — see the note there — so a
+     parent's phone has no rows to map and this kind produces no items, no funnel answer and no
+     card, by construction. A `.filter(isAdmin())` here would be the same behaviour resting on the
+     renderer instead of on the server, and a filter is something a person can read past with the
+     network tab open.
+
+     `Films` RATHER THAN `Resources`. That word is taken — it is what `boxer` and `fight` wear, 260
+     rows of boxing — and putting a third meaning on it is the two-cupboards fault this file argues
+     itself out of two entries above. */
+  film: { group: 'Learning', label: 'Films', card: x => filmCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
@@ -2079,50 +2091,247 @@ function practicalCard_(x) {
       ? ` <span class="prac-haz haz-${esc(p.hazard.replace(/\s+/g, '-'))}">${
           esc(p.hazard)} hazard</span>` : ''}</p>
     ${p.outcome ? `<p class="prac-out"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
-    ${p.science ? `<div class="prac-why"><h4>What is going on</h4><p>${esc(p.science)}</p></div>` : ''}
-    ${p.equipment.length ? `<div class="prac-kit"><h4>What you need</h4><ul>${
-      p.equipment.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-    ${p.steps.length ? `<div class="prac-steps"><h4>How it runs</h4><ol>${
-      p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></div>` : ''}
-    ${/* ---------- THE TWO HALVES OF THE TABLE, SIDE BY SIDE ------------------------------------
-          "What I changed | What I measured | What I noticed" is the one results table every
-          experiment in this set uses, and the aim written down with them is that by the fourth
-          session a student rules it up without being asked. So the card draws the first two
-          columns as the two lists they are, next to each other, rather than folding them into one
-          heading — which is the same question in both directions and the pair is the point. */''}
-    ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
-      ${p.variables.length ? `<div><h4>What to change</h4><ul>${
-        p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-      ${p.log.length ? `<div><h4>What to write down</h4><ul>${
-        p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-    </div>` : ''}
-    ${p.safety ? `<p class="prac-safety"><b>Safety</b> ${esc(p.safety)}</p>` : ''}
-    ${p.mathsLink ? `<p class="prac-maths"><b>The maths in it</b> ${esc(p.mathsLink)}</p>` : ''}
-    ${/* ---------- ONE FACT ABOUT EVERY HOME PRACTICAL, SAID ONCE -------------------------------
-          PUBLIC LIABILITY AND A WRITTEN PARENTAL AGREEMENT are true of every experiment run in
-          somebody else's house and of none of the lab ones, so they belong to the VENUE rather
-          than to any of the rows. Writing it into ten `notes` cells would be the AQA insert fault
-          again — one fact repeated on every row that uses it — and ten cells to keep in step the
-          day the wording changes. Drawn here, once, from the column that already decides it. */''}
-    ${(p.venue === 'home' && !off) ? `<p class="prac-home">Before any of these run in a client’s
-      house: check the public liability cover extends to practical work, and get the parent’s
-      agreement in writing describing what will actually be done.</p>` : ''}
-    ${/* ---------- WHAT `wow` IS FOR, AND IT IS THE ONLY THING IT IS FOR -----------------------
-          A COLUMN WRITTEN AND NEVER READ IS THIS REPOSITORY'S OLDEST SHAPE — `figure`,
-          `orderPrints`, the four message actions, `exam_date`. This one went in with the ten home
-          experiments and it answers exactly one question: which of these do you open a session
-          with. So it is drawn as that sentence rather than as the word, on the two levels where
-          the answer is yes, and it is a closed vocabulary so the test is an equality rather than
-          a substring — see the note in `check-practicals.js`. */''}
+    ${/* ---------- `wow` STAYS ON THE CARD, WHERE EVERYTHING ELSE MOVED INTO THE GUIDE -----------
+          IT ANSWERS EXACTLY ONE QUESTION and its own note says which: which of these do you open a
+          session with. That is a fact about CHOOSING between practicals, so it belongs on the thing
+          you choose from, not inside the document you open once you have chosen. The kit, the
+          method and the safety line are the opposite — you read them after deciding.
+
+          A closed vocabulary, so the test is an equality rather than a substring — see the note in
+          `check-practicals.js` and the five cards a substring wrongly called required. */''}
     ${(!off && (p.wow === 'high' || p.wow === 'very high'))
       ? `<p class="prac-open">Worth opening a session with.</p>` : ''}
+    ${/* ---------- THE METHOD, THE KIT AND THE GUIDE ARE ONE TAP AWAY, AND THAT IS A REPAIR -------
+          MEASURED BEFORE ANY OF THIS WAS WRITTEN: `.pane` caps at 805px on an 844px phone and
+          **51 of the 56 practical cards were taller than that**, median 921px. `.pane` is
+          `overflow: hidden` and a card is one page, so everything past the fold was already cut
+          off with no scroll and no page to turn to — the kit, the method, the safety line and the
+          notes, on more than half the set. Nothing had ever measured it: `check/ui.js` stops on
+          whichever funnel page it lands on and `check/cards.js` asked about WIDTH only.
+
+          SO THE CARD IS THE SEARCH RESULT AND THE GUIDE IS THE DOCUMENT. That is the same split
+          the funnel already makes everywhere else, and it is what makes the guide possible at all:
+          a guide appended to the bottom of a card that is already cut off is a guide nobody can
+          reach. The sheet scrolls — `#sheet-body` is `overflow-y: auto`, which is this app's own
+          answer for anything longer than a card, and the note by `.pane` says so outright:
+          *"Anything genuinely long should be PAGED"* or it belongs somewhere that scrolls.
+
+          A TILE, BECAUSE A PRACTICAL IS A THING. The house style settles it: a THING has tiles, a
+          FORM has buttons, and tiles win any tie. One renderer, one tap target, and
+          `check-doors.js` pairs the `act` against its handler. */''}
+    ${/* `doc`, WHICH IS IN `TILE_ICONS`. A tile is a MARK and `tileIcon_` falls back to the word
+          for a name it has never heard of — "visibly wrong rather than invisible", which is what
+          `icon: 'paper'` got: a square reading `Guide` among a column of glyphs. A guide is a
+          document, so it takes the document. */''}
+    ${off ? '' : `<div class="tile-row">${tile_({
+      icon: 'doc', label: 'Guide',
+      note: p.risks.length ? 'method, risks, variables' : 'method and variables',
+      act: 'prac-guide', data: { key: x.key } })}</div>`}
     ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
       and it is bought once.</p>` : ''}
-    ${p.notes ? `<div class="prac-note">${p.notes.split('|').map(t => t.trim()).filter(Boolean)
-      .map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
   </div>`;
 }
 
+
+/* ==================================================================================================
+   THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE.
+
+   ASKED FOR AS "each practicle needs to have a guide with it. like a risk assessment, something
+   which asks for iv dv and control variable."
+
+   IT ASKS RATHER THAN STATES, AND THAT IS THE WHOLE DESIGN. Naming the independent variable FOR a
+   student removes the one thing the practical is teaching: every exam board marks identifying the
+   variables, not reciting them. So the guide gives three boxes with the question written above
+   each, and the row's own `variables` and `log` lists sit beside them as the things it could be —
+   scaffolding to choose from, which is what a worksheet does and what a filled-in answer cannot.
+
+   NOTHING NEW SAVES IT. `data-do="qp-ans"` is a delegated `input` listener in this file that writes
+   `data-k` to localStorage on every keystroke, and `ansRead_` reads it back — the machinery the
+   four thousand question boxes already use, keyed per person by `ansKey_`. A second writer would be
+   a second thing to keep in step, which is the sentence this repository writes about `documents_()`,
+   `factsNow_` and `childrenOf`. The only new thing is a SLOT on the end of the key, so one practical
+   can hold six answers instead of one.
+
+   IT OPENS IN THE SHEET BECAUSE IT DOES NOT FIT ANYWHERE ELSE. `#sheet-body` is `overflow-y: auto`;
+   `.pane` is `overflow: hidden` and caps at 805px, and 51 of the 56 practical cards were already
+   past that before a word of this was added. See the note in `practicalCard_`.
+================================================================================================== */
+
+/* ---------- ONE BOX, ONE SLOT --------------------------------------------------------------------
+   `ansKey_(x)` IS ONE KEY PER ITEM and a guide needs six. The slot goes on the end rather than into
+   a second key-builder, so `whoIs_` still decides whose answers these are and the "working as"
+   switch still moves all of them together — which it would not if this invented its own key. */
+function guideBox_(x, slot, ask, hint) {
+  const k = ansKey_(x) + '#' + slot;
+  /* ---------- THE BOX IS `ansBox_`'S BOX, DOWN TO THE CLASS NAMES ------------------------------
+     `.qp-ans` AND `.qp-ans-in` ARE ALREADY THE RULED-PAPER FIELD a student writes an answer into,
+     already keyed off `data-do="qp-ans"`, already saved by the same delegated listener. A second
+     set of rules describing the same object is the `.reel .over` fault — see the note on the
+     guide below. What is new is only what goes ABOVE it: `.qp-ans-k` is an uppercase part label
+     (`(a)`, `ANSWER`), and a sentence like "the one thing you will change" set in it at .62rem
+     with .08em of letter-spacing is a smear rather than a question.
+
+     SPELLCHECK STAYS ON, where `ansBox_` turns it off. That one holds `3.42 x 10^7`; these hold
+     prose somebody writes about what they think will happen. */
+  return `<label class="qp-ans gd-box">
+    <span class="gd-ask">${esc(ask)}</span>
+    ${hint ? `<span class="gd-hint">${esc(hint)}</span>` : ''}
+    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
+      rows="2" autocomplete="off">${esc(ansRead_(k))}</textarea>
+  </label>`;
+}
+
+function practicalGuide_(x) {
+  const p = x.row;
+  /* ---------- IT IS THE CARD'S OWN CLASSES, BECAUSE THEY ARE THE CARD'S OWN BLOCKS --------------
+     THE KIT LIST, THE METHOD, THE SAFETY LINE, THE TWO-COLUMN VARIABLES TABLE AND THE NOTES ALL
+     MOVED HERE OFF THE CARD. Giving them new names would be a second description of one object,
+     which is the fault this repository already records where `.reel .over` was a second
+     description of `.feed-art` — same thing, two stylesheets' worth of rules, drifting apart the
+     first time either is touched. `.prac-tab`'s own note says it is "what I changed" beside "what
+     I measured", which is exactly the pair this guide asks somebody to name.
+
+     WHAT IS GENUINELY NEW IS THE ASKING. `.gd-sec` is a section the card never had — the risk
+     assessment, the prediction, the results, the conclusion — and `.gd-box` is the answer box.
+
+     THE RISK ASSESSMENT IS NOT FINISHED WHEN IT ARRIVES. What is in the row is what is true of the
+     EXPERIMENT. What nothing in a database can know is the ROOM: whether there is a rug under the
+     table, whether a toddler is in the house, whether the only socket is beside the sink. A risk
+     assessment that reads as complete is one nobody looks up from, so the written hazards are the
+     START of the list and the last line of that section is a box.
+
+     THE HOME LINE IS DRAWN FROM THE VENUE and not written into ten rows — the AQA insert argument,
+     which this file already makes twice: one fact several rows hang from belongs to whatever draws
+     them, or it is ten cells to keep in step the day the wording changes. */
+  return `<div class="gd">
+    <p class="prac-aim">${esc(p.aim)}</p>
+    ${p.outcome ? `<p class="prac-out"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
+    ${p.science ? `<section class="prac-why"><h4>What is going on</h4>
+      <p>${esc(p.science)}</p></section>` : ''}
+
+    ${p.equipment.length ? `<section class="prac-kit"><h4>What you need</h4>
+      <ul>${p.equipment.map(e => `<li>${esc(e)}</li>`).join('')}</ul></section>` : ''}
+
+    <section class="gd-sec">
+      <h4>Risk assessment</h4>
+      ${p.risks.length ? `<ul>${p.risks.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`
+        : `<p class="gd-none">No hazards have been written out for this one yet. Read the safety
+           line and the kit list, and write down what you can see.</p>`}
+      ${p.safety ? `<p class="prac-safety"><b>Safety</b> ${esc(p.safety)}</p>` : ''}
+      ${p.venue === 'home' ? `<p class="prac-home">Running in a client’s house: check the public
+        liability cover extends to practical work, and get the parent’s agreement in writing
+        describing what will actually be done.</p>` : ''}
+      ${guideBox_(x, 'risk', 'What else can you see in THIS room?',
+        'The list above is about the experiment. This one is about where you are running it — the floor, the sockets, who else is in the house.')}
+    </section>
+
+    <section class="gd-sec">
+      <h4>Variables</h4>
+      ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
+        ${p.variables.length ? `<div><h4>Things you could change</h4><ul>${
+          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+        ${p.log.length ? `<div><h4>Things you could measure</h4><ul>${
+          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+      </div>` : ''}
+      ${guideBox_(x, 'iv', 'Independent variable — the one thing you will change',
+        'One only. Everything else has to stay still, or you will not know which of them did it.')}
+      ${guideBox_(x, 'dv', 'Dependent variable — what you will measure',
+        'How will you measure it, and in what units?')}
+      ${guideBox_(x, 'cv', 'Control variables — what you must keep the same',
+        'Usually the longest of the three. Everything you are NOT changing.')}
+    </section>
+
+    <section class="gd-sec">
+      <h4>Prediction</h4>
+      ${guideBox_(x, 'pred', 'What do you think will happen, and why?',
+        'Write it before you start. A prediction after the event is a description.')}
+    </section>
+
+    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
+      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section>` : ''}
+
+    <section class="gd-sec">
+      <h4>Results</h4>
+      <p class="gd-none">Rule the table up before you start: what you changed down the left, what
+        you measured across the top, and a row for every repeat.</p>
+      ${guideBox_(x, 'res', 'What happened?',
+        'Numbers and units. Anything you noticed that the table has no column for goes here too.')}
+    </section>
+
+    <section class="gd-sec">
+      <h4>Conclusion</h4>
+      ${guideBox_(x, 'conc', 'What does that tell you about the question you started with?')}
+      ${guideBox_(x, 'eval', 'What would you do differently next time?',
+        'What was hardest to measure accurately — and what would you change about the METHOD, rather than about the answer?')}
+    </section>
+
+    ${p.mathsLink ? `<section class="gd-sec"><h4>The maths in it</h4>
+      <p class="prac-maths">${esc(p.mathsLink)}</p></section>` : ''}
+    ${p.notes ? `<section class="gd-sec"><h4>Notes for the tutor</h4>
+      <div class="prac-note">${p.notes.split('|').map(t => t.trim()).filter(Boolean)
+        .map(t => `<p>${esc(t)}</p>`).join('')}</div></section>` : ''}
+  </div>`;
+}
+
+/* FOUND BY KEY, THROUGH THE LIST THE CARD WAS BUILT FROM. The tile carries `x.key` rather than the
+   practical id, because `stuffItems()` is what the card came from and a second lookup into
+   `DATA.practicals` would be a second reader of one list — see `reelPages_` and `factsNow_`. */
+on('prac-guide', el => {
+  const key = el.getAttribute('data-key') || '';
+  const x = stuffItemsAll_().find(it => it.key === key);
+  if (!x) return toast('That practical is not in the list any more');
+  openSheet(x.name, practicalGuide_(x), null, null);
+});
+
+/* ==================================================================================================
+   `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
+
+   IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive is the ladder `clipSrcs_` spends
+   forty lines on — three addresses, an iframe fallback and a note saying none of it can be tested
+   from here — and that was worth building for a two-clip column this app owns. A three-gigabyte
+   `.mkv` is not: no browser plays Matroska, the file is somebody's whole evening of bandwidth, and
+   Drive's own player already does the job. So the tile is a door rather than a screen.
+
+   A SERIES LINKS TO ITS FOLDER, which is why `file_kind` is a column: Drive's folder view is the
+   season picker, and rebuilding one here would be sixty-two rows in a funnel nobody searches that
+   way.
+================================================================================================== */
+function filmCard_(x) {
+  const f = x.row;
+  const strip = [f.year, f.audience === 'kids' ? 'kids' : '',
+                 f.kind === 'series' ? (f.seasons ? f.seasons + ' seasons' : 'series') : '',
+                 f.sizeGb ? f.sizeGb + ' GB' : ''].filter(Boolean).join(' \u00b7 ');
+  return `<div class="card film${f.placeholder ? ' is-off' : ''}">
+    <div class="prac-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="prac-flag${f.placeholder ? ' is-no' : ''}">${
+        f.placeholder ? 'Not uploaded' : f.kind === 'documentary' ? 'Documentary'
+        : f.kind === 'series' ? 'Series' : 'Film'}</span>
+    </div>
+    ${(f.director || f.lead) ? `<p class="sub">${
+      esc([f.director ? 'dir. ' + f.director : '', f.lead].filter(Boolean).join(' \u00b7 '))}</p>` : ''}
+    ${strip ? `<p class="prac-strip">${esc(strip)}</p>` : ''}
+    ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
+          be. The library's `placeholder` column, one table along: a card that states the gap beats
+          a link that opens nothing, and it is the reason `There Will Be Blood` is a row at all. */''}
+    ${f.placeholder
+      ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>`
+      : `<div class="tile-row">${tile_({
+          icon: 'play', label: 'Watch',
+          note: f.fileKind === 'folder' ? 'opens the folder' : 'opens in Drive',
+          /* NO `act`. `tile_` answers an absolute http(s) address with an `<a target="_blank">`
+             and everything else with a button — and that test is where it is so `check-surfaces`
+             can see the address was checked rather than assumed. A Drive link is the one exception
+             the house style leaves open: somebody's Drive is not this app and should not pretend
+             to be. */
+          href: f.url })}</div>`}
+    ${/* A `<p>` INSIDE A `<p>` IS NOT NESTING, it is the browser closing the first one — so the
+          wrapper is a div. `.prac-note p` is the rule that wants a child, and it is the card's own
+          class rather than a new one, which is the sentence one commit old about the guide. */''}
+    ${(f.notes && !f.placeholder)
+      ? `<div class="prac-note"><p>${esc(f.notes)}</p></div>` : ''}
+  </div>`;
+}
 
 function boxerCard_(x) {
   const b = x.row;
@@ -2290,13 +2499,53 @@ function companyAtoms_(v) {
   return key && key !== said.toLowerCase() ? said + ' ' + key : said;
 }
 
-function searchText_(r) {
-  return String((r && (r.html || '')) + ' ' + (r && (r.lead || '')))
+/* ---------- MARKUP INTO WORDS, IN ONE PLACE ------------------------------------------------------
+   LIFTED OUT WHEN THE PRACTICALS NEEDED IT. A question's haystack is built from `html` and `lead`;
+   a practical's is built from a dozen plain columns — but a `&frasl;` or a `<b>` in either is the
+   same thing to a person typing into the search box, and two copies of that list of entities is
+   two chances for one of them to be handled in one haystack and not the other. Same sentence this
+   file writes about `documents_()`, `factsNow_` and `childrenOf`. */
+function plainText_(s) {
+  return String(s == null ? '' : s)
     .replace(/<[^>]*>/g, ' ')
     .replace(/&(nbsp|amp|lt|gt|minus|frasl|deg|pi|times|divide|radic|rsquo|ldquo|rdquo|mdash);/g, ' ')
     .replace(/&[a-z]+;|&#\d+;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function searchText_(r) {
+  return plainText_((r && (r.html || '')) + ' ' + (r && (r.lead || '')));
+}
+
+/* ==================================================================================================
+   `practicalText_` — THE GUIDE IS WHAT SOMEBODY IS LOOKING FOR, AND THE SEARCH COULD NOT SEE IT.
+
+   MEASURED BEFORE IT WAS WRITTEN: **0 of the 57 practicals carried a `text` at all.** The haystack
+   in `stuffFind` is `name + sub + subject + slot + grade + text`, so a practical was findable by
+   its title and by nothing else. `goggles`, `thermistor`, `nichrome`, `foil`, `tray` and `limiting
+   reactant` each returned NOTHING, and every one of those words is in the row somebody was looking
+   for. The handful of words that did hit — `bicarbonate`, `trundle`, `chromatography` — hit the
+   NAME, which is a coincidence rather than a search: the volcano happens to be called "Volcano —
+   bicarbonate and vinegar".
+
+   THIS IS THE `topics` FIX AND THE `company` FIX ONE DATA FILE ALONG, and the sentence is the same
+   both times: the words are in the row and the search box cannot see them, so a screen whose whole
+   job is finding things returns nothing for the thing it holds. There it was one column; here it is
+   the entire guide — the kit, the method, the hazards, the variables and the science.
+
+   BUILT ONTO THE ITEM, NOT MATCHED PER KEYSTROKE, which is what those two notes also say:
+   `stuffItems` is memoised on the payload and runs once, and `stuffFind` runs on every letter.
+
+   A REFUSED EXPERIMENT IS SEARCHABLE TOO, deliberately. Those five rows exist so that a tutor
+   asking why they are not burning magnesium ribbon finds the answer instead of an absence — and a
+   reason nothing can search for is an absence with a row behind it. */
+function practicalText_(p) {
+  return plainText_([p.aim, p.outcome, p.science, p.safety, p.feasible, p.venue, p.excluded,
+                     p.notes, p.mathsLink, p.specRef, p.hazard,
+                     (p.equipment || []).join(' '), (p.steps || []).join(' '),
+                     (p.risks || []).join(' '), (p.variables || []).join(' '),
+                     (p.log || []).join(' ')].filter(Boolean).join(' '));
 }
 
 /* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
@@ -3739,7 +3988,38 @@ function stuffItemsRaw_() {
          already reads `needs` as a comma-list. */
       needs: [p.venue === 'lab' ? 'Lab' : '', p.feasible === 'needs a lab' ? 'Lab' : '']
              .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', '),
+      /* EVERY WORD OF THE GUIDE, so the thing you are looking for is what you can search by. The
+         topics go in alongside it for `topicAtoms_`'s reason — a practical's `topics` cell is the
+         only place that says a trundle wheel is about perimeter, and the words are printed nowhere
+         else on the card. See `practicalText_`. */
+      text: practicalText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
+    })),
+
+    /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
+       EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
+       `|| []` is the ordinary fallback and here it is also the whole gate.
+
+       `audience` IS WHICH FOLDER IT CAME OUT OF and it is mapped onto its own field rather than
+       into `subject`: a Subject question offering `adults` beside `Maths` is the `boxKind` mistake
+       this file already records, where a weight division was written into `subject` and the funnel
+       then offered Heavyweight as a subject. */
+    ...(DATA.films || []).filter(f => f.title).map(f => ({
+      kind: 'film', name: f.title, key: 'fm:' + (f.id || f.title),
+      sub: [f.year, f.kind === 'series' ? 'Series' : f.kind === 'documentary' ? 'Documentary' : '',
+            f.director || f.lead].filter(Boolean).join(' \u00b7 '),
+      image: '',
+      year: f.year,
+      /* THE TWO FACETS IT BRINGS, both read straight off the row by `facetFromSheet_` if the sheet
+         ever invents a question over them. Nothing in code declares a facet for either: the funnel
+         narrows by `What kind` to Films and then by the search box, which is enough for 22 rows
+         and is one fewer thing to keep in step if the tab grows. */
+      audience: f.audience, filmKind: f.kind,
+      /* EVERY WORD SOMEBODY MIGHT TYPE. The lesson one commit old: a thing whose own words are not
+         in the haystack is findable by its title and by nothing else, so `daniel day-lewis`,
+         `gosling` and `documentary` have to be in here or they find nothing. */
+      text: [f.director, f.lead, f.kind, f.audience, f.notes, f.seasons].filter(Boolean).join(' '),
+      row: f,
     })),
 
     ...questionItems(),

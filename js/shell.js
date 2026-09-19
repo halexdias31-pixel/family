@@ -1179,6 +1179,27 @@ const PAGER = {
      this table follows: a pager that counts for itself is a pager that can disagree with the screen
      it is a pager for. */
   reel:   () => (typeof reelPages_ === 'function' ? reelPages_() : ['']),
+  /* ---------- AND MESSAGES WAS THE SIXTH COLUMN TO LOSE ITS AXIS THIS WAY -------------------------
+     `screen('dm')` USED `stack()` AND THERE WAS NO KEY HERE, which is the pair of facts the note
+     over `tools` says costs a column: no `paged` class, no vertical axis, and a `.pane` that is
+     `overflow: hidden` holding every conversation in one box. **Measured at 390×844 with six
+     conversations: 1,298px of content inside an 805px pane — 493px of somebody's messages on the
+     page with no scroll and no page to turn to.**
+
+     `me` and `posts` lost it to a rename, `booking` and `reel` to having no key at all, `tools` and
+     `games` to `stack`. This is the same fault as the last two, and the reason it keeps recurring is
+     that nothing MEASURES the axis — `check/ui.js` has always asked whether a box scrolls sideways
+     and never whether one hides content below its own fold. It asks both now.
+
+     COUNTED FROM `dmPages_`, the one list `screen('dm')` maps its markup from, so page n and name n
+     are the same n. */
+  dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
+  /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. `check-doors.js` asks whether every screen
+     built with `pages()` has an entry here, and this was the one that did not — right today because
+     the list holds one card, and the accident that `booking`, `reel` and `dm` each turned into a
+     column you could not move on. Empty names: a single-page screen has no "1 of 1" worth saying,
+     which is what the head of this table already says about them. */
+  make:   () => (typeof makeCards_ === 'function' ? makeCards_() : ['']).map(() => ''),
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
@@ -1247,6 +1268,11 @@ const PAGE_HOME = {
      to see. Spotlight still wins when there is one. */
   feed:    () => 0,
   account: () => (USER ? 1 : 0),    // past the name card; signed out there is only the sign-in pane
+  /* PAST THE HEAD CARD AND ONTO THE NEWEST CONVERSATION, for the reason `account` skips its name
+     card: the Messages column opens on Messages-and-a-Refresh-button, which is the one page on it
+     nobody came to read. `dmPages_` puts the newest thread at 1 because `messageThreads_` sorts
+     most-recent-first. With no threads there is one page and `pageHome_` never runs. */
+  dm:      () => 1,
 };
 /* `book` WAS HERE — a column that no longer exists. */
 /* ---------- THE ICON, FROM THE SHEET ---------------------------------------------------------------
@@ -1293,7 +1319,10 @@ function applyBrandIcon_() {
 /* KEYED BY SCREEN ID, like `PAGER` and `PAGE_HOME` — and `posts` and `me` are not screen ids. See
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0 };
+/* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke:
+   every screen that pages needs an entry or its position is not remembered between visits. Both
+   page — `booking` since the receipts became pages, `dm` since the conversations did. */
+const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
@@ -2025,6 +2054,9 @@ async function load() {
        `no-store` tells the browser not to keep it; `_` makes the URL one it has never seen, which
        is what covers the proxies and the service workers that ignore the header. */
     const bust = (who ? '&' : '?') + '_=' + Date.now();
+    /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
+       this is the moment the app begins waiting, and it is the only moment worth timing from. */
+    splashWaitWatch_();
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE -------------
        `fetch` waits for ever by default, and `splashOff_()` is at the END of this function — the
        only place the loading screen ever comes off. So a backend that hung left the app behind the
@@ -2391,7 +2423,44 @@ async function load() {
    Two lines, named, because they are called from three places — the load finishing, the boot
    failing, and a retry — and three copies of `classList.add('done')` is three chances for one of
    them to be spelt differently. */
-function splashOff_() { const el = $('splash'); if (el) el.classList.add('done'); }
+/* ---------- AND THE LINE UNDER IT, WHICH ONLY A SLOW LOAD EVER SEES ------------------------------
+   THE SPLASH SAID NOTHING FOR A WHOLE MINUTE. Measured with the backend answering nothing: the
+   deadline in `load()` is sixty seconds — and the note over it explains why it is not less, because
+   this backend answers in about fifteen and a deadline shorter than the thing it times reports a
+   healthy backend as a dead one. So the honest floor on "how long can this take" is a minute, and
+   for all of it the animation played over an app that was getting no answer, with nothing on screen
+   telling "still trying" from "stuck".
+
+   FIFTEEN SECONDS, FROM THE SAME MEASURED NUMBER THE DEADLINE IS BUILT ON. Past the backend's own
+   normal time, so an ordinary load never sees it and a slow one says so rather than sitting there.
+   One number, one place, derived from the one already written down rather than guessed at
+   separately — which is the fault this file records every time a figure is stated twice.
+
+   IT IS CLEARED WHEREVER THE SPLASH IS, because the two are one state: a splash that has lifted
+   with the line still on it would be a sentence about loading over a loaded app. */
+const SPLASH_SAY_AFTER = 15000;
+let splashSayTimer = null;
+function splashSay_(on) {
+  const el = $('splash-wait');
+  if (el) el.hidden = !on;
+}
+function splashWaitWatch_() {
+  clearTimeout(splashSayTimer);
+  splashSay_(false);
+  /* ONLY WHILE THE SPLASH IS ACTUALLY UP. `load()` runs again on every retry, on signing in and
+     whenever the payload is refreshed, and by then the splash is long gone — a line about loading
+     appearing over a working app is worse than the silence it replaces. */
+  const sp = $('splash');
+  if (!sp || sp.classList.contains('done')) return;
+  splashSayTimer = setTimeout(() => {
+    const now = $('splash');
+    if (now && !now.classList.contains('done')) splashSay_(true);
+  }, SPLASH_SAY_AFTER);
+}
+function splashOff_() {
+  clearTimeout(splashSayTimer); splashSay_(false);
+  const el = $('splash'); if (el) el.classList.add('done');
+}
 function splashOn_()  { const el = $('splash'); if (el) el.classList.remove('done'); }
 
 /* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument

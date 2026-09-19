@@ -294,6 +294,20 @@ function libraryExtras_(d, extra) {
         science: libS(r.science),
         log: libS(r.log).split('|').map(t => t.trim()).filter(Boolean),
         variables: libS(r.variables).split('|').map(t => t.trim()).filter(Boolean),
+        /* ---------- THE RISK ASSESSMENT, ONE SENTENCE PER HAZARD -------------------------------
+           PIPE-SEPARATED FOR THE REASON `equipment` AND `steps` ARE, recorded above: 14 of the 410
+           equipment cells hold a comma inside one item, so a comma cannot separate here either.
+
+           ONE SENTENCE RATHER THAN THREE FIELDS. A school form has hazard / who is harmed /
+           control as three columns, and three lists that have to line up by index is the
+           numbered-column fault wearing a different hat — nothing can check that item 3 of one
+           belongs to item 3 of another. A hazard and what you do about it is ONE fact, so it is
+           one string, and `check-practicals.js` asks only that it is there and not empty.
+
+           WRITTEN, NEVER DERIVED. `safety` is prose on every row and turning it into a structure
+           by rule is the fault this repository records twice — a substring called five practicals
+           "required" when they say they are not. See tools/practical-guides.py. */
+        risks: libS(r.risks).split('|').map(t => t.trim()).filter(Boolean),
         /* ---------- A COST OF NOTHING IS NOT THE SAME FACT AS NO COST -------------------------
            `libN('')` IS 0, AND THAT IS THE `cost: 0` FAULT THIS REPOSITORY RECORDS FOUR TIMES —
            `Number(x.price) || 0` made a blank cell a price of nought, and 3,262 of 3,265 items

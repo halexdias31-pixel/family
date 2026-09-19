@@ -51,6 +51,7 @@ function loadOrder_() {
 function boot(cb) {
   const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
   const library = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+  const practicals = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'practicals.json'), 'utf8'));
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
     .replace(/<script[\s\S]*?<\/script>/g, '');
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true,
@@ -65,6 +66,15 @@ function boot(cb) {
     const body_ = t => ({ ok: true, status: 200,
       text: () => Promise.resolve(JSON.stringify(t)), json: () => Promise.resolve(t) });
     if (String(url).includes('questions.json')) return Promise.resolve(body_(library));
+    /* ---------- AND THE REAL PRACTICALS, WHICH THIS HARNESS HAD NEVER LOADED --------------------
+       EVERY OTHER URL FELL THROUGH TO THE FIXTURE, so `data/practicals.json` came back as the
+       payload object rather than an array and the practical mapper built nothing. That made this
+       file blind to a whole kind: the count below reported `question`, `venue` and `tutor` and did
+       not mention the 57 practicals at all, which is exactly the fault it was written to catch.
+
+       A CHECK THAT CANNOT FAIL IS NOT A CHECK, and this one could not have, on the one kind that
+       prompted it. Found by reading its own output rather than by trusting that it ran. */
+    if (String(url).includes('practicals.json')) return Promise.resolve(body_(practicals));
     if (o && o.body) return Promise.resolve(body_({ success: true }));
     return Promise.resolve(body_(fixture));
   };
@@ -262,6 +272,37 @@ boot(f => {
     note.push('"' + hits[0].value + '" is an answer to ' + hits.length + ' different questions with '
               + 'different result sets: '
               + hits.map(h => h.field + ' (' + h.n + ')').join(', '));
+  });
+
+  /* ---------- 6. WHAT THE SEARCH BOX CAN SEE, PER KIND -----------------------------------------
+     `stuffFind`'s HAYSTACK IS `name + sub + subject + slot + grade + text`, and `text` is the only
+     one of those that holds a thing's own WORDS. Everything else is a label. So a kind whose items
+     carry no `text` is findable by its title and by nothing else — which is a whole department of
+     the app that the search box cannot reach, and it does not throw, fail or look wrong anywhere.
+
+     MEASURED THE DAY THE PRACTICAL GUIDES WENT IN: **0 of the 57 practicals had one.** `goggles`,
+     `thermistor`, `nichrome`, `foil`, `tray` and `limiting reactant` each returned nothing, with
+     every one of those words sitting in the row. The words that did hit — `bicarbonate`, `trundle`
+     — hit the NAME, which is a coincidence rather than a search.
+
+     PRINTED, NOT FAILED, and that is the `figure` argument rather than laziness: a boxer's card is
+     a record with no prose on it, and demanding a haystack of one would mean inventing words to
+     satisfy a checker. What the number is for is the OTHER direction — a kind that has words and
+     stops shipping them, which is exactly how this was found and is the shape
+     `papers checked against a total` going 34 to 2 under a green tick already records. */
+  const byKind = {};
+  items.forEach(x => {
+    const k = x.kind || '(none)';
+    const b = byKind[k] = byKind[k] || { n: 0, withText: 0, chars: 0 };
+    b.n++;
+    if (x.text && String(x.text).trim()) { b.withText++; b.chars += String(x.text).length; }
+  });
+  console.log('\nWHAT THE SEARCH BOX CAN SEE — items whose own words are in the haystack:');
+  Object.keys(byKind).sort((a, b) => byKind[b].n - byKind[a].n).forEach(k => {
+    const b = byKind[k];
+    console.log('  ' + k.padEnd(12) + String(b.withText).padStart(5) + ' of ' + String(b.n).padEnd(6)
+      + (b.withText ? ' (' + Math.round(b.chars / b.withText) + ' chars each)'
+                    : ' — findable by its name and nothing else'));
   });
 
   done();
