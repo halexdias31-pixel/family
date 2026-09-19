@@ -5865,6 +5865,34 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    STARTS and not where it ends, and the end is the edge somebody reads. */
 .bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
 
+/* ---------- A CARD WITH NO FIGURES ON IT HAS NO FIGURE COLUMNS --------------------------------------
+   REPORTED FROM A SCREENSHOT OF THE LIVE FORM: "the grid shouldn't extend beyond the 1st column like
+   the other fields." Measured at 390px, it is the other way round and that is what made it look
+   wrong: the ROW spans 39→351 and so does the week grid — they already agree. What stops at 193 is
+   the dash, because the multiplier, the rate and the total are three reserved tracks holding
+   nothing on a booking nobody has priced yet. 145 pixels of every row, empty, on eighteen rows.
+
+   SO THE FIGURE COLUMNS GO WHEN THERE ARE NO FIGURES ON THE CARD, and the value takes the width
+   they were holding. One right edge: the dashes end where the week ends, which is the alignment
+   somebody was asking for.
+
+   PER CARD, NOT PER ROW, and that is the whole care. `is-bare` collapses a single row and the note
+   over it records what that did to a FORM — Subject ran the width of the card and Venue was cut to
+   "Sutton Li…", because which width a field got depended on whether its answer happened to cost
+   anything. Asked of the card, every row answers the same way, so the fields stay identical and
+   the columns still line up down the card.
+
+   AND IT UNDOES ITSELF THE MOMENT ANYTHING IS PRICED. `:has` reads the card's own totals rather
+   than a flag somebody has to set, so there is no second place for "is this priced" to be wrong —
+   which is the fault this stylesheet pays for every time a width is stated twice.
+
+   THE ONE THING IT MUST NOT REACH IS THE BASKET. `is-wide` is two columns already — a title and a
+   price — and hiding its total would take the price off a basket of free things. */
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-m,
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-r,
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-t { display: none; }
+.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-v { grid-column: 2 / -1; }
+
 /* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
    THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three
    figures beside it; a basket row is one long title and one number. In the 4.5em value column a

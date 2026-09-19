@@ -1855,19 +1855,21 @@ function stepGrid_(st) {
   if (!st.grid) return '';
   const g = slotGrid();
   const on = BOOKING.slots || [];
-  const runs = bookRuns();
   /* GREYED WHOLE WHEN THE QUESTION DOES NOT APPLY — a waiting list has no day until it fills, so
      the week is shown and cannot be ticked. Same rule as every other locked row: the thing stays,
      the answering stops. */
   const off = stepLocked_(st);
   if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
   return `<div class="bk-open${off ? ' is-off' : ''}">
-    ${/* THE INSTRUCTION GOES ONCE YOU HAVE FOLLOWED IT. "Two together is a two-hour session" is
-          worth saying to somebody who has ticked nothing and is noise above a week they have
-          already filled in — the runs printed underneath say the same thing in their own hours. */''}
-    ${(off || !runs.length) ? `<p class="faint">${off
-      ? 'A waiting list has no day until it fills — this is settled once the seats are taken.'
-      : 'Two together is a two-hour session; another day is another session.'}</p>` : ''}
+    ${/* THE INSTRUCTION IS GONE AND THE REASON IS NOT, because they were never the same kind of
+          sentence. "Two together is a two-hour session" was a caption on a picture that now says it
+          itself: adjacent ticked hours join into one bar, so the shape on screen IS the sentence,
+          and a line explaining what you can already see is the fault this file records where the
+          roster's name sat above every widget's own heading.
+
+          THE WAITING-LIST LINE STAYS. Nothing else on the card says why a week is drawn and cannot
+          be ticked, and a locked control with no reason beside it is the invisible mode. */''}
+    ${off ? `<p class="faint">A waiting list has no day until it fills — this is settled once the seats are taken.</p>` : ''}
     ${weekGrid_(
       g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
       (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
