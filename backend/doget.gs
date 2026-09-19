@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-19-your-own-name";
+const DOGET_VERSION = "2026-09-19-a-payload-again";
 
 
 function doGet(e) {
@@ -227,9 +227,43 @@ function doGet(e) {
       if (kept) { mark('cache'); return jsonRaw_(kept.slice(0, -1) + ',"cached":true}'); }
     }
 
-    const REQUIRED_TABS = ['people', 'venues', 'jobs', 'events', 'terms',
-                           'links', 'shop', 'pricing', 'config', 'options'];
-    const missingTabs = REQUIRED_TABS.filter(name => !read(name).sheet);
+    /* ---------- THE TABS WHOSE ABSENCE MEANS THE DATABASE IS NOT CONNECTED ----------------------
+       ONE WRITTEN REASON EACH, and it is an object rather than a list of names so there is nowhere
+       to put a tab without saying what breaks without it.
+
+       THIS LIST TOOK THE LIVE SITE DOWN. It was ten names typed out once, and it went stale in a
+       commit that was about something else: `links` left `WHERE` when the links moved into the
+       repository, so `read('links')` can never find a sheet again — and this guard returns its
+       error INSTEAD OF A PAYLOAD, so every screen went dark over a tab the app deliberately no
+       longer has. A FOURTH PLACE THAT NAMES TABS, beside `TAB`, `WHERE` and `SCHEMA`, and the only
+       one nothing was checking.
+
+       `terms` was the same fault a step further back: it had never been required. `termsFor()`
+       COMPUTES the year's terms and reads the tab only to OVERRIDE them, so the app has run
+       without that tab for its whole life — which is why nobody noticed it was in here.
+
+       SO THE BAR IS NOT "the app uses this". It is: with this tab missing the payload is WRONG
+       rather than merely thin — a price of nought, a sign-in that finds nobody, a family's
+       sessions reported as none. Anything softer than that ships as an empty list, which is what
+       every other tab in the payload already does, and is the difference between a thin answer and
+       no answer at all.
+
+       `check-tabs.js` rule 6 is the half a checker can see: a name in here that `WHERE` does not
+       route, or that `SCHEMA` does not describe, can never be found or never be created — either
+       way it is a permanent outage waiting for the next deploy. What it CANNOT see is a routed tab
+       that nobody has run `?setup=1` to create yet, so a name added here still takes the site down
+       until somebody does. */
+    const REQUIRED_TABS = {
+      people:  'nobody can sign in, and every person-keyed screen is empty for everybody',
+      config:  'the switches and numbers the whole app reads through DATA.constants.vars',
+      pricing: 'quotePerHour has nothing to quote from, so a booking is priced at nought',
+      venues:  'the booking form has nowhere to offer, so nothing can be booked',
+      jobs:    "a family's sessions come back as none, which reads as them being cancelled",
+      events:  'the calendar is empty, which is not distinguishable from nothing being on',
+      shop:    'every price and every wearable is gone, and the coins buy nothing',
+      options: 'every dropdown on every admin form comes back blank'
+    };
+    const missingTabs = Object.keys(REQUIRED_TABS).filter(name => !read(name).sheet);
     if (missingTabs.length) {
       /* ---------- WHICH FILE THE TAB SHOULD HAVE BEEN IN ----------------------------------------
          THIS USED TO NAME ONE ID and list one file's tabs, because there was one database. With
@@ -250,7 +284,8 @@ function doGet(e) {
         }
       });
       return jsonOut({ error: 'No ' + missingTabs.map(name => name + ' (expected in ' +
-          ((WHERE[name] && WHERE[name].file) || 'NO FILE — not routed in WHERE') + ')').join(', ') +
+          ((WHERE[name] && WHERE[name].file) || 'NO FILE — not routed in WHERE') +
+          '; without it ' + REQUIRED_TABS[name] + ')').join(', ') +
         '. Either an id in hermes.gs points at the wrong file, or the tab has been renamed — ' +
         'the id is the part of the URL in docs.google.com/spreadsheets/d/<THIS PART>/edit.',
         version: BACKEND_VERSION, sawTabs: sawTabs });

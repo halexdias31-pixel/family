@@ -167,6 +167,16 @@ const SUITE = [
      A sample is not a sweep. This lays every question out in a 320px column and asks whether it
      fits — one page load, no navigation, no lazy fill. */
   { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width' },
+  /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES ------------------------------------------------
+     REPORTED AS "when i first go on site it shows old reels... then i hard refresh then it works
+     fine???" — the service worker decided what a navigation was from `url.pathname === '/'`, and
+     GitHub Pages serves this site from `/family/`. So the entry point fell through to the file
+     branch and matched itself for ever: every visitor pinned to the build that first filed it
+     away. `check/load.js` could never have caught it — it serves the repository at `/`, where the
+     guess is true, and it measures TIMES AND BYTES, both of which a stale load flatters. This one
+     asks the question neither can: after a deploy, does the browser run the new code. Deterministic,
+     seven seconds, and it runs at both base paths because the base path is what hid the fault. */
+  { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site' },
 ];
 
 let failed = 0, noted = 0;

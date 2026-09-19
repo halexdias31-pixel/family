@@ -4445,8 +4445,22 @@ function bookingPages_(o) {
      THE SECOND QUESTION, NOT A LIST OF ITS ANSWERS. Written as "has `kindLabel` been answered at
      all", so a kind added later — a coupon, a pass, whatever comes next — needs nothing added
      here. A rule naming the answers it applies to is a rule that goes stale on the next one. */
+  /* ---------- AND THE COLUMN IS EXEMPT FROM THIS TOO, WHICH IT WAS NOT -------------------------
+     THE LINE FIVE ABOVE ALREADY SAYS WHY: the booking column has no funnel state, because nobody
+     answered `What for` to get there — they swiped. That exemption was written for `forIs_` and
+     not repeated here, so an answer given on a DIFFERENT SCREEN emptied this one.
+
+     MEASURED: narrow the funnel to `What kind · Questions`, then repaint the booking column —
+     which `load()` does after every save, and every `Try again` — and `bookingPages_` returns an
+     empty list. The form, the receipt for the session you just booked and the basket all go, on
+     the app's main column, with nothing on screen saying why. `go('booking')` alone does not do
+     it, which is exactly why it survived: you have to narrow, swipe over, and then save something.
+
+     FOUND BY A CHECK THAT COULD NOT REACH ITS SUBJECT, which is this repository's oldest shape:
+     `check/ui.js` gained a state for the session receipt, the state repainted the column, and the
+     column came back with zero pages — after the `stuff` states had left a `kindLabel` filter set. */
   const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
-  if (narrowed) return [];
+  if (!(o && o.column) && narrowed) return [];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
   /* ---------- THE BASKET BELONGS TO BOOKING, AND WAS FILED UNDER THE FUNNEL ----------------------
      IT SAT ON THE `stuff` COLUMN, between the saved things and the first result. The layout sheet

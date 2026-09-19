@@ -227,6 +227,75 @@ const STATES = {
       wants: 'the flyer drawn on screen' },
   ],
 
+  /* ---------- AND A SESSION RECEIPT, WHICH THIS FILE HAS NEVER HAD ON THE SCREEN ----------------
+     MEASURED, SIGNED IN, AGAINST THE REAL FIXTURE: the booking column draws ONE page and it is the
+     form. `myJobs_()` keeps the sessions whose `client` or `tutor` is the visitor, and the
+     fixture's one job names neither — so `bookBlocks` returns the form and nothing else, and
+     `booking: nothing to report` has meant that single page at four widths on every run.
+
+     THE RECEIPT IS THE MOST-COMPLAINED-ABOUT CARD IN THE APP and it was outside the measurement
+     the whole time. That is the `dm` note one column along, and the booking-screen-signed-out note
+     before it, for a third time — and it is what let `Per session` wrap its label on every receipt
+     ever drawn while a hundred and four combinations came back clean.
+
+     SEEDED THROUGH THE PAYLOAD, NOT THE MARKUP. `DATA.liveJobs` is what `myJobs_` reads, so a job
+     naming the signed-in visitor as its client is the state the app is in a moment after `load()`
+     — the app's own door, the same move the seeded thread and the seeded visitor both make.
+
+     ONE SESSION WITH EVERY ROW FILLED IN, because the fault this state exists to catch is a label
+     or a value that does not fit its column, and a row with nothing in it cannot show one. Six
+     dates so the `Dates` row has a range and a count; a price so the total row draws; a venue name
+     as long as a real one. */
+  booking: [
+    /* THE FORM STAYS ON THE LIST — declaring states replaces the unnamed one, and the form is the
+       page everybody arrives on. Same first line as `tools` and `dm`, for the same reason. */
+    { name: '' },
+    { name: 'a session receipt',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        DATA.liveJobs = [{
+          id: 'J-UI', jobId: 'J-UI', title: 'GCSE Maths, Tuesday 4pm',
+          subject: 'Maths', level: 'GCSE', students: '2',
+          venue: 'Colliers Wood Library', clientHosts: '',
+          weekday: 'Tuesday', time: '16:00', hours: '1.5', term: 'Autumn 2026',
+          kind: 'session', splitEmails: '', tutor: 'Ada Tutor', client: USER.name,
+          sessionDates: '06/10/26, 13/10/26, 20/10/26, 27/10/26, 03/11/26, 10/11/26',
+          startDate: '06/10/26', endDate: '10/11/26',
+          price: '270', tutorPay: '135', stage: 'accepted', status: 'accepted',
+        }];
+        paint('booking');
+        /* PAGE BY POSITION IS WRONG HERE and `jobPageAt_` is the app's own answer: it reads the
+           same ordered list the pages are built from, so this cannot land on the form because
+           something moved. */
+        goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('J-UI') : 1, true);
+      },
+      expect: () => document.querySelectorAll('#s-booking .rc .bk-row').length,
+      wants: 'a receipt with rows on it' },
+    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ----------------------------
+       `basketPages()` RETURNS NOTHING WHEN `CART` IS EMPTY — deliberately, because "your basket is
+       empty" is a whole pane whose content is the word no. And `CART` lives in `localStorage`, not
+       in the payload, so no fixture can put anything in it: this column has drawn the form and
+       nothing else on every run this file has ever made.
+
+       SEEDED THE WAY THE APP FILLS IT. `CART` is what `basketPages` reads and `cart-add` writes,
+       so setting it is the state a moment after somebody pressed Add to basket.
+
+       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
+       sized in `ch` of a proportional font and drawn in mono at 1.05rem bold — and `£2050.00` is
+       one character wider than `£270.00`, which is the difference between a finding and a pass. */
+    { name: 'the basket',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        CART = [{ key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
+                  cost: 0, money: 120000 },
+                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
+        paint('booking');
+        goPage('booking', pageCount('booking') - 1, true);
+      },
+      expect: () => document.querySelector('#s-booking [data-do="cart-send"]'),
+      wants: 'a basket with a way to pay on it' },
+  ],
+
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------
      MESSAGES ARE A POST ACTION, NOT A PAYLOAD KEY — deliberately, because a conversation is private
      and the GET payload goes out whole to whoever asks for it. So `check/fixture.json` cannot carry

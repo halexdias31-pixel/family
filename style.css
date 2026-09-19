@@ -5673,7 +5673,61 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    said `3ch 4.4rem` — the widths the main rule used before it was widened for "Possession" — so a
    bare row's label started in a different place from a priced one's, on the same card. Third copy of
    the same fault: a width stated twice and the second one forgotten. */
-.bk-row.is-bare { grid-template-columns: 6.2em minmax(0, 1fr); }
+.bk-row.is-bare { grid-template-columns: minmax(6.2em, max-content) minmax(0, 1fr); }
+/* ---------- AND THE LABEL COLUMN GIVES WAY WHEREVER NOTHING BESIDE IT WANTS THE ROOM -------------
+   THE RULE OVER `.bk-row.is-blank` SAYS "a row with a real value keeps the fixed column, because
+   there the two columns are genuinely competing for the width" — and on the RECEIPT they are not.
+   Measured at 390px on a real session: `Per session` had a 68x30 label box, on two lines, beside a
+   230px value column holding "1.5 hours". The label broke in half while two thirds of the room
+   next to it went unused.
+
+   SO THE FIX LANDED ON THE DASHES AND NOT ON THE ROWS SOMEBODY READS, which is this repository's
+   own sentence about `cost: 0` and `paper: true` — repaired in the instance, not in the rule. It
+   is the third round of the same fault: four labels shortened, then `max-content` for the blanks,
+   and `Per session` still wrapping on every receipt in between.
+
+   `minmax` RATHER THAN `max-content`, which is what the main rule tried and reverted: an unbounded
+   `max-content` lets a long label hold the column open and squeeze the value ("No prefer- / ence").
+   A floor of 6.2em keeps every receipt's labels starting in the same place as the form's, and the
+   ceiling is the label itself — so it takes what it needs and not a pixel more, at any length
+   somebody adds later.
+
+   `rc-total` IS THE SAME SHAPE ONE ROW DOWN. Its figure is in the LAST column, so the three
+   columns beside the label are empty — and `It would come to` is sixteen characters in a 6.2em
+   column, which the note over `aside` already noticed and worked around by deleting something
+   else. There is nothing there for a wider label to take. */
+/* ---------- AND `.rc-total`'s OWN COLUMNS HAD NEVER APPLIED --------------------------------------
+   IT DECLARES `auto minmax(0, 1fr) max-content` UP AT ITS OWN BLOCK — three tracks, because it
+   hides `bk-n`, `bk-v` and `bk-m`, so three children are left: the label, the note, the figure. And
+   `.rc-total` is ONE class while `.bk-row` is one class sixty lines LATER, so the cascade settles
+   the tie by order and the total row has been drawn on the five-column booking grid since the day
+   that line was written. Its figure landed in a `7ch` track and overflowed it by 18px on a receipt
+   and 28px in the basket.
+
+   FOURTH CONVICTION OF THIS RULE IN THIS STYLESHEET, after `.price.faint`, `--fly-ink` and
+   `.bk-row.is-blank` — which was written beside `is-blank` and lost to `is-bare` 3,000 lines down.
+   A declaration that reads as a decision and behaves as nothing.
+
+   SO IT IS RESTATED WHERE IT WINS, with the three tracks it always meant, and the note above it
+   is left where it is because it explains WHY the label may wrap. */
+.bk-row.rc-total { grid-template-columns: auto minmax(0, 1fr) max-content; }
+/* ---------- AND THE FIGURE COLUMN WAS NEVER WIDE ENOUGH FOR THE FIGURE ---------------------------
+   `£270.00` OVERFLOWED ITS OWN COLUMN BY 18px, and `£2050.00` in the basket by 28. Three facts
+   meet and each is reasonable on its own: the track is `7.5ch`, `ch` is measured against the ROW's
+   proportional font, and `.bk-t` renders in `--mono` — at `1.05rem` and `700` on the total row,
+   which is the one place the figure is deliberately bigger than everything around it. A column
+   sized for seven narrow characters, handed eight wide ones in bold.
+
+   `max-content` ON THE LAST COLUMN ONLY, and only on the two rows where nothing competes for it:
+   a total row has an empty value column beside it, and a basket line is a title and a price. Every
+   other row keeps the fixed 7.5ch, because there the figures have to line up DOWN the card and a
+   per-row width is exactly what would stop them.
+
+   NEITHER OF THESE HAD EVER BEEN LOOKED AT. `check/ui.js` had no receipt state until now, and the
+   basket draws nothing unless `CART` has something in it — which a fixture cannot put there,
+   because it lives in `localStorage`. Both are declared states in that file now, and both findings
+   came from their first run. */
+.bk-row.is-wide { grid-template-columns: minmax(0, 1fr) max-content; }
 /* ---------- AND A BLANK ROW'S LABEL COLUMN GIVES WAY INSTEAD OF THE LABEL -------------------------
    THE COLUMN GIVES WAY, NOT THE LABEL, and the first version of this got that backwards. `Extra
    subj.` and `Per session` are the only two of the spine's twenty-eight labels one character too
@@ -5701,7 +5755,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    TWO COLUMNS: the name takes everything going, the total keeps its width. The label, the line
    number, the multiplier and the rate are not hidden because they are unwanted — they are empty,
    and an empty column is width taken from the only one that needs it. */
-.bk-row.is-wide { grid-template-columns: minmax(0, 1fr) 7.5ch; }
+/* `is-wide`'s COLUMNS ARE SET BELOW, beside `rc-total`, because both needed the same repair and a
+   width stated twice is the fault the note over `is-bare` already records. */
 .bk-row.is-wide .bk-n, .bk-row.is-wide .bk-k,
 .bk-row.is-wide .bk-m, .bk-row.is-wide .bk-r { display: none; }
 /* LEFT, AND IN THE ORDINARY INK. A title reads from the left like a title, not right-aligned like a
