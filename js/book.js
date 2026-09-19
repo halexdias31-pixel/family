@@ -1793,6 +1793,41 @@ function slotHead_(hours) {
   </div>`;
 }
 
+/* ---------- AND THE WEEK ROUND IT, BECAUSE THERE WERE THREE OF THESE ------------------------------
+   THE SAME SEVEN ROWS WERE WRITTEN OUT IN THREE PLACES: the booking form, `jobGrid_` on the
+   receipt, and `availGrid_` in `me.js` — where a TUTOR ticks the hours they can teach. That third
+   one carries its own note saying *"the same grid the booker uses … answering it in two different
+   shapes would be two things to learn"*, and the hour header proved the note right by breaking it:
+   two of the three gained a header row and a joined bar, and the tutor's kept printing all
+   seventy-seven numbers. A comment forbidding the drift is not a thing that stops it.
+
+   WHAT DIFFERS BETWEEN THEM IS THE CELL AND NOTHING ELSE. One is a button you press, one is a
+   button you cannot, one is a label wrapping a checkbox `me-save` reads. So the cell is the
+   argument and everything round it — the header, the day label, the row, which days collapse —
+   is here, once.
+
+   `days` IS `[{ label, hours, shut }]` and `cell(hour, day)` returns the innards. The hours of the
+   first day name the columns, which is true by construction everywhere this is used: `slotGrid()`
+   builds one hour span and every day maps over it, the receipt counts 10 to 20, and a tutor's
+   codes are that same span grouped by prefix. */
+function weekGrid_(days, cell) {
+  const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
+  return `<div class="slot-grid">
+    ${slotHead_(cols)}
+    ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
+          nobody works are different facts, which is the same reason a shut hour is greyed rather
+          than removed — but it does not need a thumb-sized row, because there is nothing on it to
+          press. Four working days and three closed ones costs half what seven equal rows did. */''}
+    ${days.map(d => `<div class="slot-row${d.shut ? ' is-shut' : ''}">
+      ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell’s width — and Mo/Tu/
+            We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
+            T and S are each two days. */''}
+      <span class="slot-day">${esc(String(d.label).slice(0, 2))}</span>
+      <div class="slot-hours">${d.hours.map(h => cell(h, d)).join('')}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
 /* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
    THE LAST PANEL, AND THE ONE WORTH KEEPING AS A GRID. Every other question is a list, and a list is
    a dropdown. Hours are not: which hours are free across a week is a SHAPE — you read it by seeing
@@ -1833,33 +1868,19 @@ function stepGrid_(st) {
     ${(off || !runs.length) ? `<p class="faint">${off
       ? 'A waiting list has no day until it fills — this is settled once the seats are taken.'
       : 'Two together is a two-hour session; another day is another session.'}</p>` : ''}
-    <div class="slot-grid">
-      ${slotHead_((g.rows[0] || { hours: [] }).hours.map(x => x.h))}
-      ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
-            nobody works are different facts, which is the same reason a shut hour is greyed rather
-            than removed — but it does not need a thumb-sized row, because there is nothing on it to
-            press. Four working days and three closed ones costs half what seven equal rows did. */''}
-      ${g.rows.map(r => `<div class="slot-row${
-        r.hours.some(h => h.open) ? '' : ' is-shut'}">
-        ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell's width — and Mo/Tu/
-              We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
-              T and S are each two days. */''}
-        <span class="slot-day">${esc(r.label.slice(0, 2))}</span>
-        <div class="slot-hours">
-          ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
-            (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
-            ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
-                  are already teaching are the same grey box, and only the second is worth trying a
-                  different week for. */''}
-            title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
-            ${/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hour in the header row the box
-                  is empty, and an empty button has no accessible name at all — so the day and the
-                  hour are said here, which is more than the bare numeral ever managed. */''}
-            aria-label="${esc(r.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
-            data-do="book-slot" data-code="${esc(h.code)}"></button>`).join('')}
-        </div>
-      </div>`).join('')}
-    </div>
+    ${weekGrid_(
+      g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
+      (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
+        (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
+        ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
+              are already teaching are the same grey box, and only the second is worth trying a
+              different week for. */''}
+        title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
+        ${/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hour in the header row the box is
+              empty, and an empty button has no accessible name at all — so the day and the hour
+              are said here, which is more than the bare numeral ever managed. */''}
+        aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
+        data-do="book-slot" data-code="${esc(h.code)}"></button>`)}
     ${/* THE RUNS LINE WAS HERE — "Monday 13:00–15:00" under the grid. It is the When row's value
           now, in full, which is where an answer belongs: a line under the control repeating what the
           control just decided is the card saying one thing in two places, and the row was the one
@@ -2808,27 +2829,18 @@ function jobGrid_(j) {
   const hours = [];
   for (let h = 10; h <= 20; h++) hours.push(h);
   return `<div class="bk-open is-off">
-    <div class="slot-grid">
-      ${/* THE FORM'S MARKUP, DOWN TO THE CLASS NAMES. The first version wrote `.slot-cell` spans
-            because they only had to be readable — and a receipt drawn with different elements is a
-            receipt that will drift the next time the grid is restyled, which is the whole thing
-            this exercise is trying to stop. Same `.slot-row`, same `.slot-day`, same `.slot-hours`,
-            same `button.hr`. Disabled, because nothing on a receipt is answerable. */''}
-      ${slotHead_(hours)}
-      ${SLOT_DAYS.map(([, label]) => {
-        const isDay = norm(label) === day;
-        return `<div class="slot-row">
-          <span class="slot-day">${esc(label.slice(0, 2))}</span>
-          <div class="slot-hours">
-            ${hours.map(h => {
-              const on = isDay && isFinite(start) && h >= start && h < start + hrs;
-              return `<button class="hr${on ? ' on' : ''}${on ? '' : ' shut'}" disabled
-                title="${h}:00" aria-label="${esc(label)} ${h}:00"></button>`;
-            }).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
+    ${/* THE FORM'S OWN BUILDER, NOT A COPY OF ITS MARKUP. The first version wrote `.slot-cell`
+          spans because they only had to be readable — the second wrote out the form's classes by
+          hand, which held until the hour header arrived and had to be added in two places. One
+          `weekGrid_`, three cells; see the note over it. Disabled, because nothing on a receipt is
+          answerable. */''}
+    ${weekGrid_(
+      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours, on: norm(label) === day })),
+      (h, d) => {
+        const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
+        return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
+          title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
+      })}
   </div>`;
 }
 

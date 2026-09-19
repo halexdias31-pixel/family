@@ -215,16 +215,38 @@ const STATES = {
        warning nobody can act on is the kind of red this file's own `ACCEPTED_TAP` note is about.
        `only` says who a state belongs to. It is skipped rather than failed, and the summary lists
        it as not reachable — which is the honest answer and still not silence. */
+    /* ---------- THE PAGE NUMBER COMES FROM THE LIST THE COLUMN IS BUILT FROM --------------------
+       THIS COUNTED `allWidgets()` AND THE COLUMN DRAWS `widgetsOf_()`, which is that list with the
+       gated ones taken out. The two agreed for an admin, who is gated out of nothing, so the flyer
+       state was right by luck rather than by construction — and the moment a widget appeared that
+       an admin does NOT see, every index after it would have pointed one page off with nothing
+       saying so. Same fault as a pager that counts for itself: two readings of one list.
+       `expect` would have caught it, loudly, which is the other half of why states declare one. */
     { name: 'the flyer maker',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
-        const n = allWidgets().filter(w => w.kind === 'tool')
-          .findIndex(w => String(w.id) === 'flyers');
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'flyers');
         if (n < 0) throw new Error('no flyer widget in the roster');
         goPage('tools', n, true);
       },
       expect: () => document.querySelector('#s-tools #fm-out .fm-sheet'),
       wants: 'the flyer drawn on screen' },
+
+    /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------
+       THE SEVENTY-SEVEN CELLS OF A WEEK GRID, on a card nobody had measured, in the one place this
+       file could not reach before: `widgetsOf_` shows it to a tutor or an admin and to nobody
+       else, and the column fills whichever pages it happens to stop on. A state is the only thing
+       that puts it on the screen every run — which is the sentence this project already writes
+       about the booking receipt and the message thread. */
+    { name: 'a tutor\'s teaching hours',
+      only: () => typeof isTutorRole === 'function' && isTutorRole(),
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'avail');
+        if (n < 0) throw new Error('no availability widget in the roster');
+        goPage('tools', n, true);
+      },
+      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length > 70,
+      wants: 'the week of hours drawn on screen' },
   ],
 
   /* ---------- AND A SESSION RECEIPT, WHICH THIS FILE HAS NEVER HAD ON THE SCREEN ----------------

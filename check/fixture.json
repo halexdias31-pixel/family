@@ -348,7 +348,19 @@
   ],
   "columns": {},
   "avatarItems": [],
-  "profileFields": [],
+  "profileFields": {
+    "About you": ["first_name", "last_name", "photo"],
+    "Where": ["borough", "city"],
+    "When I can teach": [
+        "m09", "m10", "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18", "m19",
+        "tu09", "tu10", "tu11", "tu12", "tu13", "tu14", "tu15", "tu16", "tu17", "tu18", "tu19",
+        "w09", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19",
+        "th09", "th10", "th11", "th12", "th13", "th14", "th15", "th16", "th17", "th18", "th19",
+        "f09", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19",
+        "sa09", "sa10", "sa11", "sa12", "sa13", "sa14", "sa15", "sa16", "sa17", "sa18", "sa19",
+        "su09", "su10", "su11", "su12", "su13", "su14", "su15", "su16", "su17", "su18", "su19"
+    ]
+  },
   "studentFields": [],
   "clientFields": [],
   "profileReadonly": [],

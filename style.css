@@ -2789,7 +2789,23 @@ button.text-drop { color: var(--bad); }
 .hr.shut { opacity: .28; cursor: not-allowed; }
 /* The checkbox inside a ticked hour is what the form reads and what nobody should see — the box
    itself is the control. Hidden without leaving the layout, so a tap anywhere on it still counts. */
-.hr input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; pointer-events: none; }
+/* ---------- IT SAID `width: 0; height: 0` AND THE ELEMENT MEASURED 24 × 44 -----------------------
+   `input, select, textarea` up at line 535 sets `min-height: max(44px, 2.9rem)` and
+   `padding: .7rem .75rem` on every input in this stylesheet, and NEITHER of those is `width` or
+   `height`: a `min-height` clamps a height of zero back up to 44, and `box-sizing: border-box`
+   will not take a width below its own padding. So this rule read as "take no room" and the box
+   was a fingertip tall and twenty-four wide, invisible, for as long as it has existed.
+
+   NOTHING COULD SEE IT UNTIL THE BRIDGE ARRIVED. It is `position: absolute`, so it was laid out
+   against whatever positioned ancestor it found — a card or a pane, wide enough to swallow it.
+   Giving `.hr` `position: relative` for the joined-bar bridge made the CELL that ancestor, and
+   `check/ui.js` reported `label.hr overflows by 4px` at 320px the first run after a tutor's grid
+   was put on the screen. The `.price.faint` shape again: a declaration that reads as a decision
+   and behaves as nothing, found the moment something finally measured it.
+
+   THE THREE PROPERTIES THAT WERE MISSING are the three the global rule sets. */
+.hr input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; pointer-events: none;
+            min-height: 0; padding: 0; border: 0; }
 .hr:has(input:checked) { background: var(--gold); border-color: var(--gold); color: #000;
                          font-weight: 650; }
 /* `:has` is recent. Without it the class set when the sheet is drawn still marks the ticked hours —
