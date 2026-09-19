@@ -2043,7 +2043,31 @@ const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '' };
 
    ANYTHING NOT ON THE SPINE KEEPS ITS PLACE AT THE END — the day rows, the seat lines, whatever a
    branch prints for itself. The spine fixes the skeleton, not every bone. */
-function spineRows_(rows) {
+/* ---------- AND ONE OF THE TWO DOCUMENTS DOES NOT WANT THE DASHES --------------------------------
+   REPORTED AS "its so fucking clunky long looking", about the receipt. Measured at 390px on a real
+   session — subject, level, tutor, venue, six dates, a price: the card is 683px and **fourteen of
+   its twenty-eight rows are a dash**, 168px of it, a quarter of the document spent saying nothing
+   fourteen times.
+
+   THE ARGUMENT ABOVE IS ABOUT A DOCUMENT YOU FILL IN, and it is right about one. "You find a line
+   by where it is" is how you use a FORM: the rows you have not answered yet are the rows you are
+   about to, and one appearing under your thumb as you answer moves everything below it — which is
+   the complaint this file already records about the week grid folding. A form keeps its dashes.
+
+   A RECEIPT IS NOT FILLED IN. It is read once, about one session, and nobody counts down it to find
+   `Tutor` — they look for the word. A row that says a fact does not exist is not a fact; on a
+   printed receipt it is the line the shop leaves off.
+
+   THE SPINE IS UNTOUCHED AND SO IS ITS GUARD. This changes which rows are DRAWN, not what a row is
+   called or where it sits: what survives is still in spine order, `SPINE_ALIAS` still resolves the
+   old names, and `check-spine.js` reads the LABELS both builders push rather than the markup — so
+   the drift it exists to stop (`Seats` against `Students`, `Space` against `Host`) is caught
+   exactly as before. Proved by putting a stray label back.
+
+   `fill` DEFAULTS TO TRUE, so the form is the untouched caller and the receipt is the one that asks
+   for something different. A default that changes the form's behaviour from a line in the receipt's
+   builder is the kind of action at a distance this file keeps finding. */
+function spineRows_(rows, opts) {
   const say = {};
   const extra = [];
   rows.forEach(r => {
@@ -2056,11 +2080,12 @@ function spineRows_(rows) {
     if (SPINE.indexOf(k) === -1) { extra.push(r); return; }
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
   });
-  const out = SPINE.map(k => say[k] || {
+  const fill = !opts || opts.fill !== false;
+  const out = SPINE.map(k => say[k] || (fill ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
        the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`. */
     n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true, blank: true,
-  });
+  } : null)).filter(Boolean);
   return out.concat(extra);
 }
 
@@ -2616,9 +2641,24 @@ function jobRows(j) {
   const dates = String(j.sessionDates || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean);
   /* THE SAME SPAN AS THE BOOKING CARD — see the note there. A job's receipt and the form it came
      from must not disagree about how a run of dates is written. */
+  /* ---------- HOW MANY DATES IS NOT A FIGURE, AND THE FIGURE COLUMN IS SIZED FOR MONEY -----------
+     "6 dates" WAS IN THE TOTAL COLUMN AND OVERFLOWED IT BY 18 TO 21 PIXELS at all four widths.
+     Two things meet: `.bk-t` is `--mono`, and the column is `7.5ch` measured against the ROW's
+     proportional font — so a track sized for seven narrow characters was handed seven wide ones.
+     It is exactly wide enough for `£270.00`, which is what it was measured for, and every other
+     thing that column has ever held is money.
+
+     SO THE COUNT GOES WITH THE DATES, which is the fact it is about: a run of dates and how many
+     there are is one answer, not a value and a total. The row carries no figure now, so it takes
+     the whole width — which also stops the range itself wrapping to two lines in a 71px column.
+
+     FOUND BY `check/ui.js` ON ITS FIRST RUN WITH A RECEIPT ON THE SCREEN. It had never had one —
+     see the note beside the `booking` state in that file — so this had been on every receipt with
+     more than one date for as long as receipts have had dates. */
   push('Dates', !dates.length ? '—'
-    : dates.length === 1 ? dates[0] : dates[0] + ' – ' + dates[dates.length - 1],
-    dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
+    : (dates.length === 1 ? dates[0] : dates[0] + ' – ' + dates[dates.length - 1])
+      + (dates.length > 1 ? '  ·  ' + dates.length + ' dates' : ''),
+    '', { free: true, dates: true });
 
   /* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor
      sees what they earn; an admin sees both and the difference. Same receipt, three readings —
@@ -2645,10 +2685,11 @@ function jobRows(j) {
   push('Stage', jobSaid_(j), '', { free: true });
   push('Status', jobStatusSaid_(j), '', { free: true });
   if (j.createdAt) push('Asked for', String(j.createdAt), '', { free: true });
-  /* THE SAME ORDER THE FORM USES, and a dash for every question this job cannot answer — see
-     `SPINE`. A receipt that reshuffles what somebody just filled in is a receipt they have to read
-     from scratch. */
-  return spineRows_(rows);
+  /* THE SAME ORDER THE FORM USES, so a receipt does not reshuffle what somebody just filled in —
+     and NOT a dash for every question this job cannot answer. See the note over `spineRows_`: the
+     dashes are what makes a form readable while it is being filled in, and they are a quarter of a
+     receipt spent saying nothing fourteen times. Order from the spine, rows from the booking. */
+  return spineRows_(rows, { fill: false });
 }
 
 /** A job, on the same paper a booking is drawn on. */
