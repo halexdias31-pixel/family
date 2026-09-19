@@ -2437,13 +2437,53 @@ function companyAtoms_(v) {
   return key && key !== said.toLowerCase() ? said + ' ' + key : said;
 }
 
-function searchText_(r) {
-  return String((r && (r.html || '')) + ' ' + (r && (r.lead || '')))
+/* ---------- MARKUP INTO WORDS, IN ONE PLACE ------------------------------------------------------
+   LIFTED OUT WHEN THE PRACTICALS NEEDED IT. A question's haystack is built from `html` and `lead`;
+   a practical's is built from a dozen plain columns — but a `&frasl;` or a `<b>` in either is the
+   same thing to a person typing into the search box, and two copies of that list of entities is
+   two chances for one of them to be handled in one haystack and not the other. Same sentence this
+   file writes about `documents_()`, `factsNow_` and `childrenOf`. */
+function plainText_(s) {
+  return String(s == null ? '' : s)
     .replace(/<[^>]*>/g, ' ')
     .replace(/&(nbsp|amp|lt|gt|minus|frasl|deg|pi|times|divide|radic|rsquo|ldquo|rdquo|mdash);/g, ' ')
     .replace(/&[a-z]+;|&#\d+;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function searchText_(r) {
+  return plainText_((r && (r.html || '')) + ' ' + (r && (r.lead || '')));
+}
+
+/* ==================================================================================================
+   `practicalText_` — THE GUIDE IS WHAT SOMEBODY IS LOOKING FOR, AND THE SEARCH COULD NOT SEE IT.
+
+   MEASURED BEFORE IT WAS WRITTEN: **0 of the 57 practicals carried a `text` at all.** The haystack
+   in `stuffFind` is `name + sub + subject + slot + grade + text`, so a practical was findable by
+   its title and by nothing else. `goggles`, `thermistor`, `nichrome`, `foil`, `tray` and `limiting
+   reactant` each returned NOTHING, and every one of those words is in the row somebody was looking
+   for. The handful of words that did hit — `bicarbonate`, `trundle`, `chromatography` — hit the
+   NAME, which is a coincidence rather than a search: the volcano happens to be called "Volcano —
+   bicarbonate and vinegar".
+
+   THIS IS THE `topics` FIX AND THE `company` FIX ONE DATA FILE ALONG, and the sentence is the same
+   both times: the words are in the row and the search box cannot see them, so a screen whose whole
+   job is finding things returns nothing for the thing it holds. There it was one column; here it is
+   the entire guide — the kit, the method, the hazards, the variables and the science.
+
+   BUILT ONTO THE ITEM, NOT MATCHED PER KEYSTROKE, which is what those two notes also say:
+   `stuffItems` is memoised on the payload and runs once, and `stuffFind` runs on every letter.
+
+   A REFUSED EXPERIMENT IS SEARCHABLE TOO, deliberately. Those five rows exist so that a tutor
+   asking why they are not burning magnesium ribbon finds the answer instead of an absence — and a
+   reason nothing can search for is an absence with a row behind it. */
+function practicalText_(p) {
+  return plainText_([p.aim, p.outcome, p.science, p.safety, p.feasible, p.venue, p.excluded,
+                     p.notes, p.mathsLink, p.specRef, p.hazard,
+                     (p.equipment || []).join(' '), (p.steps || []).join(' '),
+                     (p.risks || []).join(' '), (p.variables || []).join(' '),
+                     (p.log || []).join(' ')].filter(Boolean).join(' '));
 }
 
 /* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
@@ -3886,6 +3926,11 @@ function stuffItemsRaw_() {
          already reads `needs` as a comma-list. */
       needs: [p.venue === 'lab' ? 'Lab' : '', p.feasible === 'needs a lab' ? 'Lab' : '']
              .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', '),
+      /* EVERY WORD OF THE GUIDE, so the thing you are looking for is what you can search by. The
+         topics go in alongside it for `topicAtoms_`'s reason — a practical's `topics` cell is the
+         only place that says a trundle wheel is about perimeter, and the words are printed nowhere
+         else on the card. See `practicalText_`. */
+      text: practicalText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
     })),
 

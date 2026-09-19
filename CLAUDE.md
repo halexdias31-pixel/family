@@ -6355,3 +6355,77 @@ open guide would otherwise have been counted as part of Tools and Games.
 
 **Proved by mutation**: `white-space: nowrap` on `.gd-ask` names `stuff · a practical guide` at all
 four widths and both visitors; the real files report nothing new across 128 combinations.
+
+### The guide is what somebody is looking for, and the search box could not see a word of it
+
+**Said as "all of the guides are resources i guess which can be found in finder".** Measured before
+anything was changed: **0 of the 57 practicals carried a `text` at all.** `stuffFind`'s haystack is
+`name + sub + subject + slot + grade + text`, and `text` is the only one of those that holds a
+thing's own WORDS — every other entry is a label. So a practical was findable by its title and by
+nothing else.
+
+| typing | before | after |
+|---|---|---|
+| `goggles` | **0** | **13** |
+| `stopwatch`, `ruler` | **0** | 18 each |
+| `tray` | **0** | 11 |
+| `nichrome`, `foil`, `magnesium ribbon` | **0** | 2 each |
+| `limiting reactant`, `perimeter` | **0** | 1 each |
+| `bicarbonate` | 1 | 4 |
+
+**The handful that did hit were hitting the NAME, which is a coincidence rather than a search** —
+the volcano happens to be called *"Volcano — bicarbonate and vinegar"*, and `trundle` and
+`chromatography` are titles too. Every word in the first five rows of that table is sitting in the
+row somebody was looking for.
+
+**This is the `topics` fix and the `company` fix one data file along**, and the sentence is the same
+all three times: the words are in the row, the search box cannot see them, and a screen whose whole
+job is finding things returns nothing for the thing it holds. There it was one column; here it is
+the whole guide — the kit, the method, the hazards, the variables and the science. **Built onto the
+item, not matched per keystroke**, which is what those two notes also say. 1,558 characters a
+practical, and a search still measures 1 ms over 4,963 items.
+
+**A refused experiment is searchable too, deliberately.** Those five rows exist so a tutor asking
+why they are not burning magnesium ribbon finds the answer instead of an absence — and a reason
+nothing can search for is an absence with a row behind it. `magnesium ribbon` returns both.
+
+**`plainText_` came out of `searchText_`** rather than being written twice: a `&frasl;` or a `<b>`
+is the same thing to a person typing into the search box whichever column it came from, and two
+copies of that entity list is two chances to handle one of them in one haystack and not the other.
+
+**One thing is deliberately NOT searchable**: the public-liability sentence. It is drawn from
+`venue === 'home'` and is in no row, so `public liability` returns nothing while `home` returns all
+of them. The fact is the venue; the sentence is the rendering.
+
+#### `check-funnel.js` prints what the search box can see, per kind — and could not see it
+
+**The instrument that would have caught this is a count**, so it is one now: items per kind whose
+own words are in the haystack. **Printed rather than failed**, and that is the `figure` argument
+rather than laziness — a boxer's card is a record with no prose on it, and demanding a haystack of
+one would mean inventing words to satisfy a checker. What the number is for is the other direction:
+a kind that HAS words and stops shipping them.
+
+**Its first run reported `question`, `venue` and `tutor` and did not mention the practicals at
+all.** The harness's `fetch` stub answers `questions.json` with the real library and **everything
+else with the fixture**, so `data/practicals.json` came back as a payload object rather than an
+array and the mapper built nothing. So the check was blind to the one kind it was written for — *a
+check that cannot fail is not a check*, and this one could not have. Found by reading its own output
+rather than by trusting that it ran, which is the same move as the probe that reported clean on the
+`and`/`&` spellings.
+
+**Proved by mutation** with the line put back: `practical 0 of 57 — findable by its name and nothing
+else`.
+
+#### And `Resources` in the funnel now means boxing
+
+**Worth knowing before anybody files anything under that word.** Measured under `What for ·
+Learning`: **Questions 4,906 · Resources 260 · Practicals 57** — and those 260 are the boxers and
+the fights. `KINDS` gives `boxer` and `fight` the label `Resources`, and the note above it says why:
+*"like a topic and a past paper, because that is what the second question is asking"*. **Both of
+those are gone** — `topic` was deleted when the funnel started listing questions, and `question`
+was given its own label — so the word is now doing no work it was chosen for and names one subject.
+
+**Not renamed here**, because the `kinds` tab owns a label with no deploy and which word goes on a
+button is a judgement rather than a repair. Written down so it is a decision rather than a leftover
+— the shape this file already records under `resource_type` in `VOCAB` and the dead
+`kind === 'paper'` guard.
