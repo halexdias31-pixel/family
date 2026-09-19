@@ -31,6 +31,9 @@
         plausible Drive id, not a URL and not blank.    `openById` cannot read a cell of one.
      5. Nothing in `WHERE` is unknown to `TAB`/`SCHEMA`. Routing for a tab nothing reads — harmless,
                                                         so it prints and does not fail.
+     6. Every tab in `REQUIRED_TABS` is routed AND     doGet answers with an ERROR rather than a
+        described. It is the fourth place that         payload when one is missing, so an
+        names tabs and nothing was reading it.         unreachable name here is the whole site.
 
    WHAT IT CANNOT CHECK, and this matters: whether the tab is actually in that spreadsheet. That
    needs the file, and this runs in Node with no Drive. `checkTabs()` in the backend answers it from
@@ -63,17 +66,23 @@ const src = fs.readFileSync(CONSTANTS, 'utf8');
    Brace-counting rather than a regex, because every one of these objects has comments in it with
    braces and apostrophes in the prose. Comments are stripped from the SLICE, not from the whole
    file, so a `/*` inside a string elsewhere cannot shift the boundaries of this one. */
-function objectAfter_(name) {
-  const at = src.indexOf('const ' + name);
-  if (at < 0) return null;
-  const open = src.indexOf('{', at);
+function objectAfter_(name, text) {
+  const into = text || src;
+  /* A WORD BOUNDARY, because `indexOf` matches a PREFIX. `const REQUIRED_TABS` is inside
+     `const REQUIRED_TABS_RENAMED`, so a rename that should have failed this check silently
+     handed it the renamed object instead — the same substring trap that has bitten this repo
+     wherever one name contains another. */
+  const decl = new RegExp('const\\s+' + name + '\\b').exec(into);
+  if (!decl) return null;
+  const at = decl.index;
+  const open = into.indexOf('{', at);
   if (open < 0) return null;
   let depth = 0, i = open;
-  for (; i < src.length; i++) {
-    if (src[i] === '{') depth++;
-    else if (src[i] === '}') { depth--; if (!depth) break; }
+  for (; i < into.length; i++) {
+    if (into[i] === '{') depth++;
+    else if (into[i] === '}') { depth--; if (!depth) break; }
   }
-  return src.slice(open, i + 1).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
+  return into.slice(open, i + 1).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
 }
 
 const tabBlock = objectAfter_('TAB');
@@ -162,6 +171,57 @@ for (const [name] of [...routed].sort()) {
   }
 }
 
+/* 6 — THE FOURTH PLACE THAT NAMES TABS, and the one that was checked by nothing.
+
+   `doGet` holds `REQUIRED_TABS`: the tabs whose absence it treats as "the database is not
+   connected", and it answers with an ERROR INSTEAD OF A PAYLOAD when one is missing. So a name in
+   there that cannot be reached is not a thin section of the site — it is the whole site dark, for
+   every visitor, until somebody edits that line.
+
+   THAT IS NOT HYPOTHETICAL EITHER. `links` sat in that list after the links moved into the
+   repository and `WHERE` stopped routing the tab, so `read('links')` could never find a sheet
+   again and the live payload was an error object. It shipped, because the list is typed out in a
+   fourth file and `TAB`, `WHERE` and `SCHEMA` all agreed with each other perfectly without it.
+
+   Two questions, and they fail for different reasons:
+     · not routed in `WHERE`   — `read()` gets a blank id and can never find the sheet.
+     · not described in `SCHEMA` — `ensureSchema` will never create it, so `?setup=1` cannot fix it.
+
+   What it cannot ask is whether the tab is actually in the file. That is `checkTabs()`'s half, with
+   the documents open — so a name added here still takes the site down until `?setup=1` has run. */
+const DOGET = PLACES.flatMap(d => ['doget.gs', 'doGet.gs'].map(n => path.join(d, n)))
+  .find(f => fs.existsSync(f));
+if (!DOGET) {
+  console.error('check-tabs: cannot find doget.gs, so REQUIRED_TABS went unchecked. Looked in:\n  ' +
+                PLACES.join('\n  '));
+  process.exit(1);
+}
+const requiredBlock = objectAfter_('REQUIRED_TABS', fs.readFileSync(DOGET, 'utf8'));
+if (!requiredBlock) {
+  console.error('check-tabs: no `const REQUIRED_TABS = {` in ' + DOGET + '. It is the list that ' +
+                'decides whether doGet answers with a payload at all, and this rule exists ' +
+                'because it went stale once. Renamed, or turned back into an array?');
+  process.exit(1);
+}
+const required = [];
+for (const m of requiredBlock.matchAll(/(?:^|\n)\s*['"]?([A-Za-z_]\w*)['"]?\s*:\s*['"]/g)) {
+  required.push(m[1]);
+}
+if (!required.length) {
+  console.error('check-tabs: REQUIRED_TABS in ' + DOGET + ' parsed to no tabs at all. A check that ' +
+                'cannot reach its subject must not report that the subject is fine.');
+  process.exit(1);
+}
+for (const name of required) {
+  if (!routed.has(name)) {
+    fail.push('REQUIRED_TABS.' + name + ' — doGet refuses to answer without it, and WHERE routes ' +
+              'it nowhere. read() gets a blank id, so this is EVERY SCREEN DARK on the next deploy.');
+  } else if (!described.has(name)) {
+    fail.push('REQUIRED_TABS.' + name + ' — doGet refuses to answer without it, and SCHEMA does ' +
+              'not describe it, so ensureSchema will never create it and ?setup=1 cannot repair it.');
+  }
+}
+
 const byFile = {};
 for (const [name, w] of routed) (byFile[w.file] = byFile[w.file] || []).push(name);
 
@@ -195,4 +255,5 @@ if (fail.length) {
   process.exit(1);
 }
 console.log('OK — ' + routed.size + ' tabs, each routed to one of ' + files.size + ' files; ' +
-            asked.size + ' asked for by TAB, ' + described.size + ' described in SCHEMA.');
+            asked.size + ' asked for by TAB, ' + described.size + ' described in SCHEMA, ' +
+            required.length + ' that doGet will not answer without.');

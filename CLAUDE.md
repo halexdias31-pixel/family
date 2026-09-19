@@ -1591,7 +1591,8 @@ first one.
 
 **The checks now run themselves.** `.claude/settings.json` registers a `SessionStart` hook —
 `.claude/session-start.sh` — which installs the check dependencies if `node_modules` is missing,
-then runs the whole suite and prints one of two lines: `all 28 checks pass`, or the failures under
+then runs the whole suite and prints one of two lines: `all N checks pass` with N read off the run,
+or the failures under
 **`CHECKS ARE RED ON ARRIVAL — this is not something this session did`**.
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
@@ -1692,6 +1693,7 @@ node js/check-marking.js         # a right answer marked right, a wrong one wron
 node js/check-practicals.js      # the 41 practicals, and whether their topics join to anything
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
+node check/deploy.js             # after a push, does a browser that has the site run the new code
 node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
@@ -5425,3 +5427,108 @@ properties: reasoning about behaviour instead of asking for it. It is `startsWit
 lookalike, the reserved names, the leet spellings, the innocent words, a clash against each of the
 four columns `findPerson` answers to, your own handle not clashing with yourself, and the month
 holding at five days and releasing at two hundred. Plus three that an admin must NOT be exempt from.
+
+## The payload came back as an error, and the list that did it was a fourth place naming tabs
+
+**Reported with a screenshot of the live site**: an orange banner reading *"The server said: No terms
+(expected in ledger), links (expected in NO FILE — not routed in WHERE)."* Not a thin section of the
+site — `doGet` returns that object **instead of a payload**, so there were no people, no jobs, no
+prices and no shop on any phone.
+
+**`REQUIRED_TABS` in `doget.gs` is a FOURTH hardcoded list of tab names**, beside `TAB`, `WHERE` and
+`SCHEMA`, and it was the only one nothing was reading. `links` left `WHERE` in the commit that moved
+the links into the repository — correct, and it made `read('links')` permanently unable to find a
+sheet, so a list nobody had thought about since took the site down. `TAB`, `WHERE` and `SCHEMA` all
+agreed with each other perfectly the whole time; `check-tabs.js` said so and was right.
+
+**`terms` was the same fault a step further back and had never been required at all.** `termsFor()`
+COMPUTES the year's terms and reads the tab only to OVERRIDE them — this file already records that
+under "`terms` is two different tabs sharing a name" — so the app has run without that tab for its
+whole life. It was in the list because somebody typed ten names once.
+
+**So the list is an object with one written reason each**, which is the `ACCEPTED` / `VOCAB` /
+`RETIRED_FACTS` / `HANDLE_ALLOWED` pattern for the fifth time, and the bar is written down with it:
+not *the app uses this*, but *without this tab the payload is WRONG rather than merely thin* — a
+price of nought, a sign-in that finds nobody, a family's sessions reported as none. Anything softer
+ships as an empty list, which is what every other tab already does. Eight names, and neither of the
+two that took the site down could have survived writing its sentence.
+
+**`check-tabs.js` rule 6 is the half a checker can see**: a required tab that `WHERE` does not route
+can never be found, and one that `SCHEMA` does not describe can never be created, so either way it
+is an outage waiting for the next deploy. **What it cannot see is a routed tab nobody has run
+`?setup=1` to create yet**, so a name added there still takes the site down until somebody does —
+said rather than implied. Proved in four directions: `links` back in the list fires it, a required
+tab with its `SCHEMA` entry removed fires it, and the list renamed fires the cannot-find-my-subject
+guard.
+
+**That last one failed the first time and the reason is worth keeping.** `objectAfter_` located the
+block with `indexOf('const ' + name)`, and `const REQUIRED_TABS` is a PREFIX of
+`const REQUIRED_TABS_RENAMED` — so a rename that should have failed the check silently handed it the
+renamed object instead. A word boundary now, on all five lookups.
+
+## "It shows old reels, then I hard refresh and it works" — the worker was serving the whole old site
+
+**The service worker decided what a navigation was from its PATHNAME**:
+
+```js
+if (url.pathname === '/' || /\/index\.html$/.test(url.pathname)) return e.respondWith(page(req));
+```
+
+**GitHub Pages serves a project site from `/family/`**, which is neither. So every navigation fell
+through to `file()`, whose first act is to serve an exact URL match with no network at all — and the
+entry point is the **one** URL that carries no deploy stamp, so it matched itself for ever. `LOAD`
+lives inside that file and names every other file's URL, so once the old `index.html` was being
+served, all twenty-five scripts and the stylesheet were exact hits too. **The whole old site,
+permanently, escapable only by a hard refresh.**
+
+**`page()` was correct and was never the function being called.** Its own comment says a stale copy
+of `index.html` *"would pin the whole app to an old deploy and this worker would keep it there for
+ever"*. It was right about the consequence and wrong about who would cause it.
+
+**The browser says what a navigation is; a pathname is a guess about where the site is deployed.**
+`req.mode === 'navigate'` needs no knowledge of the deploy path, and the `index.html` suffix stays
+for a URL somebody types out.
+
+**`family-1` → `family-2`.** The poisoned entry is inert once navigations go to `page()`, and a store
+known to hold a copy of an old deploy is still not a thing to leave on somebody's phone and reason
+about. One cold visit each, once, for certainty.
+
+### The lab's own base path is what hid it, and that is the whole lesson
+
+**`check/load.js` serves the repository at `/`**, so `url.pathname === '/'` was TRUE on every run it
+has ever made — and it measures **times and bytes**, both of which a stale load flatters: serving
+yesterday's site from the cache is fast and free. Four green checks and a hundred and four UI
+combinations, and the app was a deploy behind for everybody.
+
+**`node check/deploy.js` asks the one question neither can**: after a push, does the browser run the
+NEW code. Nothing about milliseconds, nothing about bytes, so its answer does not move with what else
+the machine is doing — which is why it is on the roster where `load.js` and `splash.js` are not.
+
+**Three loads and two deploys, because a two-load version passed against the broken worker.** A
+worker never controls the page that registered it, so load 1 is uncontrolled, load 2 is the first the
+worker sees — and the first chance it has to file the entry point away — and **load 3 is the first
+that can be answered out of what load 2 filed**. My first probe stopped at two and reported OK.
+
+**And a new tab per load, not `goto` twice.** Chromium treats a navigation to the URL already in the
+address bar as a RELOAD, whose request carries `cache: 'no-cache'` — so the harness was measuring a
+case nobody is in. *"When I first go on site"* is a fresh navigation: a bookmark, a home-screen icon,
+a tapped link.
+
+**It runs at BOTH base paths**, because the fault was base-path-dependent. The mutation shows it
+exactly: put the pathname guess back and `/family/` fails while `/` passes.
+
+### The other half was reverted, because it could not be shown to do anything
+
+`sw.js`'s header says `index.html` *"is served `no-cache` on purpose"*. **Nothing in this repository
+sets that header** — Pages decides it — and `index.html`'s own prose has always assumed the worse
+answer. So `fetch(req, { cache: 'no-cache' })` went into `page()` to ask the origin whatever the
+browser's freshness lifetime says.
+
+**Measured, it made no difference**: `check/deploy.js` passes with it and without it at both base
+paths, and a plain `fetch` of the entry point inside a `max-age=600` was observed reaching the
+network anyway. So it is not there. **Two rules changed on a measurement nobody had taken is what
+`.mat-out` and `.fm-out` cost this project**, and one extra conditional request on every warm visit is
+a real price for an effect nobody could produce. What the live headers actually say is a `curl -I`
+away and unreachable from here — every host but GitHub is blocked — so it is written down rather than
+guessed at, with the line to change if the fault ever returns on a site `check/deploy.js` says is
+fine.
