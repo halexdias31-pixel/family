@@ -1,0 +1,18 @@
+[
+{"key": "name", "value": "@family.", "notes": "the name, as it should be written"},
+{"key": "slogan", "value": "Somebody to say why.", "notes": "one line. Optional on a flyer — switch it on where it earns its place"},
+{"key": "slogan_short", "value": "Maths & English, four to a class", "notes": "when the long one will not fit"},
+{"key": "area", "value": "Merton & Wandsworth", "notes": "where we work"},
+{"key": "site", "value": "halexdias31-pixel.github.io/family/", "notes": "printed on everything"},
+{"key": "email", "value": "halex.dias.31@gmail.com", "notes": ""},
+{"key": "phone", "value": 7734914514, "notes": "left blank on purpose — fill it in and it appears on flyers"},
+{"key": "venue_main", "value": "Colliers Wood Library", "notes": "the venue named on a flyer by default"},
+{"key": "seat_price", "value": 19, "notes": "a seat, per session"},
+{"key": "class_size", "value": 4, "notes": "how many to a class"},
+{"key": "session_hours", "value": 2, "notes": "hours in a session"},
+{"key": "ink", "value": "#16160f", "notes": "the colour text is set in"},
+{"key": "accent", "value": "#c8452f", "notes": "marks the one thing to look at"},
+{"key": "ground", "value": "#ffffff", "notes": "the paper"},
+{"key": "logo_square", "value": "", "notes": "a URL. Used as an avatar where a person has none"},
+{"key": "logo_circle", "value": "", "notes": "a URL"}
+]
