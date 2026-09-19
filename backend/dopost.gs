@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-19-one-fewer-spreadsheet";
+const DOPOST_VERSION = "2026-09-19-your-own-name";
 
 
 function doPost(e) {
@@ -1446,6 +1446,39 @@ function doPost(e) {
        So it asks for the CURRENT one first. That is the whole protection: an unlocked laptop, a
        shared computer or a session left open cannot be used to take an account, because taking it
        needs something only the owner knows. */
+    /* ---------- A PERSON RENAMES THEMSELVES ------------------------------------------------------
+       BESIDE `changePin` BECAUSE IT IS THE SAME KIND OF THING: the two facts about an account that
+       only its owner may change, and that `updateProfile` must never be able to reach. Everything
+       in `PROFILE_EDITABLE` is a fact about somebody that is wrong for them alone; a handle is how
+       the rest of the site FINDS them, so it gets its own door with rules the form cannot skip.
+
+       THE ID IS PREFERRED AND THE NAME IS THE FALLBACK, which is the order `findPerson` uses and
+       the order `changePin` was fixed into after a display-name collision told somebody their own
+       PIN was wrong. Here it matters more: this is the call that CREATES those collisions if it is
+       wrong about who is asking.
+
+       BOTH COLUMNS, OR NEITHER. `handle` and `username` are one fact in two columns and
+       `findPerson` matches both — so writing one and not the other leaves the old name answering to
+       this person for ever. `handle_was` keeps the previous one, which is the question an admin
+       eventually has to answer about exactly one account. */
+    if (action === 'changeHandle') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'We could not find your account.' });
+      const want = S(body.handle).trim().toLowerCase();
+      const why = handleTrouble_(want, me, isAdminPerson(S(body.name)));
+      if (why) return jsonOut({ error: why });
+
+      const t = read(TAB.people);
+      const r = t.rows.find(x => key(x.person_id) === key(me.person_id)) || me;
+      const was = S(r.handle) || S(r.username);
+      setCell(t, r, 'handle_was', was);
+      setCell(t, r, 'handle', want);
+      setCell(t, r, 'username', want);
+      setCell(t, r, 'handle_changed_at', new Date());
+      clearCache();
+      return jsonOut({ success: true, handle: want, was: was });
+    }
+
     if (action === 'changePin') {
       const r = findPerson(S(body.name), S(body.personId));
       if (!r) return jsonOut({ error: 'Not signed in.' });

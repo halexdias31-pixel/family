@@ -209,7 +209,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-19-one-fewer-spreadsheet";
+const BACKEND_VERSION = "2026-09-19-your-own-name";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -265,6 +265,16 @@ const SCHEMA = {
   people: [
     "person_id", "role", "first_name", "last_name",
     "full_name", "handle", "username", "pin",
+    /* WHEN THE HANDLE LAST MOVED, AND WHAT IT WAS. `changeHandle` writes both.
+
+       `handle_changed_at` IS THE COOLDOWN'S ONLY STATE — no counter, no log, one date, so the rule
+       is "has a month passed" rather than a tally somebody has to keep in step.
+
+       `handle_was` IS A SAFEGUARDING COLUMN AND NOT A NICETY. This is a tutoring business and most
+       of the people in this tab are children. A rename that leaves no trace means an admin cannot
+       answer "who was @foo last week" — which is the question that gets asked exactly once, about
+       the one account it matters for. One cell, the previous handle, overwritten each time. */
+    "handle_changed_at", "handle_was",
     "email", "phone", "date_of_birth", "account_number", "sort_code",
     "verified", "verify_token", "details_confirmed", "listed",
     /* WHERE THEY CAME FROM. Recorded once, when the account is made, and never changed. Without
@@ -1774,6 +1784,104 @@ const PROFILE_EDITABLE = [...new Set([].concat(flat(PROFILE_GROUPS), flat(CLIENT
 // Admin-only. `role` decides what someone can see and do, so it can't be self-served — and it's a
 // comma list, because holding two roles is normal rather than an exception.
 const PROFILE_READONLY = ['dbs_checked', 'role'];
+
+/* ==================================================================================================
+   WHAT A PERSON MAY CALL THEMSELVES
+
+   `handle` IS NOT IN `PROFILE_EDITABLE` AND MUST NOT BE. Everything in that list is a fact about
+   somebody that only they can know — a headline, a rate, a borough — and a wrong one is wrong for
+   them alone. A handle is different in kind: it is how the rest of this site FINDS them, so it goes
+   through a handler of its own with rules the form cannot skip.
+
+   ---------- UNIQUENESS IS THE RULE THAT MATTERS, AND IT IS NOT ABOUT TASTE -----------------------
+
+   `findPerson` resolves a person by `person_id`, then by `full_name`, then `first + last`, then
+   `handle`, then `username` — FIRST MATCH WINS. So a handle that duplicates anybody's existing name
+   or handle makes `changePin` check the PIN you typed against SOMEBODY ELSE'S row and tell you your
+   own PIN is wrong. CLAUDE.md records that denial already; it happened by accident, to one person,
+   because a call forgot to send an id. **Letting people choose their own handle turns an accident
+   into something a person can do on purpose**, which is why this is checked against all three
+   columns and not just `handle`.
+
+   ---------- AND `handle` AND `username` ARE ONE FACT IN TWO COLUMNS -------------------------------
+
+   Third occurrence of the shape this file keeps recording, after `needs_print`/`print_required` and
+   `category`/`compliance`. `register` writes `username` as `norm(first + last)`; `doGet` reads
+   `handle || username || first_name`; `findPerson` matches BOTH. So a change that wrote only
+   `handle` would leave the old name resolving to that person for ever — they would have a new name
+   and still answer to the old one. `changeHandle` writes both, together, or neither.
+================================================================================================== */
+
+/* A MONTH, AND THE REASON IS NOT TIDINESS. A blocklist is a floor and never a ceiling — somebody who
+   can rename freely sits there trying variations until one gets past it, which is a game they win
+   eventually. A cooldown turns that into a month of waiting per attempt. Admins are exempt, because
+   an admin fixing somebody else's bad handle is the remedy rather than the abuse. */
+const HANDLE_COOLDOWN_DAYS = 30;
+
+/* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER.
+   NO UNICODE, and that is the one rule here that is about safety rather than tidiness: `раul` with a
+   Cyrillic е and `paul` are different strings that look identical, so a handle nobody can tell from
+   somebody else's is impersonation with nothing to point at. ASCII only makes that impossible
+   rather than something to spot. */
+const HANDLE_SHAPE = /^[a-z][a-z0-9_]{2,19}$/;
+
+/* NAMES THAT WOULD SPEAK FOR THE BUSINESS. Someone called @office or @admin messaging a parent is
+   not rude, it is a person with the school's voice — and the roles system cannot help, because the
+   name is what the parent reads. */
+const HANDLE_RESERVED = ['admin', 'administrator', 'family', 'atfamily', 'office', 'staff', 'team',
+                         'support', 'help', 'helpdesk', 'moderator', 'mod', 'owner', 'root',
+                         'system', 'tutor', 'tutors', 'school', 'official', 'payments', 'billing',
+                         'security', 'noreply', 'no_reply', 'contact', 'info'];
+
+/* ---------- THE WORDS, AND WHAT THIS LIST IS AND IS NOT --------------------------------------------
+   IT IS MATCHED AGAINST THE DE-LEETED FORM. `HANDLE_FOLD` below turns `f4gg0t` into `faggot` and
+   `b_i_t_c_h` into `bitch` before anything is compared, because a filter that only catches the
+   plain spelling catches nobody who is trying.
+
+   IT IS DELIBERATELY SHORT. A long list is an arms race this site cannot win and does not need to:
+   there are tens of users, every handle is visible to an admin the moment it is taken, the cooldown
+   above makes a second attempt cost a month, and `handle_was` means a rename can be traced. This is
+   the floor — the words nobody should have to see on a children's tutoring site — and the ceiling is
+   a person looking. */
+const HANDLE_BLOCKED = [
+  'anal', 'anus', 'arse', 'bastard', 'bitch', 'bollock', 'boner', 'clit', 'cock', 'coon', 'cum',
+  'cunt', 'dick', 'dildo', 'dyke', 'fag', 'fanny', 'fuck', 'gash', 'gook', 'incest', 'jizz',
+  'kike', 'knob', 'minge', 'nigg', 'nonce', 'paedo', 'pedo', 'penis', 'piss', 'porn', 'prick',
+  'pussy', 'queer', 'rape', 'retard', 'scrote', 'semen', 'sex', 'shag', 'shit', 'slag', 'slut',
+  'smeg', 'spastic', 'spic', 'sperm', 'tits', 'titty', 'tosser', 'tranny', 'twat', 'vagina',
+  'wank', 'whore', 'wog', 'nazi', 'hitler', 'kkk', 'isis', 'suicide', 'selfharm',
+];
+
+/* ---------- AND THE INNOCENT WORDS THOSE STRINGS ARE INSIDE ---------------------------------------
+   THE SCUNTHORPE PROBLEM, and it is not hypothetical here: `classic` contains `ass` if `ass` were on
+   the list, `analysis` contains `anal`, `cocktail` contains `cock`, `sextet` contains `sex`. A filter
+   that refuses a real name and cannot say why is worse than one that misses a rude one, because the
+   person it refuses has done nothing and has no way to argue.
+
+   ONE WRITTEN REASON EACH, which is the `ACCEPTED` / `VOCAB` / `ACCEPTED_TAP` / `RETIRED_FACETS`
+   pattern for a fifth time: a word here is a decision somebody made on purpose, and a NEW collision
+   fails loudly instead of joining a list nobody reads. */
+const HANDLE_ALLOWED = {
+  analysis:   'the school subject, and the commonest false positive on any list with "anal" in it',
+  analyst:    'a job',
+  analytic:   'and analytical, analytically',
+  canal:      'a canal',
+  cocktail:   'and cockatoo, cockerel, cockney — a rooster and a bird and a Londoner',
+  cockpit:    'an aeroplane',
+  peacock:    'a bird',
+  shitake:    'the mushroom, which people do spell without the second h',
+  sextet:     'and sextant, sextile — six of something, and an instrument',
+  middlesex:  'and Sussex, Essex, Wessex — English counties',
+  scunthorpe: 'the town this whole problem is named after',
+  penistone:  'a town in South Yorkshire',
+  therapist:  'a job, and the classic worked example of why substrings are dangerous',
+  assassin:   'a word, and a game children play',
+  bassist:    'and bass, basset — a fish, an instrument and a dog',
+  grassland:  'and grass, grasshopper',
+  classic:    'and class, classical, classroom — the word this whole site is about',
+  passage:    'and passenger, compass, embassy',
+  titan:      'and titanium, titanic — the moon, the metal and the ship',
+};
 /* What an admin may change on a shop item. Same pattern as everything else: one list drives the
    form AND the write allow-list, so the two can't drift apart. */
 const SHOP_GROUPS = {
@@ -2232,7 +2340,7 @@ const ACTION_ACCESS = {
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
-  changePin: 'self',
+  changePin: 'self', changeHandle: 'self',
   createCheckout: 'self', finalizePayment: 'self',
   move: 'self', tutorMove: 'self', createJob: 'self',
   /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks

@@ -72,6 +72,104 @@ function findPerson(nameOrId, altId) {
     key(r.username) === want) || null;
 }
 
+/* ==================================================================================================
+   ONE FUNCTION THAT SAYS WHY A HANDLE IS REFUSED, OR NOTHING AT ALL.
+
+   IT RETURNS A SENTENCE, NOT A BOOLEAN, and that is the whole shape. A handler that gets `false`
+   back has to invent a reason, and the reason is the only useful part: "that is taken" and "you
+   changed it a fortnight ago" and "no, not that word" are three completely different things to be
+   told, and a person given the wrong one argues with the wrong thing.
+
+   THE PHONE DOES NOT REPEAT ANY OF THIS. `MESSAGING` records the argument and it is the same here:
+   a rule written twice is two rules to keep in step, and the sheet shows the server's own sentence,
+   which already says what to do instead. The form checks nothing but "is the box empty".
+================================================================================================== */
+
+/* WHAT A HANDLE MEANS RATHER THAN HOW IT IS SPELLED. Case, separators and the digits people
+   substitute for letters all come out, so `F_4_G` and `fag` are one string before anything is
+   compared. Leaving `0`→`o` and the rest in place would make the blocklist a list of spellings
+   rather than a list of words, and a spelling is trivially worked around. */
+function handleFold_(v) {
+  return String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a')
+    .replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b').replace(/9/g, 'g');
+}
+
+/**
+ * Why `want` may not be this person's handle — '' when it may.
+ * `me` is their row. Pass `isAdmin` true to skip the cooldown only.
+ */
+function handleTrouble_(want, me, isAdmin) {
+  const raw = String(want == null ? '' : want).trim().toLowerCase();
+  if (!raw) return 'Type the name you want.';
+  if (!HANDLE_SHAPE.test(raw)) {
+    return 'A username is 3 to 20 characters, starts with a letter, and holds only letters, '
+         + 'numbers and underscores.';
+  }
+
+  const folded = handleFold_(raw);
+
+  if (HANDLE_RESERVED.indexOf(raw) !== -1 || HANDLE_RESERVED.indexOf(folded) !== -1) {
+    return '"' + raw + '" is kept for the school\'s own accounts.';
+  }
+
+  /* THE ALLOW LIST IS CHECKED FIRST, or `analysis` never gets the chance. A handle that IS one of
+     these words, or is one of them with digits or underscores around it, is past the blocklist —
+     but `analfun` is not, because it is not that word with decoration, it is a different word. */
+  /* ---------- AND THE FIRST VERSION OF THIS LINE LET EVERY BANNED WORD THROUGH -------------------
+     IT TESTED THE END WITH `folded.lastIndexOf(w) === folded.length - w.length`, and `lastIndexOf`
+     answers -1 when the word is not there. So any handle exactly one character SHORTER than some
+     allowed word made -1 === -1 and was waved past: `fuckface` is eight characters, `therapist` is
+     nine, and that is the whole of it. Thirteen of the checked cases failed at once — `n1gg3r`
+     included — on a rule that reads perfectly and is wrong by an off-by-one in a sentinel value.
+
+     `check-handles.js` FOUND IT ON ITS FIRST RUN, which is the entire argument for writing the
+     check before trusting the filter. Nothing about the behaviour was visible from reading it. */
+  const innocent = Object.keys(HANDLE_ALLOWED).some(w =>
+    folded === w || folded.startsWith(w) || folded.endsWith(w));
+  if (!innocent) {
+    for (let i = 0; i < HANDLE_BLOCKED.length; i++) {
+      if (folded.indexOf(HANDLE_BLOCKED[i]) !== -1) {
+        /* THE WORD IS NOT QUOTED BACK. Naming it is repeating it, on a site children read, and the
+           person typing it already knows which one it was. */
+        return 'That username has a word in it we do not allow. Pick another.';
+      }
+    }
+  }
+
+  /* ---------- TAKEN, AND AGAINST ALL THREE COLUMNS -----------------------------------------------
+     `findPerson` matches `full_name`, `first + last`, `handle` AND `username`, first row wins — so
+     checking `handle` alone would let somebody take a name that already resolves to another person,
+     and `changePin` would then check their PIN against that person's row. Everything `findPerson`
+     can answer to, this refuses. */
+  const mine = me ? key(me.person_id) : '';
+  const clash = read(TAB.people).rows.some(r => {
+    if (mine && key(r.person_id) === mine) return false;       // your own row is not a clash
+    return key(r.handle) === key(raw) || key(r.username) === key(raw)
+        || key(r.full_name) === key(raw)
+        || key(S(r.first_name) + ' ' + S(r.last_name)) === key(raw);
+  });
+  if (clash) return '"' + raw + '" is taken.';
+
+  /* ---------- A MONTH SINCE THE LAST ONE ----------------------------------------------------------
+     Read off `handle_changed_at` rather than counted, so there is one piece of state and nothing to
+     keep in step. A row that has never changed has no cell and is free. */
+  if (!isAdmin && me) {
+    const last = sheetDate(me.handle_changed_at);
+    if (last) {
+      const day = 864e5;
+      const next = new Date(last.getTime() + HANDLE_COOLDOWN_DAYS * day);
+      if (next > new Date()) {
+        return 'You changed your username on ' + fmtDate(last) + '. You can change it again on '
+             + fmtDate(next) + '.';
+      }
+    }
+  }
+
+  return '';
+}
+
 /** Every row that answers to this name — so a collision can be SEEN rather than silently resolved. */
 function peopleNamed(name) {
   const want = key(name);

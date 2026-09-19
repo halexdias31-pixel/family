@@ -1221,6 +1221,26 @@ on('edit-me', () => {
     + `<button class="btn" data-do="me-save">Save</button>
        <p class="faint" id="me-said" style="margin:.6rem 0 0"></p>
 
+       ${/* ---------- YOUR USERNAME, ABOVE THE PIN AND FOR THE SAME REASON ------------------------
+             THE TWO THINGS ONLY YOU MAY CHANGE, and neither goes through `Save`. Everything above
+             is `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; these
+             two have rules a form cannot be trusted with — a PIN needs the old one, a handle has to
+             be free, allowed, and not changed last week.
+
+             NOT ONE RULE IS REPEATED HERE. The box checks nothing, the button posts, and whatever
+             comes back is what the line underneath says. `MESSAGING` records the argument and it is
+             the same one: a rule written twice is two rules to keep in step, and the server's own
+             sentence already says what to do instead. Writing "3 to 20 characters" in this file
+             would be a third place for that number to be wrong. */''}
+       <h2><span>Your username</span></h2>
+       <label class="field"><span>username</span>
+         <input id="handle-new" type="text" autocapitalize="none" autocorrect="off"
+           spellcheck="false" maxlength="20"
+           value="${esc((USER && (USER.handle || '')) || '')}"></label>
+       <button class="btn quiet" data-do="handle-save">Change my username</button>
+       <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
+         You can change it once a month.</p>
+
        ${/* THE PIN, at the bottom of your own details — which is what it is. It had a card of its
              own on the You screen opening a sheet of its own, to change one of the things this
              sheet already exists to change.
@@ -1472,6 +1492,39 @@ on('me-save', el => {
 });
 /* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
    sheet that already exists for changing your details, which a PIN is one of. */
+/* ---------- AND THE USERNAME, WHICH IS THE SAME SHAPE ---------------------------------------------
+   `send`, NOT `api`, AND THAT IS THE WHOLE OF WHY THIS FILE HAS A CHECK NAMED AFTER IT. `api()`
+   resolves with whatever the server said, `{ error: … }` included; `send()` throws on one. A caller
+   about to say "Changed" wants the second — `check-replies.js` exists because a toast once said
+   "Sent to Ada Tutor" about a message that was never written.
+
+   ONE ARGUMENT. `function send(body)` takes one, and passing two spreads the string into indexed
+   keys and posts `{"0":"c","1":"h",…}` — which `accessDenied` refuses before the handler and a
+   bare `.catch` throws away. That is the favourites bug, three times over, and `check-replies.js`
+   fails the build on a second argument now.
+
+   THE OLD NAME IS SHOWN BACK. A rename is the one change where "Saved" tells you nothing: you
+   typed the new one, so seeing it proves only that the box still holds what you typed. `was` comes
+   from the server, which is the only thing that knows what it actually replaced. */
+on('handle-save', el => {
+  const said = $('handle-said');
+  const box = $('handle-new');
+  const want = String((box && box.value) || '').trim();
+  if (!want) { if (said) said.textContent = 'Type the name you want.'; return; }
+  el.disabled = true;
+  if (said) said.textContent = 'Checking…';
+  send({ action: 'changeHandle', name: USER.name,
+         personId: (USER && USER.personId) || '', handle: want })
+    .then(d => {
+      USER.handle = d.handle;
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      if (said) said.textContent = d.was ? 'You were ' + d.was + '.' : '';
+      toast('You are @' + d.handle);
+      load();
+    })
+    .catch(err => { el.disabled = false; if (said) said.textContent = why_(err); });
+});
+
 on('pin-save', () => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');

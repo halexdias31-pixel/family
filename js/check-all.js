@@ -142,6 +142,13 @@ const SUITE = [
      black rectangle — the feature half-working rather than a file nobody uploaded. The README in
      `data/reels/` asked for this the day there was a clip to check, and there are two. */
   { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },
+  /* ---------- AND WHAT A PERSON MAY CALL THEMSELVES ----------------------------------------------
+     The second check here that measures whether the app is SAFE rather than whether it works, after
+     `check-marking.js`. A rude handle reaches a parent; a real name refused reaches somebody who
+     has done nothing. And the rule that is not about words at all: `findPerson` answers to
+     `full_name`, `handle` AND `username`, so a handle that duplicates one of those makes
+     `changePin` check a PIN against the wrong row. It caught a real one on its first run. */
+  { file: 'check-handles.js', what: 'what a person may call themselves' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
      `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
      that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels
