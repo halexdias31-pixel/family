@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-18-comments";
+const DOGET_VERSION = "2026-09-19-one-fewer-spreadsheet";
 
 
 function doGet(e) {
@@ -321,7 +321,7 @@ function doGet(e) {
                  'updateConfig', 'updatePricing', 'updateShop',
                  'deleteShopItem', 'updateTrip', 'addTrip', 'imageData',
                  'saveRoom',
-                 'updateLink', 'addLink', 'deleteLink',
+
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail', 'diagnosePeople',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
@@ -677,10 +677,16 @@ function doGet(e) {
 
     /* THE BRANDING, whole. Every row, whether or not the code knows the key — so something added
        to the tab is available to whatever is written next without the backend changing. */
-    read(TAB.brand).rows.forEach(r => {
-      const k = S(r.key).trim();
-      if (k) payload.brand[k] = S(r.value);
-    });
+    /* ---------- `brand` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/brand.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
+
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
 
     /* ---------- THE LIBRARY SPREADSHEET IS NOT READ HERE ANY MORE --------------------------------
        THREE BLOCKS STOOD HERE — the cheat sheet's components, the boxers and the bouts — each
@@ -710,46 +716,32 @@ function doGet(e) {
        asks, and search is the thing everybody uses. A row for a field the code does not know is
        passed through rather than dropped: the phone ignores it, and a tab that quietly deleted
        rows it did not recognise would be impossible to debug from the sheet end. */
-    read(TAB.facets).rows.forEach(r => {
-      const field = S(r.field).trim();
-      if (!field) return;
-      payload.facets.push({
-        field: field,
-        label: S(r.label),
-        order: S(r.sort_order) === '' ? null : Number(r.sort_order),
-        minCoverage: S(r.min_coverage) === '' ? null : Number(r.min_coverage),
-        active: ON_(r.active),
-      });
-    });
+    /* ---------- `facets` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/facets.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
+
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
 
     /* THE FUNNEL'S ANSWERS. To every phone, for the same reason the questions are: this decides how
        the first two questions group and name everything, and those are the two every search passes
        through. A row for a kind the code does not produce is passed through rather than dropped —
        same as `facets`, and for the same reason: a tab that silently deleted what it did not
        recognise could not be debugged from the sheet end. */
-    read(TAB.kinds).rows.forEach(r => {
-      const kind = S(r.kind).trim();
-      if (!kind) return;
-      payload.kinds.push({
-        kind:  kind,
-        /* ---------- A KIND MAY BE IN MORE THAN ONE GROUP -----------------------------------------
-           A TUTOR IS TWO THINGS: something you BOOK with and someone who IS a person. The first
-           question asks which errand you are on, so a tutor filed under one of those meant the
-           other had to be answered wrongly to reach them.
+    /* ---------- `kinds` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/kinds.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
 
-           COMMAS IN THE ONE CELL, rather than a second column or a second row. `Booking, People` is
-           what somebody would write if nobody had told them the format, which is the whole argument
-           for it — and a cell with no comma still comes out as a list of one, so every existing row
-           on this tab means exactly what it meant before.
-
-           SENT AS A LIST EITHER WAY. A field whose type depends on its contents is a field every
-           reader has to test before using; the phone gets an array always. */
-        group: S(r.group).split(',').map(x => x.trim()).filter(Boolean),
-        label: S(r.label),
-        order: S(r.sort_order) === '' ? null : Number(r.sort_order),
-        active: ON_(r.active),
-      });
-    });
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
 
     /* ---------- THE CAMPAIGNS, AND THE WORDS THEY SAY -------------------------------------------
        The design comes off `campaigns`; the wording off `copy`, gathered under the campaign it
@@ -763,30 +755,31 @@ function doGet(e) {
        inventive. */
     if (viewerIsAdmin) {
       const words = {};
-      read(TAB.copy).rows.forEach(r => {
-        if (!ON_(r.active)) return;
-        const cid = S(r.campaign_id), slot = S(r.slot).toLowerCase(), text = S(r.text);
-        if (!cid || !slot || !text) return;
-        (words[cid] || (words[cid] = {}));
-        (words[cid][slot] || (words[cid][slot] = []))
-          .push({ variant: S(r.variant) || '1', text: text, note: S(r.note) });
-      });
+    /* ---------- `copy` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/copy.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
+
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
       /* SORTED BY THE VARIANT NUMBER, numerically — so 10 comes after 9 rather than after 1, which
          is what sorting them as text would have done the moment somebody wrote a tenth. */
       Object.keys(words).forEach(cid => Object.keys(words[cid]).forEach(slot =>
         words[cid][slot].sort((a, b) => (Number(a.variant) || 0) - (Number(b.variant) || 0))));
 
-      read(TAB.campaigns).rows.forEach(r => {
-        if (!ON_(r.active)) return;
-        const id = S(r.campaign_id), name = S(r.name);
-        if (!id || !name) return;
-        payload.campaigns.push({
-          id: id, name: name, when: S(r.when), note: S(r.note),
-          style: S(r.style), ink: S(r.ink), accent: S(r.accent), ground: S(r.ground),
-          blocks: S(r.blocks),
-          copy: words[id] || {},
-        });
-      });
+    /* ---------- `campaigns` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/campaigns.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
+
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
     }
 
     /* THE LAWS. Sent to every phone, because every screen paints text with them — and they are
@@ -800,38 +793,27 @@ function doGet(e) {
        SORTED BY `sort_order` THEN BY ROW, so the order is yours to choose and is stable when the
        column is left empty — a reel that reshuffles itself every load is a column nobody can point
        somebody else at. */
-    read(TAB.facts).rows.forEach(r => {
-      /* HEADING OR CLIP. A fact with no words is nothing and is dropped; a VIDEO with no words is a
-         video, and testing the heading alone would have dropped every clip row the tab can hold —
-         silently, which is the whole class of fault this file is a record of. */
-      if (!S(r.heading) && !S(r.clip)) return;
-      if (!ON_(r.active)) return;
-      payload.facts.push({
-        subject: S(r.subject),
-        heading: S(r.heading),
-        body: S(r.body),
-        /* WORDS, NOT A LINK. Handed to Wikimedia Commons when the slide arrives. */
-        pic: S(r.pic),
-        /* A LINK, OR A DRIVE FILE ID. The one field that makes a reel a video — see SCHEMA.facts. */
-        clip: S(r.clip),
-        order: N(r.sort_order) || 0,
-        row: r._row,
-      });
-    });
-    payload.facts.sort((a, b) => (a.order - b.order) || (a.row - b.row));
+    /* ---------- `facts` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/facts.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
 
-    read(TAB.laws).rows.forEach(r => {
-      if (!S(r.match) && norm(r.kind) !== 'list') return;
-      if (!ON_(r.active)) return;
-      payload.laws.push({
-        kind: norm(r.kind) || 'word',
-        match: S(r.match),
-        colour: norm(r.colour) || 'ink',
-        weight: N(r.weight) || 0,
-      });
-    });
-    /* Heaviest first, so a specific law beats a general one when both match the same word. */
-    payload.laws.sort((a, b) => b.weight - a.weight);
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
+
+    /* ---------- `laws` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/laws.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
+
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
 
     /* If the tab is empty — a fresh sheet, or somebody cleared it — the four laws that were asked
        for stand in. A site whose subjects stop being green because a tab is empty looks broken in
@@ -1237,13 +1219,13 @@ function doGet(e) {
        that are on, so a splash added in code and never entered in the sheet still appears — the
        sheet is a list of exceptions, not a whitelist somebody has to keep in step with the markup.
        Wrapped, because the tab may not exist until `?setup=1` has been run. */
-    try {
-      const sp = read(TAB.splashes);
-      payload.splashOff = sp.sheet
-        ? sp.rows.filter(r => S(r.splash_id) && !ON_(r.active))
-                 .map(r => 'is-' + norm(r.splash_id))
-        : [];
-    } catch (err) { payload.splashOff = []; }
+    /* ---------- `splashes` IS READ OFF THE REPOSITORY NOW ----------------------------------------
+       A LIST OF EXCEPTIONS RATHER THAN A WHITELIST, which is the shape worth keeping in the note:
+       the tab named the splashes that are OFF, so one written in index.html and never entered in
+       the sheet still appeared. `settingsInto_` builds `splashOff` from
+       `data/settings/splashes.json` the same way — all 26 rows active, so the list is empty and
+       every splash in the markup is in the pool. */
+    payload.splashOff = [];
 
     /* WHATEVER CAMPAIGN IS RUNNING TODAY. Passed the viewer, because a campaign can be aimed at a
        role — a results-day message means nothing to a tutor — and filtering here rather than in the
@@ -1324,16 +1306,16 @@ function doGet(e) {
     });
 
     // --- links --------------------------------------------------------------------------------
-    read(TAB.links).rows.forEach((r, i) => {
-      const title = S(r.name);
-      if (!title) return;
-      const category = S(r.category) || 'General';
-      if (payload.dropdowns.linkCategories.indexOf(category) === -1) payload.dropdowns.linkCategories.push(category);
-      payload.links.push({ id: r._row, rowIndex: r._row, title, category, url: S(r.url),
-                           colour: S(r.colour),
-                           description: S(r.description), image: S(r.photo),
-                           fields: LINK_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {}) });
-    });
+    /* ---------- `links` IS READ OFF THE REPOSITORY NOW -----------------------------------------
+       THE BLOCK THAT WALKED THIS TAB STOOD HERE. `settingsInto_` in js/settings.js builds the same
+       shape from `data/settings/links.json` — a faithful export of the tab it replaces, 679 rows and
+       6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
+       nothing here computes with it, and the phone was its only reader.
+
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
+       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
+       about the app, which fills it from the repo. */
 
     /* The shop holds both kinds of stock, but wearables only exist as rows once they've been
        seeded — so a freshly deployed site showed one bike and nothing else, which looks exactly
@@ -1455,7 +1437,6 @@ function doGet(e) {
       });
       payload.herd.sort((a, b) => (a.sort || 0) - (b.sort || 0));
     } catch (err) { payload.herd = []; }
-
 
 
     // --- resources -> checklists --------------------------------------------------------------

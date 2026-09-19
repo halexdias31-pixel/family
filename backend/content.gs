@@ -635,9 +635,12 @@ function captionFromName_(n) {
 function reactionSet(postRow) {
   const own = S(postRow && postRow.reactions).split(/\s+/).filter(Boolean);
   if (own.length) return own;
-  const row = read(TAB.brand).rows.find(r => S(r.key) === 'reactions');
-  const brandSet = S(row && row.value).split(/\s+/).filter(Boolean);
-  return brandSet.length ? brandSet : HOUSE_REACTIONS.slice();
+  /* THE BRAND TAB WAS THE MIDDLE RUNG AND IT IS IN THE REPOSITORY NOW — `data/settings/brand.json`,
+     read by `settingsInto_` on the phone. The backend cannot reach a file in git, so the two rungs
+     left are the post's own set and the house list, which is what this fell back to anyway: no row
+     of that tab has ever carried a `reactions` key. If a post ever needs a different set the place
+     to say so is the post's own cell, which is the rung above. */
+  return HOUSE_REACTIONS.slice();
 }
 
 function getPostFolder() {

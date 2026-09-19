@@ -619,7 +619,23 @@ function ensureSchema() {
         : 'skipped — the id for the ' + at.away + ' file is blank';
       return;
     }
-    const ss = SpreadsheetApp.openById(at.id);
+    /* ---------- A FILE THAT WILL NOT OPEN IS ONE TAB'S PROBLEM, NOT EVERY TAB'S ------------------
+       THIS WAS A BARE `openById` AND IT WOULD HAVE TAKEN `?setup=1` DOWN. Found while checking
+       whether the `Settings` spreadsheet was safe to delete: one tab still routed at a binned file
+       throws here, the throw escapes `ensureSchema`, and the run dies on the first name in
+       `SCHEMA` — so `post_comments`, which only this creates, would never have been made, and the
+       comments feature would have sat there looking broken with nothing saying why.
+
+       THE ROUTE IS FIXED TOO — nothing points at that file any more — but repairing the instance
+       and not the rule is the shape CLAUDE.md records under `cost: 0`, under `paper: true` and
+       under the spelling fold, every time with the fault coming back. A tab whose file will not
+       open is reported and skipped, and every other tab is still checked. */
+    let ss = null;
+    try { ss = SpreadsheetApp.openById(at.id); } catch (err) { ss = null; }
+    if (!ss) {
+      report[name] = 'SKIPPED — the ' + at.away + ' file would not open (deleted, or no access)';
+      return;
+    }
     /* ---------- `at.tab` HAS NEVER EXISTED -------------------------------------------------------
        `sheetFor_` RETURNS `id`, `names`, `make` AND `away`. There is no `tab`, and there never was —
        so this asked for `getSheetByName(undefined)`, found nothing every single time, and then
@@ -756,21 +772,11 @@ function dataProblems(deep) {
         'Every hour another tutor teaches earns you £0. That is a directory, not an agency.');
   }
 
-  /* --- the front of the app --- */
-  /* A LAW WITH A COLOUR NOBODY DEFINED. `mark()` skips any law whose colour has no class, so the
-     row is right, the match is right, and nothing happens — which reads as the law not working
-     rather than as one misspelt word. The list here is the one in the stylesheet. */
-  const KNOWN_COLOURS = ['green', 'purple', 'blue', 'blue-soft', 'red', 'amber', 'dim', 'ink'];
-  read(TAB.laws).rows.forEach(r => {
-    const col = norm(r.colour);
-    if (!col || !ON_(r.active)) return;
-    if (KNOWN_COLOURS.indexOf(col) === -1) {
-      add('a law does nothing', 'A law is set to colour "' + S(r.colour) + '", which is not a '
-          + 'colour the site knows',
-          'Use one of: ' + KNOWN_COLOURS.join(', ') + '. The row is otherwise fine — it is '
-          + 'simply skipped, so nothing is coloured and nothing says why.');
-    }
-  });
+  /* ---------- THE LAW-COLOUR CHECK WENT WITH THE TAB ---------------------------------------------
+     `laws` IS `data/settings/laws.json` NOW and the tab held no rows, so this health check had
+     nothing to walk even before the move. What it asked was worth asking — `mark()` skips a law
+     whose colour has no class, so a misspelt colour reads as the law not working — and the place
+     to ask it is wherever the file is checked, not here, because this cannot open a file in git. */
 
   /* Columns something has actually tried to write to during THIS request and could not find.
      Distinct from the schema-version check below: that says the update never ran, this says it ran
@@ -944,7 +950,9 @@ function dataProblems(deep) {
         + 'the editor and each becomes a 👍, keeping the date it was pressed.');
   }
 
-  const logoRow = read(TAB.brand).rows.find(r => S(r.key) === 'logo_square');
+  /* `brand!logo_square` IS CHECKED ON THE PHONE OR NOWHERE. The tab is `data/settings/brand.json`
+     now and this cannot read it; `brand('logo_square', …)` already falls back to a letter in a
+     circle, which is the behaviour this was warning about rather than a fault it could fix. */
   if (!S(logoRow && logoRow.value)) {
     add('looks unfinished', 'brand!logo_square is empty',
         'Every @family. post shows a letter in a circle instead of the mark.');
@@ -1120,23 +1128,14 @@ function checkEverything() {
     say('  ✓ ' + (TAB[k] + '                    ').slice(0, 16) + rows + ' row(s)');
   });
 
-  /* 2. THE BRANDING, which decides the logo AND whether any post offers a reaction. */
+  /* 2. THE BRANDING. It listed every key of the `brand` tab and said which reactions were in use.
+        That tab is `data/settings/brand.json` in the repository now — the phone reads it and this
+        cannot, so what is left is the half the server still decides. */
   say('');
   say('BRAND');
-  try {
-    const rows = read(TAB.brand).rows;
-    if (!rows.length) say('  (empty — the logo will fall back to a letter and no post will '
-      + 'offer a reaction)');
-    rows.forEach(r => {
-      const v = S(r.value);
-      say('  ' + (S(r.key) + '              ').slice(0, 14)
-        + (v ? v.slice(0, 60) : '(blank)'));
-    });
-    const re = rows.find(r => S(r.key) === 'reactions');
-    say('  reactions in use: ' + reactionSet({}).join(' ')
-      + (S(re && re.value) ? '   (from the brand tab)' : '   (the six in the code — the cell is '
-        + 'empty, which is fine)'));
-  } catch (err) { say('  no brand tab — run ensureSchema()'); }
+  say('  the brand tab is data/settings/brand.json now — open it there');
+  say('  reactions in use: ' + reactionSet({}).join(' ') + '   (the six in the code)');
+  say('  the name on an e-mail: ' + BRAND_NAME);
 
   /* 3. THE POSTS, and whether their pictures will resolve. */
   say('');

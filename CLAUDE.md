@@ -5269,3 +5269,73 @@ goes into `payload.brand` and out to every anonymous visitor, `brand('phone')` i
 flyer the app makes, and the e-mail is the author address on every commit in this public repository
 already. Committing them publishes nothing that was not published — and `brand.email` is read by
 **nothing** in the app, so it is a dead key as well as a personal one.
+
+### The spreadsheet went from three files to two, and `?setup=1` would have died on the way
+
+**The Ledger came back with 23 tabs and the import was exact** — the seven new ones match what was
+sent **cell for cell: 353 rows, 3,833 cells, 0 differ**, dates still dates, and all fifteen of the
+Ledger's own tabs untouched. `ticks` (518 rows) is there too, routed by nothing and read by nothing;
+it is the one tab in that file holding children's handles, and it stays where it is.
+
+**`post_comments` was missing**, which is expected — `ensureSchema` is the only thing that creates
+it. Which is how the real fault was found.
+
+#### `ensureSchema` had a bare `openById` and one dead route would have taken the whole run down
+
+```js
+const ss = SpreadsheetApp.openById(at.id);     // no try, no catch
+```
+
+**With `Settings` in the bin and one tab still routed at it, that throws, the throw escapes
+`ensureSchema`, and the run dies on the first name in `SCHEMA`.** `?setup=1` is the only thing that
+creates `post_comments` — so the comments feature would have sat there looking broken, on a live
+site, with nothing anywhere saying why. Found by *reading the function while checking whether the
+spreadsheet was safe to delete*, which is the only reason it is not a story about a broken setup
+route.
+
+**The route is fixed and so is the rule**, because repairing the instance and not the rule is the
+shape this file records under `cost: 0`, under `paper: true`, under the spelling fold and under
+`delRow` — every time with the fault coming back. A tab whose file will not open is now reported and
+skipped, and the other thirty are still checked.
+
+#### Seven moved, nine were deleted, and `SETTINGS_ID` went with them
+
+| | |
+|---|---|
+| **to `Ledger`** | `config`, `pricing`, `venues` — **the money**, which `quotePerHour` decides server-side. Plus `options`, `shop`, `holidays`, `landmarks`, each reshaped by a function here (`allOptions`, `avatarCatalogue`, `festiveOffers`, `landmarks`) before anybody sees it |
+| **deleted outright** | `brand`, `facets`, `kinds`, `laws`, `facts`, `splashes`, `links`, `campaigns`, `copy` — `WHERE`, `TAB`, `SCHEMA` and every `read` block, in one commit. `settingsInto_` builds all nine from `data/settings/*.json` |
+| **routed to `Ledger` although empty** | `terms`, `rooms`, `trips`, `herd`, `widgets`, `map`, `landmark_parts` — so `read()` still answers and `ensureSchema` has somewhere to make them |
+
+**`SCHEMA` had to go in the same commit as the read blocks, in both directions** — the third time
+this file records that argument, after `SCHEMA.resources` and the library cut. Deleting the entries
+alone fails `check-columns.js` on every `r.field` in a block that still exists; leaving them behind
+is worse than untidy, because `ensureSchema` **creates any tab it cannot find** and would have built
+nine empty decoys in `Ledger` — right headers, no rows, and somebody typing into one would be
+ignored by an app reading the file instead.
+
+**And `?setup=1` against `terms` stops being the hazard this file warns about.** That warning was
+about adding nine school-term columns to a legal-documents tab; in `Ledger` there is no `terms` tab
+at all, so it makes a fresh one with the right headers — which is the tab `termsFor()` has wanted
+since it was written and has never had. The legal document itself is `data/settings/terms.json`.
+
+#### Three dead handlers went, and eight are still here
+
+`updateLink`, `addLink` and `deleteLink` wrote to a tab that no longer exists, so they could not
+have worked. **They could not have been called either**: measured across `js/` and `index.html`, not
+one of the three strings occurs. The other eight of the eleven — `updateVenue`, `updateConfig`,
+`updatePricing`, `updateShop`, `deleteShopItem`, `saveRoom`, `updateTrip`, `addTrip` — write to tabs
+that moved rather than went, so they would still work if anything ever called them. They stay, dead,
+until somebody decides whether that admin surface is being rebuilt or buried.
+
+#### Two server-side readers lost their sheet and both already had the answer
+
+`reactionSet()` walked `brand` for a `reactions` key **no row has ever carried**, so it always fell
+through to `HOUSE_REACTIONS`; it returns that now, and a post's own cell is still the rung above.
+`brandName()` fell through to the literal `'@family.'`; that is `BRAND_NAME` in `constants.gs` now —
+one place rather than a fallback repeated at each caller. **Two spellings of one name is a thing to
+keep in step**, so it is written down: the file is what every screen reads, that constant is what
+signs an e-mail.
+
+**Measured after, in a browser against the real files**: 16 brand keys, 21 facets, 58 facts, 126
+links in 25 categories, 12 campaigns, and the reel column still two clips. 30 checks pass and
+`check/ui.js` reports nothing across 104 combinations.

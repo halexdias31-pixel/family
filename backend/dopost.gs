@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-18-comments";
+const DOPOST_VERSION = "2026-09-19-one-fewer-spreadsheet";
 
 
 function doPost(e) {
@@ -506,27 +506,19 @@ function doPost(e) {
       return jsonOut({ success: true });
     }
 
-    if (action === 'updateLink' || action === 'addLink' || action === 'deleteLink') {
-      const t = read(TAB.links);
-      if (action === 'addLink') {
-        /* The URL was never written — a new link arrived with a name, a category and no address,
-           so it was a tile that went nowhere until somebody edited it. */
-        const row = addRow(t, { link_id: 'L' + Date.now(),
-                                name: S(body.name) || 'New link',
-                                url: S(body.url),
-                                colour: S(body.colour),
-                                category: S(body.category) || 'General' });
-        return jsonOut({ success: true, rowIndex: row ? row._row : 0 });
-      }
-      const r = t.rows.find(x => x._row === Number(body.rowIndex));
-      if (!r) return jsonOut({ error: 'Link not found.' });
-      if (action === 'deleteLink') { delRow(t, r); clearCache(); return jsonOut({ success: true }); }
-      Object.keys(body.fields || {}).forEach(f => {
-        if (LINK_EDITABLE.indexOf(f) === -1) return;
-        setCell(t, r, f, body.fields[f]);
-      });
-      return jsonOut({ success: true });
-    }
+    /* ---------- THE LINK EDITOR IS GONE AND IT NEVER HAD A DOOR ----------------------------------
+       `updateLink`, `addLink` and `deleteLink` wrote to the `links` tab. That tab is
+       `data/settings/links.json` in the repository now — 126 rows in 25 categories, read by
+       `settingsInto_` — so the handlers had nothing left to write to.
+
+       THEY WERE ALREADY DEAD, which is why deleting them costs nothing and is worth recording.
+       Measured across `js/` and `index.html`: not one of the three strings occurs. They were
+       access-listed in `ACTION_ACCESS`, published, and never once called — `orderPrints` again, and
+       eight more of the same shape are still here (`updateVenue`, `updateConfig`, `updatePricing`,
+       `updateShop`, `deleteShopItem`, `saveRoom`, `updateTrip`, `addTrip`). Those eight write to
+       tabs that still exist, so they still would work if anything ever called them; these three
+       could not. A link is edited by editing the file and pushing, which is a deploy — the same
+       trade `questions` made, for a tab nobody hand-edits twice a year. */
 
     /* --- a room, saved by venue and slot -------------------------------------------------------
        Upsert, not update: the six slots always exist on screen, so the first edit to an empty one
