@@ -136,6 +136,12 @@ const SUITE = [
      perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one
      question out of ninety-four — a join that looks like a feature and returns the wrong list. */
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
+  /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
+     A clip whose path is one character wrong does not draw a broken link. `reelPlay_` swaps the
+     element for an iframe on the same address, so a missing file reads as Google's player or as a
+     black rectangle — the feature half-working rather than a file nobody uploaded. The README in
+     `data/reels/` asked for this the day there was a clip to check, and there are two. */
+  { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
      `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
      that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels

@@ -76,9 +76,34 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
    BYTES without downloading them to see. */
 const pathOf = u => u.origin + u.pathname;
 
+/* ---------- A VIDEO IS NOT A FILE, AND THIS WORKER BROKE THE FIRST ONE ---------------------------
+   MEASURED, with the first reel served from beside the site through a range-capable server: the
+   column drew three slides, ONE OF THEM ALREADY FALLEN THROUGH TO THE IFRAME, and the two videos
+   sat at `readyState: 0` with nothing playing. Two separate faults, both this function's:
+
+     `Range: bytes=0-`  -> 206 -> `store.put()` THROWS. A partial response cannot be cached, by
+                           specification, and the throw is inside the try whose catch has no `held`
+                           to fall back to — so it rethrows, `respondWith` rejects, and the element
+                           reports an error. The ladder then takes that slide to Google's player.
+     `Range: bytes=N-`  -> the conditional path answers 304 and hands back the WHOLE cached file to
+                           a request that asked for everything after byte N. The measurement caught
+                           this one outright: `304` against `bytes=0-3538943`.
+
+   AND EVEN REPAIRED IT WOULD BE WRONG. This store holds about thirty-five files of code, and
+   `store.keys()` is walked on every miss; a sixteen-megabyte clip in it is a cost paid by every
+   visitor on every miss for a file only the Reels column ever asks for. A video wants the browser's
+   own media stack, which streams it in pieces and keeps none of it.
+
+   SO IT IS TWO TESTS RATHER THAN ONE, because neither covers the other. `destination` names what
+   the element asking is — it catches the first request, which on some browsers carries no Range
+   header at all. `range` catches everything else, whoever asked: a seek, a second buffer, an
+   `<audio>` element nobody has written yet. Returning without `respondWith` is the whole fix —
+   the request goes to the network exactly as it would with no worker installed. */
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  if (req.destination === 'video' || req.destination === 'audio') return;
+  if (req.headers.has('range')) return;
   let url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== self.location.origin) return;          // the backend, and anything else
