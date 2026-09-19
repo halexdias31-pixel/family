@@ -20,17 +20,35 @@
 ================================================================================================== */
 const fs = require('fs'), path = require('path');
 const dir = __dirname;
-const ORDER = ['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-               'resource','arcade','map','book','receipt','flyer','mat','games','overworld',
-               /* `select`, `collections` AND `tiles` WERE MISSING. index.html loads twenty three
-                  files and this listed twenty, so three were never read — and `tiles.js` is where
-                  every card action in the app is built, which made all of them invisible to this
-                  audit. Same drift `check.js` had: a list of files kept by hand, beside another
-                  list of files kept by hand. */
-               'select','collections','tiles','boot'];
+/* ---------- THE FILE LIST COMES FROM index.html, BECAUSE A SECOND ONE DRIFTS -----------------------
+   THIS WAS A HAND-KEPT `ORDER` ARRAY AND IT HAD DRIFTED TWICE. The note that stood here recorded
+   the first time: *"`select`, `collections` AND `tiles` WERE MISSING. index.html loads twenty three
+   files and this listed twenty, so three were never read — and `tiles.js` is where every card
+   action in the app is built, which made all of them invisible to this audit."*
+
+   IT HAD HAPPENED AGAIN, to `library.js`, `settings.js` and `terms.js`. index.html loads
+   twenty-six files; this listed twenty-three. So every `on()`, every `data-do` and every `go()` in
+   those three was outside the audit — `terms.js` alone has two handlers and both their doors — and
+   the summary line at the foot has been understating what it looked at for as long as that was
+   true.
+
+   THE FIX IS THE ONE `check.js` ALREADY MAKES: read the list off `window.FILES` in index.html,
+   which is the list the browser itself uses. A list kept by hand beside another list kept by hand
+   is this repository's oldest shape, and the answer every time has been to delete one of them.
+
+   ORDER IS PRESERVED, because it is the load order and this file reasons about it. */
+const html  = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
+const listed = html.match(/FILES\s*=\s*\[([\s\S]*?)\]/);
+if (!listed) {
+  console.log('check-doors: cannot find window.FILES in index.html — nothing was checked.');
+  process.exit(1);
+}
+const ORDER = [...listed[1].matchAll(/'([\w-]+)'/g)].map(m => m[1])
+  .filter(n => fs.existsSync(path.join(dir, n + '.js')));
 
 const files = ORDER.map(n => ({ n, src: fs.readFileSync(path.join(dir, n + '.js'), 'utf8') }));
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
+
 
 const handlers = new Map();   // action -> file
 /* Handlers whose whole body is `{}` — see the note where this is filled in. */
@@ -170,6 +188,52 @@ files.forEach(({ n, src }) => {
   });
 });
 
+/* ---------- AND THE SAME QUESTION ASKED THE OTHER WAY ROUND -----------------------------------------
+   THE BLOCK ABOVE ASKS WHETHER A TABLE KEY NAMES A REAL SCREEN. It cannot ask whether a real screen
+   has its key — and that is the direction every one of these faults has actually come from:
+
+     · `booking` and `reel` used `pages()` with no `PAGER` entry, so neither had a vertical axis.
+     · `tools` and `games` used `stack()`, so about sixty per cent of each was unreachable.
+     · `dm` did both, and at 390×844 with six conversations 493px of somebody's messages were on the
+       page with no scroll and no page to turn to.
+
+   FOUR TABLES AND A FILE OF MARKUP HAVE TO AGREE ABOUT WHAT A SCREEN IS — `TABS`, `TAB_ORDER`,
+   `PAGER`, `screen()`, and a `<section id="s-…">` in index.html — and adding a column means editing
+   all five. `TABS`'s own note records the one that shipped: *"a column that swipes to a blank is
+   worse than a column that is not there, and it is the fault that shipped once already — TABS
+   pushed without the matching section in index.html."* Nothing has ever compared them.
+
+   EVERY ONE OF THESE FAILS SILENTLY, which is why they are worth a check rather than a convention:
+   `paint` does `$('s-' + id)?.classList` and an absent section is `undefined`; `AXES.x.cells` does
+   `.filter(Boolean)`, so a tab with no section simply drops out of the sideways axis and the column
+   is skipped; `PAGER[id]` undefined is just false; and `TABS.sort` on `TAB_ORDER.indexOf` puts an
+   unknown id at −1, which is the FRONT. */
+const sections = new Set([...html.matchAll(/id="s-([a-z0-9-]+)"/g)].map(m => m[1]));
+const pagerKeys = new Set();
+const tabOrder = [];
+files.forEach(({ src }) => {
+  const open = src.indexOf('const PAGER = {');
+  if (open !== -1) {
+    const body = src.slice(open, src.indexOf('\n};', open));
+    for (const m of body.matchAll(/^\s{0,4}([a-z][a-z0-9_]*)\s*:/gm)) pagerKeys.add(m[1]);
+  }
+  const ord = src.match(/const TAB_ORDER = \[([\s\S]*?)\];/);
+  if (ord) for (const m of ord[1].matchAll(/'([a-z0-9-]+)'/g)) tabOrder.push(m[1]);
+});
+/* `pages(id, …)` is the only thing that builds a screen out of more than one page. `stack()` is
+   one page by construction, so it needs no entry — and whether a stack holds more than fits is a
+   question about pixels, which `check/ui.js` asks as OUT OF REACH. */
+const paged = new Set();
+files.forEach(({ src }) => {
+  for (const m of strip(src).matchAll(/\bpages\(\s*'([a-z0-9-]+)'/g)) paged.add(m[1]);
+});
+
+const noSection  = [...tabIds].filter(t => !sections.has(t)).sort();
+const noDraw     = [...tabIds].filter(t => !screens.has(t)).sort();
+const noPager    = [...paged].filter(t => !pagerKeys.has(t)).sort();
+const orderOff   = [...new Set([...tabIds].filter(t => !tabOrder.includes(t))
+                     .concat(tabOrder.filter(t => !tabIds.has(t))))].sort();
+
 const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
@@ -185,6 +249,15 @@ const say = (title, list, how) => {
 
 say('A PAGING TABLE KEYED BY A SCREEN THAT IS NOT REGISTERED — that screen silently cannot page',
     strayPageKeys, f => '');
+
+say('A TAB WITH NO SECTION IN index.html — the column swipes to a blank and drops out of the axis',
+    noSection, t => 'TABS has \'' + t + '\', index.html has no <section id="s-' + t + '">');
+say('A TAB NOTHING DRAWS — paint() finds no screen registered for it',
+    noDraw, t => 'TABS has \'' + t + '\', no screen(\'' + t + '\', …) anywhere');
+say('A PAGED SCREEN WITH NO PAGER ENTRY — no `paged` class, no vertical axis, pages nothing reaches',
+    noPager, t => 'pages(\'' + t + '\', …) is built, PAGER has no \'' + t + '\'');
+say('TABS AND TAB_ORDER NAME DIFFERENT SCREENS — an unknown id sorts to the FRONT, at index −1',
+    orderOff, t => 'in one and not the other');
 
 say('HANDLER WITH NO DOOR — nothing on screen can reach it', noDoor,
     a => 'on(\'' + a + '\') in ' + handlers.get(a) + '.js, no data-do anywhere');
@@ -203,4 +276,5 @@ if (doors.has('${…}')) {
 console.log('');
 console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.has('${…}') ? 1 : 0))
             + '   screens: ' + screens.size);
-process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length ? 1 : 0);
+process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
+             + noSection.length + noDraw.length + noPager.length + orderOff.length ? 1 : 0);

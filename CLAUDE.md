@@ -6104,3 +6104,64 @@ enforces it, which is the difference between a rule and a sentence.
 
 **Measured after**: `dm` 7 pages and 7 sections with 0px hidden, 32 checks pass, and `check/ui.js`
 reports nothing new across 120 combinations.
+
+### Adding a column means editing five places, and nothing compared them
+
+**`check-doors.js` asks whether a table key names a real screen. It could not ask the reverse** —
+and the reverse is where every one of these faults has actually come from: `booking` and `reel` used
+`pages()` with no `PAGER` entry, `tools` and `games` used `stack()`, `dm` did both.
+
+**Five things have to agree about what a screen is** — `TABS`, `TAB_ORDER`, `PAGER`, `screen()`, and
+a `<section id="s-…">` in index.html — and **every disagreement fails silently.** `paint` does
+`$('s-' + id)?.classList`; `AXES.x.cells` does `.filter(Boolean)`, so a tab with no section drops
+out of the sideways axis and the column is skipped; `PAGER[id]` undefined is just false; and
+`TABS.sort` on `TAB_ORDER.indexOf` puts an unknown id at **−1, which is the front**. `TABS`'s own
+note records the one that shipped: *"a column that swipes to a blank is worse than a column that is
+not there."*
+
+**Four questions now, and one realistic mutant fires three of them**: renaming `games` to `arcade`
+in `TABS` alone is reported as a tab with no section, a tab nothing draws, and `TABS`/`TAB_ORDER`
+naming different screens. The real file is clean.
+
+**The fourth found something on its first run.** `screen('make')` builds with `pages()` and had no
+`PAGER` entry. Nothing is wrong on screen — the camera column holds one card either way — **and that
+is the reason to fix it rather than exempt it**: it is correct by accident of its contents, and the
+day it holds a second card that card is unreachable, which is precisely how the other three lost
+theirs. `makeCards_` is that one list; `PAGE` gained `make` by the same table's own rule.
+
+**`stack()` needs no entry and is deliberately not asked about**, because it is one page by
+construction. Whether a stack holds more than fits is a question about pixels, and `check/ui.js`
+asks it as OUT OF REACH.
+
+### The file list had drifted again, to three files this time
+
+**`check-doors.js` kept its own `ORDER` array of the files to read, and the note above it records
+the first drift**: *"`select`, `collections` AND `tiles` WERE MISSING … `tiles.js` is where every
+card action in the app is built, which made all of them invisible to this audit."*
+
+**It had happened again.** index.html loads **26** files; `ORDER` listed **23**. `library.js`,
+`settings.js` and `terms.js` were outside the audit — every `on()`, every `data-do` and every `go()`
+in them — and `terms.js` alone has two handlers and both their doors. So the summary line has been
+understating what it looked at, and any door added in those files was unwatched.
+
+**The fix is the one `check.js` already makes**: read the list off `window.FILES` in index.html,
+which is the list the browser itself uses, in load order. A list kept by hand beside another list
+kept by hand is this repository's oldest shape, and the answer every time has been to delete one of
+them. **Measured after: 119 handlers and 117 doors, against 23 files' worth before.**
+
+### What the navigation stress found, which is the other half of trusting it
+
+Measured before changing anything and again after: every tab switched to twenty times with no
+settling, every screen paged past both ends, the viewport resized across all four widths on every
+screen, and thirty `go`/`repaint`/`paint` storms.
+
+| | |
+|---|---|
+| JS errors | **none** |
+| page position clamped at both ends, all nine screens | **correct everywhere** |
+| screens reporting "this screen did not draw" | **0** |
+| nodes in the document | 1,507 → 1,684 → **1,526** — no accumulation |
+| all nine screens still placed and the app usable | **yes** |
+
+**The core is sound and that is worth writing down rather than quietly not mentioning.** What was
+broken was never the movement; it was which screens had been told they could move.

@@ -1482,10 +1482,23 @@ on('post-delete', el => {
    that second card had already been deleted from the top of the feed for being a duplicate of this
    column. Two of it on one column was one more than two of it across two. The composer it offered
    is a button on the camera now; see `cameraCard`. */
-screen('make', () => pages('make', USER
-  ? [cameraCard()]
-  : [`<div class="card"><h3>New post</h3>
-      <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`]));
+/* ---------- AND IT IS COUNTED, ALTHOUGH THERE IS ONE OF IT -----------------------------------------
+   `check-doors.js` NAMED THIS ON THE FIRST RUN OF THE RULE THAT ASKS: `pages('make', …)` is built
+   and `PAGER` had no `make`. Nothing is wrong on screen, because the list is one card either way —
+   and that is the whole reason it is worth fixing rather than exempting. It is correct by accident
+   of what is in it, and the day this column holds a second card that card is silently unreachable:
+   no `paged` class, no vertical axis, `goPage('make', 1)` returning early. Which is exactly how
+   `booking`, `reel` and `dm` each lost theirs.
+
+   COUNTED FROM THE LIST THE SCREEN DRAWS, one call, which is the rule every entry in that table
+   states. `makeCards_` exists so there is one list rather than two. */
+function makeCards_() {
+  return USER
+    ? [cameraCard()]
+    : [`<div class="card"><h3>New post</h3>
+      <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`];
+}
+screen('make', () => pages('make', makeCards_()));
 
 /* ---------- READING THEM -------------------------------------------------------------------------
    `postsBlocks` UNCHANGED, and that is the point: the feed under `What for · Posts` and the feed on

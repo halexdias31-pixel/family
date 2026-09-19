@@ -1194,6 +1194,12 @@ const PAGER = {
      COUNTED FROM `dmPages_`, the one list `screen('dm')` maps its markup from, so page n and name n
      are the same n. */
   dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
+  /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. `check-doors.js` asks whether every screen
+     built with `pages()` has an entry here, and this was the one that did not — right today because
+     the list holds one card, and the accident that `booking`, `reel` and `dm` each turned into a
+     column you could not move on. Empty names: a single-page screen has no "1 of 1" worth saying,
+     which is what the head of this table already says about them. */
+  make:   () => (typeof makeCards_ === 'function' ? makeCards_() : ['']).map(() => ''),
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
@@ -1316,7 +1322,7 @@ function applyBrandIcon_() {
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke:
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0 };
+const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0 };
 
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
