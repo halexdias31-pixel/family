@@ -179,6 +179,30 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
+    /* ---------- AND THE DOCUMENT BEHIND THE TILE -----------------------------------------------
+       THE LONGEST SURFACE IN THE APP, AND IT IS NOT ON A SCREEN. A practical's guide opens in the
+       sheet, which is where it had to go: 51 of the 56 practical cards were already taller than
+       the pane before a word of it was written, so a guide on the card would have been a guide
+       below the fold. `#sheet` is a sibling of the screens rather than a child of one, so nothing
+       here could see it until `inspect` was taught to — see the note there.
+
+       SEVEN TEXTAREAS, A RISK LIST AND A PAGE OF PROSE, none of it measured for a tap target, a
+       contrast ratio or a sideways scroll until this. `openSheet` is what the tile's handler
+       calls, so this is the app's own door and not a reach past it.
+
+       LAST IN THE LIST, AND IT PUTS THE SHEET BACK. States run in order down one page and `go()`
+       does not close a sheet, so an open guide would otherwise be measured again as part of Tools
+       and Games. `leave` is what says so. */
+    { name: 'a practical guide',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded);
+        if (!x) throw new Error('no practical in the list to open a guide on');
+        openSheet(x.name, practicalGuide_(x), null, null);
+      },
+      expect: () => document.querySelectorAll('#sheet-body .gd-box').length >= 7
+                 && document.querySelector('#sheet-body .prac-kit li'),
+      wants: 'the guide open in the sheet, with its kit list and all seven boxes',
+      leave: () => closeSheet() },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------
@@ -586,7 +610,23 @@ function inspect(opts) {
     return r.width > 0 && r.height > 0;
   };
 
-  const inside = [...live.querySelectorAll('*')].filter(vis);
+  /* ---------- AND THE SHEET, WHEN ONE IS OPEN ----------------------------------------------------
+     `#sheet` IS A SIBLING OF THE SCREENS, NOT A CHILD OF ONE. So every surface this app opens in a
+     sheet — the details form, the pay sheet, the composer, a tutor's profile, the practical guide —
+     has been outside this measurement for as long as the file has existed. Nothing is wrong with
+     `#s-<id>`: it IS the screen, and a sheet is not on it.
+
+     WHICH MEANS A DECLARED STATE THAT OPENED ONE WOULD HAVE REPORTED A CLEAN SWEEP OF THE SCREEN
+     UNDERNEATH IT — the "a check that cannot reach its subject reporting a pass" fault this file's
+     own header records three times, and the reason `check-booking.js` read as a pass for months.
+
+     IT CHANGES NOTHING WHERE NO SHEET IS OPEN, which is all 120 combinations today: `openSheet` is
+     a finger's action and no state calls it yet. This is the road being built before the first
+     state drives down it, deliberately, because the alternative is a state that looks measured. */
+  const sheet = document.getElementById('sheet');
+  const onSheet = sheet && !sheet.classList.contains('hidden') && vis(sheet)
+    ? [sheet, ...sheet.querySelectorAll('*')] : [];
+  const inside = [...live.querySelectorAll('*'), ...onSheet].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR ------------------------------------------
      `scrollWidth > clientWidth` on a box whose overflow-x is not auto or scroll. This is the honest
@@ -1005,6 +1045,23 @@ function inspect(opts) {
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
             + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+
+        /* ---------- PUT IT BACK, BECAUSE THE NEXT STATE IS THE SAME PAGE -----------------------
+           STATES RUN IN ORDER DOWN ONE PAGE and screens after them on that same page, so anything
+           a state leaves standing is measured again under somebody else's name. `enter` is enough
+           for every state that only moves the app — `go()` and `goPage()` replace what came
+           before. A SHEET IS THE EXCEPTION: `go()` does not close one, so a guide left open would
+           be counted as part of Tools, Games and every width after it.
+
+           NOT A BLANKET `closeSheet()` AFTER EVERY STATE. That would be this file deciding what
+           the app's state should be rather than the state saying so, and the first state whose
+           whole point is a sheet still open would have no way to say it. */
+        if (state.leave) {
+          await page.evaluate(src => {
+            try { (0, eval)('(' + src + ')')(); } catch (e) {}
+          }, String(state.leave));
+          await page.waitForTimeout(250);
+        }
       }
     }
 

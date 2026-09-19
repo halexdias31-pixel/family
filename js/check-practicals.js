@@ -90,6 +90,7 @@ const NUMBERED = /^(equipment|step|topic)_\d+$/;
 const seen = new Set();
 let joined = 0, topicLinks = 0, required = 0;
 let excluded = 0, hazards = 0, ages = 0, costed = 0;
+let risked = 0, riskLines = 0;
 const unknownTopics = new Map();
 
 rows.forEach(r => {
@@ -134,19 +135,44 @@ rows.forEach(r => {
   const gone = String(r.excluded_reason || '').trim();
   if (gone) {
     excluded++;
-    if (String(r.steps || '').trim()) {
-      fail.push(id + ' is refused and carries a method anyway — an experiment nobody is going to '
-        + 'run does not need one, and one that is there will eventually get run');
-    }
+    ['steps', 'risks'].forEach(col => {
+      if (String(r[col] || '').trim()) {
+        fail.push(id + ' is refused and carries ' + (col === 'steps' ? 'a method' : 'a risk '
+          + 'assessment') + ' anyway — an experiment nobody is going to run does not need one, '
+          + 'and one that is there will eventually get run');
+      }
+    });
   } else {
-    /* Both list columns: present, and no value carrying the separator that splits them. */
-    ['equipment', 'steps'].forEach(col => {
+    /* ---------- THE THREE LIST COLUMNS: PRESENT, AND NO DOUBLED PIPE ---------------------------
+       `risks` IS A FAILURE RATHER THAN A COUNT, and it is the only editorial column in this file
+       that is. Everywhere else here a blank cell is a backlog printed as a number — the age, the
+       hazard, the shop join — because the argument this repository makes over and over is that a
+       wrong "you need compasses" sends a tutor into a lesson with the wrong bag while a blank one
+       sends them to look at the paper.
+
+       A RISK ASSESSMENT IS THE ONE PLACE THAT ARGUMENT DOES NOT HOLD. The blank does not send
+       anybody to look: it produces a guide that opens with a heading reading `Risk assessment`
+       over nothing, which reads as an experiment with no hazards in it. That is a claim, and it
+       is the one claim in this app that could hurt somebody. So a live practical arriving with no
+       hazards written out fails here, where it is one row of editorial work, rather than shipping
+       and being found in a client's kitchen.
+
+       The guide still draws a fallback for it — see `practicalGuide_` — because a phone running a
+       file from before this rule existed is a thing that happens, and half a second of honest
+       prose beats an empty heading. This is what stops that fallback ever being reached. */
+    ['equipment', 'steps', 'risks'].forEach(col => {
       const v = String(r[col] || '').trim();
-      if (!v) { fail.push(id + ' has no ' + col); return; }
+      if (!v) {
+        fail.push(id + ' has no ' + col + (col === 'risks'
+          ? ' — a hazard and what you do about it, one per pipe-separated item' : ''));
+        return;
+      }
       v.split('|').forEach(part => {
         if (!part.trim()) fail.push(id + ' has an empty item in ' + col + ' — a doubled pipe');
       });
     });
+    risked++;
+    riskLines += String(r.risks || '').split('|').filter(t => t.trim()).length;
   }
 
   /* ---------- THE HAZARD IS A CLOSED LIST, FOR `VOCAB`'S REASON ---------------------------------
@@ -233,6 +259,9 @@ console.log('topic links: ' + topicLinks + ' across ' + rows.length + ' practica
    it should not is the only thing that would show these columns quietly emptying. */
 console.log('carrying an age: ' + ages + ' · a hazard level: ' + hazards
   + ' · a cost per run: ' + costed + ' · refused with a reason: ' + excluded);
+console.log('risk assessments: ' + risked + ' of ' + (rows.length - excluded) + ' live practicals, '
+  + riskLines + ' hazards written out (' + (risked ? (riskLines / risked).toFixed(1) : 0) + ' each)'
+  + ' · the ' + excluded + ' refused correctly carry none');
 
 const noItems = rows.filter(r => !String(r.item_ids || '').trim()).length;
 if (noItems) {
@@ -247,5 +276,5 @@ if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/practicals.json above.');
   process.exit(1);
 }
-console.log('\nOK — every practical has an id, a compliance the code knows, kit, steps, and topics\n'
-  + '     that name real branches of the tree.');
+console.log('\nOK — every practical has an id, a compliance the code knows, kit, steps, a risk\n'
+  + '     assessment, and topics that name real branches of the tree.');

@@ -40,6 +40,7 @@ const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const WIDTH = 320;
+const PHONE_H = 568;
 const PORT = 8129;
 const SHOTS = process.argv.includes('--shots');
 
@@ -168,7 +169,6 @@ function measure(arg) {
       if (worst.px > arg.slack) out.push({ row: card.dataset.row, px: worst.px, sel: worst.sel });
     });
     return out;
-  return out;
 }
 
 (async () => {
@@ -235,7 +235,11 @@ function measure(arg) {
      paying it twice would be worse. Booting the real app costs one page load and removes the
      question -- and `stuffItems()` is the app's own list, so a practical this check measures is one
      the funnel would actually draw. */
-  const pracPage = await browser.newPage({ viewport: { width: WIDTH, height: 900 } });
+  /* ---------- A REAL PHONE'S HEIGHT, BECAUSE THE PANE'S CAP IS MEASURED IN `dvh` ----------------
+     `.pane` is `max-height: calc(100dvh - var(--bar) - var(--safe-bottom) - 2.5rem)`, so a harness
+     window 900px tall reports a cap no phone has. 320 x 568 is one device rather than two halves of
+     two — the narrowest phone still in use, which is the width this whole file is built on. */
+  const pracPage = await browser.newPage({ viewport: { width: WIDTH, height: PHONE_H } });
   const fixture = fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8');
   await pracPage.route('**://script.google.com/**', rq =>
     rq.fulfill({ status: 200, contentType: 'application/json', body: fixture }));
@@ -255,16 +259,45 @@ function measure(arg) {
       practicalCard_(x).replace('<div class="card prac',
         '<div data-row="' + x.key + '" class="card prac')).join('');
     window.__pracHost = host;
-    return items.length;
+    /* ---------- AND WHETHER THE CARD FITS THE PANE, WHICH IS THE OTHER AXIS ----------------------
+       THIS FILE ASKED ONE QUESTION UNTIL NOW and its own header says so: does this row's markup fit
+       a 320px column. That is the axis nobody travels. The one they do is DOWN — `.pane` is
+       `overflow: hidden` with a `dvh` cap, and each card is one page, so a card taller than the cap
+       is simply cut off with no scroll and no page to turn to.
+
+       MEASURED THE DAY THE GUIDE WAS BUILT: **51 of the 56 practical cards were past it**, median
+       891px against a 534px cap at 320 x 568, the worst 1693px. More than half the set had its kit,
+       its method, its safety line and its notes below the fold, on every commit, for as long as
+       that card had existed. Nothing anywhere could see it — `check/ui.js` renders whichever five
+       cards the funnel happens to stop on, and this file measured the other axis.
+
+       IT IS A FAILURE RATHER THAN A COUNT, because after that card was split into a search result
+       and a guide the number is ZERO — median 274px, worst 386. There is no backlog to swamp it,
+       so the first card that goes back past the fold says so instead of joining a red nobody reads.
+
+       ONLY THE PRACTICALS, AND THAT LINE IS PRINCIPLED RATHER THAN LAZY. This pass boots the real
+       app and calls `practicalCard_`, so what it measures is the height the app actually draws. The
+       question pass above rebuilds a question's markup with `cardHtml`, which has no tiles, no mark
+       scheme and no answer box — a height measured off that is a height of a card nobody sees, and
+       drawing a card the app does not draw is the fault this file was itself caught committing.
+       Sampled through the app's own `questionCard_` instead: 4 of 600 are past the cap, median
+       250px. Real, small, and not something this instrument can honestly claim to have swept. */
+    const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+    const tall = [];
+    host.querySelectorAll('.card.prac').forEach(el => {
+      const h = el.getBoundingClientRect().height;
+      if (h > cap) tall.push({ row: el.dataset.row, px: Math.round(h - cap) });
+    });
+    return { n: items.length, cap: Math.round(cap), tall };
   }, WIDTH);
   /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO AND FAIL -- "I did not check" is not the same
      answer as "I checked and it was fine", which is the fault this repository has recorded five
      ways and the reason `check-booking.js` read as a pass for months. */
-  if (practicals < 0) {
+  if (practicals === -1) {
     console.error('\nthe app did not boot, so not one practical card was laid out -- not a pass');
     process.exit(1);
   }
-  if (!practicals) {
+  if (!practicals.n) {
     console.error('\nthe app has no practical items, so this check saw nothing -- not a pass');
     process.exit(1);
   }
@@ -296,9 +329,23 @@ function measure(arg) {
         || (r.question !== '' && at('question', r.paper_id + '|' + r.question));
   }).length;
   console.log(`\n${parts.length} question rows laid out at ${WIDTH}px `
-            + `(${withPre} of them under a preamble), and ${practicals} practical cards`);
-  if (!bad.length) {
-    console.log('\nOK — every question and every practical fits the narrowest phone.');
+            + `(${withPre} of them under a preamble), and ${practicals.n} practical cards`);
+  console.log(`the pane caps at ${practicals.cap}px on a ${WIDTH}x${PHONE_H} phone; `
+            + `${practicals.tall.length} practical card(s) are taller than that`);
+
+  if (practicals.tall.length) {
+    console.log('\nBELOW THE FOLD  (' + practicals.tall.length + ')');
+    practicals.tall.sort((a, b) => b.px - a.px).slice(0, 10)
+      .forEach(t => console.log('  ' + t.row + ' — ' + t.px + 'px past the pane, cut off with '
+        + 'no scroll and no page to turn to'));
+    if (practicals.tall.length > 10) {
+      console.log('  … and ' + (practicals.tall.length - 10) + ' more');
+    }
+  }
+
+  if (!bad.length && !practicals.tall.length) {
+    console.log('\nOK — every question and every practical fits the narrowest phone, and every\n'
+              + '     practical card fits the pane it is drawn in.');
     process.exit(0);
   }
 

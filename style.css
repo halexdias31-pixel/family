@@ -7520,12 +7520,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .prac-strip { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
               letter-spacing: .03em; }
 .prac-out { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
-.prac-kit, .prac-steps { margin: .65rem 0 0; }
-.prac-kit h4, .prac-steps h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
+.prac-kit, .prac-steps, .gd-sec { margin: .65rem 0 0; }
+.prac-kit h4, .prac-steps h4, .gd-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-.prac-kit ul, .prac-steps ol { margin: 0; padding-left: 1.1rem; }
-.prac-kit li, .prac-steps li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
-.prac-kit li { margin: 0; }
+.prac-kit ul, .prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li, .gd-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
 /* A REAL WARNING, GIVEN THE ROOM A WARNING NEEDS. The house rule puts one paragraph under a row
    rather than three words on a tile, and these sentences are the reason it exists: "Adult operates
@@ -7616,6 +7616,67 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    carries the gold. */
 .prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
 .prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
+
+/* ==================================================================================================
+   THE GUIDE.
+
+   FOUR RULES, BECAUSE EVERYTHING ELSE IN IT ALREADY HAD ONE. The kit list, the method, the safety
+   line, the home line, the two-column variables table and the notes are the CARD's blocks, moved —
+   so the guide draws them with the card's own classes and this block adds nothing for any of them.
+   The answer box is `ansBox_`'s box, `.qp-ans` and `.qp-ans-in`, for the same reason. A second set
+   of rules describing one object is the `.reel .over` fault, where a fact, a heading, a paragraph
+   and a credit over a picture were written twice in this stylesheet and drifted.
+
+   WHY IT IS IN THE SHEET AND NOT ON THE CARD, measured before a word of it was written: `.pane` is
+   `overflow: hidden` and caps at 805px on an 844px phone, and **51 of the 56 practical cards were
+   already taller than that**, median 921px. More than half the set had its kit, its method and its
+   safety line cut off with no scroll and no page to turn to. `#sheet-body` scrolls, which is this
+   app's own answer for anything longer than a card.
+
+   NO PAPER TOKENS. A guide is not a document you hand anybody — it is read off a phone in a room,
+   exactly as the card is, so it belongs to the screen. Same argument as `.prac-*` above it.
+================================================================================================== */
+
+/* THE SHEET SUPPLIES THE FIRST GAP, so the first line of the guide does not sit a section's margin
+   below the title it is under. Every block inside states its own top margin already. */
+.gd > :first-child { margin-top: 0; }
+
+/* ---------- THE QUESTION, AND THE LINE THAT SAYS WHY IT IS BEING ASKED ---------------------------
+   THE HINT IS THE HALF THAT TEACHES. "Independent variable" is a phrase a student has heard and
+   cannot use; "one only, everything else has to stay still or you will not know which of them did
+   it" is the rule. It is faint because it is read once and the question is read every time.
+
+   NOT UPPERCASE AND NOT LETTER-SPACED, which is what `.qp-ans-k` beside it is — see `guideBox_`. */
+.gd-ask { display: block; font-size: .8rem; line-height: 1.45; font-weight: 600; color: var(--ink); }
+.gd-hint { display: block; margin: .15rem 0 .35rem; font-size: .72rem; line-height: 1.45;
+           color: var(--faint); }
+
+/* ---------- AN INSTRUCTION, WHICH IS NOT A FACT ---------------------------------------------------
+   THE ONLY PROSE IN THE GUIDE THAT IS NOT A COLUMN. "Rule the table up before you start" and "no
+   hazards have been written out for this one yet" are the guide talking; the maths line, the
+   notes, the safety line and the home line all came out of the row and keep the card's classes.
+   So it recedes — `--dim` in here means a fact from the database and `--faint` means it is not.
+
+   ITS OWN CLASS RATHER THAN `.gd-sec p`, AND THAT IS NOT TIDINESS. A descendant rule is one class
+   plus a type, (0,1,1), against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both of which are
+   `<p>` inside a `.gd-sec` — so it would have won every declaration they make and flattened the
+   gold-ruled warning into ordinary body text. That is `.price.faint` and `.bk-row.is-blank` losing
+   to `.bk-row.is-bare` three thousand lines down: a rule that reads as a decision and behaves as
+   something else, for the sixth time in this stylesheet.
+
+   FOUND ON A SCREENSHOT, AND NOTHING COULD HAVE CAUGHT IT. Before this the guide's maths line and
+   its tutor notes were bare `<p>`s and drew at the browser's default 16px — a third larger than
+   every other paragraph on the card. Valid markup, no overflow, nothing to measure. Ninth time
+   this file records that a screenshot is the last word on something drawn. */
+.gd-none { margin: .35rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--faint); }
+
+/* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP ---------------------------------------
+   `textarea` IS `min-height: 5.8rem` GLOBALLY, which is a page-long box seven times over. These are
+   two or three lines each and the sheet is already long. In `px` at the floor and `rem` above it,
+   which is the shape the global rule uses and the reason it survives a fluid root — 4.2rem is 62px
+   on a 390px phone and 44px is the fingertip underneath it. Sixth conviction of that rule. */
+.gd-box { margin: .35rem 0 0; }
+.gd-box .qp-ans-in { min-height: max(44px, 4.2rem); }
 
 .boxer-nick { font-weight: 400; color: var(--dim); }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
