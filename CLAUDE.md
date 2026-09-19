@@ -5759,3 +5759,94 @@ keys for as long as seven of them shared a caption. With `aria-label` naming the
 seventy-seven, which is how many controls there are. **The check is not tuned to make its own number
 look like it used to** — nothing new is reported, the section is capped at sixty lines with a
 remainder, the reason underneath is the same one, and the count that was wrong was the old one.
+
+### The form was printing two other documents' rows, and a priced row twice
+
+**Asked for again: "i just want the booking thing to be more efficient with space. and cant the grid
+be better".** So the first move was to measure where the height goes rather than to trim what looked
+trimmable. At 390px on the empty form, 784px:
+
+| | |
+|---|---|
+| the fifteen rows you answer | 285px |
+| **the grid and its instruction** | **193px** |
+| **twelve rows that are a dash** | **144px** |
+| the total bar, the two tiles, the terms | 108px |
+
+**THE SPINE IS THE UNION OF THREE DOCUMENTS AND THE FORM WAS DRAWING ALL THREE.** Measured on a
+priced ordinary booking: nine dashes, and eight of them were another document’s. `A seat`,
+`Shared by`, `Per session`, `Running`, `Weeks left` and `About` are pushed only inside
+`if (isWaiting_()) { … return rows; }`, which an ordinary booking never enters; `Sharing` is
+pushed once in this file, by `jobRows`, which is the receipt.
+
+**`SPINE`’S OWN ARGUMENT SURVIVES INTACT, and it is what draws the line.** *"A document whose SHAPE
+changes with its contents cannot be read at a glance: you find a line by where it is"* — true of a
+row you have not answered YET, because you are about to and everything below it would move. A row
+this branch cannot answer at all never moves anything: nothing you do on this form will ever fill
+it, and it was never on this document. `only:` is one word on the `SPINE_EXTRA` entry, beside the
+row it describes, and **it governs the invented dash and nothing else** — a builder that starts
+pushing `Per session` needs nothing changed here, so a flag that goes stale can hide nothing.
+
+**`Asked for` was refused by `check-flow.js`, and the refusal was right.** By the rule above it
+would have gone with the rest; the check names the argument this file already records beside
+`Stage` and `Status` — those three are the state of the booking, the form and the receipt for one
+session are one document across TIME, and a row that appears only once the thing is saved changes
+shape at the moment somebody is checking it. The six above are one document across NOTHING: an
+ordinary booking never becomes a waiting list. Worth twelve pixels, and the check is why it is a
+decision rather than an oversight.
+
+### `Extra subjects` drew twice on every priced booking
+
+**A dash beside `Subject`, and the real row at the FOOT of the card, below `Status`.** `AFTER` in
+`bookBreakdown` places that row after the subjects step on purpose; `spineRows_` then moved it to
+the end, because `price-rows.js` pushes it as `Extra subjects` and the spine row is `Extra subj.`
+— `SPINE.indexOf` came back −1 and it fell through to `extra`.
+
+**The shortening never reached its push site.** The note over `SPINE_EXTRA` records four labels
+shortened to fit the 6.2em column; three were shortened where they are pushed and this one lives in
+another file. One `SPINE_ALIAS` entry, which is what that table is for. **Found by rendering a
+priced booking rather than by reading**: the row list came back with `Extra subjects` after
+`Status`, which no amount of reading the two files side by side had suggested.
+
+**And the moment it carried a real value it wrapped** — `Extra / subj.`, eleven characters in a
+ten-character column. The `minmax(6.2em, max-content)` repair was already on `.bk-row.is-bare` and
+`.bk-row.is-blank` and **not on the rule they are variants of**, which is this file’s own sentence
+about `cost: 0` for the eighth time. The floor is what matters and it stays: every label starts at
+6.2em, so the answers still line up down the card; `max-content` is a ceiling only a long label
+reaches.
+
+### Two hours in a row are one session, so they are one bar
+
+**The instruction above the grid says it in words** — *"two together is a two-hour session; another
+day is another session"* — **and the picture said the opposite**: two gold squares with a gutter
+between them, which is two of something. A grid you read by shape should not need a sentence to say
+what the shape means. Adjacent ticked hours now join, inner corners squared, so Monday 12–15 reads
+as one block and Thursday 16 as one hour — on the receipt too, where the booked run is the only
+thing on that grid.
+
+**The gap is BRIDGED rather than closed, and that is the whole of it.** `.hr` is `flex: 1 1 0`, so
+pulling a cell 2px left with a negative margin hands 2px of free space back to eleven flex items
+and every column after the run drifts out of line with the header above it — which is the one
+thing the header is for. Three pixels of gold painted into the gutter changes no layout at all.
+
+**And the first version of that bridge made the cell scroll sideways.** Hung off the left cell it
+reached `right: -3px`, and an absolutely positioned child sticking out to the RIGHT pushes its
+ancestor’s `scrollWidth` — `check/ui.js` named `button.hr overflows by 3px` at eight combinations.
+Nothing was clipped and nothing looked wrong; the box had simply started scrolling when it was not
+told it could, which is exactly the question that check asks. Painted by the second cell leftwards
+it is the same three pixels in the same gutter, and overflow to the left does not enter
+`scrollWidth` at all.
+
+### What it came to, and what was left alone
+
+| | before | after |
+|---|---|---|
+| the empty form | 784px, **12 dashes** | **700px**, 5 |
+| a priced ordinary booking | 844px, **9 dashes** | **764px**, **1** |
+| a waiting list | 775px | 762px — and its own six rows are back |
+| `Extra subjects` | a dash at the top **and** a row at the foot | one row, in its place, on one line |
+
+**The grid is still 193px and is still at its floor**, which is worth repeating rather than quietly
+trimming: seven rows at `max(20px, 1.55em)` plus the header is a week where a day has to be
+pressable, and the 20px is a fingertip rather than a preference. What was left to win there was the
+meaning, not the height.

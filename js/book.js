@@ -2019,28 +2019,56 @@ let BOOK_ROWS = [];
 
    `Extra subj.` KEEPS ITS FULL STOP. It is the one genuine abbreviation of the four, and a shortened
    word that does not admit it is a word somebody reads twice. */
+/* ---------- `only` — WHICH DOCUMENT CAN EVER FILL THIS ROW -------------------------------------
+   THE SPINE IS THE UNION OF THREE DOCUMENTS AND THE FORM WAS PRINTING ALL THREE. Measured on a
+   priced ordinary booking at 390px: nine rows drew a dash and EIGHT of them were another document's
+   — `A seat`, `Shared by`, `Per session`, `Running`, `Weeks left` and `About` are pushed only
+   inside `if (isWaiting_()) { … return rows; }`, which an ordinary booking never enters, and
+   `Sharing` and `Asked for` are pushed only by `jobRows`, which is the receipt.
+
+   `SPINE`'S OWN ARGUMENT IS ABOUT ONE DOCUMENT, and it still holds: *"a document whose SHAPE
+   changes with its contents cannot be read at a glance: you find a line by where it is"* — so a
+   row you have not answered YET keeps its place, because you are about to answer it and everything
+   below it would move. A row this branch cannot answer at all is not that: nothing you do on this
+   form will ever fill it, so it never moves anything, and it was never on this document.
+
+   IT ONLY GOVERNS THE INVENTED DASH. If a builder pushes the row, the row is drawn, whatever this
+   says — so a branch that starts pushing `Per session` needs nothing changed here, and a flag that
+   goes stale can hide nothing. The order is untouched, `check-spine.js` reads the labels both
+   builders push rather than the markup, and the receipt passes `fill: false` so none of this
+   reaches it. */
 const SPINE_EXTRA = [
   { after: 'Subject', row: 'Extra subj.' },
-  { after: 'When',    row: 'Per session' },
-  { after: 'Term',    row: 'Weeks left' },
-  { after: 'Term',    row: 'Running' },
-  { after: 'Split',   row: 'Sharing' },
+  { after: 'When',    row: 'Per session', only: 'wait' },
+  { after: 'Term',    row: 'Weeks left',  only: 'wait' },
+  { after: 'Term',    row: 'Running',     only: 'wait' },
+  /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
+     form asks the question as `Split` and names the answer there. */
+  { after: 'Split',   row: 'Sharing',     only: 'receipt' },
   /* PINNED TO `For`, WHICH IS THE LAST QUESTION. They were pinned to `Tutor` while `Tutor` was
      last; moving it to third would have carried the dates, the note and the waiting-list lines up
      the page with it, four rows below the level. Pinning is what made that visible — an index would
      have left them where the number said and put the wrong rows there in silence. */
-  { after: 'For',     row: 'About' },
+  { after: 'For',     row: 'About',     only: 'wait' },
   { after: 'For',     row: 'Dates' },
   { after: 'For',     row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: the form printed
      `A seat` and `Shared between` and the receipt printed neither, so the one document that says
      what a seat costs and how many families share it was the one nobody was handed. */
-  { after: 'For',     row: 'A seat' },
-  { after: 'For',     row: 'Shared by' },
+  { after: 'For',     row: 'A seat',    only: 'wait' },
+  { after: 'For',     row: 'Shared by', only: 'wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
      about — which is where a receipt puts it and where the form now puts it too. */
   { after: '',        row: 'Stage' },
   { after: '',        row: 'Status' },
+  /* `Asked for` IS NOT MARKED, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. It is pushed only
+     by `jobRows`, so by the rule above it would go — and `check-flow.js` refused it, naming the
+     argument this file already records beside `Stage` and `Status`: those three are the state of
+     the booking, and *"a row that appears only once the thing is saved is a row that changes shape
+     at exactly the moment somebody is checking it"*. They are one document across TIME, the form
+     and the receipt for the same session, so the placeholder is the point. The six above are a
+     different branch of the form, which is one document across NOTHING — an ordinary booking never
+     becomes a waiting list. Worth twelve pixels. */
   { after: '',        row: 'Asked for' },
 ];
 
@@ -2067,7 +2095,23 @@ const SPINE = (() => {
    the foot — so £151.82 appeared twice, four rows apart, on the document whose entire job is to say
    what something costs. The form has only the bar. The bar wins: it is the thing set apart from the
    rows, which is what a total is. */
-const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '' };
+/* `Extra subjects` → `Extra subj.` WAS THE ONE SHORTENING THAT NEVER REACHED ITS PUSH SITE. The
+   note above records four labels shortened to fit the 6.2em column; three of them were shortened
+   where they are pushed, and this one lives in `price-rows.js` as `label: 'Extra subjects'`. So
+   `SPINE.indexOf('Extra subjects')` was −1, the row fell through to `extra`, and a priced booking
+   drew it at the FOOT of the card — below `Status` — while `Extra subj.` drew a dash up beside
+   `Subject` where `AFTER` had carefully placed it. One fact, twice, in two places, on the live
+   form. Measured: nine dashes and a stray `Extra subjects` row after `Status`. */
+const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '',
+                      'Extra subjects': 'Extra subj.' };
+
+/* One row name to the one document that can fill it, read off `SPINE_EXTRA` so there is no second
+   list to keep in step. */
+const ONLY_ON = (() => {
+  const m = {};
+  SPINE_EXTRA.forEach(x => { if (x.only) m[x.row] = x.only; });
+  return m;
+})();
 
 /* ---------- PUT ROWS IN SPINE ORDER, AND FILL WHAT IS MISSING -------------------------------------
    NEITHER BUILDER IS REWRITTEN. Each still produces whatever rows it can, in whatever order suits
@@ -2115,11 +2159,15 @@ function spineRows_(rows, opts) {
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
   });
   const fill = !opts || opts.fill !== false;
-  const out = SPINE.map(k => say[k] || (fill ? {
+  /* WHICH DOCUMENT IS ASKING. `ONLY_ON` is built from `SPINE_EXTRA`, so the flag is declared once
+     beside the row it belongs to rather than listed again here. No `on` means invent everything,
+     which is what every caller that does not know about branches gets. */
+  const on = (opts && opts.on) || '';
+  const out = SPINE.map(k => (say[k] || (fill && !(on && ONLY_ON[k] && ONLY_ON[k] !== on) ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
        the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`. */
     n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true, blank: true,
-  } : null)).filter(Boolean);
+  } : null))).filter(Boolean);
   return out.concat(extra);
 }
 
@@ -2256,9 +2304,12 @@ function bookBreakdown(L, foot) {
   /* THE SPINE APPLIED AS THE LIST IS BUILT, not to a `const` afterwards — which is what the last
      version did, and `Assignment to constant variable` took the whole screen down with it. One
      expression, so there is nothing to reassign and no order for the two steps to get wrong. */
+  /* `on` SAYS WHICH OF THE FORM'S TWO BRANCHES THIS IS, so the other one's rows are not invented as
+     dashes — see the note over `SPINE_EXTRA`. Read from `isWaiting_()` rather than remembered,
+     because that is the one test the branch itself is taken on, four hundred lines up. */
   const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]));
+    .concat([noteRow_()]), { on: isWaiting_() ? 'wait' : 'book' });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced

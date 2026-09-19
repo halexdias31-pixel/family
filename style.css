@@ -2361,7 +2361,19 @@ button.text-drop { color: var(--bad); }
      AND THE WIDTHS ARE IN `em` NOW, not `rem`. `rem` is root-relative, so the label column was sized
      against 16px while the text in it was 12 — which is why it looked generous and measured tight.
      `em` scales with the row, so shrinking the font shrinks the columns with it. */
-  grid-template-columns: 6.2em minmax(4.5em, 1fr) 7ch 7.5ch 7.5ch;
+  /* ---------- AND THE LABEL COLUMN GIVES WAY RATHER THAN BREAKING THE LABEL --------------------
+     `Extra subj.` IS ELEVEN CHARACTERS AND 6.2em IS TEN, so the moment that row carried a real
+     value instead of a dash it drew as `Extra / subj.` — a row twice the height of the twenty
+     around it, on a document read by position. The note over `SPINE_EXTRA` records four labels
+     shortened for exactly this, and shortening a fifth time is the hand-repair this repository
+     keeps finding; the column giving way is the rule.
+
+     THE FLOOR STAYS AND IS WHAT MATTERS: 6.2em is where every label starts, so the answers still
+     line up down the card. `max-content` is a ceiling, reached only by a label that needs it, and
+     the longest on the spine wants about two pixels more than the floor. The same repair already
+     sits on `.bk-row.is-bare` and `.bk-row.is-blank`; having it in three places and not in the one
+     they are variants OF is the fault this file keeps writing down. */
+  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 7.5ch 7.5ch;
   /* ---------- TWELVE ROWS IS A LOT OF ROWS -----------------------------------------------------
      The card lists every question now, so what used to be four or five priced lines is twelve
      before anything is answered. At .34rem top and bottom plus a .5rem gap that is most of a phone
@@ -2639,6 +2651,8 @@ button.text-drop { color: var(--bad); }
    question and it should not look like two. */
 .hr {
   flex: 1 1 0; min-width: 0; padding: 0;
+  /* FOR THE BRIDGE BELOW, which is the only thing that paints outside a cell. */
+  position: relative;
   /* IN `em` SO IT COMES DOWN WITH THE ROOT. It was pinned in px, which meant shrinking the app's
      scale made every row narrower while the week stayed exactly as tall — the one block that most
      needed to move was the one that could not. The floor stays: below about 20px a cell 24px wide
@@ -2738,6 +2752,37 @@ button.text-drop { color: var(--bad); }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
 .hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
+/* ---------- TWO HOURS IN A ROW ARE ONE SESSION, SO THEY ARE ONE BAR --------------------------------
+   THE INSTRUCTION ABOVE THE GRID SAYS IT IN WORDS — *"two together is a two-hour session; another
+   day is another session"* — and the picture said the opposite: two gold squares with a 2px gutter
+   between them, which is two of something. A grid you read by shape should not need a sentence to
+   tell you what the shape means.
+
+   THE GAP IS BRIDGED RATHER THAN CLOSED, and that distinction is the whole of it. `.hr` is
+   `flex: 1 1 0`, so pulling a cell 2px left with a negative margin hands 2px of free space back to
+   eleven flex items and every column after the run drifts out of line with the header above it —
+   which is the one thing the header is for. A 2px block painted into the gutter changes no layout
+   at all: the columns are where they were, to the pixel.
+
+   AND THE INNER CORNERS SQUARE OFF, because a rounded end in the middle of a bar reads as a seam.
+   Only the ends of a run keep their radius, so a single ticked hour is unchanged. This is on the
+   receipt too, where the booked run is the one thing on that grid. */
+.hr.on + .hr.on { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.hr.on:has(+ .hr.on) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* ---------- AND THE BRIDGE IS PAINTED BY THE SECOND CELL, LEFTWARDS ------------------------------
+   THE FIRST VERSION HUNG IT OFF THE LEFT CELL, reaching `right: -3px` into the gutter — and an
+   absolutely positioned child that sticks out to the RIGHT pushes its ancestor's `scrollWidth`, so
+   `check/ui.js` reported `button.hr overflows by 3px` at eight combinations. Nothing was clipped
+   and nothing looked wrong; the box had simply started scrolling sideways when it was not told it
+   could, which is the exact question that check asks.
+
+   PAINTED THE OTHER WAY IT IS THE SAME THREE PIXELS OF GOLD IN THE SAME GUTTER, and overflow to
+   the LEFT does not enter `scrollWidth` at all. A real asymmetry in the platform rather than a
+   trick: the check goes on measuring what it measured, and the picture is identical. */
+.hr.on + .hr.on::before {
+  content: ''; position: absolute; top: -1px; bottom: -1px; left: -3px; width: 3px;
+  background: var(--gold);
+}
 /* NOT AVAILABLE — greyed, never removed. A grid that changes shape as you choose things cannot be
    read: you cannot tell a day the tutor does not work from one that was never offered, and the row
    moving under your thumb as you pick a venue is the fault the dropdowns were fixed for. */
