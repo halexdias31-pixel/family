@@ -557,10 +557,29 @@ function clipSrcs_(clip) {
     'https://drive.google.com/uc?export=download&id=' + id,
   ];
 }
+/* ---------- THE IFRAME IS DRIVE'S PLAYER, SO IT ONLY EXISTS FOR A DRIVE ID -----------------------
+   IT USED TO RETURN THE ADDRESS ITSELF, and for an address that is the same file through a worse
+   door. The whole reason a `/preview` iframe is worth having is that it is a DIFFERENT SERVER doing
+   a different thing — Drive hands `<video>` a redirect or an interstitial and hands its own player
+   a stream. Nothing of the kind is true of a file beside this site: if the browser cannot play
+   `data/reels/x.mp4` in a `<video>`, it cannot play it in an iframe either, because it is the same
+   decoder on the same bytes. What the swap costs is real — Google's chrome, no autoplay, no mute,
+   and the sound button removed on the way past.
+
+   PROVED HERE RATHER THAN REASONED ABOUT, and the container is what made it testable. The Chromium
+   in this environment is built WITHOUT the proprietary codecs — `canPlayType('video/mp4;
+   codecs="avc1.42E01E"')` comes back empty — so a real H.264 clip errors for real, which is the one
+   failure this repository could never previously reach. The column drew an iframe over a file that
+   was there, 200 OK, serving ranges correctly.
+
+   SO A DEAD LOCAL CLIP STAYS A `<video>`, and `.feed-vid` is transparent for exactly this: the
+   slide underneath is `.feed-art`'s own gradient with the subject's initial on it, which is a
+   finished thing rather than a hole. That is the sentence written over the transparency rule and
+   over the photograph slide that waits for `img.onload`. */
 function clipFrame_(clip) {
   const c = String(clip || '').trim();
-  if (!c) return '';
-  return /[:/]/.test(c) ? c : 'https://drive.google.com/file/d/' + encodeURIComponent(c) + '/preview';
+  if (!c || /[:/]/.test(c)) return '';
+  return 'https://drive.google.com/file/d/' + encodeURIComponent(c) + '/preview';
 }
 
 function feedSlide(it) {

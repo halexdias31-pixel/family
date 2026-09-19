@@ -1878,13 +1878,17 @@ function reelPlay_(v) {
         return;
       }
       v.dataset.dead = '1';
-      const frame = clipFrame_(v.dataset.clip);
       const slide = v.closest('.reel');
+      /* NOTHING TO UNMUTE EITHER WAY. A clip that has run out of rungs is silent whether it is
+         replaced by Google's player — which this page cannot reach into — or left as a `<video>`
+         with no source it can read. The button went with the iframe already; it goes with the
+         other ending too, because a control that does nothing is worse than no control. */
+      const btn0 = slide && slide.querySelector('.reel-sound');
+      if (btn0) btn0.remove();
+      const frame = clipFrame_(v.dataset.clip);
       if (!frame || !slide) return;
       v.outerHTML = `<iframe class="feed-vid" src="${esc(frame)}" allow="autoplay"
         referrerpolicy="no-referrer" title="Reel"></iframe>`;
-      const btn = slide.querySelector('.reel-sound');
-      if (btn) btn.remove();
     });
     v.dataset.rung = '0';
     v.src = srcs[0];
