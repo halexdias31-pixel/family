@@ -1079,6 +1079,25 @@ const WIDGETS = [
     <div id="fm-wrap"></div>
   </div>` },
 
+  /* THE HOURS A TUTOR CAN TEACH. It existed and could only be reached by opening *Your details*
+     and scrolling past everything else — see the note over `initAvail`. `tutor: true` is the
+     flyer's `admin: true` one role along, and the name carries the word somebody would type:
+     search matches a widget's name and nothing else. */
+  { id: 'avail', kind: 'tool', name: 'My teaching hours (availability)', solid: true, tutor: true,
+    start: () => initAvail?.(),
+    into: 'avail-box', what: 'Your hours',
+    html: `<div class="card">
+    <h3>My teaching hours</h3>
+    ${/* NOT "TICK THE HOURS YOU CAN TEACH". `availGrid_` prints that line itself, directly below
+          this one, because in the details sheet it is the only instruction there is — so writing
+          it here put the same sentence on the card twice, one under the other, in the same
+          feature I had just been asked to take the duplication out of. This says the half the
+          grid cannot: what ticking them DOES. */''}
+    <p class="sub">A family booking a session only sees the hours you have ticked — everything
+      else comes up greyed, with the reason why.</p>
+    <div id="avail-box"></div>
+  </div>` },
+
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',

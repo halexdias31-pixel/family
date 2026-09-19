@@ -1219,7 +1219,7 @@ on('edit-me', () => {
       options: f => (DATA.validations || {})[f],
     })
     + `<button class="btn" data-do="me-save">Save</button>
-       <p class="faint" id="me-said" style="margin:.6rem 0 0"></p>
+       <p class="faint me-said" id="me-said" style="margin:.6rem 0 0"></p>
 
        ${/* ---------- YOUR USERNAME, ABOVE THE PIN AND FOR THE SAME REASON ------------------------
              THE TWO THINGS ONLY YOU MAY CHANGE, and neither goes through `Save`. Everything above
@@ -1268,6 +1268,20 @@ on('edit-me', () => {
  * and nothing about saving had to change. The box is the label; the checkbox is what the form
  * reads.
  */
+/* ---------- AND IT IS `weekGrid_`, BECAUSE THE COMMENT ABOVE STOPPED BEING TRUE -------------------
+   THE PARAGRAPH ABOVE FORBIDS EXACTLY WHAT HAPPENED. The booking grid gained one row of hour
+   numbers along the top and a run of ticked hours that joins into a bar; this one went on printing
+   seventy-seven numbers with a gutter between every tick, because it was a second piece of markup
+   wearing the same class names. Two shapes for one question, which is the thing the note says must
+   not happen — and a note cannot stop it. One builder can.
+
+   THE CELL IS ALL THAT IS DIFFERENT and it stays here, where it belongs: a label wrapping a hidden
+   checkbox, because `me-save` gathers `[data-me]` and nothing about saving had to change.
+
+   THE COLUMNS LINE UP BY CONSTRUCTION. `availGridOut` in `core.gs` walks `AVAIL_DAYS ×
+   AVAIL_HOURS`, so every day carries the same hours — the same guarantee `slotGrid()` gives the
+   booker, and the reason one header can name the columns for all seven rows. A day the backend
+   sends nothing for is dropped rather than drawn empty. */
 function availGrid_(codes, p, readonly) {
   const on = f => TRUEish_(p[f]);
   const ro = f => readonly.indexOf(f) !== -1;
@@ -1275,25 +1289,22 @@ function availGrid_(codes, p, readonly) {
   /* Grouped back into days, from the flat list the backend sends. The prefix IS the day and the
      digits ARE the hour, so nothing else has to be looked up. */
   const days = [['m', 'Mon'], ['tu', 'Tue'], ['w', 'Wed'], ['th', 'Thu'],
-                ['f', 'Fri'], ['sa', 'Sat'], ['su', 'Sun']];
-  const rows = days.map(([prefix, label]) => {
-    const mine = codes.filter(c => c.replace(/\d+$/, '') === prefix)
-                      .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
-    if (!mine.length) return '';
-    return `<div class="slot-row">
-      <span class="slot-day">${esc(label)}</span>
-      <div class="slot-hours">
-        ${mine.map(c => `<label class="hr${on(c) ? ' on' : ''}${ro(c) ? ' shut' : ''}">
-          <input type="checkbox" data-me="${esc(c)}" ${on(c) ? 'checked' : ''}
-                 ${ro(c) ? 'disabled' : ''}>
-          ${Number(c.slice(prefix.length))}
-        </label>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
+                ['f', 'Fri'], ['sa', 'Sat'], ['su', 'Sun']]
+    .map(([prefix, label]) => ({
+      label: label,
+      hours: codes.filter(c => c.replace(/\d+$/, '') === prefix)
+                  .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)))
+                  .map(c => ({ code: c, h: Number(c.slice(prefix.length)) })),
+    }))
+    .filter(d => d.hours.length);
 
+  if (!days.length) return '';
   return `<p class="faint" style="margin:.2rem 0 .4rem">Tap the hours you can teach.</p>
-    <div class="slot-grid">${rows}</div>`;
+    ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
+      ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
+      <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
+             ${ro(h.code) ? 'disabled' : ''}>
+    </label>`)}`;
 }
 
 /**
@@ -1439,15 +1450,29 @@ function fieldHtml(name, value, o) {
  * editor walked it the same way with its own field renderer at the bottom. One walk now, so a group
  * of hour codes becomes a timetable everywhere rather than only where somebody remembered.
  */
+/* A GROUP OF HOUR CODES IS A TIMETABLE. Recognised by the shape of the names rather than by the
+   group's title, so renaming it in the backend does not turn it back into a column of boxes.
+   ONE TEST, TWO READERS: `fieldsHtml` draws it inside the details sheet, and `availCodes_` finds
+   it for the tool on the Tools column. A second spelling of "is this the week grid" is a second
+   chance for one of them to stop recognising it. */
+const isTimetable_ = list => (list || []).length > 12
+  && (list || []).every(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+
+/* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
+   this looks for the shape rather than for a name — and answers an empty list when no deployment
+   has sent one, which is what the widget reports instead of drawing a week with no hours in it. */
+function availCodes_() {
+  const groups = (DATA && DATA.profileFields) || {};
+  const hit = Object.keys(groups).find(g => isTimetable_(groups[g]));
+  return hit ? groups[hit] : [];
+}
+
 function fieldsHtml(groups, o) {
   o = o || {};
   const value = o.value || (() => '');
   return Object.keys(groups).map(g => {
     const list = groups[g] || [];
-    /* A GROUP OF HOUR CODES IS A TIMETABLE. Recognised by the shape of the names rather than by the
-       group's title, so renaming it in the backend does not turn it back into a column of boxes. */
-    const timetable = list.length > 12
-      && list.every(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+    const timetable = isTimetable_(list);
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : list.map(f => fieldHtml(f, value(f), {
@@ -1464,10 +1489,67 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
+/* ==================================================================================================
+   THE HOURS YOU CAN TEACH, AS A THING YOU OPEN.
+
+   IT ALREADY WORKED AND IT WAS ALREADY UNFINDABLE. A tutor's availability is a real column, it is
+   written by `me-save`, and the booker has read it since it was written — an hour nobody has
+   ticked comes up greyed in the booking week with "not available" beside it. What was missing is
+   the door: it sat inside *Your details*, below About you, Where and Contact, so reaching it meant
+   knowing it was there.
+
+   A TOOL IS NOT A THING YOU FIND, IT IS A THING YOU OPEN, which is the sentence this repository
+   already writes about the calculator and the timer — and the Tools column is where the sixteen
+   of them live, one card per page. This is the seventeenth.
+
+   NOT A TENTH SCREEN. A column of its own is a screen every parent and every student swipes past
+   holding something only a tutor may use, and `widgetsOf_` already gates the flyer maker on a
+   flag. One more flag is cheaper than one more screen, and it puts the tool in the search as well.
+
+   IT STAYS IN THE DETAILS SHEET TOO, and that is not a second copy: `fieldsHtml` and this widget
+   both call `availGrid_`, so there is one grid, answered in one place, saved by one handler. Which
+   is the point — a tutor who goes looking in their own details still finds it where it was. */
+function initAvail() {
+  const into = $('avail-box');
+  if (!into) return;
+  if (!USER) { into.innerHTML = `<p class="note">Sign in to set your hours.</p>`; return; }
+
+  const codes = availCodes_();
+  /* THE BACKEND HAS NOT SENT THE HOURS, WHICH IS NOT THE SAME FACT AS A TUTOR WHO HAS TICKED
+     NOTHING — and drawing an empty week for the first would be this repository’s oldest fault:
+     *I did not manage to look*, printed as *I looked and there was nothing there*. A deployment
+     older than `profileFields` says so and offers the sheet, which is where it used to live. */
+  if (!codes.length) {
+    into.innerHTML = `<p class="note">The hours have not arrived from the server yet.<br>
+      <span class="faint">Your details → the week grid still works.</span></p>`;
+    return;
+  }
+
+  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [])
+    + `<button class="btn" data-do="me-save">Save my hours</button>
+       <p class="faint me-said" style="margin:.6rem 0 0"></p>`;
+}
+
+/* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH ---------------------------------------
+   THIS READ `#sheet-body [data-me]` AND CALLED `closeSheet()`, both of which were right while the
+   details sheet was the only place a `data-me` box could be. The availability tool on the Tools
+   column draws the same boxes on an ordinary card — so a document-wide query would have gathered
+   whichever surface happened to be open as well, and `closeSheet()` would have dismissed whatever
+   else somebody had up.
+
+   ASKED OF THE DOM RATHER THAN REMEMBERED IN A FLAG, which is exactly what `msg-send` already does
+   with `form.closest('#sheet')`: the Save button knows which container it is in, so it gathers
+   that one and closes the sheet only when it is in one. A second handler would have been a second
+   copy of the whole round trip.
+
+   AND THE STATUS LINE IS A CLASS, NOT AN ID. Two surfaces carrying `id="me-said"` is two elements
+   with one id and `$()` handing both Save buttons the first of them — the `$('msg-text')` bug this
+   repository already records, which would have written "Saving…" onto the wrong card. */
 on('me-save', el => {
-  const said = $('me-said');
+  const box = el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
+  const said = box.querySelector('.me-said');
   const fields = {};
-  document.querySelectorAll('#sheet-body [data-me]').forEach(box => {
+  box.querySelectorAll('[data-me]').forEach(box => {
     if (box.disabled) return;
     fields[box.dataset.me] = box.type === 'checkbox' ? (box.checked ? 'TRUE' : 'FALSE')
                                                      : String(box.value || '').trim();
@@ -1483,7 +1565,10 @@ on('me-save', el => {
       USER.profile = Object.assign({}, USER.profile || {}, fields);
       if (d && d.name) USER.name = d.name;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      closeSheet(); toast('Saved'); load();
+      if (box.closest('#sheet-body')) closeSheet();
+      el.disabled = false;
+      if (said) said.textContent = '';
+      toast('Saved'); load();
     })
     .catch(err => {
       el.disabled = false;

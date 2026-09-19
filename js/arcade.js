@@ -122,10 +122,16 @@ const mapPlaces = () => (DATA.venues || []).filter(v => {
    time. Three copies of "which widgets are on this screen" is three things to get right when a
    widget gains an `admin` flag — and a pager that disagrees with its own screen is a widget that
    exists and cannot be swiped to, which is the failure the note on `PAGER` describes. */
+/* `admin` AND `tutor` ARE TWO FLAGS BECAUSE THEY ARE TWO AUDIENCES. The flyer maker is the
+   business's own stationery and belongs to whoever runs it; a tutor's teaching hours belong to the
+   tutor, and an admin needs them too — `isTutorRole()` already answers "tutor or admin", which is
+   the shape every other staff test in this app uses. A single `staff` flag would have put the
+   flyer in front of every tutor to save declaring one word. */
 function widgetsOf_(kind) {
   return allWidgets()
     .filter(w => w.kind === kind)
-    .filter(w => !w.admin || isAdmin());
+    .filter(w => !w.admin || isAdmin())
+    .filter(w => !w.tutor || (typeof isTutorRole === 'function' && isTutorRole()));
 }
 
 function widgetColumn_(kind) {

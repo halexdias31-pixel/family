@@ -1764,6 +1764,70 @@ function stepInput_(st) {
     ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
 
+/* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
+   SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
+   154 characters of digits in 77 boxes — and the numbers were identical down every column, because
+   `slotGrid()` builds the hour span ONCE and every day in `SLOT_DAYS` maps over the same list. The
+   repetition was not a coincidence to be tidied; it was structural, and so is the fix.
+
+   `.hr`'S OWN NOTE ALREADY SAID WHY THIS IS SAFE: "a grid of numbers is scanned rather than read —
+   you are looking for the shape of the ticked boxes, not reading eleven figures". A cell's number
+   was never the thing being read. The COLUMN it sits in is, and a column needs a heading rather
+   than a hundred and fifty-four repetitions of one.
+
+   ONE HELPER, CALLED BY BOTH GRIDS. `jobGrid_` was deliberately built out of the form's own markup
+   — its own comment says "the form's markup, down to the class names" — because a receipt drawn
+   with different elements is a receipt that drifts the next time the grid is restyled. A header
+   written twice would put that back, one element up. Same argument as `documents_()`, `factsNow_`
+   and `childrenOf`.
+
+   `aria-hidden`, BECAUSE THE CELLS CARRY THEIR OWN HOUR. A screen reader walking the grid gets
+   "Monday 14:00" off each button's own label rather than a stray row of numerals with no context —
+   which is what the header is for a pair of eyes and exactly not what it is for a reader. */
+function slotHead_(hours) {
+  return `<div class="slot-row slot-head" aria-hidden="true">
+    <span class="slot-day"></span>
+    <div class="slot-hours">
+      ${hours.map(h => `<span class="slot-hh">${h}</span>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ---------- AND THE WEEK ROUND IT, BECAUSE THERE WERE THREE OF THESE ------------------------------
+   THE SAME SEVEN ROWS WERE WRITTEN OUT IN THREE PLACES: the booking form, `jobGrid_` on the
+   receipt, and `availGrid_` in `me.js` — where a TUTOR ticks the hours they can teach. That third
+   one carries its own note saying *"the same grid the booker uses … answering it in two different
+   shapes would be two things to learn"*, and the hour header proved the note right by breaking it:
+   two of the three gained a header row and a joined bar, and the tutor's kept printing all
+   seventy-seven numbers. A comment forbidding the drift is not a thing that stops it.
+
+   WHAT DIFFERS BETWEEN THEM IS THE CELL AND NOTHING ELSE. One is a button you press, one is a
+   button you cannot, one is a label wrapping a checkbox `me-save` reads. So the cell is the
+   argument and everything round it — the header, the day label, the row, which days collapse —
+   is here, once.
+
+   `days` IS `[{ label, hours, shut }]` and `cell(hour, day)` returns the innards. The hours of the
+   first day name the columns, which is true by construction everywhere this is used: `slotGrid()`
+   builds one hour span and every day maps over it, the receipt counts 10 to 20, and a tutor's
+   codes are that same span grouped by prefix. */
+function weekGrid_(days, cell) {
+  const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
+  return `<div class="slot-grid">
+    ${slotHead_(cols)}
+    ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
+          nobody works are different facts, which is the same reason a shut hour is greyed rather
+          than removed — but it does not need a thumb-sized row, because there is nothing on it to
+          press. Four working days and three closed ones costs half what seven equal rows did. */''}
+    ${days.map(d => `<div class="slot-row${d.shut ? ' is-shut' : ''}">
+      ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell’s width — and Mo/Tu/
+            We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
+            T and S are each two days. */''}
+      <span class="slot-day">${esc(String(d.label).slice(0, 2))}</span>
+      <div class="slot-hours">${d.hours.map(h => cell(h, d)).join('')}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
 /* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
    THE LAST PANEL, AND THE ONE WORTH KEEPING AS A GRID. Every other question is a list, and a list is
    a dropdown. Hours are not: which hours are free across a week is a SHAPE — you read it by seeing
@@ -1804,28 +1868,19 @@ function stepGrid_(st) {
     ${(off || !runs.length) ? `<p class="faint">${off
       ? 'A waiting list has no day until it fills — this is settled once the seats are taken.'
       : 'Two together is a two-hour session; another day is another session.'}</p>` : ''}
-    <div class="slot-grid">
-      ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
-            nobody works are different facts, which is the same reason a shut hour is greyed rather
-            than removed — but it does not need a thumb-sized row, because there is nothing on it to
-            press. Four working days and three closed ones costs half what seven equal rows did. */''}
-      ${g.rows.map(r => `<div class="slot-row${
-        r.hours.some(h => h.open) ? '' : ' is-shut'}">
-        ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell's width — and Mo/Tu/
-              We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
-              T and S are each two days. */''}
-        <span class="slot-day">${esc(r.label.slice(0, 2))}</span>
-        <div class="slot-hours">
-          ${r.hours.map(h => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
-            (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
-            ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
-                  are already teaching are the same grey box, and only the second is worth trying a
-                  different week for. */''}
-            title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
-            data-do="book-slot" data-code="${esc(h.code)}">${h.h}</button>`).join('')}
-        </div>
-      </div>`).join('')}
-    </div>
+    ${weekGrid_(
+      g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
+      (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
+        (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
+        ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
+              are already teaching are the same grey box, and only the second is worth trying a
+              different week for. */''}
+        title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
+        ${/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hour in the header row the box is
+              empty, and an empty button has no accessible name at all — so the day and the hour
+              are said here, which is more than the bare numeral ever managed. */''}
+        aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
+        data-do="book-slot" data-code="${esc(h.code)}"></button>`)}
     ${/* THE RUNS LINE WAS HERE — "Monday 13:00–15:00" under the grid. It is the When row's value
           now, in full, which is where an answer belongs: a line under the control repeating what the
           control just decided is the card saying one thing in two places, and the row was the one
@@ -1985,28 +2040,56 @@ let BOOK_ROWS = [];
 
    `Extra subj.` KEEPS ITS FULL STOP. It is the one genuine abbreviation of the four, and a shortened
    word that does not admit it is a word somebody reads twice. */
+/* ---------- `only` — WHICH DOCUMENT CAN EVER FILL THIS ROW -------------------------------------
+   THE SPINE IS THE UNION OF THREE DOCUMENTS AND THE FORM WAS PRINTING ALL THREE. Measured on a
+   priced ordinary booking at 390px: nine rows drew a dash and EIGHT of them were another document's
+   — `A seat`, `Shared by`, `Per session`, `Running`, `Weeks left` and `About` are pushed only
+   inside `if (isWaiting_()) { … return rows; }`, which an ordinary booking never enters, and
+   `Sharing` and `Asked for` are pushed only by `jobRows`, which is the receipt.
+
+   `SPINE`'S OWN ARGUMENT IS ABOUT ONE DOCUMENT, and it still holds: *"a document whose SHAPE
+   changes with its contents cannot be read at a glance: you find a line by where it is"* — so a
+   row you have not answered YET keeps its place, because you are about to answer it and everything
+   below it would move. A row this branch cannot answer at all is not that: nothing you do on this
+   form will ever fill it, so it never moves anything, and it was never on this document.
+
+   IT ONLY GOVERNS THE INVENTED DASH. If a builder pushes the row, the row is drawn, whatever this
+   says — so a branch that starts pushing `Per session` needs nothing changed here, and a flag that
+   goes stale can hide nothing. The order is untouched, `check-spine.js` reads the labels both
+   builders push rather than the markup, and the receipt passes `fill: false` so none of this
+   reaches it. */
 const SPINE_EXTRA = [
   { after: 'Subject', row: 'Extra subj.' },
-  { after: 'When',    row: 'Per session' },
-  { after: 'Term',    row: 'Weeks left' },
-  { after: 'Term',    row: 'Running' },
-  { after: 'Split',   row: 'Sharing' },
+  { after: 'When',    row: 'Per session', only: 'wait' },
+  { after: 'Term',    row: 'Weeks left',  only: 'wait' },
+  { after: 'Term',    row: 'Running',     only: 'wait' },
+  /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
+     form asks the question as `Split` and names the answer there. */
+  { after: 'Split',   row: 'Sharing',     only: 'receipt' },
   /* PINNED TO `For`, WHICH IS THE LAST QUESTION. They were pinned to `Tutor` while `Tutor` was
      last; moving it to third would have carried the dates, the note and the waiting-list lines up
      the page with it, four rows below the level. Pinning is what made that visible — an index would
      have left them where the number said and put the wrong rows there in silence. */
-  { after: 'For',     row: 'About' },
+  { after: 'For',     row: 'About',     only: 'wait' },
   { after: 'For',     row: 'Dates' },
   { after: 'For',     row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: the form printed
      `A seat` and `Shared between` and the receipt printed neither, so the one document that says
      what a seat costs and how many families share it was the one nobody was handed. */
-  { after: 'For',     row: 'A seat' },
-  { after: 'For',     row: 'Shared by' },
+  { after: 'For',     row: 'A seat',    only: 'wait' },
+  { after: 'For',     row: 'Shared by', only: 'wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
      about — which is where a receipt puts it and where the form now puts it too. */
   { after: '',        row: 'Stage' },
   { after: '',        row: 'Status' },
+  /* `Asked for` IS NOT MARKED, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. It is pushed only
+     by `jobRows`, so by the rule above it would go — and `check-flow.js` refused it, naming the
+     argument this file already records beside `Stage` and `Status`: those three are the state of
+     the booking, and *"a row that appears only once the thing is saved is a row that changes shape
+     at exactly the moment somebody is checking it"*. They are one document across TIME, the form
+     and the receipt for the same session, so the placeholder is the point. The six above are a
+     different branch of the form, which is one document across NOTHING — an ordinary booking never
+     becomes a waiting list. Worth twelve pixels. */
   { after: '',        row: 'Asked for' },
 ];
 
@@ -2033,7 +2116,23 @@ const SPINE = (() => {
    the foot — so £151.82 appeared twice, four rows apart, on the document whose entire job is to say
    what something costs. The form has only the bar. The bar wins: it is the thing set apart from the
    rows, which is what a total is. */
-const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '' };
+/* `Extra subjects` → `Extra subj.` WAS THE ONE SHORTENING THAT NEVER REACHED ITS PUSH SITE. The
+   note above records four labels shortened to fit the 6.2em column; three of them were shortened
+   where they are pushed, and this one lives in `price-rows.js` as `label: 'Extra subjects'`. So
+   `SPINE.indexOf('Extra subjects')` was −1, the row fell through to `extra`, and a priced booking
+   drew it at the FOOT of the card — below `Status` — while `Extra subj.` drew a dash up beside
+   `Subject` where `AFTER` had carefully placed it. One fact, twice, in two places, on the live
+   form. Measured: nine dashes and a stray `Extra subjects` row after `Status`. */
+const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '',
+                      'Extra subjects': 'Extra subj.' };
+
+/* One row name to the one document that can fill it, read off `SPINE_EXTRA` so there is no second
+   list to keep in step. */
+const ONLY_ON = (() => {
+  const m = {};
+  SPINE_EXTRA.forEach(x => { if (x.only) m[x.row] = x.only; });
+  return m;
+})();
 
 /* ---------- PUT ROWS IN SPINE ORDER, AND FILL WHAT IS MISSING -------------------------------------
    NEITHER BUILDER IS REWRITTEN. Each still produces whatever rows it can, in whatever order suits
@@ -2081,11 +2180,15 @@ function spineRows_(rows, opts) {
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
   });
   const fill = !opts || opts.fill !== false;
-  const out = SPINE.map(k => say[k] || (fill ? {
+  /* WHICH DOCUMENT IS ASKING. `ONLY_ON` is built from `SPINE_EXTRA`, so the flag is declared once
+     beside the row it belongs to rather than listed again here. No `on` means invent everything,
+     which is what every caller that does not know about branches gets. */
+  const on = (opts && opts.on) || '';
+  const out = SPINE.map(k => (say[k] || (fill && !(on && ONLY_ON[k] && ONLY_ON[k] !== on) ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
        the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`. */
     n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true, blank: true,
-  } : null)).filter(Boolean);
+  } : null))).filter(Boolean);
   return out.concat(extra);
 }
 
@@ -2222,9 +2325,12 @@ function bookBreakdown(L, foot) {
   /* THE SPINE APPLIED AS THE LIST IS BUILT, not to a `const` afterwards — which is what the last
      version did, and `Assignment to constant variable` took the whole screen down with it. One
      expression, so there is nothing to reassign and no order for the two steps to get wrong. */
+  /* `on` SAYS WHICH OF THE FORM'S TWO BRANCHES THIS IS, so the other one's rows are not invented as
+     dashes — see the note over `SPINE_EXTRA`. Read from `isWaiting_()` rather than remembered,
+     because that is the one test the branch itself is taken on, four hundred lines up. */
   const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]));
+    .concat([noteRow_()]), { on: isWaiting_() ? 'wait' : 'book' });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
@@ -2723,26 +2829,18 @@ function jobGrid_(j) {
   const hours = [];
   for (let h = 10; h <= 20; h++) hours.push(h);
   return `<div class="bk-open is-off">
-    <div class="slot-grid">
-      ${/* THE FORM'S MARKUP, DOWN TO THE CLASS NAMES. The first version wrote `.slot-cell` spans
-            because they only had to be readable — and a receipt drawn with different elements is a
-            receipt that will drift the next time the grid is restyled, which is the whole thing
-            this exercise is trying to stop. Same `.slot-row`, same `.slot-day`, same `.slot-hours`,
-            same `button.hr`. Disabled, because nothing on a receipt is answerable. */''}
-      ${SLOT_DAYS.map(([, label]) => {
-        const isDay = norm(label) === day;
-        return `<div class="slot-row">
-          <span class="slot-day">${esc(label.slice(0, 2))}</span>
-          <div class="slot-hours">
-            ${hours.map(h => {
-              const on = isDay && isFinite(start) && h >= start && h < start + hrs;
-              return `<button class="hr${on ? ' on' : ''}${on ? '' : ' shut'}" disabled
-                title="${h}:00">${h}</button>`;
-            }).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
+    ${/* THE FORM'S OWN BUILDER, NOT A COPY OF ITS MARKUP. The first version wrote `.slot-cell`
+          spans because they only had to be readable — the second wrote out the form's classes by
+          hand, which held until the hour header arrived and had to be added in two places. One
+          `weekGrid_`, three cells; see the note over it. Disabled, because nothing on a receipt is
+          answerable. */''}
+    ${weekGrid_(
+      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours, on: norm(label) === day })),
+      (h, d) => {
+        const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
+        return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
+          title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
+      })}
   </div>`;
 }
 
