@@ -6165,3 +6165,49 @@ screen, and thirty `go`/`repaint`/`paint` storms.
 
 **The core is sound and that is worth writing down rather than quietly not mentioning.** What was
 broken was never the movement; it was which screens had been told they could move.
+
+### What happens when things fail, measured across seven ways of failing
+
+**Every claim this file makes about resilience was checked rather than trusted**, by breaking each
+request in turn and asking the rendered page four questions: did the screens draw, did the splash
+lift, is there a banner saying why, and can you still navigate.
+
+| what was broken | screens drawn | splash | says why | navigates |
+|---|---|---|---|---|
+| nothing | 9/9 | lifted | — | yes |
+| the backend answers 500 | 9/9 | lifted | yes, + Try again | yes |
+| the backend answers a web page | 9/9 | lifted | yes, + Try again | yes |
+| `data/questions.json` 404s | 9/9 | lifted | *"the question file answered 404"* | yes |
+| every `data/settings/*.json` 404s | 9/9 | lifted | — (correctly: the payload still has them) | yes |
+| the backend AND the library fail | 9/9 | lifted | yes, + Try again | yes |
+| **the backend never answers** | 8/9 | **lifted at 60s** | yes, + Try again | yes |
+
+**No JS errors in any of the seven, no screen failed to draw, and the app was navigable in every
+one.** That last row is the deadline in `load()` doing exactly what its note says, confirmed rather
+than assumed — and it is the one that needed the stopwatch, because a first pass that waited four
+seconds reported it as a permanent hang and would have been a fix aimed at nothing.
+
+### A minute of splash with nothing said, which was the one honest gap
+
+**The deadline is sixty seconds and it should be.** Its note explains why it is not less: this
+backend answers in about fifteen, and a deadline shorter than the thing it times reports a healthy
+backend as a dead one — *"that happened, at twelve seconds, and cost an afternoon."*
+
+**So the floor on "how long can this legitimately take" is a minute, and for all of it the animation
+played over an app that was getting no answer.** Nothing on screen could tell *still trying* from
+*stuck*. Every other failure here ends with a sentence and a Try again; this one was silence.
+
+**Fifteen seconds, from the same measured number the deadline is built on** — past the backend's own
+normal time, so an ordinary load never sees it and a slow one says so. One figure, derived from the
+one already written down rather than guessed at separately, which is the fault this file records
+every time a number is stated twice.
+
+**It is in the markup rather than built**, for the reason the two splashes are: the boot path is
+where this app once took itself down, and anything there that has to be constructed is one more
+thing that can be missing. **It is cleared wherever the splash is**, because the two are one state —
+a line about loading over a loaded app is worse than the silence it replaces — and it only starts
+its clock when the splash is actually up, because `load()` runs again on every retry and every
+sign-in.
+
+**Proved in both directions**: a normal load never shows it (the splash is gone by 3s), a stalled
+one shows it at 17s and not at 14s. Screenshotted.

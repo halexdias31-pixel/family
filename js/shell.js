@@ -2054,6 +2054,9 @@ async function load() {
        `no-store` tells the browser not to keep it; `_` makes the URL one it has never seen, which
        is what covers the proxies and the service workers that ignore the header. */
     const bust = (who ? '&' : '?') + '_=' + Date.now();
+    /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
+       this is the moment the app begins waiting, and it is the only moment worth timing from. */
+    splashWaitWatch_();
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE -------------
        `fetch` waits for ever by default, and `splashOff_()` is at the END of this function — the
        only place the loading screen ever comes off. So a backend that hung left the app behind the
@@ -2420,7 +2423,44 @@ async function load() {
    Two lines, named, because they are called from three places — the load finishing, the boot
    failing, and a retry — and three copies of `classList.add('done')` is three chances for one of
    them to be spelt differently. */
-function splashOff_() { const el = $('splash'); if (el) el.classList.add('done'); }
+/* ---------- AND THE LINE UNDER IT, WHICH ONLY A SLOW LOAD EVER SEES ------------------------------
+   THE SPLASH SAID NOTHING FOR A WHOLE MINUTE. Measured with the backend answering nothing: the
+   deadline in `load()` is sixty seconds — and the note over it explains why it is not less, because
+   this backend answers in about fifteen and a deadline shorter than the thing it times reports a
+   healthy backend as a dead one. So the honest floor on "how long can this take" is a minute, and
+   for all of it the animation played over an app that was getting no answer, with nothing on screen
+   telling "still trying" from "stuck".
+
+   FIFTEEN SECONDS, FROM THE SAME MEASURED NUMBER THE DEADLINE IS BUILT ON. Past the backend's own
+   normal time, so an ordinary load never sees it and a slow one says so rather than sitting there.
+   One number, one place, derived from the one already written down rather than guessed at
+   separately — which is the fault this file records every time a figure is stated twice.
+
+   IT IS CLEARED WHEREVER THE SPLASH IS, because the two are one state: a splash that has lifted
+   with the line still on it would be a sentence about loading over a loaded app. */
+const SPLASH_SAY_AFTER = 15000;
+let splashSayTimer = null;
+function splashSay_(on) {
+  const el = $('splash-wait');
+  if (el) el.hidden = !on;
+}
+function splashWaitWatch_() {
+  clearTimeout(splashSayTimer);
+  splashSay_(false);
+  /* ONLY WHILE THE SPLASH IS ACTUALLY UP. `load()` runs again on every retry, on signing in and
+     whenever the payload is refreshed, and by then the splash is long gone — a line about loading
+     appearing over a working app is worse than the silence it replaces. */
+  const sp = $('splash');
+  if (!sp || sp.classList.contains('done')) return;
+  splashSayTimer = setTimeout(() => {
+    const now = $('splash');
+    if (now && !now.classList.contains('done')) splashSay_(true);
+  }, SPLASH_SAY_AFTER);
+}
+function splashOff_() {
+  clearTimeout(splashSayTimer); splashSay_(false);
+  const el = $('splash'); if (el) el.classList.add('done');
+}
 function splashOn_()  { const el = $('splash'); if (el) el.classList.remove('done'); }
 
 /* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument
