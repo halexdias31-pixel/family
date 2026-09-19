@@ -364,6 +364,9 @@ function startScreen_(id) {
      clip playing on a screen nobody was looking at, started by a booking made for the screen
      before. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
+  /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
+     a thread is last month — so something has to say otherwise, once the markup exists. */
+  if (id === 'dm' && typeof dmFoot_ === 'function') dmFoot_();
 }
 
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */

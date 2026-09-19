@@ -903,22 +903,28 @@ function loadMessages() {
    under `link`/`source_url` and under `childrenOf` — and the server's own words already say what to
    do instead: "You cannot message them directly. An admin can pass it on."
 ================================================================================================== */
+/* THE SHEET IS THE SAME FORM IN A SHEET. It had its own textarea, its own button and its own note,
+   which is a second composer to keep in step with the one on the thread — the fault recorded here
+   under `childrenOf`, under `link`/`source_url` and under `factsNow_`. Five rows rather than one,
+   because a sheet opened to write a message has nothing else on it to make room for. */
 function messageSheet(to, toId) {
-  openSheet('Message ' + to, `
-    <label class="field"><span>your message</span>
-      <textarea id="msg-text" rows="5" maxlength="2000"
-        placeholder="Keep it short — they get this by e-mail."></textarea></label>
-    <button class="btn" data-do="msg-send"
-      data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
-    <p class="faint" id="msg-said" style="margin:.6rem 0 0">
-      One message every five minutes. It goes to their e-mail and appears in Messages for both of
-      you.</p>`);
+  openSheet('Message ' + to, msgForm_(to, toId,
+    'One message every five minutes. It goes to their e-mail and appears in Messages for both '
+  + 'of you.', 5));
 }
 
 on('msg-open', el => messageSheet(el.dataset.to, el.dataset.id));
 
 on('msg-send', el => {
-  const box = $('msg-text'), said = $('msg-said');
+  /* ---------- FOUND BY WALKING UP, NOT BY ID -----------------------------------------------------
+     `$('msg-text')` WAS RIGHT WHILE THERE COULD ONLY EVER BE ONE. The Messages column draws a
+     composer per conversation, so three on a screen would be three elements with one id and the
+     browser would hand every Send button the first one — a reply typed to your tutor posted to
+     somebody else. The nearest enclosing form is the one the button is in, which is a fact the DOM
+     can answer and an id cannot. */
+  const form = el.closest ? el.closest('.msg-form') : null;
+  const box  = form ? form.querySelector('.msg-text') : null;
+  const said = form ? form.querySelector('.msg-said') : null;
   const text = ((box && box.value) || '').trim();
   if (!text) { box && box.focus(); return; }
   if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
@@ -943,7 +949,14 @@ on('msg-send', el => {
   send({ action: 'sendMessage', name: USER.name, personId: USER.personId,
          to: el.dataset.to, toId: el.dataset.id, body: text })
     .then(() => {
-      closeSheet();
+      /* ---------- CLOSE A SHEET; EMPTY A THREAD'S BOX -------------------------------------------
+         `closeSheet()` UNCONDITIONALLY WOULD SHUT A SHEET NOBODY OPENED. The composer at the foot
+         of a thread is on the page, not in the sheet, so what it needs is its box emptied and the
+         note put back — and closing the sheet from there would dismiss whatever else somebody had
+         open. Asked of the DOM rather than remembered in a flag. */
+      done();
+      if (form && form.closest('#sheet')) closeSheet();
+      else if (box) { box.value = ''; box.style.height = ''; }
       toast('Sent to ' + el.dataset.to);
       /* SO IT IS THERE WHEN YOU LOOK. Without this the thread you have just started does not exist
          on the phone until something else happens to fetch — and the first place anybody looks
@@ -1049,12 +1062,61 @@ function fillThread_(withId) {
 /* `fillMessages` WAS HERE — it filled the single `#msg-body` on `You` with every message at once.
    `fillThread_` above replaces it, one conversation at a time, into the widget that asked. */
 
-/* One renderer, used by the widget and by anything else that wants to show a thread. */
-const messagesHtml_ = ms => ms.map(m =>
-  `<div class="msg${m.mine ? ' mine' : ''}${!m.mine && !m.read ? ' unread' : ''}">
-    <p class="msg-body-text">${mark(m.body)}</p>
-    <p class="faint msg-when">${esc(m.mine ? 'you' : (m.fromName || 'them'))} · ${esc(m.at || '')}</p>
-  </div>`).join('');
+/* ---------- ONE RENDERER, AND IT DREW A LOG RATHER THAN A CONVERSATION ---------------------------
+   ASKED FOR AS "messages should look like IG DMs". What was here was full-width rows separated by
+   hairlines, with `text-align: right` standing in for "this one is mine" — which is a transcript.
+   A conversation is read by SIDE before it is read by name: you know who said a thing from where it
+   sits, and the name under it is a confirmation rather than the way in.
+
+   RUNS, WHICH IS THE HALF THAT ACTUALLY MAKES IT READ AS A CHAT. Four messages in a row from one
+   person is one turn, not four — so only the LAST of a run carries the tail corner and the "you ·
+   time" line, and the ones above it hug at 2px. Without that, six bubbles down a card read as six
+   separate exchanges and the screen is no calmer than the hairlines were.
+
+   `mark(m.body)` IS UNCHANGED and is the reason the bubble holds a `<p>` rather than text: it is
+   the app's own small-markup renderer, so a message can carry a link and a line break exactly as it
+   did before.
+
+   STILL ONE RENDERER. The widget on Tools, the thread on the Messages column and anything else that
+   wants a conversation all call this — a second copy of "how to show a message" is how this screen
+   came to be reading a payload key that has never existed. */
+const messagesHtml_ = ms => (ms || []).map((m, i, all) => {
+  const mine = !!m.mine;
+  const prev = all[i - 1], next = all[i + 1];
+  const runTop = !prev || !!prev.mine !== mine;
+  const runEnd = !next || !!next.mine !== mine;
+  return `<div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
+      runEnd ? ' run-end' : ''}${!mine && !m.read ? ' unread' : ''}">
+    <div class="msg-bub"><p class="msg-body-text">${mark(m.body)}</p></div>
+    ${runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
+      esc(m.at || '')}</p>` : ''}
+  </div>`;
+}).join('');
+
+/* ---------- THE COMPOSER, ONCE, WHEREVER IT IS WANTED --------------------------------------------
+   IT EXISTED ONLY INSIDE A SHEET, reached from a person's pass — so the Messages column showed you
+   conversations you could read and not answer. Every messaging app anybody has used puts the box at
+   the foot of the thread, and "reply where you are reading" is most of what "look like IG DMs"
+   means.
+
+   ONE BUILDER AND ONE SENDER, because the alternative is the fault this file already records four
+   times: a second copy of a thing, and the fix reaching one of them. `on('msg-send')` finds its box
+   by walking up to the nearest `.msg-form` rather than by a fixed id, which is what lets three
+   threads and a sheet be on screen at once — ids cannot do that, and the first version of this had
+   `#msg-text` in it.
+
+   THE NOTE IS PART OF THE FORM. The five-minute gap and the e-mail are things somebody needs to
+   know BEFORE pressing send, and they are also where a refusal is printed — so the sentence and the
+   place the server answers are one element rather than two to keep in step. */
+function msgForm_(to, toId, note, rows) {
+  return `<div class="msg-form">
+    <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
+      placeholder="Message ${esc(to)}…"></textarea>
+    <button class="btn msg-go" data-do="msg-send"
+      data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
+    <p class="faint msg-said">${esc(note || '')}</p>
+  </div>`;
+}
 
 /* `on('messages')` was here — a second way to see the same thread, opened in a sheet. Messages
    are a WIDGET, reached from Tools, and that route calls `fillMessages` directly; nothing has ever

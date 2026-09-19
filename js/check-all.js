@@ -125,6 +125,12 @@ const SUITE = [
      and it is here because it caught a live one: the library spells a fraction with U+2044, a
      phone types `/`, and `5/9` was marked wrong against `5⁄9` on a paper somebody was sitting. */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
+  /* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
+     `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not
+     anchored and the engine slid past the four-digit year. A plausible date, wrong by eleven years,
+     on every surface that prints a time. On the roster because the roster is the only thing that
+     makes a check real — three good checks once sat on disk for months. */
+  { file: 'check-dates.js', what: 'a written date read as the date it says' },
   /* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL ----------------------
      A practical's whole value is the join: name the topics a question names and a tutor looking at
      perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one

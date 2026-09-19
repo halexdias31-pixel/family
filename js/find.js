@@ -2039,25 +2039,87 @@ function practicalCard_(x) {
      nothing at all, and `needs a lab` is what `lab` means. So the venue is shown and `feasible`
      contributes one phrase, when it has one. */
   const kit = /with kit/i.test(p.feasible) ? 'needs kit' : '';
-  const strip = [p.minutes ? p.minutes + ' min' : '', p.groupSize ? p.groupSize + ' students' : '',
-                 p.venue, kit].filter(Boolean).join(' · ');
-  return `<div class="card prac">
+  /* ---------- AGE, HAZARD AND COST JOIN THE STRIP, AND ONLY WHERE THEY WERE ANSWERED -------------
+     THE 41 LAB PRACTICALS CARRY NONE OF THE THREE and that is not a gap: a school owns the kit and
+     a lab has a technician in it. `libNum` answers `null` rather than 0 for an uncosted row — see
+     the note over it — so `costPerRun == null` and `costPerRun === 0` are different sentences here,
+     which is the `cost: 0` fault this file records four times and the one place it would land
+     again. "free to run" is a claim; saying nothing is the honest alternative to it. */
+  const money = p.costPerRun == null ? ''
+    : p.costPerRun === 0 ? 'free to run'
+    : '£' + p.costPerRun.toFixed(2) + ' a run';
+  const strip = [p.minutes ? p.minutes + ' min' : '',
+                 p.ageMin ? p.ageMin + '+' : '',
+                 p.groupSize > 1 ? p.groupSize + ' students' : '',
+                 p.venue, kit, money].filter(Boolean).join(' · ');
+
+  /* ---------- A REFUSED EXPERIMENT SAYS SO BEFORE IT SAYS ANYTHING ELSE --------------------------
+     FIVE OF THESE WERE CONSIDERED AND TURNED DOWN, and they are rows rather than a deletion so that
+     the reasoning is findable — a tutor asking why they are not burning magnesium ribbon gets the
+     answer instead of an absence. That only works if the card cannot be mistaken for something to
+     run, so the flag, the reason and the ink all change, and the kit and the method are not drawn
+     at all: an excluded row carries no steps, by rule, and `check-practicals.js` refuses one that
+     does.
+
+     `RECONSIDER AT` IS PART OF THE REFUSAL rather than a separate line, because "no" and "no until
+     fourteen, in a lab" are different answers and only one of them is permanent. */
+  const off = p.excluded;
+  return `<div class="card prac${off ? ' is-off' : ''}">
     <div class="prac-head">
       <h3>${esc(x.name)}</h3>
-      <span class="prac-flag${p.required ? ' is-req' : ''}">${
-        p.required ? 'Required practical' : 'Extra'}</span>
+      <span class="prac-flag${off ? ' is-no' : p.required ? ' is-req' : ''}">${
+        off ? 'Not for now' : p.required ? 'Required practical' : 'Extra'}</span>
     </div>
     <p class="sub">${esc([p.subject, p.specRef || p.level].filter(Boolean).join(' · '))}</p>
+    ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
+      ? ' <span class="prac-again">Worth another look at ' + p.reconsiderAt + ', in a lab.</span>'
+      : ''}</p>` : ''}
     <p class="prac-aim">${esc(p.aim)}</p>
-    <p class="prac-strip">${esc(strip)}</p>
+    <p class="prac-strip">${esc(strip)}${p.hazard
+      ? ` <span class="prac-haz haz-${esc(p.hazard.replace(/\s+/g, '-'))}">${
+          esc(p.hazard)} hazard</span>` : ''}</p>
     ${p.outcome ? `<p class="prac-out"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
+    ${p.science ? `<div class="prac-why"><h4>What is going on</h4><p>${esc(p.science)}</p></div>` : ''}
     ${p.equipment.length ? `<div class="prac-kit"><h4>What you need</h4><ul>${
       p.equipment.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
     ${p.steps.length ? `<div class="prac-steps"><h4>How it runs</h4><ol>${
       p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></div>` : ''}
+    ${/* ---------- THE TWO HALVES OF THE TABLE, SIDE BY SIDE ------------------------------------
+          "What I changed | What I measured | What I noticed" is the one results table every
+          experiment in this set uses, and the aim written down with them is that by the fourth
+          session a student rules it up without being asked. So the card draws the first two
+          columns as the two lists they are, next to each other, rather than folding them into one
+          heading — which is the same question in both directions and the pair is the point. */''}
+    ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
+      ${p.variables.length ? `<div><h4>What to change</h4><ul>${
+        p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+      ${p.log.length ? `<div><h4>What to write down</h4><ul>${
+        p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+    </div>` : ''}
     ${p.safety ? `<p class="prac-safety"><b>Safety</b> ${esc(p.safety)}</p>` : ''}
     ${p.mathsLink ? `<p class="prac-maths"><b>The maths in it</b> ${esc(p.mathsLink)}</p>` : ''}
-    ${p.notes ? `<p class="prac-note">${esc(p.notes)}</p>` : ''}
+    ${/* ---------- ONE FACT ABOUT EVERY HOME PRACTICAL, SAID ONCE -------------------------------
+          PUBLIC LIABILITY AND A WRITTEN PARENTAL AGREEMENT are true of every experiment run in
+          somebody else's house and of none of the lab ones, so they belong to the VENUE rather
+          than to any of the rows. Writing it into ten `notes` cells would be the AQA insert fault
+          again — one fact repeated on every row that uses it — and ten cells to keep in step the
+          day the wording changes. Drawn here, once, from the column that already decides it. */''}
+    ${(p.venue === 'home' && !off) ? `<p class="prac-home">Before any of these run in a client’s
+      house: check the public liability cover extends to practical work, and get the parent’s
+      agreement in writing describing what will actually be done.</p>` : ''}
+    ${/* ---------- WHAT `wow` IS FOR, AND IT IS THE ONLY THING IT IS FOR -----------------------
+          A COLUMN WRITTEN AND NEVER READ IS THIS REPOSITORY'S OLDEST SHAPE — `figure`,
+          `orderPrints`, the four message actions, `exam_date`. This one went in with the ten home
+          experiments and it answers exactly one question: which of these do you open a session
+          with. So it is drawn as that sentence rather than as the word, on the two levels where
+          the answer is yes, and it is a closed vocabulary so the test is an equality rather than
+          a substring — see the note in `check-practicals.js`. */''}
+    ${(!off && (p.wow === 'high' || p.wow === 'very high'))
+      ? `<p class="prac-open">Worth opening a session with.</p>` : ''}
+    ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
+      and it is bought once.</p>` : ''}
+    ${p.notes ? `<div class="prac-note">${p.notes.split('|').map(t => t.trim()).filter(Boolean)
+      .map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
   </div>`;
 }
 

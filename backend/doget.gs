@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-17-reel-clips";
+const DOGET_VERSION = "2026-09-18-comments";
 
 
 function doGet(e) {
@@ -885,6 +885,9 @@ function doGet(e) {
          are now read entirely from the sheet, like everything else on this screen. */
       const votes = read(TAB.post_votes).rows;
       const reacts = read(TAB.post_reactions).rows;
+      /* READ ONCE, LIKE THE OTHER TWO. A `read` inside the post loop is one pass of the tab per
+         post — the same argument the `faces` lookup below makes about the people tab. */
+      const said = read(TAB.post_comments).rows;
 
       const me = S(p.person);
 
@@ -1027,6 +1030,49 @@ function doGet(e) {
               by: cast.slice(0, 40).map(x => ({
                 name: byId[S(x.person_id)] || '', emoji: S(x.emoji),
               })).filter(x => x.name),
+            };
+          })(),
+          /* ---------- WHAT PEOPLE SAID -------------------------------------------------------
+             OLDEST FIRST, WHICH IS THE OPPOSITE OF THE FEED AND IS RIGHT. A feed is a list of
+             separate things and the newest is the one you came for; a conversation is one thing
+             read from the top, and a reply printed above the remark it answers is unreadable.
+
+             NAMES, NOT IDS — the same decision `reactions.by` records one block up: a comment is a
+             public thing and an id is not, and `P17390421 said …` tells nobody anything.
+
+             `mine` RATHER THAN THE PERSON_ID, so the phone can draw a Delete on your own comment
+             without the payload carrying who everybody is. Computed here, where the signed-in
+             person is already known, for the same reason `yours` is.
+
+             `canRemove` IS NOT `mine`. An admin may take down anybody's, and repeating that rule on
+             the phone would be two copies of one policy — the fault recorded under `MESSAGING`,
+             under `kinds` and under `childrenOf`. The server says who may; the phone draws what the
+             server said.
+
+             CAPPED AT SIXTY. The count is the number; this is the list behind it, and shipping six
+             hundred rows for one post is sending a database to draw a conversation. The phone says
+             how many are not shown, which is a number somebody can act on rather than a silence. */
+          comments: (function () {
+            const all = said.filter(c => S(c.post_id) === S(r.post_id) && ON_(c.active))
+              .sort(function (a, b) {
+                return new Date(a.said_on || 0) - new Date(b.said_on || 0);
+              });
+            return {
+              total: all.length,
+              list: all.slice(0, 60).map(function (c) {
+                return {
+                  id: S(c.comment_id),
+                  name: byId[S(c.person_id)] || 'Someone',
+                  body: S(c.body),
+                  /* `fmtDateTime`, WHICH IS WHAT A MESSAGE ALREADY SENDS. `S(c.said_on)` on a sheet
+                     Date is whatever `String()` makes of it — "Tue Sep 15 2026 18:20:00 GMT+0100
+                     (BST)" — and a second spelling of a timestamp is a second thing for `parseWhen`
+                     to get right. One function, one format, for both surfaces that print a time. */
+                  at: fmtDateTime(c.said_on),
+                  mine: !!me && S(c.person_id) === me,
+                  canRemove: (!!me && S(c.person_id) === me) || viewerIsAdmin,
+                };
+              }),
             };
           })(),
           rowIndex: r._row,

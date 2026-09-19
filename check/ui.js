@@ -226,6 +226,53 @@ const STATES = {
       expect: () => document.querySelector('#s-tools #fm-out .fm-sheet'),
       wants: 'the flyer drawn on screen' },
   ],
+
+  /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------
+     MESSAGES ARE A POST ACTION, NOT A PAYLOAD KEY — deliberately, because a conversation is private
+     and the GET payload goes out whole to whoever asks for it. So `check/fixture.json` cannot carry
+     one, the column has always drawn "Nothing yet.", and `dm: nothing to report` has meant that
+     card and nothing else. The same sentence this file already carries about the booking screen
+     signed out, one column along.
+
+     SO THE THREAD IS SEEDED. `MESSAGES` is what `messageThreads_` reads and `loadMessages` writes,
+     so setting it is the state the app is in a moment after a successful fetch — the app's own
+     door, exactly as the signed-in visitor is seeded through `localStorage` rather than by poking
+     `USER`.
+
+     TWO PEOPLE AND A RUN OF THREE, because those are the two things the layout is about: which
+     side a bubble is on, and a turn that is several messages long collapsing to one tail and one
+     timestamp. One message from one person would measure neither.
+
+     A LONG ONE ON PURPOSE. The widest thing a bubble ever holds is a sentence somebody typed, and
+     78% of 320px is where it would clip if `max-width` and `overflow-wrap` disagreed. */
+  dm: [
+    /* THE EMPTY COLUMN STAYS ON THE LIST. Declaring states REPLACES the single unnamed one every
+       screen has by default — so naming only the seeded thread would stop this file ever measuring
+       the "Nothing yet." card again, which is the state a signed-out visitor and an empty inbox are
+       both in. `tools` has the same first line for the same reason. */
+    { name: '' },
+    { name: 'a conversation',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const m = (id, mine, body, at, read) => ({
+          id: id, mine: mine, body: body, at: at, read: read,
+          withId: 'P009', withName: 'Ada Tutor',
+          fromName: mine ? 'You' : 'Ada Tutor' });
+        MESSAGES = [
+          m('m1', false, 'Just checking Tuesday at 4 still works?', '2026-09-16 09:12', true),
+          m('m2', true,  'Yes, that is fine.', '2026-09-16 09:40', true),
+          m('m3', true,  'He has been doing the fractions sheet.', '2026-09-16 09:41', true),
+          m('m4', true,  'Shall I bring the November 2019 paper?', '2026-09-16 09:41', true),
+          m('m5', false, 'Please do — and a ruler, there is a construction question near the end '
+                       + 'that needs compasses as well.', '2026-09-16 10:03', true),
+        ];
+        DM_ASKED = true;
+        paint('dm');
+      },
+      expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
+                 && document.querySelector('#s-dm .msg-text'),
+      wants: 'five bubbles and a box to reply in' },
+  ],
 };
 
 const statesOf = id => STATES[id] || [{ name: '' }];

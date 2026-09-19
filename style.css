@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-build-watch";
+  --css-version: "2026-09-18-home-experiments";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1212,6 +1212,73 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .post-cap b { font-weight: 600; margin-right: .3rem; }
 .post-when { margin: .35rem 0 0; }
 
+/* ==================================================================================================
+   WHAT PEOPLE SAID UNDER A POST.
+
+   NOT BUBBLES, AND THAT IS THE DECISION WORTH WRITING DOWN. Messages got bubbles one screen along
+   because a conversation between TWO people is read by side — you know who said a thing from where
+   it sits. A comment thread is many people talking about one photograph, and there is no side for
+   a fourth person to be on. So it is what a feed comment has always been: the name, then what they
+   said, on one line that wraps — which is exactly `.post-cap` above, because the caption IS the
+   first comment.
+
+   RULED OFF AT THE TOP, NOT BOXED. It belongs to the post it is inside — a card of its own would
+   page separately on the feed and leave the photograph behind, which is the `.reel` fault one file
+   over. One hairline says "and then people said this".
+================================================================================================== */
+.post-said { margin: .5rem 0 0; padding: .5rem 0 0; border-top: 1px solid var(--line-soft); }
+.cmt-list { list-style: none; margin: 0 0 .1rem; padding: 0; }
+.cmt { margin: 0 0 .45rem; }
+.cmt:last-child { margin-bottom: .1rem; }
+.cmt-body { margin: 0; font-size: .84rem; line-height: 1.45; overflow-wrap: break-word; }
+.cmt-body b { font-weight: 600; margin-right: .3rem; }
+/* YOURS IS MARKED BY THE RULE DOWN THE LEFT that messages gave up when they became bubbles — which
+   is the shape that rule was always right for: a full-width row, in a list of them, where the mark
+   has to read at a glance without competing with the text. */
+.cmt.mine { border-left: 2px solid var(--gold); padding-left: .5rem; }
+.cmt-when { margin: .1rem 0 0; font-size: .64rem; }
+/* `Remove` LOOKS LIKE TEXT AND IS 44px, and the first version of it was 31x13. Underlined, because
+   `check-css.js` fails a tappable thing that would look like plain text; 44px in px, because
+   `check/ui.js` named it at three widths and it is right — taking your own comment down is rare,
+   and a control you cannot hit is not a control that is rarely used, it is one that is not there.
+
+   THE HEIGHT GOES ON THE LINE, AND ONLY WHERE THERE IS A BUTTON ON IT. A 44px time-line under every
+   comment is 44px of nothing under the ones nobody may remove — and an admin sees a Remove on every
+   comment in the thread, so that is not a rare case. `:has` asks the question the markup already
+   answers; without it every line takes the height, which is generous rather than wrong, and that is
+   the right way round for a fallback. */
+.cmt-x { background: none; border: 0; padding: 0 .5rem; min-width: 44px; min-height: 44px;
+         font: inherit; color: var(--faint); text-decoration: underline; cursor: pointer; }
+.cmt-x:disabled { opacity: .5; cursor: default; }
+.cmt-when:has(.cmt-x) { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
+@supports not selector(:has(*)) {
+  .cmt-when { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
+}
+
+/* THE BOX. `msg-form`'s shape and not its rules, because these two are on different surfaces and
+   will drift apart the day one of them changes — a composer under a photograph in a feed is not
+   the foot of a conversation. What they share is the one thing that must not drift: the 44px floor,
+   in px, which is this file's rule.
+
+   `quiet`, NOT GOLD, ON `Post`. Gold is the one action on a card, and on a post that is the
+   reaction row directly under the picture. */
+.cmt-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap; margin: .45rem 0 0; }
+.cmt-text {
+  flex: 1 1 7rem; min-width: 0;
+  min-height: 44px; max-height: 30dvh;
+  field-sizing: content;
+  padding: .5rem .65rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: .8rem;
+  color: var(--ink); font: inherit; font-size: .84rem; line-height: 1.4; resize: none;
+}
+.cmt-text:focus { outline: 0; border-color: var(--gold); }
+.cmt-text::placeholder { color: var(--faint); opacity: 1; }
+.cmt-form .btn.cmt-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 .9rem; }
+/* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
+   empty one under every post in the feed is a margin nobody asked for. */
+.cmt-said { flex: 1 0 100%; margin: .3rem 0 0; }
+.cmt-said:empty { display: none; }
+
 /* A post arrived at from a shared link. Marked briefly so it is obvious which one was meant —
    landing in a feed with no idea which photograph somebody sent you is the failure a deep link
    exists to prevent. */
@@ -1405,9 +1472,20 @@ button.text-drop { color: var(--bad); }
    They WRAP rather than scroll sideways: a row that scrolls can hide a filter, and a filter you
    cannot see narrowing your list is the fault this replaced.
 --------------------------------------------------------------------------------------------- */
-.chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .6rem; }
+/* ---------- REPORTED AS "the tags don't need to be as big" -------------------------------------
+   MEASURED BEFORE ANYTHING WAS TOUCHED, six answers deep at 390px: the chips took **192px of a
+   673px pane** — seven of them over FOUR wrapped lines, more than a quarter of the screen, to say
+   what had already been answered. The answers themselves, which are the thing somebody is on this
+   screen to press, got 336px.
+
+   THE 44px STAYS AND EVERYTHING ELSE GIVES. A chip is a control and a fingertip does not scale —
+   this stylesheet has five convictions of that rule written into it and this is not the sixth. What
+   was costing the room is WIDTH: the label, the padding and the gaps decide how many fit on a line,
+   and a line is 44px whether it holds two chips or four. Narrower text, less padding, tighter gaps
+   — same target, fewer rows. */
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 .chip {
-  display: flex; align-items: center; gap: .3rem;
+  display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE ---------------------------
      IT READ `max(38px, 2.3rem)`, WHICH IS `.btn.tiny` EXACTLY. The root is `clamp(13.5px, 3.8vw,
      16px)`, so 2.3rem is 34px on a phone and the `max` never once chose the rem — every chip in the
@@ -1419,15 +1497,15 @@ button.text-drop { color: var(--bad); }
      state it opens in, and in that state there are no filters, so there are no chips — 63 known tap
      targets, four widths, two visitors, and the control that removes a filter was in none of them.
      It appeared the moment the check was given a state six answers deep. */
-  min-height: 44px; padding: 0 .6rem;
+  min-height: 44px; padding: 0 .45rem;
   background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
-  color: var(--ink); font: inherit; font-size: .78rem; cursor: pointer;
+  color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:active { transform: scale(.94); }
 /* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
    information, and with four chips on a line the second one is a puzzle. */
-.chip-k { color: var(--faint); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
+.chip-k { color: var(--faint); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
 .chip-x { color: var(--faint); margin-left: .15rem; }
 .chip:active .chip-x { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
@@ -1693,7 +1771,17 @@ button.text-drop { color: var(--bad); }
      `.pane.scrolls`, which script.js adds after measuring. Most panes never get it, so most of the
      screen behaves like the edges did, which is the half that was always working. */
   touch-action: none;
-  padding: 1rem 1rem 1.25rem;
+  /* ---------- THE GLASS'S OWN MARGIN, TRIMMED ONCE --------------------------------------------
+     EVERY SCREEN IN THE APP SITS INSIDE THIS. It was `1rem 1rem 1.25rem`, which on a 390px phone is
+     15px of the 328px card gone to the frame on each side and 33px down the middle of the height —
+     and the card is already inset from the screen by the grid, so this is the second margin round
+     the same content. Asked for as "everything should be a bit more efficient with space", and this
+     is the one number that answers it everywhere at once rather than per component.
+
+     TRIMMED, NOT REMOVED. A pane with no padding is content against a border, which is what makes a
+     card read as a box rather than as a surface — and the bottom keeps a little more than the top
+     because a list that ends flush with the glass reads as clipped. */
+  padding: .85rem .85rem 1rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */
@@ -1959,12 +2047,47 @@ button.text-drop { color: var(--bad); }
    Yours to the right, theirs to the left, which is the one convention every messaging app shares
    and the only thing that lets a thread be read without labels on every line.
 --------------------------------------------------------------------------------------------- */
-.msg { padding: .5rem 0; border-bottom: 1px solid var(--line-soft); }
-.msg:last-child { border-bottom: 0; }
+/* ==================================================================================================
+   A CONVERSATION, WHICH IS READ BY SIDE BEFORE IT IS READ BY NAME.
+
+   ASKED FOR AS "messages should look like IG DMs". What was here was full-width rows separated by
+   hairlines with `text-align: right` standing in for "this one is mine" — a transcript. You know
+   who said a thing from WHERE IT SITS; the name under it confirms rather than tells.
+
+   RUNS ARE THE HALF THAT MAKES IT A CHAT. Four messages in a row from one person is one turn, so
+   the ones above the last hug at 2px and only the last of a run carries the squared corner and the
+   name-and-time line. Without that, six bubbles read as six exchanges and the card is no calmer
+   than the hairlines were. See `messagesHtml_`, which is where the runs are worked out.
+
+   THE SQUARED CORNER IS THE TAIL, and it is on the LAST of a run rather than on every bubble: a
+   tail on each one points at a speaker four times over.
+
+   GOLD FOR MINE, BECAUSE GOLD IS ALREADY WHAT THIS APP MEANS BY "YOURS" — the one action, the
+   ticked hour, the starred thing. Black text on it, which is what `.hr.on` already does for the
+   same fill and the same reason.
+================================================================================================== */
+.msg { display: flex; flex-direction: column; align-items: flex-start;
+       padding: 0; border: 0; margin: 0 0 2px; }
+.msg.mine { align-items: flex-end; }
+/* THE GAP GOES BETWEEN TURNS, NOT BETWEEN MESSAGES. */
+.msg.run-end { margin-bottom: .55rem; }
+.msg.run-end:last-child { margin-bottom: 0; }
+.msg-bub {
+  /* NOT THE FULL WIDTH. A bubble that reaches both edges has no side to be on, which is the whole
+     mechanism — and a short answer under a long one is what tells you the turn changed. */
+  max-width: 78%;
+  padding: .4rem .7rem;
+  border-radius: 1.05rem;
+  background: var(--raised); border: 1px solid var(--line); color: var(--ink);
+}
+.msg.mine .msg-bub { background: var(--gold); border-color: var(--gold); color: #000; }
+.msg.run-end .msg-bub { border-bottom-left-radius: .35rem; }
+.msg.mine.run-end .msg-bub { border-bottom-left-radius: 1.05rem;
+                             border-bottom-right-radius: .35rem; }
 /* The TEXT of a message. Renamed from `.msg-body`, which the messages widget now uses for its own
    container — two different things under one name, one of them inside the other, is a rule that
    applies to both and was written for neither. */
-.msg-body-text { margin: 0; font-size: .88rem; line-height: 1.45; }
+.msg-body-text { margin: 0; font-size: .88rem; line-height: 1.45; overflow-wrap: break-word; }
 
 /* The widget's own space: the thread, scrolling inside the case. */
 /* `dvh`, FOR THE REASON STATED ON `body`: `vh` is the LARGE viewport, the one you get with the
@@ -1972,11 +2095,44 @@ button.text-drop { color: var(--bad); }
    bottom of it sits under the browser chrome where it cannot be read or scrolled to. */
 .msg-body { max-height: 60dvh; overflow-y: auto; scrollbar-width: none; }
 .msg-body::-webkit-scrollbar { width: 0; display: none; }
-.msg-when { margin: .2rem 0 0; }
-.msg.mine { text-align: right; }
-/* Unread. A rule down the left rather than a dot or a colour: it marks the whole message rather
-   than a point on it, and it reads at a glance down a list without competing with the text. */
-.msg.unread { border-left: 2px solid var(--gold); padding-left: .6rem; }
+.msg-when { margin: .16rem .55rem 0; font-size: .64rem; }
+/* Unread. It was a rule down the LEFT of a full-width row, which was right for a list of rows and
+   cannot survive a bubble that has a side: on `.mine` it drew a gold bar on the wrong edge of a
+   gold fill. The bubble's own outline says it instead — it marks the whole message rather than a
+   point on it, which is the argument the old rule made and the shape it could not keep. */
+.msg.unread .msg-bub { border-color: var(--gold); }
+
+/* ---------- THE BOX AT THE FOOT OF A THREAD -------------------------------------------------------
+   ONE ROW: the box takes what is left, `Send` takes what it needs. `.btn` is `width: 100%` because
+   most of them are the only thing on their row — the same fault `.btn-row .btn` and `.reel-sound`
+   already record — so it is told otherwise here.
+
+   THE TEXTAREA GROWS TO WHAT IS TYPED and starts at one line, because a five-line box under every
+   conversation is four lines of nothing per thread on a column that holds several. `field-sizing`
+   is what does it where it exists; `min-height` is the floor everywhere else, which is the honest
+   fallback — a one-line box that scrolls is worse than a two-line one that does not, and 44px is
+   the tap floor either way.
+
+   44px IN PX ON BOTH, which is this file's rule and its fifth conviction. */
+.msg-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap;
+            margin: .5rem 0 0; }
+.msg-text {
+  flex: 1 1 8rem; min-width: 0;
+  min-height: 44px; max-height: 40dvh;
+  field-sizing: content;
+  padding: .5rem .7rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 1.05rem;
+  color: var(--ink); font: inherit; font-size: .88rem; line-height: 1.4;
+  resize: none;
+}
+.msg-text:focus { outline: 0; border-color: var(--gold); }
+.msg-text::placeholder { color: var(--faint); opacity: 1; }
+.msg-form .btn.msg-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 1rem; }
+/* THE NOTE AND THE REFUSAL ARE THE SAME ELEMENT — see `msgForm_`. It takes the whole line under the
+   box, and it is not drawn at all when there is nothing to say: an empty paragraph under every
+   conversation is a margin nobody asked for. */
+.msg-said { flex: 1 0 100%; margin: .3rem 0 0; }
+.msg-said:empty { display: none; }
 
 /* ---------- THE RECEIPT ---------------------------------------------------------------------------
    The breakdown was always a receipt: a list of what you are buying, what each part cost, and a
@@ -2361,12 +2517,24 @@ button.text-drop { color: var(--bad); }
 /* THE INDENT COSTS THE GRID A CELL AND A HALF. It reads as belonging to the When row from the rule
    underneath it and from being the only thing there; on a 307px card it does not also need to be
    inset. */
+/* ---------- THE WEEK IS ONE QUESTION DRAWN TEN ROWS TALL ------------------------------------------
+   MEASURED ON THE EMPTY FORM AT 390px: this block is 182px of an 807px card — a fifth of it, to ask
+   one of the form's fifteen questions, where every other question is a 19px row. That is the
+   disproportion somebody looking at this card sees, and it is worth saying what CAN and cannot be
+   done about it.
+
+   THE GRID ITSELF IS AT ITS FLOOR AND HAS BEEN TWICE MEASURED THERE. Seven rows at `max(20px,
+   1.55em)` plus six 1px gaps is 146px, and the 20px is a fingertip rather than a preference — the
+   note over `.hr` records this block going 222 → 174 → 146 and why it stops there. A week has seven
+   days and a day has to be pressable; there is no arrangement of those two facts under 140px.
+
+   SO WHAT COMES BACK IS THE SURROUND, which was 36px of margin and instruction around it. */
 .bk-open {
-  margin: .05rem 0 .25rem 0;
-  padding-bottom: .3rem;
+  margin: 0 0 .18rem 0;
+  padding-bottom: .2rem;
   border-bottom: 1px dashed var(--line);
 }
-.bk-open > p { margin: 0 0 .2rem; font-size: .66rem; line-height: 1.3; }
+.bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
@@ -2439,7 +2607,7 @@ button.text-drop { color: var(--bad); }
 
    THE DAY LABEL DROPS TO TWO LETTERS. `Mo Tu We Th Fr Sa Su` is unambiguous where one letter is not
    (T and S are each two days), and the 14px it gives back goes to the cells, which need it more. */
-.slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .25rem 0 .1rem; }
+.slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
 .slot-row.is-shut .hr { min-height: 11px; font-size: .55rem; }
 .slot-day { flex: 0 0 1.5rem; font-size: .62rem; color: var(--faint);
@@ -2511,6 +2679,24 @@ button.text-drop { color: var(--bad); }
    rows at half height is most of a phone screen's worth of card back. */
 .bk-row.is-blank { padding-top: 0; padding-bottom: 0; }
 .bk-row.is-blank .bk-v { opacity: .45; }
+/* ---------- AND TWO OF THEM COST TWICE WHAT A BLANK ROW COSTS -------------------------------------
+   MEASURED ON THE EMPTY FORM: thirteen rows are a dash, eleven of them 15px and `Extra subj.` and
+   `Per session` 30px — because those two are the only labels one character too long for a 6.2em
+   column, so they break in two. Twice the height of a row with nothing in it, on the two rows with
+   nothing in it.
+
+   THE NOTE OVER `SPINE_EXTRA` RECORDS THIS FAULT AND ITS FIX — four labels were shortened for
+   exactly this reason — and it came back on the two that are still eleven characters. Shortening
+   again would be a third round of the same hand-repair, which is what this repository keeps
+   finding: a rule applied by hand is not a rule.
+
+   SO THE RULE IS THE FIX. A blank row's value column holds one dash, so there is nothing beside the
+   label to make room for and no reason for it to wrap — at any length, for any label somebody adds
+   later. A row that HAS a value keeps the wrap, because there the two columns really are competing.
+
+   AND THE LEADING COMES DOWN WITH IT. 1.35 is a line for reading; a dash is not read, it is counted
+   past on the way to the row below. Thirteen rows at 12px instead of 15. */
+.bk-row.is-blank .bk-k, .bk-row.is-blank .bk-v { line-height: 1.1; }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
 .hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
@@ -5488,6 +5674,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    bare row's label started in a different place from a priced one's, on the same card. Third copy of
    the same fault: a width stated twice and the second one forgotten. */
 .bk-row.is-bare { grid-template-columns: 6.2em minmax(0, 1fr); }
+/* ---------- AND A BLANK ROW'S LABEL COLUMN GIVES WAY INSTEAD OF THE LABEL -------------------------
+   THE COLUMN GIVES WAY, NOT THE LABEL, and the first version of this got that backwards. `Extra
+   subj.` and `Per session` are the only two of the spine's twenty-eight labels one character too
+   long for 6.2em, so on an empty form those two blank rows were 30px where the other eleven were
+   15 — twice the height of a row with nothing in it, on the two rows with nothing in it. Setting
+   `white-space: nowrap` on them fixed the height and broke the width: `check/ui.js` named
+   `span.bk-k overflows by 3px` at four widths, which is the row taking the card sideways rather
+   than the row being tall.
+
+   `max-content` ASKS FOR EXACTLY WHAT THE LABEL NEEDS and the dash takes what is left, so nothing
+   wraps AND nothing overflows, at any label length somebody adds later. A row with a real value
+   keeps the fixed column, because there the two columns are genuinely competing for the width.
+
+   HERE RATHER THAN BESIDE `.bk-row.is-blank`, which is where it was written and where it did
+   nothing: both selectors are two classes, `.is-bare` comes 3,000 lines later, and the cascade
+   settles a tie by order. The measurement is what caught it — the rows went back to 481px under a
+   rule that read as though it had fixed them. Same fault as `.price.faint`. */
+.bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr); }
 
 /* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
    THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three
@@ -6833,7 +7037,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    list is still something you run an eye down even though each card carries its whole question.
 ================================================================================================== */
 .qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
-         padding: .7rem .8rem; margin-bottom: .5rem; }
+         padding: .6rem .7rem; margin-bottom: .4rem; }
 .qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
@@ -6899,11 +7103,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `placeholder: True`, so the whole card already sits in the dashed box `.qsheet-stem.is-standin`
    draws and `check-library.js` lists it by name on every run. Two signals for one fact, and that
    is deliberate: this is content somebody must not mistake for the exam's own. */
-/* RECORDING, SAID BY THE BUTTON ITSELF. The label already changes to `Stop`, and this is the second
-   half of that: red is the one colour on this screen that means "something is running that you have
-   to end". Not an animation — a blinking control on a card somebody is filming with is a distraction
-   in the frame. */
-.cam-row .btn.is-rec { color: var(--red, #ff6b6b); border-color: var(--red, #ff6b6b); }
+/* `.cam-row .btn.is-rec` WAS HERE — the red outline on a rectangular `Video` button that changed
+   its own label to `Stop`. The record control is a disc now and says so by changing shape, so this
+   rule matched nothing: `check-css.js` reports a class no markup produces, and a stylesheet keeping
+   rules for markup that is gone is how 448KB of it happens. Its argument survives on `.cam-rec` —
+   red is the one colour here that means "something is running that you have to end", and it is not
+   an animation, because a blinking control on a card somebody is filming with is a distraction in
+   the frame. */
 
 .qsheet .gap {
   color: var(--faint);
@@ -6944,7 +7150,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    about. `break-word` only breaks a word that cannot fit on a line of its own, which is exactly the
    dotted rule and nothing else. */
 .qsheet-pb { flex: 1; min-width: 0; overflow-wrap: break-word; }
+/* ---------- AND THE LAST PARAGRAPH'S BOTTOM MARGIN, WHICH NOTHING NEEDED --------------------------
+   `p:first-child` HAS HAD ITS TOP MARGIN TAKEN OFF SINCE THIS WAS WRITTEN and the other end was
+   left on: a browser's own `1em` under the last paragraph of every question, measured at 14.8px,
+   sitting between the question's last line and a container that already supplies the gap. One
+   paragraph of white space per card, on every card in a list somebody scrolls. */
 .qsheet p:first-child { margin-top: 0; }
+.qsheet-pb > :last-child, .qsheet-stem > :last-child { margin-bottom: 0; }
 .qsheet ol.parts, .qsheet ol.roman { padding-left: 2rem; }
 .qsheet ol.roman { list-style: lower-roman; }
 .qsheet ul { padding-left: 1.2rem; }
@@ -7046,7 +7258,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    text, and text is the one thing that SHOULD scale with the root; the px rule is about fingertips
    and this card has nothing to press. */
 .prac-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
-.prac-head h3 { margin: 0; }
+/* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------
+   A FLEX ITEM'S MINIMUM IS `auto`, WHICH IS ITS MIN-CONTENT — the widest unbreakable word, not
+   nothing. So a one-word title beside a `flex: 0 0 auto` flag could not shrink to the card, and
+   `Photosynthesis`, `Field investigations`, `Chromatography` and `I–V characteristics` each took
+   `.prac-head` and then `.card` up to 19px past a 320px column.
+
+   NOTHING HAD EVER LOOKED. `check/cards.js` lays out every row of `data/questions.json` and
+   `check/ui.js` measures nine screens — and a practical card is in neither, because the funnel
+   fills five pages either side of where you are and never happened to stop on one of these four.
+   That is this file's own "a sample is not a sweep", one data file along, and it is why
+   `check/cards.js` now lays these out too. Found by laying all 56 out while adding ten more. */
+.prac-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
 /* THE ONE THING SOMEBODY SCANS FOR — whether the exam board makes them do this one. It is a flag
    rather than a line of prose because it is the answer to a yes/no question, and it is gold only
    when the answer is yes: an "Extra" in the same colour would make the distinction decorative. */
@@ -7074,6 +7297,87 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                border-left: 2px solid var(--gold); padding-left: .55rem; }
 .prac-maths { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
 .prac-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+/* `notes` IS A PIPE LIST NOW and each part takes its own line — three asides run together in one
+   paragraph is three things nobody reads. The margin goes on the element rather than on every `p`,
+   so a single-note card is unchanged. */
+.prac-note p { margin: 0 0 .3rem; }
+.prac-note p:last-child { margin-bottom: 0; }
+
+/* ==================================================================================================
+   THE HOME EXPERIMENTS.
+
+   Ten of the fifty-six run in somebody's front room rather than a lab, and five more were
+   considered and turned down. Everything below draws a column the 41 lab practicals do not carry,
+   so every one of these rules is on an element that is simply absent on those — no rule here
+   changes a card that existed before.
+================================================================================================== */
+
+/* ---------- WHAT IS GOING ON ---------------------------------------------------------------------
+   THE MOST VALUABLE FIELD ON THE CARD and it gets the ink to say so. `aim` is one line and
+   `outcome` is what you end up with; this is the paragraph that actually teaches, and it is the
+   one a tutor reads before deciding whether they can explain it. */
+.prac-why { margin: .65rem 0 0; }
+.prac-why h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
+               text-transform: uppercase; color: var(--faint); }
+.prac-why p { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--ink); }
+
+/* ---------- THE TWO HALVES OF THE RESULTS TABLE --------------------------------------------------
+   SIDE BY SIDE WHERE THERE IS ROOM, and stacked on a phone. They are two columns of one table —
+   "what I changed" and "what I measured" — and the whole point of drawing them together is that
+   the pair is the method. `minmax(0, 1fr)` rather than `1fr`: a grid track's default minimum is
+   `auto`, which is the widest word rather than nothing, so a long item would push the pair
+   sideways instead of wrapping. That is the `.bk-row` fault one card along. */
+.prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
+@media (min-width: 30rem) { .prac-tab { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.prac-tab h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
+               text-transform: uppercase; color: var(--faint); }
+.prac-tab ul { margin: 0; padding-left: 1.1rem; }
+.prac-tab li { font-size: .78rem; line-height: 1.5; color: var(--dim); }
+
+/* ---------- THE HAZARD WORD ----------------------------------------------------------------------
+   IT SITS IN THE STRIP AND IT IS THE ONE THING ON THE CARD THAT IS NOT GOLD. Every other figure up
+   there is a fact about the session — how long, how old, what it costs — and this one is the
+   triage: a tutor reading `medium hazard` on a card about burning steel wool in a client's garden
+   should not have to find it among five other gold words.
+
+   `--warn` AND `--red` ARE ALREADY TOKENS. Nothing new is declared: the house style says a colour
+   used by more than one component is a `:root` token, and both of these are. */
+.prac-haz { display: inline-block; margin-left: .15rem; padding: 0 .35rem;
+            border: 1px solid currentColor; border-radius: var(--r-sm);
+            font-size: .66rem; color: var(--faint); }
+.prac-haz.haz-medium { color: var(--warn); }
+.prac-haz.haz-high   { color: var(--red, #ff6b6b); }
+
+/* ---------- AND THE ONES THAT ARE NOT RUN --------------------------------------------------------
+   A CARD THAT COULD BE MISTAKEN FOR SOMETHING TO DO IS THE WHOLE RISK of keeping these rows at
+   all. The flag changes word and colour, the reason is the first thing under the subtitle, and the
+   card itself is dimmed — three signals for one fact, deliberately, which is the same doubling
+   `placeholder: True` already gets on a question whose source could not be reproduced.
+
+   THE HEADING AND THE REASON STAY AT FULL STRENGTH inside the dimmed card, because a refusal
+   nobody can read is a refusal that gets ignored. */
+.prac.is-off { opacity: .72; }
+.prac.is-off h3, .prac.is-off .prac-no { opacity: 1; }
+.prac-flag.is-no { color: var(--red, #ff6b6b); border-color: var(--red, #ff6b6b); }
+.prac-no { margin: .45rem 0 0; padding-left: .6rem; border-left: 2px solid var(--red, #ff6b6b);
+           font-size: .8rem; line-height: 1.5; color: var(--ink); }
+.prac-no b { color: var(--red, #ff6b6b); font-weight: 600; }
+/* WORTH ANOTHER LOOK AT FOURTEEN is a different sentence from "no", so it reads as its own clause
+   rather than running on from the reason. */
+.prac-again { display: block; margin-top: .2rem; color: var(--dim); }
+
+/* ---------- ONE SENTENCE THAT BELONGS TO THE VENUE, NOT TO ANY ROW -------------------------------
+   Public liability and a written parental agreement are true of every experiment run in somebody
+   else's house. Drawn from `venue`, so there is one copy of the wording — see the note in
+   `practicalCard_`. Bordered rather than dimmed: it is the one line on the card that is about the
+   tutor rather than the science. */
+.prac-home { margin: .65rem 0 0; padding: .45rem .6rem;
+             border: 1px dashed var(--line); border-radius: var(--r-sm);
+             font-size: .76rem; line-height: 1.5; color: var(--dim); }
+.prac-cost { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+/* The one line on the card that is a recommendation rather than a fact, so it is the one that
+   carries the gold. */
+.prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
 .prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
 
 .boxer-nick { font-weight: 400; color: var(--dim); }
@@ -7523,8 +7827,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border: 1px solid var(--line);
   border-radius: .7rem;
   background: var(--raised);
-  padding: .8rem .85rem;
-  margin-bottom: .5rem;
+  /* ---------- THE PADDING WAS PUSHING PAST THE TARGET IT ALREADY HAD ---------------------------
+     MEASURED: 48px a row, seven rows, 336px. `min-height: 44px` is the floor a fingertip needs and
+     `.8rem` of padding over a 24px line took every row four pixels past it — height bought from
+     nobody, because the tap target was already 44. At .55rem the box lands ON the floor: the same
+     44px to press and 4px less to scroll past, seven times over. */
+  padding: .55rem .7rem;
+  margin-bottom: .38rem;
   min-height: 44px;
   /* THE LABEL IS THE THING NOW, so it takes the foreground colour. `--dim` is right for the left
      half of a fact row and wrong for the text on a button. */
@@ -7550,7 +7859,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    `flex: 1 1 auto` — take the room, and give way when there is not enough, at which point the
    `overflow-wrap` it already carries does the rest. */
-.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .98rem;
+.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .92rem;
   flex: 1 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
@@ -7920,12 +8229,97 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 }
 .cam-card .cam-off .sub { margin: 0; }
 
-/* THE BUTTONS WRAP. Four of them exist and at most three are ever shown at once, but "Turn the
-   camera on" is a long label and 320px is a real width. */
+/* THE BUTTONS WRAP. `Again`, `Save it` and `Try the camera again` all live on this row now, and at
+   most two are ever shown at once — but "Try the camera again" is a long label and 320px is a real
+   width. The row is empty until there is a picture to save or a refusal to retry, and an empty
+   flex row is no height at all. */
 .cam-card .cam-row { flex-wrap: wrap; gap: .5rem; }
 /* 44px, in px — a fingertip does not scale with the viewport, and the root here is
    clamp(13.5px, 3.8vw, 16px). See the note in the house style. */
 .cam-card .cam-row .btn { min-height: 44px; }
+
+/* ==================================================================================================
+   THE FOUR CONTROLS.
+
+   ASKED FOR BY SHAPE AND COLOUR — "white circle for take pic, Red for record, and switch camera,
+   and photos". What was here was five `.btn quiet` rectangles under a viewfinder, which is a form's
+   buttons where every camera anybody has used puts a shutter.
+
+   THE TWO COLOURS ARE THE CAMERA'S, NOT THIS APP'S, and that is why they are declared here rather
+   than at `:root`. The house style settles this case with the chessboard: a colour belonging to ONE
+   component — that board's own cream and charcoal, this control's own white and red — is named on
+   the component so it is available without being offered to the whole stylesheet. Nothing else on a
+   black-and-gold screen may reach for a white disc.
+
+   SPACE-BETWEEN, NOT CENTRED. `Photos` and `Switch` are the two ends of a camera's bar on every
+   phone — the roll you came from on the left, the lens you are not using on the right — and the
+   shutters sit between them. `Switch` is often absent (one camera, or a browser that will not say),
+   so the two discs are centred in what is left rather than pinned to a column that may not exist.
+================================================================================================== */
+.cam-bar {
+  --cam-white: #ffffff;
+  --cam-red:   #ff453a;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .4rem; margin: .1rem 0 .45rem;
+}
+/* THE TWO DISCS TOGETHER IN THE MIDDLE, whatever is or is not beside them. */
+.cam-bar .cam-shot { margin-left: auto; }
+.cam-bar .cam-rec  { margin-right: auto; }
+
+/* 44px IN PX, and the width is a real one: `Photos` and `Switch` are words, and a 44px square with
+   a word squeezed into it is a word nobody reads. */
+.cam-side {
+  flex: 0 0 auto;
+  min-width: 60px; min-height: 44px; padding: 0 .4rem;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--dim); font: inherit; font-size: .72rem; cursor: pointer;
+  transition: transform var(--quick) ease, border-color var(--quick) ease;
+}
+.cam-side:active { transform: scale(.94); }
+
+/* ---------- THE SHUTTER AND THE RECORD DISC -------------------------------------------------------
+   A RING, A GAP AND A FILL, which is what makes a disc read as a shutter rather than as a dot. The
+   gap is `--raised` because that is the card these sit on; an `inset` shadow rather than a second
+   element, so the whole control is one box and one tap target.
+
+   64 AND 52. The shutter is the bigger of the two because it is the one you reach for without
+   looking, and both are comfortably past the 44px floor — which is the one measurement in this
+   stylesheet that must not scale, so both are in px.
+
+   `border-radius: 50%` AND NOT `var(--r-sm)`. These are the only round things in the app. */
+.cam-shot, .cam-rec {
+  flex: 0 0 auto; padding: 0;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform var(--quick) ease, border-radius var(--quick) ease, opacity var(--quick) ease;
+}
+.cam-shot {
+  width: 64px; height: 64px;
+  background: var(--cam-white);
+  border: 3px solid var(--cam-white);
+  box-shadow: inset 0 0 0 3px var(--raised);
+}
+.cam-rec {
+  width: 52px; height: 52px;
+  background: var(--cam-red);
+  border: 3px solid var(--cam-white);
+  box-shadow: inset 0 0 0 3px var(--raised);
+}
+.cam-shot:active, .cam-rec:active { transform: scale(.92); }
+/* ---------- A CAMERA STARTING UP SHOWS A GREYED SHUTTER -------------------------------------------
+   IT DOES NOT REMOVE IT. These used to be `hidden` until the first frame arrived, so the row grew
+   under the thumb that was reaching for it — and on the path anybody actually takes the record
+   button was never revealed at all. See `camLive_`. */
+.cam-shot:disabled, .cam-rec:disabled { opacity: .3; cursor: default; }
+.cam-shot:disabled:active, .cam-rec:disabled:active { transform: none; }
+
+/* RECORDING IS A SQUARE. The disc has no room for the word `Stop`, and a record control that looks
+   the same while it is recording is a mode you cannot see — which is the fault this file already
+   records for a reel paused with nothing on it saying so. `aria-label` moves with the shape; see
+   `camRecMark_`. */
+.cam-rec.is-rec { border-radius: .9rem; box-shadow: none; }
 
 .cam-card #cam-said:empty { display: none; }
 

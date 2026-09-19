@@ -4544,3 +4544,539 @@ is the only thing on the phone that says which build is running.
 than for the code: `check-doors.js` follows `setAttribute('data-do', 'x')` with a literal and cannot
 follow a variable, so an action handed in as an argument becomes a handler reported as unreachable —
 a red with nothing behind it, which is the one thing every list in this file exists to prevent.
+
+## The live site answered the question this file said only it could
+
+**A screenshot of the real phone showed the reel playing inside GOOGLE'S OWN PLAYER** — its
+scrubber, its ten-second skips, CC, 1x, an expand button and a black letterbox round the lot. That
+is the `error` fallback doing exactly what it was written to do, and what it proves is the thing
+this file admitted it could not test: **on a real phone the `uc?export=download` address fails.**
+Every Google host is blocked from this environment by network policy, so the first address was
+always a guess, and the note over `clipSrc_` said so.
+
+**Everything the owner complained about follows from that one fact.** "Can't you make it play
+automatically" — an iframe from another origin will not autoplay and cannot be muted from here, and
+a muted autoplay is the only kind any browser allows. "It's so fugly" — that chrome is Google's, on
+a cross-origin document, and no rule in this stylesheet can reach inside it. The card was never
+drawing a video; it was drawing a rectangle with somebody else's player in it.
+
+**`uc?export=download` is the old spelling.** Google moved direct downloads to
+`drive.usercontent.google.com/download`, and the old address answers a redirect — or an HTML
+interstitial, which a `<video>` reports as an error because it is not a video.
+
+**So it is a ladder rather than a choice**, and the shape is the point: **no version of this can be
+tested from here**, which is how the wrong address shipped. Each rung is a real attempt, `error`
+moves to the next, and Google's player is the last rung rather than the second. One open of the live
+site settles which one wins and nothing here has to be right.
+
+**The `{ once: true }` on that listener was the bug that made a ladder impossible.** One failure
+took the slide straight to the iframe, so a second address could never have had a turn however many
+were listed. It counts down the list now — and calls `load()` before the next `src`, because a
+`<video>` keeps its error state until it is told to start again, so the second address would have
+been reported broken without being asked for. **Measured with both Drive addresses refusing**:
+`usercontent` → `uc` → the player, in that order, with the sound button removed as the swap happens.
+
+**And a full URL is used as given, which is the real answer.** `clip` takes an address, so a file
+served from anywhere — including beside this site, where GitHub Pages would serve it with no
+interstitial, no redirect and no player — is one rung, with no fallback and no chrome: a `<video>`
+this app can mute, loop, autoplay and pause, which is what every other line of this feature was
+written against.
+
+**One thing no code here can fix, worth knowing before anybody debugs autoplay again**: iOS blocks
+autoplay outright in **Low Power Mode**, whatever a page does. The phone in the screenshot was on
+14%.
+
+## The finder was spending a quarter of the screen on what you had already answered
+
+**Reported as "the tags don't need to be as big. Everything should be a bit more efficient with
+space."** Measured before anything was touched, six answers deep at 390px — the state
+`check/ui.js` already declares, because it is the one the last complaint came from:
+
+| | before | after |
+|---|---|---|
+| the chips | **192px over four wrapped lines** | **141px over three** |
+| an answer row | 48px | **44px** |
+| the seven answers | 336px | 308px |
+| the whole question card | **673px** | **575px** |
+| a result card | 218px | **201px** |
+
+**A quarter of the pane was going to what had already been decided**, and the answers — the thing
+somebody is on this screen to press — got half of what was left.
+
+### The 44px stays and everything else gives
+
+**A chip is a control and a fingertip does not scale.** This stylesheet carries five convictions of
+that rule — `.btn.tiny`, `.post-act`, `.fm-adds label`, the chips themselves and `.qp-check` — and
+making the tags smaller by making them shorter would be the sixth. **What was actually costing the
+room is WIDTH**: the label, the padding and the gaps decide how many chips fit on a line, and a line
+is 44px whether it holds two of them or four. Narrower text (.78 → .72rem), less padding (.6 →
+.45rem), a tighter key (.66 → .6rem) and smaller gaps — same target, one fewer row of it.
+
+**The uppercase key stays**, and the note above it is why: *"Grade 9 and 9 are different amounts of
+information, and with four chips on a line the second one is a puzzle."* It is the widest thing on
+each chip and it is also the thing that makes a chip readable; shrinking it is the answer, deleting
+it is not.
+
+### An answer row was 48px against a 44px floor
+
+`min-height: 44px` is what a fingertip needs and `.8rem` of padding over a 24px line took every row
+**four pixels past it** — height bought from nobody, because the target was already 44. At `.55rem`
+the box lands ON the floor: the same 44px to press, 4px less to scroll past, seven times over.
+
+### And two numbers that are not the Find screen at all
+
+**The pane's own padding was a second margin round the same content.** `1rem 1rem 1.25rem`, inside a
+card the grid has already inset from the screen — 15px of a 328px column gone to the frame on each
+side, 33px down the height, on **every screen in the app**. `.85rem .85rem 1rem`: trimmed, not
+removed, because a pane with no padding is content against a border, and the bottom keeps a little
+more than the top because a list ending flush with the glass reads as clipped.
+
+**And the browser's own paragraph margin under every question.** `.qsheet p:first-child` has had its
+TOP margin taken off since it was written and the other end was left on: `1em` — 14.8px measured —
+under the last paragraph of every question, between the question's last line and a container that
+already supplies the gap. One paragraph of white space per card, on every card in a list somebody
+scrolls.
+
+**Nothing regressed**: `check/ui.js` reports nothing new across 100 combinations, `check/cards.js`
+lays out all 4,906 question rows at 320px with nothing past the column, and every tap target on the
+screen is still 44px — which is the one measurement here that was never negotiable.
+
+## The booking card spent a quarter of itself on thirteen dashes
+
+**Asked for as "optimise Booking. I mean look at grid for starters it takes up so much space."**
+Measured first, signed in, at 390px: the card is **845px** and it goes
+
+| | |
+|---|---|
+| fifteen rows that are questions | 285px |
+| **thirteen rows that are a dash** | **210px** |
+| the week grid and its surround | 182px |
+| the total bar, the two tiles and the terms | 107px |
+
+**THE GRID IS NOT THE BIGGEST SPENDER AND IT IS ALSO AT ITS FLOOR**, which is the half worth saying
+before anything is changed. Seven rows at `max(20px, 1.55em)` plus six 1px gaps is 146px; the 20px
+is a fingertip rather than a preference, and the note over `.hr` records this block going 222 → 174
+→ 146 and why it stops there. A week has seven days and a day has to be pressable. What came back
+off it is the 36px of margin and instruction wrapped round it, which is real and is all there is.
+
+**The thirteen dashes are where the room actually was.** They stay — the argument for them is
+written over `.bk-row.is-blank` and over `Stage`/`Status`, which this file has already debated twice
+and settled twice: a row that appears only once a booking is saved is a row that changes shape at
+the moment somebody is checking it. What a blank row does not need is the LEADING of a row somebody
+reads. 1.35 is a line for reading; a dash is counted past on the way to the row below.
+
+**And two of the thirteen cost twice what a blank row costs.** `Extra subj.` and `Per session` are
+the only two labels of the spine's twenty-eight one character too long for a 6.2em column, so those
+two rows were 30px where the other eleven were 15. **The note over `SPINE_EXTRA` records this exact
+fault and its fix** — four labels shortened for exactly this reason — and it came back on the two
+that are still eleven characters. Shortening a third time is the hand-repair this repository keeps
+finding; the column giving way is the rule.
+
+### `white-space: nowrap` fixed the height and broke the width, and then did nothing at all
+
+**Two mistakes in one line, both caught by measuring rather than reading.** `nowrap` against a fixed
+6.2em column is a label that does not wrap and does not fit: `check/ui.js` reported `span.bk-k
+overflows by 3px` at four widths — the row taking the card sideways instead of the row being tall.
+`max-content` is the version that asks for what the label needs and gives the dash what is left, so
+nothing wraps AND nothing overflows at any label length somebody adds later.
+
+**And written beside `.bk-row.is-blank` it did nothing**, because `.bk-row.is-bare` sets the same
+property three thousand lines further down and both selectors are two classes — the cascade settles
+a tie by order. The rows went back to 481px under a rule that read as though it had fixed them, and
+the only reason that was visible is that the probe was run again rather than trusted. **Same fault
+as `.price.faint`**: a rule that reads as a decision and behaves as nothing.
+
+**Measured after**: the card is **776px**, the rows 457, every blank row 12px, and `check/ui.js`
+reports nothing new across the eight booking combinations.
+
+## The camera had five rectangles where a camera has four controls
+
+**Asked for on a whiteboard, by shape and by colour**: *"Camera, should be 4 buttons: white circle
+for take pic, Red for record, and switch camera, and photos."* What was there was five `.btn quiet`
+rectangles under the viewfinder — `Photo`, `Video`, `Again`, `Save it`, `Photos` — which is a
+FORM'S buttons on a card whose whole content is a live picture. The house style already draws that
+line one way (*"a THING has tiles; a FORM has buttons"*) and a camera is neither: a shutter is its
+own vocabulary, and everybody already knows it.
+
+**The white and the red are declared on the component, not at `:root`.** This is the chessboard
+case the house style settles: a colour belonging to ONE component — that board's cream and
+charcoal, this control's white and red — is named on the component so it is available without being
+offered to a black-and-gold stylesheet. Nothing else in this app may reach for a white disc.
+
+**Recording changes the SHAPE.** The disc has no room for the word `Stop`, and the old rectangle
+rewrote its own label to say it. A red disc is record and a red rounded square is stop, which is
+what every camera does — and `aria-label` moves with the shape in `camRecMark_`, or a screen reader
+is told the opposite of what is true. A control that looks the same while it is running is the mode
+you cannot see, which is the fault this file already records for a reel paused with nothing on it
+saying so.
+
+**`Again` and `Save it` left the row.** They belong to a picture you are holding, not to a camera
+you are pointing, so they are the row underneath — which is 0px tall until there is something to
+save. Measured in seven states.
+
+### The record button had never appeared on the path anybody takes
+
+**Found by reading the two branches side by side while rebuilding the row.** `camStart_` reveals the
+controls in two places: the re-attach branch, which runs when a `repaint` has replaced the markup
+under a live stream, did `$('cam-video').hidden = !canRecord_()`. **The success path — the one every
+first start takes — did not.** So the button added because *"there was no way to record at all"*
+could only be reached by triggering a repaint, and leaving the column hid it again.
+
+`camLive_(on)` is the one function both call now, which is the `factsNow_` / `documents_()` argument
+one screen along: two readers of one fact are two chances to disagree about it.
+
+**And the shutters are DISABLED rather than hidden while the camera starts.** A control that appears
+when the first frame arrives grows the card under the thumb reaching for it — the same complaint the
+booking grid's own note makes about folding.
+
+### `Switch` is the one control that is not drawn until the browser says it can work
+
+**`enumerateDevices` answers before permission and answers wrongly.** Without a granted stream a
+browser may report one anonymous `videoinput`, or none, so that the device list is not a
+fingerprint — so asking at boot would hide the flip control on every phone that has two cameras. It
+is asked a frame after the prompt is granted, in `camWays_`, where the list is the real one. Fewer
+than two and the button is not there: a flip control that swaps the picture for the same picture is
+the `orderPrints` shape.
+
+**A track's `facingMode` is fixed when it is opened**, so the other camera is a new stream —
+`camStop_(true)` then `camStart_()`, where `true` is the flag that releases the hardware and leaves
+the card alone, so the buttons do not flicker back to their starting state for the third of a second
+the swap takes.
+
+**NOT WHILE IT IS RECORDING**, and that refusal is the interesting one: stopping the stream is what
+assembles and downloads the file — see the ordering note in `camStop_` — so a flip mid-record would
+save a half-length video and read as the button having eaten it. It says *"Stop the recording
+first."* rather than refusing silently.
+
+**Proved in eight states** with a stubbed two-camera device: live, after a shot, after `Again`,
+recording, a flip refused mid-record, stopped and saved, flipped (`environment` → `user`), and the
+column left — where the stream is released, the shutters grey and `Switch` goes. `check/ui.js`
+reports nothing at all across the eight `make` combinations.
+
+## Messages drew a transcript, and a conversation is read by side before it is read by name
+
+**Asked for as "messages should look like IG DMs".** What was there was full-width rows separated by
+hairlines with `text-align: right` standing in for *this one is mine* — which is a log. You know who
+said a thing from WHERE IT SITS; the name under it confirms rather than tells.
+
+**Runs are the half that makes it a chat, and they are worked out in `messagesHtml_` rather than in
+the stylesheet.** Four messages in a row from one person is one turn, not four — so only the LAST of
+a run carries the squared tail corner and the "you · time" line, and the ones above it hug at 2px.
+Without that, six bubbles read as six exchanges and the card is no calmer than the hairlines were.
+Measured on a stubbed thread: 7 messages, **4 runs, 4 timestamps**.
+
+**Gold for yours, because gold is already what this app means by yours** — the one action, the
+ticked hour, the starred thing — with black text on it, which is what `.hr.on` already does for the
+same fill. And the bubble is 78% of the card rather than the whole of it: a bubble that reaches both
+edges has no side to be on, which is the entire mechanism.
+
+**`.msg.unread` had to change shape with it.** A gold rule down the LEFT is right for a full-width
+row and cannot survive a bubble that has a side — on `.mine` it drew a gold bar on the wrong edge of
+a gold fill. The bubble's own outline says it instead, which is the argument the old rule made and
+the shape it could not keep.
+
+### You could read a conversation and not answer it
+
+**The only composer in the app was in a sheet on a person's pass.** So replying to something on the
+Messages column meant leaving it, finding that person on another column and opening their card. The
+box is at the foot of the thread now, which is where every messaging app anybody has used puts it —
+and `msgForm_` is ONE builder, used by the thread and by the sheet, because the sheet having its own
+textarea, its own button and its own note is a second composer to keep in step with the first.
+
+**`$('msg-text')` WAS THE BUG WAITING TO HAPPEN.** It was right while there could only ever be one
+composer on the page; the Messages column draws one per conversation, so three on a screen would be
+three elements carrying one id and the browser hands every `Send` button the first of them — **a
+reply typed to your tutor posted to somebody else.** `on('msg-send')` walks up to the nearest
+`.msg-form` instead, which is a fact the DOM can answer and an id cannot. **Proved with two threads
+on screen**: typing into the second posts `to: Office, toId: P001b`, which is the second thread's
+own id rather than the first's name.
+
+**And `closeSheet()` could not stay unconditional.** The thread's composer is on the page, not in
+the sheet, so what it needs is its box emptied — closing the sheet from there would dismiss whatever
+else somebody had open. Asked of the DOM (`form.closest('#sheet')`) rather than remembered in a
+flag.
+
+**A conversation opens at its newest message.** A scroller's natural state is the top, which on a
+thread is last month. `dmFoot_` is booked from `startScreen_` with everything else a screen has
+running — the note there records what happens to a job booked anywhere else.
+
+**Two things fixed on the way past.** `Refresh` was a full-width gold slab over a column of
+conversations: `.btn` is the one action on a card and fetching a list again is not it, which is the
+same correction `.reel-sound` already records. And **an empty inbox had no Refresh on it at all** —
+`loadMessages` deliberately leaves `MESSAGES` alone on a failure, so a first fetch that never
+arrived drew "Nothing yet." with no way back. This repository's oldest fault with the door removed.
+
+### `check/ui.js` had only ever seen this column empty
+
+**Messages are a POST action, not a payload key** — deliberately, because a conversation is private
+and the GET payload goes out whole to whoever asks for it. So `check/fixture.json` cannot carry one,
+and `dm: nothing to report` has meant the "Nothing yet." card and nothing else, at four widths, on
+every run since that file existed. **The same sentence this file already carries about the booking
+screen signed out.**
+
+**So the thread is a declared STATE.** `MESSAGES` is what `messageThreads_` reads and `loadMessages`
+writes, so setting it is the state the app is in a moment after a successful fetch — the app's own
+door, exactly as the signed-in visitor is seeded through `localStorage` rather than by poking `USER`.
+Two people, a run of three, and one deliberately long sentence, because the widest thing a bubble
+ever holds is something somebody typed.
+
+**`{ name: '' }` HAD TO STAY ON THE LIST.** Declaring states REPLACES the unnamed one every screen
+has by default, so naming only the seeded thread would have stopped this file ever measuring the
+empty card again — a state gained and a state lost, silently. Caught by the combination count going
+8 → 4 instead of 8 → 12.
+
+**Proved by mutation**: an `expect` of 99 bubbles names the state at all four widths and exits 1;
+the real file exits 0. 104 combinations, nothing to report.
+
+## A post could be reacted to and not talked about
+
+**Asked for on the whiteboard as "should be able to comment on posts".** A reaction says how a
+photograph landed and cannot say anything else; a post of a child's first A in a mock is a thing
+people want to write a sentence about.
+
+**`post_comments` is the reaction's tab one column wider** — a post_id, a person_id, what they said
+and when — and `addComment` is `reactPost` with the one-per-person lookup taken out. That removal is
+the only real difference and it is worth stating: a reaction and a vote are a CHOICE, so pressing
+again changes or withdraws it; **a remark is not a choice**, and somebody who says two things has
+said two things. Three tabs with one shape is three things that behave the same way.
+
+**Two absences are decisions.** There is no `parent_id`: a reply to a comment is a tree, and a tree
+is a second reading order on a surface whose whole job is one photograph. And there is no EDIT — a
+comment is a thing somebody said in public. It can be taken down, by its author or by an admin, and
+`active` is a cell rather than a deleted row for the reason `approved` already gives on a post: the
+comment you took down is the one you may need to show somebody afterwards.
+
+**`canRemove` is computed on the server and drawn on the phone.** An admin may take down anybody's
+and an author only their own — repeating that on the phone would be two copies of one policy, which
+is the fault recorded here under `MESSAGING`, under `kinds` and under `childrenOf`. The handler
+checks again anyway, because a button is not a permission.
+
+**Names, not ids, and `mine` rather than the id** — the same decision `reactions.by` records one
+block up: a comment is public and an id is not, and `P17390421 said …` tells nobody anything.
+
+### It draws nothing at all until the backend is deployed, and that is the `|| []` rule
+
+**`doGet` sends `comments` on every post from this version. An older deployment sends no such key**
+— and `|| []` would turn that into "no comments yet" under a composer posting into `accessDenied`,
+which is this repository's worst shape: *I did not manage to look, reported as I looked and there
+was nothing there.* `Array.isArray(p.comments.list)` is the test, and an absent key draws **nothing**:
+not an empty thread, not a box. A feature that has not arrived looks like a feature that is not
+there.
+
+**That gap is real and may be days.** `pullFromGitHub` is blocked on the Cloud-project switch and
+clasp is unconfigured — see "Deploying" — so the front end reaches Pages in a minute and the backend
+reaches Apps Script when somebody runs it. **`?setup=1` has to run as well**, or `ensureSchema` has
+never created the `post_comments` tab.
+
+### Not bubbles, and that is the decision worth writing down
+
+Messages got bubbles in the commit before this one because a conversation between TWO people is read
+by side. **A comment thread is many people talking about one photograph, and there is no side for a
+fourth person to be on** — so it is the name, then what they said, on a line that wraps, which is
+exactly what `.post-cap` already is, because the caption IS the first comment. Yours is marked by
+the rule down the left that messages gave up when they became bubbles: the shape that rule was
+always right for.
+
+**`Remove` was 31x13 and `check/ui.js` named it at three widths.** It looks like text and it is 44px
+now — underlined because `check-css.js` fails a tappable thing that reads as plain text, and 44px
+because a control you cannot hit is not one that is rarely used, it is one that is not there. The
+height goes on the time LINE and only where there is a button on it (`:has`), because an admin sees
+a Remove under every comment and 44px of nothing under the rest is worse than the fault.
+
+### `2026-09-15` was read as 26 September 2015
+
+**Found by a comment timestamp, and it is not the comment's bug.** `parseWhen` in data.js is the one
+place this app turns a written date into a Date — every `ago()` on every surface goes through it —
+and its day-month-year match **was not anchored**. On a four-digit year the regex engine simply
+started later in the string: `\d{1,2}` cannot take `2026`, so it slid along to `26-09-15` and read
+day 26, month 9, year 15. `2017-05-25` came out as **17 May 2025**.
+
+**A plausible date, a confident sentence, wrong by eleven years, and nothing could have noticed.**
+`new Date(t)` four lines down was already right about ISO and never got the chance, because an
+unanchored regex earlier in the function had always matched first. The fix is an anchored ISO branch
+above it, built field by field rather than handed to `new Date(string)` — `new Date('2026-09-15')`
+is UTC midnight and `new Date('2026-09-15 18:20')` is local, and the same function putting a date
+either side of midnight depending on whether somebody typed a time is the timezone fault `waveOf`
+already cost this app seven buttons over.
+
+**`node js/check-dates.js`, on the roster**, because this is the `cost: 0` sentence for the seventh
+time: a fault repaired in the instance and not in the rule comes back. Eight forms, both families —
+the ISO one a sheet cell and a data file hold, and the `15/09/26 18:20` one `fmtDateTime` sends.
+**Proved in both directions**: the old parser fails four of the eight and exits 1; the new one
+passes all eight.
+
+**And the comment's own timestamp goes through `fmtDateTime`**, which is what a message already
+sends. `S(c.said_on)` on a sheet Date is whatever `String()` makes of it, and a second spelling of a
+timestamp is a second thing for `parseWhen` to get right.
+
+### `check-rows.js` caught the one thing that would have mattered
+
+**The first version asked `post.person_id` and the posts tab has no such column.** Whose post it is
+lives in `author`, resolved through `findPerson` — and that test is what decides whether somebody
+may write under a photograph that is waiting for approval. `check-columns.js` could not see it
+(`person_id` is a column of four other tabs); **the check that asks whether a name is a column of
+THIS tab is the one that names it**, which is the fault it was written for.
+
+## The loading screen does not stutter, and four of them stop
+
+**Asked for on the whiteboard as "make animations more stable for loading".** There were two
+candidate answers and the measurement says one of them is not true, which is the half worth writing
+down first.
+
+### The one that is not true, and it had a convincing diagnosis behind it
+
+**`index.html`'s case for the splash is that *"the animation is CSS, so it runs even while the main
+thread is busy parsing eighteen files"*.** That is true of `transform` and `opacity` — the
+compositor runs those on its own thread — and false of a `background`, a `box-shadow`, a colour or a
+`width`, which the MAIN thread recomputes and repaints. The same thread parsing 566KB of JavaScript
+and decoding a 3.4MB library at exactly that moment.
+
+**Asked of the browser via `getKeyframes()`, 23 of the 39 splashes animate at least one property the
+compositor cannot run**, and the worst — the times table — runs **47 `background`-and-`box-shadow`
+animations at once**. That reads exactly like a diagnosis.
+
+**It is not one.** Measured at the moment of boot, with the payload never answering so the splash
+stays up, and the CPU throttled to 6x and then to 20x: **every splash moved in every frame** — the
+47-animation one exactly as much as the pure-`transform` one, 44 of 44, at both throttles. There is
+nothing to fix, and writing the fix on the strength of the property list would have been the
+`.mat-out` mistake for a third time: two rules changed on a reading nobody had taken.
+
+### The one that is: four of them hold a still picture
+
+**Measured at full speed, where nothing is competing for anything:**
+
+| | identical to the frame before | longest hold |
+|---|---|---|
+| `is-sf` | **55%** | 1000ms |
+| `is-tri` | **42%** | 1250ms |
+| `is-cent` | 35% | 500ms |
+| `is-half3` | 35% | 500ms |
+
+**`index.html` has already deleted a splash for exactly this** and its own sentence is the standard:
+*"it read as a tartan square holding still, which is a picture rather than an animation, and a
+loading screen that looks frozen reads as an app that has."*
+
+**A hold is not automatically a fault, which is why this prints and does not fail.** `is-sf` is
+standard form: the decimal point hops five places and the exponent counts up with it, and the last
+third of the cycle is the answer being held for somebody to read. That beat is the point of the
+animation. Shortening it means clearing the exponent as the point hops back, or the splash shows
+`3.42 × 10⁴` with the point at the start — **wrong maths on a teaching screen, which is worse than a
+still one**. Which of these four is a rhythm and which is a freeze is a judgement about the
+animation, and the pool is the sheet's: `splashOff` is read by the picker in `index.html` before it
+picks, so retiring one is a row rather than a deploy.
+
+### `npm run splash` — and the first version of it measured the wrong splash
+
+**It sets the pool rather than the element.** The first version set `#splash`'s class from a
+`DOMContentLoaded` handler, which runs AFTER index.html's own inline picker and its replay loop — so
+the replay had already captured the animations of whatever the coin chose, and the run reported
+`is-trick` frozen for 5.75 of 8 seconds with 0 restarts. **Both numbers were the harness.** Seeded
+through `splashOff`, which the picker reads before it picks, `is-trick` is still for 250ms and its
+replay fires 20 times in 10 seconds — it was the one splash working exactly as written.
+
+**Identical PNG bytes is the whole test**, and it is the only question that can tell a compositor
+animation from a main-thread one: a page can be busy and still be moving, and a page can be idle and
+be a photograph.
+
+**Not in `npm run check`**, for `check/load.js`'s reason: it drives a real browser for six minutes
+and its answer moves with what else the machine is doing. `npm run splash`, and a person reads it.
+
+## Ten experiments that run in somebody's front room, and five that were refused
+
+**Asked for as "I need to database this in an appropriate way and add to my site"**, over a chat
+transcript holding ten home science experiments, five rejected ones with the reasoning, a shopping
+list and a prep checklist.
+
+**They are not a new table.** `data/practicals.json` already holds 41 experiments with a name, a
+subject, kit, steps, safety, a venue and a topic join — which is this list with different values in
+it. The `images` and `needs` notes both settle the shape: a thing one column wider is not a second
+table. And the practicals' own note settles the kind: *"`subject` IS THE SCIENCE and `kind` is what
+it is"* — a home chemistry experiment IS chemistry and IS a practical, and a second kind beside it
+would put one door in the funnel marked Practicals and another marked Experiments and ask somebody
+to know the difference.
+
+**What actually separates them is `venue`, which already existed.** The 41 are `lab`, `library room`
+and `outdoors`; these are `home` and `outdoors`. That is the fact a tutor needs — can I do this in a
+client's front room — and it was already a column.
+
+### The five refusals are rows, and `active` is not the column for them
+
+**"Recorded so the reasoning is not lost" was the instruction**, and a tutor asking why they are not
+burning magnesium ribbon has to be able to find the answer rather than an absence. `active` is the
+wrong home for that and this file already records why, on the posts tab: *"`active` is whether it
+has been deleted. This is whether it has been let through"* — folding them makes undeleting and
+approving one act. So a refused experiment is LIVE, carries `excluded_reason`, and the card leads
+with it: the flag changes word and colour, the reason sits under the subtitle with a red rule, and
+the card is dimmed. Three signals for one fact, the same doubling `placeholder: True` gets.
+
+**And it is not asked for a method.** `check-practicals.js` demands kit and steps of a live row and
+a REASON of a refused one, because writing out a procedure for something nobody will run is
+inventing content to satisfy a checker — the opposite of what the checker is for. Proved by
+mutation: a refused row given steps exits 1.
+
+### `cost: 0` had one more place to land and this was it
+
+**Measuring car speeds really does cost nothing per run. A lab practical has never been costed at
+all.** `libN('')` is 0, so mapping the new column with it would have made all 41 free — the fault
+this file records four times, most recently on the shop mapper where a blank cell read as "free"
+under a comment defending the zero. `libNum` is `libN` with absent staying absent, two functions
+rather than a flag so a caller picks by saying which question it is asking; the card draws "free to
+run" for a real zero and says nothing for an uncosted row. **Measured on the rendered text: 0 of the
+41 lab practicals claim to be free**, 5 of the new ones do, and 7 carry a price.
+
+### A column written and never read, caught before it shipped
+
+**`wow` went in as free text** — "low to look at, high to learn from", "high — and he keeps it" —
+which reads beautifully and cannot be compared, and nothing read it. That is two faults at once:
+this repository's oldest shape (`figure`, `orderPrints`, the four message actions, `exam_date`), and
+a rule over free text, which is the fault `/required practical/` matching `AQA-aligned, NOT a
+required practical` already cost five cards. It is a closed list of five now, the card reads it to
+print *"Worth opening a session with"* on the top two levels and nothing otherwise, and the nuance
+went into `notes`, which is prose and is drawn as prose.
+
+### `Separating Mixtures` is a new branch, and the diff is why it was safe
+
+Filtration, crystallisation and evaporation are a real GCSE topic that `data/topics.json` did not
+carry, and filing salt-from-sand under `Atomic Structure & the Periodic Table` — where AQA's spec
+actually puts it — would be correct and unfindable. **Adding a branch changes `topicAreaOf_` for
+every item**, because its containment pass resolves a name only when every candidate agrees, so it
+was diffed over the whole library first, exactly as the three science roots were: **0 gained an
+area, 0 lost one, 0 moved**, across the 4,341 rows that already had one.
+
+**Measured after: the join is the feature.** `Compound Measures` reaches 15 items, so the car-speed
+experiment sits with the maths speed questions; `Waves` reaches 26, so the shoebox projector sits
+with the refraction ones; `Rate of Reaction` 28 and `Chemical Changes` 42. The practicals now
+resolve to nine topic areas — Biology, Chemistry, Physics and five maths branches.
+
+### What is deliberately NOT committed
+
+The source carried a learner profile: an age, a set of interests, a first session date, and "confirm
+the student has a fish tank". **This repository is public and git history is permanent**, so none of
+it is here. Where a learner-specific line carried a reusable fact it is written as one — "matches
+the fish interest on file" became a `feasible` of *"needs a tank, a pond, or a window onto birds"*,
+which is true for anybody.
+
+**And the two lines from the prep checklist that are about every home practical rather than any one
+of them** — public liability cover, and a written parental agreement describing what will be done —
+are drawn from `venue === 'home'` in one place. Writing them into ten `notes` cells would be the AQA
+insert fault again: one fact repeated on every row that uses it, and ten cells to keep in step the
+day the wording changes.
+
+### `check/cards.js` had never laid out a practical, and that cost four cards
+
+**Found by laying all 56 out while adding ten.** `.prac-head` is a flex row and **a flex item's
+minimum is its MIN-CONTENT** — the widest unbreakable word, not nothing — so `Photosynthesis`,
+`Field investigations`, `Chromatography` and `I–V characteristics` beside a `flex: 0 0 auto` flag
+could not shrink, and each took the card up to **19px past a 320px column**. Four rows of
+forty-one, on every commit, for as long as that card has existed.
+
+**Nothing had ever looked.** `check/cards.js` reads `data/questions.json`; `check/ui.js` measures
+nine screens and the funnel fills five pages either side of where you are, so it sees whichever
+practicals it happens to stop on. That is this file's own **"a sample is not a sweep"**, one data
+file along — and it is why `check/cards.js` lays these out too now, **through the app's own
+`practicalCard_` rather than a copy of it**: that file already half-pays for rebuilding a question's
+markup, and paying it twice would be worse. The measuring rules came out of the loop into one
+`measure()` both passes call, for the same reason.
+
+**Proved by mutation**: putting `min-width: 0` back names all four rows and exits 1; the real file
+lays out 4,906 questions and 56 practicals with nothing past the column.

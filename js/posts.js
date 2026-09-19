@@ -134,8 +134,122 @@ function postCard_(p, i) {
             looking at the photograph and the caption, which is everything the decision is about. */''}
       ${postTiles_(p)}
       ${p.waiting && !isAdmin() ? `<p class="faint">Waiting to be checked. Only you can see it.</p>` : ''}
+      ${commentsHtml_(p)}
     </article>`;
 }
+
+/* ==================================================================================================
+   WHAT PEOPLE SAID UNDER IT.
+
+   ASKED FOR AS "should be able to comment on posts". A reaction says how a photograph landed and
+   cannot say anything else; a post of a child's first A in a mock is a thing people want to write
+   a sentence about.
+
+   `post_comments` IS THE REACTION'S TAB ONE COLUMN WIDER — a post_id, a person_id, what they said
+   and when — and `addComment` is `reactPost` with the one-per-person lookup taken out, because a
+   remark is not a choice: somebody who says two things has said two things. The whole of that
+   argument is in `SCHEMA.post_comments`.
+
+   ---------------------------------------------------------------------------------------------
+   AND IT DRAWS NOTHING AT ALL UNTIL THE BACKEND HAS BEEN DEPLOYED, WHICH IS THE POINT OF THE
+   `Array.isArray` RATHER THAN A `|| []`.
+
+   `doGet` sends `comments` on every post from the version this was written for. An older deployment
+   sends no such key — and `|| []` would turn that into "no comments yet" under a composer that
+   posts into `accessDenied`, which is the exact fault this repository names as its worst: I did not
+   manage to look, reported as I looked and there was nothing there. An absent key is a feature that
+   has not arrived, and the honest drawing of that is nothing.
+
+   `pullFromGitHub` IS BLOCKED and clasp is unconfigured — see "Deploying" in CLAUDE.md — so the
+   gap between this reaching Pages and the backend answering is real and may be days. Which is
+   precisely why the phone must not pretend.
+================================================================================================== */
+function commentsHtml_(p) {
+  const c = p && p.comments;
+  if (!c || !Array.isArray(c.list)) return '';
+  const list = c.list;
+  const more = Math.max(0, Number(c.total || list.length) - list.length);
+
+  /* ---------- A CONVERSATION IS ONE ELEMENT, NOT A SECOND CARD -----------------------------------
+     `.post-said` SITS INSIDE THE `<article>` the post already is, under the tiles — because a
+     comment is part of the post rather than a thing beside it, and a card of its own would page
+     separately on the feed and leave the photograph behind.
+
+     OLDEST FIRST, which `doGet` has already done. Doing it again here is a second copy of the
+     ordering rule to get wrong later — the sentence `dmCards_` already carries about
+     `messageThreads_`. */
+  return `<div class="post-said">
+    ${list.length ? `<ul class="cmt-list">${list.map(x => `
+      <li class="cmt${x.mine ? ' mine' : ''}">
+        <p class="cmt-body"><b>${esc(x.name)}</b> ${mark(x.body)}</p>
+        <p class="faint cmt-when">${esc(ago(x.at) || x.at || '')}${x.canRemove
+          ? ` · <button class="cmt-x" data-do="cmt-del" data-id="${esc(x.id)}">Remove</button>`
+          : ''}</p>
+      </li>`).join('')}</ul>` : ''}
+    ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
+          a conversation that simply stops at sixty with nothing saying so is a conversation
+          somebody thinks they have read. */''}
+    ${more ? `<p class="faint">${more} more, not shown.</p>` : ''}
+    ${USER
+      ? `<div class="cmt-form">
+           <textarea class="cmt-text" rows="1" maxlength="2000"
+             placeholder="Say something…"></textarea>
+           <button class="btn quiet cmt-go" data-do="cmt-add"
+             data-id="${esc(p.id)}">Post</button>
+           <p class="faint cmt-said"></p>
+         </div>`
+      : `<p class="faint">Sign in to say something.</p>`}
+  </div>`;
+}
+
+/* ---------- POSTING ONE ---------------------------------------------------------------------------
+   `send`, NOT `api`, AND THIS IS THE FILE THAT RECORDS WHY. `api()` resolves with `{ error: … }` as
+   an ordinary answer, so a `.then` saying "Posted" runs on a refusal exactly as it runs on success
+   — which is how a toast once said "Sent to Ada Tutor" about a message that was never written.
+   `check-replies.js` asks this question of every caller; this one is about to make a claim.
+
+   THE BOX IS FOUND BY WALKING UP, not by an id. There is one composer per post and a feed has
+   several posts on screen — the fault `on('msg-send')` records one screen along, where a fixed id
+   would have handed every button the first textarea on the page.
+
+   AND THE FEED IS RELOADED RATHER THAN THE COMMENT INSERTED BY HAND. The row is on the sheet and
+   the payload is what draws it; splicing a copy into `DATA.posts` is a second source for the same
+   comment, and it would disagree with the server about the id the moment a Remove was pressed. */
+on('cmt-add', el => {
+  const form = el.closest ? el.closest('.cmt-form') : null;
+  const box  = form ? form.querySelector('.cmt-text') : null;
+  const said = form ? form.querySelector('.cmt-said') : null;
+  const text = ((box && box.value) || '').trim();
+  if (!text) { box && box.focus(); return; }
+  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
+
+  el.disabled = true;
+  const was = el.textContent;
+  el.textContent = 'Posting…';
+  const done = () => { el.disabled = false; el.textContent = was; };
+
+  send({ action: 'addComment', name: USER.name, personId: USER.personId,
+         postId: el.dataset.id, body: text })
+    .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
+                  if (said) said.textContent = ''; load(); })
+    /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
+       length, the post being gone, not being signed in — and "Not posted" would throw away the
+       only part that says what to do about it. */
+    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not posted.'); });
+});
+
+/* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where
+   the server has already said yes — and the server checks again, because a button is not a
+   permission. See `deleteComment`: it writes `active: FALSE` rather than deleting the row, which is
+   the argument `approved` already makes on a post. */
+on('cmt-del', el => {
+  if (!USER) return;
+  el.disabled = true;
+  send({ action: 'deleteComment', name: USER.name, personId: USER.personId,
+         commentId: el.dataset.id })
+    .then(() => load())
+    .catch(err => { el.disabled = false; toast(String(err.message || 'Not removed.')); });
+});
 
 function feedPosts() {
   return [...(DATA.posts || DATA.gallery || [])]
@@ -312,6 +426,16 @@ function postsBlocks() {
    is three states to keep in step for no gain anybody can see.
 ================================================================================================== */
 let CAM_STREAM = null;
+/* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW --------------------------------
+   IT WAS `{ ideal: 'environment' }` WRITTEN INTO `camStart_` and there was no way to change it, so
+   a phone whose front camera is the one you want could take a photograph of the wall behind you and
+   nothing else. `Switch` is the fourth control on the whiteboard and this is the fact it moves.
+
+   `ideal` RATHER THAN `exact`, BOTH WAYS. A laptop with one front camera asked for `exact:
+   environment` throws OverconstrainedError; asked for `ideal` it gives what it has. The flip
+   control is only ever shown when the browser has said there are two — see `camWays_` — so the
+   `ideal` is a floor under a case that should not arise rather than the thing being relied on. */
+let CAM_FACE = 'environment';
 
 function cameraCard() {
   return `<div class="card cam-card">
@@ -326,22 +450,47 @@ function cameraCard() {
         <p class="sub">Starting the camera…</p>
       </div>
     </div>
-    <div class="btn-row cam-row">
-      ${/* `Photo`, `Video`, `Photos` — asked for by name. It said `Take one`, which is a sentence
-            about the button rather than a name for what you get, and there was no way to record at
-            all. The other three controls in this row are all CONDITIONAL — `Again` and `Save it`
-            appear once there is something to save, `Try the camera again` only after a refusal —
-            so the row a person actually sees is these three and nothing else. */''}
-      <button class="btn quiet" data-do="cam-shoot" id="cam-shoot" hidden>Photo</button>
-      <button class="btn quiet" data-do="cam-video" id="cam-video" hidden>Video</button>
-      <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
-      <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
+    ${/* ---------- FOUR CONTROLS, WHICH IS WHAT A CAMERA HAS ------------------------------------
+          ASKED FOR ON THE WHITEBOARD BY SHAPE AND COLOUR: "white circle for take pic, Red for
+          record, and switch camera, and photos". What was here was five `.btn quiet` rectangles
+          reading `Photo`, `Video`, `Again`, `Save it`, `Photos` — a form's buttons under a
+          viewfinder, where every camera anybody has used puts a shutter.
+
+          AND TWO OF THEM ARE NOT BUTTONS IN THIS APP'S SENSE. A white disc and a red disc are the
+          camera's own vocabulary, not this app's — the same case as the chessboard's cream and
+          charcoal, which the house style already settles: a colour belonging to ONE component is
+          declared on that component rather than offered to the whole stylesheet. `--cam-white` and
+          `--cam-red` live on `.cam-bar`.
+
+          THE SHUTTERS ARE DISABLED, NOT HIDDEN, UNTIL THE STREAM IS LIVE. A camera starting up
+          shows a greyed shutter; it does not remove it and grow the card back under your thumb when
+          the first frame arrives. `Switch` is the exception and it is a different question — see
+          `camWays_`: until the browser has said there are two cameras, a flip control is a button
+          that would do nothing, which is the `orderPrints` shape.
+
+          `Again` AND `Save it` ARE NOT IN THIS ROW ANY MORE. They belong to a picture you are
+          holding, not to a camera you are pointing — so they are the row underneath, and it is
+          empty until there is something to save. */''}
+    <div class="cam-bar">
       ${/* A LABEL, NOT A BUTTON, so the file input opens with no script at all — a `for` reaches a
             control the page is hiding, which is the one way to style a file picker without
             rebuilding it. `accept="image/*"` and NO `capture`: capture would reopen the camera,
             which is the thing this button exists to be an alternative to. */''}
-      <label class="btn quiet cam-pick" for="cam-pick">Photos</label>
+      <label class="cam-side cam-pick" for="cam-pick">Photos</label>
       <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*" hidden>
+      ${/* THE WORDS ARE IN `aria-label` AND `title` RATHER THAN IN THE DISC. A shutter with the
+            word "Photo" written across it is not a shutter, and a control with no name at all is
+            one a screen reader cannot offer. */''}
+      <button class="cam-shot" data-do="cam-shoot" id="cam-shoot"
+              aria-label="Take a photo" title="Take a photo" disabled></button>
+      <button class="cam-rec" data-do="cam-video" id="cam-video"
+              aria-label="Record a video" title="Record a video" disabled></button>
+      <button class="cam-side" data-do="cam-flip" id="cam-flip"
+              aria-label="Switch camera" title="Switch camera" hidden>Switch</button>
+    </div>
+    <div class="btn-row cam-row">
+      <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
+      <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
       ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
       <button class="btn" data-do="cam-on" id="cam-on" hidden>Try the camera again</button>
@@ -397,8 +546,8 @@ async function camStart_() {
       v.srcObject = CAM_STREAM;
       try { await v.play(); } catch (e) {}
       $('cam-off')   && ($('cam-off').hidden = true);
-      $('cam-shoot') && ($('cam-shoot').hidden = false);
-      $('cam-video') && ($('cam-video').hidden = !canRecord_());
+      camLive_(true);
+      camWays_();
     }
     return;
   }
@@ -419,7 +568,7 @@ async function camStart_() {
     /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
        camera gets that rather than an OverconstrainedError. */
     CAM_STREAM = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } }, audio: false });
+      video: { facingMode: { ideal: CAM_FACE } }, audio: false });
   } catch (err) {
     CAM_STREAM = null;
     if (said) said.textContent = camWhy_(err);
@@ -440,10 +589,77 @@ async function camStart_() {
   try { await v.play(); } catch (e) {}
   $('cam-off') && ($('cam-off').hidden = true);
   if (retry) { retry.hidden = true; retry.disabled = false; }
-  $('cam-shoot') && ($('cam-shoot').hidden = false);
+  camLive_(true);
   if (said) said.textContent = '';
+  /* ---------- AND ONLY NOW CAN ANYBODY ASK HOW MANY CAMERAS THERE ARE ----------------------------
+     `enumerateDevices` ANSWERS BEFORE PERMISSION AND ANSWERS WRONGLY. Without a granted stream a
+     browser may report one anonymous videoinput, or none, to keep the device list from being a
+     fingerprint — so asking at boot would hide the flip control on every phone that has two
+     cameras. Asked here, a frame after the prompt was granted, the list is the real one. */
+  camWays_();
 }
 
+/* ---------- THE TWO SHUTTERS ARE ONE FACT: IS THERE A LIVE STREAM ---------------------------------
+   THREE PLACES SET THIS AND ONE OF THEM FORGOT. The re-attach branch above did
+   `$('cam-video').hidden = !canRecord_()` and the success path did not — so the record control
+   appeared only after a `repaint`, which means the button added because "there was no way to record
+   at all" could not be reached on the path anybody actually takes. Found by reading the two
+   branches side by side after the row was rebuilt.
+
+   ONE FUNCTION, SO THE TWO CANNOT DISAGREE — the same argument as `factsNow_` and `documents_()`,
+   one screen along.
+
+   `disabled`, NOT `hidden`, FOR THE SHUTTERS. See the note in `cameraCard`: a control that appears
+   when the first frame arrives grows the card under the thumb that is reaching for it.
+
+   RECORDING IS THE ONE THAT CAN BE GENUINELY ABSENT. `MediaRecorder` is not on older iOS, and a
+   control that is there and throws is worse than one that is not — which is the `orderPrints`
+   lesson in a different costume. That is a fact about the browser rather than about the stream, so
+   it is asked once and the button goes rather than greys. */
+function camLive_(on) {
+  const shoot = $('cam-shoot'), rec = $('cam-video');
+  if (shoot) shoot.disabled = !on;
+  if (rec) {
+    rec.hidden = typeof MediaRecorder !== 'function';
+    rec.disabled = !on;
+  }
+}
+
+/* IS THERE A SECOND CAMERA TO SWITCH TO. A flip control on a laptop with one camera is a button
+   that does nothing, so it is not drawn until the browser has said there is somewhere to flip to.
+   Anything that throws or is absent answers no: a missing control is a smaller failure than one
+   that swaps the picture for the same picture. */
+async function camWays_() {
+  const flip = $('cam-flip');
+  if (!flip) return;
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    const list = await navigator.mediaDevices.enumerateDevices();
+    flip.hidden = list.filter(d => d.kind === 'videoinput').length < 2;
+  } catch (e) {}
+}
+
+/* ---------- TURNING IT ROUND --------------------------------------------------------------------
+   `camStop_(true)` THEN `camStart_()`, which is the only way there is: a track's `facingMode` is
+   fixed when it is opened, so the other camera is a new stream. `true` is what releases the
+   hardware without resetting the card — see `camStop_` — so the buttons do not flicker back to
+   their starting state for the third of a second the swap takes.
+
+   NOT WHILE IT IS RECORDING. Stopping the stream is what assembles and downloads the file, so a
+   flip mid-record would save a half-length video and look like the button having eaten it. Said
+   rather than silently refused, and said in the one place the card already says things. */
+async function camFlip_() {
+  const said = $('cam-said');
+  if (CAM_REC && CAM_REC.state === 'recording') {
+    if (said) said.textContent = 'Stop the recording first.';
+    return;
+  }
+  CAM_FACE = CAM_FACE === 'environment' ? 'user' : 'environment';
+  camStop_(true);
+  await camStart_();
+}
+
+on('cam-flip', () => camFlip_());
 on('cam-on', () => camStart_());
 
 /* ---------- A PICTURE OUT OF THE GALLERY ----------------------------------------------------------
@@ -477,7 +693,7 @@ document.addEventListener('change', e => {
     URL.revokeObjectURL(url);
     c.hidden = false;
     if (v) v.hidden = true;
-    $('cam-shoot') && ($('cam-shoot').hidden = true);
+    camLive_(false);
     $('cam-again') && ($('cam-again').hidden = false);
     $('cam-save')  && ($('cam-save').hidden = false);
     $('cam-off')   && ($('cam-off').hidden = true);
@@ -500,7 +716,9 @@ on('cam-shoot', () => {
   c.width = v.videoWidth; c.height = v.videoHeight;
   c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
   c.hidden = false; v.hidden = true;
-  $('cam-shoot').hidden = true;
+  /* THE SHUTTERS GREY WHILE A PICTURE IS BEING LOOKED AT. The stream is still running underneath —
+     see `Again` — so they would work; what they would do is throw away the shot you just took. */
+  camLive_(false);
   $('cam-again').hidden = false;
   $('cam-save').hidden = false;
 });
@@ -515,7 +733,7 @@ on('cam-again', () => {
   if (v) v.hidden = false;
   $('cam-again').hidden = true;
   $('cam-save').hidden = true;
-  $('cam-shoot').hidden = false;
+  camLive_(true);
   const said = $('cam-said'); if (said) said.textContent = '';
   camStart_();
 });
@@ -572,7 +790,7 @@ on('cam-video', () => {
 
   CAM_REC.ondataavailable = e => { if (e.data && e.data.size) CAM_BITS.push(e.data); };
   CAM_REC.onstop = () => {
-    if (btn) { btn.textContent = 'Video'; btn.classList.remove('is-rec'); }
+    camRecMark_(false);
     const blob = new Blob(CAM_BITS, { type: (CAM_REC && CAM_REC.mimeType) || 'video/webm' });
     CAM_BITS = [];
     if (!blob.size) { if (said) said.textContent = 'Nothing was recorded.'; return; }
@@ -596,9 +814,29 @@ on('cam-video', () => {
     if (said) said.textContent = 'Could not start recording: ' + String((err && err.message) || err);
     return;
   }
-  if (btn) { btn.textContent = 'Stop'; btn.classList.add('is-rec'); }
-  if (said) said.textContent = 'Recording. Press Stop when you are done.';
+  camRecMark_(true);
+  if (said) said.textContent = 'Recording. Press the square when you are done.';
 });
+
+/* ---------- THE DISC SAYS WHAT IT IS DOING, BECAUSE IT CANNOT SAY IT IN WORDS ----------------------
+   IT SAID `Stop` WHEN IT WAS A RECTANGLE WITH A LABEL IN IT. A 52px disc has no room for a word,
+   and a record control that stays a record control while it is recording is a mode you cannot see —
+   which is the fault this file already records for the reel that was paused with nothing on it
+   saying so.
+
+   SO THE SHAPE CHANGES: a red disc is record, a red rounded square is stop, and every camera
+   anybody has used does exactly that. `aria-label` moves with it, or the shape is the only thing
+   that says so and a screen reader is told the opposite of what is true.
+
+   NOT AN ANIMATION. A blinking control on a card somebody is filming with is a distraction in the
+   frame — the same sentence the old `.is-rec` rule carried, and it is still right. */
+function camRecMark_(on) {
+  const btn = $('cam-video');
+  if (!btn) return;
+  btn.classList.toggle('is-rec', !!on);
+  btn.setAttribute('aria-label', on ? 'Stop recording' : 'Record a video');
+  btn.setAttribute('title', on ? 'Stop recording' : 'Record a video');
+}
 
 /* ONE PLACE THAT NAMES A FILE. `cam-save` built this inline and the recorder needed the same thing;
    two copies of a filename format is two things to keep in step, which is this repository's most
@@ -650,8 +888,9 @@ function camStop_(keepShown) {
   if (v) { try { v.srcObject = null; } catch (e) {} }
   if (keepShown) return;
 
-  const rec = $('cam-video');
-  if (rec) { rec.hidden = true; rec.textContent = 'Video'; rec.classList.remove('is-rec'); }
+  camRecMark_(false);
+  camLive_(false);
+  const flip = $('cam-flip'); if (flip) flip.hidden = true;
 
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
@@ -659,7 +898,6 @@ function camStop_(keepShown) {
   if (off) { off.hidden = false;
              const t = off.querySelector('.sub'); if (t) t.textContent = 'Starting the camera…'; }
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
-  $('cam-shoot') && ($('cam-shoot').hidden = true);
   $('cam-again') && ($('cam-again').hidden = true);
   $('cam-save')  && ($('cam-save').hidden = true);
 }
@@ -1611,8 +1849,8 @@ function reelMore_(host) {
 function reelPlay_(v) {
   if (!v || v.dataset.dead) return;
   if (!v.getAttribute('src')) {
-    const src = clipSrc_(v.dataset.clip);
-    if (!src) return;
+    const srcs = clipSrcs_(v.dataset.clip);
+    if (!srcs.length) return;
     /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
        waits for `img.onload`: until then the slide is its own gradient and its subject's initial,
        which is a finished thing rather than a hole. */
@@ -1620,8 +1858,25 @@ function reelPlay_(v) {
       const art = v.closest('.feed-art');
       if (art) art.classList.add('has-photo');
     }, { once: true });
+    /* ---------- THE NEXT RUNG, AND ONLY THEN GOOGLE'S PLAYER ------------------------------------
+       NOT `{ once: true }` ANY MORE, and that is the whole change: one listener that fired once
+       took the first failure straight to the iframe, so a second address never got a turn. It
+       counts down the list instead and the iframe is what is left when there is no rung below.
+
+       `load()` BEFORE THE NEXT `src`. A `<video>` that has already failed keeps its error state
+       until it is told to start again, and setting `src` alone on some browsers does not clear it —
+       so the second address would be reported broken without being asked for. */
     v.addEventListener('error', () => {
       if (v.dataset.dead) return;
+      const next = Number(v.dataset.rung || 0) + 1;
+      if (next < srcs.length) {
+        v.dataset.rung = String(next);
+        v.src = srcs[next];
+        try { v.load(); } catch (e) {}
+        const p2 = v.play();
+        if (p2 && p2.catch) p2.catch(() => {});
+        return;
+      }
       v.dataset.dead = '1';
       const frame = clipFrame_(v.dataset.clip);
       const slide = v.closest('.reel');
@@ -1630,8 +1885,9 @@ function reelPlay_(v) {
         referrerpolicy="no-referrer" title="Reel"></iframe>`;
       const btn = slide.querySelector('.reel-sound');
       if (btn) btn.remove();
-    }, { once: true });
-    v.src = src;
+    });
+    v.dataset.rung = '0';
+    v.src = srcs[0];
   }
   /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. Every browser refuses to start an
      unmuted video nobody has tapped, and one that has been unmuted by the button below and then
@@ -1734,9 +1990,18 @@ function dmCards_() {
   }
 
   const threads = messageThreads_();
+  /* `quiet`, NOT GOLD. `.btn` is the one action on a card and gold is what this app means by that —
+     fetching a list again is not it, and a full-width gold slab over a column of conversations was
+     the loudest thing on the screen. Same correction as `.reel-sound`, which was a gold bar across
+     a moving picture for the same reason. */
   const head = `<div class="card"><h3>Messages</h3>
-    <button class="btn" data-do="dm-refresh">Refresh</button></div>`;
-  if (!threads.length) return [`<div class="card"><h3>Messages</h3>${emptyMessages_}</div>`];
+    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>`;
+  /* ---------- AND AN EMPTY INBOX KEEPS THE WAY BACK ----------------------------------------------
+     IT RETURNED THE EMPTY CARD ALONE, so the one state that most needs a retry was the one state
+     with no button on it: `loadMessages` deliberately leaves `MESSAGES` alone on a failure, which
+     means a first fetch that never arrived shows exactly this card — "Nothing yet." over an inbox
+     nobody managed to read. This repository's oldest fault with no door out of it. */
+  if (!threads.length) return [head, `<div class="card">${emptyMessages_}</div>`];
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -1749,10 +2014,43 @@ function dmCards_() {
      `read` on the message the moment it asks, so a second paint before the reply finds nothing left
      to send and a failed one puts it back. */
   threads.forEach(t2 => markRead_(t2.msgs));
+  /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ ---------------------------------------
+     THE COLUMN SHOWED CONVERSATIONS YOU COULD NOT REPLY TO. The only composer in the app was in a
+     sheet on a person's pass — so reading a message here and answering it meant leaving, finding
+     the person on another column, and opening their card. `msgForm_` is that same composer, at the
+     foot of the thread, which is where every messaging app anybody has used puts it.
+
+     `t.id` IS THE PERSON'S ID and `t.name` their name, which is exactly what `sendMessage` takes —
+     `messageThreads_` groups on `withId` precisely so this is a fact from the sheet rather than a
+     name matched back into one. See the note over `findPerson`: on a private message, matching by
+     name is not a denial, it is a disclosure.
+
+     THE THREAD SCROLLS INSIDE THE CARD so the box stays on screen with fifty messages above it —
+     `.msg-body` is the widget's own scroller and is already in the `touch-action: pan-y` list, so
+     this is the same element doing the same job on a second surface rather than a new one. It is
+     scrolled to the newest by `dmFoot_`, booked from `startScreen_` with everything else a screen
+     has running. */
   return [head].concat(threads.map(t => `<div class="card${t.unread ? ' unread' : ''}">
       <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
-      ${messagesHtml_(t.msgs)}
+      <div class="msg-body">${messagesHtml_(t.msgs)}</div>
+      ${msgForm_(t.name, t.id)}
     </div>`));
+}
+
+/* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST -----------------------------
+   A THREAD SCROLLED TO THE TOP IS A THREAD OPENED AT LAST MONTH. Every messaging app opens at the
+   bottom because that is where the thing you came to read is, and a scroller's natural state is the
+   top — so this is the one line that has to say otherwise.
+
+   `scrollHeight` RATHER THAN A LARGE NUMBER, and per element rather than per screen: a card may
+   hold four messages and the next forty, and the foot of each is its own.
+
+   BOOKED FROM `startScreen_`, which is the one list of what a screen has running — the note there
+   records what happens to a job booked anywhere else. */
+function dmFoot_() {
+  const col = $('s-dm');
+  if (!col) return;
+  [].forEach.call(col.querySelectorAll('.msg-body'), el => { el.scrollTop = el.scrollHeight; });
 }
 
 /* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this

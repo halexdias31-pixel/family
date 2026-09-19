@@ -13,7 +13,8 @@
     "check:ui": "node check/ui.js",
     "check:ui:shots": "node check/ui.js --shots",
     "load": "node check/load.js",
-    "load:detail": "node check/load.js --detail"
+    "load:detail": "node check/load.js --detail",
+    "splash": "node check/splash.js"
   },
   "devDependencies": {
     "acorn": "^8.11.3",
