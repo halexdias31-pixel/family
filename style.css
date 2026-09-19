@@ -2621,6 +2621,18 @@ button.text-drop { color: var(--bad); }
    one, because a thumb landing on a row of them can only be wrong about which COLUMN it hit, and
    the columns are what the eye is already aiming at. */
 .slot-hours { display: flex; gap: 2px; flex: 1; min-width: 0; }
+/* ---------- THE HOUR, ONCE, ABOVE THE COLUMN IT NAMES ---------------------------------------------
+   THE HEADER IS AN ORDINARY `.slot-row` holding an empty `.slot-day` and eleven `.slot-hh`, so it
+   sits in the same flex box with the same gap and each label takes the same `flex: 1 1 0` slice its
+   column does. THE COLUMNS LINE UP BY CONSTRUCTION rather than by two sets of numbers that could
+   drift — a header sized by hand would be a second description of the grid's widths, which is the
+   fault this stylesheet already records under `.rc-total` and `.price.faint`.
+
+   QUIETER THAN A CELL, because it is a label on a column and the cells are the thing being read. */
+.slot-hh { flex: 1 1 0; min-width: 0; text-align: center;
+           font-size: .6em; letter-spacing: -.02em; color: var(--faint);
+           font-variant-numeric: tabular-nums; }
+.slot-head { margin-bottom: 1px; }
 /* A BUTTON IN THE BOOKER, A LABEL IN THE FORM. The booker's grid is answered by pressing; the
    availability form's is answered by ticking, because it saves with every other field and a
    checkbox is what `me-save` already knows how to read. Same box either way — it is the same
@@ -2659,11 +2671,27 @@ button.text-drop { color: var(--bad); }
 
    ONLY ON THE SAVED DOCUMENT. `.is-done` is what marks a receipt as a record rather than a form —
    the same flag that turns the cursor off — so the form keeps every pixel of its press target. */
-.rc.is-done .hr { min-height: 0; padding: .05em 0; font-size: .58em; }
+/* ---------- A CELL WITH NOTHING IN IT HAS TO STATE ITS OWN HEIGHT --------------------------------
+   `min-height: 0` WAS RIGHT WHILE EVERY CELL HELD A DIGIT. The digit set the height and this line
+   only said "do not pay a fingertip's floor for something nobody presses". With the hours moved to
+   one header row the cells are empty, so `0` became the actual height: measured, 16.16px a cell at
+   HEAD and 2.84px after — seven rows of hairline, with the booked hours floating over nothing.
+
+   SO THE HEIGHT IS DECLARED RATHER THAN INHERITED FROM CONTENT THAT NO LONGER EXISTS. That is the
+   move this repository keeps making: replace a property that was only true by accident of
+   interaction with one a reader can check. Smaller than the form's 20px floor, because a receipt's
+   grid is read and not pressed, and large enough that a lit hour is a bar rather than a line. */
+.rc.is-done .hr { min-height: 1.1em; padding: 0; font-size: .58em; }
 .rc.is-done .slot-grid { gap: 0; margin: .1rem 0 0; }
 .rc.is-done .slot-hours { gap: 1px; }
 .rc.is-done .slot-row { gap: .2rem; }
-.rc.is-done .slot-row.is-shut .hr { min-height: 0; }
+/* AND THE DAY LABEL STOPS SETTING THE ROW'S HEIGHT. Measured: a 9.2px label with the browser's
+   normal line-height makes a 14.2px row round a 9.45px cell, so the booked hours sat in a band of
+   air rather than in a grid. On the form the cell is 20px and wins this outright; on the receipt it
+   is the label that was deciding, which is the wrong element to be deciding it. */
+.rc.is-done .slot-day { line-height: 1; }
+.rc.is-done .slot-row.is-shut .hr { min-height: 1.1em; }
+.rc.is-done .slot-hh { font-size: .55em; }
 /* AND THE INSTRUCTION ABOVE IT GOES. "Two together is a two-hour session" tells somebody how to
    answer a question that has been answered. */
 .rc.is-done .bk-open > p { display: none; }
@@ -2697,6 +2725,16 @@ button.text-drop { color: var(--bad); }
    AND THE LEADING COMES DOWN WITH IT. 1.35 is a line for reading; a dash is not read, it is counted
    past on the way to the row below. Thirteen rows at 12px instead of 15. */
 .bk-row.is-blank .bk-k, .bk-row.is-blank .bk-v { line-height: 1.1; }
+/* ---------- AND THE LABEL RECEDES WITH THE VALUE -------------------------------------------------
+   TWENTY-EIGHT ROWS, TEN OF THEM QUESTIONS. The value already dims on a blank row and the label did
+   not, so `Weeks left` — a fact that does not exist until a term is chosen — was set in exactly the
+   ink of `Level`, which is the next thing somebody has to answer. A form where what you must do
+   looks like what follows from it is a form you read twice.
+
+   ONE STEP QUIETER, NOT INVISIBLE. The row is still there and still says what it is, which is the
+   whole argument `SPINE` makes for drawing it at all: a document whose shape changes with its
+   contents cannot be read at a glance. This only stops it competing. */
+.bk-row.is-blank .bk-k { color: var(--faint); }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
 .hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
@@ -5745,7 +5783,26 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    nothing: both selectors are two classes, `.is-bare` comes 3,000 lines later, and the cascade
    settles a tie by order. The measurement is what caught it — the rows went back to 481px under a
    rule that read as though it had fixed them. Same fault as `.price.faint`. */
-.bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr); }
+/* ---------- AND THE DASH ENDS WHERE EVERY OTHER VALUE ENDS ---------------------------------------
+   TWELVE OF THE FORM'S TWENTY-EIGHT ROWS ARE A DASH, and on two columns their dash landed at the
+   card's right EDGE while an answered row's value ended two-thirds of the way across — where the
+   ordinary five-track grid stops its value column and hands the rest to the multiplier, the rate
+   and the total. So the right side of the card zigzagged between two x positions, twenty-eight
+   times down a document whose whole job is to look printed. Photographed, which is the only way it
+   was ever going to be found: nothing overflowed, nothing was clipped, and every row measured
+   exactly what it asked for.
+
+   THE THREE TRAILING TRACKS ARE KEPT AND LEFT EMPTY. `.bk-row.is-bare` already hides `.bk-m`,
+   `.bk-r` and `.bk-t` on these rows, so nothing is placed in them — but a track that exists still
+   takes its width, which puts the end of the value column in the same place on every row of the
+   card. The alternative is a right margin computed from the other three widths, which is the same
+   number written twice and the fault this stylesheet keeps paying for.
+
+   `max-content` ON THE LABEL STAYS. `Extra subj.` and `Per session` are the two labels one
+   character too long for 6.2em, and the note over `is-bare` records what the fixed column did to
+   them. Where the label overhangs, the value column gives way — which changes where the dash
+   STARTS and not where it ends, and the end is the edge somebody reads. */
+.bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
 
 /* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
    THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three

@@ -1764,6 +1764,35 @@ function stepInput_(st) {
     ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
 
+/* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
+   SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
+   154 characters of digits in 77 boxes — and the numbers were identical down every column, because
+   `slotGrid()` builds the hour span ONCE and every day in `SLOT_DAYS` maps over the same list. The
+   repetition was not a coincidence to be tidied; it was structural, and so is the fix.
+
+   `.hr`'S OWN NOTE ALREADY SAID WHY THIS IS SAFE: "a grid of numbers is scanned rather than read —
+   you are looking for the shape of the ticked boxes, not reading eleven figures". A cell's number
+   was never the thing being read. The COLUMN it sits in is, and a column needs a heading rather
+   than a hundred and fifty-four repetitions of one.
+
+   ONE HELPER, CALLED BY BOTH GRIDS. `jobGrid_` was deliberately built out of the form's own markup
+   — its own comment says "the form's markup, down to the class names" — because a receipt drawn
+   with different elements is a receipt that drifts the next time the grid is restyled. A header
+   written twice would put that back, one element up. Same argument as `documents_()`, `factsNow_`
+   and `childrenOf`.
+
+   `aria-hidden`, BECAUSE THE CELLS CARRY THEIR OWN HOUR. A screen reader walking the grid gets
+   "Monday 14:00" off each button's own label rather than a stray row of numerals with no context —
+   which is what the header is for a pair of eyes and exactly not what it is for a reader. */
+function slotHead_(hours) {
+  return `<div class="slot-row slot-head" aria-hidden="true">
+    <span class="slot-day"></span>
+    <div class="slot-hours">
+      ${hours.map(h => `<span class="slot-hh">${h}</span>`).join('')}
+    </div>
+  </div>`;
+}
+
 /* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
    THE LAST PANEL, AND THE ONE WORTH KEEPING AS A GRID. Every other question is a list, and a list is
    a dropdown. Hours are not: which hours are free across a week is a SHAPE — you read it by seeing
@@ -1805,6 +1834,7 @@ function stepGrid_(st) {
       ? 'A waiting list has no day until it fills — this is settled once the seats are taken.'
       : 'Two together is a two-hour session; another day is another session.'}</p>` : ''}
     <div class="slot-grid">
+      ${slotHead_((g.rows[0] || { hours: [] }).hours.map(x => x.h))}
       ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
             nobody works are different facts, which is the same reason a shut hour is greyed rather
             than removed — but it does not need a thumb-sized row, because there is nothing on it to
@@ -1822,7 +1852,11 @@ function stepGrid_(st) {
                   are already teaching are the same grey box, and only the second is worth trying a
                   different week for. */''}
             title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
-            data-do="book-slot" data-code="${esc(h.code)}">${h.h}</button>`).join('')}
+            ${/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hour in the header row the box
+                  is empty, and an empty button has no accessible name at all — so the day and the
+                  hour are said here, which is more than the bare numeral ever managed. */''}
+            aria-label="${esc(r.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
+            data-do="book-slot" data-code="${esc(h.code)}"></button>`).join('')}
         </div>
       </div>`).join('')}
     </div>
@@ -2729,6 +2763,7 @@ function jobGrid_(j) {
             receipt that will drift the next time the grid is restyled, which is the whole thing
             this exercise is trying to stop. Same `.slot-row`, same `.slot-day`, same `.slot-hours`,
             same `button.hr`. Disabled, because nothing on a receipt is answerable. */''}
+      ${slotHead_(hours)}
       ${SLOT_DAYS.map(([, label]) => {
         const isDay = norm(label) === day;
         return `<div class="slot-row">
@@ -2737,7 +2772,7 @@ function jobGrid_(j) {
             ${hours.map(h => {
               const on = isDay && isFinite(start) && h >= start && h < start + hrs;
               return `<button class="hr${on ? ' on' : ''}${on ? '' : ' shut'}" disabled
-                title="${h}:00">${h}</button>`;
+                title="${h}:00" aria-label="${esc(label)} ${h}:00"></button>`;
             }).join('')}
           </div>
         </div>`;

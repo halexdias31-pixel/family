@@ -5675,3 +5675,87 @@ taken, was wrong, and the second measurement caught the first.
 **The instrument lied in the flattering direction both times**, which is the one thing every entry
 under `check/load.js` already says about this kind of harness: a page closed early looks like a
 browser that never asks, and a browser that never asks looks like a bug worth fixing.
+
+## The booking form said the same eleven numbers seventy-seven times
+
+**Reported with a screenshot of the form: "just look at this so ugly and infomation overload.
+howvere im pretty sure its all/almost all neccesary. the grid fucks it abit too. but i kinda need a
+grid."** Both halves of that are right, and they rule out the obvious fix: nothing may be deleted,
+and the week stays a week.
+
+**Measured first, at 390px signed in, on the empty form:**
+
+| | before | after |
+|---|---|---|
+| the card | 768px | 784px |
+| rows | **28** | **28** — not one removed |
+| digits inside the 77 cells | **154** | **0**, and 11 in one header row |
+| blank rows whose dash sat at the card's right edge | **12** | 0 |
+| the receipt's copy of the same grid | 113px | **80px** |
+
+### The repetition was structural, so the fix is too
+
+**`slotGrid()` BUILDS THE HOUR SPAN ONCE** — `for (let h = 10; h <= 20; h++)` — **and every day in
+`SLOT_DAYS` maps over the same list.** So the numbers down each column were not merely alike, they
+were the same array read seven times; drawing them seven times was drawing one fact seventy-seven
+ways. One header row, and `.hr`'s own note is the argument for it: *"a grid of numbers is scanned
+rather than read — you are looking for the shape of the ticked boxes, not reading eleven figures."*
+A cell's number was never the thing being read. The column it sits in is.
+
+**One helper, called by both grids.** `jobGrid_` was deliberately built out of the form's own markup
+— its comment says *"the form's markup, down to the class names"* — because a receipt drawn with
+different elements drifts the next time the grid is restyled. A header written twice would put that
+back one element up, which is this file's sentence about `documents_()`, `factsNow_` and
+`childrenOf`. And the header is an ordinary `.slot-row` in the same flex box with the same gap, so
+the labels take the same `flex: 1 1 0` slice their columns do — **the columns line up by
+construction** rather than by two sets of widths that can disagree.
+
+**The cell keeps its name, and gains a better one.** An empty `<button>` has no accessible name at
+all, so `aria-label` carries `Monday 14:00` — and, where the hour is shut, why. The bare numeral
+never said which day it was on.
+
+### A cell with nothing in it has to state its own height
+
+**`.rc.is-done .hr { min-height: 0 }` was right while every cell held a digit.** The digit set the
+height and the line only said *do not pay a fingertip's floor for something nobody presses*. With
+the hours gone the cells are empty, so `0` became the actual height: **16.16px a cell before,
+2.84px after** — seven rows of hairline with the booked hours floating over nothing. Declared now,
+which is the move this file already records twice as *replace a property that was only true by
+accident of interaction with one a reader can check*.
+
+**And the day label stopped deciding the row.** Measured: a 9.2px label at the browser's normal
+line-height made a 14.2px row round a 9.45px cell. On the form the 20px press target wins outright;
+on the receipt it was the label, which is the wrong element to be deciding it. That is where the
+receipt's 33px came from.
+
+### Twelve dashes at one x and sixteen values at another
+
+**The right side of the card zigzagged between two columns, twenty-eight times.** A blank row is
+`max-content minmax(0, 1fr)`, so its dash landed at the card's right EDGE; an answered row is the
+five-track grid, so its value stops two-thirds across where the multiplier, the rate and the total
+begin. **Nothing could have caught it**: no overflow, no clipping, every row exactly the width it
+asked for. A screenshot, for the ninth time.
+
+**The three trailing tracks are kept on a blank row and left empty.** `.bk-row.is-bare` already
+hides `.bk-m`, `.bk-r` and `.bk-t` there, so nothing is placed in them — but a track that exists
+still takes its width, and that puts the end of the value column in the same place on every row.
+The alternative is a right margin computed from the other three widths, which is the same number
+written twice.
+
+**And the label recedes with the value.** A blank row's value already dimmed and its label did not,
+so `Weeks left` — a fact that does not exist until a term is chosen — was set in exactly the ink of
+`Level`, which is the next thing somebody has to answer. Ten questions stand forward of eighteen
+rows now, at no height and with nothing removed.
+
+**What is NOT done, and the reason is `SPINE`'s own.** The twelve dashes stay. *"A document whose
+SHAPE changes with its contents cannot be read at a glance: you find a line by where it is"* — and
+a row appearing under your thumb as you answer is the fault the week grid's own note already
+records about folding. The complaint was that they were loud, not that they were there.
+
+### The known tap-target count went 102 to 492 and that is the honest number
+
+`check/ui.js` keys a finding on the element's text, so seventy-seven hour cells collapsed to eleven
+keys for as long as seven of them shared a caption. With `aria-label` naming the day they are
+seventy-seven, which is how many controls there are. **The check is not tuned to make its own number
+look like it used to** — nothing new is reported, the section is capped at sixty lines with a
+remainder, the reason underneath is the same one, and the count that was wrong was the old one.
