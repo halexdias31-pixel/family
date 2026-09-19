@@ -400,9 +400,43 @@ function weekGrid() {
    knows not to touch the search box mid-word, which is exactly the guarantee this needs. One
    repainter for one screen, rather than two that have to agree about what is on it. */
 function paintBook_() {
-  /* STAY ON THE FORM. Answering a dropdown is not a new question — the whole point of putting every
-     field on one page was that you never leave it. */
-  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true);
+  /* ---------- WHICHEVER SCREEN THE FORM IS ACTUALLY ON -------------------------------------------
+     THIS REPAINTED `s-stuff` AND NOTHING ELSE, and it was right for exactly as long as the form
+     lived only inside the funnel. `bookingPages_` answers `What for · Booking` there — and it also
+     builds the Booking COLUMN, `screen('booking', ...)` a few hundred lines down. Same markup, two
+     hosts, and this knew about one of them.
+
+     REPORTED AS "grid not working when click", AND THAT IS THE WHOLE OF IT. On the column, pressing
+     an hour ran the handler, toggled `BOOKING.slots`, called `drawBooker()` — and repainted a
+     screen that was not even on the display, leaving the cell the SAME DOM NODE it had been before.
+     Measured: `BOOKING.slots` came back `["m10"]` with `.hr.on` still at 0. The app's own press log
+     named the shape exactly — *"the handler ran and did nothing"*, the fourth of the four causes it
+     lists, which is the one that looks identical to the other three from outside.
+
+     AND IT WAS NEVER ONLY THE GRID. Every `drawBooker()` caller is on this path — the edit row, the
+     undo, the dropdowns — so on the column nothing derived was redrawing either. A `<select>` shows
+     its own new value natively without any help, which is why the answers appeared to work while
+     the grid and the running cost did not: the half that needed no repaint was the half that looked
+     fine.
+
+     ASKED OF THE DOM, NOT REMEMBERED. `#bookr` is the form's own wrapper and `.screen` is the
+     section it is in, so the answer to "where is this drawn" comes from where it IS — the same move
+     as `msg-send` walking up to its nearest `.msg-form` and `me-save` to its own container, both
+     written after an id was handed to the wrong element. A flag saying which host is in use would
+     be a third thing to keep in step with the two that already exist. */
+  const host = $('bookr') && $('bookr').closest('.screen');
+  const id = host && String(host.id).indexOf('s-') === 0 ? host.id.slice(2) : '';
+
+  /* THE FUNNEL KEEPS ITS PLACE, which is what `paintStuff(true)` is for and what a plain `paint`
+     would throw away — the strip of result pages and which one you are on. */
+  if (id === 'stuff') { if (typeof paintStuff === 'function') paintStuff(true); return; }
+
+  /* ANY OTHER HOST IS AN ORDINARY SCREEN. `redrawBooker_` puts the scroll back either way. */
+  if (id && typeof paint === 'function') { paint(id); return; }
+
+  /* NOWHERE TO BE FOUND — the form is not on screen at all, so there is nothing to repaint and the
+     state it just changed is read the next time something draws it. Silent on purpose: this runs on
+     every answer, and a toast about an invisible form is noise. */
 }
 
 /* `bookPages` WAS HERE — one pane per block for the Book column. `bookingPages_` in find.js does the
