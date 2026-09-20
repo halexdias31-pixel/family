@@ -7439,8 +7439,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 }
 .qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
-   on this black screen without a second copy of it. */
-.qsheet figure { margin: 1rem 0; text-align: center; }
+   on this black screen without a second copy of it.
+
+   `.gd` JOINED EVERY ONE OF THESE SELECTORS rather than getting rules of its own. The practical
+   guide draws apparatus — a circuit, a clamp stand, a condenser — and an apparatus drawing is the
+   same OBJECT as a transcribed exam figure: an inline SVG laid out inside `W = 340`, inked in
+   `currentColor`, labelled with `.lbl`, `.num` and `.cap`. A second set of rules describing it
+   would be the `.reel .over` fault, where a subject, a heading, a paragraph and a credit over a
+   picture were written twice in this stylesheet and drifted the first time either was touched. */
+.qsheet figure, .gd figure { margin: 1rem 0; text-align: center; }
 
 /* A PHOTOGRAPH OR A SCAN, WHERE `figure svg` IS A DRAWING. It is sized to the column rather than to
    itself — a scan of an exam page is whatever resolution the scanner felt like, and a picture that
@@ -7449,13 +7456,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet .qpic { margin: 1rem 0; }
 .qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
   border-radius: .4rem; background: var(--sunk); }
-.qsheet figure svg { width: min(100%, 20rem); height: auto; }
-.qsheet .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
-.qsheet .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
-.qsheet .ax { font: italic 9px serif; fill: currentColor; }
-.qsheet .axis { stroke: currentColor; stroke-width: 1.2; }
-.qsheet .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
-.qsheet .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+.qsheet figure svg, .gd figure svg { width: min(100%, 20rem); height: auto; }
+.qsheet .lbl, .gd .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .num, .gd .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .ax, .gd .ax { font: italic 9px serif; fill: currentColor; }
+.qsheet .axis, .gd .axis { stroke: currentColor; stroke-width: 1.2; }
+.qsheet .grid, .gd .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+.qsheet .pt, .gd .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
 
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM -------------------------------------------
    THE SIZES CARRY INFORMATION, which is why the coins are not all one circle: a child recognises a
@@ -7467,7 +7474,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    both of this app's palettes without a second copy of it. */
 .qsheet .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
 .qsheet .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
-.qsheet .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
+.qsheet .cap, .gd .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
 
 /* A CREDIT IS NOT A CAPTION AND MUST NOT READ AS ONE. It is the smallest, quietest thing on the
    card, because it is a disclosure rather than part of the question — but it is on the card, every

@@ -263,6 +263,45 @@ console.log('risk assessments: ' + risked + ' of ' + (rows.length - excluded) + 
   + riskLines + ' hazards written out (' + (risked ? (riskLines / risked).toFixed(1) : 0) + ' each)'
   + ' · the ' + excluded + ' refused correctly carry none');
 
+/* ---------- THE GUIDE'S OWN THREE COLUMNS, AND THE DRAWINGS -------------------------------------
+   `science`, `variables` AND `log` ARE WHAT THE GUIDE ASKS FROM. Without them it hands a student
+   the kit, the method and eight empty boxes with nothing suggesting what to change or measure —
+   which is what 41 of these rows did until somebody counted. Printed rather than failed for the
+   same reason the drawings are: writing a paragraph about a practical is editorial work, and a
+   number somebody can act on beats a silence. It is zero today, so the next row added without one
+   shows up as a one.
+
+   A DRAWING IS A DIFFERENT KIND OF BACKLOG. Only 17 of the live rows carry one, and most of the
+   rest never will: CLAUDE.md's rule is to draw only where the row's own words determine the
+   picture, and a ruler-drop reaction test or a Punnett square written out in prose determines
+   nothing to draw. So this is a number to look at rather than a number to drive to zero. */
+const live = rows.filter(r => !String(r.excluded_reason || '').trim());
+const noSci = live.filter(r => !String(r.science || '').trim()).length;
+const noVar = live.filter(r => !String(r.variables || '').trim()
+                            || !String(r.log || '').trim()).length;
+const drawn = live.filter(r => String(r.diagram || '').indexOf('<svg') === 0).length;
+console.log('the guide: ' + (live.length - noSci) + ' of ' + live.length
+  + ' explain what is going on, ' + (live.length - noVar)
+  + ' offer things to change and things to measure, ' + drawn + ' carry an apparatus drawing');
+if (noSci) note.push(noSci + ' live practical(s) open a guide with no "What is going on" paragraph');
+if (noVar) note.push(noVar + ' live practical(s) ask for an independent variable with nothing '
+  + 'on the card suggesting one');
+
+/* A DRAWING ON A REFUSED ROW WOULD BE A PICTURE OF AN EXPERIMENT NOBODY IS RUNNING. The same rule
+   this file already applies to kit and steps, and for the same reason: the five refusals are rows
+   so the reasoning is findable, not so the experiment is. */
+rows.filter(r => String(r.excluded_reason || '').trim() && String(r.diagram || '').trim())
+    .forEach(r => fail.push(r.practical_id + ' is a refused experiment and carries a diagram'));
+/* AND A DRAWING HAS TO BE A DRAWING. `libraryInto_` hands `diagram` straight to the page without
+   escaping it, exactly as the library's questions are handed to `questionCard_`, so what is in the
+   cell has to be an inline SVG and nothing else. */
+rows.filter(r => String(r.diagram || '').trim()).forEach(r => {
+  const d = String(r.diagram);
+  if (d.indexOf('<svg viewBox="0 0 340 ') !== 0 || d.slice(-6) !== '</svg>') {
+    fail.push(r.practical_id + ' has a diagram that is not an svg laid out inside W = 340');
+  }
+});
+
 const noItems = rows.filter(r => !String(r.item_ids || '').trim()).length;
 if (noItems) {
   note.push(noItems + ' of ' + rows.length + ' name no shop items yet — a backlog, not a fault: '

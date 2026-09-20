@@ -290,9 +290,58 @@ function measure(arg) {
     });
     return { n: items.length, cap: Math.round(cap), tall };
   }, WIDTH);
+  /* ---------- AND EVERY GUIDE, THROUGH THE SHEET THE APP OPENS IT IN ----------------------------
+     THE CARD IS THE SEARCH RESULT AND THE GUIDE IS THE DOCUMENT, and the split above moved the kit,
+     the method, the safety line and now seventeen apparatus drawings out of one and into the other.
+     Nothing was measuring the half that moved: `check/ui.js` has ONE declared state that opens a
+     guide, which is one practical of fifty-two, and this file was laying out the card.
+
+     THROUGH `openSheet` RATHER THAN A DIV OF THE RIGHT WIDTH. `#sheet-body` has its own padding and
+     its own cap, so a guide measured in a bare 320px column is measured in a column it is never in
+     -- and guessing that padding here would be a second copy of a number the stylesheet already
+     owns. The app's own door, one at a time, closed after each.
+
+     A DRAWING GETS A SECOND QUESTION IN PIXELS A VIEWER CAN SEE. `measure` skips everything inside
+     an `<svg>`, correctly: the outermost `<svg>` clips to its viewport, so nothing in there can push
+     the page sideways. But a label painted outside that viewport is not harmless -- it is a word
+     the reader simply does not get, and three of the seventeen shipped that way before a screenshot
+     caught them ("bulb level with the side arm" arriving as "el with"). `getBoundingClientRect` is
+     what answers it, because it accounts for the rotation a y-axis label is written with and
+     `scrollWidth` does not -- the `.mat-out` lesson this file already records one rule up. */
+  await pracPage.evaluate('window.__measure = ' + measure.toString());
+  const guides = await pracPage.evaluate(arg => {
+    if (typeof practicalGuide_ !== 'function' || typeof openSheet !== 'function') return -1;
+    const items = stuffItems().filter(x => x.kind === 'practical');
+    const wide = [], clipped = [];
+    let drawings = 0;
+    items.forEach(x => {
+      openSheet(x.name, practicalGuide_(x), null, null);
+      const gd = document.querySelector('#sheet-body .gd');
+      if (!gd) return;
+      gd.dataset.row = x.key;
+      window.__measure({ slack: arg.slack, sel: '#sheet-body .gd' })
+        .forEach(f => wide.push(f));
+      gd.querySelectorAll('figure svg').forEach(svg => {
+        drawings++;
+        const box = svg.getBoundingClientRect();
+        svg.querySelectorAll('text').forEach(t => {
+          const r = t.getBoundingClientRect();
+          const px = Math.round(Math.max(box.left - r.left, r.right - box.right));
+          if (px > 1) clipped.push({ row: x.key, px, sel: t.textContent.slice(0, 34) });
+        });
+      });
+      if (typeof closeSheet === 'function') closeSheet();
+    });
+    return { n: items.length, drawings, wide, clipped };
+  }, { slack: SLACK });
+
   /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO AND FAIL -- "I did not check" is not the same
      answer as "I checked and it was fine", which is the fault this repository has recorded five
      ways and the reason `check-booking.js` read as a pass for months. */
+  if (guides === -1 || (guides !== -1 && !guides.n)) {
+    console.error('\nthe app did not open one practical guide -- not a pass');
+    process.exit(1);
+  }
   if (practicals === -1) {
     console.error('\nthe app did not boot, so not one practical card was laid out -- not a pass');
     process.exit(1);
@@ -332,6 +381,15 @@ function measure(arg) {
             + `(${withPre} of them under a preamble), and ${practicals.n} practical cards`);
   console.log(`the pane caps at ${practicals.cap}px on a ${WIDTH}x${PHONE_H} phone; `
             + `${practicals.tall.length} practical card(s) are taller than that`);
+  console.log(`${guides.n} practical guide(s) opened in the app's own sheet, `
+            + `carrying ${guides.drawings} apparatus drawing(s)`);
+
+  if (guides.clipped.length) {
+    console.log('\nPAINTED OUTSIDE THE DRAWING  (' + guides.clipped.length + ')');
+    guides.clipped.sort((x, y) => y.px - x.px).slice(0, 10).forEach(c =>
+      console.log('  ' + c.row + ' — "' + c.sel + '" is ' + c.px + 'px past the svg\'s own box, '
+        + 'so the reader never sees that part of it'));
+  }
 
   if (practicals.tall.length) {
     console.log('\nBELOW THE FOLD  (' + practicals.tall.length + ')');
@@ -343,9 +401,11 @@ function measure(arg) {
     }
   }
 
-  if (!bad.length && !practicals.tall.length) {
-    console.log('\nOK — every question and every practical fits the narrowest phone, and every\n'
-              + '     practical card fits the pane it is drawn in.');
+  bad.push(...guides.wide);
+  if (!bad.length && !practicals.tall.length && !guides.clipped.length) {
+    console.log('\nOK — every question, every practical and every guide fits the narrowest phone,\n'
+              + '     every practical card fits the pane it is drawn in, and every label in every\n'
+              + '     drawing is inside the drawing.');
     process.exit(0);
   }
 
@@ -353,7 +413,7 @@ function measure(arg) {
      rows with one cause is one thing to fix and fifty lines is a wall nobody reads. */
   const by = {};
   bad.forEach(b => { (by[b.sel] = by[b.sel] || []).push(b); });
-  console.log('\nCARDS THAT DO NOT FIT:');
+  if (bad.length) console.log('\nCARDS THAT DO NOT FIT:');
   Object.keys(by).sort((a, b) => by[b].length - by[a].length).forEach(sel => {
     const list = by[sel].sort((a, b) => b.px - a.px);
     console.log(`  ${sel} — ${list.length} row(s), up to ${list[0].px}px past the column`);

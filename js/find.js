@@ -2247,8 +2247,21 @@ function practicalGuide_(x) {
         'Write it before you start. A prediction after the event is a description.')}
     </section>
 
-    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
-      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section>` : ''}
+    ${/* ---------- THE DRAWING SITS AT THE HEAD OF THE METHOD, AND ONLY THERE ------------------
+          A DIAGRAM HERE IS ALWAYS A SET-UP OR A CONSTRUCTION — a circuit, a clamp stand, a
+          condenser with its thermometer in the one place that matters, the right-angled triangle
+          behind R = d²/2h. Every one of the seventeen is something you BUILD before the first
+          reading, so it belongs above the numbered steps and nowhere else. One placement rather
+          than a rule about which kind goes where: a flag saying "this one is explanatory" is a
+          second thing to keep in step with the drawing, and CLAUDE.md records what that costs.
+
+          NOTHING HERE IS A RESULT. No cooling curve, no I–V graph, no line of best fit. See
+          tools/draw-practicals.py — a guide that prints the answer has taken the practical away,
+          which is the same line `science` above is written along. */''}
+    ${(p.steps.length || p.diagram) ? `<section class="prac-steps"><h4>How it runs</h4>
+      ${p.diagram ? `<figure>${p.diagram}</figure>` : ''}
+      ${p.steps.length ? `<ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>` : ''}
+      </section>` : ''}
 
     <section class="gd-sec">
       <h4>Results</h4>

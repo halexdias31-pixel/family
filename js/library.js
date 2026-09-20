@@ -294,6 +294,17 @@ function libraryExtras_(d, extra) {
         science: libS(r.science),
         log: libS(r.log).split('|').map(t => t.trim()).filter(Boolean),
         variables: libS(r.variables).split('|').map(t => t.trim()).filter(Boolean),
+        /* ---------- THE APPARATUS, AS INLINE SVG ------------------------------------------------
+           THE SAME COLUMN THE LIBRARY'S QUESTIONS CARRY, for the same reason: a drawing committed
+           beside the thing it belongs to cannot separate from it, takes the page's own ink so it
+           works on both palettes and offline, and needs no second request. 17 of the 52 have one.
+
+           ONLY WHERE THE ROW'S OWN WORDS DETERMINE THE PICTURE -- CLAUDE.md's rule, and here that
+           means a SET-UP or a CONSTRUCTION rather than a result. No cooling curve, no I-V graph,
+           no density tower with its layers already in order: that last one is step 2 of its own
+           method, so drawing it would answer the question the practical asks. See
+           tools/draw-practicals.py, and `check-practicals.js` prints how many still have none. */
+        diagram: libS(r.diagram),
         /* ---------- THE RISK ASSESSMENT, ONE SENTENCE PER HAZARD -------------------------------
            PIPE-SEPARATED FOR THE REASON `equipment` AND `steps` ARE, recorded above: 14 of the 410
            equipment cells hold a comma inside one item, so a comma cannot separate here either.
