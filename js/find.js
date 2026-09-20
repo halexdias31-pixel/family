@@ -5445,7 +5445,7 @@ function paintStuff(keepPage) {
   const chips = $('stuff-chips');
   if (chips) chips.innerHTML = filterChips();
   const groups = $('stuff-groups');
-  if (groups) groups.innerHTML = resumeBlock_() + stuffQuestion();
+  if (groups) groups.innerHTML = stuffQuestion();
 
   const host = $('s-stuff');
   if (!host) return;
@@ -5829,116 +5829,27 @@ function startWidget_(wgt) {
 /* NAMED FOR WHAT IT WAS, not what it is. This drew the group list once; it draws the funnel's
    next question now, and the grouping it was named after no longer exists. Renamed so the one
    thing left on the browse page is called what it does. */
-/* ==================================================================================================
-   CARRY ON — THE PAPER YOU ARE PART-WAY THROUGH, IN ONE TAP.
+/* ---------- CARRY ON WAS HERE, AND IT WAS AN ANSWER TO A QUESTION NOBODY ASKED ------------------
+   IT DREW A "<name>, carry on" BLOCK over the funnel's first question, listing the papers this
+   person had answers saved against with a count beside each, and a tap set the `paperId` chip.
 
-   ASKED FOR AS "i want it to be the same paper we did like 2 weeks ago for each. if you dont know
-   which that is then we need to audit the papers".
+   REMOVED AT THE OWNER'S WORD: "no i dont want lucca carry on bullshit. im just saying if they
+   answer something, it will be answered next time they come on." That is a statement about
+   PERSISTENCE, and persistence is what `ansKey_` and `ansRead_` already do -- an answer typed
+   into a question is in `localStorage` under the signed-in person and comes back in that box on
+   the next visit, on every paper, with nothing on any screen to press.
 
-   NOTHING RECORDS WHICH PAPER, AND THIS IS THAT RECORD. Answers are kept in `localStorage` and
-   posted nowhere, so there is no row in any sheet naming what anybody worked through — but the
-   answers THEMSELVES say it. Every box a student fills in writes `ans:u:<person_id>:q:<row_id>`,
-   and a row id resolves to a paper. Counting those keys is the question "which paper is this
-   person part-way through" already answered, on the device where it matters.
+   SO THE FEATURE WAS A SECOND ROUTE TO A PLACE THE FUNNEL ALREADY REACHES -- measured at 8 taps
+   for May 2017 Higher Paper 1 and 9 for the Foundation one, both landing on exactly that paper in
+   its own order. A front door nobody asked for, on the one screen whose own note warns about
+   offering to throw away what somebody is part-way through.
 
-   MEASURED BEFORE IT WAS BUILT: the funnel takes 8 taps to reach May 2017 Higher Paper 1 and 9 to
-   reach the Foundation one, and both end on exactly that paper in its own order. So the funnel is
-   not broken; it is just not what you want on the third week of the same paper.
+   WHAT IT IS WORTH KEEPING IS THE MEASUREMENT IT WAS BUILT ON: the answer keys ARE the record of
+   which paper somebody worked through, because a row id resolves to a paper. Nothing reads them
+   that way today; if a surface ever needs to, that is where it comes from rather than a new
+   column. `showOf` on the `paperId` facet came out of the same afternoon and stays -- it is what
+   stops twenty papers sharing six buttons, and it has nothing to do with this. */
 
-   PER PERSON, BECAUSE THE KEY ALREADY IS. `ansKey_` prefixes the signed-in person, so two students
-   on one phone get two lists and neither can see the other's -- which is the whole reason that
-   prefix exists. Signed out, it reads the unprefixed keys, which is the tutor's own working.
-
-   IT IS A FILTER, NOT A SCREEN. Pressing one sets the same `paperId` chip the funnel's own Paper
-   question sets, so everything downstream -- the strip, the order, the ✕ to undo it -- is the
-   machinery that was already there. A second route to one place, never a second place.
-================================================================================================== */
-const RESUME_MAX = 3;
-
-/* THE ROW-TO-PAPER MAP, OFF THE FILE. `LIBRARY_ROWS` is the faithful export and carries both
-   spellings a key needs -- `row_id` as `ansKey_` writes it and `paper_id` as the facet matches it.
-   A `WeakMap` on the array, so a new fetch is a new map: see `paperLabels_` above. */
-const RESUME_ROWS = new WeakMap();
-
-function resumeIndex_() {
-  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS) || [];
-  let idx = RESUME_ROWS.get(rows);
-  if (idx) return idx;
-  idx = { paperOf: {}, size: {} };
-  rows.forEach(r => {
-    if (!r || String(r.kind) !== 'question' || !r.row_id || !r.paper_id) return;
-    idx.paperOf[r.row_id] = r.paper_id;
-    idx.size[r.paper_id] = (idx.size[r.paper_id] || 0) + 1;
-  });
-  RESUME_ROWS.set(rows, idx);
-  return idx;
-}
-
-function resumeList_() {
-  const who = whoIs_();
-  const head = 'ans:' + (who ? who + ':' : '') + 'q:';
-  const idx = resumeIndex_();
-  const done = {};
-  /* EVERY READ WRAPPED, for the reason `ansRead_` gives: a locked-down browser THROWS on
-     `localStorage` rather than answering null, and a throw here would take the front door down. */
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!k || k.indexOf(head) !== 0) continue;
-      /* THE SLOT ON THE END IS THE GUIDE'S, NOT A QUESTION'S. `ansKey_(x) + '#' + slot` is what a
-         practical guide writes, and those rows are not in any paper -- they fall out anyway
-         because `paperOf` will not know the id, but cutting at the `#` is what makes that true
-         rather than lucky. */
-      const row = k.slice(head.length).split('#')[0];
-      const paper = idx.paperOf[row];
-      if (!paper) continue;
-      if (!String(localStorage.getItem(k) || '').trim()) continue;
-      done[paper] = (done[paper] || 0) + 1;
-    }
-  } catch (e) { return []; }
-  return Object.keys(done)
-    .map(id => ({ id: id, done: done[id], of: idx.size[id] || 0, name: paperLabel_(id) }))
-    .sort((a, b) => (b.done - a.done) || cmpText(a.name, b.name))
-    .slice(0, RESUME_MAX);
-}
-
-/* ONLY ON THE WAY IN. With a chip already on the screen somebody is part-way through a search, and
-   a block offering to throw that away and go somewhere else is the funnel changing its mind --
-   which is the complaint this file records under `nextFacet`. No answers, no block, and no empty
-   state either: a heading over nothing is worse than nothing. */
-function resumeBlock_() {
-  if (STUFF.filters.length || STUFF.q) return '';
-  const list = resumeList_();
-  if (!list.length) return '';
-  const who = signedName_();
-  return `<div class="resume">
-    <h4>${who ? esc(who) + ', carry on' : 'Carry on'}</h4>
-    ${list.map(r => `<div class="row tap counted" data-do="resume-paper"
-        data-paper="${esc(r.id)}">
-        <span class="k">${esc(r.name)}</span>
-        <span class="n">${r.done}${r.of ? '/' + r.of : ''}</span>
-      </div>`).join('')}
-  </div>`;
-}
-
-/* THE SAME CHIP THE PAPER QUESTION SETS. `filters = [one]` rather than a push, because this is the
-   way IN: somebody arriving at the app and going straight to their paper has answered nothing else,
-   and carrying a stale chip would narrow it to nothing. */
-on('resume-paper', el => {
-  STUFF.filters = [{ field: 'paperId', value: el.dataset.paper || '' }];
-  STUFF.q = '';
-  paintStuff();
-  /* ---------- AND IT LANDS ON THE QUESTIONS, WHICH IS THE WHOLE POINT OF THE TAP ---------------
-     `paintStuff` REDRAWS AND LEAVES YOU ON THE CONTROLS, which is right for answering a funnel
-     question — you are still choosing. This is not that: somebody pressing "carry on with Paper 1"
-     has finished choosing, and the funnel's next question (Topic area, on a paper they have just
-     named) is a page between them and the thing they came for.
-
-     `stuffFirstResult_()` IS ASKED RATHER THAN COUNTED, because saved things and the booking pages
-     sit in front of the results and their number changes with a star. Booked after the repaint, so
-     the pages it is indexing into exist. */
-  setTimeout(() => { try { goPage('stuff', stuffFirstResult_()); } catch (e) {} }, 0);
-});
 
 function stuffQuestion() {
   const items = stuffFiltered();
@@ -6153,7 +6064,7 @@ screen('stuff', () => {
     ${/* THE COUNT LINE WAS HERE — "565 of 565 · 27 pages". It said nothing anybody needed: before
           you narrow anything it is the size of the library, which is not a fact about your search,
           and after you narrow it the results are right there to be looked at. */''}
-    <div id="stuff-groups">${resumeBlock_() + stuffQuestion()}</div>
+    <div id="stuff-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
   </div>`;
 

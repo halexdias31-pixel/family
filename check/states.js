@@ -47,41 +47,6 @@
 const STATES = {
   stuff: [
     { name: 'the question' },
-    /* ---------- CARRY ON, WHICH ONLY EXISTS ONCE SOMEBODY HAS ANSWERED SOMETHING ---------------
-       THE BLOCK IS DRAWN FROM `localStorage`, so on a fresh browser there is nothing to draw and
-       `check/press.js` pressed 89 actions without ever reaching `resume-paper` -- and passed,
-       because an action that is on no screen is an action it cannot report. That is the hole this
-       file exists to close, and the same one the booking receipt and the message thread were in.
-
-       SEEDED THROUGH `ansKey_`, THE APP'S OWN KEY-BUILDER, rather than by writing the string out
-       here. The prefix is the signed-in person and the shape is `ans:<who>:q:<row_id>`; a second
-       spelling of that in this file would be a second thing to keep in step, which is the fault
-       `resumeList_` is written to avoid on the other side.
-
-       AND `leave` TAKES THEM OUT AGAIN. States run in order down one page, so answers left behind
-       would put a Carry on block on every state after this one. */
-    /* NO `only`, DELIBERATELY: `ansKey_` prefixes whoever is signed in and writes the bare key when
-       nobody is, so both visitors get a Carry on block and both are worth pressing. */
-    { name: 'carry on',
-      enter: () => {
-        const rows = (LIBRARY_ROWS || [])
-          .filter(r => r && r.kind === 'question' && r.paper_id === 'P-1MA1-1705-1H')
-          .slice(0, 14);
-        window.__seeded = rows.map(r => ansKey_({ key: 'q:' + r.row_id }));
-        window.__seeded.forEach(k => localStorage.setItem(k, '42'));
-        STUFF.q = '';
-        STUFF.filters = [];
-        paintStuff();
-        goPage('stuff', 0, true);
-      },
-      expect: () => document.querySelectorAll('#s-stuff [data-do="resume-paper"]').length,
-      wants: 'at least one paper to carry on with',
-      leave: () => {
-        (window.__seeded || []).forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
-        window.__seeded = null;
-        STUFF.filters = [];
-        paintStuff();
-      } },
     /* A WORD THAT IS IN THOUSANDS OF QUESTIONS, so the results are real cards rather than a lucky
        one. `goPage` is what the pager calls, and `stuffFirstResult_` is the app's own answer to
        "which page is the first result" — asking it rather than assuming page 1 is the whole

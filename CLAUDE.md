@@ -7137,34 +7137,36 @@ are outstanding" but "can somebody sit this paper tonight".
 draw-on question with no picture is an answer box. 1 of 31 on the Higher paper, 4 of 41 on the
 Foundation one, 0 on everything else.
 
-## Carry on — the paper you are part-way through, in one tap
+## Carry on was built and then removed, and the removal is the entry
 
-**Asked for as "i want it to be the same paper we did like 2 weeks ago for each. if you dont know
-which that is then we need to audit the papers we have".** Nothing records which paper: answers are
-kept in `localStorage` and posted nowhere, so no sheet holds it and the Ledger could not be reached
-to ask. **But the answers themselves say it.** Every box a student fills in writes
-`ans:u:<person_id>:q:<row_id>`, and a row id resolves to a paper — so counting those keys is the
-question already answered, on the device where it matters.
+**Asked for as "i want it to be the same paper we did like 2 weeks ago for each"**, and the answer
+built for it was a `<name>, carry on` block over the funnel's first question: the papers this person
+had answers saved against, a count beside each, a tap setting the `paperId` chip. Derived from the
+answer keys, which really are the only record of which paper anybody worked through — nothing is
+posted anywhere, so `ans:u:<person_id>:q:<row_id>` in `localStorage` is it.
 
-**Measured before it was built, because the funnel might have been the answer.** It is not broken:
-8 taps reach May 2017 Higher Paper 1 and 9 reach the Foundation one, both ending on exactly that
-paper **in its own order** — `1a 1b 1c 1d 2 3 4 …`. What it is not is what you want on the third
-week of the same paper.
+**And the owner's answer was that the question had already been answered**: *"no i dont want lucca
+carry on bullshit. im just saying if they answer something, it will be answered next time they come
+on."* That is a statement about PERSISTENCE, and persistence is `ansKey_` and `ansRead_` — an answer
+typed into a box is under the signed-in person and comes back in that box on the next visit, on
+every paper, with nothing on any screen to press.
 
-**Per person, because the key already is.** `ansKey_` prefixes the signed-in person, so two students
-on one phone get two lists and neither can see the other's — which is the whole reason that prefix
-exists. Measured: Lucca's two papers (14/31 and 3/27), Theo's one (9/41), nothing at all signed out.
+**So the feature was a second route to a place the funnel already reaches** — measured at 8 taps for
+May 2017 Higher Paper 1 and 9 for the Foundation one, both landing on exactly that paper in its own
+order — **on the one screen whose own note warns about offering to throw away what somebody is
+part-way through.** Removed whole: `resumeBlock_`, `resumeList_`, `resumeIndex_`, `RESUME_MAX`,
+`RESUME_ROWS`, `on('resume-paper')`, two CSS rules and the declared state that pressed it.
 
-**It is a filter, not a screen.** Pressing one sets the same `paperId` chip the funnel's own Paper
-question sets, so the strip, the order and the ✕ that undoes it are the machinery that was already
-there. **A second route to one place, never a second place.** And it lands on the questions:
-`paintStuff` leaves you on the controls, which is right for answering a funnel question and wrong
-for somebody who has finished choosing — `stuffFirstResult_()` is asked rather than counted, because
-saved things and the booking pages sit in front of the results and their number changes with a star.
+**What survives it is worth naming, because it is not the same work.** The `showOf` hook and
+`paperLabels_` below came out of the same afternoon and stay: they are what stops twenty papers
+sharing six buttons, and they are the funnel's own Paper question rather than a door beside it. And
+the measurement stands — the answer keys ARE the record of which paper somebody is part-way through,
+and a surface that ever needs it reads them rather than growing a column.
 
-**Only on the way in.** With a chip on screen somebody is part-way through a search, and a block
-offering to throw that away is the funnel changing its mind. No answers, no block, and no empty
-state either.
+**`pad-clear` went off `ACCEPTED_QUIET` with the state that reached it.** It was correctly quiet —
+clearing a pad nobody has drawn on writes an empty list over an empty list — and with the state gone
+nothing presses it, so the entry would have been a written reason with nothing behind it. That is
+the shape every list in this file exists to prevent, pointed at itself.
 
 ### The Paper question was putting two papers on one button
 
@@ -7196,22 +7198,19 @@ answer, and every question left has to come from one paper. Test 2 could not see
 note says why — it looks for two values that normalise to one key, and after the fold there is only
 one value left. Proved by mutation: the old `of` names all six merged answers.
 
-### 89 actions pressed, and the new door was not one of them
+### The lesson that outlived it: a door drawn from `localStorage` is a door nothing presses
 
-**`check/press.js` passed without ever reaching `resume-paper`.** The block is drawn from
-`localStorage`, so on a fresh browser there is nothing to draw — and an action that is on no screen
-is one that check cannot report. **That is the hole this file's own STATES list exists to close**,
-and the same one the booking receipt and the message thread were in.
+**`check/press.js` passed without ever reaching `resume-paper`.** The block was drawn from
+`localStorage`, so on a fresh browser there was nothing to draw — and an action that is on no screen
+is one that check cannot report. **That is the hole the STATES list exists to close**, the same one
+the booking receipt and the message thread were in, and it is why the state was written before the
+feature was trusted: 89 actions pressed became 100.
 
-**`stuff · carry on` seeds through `ansKey_`, the app's own key-builder**, rather than writing the
-string out in the harness — a second spelling of that key would be a second thing to keep in step.
-`leave` takes the answers out again, because states run in order down one page and answers left
-behind would put a Carry on block on every state after this one. **89 → 100 actions pressed.**
-
-**And it reached a tenth quiet press that is correct**: `pad-clear` on the one draw-on question in
-May 2017 Higher writes an empty stroke list over an empty stroke list. Listed with its reason, like
-the nine before it — drawing on it first and then clearing is a different test and a good one, and
-the entry says which of the two this is.
+**The state is gone with the feature and the rule is not.** Anything whose door only appears once a
+device carries state — an answer, a basket, a saved thing — needs a declared state that seeds it
+through the app's own writer, or the press pass reports a clean sweep of a control it never saw.
+`stuff · carry on` seeded through `ansKey_` rather than spelling the key out in the harness, and
+`leave` removed what it wrote, because states run in order down one page.
 
 ## The bottom of a band was marked right and the top of the same band was marked wrong
 

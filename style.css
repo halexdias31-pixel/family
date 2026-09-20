@@ -8794,18 +8794,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qp-mark.is-right .qp-verdict { color: #6ee7a8; }
 .qp-mark.is-near  .qp-verdict { color: var(--gold); }
 
-/* ---------- CARRY ON, THE PAPER YOU ARE PART-WAY THROUGH ------------------------------------------
-   NO NEW ROW COMPONENT. The entries are `.row.tap.counted`, which is what the funnel's own answers
-   are — so the 44px target, the press animation and the count column all come from one place, and a
-   student swiping in sees the same object they will press ten more times on the way down. All this
-   block does is name the group and set it apart from the question under it.
-
-   THE RULE UNDER IT IS THE SEPARATION. Above it is "here is where you were"; below it is "or start
-   again from a question" — two different offers, and a gap alone reads as one list with a gap in
-   it. See `resumeBlock_` in find.js for why it is only ever drawn on the way in. */
-.resume { margin: 0 0 .9rem; padding: 0 0 .9rem; border-bottom: 1px solid var(--line); }
-.resume h4 { margin: 0 0 .4rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
-  text-transform: uppercase; color: var(--gold); }
+/* ---------- `.resume` WAS HERE --------------------------------------------------------------------
+   TWO RULES FOR THE "carry on" BLOCK over the funnel's first question. Removed with the feature:
+   the owner's answer to it was that persisting an answer is the whole ask, and that is `ansKey_`
+   rather than a surface. The entries were `.row.tap.counted` — the funnel's own answer row — so
+   nothing here was deleted that anything else uses, which is why this is two lines and a note
+   rather than a list of orphaned classes. See the removal note in `js/find.js`. */
 
 /* ---------- `.qp-who` WAS HERE -------------------------------------------------------------------
    THE "who is this?" CONTROL beside every answer box, which set a typed name the answer key was
