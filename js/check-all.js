@@ -31,7 +31,7 @@
 
    EVERYTHING ELSE IS PASS OR FAIL and a failure means something is actually wrong.
 ================================================================================================== */
-const { execFileSync } = require('child_process');
+const { execFileSync, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -166,7 +166,7 @@ const SUITE = [
      every commit for weeks. It was measuring exactly that fault and never landed on a row with one.
      A sample is not a sweep. This lays every question out in a 320px column and asks whether it
      fits — one page load, no navigation, no lazy fill. */
-  { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width' },
+  { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES ------------------------------------------------
      REPORTED AS "when i first go on site it shows old reels... then i hard refresh then it works
      fine???" — the service worker decided what a navigation was from `url.pathname === '/'`, and
@@ -176,7 +176,7 @@ const SUITE = [
      guess is true, and it measures TIMES AND BYTES, both of which a stale load flatters. This one
      asks the question neither can: after a deploy, does the browser run the new code. Deterministic,
      seven seconds, and it runs at both base paths because the base path is what hid the fault. */
-  { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site' },
+  { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING ----------------------------------------
      REPORTED BY THE OWNER AS "grid not working when click", and it was true: `paintBook_` repainted
      `s-stuff`, which on the Booking column is not merely the wrong element but a dead one. Every
@@ -192,65 +192,118 @@ const SUITE = [
      move with the machine — it presses and asks whether anything changed, which is the same answer
      on a busy container as on an idle one — and because the roster is the only thing that makes a
      check real. Fifty-seven seconds for both visitors. */
-  { file: 'check/press.js',   what: 'press every control and see whether anything happens' },
+  { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
+     `check/ui.js` IS THE APP'S MAIN MEASUREMENT — 132 combinations of screen, state, width and
+     visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own
+     fold — and it was not on the roster. CLAUDE.md says in two places that it "has run on every
+     commit for weeks"; it has run when somebody typed `npm run check:ui`. That is the exact fault
+     this file records under "Three checks existed and none of them ran", and the sentence there is
+     the answer: the roster is the only thing that makes a check real.
+
+     WHAT KEPT IT OFF WAS THE CLOCK, and that is what the parallel start below is for: ninety seconds
+     added to a sequential run is ninety seconds every session pays, and run beside the other three
+     browser checks it costs nothing it was not already costing. */
+  { file: 'check/ui.js',      what: '132 combinations of screen, state, width and visitor', slow: true },
 ];
 
 let failed = 0, noted = 0;
 const notes = [];
 
-console.log('');
+/* ---------- THE FOUR THAT DRIVE A BROWSER START TOGETHER, AT THE TOP -------------------------------
+   THEY ARE NOT CPU-BOUND AND NEVER WERE. Measured: `check/press.js` spends 77 seconds of wall clock
+   and 4.5 seconds of processor — the rest is waiting for a page to settle, which is exactly the
+   thing four processes can do at once on a four-core machine. Sequentially the four cost about three
+   minutes; started together they cost the slowest of them.
+
+   THAT IS WHAT LETS `check/ui.js` BE ON THIS LIST AT ALL. Ninety seconds added to a sequential run
+   is ninety seconds every session start pays; ninety seconds beside three other browsers is free.
+
+   EACH NEEDS ITS OWN PORT, and two of them did not have one: `check/ui.js` and `check/deploy.js`
+   both defaulted to 8731, which cost nothing while they ran one after another and would have been
+   one of them dying on EADDRINUSE here. Fixed in `ui.js`, with the reason written beside it.
+
+   THE OUTPUT DOES NOT MOVE. They are printed in roster order, in their place, when the fast ones
+   have finished — so a run reads exactly as it did, and a failure is still named where somebody
+   expects to find it. */
+const running = new Map();
 for (const c of SUITE) {
-  /* A CHECK MAY LIVE OUTSIDE `js/`. `check/cards.js` needs a browser, which is what puts it in
-     `check/` beside `ui.js` rather than here — and the roster is the only thing that makes a check
-     real, so the roster has to be able to name it. A `/` in the entry means "from the repo root". */
+  if (!c.slow) continue;
   const p = c.file.includes('/') ? path.join(dir, '..', c.file) : path.join(dir, c.file);
-  if (!fs.existsSync(p)) {
-    console.log('  ????  ' + c.file.padEnd(18) + 'not here');
-    continue;
-  }
-  let out = '', ok = true;
+  if (!fs.existsSync(p)) continue;
   const t0 = Date.now();
-  try {
-    out = execFileSync(process.execPath, [p], { cwd: dir, encoding: 'utf8',
-                                                timeout: 180000, stdio: ['ignore', 'pipe', 'pipe'] });
-  } catch (e) {
-    ok = false;
-    out = String((e.stdout || '') + (e.stderr || ''));
-  }
-  const secs = ((Date.now() - t0) / 1000).toFixed(1);
-
-  if (ok) {
-    console.log('  PASS  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
-  } else if (c.soft) {
-    noted++;
-    console.log('  note  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
-    /* THE INTERESTING LINES ONLY. These two print their whole report; what somebody wants here is
-       the things they named, which are the indented ones under a heading. */
-    notes.push({ file: c.file, lines: out.split('\n')
-      .filter(l => /^ {2}\S/.test(l) && !/^ {2}none$/.test(l)).slice(0, 12) });
-  } else {
-    failed++;
-    console.log('  FAIL  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
-    out.split('\n').filter(Boolean).slice(-14).forEach(l => console.log('          ' + l));
-  }
+  running.set(c.file, new Promise(done => {
+    execFile(process.execPath, [p], { cwd: dir, encoding: 'utf8', timeout: 300000,
+                                      maxBuffer: 32 * 1024 * 1024 },
+      (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
+                                      secs: ((Date.now() - t0) / 1000).toFixed(1) }));
+  }));
 }
 
-if (notes.length) {
+/* THE RUN ITSELF, IN AN ASYNC WRAPPER. The four browser checks are started above and awaited in
+   their place below, and `await` at the top level of a CommonJS file is a syntax error Node
+   reports as an ambiguous module format — which is four lines removed from the cause. */
+(async () => {
   console.log('');
-  console.log('WORTH A LOOK — not failures, but things nothing can reach or nothing calls:');
-  notes.forEach(n => {
-    if (!n.lines.length) return;
-    console.log('  ' + n.file);
-    n.lines.forEach(l => console.log('  ' + l));
-  });
-}
+  for (const c of SUITE) {
+    /* A CHECK MAY LIVE OUTSIDE `js/`. `check/cards.js` needs a browser, which is what puts it in
+       `check/` beside `ui.js` rather than here — and the roster is the only thing that makes a check
+       real, so the roster has to be able to name it. A `/` in the entry means "from the repo root". */
+    const p = c.file.includes('/') ? path.join(dir, '..', c.file) : path.join(dir, c.file);
+    if (!fs.existsSync(p)) {
+      console.log('  ????  ' + c.file.padEnd(18) + 'not here');
+      continue;
+    }
+    let out = '', ok = true, secs = '0.0';
+    if (running.has(c.file)) {
+      const r = await running.get(c.file);
+      ok = r.ok; out = r.out; secs = r.secs;
+    } else {
+      const t0 = Date.now();
+      try {
+        out = execFileSync(process.execPath, [p], { cwd: dir, encoding: 'utf8',
+                                                    timeout: 180000, stdio: ['ignore', 'pipe', 'pipe'] });
+      } catch (e) {
+        ok = false;
+        out = String((e.stdout || '') + (e.stderr || ''));
+      }
+      secs = ((Date.now() - t0) / 1000).toFixed(1);
+    }
 
-console.log('');
-if (failed) {
-  console.log('FAILED — ' + failed + ' of ' + SUITE.length + ' checks found something wrong.');
-} else if (noted) {
-  console.log('OK — nothing is broken. ' + noted + ' check(s) have something worth a look above.');
-} else {
-  console.log('OK — all ' + SUITE.length + ' checks clean.');
-}
-process.exit(failed ? 1 : 0);
+    if (ok) {
+      console.log('  PASS  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+    } else if (c.soft) {
+      noted++;
+      console.log('  note  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+      /* THE INTERESTING LINES ONLY. These two print their whole report; what somebody wants here is
+         the things they named, which are the indented ones under a heading. */
+      notes.push({ file: c.file, lines: out.split('\n')
+        .filter(l => /^ {2}\S/.test(l) && !/^ {2}none$/.test(l)).slice(0, 12) });
+    } else {
+      failed++;
+      console.log('  FAIL  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+      out.split('\n').filter(Boolean).slice(-14).forEach(l => console.log('          ' + l));
+    }
+  }
+
+  if (notes.length) {
+    console.log('');
+    console.log('WORTH A LOOK — not failures, but things nothing can reach or nothing calls:');
+    notes.forEach(n => {
+      if (!n.lines.length) return;
+      console.log('  ' + n.file);
+      n.lines.forEach(l => console.log('  ' + l));
+    });
+  }
+
+  console.log('');
+  if (failed) {
+    console.log('FAILED — ' + failed + ' of ' + SUITE.length + ' checks found something wrong.');
+  } else if (noted) {
+    console.log('OK — nothing is broken. ' + noted + ' check(s) have something worth a look above.');
+  } else {
+    console.log('OK — all ' + SUITE.length + ' checks clean.');
+  }
+  process.exit(failed ? 1 : 0);
+
+})();

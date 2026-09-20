@@ -66,7 +66,12 @@ const fs   = require('fs');
 const path = require('path');
 
 const ROOT    = path.resolve(__dirname, '..');
-const PORT    = 8731;
+/* ITS OWN PORT, AND IT DID NOT HAVE ONE. `check/deploy.js` defaults to 8731 as well, which cost
+   nothing for as long as the two ran one after another — and `js/check-all.js` starts the four
+   browser-driven checks together now, where two servers asking for one port is one of them dying on
+   EADDRINUSE with a stack trace instead of a report. Overridable for the same reason deploy's is:
+   a port is the one thing about a harness that depends on what else is running. */
+const PORT    = Number(process.env.UI_PORT || 8732);
 
 const arg   = n => (process.argv.find(a => a.startsWith('--' + n + '=')) || '').split('=')[1];
 
@@ -261,7 +266,7 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], tinyTargets: [], lowContrast: [] };
+  const found = { overflow: [], hidden: [], tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
      `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
@@ -515,6 +520,39 @@ function inspect(opts) {
         const lr = lab.getBoundingClientRect();
         if (lr.height >= MIN_TAP && lr.width >= MIN_TAP) continue;
       }
+    }
+
+    /* ---------- AND WHETHER A SCREEN READER CAN SAY WHAT IT IS ------------------------------------
+       A CONTROL WITH NO NAME IS NOT AN IMPERFECT CONTROL, IT IS AN INVISIBLE ONE. The camera's
+       shutter is the case this app already argued out loud: "a shutter with the word Photo written
+       across it is not a shutter, and a control with no name at all is one a screen reader cannot
+       offer." That got an `aria-label`; nothing anywhere checked the rest.
+
+       MEASURED WHEN THIS WAS WRITTEN: ten controls had no text, no label and no `aria-label`, and
+       every one of them carried a PLACEHOLDER — the comment box, the six message boxes, the funnel's
+       search, the to-do line and the notepad. A placeholder IS the accessible name when there is
+       nothing else, so all ten are named and none of them needed changing. Adding an `aria-label`
+       saying what the placeholder already says would be two strings to keep in step, which is the
+       fault this repository records under `MESSAGING`, under `kinds` and under `childrenOf`.
+
+       SO THE RULE IS THE FLOOR RATHER THAN THE PREFERENCE: every source counted, and a control that
+       has none of them fails. It runs inside the walk that was already happening, so it costs
+       nothing, and the number it is guarding today is zero. */
+    if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(tag)
+        && el.type !== 'hidden' && !el.disabled) {
+      const lab2 = el.closest('label');
+      const by = el.getAttribute('aria-labelledby');
+      const name = (el.getAttribute('aria-label')
+        || el.getAttribute('title')
+        || (by ? ((document.getElementById(by) || {}).textContent || '') : '')
+        || (el.id ? ((document.querySelector('label[for="' + CSS.escape(el.id) + '"]') || {}).textContent || '') : '')
+        || (lab2 ? lab2.textContent : '')
+        || el.textContent
+        || el.getAttribute('placeholder')
+        || el.value || '').trim();
+      if (!name) found.noName.push({ tag: tag.toLowerCase(),
+        cls: String(el.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.'),
+        act: el.dataset ? (el.dataset.do || '') : '' });
     }
 
     const r = el.getBoundingClientRect();
@@ -812,6 +850,9 @@ function inspect(opts) {
     });
     (r.lowContrast || []).forEach(c => add('CONTRAST',
       `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}`, at));
+    (r.noName || []).forEach(n => add('NO NAME',
+      `<${n.tag}>${n.cls ? '.' + n.cls : ''}${n.act ? ` [${n.act}]` : ''} has no text, label, `
+      + `aria-label, title or placeholder — a screen reader has nothing to say about it`, at));
   }
 
   const checked = rows.filter(r => !r.skipped && r.id !== '—').length;

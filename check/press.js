@@ -353,7 +353,7 @@ for (const who of VISITORS) {
       } else {
         el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       }
-      await new Promise(r => setTimeout(r, 160));
+      await new Promise(r => setTimeout(r, 130));
       changed = was !== stateOf(sid);
       /* A PRESS IS ALLOWED TO REMOVE ITS OWN CONTROL, so the next candidate may be a stale handle.
          One that is no longer in the document is not a control anybody can press. */
@@ -405,7 +405,7 @@ for (const who of VISITORS) {
   for (const state of statesOf(id)) {
     const label = (state.name ? id + ' · ' + state.name : id) + (who.user ? '' : ', signed out');
     await page.evaluate(sid => { try { closeSheet(); } catch (e) {} go(sid, false, true); }, id);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
 
     /* WHOSE STATE IS THIS. `only` is the same flag `check/ui.js` reads — a widget an admin cannot
        see, a payload key a stranger has no rows for. Asking for a state this visitor cannot be in
@@ -418,7 +418,7 @@ for (const who of VISITORS) {
       const ok = await page.evaluate(src => { try { eval('(' + src + ')')(); return true; }
                                              catch (e) { return String(e && e.message || e); } }, String(state.enter));
       if (ok !== true) { console.error('! could not enter ' + label + ': ' + ok); notEntered++; continue; }
-      await page.waitForTimeout(420);
+      await page.waitForTimeout(340);
     }
     /* AND A STATE THAT DID NOT ARRIVE FAILS LOUDLY, for the reason `check/ui.js` gives: a state
        silently not reached is "I did not press it" printed as "I pressed it and it was fine". */
@@ -495,7 +495,7 @@ for (const who of VISITORS) {
         try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}
         try { if (typeof AT !== 'undefined' && AT !== sid) go(sid, false, true); } catch (e) {}
       }, id);
-      await page.waitForTimeout(60);
+      await page.waitForTimeout(40);
     }
 
     /* WHATEVER THE STATE LEFT STANDING. States run in order down one page and `go()` does not close
@@ -507,6 +507,70 @@ for (const who of VISITORS) {
 
   await page.close();
 }
+
+  /* ==================================================================================================
+     AND THE OTHER THING A FINGER DOES.
+
+     EVERY SCREEN IN THIS APP IS REACHED BY A SWIPE and nothing anywhere measured one. The tabs are a
+     second way in, so a broken gesture would leave the app looking usable on a desktop and be the
+     whole navigation gone on a phone — which is the shape `overworld.js` already records twice: the
+     grid listened for `touchstart` alone and did nothing at all with a mouse, and a `setPointerCapture`
+     on every press meant the release went to the root and no card, chip or tick ever answered.
+     "Nothing threw. The app rendered perfectly and simply stopped answering."
+
+     A REAL DRAG, NOT A CALL TO `go`. `page.mouse` produces the pointer events the window listens for,
+     in the order and at the pace a hand makes them, so this exercises the thresholds, the axis lock
+     and the velocity — none of which a direct call touches.
+
+     BOTH DIRECTIONS AND BOTH AXES, and the ends are part of the test: a swipe left from the last
+     column must stay on the last column rather than sliding into nothing. */
+  const swipes = [];
+  if (!process.argv.includes('--no-swipe')) {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    page.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
+    await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
+    await page.addInitScript(GUARDS);
+    await page.route('**://script.google.com/**', r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+    await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2200);
+
+    const drag = async (x0, y0, dx, dy) => {
+      await page.mouse.move(x0, y0);
+      await page.mouse.down();
+      for (let i = 1; i <= 10; i++) { await page.mouse.move(x0 + dx * i / 10, y0 + dy * i / 10); await page.waitForTimeout(9); }
+      await page.mouse.up();
+      await page.waitForTimeout(400);
+    };
+
+    const tabs = await page.evaluate(() => (typeof TABS !== 'undefined' ? TABS.map(t => t.id) : []));
+    for (let i = 0; i < tabs.length; i++) {
+      for (const [dir, x, dx, want] of [['left', 320, -230, tabs[Math.min(i + 1, tabs.length - 1)]],
+                                        ['right', 70, 230, tabs[Math.max(i - 1, 0)]]]) {
+        await page.evaluate(id => go(id, false, true), tabs[i]);
+        await page.waitForTimeout(240);
+        await drag(x, 420, dx, 0);
+        const got = await page.evaluate(() => AT);
+        swipes.push({ from: tabs[i], dir, got, want, ok: got === want });
+      }
+    }
+    for (const id of tabs) {
+      const n = await page.evaluate(x => { go(x, false, true); return typeof pageCount === 'function' ? pageCount(x) : 0; }, id);
+      await page.waitForTimeout(280);
+      /* A ONE-PAGE COLUMN HAS NO UP AND DOWN, and asking it for one would report the app for
+         answering correctly. Which columns have more than one page depends on the fixture. */
+      if (n < 2) continue;
+      await page.evaluate(x => goPage(x, 0, true), id);
+      await page.waitForTimeout(260);
+      await drag(195, 600, 0, -260);
+      const up = await page.evaluate(x => PAGE[x], id);
+      swipes.push({ from: id, dir: 'up', got: String(up), want: '1', ok: up === 1 });
+      await drag(195, 300, 0, 260);
+      const down = await page.evaluate(x => PAGE[x], id);
+      swipes.push({ from: id, dir: 'down', got: String(down), want: '0', ok: down === 0 });
+    }
+    await page.close();
+  }
 
   await browser.close();
   server.close();
@@ -547,7 +611,13 @@ for (const who of VISITORS) {
   if (VERBOSE) results.forEach(r => console.log('   ' + (r.unreachable ? '  ?  ' : r.disabled ? ' off ' : (r.errs || []).length ? ' ERR ' : r.changed ? '  .  ' : ' --  ')
     + r.screen + '/' + r.action + (r.where ? '  ' + r.where : '')));
 
+  const lost = swipes.filter(s => !s.ok);
+  if (swipes.length) console.log('swiped ' + swipes.length + ' time(s): '
+    + (lost.length ? lost.length + ' went somewhere else' : 'every one landed where it should'));
+
   say('THREW', threw, r => `${r.action} on ${r.screen} (${r.where})\n      ` + r.errs.join('\n      '));
+  say('A SWIPE WENT SOMEWHERE ELSE', lost,
+      r => `${r.dir} from ${r.from} landed on ${r.got}, wanted ${r.want}`);
   say('TOOK THE APP DOWN', dead, r => `${r.action} on ${r.screen}: ` + JSON.stringify(r.alive));
   say('NOTHING MEASURABLE CHANGED, AND NOTHING SAYS WHY', quiet,
       r => `${r.action} on ${r.screen} (${r.where})`);
@@ -576,5 +646,5 @@ for (const who of VISITORS) {
      carries a written reason or turns the run red. Proved by mutation: putting the old `paintBook_`
      back — the one that repainted a screen the booking column is not on — names `book-slot` and
      `book-set` here and exits 1. */
-  process.exit(threw.length || dead.length || quiet.length || notEntered ? 1 : 0);
+  process.exit(threw.length || dead.length || quiet.length || notEntered || lost.length ? 1 : 0);
 })();
