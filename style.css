@@ -7725,6 +7725,99 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .gd-box { margin: .35rem 0 0; }
 .gd-box .qp-ans-in { min-height: max(44px, 4.2rem); }
 
+
+/* ==================================================================================================
+   THE QUIZ — A RECAP, AND IT BORROWS THE PRACTICAL'S HEAD AND THE ANSWER BOX ON PURPOSE.
+
+   `.prac-head` IS REUSED RATHER THAN COPIED, because a title with a flag beside it is the same
+   object on both cards — and this stylesheet has already paid for the alternative twice, where
+   `.reel .over` was a second description of `.feed-art` and drifted the first time either was
+   touched. The flag is a level rather than a compliance word, so only its own class is new.
+
+   THE LEVEL FLAG IS NOT GOLD. Gold in this app means the one thing to press, which on a quiz card
+   is the tile underneath — `.reel-sound` is the entry recording what happens when a control takes
+   gold on a card whose content is elsewhere. This is a label.
+================================================================================================== */
+.quiz-lvl { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
+            text-transform: uppercase; color: var(--dim); border: 1px solid var(--line);
+            border-radius: 999px; padding: .22rem .45rem; white-space: nowrap; }
+.quiz-say { margin: .45rem 0 .1rem; font-size: .78rem; line-height: 1.45; color: var(--faint); }
+.quiz-say b { color: var(--dim); font-weight: 600; }
+
+.quiz-intro { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--faint); }
+
+/* ---------- THE RUNNING SCORE ---------------------------------------------------------------------
+   `aria-live="polite"` IS ON THE ELEMENT IN find.js AND THE REASON IS HERE: this line is the only
+   feedback a screen reader gets that a press did anything, because the mark itself is a colour and
+   a border. A control whose effect is only visual is a control that does nothing for somebody who
+   cannot see it. */
+.quiz-score { margin: .55rem 0 0; padding: .4rem .55rem; border: 1px solid var(--line);
+              border-radius: var(--r-sm); background: var(--sunk);
+              font: 400 .76rem/1.4 var(--mono); color: var(--dim); }
+.quiz-score b { color: var(--ink); font-weight: 600; }
+
+/* ---------- ONE QUESTION --------------------------------------------------------------------------
+   THE STATE IS A RULE DOWN THE LEFT, which is what `.msg.unread` used before it became a bubble and
+   what `.post-cap` uses for a comment of your own: a mark that says "this one" without taking a
+   colour the page means something else by. Gold for right and red for not-yet, matching the
+   `.qp-mark` verdict states one component along, so the two marking surfaces in this app agree. */
+.quiz-q { margin: .7rem 0 0; padding: .55rem 0 .55rem .6rem;
+          border-left: 2px solid var(--line); }
+.quiz-q.is-right { border-left-color: var(--gold); }
+.quiz-q.is-near { border-left-color: var(--red, #ff6b6b); }
+.quiz-ask { margin: 0; font-size: .84rem; line-height: 1.45; color: var(--ink); }
+.quiz-n { font: 600 .7rem/1 var(--mono); color: var(--faint); margin-right: .25rem; }
+
+/* ---------- THE CHOICES ---------------------------------------------------------------------------
+   44px IN PX, WHICH IS THE ONE MEASUREMENT IN THIS STYLESHEET THAT DOES NOT SCALE. A fingertip is
+   the same size on every screen, and `2.75rem` is 40.75px on a 390px phone — this rule has six
+   convictions behind it already (`.btn.tiny`, `.post-act`, `.fm-adds label`, the filter chips,
+   `.qp-check`, `.reel-sound`). `min-height` and not `height`, because a four-word choice wraps.
+
+   A COLUMN AND NOT A GRID. "The spreading of particles from high concentration to low
+   concentration" is one of four options on one question, and two of those side by side at 320px is
+   two words a line. Reading is what this control is for.
+
+   TEXT-ALIGN LEFT, because they are sentences rather than labels — a centred paragraph with a
+   ragged left edge is the thing that makes a list of options hard to scan. */
+.quiz-opts { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0 0; }
+.quiz-opt { display: block; width: 100%; min-height: 44px; text-align: left;
+            padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--r-sm);
+            background: var(--sunk); color: var(--dim);
+            font: inherit; font-size: .8rem; line-height: 1.4; cursor: pointer; }
+.quiz-opt:active { transform: translateY(1px); }
+/* ---------- ONCE IT IS ANSWERED --------------------------------------------------------------------
+   THE RIGHT ONE IS MARKED WHETHER OR NOT IT WAS CHOSEN, and the note in `quizRow_` says why: an
+   answer that only says "wrong" leaves somebody guessing which of the other three it was, and
+   guessing is exactly what the explanation underneath exists to replace.
+
+   THE CHOSEN WRONG ONE TAKES THE RED, so the two states are distinguishable on one row — the right
+   answer in gold, the one that was pressed outlined in red. Colour AND weight together, which is
+   `.fight-who.won`'s own reason: weight alone is lost at this size on a phone and colour alone is
+   lost on paper. */
+.quiz-opt[disabled] { cursor: default; opacity: 1; }
+.quiz-opt.is-ans { border-color: var(--gold); color: var(--ink); font-weight: 600; }
+.quiz-opt.is-picked { border-width: 2px; }
+.quiz-opt.is-picked:not(.is-ans) { border-color: var(--red, #ff6b6b); color: var(--ink); }
+
+/* A TYPED ANSWER IS ONE LINE, NOT A PAGE. `textarea` is `min-height: 5.8rem` globally and `.gd-box`
+   already cuts it for the same reason — these hold `Osmosis` or `2,8,1`. Same shape as that rule:
+   px at the floor, rem above it. */
+.quiz-typed { margin: .5rem 0 0; }
+.quiz-typed .qp-ans-in { min-height: max(44px, 2.8rem); }
+.quiz-check { margin: .35rem 0 0; width: auto; min-height: 44px; }
+
+/* ---------- WHY --------------------------------------------------------------------------------
+   THE EXPLANATION IS THE POINT OF THE WHOLE FEATURE, so it is body text rather than a footnote.
+   `--dim` because it is content from the row, which is what `--dim` means everywhere else in this
+   block — see the note over `.gd-none`. */
+.quiz-why { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
+.quiz-why b { color: var(--ink); font-weight: 600; }
+
+/* THE ONE CONTROL HERE THAT DESTROYS SOMETHING, so it is set apart rather than sitting under the
+   last question where a thumb travels. */
+.quiz-foot { margin: 1rem 0 0; padding-top: .7rem; border-top: 1px dashed var(--line); }
+
 .boxer-nick { font-weight: 400; color: var(--dim); }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
 
@@ -7980,6 +8073,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    "done, and no longer asking" the label used to say in words. */
 .tile.is-buy.on { color: var(--dim); }
 .tile.on[disabled] { opacity: 1; }
+/* ---------- AND THE MARK ITSELF FILLS, WHICH IS WHAT THE PARAGRAPH ABOVE PROMISED ----------------
+   IT NAMED `.favwrap.is-fav .star` AND THAT RULE IS NOWHERE IN THIS FILE. Deleted at some point
+   with the sentence left over it, so "filled means done" has been a description of nothing: a
+   saved star was the same outline as an unsaved one and the only difference was a background at
+   9% white, which on this ground is invisible. Reported from the Saved column — *"after i
+   fabourite it the tile should be filled in"* — and true of every star in the app.
+
+   THREE MARKS, NOT ALL OF THEM, and the names are why `tileIcon_` now writes one. A star, a jumper
+   and a lamp are closed silhouettes and read as filled; the trolley is a body and two wheels drawn
+   as open paths, so filling it paints a wedge between the handle and the basket. `.tile.is-buy.on`
+   one line up already says "in your basket" by going quiet, which is the same statement in the
+   register that mark can carry.
+
+   THE STROKE STAYS. Fill alone loses the 1.4 of weight that makes these marks the same colour as
+   the words beside them at 18px. */
+.tile.on .tile-i-star,
+.tile.on .tile-i-wear,
+.tile.on .tile-i-spot { fill: currentColor; }
 
 
 /* ---------- SECOND PASS, FROM LOOKING AT IT -------------------------------------------------------

@@ -98,6 +98,13 @@ const TABS = [
      layout sheet. */
   { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
   { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
+  /* ---------- SAVED, WHICH IS RIGHT OF GAMES ------------------------------------------------
+     ASKED FOR AS "add a favourite column so i can see the widgets i favoutited. add the coloumn to
+     the right of games." The note above lists Favourites among the columns that were folded into
+     the funnel; see `savedCards_` in arcade.js for what has changed since, and why this is not the
+     duplicate that one was. APPENDED, because this table is append-only — `AT` is remembered by id
+     and the X axis clamps by index. `TAB_ORDER` is what puts it last. */
+  { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -113,7 +120,7 @@ const TABS = [
      camera · post · booking · reel · DM · search · profile · tools · games
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
-const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games'];
+const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
@@ -279,7 +286,7 @@ function go(id, remember, instant) {
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
      document, which is why this is here and not inside the screen's own draw. */
-  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games') toolsStop_();
+  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games' && AT !== 'saved') toolsStop_();
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
@@ -347,7 +354,10 @@ function go(id, remember, instant) {
    `const` read before its own line throws, including through `typeof`, which is the one check that
    cannot see into a temporal dead zone. A function declaration is hoisted, so this is safe. */
 function startScreen_(id) {
-  if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
+  /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
+     kind, because what is on it is whatever was starred. */
+  if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(); }
+  else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
     toolsStart_(id === 'tools' ? 'tool' : 'game');
   }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. It waited for a button on the belief that
@@ -1128,6 +1138,11 @@ const PAGER = {
      screen cannot disagree. */
   tools:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('tool') : []).map(w => w.name || ''),
   games:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('game') : []).map(w => w.name || ''),
+  /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: a
+     pager that counts for itself is a pager that can disagree with its own screen, and that
+     disagreement is what made the You column unmovable. `savedCards_` answers with one card when
+     there is nothing kept, so this is never nought over a page that exists. */
+  saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -1219,7 +1234,7 @@ const PAGER = {
      to be counted was real work on the path every tap goes down. `pageCount` takes either.
      NO `Basket` HERE ANY MORE — it is on the Booking column now, and this count has to match what
      `screen('stuff')` actually builds or the pager and the screen disagree. */
-  stuff:  () => savedPages_().length + 1 + bookingPages_().length + stuffPageCount(),
+  stuff:  () => 1 + bookingPages_().length + stuffPageCount(),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -1322,7 +1337,8 @@ function applyBrandIcon_() {
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke:
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0 };
+const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
+               saved: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.

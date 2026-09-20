@@ -170,7 +170,15 @@ async function libraryRows_() {
 /* `practicals` JOINED THIS LIST LAST and is the first entry that is not a boxing row or a
    lookup table: 41 experiments, each naming the library's own topics, so a practical and a
    past-paper question about the same thing answer the same question in the funnel. */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals'];
+/* `quizzes` IS THE SIXTH, and it is the first list in this repository written FOR the app rather
+   than exported into it. 81 quizzes -- 27 science topics x KS3 / GCSE Foundation / GCSE Higher --
+   five questions each, every one marked the moment it is answered.
+
+   IT IS HERE AND NOT IN THE LIBRARY because of the measurement that prompted it: all 745 science
+   questions in `data/questions.json` have an EMPTY `accept`, so not one of them can mark itself.
+   An exam question is marked against a scheme by a person, which is right for an exam and useless
+   for a recap. Written by `tools/quizwrite.py`, whose assertions are the whole safety argument. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'quizzes'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -335,6 +343,49 @@ function libraryExtras_(d, extra) {
       });
     });
     d.practicals = out;
+  }
+
+  /* --- the quizzes ------------------------------------------------------------------------------
+     ONE ROW PER QUESTION, GROUPED HERE INTO ONE OBJECT PER QUIZ. The file is flat for the reason
+     every data file in this repository is — one object per line, so a diff names the rows that
+     changed and the next script can append by splitting on newlines. A nested file would make
+     "question 3 of the KS3 cell biology quiz" a thing no diff can point at.
+
+     `choices` IS A PIPE LIST for the reason the practicals' `equipment` is, recorded above: 14 of
+     its 410 cells hold a comma inside one item, and "sodium chloride, dissolved in water" is one
+     choice that no comma rule can tell from two.
+
+     `accept` IS `markAnswer_`'s OWN COLUMN, spelled the way the library spells it — a pipe list of
+     everything a student will really type. That is not a second marking rule: the quiz sheet calls
+     `markAnswer_` itself, so a fraction slash, a mixed number or a range behaves here exactly as it
+     does on a past paper. A second implementation would be the second reader this file records
+     under `documents_()`, `paperIdOf_` and `factsNow_`. */
+  if (extra.quizzes && extra.quizzes.length) {
+    const byId = {};
+    const order = [];
+    extra.quizzes.forEach(r => {
+      const id = libS(r.quiz_id).trim();
+      const ask = libS(r.ask).trim();
+      if (!id || !ask) return;
+      if (!byId[id]) {
+        byId[id] = {
+          id: id, name: libS(r.name), subject: libS(r.subject), topic: libS(r.topic),
+          level: libS(r.level), tier: libS(r.tier), qs: [],
+        };
+        order.push(id);
+      }
+      byId[id].qs.push({
+        n: libS(r.n), ask: ask, why: libS(r.why),
+        kind: libS(r.kind) === 'typed' ? 'typed' : 'choice',
+        /* AN EMPTY CELL IS NO CHOICES, NOT ONE EMPTY CHOICE. `''.split('|')` is `['']` — a single
+           blank string — so the filter is what makes a typed question have nothing to offer rather
+           than one unlabelled button. Same shape as the `[]` fallback above: absent must read as
+           absent. */
+        choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
+        answer: libS(r.answer), accept: libS(r.accept),
+      });
+    });
+    d.quizzes = order.map(id => byId[id]);
   }
 
   /* --- the boxers ------------------------------------------------------------------------------ */

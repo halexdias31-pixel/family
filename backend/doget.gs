@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-19-b-films-admin-only";
+const DOGET_VERSION = "2026-09-20-a-quizzes";
 
 
 function doGet(e) {
@@ -508,6 +508,16 @@ function doGet(e) {
          `check-payload.js` reporting the key as read-and-never-sent, which it would be right
          to do — it cannot tell a key filled in the browser from one nobody sends. */
       practicals: [],
+      /* AND `quizzes` IS THE SIXTH. `data/quizzes.json` is 81 recap quizzes filled in on the phone
+         by `libraryExtras_`, and this line is what stops `check-payload.js` reporting the key as
+         read-and-never-sent -- which it would be right to do, because it cannot tell a key filled
+         in the browser from one nobody sends.
+
+         IT IS NOT A TAB AND IT IS NOT GOING TO BE ONE. The three-question test in CLAUDE.md
+         settles it: it is not secret, the app never writes to it, and nobody hand-edits it -- it
+         arrives in bulk from `tools/quizwrite.py`, whose assertions are the reason it can be
+         trusted to mark a child's answer. */
+      quizzes: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one

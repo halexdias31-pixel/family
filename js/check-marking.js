@@ -33,38 +33,23 @@ const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
 
-/* CUT BY NAME, BRACE-COUNTED. A regex for "the body of a function" is a regex for "up to the next
-   closing brace at the start of a line", which is a formatting convention rather than a fact about
-   the code -- and this file is checking the one thing in the app that must not be approximately
-   right. `markBare_` is a `const` arrow with no block, so a statement that ends at its semicolon is
-   the other shape this has to handle. */
-const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markRange_',
-               'markAnswer_'];
+/* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because
+   `check-quizzes.js` needs the same six functions to ask a different question of them and its own
+   first attempt at cutting them out could not find `markBare_`. A regex for "the body of a
+   function" is really a regex for "up to the next closing brace at the start of a line", which is
+   a formatting convention rather than a fact about the code, and this file is checking the one
+   thing in the app that must not be approximately right. */
+const { NAMES, markingSource } = require('./check-marks-load.js');
 
-function cut(name) {
-  let i = src.indexOf('function ' + name + '(');
-  if (i < 0) i = src.indexOf('const ' + name + ' =');
-  if (i < 0) return null;
-  let j = i, depth = 0, seen = false;
-  while (j < src.length) {
-    const c = src[j];
-    if (c === '{') { depth++; seen = true; }
-    if (c === '}') { depth--; if (seen && depth === 0) { j++; break; } }
-    if (!seen && c === ';') { j++; break; }
-    j++;
-  }
-  return src.slice(i, j);
-}
-
-const missing = NAMES.filter(n => !cut(n));
-if (missing.length) {
+const marks = markingSource(path.join(__dirname, '..'));
+if (marks.missing.length) {
   /* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO. "I did not check" is not the same
      answer as "I checked and it was fine", and `check-booking.js` printed the second for the first
      for months. */
-  console.log('check-marking: cannot find ' + missing.join(', ') + ' in find.js — renamed?');
+  console.log('check-marking: cannot find ' + marks.missing.join(', ') + ' in find.js — renamed?');
   process.exit(1);
 }
-eval(NAMES.map(cut).join('\n'));
+eval(marks.source);
 
 /* typed, accept, expected. `null` means "nothing typed", which is not a wrong answer. */
 const CASES = [

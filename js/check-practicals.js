@@ -302,6 +302,64 @@ rows.filter(r => String(r.diagram || '').trim()).forEach(r => {
   }
 });
 
+/* ---------- UNIFORM, WHICH IS A THING A CHECK CAN ASK ---------------------------------------------
+   REPORTED AS "it seems you speciallised the practicles for me and my situation. it needs to be more
+   systematic and uniform like repeatable for anyone." Measured, that was four things and two of
+   them are columns: `age_min` and `wow` existed on 16 of 57 rows — the same sixteen, the set that
+   came out of one chat transcript — so the column drew two kinds of card, eleven carrying an age
+   and a "worth opening a session with" and forty-six carrying neither.
+
+   BOTH ARE ON EVERY LIVE ROW NOW and this is what stops the next one arriving without them. A
+   refused experiment correctly has neither, for the reason its method and its risks are also
+   absent: writing out an age for something nobody will run is inventing content to satisfy a
+   checker. See tools/practical-uniform.py for the age rule and the judgements.
+
+   `cost_per_run_gbp` IS DELIBERATELY NOT ASKED FOR, and the count below says so rather than leaving
+   it as a silence. A school owns the kit and nobody has ever costed a lab practical; `libNum`
+   answers absent rather than nought for exactly that, which is the `cost: 0` fault this repository
+   records four times. */
+const running_ = rows.filter(r => !String(r.excluded_reason || '').trim());
+running_.forEach(r => {
+  if (!String(r.age_min || '').trim()) {
+    fail.push(r.practical_id + ' has no age_min — every live practical says who is old enough');
+  }
+  if (!String(r.wow || '').trim()) {
+    fail.push(r.practical_id + ' has no wow — the card reads it to say which to open a session with');
+  }
+});
+
+/* ---------- AND A METHOD THAT NAMES A PLACE ONLY WORKS FOR SOMEBODY STANDING IN IT ----------------
+   TWO PRACTICALS WERE NAMED AFTER ONE TOWN'S PARK AND ITS RIVER — "Perimeter of Wandle Park",
+   "Flow rate of the River Wandle" — and five more named a local landmark inside their steps or
+   notes. A tutor in Leeds reads the same row, so the method has to say what KIND of place it needs.
+
+   A CLOSED LIST OF THE ONES THAT WERE THERE, which is the `ACCEPTED` / `VOCAB` / `RETIRED_FACETS`
+   pattern: it cannot catch a place nobody has written yet, and it makes the ones that were found
+   impossible to put back by accident. A new local name is a judgement somebody makes on purpose,
+   and adding it here is where that decision gets written down. */
+const LOCAL = ['Wandle', 'Colliers Wood', 'Britannia Point', 'Wandsworth', 'Croydon', 'Merton'];
+rows.forEach(r => {
+  Object.keys(r).forEach(k => {
+    if (typeof r[k] !== 'string') return;
+    LOCAL.forEach(w => {
+      if (r[k].indexOf(w) >= 0) {
+        fail.push(r.practical_id + '.' + k + ' names ' + w
+          + ' — a method that names a place only works for somebody standing in it');
+      }
+    });
+  });
+});
+
+/* ---------- WHAT EACH COLUMN COVERS, AS A NUMBER --------------------------------------------------
+   A COLUMN ON A SUBSET IS EXACTLY THE FAULT ABOVE, and the only way it is visible before somebody
+   opens two cards side by side is a count. Printed rather than failed for the ones that are
+   deliberately partial. */
+const COVER = ['age_min', 'wow', 'cost_per_run_gbp', 'setup_cost_gbp', 'science', 'variables',
+               'log', 'risks', 'diagram', 'item_ids'];
+note.push('per column, of ' + rows.length + ' rows: ' + COVER
+  .map(c => c + ' ' + rows.filter(r => String(r[c] || '').trim()).length)
+  .join(' · '));
+
 const noItems = rows.filter(r => !String(r.item_ids || '').trim()).length;
 if (noItems) {
   note.push(noItems + ' of ' + rows.length + ' name no shop items yet — a backlog, not a fault: '

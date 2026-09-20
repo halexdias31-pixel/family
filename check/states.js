@@ -107,6 +107,48 @@ const STATES = {
                  && document.querySelector('#sheet-body .prac-kit li'),
       wants: 'the guide open in the sheet, with its kit list and all seven boxes',
       leave: () => closeSheet() },
+    /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
+       BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
+       with four live buttons; answered, with the right one marked, the wrong one outlined and the
+       explanation underneath — and they have different heights, different colours and different
+       controls. Measuring only the first would be measuring half the feature, which is exactly what
+       `check/ui.js` had been doing to the booking column for as long as the fixture's one job named
+       neither visitor.
+
+       ANSWERED THROUGH `localStorage` RATHER THAN BY PRESSING, which is the door this feature
+       actually uses: `quizRow_` reads the stored answer and works the mark out itself, so seeding
+       the key is the same thing as having pressed the button — and it is what proves the two paths
+       agree. `quizKey_` is the app's own key-builder for the reason the seeded message thread uses
+       `MESSAGES`: a second spelling of that key here would be a second thing to keep in step.
+
+       AND IT PUTS THE SHEET BACK, for the reason the guide above does. */
+    { name: 'a quiz',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'quiz');
+        if (!x) throw new Error('no quiz in the list to open');
+        const qs = x.row.qs || [];
+        /* One right and one wrong, so both marked states are on the screen at once. A quiz where
+           everything is right measures no red, which is half the rules in the block. */
+        const pick = qs.filter(q => q.kind === 'choice');
+        if (pick.length >= 2) {
+          localStorage.setItem(quizKey_(x, pick[0].n), pick[0].answer);
+          const other = (pick[1].choices || []).find(c => c !== pick[1].answer);
+          if (other) localStorage.setItem(quizKey_(x, pick[1].n), other);
+        }
+        openSheet(x.name, quizSheet_(x), null, null);
+      },
+      expect: () => document.querySelectorAll('#sheet-body .quiz-q').length >= 3
+                 && document.querySelector('#sheet-body .quiz-q.is-right')
+                 && document.querySelector('#sheet-body .quiz-q.is-near')
+                 && document.querySelector('#sheet-body .quiz-why'),
+      wants: 'the quiz open, with one question right, one wrong, and both explanations drawn',
+      leave: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'quiz');
+        if (x) (x.row.qs || []).forEach(q => {
+          try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
+        });
+        closeSheet();
+      } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
@@ -148,6 +190,37 @@ const STATES = {
      switched off moves every index after it — and a state that silently lands on the wrong widget
      is worse than one that fails, because it reports a pass about something it did not look at.
      `expect` is what makes that loud. */
+  /* ---------- THE SAVED COLUMN, IN BOTH OF ITS STATES --------------------------------------------
+     IT IS EMPTY FOR EVERY VISITOR ON A FRESH BROWSER, which is the state `check/press.js` and
+     `check/ui.js` would both have measured and the only one they could reach — the same hole the
+     booking receipt and the message thread were in, and the one the removed Carry-on block was in
+     when a whole feature went unpressed. A column whose contents come from `localStorage` needs a
+     state that seeds it or the lab reports a clean sweep of a card it never saw.
+
+     SEEDED THROUGH `toggleFav`, THE APP'S OWN WRITER, rather than by writing the key out here: the
+     prefix is `WIDGET_KEY`'s and a second spelling of it would be a second thing to keep in step.
+     `leave` takes them back off, because states run in order down one page. */
+  saved: [
+    { name: 'nothing kept' },
+    { name: 'two widgets kept',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        widgetsOf_('tool').slice(0, 2).forEach(w => {
+          if (!isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        });
+        paint('saved');
+      },
+      expect: () => document.querySelectorAll('#s-saved .widget-slot').length >= 2
+                 && document.querySelector('#s-saved .tile.on'),
+      wants: 'two starred widgets on the column, each with a filled star',
+      leave: () => {
+        widgetsOf_('tool').slice(0, 2).forEach(w => {
+          if (isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        });
+        paint('saved');
+      } },
+  ],
+
   tools: [
     { name: '' },
     { name: 'the cheat sheet maker',

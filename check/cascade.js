@@ -82,6 +82,33 @@ const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001',
    `.tile.is-admin` is understood, and `.tile.on` losing its BACKGROUND to something else next month
    is not. */
 const ACCEPTED = {
+  '.mz-cell.been || .mz-cell.you || background-attachment':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-clip':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-color':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-image':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-origin':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-position-x':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-position-y':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-repeat':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
+  '.mz-cell.been || .mz-cell.you || background-size':
+    'WHERE YOU ARE WINS OVER WHERE YOU HAVE BEEN, which is the one square that is both. `.mz-cell.been` is the faint trail and `.mz-cell.you` is the gold marker, and the start square carries both from the first frame — so the later rule winning is the design. Reported here for the first time only because a maze has to be on a screen for the pair to exist, which is what `check/cascade.js` asks of the RENDERED app rather than of the file. Nine entries because `background` is a shorthand and this check reads longhands.',
+
   '.page .card || .card.is-widget || border-bottom':
     'A WIDGET DRAWS ITS OWN BODY. `.page .card` takes the bottom hairline off a card in a list — '
   + '"a hairline across the bottom of a screen reads as a list that has been cut off" — and '

@@ -7561,3 +7561,282 @@ breadth-first route, and the moves counter, the state and the sentence all agree
 the solver predicted — 50 on one maze, 68 on the next, so the carving really is random. Walking
 into the edge moves nothing and counts nothing. 36 checks pass, `check-widgets.js` reports 8 games,
 and `check/press.js` presses both of its actions.
+
+## A recap quiz for every science topic, and the library could not mark a single one of its own
+
+**Asked for as "i need to make a quize for each level of each topic in my site. just a quiz os less
+pressure. sort of like a recap thing. starting with science."**
+
+**THE MEASUREMENT IS WHY IT IS NEW CONTENT RATHER THAN A NEW VIEW OF THE LIBRARY.** There are 745
+science questions in `data/questions.json` and **every one of them has an empty `accept`** — so not
+one can mark itself. That is correct for an exam question, which is marked against a scheme by a
+person reading working, and it makes a recap impossible: the whole point of a recap is that you
+find out now. So 405 questions were written for it — 81 quizzes, five each, **27 science topics ×
+KS3 / GCSE Foundation / GCSE Higher**, 368 multiple choice and 37 typed.
+
+**The three levels are different QUESTIONS about one topic, not one question worded harder.** KS3
+asks what a thing is; Foundation asks what it does and what the words mean; Higher asks the content
+that is Higher-only on the spec — the inverse square law, monoclonal antibodies, negative feedback,
+trophic efficiency, momentum. A Higher paper is not a Foundation paper with longer words.
+
+**And every `why` is the MECHANISM rather than the answer said again.** This file already records
+that line twice about the practicals' `science` column: a sentence saying *"the rate rises with
+concentration"* hands somebody the result of an experiment they have not run. *"More particles in
+the same volume, so more frequent collisions"* is the half a student cannot get from watching, and
+it is as true before the answer as after it.
+
+### It is marked by `markAnswer_`, which is the library's own marker
+
+**A typed quiz answer goes through the same function a past-paper answer does**, so the fraction
+slash, the mixed number, the "or equivalent" fold and the accepted band all behave here exactly as
+they do on an Edexcel paper. A second marking implementation would be the second reader this
+repository records under `documents_()`, `paperIdOf_`, `factsNow_` and `childrenOf` — and **this is
+the one surface in the app that tells a child they are wrong**, so two of them is two chances to do
+that unfairly.
+
+**And the answers live in the drawer the past papers already write into.** `ansKey_(x) + '#q<n>'`
+is `guideBox_`'s shape and for its reason: `whoIs_` still decides whose answers these are, so two
+students on one phone get two sets and signing out moves all five together. Which also makes *"if
+they answer something, it will be answered next time they come on"* true of a quiz with nothing new
+written.
+
+### `node js/check-quizzes.js` found three on its first run, and they are its whole class of fault
+
+**`quizRight_` compares a multiple-choice answer against the stored press as a STRING, character for
+character** — and that is safe only because the answer is one of the choices. An answer cell that is
+not reachable by any press marks **every attempt wrong, for ever**, silently, with valid markup, and
+reading as the student's fault rather than the row's. That is the failure this file calls the worse
+of the two.
+
+**The three it caught are the same shape one column along**: `A hand warmer`, `A sports injury cold
+pack` and `Radon gas from rocks` were printed as the answer to a TYPED question whose `accept` list
+would have refused all three — so a child typing exactly what the card showed them would have been
+told they were wrong. The check runs the app's own `markAnswer_` over every typed row's own printed
+answer, which is the only way that question can be asked.
+
+**`tools/quizwrite.py` asserts all of it at the writing end and that is not enough.** A file can be
+hand-edited, appended to by another script, or written by a version of that tool that has since
+changed, and a rule living only in the thing that produced the data is a rule nothing enforces about
+the data. Same argument as `check-library.js` sitting over insert scripts that already assert their
+own totals. **Proved by mutation in four directions**: an answer that is not a choice, a comma in a
+topic name, a missing `why`, and a typed row whose `accept` was emptied.
+
+### `check-marks-load.js` — the second extractor was written and immediately got it wrong
+
+**`check-quizzes.js` needs the same six marking functions `check-marking.js` cuts out of `find.js`,
+to ask a different question of them**, and its first version had its own simpler cutter: to the next
+top-level declaration. **It reported `js/find.js no longer declares markBare_`** about a file that
+declares it on line 3420 — `markBare_` is a `const` arrow with no block, so it ends at a semicolon
+rather than a brace, and the naive cut walked straight past it.
+
+A check confidently wrong about its own subject, one commit after being written. One extractor now,
+brace-counted, used by both — which is this repository's own answer every time two readers of one
+thing appear.
+
+### The number was in the roster line, and a state added to the lab did not touch it
+
+**`check-all.js` said `132 combinations of screen, state, width and visitor` and the run printed
+140.** The quiz state was measured, reported nothing, and the summary went on naming the old number,
+because `check/states.js` and `check-all.js` are different files and only one of them counts.
+**Fifth occurrence of the shape this file opens the checking section with** — "all 18 checks pass",
+"one of the eighteen names", `papers checked against a total` going 34 → 2 under a green tick, and
+the prose over `CARD_W` naming 88% and 4% while the code said 80 and 8. The label names no number
+now; the run prints its own.
+
+### The double-import trap, and it printed `0 quizzes` over 405 perfect rows
+
+**`tools/quizwrite.py` run as a script is `__main__`.** The three content files say
+`from quizwrite import quiz`, which loads it a SECOND time under its own name with its own empty
+`ROWS` — so the rows landed in `quizwrite.ROWS` and the `write()` at the bottom read `__main__.ROWS`,
+a different list. It reported **`0 quizzes, 0 questions`** over content that had been built perfectly,
+which is this repository's oldest shape one more time: *I did not manage to look, reported as I
+looked and there was nothing there.* It goes through the imported copy now.
+
+### Found in the funnel, opened in a sheet — which is the practicals' split and its measured reason
+
+**`.pane` is `overflow: hidden` and caps at 805px on an 844px phone**, and five questions with four
+choices and an explanation each is nowhere near that. So the card is the search RESULT — the topic,
+the level, and how far through you are — and the sheet is the thing you work through, because
+`#sheet-body` scrolls. Identical to the split `practicalCard_` records, taken for the same reason
+measured one data file along.
+
+**The join is `topics` a third time**, and that is the whole reason this is in the funnel rather than
+on a screen of its own: `tools/quizwrite.py` refuses a topic `data/topics.json` has never heard of,
+so a quiz, a practical and a past-paper question about cell biology all answer one Topic question.
+`level` and `tier` are the library's own spellings for the `needs_print` / `print_required` reason —
+a third spelling of a fact two columns already carry cost 356 rows of disagreement last time.
+
+**The mark is drawn from the stored answer, never left on the element by the handler.** That is the
+`REEL_HELD` fault in full: the reel's pause mark was added in the tap handler only, so a repaint
+rebuilt the markup without it while the state stayed. Here the same fault would be a quiz you
+answered, reopened, and found blank while the score said 5 of 5. `quizRow_` reads the key and works
+the mark out itself, so the markup after a press is byte-identical to the markup after reopening.
+
+**And the score is counted rather than stored** — a stored score is a second copy of a fact five keys
+already hold, which is `paperMismatches`'s argument and `reelPages_`'s. An unanswered question is not
+a wrong one, because `markAnswer_` answers `null` for an empty box and that distinction is deliberate
+there: the line says *"3 of 5 answered, 2 right"* rather than failing the two nobody has reached.
+
+**The declared state seeds one right and one wrong**, through `localStorage` and the app's own
+`quizKey_` rather than by pressing, because that is what proves the two paths agree — and a quiz
+where everything is right measures no red, which is half the rules in the block.
+
+### `check/press.js` could not see a sheet a STATE had opened, and the mutant proved it
+
+**It reported a clean run over 93 actions with `quiz-pick`, `quiz-check` and `quiz-again` never
+pressed once.** The queue is built from `#s-<id>`, and **a sheet is a sibling of the screens rather
+than a child of one** — so the only route a sheet's actions ever had was `out.inSheet`, which is
+collected AFTER a press opens one. A state whose own `enter` opens a sheet queued nothing at all.
+
+**Proved by breaking `quiz-pick` outright and watching the mutant survive**, which is this file's own
+definition of a check that cannot fail. With the queue seeded from an open sheet the count goes
+**93 → 99** and the mutant is named at both visitors; the real handler is silent.
+
+**The practical guide had been in the same hole since it was written** and got away with it because
+the boxes it holds are `qp-ans`, which is pressed on a question card elsewhere. That is the
+instance; the queue is the rule, and this repository's own sentence about `cost: 0` and `paper:
+true` is why the fix is the second one.
+
+### The card said the same sentence eighty-one times
+
+**A screenshot of five cards in one column, all reading *"A quick recap. Nothing is sent anywhere and
+there is no timer."*** One fact about every quiz in the list, printed once per row — which is the AQA
+insert fault this file records in full: one sentence describing an insert, repeated on every question
+that used it, when it belongs to the thing they all hang from. The sheet's own intro says it once, at
+the moment somebody is about to answer.
+
+What actually tells two cards apart is the topic, the level chip and how far through you are, and
+only the third of those is ever worth a line. **Twelfth time this file writes that a screenshot is
+the last word on something drawn** — nothing measured wrong, no overflow, no tap target under 44px,
+and the card was a third boilerplate.
+
+## Chat was in Tools because the note deleting it only took the static half
+
+**Reported as "i dont want chat in tools. what the fuck"**, with a screenshot of two message threads
+sitting under the calendar on the Tools column.
+
+**`map.js` ALREADY CARRIES THE ARGUMENT AGAINST IT, in full, where the messages widget was deleted
+from `WIDGETS`**: *"a calculator, a board and a timer are instruments: you go looking for one
+because you want to do something with it. A message is somebody trying to reach YOU."* That removal
+took the FIXED entry out. **`msgWidgets_()` in `me.js` went on generating one per conversation with
+`kind: 'tool'`**, and `allWidgets()` concatenated them — so the decision was undone by a function
+nobody connected to it, in a file the note does not mention.
+
+**And the `dm` column exists now**, one conversation per page with the composer at the foot of each,
+built long after that note. So Tools was the **third** home for a conversation and the only one
+nobody asked for — the reel scroller's shape exactly: a surface that predates a better one and was
+never removed with it. `msgWidgets_` and `fillThread_` are gone; measured first, the string `msg:`
+appears nowhere else, so the roster was the only reader.
+
+## The card changed under your thumb, and the shift was measured off the one page that cannot move
+
+**Reported as "when navigating up and down on the practicles, they just start bugging out. i dont
+know if its because i was favouriting things too."** It was, and reproducing it took one probe:
+
+| | |
+|---|---|
+| six pages into the practicals | page 7, reading **Microbiology** |
+| press the star on that card | page 7, reading **Food tests** |
+
+**A star added a page in FRONT of the results**, so every result slid down by one while the page you
+were standing on kept its number. The card you were reading became a different card and nothing
+anywhere said why.
+
+**`paintStuff(true)` WAS ALREADY TRYING TO DO THIS AND WAS MEASURING THE WRONG THING.** It shifted
+`PAGE.stuff` by `stuffQuestionPage_() - wasQ` — and `screen('stuff')` builds
+`[the question], frontPages_(), savedPages_(), …`, so **the question is page nought under every
+ordering and that difference is always nought.** The note over the star's handler claimed it moved
+you "by exactly that much"; it moved you by nothing. Same shape as the `.favwrap.is-fav` rule below:
+a sentence describing a mechanism that is not there.
+
+**AND MY FIRST FIX MOVED NOTHING EITHER, for a reason worth keeping.** Measuring off
+`stuffFirstResult_()` looks right and is derived from `savedPages_()`, which reads `FAVS` — and
+`toggleFav` has already written to it by the time `paintStuff` runs. So the old value and the new
+value are the same number. **The strip still standing is the only thing that remembers where the
+results used to start**, so the old count is read off the DOM. The probe caught it because it
+reports the card it can see rather than the number it expected.
+
+**And the root cause went in the same commit**: the saved things are a column now, so nothing is
+ever inserted in front of the results. The shift stays, because `frontPages_()` can still change.
+
+## Saved is a column again, and what changed is that a widget can be starred at all
+
+**Asked for as "add a favourite column so i can see the widgets i favoutited. add the coloumn to the
+right of games. after i fabourite it the tile should be filled in."**
+
+**`TABS`'S OWN NOTE LISTS FAVOURITES AMONG THE DEAD**: *"Every column this app has had was
+eventually folded into the funnel — Spotlight, Book, Basket, Library, Arcade, Tools, Favourites."*
+It went because it was a second way to reach what the funnel already reached. **What has changed is
+the half that makes this not that column: a widget could not be starred at all.** Tools and games
+are deliberately out of the funnel — the owner's judgement, recorded twice — so there has never been
+anywhere to keep a calculator. `favTile_` is drawn on every widget card now, same renderer, same
+44px target, same `FAVS` set a question or a tutor is kept in.
+
+**AND THE SAVED PAGES LEFT THE FUNNEL IN THE SAME COMMIT**, because two homes for one list is the
+fault this file records under `documents_()`, `factsNow_` and `childrenOf` — and here the second
+home was the cause of the bug above. Measured after: starring in Find leaves you on the same card.
+
+**Five places name a screen and all five were edited**: `TABS`, `TAB_ORDER`, `PAGER`, `PAGE`, and a
+`<section id="s-saved">` — plus `data/settings/columns.json`, which is the sixth and is what
+`applyColumns_` reads, so the column can be reordered or switched off without a deploy.
+`check-doors.js` reports 10 screens.
+
+**It starts and stops its widgets like the other two columns.** A starred timer is a running timer,
+and `toolsStop_` already exists for the flat battery.
+
+### `.favwrap.is-fav .star` does not exist, and has not for a long time
+
+**The paragraph over `.tile.on` in `style.css` says "FILLED MEANS DONE" and names that rule as what
+does it. It is nowhere in the file.** Deleted at some point with the sentence left standing — the
+shape this file records under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard. So a
+saved star has been the same outline as an unsaved one on every card in the app, and the only
+difference was `.tile.on`'s background at 9% white, which on this ground is invisible. **The
+complaint is about the Saved column and the fault was everywhere.**
+
+**Every mark is `fill="none"` stroked in `currentColor`, so the fix is a fill — and it cannot be
+every mark.** `tileIcon_` writes the icon's own name as a class now, because a star, a jumper and a
+lamp are closed silhouettes that read filled, and the trolley is a body and two wheels drawn as open
+paths: filling it paints a wedge between the handle and the basket. Three named rules, and
+`.tile.is-buy.on` one line up already says "in your basket" by going quiet. **Screenshotted**, which
+is the thirteenth time this file writes that.
+
+## The practicals were written for one learner in one town
+
+**Reported as "it seems you speciallised the practicles for me and my situation. it needs to be more
+systematic and uniform like repeatable for anyone."** Measured rather than guessed at, because
+"feels specialised" is not something to act on directly. Four things, and only one is prose:
+
+| | |
+|---|---|
+| **`age_min` on 16 of 57 and `wow` on 16 of 57** | **the same sixteen** — the set that came out of one chat transcript. Two columns on a subset draw two kinds of card down one column: eleven saying "7+ · worth opening a session with" and forty-six saying neither |
+| **two practicals named after one town's park and its river** | *Perimeter of Wandle Park*, *Flow rate of the River Wandle*, and five more naming a local landmark in their steps or notes |
+| **notes addressing one person and one session** | *"before HE is watching"*, *"This is the one to open with"*, *"THE MOST VALUABLE ONE IN THE SET"* |
+| **a practical built around what one house has** | *Fish behaviour logging* |
+
+**`age_min` IS NOT `level` RESTATED, AND THAT WAS CHECKED RATHER THAN ASSUMED.** `level: 'GCSE'`
+carries ages **6, 8, 9, 13 and 14** across the sixteen rows that have both — the volcano is GCSE
+content about rates and ratio that a six-year-old can pour. So `level` is the spec content and
+`age_min` is the youngest child who can DO it, and they are two facts. Storing one as the other
+would be the `needs_print` / `print_required` fault this file records three times.
+
+**So the rule is stated and the values are not guessed.** Where nobody has made a narrower judgement
+the youngest child is the youngest in the band it is set for, which is `level`'s own lower bound —
+41 filled that way, 16 judgements kept, and `tools/practical-uniform.py` asserts it never overwrote
+one. **`wow` cannot be derived and is written out one row at a time**: a titration and an
+electrolysis are the same level, the same venue and the same subject with completely different
+answers to "is there anything to see". Deriving it from a word in the name would be the substring
+fault that put a gold *required practical* flag on five cards saying they are not one.
+
+**`cost_per_run_gbp` stays on 8 of 57 and that is the one deliberate gap.** A school owns the kit
+and nobody has ever costed a lab practical; `libNum` answers absent rather than nought for exactly
+that reason. The count is printed so it is a number rather than a silence.
+
+**`check-practicals.js` fails on a live row with no `age_min` or no `wow`**, refuses any of the six
+local names as a closed list — the `ACCEPTED` / `VOCAB` / `RETIRED_FACETS` pattern for the seventh
+time — and prints per-column coverage, because a column on a subset is invisible until somebody
+opens two cards side by side. **Proved by mutation**: a blanked `wow` and a note reading "Meet at
+Wandle Park" are named and exit 1.
+
+**And every one of the thirteen prose edits asserts that it found what it was replacing.** A
+replacement that silently matches nothing is the shape this file records every time a rule is
+written from the instance that prompted it.

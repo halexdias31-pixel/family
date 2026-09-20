@@ -286,6 +286,12 @@ const KINDS = {
      that you have forty minutes and no lab. All four of those are questions the funnel already
      asks, so this needed a mapper and a card and nothing else. */
   practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
+  /* A QUIZ IS A THING YOU FIND FOR THE SAME REASON, one step earlier: you know the topic and the
+     level and you want five minutes of recall on it. Subject, Topic and Level are all questions
+     the funnel already asks, and a quiz carries the library's own spellings of each -- so a KS3
+     cell biology quiz sits with the KS3 cell biology questions rather than behind a door of its
+     own. Mapper, card, sheet; nothing in the engine. */
+  quiz: { group: 'Learning', label: 'Quizzes', card: x => quizCard_(x) },
   /* ---------- THE FILMS, AND THEY ARE ABSENT RATHER THAN HIDDEN --------------------------------
      THERE IS NO `admin` TEST ANYWHERE ON THIS KIND, DELIBERATELY. `doGet` builds `payload.films`
      inside `if (viewerIsAdmin)` and sends `[]` to everybody else — see the note there — so a
@@ -2392,6 +2398,252 @@ on('prac-guide', el => {
   openSheet(x.name, practicalGuide_(x), null, null);
 });
 
+
+/* ==================================================================================================
+   THE QUIZ — A RECAP, WHICH IS A DIFFERENT OBJECT FROM A PAST PAPER.
+
+   ASKED FOR AS "a quiz for each level of each topic in my site. just a quiz so less pressure. sort
+   of like a recap thing. starting with science."
+
+   THE MEASUREMENT IS WHY IT IS NEW CONTENT RATHER THAN A NEW VIEW OF THE LIBRARY. There are 745
+   science questions in `data/questions.json` and **every one of them has an empty `accept`** — so
+   not one can mark itself. That is correct for an exam question, which is marked against a scheme
+   by a person reading working; it makes a recap impossible, because the whole point of a recap is
+   that you find out now. 405 questions were written for this, five per quiz, 81 quizzes.
+
+   IT IS FOUND IN THE FUNNEL AND OPENED IN A SHEET, which is `practicalCard_`'s split one data file
+   along and for its measured reason: `.pane` is `overflow: hidden` and caps at 805px on an 844px
+   phone, so five questions with their choices and their explanations cannot be a card. The card is
+   the search result — what you choose BETWEEN — and the sheet is the thing you work through.
+
+   MARKED BY `markAnswer_`, WHICH IS THE LIBRARY'S OWN MARKER. A typed quiz answer goes through the
+   same function a past-paper answer does, so the fraction slash, the mixed number, the "or
+   equivalent" fold and the accepted band all behave here exactly as they do there. A second
+   marking implementation would be the second reader this file records under `documents_()`,
+   `paperIdOf_` and `factsNow_` — and this is the one surface in the app that tells a child they
+   are wrong, so two of them is two chances to do that unfairly.
+================================================================================================== */
+
+/* ---------- ONE KEY PER QUESTION, THROUGH THE KEY-BUILDER THAT ALREADY EXISTS --------------------
+   `ansKey_(x) + '#' + n` IS `guideBox_`'S SHAPE, for the reason its note gives: `whoIs_` still
+   decides whose answers these are, so two students on one phone get two sets and signing out moves
+   all five together. A second key-builder here would be a third spelling of "whose answer is this".
+
+   AND IT IS THE SAME DRAWER THE PAST PAPERS WRITE INTO, which is what makes "if they answer
+   something, it will be answered next time they come on" true of a quiz as well without anything
+   new being written. */
+const quizKey_ = (x, n) => ansKey_(x) + '#q' + n;
+
+/* ---------- THE SCORE IS READ OFF THE ANSWERS, NEVER STORED ------------------------------------
+   A stored score is a second copy of a fact five keys already hold, and the day they disagree the
+   one somebody sees is the wrong one. This is the `paperMismatches` argument and the `reelPages_`
+   argument: count the thing itself.
+
+   AN UNANSWERED QUESTION IS NOT A WRONG ONE. `markAnswer_` answers `null` for an empty box and
+   that distinction is deliberate there — so the score says "3 of 5 answered, 2 right" rather than
+   marking the two nobody has reached yet as failures. */
+function quizMarks_(x) {
+  const out = { done: 0, right: 0, total: (x.row.qs || []).length };
+  (x.row.qs || []).forEach(q => {
+    const v = ansRead_(quizKey_(x, q.n));
+    if (!String(v || '').trim()) return;
+    out.done++;
+    if (quizRight_(q, v)) out.right++;
+  });
+  return out;
+}
+
+/* ---------- WHAT COUNTS AS RIGHT, AND THE TWO KINDS ARE NOT MARKED THE SAME WAY -----------------
+   A MULTIPLE-CHOICE ANSWER IS COMPARED AS A STRING, character for character, and that is safe only
+   because `tools/quizwrite.py` asserts the answer is one of the choices. Without that assertion a
+   typo in the answer cell would mark every attempt wrong — every one — and it would read as the
+   student being wrong rather than the row being broken, which is the failure this file calls the
+   worse of the two. The assertion is the whole safety argument for this line.
+
+   A TYPED ANSWER GOES THROUGH `markAnswer_`, so it gets every generosity the library's own marking
+   has: the fraction slash, the equivalent fraction, the accepted band, the trailing unit. */
+function quizRight_(q, typed) {
+  if (q.kind === 'typed') return markAnswer_(typed, q.accept) === true;
+  return String(typed || '') === String(q.answer || '');
+}
+
+function quizCard_(x) {
+  const q = x.row;
+  const m = quizMarks_(x);
+  /* THE CARD SAYS WHERE YOU GOT TO, because a recap is a thing you come back to and a card that
+     looks identical whether you have done it or not is a card you cannot choose between. Nothing
+     is said about a quiz nobody has started — an empty progress line on 81 cards is noise. */
+  const been = m.done
+    ? (m.done === m.total ? m.right + ' of ' + m.total + ' right' : m.done + ' of ' + m.total + ' answered')
+    : '';
+  return `<div class="card quiz">
+    <div class="prac-head">
+      <h3>${esc(q.topic)}</h3>
+      <span class="quiz-lvl">${esc(q.tier ? q.level + ' ' + q.tier : q.level)}</span>
+    </div>
+    <p class="sub">${esc(q.subject)} · ${q.qs.length} questions</p>
+    ${/* ---------- THE CARD SAYS WHAT DIFFERS, AND NOTHING ELSE ---------------------------------
+          "A quick recap. Nothing is sent anywhere and there is no timer." WAS HERE, on all 81 cards.
+          It is one fact about every quiz in the list, printed once per row — which is the AQA insert
+          fault this file records in full: one sentence describing an insert repeated on every
+          question that used it, when it belongs to the thing they all hang from. The sheet's own
+          intro says it, once, at the moment somebody is about to answer.
+
+          Caught on a screenshot of five cards in a column, all carrying the same sentence. What
+          actually tells two of them apart is the topic, the level chip and how far through you are,
+          and only the third of those is ever worth a line. */''}
+    ${been ? `<p class="quiz-say"><b>${esc(been)}</b> so far.</p>` : ''}
+    <div class="tile-row">${tile_({
+      icon: 'doc', label: m.done ? 'Carry on' : 'Start',
+      note: q.qs.length + ' questions',
+      act: 'quiz-open', data: { key: x.key } })}</div>
+  </div>`;
+}
+
+/* ---------- ONE QUESTION ------------------------------------------------------------------------
+   THE MARK IS DRAWN FROM THE STORED ANSWER, NOT LEFT ON THE ELEMENT BY THE HANDLER. That is the
+   `REEL_HELD` fault this repository records in full: the first version of the reel's pause mark
+   added its class in the tap handler only, so a repaint rebuilt the markup without it while the
+   state stayed — a column showing a stopped clip with nothing on it saying so. Here the same fault
+   would be a quiz you answered, reopened, and found blank while the score line said 5 of 5.
+
+   THE EXPLANATION IS SHOWN ONCE THE QUESTION HAS BEEN ANSWERED AND NOT BEFORE. It is the whole
+   value of a recap — you find out WHY now rather than at the end — and showing it first would make
+   every question a reading exercise. Right or wrong, it opens: a wrong answer is exactly when the
+   mechanism is worth reading, which is the opposite of `qp-check`'s rule for a past paper and
+   deliberate. There the mark scheme is the answer to a question still being attempted; here there
+   is one attempt and the explanation IS the teaching.
+
+   A CHOICE IS A `<button>` AND NOT A RADIO, and that is the house style rather than a preference:
+   the sheet is a form, a form has buttons, and a 44px target is the one measurement in this
+   stylesheet that does not scale. A radio's own box is 17px whatever the label around it does. */
+function quizRow_(x, q) {
+  const k = quizKey_(x, q.n);
+  const v = ansRead_(k);
+  const done = !!String(v || '').trim();
+  const right = done && quizRight_(q, v);
+  const cls = !done ? '' : right ? ' is-right' : ' is-near';
+  return `<section class="quiz-q${cls}">
+    <p class="quiz-ask"><span class="quiz-n">${esc(q.n)}</span> ${esc(q.ask)}</p>
+    ${q.kind === 'typed'
+      ? `<label class="qp-ans quiz-typed">
+           <span class="qp-ans-k">Your answer</span>
+           <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
+             rows="1" spellcheck="false" autocomplete="off">${esc(v)}</textarea>
+         </label>
+         <button type="button" class="btn quiet quiz-check" data-do="quiz-check"
+           data-key="${esc(x.key)}" data-n="${esc(q.n)}">Check</button>`
+      /* THE CHOSEN ONE IS MARKED, AND SO IS THE RIGHT ONE ONCE IT IS OVER. A wrong answer that
+         only says "wrong" leaves somebody to guess which of the other three it was — and guessing
+         is the thing the explanation underneath exists to replace. */
+      : `<div class="quiz-opts">${q.choices.map(c => {
+          const picked = done && String(v) === String(c);
+          const isAns = done && String(c) === String(q.answer);
+          return `<button type="button" class="quiz-opt${picked ? ' is-picked' : ''}${
+            isAns ? ' is-ans' : ''}" data-do="quiz-pick" data-key="${esc(x.key)}"
+            data-n="${esc(q.n)}" data-v="${esc(c)}"${done ? ' disabled' : ''}>${esc(c)}</button>`;
+        }).join('')}</div>`}
+    ${done ? `<p class="quiz-why"><b>${right ? 'Correct.' : q.kind === 'typed'
+        ? 'Not quite — the answer is ' + esc(q.answer) + '.'
+        : 'Not quite.'}</b> ${esc(q.why)}</p>` : ''}
+  </section>`;
+}
+
+function quizSheet_(x) {
+  const m = quizMarks_(x);
+  return `<div class="gd quiz-sheet">
+    <p class="sub">${esc([x.row.subject, x.row.tier ? x.row.level + ' ' + x.row.tier : x.row.level]
+      .join(' · '))}</p>
+    ${/* ---------- WHAT THIS IS, SAID BEFORE THE FIRST QUESTION -------------------------------
+          "just a quiz so less pressure" IS THE BRIEF and a screen that does not say so reads as a
+          test. Nothing here is sent anywhere, nothing is timed and nothing is reported to a tutor
+          — and all three of those are true, which is why they can be written down. */''}
+    <p class="quiz-intro">Five questions, marked as you go. Nothing is sent anywhere and nothing
+      is timed — it is a recap, so a wrong answer is the useful one.</p>
+    <div class="quiz-score" role="status" aria-live="polite">${quizScore_(m)}</div>
+    ${x.row.qs.map(q => quizRow_(x, q)).join('')}
+    ${/* ANOTHER GO CLEARS THE FIVE KEYS, so the quiz is genuinely blank rather than blanked on
+          screen. It is the one control here that destroys something, which is why it says what it
+          will do rather than carrying a glyph. */''}
+    <div class="quiz-foot">
+      <button type="button" class="btn quiet" data-do="quiz-again"
+        data-key="${esc(x.key)}">Clear my answers and start again</button>
+    </div>
+  </div>`;
+}
+
+function quizScore_(m) {
+  if (!m.done) return 'Nothing answered yet.';
+  if (m.done < m.total) {
+    return '<b>' + m.right + '</b> right out of the ' + m.done + ' answered · '
+      + (m.total - m.done) + ' to go';
+  }
+  return '<b>' + m.right + ' out of ' + m.total + '</b>'
+    + (m.right === m.total ? ' — all of them.' : '');
+}
+
+/* ---------- FOUND BY KEY, THROUGH THE LIST THE CARD WAS BUILT FROM ------------------------------
+   `stuffItemsAll_()` RATHER THAN `DATA.quizzes`, which is `prac-guide`'s own rule and for its
+   reason: the card came out of that list, and a second lookup into the payload would be a second
+   reader of one list. It is also the list that holds the item the card's `x.key` names, so nothing
+   has to agree about how a key is spelled. */
+function quizFind_(key) {
+  return stuffItemsAll_().find(it => it.key === key && it.kind === 'quiz') || null;
+}
+
+on('quiz-open', el => {
+  const x = quizFind_(el.getAttribute('data-key') || '');
+  if (!x) return toast('That quiz is not in the list any more');
+  openSheet(x.name, quizSheet_(x), null, null);
+});
+
+/* ---------- ANSWERING ----------------------------------------------------------------------------
+   THE ROW IS REDRAWN AND THE SHEET IS NOT. Re-rendering the whole sheet would put `#sheet-body`'s
+   scroll back to the top on every answer — five questions in, that throws somebody back to the
+   intro each time they press a button. So the one `<section>` that changed is replaced and the
+   score line is updated, which are exactly the two things an answer changes.
+
+   AND BOTH ARE REDRAWN FROM STORAGE rather than patched. `quizRow_` reads the stored answer and
+   works the mark out itself, so the markup after a press is byte-identical to the markup after
+   reopening the sheet — which is what stops the two paths drifting. See the note over `quizRow_`. */
+function quizAnswered_(el, key, n, value) {
+  const x = quizFind_(key);
+  if (!x) return;
+  const q = (x.row.qs || []).find(a => String(a.n) === String(n));
+  if (!q) return;
+  try { localStorage.setItem(quizKey_(x, q.n), value); } catch (e) {}
+  const row = el.closest('.quiz-q');
+  if (row) row.outerHTML = quizRow_(x, q);
+  const body = $('sheet-body');
+  const score = body && body.querySelector('.quiz-score');
+  if (score) score.innerHTML = quizScore_(quizMarks_(x));
+}
+
+on('quiz-pick', el => {
+  quizAnswered_(el, el.getAttribute('data-key') || '', el.getAttribute('data-n') || '',
+                el.getAttribute('data-v') || '');
+});
+
+/* NOTHING TYPED IS NOT A WRONG ANSWER, which is `qp-check`'s own rule and the same sentence: a
+   press on an empty box asks for the answer, it does not award a cross. Storing an empty string
+   would make it one, because `quizMarks_` counts a stored answer as attempted. */
+on('quiz-check', el => {
+  const box = el.closest('.quiz-q');
+  const inp = box && box.querySelector('.qp-ans-in');
+  if (!inp) return;
+  if (!String(inp.value || '').trim()) return toast('Write something first');
+  quizAnswered_(el, el.getAttribute('data-key') || '', el.getAttribute('data-n') || '', inp.value);
+});
+
+on('quiz-again', el => {
+  const x = quizFind_(el.getAttribute('data-key') || '');
+  if (!x) return;
+  (x.row.qs || []).forEach(q => {
+    try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
+  });
+  openSheet(x.name, quizSheet_(x), null, null);
+});
+
 /* ==================================================================================================
    `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
 
@@ -2665,6 +2917,27 @@ function practicalText_(p) {
                      (p.equipment || []).join(' '), (p.steps || []).join(' '),
                      (p.risks || []).join(' '), (p.variables || []).join(' '),
                      (p.log || []).join(' ')].filter(Boolean).join(' '));
+}
+
+/* `quizText_` — THE SAME MOVE, one data file along, and for the reason `practicalText_` records:
+   a quiz whose only searchable text is its own name is findable by somebody who already knows it
+   exists. Typing `osmosis`, `terminal velocity` or `oxygen debt` has to reach the quiz that asks
+   about it, and those words appear in exactly one place — inside the questions.
+
+   THE ANSWERS AND THE EXPLANATIONS GO IN TOO, and that is a deliberate difference from
+   `searchText_`, which is built from the stem, the lead and the part and NEVER from the answer.
+   The reason that rule exists is that a past paper's search must not leak its mark scheme; a
+   recap quiz has no such secret — its whole point is that the explanation is one tap away — and
+   `terminal velocity` being the answer rather than the question should not make it unfindable.
+
+   BUILT ONTO THE ITEM, NOT MATCHED PER KEYSTROKE. `stuffItems` is memoised on the payload and
+   runs once; `stuffFind` runs on every letter. */
+function quizText_(q) {
+  const parts = [q.name, q.subject, q.topic, q.level, q.tier];
+  (q.qs || []).forEach(a => {
+    parts.push(a.ask, a.why, a.answer, (a.choices || []).join(' '));
+  });
+  return plainText_(parts.filter(Boolean).join(' '));
 }
 
 /* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
@@ -4161,6 +4434,32 @@ function stuffItemsRaw_() {
       row: p,
     })),
 
+    /* ---------- THE QUIZZES ----------------------------------------------------------------
+       THE JOIN IS `topics` AGAIN, and that sentence is the whole reason this is in the funnel
+       rather than on a screen of its own. `tools/quizwrite.py` refuses a topic `data/topics.json`
+       has never heard of, so a quiz, a practical and a past-paper question about cell biology all
+       answer the same Topic question -- which is the join the practicals' own note describes, one
+       data file along.
+
+       `level` AND `tier` ARE THE LIBRARY'S SPELLINGS, not new words. `levelOf_` reads `level` with
+       `band_value` as its first choice, and `Foundation`/`Higher` is what `tier` already holds on
+       1,158 question rows. Inventing `KS3 Science` as one string would have been a third spelling
+       of a fact two columns already carry -- the `needs_print` / `print_required` lesson, which
+       cost 356 rows of disagreement.
+
+       EVERY WORD OF EVERY QUESTION IS IN THE HAYSTACK, for `practicalText_`'s reason measured one
+       commit earlier: a quiz whose only searchable text is its name is findable by somebody who
+       already knows it exists. Typing `osmosis` or `terminal velocity` should reach the quiz that
+       asks about it, and the only place those words appear is inside the questions. */
+    ...(DATA.quizzes || []).map(q => ({
+      kind: 'quiz', name: q.name, key: 'qz:' + q.id,
+      sub: [q.subject, q.qs.length + ' questions'].filter(Boolean).join(' · '),
+      image: '',
+      subject: q.subject, topics: q.topic, level: q.level, tier: q.tier,
+      text: quizText_(q) + ' ' + topicAtoms_(q.topic).join(' '),
+      row: q,
+    })),
+
     /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
        EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
        `|| []` is the ordinary fallback and here it is also the whole gate.
@@ -5168,9 +5467,9 @@ function stuffFirstResult_() {
   /* PAST THE BOOKING PAGES TOO. They sit between the question and the results, so a result's index
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
-  /* THE BASKET IS NOT COUNTED ANY MORE — it moved to the Booking column. See `bookingPages_`. */
-  return stuffQuestionPage_() + 1 + frontPages_().length
-       + savedPages_().length;
+  /* THE BASKET IS NOT COUNTED ANY MORE — it moved to the Booking column. See `bookingPages_`.
+     NOR ARE THE SAVED PAGES — they are the Saved column now. See the note in `paintStuff`. */
+  return stuffQuestionPage_() + 1 + frontPages_().length;
 }
 
 function stuffPageCount() {
@@ -5604,7 +5903,33 @@ function paintStuff(keepPage) {
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
   const was = PAGE.stuff || 0;
-  const wasQ = stuffQuestionPage_();
+  /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
+     THIS READ `stuffQuestionPage_()` AND THAT NUMBER IS ALWAYS NOUGHT. `screen('stuff')` builds
+     `[the question], frontPages_(), savedPages_(), …` — the question is FIRST and everything that
+     can appear or disappear sits AFTER it. So the shift was measured off the one page in the strip
+     that cannot move, and the comment over the star's handler claimed it moved you "by exactly
+     that much" while it moved you by nought.
+
+     REPORTED AS "when navigating up and down on the practicles, they just start bugging out. i
+     dont know if its because i was favouriting things too." It was. Measured: six pages into the
+     practicals reading `Microbiology`, press the star, and the same page number is now
+     `Food tests` — because starring inserted a page in FRONT of the results and the page you were
+     on kept its number while every result under it slid down by one. The card changes under your
+     thumb and nothing anywhere says why.
+
+     SO IT IS MEASURED OFF THE FIRST RESULT, which is exactly the count of pages before the results
+     and the one number a star changes.
+
+     AND THE OLD VALUE IS A FACT ABOUT THE DOM RATHER THAN ABOUT THE DATA. `stuffFirstResult_()`
+     is derived from `savedPages_()`, which reads `FAVS` — and `toggleFav` has already written to
+     it by the time this runs, so asking it here answers with the NEW number and the difference is
+     always nought. My first fix did exactly that and moved nothing; the probe caught it because it
+     reports the card it can see rather than the number it expected. The strip still standing is
+     the only thing that remembers where the results used to start. */
+  const oldRes = host.querySelector(':scope > .page.is-res');
+  const wasFirst = oldRes
+    ? [].indexOf.call(host.children, oldRes)
+    : stuffFirstResult_();
 
   /* ---------- THE QUESTION PAGE IS NOT REDRAWN, AND THAT IS THE WHOLE POINT ---------------------
      This was `host.innerHTML = first.outerHTML + …`, which rebuilds the first page from its own
@@ -5663,7 +5988,19 @@ function paintStuff(keepPage) {
      ONE INSERT AND ONE ORDER. The string's own order is the order, so there is nothing to reason
      about — `afterend` with four separate calls is what made the old code need a paragraph
      explaining that the last one lands nearest. */
-  const lead = frontPages_().concat(savedPages_())
+  /* ---------- SAVED IS A COLUMN AGAIN, SO IT IS NOT A PAGE HERE --------------------------------
+     `savedPages_()` WAS IN THIS LIST and the things you had starred sat between the question and
+     the results. It has its own column now, right of Games — see `savedCards_` in arcade.js for
+     why that stopped being a duplicate — and two homes for one list is the fault this repository
+     records under `documents_()`, `factsNow_` and `childrenOf`.
+
+     AND IT COST MORE THAN TIDINESS, which is the half worth keeping. A star ADDED A PAGE IN FRONT
+     OF THE RESULTS, so every result below it slid down by one while the page you were standing on
+     kept its number — reported as "when navigating up and down on the practicles, they just start
+     bugging out. i dont know if its because i was favouriting things too." It was. The shift in
+     `paintStuff` is repaired either way, because `frontPages_()` can still change; with the saved
+     things gone from here, pressing a star changes nothing about this strip at all. */
+  const lead = frontPages_()
     .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
   if (lead) first.insertAdjacentHTML('afterend', lead);
 
@@ -5694,8 +6031,13 @@ function paintStuff(keepPage) {
      went between them; `stuffFirstResult_() - 1` is now the last of those, so answering "what for"
      would have dropped you at the foot of the booking form rather than on the question you just
      answered. Zero is no good either — that is a saved thing. */
+  /* ONLY WHAT IS PAST THE LEADING PAGES MOVES. The question is page nought under every ordering,
+     and a saved page you were looking at is still the page it was — it is the RESULTS that slide.
+     So a position before the first result is left exactly where it is, and one at or past it is
+     carried by the same amount the results moved. */
   PAGE.stuff = keepPage
-    ? Math.max(0, Math.min(was + (stuffQuestionPage_() - wasQ), host.children.length - 1))
+    ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
+                           host.children.length - 1))
     : stuffQuestionPage_();
 
   fillStuffPages();
@@ -6000,8 +6342,26 @@ function allWidgets() {
   /* THE STATIC ONES, THEN THE TWO SETS THAT ARE MADE FROM DATA — a widget per conversation and a
      widget per session you are in. Both are the same idea: a thing you can name is worth being its
      own entry rather than a row inside a container somebody has to open first. */
+  /* ---------- AND CONVERSATIONS ARE NOT AMONG THEM ANY MORE --------------------------------
+     `msgWidgets_()` WAS CONCATENATED HERE AND DECLARED `kind: 'tool'`, so every conversation was a
+     page of the Tools column — reported as "i dont want chat in tools. what the fuck", with a
+     screenshot of two message threads sitting under the calendar.
+
+     THE ARGUMENT AGAINST IT WAS ALREADY WRITTEN, twenty lines up in `map.js`, where the messages
+     widget was deleted from `WIDGETS`: *"a calculator, a board and a timer are instruments: you go
+     looking for one because you want to do something with it. A message is somebody trying to
+     reach YOU."* That removal took the STATIC entry out and left the generated ones, so the thing
+     the note forbids came back through the other door.
+
+     AND THERE IS A COLUMN FOR THEM NOW. `dm` is one conversation per page with the composer at the
+     foot of each — built after that note was written, which makes Tools the THIRD home for a
+     conversation and the only one nobody asked for. Same shape as the reel scroller that was a
+     second description of the pager: a surface that predates a better one and was never removed
+     with it.
+
+     Nothing looks a `msg:` widget up by id — measured, the string appears nowhere else — so the
+     roster is the only thing that was reading it. */
   return WIDGETS
-    .concat(typeof msgWidgets_ === 'function' ? msgWidgets_() : [])
     .concat(typeof liveWidgets_ === 'function' ? liveWidgets_() : []);
 }
 
@@ -6315,7 +6675,6 @@ screen('stuff', () => {
   return pages('stuff', spotPages().concat(
     [controls],
     frontPages_(),
-    savedPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => '');
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one

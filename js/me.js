@@ -1028,36 +1028,22 @@ function messageThreads_() {
     .localeCompare(String((a.last || {}).at || '')));
 }
 
-/* THREADS AS WIDGETS. `WIDGETS` is a fixed list of things the app can open; these are made from the
-   payload, one per person who has written to you, so the drawer grows and shrinks with the
-   conversations rather than holding one "Messages" that contains all of them. */
-function msgWidgets_() {
-  if (!USER) return [];
-  return messageThreads_().map(t => ({
-    id: 'msg:' + t.id,
-    kind: 'tool',
-    name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
-    what: 'That conversation',
-    into: 'msg-body-' + t.id,
-    start: () => fillThread_(t.id),
-    html: '<div class="card"><h3>' + esc(t.name) + '</h3>'
-        + '<div id="msg-body-' + esc(t.id) + '" class="msg-body"></div></div>',
-  }));
-}
+/* ---------- THREADS AS WIDGETS WERE HERE, AND THEY PUT CHAT IN TOOLS ------------------------------
+   `msgWidgets_()` BUILT ONE WIDGET PER CONVERSATION, `kind: 'tool'`, and `allWidgets()` concatenated
+   them — so every thread was a page of the Tools column. Reported as "i dont want chat in tools.
+   what the fuck", with a screenshot of two of them under the calendar.
 
-function fillThread_(withId) {
-  const el = $('msg-body-' + withId);
-  if (!el) return;
-  loadMessages().then(() => {
-    const now = $('msg-body-' + withId);
-    if (!now) return;                                   // the widget was closed while we waited
-    const t = messageThreads_().find(x => String(x.id) === String(withId));
-    now.innerHTML = t ? messagesHtml_(t.msgs) : emptyMessages_;
-    /* OPENED IS READ. This widget shows one conversation and nothing else, so being here is the
-       clearest statement anywhere in the app that somebody has seen these. */
-    if (t) markRead_(t.msgs);
-  });
-}
+   THE ARGUMENT WAS ALREADY WRITTEN in `map.js`, where the static messages widget was deleted from
+   `WIDGETS`: a calculator and a timer are instruments you go looking for, and a message is somebody
+   trying to reach you. That removal took the fixed entry out and left this one generating the same
+   thing, so the decision was undone by a function nobody connected to it.
+
+   AND THE `dm` COLUMN IS WHERE A CONVERSATION LIVES NOW — one per page, with the composer at the
+   foot of each, built long after that note. `fillThread_` went with this: its only caller was the
+   widget's own `start`, and `dmCards_` in posts.js fills a thread on the column that has one.
+
+   `messageThreads_`, `messagesHtml_`, `markRead_` and `emptyMessages_` all stay. They are what the
+   column is built from. */
 
 /* `fillMessages` WAS HERE — it filled the single `#msg-body` on `You` with every message at once.
    `fillThread_` above replaces it, one conversation at a time, into the widget that asked. */

@@ -15,3 +15,4 @@ out/
 # birth. This repository is public. check/live.js refuses to write one in here; this is the belt.
 check/payload*.json
 check/sheets*.json
+__pycache__/

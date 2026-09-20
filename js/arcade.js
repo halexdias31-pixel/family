@@ -167,9 +167,87 @@ function widgetColumn_(kind) {
 
        `widget-slot` STAYS, and so does its id. `tiles.js` looks up `wgt-<id>` to drop a widget into
        a card in the funnel, and `startWidget_` finds its parts inside it. */
-    .map(w => `<div class="card is-widget">
+    .map(w => widgetOnColumn_(w));
+}
+
+/* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT ------------------------------------------------
+   ASKED FOR AS "add a favourite column so i can see the widgets i favoutited ... after i fabourite
+   it the tile should be filled in."
+
+   THE STAR IS `favTile_`'S STAR, not a second one. Same renderer, same 44px target, same `Save` /
+   `Saved` pair that fills when it is on, same `fav` handler and the same `FAVS` set a question or a
+   tutor is kept in — so "the tile should be filled in" is a thing that already worked everywhere
+   else and had simply never been offered here. A glyph of its own would have been a second control
+   meaning one thing, which is the `.reel .over` fault one file along.
+
+   `WIDGET_KEY` IS DECLARED ONCE AND READ THREE TIMES — here, by the Saved column, and by the check.
+   `toggleFav`'s own note says the key goes across whole and is never split, so the prefix is only
+   ever a namespace: it stops a widget called `chess` colliding with a tutor of that name.
+
+   IT IS DRAWN ON EVERY WIDGET, INCLUDING IN THE SAVED COLUMN ITSELF, because the star is how you
+   take one back OUT again — and a saved list you can only add to is the fault this file records
+   about a count that could only ever go up. */
+const WIDGET_KEY = w => 'w:' + String(w.id);
+
+/* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object:
+   that one is the card a widget gets in the FUNNEL — a name and nothing else, because the widget
+   itself opens in a sheet. This is the card it gets on a COLUMN, which carries the widget. Two
+   things one word apart is the `childrenOf` trap with a shorter fuse, and `check.js` caught it. */
+function widgetOnColumn_(w) {
+  return `<div class="card is-widget">
+      ${typeof favTile_ === 'function'
+        ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}</div>`
+        : ''}
       <div class="widget-slot" id="wgt-${esc(String(w.id))}">${w.html}</div>
-    </div>`);
+    </div>`;
+}
+
+/* ---------- THE SAVED COLUMN, WHICH THIS APP HAS HAD BEFORE ---------------------------------------
+   `TABS`'S OWN NOTE LISTS IT AMONG THE DEAD: *"Every column this app has had was eventually folded
+   into the funnel — Spotlight, Book, Basket, Library, Arcade, Tools, Favourites."* It went because
+   it was a second way to reach what the funnel already reached. It is back at the owner's word, and
+   what has changed since is the half that makes it not a duplicate: **a widget could not be starred
+   at all**, so there was nothing in this column the funnel could have been showing instead.
+
+   AND THE SAVED PAGES LEFT THE FUNNEL IN THE SAME COMMIT. Two homes for one list is the fault this
+   repository records under `documents_()`, `factsNow_` and `childrenOf`, and here it had a second
+   cost that was reported as a bug in its own right — see `paintStuff`. A star used to insert a page
+   in FRONT of the results, so the page you were reading became a different card under your thumb.
+   With the saved things on their own column, pressing a star changes nothing about the strip you
+   are standing on.
+
+   WIDGETS FIRST, THEN EVERYTHING ELSE. A starred tool is an instrument you came here to open and it
+   draws itself; a starred question is a card you came here to find again. Both are things you kept,
+   so they are one column — and the order is the one that puts what is usable at the top. */
+function savedWidgets_() {
+  if (typeof isFav !== 'function') return [];
+  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game') && isFav(WIDGET_KEY(w)))
+    .filter(w => !w.admin || isAdmin())
+    .filter(w => !w.tutor || (typeof isTutorRole === 'function' && isTutorRole()));
+}
+
+function savedCards_() {
+  /* SIGNED OUT THERE IS NO LIST, because `FAVS` is this device's and `savedPages_` has always said
+     so. One sentence rather than an empty column — the `nothingHere` rule. */
+  if (typeof USER === 'undefined' || !USER) {
+    return [`<div class="card"><h3>Saved</h3><p class="note">Sign in and the things you star are
+      kept here.</p></div>`];
+  }
+  const wgts = savedWidgets_().map(widgetOnColumn_);
+  const rest = typeof savedPages_ === 'function' ? savedPages_() : [];
+  const cards = wgts.concat(rest.map(c => `<div class="card is-widget">${c}</div>`));
+  if (cards.length) return cards;
+  return [`<div class="card"><h3>Saved</h3><p class="note">Nothing kept yet.<br>
+    <span class="faint">Press <b>Save</b> on a tool, a game or anything you find and it turns up
+    here.</span></p></div>`];
+}
+
+/* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
+   loop behind a screen nobody is looking at is the flat battery `toolsStop_` already exists for. */
+function savedStart_() {
+  toolsStop_();
+  TOOLS_ON = savedWidgets_();
+  TOOLS_ON.forEach(w => { try { w.start && w.start(); } catch (e) { console.warn('[widget]', w.id, e); } });
 }
 
 /* ---------- AND THEN THEY ARE STARTED ---------------------------------------------------------
@@ -221,5 +299,6 @@ function toolsStop_() {
    `PAGER.tools` AND `PAGER.games` ARE NOT OPTIONAL. Without them `paint` never adds the `paged`
    class and the pages sit there unreachable, which is precisely what had happened to the feed and
    to You. Pages without a pager is the same bug wearing a different hat. */
+screen('saved', () => pages('saved', savedCards_()));
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

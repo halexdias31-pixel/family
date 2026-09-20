@@ -96,8 +96,22 @@ const TILE_ICONS = {
 function tileIcon_(name) {
   const d = TILE_ICONS[name];
   if (!d) return '';
-  return `<svg class="tile-i" viewBox="0 0 18 17" aria-hidden="true" focusable="false"
-    fill="none" stroke="currentColor" stroke-width="1.4"
+  /* ---------- THE MARK CARRIES ITS OWN NAME -------------------------------------------------
+     SO THE STYLESHEET CAN TELL A STAR FROM A TROLLEY. "Filled means done" is written over
+     `.tile.on` in style.css and was never implemented: the rule it names, `.favwrap.is-fav .star`,
+     does not exist anywhere in the file — deleted at some point with the sentence left standing,
+     which is the shape this repository records under `resource_type` in `VOCAB` and the dead
+     `kind === 'paper'` guard. So a saved star has never filled, on any card, since that rule went.
+
+     REPORTED AS "after i fabourite it the tile should be filled in."
+
+     AND IT CANNOT BE EVERY MARK, which is why the name is needed rather than a bare `.tile.on`.
+     These are outlines — `fill="none"`, stroked in `currentColor` — and a star, a jumper and a
+     lamp are closed silhouettes that read filled. A trolley is a body and two wheels drawn as open
+     paths, so filling it paints a wedge between the handle and the basket. Named, so the
+     stylesheet says which and a reader can check it. */
+  return `<svg class="tile-i tile-i-${esc(name)}" viewBox="0 0 18 17" aria-hidden="true"
+    focusable="false" fill="none" stroke="currentColor" stroke-width="1.4"
     stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 }
 
