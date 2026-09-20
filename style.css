@@ -8772,6 +8772,64 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    A ring, not a fill, so a hint is never mistaken for a disc already down. */
 .oth-cell.can { box-shadow: inset 0 0 0 2px var(--gold); opacity: .85; }
 
+/* ---------- MAZE -----------------------------------------------------------------------------------
+   THE WALLS ARE BORDERS ON THE CELLS, so the grid is the maze rather than a picture of one: a cell
+   carries its four walls and the two sides of any wall are drawn by the two cells that share it.
+   `gap: 0` for the same reason — a gap between cells would be a corridor nobody can walk down.
+
+   ITS THREE COLOURS ARE DECLARED ON THE COMPONENT, not at `:root`. A maze's walls are that maze's
+   convention and nothing else in this app wants them, which is the rule the house style states with
+   the chess board's cream and charcoal. `--line` is right for a hairline between rows of text and
+   too faint to read as a wall on a phone at twenty-four pixels a cell — measured by looking at it.
+
+   ELEVEN SQUARES AND THE SAME ARITHMETIC AS THE OTHER BOARDS. A cell cannot be 44px: eleven of them
+   is 484px and a phone this app supports is 320px wide. That is fine here in a way it is not for
+   Connect 4, because NOTHING IN THE MAZE IS TAPPED — the four keys under it are, and each of those
+   is a real fingertip. See the note over `MIN_TAP` in check/ui.js for the board case. */
+.mz {
+  --mz-wall: #4d4d4d;
+  --mz-trail: #2a2113;
+  display: grid; gap: 0; margin: .6rem auto 0;
+  grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(11, 1fr);
+  aspect-ratio: 1; width: 100%; max-width: 24rem;
+  background: var(--sunk); border-radius: var(--r-sm); overflow: hidden;
+}
+.mz-cell { display: block; min-width: 0; min-height: 0; }
+.mz-cell.wn { border-top: 2px solid var(--mz-wall); }
+.mz-cell.we { border-right: 2px solid var(--mz-wall); }
+.mz-cell.ws { border-bottom: 2px solid var(--mz-wall); }
+.mz-cell.ww { border-left: 2px solid var(--mz-wall); }
+/* WHERE YOU HAVE BEEN, which is the whole playability on a card this size: without it a dead end
+   looks exactly like a corridor you have not tried yet. Faint, because it is a memory rather than
+   part of the maze. */
+.mz-cell.been { background: var(--mz-trail); }
+/* THE WAY OUT IS A RING AND YOU ARE A FILL, so the two are never confused when you are standing on
+   it. Same device as `.oth-cell.can`, and for the same reason. */
+.mz-cell.out { box-shadow: inset 0 0 0 2px var(--gold); }
+.mz-cell.you { background: var(--gold); }
+
+/* ---------- THE FOUR KEYS ---------------------------------------------------------------------
+   IN `px`, WHICH IS THE ONE MEASUREMENT IN THIS STYLESHEET THAT MUST NOT SCALE. A fingertip is the
+   same size on every screen, and this file carries five convictions of that rule already.
+
+   NOT `.btn`, WHICH IS `width: 100%`. That is right for the one action on a card and absurd for an
+   arrow; `.reel-sound` and `.btn-row .btn` both record the same correction. */
+.mz-pad {
+  display: grid; gap: .4rem; justify-content: center; margin: .6rem 0 0;
+  grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px);
+}
+.mz-key {
+  min-width: 44px; min-height: 44px; padding: 0;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font: 600 1rem/1 var(--font); cursor: pointer;
+  transition: transform var(--quick) ease, background var(--quick) ease;
+}
+.mz-key:active { transform: scale(.92); background: var(--line); }
+.mz-key.up    { grid-column: 2; grid-row: 1; }
+.mz-key.left  { grid-column: 1; grid-row: 2; }
+.mz-key.down  { grid-column: 2; grid-row: 2; }
+.mz-key.right { grid-column: 3; grid-row: 2; }
+
 /* ---------- HERD MENTALITY ------------------------------------------------------------------------
    THE QUESTION IS THE WHOLE CARD. It is read aloud to a room, so it is set large enough to be read
    at arm's length across a table rather than at phone-reading distance. */

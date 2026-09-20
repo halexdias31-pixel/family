@@ -965,3 +965,172 @@ on('herd-next', () => {
   }
   herdPaint();
 });
+
+/* ---------- MAZE -------------------------------------------------------------------------------
+   A GRID, FOUR WALLS PER CELL, AND EXACTLY ONE WAY THROUGH. Carved by a depth-first walk that never
+   revisits a cell, which is what makes the result a TREE: between any two squares there is one path
+   and no loops, so the maze is always solvable and never has a shortcut somebody could stumble onto.
+
+   IT IS NOT SWIPED, AND THAT IS THE ONE DESIGN DECISION WORTH THE SPACE. Up, down, left and right
+   are exactly the four gestures this app navigates by -- a maze that read them would fight the
+   pager on the one screen it lives on, and the loser would be the swipe, which is how you get to
+   every other widget. `touch-action` cannot help: the column and the card need the same four
+   directions. So it is a pad of four buttons, each a real fingertip, and the arrow keys for anybody
+   on a keyboard. CLAUDE.md records what a blanket `touch-action` cost on the notepad; this is the
+   same argument made before rather than after.
+
+   THE SHORTEST WAY IS COUNTED, NOT GUESSED. A breadth-first walk from the entrance gives the fewest
+   moves that can possibly solve it, so "out in 52, the shortest way is 38" is a fact about the maze
+   rather than a score invented to have one. It is computed when the maze is built, so finishing
+   costs nothing.
+
+   THE TRAIL IS THE WHOLE PLAYABILITY ON A PHONE. Eleven squares across a card is about 24 pixels
+   each, and without a mark of where you have been a dead end looks exactly like a corridor you have
+   not tried. Faint, because it is a memory aid rather than part of the maze.
+--------------------------------------------------------------------------------------------- */
+const MAZE_N = 11;
+/* ONE BIT PER WALL, so a cell is a number and carving is two lines. Read as compass points
+   everywhere below, which is why the pad's buttons carry the same four letters. */
+const MZ_N = 1, MZ_E = 2, MZ_S = 4, MZ_W = 8;
+const MZ_DIRS = {
+  n: { dx: 0, dy: -1, bit: MZ_N, back: MZ_S },
+  e: { dx: 1, dy: 0, bit: MZ_E, back: MZ_W },
+  s: { dx: 0, dy: 1, bit: MZ_S, back: MZ_N },
+  w: { dx: -1, dy: 0, bit: MZ_W, back: MZ_E }
+};
+let maze = null;
+
+const mzAt_ = (x, y) => y * MAZE_N + x;
+const mzIn_ = (x, y) => x >= 0 && x < MAZE_N && y >= 0 && y < MAZE_N;
+
+/* EVERY WALL UP, THEN A WALK THAT KNOCKS THEM DOWN. Iterative rather than recursive: a 121-cell
+   maze is fine either way and a bigger one would not be, and a stack written out is a stack you can
+   see the size of. */
+function mzBuild_() {
+  const cells = new Array(MAZE_N * MAZE_N).fill(MZ_N | MZ_E | MZ_S | MZ_W);
+  const seen = new Array(MAZE_N * MAZE_N).fill(false);
+  const stack = [[0, 0]];
+  seen[0] = true;
+  while (stack.length) {
+    const [x, y] = stack[stack.length - 1];
+    /* THE NEIGHBOURS NOT YET REACHED, shuffled, because taking them in a fixed order carves the
+       same maze every time and taking the first one always carves a staircase. */
+    const open = Object.keys(MZ_DIRS).filter(k => {
+      const d = MZ_DIRS[k];
+      return mzIn_(x + d.dx, y + d.dy) && !seen[mzAt_(x + d.dx, y + d.dy)];
+    });
+    if (!open.length) { stack.pop(); continue; }
+    const k = open[Math.floor(Math.random() * open.length)];
+    const d = MZ_DIRS[k];
+    const nx = x + d.dx, ny = y + d.dy;
+    /* BOTH SIDES OF THE SAME WALL. A wall belongs to two cells and removing it from one leaves a
+       door you can walk through in one direction only — which draws correctly and plays wrongly. */
+    cells[mzAt_(x, y)] &= ~d.bit;
+    cells[mzAt_(nx, ny)] &= ~d.back;
+    seen[mzAt_(nx, ny)] = true;
+    stack.push([nx, ny]);
+  }
+  return cells;
+}
+
+/* THE FEWEST MOVES THERE ARE. Breadth-first, so the first time the exit is reached is by the
+   shortest route — depth-first would find A route and call it the answer. */
+function mzShortest_(cells) {
+  const dist = new Array(MAZE_N * MAZE_N).fill(-1);
+  const q = [0];
+  dist[0] = 0;
+  for (let i = 0; i < q.length; i++) {
+    const at = q[i], x = at % MAZE_N, y = (at / MAZE_N) | 0;
+    Object.keys(MZ_DIRS).forEach(k => {
+      const d = MZ_DIRS[k];
+      if (cells[at] & d.bit) return;                       // a wall is not a way out
+      const nx = x + d.dx, ny = y + d.dy;
+      if (!mzIn_(nx, ny) || dist[mzAt_(nx, ny)] !== -1) return;
+      dist[mzAt_(nx, ny)] = dist[at] + 1;
+      q.push(mzAt_(nx, ny));
+    });
+  }
+  return dist[MAZE_N * MAZE_N - 1];
+}
+
+function initMaze() {
+  if (!$('maze-grid')) return;
+  /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS, for the reason `initConnect4` gives: the
+     widget is reopened by a swipe, so a half-walked maze would be answering "where was I" about a
+     game you had forgotten starting. */
+  const cells = mzBuild_();
+  /* NOTHING SAID AT THE START, because the line under the heading already says where you are going
+     and this sat under it repeating it word for word -- which is the fault CLAUDE.md records where
+     every widget printed its own name twice. It speaks when there is something to say. */
+  maze = { cells, x: 0, y: 0, moves: 0, best: mzShortest_(cells),
+           trail: { 0: true }, over: false, said: '' };
+  mazePaint();
+}
+
+function mzMove_(k) {
+  if (!maze || maze.over) return;
+  const d = MZ_DIRS[k];
+  if (!d) return;
+  /* A WALL STOPS YOU AND SAYS NOTHING. Every other game here answers an illegal move by ignoring
+     it; a maze that announced "there is a wall there" would be saying what the screen already
+     shows, once per attempt, which is most of playing one. */
+  if (maze.cells[mzAt_(maze.x, maze.y)] & d.bit) return;
+  const nx = maze.x + d.dx, ny = maze.y + d.dy;
+  if (!mzIn_(nx, ny)) return;
+  maze.x = nx; maze.y = ny;
+  maze.moves++;
+  maze.trail[mzAt_(nx, ny)] = true;
+  if (nx === MAZE_N - 1 && ny === MAZE_N - 1) {
+    maze.over = true;
+    maze.said = maze.moves === maze.best
+      ? 'Out in ' + maze.moves + ' — the shortest way there is.'
+      : 'Out in ' + maze.moves + '. The shortest way is ' + maze.best + '.';
+  }
+}
+
+function mazePaint() {
+  const host = $('maze-grid');
+  if (!host || !maze) return;
+  let html = '';
+  for (let y = 0; y < MAZE_N; y++) {
+    for (let x = 0; x < MAZE_N; x++) {
+      const v = maze.cells[mzAt_(x, y)];
+      const cls = ['mz-cell'];
+      if (v & MZ_N) cls.push('wn');
+      if (v & MZ_E) cls.push('we');
+      if (v & MZ_S) cls.push('ws');
+      if (v & MZ_W) cls.push('ww');
+      if (maze.trail[mzAt_(x, y)]) cls.push('been');
+      if (x === maze.x && y === maze.y) cls.push('you');
+      if (x === MAZE_N - 1 && y === MAZE_N - 1) cls.push('out');
+      html += '<i class="' + cls.join(' ') + '"></i>';
+    }
+  }
+  /* NOT A LIST OF 121 SQUARES TO A SCREEN READER. The cells are decoration for the one fact that
+     matters, which is where you are and how far there is to go — so the grid says that in a
+     sentence and the squares are hidden from it. */
+  host.innerHTML = html;
+  host.setAttribute('aria-label',
+    'Maze, row ' + (maze.y + 1) + ' of ' + MAZE_N + ', column ' + (maze.x + 1) + ' of ' + MAZE_N
+    + (maze.over ? ', out' : ''));
+  const said = $('maze-said'); if (said) said.textContent = maze.said;
+  const n = $('maze-moves'); if (n) n.textContent = String(maze.moves);
+}
+
+on('maze-go', el => { mzMove_(el.getAttribute('data-d')); mazePaint(); });
+on('maze-again', () => { initMaze(); });
+
+/* THE ARROW KEYS, AND ONLY WHERE THE MAZE IS THE THING IN FRONT OF YOU. Guarded on the element
+   existing the way Flabby Pird's is, and on the press not being inside a field — arrows in a
+   textarea move the caret, and a game stealing that would break typing on a screen it is not even
+   on. `preventDefault` only once a move was possible, so an arrow that does nothing here still does
+   whatever it would have done. */
+document.addEventListener('keydown', e => {
+  if (!maze || !$('maze-grid')) return;
+  if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return;
+  const k = { ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }[e.key];
+  if (!k) return;
+  e.preventDefault();
+  mzMove_(k);
+  mazePaint();
+});

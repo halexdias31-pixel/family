@@ -993,6 +993,26 @@ const WIDGETS = [
     <button class="btn quiet" data-do="oth-again">New game</button>
   </div>` },
 
+  /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a
+     maze that read them would fight the pager on the one screen it lives on -- see `initMaze`. The
+     four buttons are 44px in px, which is the one measurement in this app that does not scale. */
+  { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
+    into: 'maze-grid', what: 'The maze',
+    html: `<div class="card">
+    <h3>Maze</h3>
+    <p class="sub">Top left to bottom right. Tap the arrows, or use the arrow keys.</p>
+    <div id="maze-grid" class="mz" role="img"></div>
+    <div class="mz-pad">
+      <button class="mz-key up" data-do="maze-go" data-d="n" aria-label="Up">&#9650;</button>
+      <button class="mz-key left" data-do="maze-go" data-d="w" aria-label="Left">&#9664;</button>
+      <button class="mz-key right" data-do="maze-go" data-d="e" aria-label="Right">&#9654;</button>
+      <button class="mz-key down" data-do="maze-go" data-d="s" aria-label="Down">&#9660;</button>
+    </div>
+    <p class="note" id="maze-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <p class="faint" style="text-align:center;margin:.15rem 0 0">Moves: <b id="maze-moves">0</b></p>
+    <button class="btn quiet" data-do="maze-again">New maze</button>
+  </div>` },
+
   /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
      and the room decides; an app keeping score would make somebody operate it instead of play. */
   { id: 'herd', kind: 'game', name: 'Herd Mentality', start: () => initHerd?.(),
