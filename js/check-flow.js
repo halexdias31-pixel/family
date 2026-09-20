@@ -220,7 +220,12 @@ function boot(opts) {
          tiles did not lose one. */
       /* THE PAGER TABLE AND THE PAGE COUNTER, so a journey can ask whether what the header counts is
          what the screen drew. */
-      'PAGER, PAGE, goPage, repaint,'
+      /* AND `pageCount`, WHICH IS THE ONE DEFINITION OF HOW MANY PAGES A SCREEN HAS. This journey
+         used to read `PAGER[id]().length` -- a second definition, and one that broke the day an
+         entry started answering with a COUNT instead of a list of names. `PAGE_KEEP` and
+         `STUFF_WIN` say how much of a windowed screen is in the document at once. */
+      'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
+      + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
          both without a browser and without the sheet. */
       + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
@@ -1093,13 +1098,24 @@ check('every pager counts the pages its screen actually draws', async () => {
       continue;
     }
     let says;
-    try { says = (w.__t.PAGER[id]() || []).length; }
+    /* THE ONE DEFINITION, asked of the app rather than reproduced here. `PAGER[id]()` may answer
+       with a list of names or with a count -- see the note over `pageCount` -- and reading `.length`
+       off it was this journey keeping a second opinion about which. */
+    try { says = w.__t.pageCount(id); }
     catch (e) { bad.push(id + ' pager threw: ' + e.message); continue; }
     /* A SCREEN THAT DRAWS NO PAGES IS NOT PAGED AT ALL and its pager saying nothing is correct. */
     if (!drawn && !says) continue;
-    if (drawn !== says) {
+    /* ---------- A WINDOWED SCREEN HOLDS FEWER ELEMENTS THAN IT HAS PAGES ---------------------------
+       The Find screen keeps `STUFF_WIN` result pages in the document and slides them -- see
+       `stuffWindow_` in find.js -- so its element count is capped on purpose and comparing it
+       against the total would report the window as the fault. The question is the same one: does
+       the screen hold every page it is able to. */
+    const keep = (w.__t.PAGE_KEEP && w.__t.PAGE_KEEP[id]) || 0;
+    const want = keep ? Math.min(says, keep + (w.__t.STUFF_WIN || 0)) : says;
+    if (drawn !== want) {
       bad.push(id + ': ' + drawn + ' page' + (drawn === 1 ? '' : 's') + ' drawn, pager counts '
-                  + says + ' \u2014 so the header and the screen disagree and moving down will '
+                  + says + (want === says ? '' : ' (window holds ' + want + ')')
+                  + ' \u2014 so the header and the screen disagree and moving down will '
                   + 'stop early or refuse');
     }
   }

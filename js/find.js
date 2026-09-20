@@ -1475,7 +1475,24 @@ function bandNumbers_(values) {
    one is kept because it also guards the facets a spreadsheet invents at runtime, where the wrapper
    below is the only thing standing between the sheet and the screen.
 ================================================================================================== */
-const spellKey_ = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+/* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH ---------------------------------------
+   IT IS A PURE FUNCTION OVER A TINY SET. `facetTally_` and `filterHit` call this once per item per
+   facet, and the values are a subject, a tier, a board -- `Maths` is folded five thousand times to
+   the same five letters on every filter change. A `Map` makes the second one free.
+
+   BOUNDED BY THE DATA rather than by a cap: the keys are the distinct values the library holds in
+   its facet columns, which is hundreds, not the strings anybody can type. Nothing here is fed a
+   search box. */
+const SPELL_KEYS = new Map();
+const spellKey_ = v => {
+  const raw = String(v == null ? '' : v);
+  let k = SPELL_KEYS.get(raw);
+  if (k === undefined) {
+    k = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    SPELL_KEYS.set(raw, k);
+  }
+  return k;
+};
 
 /* HOW MANY PIECES THE WRITER BROKE IT INTO. Not a score out of ten — just "did a person put gaps in
    this", which is what tells a name from a slug. */
@@ -4532,8 +4549,28 @@ const cmpText = (a, b) =>
 /* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two
    words having to sit next to each other. Searching only the name and the group label missed a
    shop item by its description, which is the thing that actually says what it is. */
+/* ---------- THE HAYSTACK IS BUILT ONCE PER ITEM, NOT ONCE PER KEYSTROKE --------------------------
+   `x.text` IS THE QUESTION ITSELF, built when the item was made -- `searchText_` says so and it was
+   true. What was still being done per keystroke is the JOIN and the `norm`: six fields concatenated
+   and normalised for all 5,354 items, on every letter. Measured at 8x CPU, one keystroke spent
+   **126 ms** in that filter, which was the single biggest thing left on this screen once the DOM
+   stopped being the problem -- about 2.7 MB of string work to answer "does this contain `work`".
+
+   SO IT IS CACHED ON THE ITEM, which is the rule this file already states twice: built onto the
+   item, not matched per keystroke. `stuffItems()` is memoised, so an item outlives every keystroke
+   typed against it and is rebuilt the moment the payload, the person or the admin flag changes --
+   which is exactly when the haystack could be different.
+
+   THE ORDER IS UNCHANGED and so is the content: name, sub, subject, slot, grade, then the question
+   itself last, so that a match on a name still costs what it always did. */
+function stuffHay_(x) {
+  return x._hay || (x._hay = norm([x.name, x.sub, x.subject, x.slot,
+                                   x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' ')));
+}
+
 function stuffFind(items, credits) {
-  let out = items;
+  /* ALREADY IN ORDER — see `stuffSorted_`. Filtering keeps it, so nothing below re-sorts. */
+  let out = stuffSorted_(items);
 
   /* THE TWO RULES, in four lines. Filters are grouped by field, and an item must satisfy at least
      one from EVERY group — `some` within a field, `every` across them, which is exactly what
@@ -4559,13 +4596,7 @@ function stuffFind(items, credits) {
   });
 
   const words = norm(STUFF.q).split(/\s+/).filter(Boolean);
-  if (words.length) out = out.filter(x => {
-    /* `x.text` IS THE QUESTION ITSELF — built once when the item was made, never here. See
-       `searchText_`. It is last so that a match on a name still costs the same as it always did. */
-    const hay = norm([x.name, x.sub, x.subject, x.slot,
-                      x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' '));
-    return words.every(w => hay.includes(w));
-  });
+  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
 
   /* ONE KEY, then the name to settle ties. There was an outer sort by group — and with the
      groups gone there is nothing above the sort, which is most of why this is now four lines.
@@ -4618,10 +4649,35 @@ function stuffFind(items, credits) {
      THEY ARE WRITTEN AGAIN ANYWAY, because the key below needs them stated rather than implied: it
      is built from the fields, and a key that leans on a number happening to be inside a name is a
      key that breaks the day a name changes. This is an intent made explicit, not a bug fixed. */
-  return out.sort((a, b) => {
+  return out;
+}
+
+/* ---------- SORTED ONCE, NOT ONCE PER FILTER -----------------------------------------------------
+   THE SORT WAS THE LAST LINE OF `stuffFind`, so it ran over the FILTERED list on every tap and
+   every keystroke -- 5,226 items after one answer, which is about sixty thousand comparisons to
+   draw one screen. Measured at 12x CPU it was most of what was left once the DOM stopped being the
+   problem.
+
+   AND NONE OF IT DEPENDED ON THE FILTER. The order is `_sk`, a string built from the item and held
+   on it; two items compare the same way whoever else is in the list. `Array.prototype.filter`
+   keeps the order of what it is given -- so sorting the SOURCE once and filtering that is the same
+   list in the same order, and a filter change stops paying for a sort at all.
+
+   ON A COPY, because `stuffItems()` hands back a memoised array that other readers hold -- the
+   saved list keys its own tally on that array's identity, and sorting it underneath them would be
+   the fault `stuffItemsAll_` was split out to avoid. Cached in a `WeakMap` on the source array for
+   the same reason `facetTally_` is: a new list is a new array, so there is no key to get wrong and
+   nothing to invalidate. */
+const SORTED_ITEMS = new WeakMap();
+function stuffSorted_(items) {
+  let out = SORTED_ITEMS.get(items);
+  if (out) return out;
+  out = items.slice().sort((a, b) => {
     const ka = a._sk || (a._sk = sortKey_(a)), kb = b._sk || (b._sk = sortKey_(b));
     return ka < kb ? -1 : ka > kb ? 1 : 0;
   });
+  SORTED_ITEMS.set(items, out);
+  return out;
 }
 
 /* PADDED SO THE ALPHABET AGREES WITH ARITHMETIC. "Paper 10" sorts before "Paper 2" on letters and
@@ -5442,61 +5498,93 @@ on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
    nudged by however much the front of the list grew or shrank, rather than trusted blindly. Without
    that, a star on page twelve leaves you on page eleven's card. */
 /* ==================================================================================================
-   THE RESULT PAGES, AND WHY ONLY A DOZEN OF THEM ARE BUILT WHILE YOUR FINGER IS DOWN.
+   THE RESULT PAGES ARE A WINDOW, AND THERE ARE FIFTEEN OF THEM WHATEVER THE LIBRARY HOLDS.
 
    REPORTED AS "when im clicking on questions and using the finder its so fycking slow man", then
    "its only slow on mobile" -- which is the tell. Every number in the funnel's arithmetic is
-   memoised and measures 0 ms; what is left is DOM, and DOM is what a phone is slow at.
+   memoised and measures 0 ms; what was left was DOM, and DOM is what a phone is slow at.
 
-   MEASURED AT 8x CPU, one tap on the funnel's first answer: **5,227 page elements built**, 292 KB of
-   markup parsed, 50 ms to insert on top of everything else -- and at 12x, which is an ordinary
-   mid-range phone, the whole repaint was 340 ms. There is one page per RESULT, so the cost is the
-   size of the LIBRARY rather than the size of the screen, and it grows with every paper transcribed.
+   MEASURED AT 8x CPU, one tap: **5,227 page elements**, 292 KB of markup, built from nothing. One
+   page per RESULT, so the cost was the size of the LIBRARY rather than the size of the screen, and
+   it grew with every paper transcribed. At 12x -- an ordinary mid-range phone -- a tap was 340 ms
+   and a keystroke 233 ms.
 
-   NOBODY NEEDS FIVE THOUSAND PAGES IN THE FIRST FRAME. You land on the question you just answered
-   and the results are below it; `fillStuffPages` only ever puts markup into the eleven you are near.
-   So the pages within reach are built now and the rest arrive on the next turn of the event loop,
-   which is before any finger can travel far enough to need them. The dial counts what is there, so
-   it names the real total a frame later -- and `goPage` clamps, which is what makes that safe rather
-   than something to get right.
+   NOTHING EVER NEEDED MORE THAN ELEVEN. `fillStuffPages` puts markup into the pages within five
+   either side of you and takes it out again when you leave; everything else in that strip was an
+   empty box waiting to be scrolled past. So the strip holds fifteen -- eleven that can be drawn and
+   two of slack at each end -- and slides.
 
-   THEY ARE REUSED, WHICH IS THE OTHER HALF. An empty page is an empty page whichever item it stands
-   in for, so a repaint that does not change the count touches nothing at all: add the difference,
-   remove the difference. `paintStuff` empties the eleven that were actually drawn, because those
-   ARE about the old list.
+   A PAGE NUMBER AND A DOM POSITION ARE NO LONGER THE SAME NUMBER. `PAGE_KEEP` and `PAGE_LO` in
+   shell.js hold the two figures that map one to the other, and every reader of a page's position
+   goes through `domIndex_` / `logIndex_`. Both are nought on every other screen, so this changes
+   nothing for any column that builds all of its pages.
 
-   CANCELLED BY THE NEXT ONE. A run of quick taps books one top-up, not one per tap -- the same
-   argument as `afterSlide_`, and the reason this is a named timer rather than a bare `setTimeout`. */
-let stuffTopUpTimer = null;
+   THE ELEMENTS ARE RECYCLED RATHER THAN REBUILT. Sliding down by one moves the top page to the
+   bottom, which leaves every other page holding the card it was already showing -- so turning a
+   page still draws exactly one card, as it did before. Clearing the whole window on each slide
+   would have been simpler and would have redrawn eleven cards every few turns.
 
-function resPages_(host, want, now) {
-  const has = host.querySelectorAll(':scope > .page.is-res').length;
-  const add = (n) => {
-    if (n <= 0) return;
-    host.insertAdjacentHTML('beforeend',
-      '<section class="page is-res"><div class="pane"></div></section>'.repeat(n));
-  };
-  clearTimeout(stuffTopUpTimer);
-  if (has > want) {
-    const res = host.querySelectorAll(':scope > .page.is-res');
-    for (let i = res.length - 1; i >= want; i--) res[i].remove();
-    return;
+   RE-CENTRED ONLY AT THE EDGES. Moving the window on every turn would mean recycling on every turn;
+   waiting until you are within `STUFF_EDGE` of an end means most turns move nothing at all. */
+const STUFF_WIN = 15;
+const STUFF_EDGE = 4;
+
+/* A PAGE THAT NOW STANDS FOR A DIFFERENT RESULT MUST NOT KEEP THE OLD ONE'S MARKUP. The `filled`
+   mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw. */
+function stuffBlank_(el) {
+  if (!el) return;
+  delete el.dataset.filled;
+  const pane = el.querySelector(':scope > .pane');
+  if (pane) pane.innerHTML = '';
+}
+
+function stuffWindow_() {
+  const host = $('s-stuff');
+  if (!host) return;
+  /* ASKED OF THE DOM, because a star adds a page in front of the question and the number of pages
+     before the results is exactly what this has to be right about. */
+  const keep = stuffFirstResult_();
+  const want = stuffPageCount();
+  PAGE_KEEP.stuff = keep;
+
+  const size = Math.min(want, STUFF_WIN);
+  const maxLo = Math.max(0, want - size);
+  const had = Math.max(0, Math.min(maxLo, PAGE_LO.stuff || 0));
+  /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
+  const r = Math.max(0, (PAGE.stuff || 0) - keep);
+  let lo = had;
+  if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
+    lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
   }
-  const soon = Math.min(want, Math.max(now, 0));
-  add(soon - has);
-  if (want > soon) {
-    stuffTopUpTimer = setTimeout(() => {
-      const el = $('s-stuff');
-      if (!el) return;
-      const held = el.querySelectorAll(':scope > .page.is-res').length;
-      /* ASKED AGAIN RATHER THAN REMEMBERED. Anything may have repainted in between, and a count
-         captured before a `setTimeout` is a count about a screen that has since changed. */
-      const need = stuffPageCount();
-      if (held >= need) return;
-      el.insertAdjacentHTML('beforeend',
-        '<section class="page is-res"><div class="pane"></div></section>'.repeat(need - held));
-      try { paintPager('stuff', true); } catch (e) {}
-    }, 0);
+
+  /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
+     Growing appends and shrinking removes from the END, which is the high-numbered end of the
+     window either way -- so the pages already in it keep both their contents and their page number,
+     and the recycling below can be reasoned about on its own. */
+  let res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
+  if (res.length > size) {
+    for (let i = res.length - 1; i >= size; i--) res[i].remove();
+  } else if (res.length < size) {
+    host.insertAdjacentHTML('beforeend',
+      '<section class="page is-res"><div class="pane"></div></section>'.repeat(size - res.length));
+  }
+
+  PAGE_LO.stuff = lo;
+  const k = lo - had;
+  if (!k) return;
+  res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
+  /* A JUMP FURTHER THAN THE WINDOW IS WIDE keeps nothing, so there is nothing to move. */
+  if (Math.abs(k) >= res.length) { res.forEach(stuffBlank_); return; }
+  if (k > 0) {
+    for (let i = 0; i < k; i++) { stuffBlank_(res[i]); host.appendChild(res[i]); }
+  } else {
+    /* BEFORE THE FIRST RESULT, which is the element just past the ones that are always kept. Taken
+       from the end one at a time, so they arrive in their own order rather than reversed. */
+    for (let i = 0; i < -k; i++) {
+      const el = res[res.length - 1 - i];
+      stuffBlank_(el);
+      host.insertBefore(el, host.children[keep] || null);
+    }
   }
 }
 
@@ -5588,15 +5676,15 @@ function paintStuff(keepPage) {
      the front and saved pages have just been put after it, and everything beyond them is a result.
      Removing from the end for the same reason -- which page element stands for which item is
      decided by position and nothing else, so the ones to drop are the last ones. */
-  const want = stuffPageCount();
-  resPages_(host, want, (PAGE.stuff || 0) + STUFF_NEAR + 2);
+  /* ---------- AND THE RESULTS, WHICH ARE A WINDOW ------------------------------------------------
+     THROWN AWAY AND REMADE, which is the cheap option now rather than the expensive one: there are
+     never more than `STUFF_WIN` of them, and starting from nothing means the window's offset cannot
+     be left describing a strip that no longer exists. A new filter is a new list of results, so
+     every page in the window is standing for something different anyway. */
+  [].slice.call(host.querySelectorAll(':scope > .page.is-res')).forEach(el => el.remove());
+  PAGE_LO.stuff = 0;
+  stuffWindow_();
 
-  /* WHAT WAS DRAWN IS ABOUT THE OLD LIST. Never more than eleven of them — see `STUFF_NEAR`. */
-  [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
-    delete el.dataset.filled;
-    const pane = el.querySelector(':scope > .pane');
-    if (pane) pane.innerHTML = '';
-  });
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
@@ -5752,17 +5840,21 @@ function fillStuffPages() {
      you are; what to empty is whatever is still MARKED filled and is no longer in it, and that mark
      is a selector the browser can answer without this walking anything. Same behaviour, same
      `changed` flag, same order -- and the cost stops depending on how big the library is. */
+  /* EVERY NUMBER HERE IS A PAGE NUMBER and every lookup goes through `domIndex_`, because the
+     results are a window and the element standing for page 400 is not the four-hundredth child.
+     See `stuffWindow_`. */
   const seen = {};
-  const lo = Math.max(first, at - STUFF_NEAR), hi = Math.min(pages.length - 1, at + STUFF_NEAR);
+  const lo = Math.max(first, at - STUFF_NEAR);
+  const hi = Math.min(first + items.length - 1, at + STUFF_NEAR);
   const todo = [];
   for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
   [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
-    const i = [].indexOf.call(pages, el);
+    const i = logIndex_('stuff', [].indexOf.call(pages, el));
     if (i >= first && !seen[i]) todo.push(i);
   });
   for (let n = 0; n < todo.length; n++) {
     const i = todo[n];
-    const el = pages[i];
+    const el = pages[domIndex_('stuff', i)];
     if (!el) continue;
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
        content — which is exactly what happened, for as long as these pages were built without a

@@ -645,6 +645,60 @@ for (const who of VISITORS) {
       }
     }
     swipes.push(...held.map(h => ({ from: h.where, dir: 'touch ' + h.dir, got: h.got, want: h.want, ok: h.ok })));
+
+    /* ==================================================================================================
+       AND THAT PAGE n SHOWS QUESTION n, WHICH STOPPED BEING FREE.
+
+       THE FIND SCREEN HOLDS FIFTEEN RESULT PAGES AND HAS THOUSANDS -- see `stuffWindow_` in find.js.
+       So a page number and a DOM position are no longer the same number, and every reader of one
+       goes through `domIndex_` / `logIndex_`. Nothing else in this suite can see that mapping: a
+       card rendered in the wrong position measures perfectly, lays out perfectly, presses perfectly
+       and is the wrong question.
+
+       WALKED FORWARDS AND BACKWARDS, because the window slides both ways and recycles its elements
+       by moving them from one end to the other -- an off-by-one in either direction shows up only
+       when you arrive from the other side.
+
+       ASSERTED ON THE ANSWER BOX'S KEY, `ans:...:q:<row_id>`, which is the one thing on a question
+       card that names the row it was built from and cannot be confused with a heading: `Q6(i)` and
+       `Q6(ii)` both start `Q6`. */
+    const walk = [];
+    {
+      const paper = 'RS1786302107764-481';      // May 2017 Foundation Paper 1: 41 questions
+      const ok = await page.evaluate(p => {
+        if (typeof STUFF === 'undefined' || typeof paintStuff !== 'function') return null;
+        go('stuff', false, true);
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: p }];
+        paintStuff();
+        return stuffFiltered().length;
+      }, paper);
+      if (!ok) {
+        walk.push({ from: 'stuff', dir: 'walk', got: 'no such paper in the library',
+                    want: paper, ok: false });
+      } else {
+        const bad = await page.evaluate(() => {
+          const out = [];
+          const items = stuffFiltered(), first = stuffFirstResult_();
+          const look = i => {
+            goPage('stuff', first + i, true);
+            const el = document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first + i)];
+            const want = ':q:' + items[i].row.row_id;
+            const has = el && el.innerHTML.indexOf(want) !== -1;
+            if (!has) out.push({ page: i, want: items[i].row.row_id,
+                                 got: (el && (el.innerHTML.match(/:q:([^"]+)/) || [])[1]) || 'nothing' });
+          };
+          for (let i = 0; i < items.length; i++) look(i);
+          for (let i = items.length - 1; i >= 0; i--) look(i);
+          return { n: items.length, bad: out.slice(0, 4), count: out.length,
+                   held: document.querySelectorAll('#s-stuff > .page').length };
+        });
+        walk.push({ from: 'stuff, ' + bad.n + ' pages over ' + bad.held + ' elements',
+                    dir: 'walk', ok: bad.count === 0,
+                    got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0]) : 'every page its own question',
+                    want: 'every page its own question' });
+      }
+    }
+    swipes.push(...walk);
     await page.close();
   }
 

@@ -771,7 +771,7 @@ function columnShift_(host, at) {
 function stepY_() {
   const host = $('s-' + AT);
   const pages = host ? host.querySelectorAll(':scope > .page') : [];
-  const at = Math.max(0, Math.min(pages.length - 1, PAGE[AT] || 0));
+  const at = Math.max(0, Math.min(pages.length - 1, domIndex_(AT, PAGE[AT] || 0)));
   const here = pages[at], next = pages[at + 1] || pages[at - 1];
   if (here && next) {
     const gap = Math.abs(next.offsetTop - here.offsetTop);
@@ -870,7 +870,7 @@ function placeGrid(instant, drag) {
     const at = PAGE[id] || 0;
     /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen
        in front; the others have no finger on them. */
-    const shift = columnShift_(host, at) + (id === AT ? dyPx : 0);
+    const shift = columnShift_(host, domIndex_(id, at)) + (id === AT ? dyPx : 0);
 
     host.style.transition = instant ? 'none' : '';
     host.style.transform =
@@ -898,7 +898,10 @@ function placeGrid(instant, drag) {
 
     /* AND EACH PAGE, faded by how far down the column it is. No position — the column does that.
        This distance is an INDEX, not a measurement, so nothing here can be read at a bad moment. */
-    host.querySelectorAll(':scope > .page').forEach((el, p) => {
+    host.querySelectorAll(':scope > .page').forEach((el, pos) => {
+      /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
+         holds all of its pages, which is all of them but the Find screen. */
+      const p = logIndex_(id, pos);
       const d = Math.abs(p - at);
       el.style.position = 'static';
       el.style.transform = 'none';
@@ -1211,15 +1214,12 @@ const PAGER = {
 
      Each group asks the function that DRAWS it how many there are, which is the same rule the rest
      of this table follows: a pager that counts for itself is a pager that can disagree. */
-  stuff:  () => {
-    const n = stuffPageCount();
-    /* NO `Basket` HERE ANY MORE — it is on the Booking column now, and this list has to match what
-       `screen('stuff')` actually builds or the header names the wrong page. */
-    return Array.from({ length: savedPages_().length }, () => 'Saved')
-      .concat(['Search'])
-      .concat(Array.from({ length: bookingPages_().length }, () => 'Booking'))
-      .concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));
-  },
+  /* A COUNT RATHER THAN A LIST OF NAMES, and it is the only entry that needs to be. The names were
+     read by the header, there is no header, and building `(i + 1) + ' of ' + n` five thousand times
+     to be counted was real work on the path every tap goes down. `pageCount` takes either.
+     NO `Basket` HERE ANY MORE — it is on the Booking column now, and this count has to match what
+     `screen('stuff')` actually builds or the pager and the screen disagree. */
+  stuff:  () => savedPages_().length + 1 + bookingPages_().length + stuffPageCount(),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -1324,6 +1324,33 @@ function applyBrandIcon_() {
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0 };
 
+/* ==================================================================================================
+   A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
+
+   EVERY SCREEN BUT ONE BUILDS ALL OF ITS PAGES, and should: Tools has nine, the feed has as many
+   posts as there are. The Find screen has one page per QUESTION IN THE LIBRARY -- 5,226 of them on
+   one answer -- and built every one on every tap, which is what "its so fycking slow man ... its
+   only slow on mobile" was. One element per library row is a cost that grows with every paper
+   transcribed and has nothing to do with what is on the screen.
+
+   SO THE RESULT PAGES ARE A WINDOW that slides, and these two numbers are the whole of it:
+
+     PAGE_KEEP[id]  how many leading pages are always present -- the question, the saved things,
+                    the booking pages. They hold real elements with ids in them and may not be
+                    recycled.
+     PAGE_LO[id]    how many pages BEYOND those have been scrolled past and are not in the document.
+
+   SO A DOM POSITION AND A PAGE NUMBER ARE NO LONGER THE SAME NUMBER, and every place that treated
+   them as one goes through these two functions. Both default to nought, so every other screen maps
+   a page to itself and is untouched by construction -- which is what makes this safe to put on the
+   path every column shares. */
+const PAGE_KEEP = {};
+const PAGE_LO = {};
+/* WHICH ELEMENT IS PAGE `i`. */
+const domIndex_ = (id, i) => (i < (PAGE_KEEP[id] || 0) ? i : i - (PAGE_LO[id] || 0));
+/* AND WHICH PAGE ELEMENT `p` IS. */
+const logIndex_ = (id, p) => (p < (PAGE_KEEP[id] || 0) ? p : p + (PAGE_LO[id] || 0));
+
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
    re-navigate on every glance at another tab. */
@@ -1360,7 +1387,14 @@ function pageHome_(id) {
   PAGE[id] = Math.max(0, Math.min(n, Math.max(0, pageCount(id) - 1)));
 }
 
-const pageCount = id => pagerNames(id).length;
+/* A NUMBER OR A LIST. The names were read by the header and there is no header, so `pagerNames` is
+   only ever asked for its LENGTH -- and `PAGER.stuff` was building 5,226 strings to be counted, on
+   every call, on the same hot path as everything else this window is about. A screen whose pages
+   have no names may answer with the count itself. */
+const pageCount = id => {
+  const v = pagerNames(id);
+  return typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+};
 
 /**
  * THE DIAL.
@@ -1464,9 +1498,14 @@ function goPage(id, to, instant) {
      If the page you are going to is empty, it is filled before anything moves. */
   /* Page 0 is the question, which is drawn with the screen and never filled lazily — so it has no
      `filled` mark and must not be mistaken for an empty one. */
+  /* ---------- THE WINDOW FIRST, BECAUSE EVERYTHING BELOW MEASURES ELEMENTS ----------------------
+     `columnShift_` and `stepY_` read the page you are going TO, and on the Find screen that page is
+     an element only once the window covers it. So the window is moved before anything looks. Every
+     other screen has no window and this is one guarded call that returns immediately. */
+  if (id === 'stuff' && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
   const bare = id === 'stuff' && n > 0 && (() => {
     const host = $('s-stuff');
-    const el = host && host.querySelectorAll(':scope > .page')[n];
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', n)];
     return !el || el.dataset.filled !== '1';
   })();
   if (bare) fillStuffPages();
