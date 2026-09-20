@@ -3171,6 +3171,33 @@ function markFrac_(s) {
   return null;
 }
 
+/* A MARK SCHEME THAT TAKES A BAND TAKES EVERY NUMBER IN IT, AND THIS ONE WAS TAKING TWO OF THEM.
+   "Write down an estimate for the real height of the man" is marked `1.5 to 2 metres` -- the
+   scheme's own words -- and there is no single right answer to it. Measured before it was fixed:
+   a student typing `1.5` was marked RIGHT and one typing `2` was marked WRONG, from the same
+   accept cell, because `markBare_` strips a trailing word and "to 2 metres" IS a trailing word, so
+   the band quietly became its own first number. Arbitrary in the one place in this app that tells
+   a child they are wrong, and the bottom of the band passing is what made it invisible.
+
+   ONLY `to` AND THE TWO LONG DASHES. A plain hyphen between two numbers is also how a person
+   writes a subtraction and how this library writes `7-11`, and a rule that cannot tell them apart
+   would mark a wrong answer right -- which is the one failure worse than the one being fixed.
+
+   COMPARED AS WHOLE NUMBERS, for the reason `markFrac_` above gives: the ends of a band are
+   decimals (1.5, 7.5) and a float comparison at a boundary is the one place this must not be
+   approximately right. Both ends are INCLUSIVE, because a scheme printing "1.5 to 2" accepts 1.5
+   and accepts 2. THREE ROWS IN THE LIBRARY carry one and all three are real bands; anything that
+   is not two numbers with `to` between them comes back null and is marked exactly as before. */
+function markRange_(w) {
+  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to|\u2013|\u2014)\s*(-?\d+(?:\.\d+)?)(?:\s+[a-z\u00b0%].*)?$/
+    .exec(markNorm_(w));
+  if (!m) return null;
+  const lo = markFrac_(m[1]), hi = markFrac_(m[2]);
+  if (!lo || !hi) return null;
+  if (lo.n * hi.d > hi.n * lo.d) return null;   /* backwards is not a band */
+  return { lo: lo, hi: hi };
+}
+
 function markAnswer_(typed, accept) {
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
@@ -3185,6 +3212,11 @@ function markAnswer_(typed, accept) {
     /* the same value written another way -- see `markFrac_` above */
     const p = markFrac_(t), q = markFrac_(markBare_(w));
     if (p && q && p.n * q.d === q.n * p.d) return true;
+    /* anywhere inside a band the scheme prints -- see `markRange_` above */
+    const band = markRange_(w);
+    if (p && band
+      && p.n * band.lo.d >= band.lo.n * p.d
+      && p.n * band.hi.d <= band.hi.n * p.d) return true;
   }
   return false;
 }

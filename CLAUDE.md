@@ -7212,3 +7212,67 @@ behind would put a Carry on block on every state after this one. **89 → 100 ac
 May 2017 Higher writes an empty stroke list over an empty stroke list. Listed with its reason, like
 the nine before it — drawing on it first and then clearing is a different test and a good one, and
 the entry says which of the two this is.
+
+## The bottom of a band was marked right and the top of the same band was marked wrong
+
+**Found by asking whether the two papers somebody is sitting tonight actually mark.** Q13 of the
+May 2017 Foundation Paper 1 is *"write down an estimate for the real height of the man"* and its
+scheme takes **1.5 to 2 metres** — there is no single right answer to it, and `accept` says so in
+the scheme's own words.
+
+**`markBare_` strips a trailing word from the expected side, and `to 2 metres` IS a trailing word.**
+So `1.5 to 2 metres` quietly became `1.5`, and measured before anything was changed:
+
+| typed | marked |
+|---|---|
+| `1.5` | **Correct** |
+| `1.75` | Not yet |
+| `2` | **Not yet** |
+
+**Both ends of one accepted band, from one cell, disagreeing.** And the bottom passing is what made
+it invisible: a rule that failed everything would have been reported the first time anybody used
+it, where one that says yes to the first number in the cell reads as marking.
+
+**Three rows in the whole library carry a band** — Q13(a), Q13(b) and Q18(a) of that same paper —
+and all three are on the paper a student is working through this evening. `markRange_` is the rule
+rather than three repaired cells, which is this file's own sentence about `cost: 0` and `paper:
+true` for the ninth time.
+
+**Only `to` and the two long dashes.** A plain hyphen between two numbers is also how a person
+writes a subtraction and how this library writes an age range, and a rule that cannot tell them
+apart marks a WRONG answer right — the one failure worse than the one being fixed. **Compared as
+whole numbers**, for the reason `markFrac_` gives: the ends of a band are decimals and a float
+comparison at a boundary is the one place this must not be approximately right. Both ends inclusive,
+because a scheme printing "1.5 to 2" accepts 1.5 and accepts 2.
+
+**Proved in the app as well as in the check**: typing 1.75 and 2 into Q13(a) as a signed-in student
+both come back *Correct*, 0.9 comes back *Not yet*. `check-marking.js` is 46 cases now, and the
+mutation names five of them.
+
+## Q13 was a scale drawing with no scale, and part (b) had nothing at all
+
+**The last picture missing from the May 2017 Foundation Paper 1, and the only one on it the row's
+own words determine.** Two figures on one ground line, drawn to one scale, the tree a little over
+five times the man: there is exactly one drawing that answers that, which is the line this file
+already draws between a drawing instruction and a summary of fourteen plotted points.
+
+**The transcription had written the ratio into the prose, because the picture was not there.** That
+is part (b)'s whole method handed over — *"what a figure shows is not what its answer is"*, which
+this file records about the AQA Biology pie chart. The picture carries the ratio now and the prose
+does not.
+
+**And it moved to a question-scoped preamble, because BOTH parts hang from it.** Part (b) read only
+*"Find an estimate for the real height, in metres, of the tree"* — no tree, no man, no scale. That
+is the Venn diagram of Q23 exactly and the answer is the same one.
+
+**The ratio is asserted against the mark scheme rather than eyeballed.** The scheme takes 1.5–2 m
+for the man and 7.5–12 m for the tree, so the band it will accept is a ratio of 5 to 6 — and the
+drawing has to be one where BOTH ends of the man band land inside the tree band, or a student who
+measures our picture correctly is marked wrong. At 5.2 that is 7.8 m and 10.4 m. Measured off the
+drawn pixel heights in `tools/draw-1f-1705-q13.py`, not typed beside them.
+
+**Measured after: both papers have no gaps left.** `P-1MA1-1705-1H` (May 2017 Higher, 31 questions)
+and `RS1786302107764-481` (May 2017 Foundation, 41 questions) each report **0 questions whose
+picture never came across and 0 questions with no answer**, and the library-wide count went 722 to
+721. **Eleventh time this file writes that a screenshot is the last word on a drawing**: the first
+version's man was 26px against a 135px tree and read as a smudge rather than a person.
