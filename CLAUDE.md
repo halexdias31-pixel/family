@@ -6824,17 +6824,22 @@ those wrong by hand is the whole fault this check is about.
 **Proved in both directions**: putting the `＋`'s font-size back names `.dock-new .btn` overruled by
 `.btn.tiny` and exits 1; the real file is green.
 
-### 87 selectors set the same property twice, and that is printed rather than failed
+### 87 selectors set the same property twice — 28 of them saying it twice over
 
 `.page .card { border-bottom: 0 }` was in this stylesheet **word for word in two places nine hundred
 lines apart, with the same comment over each** — under a note saying *"a page was described twice
 and the two descriptions had already drifted apart"*. `.ag-a`, `.ag-b` and `.ag-c` each declare their
 `fill` twice, seven lines apart. `#splash-breathe` is told `display: none` in two separate groups.
 
-**Identical declarations break nothing on screen, and different ones mean the later rule silently
-wins** — so it is a real backlog and repairing eighty-seven of them across 448 KB is editorial work
-rather than a build error. Same split as the library's `figure` count and the practicals' blank
-`needs`: a number somebody can act on beats a silence.
+**A vague 87 is not a number anybody can act on, so it says which kind each one is.** **28 declare
+the SAME value twice** — dead text, two places to edit one fact. **59 declare different values**, so
+the later wins on file order alone — and **47 of those are `.mu-grid i:nth-child(N)`**, where the
+multiples of three and the multiples of five are two separate lists and every multiple of fifteen is
+in both. That is a designed overlap, and saying so needed the values rather than the property names.
+
+**Printed rather than failed**, because repairing them across 448 KB is editorial work and not a
+build error. Same split as the library's `figure` count and the practicals' blank `needs`: a number
+somebody can act on beats a silence.
 
 ## `node js/check-settings.js` — the nine tabs that became files, and nothing was checking them
 

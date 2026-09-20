@@ -167,10 +167,11 @@ function analyse(opts) {
     const walk = (l, ctx) => {
       for (const r of l) {
         if (r.type === 1) {
-          const props = []; for (let i = 0; i < r.style.length; i++) props.push(r.style[i]);
+          const props = []; const vals = {};
+          for (let i = 0; i < r.style.length; i++) { props.push(r.style[i]); vals[r.style[i]] = r.style.getPropertyValue(r.style[i]); }
           const rid = rules.length;
           String(r.selectorText || '').split(',').map(x => x.trim()).filter(Boolean)
-            .forEach(sel => rules.push({ sel, props, rid, ctx, i: rules.length, spec: spec(sel) }));
+            .forEach(sel => rules.push({ sel, props, vals, rid, ctx, i: rules.length, spec: spec(sel) }));
         } else if (r.cssRules) walk(r.cssRules, ctx + ' @ ' + (r.conditionText || r.media || r.name || r.type));
       }
     };
@@ -196,8 +197,20 @@ function analyse(opts) {
          was in this stylesheet twice, word for word, nine hundred lines apart, with the same
          comment over each. A selector written twice for DIFFERENT properties is ordinary and is
          not reported — 158 of them here, and every one is somebody grouping their rules. */
-      if (a.sel === b.sel) { rspec[a.sel] = a.spec; pairs.push({ prop, lose: (a.i < b.i ? a : b).sel,
-        win: (a.i < b.i ? b : a).sel, same: true }); continue; }
+      if (a.sel === b.sel) {
+        rspec[a.sel] = a.spec;
+        /* ---------- AND WHETHER THE TWO SAY THE SAME THING --------------------------------------
+           A VAGUE 87 IS NOT A NUMBER ANYBODY CAN ACT ON. Written twice with the SAME value is dead
+           text — `.ag-a { fill: #f0b45f }` appears twice seven lines apart, and `.page .card
+           { border-bottom: 0 }` appeared twice nine hundred lines apart. Written twice with a
+           DIFFERENT value is an override that only the file order decides, which is the sharper
+           half: 47 of these are `.mu-grid i:nth-child(N)` where the multiples of three and the
+           multiples of five are two separate lists and every multiple of fifteen is in both. That
+           is a designed overlap, and saying so needs the values. */
+        pairs.push({ prop, lose: (a.i < b.i ? a : b).sel, win: (a.i < b.i ? b : a).sel, same: true,
+                     agree: String(a.vals[prop]) === String(b.vals[prop]) });
+        continue;
+      }
       const ca = classes(a.sel), cb = classes(b.sel);
       if (!ca.size || !cb.size) continue;
       let shares = false; ca.forEach(x => { if (cb.has(x)) shares = true; });
@@ -215,7 +228,7 @@ function analyse(opts) {
 
   /* AND ONLY NOW IS THE DOCUMENT ASKED. The pairs come out of the stylesheet, which is cheap and
      fixed; putting 1,916 selectors to 1,510 elements would be three million tests per state. */
-  const hit = {};
+  const hit = {}, agree = {};
   pairs.forEach(p => {
     let els; try { els = document.querySelectorAll(p.lose); } catch (e) { return; }
     let n = 0;
@@ -239,8 +252,9 @@ function analyse(opts) {
     if (!n) return;
     const key = p.lose + ' || ' + p.win + ' || ' + p.prop;
     hit[key] = Math.max(hit[key] || 0, n);
+    if (p.same) agree[key] = !!p.agree;
   });
-  return { rules: rules.length, pairs: pairs.length, hit };
+  return { rules: rules.length, pairs: pairs.length, hit, agree };
 }
 
 (async () => {
@@ -265,7 +279,7 @@ function analyse(opts) {
   /* EVERY SCREEN AND EVERY DECLARED STATE, because a collision only counts where an element really
      carries both classes — and the sheet, the receipt, the basket, the guide and the message thread
      are on no screen `go()` lands on. Same list `check/ui.js` and `check/press.js` read. */
-  const found = {};
+  const found = {}, SAYS = {};
   let rules = 0, pairs = 0, states = 0;
   for (const id of tabs) {
     for (const st of statesOf(id)) {
@@ -283,6 +297,7 @@ function analyse(opts) {
       const res = await page.evaluate(analyse, { all: ALL });
       rules = res.rules; pairs = res.pairs;
       Object.entries(res.hit).forEach(([k, n]) => { found[k] = Math.max(found[k] || 0, n); });
+      Object.assign(SAYS, res.agree);
       if (st.leave) await page.evaluate(src => { try { eval('(' + src + ')')(); } catch (e) {} }, String(st.leave));
     }
   }
@@ -307,14 +322,17 @@ function analyse(opts) {
             + 'measured across ' + states + ' declared state(s)');
 
   if (dup.length) {
-    console.log('\nWRITTEN TWICE, SAME PROPERTY — one fact, two places to edit  (' + dup.length + ')');
-    dup.slice(0, 10).forEach(k => {
-      const [sel, , prop] = k.split(' || ');
-      console.log('   ' + sel + '  sets  ' + prop + '  in two rules');
-    });
-    if (dup.length > 10) console.log('   …and ' + (dup.length - 10) + ' more');
-    console.log('   Identical declarations break nothing on screen. Different ones mean the later'
-              + '\n   rule silently wins, which is what `.page .card { border-bottom: 0 }` was.');
+    const dead = dup.filter(k => SAYS[k]);
+    const over = dup.filter(k => !SAYS[k]);
+    console.log('\nWRITTEN TWICE, SAME PROPERTY  (' + dup.length + ')');
+    console.log('   ' + dead.length + ' say the same thing twice — dead text, two places to edit one fact');
+    dead.slice(0, 14).forEach(k => { const [sel, , prop] = k.split(' || ');
+      console.log('      ' + sel + '  ·  ' + prop); });
+    if (dead.length > 14) console.log('      …and ' + (dead.length - 14) + ' more');
+    console.log('   ' + over.length + ' say different things, so the later rule wins on file order alone');
+    over.slice(0, 14).forEach(k => { const [sel, , prop] = k.split(' || ');
+      console.log('      ' + sel + '  ·  ' + prop); });
+    if (over.length > 14) console.log('      …and ' + (over.length - 14) + ' more');
   }
 
   if (news.length) {
