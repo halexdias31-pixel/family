@@ -1311,10 +1311,12 @@ function resetBooking_() {
        an empty string would make `.length` read 0 and look right until something pushed to it. */
     BOOKING[st.id] = (st.multi || st.grid || st.emails) ? [] : '';
   });
-  /* The two that are not answers: what has been finished with, and which question is being
-     changed. Both are about the FORM rather than about the booking, and both must go. */
+  /* THE ONE THAT IS NOT AN ANSWER: what has been finished with. It is about the FORM rather than
+     about the booking, and it must go with the rest.
+
+     `BOOKING.editing` WAS CLEARED HERE TOO, and in two other places, and read nowhere — see the
+     note over the deleted `book-edit`. */
   BOOKING.done = [];
-  BOOKING.editing = '';
   BOOKING.note = '';
 }
 
@@ -1405,7 +1407,6 @@ document.addEventListener('change', e => {
      row below is the form contradicting itself. */
   if (step.id === 'how' && !isWaiting_()) BOOKING.joining = '';
 
-  BOOKING.editing = '';
   drawBooker();
 });
 
@@ -1417,16 +1418,29 @@ document.addEventListener('change', e => {
    is" and "Clear it" were buttons on that panel, and clearing is what choosing "—" does on a single
    row and what picking a ticked option again does on a multi one. */
 
-/* ---------- OPENING THE TWO THAT ARE NOT DROPDOWNS -------------------------------------------------
-   `book-edit` IS STILL NEEDED, which is easy to miss now that eleven of the thirteen questions are
-   answered without it. The week grid and the split emails have no control on their row — they are
-   drawn as a panel — so pressing that row is the only way to reach either, and this is what marks
-   which one is open.
+/* ---------- `on('book-edit')` IS GONE, AND IT WAS THE ONE CONTROL ON THE CARD DRAWN IN GOLD --------
+   REPORTED AS "grid not working when click", AND THIS IS THE HALF UNDERNEATH THE HALF THAT WAS
+   FIXED. `paintBook_` was repainting a screen the booking column is not on, so no press on this
+   card did anything; that is repaired. This one still did nothing afterwards, and had done nothing
+   since the grid stopped folding.
 
-   IT IS NOT A GENERAL EDIT ANY MORE. Every other row carries its own select and is changed in
-   place, so nothing else emits this — see `receiptRow`, which only writes it when there is no
-   dropdown for the row. */
-on('book-edit', el => { BOOKING.editing = el.dataset.step; drawBooker(); });
+   `stepGrid_` SAYS "ALWAYS OPEN" IN ITS FIRST LINE and gives the reason — a panel that unfolds
+   changes the card's height under the thumb reaching for it. The moment that was true there was
+   nothing left for this to open: `stepIsPanel_` returned `!!st.grid`, so the ONE row marked
+   pressable was the one row whose panel is always drawn. The handler set `BOOKING.editing`,
+   `drawBooker()` rebuilt the card byte for byte identically, and nothing anywhere read the field —
+   written in four places, read in none, which is this repository's oldest shape and is already
+   recorded here under `figure`, `orderPrints`, the four message actions, `exam_date` and `wow`.
+
+   AND IT WAS NOT INVISIBLE, WHICH IS WHY IT MATTERS. `.bk-pick` gave that value a GOLD underline
+   and a pointer cursor, and gold in this app means the one thing on the card to press. So the When
+   row advertised itself, in the app's own vocabulary, as the control for the week — and a person
+   pressing the row rather than the cells got nothing, twice over.
+
+   FOUND BY `check/press.js`, which exists for exactly this question and found it on its second
+   honest run. No check here could have: the wiring was perfect — a `data-do` with a handler, a
+   handler with a door — and `check/ui.js` measures whether a control can be read and hit, which a
+   dead one passes perfectly. */
 
 /* NO REDRAW. Every other control on the paper changes what the receipt says, so it repaints; this
    one changes nothing but itself, and repainting would take the cursor out of the box the moment
@@ -1453,7 +1467,6 @@ document.addEventListener('change', e => {
   BOOKING.done = list.length
     ? uniq((BOOKING.done || []).concat([step.id]))
     : (BOOKING.done || []).filter(id => id !== step.id);
-  BOOKING.editing = '';
   drawBooker();
 });
 
@@ -1875,8 +1888,10 @@ function weekGrid_(days, cell) {
    IT SPANS THE WHOLE ROW because it is not a value in a column — it is the control for the row above
    it, and squeezing seven days into the 55px value column would be worse than the panel was.
 
-   `open` IS PER-ROW, NOT A MODE. `BOOKING.editing` still says which row is showing its grid, and
-   pressing the row again closes it — the same fact it always held, now expressed on the paper. */
+   IT IS NOT A MODE AND THERE IS NOTHING TO OPEN. This note used to say `BOOKING.editing` held which
+   row was showing its grid and that pressing the row again closed it. That stopped being true in
+   the paragraph below — the grid is drawn whenever the When row is — and the control, the field and
+   this sentence all outlived it by months. See the note over the deleted `book-edit`. */
 function stepGrid_(st) {
   /* ---------- ALWAYS OPEN ---------------------------------------------------------------------
      IT UNFOLDED WHEN YOU PRESSED THE ROW, and folding is the thing to avoid: the card changed
@@ -1925,8 +1940,6 @@ function stepGrid_(st) {
 }
 
 /* Which steps open something under their row rather than answering in it. */
-function stepIsPanel_(st) { return !!st.grid; }
-
 /* ---------- A FIELD THAT CANNOT BE ANSWERED IS SHOWN, NOT REMOVED ----------------------------------
    ROWS USED TO DISAPPEAR. `stepRows_` skipped any step whose `options()` came back empty, so
    choosing "waiting list class" deleted Subject, Level, When and Term off the card, and choosing a
@@ -1952,9 +1965,14 @@ function stepLocked_(st) {
 }
 
 /* The control a row carries. One answer here so `stepRows_` and `breakdownRows` cannot draw a
-   different thing for the same step. */
+   different thing for the same step.
+
+   `st.grid` DIRECTLY, WHERE THIS READ `stepIsPanel_(st)`. That predicate was `!!st.grid` under a
+   name describing a panel that no longer exists — see the note over the deleted `book-edit` — and
+   a wrapper whose name is wrong about what it tests is worse than no wrapper. The week is its own
+   control, drawn under the row by `stepGrid_`, so the row itself carries no dropdown. */
 function stepControl_(st) {
-  if (stepIsPanel_(st)) return '';
+  if (st.grid) return '';
   return st.emails ? stepInput_(st) : stepSelect_(st);
 }
 
@@ -2014,12 +2032,13 @@ function stepRows_() {
                   dash looks like a blank somebody is expected to fill, which is what it is. */
                v: String(text || '—'),
                mul: '', rate: '', total: '',
-               /* `step` STILL MARKS IT PRESSABLE for the three that open a panel; `sel` is the
-                  dropdown for everything else. A row never has both. */
-               /* THE STEP THIS ROW STANDS FOR, on every row and not only the ones that open a
-                  panel — it is what lets a price line find its question. See `bookBreakdown`. */
+               /* THE STEP THIS ROW STANDS FOR. `bookBreakdown` matches a price line to its
+                  question on this, which is how the hours and the rate land on the Tutor row.
+
+                  `step:` WAS HERE TOO AND IT MARKED THE ROW PRESSABLE — see the note over the
+                  deleted `book-edit`. Nothing read it but the markup that drew a gold underline
+                  under a control that did nothing. */
                id: st.id,
-               step: stepIsPanel_(st) ? st.id : '',
                sel: stepControl_(st),
                open: stepGrid_(st) };
     });
@@ -2701,8 +2720,7 @@ function receiptRow(r) {
   return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
     <span class="bk-k">${esc(r.k)}</span>
-    <span class="bk-v${r.step ? ' bk-pick" data-do="book-edit" data-step="' + esc(r.step) : ''}"
-      >${value}</span>
+    <span class="bk-v">${value}</span>
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>

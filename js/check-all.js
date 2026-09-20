@@ -177,6 +177,22 @@ const SUITE = [
      asks the question neither can: after a deploy, does the browser run the new code. Deterministic,
      seven seconds, and it runs at both base paths because the base path is what hid the fault. */
   { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site' },
+  /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING ----------------------------------------
+     REPORTED BY THE OWNER AS "grid not working when click", and it was true: `paintBook_` repainted
+     `s-stuff`, which on the Booking column is not merely the wrong element but a dead one. Every
+     press on the app's main form set the right state and rebuilt nothing.
+
+     NOT ONE CHECK HERE COULD SEE IT, and each was right about what it asks. `check-doors.js` found
+     a `data-do` with a handler and a handler with a door — the wiring was perfect and the wire went
+     nowhere. `check/ui.js` measures whether a control can be read and hit, which a dead one passes
+     perfectly. `check-flow.js` drives bookings through `BOOKING` and never presses a cell. And the
+     dispatcher catches every handler error on purpose, so `pageerror` never fires either.
+
+     IT IS ON THE ROSTER RATHER THAN BESIDE `load.js` AND `splash.js` because its answer does not
+     move with the machine — it presses and asks whether anything changed, which is the same answer
+     on a busy container as on an idle one — and because the roster is the only thing that makes a
+     check real. Fifty-seven seconds for both visitors. */
+  { file: 'check/press.js',   what: 'press every control and see whether anything happens' },
 ];
 
 let failed = 0, noted = 0;

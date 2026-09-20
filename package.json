@@ -11,6 +11,8 @@
     "check:payload": "node js/check-payload.js",
     "check:widgets": "node js/check-widgets.js",
     "check:ui": "node check/ui.js",
+    "press": "node check/press.js",
+    "press:verbose": "node check/press.js --verbose",
     "check:ui:shots": "node check/ui.js --shots",
     "load": "node check/load.js",
     "load:detail": "node check/load.js --detail",

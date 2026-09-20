@@ -2574,8 +2574,11 @@ button.text-drop { color: var(--bad); }
 
 /* A value you picked is a button. No pencil, no edit mode — the dashed underline already says
    somebody chose this, so it is the obvious thing to press when you want to choose differently. */
-.bk-pick { cursor: pointer; border-bottom-color: var(--gold); }
-.bk-pick:active { color: var(--gold); }
+/* `.bk-pick` WAS HERE — a gold underline and a pointer on the one value in the form that opened a
+   panel. There is no panel: `stepGrid_` draws the week whenever the When row is drawn, and has
+   since folding was removed for changing the card's height under a thumb. What survived was a
+   control advertising itself in this app's own "press me" colour and doing nothing at all when it
+   was pressed. See the note over the deleted `book-edit` in js/book.js. */
 
 /* A day's hours, inside its row: ticked ones filled, the rest outlined. Small, because this is the
    card REPORTING what was ticked rather than asking for it. */
