@@ -136,6 +136,16 @@ const ACCEPTED_QUIET = {
                    + 'and this container has none, so there is nothing to switch to. The control is '
                    + 'drawn only where there are two, which is why this is quiet rather than absent.' },
 
+  /* ---------- CLEARING SOMETHING NOBODY HAS DRAWN ON ----------------------------------------------
+     REACHED FOR THE FIRST TIME BY `stuff · carry on`, whose paper carries the one draw-on question
+     in May 2017 Higher. `padClear_` writes an empty stroke list over an empty stroke list and
+     repaints an identical `<svg>`, which is the right answer to "clear this" when there is nothing
+     on it -- the same shape as `dock-add` on an empty to-do line. Drawing on it first and then
+     clearing would be a different test and a good one; this entry says which of the two this is. */
+  'pad-clear': { why:
+      'the pad has no marks on it, so clearing writes an empty list over an empty list. The state '
+      + 'that reaches this opens a paper rather than drawing on one.' },
+
   /* ---------- AND ONE THAT IS THE FIXTURE RATHER THAN THE APP -------------------------------------- */
   'cmt-del': { only: 'signed out', why:
       'a stranger has no `USER`, so the handler returns. The button is only drawn where the SERVER '

@@ -7136,3 +7136,79 @@ are outstanding" but "can somebody sit this paper tonight".
 **The pen is rarer still and for the reason already recorded**: `padSource_` needs a diagram, so a
 draw-on question with no picture is an answer box. 1 of 31 on the Higher paper, 4 of 41 on the
 Foundation one, 0 on everything else.
+
+## Carry on — the paper you are part-way through, in one tap
+
+**Asked for as "i want it to be the same paper we did like 2 weeks ago for each. if you dont know
+which that is then we need to audit the papers we have".** Nothing records which paper: answers are
+kept in `localStorage` and posted nowhere, so no sheet holds it and the Ledger could not be reached
+to ask. **But the answers themselves say it.** Every box a student fills in writes
+`ans:u:<person_id>:q:<row_id>`, and a row id resolves to a paper — so counting those keys is the
+question already answered, on the device where it matters.
+
+**Measured before it was built, because the funnel might have been the answer.** It is not broken:
+8 taps reach May 2017 Higher Paper 1 and 9 reach the Foundation one, both ending on exactly that
+paper **in its own order** — `1a 1b 1c 1d 2 3 4 …`. What it is not is what you want on the third
+week of the same paper.
+
+**Per person, because the key already is.** `ansKey_` prefixes the signed-in person, so two students
+on one phone get two lists and neither can see the other's — which is the whole reason that prefix
+exists. Measured: Lucca's two papers (14/31 and 3/27), Theo's one (9/41), nothing at all signed out.
+
+**It is a filter, not a screen.** Pressing one sets the same `paperId` chip the funnel's own Paper
+question sets, so the strip, the order and the ✕ that undoes it are the machinery that was already
+there. **A second route to one place, never a second place.** And it lands on the questions:
+`paintStuff` leaves you on the controls, which is right for answering a funnel question and wrong
+for somebody who has finished choosing — `stuffFirstResult_()` is asked rather than counted, because
+saved things and the booking pages sit in front of the results and their number changes with a star.
+
+**Only on the way in.** With a chip on screen somebody is part-way through a search, and a block
+offering to throw that away is the funnel changing its mind. No answers, no block, and no empty
+state either.
+
+### The Paper question was putting two papers on one button
+
+**Its own note has always stated the rule** — *"the id decides WHO answers and the name is what is
+shown"* — **and its `of` returned the name.** So the spelling fold, which exists to make `Alevel`
+and `A-Level` one button, merged papers: `Paper 1 (Non-Calculator) — May 2017` is Edexcel Higher and
+`Paper 1 (Non-calculator) — May 2017` is the Foundation paper of the same sitting, one letter's case
+apart. **Six names carried by twenty papers**, the six AQA science `Paper 1 — June 2024` rows
+putting three subjects and two tiers on one answer, and 248 answers offered for 262 papers.
+
+**`showOf` is the fix and it is one line per facet**: the value is the id, the label is what the
+facet says to draw, and `shortLabels_` shortens the label rather than the value. Narrowed to
+Maths · Higher · Summer 2017 the three answers still read `Paper 1`, `Paper 2`, `Paper 3`.
+`paperLabels_` disambiguates only where a name is shared and by what actually differs — subject
+first, then tier.
+
+**Built from `LIBRARY_ROWS`, the file, not the mapped list.** The first version read
+`DATA.questions`, which carries only 170 of the 262 papers' document rows and renames `paper_id` to
+`paper` on the way through, so every button drew a raw id. Caught by looking at the rendered answers
+rather than at the count, which was already right.
+
+**And the chip did not follow the value.** `f.value` had been both the match and the label until
+this, so the chip read `PAPER P-1MA1-1705-1H` — an account number where a paper's name had been.
+Caught on a screenshot of the tap that sets it. Same shape as `resource_type` sitting in `VOCAB`
+after the rename: the rule moved and one of its readers did not.
+
+**`check-funnel.js` gains the rule, and it is on the ITEMS rather than the spelling**: press an
+answer, and every question left has to come from one paper. Test 2 could not see this and its own
+note says why — it looks for two values that normalise to one key, and after the fold there is only
+one value left. Proved by mutation: the old `of` names all six merged answers.
+
+### 89 actions pressed, and the new door was not one of them
+
+**`check/press.js` passed without ever reaching `resume-paper`.** The block is drawn from
+`localStorage`, so on a fresh browser there is nothing to draw — and an action that is on no screen
+is one that check cannot report. **That is the hole this file's own STATES list exists to close**,
+and the same one the booking receipt and the message thread were in.
+
+**`stuff · carry on` seeds through `ansKey_`, the app's own key-builder**, rather than writing the
+string out in the harness — a second spelling of that key would be a second thing to keep in step.
+`leave` takes the answers out again, because states run in order down one page and answers left
+behind would put a Carry on block on every state after this one. **89 → 100 actions pressed.**
+
+**And it reached a tenth quiet press that is correct**: `pad-clear` on the one draw-on question in
+May 2017 Higher writes an empty stroke list over an empty stroke list. Listed with its reason, like
+the nine before it — drawing on it first and then clearing is a different test and a good one, and
+the entry says which of the two this is.
