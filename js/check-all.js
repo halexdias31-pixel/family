@@ -136,6 +136,7 @@ const SUITE = [
      perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one
      question out of ninety-four — a join that looks like a feature and returns the wrong list. */
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
+  { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. `reelPlay_` swaps the
      element for an iframe on the same address, so a missing file reads as Google's player or as a
@@ -202,7 +203,7 @@ const SUITE = [
      check real. Fifty-seven seconds for both visitors. */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
-     `check/ui.js` IS THE APP'S MAIN MEASUREMENT — 132 combinations of screen, state, width and
+     `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own
      fold — and it was not on the roster. CLAUDE.md says in two places that it "has run on every
      commit for weeks"; it has run when somebody typed `npm run check:ui`. That is the exact fault
@@ -212,7 +213,12 @@ const SUITE = [
      WHAT KEPT IT OFF WAS THE CLOCK, and that is what the parallel start below is for: ninety seconds
      added to a sequential run is ninety seconds every session pays, and run beside the other three
      browser checks it costs nothing it was not already costing. */
-  { file: 'check/ui.js',      what: '132 combinations of screen, state, width and visitor', slow: true },
+  /* THE NUMBER IS NOT IN THIS LINE, AND IT USED TO BE. It said `132 combinations` for as long as
+     there were 132 and went on saying it at 140, because a state added to `check/states.js` does
+     not touch this file — the run prints its own count and this is a label somebody reads instead
+     of it. Same fault as "all 18 checks pass", "one of the eighteen names" and the prose over
+     `CARD_W` naming 88% and 4% while the code said 80 and 8. */
+  { file: 'check/ui.js',      what: 'every screen, state, width and visitor, measured', slow: true },
   /* ---------- AND WHICH CSS RULE ACTUALLY WINS ----------------------------------------------------
      THIS STYLESHEET HAS LOST THE SAME ARGUMENT SEVEN TIMES — `.price.faint`, `--fly-ink`,
      `.bk-row.is-blank`, `.rc-total`, an SVG `text-anchor`, `.gd-sec p`, and the docket's ＋ written

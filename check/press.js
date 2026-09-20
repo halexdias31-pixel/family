@@ -431,10 +431,29 @@ for (const who of VISITORS) {
        thousand times; what is worth asking once is each distinct ACTION, because the handler is the
        thing that can be broken. Re-found before every press, because the press before it may have
        rebuilt the screen. */
+    /* ---------- AND FROM THE SHEET, IF THIS STATE OPENED ONE -----------------------------------
+       A SHEET IS A SIBLING OF THE SCREENS, so `#s-<id>` cannot see inside one — and a state whose
+       `enter` opens a sheet therefore queued NOTHING, because the only other route to a sheet's
+       actions is `out.inSheet`, which is collected after a press.
+
+       MEASURED: the quiz sheet's `quiz-pick`, `quiz-check` and `quiz-again` were never pressed, and
+       `check/press.js` reported a clean run over 93 actions with the three of them untouched.
+       Proved by breaking `quiz-pick` outright — the mutant survived, which is the definition of a
+       check that cannot fail. The practical guide's state was in the same hole and got away with it
+       only because the boxes it holds are `qp-ans`, which is pressed on a question card elsewhere.
+
+       THE STATE IS THE THING THAT PUT IT THERE, so it is seeded here rather than reached by a
+       press. That is the same argument `check/ui.js` makes for adding `#sheet` to its measured
+       roots: the declared state IS the app's own door, and a sheet that a state opened is a surface
+       somebody is on. */
     const queue = await page.evaluate(sid => {
       const scr = document.getElementById('s-' + sid);
       const seen = new Set();
       if (scr) scr.querySelectorAll('[data-do]').forEach(e => seen.add(e.dataset.do));
+      const sh = document.getElementById('sheet');
+      if (sh && !sh.classList.contains('hidden')) {
+        sh.querySelectorAll('[data-do]').forEach(e => seen.add(e.dataset.do));
+      }
       return [...seen];
     }, id);
     const seeded = new Set(queue);
