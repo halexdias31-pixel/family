@@ -8073,6 +8073,24 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    "done, and no longer asking" the label used to say in words. */
 .tile.is-buy.on { color: var(--dim); }
 .tile.on[disabled] { opacity: 1; }
+/* ---------- AND THE MARK ITSELF FILLS, WHICH IS WHAT THE PARAGRAPH ABOVE PROMISED ----------------
+   IT NAMED `.favwrap.is-fav .star` AND THAT RULE IS NOWHERE IN THIS FILE. Deleted at some point
+   with the sentence left over it, so "filled means done" has been a description of nothing: a
+   saved star was the same outline as an unsaved one and the only difference was a background at
+   9% white, which on this ground is invisible. Reported from the Saved column — *"after i
+   fabourite it the tile should be filled in"* — and true of every star in the app.
+
+   THREE MARKS, NOT ALL OF THEM, and the names are why `tileIcon_` now writes one. A star, a jumper
+   and a lamp are closed silhouettes and read as filled; the trolley is a body and two wheels drawn
+   as open paths, so filling it paints a wedge between the handle and the basket. `.tile.is-buy.on`
+   one line up already says "in your basket" by going quiet, which is the same statement in the
+   register that mark can carry.
+
+   THE STROKE STAYS. Fill alone loses the 1.4 of weight that makes these marks the same colour as
+   the words beside them at 18px. */
+.tile.on .tile-i-star,
+.tile.on .tile-i-wear,
+.tile.on .tile-i-spot { fill: currentColor; }
 
 
 /* ---------- SECOND PASS, FROM LOOKING AT IT -------------------------------------------------------

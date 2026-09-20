@@ -5467,9 +5467,9 @@ function stuffFirstResult_() {
   /* PAST THE BOOKING PAGES TOO. They sit between the question and the results, so a result's index
      is its position minus the question, minus however many of those there are. Counted from the
      same function that draws them, so the two cannot disagree about how many there were. */
-  /* THE BASKET IS NOT COUNTED ANY MORE — it moved to the Booking column. See `bookingPages_`. */
-  return stuffQuestionPage_() + 1 + frontPages_().length
-       + savedPages_().length;
+  /* THE BASKET IS NOT COUNTED ANY MORE — it moved to the Booking column. See `bookingPages_`.
+     NOR ARE THE SAVED PAGES — they are the Saved column now. See the note in `paintStuff`. */
+  return stuffQuestionPage_() + 1 + frontPages_().length;
 }
 
 function stuffPageCount() {
@@ -5903,7 +5903,33 @@ function paintStuff(keepPage) {
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
   const was = PAGE.stuff || 0;
-  const wasQ = stuffQuestionPage_();
+  /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
+     THIS READ `stuffQuestionPage_()` AND THAT NUMBER IS ALWAYS NOUGHT. `screen('stuff')` builds
+     `[the question], frontPages_(), savedPages_(), …` — the question is FIRST and everything that
+     can appear or disappear sits AFTER it. So the shift was measured off the one page in the strip
+     that cannot move, and the comment over the star's handler claimed it moved you "by exactly
+     that much" while it moved you by nought.
+
+     REPORTED AS "when navigating up and down on the practicles, they just start bugging out. i
+     dont know if its because i was favouriting things too." It was. Measured: six pages into the
+     practicals reading `Microbiology`, press the star, and the same page number is now
+     `Food tests` — because starring inserted a page in FRONT of the results and the page you were
+     on kept its number while every result under it slid down by one. The card changes under your
+     thumb and nothing anywhere says why.
+
+     SO IT IS MEASURED OFF THE FIRST RESULT, which is exactly the count of pages before the results
+     and the one number a star changes.
+
+     AND THE OLD VALUE IS A FACT ABOUT THE DOM RATHER THAN ABOUT THE DATA. `stuffFirstResult_()`
+     is derived from `savedPages_()`, which reads `FAVS` — and `toggleFav` has already written to
+     it by the time this runs, so asking it here answers with the NEW number and the difference is
+     always nought. My first fix did exactly that and moved nothing; the probe caught it because it
+     reports the card it can see rather than the number it expected. The strip still standing is
+     the only thing that remembers where the results used to start. */
+  const oldRes = host.querySelector(':scope > .page.is-res');
+  const wasFirst = oldRes
+    ? [].indexOf.call(host.children, oldRes)
+    : stuffFirstResult_();
 
   /* ---------- THE QUESTION PAGE IS NOT REDRAWN, AND THAT IS THE WHOLE POINT ---------------------
      This was `host.innerHTML = first.outerHTML + …`, which rebuilds the first page from its own
@@ -5962,7 +5988,19 @@ function paintStuff(keepPage) {
      ONE INSERT AND ONE ORDER. The string's own order is the order, so there is nothing to reason
      about — `afterend` with four separate calls is what made the old code need a paragraph
      explaining that the last one lands nearest. */
-  const lead = frontPages_().concat(savedPages_())
+  /* ---------- SAVED IS A COLUMN AGAIN, SO IT IS NOT A PAGE HERE --------------------------------
+     `savedPages_()` WAS IN THIS LIST and the things you had starred sat between the question and
+     the results. It has its own column now, right of Games — see `savedCards_` in arcade.js for
+     why that stopped being a duplicate — and two homes for one list is the fault this repository
+     records under `documents_()`, `factsNow_` and `childrenOf`.
+
+     AND IT COST MORE THAN TIDINESS, which is the half worth keeping. A star ADDED A PAGE IN FRONT
+     OF THE RESULTS, so every result below it slid down by one while the page you were standing on
+     kept its number — reported as "when navigating up and down on the practicles, they just start
+     bugging out. i dont know if its because i was favouriting things too." It was. The shift in
+     `paintStuff` is repaired either way, because `frontPages_()` can still change; with the saved
+     things gone from here, pressing a star changes nothing about this strip at all. */
+  const lead = frontPages_()
     .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
   if (lead) first.insertAdjacentHTML('afterend', lead);
 
@@ -5993,8 +6031,13 @@ function paintStuff(keepPage) {
      went between them; `stuffFirstResult_() - 1` is now the last of those, so answering "what for"
      would have dropped you at the foot of the booking form rather than on the question you just
      answered. Zero is no good either — that is a saved thing. */
+  /* ONLY WHAT IS PAST THE LEADING PAGES MOVES. The question is page nought under every ordering,
+     and a saved page you were looking at is still the page it was — it is the RESULTS that slide.
+     So a position before the first result is left exactly where it is, and one at or past it is
+     carried by the same amount the results moved. */
   PAGE.stuff = keepPage
-    ? Math.max(0, Math.min(was + (stuffQuestionPage_() - wasQ), host.children.length - 1))
+    ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
+                           host.children.length - 1))
     : stuffQuestionPage_();
 
   fillStuffPages();
@@ -6299,8 +6342,26 @@ function allWidgets() {
   /* THE STATIC ONES, THEN THE TWO SETS THAT ARE MADE FROM DATA — a widget per conversation and a
      widget per session you are in. Both are the same idea: a thing you can name is worth being its
      own entry rather than a row inside a container somebody has to open first. */
+  /* ---------- AND CONVERSATIONS ARE NOT AMONG THEM ANY MORE --------------------------------
+     `msgWidgets_()` WAS CONCATENATED HERE AND DECLARED `kind: 'tool'`, so every conversation was a
+     page of the Tools column — reported as "i dont want chat in tools. what the fuck", with a
+     screenshot of two message threads sitting under the calendar.
+
+     THE ARGUMENT AGAINST IT WAS ALREADY WRITTEN, twenty lines up in `map.js`, where the messages
+     widget was deleted from `WIDGETS`: *"a calculator, a board and a timer are instruments: you go
+     looking for one because you want to do something with it. A message is somebody trying to
+     reach YOU."* That removal took the STATIC entry out and left the generated ones, so the thing
+     the note forbids came back through the other door.
+
+     AND THERE IS A COLUMN FOR THEM NOW. `dm` is one conversation per page with the composer at the
+     foot of each — built after that note was written, which makes Tools the THIRD home for a
+     conversation and the only one nobody asked for. Same shape as the reel scroller that was a
+     second description of the pager: a surface that predates a better one and was never removed
+     with it.
+
+     Nothing looks a `msg:` widget up by id — measured, the string appears nowhere else — so the
+     roster is the only thing that was reading it. */
   return WIDGETS
-    .concat(typeof msgWidgets_ === 'function' ? msgWidgets_() : [])
     .concat(typeof liveWidgets_ === 'function' ? liveWidgets_() : []);
 }
 
@@ -6614,7 +6675,6 @@ screen('stuff', () => {
   return pages('stuff', spotPages().concat(
     [controls],
     frontPages_(),
-    savedPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => '');
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one

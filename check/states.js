@@ -190,6 +190,37 @@ const STATES = {
      switched off moves every index after it — and a state that silently lands on the wrong widget
      is worse than one that fails, because it reports a pass about something it did not look at.
      `expect` is what makes that loud. */
+  /* ---------- THE SAVED COLUMN, IN BOTH OF ITS STATES --------------------------------------------
+     IT IS EMPTY FOR EVERY VISITOR ON A FRESH BROWSER, which is the state `check/press.js` and
+     `check/ui.js` would both have measured and the only one they could reach — the same hole the
+     booking receipt and the message thread were in, and the one the removed Carry-on block was in
+     when a whole feature went unpressed. A column whose contents come from `localStorage` needs a
+     state that seeds it or the lab reports a clean sweep of a card it never saw.
+
+     SEEDED THROUGH `toggleFav`, THE APP'S OWN WRITER, rather than by writing the key out here: the
+     prefix is `WIDGET_KEY`'s and a second spelling of it would be a second thing to keep in step.
+     `leave` takes them back off, because states run in order down one page. */
+  saved: [
+    { name: 'nothing kept' },
+    { name: 'two widgets kept',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        widgetsOf_('tool').slice(0, 2).forEach(w => {
+          if (!isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        });
+        paint('saved');
+      },
+      expect: () => document.querySelectorAll('#s-saved .widget-slot').length >= 2
+                 && document.querySelector('#s-saved .tile.on'),
+      wants: 'two starred widgets on the column, each with a filled star',
+      leave: () => {
+        widgetsOf_('tool').slice(0, 2).forEach(w => {
+          if (isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        });
+        paint('saved');
+      } },
+  ],
+
   tools: [
     { name: '' },
     { name: 'the cheat sheet maker',

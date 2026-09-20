@@ -7709,3 +7709,134 @@ What actually tells two cards apart is the topic, the level chip and how far thr
 only the third of those is ever worth a line. **Twelfth time this file writes that a screenshot is
 the last word on something drawn** — nothing measured wrong, no overflow, no tap target under 44px,
 and the card was a third boilerplate.
+
+## Chat was in Tools because the note deleting it only took the static half
+
+**Reported as "i dont want chat in tools. what the fuck"**, with a screenshot of two message threads
+sitting under the calendar on the Tools column.
+
+**`map.js` ALREADY CARRIES THE ARGUMENT AGAINST IT, in full, where the messages widget was deleted
+from `WIDGETS`**: *"a calculator, a board and a timer are instruments: you go looking for one
+because you want to do something with it. A message is somebody trying to reach YOU."* That removal
+took the FIXED entry out. **`msgWidgets_()` in `me.js` went on generating one per conversation with
+`kind: 'tool'`**, and `allWidgets()` concatenated them — so the decision was undone by a function
+nobody connected to it, in a file the note does not mention.
+
+**And the `dm` column exists now**, one conversation per page with the composer at the foot of each,
+built long after that note. So Tools was the **third** home for a conversation and the only one
+nobody asked for — the reel scroller's shape exactly: a surface that predates a better one and was
+never removed with it. `msgWidgets_` and `fillThread_` are gone; measured first, the string `msg:`
+appears nowhere else, so the roster was the only reader.
+
+## The card changed under your thumb, and the shift was measured off the one page that cannot move
+
+**Reported as "when navigating up and down on the practicles, they just start bugging out. i dont
+know if its because i was favouriting things too."** It was, and reproducing it took one probe:
+
+| | |
+|---|---|
+| six pages into the practicals | page 7, reading **Microbiology** |
+| press the star on that card | page 7, reading **Food tests** |
+
+**A star added a page in FRONT of the results**, so every result slid down by one while the page you
+were standing on kept its number. The card you were reading became a different card and nothing
+anywhere said why.
+
+**`paintStuff(true)` WAS ALREADY TRYING TO DO THIS AND WAS MEASURING THE WRONG THING.** It shifted
+`PAGE.stuff` by `stuffQuestionPage_() - wasQ` — and `screen('stuff')` builds
+`[the question], frontPages_(), savedPages_(), …`, so **the question is page nought under every
+ordering and that difference is always nought.** The note over the star's handler claimed it moved
+you "by exactly that much"; it moved you by nothing. Same shape as the `.favwrap.is-fav` rule below:
+a sentence describing a mechanism that is not there.
+
+**AND MY FIRST FIX MOVED NOTHING EITHER, for a reason worth keeping.** Measuring off
+`stuffFirstResult_()` looks right and is derived from `savedPages_()`, which reads `FAVS` — and
+`toggleFav` has already written to it by the time `paintStuff` runs. So the old value and the new
+value are the same number. **The strip still standing is the only thing that remembers where the
+results used to start**, so the old count is read off the DOM. The probe caught it because it
+reports the card it can see rather than the number it expected.
+
+**And the root cause went in the same commit**: the saved things are a column now, so nothing is
+ever inserted in front of the results. The shift stays, because `frontPages_()` can still change.
+
+## Saved is a column again, and what changed is that a widget can be starred at all
+
+**Asked for as "add a favourite column so i can see the widgets i favoutited. add the coloumn to the
+right of games. after i fabourite it the tile should be filled in."**
+
+**`TABS`'S OWN NOTE LISTS FAVOURITES AMONG THE DEAD**: *"Every column this app has had was
+eventually folded into the funnel — Spotlight, Book, Basket, Library, Arcade, Tools, Favourites."*
+It went because it was a second way to reach what the funnel already reached. **What has changed is
+the half that makes this not that column: a widget could not be starred at all.** Tools and games
+are deliberately out of the funnel — the owner's judgement, recorded twice — so there has never been
+anywhere to keep a calculator. `favTile_` is drawn on every widget card now, same renderer, same
+44px target, same `FAVS` set a question or a tutor is kept in.
+
+**AND THE SAVED PAGES LEFT THE FUNNEL IN THE SAME COMMIT**, because two homes for one list is the
+fault this file records under `documents_()`, `factsNow_` and `childrenOf` — and here the second
+home was the cause of the bug above. Measured after: starring in Find leaves you on the same card.
+
+**Five places name a screen and all five were edited**: `TABS`, `TAB_ORDER`, `PAGER`, `PAGE`, and a
+`<section id="s-saved">` — plus `data/settings/columns.json`, which is the sixth and is what
+`applyColumns_` reads, so the column can be reordered or switched off without a deploy.
+`check-doors.js` reports 10 screens.
+
+**It starts and stops its widgets like the other two columns.** A starred timer is a running timer,
+and `toolsStop_` already exists for the flat battery.
+
+### `.favwrap.is-fav .star` does not exist, and has not for a long time
+
+**The paragraph over `.tile.on` in `style.css` says "FILLED MEANS DONE" and names that rule as what
+does it. It is nowhere in the file.** Deleted at some point with the sentence left standing — the
+shape this file records under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard. So a
+saved star has been the same outline as an unsaved one on every card in the app, and the only
+difference was `.tile.on`'s background at 9% white, which on this ground is invisible. **The
+complaint is about the Saved column and the fault was everywhere.**
+
+**Every mark is `fill="none"` stroked in `currentColor`, so the fix is a fill — and it cannot be
+every mark.** `tileIcon_` writes the icon's own name as a class now, because a star, a jumper and a
+lamp are closed silhouettes that read filled, and the trolley is a body and two wheels drawn as open
+paths: filling it paints a wedge between the handle and the basket. Three named rules, and
+`.tile.is-buy.on` one line up already says "in your basket" by going quiet. **Screenshotted**, which
+is the thirteenth time this file writes that.
+
+## The practicals were written for one learner in one town
+
+**Reported as "it seems you speciallised the practicles for me and my situation. it needs to be more
+systematic and uniform like repeatable for anyone."** Measured rather than guessed at, because
+"feels specialised" is not something to act on directly. Four things, and only one is prose:
+
+| | |
+|---|---|
+| **`age_min` on 16 of 57 and `wow` on 16 of 57** | **the same sixteen** — the set that came out of one chat transcript. Two columns on a subset draw two kinds of card down one column: eleven saying "7+ · worth opening a session with" and forty-six saying neither |
+| **two practicals named after one town's park and its river** | *Perimeter of Wandle Park*, *Flow rate of the River Wandle*, and five more naming a local landmark in their steps or notes |
+| **notes addressing one person and one session** | *"before HE is watching"*, *"This is the one to open with"*, *"THE MOST VALUABLE ONE IN THE SET"* |
+| **a practical built around what one house has** | *Fish behaviour logging* |
+
+**`age_min` IS NOT `level` RESTATED, AND THAT WAS CHECKED RATHER THAN ASSUMED.** `level: 'GCSE'`
+carries ages **6, 8, 9, 13 and 14** across the sixteen rows that have both — the volcano is GCSE
+content about rates and ratio that a six-year-old can pour. So `level` is the spec content and
+`age_min` is the youngest child who can DO it, and they are two facts. Storing one as the other
+would be the `needs_print` / `print_required` fault this file records three times.
+
+**So the rule is stated and the values are not guessed.** Where nobody has made a narrower judgement
+the youngest child is the youngest in the band it is set for, which is `level`'s own lower bound —
+41 filled that way, 16 judgements kept, and `tools/practical-uniform.py` asserts it never overwrote
+one. **`wow` cannot be derived and is written out one row at a time**: a titration and an
+electrolysis are the same level, the same venue and the same subject with completely different
+answers to "is there anything to see". Deriving it from a word in the name would be the substring
+fault that put a gold *required practical* flag on five cards saying they are not one.
+
+**`cost_per_run_gbp` stays on 8 of 57 and that is the one deliberate gap.** A school owns the kit
+and nobody has ever costed a lab practical; `libNum` answers absent rather than nought for exactly
+that reason. The count is printed so it is a number rather than a silence.
+
+**`check-practicals.js` fails on a live row with no `age_min` or no `wow`**, refuses any of the six
+local names as a closed list — the `ACCEPTED` / `VOCAB` / `RETIRED_FACETS` pattern for the seventh
+time — and prints per-column coverage, because a column on a subset is invisible until somebody
+opens two cards side by side. **Proved by mutation**: a blanked `wow` and a note reading "Meet at
+Wandle Park" are named and exit 1.
+
+**And every one of the thirteen prose edits asserts that it found what it was replacing.** A
+replacement that silently matches nothing is the shape this file records every time a rule is
+written from the instance that prompted it.
