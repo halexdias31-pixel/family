@@ -8794,16 +8794,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qp-mark.is-right .qp-verdict { color: #6ee7a8; }
 .qp-mark.is-near  .qp-verdict { color: var(--gold); }
 
-/* WHO IS WORKING, AND IT IS DELIBERATELY QUIET. It sits in the answer label because that is where
-   it is relevant and where it is needed, and it is the smallest thing on the card because it is
-   set once a lesson. 44px tall all the same — small to look at is not small to hit. */
-.qp-who {
-  margin-left: .5rem; min-height: 44px; padding: 0 .2rem;
-  background: none; border: 0; color: var(--faint); cursor: pointer;
-  font: 400 .62rem/1 var(--font); letter-spacing: .06em; text-transform: none;
-  text-decoration: underline; text-underline-offset: 3px;
-}
-.qp-who:hover { color: var(--gold); }
+/* ---------- `.qp-who` WAS HERE -------------------------------------------------------------------
+   THE "who is this?" CONTROL beside every answer box, which set a typed name the answer key was
+   filed under. Removed with its handler: the app already knows who is signed in, and two ways of
+   saying who you are is two things to keep in step. See `whoIs_` in find.js. */
 
 /* THE MARK SCHEME, WAITING. Only ever shut when a student is named — see `answerBlock_` for why
    the tutor's own view is untouched. `display: none` rather than height, because a collapsed

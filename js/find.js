@@ -2406,7 +2406,17 @@ function boxerCard_(x) {
    Neither reader is asked to put up with the other's screen. */
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
-  const hide = !!whoIs_();
+  /* ---------- IT IS THE ROLE THAT DECIDES, AND IT USED TO BE "IS ANYBODY NAMED" ----------------
+     `!!whoIs_()` WAS THE TEST, AND WITH THE TYPED NAME GONE THAT MEANT "IS ANYBODY SIGNED IN" --
+     so a tutor signed in as themselves got their own mark schemes shut behind a tap, on the one
+     surface they read FROM. The paragraph above says who the open answer is for and it is not
+     "somebody signed out", it is the tutor.
+
+     `isTutorRole()` IS THE APP'S OWN STAFF TEST -- tutor or admin -- already used by the widget
+     roster for the same kind of question. A student signing in gets the reveal; staff get the
+     paper as it is printed. One fact, read from the role the Ledger already holds, rather than a
+     second thing to switch on and off. */
+  const hide = !(typeof isTutorRole === 'function' && isTutorRole());
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
@@ -2911,29 +2921,51 @@ function questionItems() {
 
    EVERY READ AND WRITE IS WRAPPED. Private mode THROWS on `localStorage` rather than returning
    null, and a thrown getter here would take the whole results list down with it. */
-/* ---------- WHOSE ANSWER IT IS -------------------------------------------------------------------
-   TWO BOYS ON ONE PHONE WAS THE CASE THAT ASKED FOR THIS. The key was `ans:<row_id>` and nothing
+/* ---------- WHOSE ANSWER IT IS, AND IT IS WHOEVER IS SIGNED IN --------------------------------
+   TWO BOYS ON ONE PHONE IS STILL THE CASE THIS ANSWERS. The key was `ans:<row_id>` and nothing
    else, so a second person working through the same paper on the same device typed over the
    first one's answers with no warning and no way back. On a tutor's phone, passed between two
    students in one session, that is not an edge case -- it is the ordinary way it gets used.
 
-   THE SIGNED-IN PERSON WHERE THERE IS ONE, otherwise whoever the Working-as control names. Signing
-   in needs a row in the Ledger and a PIN, which is not something a tutor can do at the kitchen
-   table for a boy who turned up today; a name typed into the app is. It is not a login and does
-   not pretend to be one -- nothing is protected by it and nothing is sent anywhere. It is a label
-   on a drawer.
+   THERE WAS A TYPED NAME HERE AND IT IS GONE. A `workingAs` control sat beside every answer box
+   reading "who is this?", and it was a second identity the app did not otherwise have: not a
+   login, nothing protected by it, a label on a drawer. Reported as *"remove this feature of whos
+   writing. its confusing. just have it be that they sign in"*, and that is the right call --
+   two ways of saying who you are is two things to keep in step, which is the sentence this
+   repository writes about `handle`/`username`, about `MESSAGING` and about `childrenOf`.
 
-   THE OLD UNPREFIXED KEY IS STILL READ, once, for whoever had answers before this existed. */
+   SO SIGNING IN IS THE ONLY ANSWER TO "WHO", and it is one the app already had. What it costs is
+   that a boy who turned up today with no row in the Ledger works under the signed-out key, the
+   same as the tutor -- which is the ordinary behaviour of every other surface here and is what
+   `changePin` and the roster are for.
+
+   THE OLD UNPREFIXED KEY IS STILL READ, once, and it can only ever fill a box that is empty. */
 function whoIs_() {
   try {
     if (typeof USER !== 'undefined' && USER && (USER.personId || USER.name)) {
       return 'u:' + (USER.personId || USER.name);
     }
-    return localStorage.getItem('workingAs') || '';
-  } catch (e) { return ''; }
+  } catch (e) {}
+  return '';
 }
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
+
+/* ---------- THE KEY IS THE ID AND THE LABEL IS THE NAME, AND THEY WERE THE SAME STRING ---------
+   THE BOX SAID "P001's answer". `whoIs_` answers `u:<person_id>` because an id is stable where a
+   display name is a cell somebody can edit -- exactly right for a key, and unreadable as a label.
+   The old name box printed that id back at whoever was working, which is its own small part of
+   "its confusing": an answer box captioned with an account number.
+
+   FIRST NAME ONLY, because it is a caption on a box rather than a roster line, and because two
+   students swapping a phone recognise "Lucca" faster than they read "Lucca Smith". A person with
+   no name on their row gets nothing rather than a blank possessive. */
+function signedName_() {
+  try {
+    if (typeof USER === 'undefined' || !USER) return '';
+    return String(USER.name || '').trim().split(/\s+/)[0] || '';
+  } catch (e) { return ''; }
+}
 
 function ansRead_(k) {
   try {
@@ -3084,11 +3116,13 @@ function ansBox_(x) {
      box it always had and no button, rather than a Check that shrugs -- a control that sometimes
      does nothing is worse than one that is not there. */
   const can = String(x && x.accept || '').trim();
-  const who = whoIs_().replace(/^u:/, '');
+  /* THE NAME IS SHOWN AND IS NOT A CONTROL. It is whoever is signed in, so on a phone passed
+     between two students it says at a glance whose drawer this box is writing into -- which is
+     the one thing the deleted `workingAs` button was genuinely good for. Changing it is signing
+     out, on the You column, where every other fact about who you are already lives. */
+  const who = signedName_();
   return `<label class="qp-ans">
-    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}<button
-      type="button" class="qp-who" data-do="qp-who">${who ? 'not ' + esc(who) + '?' : 'who is this?'
-      }</button></span>
+    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}</span>
     <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
       rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
   </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
@@ -3149,21 +3183,11 @@ on('qp-reveal', (el) => {
    thing for a form; this is one word, typed once a lesson, and a sheet that has to be built,
    opened, read and closed for one word is slower to use and far more to go wrong in the middle
    of a lesson. */
-on('qp-who', () => {
-  let name;
-  try {
-    name = window.prompt('Who is working? Leave it empty for the tutor\u2019s own view.',
-                         whoIs_().replace(/^u:/, ''));
-  } catch (e) { return; }
-  if (name === null) return;
-  name = String(name).trim().slice(0, 24);
-  try {
-    if (name) localStorage.setItem('workingAs', name);
-    else localStorage.removeItem('workingAs');
-  } catch (e) {}
-  toast(name ? 'Working as ' + name : 'Back to the tutor\u2019s view');
-  repaint();
-});
+/* ---------- `on('qp-who')` WAS HERE ------------------------------------------------------------
+   IT OPENED A `window.prompt` ASKING WHO WAS WORKING and wrote the answer to `workingAs`. Removed
+   with the name box above it: the app already knows who is signed in, and a second place to say
+   who you are is a second place for the two to disagree. See `whoIs_`. */
+
 
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are
    thousands of these and only one of them is ever being typed into. No Save button, because there
