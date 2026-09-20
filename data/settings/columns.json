@@ -1,0 +1,11 @@
+[
+{"screen": "make", "label": "Post", "icon": "📷", "active": "TRUE", "sort_order": 1, "notes": "the camera. First on the layout sheet, left to right."},
+{"screen": "feed", "label": "Feed", "icon": "🏠", "active": "TRUE", "sort_order": 2, "notes": "what has been posted."},
+{"screen": "booking", "label": "Book", "icon": "📅", "active": "TRUE", "sort_order": 3, "notes": "the form, the receipts and the basket."},
+{"screen": "reel", "label": "Reels", "icon": "▶", "active": "TRUE", "sort_order": 4, "notes": "one clip per page."},
+{"screen": "dm", "label": "DMs", "icon": "✉", "active": "TRUE", "sort_order": 5, "notes": "one conversation per page."},
+{"screen": "stuff", "label": "Find", "icon": "🔎", "active": "TRUE", "sort_order": 6, "notes": "the funnel. TAB_HOME — switching this one off leaves go('stuff') with nowhere to land."},
+{"screen": "account", "label": "You", "icon": "👤", "active": "TRUE", "sort_order": 7, "notes": "your account, and a page per person."},
+{"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 8, "notes": "the widgets."},
+{"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 9, "notes": "the arcade."}
+]

@@ -88,3 +88,38 @@ SCHEMA and wrong about the sheet: **the sheet holds exactly what `terms.js` is a
 `termsFor()` has been reading the same tab for school terms, finding no `term_name`, and falling
 back to computed defaults. One tab, two readers, and the one with real content in front of it is
 the one that was never wired up.
+
+---
+
+## `columns.json` is not an export — it is the one file here the spreadsheet never had
+
+**Every other file in this folder is a tab that existed, copied out verbatim.** This one is a tab
+that never existed, written from the code, to give a reader that has been unreachable since it was
+written somewhere to read from.
+
+**`applyColumns_` in `js/shell.js` decides which screens the app has and in what order.** It applies
+the order, takes the label and the icon from each row, refuses to invent a screen the build does not
+have, refuses to leave you with none, and moves you off a column that has just been switched off.
+Every one of those guards is written and commented. **It reads `DATA.columns`, and no backend has
+ever sent that key** — it is on `check-payload.js`'s accepted-dead list with the note *"needs a
+`columns` tab"*, and the spreadsheet that tab would have lived in is being deleted. That is
+`orderPrints` again: argued for at length and never once called.
+
+**It ships with the nine the code already has, in the order the code already puts them in**, so
+nothing changes today. What it buys is that *"the app should have four or five columns"* is a cell
+rather than a commit.
+
+| | |
+|---|---|
+| `screen` | must be one the build has — `make`, `feed`, `booking`, `reel`, `dm`, `stuff`, `account`, `tools`, `games`. A name the code does not know is ignored rather than drawn, because **a column that swipes to a blank is worse than a column that is not there** |
+| `label`, `icon` | blank means "keep what the code says", which is the rule every other tab here follows |
+| `active` | `FALSE` takes the column out. **Every row off leaves the code's list exactly as it is** — a spreadsheet must not be able to make the app unusable by being blank |
+| `sort_order` | left to right. The sort happens where the rows are read; `applyColumns_` uses the array order it is handed |
+
+**Switching off `stuff` is the one with a consequence worth knowing.** It is `TAB_HOME`, and
+`go('stuff')` is called from several places — with it gone you land on the first column in the file
+instead. Measured: Find switched off puts you on Feed, with no errors.
+
+**Proved in five states**: as shipped (the nine, in order), four columns relabelled and reordered
+with five switched off, Find switched off, an empty file, and a file holding an object instead of a
+list. The last three all fall back to the code's nine, and none of the five logged an error.

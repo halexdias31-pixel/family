@@ -86,11 +86,14 @@ const ACCEPTED = {
      this build has, and treats a blank cell as "keep what the code says". It is careful, complete,
      and reads a key nothing sends, so it has never once run.
 
-     This is the thing this whole project is for: the sheet deciding the site. It needs a `columns`
-     tab in SCHEMA and one line in doGet, and it stays here until somebody decides the column set is
-     the sheet's to own. */
-  columns: 'applyColumns_ would let the sheet decide the screens and their order. Needs a `columns` '
-         + 'tab in SCHEMA and a payload key — worth building, and a decision rather than a repair.',
+     IT HAS A SOURCE NOW AND IT IS NOT THE PAYLOAD. `data/settings/columns.json` is fetched with the
+     other settings files and `settingsInto_` writes `d.columns` from it — which is why this entry
+     stays: `doGet` still does not send the key and never will, and the read is answered a layer
+     later. The spreadsheet that tab would have lived in is being deleted, so a file is the source
+     the backend was never going to be. */
+  columns: 'applyColumns_ decides which screens the app has and in what order, and `doGet` does not '
+         + 'send the key — `data/settings/columns.json` does, through settingsInto_, like the other '
+         + 'nine tabs that left the Settings spreadsheet.',
 };
 
 const WHERE = [path.join(__dirname, '..', 'backend'), path.join(__dirname, 'backend'),
