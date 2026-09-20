@@ -956,7 +956,8 @@ const FACETS = [
      and the name is what is shown. An item with no `paper_id` does not answer at all, which is
      what keeps the question away from tutors, venues and widgets. */
   { field: 'paperId',   label: 'Paper',
-    of: x => (x.row && x.row.paper_id) ? (x.sub || x.row.paper_id) : '' },
+    of: x => (x.row && x.row.paper_id) || '',
+    showOf: id => paperLabel_(id) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
      MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
@@ -1270,8 +1271,72 @@ function nameForms_(s) {
 /* Sets `show` on each value in place. Ascending rungs, first one where every label is distinct —
    and the last rung is always the full name, which is distinct by construction because these are
    the keys of a tally. */
+/* ==================================================================================================
+   WHAT A PAPER IS CALLED ON A BUTTON, AND WHY IT IS NOT JUST ITS NAME.
+
+   SIX NAMES ARE CARRIED BY MORE THAN ONE PAPER — twenty papers in all. `Paper 1 (Non-Calculator) —
+   May 2017` is Edexcel Higher and `Paper 1 (Non-calculator) — May 2017` is the Foundation paper of
+   the same sitting; `Paper 1 — June 2024` is SIX AQA science papers across three subjects and two
+   tiers. A name is not an identity here and never was.
+
+   SO THE NAME IS DISAMBIGUATED ONLY WHERE IT HAS TO BE, and by the thing that actually differs:
+   the subject first, then the tier. A paper whose name nobody else carries is drawn exactly as it
+   is written, which is every paper but twenty — and `shortLabels_` still trims those to `Paper 1`
+   wherever the list on screen makes that unambiguous.
+
+   BUILT FROM `LIBRARY_ROWS`, THE FILE ITSELF, NOT FROM THE MAPPED LIST. `DATA.questions` carries
+   only 170 of the 262 papers' document rows and renames `paper_id` to `paper` on the way through --
+   so a map built from it was missing a third of the library and looking up a key that is not there,
+   which is why the first version of this drew every button as a raw id. The file is the faithful
+   export, one row per line, `paper_id` and `name` spelled as the sheet spells them. A `WeakMap` on
+   the array itself, so a new fetch is a new map with nothing to invalidate. */
+const PAPER_LABEL = new WeakMap();
+
+function paperLabels_() {
+  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  let map = PAPER_LABEL.get(rows);
+  if (map) return map;
+  map = {};
+  const byName = {};
+  const docs = [];
+  rows.forEach(r => {
+    const id = r && (r.paper_id || r.paper);
+    if (!r || String(r.kind) !== 'document' || !id) return;
+    const name = String(r.name || '').trim();
+    if (!name) return;
+    docs.push({ id: id, name: name, subject: r.subject, tier: r.tier });
+    const k = spellKey_(name);
+    (byName[k] = byName[k] || []).push(r);
+  });
+  docs.forEach(r => {
+    const name = r.name;
+    const share = byName[spellKey_(name)] || [];
+    if (share.length < 2) { map[r.id] = name; return; }
+    /* ONLY WHAT DIFFERS. Adding the subject to six AQA papers that are already three subjects is
+       the whole of the fix; adding the tier as well where the subject does not settle it is the
+       rest. Appending both always would put "· Maths · Higher" on two hundred unique names. */
+    const subjects = new Set(share.map(d => String(d.subject || '').trim()));
+    const bits = [name];
+    if (subjects.size > 1 && String(r.subject || '').trim()) bits.push(String(r.subject).trim());
+    const rest = share.filter(d => String(d.subject || '') === String(r.subject || ''));
+    if (rest.length > 1 && String(r.tier || '').trim()) bits.push(String(r.tier).trim());
+    map[r.id] = bits.join(' \u00b7 ');
+  });
+  PAPER_LABEL.set(rows, map);
+  return map;
+}
+
+/* AN ID WITH NO DOCUMENT ROW IS DRAWN AS ITSELF rather than as nothing — an unreadable button beats
+   a blank one, and `check-library.js` already fails on a question whose `paper_id` names no
+   document, so this is the shape that cannot happen rather than one to hide. */
+const paperLabel_ = id => paperLabels_()[id] || String(id || '');
+
 function shortLabels_(values) {
-  const forms = values.map(v => nameForms_(v.value));
+  /* `text` IS THE DISPLAY STRING WHERE THE VALUE IS AN IDENTITY. A facet whose `of` returns an id
+     supplies `showOf`, and everything from here down shortens THAT rather than the id — `value`
+     goes on being the only thing matched. Undefined on every other facet, so they are unchanged. */
+  const forms = values.map(v => nameForms_(v.text || v.value));
   let deepest = 0;
   forms.forEach(f => { if (f.length > deepest) deepest = f.length; });
   for (let rung = 0; rung < deepest; rung++) {
@@ -1281,7 +1346,7 @@ function shortLabels_(values) {
       return values;
     }
   }
-  values.forEach(v => { v.show = v.value; });
+  values.forEach(v => { v.show = v.text || v.value; });
   return values;
 }
 
@@ -1530,6 +1595,20 @@ function facetTally_(items, facet) {
   let values = Object.keys(folded)
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
+  /* ---------- AN IDENTITY IS NOT A SPELLING, AND ONE FACET HAD BEEN USING A NAME AS BOTH --------
+     `showOf` TURNS A VALUE INTO WHAT IS DRAWN and changes nothing about what is matched. It exists
+     for `paperId`, whose own note already said the rule -- "the id decides WHO answers and the name
+     is what is shown" -- while its `of` returned the NAME. Measured: six names are carried by more
+     than one paper, twenty papers in all, and the spelling fold above merged each set into ONE
+     button. `Paper 1 (Non-Calculator) — May 2017` (Edexcel Higher) and `Paper 1 (Non-calculator) —
+     May 2017` (Foundation) differ by one letter's case, which is exactly what `spellKey_` is built
+     to ignore -- so the funnel offered one answer holding two different papers, and the six AQA
+     science `Paper 1 — June 2024` rows put three subjects and two tiers on a single button.
+
+     `check-funnel.js` COULD NOT SEE IT and its own note says why: test 2 looks for two values that
+     normalise to one key, and after the fold there is only one value left to look at. The fold is
+     right; feeding it an identity was not. */
+  if (facet.showOf) values.forEach(v => { v.text = facet.showOf(v.value); });
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
   shortLabels_(values);
