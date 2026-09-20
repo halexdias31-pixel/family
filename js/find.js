@@ -5441,6 +5441,65 @@ on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
    THE PAGE COUNT CAN STILL CHANGE UNDER IT — starring adds a saved page in front — so the index is
    nudged by however much the front of the list grew or shrank, rather than trusted blindly. Without
    that, a star on page twelve leaves you on page eleven's card. */
+/* ==================================================================================================
+   THE RESULT PAGES, AND WHY ONLY A DOZEN OF THEM ARE BUILT WHILE YOUR FINGER IS DOWN.
+
+   REPORTED AS "when im clicking on questions and using the finder its so fycking slow man", then
+   "its only slow on mobile" -- which is the tell. Every number in the funnel's arithmetic is
+   memoised and measures 0 ms; what is left is DOM, and DOM is what a phone is slow at.
+
+   MEASURED AT 8x CPU, one tap on the funnel's first answer: **5,227 page elements built**, 292 KB of
+   markup parsed, 50 ms to insert on top of everything else -- and at 12x, which is an ordinary
+   mid-range phone, the whole repaint was 340 ms. There is one page per RESULT, so the cost is the
+   size of the LIBRARY rather than the size of the screen, and it grows with every paper transcribed.
+
+   NOBODY NEEDS FIVE THOUSAND PAGES IN THE FIRST FRAME. You land on the question you just answered
+   and the results are below it; `fillStuffPages` only ever puts markup into the eleven you are near.
+   So the pages within reach are built now and the rest arrive on the next turn of the event loop,
+   which is before any finger can travel far enough to need them. The dial counts what is there, so
+   it names the real total a frame later -- and `goPage` clamps, which is what makes that safe rather
+   than something to get right.
+
+   THEY ARE REUSED, WHICH IS THE OTHER HALF. An empty page is an empty page whichever item it stands
+   in for, so a repaint that does not change the count touches nothing at all: add the difference,
+   remove the difference. `paintStuff` empties the eleven that were actually drawn, because those
+   ARE about the old list.
+
+   CANCELLED BY THE NEXT ONE. A run of quick taps books one top-up, not one per tap -- the same
+   argument as `afterSlide_`, and the reason this is a named timer rather than a bare `setTimeout`. */
+let stuffTopUpTimer = null;
+
+function resPages_(host, want, now) {
+  const has = host.querySelectorAll(':scope > .page.is-res').length;
+  const add = (n) => {
+    if (n <= 0) return;
+    host.insertAdjacentHTML('beforeend',
+      '<section class="page is-res"><div class="pane"></div></section>'.repeat(n));
+  };
+  clearTimeout(stuffTopUpTimer);
+  if (has > want) {
+    const res = host.querySelectorAll(':scope > .page.is-res');
+    for (let i = res.length - 1; i >= want; i--) res[i].remove();
+    return;
+  }
+  const soon = Math.min(want, Math.max(now, 0));
+  add(soon - has);
+  if (want > soon) {
+    stuffTopUpTimer = setTimeout(() => {
+      const el = $('s-stuff');
+      if (!el) return;
+      const held = el.querySelectorAll(':scope > .page.is-res').length;
+      /* ASKED AGAIN RATHER THAN REMEMBERED. Anything may have repainted in between, and a count
+         captured before a `setTimeout` is a count about a screen that has since changed. */
+      const need = stuffPageCount();
+      if (held >= need) return;
+      el.insertAdjacentHTML('beforeend',
+        '<section class="page is-res"><div class="pane"></div></section>'.repeat(need - held));
+      try { paintPager('stuff', true); } catch (e) {}
+    }, 0);
+  }
+}
+
 function paintStuff(keepPage) {
   const chips = $('stuff-chips');
   if (chips) chips.innerHTML = filterChips();
@@ -5472,8 +5531,29 @@ function paintStuff(keepPage) {
      So only the RESULT pages are replaced. The question page — the search box, the chips, the
      counts, the facet list — is updated in place by the three lines at the top of this function,
      which is what they were for. */
+  /* ---------- THE RESULT PAGES ARE REUSED, AND THIS LINE USED TO DESTROY ALL OF THEM ------------
+     REPORTED AS "when im clicking on questions and using the finder its so fycking slow man", and
+     then "its only slow on mobile" -- which is the tell: the arithmetic is memoised and measures
+     0 ms, so what is left is DOM, and DOM is what a phone is slow at.
+
+     MEASURED AT 8x CPU, one tap on the funnel's first answer: **5,227 page elements destroyed and
+     built again**, 292 KB of markup parsed, 50 ms to insert and 45 ms to walk. Every tap. Every
+     keystroke. There is one page per RESULT, so the cost is the size of the library rather than
+     the size of the screen -- and it grows with every paper transcribed.
+
+     NONE OF IT IS NEEDED. The result pages are empty: `fillStuffPages` puts markup into the eleven
+     you are near and takes it out again when you leave. An empty page is an empty page whichever
+     item it is standing in for, so the only thing a repaint can change about them is HOW MANY there
+     are. So the front and saved pages are rebuilt, which is a handful, and the blanks are counted:
+     add the difference, remove the difference, and a repaint that does not change the count touches
+     nothing at all.
+
+     WHAT MAKES REUSE SAFE IS THE `filled` MARK. A page that is standing in for a different item now
+     must not keep the markup it was given for the old one -- so every page that HAS been filled is
+     emptied and unmarked here, and `fillStuffPages` draws the eleven it needs a moment later. There
+     are never more than eleven of those, so it is a walk over eleven elements rather than 5,227. */
   [].slice.call(host.querySelectorAll(':scope > .page')).forEach(el => {
-    if (el !== first) el.remove();
+    if (el !== first && !el.classList.contains('is-res')) el.remove();
   });
 
   /* ---------- ONE INSERT, IN THE ORDER `screen('stuff')` BUILDS -----------------------------------
@@ -5495,15 +5575,28 @@ function paintStuff(keepPage) {
      ONE INSERT AND ONE ORDER. The string's own order is the order, so there is nothing to reason
      about — `afterend` with four separate calls is what made the old code need a paragraph
      explaining that the last one lands nearest. */
-  const after = frontPages_().concat(savedPages_())
-    .map(c => `<section class="page"><div class="pane">${c}</div></section>`)
-    .join('')
-    + Array.from({ length: stuffPageCount() },
-        /* WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a
-           page with no glass — so every result was drawn straight onto the black while the question
-           above it sat on a card. `pages()` builds every other page in the app this way. */
-        () => '<section class="page"><div class="pane"></div></section>').join('');
-  if (after) first.insertAdjacentHTML('afterend', after);
+  const lead = frontPages_().concat(savedPages_())
+    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+  if (lead) first.insertAdjacentHTML('afterend', lead);
+
+  /* ---------- AND THE BLANKS, BY DIFFERENCE ------------------------------------------------------
+     WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a page
+     with no glass -- so every result was drawn straight onto the black while the question above it
+     sat on a card. `pages()` builds every other page in the app this way.
+
+     APPENDED AT THE END OF THE HOST, which is where the results belong: the question page is first,
+     the front and saved pages have just been put after it, and everything beyond them is a result.
+     Removing from the end for the same reason -- which page element stands for which item is
+     decided by position and nothing else, so the ones to drop are the last ones. */
+  const want = stuffPageCount();
+  resPages_(host, want, (PAGE.stuff || 0) + STUFF_NEAR + 2);
+
+  /* WHAT WAS DRAWN IS ABOUT THE OLD LIST. Never more than eleven of them — see `STUFF_NEAR`. */
+  [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
+    delete el.dataset.filled;
+    const pane = el.querySelector(':scope > .pane');
+    if (pane) pane.innerHTML = '';
+  });
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
@@ -5650,8 +5743,27 @@ function fillStuffPages() {
   const at = PAGE.stuff || 0;
   const items = stuffFiltered();
   const first = stuffFirstResult_();
-  for (let i = first; i < pages.length; i++) {
+  /* ---------- THE ELEVEN YOU ARE NEAR, NOT THE FIVE THOUSAND YOU ARE NOT -------------------------
+     THIS WALKED EVERY PAGE IN THE STRIP, calling `paneOf_` on each -- a DOM query per page, 5,227
+     of them, on every repaint and every page turn. Measured at 8x CPU: 45 ms, for a function whose
+     own note says it only ever touches eleven.
+
+     THE TWO JOBS ARE FILL AND EMPTY AND BOTH ARE BOUNDED. What to fill is the window round where
+     you are; what to empty is whatever is still MARKED filled and is no longer in it, and that mark
+     is a selector the browser can answer without this walking anything. Same behaviour, same
+     `changed` flag, same order -- and the cost stops depending on how big the library is. */
+  const seen = {};
+  const lo = Math.max(first, at - STUFF_NEAR), hi = Math.min(pages.length - 1, at + STUFF_NEAR);
+  const todo = [];
+  for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
+  [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
+    const i = [].indexOf.call(pages, el);
+    if (i >= first && !seen[i]) todo.push(i);
+  });
+  for (let n = 0; n < todo.length; n++) {
+    const i = todo[n];
     const el = pages[i];
+    if (!el) continue;
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
        content — which is exactly what happened, for as long as these pages were built without a
        pane to write into: the results were drawn onto the black while the question above them sat
