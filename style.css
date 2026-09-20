@@ -1464,7 +1464,18 @@ button.text-drop { color: var(--bad); }
 
 .dock-new { display: flex; gap: .4rem; align-items: stretch; margin-top: .5rem; }
 .dock-new input { flex: 1; min-width: 0; }
-.dock-new .btn { width: auto; flex: 0 0 3rem; font-size: 1.1rem; }
+/* `.btn.tiny` AND THIS RULE ARE BOTH TWO CLASSES, so the one written later wins — and `.btn.tiny`
+   is ninety lines below, setting `font-size: .8rem`. The add button is `btn quiet tiny`, so the
+   1.1rem written here has never once applied: measured, the ＋ renders at 11.86px inside a 44px
+   box where 16.3px was asked for. A glyph is not a word and needs the size; the width and the flex
+   were fine because nothing else claims them.
+
+   THE SEVENTH CONVICTION OF THIS RULE in this stylesheet, after `.price.faint`, `--fly-ink`,
+   `.bk-row.is-blank` losing to `.bk-row.is-bare`, `.rc-total` losing to `.bk-row`,
+   `text-anchor="end"` losing to `.qsheet .num`, and `.gd-sec p` (caught before it was written).
+   `check/cascade.js` is the rule rather than the seventh repair. */
+.dock-new .btn { width: auto; flex: 0 0 3rem; }
+.dock-new .btn.tiny { font-size: 1.1rem; }
 
 /* ---------- FILTER CHIPS ------------------------------------------------------------------------
    Each one is a filter that is ON, and pressing it takes it off. The whole chip is the target
@@ -1907,9 +1918,11 @@ button.text-drop { color: var(--bad); }
    app itself, so it needs the breathing room the pane's padding used to give it. */
 .pane:has(.rc-stub) > h2 { margin-top: .25rem; }
 
-/* No rule under the last card: a page is one thing, and a hairline across the bottom of a screen
-   reads as a list that has been cut off. */
-.page .card { border-bottom: 0; }
+/* `.page .card { border-bottom: 0 }` WAS HERE, word for word, comment and all, and it is nine
+   hundred lines above as well — under a note that says "a page was described twice and the two
+   descriptions had already drifted apart". Identical declarations, so nothing was ever wrong on
+   screen; what was wrong is that there were two places to edit it. Found by `check/cascade.js`,
+   which reports a selector written twice as part of asking which rule wins. */
 /* NOTHING TO SHOW, centred. An empty state pinned to the top of a full-screen page leaves a
    screenful of nothing under one sentence, which reads as content that failed to load rather than
    as a list with nothing on it. */

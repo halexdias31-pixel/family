@@ -205,6 +205,18 @@ const SUITE = [
      added to a sequential run is ninety seconds every session pays, and run beside the other three
      browser checks it costs nothing it was not already costing. */
   { file: 'check/ui.js',      what: '132 combinations of screen, state, width and visitor', slow: true },
+  /* ---------- AND WHICH CSS RULE ACTUALLY WINS ----------------------------------------------------
+     THIS STYLESHEET HAS LOST THE SAME ARGUMENT SEVEN TIMES — `.price.faint`, `--fly-ink`,
+     `.bk-row.is-blank`, `.rc-total`, an SVG `text-anchor`, `.gd-sec p`, and the docket's ＋ written
+     at 1.1rem and rendering at 0.80rem since the day it was written. Every one was found by a person
+     reading two blocks side by side or looking at a screenshot. Seven repairs and no rule is the
+     sentence this file keeps writing about `cost: 0`.
+
+     IT ASKS ONE NARROW QUESTION: two DIFFERENT rules, the same property, the same specificity, a
+     shared class, neither contained in the other, and a real element in the rendered app matching
+     both — so only the order in the file decides which wins. The general form reported 1,001
+     findings and was the `check-rows.js` noise generator; this reports none. */
+  { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
 ];
 
 let failed = 0, noted = 0;
