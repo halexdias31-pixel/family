@@ -1597,8 +1597,14 @@ or the failures under
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
 somebody remembered; the failure mode left was starting work on a repo that was already broken and
-spending the session unable to tell which half was yours. Seventeen seconds buys an unambiguous
+spending the session unable to tell which half was yours. A minute and a half buys an unambiguous
 baseline — a red after that is the thing you just did.
+
+**That figure is written here and nowhere else, deliberately.** It said seventeen seconds in this
+file AND in the hook's own comment for as long as it was seventeen, and went on saying it after the
+suite had roughly doubled twice — the same fault as "all 18 checks pass". The hook's comment names
+no number at all now; the run prints its own timings per check, which is the only version that
+cannot go stale, and this sentence is a rough shape rather than a measurement.
 
 **It exits 0 whatever happens**, deliberately: a hook that refuses to start a session is a hook
 somebody deletes. It reports and gets out of the way. It also prints the branch, the head commit,
@@ -1793,8 +1799,9 @@ found any of this — only pointing the measurement that already existed at the 
 
 Partly, and this session is an honest measure of which half. **What a reader can settle, a check
 already settles**: a name used and never declared, a handler with no door, a column read off the
-wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-eight of those now run on every
-session start.
+wrong tab, a `const` assigned to, a facet that cannot narrow, a CSS rule that wins only because of
+where it sits in the file. The whole roster runs on every session start — the count is printed by
+the run rather than typed here, for the reason the section above gives.
 
 **What a reader cannot settle is what happens when two correct things meet.** Three faults this
 session, all from valid code that read fine:

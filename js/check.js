@@ -57,6 +57,41 @@ function loadOrder_() {
 }
 const ORDER = loadOrder_();
 
+/* ---------- AND THE LIST AGAINST THE FOLDER, WHICH NOTHING COMPARED ------------------------------
+   TWO FAULTS, AND BOTH ARE SILENT IN PRODUCTION. A name in `window.FILES` with no file beside it is
+   a 404 on every visit — the app's own boot check would name it under "None of these arrived", and
+   only after somebody opened the site. A file in `js/` that the list does not name is dead code
+   that reads as live: it is in the repository, it is in the editor, every check here parses it, and
+   the browser never asks for it.
+
+   `js/_scope.js` IS THE ONE EXCEPTION AND IT IS DELIBERATE. Jekyll silently drops any file whose
+   name begins with an underscore, which is why `.nojekyll` sits at the repo root; that file is not
+   in the list and nothing is broken by its absence. Named here rather than matched by a pattern,
+   because "anything starting with an underscore" would quietly excuse the next one too. */
+const NOT_LOADED = { _scope: 'the scope note. Deliberately not loaded — see `.nojekyll`, and the '
+                           + 'entry in CLAUDE.md about Jekyll dropping any name beginning with `_`.' };
+(() => {
+  const fs2 = require('fs'), path2 = require('path');
+  const jsDir = path2.join(__dirname);
+  const onDisk = fs2.readdirSync(jsDir)
+    .filter(f => f.endsWith('.js') && !f.startsWith('check'))
+    .map(f => f.replace(/\.js$/, ''));
+  const missing = ORDER.filter(f => !fs2.existsSync(path2.join(jsDir, f + '.js')));
+  const unlisted = onDisk.filter(f => !ORDER.includes(f) && !(f in NOT_LOADED));
+  if (missing.length) {
+    console.error('');
+    console.error('index.html asks for ' + missing.length + ' file(s) that are not in js/: '
+                + missing.join(', ') + '\n  Every one of those is a 404 on every visit.');
+    process.exitCode = 1;
+  }
+  if (unlisted.length) {
+    console.error('in js/ and not in window.FILES, so the browser never loads it: '
+                + unlisted.join(', ') + '\n  Dead code that reads as live. Add it to index.html, '
+                + 'delete it, or name it in NOT_LOADED with a reason.');
+    process.exitCode = 1;
+  }
+})();
+
 const GLOBALS=new Set(('window document navigator localStorage sessionStorage console Math JSON Date '+
 'Array Object String Number Boolean Set Map WeakMap WeakSet Promise RegExp Error TypeError Symbol '+
 'Proxy Reflect Intl fetch setTimeout clearTimeout setInterval clearInterval requestAnimationFrame '+
@@ -232,6 +267,11 @@ console.log('');
 console.log('READ AT LOAD BEFORE DECLARED  ('+tdz.length+')');
 console.log(tdz.length?'  '+[...new Set(tdz)].join('\n  '):'  none');
 if(missing.length||tdz.length) fail=1;
+/* THE MANIFEST CHECK AT THE TOP SETS `process.exitCode` AND THIS LINE USED TO THROW IT AWAY. It
+   reported an orphaned file correctly and then exited 0, which is "I checked and it was fine"
+   printed over a finding — the failure this repository keeps catching in its own checks. Found by
+   mutation, which is the only thing that would have found it. */
+if(process.exitCode) fail=1;
 console.log('');
 console.log(fail?'FAILED':'OK — nothing is used that is not declared, and nothing is read before it exists.');
 process.exit(fail?1:0);
