@@ -282,9 +282,30 @@ function axisFree(target, axis, dir) {
      picked up by the sheet's own watcher below. This returns false so the grid ignores the gesture
      exactly as before; the sheet takes it instead. */
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is over everything
-  /* A text area scrolls its own contents and a select opens by dragging on some phones. Neither is
-     a scroll container the walk below would notice, so they are named. */
-  if (target.closest?.('textarea, select, [data-noswipe]')) return false;
+  /* ---------- A SELECT IS NAMED. A TEXTAREA IS MEASURED, AND IT USED TO BE NAMED -----------------
+     A SELECT OPENS BY DRAGGING ON SOME PHONES, which is not a scroll and not something the walk
+     below can see, so it stays named.
+
+     A TEXTAREA WAS BESIDE IT AND THAT BLOCKED BOTH AXES ON EVERY ONE IN THE APP. Measured with
+     real touch events on the notepad -- the widget that is mostly textarea -- a swipe left stayed
+     on Tools and a swipe up stayed on page 5. You land on it and you cannot swipe off it, either
+     way; the tab bar was the only way out. The same was true of every answer box on every question
+     card, which is the surface a student's thumb is on all evening.
+
+     AND IT IS WRONG IN BOTH DIRECTIONS FOR DIFFERENT REASONS. Sideways it can never be right: a
+     textarea WRAPS, so `scrollWidth` is `clientWidth` and there is no sideways scroll to protect.
+     Vertically it is right only while there is text below the fold -- which is exactly the
+     question the walk below already asks of every other scroll container, with the six-pixel floor
+     that entry was written for.
+
+     SO IT IS MEASURED LIKE EVERYTHING ELSE. A textarea computes `overflow-y: auto`, so the walk
+     sees it on its first step and answers correctly at both ends: empty, the grid gets the
+     gesture; full, the browser scrolls the text; scrolled to the bottom, one more swipe turns the
+     page. `textarea { touch-action: pan-y }` in the stylesheet is untouched and is the other half
+     -- proved by measurement, the browser really does pan a full notepad while the page stays put.
+
+     This is the entry above it one line up: a blanket refusal where a measurement belongs. */
+  if (target.closest?.('select, [data-noswipe]')) return false;
   /* A cell is not a scroll container any more, so the walk below stops at anything genuinely
      inside one — the docket's list, the notepad — and hands everything else to the grid. That is
      what makes a swipe up mean the next widget rather than a few pixels of nothing. */

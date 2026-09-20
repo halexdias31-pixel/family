@@ -771,7 +771,7 @@ function columnShift_(host, at) {
 function stepY_() {
   const host = $('s-' + AT);
   const pages = host ? host.querySelectorAll(':scope > .page') : [];
-  const at = Math.max(0, Math.min(pages.length - 1, PAGE[AT] || 0));
+  const at = Math.max(0, Math.min(pages.length - 1, domIndex_(AT, PAGE[AT] || 0)));
   const here = pages[at], next = pages[at + 1] || pages[at - 1];
   if (here && next) {
     const gap = Math.abs(next.offsetTop - here.offsetTop);
@@ -870,7 +870,7 @@ function placeGrid(instant, drag) {
     const at = PAGE[id] || 0;
     /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen
        in front; the others have no finger on them. */
-    const shift = columnShift_(host, at) + (id === AT ? dyPx : 0);
+    const shift = columnShift_(host, domIndex_(id, at)) + (id === AT ? dyPx : 0);
 
     host.style.transition = instant ? 'none' : '';
     host.style.transform =
@@ -898,7 +898,10 @@ function placeGrid(instant, drag) {
 
     /* AND EACH PAGE, faded by how far down the column it is. No position — the column does that.
        This distance is an INDEX, not a measurement, so nothing here can be read at a bad moment. */
-    host.querySelectorAll(':scope > .page').forEach((el, p) => {
+    host.querySelectorAll(':scope > .page').forEach((el, pos) => {
+      /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
+         holds all of its pages, which is all of them but the Find screen. */
+      const p = logIndex_(id, pos);
       const d = Math.abs(p - at);
       el.style.position = 'static';
       el.style.transform = 'none';
@@ -1211,15 +1214,12 @@ const PAGER = {
 
      Each group asks the function that DRAWS it how many there are, which is the same rule the rest
      of this table follows: a pager that counts for itself is a pager that can disagree. */
-  stuff:  () => {
-    const n = stuffPageCount();
-    /* NO `Basket` HERE ANY MORE — it is on the Booking column now, and this list has to match what
-       `screen('stuff')` actually builds or the header names the wrong page. */
-    return Array.from({ length: savedPages_().length }, () => 'Saved')
-      .concat(['Search'])
-      .concat(Array.from({ length: bookingPages_().length }, () => 'Booking'))
-      .concat(Array.from({ length: n }, (_, i) => (i + 1) + ' of ' + n));
-  },
+  /* A COUNT RATHER THAN A LIST OF NAMES, and it is the only entry that needs to be. The names were
+     read by the header, there is no header, and building `(i + 1) + ' of ' + n` five thousand times
+     to be counted was real work on the path every tap goes down. `pageCount` takes either.
+     NO `Basket` HERE ANY MORE — it is on the Booking column now, and this count has to match what
+     `screen('stuff')` actually builds or the pager and the screen disagree. */
+  stuff:  () => savedPages_().length + 1 + bookingPages_().length + stuffPageCount(),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -1324,6 +1324,33 @@ function applyBrandIcon_() {
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0 };
 
+/* ==================================================================================================
+   A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
+
+   EVERY SCREEN BUT ONE BUILDS ALL OF ITS PAGES, and should: Tools has nine, the feed has as many
+   posts as there are. The Find screen has one page per QUESTION IN THE LIBRARY -- 5,226 of them on
+   one answer -- and built every one on every tap, which is what "its so fycking slow man ... its
+   only slow on mobile" was. One element per library row is a cost that grows with every paper
+   transcribed and has nothing to do with what is on the screen.
+
+   SO THE RESULT PAGES ARE A WINDOW that slides, and these two numbers are the whole of it:
+
+     PAGE_KEEP[id]  how many leading pages are always present -- the question, the saved things,
+                    the booking pages. They hold real elements with ids in them and may not be
+                    recycled.
+     PAGE_LO[id]    how many pages BEYOND those have been scrolled past and are not in the document.
+
+   SO A DOM POSITION AND A PAGE NUMBER ARE NO LONGER THE SAME NUMBER, and every place that treated
+   them as one goes through these two functions. Both default to nought, so every other screen maps
+   a page to itself and is untouched by construction -- which is what makes this safe to put on the
+   path every column shares. */
+const PAGE_KEEP = {};
+const PAGE_LO = {};
+/* WHICH ELEMENT IS PAGE `i`. */
+const domIndex_ = (id, i) => (i < (PAGE_KEEP[id] || 0) ? i : i - (PAGE_LO[id] || 0));
+/* AND WHICH PAGE ELEMENT `p` IS. */
+const logIndex_ = (id, p) => (p < (PAGE_KEEP[id] || 0) ? p : p + (PAGE_LO[id] || 0));
+
 /* WHETHER A COLUMN HAS BEEN OPENED YET. The home position applies once — after that `PAGE` is where
    somebody left it, and putting them back at the top every time is a pager they have to
    re-navigate on every glance at another tab. */
@@ -1360,7 +1387,14 @@ function pageHome_(id) {
   PAGE[id] = Math.max(0, Math.min(n, Math.max(0, pageCount(id) - 1)));
 }
 
-const pageCount = id => pagerNames(id).length;
+/* A NUMBER OR A LIST. The names were read by the header and there is no header, so `pagerNames` is
+   only ever asked for its LENGTH -- and `PAGER.stuff` was building 5,226 strings to be counted, on
+   every call, on the same hot path as everything else this window is about. A screen whose pages
+   have no names may answer with the count itself. */
+const pageCount = id => {
+  const v = pagerNames(id);
+  return typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+};
 
 /**
  * THE DIAL.
@@ -1464,9 +1498,14 @@ function goPage(id, to, instant) {
      If the page you are going to is empty, it is filled before anything moves. */
   /* Page 0 is the question, which is drawn with the screen and never filled lazily — so it has no
      `filled` mark and must not be mistaken for an empty one. */
+  /* ---------- THE WINDOW FIRST, BECAUSE EVERYTHING BELOW MEASURES ELEMENTS ----------------------
+     `columnShift_` and `stepY_` read the page you are going TO, and on the Find screen that page is
+     an element only once the window covers it. So the window is moved before anything looks. Every
+     other screen has no window and this is one guarded call that returns immediately. */
+  if (id === 'stuff' && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
   const bare = id === 'stuff' && n > 0 && (() => {
     const host = $('s-stuff');
-    const el = host && host.querySelectorAll(':scope > .page')[n];
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', n)];
     return !el || el.dataset.filled !== '1';
   })();
   if (bare) fillStuffPages();
@@ -2029,6 +2068,59 @@ addEventListener('keydown', e => {
 
 
 /* ---------- LOADING ------------------------------------------------------------------------------ */
+/* ==================================================================================================
+   WHAT THE APP IS MADE OF WHEN THE BACKEND SAYS NOTHING.
+
+   REPORTED AS "the loading is taking forever. surely, it shouldnt take long anymore as its pulling
+   info from live file not from appscript anymore." That is exactly right and it was not what
+   happened. Measured with the backend hanging and a student signed in from a previous visit:
+   **60.8 seconds of splash, and then a library of ZERO questions.**
+
+   THE CAUSE IS ONE `if`. `libraryInto_`, `libraryExtras_` and `settingsInto_` all sat inside
+   `if (d && !d.error)`, so the four thousand nine hundred questions, the practicals, the brand,
+   the facets and the columns -- every one of them a FILE in this repository, fetched in parallel
+   with the payload and usually landed long before it -- were merged onto the payload or not at
+   all. A backend that answered slowly did not delay the library; it deleted it.
+
+   SO THE FILES STAND ON THEIR OWN. They are not the payload's luggage: they are the thing the app
+   is mostly made of, and the payload is the business on top of them. This is the same rule the
+   files already carry one level down -- `libraryExtras_` and `settingsInto_` leave a key alone
+   when their file has no rows -- pointed at the other failure: a file with rows should win over a
+   payload that never came.
+
+   WHAT IS STILL LOST WITHOUT THE BACKEND, said rather than implied: people, jobs, prices, the
+   shop, posts and messages. A student's paper, their answers, the marking and the mark schemes are
+   all here, because all of them are a file or the device's own storage.
+
+   IT NEVER OVERWRITES A GOOD PAYLOAD. `load()` runs again on every retry and every sign-in, so a
+   failure after a success must not empty what is already standing -- which is the `|| []` fault
+   this file records under `nothingHere`, wearing the other coat. */
+async function filesOnly_() {
+  try {
+    if (DATA && DATA.questions && DATA.questions.length) return;
+  } catch (e) { return; }
+  const d = {};
+  try {
+    libraryInto_(d, await libraryRows_());
+    const extra = await libraryExtraRows_();
+    libraryExtras_(d, extra);
+    settingsInto_(d, extra);
+  } catch (e) {}
+  /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
+     and an absent `checklists` is a throw rather than an empty screen. */
+  d.questions = d.questions || [];
+  d.dropdowns = d.dropdowns || {};
+  d.dropdowns.checklists = d.dropdowns.checklists || {};
+  /* A PLAIN OBJECT, NOT THE PROXY. The proxy records every key nothing sent so `missingKeys()` can
+     name them, and on this path NOTHING was sent -- it would report the whole payload as missing
+     on a load where that is already the headline. */
+  DATA = d;
+  /* THE COLUMNS AND THE ICON ARE IN `data/settings/`, so they are knowable here and are the two
+     things that decide what the app looks like before anything is drawn. */
+  try { applyColumns_(); } catch (e) {}
+  try { applyBrandIcon_(); } catch (e) {}
+}
+
 async function load() {
   try {
     /* The person's id goes with the request so the server can say which posts YOU liked — it
@@ -2057,6 +2149,36 @@ async function load() {
     /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
        this is the moment the app begins waiting, and it is the only moment worth timing from. */
     splashWaitWatch_();
+    /* ---------- AND AT THE SAME MOMENT, COME UP ON THE FILES ---------------------------------------
+       REPORTED AS "the loading is taking forever. surely, it shouldnt take long anymore as its
+       pulling info from live file not from appscript anymore." Measured with the backend hanging:
+       **60.8 seconds of splash**, because `splashOff_()` is at the end of this function and the end
+       of this function is behind the payload's sixty-second deadline.
+
+       THE DEADLINE IS RIGHT AND IT IS NOT WHAT THIS IS ABOUT. Its own note explains why it is not
+       shorter: this backend answers in about fifteen seconds, and a deadline under the thing it is
+       timing reports a healthy backend as a dead one. That argument is about when to STOP WAITING.
+       This is a different question -- when there is enough to SHOW -- and the answer is: as soon as
+       the files have landed, which is usually long before the payload.
+
+       THE SAME FIFTEEN SECONDS THE SLOW LINE USES, and deliberately the same constant rather than a
+       second number: that line is the app saying "this is taking longer than it should", and the
+       moment it is true is exactly the moment to stop waiting to draw. One figure, derived from the
+       one already written down -- which is the fault this file records every time a number is
+       stated twice.
+
+       IT KEEPS WAITING. Nothing here cancels the payload; it lands behind the app and repaints, the
+       ordinary late-payload path. `filesOnly_` declines if a good payload is already standing, so a
+       retry after a success cannot empty the screen. */
+    clearTimeout(splashEarlyTimer);
+    splashEarlyTimer = setTimeout(() => {
+      if (LOADED) return;
+      filesOnly_().then(() => {
+        if (LOADED) return;
+        try { repaint(); } catch (e) {}
+        splashOff_();
+      }).catch(() => {});
+    }, SPLASH_SAY_AFTER);
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE -------------
        `fetch` waits for ever by default, and `splashOff_()` is at the END of this function — the
        only place the loading screen ever comes off. So a backend that hung left the app behind the
@@ -2319,10 +2441,14 @@ async function load() {
     }
     else {
       LOAD_FAILED = String(d.error || 'the server refused the request');
+      /* THE FILES STILL STAND -- see `filesOnly_`. A refusal from the backend is not a reason for
+         a student to lose the paper they are working through. */
+      await filesOnly_();
       banner('The server said: ' + (d.error || 'something went wrong'));
     }
   } catch (err) {
     LOAD_FAILED = String((err && err.message) || err || 'could not reach the backend');
+    await filesOnly_();
     /* WHICH URL IT TRIED, as something you can press.
        "Could not reach the server" is true of four different faults and useful for none of them:
        a wrong deployment id, a deployment whose access is still "Only myself", a browser with no
@@ -2440,6 +2566,8 @@ async function load() {
    with the line still on it would be a sentence about loading over a loaded app. */
 const SPLASH_SAY_AFTER = 15000;
 let splashSayTimer = null;
+/* The one that draws the app on its files rather than the one that says it is slow -- see `load`. */
+let splashEarlyTimer = null;
 function splashSay_(on) {
   const el = $('splash-wait');
   if (el) el.hidden = !on;
@@ -2458,7 +2586,7 @@ function splashWaitWatch_() {
   }, SPLASH_SAY_AFTER);
 }
 function splashOff_() {
-  clearTimeout(splashSayTimer); splashSay_(false);
+  clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);
   const el = $('splash'); if (el) el.classList.add('done');
 }
 function splashOn_()  { const el = $('splash'); if (el) el.classList.remove('done'); }

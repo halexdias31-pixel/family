@@ -1475,7 +1475,24 @@ function bandNumbers_(values) {
    one is kept because it also guards the facets a spreadsheet invents at runtime, where the wrapper
    below is the only thing standing between the sheet and the screen.
 ================================================================================================== */
-const spellKey_ = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+/* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH ---------------------------------------
+   IT IS A PURE FUNCTION OVER A TINY SET. `facetTally_` and `filterHit` call this once per item per
+   facet, and the values are a subject, a tier, a board -- `Maths` is folded five thousand times to
+   the same five letters on every filter change. A `Map` makes the second one free.
+
+   BOUNDED BY THE DATA rather than by a cap: the keys are the distinct values the library holds in
+   its facet columns, which is hundreds, not the strings anybody can type. Nothing here is fed a
+   search box. */
+const SPELL_KEYS = new Map();
+const spellKey_ = v => {
+  const raw = String(v == null ? '' : v);
+  let k = SPELL_KEYS.get(raw);
+  if (k === undefined) {
+    k = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    SPELL_KEYS.set(raw, k);
+  }
+  return k;
+};
 
 /* HOW MANY PIECES THE WRITER BROKE IT INTO. Not a score out of ten — just "did a person put gaps in
    this", which is what tells a name from a slug. */
@@ -4532,8 +4549,28 @@ const cmpText = (a, b) =>
 /* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two
    words having to sit next to each other. Searching only the name and the group label missed a
    shop item by its description, which is the thing that actually says what it is. */
+/* ---------- THE HAYSTACK IS BUILT ONCE PER ITEM, NOT ONCE PER KEYSTROKE --------------------------
+   `x.text` IS THE QUESTION ITSELF, built when the item was made -- `searchText_` says so and it was
+   true. What was still being done per keystroke is the JOIN and the `norm`: six fields concatenated
+   and normalised for all 5,354 items, on every letter. Measured at 8x CPU, one keystroke spent
+   **126 ms** in that filter, which was the single biggest thing left on this screen once the DOM
+   stopped being the problem -- about 2.7 MB of string work to answer "does this contain `work`".
+
+   SO IT IS CACHED ON THE ITEM, which is the rule this file already states twice: built onto the
+   item, not matched per keystroke. `stuffItems()` is memoised, so an item outlives every keystroke
+   typed against it and is rebuilt the moment the payload, the person or the admin flag changes --
+   which is exactly when the haystack could be different.
+
+   THE ORDER IS UNCHANGED and so is the content: name, sub, subject, slot, grade, then the question
+   itself last, so that a match on a name still costs what it always did. */
+function stuffHay_(x) {
+  return x._hay || (x._hay = norm([x.name, x.sub, x.subject, x.slot,
+                                   x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' ')));
+}
+
 function stuffFind(items, credits) {
-  let out = items;
+  /* ALREADY IN ORDER — see `stuffSorted_`. Filtering keeps it, so nothing below re-sorts. */
+  let out = stuffSorted_(items);
 
   /* THE TWO RULES, in four lines. Filters are grouped by field, and an item must satisfy at least
      one from EVERY group — `some` within a field, `every` across them, which is exactly what
@@ -4559,13 +4596,7 @@ function stuffFind(items, credits) {
   });
 
   const words = norm(STUFF.q).split(/\s+/).filter(Boolean);
-  if (words.length) out = out.filter(x => {
-    /* `x.text` IS THE QUESTION ITSELF — built once when the item was made, never here. See
-       `searchText_`. It is last so that a match on a name still costs the same as it always did. */
-    const hay = norm([x.name, x.sub, x.subject, x.slot,
-                      x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' '));
-    return words.every(w => hay.includes(w));
-  });
+  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
 
   /* ONE KEY, then the name to settle ties. There was an outer sort by group — and with the
      groups gone there is nothing above the sort, which is most of why this is now four lines.
@@ -4618,10 +4649,35 @@ function stuffFind(items, credits) {
      THEY ARE WRITTEN AGAIN ANYWAY, because the key below needs them stated rather than implied: it
      is built from the fields, and a key that leans on a number happening to be inside a name is a
      key that breaks the day a name changes. This is an intent made explicit, not a bug fixed. */
-  return out.sort((a, b) => {
+  return out;
+}
+
+/* ---------- SORTED ONCE, NOT ONCE PER FILTER -----------------------------------------------------
+   THE SORT WAS THE LAST LINE OF `stuffFind`, so it ran over the FILTERED list on every tap and
+   every keystroke -- 5,226 items after one answer, which is about sixty thousand comparisons to
+   draw one screen. Measured at 12x CPU it was most of what was left once the DOM stopped being the
+   problem.
+
+   AND NONE OF IT DEPENDED ON THE FILTER. The order is `_sk`, a string built from the item and held
+   on it; two items compare the same way whoever else is in the list. `Array.prototype.filter`
+   keeps the order of what it is given -- so sorting the SOURCE once and filtering that is the same
+   list in the same order, and a filter change stops paying for a sort at all.
+
+   ON A COPY, because `stuffItems()` hands back a memoised array that other readers hold -- the
+   saved list keys its own tally on that array's identity, and sorting it underneath them would be
+   the fault `stuffItemsAll_` was split out to avoid. Cached in a `WeakMap` on the source array for
+   the same reason `facetTally_` is: a new list is a new array, so there is no key to get wrong and
+   nothing to invalidate. */
+const SORTED_ITEMS = new WeakMap();
+function stuffSorted_(items) {
+  let out = SORTED_ITEMS.get(items);
+  if (out) return out;
+  out = items.slice().sort((a, b) => {
     const ka = a._sk || (a._sk = sortKey_(a)), kb = b._sk || (b._sk = sortKey_(b));
     return ka < kb ? -1 : ka > kb ? 1 : 0;
   });
+  SORTED_ITEMS.set(items, out);
+  return out;
 }
 
 /* PADDED SO THE ALPHABET AGREES WITH ARITHMETIC. "Paper 10" sorts before "Paper 2" on letters and
@@ -5441,6 +5497,97 @@ on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
    THE PAGE COUNT CAN STILL CHANGE UNDER IT — starring adds a saved page in front — so the index is
    nudged by however much the front of the list grew or shrank, rather than trusted blindly. Without
    that, a star on page twelve leaves you on page eleven's card. */
+/* ==================================================================================================
+   THE RESULT PAGES ARE A WINDOW, AND THERE ARE FIFTEEN OF THEM WHATEVER THE LIBRARY HOLDS.
+
+   REPORTED AS "when im clicking on questions and using the finder its so fycking slow man", then
+   "its only slow on mobile" -- which is the tell. Every number in the funnel's arithmetic is
+   memoised and measures 0 ms; what was left was DOM, and DOM is what a phone is slow at.
+
+   MEASURED AT 8x CPU, one tap: **5,227 page elements**, 292 KB of markup, built from nothing. One
+   page per RESULT, so the cost was the size of the LIBRARY rather than the size of the screen, and
+   it grew with every paper transcribed. At 12x -- an ordinary mid-range phone -- a tap was 340 ms
+   and a keystroke 233 ms.
+
+   NOTHING EVER NEEDED MORE THAN ELEVEN. `fillStuffPages` puts markup into the pages within five
+   either side of you and takes it out again when you leave; everything else in that strip was an
+   empty box waiting to be scrolled past. So the strip holds fifteen -- eleven that can be drawn and
+   two of slack at each end -- and slides.
+
+   A PAGE NUMBER AND A DOM POSITION ARE NO LONGER THE SAME NUMBER. `PAGE_KEEP` and `PAGE_LO` in
+   shell.js hold the two figures that map one to the other, and every reader of a page's position
+   goes through `domIndex_` / `logIndex_`. Both are nought on every other screen, so this changes
+   nothing for any column that builds all of its pages.
+
+   THE ELEMENTS ARE RECYCLED RATHER THAN REBUILT. Sliding down by one moves the top page to the
+   bottom, which leaves every other page holding the card it was already showing -- so turning a
+   page still draws exactly one card, as it did before. Clearing the whole window on each slide
+   would have been simpler and would have redrawn eleven cards every few turns.
+
+   RE-CENTRED ONLY AT THE EDGES. Moving the window on every turn would mean recycling on every turn;
+   waiting until you are within `STUFF_EDGE` of an end means most turns move nothing at all. */
+const STUFF_WIN = 15;
+const STUFF_EDGE = 4;
+
+/* A PAGE THAT NOW STANDS FOR A DIFFERENT RESULT MUST NOT KEEP THE OLD ONE'S MARKUP. The `filled`
+   mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw. */
+function stuffBlank_(el) {
+  if (!el) return;
+  delete el.dataset.filled;
+  const pane = el.querySelector(':scope > .pane');
+  if (pane) pane.innerHTML = '';
+}
+
+function stuffWindow_() {
+  const host = $('s-stuff');
+  if (!host) return;
+  /* ASKED OF THE DOM, because a star adds a page in front of the question and the number of pages
+     before the results is exactly what this has to be right about. */
+  const keep = stuffFirstResult_();
+  const want = stuffPageCount();
+  PAGE_KEEP.stuff = keep;
+
+  const size = Math.min(want, STUFF_WIN);
+  const maxLo = Math.max(0, want - size);
+  const had = Math.max(0, Math.min(maxLo, PAGE_LO.stuff || 0));
+  /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
+  const r = Math.max(0, (PAGE.stuff || 0) - keep);
+  let lo = had;
+  if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
+    lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
+  }
+
+  /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
+     Growing appends and shrinking removes from the END, which is the high-numbered end of the
+     window either way -- so the pages already in it keep both their contents and their page number,
+     and the recycling below can be reasoned about on its own. */
+  let res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
+  if (res.length > size) {
+    for (let i = res.length - 1; i >= size; i--) res[i].remove();
+  } else if (res.length < size) {
+    host.insertAdjacentHTML('beforeend',
+      '<section class="page is-res"><div class="pane"></div></section>'.repeat(size - res.length));
+  }
+
+  PAGE_LO.stuff = lo;
+  const k = lo - had;
+  if (!k) return;
+  res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
+  /* A JUMP FURTHER THAN THE WINDOW IS WIDE keeps nothing, so there is nothing to move. */
+  if (Math.abs(k) >= res.length) { res.forEach(stuffBlank_); return; }
+  if (k > 0) {
+    for (let i = 0; i < k; i++) { stuffBlank_(res[i]); host.appendChild(res[i]); }
+  } else {
+    /* BEFORE THE FIRST RESULT, which is the element just past the ones that are always kept. Taken
+       from the end one at a time, so they arrive in their own order rather than reversed. */
+    for (let i = 0; i < -k; i++) {
+      const el = res[res.length - 1 - i];
+      stuffBlank_(el);
+      host.insertBefore(el, host.children[keep] || null);
+    }
+  }
+}
+
 function paintStuff(keepPage) {
   const chips = $('stuff-chips');
   if (chips) chips.innerHTML = filterChips();
@@ -5472,8 +5619,29 @@ function paintStuff(keepPage) {
      So only the RESULT pages are replaced. The question page — the search box, the chips, the
      counts, the facet list — is updated in place by the three lines at the top of this function,
      which is what they were for. */
+  /* ---------- THE RESULT PAGES ARE REUSED, AND THIS LINE USED TO DESTROY ALL OF THEM ------------
+     REPORTED AS "when im clicking on questions and using the finder its so fycking slow man", and
+     then "its only slow on mobile" -- which is the tell: the arithmetic is memoised and measures
+     0 ms, so what is left is DOM, and DOM is what a phone is slow at.
+
+     MEASURED AT 8x CPU, one tap on the funnel's first answer: **5,227 page elements destroyed and
+     built again**, 292 KB of markup parsed, 50 ms to insert and 45 ms to walk. Every tap. Every
+     keystroke. There is one page per RESULT, so the cost is the size of the library rather than
+     the size of the screen -- and it grows with every paper transcribed.
+
+     NONE OF IT IS NEEDED. The result pages are empty: `fillStuffPages` puts markup into the eleven
+     you are near and takes it out again when you leave. An empty page is an empty page whichever
+     item it is standing in for, so the only thing a repaint can change about them is HOW MANY there
+     are. So the front and saved pages are rebuilt, which is a handful, and the blanks are counted:
+     add the difference, remove the difference, and a repaint that does not change the count touches
+     nothing at all.
+
+     WHAT MAKES REUSE SAFE IS THE `filled` MARK. A page that is standing in for a different item now
+     must not keep the markup it was given for the old one -- so every page that HAS been filled is
+     emptied and unmarked here, and `fillStuffPages` draws the eleven it needs a moment later. There
+     are never more than eleven of those, so it is a walk over eleven elements rather than 5,227. */
   [].slice.call(host.querySelectorAll(':scope > .page')).forEach(el => {
-    if (el !== first) el.remove();
+    if (el !== first && !el.classList.contains('is-res')) el.remove();
   });
 
   /* ---------- ONE INSERT, IN THE ORDER `screen('stuff')` BUILDS -----------------------------------
@@ -5495,15 +5663,28 @@ function paintStuff(keepPage) {
      ONE INSERT AND ONE ORDER. The string's own order is the order, so there is nothing to reason
      about — `afterend` with four separate calls is what made the old code need a paragraph
      explaining that the last one lands nearest. */
-  const after = frontPages_().concat(savedPages_())
-    .map(c => `<section class="page"><div class="pane">${c}</div></section>`)
-    .join('')
-    + Array.from({ length: stuffPageCount() },
-        /* WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a
-           page with no glass — so every result was drawn straight onto the black while the question
-           above it sat on a card. `pages()` builds every other page in the app this way. */
-        () => '<section class="page"><div class="pane"></div></section>').join('');
-  if (after) first.insertAdjacentHTML('afterend', after);
+  const lead = frontPages_().concat(savedPages_())
+    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+  if (lead) first.insertAdjacentHTML('afterend', lead);
+
+  /* ---------- AND THE BLANKS, BY DIFFERENCE ------------------------------------------------------
+     WITH A PANE IN IT. These were bare `<section class="page">`, and a page with no pane is a page
+     with no glass -- so every result was drawn straight onto the black while the question above it
+     sat on a card. `pages()` builds every other page in the app this way.
+
+     APPENDED AT THE END OF THE HOST, which is where the results belong: the question page is first,
+     the front and saved pages have just been put after it, and everything beyond them is a result.
+     Removing from the end for the same reason -- which page element stands for which item is
+     decided by position and nothing else, so the ones to drop are the last ones. */
+  /* ---------- AND THE RESULTS, WHICH ARE A WINDOW ------------------------------------------------
+     THROWN AWAY AND REMADE, which is the cheap option now rather than the expensive one: there are
+     never more than `STUFF_WIN` of them, and starting from nothing means the window's offset cannot
+     be left describing a strip that no longer exists. A new filter is a new list of results, so
+     every page in the window is standing for something different anyway. */
+  [].slice.call(host.querySelectorAll(':scope > .page.is-res')).forEach(el => el.remove());
+  PAGE_LO.stuff = 0;
+  stuffWindow_();
+
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
      the beginning — `paintPager` only CLAMPS, so changing a filter while on page twenty of the old
@@ -5650,8 +5831,31 @@ function fillStuffPages() {
   const at = PAGE.stuff || 0;
   const items = stuffFiltered();
   const first = stuffFirstResult_();
-  for (let i = first; i < pages.length; i++) {
-    const el = pages[i];
+  /* ---------- THE ELEVEN YOU ARE NEAR, NOT THE FIVE THOUSAND YOU ARE NOT -------------------------
+     THIS WALKED EVERY PAGE IN THE STRIP, calling `paneOf_` on each -- a DOM query per page, 5,227
+     of them, on every repaint and every page turn. Measured at 8x CPU: 45 ms, for a function whose
+     own note says it only ever touches eleven.
+
+     THE TWO JOBS ARE FILL AND EMPTY AND BOTH ARE BOUNDED. What to fill is the window round where
+     you are; what to empty is whatever is still MARKED filled and is no longer in it, and that mark
+     is a selector the browser can answer without this walking anything. Same behaviour, same
+     `changed` flag, same order -- and the cost stops depending on how big the library is. */
+  /* EVERY NUMBER HERE IS A PAGE NUMBER and every lookup goes through `domIndex_`, because the
+     results are a window and the element standing for page 400 is not the four-hundredth child.
+     See `stuffWindow_`. */
+  const seen = {};
+  const lo = Math.max(first, at - STUFF_NEAR);
+  const hi = Math.min(first + items.length - 1, at + STUFF_NEAR);
+  const todo = [];
+  for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
+  [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
+    const i = logIndex_('stuff', [].indexOf.call(pages, el));
+    if (i >= first && !seen[i]) todo.push(i);
+  });
+  for (let n = 0; n < todo.length; n++) {
+    const i = todo[n];
+    const el = pages[domIndex_('stuff', i)];
+    if (!el) continue;
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
        content — which is exactly what happened, for as long as these pages were built without a
        pane to write into: the results were drawn onto the black while the question above them sat
@@ -6322,11 +6526,33 @@ document.addEventListener('keydown', e => {
    the whole time and nothing on this side has ever called it — so the caption was a promise the
    app could not keep, which is worse than no caption.
 --------------------------------------------------------------------------------------------- */
+/* WHETHER THIS BOX MAY KEEP A SWIPE IS A FACT ABOUT WHAT IS IN IT, AND ONLY THE APP CAN ASK.
+
+   A `pan-y` textarea swallows a vertical drag whether or not it has anything to scroll -- measured
+   with real touch events, an empty notepad ate the swipe and the page did not turn, while
+   `#docket-body`, a DIV with the same rule and the same nothing to scroll, handed it straight back.
+   So the stylesheet cannot own this one: `pan-y` is right for a notepad somebody has written a page
+   into and wrong for the empty one they have just swiped onto.
+
+   SIX PIXELS, THE SAME FLOOR `axisFree` USES, and for the reason written there: `scrollHeight` and
+   `clientHeight` are whole pixels off a layout in fractions, so a box that fits exactly reports one
+   or two pixels of overflow routinely. Two places asking one question have to ask it the same way.
+
+   CALLED WHERE THE ANSWER CAN CHANGE -- when the widget is drawn, and on every keystroke, which is
+   already where the save is booked. */
+function padReach_(pad) {
+  if (!pad) return;
+  try {
+    pad.style.touchAction = pad.scrollHeight > pad.clientHeight + 6 ? 'pan-y' : 'none';
+  } catch (e) {}
+}
+
 function initPad() {
   const pad = $('notepad');
   if (!pad) return;
   pad.value = (USER && USER.notepad) || '';
   pad.disabled = !USER;
+  padReach_(pad);
   const said = $('pad-said');
   if (said) said.textContent = USER ? 'Saves as you type.' : 'Sign in to keep notes.';
 }
@@ -6334,6 +6560,7 @@ function initPad() {
 let padTimer = null;
 document.addEventListener('input', e => {
   if (e.target.id !== 'notepad' || !USER) return;
+  padReach_(e.target);
   USER.notepad = e.target.value;
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
   clearTimeout(padTimer);

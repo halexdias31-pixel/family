@@ -569,6 +569,136 @@ for (const who of VISITORS) {
       const down = await page.evaluate(x => PAGE[x], id);
       swipes.push({ from: id, dir: 'down', got: String(down), want: '0', ok: down === 0 });
     }
+
+    /* ==================================================================================================
+       AND A MOUSE IGNORES `touch-action`, WHICH IS WHY EVERY SWIPE ABOVE WAS GREEN OVER A REAL FAULT.
+
+       `page.mouse` is the right instrument for the thresholds, the axis lock and the velocity — and
+       it is blind to the one property that decides whether the app is handed the gesture at all.
+       `touch-action` applies to touch and to nothing else, so a box that swallows every drag on a
+       phone measures perfectly with a cursor. That is this project's own recurring shape one layer
+       down: an instrument that cannot reach its subject reporting that the subject is fine.
+
+       WHAT IT COST: a blanket `touch-action: pan-y` on every `textarea` in the app. Measured with
+       real touch events, a `pan-y` DIV with nothing to scroll hands the gesture back (`#docket-body`
+       at 28/28 turns the page) and a `pan-y` TEXTAREA never does — a drag inside a text control is a
+       SELECTION, so the browser sends one `pointermove` and then `pointercancel`. You could land on
+       the notepad, the comment box, the message composer or a question card's answer box and not be
+       able to swipe off it in either direction.
+
+       SO THE RULE IS THE NARROW ONE THE FAULT SHARES: a box with nothing to scroll must not keep the
+       gesture. Asked of every surface in the app that carries its own touch behaviour, in the axis
+       it cannot use — and a box that CAN scroll is not asked, because keeping the drag is then what
+       somebody reached for, which is the argument the stylesheet makes beside those rules. */
+    const held = [];
+    const cdp = await page.context().newCDPSession(page);
+    const touch = async (x, y, dx, dy) => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 10; i++) {
+        await cdp.send('Input.dispatchTouchEvent',
+          { type: 'touchMove', touchPoints: [{ x: x + dx * i / 10, y: y + dy * i / 10 }] });
+        await page.waitForTimeout(12);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(520);
+    };
+    const KEEPERS = 'textarea, .msg-body, #docket-body, .feed-text, .widget-squeeze';
+    for (const id of tabs) {
+      await page.evaluate(x => go(x, false, true), id);
+      await page.waitForTimeout(420);
+      const n = await page.evaluate(x => (typeof pageCount === 'function' ? pageCount(x) : 0), id);
+      for (let i = 0; i < n; i++) {
+        await page.evaluate(a => goPage(a.id, a.i, true), { id, i });
+        await page.waitForTimeout(460);
+        const spots = await page.evaluate(a => {
+          const pane = [...document.querySelectorAll('#s-' + a.id + ' .pane')][a.i];
+          if (!pane) return [];
+          return [...pane.querySelectorAll(a.sel)].map(el => {
+            const r = el.getBoundingClientRect();
+            if (r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) return null;
+            if (r.width < 40 || r.height < 24) return null;
+            return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+                     what: el.tagName.toLowerCase() + (el.id ? '#' + el.id : '.' + String(el.className || '').split(' ')[0]),
+                     scrollsY: el.scrollHeight > el.clientHeight + 6 };
+          }).filter(Boolean);
+        }, { id, i, sel: KEEPERS });
+        for (const sp of spots) {
+          const where = id + ' p' + i + ' ' + sp.what;
+          /* THE VERTICAL, ONLY WHERE THERE IS NOTHING TO SCROLL. */
+          if (!sp.scrollsY && i + 1 < n) {
+            await page.evaluate(a => goPage(a.id, a.i, true), { id, i });
+            await page.waitForTimeout(380);
+            await touch(sp.x, sp.y, 0, -180);
+            const got = await page.evaluate(x => PAGE[x], id);
+            held.push({ where, dir: 'up', ok: got === i + 1, got: 'page ' + got, want: 'page ' + (i + 1) });
+          }
+          /* AND THE SIDEWAYS, ALWAYS: none of these scrolls sideways, so none may keep it. */
+          const k = tabs.indexOf(id);
+          if (k + 1 < tabs.length) {
+            await page.evaluate(a => { go(a.id, false, true); goPage(a.id, a.i, true); }, { id, i });
+            await page.waitForTimeout(460);
+            await touch(sp.x, sp.y, -170, 0);
+            const got = await page.evaluate(() => AT);
+            held.push({ where, dir: 'left', ok: got === tabs[k + 1], got: got, want: tabs[k + 1] });
+          }
+        }
+      }
+    }
+    swipes.push(...held.map(h => ({ from: h.where, dir: 'touch ' + h.dir, got: h.got, want: h.want, ok: h.ok })));
+
+    /* ==================================================================================================
+       AND THAT PAGE n SHOWS QUESTION n, WHICH STOPPED BEING FREE.
+
+       THE FIND SCREEN HOLDS FIFTEEN RESULT PAGES AND HAS THOUSANDS -- see `stuffWindow_` in find.js.
+       So a page number and a DOM position are no longer the same number, and every reader of one
+       goes through `domIndex_` / `logIndex_`. Nothing else in this suite can see that mapping: a
+       card rendered in the wrong position measures perfectly, lays out perfectly, presses perfectly
+       and is the wrong question.
+
+       WALKED FORWARDS AND BACKWARDS, because the window slides both ways and recycles its elements
+       by moving them from one end to the other -- an off-by-one in either direction shows up only
+       when you arrive from the other side.
+
+       ASSERTED ON THE ANSWER BOX'S KEY, `ans:...:q:<row_id>`, which is the one thing on a question
+       card that names the row it was built from and cannot be confused with a heading: `Q6(i)` and
+       `Q6(ii)` both start `Q6`. */
+    const walk = [];
+    {
+      const paper = 'RS1786302107764-481';      // May 2017 Foundation Paper 1: 41 questions
+      const ok = await page.evaluate(p => {
+        if (typeof STUFF === 'undefined' || typeof paintStuff !== 'function') return null;
+        go('stuff', false, true);
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: p }];
+        paintStuff();
+        return stuffFiltered().length;
+      }, paper);
+      if (!ok) {
+        walk.push({ from: 'stuff', dir: 'walk', got: 'no such paper in the library',
+                    want: paper, ok: false });
+      } else {
+        const bad = await page.evaluate(() => {
+          const out = [];
+          const items = stuffFiltered(), first = stuffFirstResult_();
+          const look = i => {
+            goPage('stuff', first + i, true);
+            const el = document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first + i)];
+            const want = ':q:' + items[i].row.row_id;
+            const has = el && el.innerHTML.indexOf(want) !== -1;
+            if (!has) out.push({ page: i, want: items[i].row.row_id,
+                                 got: (el && (el.innerHTML.match(/:q:([^"]+)/) || [])[1]) || 'nothing' });
+          };
+          for (let i = 0; i < items.length; i++) look(i);
+          for (let i = items.length - 1; i >= 0; i--) look(i);
+          return { n: items.length, bad: out.slice(0, 4), count: out.length,
+                   held: document.querySelectorAll('#s-stuff > .page').length };
+        });
+        walk.push({ from: 'stuff, ' + bad.n + ' pages over ' + bad.held + ' elements',
+                    dir: 'walk', ok: bad.count === 0,
+                    got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0]) : 'every page its own question',
+                    want: 'every page its own question' });
+      }
+    }
+    swipes.push(...walk);
     await page.close();
   }
 

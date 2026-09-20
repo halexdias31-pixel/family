@@ -7275,3 +7275,242 @@ and `RS1786302107764-481` (May 2017 Foundation, 41 questions) each report **0 qu
 picture never came across and 0 questions with no answer**, and the library-wide count went 722 to
 721. **Eleventh time this file writes that a screenshot is the last word on a drawing**: the first
 version's man was 26px against a 135px tree and read as a smudge rather than a person.
+
+## A textarea ate every swipe, and the mouse could not see it
+
+**Reported as "i notice that somethimes navigating on widgets could be more stable in general. please
+i dont want any hiccups".** Measured rather than guessed at, and it is one line.
+
+**`axisFree` named `textarea` beside `select` as a control that consumes a drag for its own
+reasons**, and `style.css` gave every textarea `touch-action: pan-y` from the matching list. Between
+them that is a blanket refusal on **both axes for every textarea in the app** — the notepad, the
+comment box, the message composer, and the answer box on every question card, which is the surface
+a student's thumb is on all evening.
+
+| measured with real touch events | swipe up | swipe left |
+|---|---|---|
+| the notepad, empty | **stays** | **stays** |
+| the notepad, a page of text in it | scrolls the text ✓ | **stays** |
+| the comment box, empty | **stays** | **stays** |
+
+**You land on the widget and you cannot swipe off it in either direction.** The tab bar was the only
+way out, which is exactly "navigating on widgets".
+
+### Sideways can never be right, and vertically it is a question the walk already asks
+
+**A textarea WRAPS**, so `scrollWidth` is `clientWidth` and there is no sideways scroll to protect —
+naming it blocks a gesture it could never have wanted. Vertically it is right only while there is
+text below the fold, and that is precisely what the walk under it asks of every other scroll
+container, with the six-pixel floor whose own entry records what rounding costs. So the name came
+off and the measurement decides, which is this file's sentence about `cost: 0` for the tenth time:
+a blanket where a measurement belongs.
+
+### A DIV hands the gesture back and a TEXTAREA never does
+
+**That half is a fact about the browser and it took counting events to find.** `#docket-body` is a
+DIV with `pan-y` and nothing to scroll, and a swipe up on it turns the page — correctly. `.cmt-text`
+is a TEXTAREA with `pan-y` and nothing to scroll, and the page does not move. Counted at the window:
+**`pointerdown 1, pointermove 1, pointercancel 1`**, with `.pane` and `#screen` both saying `none`
+over it. A drag inside a text control is a SELECTION, so the browser takes it whatever the ancestors
+say — an ancestor cannot fix this and only the element can.
+
+**So it is `touch-action: none` on `textarea` rather than leaving it off the list.** `auto` loses
+both axes to the selection, `pan-y` loses the vertical to a pan that usually has nothing to pan, and
+`none` hands the app everything — which is what every card in this app already does. **What it costs
+is written down**: you cannot drag a long answer up and down inside its own two-row box. The caret
+scrolls it while you type.
+
+**And the one textarea that is genuinely a thing you are IN is not in the stylesheet at all.**
+`padReach_` sets the notepad from its own measured overflow — `pan-y` once there is text below the
+fold, `none` while it fits — called where the widget is drawn and on every keystroke, which is
+already where the save is booked. One writer, so there is no cascade to lose, and it uses the same
+six-pixel floor `axisFree` uses because two places asking one question have to ask it the same way.
+
+| after | swipe up | swipe left |
+|---|---|---|
+| the notepad, empty | page turns | column moves |
+| the notepad, a page of text | scrolls the text | column moves |
+| the comment box | page turns | column moves |
+| **a question card's answer box** | **page turns** | **column moves** |
+
+**A full notepad scrolled to its bottom still eats one more up-swipe**, and that is left alone: it is
+what every native scroller does at its end, and `touch-action` is read once at the start of a gesture
+so it cannot be expressed as "at the bottom, going up".
+
+### The swipe pass was green over all of it, because a mouse ignores `touch-action`
+
+**`check/press.js` has driven 30 real swipes on every run since it was written** — `page.mouse`, at
+the pace a hand makes them, so the thresholds, the axis lock and the velocity are all exercised.
+**None of that can see this**: `touch-action` applies to touch and to nothing else, so a box that
+swallows every drag on a phone measures perfectly with a cursor. **The instrument that cannot reach
+its subject reporting that the subject is fine**, one layer below where this file usually records it.
+
+**So it dispatches real touch events too**, through CDP, and asks the narrow question the fault
+shares: **a box with nothing to scroll must not keep the gesture.** Every surface that carries its
+own touch behaviour — `textarea`, `.msg-body`, `#docket-body`, `.feed-text`, `.widget-squeeze` — in
+the axis it cannot use. A box that CAN scroll is not asked, because keeping the drag is then what
+somebody reached for. **Proved by mutation**: putting the blanket `pan-y` back names
+`touch up from feed p0 textarea.cmt-text landed on page 0, wanted page 1` and exits 1; the real
+files exit 0. 33 swipes, and the three new ones are the only ones that could ever have failed.
+
+## The library is a file and the app still would not start without the backend
+
+**Reported from the live site with a screenshot of the splash**: *"the loading is taking forever.
+surely, it shouldnt take long anymore as its pulling info from live file not from appscript
+anymore."* That reading is exactly right and it was not what happened.
+
+**Measured with the backend hanging and a student signed in from a previous visit:**
+
+| | before | after |
+|---|---|---|
+| splash | **60.8 s** | **15.4 s** |
+| questions in the library | **0** | **5,127** |
+| their paper | **0 questions** | 41, 36 of them with a Check |
+| signed in as themselves | yes | yes |
+| marking | works | works |
+
+**Two separate faults, and the first one is one `if`.** `libraryInto_`, `libraryExtras_` and
+`settingsInto_` all sat inside `if (d && !d.error)` — so the questions, the practicals, the brand,
+the facets and the columns, every one of them a FILE in this repository fetched in parallel with the
+payload and usually landed long before it, were merged onto the payload **or not at all**. A backend
+that answered slowly did not delay the library; **it deleted it.**
+
+**So the files stand on their own.** `filesOnly_` builds `DATA` from them on both failure paths.
+It is the same rule the files already carry one level down — `libraryExtras_` and `settingsInto_`
+leave a key alone when their file has no rows — pointed at the other failure: **a file with rows
+should win over a payload that never came.** It declines if a good payload is already standing, so a
+failed retry cannot empty a screen that is working, which is the `nothingHere` argument wearing the
+other coat.
+
+**What is still lost without the backend, said rather than implied**: people, jobs, prices, the
+shop, posts and messages. A student's paper, their answers, the marking and the mark schemes are all
+here, because each is a file or the device's own storage.
+
+### The deadline was right and it was answering a different question
+
+**Sixty seconds is not the fault and its own note says why**: this backend answers in about fifteen,
+and a deadline under the thing it is timing reports a healthy backend as a dead one — *"that
+happened, at twelve seconds, and cost an afternoon."* That argument is about **when to stop
+waiting**. The splash is a different question — **when there is enough to show** — and the answer is
+as soon as the files have landed, which is usually long before the payload.
+
+**So it comes up at `SPLASH_SAY_AFTER`, the same fifteen seconds the slow-load line already uses**,
+and deliberately the same constant rather than a second number: that line is the app saying *this is
+taking longer than it should*, and the moment it becomes true is exactly the moment to stop waiting
+to draw. **Nothing is cancelled** — the payload lands behind the app and repaints, which is the
+ordinary late-payload path.
+
+**Why it survived this long.** Every measurement of this failure had already been taken and recorded
+two sections up — *"the backend never answers → 8/9 screens, splash lifted at 60s"* — and read as
+the deadline working. It was. What nobody asked is what was ON those screens, and the answer was a
+Find screen with no questions in it.
+
+## One DOM element per library row, rebuilt on every tap
+
+**Reported as "when im clicking on questions and using the finder its so fycking slow man", then
+"its only slow on mobile".** That second message is the diagnosis: every number in the funnel's
+arithmetic is memoised and measures **0 ms** — `stuffFiltered`, `nextFacet`, `stuffQuestion`,
+`stuffPageCount`, all of it. What is left is DOM, and DOM is what a phone is slow at.
+
+**Measured at 8x CPU, one tap on the funnel's first answer**: `insert 50 ms`, `fill 45 ms`,
+`question 19 ms`, `pager 8 ms` — and the insert is **5,227 page elements, 292 KB of markup**, built
+from nothing every single time. At 12x, which is an ordinary mid-range phone, the whole repaint was
+**340 ms a tap and 233 ms a keystroke**.
+
+**There is one page per RESULT**, so the cost is the size of the LIBRARY rather than the size of the
+screen — and it grows with every paper transcribed. The desktop hid it completely.
+
+### Three things, and none of them changes what is on the screen
+
+| | |
+|---|---|
+| **the blanks are reused** | an empty page is an empty page whichever item it stands in for, so a repaint that does not change the count now touches nothing. Add the difference, remove the difference |
+| **only a dozen are built while your finger is down** | you land on the question you just answered and the results are below it. The pages within reach are built now and the rest arrive on the next turn of the event loop, before any finger can travel far enough to need them |
+| **`fillStuffPages` walks the window, not the library** | it walked all 5,227 pages calling `paneOf_` on each — a DOM query per page — for a function whose own note says it only ever touches eleven. What to fill is the window; what to empty is whatever is still MARKED filled, which is a selector the browser answers without walking anything |
+
+| at 12x CPU | before | after |
+|---|---|---|
+| answering the first question | 340 ms | **160 ms** |
+| answering the next | 264 ms | **22 ms** |
+| a keystroke in the search box | 233 ms | **102 ms** |
+
+**What makes reuse safe is the `filled` mark.** A page standing in for a different item must not
+keep the markup it was given for the old one — so `paintStuff` empties every page that HAS been
+filled, and there are never more than eleven of those.
+
+**The dial counts what is there**, so it names the real total a frame later, and `goPage` clamps —
+which is what makes the deferred half safe rather than something to get right. **Proved by walking
+the states**: top of funnel, one answer (5,226 items / 5,227 sections), narrowed to one paper
+(41 / 42, Q1 Q2 Q3a Q3b in order), paged to Q13a, then a search (1,109 / 1,110). Sections match the
+wanted count in every state and no JS errors.
+
+**What is NOT fixed, and it is the real one.** 160 ms is better than 340 and it is still one element
+per row: the top-up builds all 5,226 a tick later, and `placeCells` then positions them. The honest
+fix is a strip that holds a window of page ELEMENTS rather than one per result — a change to the
+pager every screen shares, which is not a thing to do while somebody is teaching. Written down here
+so it is a decision rather than a silence.
+
+## The Find screen holds fifteen pages and has five thousand
+
+**The fix the entry above called "the real one" and deferred.** It said: *"it is still one element
+per row — the deferred half just moves the work off the tap. The honest fix is a strip that holds a
+window of page ELEMENTS rather than one per result."*
+
+### A page number and a DOM position are no longer the same number
+
+**`PAGE_KEEP[id]` and `PAGE_LO[id]` in shell.js are the whole of it** — how many leading pages are
+always present (the question, the saved things, the booking pages, which hold ids and may not be
+recycled), and how many pages beyond those have been scrolled past and are not in the document.
+`domIndex_` and `logIndex_` map one to the other, **both are nought on every other screen**, so a
+column that builds all of its pages maps every page to itself and is untouched by construction.
+That is what made it safe to put on the path every column shares.
+
+**Everything that treated the two as one number now goes through them**: `columnShift_`, `stepY_`,
+the fade sweep in `placeGrid`, `goPage`'s empty-page test, and `fillStuffPages`.
+
+**The elements are recycled, not rebuilt.** Sliding down by one moves the top page to the bottom, so
+every other page keeps the card it was already showing and turning a page still draws exactly one
+card. Clearing the window on each slide would have been four lines shorter and would have redrawn
+eleven cards every few turns. **Re-centred only within `STUFF_EDGE` of an end**, so most turns move
+nothing at all.
+
+**And `paintStuff` throws the window away and remakes it**, which is the cheap option now rather
+than the expensive one: there are never more than fifteen, and starting from nothing means the
+offset cannot be left describing a strip that no longer exists.
+
+### Three more things were hiding behind the DOM cost
+
+| | |
+|---|---|
+| **the search haystack** | six fields joined and `norm`ed for all 5,354 items **on every keystroke** — 126 ms at 8x, about 2.7 MB of string work to answer "does this contain `work`". `x.text` was built once onto the item and the join around it was not. Cached as `_hay`, which is the rule this file already states twice |
+| **the sort** | ran over the FILTERED list on every tap, and none of it depended on the filter: the order is a key held on the item. The SOURCE is sorted once and `filter` keeps the order |
+| **`PAGER.stuff`** | built 5,226 strings — `(i + 1) + ' of ' + n` — to be counted. The names were read by a header that no longer exists, so `pageCount` takes a number now and that entry answers with one |
+
+| at 12x CPU — an ordinary mid-range phone | before tonight | after |
+|---|---|---|
+| answering a question | 340 ms | **119–142 ms** |
+| a keystroke | 233 ms | **57 ms** first, **40–45 ms** after |
+| **turning a page** | inside the 264 ms repaint | **6–12 ms** |
+| page elements held | **5,227** | **16** |
+
+### The journey that caught it was right and had a second opinion in it
+
+**`check-flow`'s pager journey failed on the first run**: *"stuff: 1 page drawn, pager counts
+undefined"*. It read `PAGER[id]().length` — **a second definition of how many pages a screen has**,
+which broke the day an entry started answering with a count. It asks `pageCount` now, the one
+definition, and it knows that a windowed screen's element count is capped on purpose: the question
+is the same one, and what `drawn` is compared against is the number of pages the screen is able to
+hold. **Proved by mutation**: a `PAGER.stuff` that forgets the leading pages still fires it.
+
+### And nothing in the suite could see a card in the wrong position
+
+**That is the fault this change can actually cause**, and it is invisible to everything: a question
+rendered at the wrong page number measures perfectly, lays out perfectly, presses perfectly, and is
+the wrong question. So `check/press.js` walks all 41 pages of the May 2017 Foundation paper
+**forwards and then backwards** — both, because the window recycles by moving elements from one end
+to the other and an off-by-one shows up only when you arrive from the other side.
+
+**Asserted on the answer box's key** (`ans:…:q:<row_id>`), which is the one thing on a question card
+that names the row it was built from: `Q6(i)` and `Q6(ii)` both start `Q6`, and my own throwaway
+probe reported those two as failures for exactly that reason before the real check existed.
+**Proved by mutation**: `domIndex_` returning its argument names 52 wrong pages and exits 1.
