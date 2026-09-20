@@ -171,6 +171,32 @@ function measure(arg) {
     return out;
 }
 
+/* ---------- A LABEL PAINTED OUTSIDE ITS OWN DRAWING --------------------------------------------
+   `measure` ABOVE SKIPS EVERYTHING INSIDE AN `<svg>` and is right to: the outermost one clips to
+   its viewport, so nothing in there can push the page sideways. This asks the other question about
+   the same element -- is any of this text painted somewhere the reader will never see it.
+
+   RECTANGLES, NOT COORDINATES, because a y-axis label is written once and rotated into place and
+   its LAYOUT box is nowhere near its glyphs. That is CLAUDE.md's `.mat-out` entry, which cost two
+   wrong fixes the first time it was ignored.
+
+   FOUR EDGES. The first version asked about left and right only, because both faults it was
+   written for ran off the side -- and six library diagrams were quietly painting an axis caption
+   above or below their box, including the scatter graph on the paper somebody was about to teach
+   from. It runs inside the page, so it takes plain arguments and closes over nothing. */
+function outside(svg, row) {
+  const box = svg.getBoundingClientRect();
+  const out = [];
+  svg.querySelectorAll('text').forEach(t => {
+    const r = t.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    const px = Math.round(Math.max(box.left - r.left, r.right - box.right,
+                                   box.top - r.top, r.bottom - box.bottom));
+    if (px > 1) out.push({ row: row, px: px, sel: (t.textContent || '').trim().slice(0, 34) });
+  });
+  return out;
+}
+
 (async () => {
   const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
   const parts = rows.filter(r => r && r.kind === 'question');
@@ -205,6 +231,8 @@ function measure(arg) {
      an ordinary page. */
   const BATCH = 500;
   const bad = [];
+  const outOfBox = [];
+  let withDiag = 0;
   for (let i = 0; i < parts.length; i += BATCH) {
     const chunk = parts.slice(i, i + BATCH);
     await page.setContent(
@@ -216,6 +244,29 @@ function measure(arg) {
     await page.waitForTimeout(120);
     const found = await page.evaluate(measure, { slack: SLACK, sel: '.qcard' });
     bad.push(...found);
+    /* ---------- AND THE 68 DRAWINGS IN THE LIBRARY, WHICH NOTHING HAD EVER MEASURED ------------
+       THE GUIDE PASS BELOW ASKED THIS OF THE PRACTICALS' SEVENTEEN and this pass did not ask it at
+       all, so the library's own figures -- the ones a student is looking at while they answer --
+       were the half nobody checked. Six of them were clipping a caption. */
+    const drawn = await page.evaluate(arg => {
+      /* HANDED IN AS SOURCE rather than injected at navigation, because `setContent` replaces the
+         document under this page on every batch and an init script's timing against that is one
+         more thing to be wrong about. The prac pass below injects once because it navigates once. */
+      const outside = new Function('return ' + arg.src)();
+      const out = []; let n = 0;
+      document.querySelectorAll(arg.sel).forEach(card => {
+        let any = false;
+        card.querySelectorAll('svg').forEach(svg => {
+          if (svg.ownerSVGElement) return;          /* the outermost one is the one that clips */
+          any = true;
+          out.push(...outside(svg, card.dataset.row || '?'));
+        });
+        if (any) n++;
+      });
+      return { out: out, n: n };
+    }, { sel: '.qcard', src: outside.toString() });
+    outOfBox.push(...drawn.out);
+    withDiag += drawn.n;
   }
 
   /* ---------- AND EVERY PRACTICAL CARD, WHICH NOTHING HAD EVER LAID OUT -------------------------
@@ -307,8 +358,16 @@ function measure(arg) {
      the reader simply does not get, and three of the seventeen shipped that way before a screenshot
      caught them ("bulb level with the side arm" arriving as "el with"). `getBoundingClientRect` is
      what answers it, because it accounts for the rotation a y-axis label is written with and
-     `scrollWidth` does not -- the `.mat-out` lesson this file already records one rule up. */
+     `scrollWidth` does not -- the `.mat-out` lesson this file already records one rule up.
+
+     ALL FOUR EDGES, AND IT ASKED ABOUT TWO. The first version compared `left` and `right` only,
+     because both faults it was written for ran off the SIDE. A screenshot of May 2017 Higher Q1
+     then showed a scatter graph captioned with the top two pixels of "hours of sunshine": the
+     label sits at y = 180 in a box 176 tall, and the rule was looking the other way. Six rows in
+     the library were painting a label above or below their own box, on four papers. Same fault,
+     other axis -- which is why the rule is the four edges rather than the two that had bitten. */
   await pracPage.evaluate('window.__measure = ' + measure.toString());
+  await pracPage.evaluate('window.__outside = ' + outside.toString());
   const guides = await pracPage.evaluate(arg => {
     if (typeof practicalGuide_ !== 'function' || typeof openSheet !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'practical');
@@ -323,12 +382,7 @@ function measure(arg) {
         .forEach(f => wide.push(f));
       gd.querySelectorAll('figure svg').forEach(svg => {
         drawings++;
-        const box = svg.getBoundingClientRect();
-        svg.querySelectorAll('text').forEach(t => {
-          const r = t.getBoundingClientRect();
-          const px = Math.round(Math.max(box.left - r.left, r.right - box.right));
-          if (px > 1) clipped.push({ row: x.key, px, sel: t.textContent.slice(0, 34) });
-        });
+        clipped.push(...window.__outside(svg, x.key));
       });
       if (typeof closeSheet === 'function') closeSheet();
     });
@@ -384,9 +438,13 @@ function measure(arg) {
   console.log(`${guides.n} practical guide(s) opened in the app's own sheet, `
             + `carrying ${guides.drawings} apparatus drawing(s)`);
 
-  if (guides.clipped.length) {
-    console.log('\nPAINTED OUTSIDE THE DRAWING  (' + guides.clipped.length + ')');
-    guides.clipped.sort((x, y) => y.px - x.px).slice(0, 10).forEach(c =>
+  const painted = outOfBox.concat(guides.clipped);
+  console.log(`${withDiag} question card(s) carry a drawing, and every label in every drawing `
+            + `was measured against its own box`);
+
+  if (painted.length) {
+    console.log('\nPAINTED OUTSIDE THE DRAWING  (' + painted.length + ')');
+    painted.sort((x, y) => y.px - x.px).slice(0, 12).forEach(c =>
       console.log('  ' + c.row + ' — "' + c.sel + '" is ' + c.px + 'px past the svg\'s own box, '
         + 'so the reader never sees that part of it'));
   }
@@ -402,7 +460,7 @@ function measure(arg) {
   }
 
   bad.push(...guides.wide);
-  if (!bad.length && !practicals.tall.length && !guides.clipped.length) {
+  if (!bad.length && !practicals.tall.length && !painted.length) {
     console.log('\nOK — every question, every practical and every guide fits the narrowest phone,\n'
               + '     every practical card fits the pane it is drawn in, and every label in every\n'
               + '     drawing is inside the drawing.');
