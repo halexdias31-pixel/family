@@ -305,6 +305,43 @@ boot(f => {
                     : ' — findable by its name and nothing else'));
   });
 
+  /* ---------- AN ANSWER THAT NAMES A THING MUST NAME EXACTLY ONE OF THEM ------------------------
+     THE `Paper` QUESTION WAS OFFERING ONE BUTTON FOR TWO PAPERS. Its `of` returned the paper's
+     NAME, and `spellKey_` folds `Paper 1 (Non-Calculator) — May 2017` onto
+     `Paper 1 (Non-calculator) — May 2017` — Edexcel Higher and Foundation, one sitting apart in
+     meaning and one letter's case apart in spelling. Six names were shared by twenty papers, the
+     six AQA `Paper 1 — June 2024` rows putting three subjects and two tiers on a single answer.
+
+     TEST 2 COULD NOT SEE IT AND ITS OWN NOTE SAYS WHY: it looks for two values that normalise to
+     one key, and after the fold there is only one value left to look at. The fold is right — it is
+     what makes `Alevel` and `A-Level` one button — and feeding it an identity was not.
+
+     SO THE RULE IS ON THE ITEMS BEHIND THE ANSWER rather than on the spelling in front of it: press
+     it, and every question you are left with has to come from one paper. That is checkable without
+     knowing anything about how the label was built, which is what makes it the right question.
+     Proved by mutation: put the name back as the value and it names the merged answers. */
+  const paperFacet = facets.find(x => x.field === 'paperId');
+  if (!paperFacet) {
+    bad.push('there is no `paperId` facet, so the Paper question cannot be checked — not a pass');
+  } else {
+    const qs = items.filter(x => x && x.row && x.row.paper_id);
+    const vals = f.facetValues(qs, paperFacet);
+    const ids = new Set(qs.map(x => x.row.paper_id));
+    vals.forEach(v => {
+      const held = new Set(qs.filter(x => f.filterHit(x, { field: 'paperId', value: v.value }))
+                             .map(x => x.row.paper_id));
+      if (held.size > 1) {
+        bad.push('the Paper answer "' + (v.show || v.value) + '" holds ' + held.size
+                 + ' different papers: ' + [...held].join(', '));
+      }
+    });
+    console.log('\nTHE PAPER QUESTION: ' + vals.length + ' answers over ' + ids.size
+                + ' papers' + (vals.length === ids.size ? ' — one each' : ''));
+    if (vals.length !== ids.size) {
+      bad.push('the Paper question offers ' + vals.length + ' answers for ' + ids.size + ' papers');
+    }
+  }
+
   done();
 });
 

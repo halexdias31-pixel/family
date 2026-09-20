@@ -52,7 +52,7 @@
    than a second one beside it, which is the `documents_()` / `factsNow_` argument again. */
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts', 'settings/splashes', 'settings/links',
-                       'settings/campaigns', 'settings/copy'];
+                       'settings/campaigns', 'settings/copy', 'settings/columns'];
 
 /* `norm` on the backend. Kept private rather than borrowed, because `settings.js` loads before
    `find.js` and a mapping that works only once the funnel has loaded is a mapping that breaks on
@@ -215,6 +215,37 @@ function settingsInto_(d, extra) {
         blocks: libS(r.blocks),
         copy: words[libS(r.campaign_id)] || {},
       }));
+  }
+
+  /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER -----------------------------------------
+     `applyColumns_` IN shell.js HAS BEEN WRITTEN AND UNREACHABLE SINCE IT WAS WRITTEN. It reads
+     `DATA.columns`, applies the order, takes the label and the icon from each row, refuses to
+     invent a column the build does not have, refuses to leave you with none, and moves `AT` if the
+     screen somebody was on has just been switched off. Every one of those guards is there. **No
+     backend has ever sent that key** — it is on `check-payload.js`'s accepted-dead list with the
+     note "needs a `columns` tab", and the spreadsheet that tab would have lived in is being deleted.
+
+     THAT IS `orderPrints` AGAIN: access-listed, argued for at length, and never once called. The
+     nine tabs above are how it gets a source — one file, no deploy, and the same fall-through as
+     everything else here.
+
+     IT SHIPS WITH THE NINE THE CODE ALREADY HAS, in the order the code already puts them in, so
+     nothing changes today. What it buys is that "the app should have four or five columns" is a
+     cell rather than a commit.
+
+     THE ORDER IS THE FILE'S, once it is sorted — `applyColumns_` uses the array order and does not
+     look at `sort_order` itself, so the sort belongs here where the rows are read. */
+  const columns = extra['settings/columns'];
+  if (columns && columns.length) {
+    const live = columns
+      .map((r, i) => ({ r: r, i: i }))
+      .filter(x => libS(x.r.screen) && libOn(x.r.active))
+      .sort((a, b) => (libN(a.r.sort_order) - libN(b.r.sort_order)) || (a.i - b.i))
+      .map(x => ({ screen: libS(x.r.screen), label: libS(x.r.label), icon: libS(x.r.icon) }));
+    /* AND NOT AN EMPTY LIST. Every row switched off is the one thing `applyColumns_` refuses to act
+       on — "a spreadsheet should not be able to make the app unusable by being blank" — so handing
+       it `[]` would be relying on that guard rather than on this being right. */
+    if (live.length) d.columns = live;
   }
 
   return d;

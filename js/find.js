@@ -956,7 +956,8 @@ const FACETS = [
      and the name is what is shown. An item with no `paper_id` does not answer at all, which is
      what keeps the question away from tutors, venues and widgets. */
   { field: 'paperId',   label: 'Paper',
-    of: x => (x.row && x.row.paper_id) ? (x.sub || x.row.paper_id) : '' },
+    of: x => (x.row && x.row.paper_id) || '',
+    showOf: id => paperLabel_(id) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
      MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
@@ -1270,8 +1271,72 @@ function nameForms_(s) {
 /* Sets `show` on each value in place. Ascending rungs, first one where every label is distinct —
    and the last rung is always the full name, which is distinct by construction because these are
    the keys of a tally. */
+/* ==================================================================================================
+   WHAT A PAPER IS CALLED ON A BUTTON, AND WHY IT IS NOT JUST ITS NAME.
+
+   SIX NAMES ARE CARRIED BY MORE THAN ONE PAPER — twenty papers in all. `Paper 1 (Non-Calculator) —
+   May 2017` is Edexcel Higher and `Paper 1 (Non-calculator) — May 2017` is the Foundation paper of
+   the same sitting; `Paper 1 — June 2024` is SIX AQA science papers across three subjects and two
+   tiers. A name is not an identity here and never was.
+
+   SO THE NAME IS DISAMBIGUATED ONLY WHERE IT HAS TO BE, and by the thing that actually differs:
+   the subject first, then the tier. A paper whose name nobody else carries is drawn exactly as it
+   is written, which is every paper but twenty — and `shortLabels_` still trims those to `Paper 1`
+   wherever the list on screen makes that unambiguous.
+
+   BUILT FROM `LIBRARY_ROWS`, THE FILE ITSELF, NOT FROM THE MAPPED LIST. `DATA.questions` carries
+   only 170 of the 262 papers' document rows and renames `paper_id` to `paper` on the way through --
+   so a map built from it was missing a third of the library and looking up a key that is not there,
+   which is why the first version of this drew every button as a raw id. The file is the faithful
+   export, one row per line, `paper_id` and `name` spelled as the sheet spells them. A `WeakMap` on
+   the array itself, so a new fetch is a new map with nothing to invalidate. */
+const PAPER_LABEL = new WeakMap();
+
+function paperLabels_() {
+  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  let map = PAPER_LABEL.get(rows);
+  if (map) return map;
+  map = {};
+  const byName = {};
+  const docs = [];
+  rows.forEach(r => {
+    const id = r && (r.paper_id || r.paper);
+    if (!r || String(r.kind) !== 'document' || !id) return;
+    const name = String(r.name || '').trim();
+    if (!name) return;
+    docs.push({ id: id, name: name, subject: r.subject, tier: r.tier });
+    const k = spellKey_(name);
+    (byName[k] = byName[k] || []).push(r);
+  });
+  docs.forEach(r => {
+    const name = r.name;
+    const share = byName[spellKey_(name)] || [];
+    if (share.length < 2) { map[r.id] = name; return; }
+    /* ONLY WHAT DIFFERS. Adding the subject to six AQA papers that are already three subjects is
+       the whole of the fix; adding the tier as well where the subject does not settle it is the
+       rest. Appending both always would put "· Maths · Higher" on two hundred unique names. */
+    const subjects = new Set(share.map(d => String(d.subject || '').trim()));
+    const bits = [name];
+    if (subjects.size > 1 && String(r.subject || '').trim()) bits.push(String(r.subject).trim());
+    const rest = share.filter(d => String(d.subject || '') === String(r.subject || ''));
+    if (rest.length > 1 && String(r.tier || '').trim()) bits.push(String(r.tier).trim());
+    map[r.id] = bits.join(' \u00b7 ');
+  });
+  PAPER_LABEL.set(rows, map);
+  return map;
+}
+
+/* AN ID WITH NO DOCUMENT ROW IS DRAWN AS ITSELF rather than as nothing — an unreadable button beats
+   a blank one, and `check-library.js` already fails on a question whose `paper_id` names no
+   document, so this is the shape that cannot happen rather than one to hide. */
+const paperLabel_ = id => paperLabels_()[id] || String(id || '');
+
 function shortLabels_(values) {
-  const forms = values.map(v => nameForms_(v.value));
+  /* `text` IS THE DISPLAY STRING WHERE THE VALUE IS AN IDENTITY. A facet whose `of` returns an id
+     supplies `showOf`, and everything from here down shortens THAT rather than the id — `value`
+     goes on being the only thing matched. Undefined on every other facet, so they are unchanged. */
+  const forms = values.map(v => nameForms_(v.text || v.value));
   let deepest = 0;
   forms.forEach(f => { if (f.length > deepest) deepest = f.length; });
   for (let rung = 0; rung < deepest; rung++) {
@@ -1281,7 +1346,7 @@ function shortLabels_(values) {
       return values;
     }
   }
-  values.forEach(v => { v.show = v.value; });
+  values.forEach(v => { v.show = v.text || v.value; });
   return values;
 }
 
@@ -1530,6 +1595,20 @@ function facetTally_(items, facet) {
   let values = Object.keys(folded)
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
+  /* ---------- AN IDENTITY IS NOT A SPELLING, AND ONE FACET HAD BEEN USING A NAME AS BOTH --------
+     `showOf` TURNS A VALUE INTO WHAT IS DRAWN and changes nothing about what is matched. It exists
+     for `paperId`, whose own note already said the rule -- "the id decides WHO answers and the name
+     is what is shown" -- while its `of` returned the NAME. Measured: six names are carried by more
+     than one paper, twenty papers in all, and the spelling fold above merged each set into ONE
+     button. `Paper 1 (Non-Calculator) — May 2017` (Edexcel Higher) and `Paper 1 (Non-calculator) —
+     May 2017` (Foundation) differ by one letter's case, which is exactly what `spellKey_` is built
+     to ignore -- so the funnel offered one answer holding two different papers, and the six AQA
+     science `Paper 1 — June 2024` rows put three subjects and two tiers on a single button.
+
+     `check-funnel.js` COULD NOT SEE IT and its own note says why: test 2 looks for two values that
+     normalise to one key, and after the fold there is only one value left to look at. The fold is
+     right; feeding it an identity was not. */
+  if (facet.showOf) values.forEach(v => { v.text = facet.showOf(v.value); });
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
   shortLabels_(values);
@@ -2247,8 +2326,21 @@ function practicalGuide_(x) {
         'Write it before you start. A prediction after the event is a description.')}
     </section>
 
-    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
-      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section>` : ''}
+    ${/* ---------- THE DRAWING SITS AT THE HEAD OF THE METHOD, AND ONLY THERE ------------------
+          A DIAGRAM HERE IS ALWAYS A SET-UP OR A CONSTRUCTION — a circuit, a clamp stand, a
+          condenser with its thermometer in the one place that matters, the right-angled triangle
+          behind R = d²/2h. Every one of the seventeen is something you BUILD before the first
+          reading, so it belongs above the numbered steps and nowhere else. One placement rather
+          than a rule about which kind goes where: a flag saying "this one is explanatory" is a
+          second thing to keep in step with the drawing, and CLAUDE.md records what that costs.
+
+          NOTHING HERE IS A RESULT. No cooling curve, no I–V graph, no line of best fit. See
+          tools/draw-practicals.py — a guide that prints the answer has taken the practical away,
+          which is the same line `science` above is written along. */''}
+    ${(p.steps.length || p.diagram) ? `<section class="prac-steps"><h4>How it runs</h4>
+      ${p.diagram ? `<figure>${p.diagram}</figure>` : ''}
+      ${p.steps.length ? `<ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>` : ''}
+      </section>` : ''}
 
     <section class="gd-sec">
       <h4>Results</h4>
@@ -2393,7 +2485,17 @@ function boxerCard_(x) {
    Neither reader is asked to put up with the other's screen. */
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
-  const hide = !!whoIs_();
+  /* ---------- IT IS THE ROLE THAT DECIDES, AND IT USED TO BE "IS ANYBODY NAMED" ----------------
+     `!!whoIs_()` WAS THE TEST, AND WITH THE TYPED NAME GONE THAT MEANT "IS ANYBODY SIGNED IN" --
+     so a tutor signed in as themselves got their own mark schemes shut behind a tap, on the one
+     surface they read FROM. The paragraph above says who the open answer is for and it is not
+     "somebody signed out", it is the tutor.
+
+     `isTutorRole()` IS THE APP'S OWN STAFF TEST -- tutor or admin -- already used by the widget
+     roster for the same kind of question. A student signing in gets the reveal; staff get the
+     paper as it is printed. One fact, read from the role the Ledger already holds, rather than a
+     second thing to switch on and off. */
+  const hide = !(typeof isTutorRole === 'function' && isTutorRole());
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
@@ -2898,29 +3000,51 @@ function questionItems() {
 
    EVERY READ AND WRITE IS WRAPPED. Private mode THROWS on `localStorage` rather than returning
    null, and a thrown getter here would take the whole results list down with it. */
-/* ---------- WHOSE ANSWER IT IS -------------------------------------------------------------------
-   TWO BOYS ON ONE PHONE WAS THE CASE THAT ASKED FOR THIS. The key was `ans:<row_id>` and nothing
+/* ---------- WHOSE ANSWER IT IS, AND IT IS WHOEVER IS SIGNED IN --------------------------------
+   TWO BOYS ON ONE PHONE IS STILL THE CASE THIS ANSWERS. The key was `ans:<row_id>` and nothing
    else, so a second person working through the same paper on the same device typed over the
    first one's answers with no warning and no way back. On a tutor's phone, passed between two
    students in one session, that is not an edge case -- it is the ordinary way it gets used.
 
-   THE SIGNED-IN PERSON WHERE THERE IS ONE, otherwise whoever the Working-as control names. Signing
-   in needs a row in the Ledger and a PIN, which is not something a tutor can do at the kitchen
-   table for a boy who turned up today; a name typed into the app is. It is not a login and does
-   not pretend to be one -- nothing is protected by it and nothing is sent anywhere. It is a label
-   on a drawer.
+   THERE WAS A TYPED NAME HERE AND IT IS GONE. A `workingAs` control sat beside every answer box
+   reading "who is this?", and it was a second identity the app did not otherwise have: not a
+   login, nothing protected by it, a label on a drawer. Reported as *"remove this feature of whos
+   writing. its confusing. just have it be that they sign in"*, and that is the right call --
+   two ways of saying who you are is two things to keep in step, which is the sentence this
+   repository writes about `handle`/`username`, about `MESSAGING` and about `childrenOf`.
 
-   THE OLD UNPREFIXED KEY IS STILL READ, once, for whoever had answers before this existed. */
+   SO SIGNING IN IS THE ONLY ANSWER TO "WHO", and it is one the app already had. What it costs is
+   that a boy who turned up today with no row in the Ledger works under the signed-out key, the
+   same as the tutor -- which is the ordinary behaviour of every other surface here and is what
+   `changePin` and the roster are for.
+
+   THE OLD UNPREFIXED KEY IS STILL READ, once, and it can only ever fill a box that is empty. */
 function whoIs_() {
   try {
     if (typeof USER !== 'undefined' && USER && (USER.personId || USER.name)) {
       return 'u:' + (USER.personId || USER.name);
     }
-    return localStorage.getItem('workingAs') || '';
-  } catch (e) { return ''; }
+  } catch (e) {}
+  return '';
 }
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
+
+/* ---------- THE KEY IS THE ID AND THE LABEL IS THE NAME, AND THEY WERE THE SAME STRING ---------
+   THE BOX SAID "P001's answer". `whoIs_` answers `u:<person_id>` because an id is stable where a
+   display name is a cell somebody can edit -- exactly right for a key, and unreadable as a label.
+   The old name box printed that id back at whoever was working, which is its own small part of
+   "its confusing": an answer box captioned with an account number.
+
+   FIRST NAME ONLY, because it is a caption on a box rather than a roster line, and because two
+   students swapping a phone recognise "Lucca" faster than they read "Lucca Smith". A person with
+   no name on their row gets nothing rather than a blank possessive. */
+function signedName_() {
+  try {
+    if (typeof USER === 'undefined' || !USER) return '';
+    return String(USER.name || '').trim().split(/\s+/)[0] || '';
+  } catch (e) { return ''; }
+}
 
 function ansRead_(k) {
   try {
@@ -3047,6 +3171,33 @@ function markFrac_(s) {
   return null;
 }
 
+/* A MARK SCHEME THAT TAKES A BAND TAKES EVERY NUMBER IN IT, AND THIS ONE WAS TAKING TWO OF THEM.
+   "Write down an estimate for the real height of the man" is marked `1.5 to 2 metres` -- the
+   scheme's own words -- and there is no single right answer to it. Measured before it was fixed:
+   a student typing `1.5` was marked RIGHT and one typing `2` was marked WRONG, from the same
+   accept cell, because `markBare_` strips a trailing word and "to 2 metres" IS a trailing word, so
+   the band quietly became its own first number. Arbitrary in the one place in this app that tells
+   a child they are wrong, and the bottom of the band passing is what made it invisible.
+
+   ONLY `to` AND THE TWO LONG DASHES. A plain hyphen between two numbers is also how a person
+   writes a subtraction and how this library writes `7-11`, and a rule that cannot tell them apart
+   would mark a wrong answer right -- which is the one failure worse than the one being fixed.
+
+   COMPARED AS WHOLE NUMBERS, for the reason `markFrac_` above gives: the ends of a band are
+   decimals (1.5, 7.5) and a float comparison at a boundary is the one place this must not be
+   approximately right. Both ends are INCLUSIVE, because a scheme printing "1.5 to 2" accepts 1.5
+   and accepts 2. THREE ROWS IN THE LIBRARY carry one and all three are real bands; anything that
+   is not two numbers with `to` between them comes back null and is marked exactly as before. */
+function markRange_(w) {
+  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to|\u2013|\u2014)\s*(-?\d+(?:\.\d+)?)(?:\s+[a-z\u00b0%].*)?$/
+    .exec(markNorm_(w));
+  if (!m) return null;
+  const lo = markFrac_(m[1]), hi = markFrac_(m[2]);
+  if (!lo || !hi) return null;
+  if (lo.n * hi.d > hi.n * lo.d) return null;   /* backwards is not a band */
+  return { lo: lo, hi: hi };
+}
+
 function markAnswer_(typed, accept) {
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
@@ -3061,6 +3212,11 @@ function markAnswer_(typed, accept) {
     /* the same value written another way -- see `markFrac_` above */
     const p = markFrac_(t), q = markFrac_(markBare_(w));
     if (p && q && p.n * q.d === q.n * p.d) return true;
+    /* anywhere inside a band the scheme prints -- see `markRange_` above */
+    const band = markRange_(w);
+    if (p && band
+      && p.n * band.lo.d >= band.lo.n * p.d
+      && p.n * band.hi.d <= band.hi.n * p.d) return true;
   }
   return false;
 }
@@ -3071,11 +3227,13 @@ function ansBox_(x) {
      box it always had and no button, rather than a Check that shrugs -- a control that sometimes
      does nothing is worse than one that is not there. */
   const can = String(x && x.accept || '').trim();
-  const who = whoIs_().replace(/^u:/, '');
+  /* THE NAME IS SHOWN AND IS NOT A CONTROL. It is whoever is signed in, so on a phone passed
+     between two students it says at a glance whose drawer this box is writing into -- which is
+     the one thing the deleted `workingAs` button was genuinely good for. Changing it is signing
+     out, on the You column, where every other fact about who you are already lives. */
+  const who = signedName_();
   return `<label class="qp-ans">
-    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}<button
-      type="button" class="qp-who" data-do="qp-who">${who ? 'not ' + esc(who) + '?' : 'who is this?'
-      }</button></span>
+    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}</span>
     <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
       rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
   </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
@@ -3136,21 +3294,11 @@ on('qp-reveal', (el) => {
    thing for a form; this is one word, typed once a lesson, and a sheet that has to be built,
    opened, read and closed for one word is slower to use and far more to go wrong in the middle
    of a lesson. */
-on('qp-who', () => {
-  let name;
-  try {
-    name = window.prompt('Who is working? Leave it empty for the tutor\u2019s own view.',
-                         whoIs_().replace(/^u:/, ''));
-  } catch (e) { return; }
-  if (name === null) return;
-  name = String(name).trim().slice(0, 24);
-  try {
-    if (name) localStorage.setItem('workingAs', name);
-    else localStorage.removeItem('workingAs');
-  } catch (e) {}
-  toast(name ? 'Working as ' + name : 'Back to the tutor\u2019s view');
-  repaint();
-});
+/* ---------- `on('qp-who')` WAS HERE ------------------------------------------------------------
+   IT OPENED A `window.prompt` ASKING WHO WAS WORKING and wrote the answer to `workingAs`. Removed
+   with the name box above it: the app already knows who is signed in, and a second place to say
+   who you are is a second place for the two to disagree. See `whoIs_`. */
+
 
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are
    thousands of these and only one of them is ever being typed into. No Save button, because there
@@ -5200,6 +5348,16 @@ function stuffCard(x, credits) {
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
 
+/* WHAT A CHIP READS. The facet's own `showOf` where it has one, so the chip says the same words
+   the answer row said; the value itself otherwise, which is every facet but `paperId`. */
+function chipShow_(f) {
+  const facet = facetBy(f.field);
+  if (facet && facet.showOf) {
+    try { return facet.showOf(f.value) || f.value; } catch (e) { return f.value; }
+  }
+  return f.value;
+}
+
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
    it, because this row grows and shrinks and a fixed control does not. */
 function filterChips() {
@@ -5211,7 +5369,13 @@ function filterChips() {
              made and has to be able to unmake. A question silently dropped with nothing on screen
              saying so is the funnel "changing its mind" again — the complaint `whyThisQuestion()`
              was written for. */''}
-        ${f.any ? 'any' : esc(f.value)}<span class="chip-x">✕</span>
+        ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON -----------
+             `f.value` WAS BOTH UNTIL `paperId` STOPPED BEING A NAME. A facet whose value is an
+             identity supplies `showOf`, and without this the chip read `PAPER P-1MA1-1705-1H` —
+             an account number where a paper's name had been. Caught on a screenshot of the tap
+             that sets it, one commit after the value changed: the rule moved and its reader did
+             not, which is the shape this file records under `resource_type` in `VOCAB`. */''}
+        ${f.any ? 'any' : esc(chipShow_(f))}<span class="chip-x">✕</span>
       </button>`).join('')}
     ${/* `clear` WAS GREY TEXT ON NOTHING — no border, no fill, the faint colour — sitting at the end
           of a row of bordered chips. It read as a caption rather than a control, which is the one
@@ -5665,6 +5829,28 @@ function startWidget_(wgt) {
 /* NAMED FOR WHAT IT WAS, not what it is. This drew the group list once; it draws the funnel's
    next question now, and the grouping it was named after no longer exists. Renamed so the one
    thing left on the browse page is called what it does. */
+/* ---------- CARRY ON WAS HERE, AND IT WAS AN ANSWER TO A QUESTION NOBODY ASKED ------------------
+   IT DREW A "<name>, carry on" BLOCK over the funnel's first question, listing the papers this
+   person had answers saved against with a count beside each, and a tap set the `paperId` chip.
+
+   REMOVED AT THE OWNER'S WORD: "no i dont want lucca carry on bullshit. im just saying if they
+   answer something, it will be answered next time they come on." That is a statement about
+   PERSISTENCE, and persistence is what `ansKey_` and `ansRead_` already do -- an answer typed
+   into a question is in `localStorage` under the signed-in person and comes back in that box on
+   the next visit, on every paper, with nothing on any screen to press.
+
+   SO THE FEATURE WAS A SECOND ROUTE TO A PLACE THE FUNNEL ALREADY REACHES -- measured at 8 taps
+   for May 2017 Higher Paper 1 and 9 for the Foundation one, both landing on exactly that paper in
+   its own order. A front door nobody asked for, on the one screen whose own note warns about
+   offering to throw away what somebody is part-way through.
+
+   WHAT IT IS WORTH KEEPING IS THE MEASUREMENT IT WAS BUILT ON: the answer keys ARE the record of
+   which paper somebody worked through, because a row id resolves to a paper. Nothing reads them
+   that way today; if a surface ever needs to, that is where it comes from rather than a new
+   column. `showOf` on the `paperId` facet came out of the same afternoon and stays -- it is what
+   stops twenty papers sharing six buttons, and it has nothing to do with this. */
+
+
 function stuffQuestion() {
   const items = stuffFiltered();
   /* NOBODY YET, and a way to fix that. An empty Friends list is the one empty result on this

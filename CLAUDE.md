@@ -1597,8 +1597,14 @@ or the failures under
 
 **That second sentence is the point.** Every check here was good and none of them ran unless
 somebody remembered; the failure mode left was starting work on a repo that was already broken and
-spending the session unable to tell which half was yours. Seventeen seconds buys an unambiguous
+spending the session unable to tell which half was yours. A minute and a half buys an unambiguous
 baseline — a red after that is the thing you just did.
+
+**That figure is written here and nowhere else, deliberately.** It said seventeen seconds in this
+file AND in the hook's own comment for as long as it was seventeen, and went on saying it after the
+suite had roughly doubled twice — the same fault as "all 18 checks pass". The hook's comment names
+no number at all now; the run prints its own timings per check, which is the only version that
+cannot go stale, and this sentence is a rough shape rather than a measurement.
 
 **It exits 0 whatever happens**, deliberately: a hook that refuses to start a session is a hook
 somebody deletes. It reports and gets out of the way. It also prints the branch, the head commit,
@@ -1793,8 +1799,9 @@ found any of this — only pointing the measurement that already existed at the 
 
 Partly, and this session is an honest measure of which half. **What a reader can settle, a check
 already settles**: a name used and never declared, a handler with no door, a column read off the
-wrong tab, a `const` assigned to, a facet that cannot narrow. Twenty-eight of those now run on every
-session start.
+wrong tab, a `const` assigned to, a facet that cannot narrow, a CSS rule that wins only because of
+where it sits in the file. The whole roster runs on every session start — the count is printed by
+the run rather than typed here, for the reason the section above gives.
 
 **What a reader cannot settle is what happens when two correct things meet.** Three faults this
 session, all from valid code that read fine:
@@ -6527,3 +6534,744 @@ That one is a roster gate on the phone; this is the payload — a signed-out vis
 answer and nothing to measure, so asking them to reach it would report a fault about the check.
 20 states, **132 combinations**, nothing new. Cards measure 159–195px against an 807px pane, no
 sideways scroll, and the links come out `target="_blank"` on the real address.
+
+## The hour grid did nothing when you pressed it, and the repaint was aimed at another screen
+
+**Reported as "grid not working when click"**, with a screenshot of the Booking column. Reproduced
+on the first try and the app's own press log named the cause in one line.
+
+**`clicks()` EXISTS FOR EXACTLY THIS AND IT EARNED ITS KEEP.** Its note lists the four causes of
+"nothing happens when I click" and says they look identical from outside: the scripts never loaded,
+nothing carries a `data-do`, the name in the markup and the name in `on()` disagree, or **the
+handler ran and did nothing**. Measured: `pressed: BUTTON.hr, nearestAction: book-slot,
+handlerRegistered: true` — the fourth one. The press landed on the right element, the handler ran,
+`BOOKING.slots` came back `["m10"]`, and `.hr.on` was still **0**.
+
+**So the state was right and the redraw was aimed somewhere else.**
+
+```js
+function paintBook_() {
+  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true);
+}
+```
+
+**It repaints `s-stuff` and nothing else, and that was right for exactly as long as the form lived
+only inside the funnel.** `bookingPages_` answers `What for · Booking` there — and it also builds
+the Booking COLUMN, `screen('booking', …)`. Same markup, two hosts, and this knew about one.
+**Measured: with the fixture the funnel draws no booker at all** (`pageCount('stuff')` is 1 and
+`#bookr` is not on it), so `s-stuff` was not merely the wrong host, it was a **dead** one — which is
+why the grid was completely inert rather than half-working. Confirmed by the sharpest fact
+available: after `drawBooker()` the cell was **the same DOM node**, so nothing had been rebuilt.
+
+**AND IT WAS NEVER ONLY THE GRID.** Every `drawBooker()` caller is on that path — the edit row, the
+undo, every dropdown. **A `<select>` shows its own new value natively with no help from anybody**,
+so the answers appeared to work while the grid and the running cost did not: the half that needed no
+repaint was the half that looked fine, which is why this read as "the grid is broken" rather than
+"the form does not redraw". The screenshot shows it exactly — Kind, Subject and Level all answered,
+`COST —` blank, and the week empty.
+
+**Asked of the DOM rather than remembered.** `#bookr` is the form's own wrapper and `.screen` is
+whatever section it is in, so "where is this drawn" is answered by where it IS. Same move as
+`msg-send` walking up to its nearest `.msg-form` and `me-save` to its own container — both written
+after an id handed the wrong element to the right handler. A flag naming the host would be a third
+thing to keep in step with the two that already exist.
+
+**The funnel keeps `paintStuff(true)`**, which is not the same call: a plain `paint` would throw
+away the strip of result pages and which one you are on. So the old path is preserved exactly where
+it applies and nothing regresses.
+
+**Measured after, on the column**: three presses give three lit cells, Monday 12 and 13 **joined
+into one bar** — the adjacent-hours bridge doing its job for the first time on a press anybody made
+— and the When row reads back *"Monday 12:00–14:00, Wednesday 15:00–16:00"*. 32 checks pass.
+
+### Why no check caught it, which is the part worth keeping
+
+**`check/ui.js` MEASURES WHETHER A CONTROL CAN BE READ AND HIT, NOT WHETHER PRESSING IT DOES
+ANYTHING.** It reported the booking column clean at four widths on every run — correctly, by its own
+question: the cells are 24×20 inside a 20px floor that `ACCEPTED_TAP` records with a reason, the
+labels are there, nothing overflows. **A dead control measures perfectly.**
+
+**And `check-flow.js` drives bookings through `BOOKING` and the send paths rather than through the
+markup**, so it proves the state machine and never presses a cell. Both were right about what they
+ask. What neither asks is the question the owner asked: *press this — did the screen change?*
+
+## `node check/press.js` — press it, did anything happen
+
+**The last line of this file asked exactly this and nothing answered it**: *"What neither asks is the
+question the owner asked: press this — did the screen change?"* Written the night the hour grid was
+found dead, and the instrument arrived the next morning.
+
+**It presses every distinct `data-do` in the app, twice over** — once signed in as an admin and once
+as a stranger — and asks four things of each press: did it throw, did the app survive, did anything
+change, and is there anything carrying the action to press at all. **91 actions, 57 seconds, on the
+roster.**
+
+**BY ACTION, NOT BY ELEMENT**, because the handler is the thing that can be broken: pressing every
+element would press `qp-ans` four thousand times. And by the DISPATCH rather than by hit-testing —
+`dispatchEvent` straight at the element — because whether a box can be hit is `check/ui.js`'s
+question and it already answers it properly.
+
+### Three instruments were green and each was right about what it asks
+
+| | |
+|---|---|
+| `check-doors.js` | a `data-do` with a handler, a handler with a door. **Both true. The wiring was perfect and the wire went nowhere** |
+| `check/ui.js` | can this control be read and hit. **A dead control measures perfectly** |
+| `check-flow.js` | drives bookings through `BOOKING` and the send paths, so it proves the state machine and never presses a cell |
+
+**And `pageerror` never fires, which is why a thrown handler is invisible too.** `shell.js` wraps
+every action in a try/catch on purpose — an error escaping it reaches the window, and a browser
+serving from `file://` reports that as `Script error.` with no message, no file and no line. Caught,
+it keeps its message. So this listens where the app actually speaks: `console.error('[' + action +
+']', err)`, which is the line in that catch.
+
+**What counts as something happening is deliberately wide** — the screen's markup, the sheet, which
+screen you are on, which page of it, a toast, a request leaving the phone, anything written to
+`localStorage`. One of those moving is enough. The alternative is a check that cries wolf, and this
+file has deleted one of those already.
+
+### The one it found: a control drawn in gold that had done nothing for months
+
+**`book-edit` was the only value on the booking form styled as pressable** — `.bk-pick` gave it a
+gold underline and a pointer, and gold in this app means *the one thing to press*. The When row.
+The row a person presses when the cells underneath it do not work, which is exactly what the owner
+had just been doing.
+
+**`stepGrid_` says ALWAYS OPEN in its first line and gives the reason**: a panel that unfolds
+changes the card's height under the thumb reaching for it. The moment that was true there was
+nothing left for `book-edit` to open — `stepIsPanel_` returned `!!st.grid`, so **the one row marked
+pressable was the one row whose panel is always drawn.** The handler set `BOOKING.editing`,
+`drawBooker()` rebuilt the card byte for byte identically, and the field was **written in four
+places and read in none**: this repository's oldest shape, already recorded here under `figure`,
+`orderPrints`, the four message actions, `exam_date` and `wow`.
+
+**Three sentences outlived the thing they described** — the note over the handler still said the
+week grid "is drawn as a panel, so pressing that row is the only way to reach it", and the note over
+`stepGrid_` still said `BOOKING.editing` held which row was showing its grid. Both were true and
+stopped being true in a commit about something else. Same fault as `resource_type` in `VOCAB` and
+the dead `kind === 'paper'` guard.
+
+### The harness was wrong three times first, all in the flattering direction
+
+Worth the space, because every one of them printed a fault in the app that was a fault in the check:
+
+- **`innerHTML.length` is not the markup.** A repaint that swaps one class for another of the same
+  length reads as nothing having happened — measured on `book-edit`: 18,804 characters before and
+  18,804 after, with the grid's open state genuinely different underneath. It hashes now, and the
+  hash is what proved the control really was dead rather than merely equal-length.
+- **It pressed the option that was already chosen.** `mat-level`, `mat-exam` and `timer-set` came
+  back quiet because the first element carrying each is the selected one, and tapping the button
+  that is already lit correctly does nothing. It prefers an unchosen control now.
+- **And where nothing marks the choice, one press is not an answer.** `fm-preset` is three buttons
+  and the flyer maker opens ON the flyer preset, so pressing the first asks it to become what it is.
+  Measured: that press changes nothing and `sticker` changes the zoom, two checkboxes and 3,543
+  characters of drawing. **Quiet now means every control carrying the action is quiet** — up to
+  four of them.
+
+**And ten actions went unpressed on the first honest run**, every one the harness: answering the
+funnel's first question takes every card off the Find screen, so `fav`, `spot`, `qp-ans` and
+`filter-clear` were gone by the time their turn came; and the sheet is closed after each press, so
+`post-save` and `msg-send` came up for their turn against a screen that had not held them for twenty
+presses. A sheet's actions are pressed **now, while it is open**; an action missing after other
+presses gets a page nobody has touched, re-entered into the state it belongs to, and only then is it
+reported.
+
+### `check/states.js` — one list, because a state declared for one instrument and not the other is a hole
+
+**`check/ui.js` owned the twenty declared states and `check/press.js` needed every one of them.**
+Pressing only the state a screen opens in left the practical guide, the films, the message thread,
+the session receipt and the basket unpressed entirely — none of them is on a screen `go()` lands on.
+
+**A second copy would have drifted in the worst direction**: a state added for the measuring pass
+and not the pressing one is a surface nobody presses, which is the hole the booking grid lived in.
+That is this file's sentence about `documents_()`, `paperIdOf_`, `factsNow_` and `childrenOf` for
+the fifth time. The extraction was proved neutral first — 132 combinations, nothing new — which is
+the `libraryExtras_` rule: prove it identical, then make it.
+
+### A quiet press FAILS, and every current one carries a written reason
+
+**`ACCEPTED_TAP` prints and does not fail, because a 20px hour cell cannot be repaired by changing a
+number.** A control that does nothing CAN be repaired, and one that silently stopped working is the
+fault this file was written for — so the twelve that are correctly quiet are listed with one
+sentence each (an empty box focused rather than posted, a caret placed in a text field, a camera the
+container does not have) and anything else turns the run red.
+
+**Proved in both directions.** Putting the old `paintBook_` back — the one that repainted a screen
+the booking column is not on — names `book-slot` and `book-set` and exits 1; the real file exits 0.
+
+**`npm run check` went from about 45 seconds to 1 minute 39.** That is the price and it is written
+down rather than hidden: the session-start hook pays it on every session, and what it buys is the
+one class of fault this project has shipped twice — a control that looks alive and is not.
+
+### And the other thing a finger does, which nothing had ever measured
+
+**Every screen in this app is reached by a SWIPE and no check had made one.** The tabs are a second
+way in, so a broken gesture leaves the app looking fine on a desktop and is the whole navigation
+gone on a phone — which is the shape `overworld.js` already records twice: the grid listened for
+`touchstart` alone and did nothing at all with a mouse, and a `setPointerCapture` on every press
+sent the release to the root so that no card, chip or tick ever answered. *"Nothing threw. The app
+rendered perfectly and simply stopped answering."*
+
+**`page.mouse` makes the real events, at the pace a hand makes them**, so the thresholds, the axis
+lock and the velocity are all exercised — none of which a direct call to `go()` touches. Measured:
+**18 sideways and 12 vertical, every one landing where it should**, and the ends are part of it — a
+swipe left from the last column must stay on the last column rather than sliding into nothing.
+
+### `check/ui.js` was not on the roster, and this file said twice that it was
+
+**132 combinations of screen, state, width and visitor — sideways scroll, tap targets, contrast, JS
+errors, content below a pane's own fold — and `npm run check` never ran it.** This file says in two
+places that it "has run on every commit for weeks". It has run when somebody typed `npm run
+check:ui`. **That is the `check-booking.js` fault about the instrument rather than the app, and this
+file's own sentence is the answer: the roster is the only thing that makes a check real.**
+
+**What kept it off was the clock, and the clock was the wrong reason.** Measured: `check/press.js`
+spends 77 seconds of wall time and **4.5 seconds of processor** — the rest is waiting for a page to
+settle, which is exactly what four processes can do at once on a four-core machine. So the four
+browser-driven checks start together at the top of the run and are printed in roster order in their
+place when the fast ones have finished. **Sequentially those four are about three minutes; together
+they cost the slowest of them, and the whole suite is 1 minute 25 with `ui.js` included** — shorter
+than it was without it.
+
+**Two of them wanted the same port.** `check/ui.js` and `check/deploy.js` both defaulted to 8731,
+which cost nothing for as long as they ran one after another and would have been one of them dying
+on `EADDRINUSE` with a stack trace where a report should be. The kind of fault that only exists once
+something else changes, which is the argument for changing it in the same commit.
+
+### A control with no name is not an imperfect control, it is an invisible one
+
+**The camera's shutter already made this argument out loud** — *"a shutter with the word Photo
+written across it is not a shutter, and a control with no name at all is one a screen reader cannot
+offer"* — and got an `aria-label`. **Nothing checked the rest of the app.**
+
+**Measured: ten controls have no text, no label and no `aria-label`, and every one of them carries a
+PLACEHOLDER** — the comment box, the six message boxes, the funnel's search, the to-do line and the
+notepad. A placeholder IS the accessible name when there is nothing else, so all ten are named and
+**none of them needed changing**. Adding an `aria-label` repeating the placeholder would be two
+strings to keep in step, which is the fault this file records under `MESSAGING`, under `kinds` and
+under `childrenOf`.
+
+**So the rule is the floor rather than the preference**, it runs inside the walk `check/ui.js` was
+already making so it costs nothing, and the number it guards today is zero. Proved by mutation:
+taking the placeholder off the search box names `<input>.search` at 36 combinations and exits 1.
+
+### What the app does when its own ground gives way, measured rather than assumed
+
+**Two whole classes of visitor nothing had ever stood in for**, and both came back clean:
+
+| | |
+|---|---|
+| **`localStorage` throws on every write** — a phone with storage blocked or a quota of nought | nine screens drew, the splash lifted, no JS errors, every column still reachable |
+| **`localStorage` throws on every READ as well** — the `SecurityError` a locked-down browser gives | identical |
+| **every data file corrupted, four ways each** — truncated JSON, an HTML error page, an object where a list belongs, an empty body, across all 15 files the app fetches | **60 combinations: nine screens drew every time, the splash lifted every time, no errors** |
+
+**That is the house rule holding**: *an empty or broken sheet must still produce a working site.*
+Every one of those reads is a `try`/`catch` around a `fetch` whose result is put through
+`Array.isArray(rows) ? rows : []` — written one at a time, over months, by somebody following the
+rule rather than checking it. **It is written down here rather than turned into a check**, because
+sixty boots is four minutes and what it proves is a property of code that already exists; the guard
+that matters is the rule in the house style, which a reader applies.
+
+## `node check/cascade.js` — which rule wins, and whether anybody meant it to
+
+**This stylesheet has lost the same argument seven times.** Every one is recorded above and every
+one was found by a person reading two blocks side by side or looking at a screenshot:
+
+| | |
+|---|---|
+| `.price.faint` | a blank price was meant to recede. `.faint` and `.price` are both one class and `.price` is written later |
+| `--fly-ink` | set from a template string, read by a rule that never won |
+| `.bk-row.is-blank` → `.is-bare` | the `max-content` repair went on the rule three thousand lines down and the rows went back to 481px **under a fix that read as though it had worked** |
+| `.rc-total` → `.bk-row` | the total row declared its own three-track grid and has been drawn on the five-track one since it was written |
+| `text-anchor="end"` → `.qsheet .num` | CSS beats an SVG presentation attribute, so ten y-axis numbers sat centred on the line |
+| `.gd-sec p` → `.prac-safety` | caught before it was written, by reading the block first |
+| **`.dock-new .btn` → `.btn.tiny`** | **found by this file.** The docket's `＋` is written at 1.1rem and has always rendered at **0.80rem — 11.86px inside a 44px box.** A glyph is not a word and needs the size |
+
+**Seven repairs and no rule**, which is this file's own sentence about `cost: 0`, about `paper:
+true`, about the spelling fold and about `delRow`. A fault repaired in the instance and not in the
+rule comes back.
+
+### It had to be narrowed twice, and the first version was the noise generator
+
+**The honest general form — two rules set the same property on one element and the later wins —
+reported 1,001 findings**, and nearly all of them are the cascade doing its job: a base and its
+variant, a longhand under a shorthand, `.hr` against `[data-do]` for a cursor. **That is
+`check-rows.js`'s 95-findings-with-2-real-ones**, and a report that is mostly noise is a report
+nobody reads.
+
+**So it asks the narrow question the seven faults share**: two DIFFERENT rules, the same property,
+the same specificity so nothing but ORDER decides, a shared class so they are about the same kind of
+thing, neither's class set containing the other's, and **a real element in the rendered app matching
+both**. 1,001 became five, and three of those were one `border-bottom` counted per longhand.
+
+**And it reads the rendered stylesheet rather than the file.** The browser has already parsed the
+selectors, expanded every shorthand into longhands and put the rules in order; getting any one of
+those wrong by hand is the whole fault this check is about.
+
+### Two of its own findings were about the check, which is the part worth keeping
+
+- **`:has()`, `:is()` and `:not()` are not pseudo-classes.** Each takes the specificity of its own
+  argument and `:where()` takes none. Counted as an ordinary `:pseudo`, `.pane:has(.rc)` scores
+  three where it really scores two — so it tied with `.screen.on .pane` and this file confidently
+  reported a contest that specificity had already settled.
+- **A contest a third rule has already decided is not a contest.** `.tile.on` and `.tile.is-admin`
+  both set a background, and `.tile.is-admin.on` — three classes — sets it for exactly the element
+  that matches both. The giveaway was that `color` beside it WAS real: the three-class rule sets the
+  background and deliberately does not set the colour.
+- **And a selector repeated inside `@media` is the design, not a duplicate.** The theme tokens are
+  built on it. Only two rules in the same at-rule context are two places to edit one fact.
+
+**Proved in both directions**: putting the `＋`'s font-size back names `.dock-new .btn` overruled by
+`.btn.tiny` and exits 1; the real file is green.
+
+### 87 selectors set the same property twice — 28 of them saying it twice over
+
+`.page .card { border-bottom: 0 }` was in this stylesheet **word for word in two places nine hundred
+lines apart, with the same comment over each** — under a note saying *"a page was described twice
+and the two descriptions had already drifted apart"*. `.ag-a`, `.ag-b` and `.ag-c` each declare their
+`fill` twice, seven lines apart. `#splash-breathe` is told `display: none` in two separate groups.
+
+**A vague 87 is not a number anybody can act on, so it says which kind each one is.** **28 declare
+the SAME value twice** — dead text, two places to edit one fact. **59 declare different values**, so
+the later wins on file order alone — and **47 of those are `.mu-grid i:nth-child(N)`**, where the
+multiples of three and the multiples of five are two separate lists and every multiple of fifteen is
+in both. That is a designed overlap, and saying so needed the values rather than the property names.
+
+**Printed rather than failed**, because repairing them across 448 KB is editorial work and not a
+build error. Same split as the library's `figure` count and the practicals' blank `needs`: a number
+somebody can act on beats a silence.
+
+## `node js/check-settings.js` — the nine tabs that became files, and nothing was checking them
+
+**`brand`, `facets`, `kinds`, `laws`, `facts`, `splashes`, `links`, `campaigns` and `copy` left the
+Settings spreadsheet and are `data/settings/*.json` now.** `settingsInto_` maps them onto `DATA` and
+a file with rows WINS, so they are the source of truth for nine tabs — and **no check had ever
+opened one.**
+
+**This is `check-rows.js`'s fault one layer along, and that file exists because of it**: folding two
+tabs together left **seven reads of `r.link` on rows that call the URL `source_url`**, every
+checklist topic arriving with no link on it, and nothing throwing. The same is now available here. A
+column renamed in an export, or a read written from memory, is a value that silently arrives as
+`undefined` and then as `''` — a brand key that never resolves, a facet with no label, a campaign
+with no accent — and every one of those has a fallback, which is exactly why nobody would notice.
+
+| | |
+|---|---|
+| **fails** | a column READ that the file does not have, and a tab named in `SETTINGS_TABS` with no file beside it |
+| **prints** | a column the file HAS that nothing reads — weight shipped to every phone for nobody, which is `check-payload.js`'s "sent and never read" |
+| **prints** | the twelve files in `data/settings/` that nothing fetches. `config`, `pricing` and `venues` are deliberate: they feed `quotePerHour` **server-side**, because *a total posted by a browser is a total the client chose* |
+| **says so** | `kinds` and `laws` are `[]`, so their columns cannot be known. "I did not manage to look" printed as "I looked and it was fine" is the failure this repository keeps finding in its own checks |
+
+### It mis-attributed on its first run, and the giveaway was a zero
+
+**The first version sliced the file into nine blocks, one per `const x = extra['settings/x']`, and
+reported seven columns as missing from `copy`.** Every one belongs to CAMPAIGNS: a campaign carries
+its own words, so `settingsInto_` builds the copy index INSIDE the campaigns block, the copy binding
+opens first, and a flat slice handed the campaign's reads to the wrong tab. **Meanwhile `campaigns`
+reported reading nothing at all** — a check that finds zero reads in a block full of them has lost
+its subject, and that number is the only reason the other seven were not believed.
+
+**So it parses.** Acorn was already a dependency for `check-rows.js`, which learned this exact lesson
+— its first version reported 95 findings with 2 real ones because one binding map per FILE let a
+handler's `r` outlive the handler. **The binding is the CALL, not the line**: the tab is whatever the
+receiver of `.forEach(r => …)` resolves to, through a local `const` or the head of a chain like
+`campaigns.filter(…).map(…)`.
+
+**And `facts` carries its row in a wrapper.** It needs the index, so it maps to `{ r, i }` first and
+every read after that is `x.r.heading` — reading only `r.<col>` found nothing in that block and
+reported a live tab as mapped nowhere. Any parameter name is followed, but **only through `.r`**, so
+the `.sort((a, b) => a.order - b.order)` at the end of the same chain contributes nothing: `order`
+and `row` are fields of the mapped object, not columns of anything.
+
+**`clip` is read off `facts` on purpose and that column has never existed** — the clips live in
+`FEED_FACTS`, and `clipsNow_` falls through to the code's list when the sheet has none. That is the
+house rule stated per LIST rather than per tab, so one ordinary fact typed into the sheet cannot take
+the Reels column dark. It is the `ACCEPTED` pattern for the sixth time, one entry and one written
+reason, and it is also the door: add a `clip` column and a row wins over the code.
+
+**Proved in both directions**: renaming `value` to `val` in `brand.json` names it and exits 1.
+
+## Which columns the app has is a file now, and the reader had been unreachable since it was written
+
+**Asked as "there should be like 4-5 columns i think like it was before".** Git says there is no
+before — the tab table has held nine in every commit since the repository began, and the hour grid
+has been eleven hours by seven days in every one as well. **What the question exposed is that the
+answer was never the owner's to give.**
+
+**`applyColumns_` in `shell.js` has been complete and unreachable since it was written.** It reads
+`DATA.columns`, applies the order, takes the label and the icon from each row, **refuses to invent a
+column the build does not have** — *"a column that swipes to a blank is worse than a column that is
+not there"* — refuses to leave you with none, and moves `AT` off a screen that has just been
+switched off. Every guard is there and commented. **No backend has ever sent that key.** It sits on
+`check-payload.js`'s accepted-dead list with the note *"needs a `columns` tab"*, and the spreadsheet
+that tab would have lived in is being deleted.
+
+**That is `orderPrints` again** — access-listed, argued for at length, never once called — and this
+file records eleven more of them under the Settings migration.
+
+**So the source is a file, like the nine tabs that just left that spreadsheet.**
+`data/settings/columns.json` is fetched with them, `settingsInto_` writes `d.columns`, and the
+ordering was already right: `settingsInto_` runs in `load()` a few lines before `applyColumns_`,
+under a comment saying that one can change which screen you are on and everything painted after it
+reads `AT`.
+
+**It ships with the nine the code already has, in the order the code already puts them in, so
+nothing changes today.** What it buys is that *"the app should have four or five columns"* is a cell
+rather than a commit — which is the right shape for it, because which columns an app has is a
+judgement about the app and not a repair.
+
+**Proved in five states**, all with no JS errors: as shipped (nine, in order, `DATA.columns` nine
+rows); **four columns relabelled and reordered with five switched off — `Home · Find · Book · You`**;
+Find switched off, which lands you on Feed; an empty file; and a file holding an object instead of a
+list. The last three all fall back to the code's nine, which is the same fall-through every other
+settings file has and the reason a broken export cannot take the app down.
+
+**It is the one file in `data/settings/` that is not an export.** Every other one is a tab that
+existed, copied out verbatim; this is a tab that never did, written from the code so that a reader
+which could not be reached has somewhere to read from.
+
+## Forty-one guides asked a student to plan an experiment with nothing to go on
+
+**Asked for as "have you made the guides for all practicles? just refine them and check they are
+ok. maybe add diagrams."** Measured before anything was written, by booting the app and calling
+`practicalGuide_` on all 57: **every one opened, and eleven carried a "What is going on".**
+
+`practicalGuide_` draws that paragraph from `science` and its two scaffolding lists from `variables`
+and `log`. Those three columns arrived with the eleven home experiments and exist on nothing else —
+so every AQA required practical and every fun one handed a student the kit, the method, and then
+eight empty boxes asking them to name an independent variable, **with nothing on the card
+suggesting one**. A worksheet with the scaffolding removed.
+
+**Written from each row's own aim, outcome, steps and `maths_link`, never from its title.** A
+practical called "Osmosis" could be any of four experiments; the one in this file is potato
+cylinders in sugar solution with a percentage-change graph, and that is what the paragraph has to
+explain, because it is what the student will actually do.
+
+**THE SCIENCE IS THE MECHANISM, NOT THE ANSWER.** A paragraph saying *"the rate rises with
+concentration"* hands somebody the result of an experiment they have not run. What is written says
+WHY — more particles in the same volume, so more frequent collisions — which is the half a student
+cannot get from watching, and the half that is as true before the run as after it.
+
+**`variables` and `log` are CANDIDATES, not instructions.** The guide asks the student to name the
+independent variable; a list of things that could be changed is the prompt for that question and not
+an answer to it. Four each, so the choice is real.
+
+**The five refused experiments correctly get none of the three**, and their cards draw no Guide
+tile, so nothing anywhere invites somebody to plan an experiment that has been turned down.
+Measured: 0 of 5. `check-practicals.js` prints all three counts, so the next row added without one
+shows up as a one instead of joining 41.
+
+### Seventeen drawings, and what is deliberately not drawn is the result
+
+**A guide that lists a burette, a conical flask and a white tile has said nothing about where the
+tile goes.** *"The thermometer bulb level with the side arm"* is a sentence somebody reads twice and
+still assembles wrongly. So seventeen practicals carry a `diagram` — the same column the library's
+questions carry, inline SVG committed beside the row, taking the page's own ink so it works on both
+palettes and offline.
+
+**CLAUDE.md'S OWN RULE DECIDES WHICH SEVENTEEN**: draw only where the row's own words determine the
+picture. Here that means a SET-UP or a CONSTRUCTION — a circuit, a clamp stand, a condenser, the
+right-angled triangle behind R = d²/2h — something you build before the first reading, so the kit
+list and the first three steps fix it exactly.
+
+**AND NOT ONE OF THEM IS A RESULT.** No cooling curve, no I–V graph, no line of best fit. The
+density tower is the sharp case and it is the reason the line is worth stating: its own step 2 is
+*"predict the order of the layers from the densities alone"*, so a drawing of the finished column
+would answer the question the practical asks. Same line the `science` paragraphs are written along.
+
+**One placement, at the head of "How it runs".** Every one of the seventeen is a thing you build, so
+it belongs above the numbered steps and nowhere else; a flag saying *this one is explanatory* would
+be a second thing to keep in step with the drawing.
+
+**`W = 340` comes from `tools/svgplot.py` rather than being typed again.** `.qsheet figure svg` is
+`width: min(100%, 20rem)`, so the viewBox width IS the scale — the coins fault this file already
+records, where one drawing came out three times the size of another from one stylesheet.
+
+**`.gd` joined every one of the drawing selectors rather than getting rules of its own.** An
+apparatus drawing is the same OBJECT as a transcribed exam figure: inline SVG inside `W`, inked in
+`currentColor`, labelled with `.lbl`, `.num` and `.cap`. A second set of rules describing it is the
+`.reel .over` fault, where one object was written twice in this stylesheet and drifted.
+
+### A screenshot caught five, and one class of them is now a rule
+
+**Tenth time this file writes that a screenshot is the last word on a drawing.** All seventeen laid
+out at the width the app draws them, three rounds:
+
+| | |
+|---|---|
+| `extension is the CHANGE in length…` | centred on the clamp stand rather than the card, so it ran off the left edge |
+| `bulb level with / the side arm` | anchored `end` at x = 34, arriving as *"el with"* / *"ide arm"* |
+| `the same distance, every time` | printed across the clamp stand's own base |
+| the chromatography paper | hung 38px out through the BOTTOM of the beaker it is standing in |
+| the eureka can's spout | drawn long enough to read as one swoosh with the stream |
+
+**Three of those five are one fault: a label painted outside the `<svg>`'s own box.** `check/cards.js`
+skips everything inside an `<svg>` and is right to — the outermost `<svg>` clips to its viewport, so
+nothing in there can push the page sideways — but a word clipped away is a word the reader does not
+get, which is a different question and nobody was asking it. It asks it now, in
+`getBoundingClientRect`, **because a rect accounts for the rotation a y-axis label is written with
+and `scrollWidth` does not**: that is the `.mat-out` lesson one rule up in the same file. Proved by
+mutation: moving `lagging` to x = −6 names it at 31px and exits 1.
+
+### The guide was outside the lab entirely, and that is why it cost five
+
+**`check/cards.js` was laying out the practical CARD.** `check/ui.js` has one declared state that
+opens a guide, which is one practical of fifty-two. So the half of that split which holds the kit,
+the method, the risk assessment and now seventeen drawings was measured by nothing — **this file's
+own "a sample is not a sweep", one commit after it split the card in two.**
+
+**Through `openSheet` rather than a div of the right width**, because `#sheet-body` has its own
+padding and its own cap: a guide measured in a bare 320px column is measured in a column it is never
+in, and copying that padding here would be a second copy of a number the stylesheet owns. 57 guides,
+17 drawings, one sheet at a time, closed after each.
+
+**And two rules went into `check-practicals.js`**, because a repair to the instance and not to the
+rule is the shape this file records eight times: a refused experiment carrying a diagram fails, and
+a `diagram` cell that is not an `<svg>` laid out inside `W = 340` fails. Proved by mutation in both
+directions.
+
+## Two ways of saying who you are, and the app already had one
+
+**Reported as "remove this feature of whos writing. its confusing. just have it be that they sign in
+then can see answers."** The `workingAs` control — a `who is this?` button beside every answer box
+that opened a `window.prompt` and filed the answer key under whatever was typed.
+
+**It was a SECOND IDENTITY the app did not otherwise have**, and that is the whole fault: not a
+login, nothing protected by it, nothing sent anywhere — its own note called it *"a label on a
+drawer"*. Two ways of saying who you are is two things to keep in step, which is this repository's
+sentence about `handle`/`username`, about `MESSAGING` and about `childrenOf`. `whoIs_` is the
+signed-in person and nothing else now.
+
+**What it cost, said rather than buried.** A boy who turns up today with no row in the Ledger works
+under the signed-out key, the same as the tutor, where before a tutor could type his name at the
+kitchen table. That is the ordinary behaviour of every other surface here, and the remedy is a
+roster row and a PIN rather than a parallel mechanism.
+
+### The box said "P001's answer", which is its own part of "its confusing"
+
+**`whoIs_` answers `u:<person_id>` because an id is stable where a display name is a cell somebody
+can edit** — exactly right for a KEY and unreadable as a LABEL. The old name box printed that id
+back at whoever was working: an answer box captioned with an account number. `signedName_` is the
+first name off `USER.name`, so the caption is `Lucca's answer` and the key is still
+`ans:u:P777:q:Q0664`. **Measured in all three states**, and the name is kept rather than reduced to
+"Your answer" because on a phone passed between two students it says at a glance whose drawer the
+box is writing into — which is the one thing the deleted button was genuinely good for.
+
+### And the mark scheme was shut for the one person who reads from it
+
+**`hide = !!whoIs_()` was the test, and with the typed name gone that means "is anybody signed
+in".** So a tutor signed in as themselves got their own mark schemes behind a tap — on the surface
+they read FROM. `answerBlock_`'s own paragraph says who the open answer is for and it is not
+"somebody signed out", it is the tutor.
+
+**`isTutorRole()` is the app's own staff test** — tutor or admin, already used by the widget roster
+for the same kind of question — so staff get the paper as printed and everybody else gets the
+reveal, which opens itself the moment Check says they have it. Measured through the real app:
+
+| | mark scheme | answer key | caption |
+|---|---|---|---|
+| signed out | one tap | `ans:q:Q0664` | Your answer |
+| a student signed in | one tap | `ans:u:P777:q:Q0664` | Lucca's answer |
+| **the tutor signed in** | **open** | `ans:u:P001:q:Q0664` | Alex's answer |
+
+**The signed-out row is the one behaviour change beyond what was asked**: it was open and is now one
+tap. A student who cannot sign in yet is the case the reveal exists for, and with the name box gone
+that was the only route to it; an answer behind a tap is never harmful where an answer printed under
+the question can be. One rule, and "not signed in" behaves like "not staff" as it does everywhere
+else in this app.
+
+## "hours of sunshine" was two pixels tall, and the rule was looking the other way
+
+**Found on a screenshot taken to answer "will Paper 1 comprehensively work".** May 2017 Higher Q1
+is a scatter graph of temperature against sunshine, and the card drew the top two pixels of its
+x-axis caption. The label sits at `y = 180` inside `viewBox="0 0 340 176"`, so four units of it
+were painted nowhere — and an axis caption is not decoration: a scatter graph whose axes are
+unnamed is two columns of numbers.
+
+**Six diagrams on four papers were doing it**, measured across all 68 in the library: two below
+their box (the same graph on the Higher and the Foundation paper) and four above it, worst at 16
+units on an AQA chemistry figure whose y-axis label was simply gone.
+
+**THE RULE ASKED ABOUT TWO EDGES AND THERE ARE FOUR.** `check/cards.js` gained a clipped-label rule
+with the practical drawings, and both faults it was written for ran off the SIDE — *"bulb level
+with the side arm"* arriving as *"el with"*. So it compared `left` and `right`, and a caption
+below the box was invisible to it. Same fault, other axis, which is the shape this file records
+every time a rule is written from the instance that prompted it.
+
+**And the library's own figures were outside it entirely.** That rule ran over the practical
+guides' seventeen drawings and not over the 89 question cards that carry one — the figures a
+student is actually looking at while they answer. Both passes share one `outside()` now, four
+edges, and the run prints how many cards carry a drawing so the number cannot quietly go to zero.
+
+**The window moves, never the drawing.** A label below the box grows the viewBox height; one above
+it makes `min-y` negative and grows the height by the same amount. Every coordinate is untouched
+and `.qsheet figure svg` still lays out at `min(100%, 20rem)`, so the picture is not rescaled — it
+is given room it was already using. Recomputing the coordinates would be redrawing six figures to
+fix a frame. **Proved by mutation**: putting one viewBox back names all four parts of Q1 at 5px.
+
+**And it found two drawings that are not 340 wide** — `RS…-503` Q5 at 300 and Q6 at 290. The
+viewBox width IS the scale, so those two render about a sixth larger than every other drawing in
+the library; that is the coins fault, and it is printed rather than rewritten, because widening a
+viewBox without moving its coordinates pushes the drawing into the left of its own frame. A redraw
+and a judgement, not a frame fix.
+
+### What a Paper 1 actually offers, measured through the app rather than off the data
+
+**Asked as "i hope the maths papers they will do (which will be a paper 1) will work. and i mean
+comprehensivley work."** It depends entirely on which paper, and the spread is wide enough that the
+question has no single answer:
+
+| Paper 1 | Qs | answer box | Check | drawn | pen | picture named, never drawn |
+|---|---|---|---|---|---|---|
+| **May 2017 Higher** `P-1MA1-1705-1H` | 31 | 31 | 22 | 15 | 1 | **0** |
+| **May 2017 Foundation** `RS…-481` | 41 | 41 | 36 | 19 | 4 | 1 |
+| June 2024 Higher `RS…-416` | 33 | 33 | 16 | **0** | 0 | **13** |
+| June 2024 Foundation `RS…-415` | 41 | 41 | 30 | **0** | 0 | **15** |
+
+**Ten of the thirteen transcribed maths Paper 1s have no drawings at all.** The 2017 pair are the
+two that were drawn, and they are the two to teach from. This is the `figure` backlog this file
+already counts — 485 questions across the library — seen from the other end: not "how many rows
+are outstanding" but "can somebody sit this paper tonight".
+
+**The pen is rarer still and for the reason already recorded**: `padSource_` needs a diagram, so a
+draw-on question with no picture is an answer box. 1 of 31 on the Higher paper, 4 of 41 on the
+Foundation one, 0 on everything else.
+
+## Carry on was built and then removed, and the removal is the entry
+
+**Asked for as "i want it to be the same paper we did like 2 weeks ago for each"**, and the answer
+built for it was a `<name>, carry on` block over the funnel's first question: the papers this person
+had answers saved against, a count beside each, a tap setting the `paperId` chip. Derived from the
+answer keys, which really are the only record of which paper anybody worked through — nothing is
+posted anywhere, so `ans:u:<person_id>:q:<row_id>` in `localStorage` is it.
+
+**And the owner's answer was that the question had already been answered**: *"no i dont want lucca
+carry on bullshit. im just saying if they answer something, it will be answered next time they come
+on."* That is a statement about PERSISTENCE, and persistence is `ansKey_` and `ansRead_` — an answer
+typed into a box is under the signed-in person and comes back in that box on the next visit, on
+every paper, with nothing on any screen to press.
+
+**So the feature was a second route to a place the funnel already reaches** — measured at 8 taps for
+May 2017 Higher Paper 1 and 9 for the Foundation one, both landing on exactly that paper in its own
+order — **on the one screen whose own note warns about offering to throw away what somebody is
+part-way through.** Removed whole: `resumeBlock_`, `resumeList_`, `resumeIndex_`, `RESUME_MAX`,
+`RESUME_ROWS`, `on('resume-paper')`, two CSS rules and the declared state that pressed it.
+
+**What survives it is worth naming, because it is not the same work.** The `showOf` hook and
+`paperLabels_` below came out of the same afternoon and stay: they are what stops twenty papers
+sharing six buttons, and they are the funnel's own Paper question rather than a door beside it. And
+the measurement stands — the answer keys ARE the record of which paper somebody is part-way through,
+and a surface that ever needs it reads them rather than growing a column.
+
+**`pad-clear` went off `ACCEPTED_QUIET` with the state that reached it.** It was correctly quiet —
+clearing a pad nobody has drawn on writes an empty list over an empty list — and with the state gone
+nothing presses it, so the entry would have been a written reason with nothing behind it. That is
+the shape every list in this file exists to prevent, pointed at itself.
+
+### The Paper question was putting two papers on one button
+
+**Its own note has always stated the rule** — *"the id decides WHO answers and the name is what is
+shown"* — **and its `of` returned the name.** So the spelling fold, which exists to make `Alevel`
+and `A-Level` one button, merged papers: `Paper 1 (Non-Calculator) — May 2017` is Edexcel Higher and
+`Paper 1 (Non-calculator) — May 2017` is the Foundation paper of the same sitting, one letter's case
+apart. **Six names carried by twenty papers**, the six AQA science `Paper 1 — June 2024` rows
+putting three subjects and two tiers on one answer, and 248 answers offered for 262 papers.
+
+**`showOf` is the fix and it is one line per facet**: the value is the id, the label is what the
+facet says to draw, and `shortLabels_` shortens the label rather than the value. Narrowed to
+Maths · Higher · Summer 2017 the three answers still read `Paper 1`, `Paper 2`, `Paper 3`.
+`paperLabels_` disambiguates only where a name is shared and by what actually differs — subject
+first, then tier.
+
+**Built from `LIBRARY_ROWS`, the file, not the mapped list.** The first version read
+`DATA.questions`, which carries only 170 of the 262 papers' document rows and renames `paper_id` to
+`paper` on the way through, so every button drew a raw id. Caught by looking at the rendered answers
+rather than at the count, which was already right.
+
+**And the chip did not follow the value.** `f.value` had been both the match and the label until
+this, so the chip read `PAPER P-1MA1-1705-1H` — an account number where a paper's name had been.
+Caught on a screenshot of the tap that sets it. Same shape as `resource_type` sitting in `VOCAB`
+after the rename: the rule moved and one of its readers did not.
+
+**`check-funnel.js` gains the rule, and it is on the ITEMS rather than the spelling**: press an
+answer, and every question left has to come from one paper. Test 2 could not see this and its own
+note says why — it looks for two values that normalise to one key, and after the fold there is only
+one value left. Proved by mutation: the old `of` names all six merged answers.
+
+### The lesson that outlived it: a door drawn from `localStorage` is a door nothing presses
+
+**`check/press.js` passed without ever reaching `resume-paper`.** The block was drawn from
+`localStorage`, so on a fresh browser there was nothing to draw — and an action that is on no screen
+is one that check cannot report. **That is the hole the STATES list exists to close**, the same one
+the booking receipt and the message thread were in, and it is why the state was written before the
+feature was trusted: 89 actions pressed became 100.
+
+**The state is gone with the feature and the rule is not.** Anything whose door only appears once a
+device carries state — an answer, a basket, a saved thing — needs a declared state that seeds it
+through the app's own writer, or the press pass reports a clean sweep of a control it never saw.
+`stuff · carry on` seeded through `ansKey_` rather than spelling the key out in the harness, and
+`leave` removed what it wrote, because states run in order down one page.
+
+## The bottom of a band was marked right and the top of the same band was marked wrong
+
+**Found by asking whether the two papers somebody is sitting tonight actually mark.** Q13 of the
+May 2017 Foundation Paper 1 is *"write down an estimate for the real height of the man"* and its
+scheme takes **1.5 to 2 metres** — there is no single right answer to it, and `accept` says so in
+the scheme's own words.
+
+**`markBare_` strips a trailing word from the expected side, and `to 2 metres` IS a trailing word.**
+So `1.5 to 2 metres` quietly became `1.5`, and measured before anything was changed:
+
+| typed | marked |
+|---|---|
+| `1.5` | **Correct** |
+| `1.75` | Not yet |
+| `2` | **Not yet** |
+
+**Both ends of one accepted band, from one cell, disagreeing.** And the bottom passing is what made
+it invisible: a rule that failed everything would have been reported the first time anybody used
+it, where one that says yes to the first number in the cell reads as marking.
+
+**Three rows in the whole library carry a band** — Q13(a), Q13(b) and Q18(a) of that same paper —
+and all three are on the paper a student is working through this evening. `markRange_` is the rule
+rather than three repaired cells, which is this file's own sentence about `cost: 0` and `paper:
+true` for the ninth time.
+
+**Only `to` and the two long dashes.** A plain hyphen between two numbers is also how a person
+writes a subtraction and how this library writes an age range, and a rule that cannot tell them
+apart marks a WRONG answer right — the one failure worse than the one being fixed. **Compared as
+whole numbers**, for the reason `markFrac_` gives: the ends of a band are decimals and a float
+comparison at a boundary is the one place this must not be approximately right. Both ends inclusive,
+because a scheme printing "1.5 to 2" accepts 1.5 and accepts 2.
+
+**Proved in the app as well as in the check**: typing 1.75 and 2 into Q13(a) as a signed-in student
+both come back *Correct*, 0.9 comes back *Not yet*. `check-marking.js` is 46 cases now, and the
+mutation names five of them.
+
+## Q13 was a scale drawing with no scale, and part (b) had nothing at all
+
+**The last picture missing from the May 2017 Foundation Paper 1, and the only one on it the row's
+own words determine.** Two figures on one ground line, drawn to one scale, the tree a little over
+five times the man: there is exactly one drawing that answers that, which is the line this file
+already draws between a drawing instruction and a summary of fourteen plotted points.
+
+**The transcription had written the ratio into the prose, because the picture was not there.** That
+is part (b)'s whole method handed over — *"what a figure shows is not what its answer is"*, which
+this file records about the AQA Biology pie chart. The picture carries the ratio now and the prose
+does not.
+
+**And it moved to a question-scoped preamble, because BOTH parts hang from it.** Part (b) read only
+*"Find an estimate for the real height, in metres, of the tree"* — no tree, no man, no scale. That
+is the Venn diagram of Q23 exactly and the answer is the same one.
+
+**The ratio is asserted against the mark scheme rather than eyeballed.** The scheme takes 1.5–2 m
+for the man and 7.5–12 m for the tree, so the band it will accept is a ratio of 5 to 6 — and the
+drawing has to be one where BOTH ends of the man band land inside the tree band, or a student who
+measures our picture correctly is marked wrong. At 5.2 that is 7.8 m and 10.4 m. Measured off the
+drawn pixel heights in `tools/draw-1f-1705-q13.py`, not typed beside them.
+
+**Measured after: both papers have no gaps left.** `P-1MA1-1705-1H` (May 2017 Higher, 31 questions)
+and `RS1786302107764-481` (May 2017 Foundation, 41 questions) each report **0 questions whose
+picture never came across and 0 questions with no answer**, and the library-wide count went 722 to
+721. **Eleventh time this file writes that a screenshot is the last word on a drawing**: the first
+version's man was 26px against a 135px tree and read as a smudge rather than a person.

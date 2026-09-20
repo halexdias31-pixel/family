@@ -171,6 +171,32 @@ function measure(arg) {
     return out;
 }
 
+/* ---------- A LABEL PAINTED OUTSIDE ITS OWN DRAWING --------------------------------------------
+   `measure` ABOVE SKIPS EVERYTHING INSIDE AN `<svg>` and is right to: the outermost one clips to
+   its viewport, so nothing in there can push the page sideways. This asks the other question about
+   the same element -- is any of this text painted somewhere the reader will never see it.
+
+   RECTANGLES, NOT COORDINATES, because a y-axis label is written once and rotated into place and
+   its LAYOUT box is nowhere near its glyphs. That is CLAUDE.md's `.mat-out` entry, which cost two
+   wrong fixes the first time it was ignored.
+
+   FOUR EDGES. The first version asked about left and right only, because both faults it was
+   written for ran off the side -- and six library diagrams were quietly painting an axis caption
+   above or below their box, including the scatter graph on the paper somebody was about to teach
+   from. It runs inside the page, so it takes plain arguments and closes over nothing. */
+function outside(svg, row) {
+  const box = svg.getBoundingClientRect();
+  const out = [];
+  svg.querySelectorAll('text').forEach(t => {
+    const r = t.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    const px = Math.round(Math.max(box.left - r.left, r.right - box.right,
+                                   box.top - r.top, r.bottom - box.bottom));
+    if (px > 1) out.push({ row: row, px: px, sel: (t.textContent || '').trim().slice(0, 34) });
+  });
+  return out;
+}
+
 (async () => {
   const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
   const parts = rows.filter(r => r && r.kind === 'question');
@@ -205,6 +231,8 @@ function measure(arg) {
      an ordinary page. */
   const BATCH = 500;
   const bad = [];
+  const outOfBox = [];
+  let withDiag = 0;
   for (let i = 0; i < parts.length; i += BATCH) {
     const chunk = parts.slice(i, i + BATCH);
     await page.setContent(
@@ -216,6 +244,29 @@ function measure(arg) {
     await page.waitForTimeout(120);
     const found = await page.evaluate(measure, { slack: SLACK, sel: '.qcard' });
     bad.push(...found);
+    /* ---------- AND THE 68 DRAWINGS IN THE LIBRARY, WHICH NOTHING HAD EVER MEASURED ------------
+       THE GUIDE PASS BELOW ASKED THIS OF THE PRACTICALS' SEVENTEEN and this pass did not ask it at
+       all, so the library's own figures -- the ones a student is looking at while they answer --
+       were the half nobody checked. Six of them were clipping a caption. */
+    const drawn = await page.evaluate(arg => {
+      /* HANDED IN AS SOURCE rather than injected at navigation, because `setContent` replaces the
+         document under this page on every batch and an init script's timing against that is one
+         more thing to be wrong about. The prac pass below injects once because it navigates once. */
+      const outside = new Function('return ' + arg.src)();
+      const out = []; let n = 0;
+      document.querySelectorAll(arg.sel).forEach(card => {
+        let any = false;
+        card.querySelectorAll('svg').forEach(svg => {
+          if (svg.ownerSVGElement) return;          /* the outermost one is the one that clips */
+          any = true;
+          out.push(...outside(svg, card.dataset.row || '?'));
+        });
+        if (any) n++;
+      });
+      return { out: out, n: n };
+    }, { sel: '.qcard', src: outside.toString() });
+    outOfBox.push(...drawn.out);
+    withDiag += drawn.n;
   }
 
   /* ---------- AND EVERY PRACTICAL CARD, WHICH NOTHING HAD EVER LAID OUT -------------------------
@@ -290,9 +341,61 @@ function measure(arg) {
     });
     return { n: items.length, cap: Math.round(cap), tall };
   }, WIDTH);
+  /* ---------- AND EVERY GUIDE, THROUGH THE SHEET THE APP OPENS IT IN ----------------------------
+     THE CARD IS THE SEARCH RESULT AND THE GUIDE IS THE DOCUMENT, and the split above moved the kit,
+     the method, the safety line and now seventeen apparatus drawings out of one and into the other.
+     Nothing was measuring the half that moved: `check/ui.js` has ONE declared state that opens a
+     guide, which is one practical of fifty-two, and this file was laying out the card.
+
+     THROUGH `openSheet` RATHER THAN A DIV OF THE RIGHT WIDTH. `#sheet-body` has its own padding and
+     its own cap, so a guide measured in a bare 320px column is measured in a column it is never in
+     -- and guessing that padding here would be a second copy of a number the stylesheet already
+     owns. The app's own door, one at a time, closed after each.
+
+     A DRAWING GETS A SECOND QUESTION IN PIXELS A VIEWER CAN SEE. `measure` skips everything inside
+     an `<svg>`, correctly: the outermost `<svg>` clips to its viewport, so nothing in there can push
+     the page sideways. But a label painted outside that viewport is not harmless -- it is a word
+     the reader simply does not get, and three of the seventeen shipped that way before a screenshot
+     caught them ("bulb level with the side arm" arriving as "el with"). `getBoundingClientRect` is
+     what answers it, because it accounts for the rotation a y-axis label is written with and
+     `scrollWidth` does not -- the `.mat-out` lesson this file already records one rule up.
+
+     ALL FOUR EDGES, AND IT ASKED ABOUT TWO. The first version compared `left` and `right` only,
+     because both faults it was written for ran off the SIDE. A screenshot of May 2017 Higher Q1
+     then showed a scatter graph captioned with the top two pixels of "hours of sunshine": the
+     label sits at y = 180 in a box 176 tall, and the rule was looking the other way. Six rows in
+     the library were painting a label above or below their own box, on four papers. Same fault,
+     other axis -- which is why the rule is the four edges rather than the two that had bitten. */
+  await pracPage.evaluate('window.__measure = ' + measure.toString());
+  await pracPage.evaluate('window.__outside = ' + outside.toString());
+  const guides = await pracPage.evaluate(arg => {
+    if (typeof practicalGuide_ !== 'function' || typeof openSheet !== 'function') return -1;
+    const items = stuffItems().filter(x => x.kind === 'practical');
+    const wide = [], clipped = [];
+    let drawings = 0;
+    items.forEach(x => {
+      openSheet(x.name, practicalGuide_(x), null, null);
+      const gd = document.querySelector('#sheet-body .gd');
+      if (!gd) return;
+      gd.dataset.row = x.key;
+      window.__measure({ slack: arg.slack, sel: '#sheet-body .gd' })
+        .forEach(f => wide.push(f));
+      gd.querySelectorAll('figure svg').forEach(svg => {
+        drawings++;
+        clipped.push(...window.__outside(svg, x.key));
+      });
+      if (typeof closeSheet === 'function') closeSheet();
+    });
+    return { n: items.length, drawings, wide, clipped };
+  }, { slack: SLACK });
+
   /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO AND FAIL -- "I did not check" is not the same
      answer as "I checked and it was fine", which is the fault this repository has recorded five
      ways and the reason `check-booking.js` read as a pass for months. */
+  if (guides === -1 || (guides !== -1 && !guides.n)) {
+    console.error('\nthe app did not open one practical guide -- not a pass');
+    process.exit(1);
+  }
   if (practicals === -1) {
     console.error('\nthe app did not boot, so not one practical card was laid out -- not a pass');
     process.exit(1);
@@ -332,6 +435,19 @@ function measure(arg) {
             + `(${withPre} of them under a preamble), and ${practicals.n} practical cards`);
   console.log(`the pane caps at ${practicals.cap}px on a ${WIDTH}x${PHONE_H} phone; `
             + `${practicals.tall.length} practical card(s) are taller than that`);
+  console.log(`${guides.n} practical guide(s) opened in the app's own sheet, `
+            + `carrying ${guides.drawings} apparatus drawing(s)`);
+
+  const painted = outOfBox.concat(guides.clipped);
+  console.log(`${withDiag} question card(s) carry a drawing, and every label in every drawing `
+            + `was measured against its own box`);
+
+  if (painted.length) {
+    console.log('\nPAINTED OUTSIDE THE DRAWING  (' + painted.length + ')');
+    painted.sort((x, y) => y.px - x.px).slice(0, 12).forEach(c =>
+      console.log('  ' + c.row + ' — "' + c.sel + '" is ' + c.px + 'px past the svg\'s own box, '
+        + 'so the reader never sees that part of it'));
+  }
 
   if (practicals.tall.length) {
     console.log('\nBELOW THE FOLD  (' + practicals.tall.length + ')');
@@ -343,9 +459,11 @@ function measure(arg) {
     }
   }
 
-  if (!bad.length && !practicals.tall.length) {
-    console.log('\nOK — every question and every practical fits the narrowest phone, and every\n'
-              + '     practical card fits the pane it is drawn in.');
+  bad.push(...guides.wide);
+  if (!bad.length && !practicals.tall.length && !painted.length) {
+    console.log('\nOK — every question, every practical and every guide fits the narrowest phone,\n'
+              + '     every practical card fits the pane it is drawn in, and every label in every\n'
+              + '     drawing is inside the drawing.');
     process.exit(0);
   }
 
@@ -353,7 +471,7 @@ function measure(arg) {
      rows with one cause is one thing to fix and fifty lines is a wall nobody reads. */
   const by = {};
   bad.forEach(b => { (by[b.sel] = by[b.sel] || []).push(b); });
-  console.log('\nCARDS THAT DO NOT FIT:');
+  if (bad.length) console.log('\nCARDS THAT DO NOT FIT:');
   Object.keys(by).sort((a, b) => by[b].length - by[a].length).forEach(sel => {
     const list = by[sel].sort((a, b) => b.px - a.px);
     console.log(`  ${sel} — ${list.length} row(s), up to ${list[0].px}px past the column`);

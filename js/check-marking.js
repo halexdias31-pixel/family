@@ -38,7 +38,8 @@ const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
    the code -- and this file is checking the one thing in the app that must not be approximately
    right. `markBare_` is a `const` arrow with no block, so a statement that ends at its semicolon is
    the other shape this has to handle. */
-const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markAnswer_'];
+const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markRange_',
+               'markAnswer_'];
 
 function cut(name) {
   let i = src.indexOf('function ' + name + '(');
@@ -113,6 +114,23 @@ const CASES = [
   ['3.42 × 10^7', '3.42 × 10^7', true, 'standard form'],
   /* THE MINUS SIGN THE PAPER PRINTS IS NOT THE ONE ON THE KEYBOARD */
   ['-3', '−3', true, 'U+2212 against the hyphen'],
+  /* A BAND THE SCHEME PRINTS TAKES EVERY NUMBER IN IT. Q13 of the May 2017 Foundation Paper 1 is
+     `1.5 to 2 metres` and there is no single right answer to it — and before `markRange_` the
+     BOTTOM of the band passed while the TOP failed, from the same cell, which is worse than
+     failing both: it looks like marking. */
+  ['1.5', '1.5 to 2 metres', true, 'the bottom of the band — right before this rule and after it'],
+  ['2', '1.5 to 2 metres', true, 'the top of the same band, which used to be marked wrong'],
+  ['1.75', '1.5 to 2 metres', true, 'and the middle, which is what a person actually writes'],
+  ['1 3/4', '1.5 to 2 metres', true, 'the same value as a mixed number'],
+  ['1.4', '1.5 to 2 metres', false, 'just under is still under'],
+  ['2.1', '1.5 to 2 metres', false, 'and just over is over'],
+  ['9', '7.5 to 12 metres', true, 'the tree, Q13(b) of the same paper'],
+  ['7', '6 to 8 boxes', true, 'and Q18(a), where the band is whole boxes'],
+  ['5', '6 to 8 boxes', false, 'five boxes is not six'],
+  /* A HYPHEN BETWEEN TWO NUMBERS IS NOT A BAND, and must not become one: it is also how a person
+     writes a subtraction and how this library writes an age range. */
+  ['9', '7-11', false, 'a hyphen is not `to`'],
+  ['banana', '1.5 to 2 metres', false, 'and a word is in no band'],
   /* NOTHING TYPED IS NOT A WRONG ANSWER */
   ['', '7', null, 'an empty box is not a mistake'],
   ['banana', '7', false, 'and a word is not a number'],
