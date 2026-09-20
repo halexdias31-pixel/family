@@ -156,6 +156,14 @@ const SUITE = [
      a question fed by a literal, a sitting spelled three ways, and one word answering two
      questions with different result sets. This runs the real funnel over the real library and
      asks the arithmetic. */
+  /* ---------- AND THE NINE TABS THAT BECAME FILES -------------------------------------------------
+     `brand`, `facets`, `kinds`, `laws`, `facts`, `splashes`, `links`, `campaigns` and `copy` left
+     the Settings spreadsheet and are `data/settings/*.json` now, which makes them the source of
+     truth. Nothing checked that the columns `settingsInto_` reads are the columns those files have
+     — and that is the fault `check-rows.js` was written for, one layer along: folding two tabs
+     together once left SEVEN reads of `r.link` on rows that call the URL `source_url`, every
+     checklist topic arriving with no link on it, and nothing throwing. */
+  { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
