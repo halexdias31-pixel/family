@@ -3489,7 +3489,7 @@ button.text-drop { color: var(--bad); }
    drag for its own reasons. Written in both places on purpose — the stylesheet decides whether the
    browser hands the movement over, the script decides what to do with it once it has, and neither
    can do the other's half. */
-textarea, select, [data-noswipe],
+select, [data-noswipe],
 /* THE FEW BOXES THAT STILL SCROLL, and every one of them is a thing you are IN rather than a card
    you are swiping past: a notepad you type in, a docket you tick off, a thread you read. Losing a
    swipe to one of those is not a fault — it is what you reached for.
@@ -3497,7 +3497,31 @@ textarea, select, [data-noswipe],
    open there is no grid behind it to compete with. `axisFree` refuses every drag then. */
 /* `.widget-squeeze` joins them for the same reason: it is a list you work down rather than a card
    you swipe past. See the block by `.card.is-widget` for the whole argument. */
-.msg-body, #docket-body, #notepad, .feed-text, textarea, .widget-squeeze { touch-action: pan-y; }
+.msg-body, #docket-body, .feed-text, .widget-squeeze { touch-action: pan-y; }
+
+/* ---------- A TEXTAREA IS NOT A DIV, AND `touch-action` IS THE ONLY THING THAT SETTLES IT --------
+   MEASURED WITH REAL TOUCH EVENTS, counting what actually reaches the page. A DIV with `pan-y` and
+   nothing to scroll hands the gesture straight back — `#docket-body` at 28/28 turns the page on a
+   swipe up, exactly as a card does. A TEXTAREA never does, at any value the ancestors carry,
+   because a drag inside a text control is a SELECTION: the browser sends one `pointermove` and
+   then `pointercancel`, and the app has nothing left to steer with. Measured on `.cmt-text`:
+   `down 1, move 1, cancel 1`, with `.pane` and `#screen` both saying `none` over it. An ancestor
+   cannot fix this; only the element can.
+
+   WHICH IS WHY `none` RATHER THAN LEAVING IT OUT. `auto` loses BOTH axes to the selection, `pan-y`
+   loses the vertical to a pan that often has nothing to pan, and `none` hands the app everything —
+   which is what every card in this app already does. The blanket `pan-y` that used to be here meant
+   you could land on the notepad, the comment box, the message composer or the answer box on a
+   question card and not be able to swipe off it in either direction; the tab bar was the only way
+   out, and that is the "navigating on widgets" hiccup this was found from.
+
+   WHAT IT COSTS, written here rather than discovered: you cannot drag a long answer up and down
+   inside its own box. These are two rows tall, typed into rather than read, and the caret scrolls
+   them as you type. The one textarea that is genuinely a thing you are IN is the notepad, and it
+   is not named here at all — `padReach_` in find.js sets it from its own measured overflow, because
+   whether it can scroll is a fact about what somebody has typed and a stylesheet cannot ask. One
+   writer, so there is no cascade to lose. */
+textarea { touch-action: none; }
 
 /* The map is dragged and pinched in both directions by its own code, so it wants the lot. */
 .map, .map-svg { touch-action: none; }

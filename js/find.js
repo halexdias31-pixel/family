@@ -6322,11 +6322,33 @@ document.addEventListener('keydown', e => {
    the whole time and nothing on this side has ever called it — so the caption was a promise the
    app could not keep, which is worse than no caption.
 --------------------------------------------------------------------------------------------- */
+/* WHETHER THIS BOX MAY KEEP A SWIPE IS A FACT ABOUT WHAT IS IN IT, AND ONLY THE APP CAN ASK.
+
+   A `pan-y` textarea swallows a vertical drag whether or not it has anything to scroll -- measured
+   with real touch events, an empty notepad ate the swipe and the page did not turn, while
+   `#docket-body`, a DIV with the same rule and the same nothing to scroll, handed it straight back.
+   So the stylesheet cannot own this one: `pan-y` is right for a notepad somebody has written a page
+   into and wrong for the empty one they have just swiped onto.
+
+   SIX PIXELS, THE SAME FLOOR `axisFree` USES, and for the reason written there: `scrollHeight` and
+   `clientHeight` are whole pixels off a layout in fractions, so a box that fits exactly reports one
+   or two pixels of overflow routinely. Two places asking one question have to ask it the same way.
+
+   CALLED WHERE THE ANSWER CAN CHANGE -- when the widget is drawn, and on every keystroke, which is
+   already where the save is booked. */
+function padReach_(pad) {
+  if (!pad) return;
+  try {
+    pad.style.touchAction = pad.scrollHeight > pad.clientHeight + 6 ? 'pan-y' : 'none';
+  } catch (e) {}
+}
+
 function initPad() {
   const pad = $('notepad');
   if (!pad) return;
   pad.value = (USER && USER.notepad) || '';
   pad.disabled = !USER;
+  padReach_(pad);
   const said = $('pad-said');
   if (said) said.textContent = USER ? 'Saves as you type.' : 'Sign in to keep notes.';
 }
@@ -6334,6 +6356,7 @@ function initPad() {
 let padTimer = null;
 document.addEventListener('input', e => {
   if (e.target.id !== 'notepad' || !USER) return;
+  padReach_(e.target);
   USER.notepad = e.target.value;
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
   clearTimeout(padTimer);
