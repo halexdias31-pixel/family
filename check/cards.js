@@ -405,6 +405,55 @@ function outside(svg, row) {
     process.exit(1);
   }
   bad.push(...await pracPage.evaluate(measure, { slack: SLACK, sel: '.card.prac' }));
+
+  /* ---------- AND EVERY PRINTED QUIZ, ON THE SHEET IT ACTUALLY PRINTS ON --------------------------
+     A PRINTED QUIZ IS A DIFFERENT DOCUMENT FROM THE SCREEN ONE and nothing had ever laid one out.
+     `check/ui.js` measures screens, this file measured cards and guides, and `quizPaper_` is drawn
+     into `document.body` for the length of a print dialogue and taken away again -- so it is on no
+     screen, in no sheet, and in no state any instrument here declares.
+
+     TWO QUESTIONS, AND BOTH HAD ALREADY FAILED ONCE when this was written.
+
+     DOES THE SHEET FIT ITS PAGE. At 18mm of padding the two longest quizzes came to 1145px against
+     A4's 1123: the last question moved to a second sheet carrying one line, and `break-before: page`
+     then put the answer key on page THREE. Five questions on three sheets of paper is not something
+     a tutor prints twice, and nothing about the output is WRONG -- which is exactly why no other
+     rule here could have caught it.
+
+     AND IS THE ANSWER ANYWHERE ON PAGE ONE. The whole reason there are two sheets is that a tutor
+     hands over the first and keeps the second, so a `why` printed on the quiz is the feature
+     failing silently in the one direction that matters. Structurally it cannot happen today; the
+     rule is here so that a future edit to `quizPaper_` cannot make it happen quietly.
+
+     MEASURED UNDER PRINT MEDIA, because every rule that gives those sheets their size lives inside
+     `@media print` -- on screen `.qz-paper` is `display: none` and every box is zero. It is the
+     last thing this page does, so nothing measured above is measured in the wrong medium. */
+  await pracPage.emulateMedia({ media: 'print' });
+  const papers = await pracPage.evaluate(() => {
+    if (typeof quizPaper_ !== 'function' || typeof stuffItems !== 'function') return -1;
+    const A4 = 297 / 25.4 * 96;                       /* 1122.5px, which is what 297mm is at 96dpi */
+    const items = stuffItems().filter(x => x.kind === 'quiz');
+    const over = [], leak = [];
+    document.body.classList.add('printing-quiz');
+    items.forEach(x => {
+      const d = document.createElement('div');
+      d.innerHTML = quizPaper_(x);
+      const paper = d.firstElementChild;
+      document.body.appendChild(paper);
+      const sheets = [].slice.call(paper.querySelectorAll('.qz-sheet'));
+      sheets.forEach((el, i) => {
+        const h = el.getBoundingClientRect().height;
+        if (h > A4 + 1) over.push({ row: x.row.id + (i ? ' — the answers' : ''),
+                                    px: Math.round(h - A4) });
+      });
+      const front = sheets.length ? sheets[0].textContent : '';
+      x.row.qs.forEach(q => { if (q.why && front.indexOf(q.why) >= 0) leak.push(x.row.id + ' q' + q.n); });
+      paper.remove();
+    });
+    document.body.classList.remove('printing-quiz');
+    return { n: items.length, over, leak };
+  });
+  await pracPage.emulateMedia({ media: 'screen' });
   await pracPage.close();
 
   if (SHOTS && bad.length) {
@@ -437,6 +486,12 @@ function outside(svg, row) {
             + `${practicals.tall.length} practical card(s) are taller than that`);
   console.log(`${guides.n} practical guide(s) opened in the app's own sheet, `
             + `carrying ${guides.drawings} apparatus drawing(s)`);
+  if (papers === -1 || !papers.n) {
+    console.error('\nthe app laid out no printed quiz at all -- not a pass');
+    process.exit(1);
+  }
+  console.log(`${papers.n} quiz/quizzes laid out as A4, ${papers.n * 2} sheet(s), `
+            + `${papers.over.length} past the page and ${papers.leak.length} with an answer on the quiz`);
 
   const painted = outOfBox.concat(guides.clipped);
   console.log(`${withDiag} question card(s) carry a drawing, and every label in every drawing `
@@ -447,6 +502,21 @@ function outside(svg, row) {
     painted.sort((x, y) => y.px - x.px).slice(0, 12).forEach(c =>
       console.log('  ' + c.row + ' — "' + c.sel + '" is ' + c.px + 'px past the svg\'s own box, '
         + 'so the reader never sees that part of it'));
+  }
+
+  if (papers.over.length) {
+    console.log('\nPAST THE PAGE  (' + papers.over.length + ')');
+    papers.over.sort((a, b) => b.px - a.px).slice(0, 10).forEach(o => console.log('  ' + o.row
+      + ' — ' + o.px + 'px past A4, so it spills onto a sheet of its own and pushes the answer key '
+      + 'onto a third'));
+    if (papers.over.length > 10) console.log('  … and ' + (papers.over.length - 10) + ' more');
+  }
+
+  if (papers.leak.length) {
+    console.log('\nAN ANSWER ON THE QUIZ ITSELF  (' + papers.leak.length + ')');
+    papers.leak.slice(0, 10).forEach(l => console.log('  ' + l + ' — its explanation is printed on '
+      + 'the sheet the student writes on, which is the whole reason there are two sheets'));
+    if (papers.leak.length > 10) console.log('  … and ' + (papers.leak.length - 10) + ' more');
   }
 
   if (practicals.tall.length) {
@@ -460,10 +530,12 @@ function outside(svg, row) {
   }
 
   bad.push(...guides.wide);
-  if (!bad.length && !practicals.tall.length && !painted.length) {
+  if (!bad.length && !practicals.tall.length && !painted.length
+      && !papers.over.length && !papers.leak.length) {
     console.log('\nOK — every question, every practical and every guide fits the narrowest phone,\n'
-              + '     every practical card fits the pane it is drawn in, and every label in every\n'
-              + '     drawing is inside the drawing.');
+              + '     every practical card fits the pane it is drawn in, every label in every\n'
+              + '     drawing is inside the drawing, and every printed quiz fits one side of A4\n'
+              + '     with its answers on the other sheet.');
     process.exit(0);
   }
 

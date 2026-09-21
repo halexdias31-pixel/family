@@ -2493,10 +2493,15 @@ function quizCard_(x) {
           actually tells two of them apart is the topic, the level chip and how far through you are,
           and only the third of those is ever worth a line. */''}
     ${been ? `<p class="quiz-say"><b>${esc(been)}</b> so far.</p>` : ''}
+    ${/* TWO TILES, BECAUSE THEY ARE TWO THINGS. `Start` is for the person answering it and `Print`
+          is for the tutor who wants it on paper before the session — and a tutor should not have to
+          open a quiz to get at its worksheet. A THING has tiles; one renderer, one 44px target. */''}
     <div class="tile-row">${tile_({
       icon: 'doc', label: m.done ? 'Carry on' : 'Start',
       note: q.qs.length + ' questions',
-      act: 'quiz-open', data: { key: x.key } })}</div>
+      act: 'quiz-open', data: { key: x.key } })}${tile_({
+      icon: 'print', label: 'Print', note: 'quiz and answers',
+      act: 'quiz-print', data: { key: x.key } })}</div>
   </div>`;
 }
 
@@ -2565,7 +2570,11 @@ function quizSheet_(x) {
     ${/* ANOTHER GO CLEARS THE FIVE KEYS, so the quiz is genuinely blank rather than blanked on
           screen. It is the one control here that destroys something, which is why it says what it
           will do rather than carrying a glyph. */''}
+    ${/* AND IN THE SHEET TOO, for whoever is already looking at it. A FORM has buttons — the house
+          style — and this is the foot of a form, so it is a button here and a tile on the card. */''}
     <div class="quiz-foot">
+      <button type="button" class="btn quiet" data-do="quiz-print"
+        data-key="${esc(x.key)}">Print this quiz and its answers</button>
       <button type="button" class="btn quiet" data-do="quiz-again"
         data-key="${esc(x.key)}">Clear my answers and start again</button>
     </div>
@@ -2643,6 +2652,113 @@ on('quiz-again', el => {
   });
   openSheet(x.name, quizSheet_(x), null, null);
 });
+
+/* ==================================================================================================
+   THE PRINTED QUIZ — A4, TWO PAGES, AND NOT THE SCREEN ONE WITH A PRINT BUTTON ON IT.
+
+   ASKED FOR AS "the quizes should open in a new tabe where they are printable."
+
+   A NEW TAB IS THE ONE SURFACE THIS APP REFUSES, and `check-surfaces.js` writes out why at the top
+   of the file: `window.open` asks for pop-up permission, so the first press often does nothing at
+   all on a phone, and the back gesture then leaves the app entirely. Its own note names the
+   replacement in the same breath — *"→ openSheet(). It is part of this page, so closing it puts you
+   back exactly where you were, and the browser's own print still takes it."* Two tools in this app
+   already print that way, the cheat sheet and the flyer, and they print correctly.
+
+   SO WHAT WAS ACTUALLY MISSING IS THE PAPER, not the tab. The screen quiz is a thing you answer
+   with your thumb: four pressable options a fingertip tall, a running score, an explanation that
+   appears when you answer. Printed, every one of those is wrong — a tick box is not 44px, a score
+   of nothing is not worth ink, and the explanation is the answer. A printable quiz is a DIFFERENT
+   DOCUMENT from the same rows, which is the split `questionCard_` and `paperBody_` already record.
+
+   TWO PAGES, AND THE SECOND ONE IS WHY IT IS TWO. Page one is the quiz a student writes on and it
+   carries no answers anywhere; page two is the answer key with the `why` under each. A tutor prints
+   both, hands over the first and keeps the second — and printing the first alone is the ordinary
+   page range every print dialogue has. One page with the answers at the foot is a page you cannot
+   hand to anybody.
+
+   IT IS BUILT FRESH RATHER THAN CLONED, which is the one difference from `mat-print`. That one
+   copies a sheet somebody has configured on screen, so a move would leave the tool broken if the
+   print threw; this is generated from the row every time and there is nothing on screen to damage.
+================================================================================================== */
+
+/* A, B, C, D — a printed choice is circled rather than pressed, so it needs a name to circle. */
+const QZ_LETTERS = 'ABCDEFGH';
+
+function quizPaperQ_(q, n) {
+  const ask = `<p class="qz-ask"><b>${esc(String(n))}.</b> ${esc(q.ask)}</p>`;
+  if (q.kind === 'typed') {
+    /* TWO RULED LINES. A typed answer here is a word or a number — `Osmosis`, `2,8,1` — and a box
+       the depth of the screen one would be most of a page for eight characters. Two rather than one
+       because a child's handwriting is not a browser's line height, and the second line costs 8mm. */
+    return `<div class="qz-q">${ask}<div class="qz-rule"></div><div class="qz-rule"></div></div>`;
+  }
+  return `<div class="qz-q">${ask}
+    <ol class="qz-opts">${q.choices.map((c, i) =>
+      `<li><span class="qz-let">${QZ_LETTERS[i] || '?'}</span>${esc(c)}</li>`).join('')}</ol>
+  </div>`;
+}
+
+function quizPaper_(x) {
+  const q = x.row;
+  const head = esc([q.subject, q.tier ? q.level + ' ' + q.tier : q.level].filter(Boolean).join(' · '));
+  /* NAME AND DATE, because a printed sheet comes back and has to say whose it is. The oldest thing
+     on any worksheet and the one a generated one always forgets. */
+  return `<div class="qz-paper">
+    <section class="qz-sheet">
+      <header class="qz-head">
+        <h1>${esc(q.topic)}</h1>
+        <p class="qz-sub">${head} · ${q.qs.length} questions</p>
+        <p class="qz-who"><span>Name</span><span>Date</span></p>
+      </header>
+      ${q.qs.map((a, i) => quizPaperQ_(a, i + 1)).join('')}
+      ${/* THE FOOT SAYS WHICH QUIZ THIS IS, because a pile of these on a desk is otherwise five
+            sheets of science. The id rather than a pretty line: it is what finds the row again. */''}
+      <p class="qz-foot">${esc(q.id)}</p>
+    </section>
+    <section class="qz-sheet qz-key">
+      <header class="qz-head">
+        <h1>${esc(q.topic)} — answers</h1>
+        <p class="qz-sub">${head}</p>
+      </header>
+      <ol class="qz-ans">${q.qs.map(a => {
+        const letter = a.kind === 'choice'
+          ? QZ_LETTERS[a.choices.indexOf(a.answer)] : '';
+        return `<li><b>${letter ? letter + '. ' : ''}${esc(a.answer)}</b>
+          <span class="qz-why">${esc(a.why)}</span></li>`;
+      }).join('')}</ol>
+      <p class="qz-foot">${esc(q.id)}</p>
+    </section>
+  </div>`;
+}
+
+/* ---------- AND THE PRINT ITSELF, WHICH IS `mat-print`'S SHAPE ------------------------------------
+   THE PAPER GOES AT THE END OF `body` AND NOWHERE ELSE, and the reason is written out over
+   `mat-print`: `body` is a centred 26.5rem column — about 115mm — with `overflow-x: clip`, so a
+   210mm sheet inside the app's own markup starts where the COLUMN starts and everything past 115mm
+   is clipped off the page. Both of the other two printable tools learned that separately.
+
+   `afterprint` AND A FOUR-SECOND BACKSTOP. Some browsers never fire the event — the dialogue is
+   dismissed and nothing says so — and a sheet left at the foot of the body with `printing-quiz`
+   still on is a blank app. The backstop is what the other two use and for the same reason. */
+on('quiz-print', el => {
+  const x = quizFind_(el.getAttribute('data-key') || '');
+  if (!x) return toast('That quiz is not in the list any more');
+  const paper = document.createElement('div');
+  paper.innerHTML = quizPaper_(x);
+  const sheet = paper.firstElementChild;
+  document.body.appendChild(sheet);
+  document.body.classList.add('printing-quiz');
+  const done = () => {
+    document.body.classList.remove('printing-quiz');
+    sheet.remove();
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  setTimeout(done, 4000);
+  window.print();
+});
+
 
 /* ==================================================================================================
    `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
