@@ -55,6 +55,10 @@
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
   doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
+  /* A PRINTER: the sheet going in at the top, the body, the sheet coming out at the foot. Drawn as
+     three open paths at the same 1.4 stroke as the rest — a solid printer would be the only filled
+     mark in the row and would read as a state rather than an action. */
+  print: '<path d="M5.5 6.5v-4h7v4"/><path d="M3.5 6.5h11v4h-11z"/><path d="M5.5 10.5h7v4h-7z"/>',
   code:  '<path d="M6.5 5.5 2.5 9l4 3.5"/><path d="m11.5 5.5 4 3.5-4 3.5"/>',
   cart:  '<path d="M1.5 2.5h2l2 8h8"/><path d="m4.6 4.5h11l-1.4 4.5h-8.6"/>'
        + '<circle cx="6.5" cy="14" r="1.2"/><circle cx="12.5" cy="14" r="1.2"/>',

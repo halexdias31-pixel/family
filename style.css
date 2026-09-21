@@ -7818,6 +7818,85 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    last question where a thumb travels. */
 .quiz-foot { margin: 1rem 0 0; padding-top: .7rem; border-top: 1px dashed var(--line); }
 
+/* ==================================================================================================
+   THE PRINTED QUIZ — A4, AND IT IS NOT ON SCREEN AT ALL.
+
+   `.qz-paper` IS APPENDED TO `body` BY `quiz-print` AND REMOVED AFTER, so every rule here lives
+   inside `@media print` except the one that hides it. Building it into the page and hiding it on
+   screen would put two copies of five questions in the document for every quiz card drawn.
+
+   IT IS THE PAPER PALETTE, which is the house rule: *"Everything standing in for PAPER — the
+   receipt, the job stubs, the roster, the print sheet, the calendar — is cream and warm ink."*
+   Never a literal; `--paper` and `--paper-ink` are the tokens. On a printer the ground is the sheet
+   and the ink is what you pay for, so the tokens also happen to be the cheap way round.
+================================================================================================== */
+.qz-paper { display: none; }
+
+@media print {
+  /* ---------- THE COLUMN IS WHAT CLIPS THE PAGE, FOR THE THIRD TIME -------------------------------
+     `body` is a centred 26.5rem column — about 115mm — with `overflow-x: clip` and
+     `position: relative`, so a 210mm sheet inside it starts where the COLUMN starts and everything
+     past 115mm is cut off. The cheat sheet learned this, the flyer learned it separately, and its
+     own note says so: *"one of the two printable tools in this app prints correctly and the other
+     does not. Same three lines, same reason."* Three now, and the same three lines. */
+  body.printing-quiz { max-width: none !important; margin: 0 !important; padding: 0 !important;
+    overflow: visible !important; }
+  body.printing-quiz * { visibility: hidden !important; }
+  body.printing-quiz .qz-paper,
+  body.printing-quiz .qz-paper * { visibility: visible !important; }
+  body.printing-quiz .qz-paper { display: block; position: absolute; left: 0; top: 0;
+    margin: 0; padding: 0; width: 210mm; height: auto !important; overflow: visible !important; }
+
+  /* ---------- ONE SHEET PER PAGE, AND THE BREAK IS DECLARED --------------------------------------
+     `break-after: page` ON THE FIRST AND NOT A MARGIN BIG ENOUGH TO PUSH IT. The answer key has to
+     start on its own sheet whatever the quiz's length turns out to be — five short questions and
+     five long ones are a third of a page apart — and a spacer that works for one is wrong for the
+     other. `break-inside: avoid` on a question stops a stem printing at the foot of one page with
+     its options at the head of the next, which is the one thing that makes a printed quiz
+     unanswerable. */
+  /* 15mm, AND IT IS A MEASUREMENT RATHER THAN A MARGIN SOMEBODY LIKED. At 18mm the two longest
+     quizzes in the library — `QZ-CHE-chemical-analysis-GCSE-H` and `QZ-BIO-ecology-GCSE-H`, five
+     questions whose options wrap — came to 1145px against A4's 1123, so the last question moved to
+     a second sheet with one line on it and the answer key became page THREE. A five-question quiz
+     printed on three sheets is not a quiz somebody prints twice. 15mm is inside every desktop
+     printer's unprintable edge and is what `check/cards.js` now holds the whole set against. */
+  .qz-sheet { width: 210mm; min-height: 297mm; box-sizing: border-box; padding: 15mm 16mm;
+    background: var(--paper); color: var(--paper-ink);
+    font-family: var(--sans, system-ui, sans-serif); }
+  .qz-sheet + .qz-sheet { break-before: page; }
+  .qz-q, .qz-ans li { break-inside: avoid; }
+
+  .qz-head { border-bottom: 1.5pt solid var(--paper-ink); padding-bottom: 3mm; margin-bottom: 6mm; }
+  .qz-head h1 { margin: 0; font-size: 17pt; line-height: 1.2; }
+  .qz-sub { margin: 1.5mm 0 0; font-size: 10pt; color: var(--paper-dim); }
+  /* NAME AND DATE, on a rule each. The oldest thing on any worksheet and the one a generated sheet
+     always forgets — a printed quiz comes back and has to say whose it is. */
+  .qz-who { display: flex; gap: 10mm; margin: 6mm 0 0; font-size: 10pt; color: var(--paper-dim); }
+  .qz-who span { flex: 1; border-bottom: .6pt solid var(--paper-rule); padding-bottom: 5mm; }
+
+  .qz-q { margin: 0 0 6mm; }
+  .qz-ask { margin: 0; font-size: 11.5pt; line-height: 1.45; }
+  .qz-ask b { margin-right: 1.5mm; }
+  /* A LETTER PER CHOICE, because a printed option is circled rather than pressed and a circle needs
+     something to go round. `list-style: none` and the letter drawn instead, so the two cannot
+     disagree about which is C. */
+  .qz-opts { list-style: none; margin: 2.5mm 0 0; padding: 0 0 0 6mm; }
+  .qz-opts li { margin: 0 0 1.5mm; font-size: 11pt; line-height: 1.4; }
+  .qz-let { display: inline-block; min-width: 6mm; font-weight: 700; }
+  /* A RULED LINE RATHER THAN A BOX, for a typed answer. It is a word or a number — `Osmosis`,
+     `2,8,1` — and a box the depth of the screen one would be most of a page for eight characters. */
+  .qz-rule { height: 8mm; border-bottom: .6pt solid var(--paper-rule); margin: 2mm 0 0; }
+
+  .qz-ans { margin: 0; padding-left: 7mm; font-size: 11pt; }
+  .qz-ans li { margin: 0 0 5mm; line-height: 1.45; }
+  .qz-why { display: block; margin-top: 1mm; font-size: 10pt; color: var(--paper-dim); }
+
+  .qz-foot { position: absolute; bottom: 10mm; font: 400 8pt var(--mono); color: var(--paper-faint); }
+  .qz-sheet { position: relative; }
+
+  @page { size: A4 portrait; margin: 0; }
+}
+
 .boxer-nick { font-weight: 400; color: var(--dim); }
 .boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
 

@@ -170,13 +170,21 @@ function serve() {
    the path where nothing happens and report it as a press that did nothing, which is the exact
    finding this file exists to make honest. */
 const GUARDS = () => {
-  window.__press = { fetches: 0, errs: [] };
+  window.__press = { fetches: 0, prints: 0, errs: [] };
   const f = window.fetch;
   window.fetch = function () { window.__press.fetches++; return f.apply(this, arguments); };
   window.confirm = () => true;
   window.alert = () => {};
   window.prompt = () => '';
-  window.print = () => {};
+  /* AND IT ANSWERS LIKE A REAL BROWSER RATHER THAN DOING NOTHING. Headless has no dialogue, so a
+     bare stub never fires `afterprint` — and all three of this app's print paths take their paper
+     away in that listener, with a four-second backstop behind it. Left to the backstop, an A4 sheet
+     sits at the foot of `body` across the next several presses and the class stays on. Dispatching
+     the event is the dialogue being opened and dismissed, which is what a press is. */
+  window.print = () => {
+    window.__press.prints++;
+    window.dispatchEvent(new Event('afterprint'));
+  };
   window.open = () => null;
   try {
     const loc = window.location;
@@ -211,6 +219,13 @@ function stateOf(id) {
     toast ? (toast.textContent || '').trim() : '',
     store,
     window.__press.fetches,
+    /* AND PRINTS, COUNTED THE WAY FETCHES ARE. A print is the one action whose whole effect is
+       OUTSIDE the page: `quiz-print` builds an A4 sheet, appends it to the end of `document.body`,
+       calls `window.print()` and takes it away again — so a state read that stops at `#s-<id>` and
+       the sheet sees it as a press that did nothing, and one that watched `body` instead would see
+       only the few hundred milliseconds the paper is there. What actually happened is that the
+       browser was asked to print, so that is what is measured. */
+    window.__press.prints,
   ].join('|');
 }
 
