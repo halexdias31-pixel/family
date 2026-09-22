@@ -134,23 +134,22 @@ function drawFeed() {
     img.src = found.src;
   });
 
-  /* Where you got to, kept for TODAY only. The deck is reshuffled on a new day, so yesterday's
-     card 12 is a different fact and returning to it would mean nothing. */
-  try {
-    localStorage.setItem('familyFeed', JSON.stringify({ day: feedToday(), at: FEED_AT }));
-  } catch {}
+  /* ---------- WHERE YOU GOT TO IS NOT KEPT ANY MORE ----------------------------------------------
+     IT WAS `{ day, at }` IN `localStorage`, AND THE COMMENT WAS RIGHT about why it was scoped to a
+     day: "the deck is reshuffled on a new day, so yesterday's card 12 is a different fact and
+     returning to it would mean nothing." That is now true of every reload rather than every
+     midnight — `feedShuffle` is `Math.random()`, so card 12 is a different fact every time, and
+     restoring a position into a deck it was not taken from opens on something you have never seen.
+     The note in `feedShuffle` has the whole argument. */
 }
 
 function initFeed() {
   if (!$('feed-screen')) return;
-  if (FEED_AT === null) {
-    let saved = 0;
-    try {
-      const kept = JSON.parse(localStorage.getItem('familyFeed') || '{}');
-      if (kept.day === feedToday()) saved = Number(kept.at) || 0;
-    } catch {}
-    FEED_AT = saved;
-  }
+  /* EVERY SESSION STARTS AT THE FIRST CARD OF ITS OWN SHUFFLE — see `drawFeed` above and the long
+     note in `feedShuffle`. The stored position went with the day seed; a leftover `familyFeed` key
+     on somebody's phone is simply never read again, which is the right shape for a key that has
+     stopped meaning anything. */
+  if (FEED_AT === null) FEED_AT = 0;
   drawFeed();
 }
 

@@ -500,17 +500,39 @@ function clipsNow_() {
 function feedShuffle() {
   const facts = factsNow_();
   const deck = facts.map((_, i) => i);
-  /* Seeded by the day and by how many decks have been through, so:
-       · reloading gives the SAME order, which is what makes remembering your place worth anything
-       · tomorrow gives a different one
-       · a second pass today is a different order again, rather than the same 58 in the same run */
-  let x = (feedToday() * 2654435761 + FEED_PASS * 40503) >>> 0;
-  const rnd = () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; };
-  FEED_PASS++;
+  /* ---------- IT WAS SEEDED BY THE DAY, AND THE REASON IT GAVE WAS NOT TRUE ----------------------
+     REPORTED AS "im pretty sure the one more thing game widget isnt random... i need it to be
+     random upon every click. so no two sessions have same ones." It was not random. The seed was
+     `feedToday() * 2654435761 + FEED_PASS * 40503` — the DAY NUMBER — so every session on one day
+     dealt the same facts in the same order, and two people opening the app on the same afternoon
+     got the same first card.
+
+     WHAT IT BOUGHT WAS REAL AND IT IS NOT WORTH THE PRICE. "Reloading gives the SAME order, which
+     is what makes remembering your place worth anything" — and `initFeed` really does restore
+     `FEED_AT` from `localStorage` when the stored day matches, so a reload put you back on card 12
+     and a day-seeded deck made card 12 the same fact. My first note here said that bought nothing;
+     that was wrong, and this is the correction. It bought ONE thing: reopening mid-deck where you
+     left off, within a day.
+
+     IT COSTS THE WIDGET'S WHOLE POINT. Two people opening the app on one afternoon got the same
+     first card, and so did the same person twice. A thing called "One more thing" whose one more
+     thing is the one you already had is not worth tapping.
+
+     SO THE RESTORE GOES WITH THE SEED, in `initFeed` — and it has to, rather than being left
+     behind: restoring position 12 into a freshly shuffled deck opens on a card you have never seen
+     and makes "go back" walk through eleven more of them. A position is only meaningful against
+     the deck it was taken from, and there is no longer a deck to take it against.
+
+     `FEED_BUILT` STILL MAKES GOING BACK WORK WITHIN A SESSION, untouched: `feedItem(n)` returns
+     the card it built for index `n` whatever the deck says. That was never the seed's job.
+
+     SO IT IS `Math.random()`, WHICH IS THE HONEST ANSWER TO "random upon every click" — a fresh
+     order per shuffle, a fresh order per session, and nothing to reproduce. */
   for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
+    const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
+  FEED_PASS++;
   /* Never open on the card that just closed. Reshuffling can otherwise deal the same one twice in
      a row across the join, which is the one repeat anybody actually notices. */
   if (FEED_SEEN.length && facts[deck[0]] &&
@@ -538,4 +560,5 @@ function feedItem(n) {
 }
 
 
-function feedToday() { return Math.floor(Date.now() / 864e5); }
+/* `feedToday` WAS HERE — the day number, and the only two things that read it were the deck seed
+   and the position restore that went with it. See the note in `feedShuffle`. */

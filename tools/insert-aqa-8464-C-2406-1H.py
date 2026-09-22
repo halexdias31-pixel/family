@@ -60,6 +60,13 @@ Figure 7 and Figure 9 are NOT in that backlog and are not drawings either: one i
 formulae equation and the other is a list of six metals, and both are text. They are transcribed as
 text, which is what they are.
 
+ONE MISSING PICTURE IS INVISIBLE TO THAT COUNT AND IT IS SAID RATHER THAN LEFT. `noPicture` in
+check-library.js exempts any row that HAS a drawing, so 02.4 — which carries Figure 5 and is also
+the row that describes the un-transcribed Figure 4 apparatus — is not counted, and the honest
+backlog for this paper is eleven rather than the ten it reports. The filter is right about what it
+asks (this row's student-facing picture is there); the arithmetic just cannot see a second figure
+on a row that already has one.
+
 TWO PREAMBLES, AND ONLY TWO. `preamble_` attaches a question-scoped row to EVERY part of that
 question, so a preamble is only right where the shared block covers all of them. Q5's stem
 ("nitrogen reacts with hydrogen to produce ammonia") and Q8's nanotube figure do; Q2's does not —
@@ -178,7 +185,7 @@ def fig51():
 # x = 187 and the progress axis at y = 764, running to x = 1407; the one line already printed runs
 # from x = 187 — it starts ON the axis — to x = 641 at y = 387. That is 37.2% of the axis length, at
 # exactly 50% of the axis height.
-PROF = dict(run=(1407 - 187) and (641 - 187) / float(1407 - 187), up=(764 - 387) / float(764 - 10))
+PROF = dict(run=(641 - 187) / float(1407 - 187), up=(764 - 387) / float(764 - 10))
 
 
 def fig8():
