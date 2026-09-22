@@ -8202,3 +8202,310 @@ because the law that reads it is a row in the `laws` tab and a list nothing answ
 quietly does nothing. Measured against a payload carrying that law and a two-name dropdown: seven
 subject answers, **0 green**. If subject-green is wanted back it wants a list of every subject the
 library holds, which is the whole reason this is written down rather than deleted.
+
+## Unstarring from Saved took the row out and left the card on the screen
+
+**Reported as "if i favourite something it does appear in right place, but then if i unfavourite it
+from the favourites tab its buggy and not responsive. should just dissapear."**
+
+**It never disappeared.** `on('fav')` ended with `if ($('s-stuff')) paintStuff(true)` — it rebuilt
+the Find strip and nothing else. So unstarring from the Saved column removed the key from `FAVS`,
+toggled `.favwrap.is-fav`, relabelled the tile and repainted a screen you were not on. The card sat
+exactly where it was. The only thing that moved was the word on the button, which reads as a tap
+that half-worked, because it is one.
+
+**Three cases and they are not the same.** On **Saved** a card IS a page, so removing it removes a
+page and the column has to be rebuilt and the position clamped — `repaint(true)`. On **Find** a
+star adds or removes a page in front of the question, which is exactly what `paintStuff(true)`
+already handles. **Anywhere else** — Tools, Games, a person's card — the card is still correct and
+the tile has already changed; what is now wrong is the Saved column you are not looking at.
+
+**So the others are marked rather than redrawn**, which is what `STALE` is for and what
+`receipt.js` already does for the booking column. **Redrawing Tools from here would be worse than
+the bug**: `paint` replaces the markup, `startScreen_` restarts what was in it, and unstarring a
+timer would put it back to 25:00.
+
+Measured end to end: star chess on Games → `FAVS ['w:chess']`; swipe to Saved → the widget is
+there; unstar it → the card is gone on the spot and the empty-state card is back.
+
+## The calculator's trig was right and the bracket was the trap
+
+**Reported as "calulator sin cos and tan doesnt really work".** Measured before changing anything:
+`sin(30)` is 0.5, `cos(60)` is 0.5, `tan(45)` is 1 — all correct, in degrees, which is what a GCSE
+paper wants. **`sin(30` with no closing bracket is `Error`**, and that is the whole complaint: the
+`sin` key puts in `sin(` and every calculator anybody has held closes it for them. Press sin, 3, 0,
+= on a Casio and you get 0.5.
+
+**Only at `=`, and only the ones left open**, so nothing is added to what is on screen while it is
+being typed and a balanced expression is untouched. Measured after: `sin(30` → 0.5, `sqrt(16` → 4,
+`2 × sin(30` → 1.
+
+**AND `window.math` IS NEVER LOADED BY ANYTHING HERE.** Measured across `index.html` and every file
+in `js/`: nothing fetches a maths library, so the `if (window.math)` branch has never run once and
+the hand-rolled fallback is what the calculator has always been. The branch stays — it is the right
+thing to use if one is ever added, and deleting it would leave the fallback looking like a fallback
+for nothing — but it is written down, because a live-looking branch that cannot run is the shape
+this file records under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard.
+
+## Articulate, and the one piece of the board game that does not survive
+
+**Asked for as "can we add articulate to the games widgets".** You describe a word without saying
+it, or a word that rhymes with it, or its initials; your team guesses; thirty seconds.
+
+**The spinner is what does not come across.** On the board the category is decided by where your
+counter lands, which is a fact about a board this app does not have — so the category is chosen
+instead, which is the same decision one step earlier and is also the screen the widget needs anyway:
+six buttons is a first page that explains the game without a paragraph.
+
+**Thirty seconds is the game's own number, and it is why twenty words a category is enough.**
+Nobody gets through twenty in thirty seconds, so a round dealt from a shuffled pile never repeats a
+word and the deck does not have to be large to behave as though it were.
+
+**No score is kept between rounds.** Articulate is scored by moving a counter, which is a thing the
+people playing do. An app that remembered half of that would be inviting somebody to look for the
+other half.
+
+**`stop` is not optional and the timer is why** — a round left running on a column nobody is looking
+at counts down to zero, and the next arrival finds a finished game it never played. Same reason the
+times table and the reel have one. **And the card is drawn from the state rather than patched by
+the handler**, which is the `REEL_HELD` rule: a mark put on the element by a press is a mark a
+repaint throws away while the state keeps it.
+
+**Its three colours are declared on the component**, the rule the house style states with the chess
+board's cream and charcoal: Articulate's six wedges are that game's convention and not this app's.
+Six 44px category buttons, in px — sixth conviction of that rule.
+
+## The first screen is the latest post, and the splash bars are scaled rather than resized
+
+**`TAB_HOME` was `stuff` and the owner overruled the argument for it.** That argument is still in
+the file and is worth keeping: *"the feed is a noticeboard for a tutoring business; the funnel is
+the product"* — true of what the app is FOR, and not the question a first screen answers. A funnel
+opens on a question nobody asked yet; the newest post is the business saying something, which is
+what a front door is. **`PAGE_HOME.feed` already landed on it** — page 0 is the spotlight when the
+business has chosen one and the newest post otherwise — so this is one word, and only for a phone
+that has never opened the app: the line below it still remembers wherever somebody was last.
+
+### `height` is a layout property, and these two were changing colour in the same breath
+
+**Reported as "the blue charts leave blue residue behind. same with the ordering animation bar
+graph".** Both ran correctly in a desktop browser — measured across a full cycle, the colours cross
+blue to green and back and every bar moves in every frame. So there was nothing to see here, and
+the complaint was still right.
+
+**Measured across the whole stylesheet: nine keyframes animate a layout property, and `mn-level`
+and `so-swap` are the ONLY two that animate geometry and colour together.** That is the shape that
+smears — the region to invalidate and the colour to paint are both moving, on the main thread,
+during boot, which is exactly when that thread is busy parsing 566 KB of JavaScript.
+
+**`transform: scaleY()` is the same picture without the layout.** The compositor owns it, the box
+never changes size, there is no region to invalidate — and `index.html`'s own defence of the
+splash, that it keeps moving while the thread is busy, becomes true of these two rather than merely
+claimed. `--h` is a fraction of the row now rather than a length, because a transform takes a number.
+Measured before and after at seven points in the cycle: **the bar heights are the same to the
+pixel.**
+
+**The other seven are left alone**, deliberately: none of them changes colour while it moves, and
+changing seven animations on a report about two is the fix that costs more than the fault.
+
+## The round counter was a scoreboard for a game with no score
+
+**Reported as "herd mentality shouldnt be that 20 question round thing. should be much simpler,
+just questions on random. and random each time."**
+
+**The deal was already random.** Fisher-Yates, reshuffled at the end — the note over `herdShuffle_`
+even explains why the `sort(() => Math.random() - 0.5)` trick is the famous wrong one. What was
+wrong is that the card printed **`3 of 20 · round 2`** underneath, which turns an endless deal into
+a twenty-question test you are part-way through. **A number on screen is a claim that the number
+matters**, and this one never did: Herd Mentality has no score in the app, because the scoring is
+people arguing about who matched.
+
+So the count is gone and the deal is untouched — and the bag stays a bag rather than becoming a
+pick-at-random, because picking at random repeats, and a question you have just answered coming
+straight back is the one thing that reads as broken.
+
+## Articulate and Charades are one round with two decks
+
+**Asked for as "add cherades widget game as well... idk whats difference between cherades and
+articulate in this case to be honest."** It is a fair question and the answer is what decides both
+decks:
+
+| | |
+|---|---|
+| **Articulate** is **described** | you may say anything except the word, a rhyme and its initials — so its deck can hold an abstract noun: `stage fright`, `a lighthouse keeper` |
+| **Charades** is **mimed** | no words, no sounds, no pointing at the room — so every entry has to be something a BODY can show. **An abstract noun is a dead charades card** |
+
+**That is why the decks differ and why the round is the same.** `ROUND_GAMES` is the engine and
+`secs`, `deck` and `say` are the only three things that differ; a second copy of *deal a word, count
+the clock, keep score* would be the `documents_()` fault in a fourth costume. **Sixty seconds rather
+than thirty**, and that is not a preference: a mime takes longer to read than a sentence does, and
+thirty is Articulate's own number where charades has never had one.
+
+**And the six category buttons went.** *"Less friction if it just decides topic and the thing."* A
+menu between somebody and a party game is a decision nobody wanted to make — and on the board the
+category is decided by where your counter lands rather than by choosing, so random is closer to the
+game than the menu ever was. The chip on the card still says which came up, because you have to
+know what you are describing. **One state per game, not one shared**: both cards are pages of the
+same column and can be on screen at once, and a single state would have the second wiping the
+first's clock.
+
+## corbettmaths.com is unreachable, and the URL pattern is the answer at the other end
+
+**Reported with three real URLs and "the url of the files themselves follow a pattern. cant you use
+this to extract all of the questions from this site?"** The pattern is real and useful. What stops
+it is not addressing:
+
+```
+curl  https://corbettmaths.com/.../Jan-Foundation_Part1.pdf  →  CONNECT tunnel failed, 403
+WebFetch same URL                                            →  EGRESS_BLOCKED
+```
+
+**Every host but GitHub and the MCP endpoints is denied at the proxy**, which this file already
+records four times about Google and once about github.io. A pattern cannot help with a connection
+that is refused before a path is ever sent.
+
+**Where the pattern DOES help is at the owner's end**, and that is worth writing down rather than
+just saying no: a loop over the pattern downloads the set in one go, and **the Drive connector is
+not blocked** — which is how every other paper in this library arrived. The route is download,
+drop in a Drive folder, and the transcription happens here exactly as it does for AQA.
+
+## A hundred herd questions, and ten of them were thrown out by a reviewer told to refute
+
+**The decks were written by one agent each and then attacked by another**, whose instructions said
+a clean report over a deck with a bad card in it is worse than no review. It earned it: **24 of the
+290 cards were faulted**, and every one of the faults is a rule this file already states in another
+context.
+
+| | |
+|---|---|
+| `Name a colour.` · `Name a shape.` | **nothing to decide.** Blue, and circle-or-square. A herd question with one dominant answer is not a question, because there is no herd to match |
+| `Name something you would find in a library.` | exactly one answer — books |
+| `Name a reason a train is late.` | rewards knowing rather than guessing, and splits the adult in the room from the child |
+| `Name a school trip everybody goes on.` · `Name a pudding they serve at school.` | **the rule about never asking a child what their family has**, in a costume. A trip costs money and "everybody goes on" is false out loud in front of a parent |
+| `trying to do a handstand against a wall` | **charades is MIMED, so the mime of a handstand IS a handstand** — in somebody else's front room, beside the furniture. The sharpest finding in the set |
+| five quiz shows | a desk and a buzzer mime as nothing |
+| `The Snowman` | a Christmas card dealt in June, and a 26-minute television animation filed under Film |
+
+**Four were near-duplicates of a card three places above them** — `a ventriloquist` beside `a
+puppeteer` ("puppet" is the first clue either describer says, so the team shouts the other card),
+`cartwheeling` beside `somersaulting`, `Name a musical instrument` beside `Name an instrument that
+is loud to practise`.
+
+### The one it found that nothing else could have
+
+**`Countdown` was in the charades TV deck and `a countdown` is in Articulate's Random.** The two
+games are **pages of the same column**, so the same word could be dealt twice in one sitting — once
+to describe and once to mime — and the second time the room already knows the answer. The reviewer
+flagged it as pre-existing and supplied no replacement, which is the right call for a judgement.
+
+**It is a rule now rather than a repair**, which is this file's own sentence about `cost: 0` for the
+twelfth time: `check-widgets.js` reads both decks out of `games.js` and fails on a word in both,
+comparing with a leading article stripped because `a countdown` and `Countdown` are the same word to
+a room and different strings to a checker — the `spellKey_` argument one file along. **A deck it
+cannot read is a failure too**, not a pass, because *"I did not manage to look"* printed as *"I
+looked and it was fine"* is this repository's oldest fault. **Proved by mutation**: put `Countdown`
+back and it names both sides and exits 1.
+
+**And a double comma made an array hole.** The splice left `'…breaks.',,` — which is an elision, so
+`HERD_BUILTIN.length` was **101 with a `null` at index 20**, and the deck would have dealt a blank
+card roughly once a hundred taps. Caught by counting the deck in a real JS engine rather than by
+reading the diff; `100 / 180 / 150, unique, no holes` is the check that found it.
+
+## The home-screen app loads itself now, and three separate guards stop it looping
+
+**Asked for as "can you make it so added to homescreen version will always be up to date?"** The
+banner was the whole answer while the only safe thing to do was ASK — and in an installed app that
+is a sentence somebody has to notice and tap on a screen they opened to do something else.
+
+**The reason it only asked is four lines below the function, and it is not a small one.** `purge()`
+called `location.reload()` and became an infinite loop the day the site installed a worker of its
+own: register, purge, reload, register — for every visitor, with the app never finishing opening.
+
+**So the three things that make that impossible here, each doing a different job:**
+
+1. **It cannot loop**, because the reload is remembered against the TAG it was for. `purge`'s loop
+   was unconditional; this one has a fact to compare against, so a build that reloads and still
+   reports a different tag reloads **once** and then asks. `sessionStorage` rather than
+   `localStorage`, so it survives the reload and dies with the window.
+2. **Only on a resume, not an app-switch.** Six minutes away is somebody opening the app again;
+   twenty seconds is somebody answering a message, and reloading under them is taking the screen
+   away from somebody using it.
+3. **It never throws anything away.** An answer box persists on every keystroke and the notepad
+   saves as you type, so both are safe to reload over. A message being composed, a comment being
+   written, a profile being edited are not — anything typed and unsaved holds the reload and gets
+   the banner instead.
+
+**Measured in five states**, against a server whose ETag I could change by hand: no deploy and long
+away → nothing; a deploy 20 seconds away → the banner, no reload; a deploy 15 minutes away → it
+reloads onto the new build; **a deploy 15 minutes away with something typed → it holds and shows the
+banner**; and a reload followed by two more resumes that still report a different tag → **zero extra
+reloads**. The fourth of those was wrong the first time I measured it and the probe was at fault
+rather than the app — the only textarea on that fixture is the notepad, which is exempt, so the
+guard was never exercised until I typed into something that is not.
+
+## Corbettmaths 5-a-Day is its own category, and that is a `document_type`
+
+**Asked for as "its its own category, not to be confused with the other corbet maths work which is
+like topic learning. this is 5 a day. so i hope its navigated to sensibly in the finder."**
+
+**A worksheet and a 5-a-day are the same publisher and the opposite shape.** A worksheet is thirty
+questions on ONE topic, worked through once. A 5-a-day is five questions on five DIFFERENT topics,
+sat in ten minutes, every day of a month. `document_type` is what the funnel's Type question reads,
+so making `5-a-day` a value there is what puts the two in different answers instead of one pile —
+and the navigation is then machinery that already exists: **Type → 5-a-day, Tier → the level,
+Paper → the day.**
+
+**`Foundation Plus` and `Higher Plus` joined the `tier` vocabulary**, and they are not exam tiers —
+the boards have two. They are in that column for the reason `total_marks` is a cell: **the paper
+declares its own level**, and filing a Higher Plus under `Higher` would fold a set aimed past grade
+9 into the tier below it, which is a wrong answer on a chip rather than a missing one.
+
+**One document row per DAY**, because a day is the thing somebody sits — 31 rows a level, five
+questions under each. And five columns are **deliberately absent**: `exam_board` (Corbettmaths is
+not a board), `year`, `month`, `exam_wave` and `exam_date` (a 5-a-day has no sitting), `paper` (its
+vocabulary is 1–6 and a day is 1–31), and `total_marks` — **nothing on the sheet says what it is out
+of, and inventing one would arm a check against a number nobody printed.**
+
+## The periodic table is a link, because a document row is not an item
+
+**Asked for as "add the periodic table to resouces".** It is AQA's own insert — *Insert (Foundation;
+Higher): periodic table, November 2020*, read off the file rather than the filename — and the same
+table AQA prints for Combined Science Trilogy and for Chemistry 8462.
+
+**THE OBVIOUS HOME IS THE WRONG ONE, and it is worth knowing why before somebody tries it.** A
+`kind: 'document'` row in `data/questions.json` looks right — it is a paper-level thing with a
+`source_url`. It would be **invisible**: `questionItems` filters `kind !== 'document'`, so a
+document row is where a paper-level FACT lives and is never an item in the funnel. A periodic table
+filed that way is a row nobody can reach.
+
+**So it is a link**, which is already a kind the funnel carries — 126 of them, in 25 categories,
+each with a name, a category, a URL and a description. One row in `data/settings/links.json`, no
+deploy needed for the next one.
+
+**And the sharing was checked before the row was written**, because a link a student cannot open is
+worse than no link: `{"role":"reader","type":"anyone"}`. CLAUDE.md already records the 1,508 Drive
+links being sampled for exactly this.
+
+### 115 of the 127 links carried a description nothing could search
+
+**Measured while adding the row.** The haystack in `stuffFind` is
+`name + sub + subject + slot + grade + text`, and a link had no `text` at all — so it was findable
+by its title and by nothing else.
+
+| typing | before | after |
+|---|---|---|
+| `atomic mass` | **0** | 1 |
+| `past papers` | **0** | 3 |
+| `chemistry` | **0** | 1 |
+| `revision` | 1 | **7** |
+| `science` | 3 | **5** |
+
+**`past papers` returning nothing is the tell** — that list holds four sites that are nothing but
+past papers, and not one of them has the words in its name. **Fourth occurrence of this exact
+sentence in this file**, after `topics`, after `company` and after the practical guides: the words
+are in the row, the search box cannot see them, and a screen whose whole job is finding things
+returns nothing for the thing it holds.
+
+**The category is in the haystack too**, because `science` and `revision` are what somebody types
+when they cannot remember what a site is called, and the category is the only place either word
+appears. Built onto the item rather than matched per keystroke, which is what those three notes
+also say: `stuffItems` is memoised and runs once, `stuffFind` runs on every letter.

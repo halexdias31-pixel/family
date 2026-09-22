@@ -176,7 +176,19 @@ function applyColumns_() {
 
    A fallback that lands somewhere plausible is worse than one that lands nowhere, because nobody
    reports it. */
-const TAB_HOME = 'stuff';
+/* ---------- THE FIRST THING ANYBODY SEES IS THE LATEST POST ---------------------------------------
+   IT WAS `stuff`, AND THE ARGUMENT FOR THAT IS BELOW AND WAS OVERRULED. "The feed is a noticeboard
+   for a tutoring business; the funnel is the product" — true of what the app is FOR, and not the
+   question a first screen answers. A funnel opens on a question nobody asked yet; the newest post
+   is the business saying something, which is what a front door is.
+
+   `PAGE_HOME.feed` ALREADY LANDS ON IT — page 0 is the spotlight if the business has chosen one
+   and the newest post otherwise, and its own note says so. So this is one word, and the position
+   inside the column was already right.
+
+   ONLY THE FIRST VISIT. The line below remembers wherever somebody was last, so this decides where
+   a phone that has never opened the app lands and nothing else. */
+const TAB_HOME = 'feed';
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */
@@ -193,9 +205,9 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
    back to `TABS[0]` — right, but silently.
    SO IT IS CHECKED RATHER THAN TRUSTED. A remembered id that is no longer a tab is discarded here
    instead of being corrected three functions later, and `account` is a place you can be left. */
-/* FIRST VISIT LANDS ON FIND, not on the leftmost column. The feed is a noticeboard for a tutoring
-   business; the funnel is the product. Anybody who prefers the feed is one swipe away and is
-   remembered there afterwards. */
+/* FIRST VISIT LANDS ON THE LATEST POST — see `TAB_HOME` above, which is where that is decided and
+   where the argument it replaced is written down. Find is one swipe away and is remembered there
+   afterwards. */
 let AT = TAB_HOME;
 try {
   const was = localStorage.getItem('familyTab');
@@ -2684,6 +2696,12 @@ function banner(msg, tap) {
 ================================================================================================ */
 let BUILD_TAG = null;
 let BUILD_ASKED = 0;
+/* WHEN THE PAGE WENT AWAY, so a resume can be told from an app-switch. See `checkBuild_`. */
+let BUILD_HID = 0;
+/* COMING BACK TO IT AFTER THIS LONG IS OPENING IT AGAIN, not glancing at another app and back.
+   Six minutes is past any notification, any photograph taken mid-lesson, any check of a message —
+   and well short of "I opened this tomorrow morning", which is the case the reload is for. */
+const BUILD_AWAY = 6 * 60 * 1000;
 
 /* HEAD, so nothing is downloaded, and `no-store` so the answer is the server's rather than the
    browser's copy of it. `sw.js` returns early on anything that is not a GET, so this goes past the
@@ -2703,7 +2721,10 @@ async function watchBuild_() {
      boot check that killed the page: a confident sentence with nothing behind it. */
   BUILD_TAG = await buildTag_();
   if (!BUILD_TAG) return;
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkBuild_(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { BUILD_HID = Date.now(); return; }
+    checkBuild_();
+  });
   /* ---------- AND `pageshow`, BECAUSE OF THE HOME SCREEN ------------------------------------------
      THIS SITE IS AN INSTALLED APP ON A PHONE. The manifest says `display: standalone` and
      `apple-mobile-web-app-capable` is in the head, so an icon added to the home screen opens a
@@ -2729,7 +2750,54 @@ async function checkBuild_() {
   BUILD_ASKED = Date.now();
   const now = await buildTag_();
   if (!now || !BUILD_TAG || now === BUILD_TAG) return;
+  if (buildMayReload_(now)) {
+    try { sessionStorage.setItem('familyBuiltFor', now); } catch (e) {}
+    location.reload();
+    return;
+  }
   banner('A newer version of the app is ready. Tap to load it.', true);
+}
+
+/* ---------- AND ON A HOME SCREEN, IT LOADS ITSELF --------------------------------------------------
+   ASKED FOR AS "can you make it so added to homescreen version will always be up to date?". The
+   banner above was the answer while the only safe thing to do was ASK, and in an installed app that
+   is a sentence somebody has to notice and tap on a screen they opened to do something else.
+
+   THE REASON IT ONLY ASKED IS FOUR LINES BELOW THIS FUNCTION and it is not a small one: `purge()`
+   called `location.reload()` and became an infinite loop the day the site installed a worker of its
+   own — register, purge, reload, register. For every visitor, with the app never finishing opening.
+
+   SO THE THREE THINGS THAT MAKE THAT IMPOSSIBLE HERE, and each is doing a different job:
+
+   1. IT CANNOT LOOP, because the reload is remembered against the TAG it was for. `purge`'s loop
+      was unconditional; this one has a fact to compare against, and a build that reloads and still
+      reports a different tag is a build that reloads once and then asks. `sessionStorage` rather
+      than `localStorage` deliberately — it survives the reload and dies with the window, so
+      tomorrow's first open is judged on its own.
+   2. IT ONLY HAPPENS ON A RESUME, not on an app-switch. Six minutes away is somebody opening the
+      app again; twenty seconds is somebody answering a message. Reloading under the second is
+      taking the screen away from somebody who is using it.
+   3. IT NEVER THROWS ANYTHING AWAY. An answer box persists on every keystroke and the notepad saves
+      as you type, so those are safe to reload over. A message being composed, a comment being
+      written and a profile being edited are NOT — nothing has been written down and a reload loses
+      the lot. Anything typed and unsaved holds the reload and gets the banner instead, which is the
+      right answer for somebody mid-sentence.
+
+   ON A DESKTOP TAB THIS ALMOST NEVER FIRES, and that is correct rather than a limitation: a tab left
+   open is one somebody is working in. The case this is for is an icon on a home screen opened the
+   next morning, where iOS resumes a snapshot rather than loading anything. */
+function buildMayReload_(tag) {
+  /* 1. NOT TWICE FOR ONE BUILD. */
+  try { if (sessionStorage.getItem('familyBuiltFor') === tag) return false; } catch (e) { return false; }
+  /* 2. A RESUME, NOT A GLANCE. `BUILD_HID` is 0 before the page has ever been hidden, which is the
+        first load — and reloading the load somebody just made is the loop this is avoiding. */
+  if (!BUILD_HID || Date.now() - BUILD_HID < BUILD_AWAY) return false;
+  /* 3. NOTHING TYPED AND UNSAVED. `qp-ans` writes to localStorage on every keystroke and the
+        notepad does the same, so both survive a reload; everything else in a box would not. */
+  const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
+    .filter(el => String(el.value || '').trim())
+    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad');
+  return !typed.length;
 }
 
 on('reload-build', () => location.reload());

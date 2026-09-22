@@ -234,6 +234,53 @@ if (acceptedEngine.length) {
   acceptedEngine.forEach(k => console.log('  ' + k + ' \u2014 ' + ACCEPTED_ENGINE[k]));
 }
 
+/* ---------- AND THE TWO DECKS THAT ARE DEALT ON ONE COLUMN ---------------------------------------
+   ARTICULATE AND CHARADES ARE PAGES OF THE SAME COLUMN, so a word in both decks can be dealt twice
+   in one sitting — once to be described and once to be mimed — and the second time the room already
+   knows the answer. It happened: `Countdown` was in the charades TV deck and `a countdown` is in
+   Articulate's Random, and the only thing that found it was an agent told to try to refute the deck
+   rather than approve it.
+
+   THE COMPARISON IGNORES A LEADING ARTICLE, because `a countdown` and `Countdown` are the same word
+   to a room and different strings to a checker — which is the `spellKey_` argument one file along.
+
+   THIS IS A FAILURE, NOT A COUNT, and it can be, because the number is zero: a collision is one word
+   to change, not a backlog to work through. */
+{
+  const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
+  const deck = name => {
+    const i = gsrc.indexOf('const ' + name);
+    if (i < 0) return null;
+    const j = gsrc.indexOf('\n};', i);
+    if (j < 0) return null;
+    try { return new Function(gsrc.slice(i, j + 3) + '\nreturn ' + name + ';')(); }
+    catch (e) { return null; }
+  };
+  const art = deck('ART_DECK'), cha = deck('CHA_DECK');
+  /* A DECK THIS CANNOT READ IS NOT A PASS. "I did not manage to look" printed as "I looked and it
+     was fine" is this repository's own recurring failure, and it is cheaper to say so here. */
+  if (!art || !cha) {
+    console.log('');
+    console.log('COULD NOT READ ART_DECK / CHA_DECK out of games.js, so the two decks were NOT compared');
+    bad = true;
+  } else {
+    const key = w => String(w).toLowerCase().replace(/^(a|an|the)\s+/, '');
+    const inArt = new Map();
+    Object.keys(art).forEach(c => art[c].forEach(w => inArt.set(key(w), c + ' ' + JSON.stringify(w))));
+    const clash = [];
+    Object.keys(cha).forEach(c => cha[c].forEach(w => {
+      const hit = inArt.get(key(w));
+      if (hit) clash.push('charades ' + c + ' ' + JSON.stringify(w) + '  vs  articulate ' + hit);
+    }));
+    if (clash.length) {
+      console.log('');
+      console.log('ONE WORD IN BOTH DECKS, ON ONE COLUMN  (' + clash.length + ')');
+      clash.forEach(c => console.log('  ' + c));
+      bad = true;
+    }
+  }
+}
+
 console.log('');
 console.log('  tools: ' + widgets.filter(w => str(w.kind) === 'tool').map(w => str(w.id)).join(', '));
 console.log('  games: ' + widgets.filter(w => str(w.kind) === 'game').map(w => str(w.id)).join(', '));

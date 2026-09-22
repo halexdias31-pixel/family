@@ -33,7 +33,7 @@ Figure 7 in particular is the drawing the STUDENT is asked to finish. Each carri
 import json, datetime, pathlib, sys
 from fractions import Fraction
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from svgplot import W, blankgrid
+from svgplot import W, blankgrid, pedigree
 
 PAPER = 'P-AQA-8461-2406-2H'
 SRC = 'https://drive.google.com/file/d/1bChd05jlDhK9CbfYakb1MurGZ5vDomT6/view'
@@ -64,7 +64,10 @@ FIG11 = blankgrid(F11_COLS, F11_ROWS, 22, [], 1,
 
 
 # --- Figure 10: the pedigree, built from the facts rather than drawn. A square is a male, a circle
-# --- a female, filled means polydactyly. ---------------------------------------------------------
+# --- a female, filled means polydactyly. The RENDERER moved to tools/svgplot.py when 8464/B/2H
+# --- needed one too: different data, one drawing routine, which is the argument CLAUDE.md makes
+# --- about `documents_()` and `factsNow_`. Proved byte-identical (3,535 characters, and against
+# --- both committed rows) before the local copy was deleted. -------------------------------------
 PEOPLE = {                      # id: (x, generation, male?, affected?)
     1: (55, 0, True, True),   2: (110, 0, False, False),
     3: (215, 0, True, False),  4: (270, 0, False, False),
@@ -76,42 +79,8 @@ COUPLES = [(1, 2, [5, 6]), (3, 4, [7, 8, 9]), (6, 7, [10, 11, 12])]
 GEN_Y = [22, 92, 162]
 SZ = 15
 
-
-def pedigree():
-    p = ['<svg viewBox="0 0 %d 196" role="img" aria-label="Family tree showing the inheritance of '
-         'polydactyly through three generations">' % W]
-    for a, b, kids in COUPLES:
-        ya = GEN_Y[PEOPLE[a][1]]
-        xa, xb = PEOPLE[a][0], PEOPLE[b][0]
-        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width="1"/>'
-                 % (xa + SZ / 2, ya, xb - SZ / 2, ya))
-        mid = (xa + xb) / 2.0
-        ky = GEN_Y[PEOPLE[kids[0]][1]]
-        bar = ky - 22
-        p.append('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="currentColor" '
-                 'stroke-width="1"/>' % (mid, ya, mid, bar))
-        xs = [PEOPLE[k][0] for k in kids]
-        p.append('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="currentColor" '
-                 'stroke-width="1"/>' % (min(min(xs), mid), bar, max(max(xs), mid), bar))
-        for k in kids:
-            p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" '
-                     'stroke-width="1"/>' % (PEOPLE[k][0], bar, PEOPLE[k][0], ky - SZ / 2))
-    for n, (x, gen, male, aff) in sorted(PEOPLE.items()):
-        y = GEN_Y[gen]
-        fill = 'currentColor' if aff else 'none'
-        if male:
-            p.append('<rect x="%.1f" y="%.1f" width="%d" height="%d" fill="%s" '
-                     'stroke="currentColor" stroke-width="1.2"/>'
-                     % (x - SZ / 2, y - SZ / 2, SZ, SZ, fill))
-        else:
-            p.append('<circle cx="%d" cy="%d" r="%.1f" fill="%s" stroke="currentColor" '
-                     'stroke-width="1.2"/>' % (x, y, SZ / 2, fill))
-        p.append('<text x="%d" y="%.1f" class="lbl" style="text-anchor:middle">%d</text>'
-                 % (x, y + SZ / 2 + 12, n))
-    return ''.join(p) + '</svg>'
-
-
-FIG10 = pedigree()
+FIG10 = pedigree(PEOPLE, COUPLES, GEN_Y, 'Family tree showing the inheritance of polydactyly '
+                 'through three generations', 196, SZ)
 
 T1 = ('<table><tr><th>Sample number</th><th>0 weeks</th><th>1 week</th><th>2 weeks</th>'
       '<th>3 weeks</th><th>5 weeks</th><th>8 weeks</th></tr>'

@@ -4384,9 +4384,25 @@ function stuffItemsRaw_() {
        reactions, same share, same admin controls — so the two could drift without either looking
        wrong on its own. `DATA.posts` is still read by the feed, which is the one place that draws
        them now. */
+    /* ---------- A LINK'S OWN WORDS, WHICH THE SEARCH BOX COULD NOT SEE --------------------------
+       MEASURED: **115 of the 127 links carry a `description` and not one of them was searchable.**
+       The haystack in `stuffFind` is `name + sub + subject + slot + grade + text`, and a link had
+       no `text`, so it was findable by its title and by nothing else. Typing `periodic` found the
+       periodic table only because somebody had the sense to call it "Periodic table"; typing
+       `past papers` found nothing, on a list holding four sites that are nothing but past papers.
+
+       FOURTH TIME THIS FILE RECORDS THE SAME SENTENCE — after `topics`, after `company` and after
+       the practical guides: the words are in the row, the search box cannot see them, and a screen
+       whose whole job is finding things returns nothing for the thing it holds.
+
+       THE CATEGORY IS IN IT TOO, because "science" and "revision" are what somebody types when
+       they do not remember what a site is called, and the category is the only place either word
+       appears. Built onto the item, not matched per keystroke — `stuffItems` is memoised and runs
+       once; `stuffFind` runs on every letter. */
     ...(DATA.links || []).filter(l => l.title).map(l => ({
       kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
       row: l, category: l.category || '',
+      text: plainText_((l.description || '') + ' ' + (l.category || '')),
     })),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
@@ -5796,7 +5812,29 @@ on('fav', el => {
      pages in front of it. */
   /* STAY ON THE CARD YOU STARRED. A star adds or removes a page in front of the question, so the
      index shifts — `paintStuff` moves it by exactly that much rather than sending you to the top. */
-  if ($('s-stuff')) paintStuff(true);
+
+  /* ---------- AND EVERY OTHER COLUMN THAT LISTS WHAT IS KEPT --------------------------------------
+     REPORTED AS "if i favourite something it does appear in right place, but then if i unfavourite
+     it from the favourites tab its buggy and not responsive. should just dissapear."
+
+     IT NEVER DISAPPEARED. This rebuilt `s-stuff` and nothing else, so unstarring from the Saved
+     column took the row out of `FAVS`, relabelled the tile, repainted a screen you were not on, and
+     left the card sitting exactly where it was. The only thing that moved was the word on the
+     button — which reads as a tap that half-worked, because it is one.
+
+     THREE CASES AND THEY ARE NOT THE SAME. On Saved, the card is a PAGE and removing it removes a
+     page, so the column has to be rebuilt and the position clamped. On Find, a star adds or removes
+     a page in front of the question, which is what `paintStuff(true)` already handles. Anywhere
+     else — Tools, Games, a person's card — the card stays and is correct; what is now wrong is the
+     Saved column you are not looking at.
+
+     SO THE OTHERS ARE MARKED RATHER THAN REDRAWN, which is what `STALE` is for and what
+     `receipt.js` already does for the booking column. Redrawing Tools from here would be worse than
+     the bug: `paint` replaces the markup, `startScreen_` restarts what was in it, and unstarring a
+     timer would put it back to 25:00. */
+  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
+  if (AT === 'saved') { repaint(true); return; }
+  if (AT === 'stuff' && $('s-stuff')) paintStuff(true);
 });
 
 function stuffCard(x, credits) {

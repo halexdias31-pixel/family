@@ -216,9 +216,25 @@ function initMiniCalc() {
       const was = expr;
       try {
         let t = calcNormalise_(expr);
+        /* ---------- THE BRACKET THE KEY OPENED, CLOSED FOR YOU --------------------------------------
+           REPORTED AS "calulator sin cos and tan doesnt really work". Measured: `sin(30)` is 0.5,
+           `cos(60)` is 0.5 and `tan(45)` is 1, all correct. `sin(30` -- with no closing bracket --
+           is **Error**, and that is the whole complaint: the `sin` key puts in `sin(` and every
+           calculator anybody has held closes it for them. Press sin, 3, 0, = on a Casio and you get
+           0.5; here you had to remember a bracket the machine had opened on your behalf.
+
+           ONLY AT `=`, and only the ones left open, so nothing is added to what is on screen while
+           it is being typed and an expression that is already balanced is untouched. */
+        const open = (t.match(/\(/g) || []).length - (t.match(/\)/g) || []).length;
+        if (open > 0) t += ')'.repeat(open);
         // degree trig
         t = t.replace(/\b(sin|cos|tan)\(/g, '$1(DEG*');
         let result;
+        /* `window.math` IS NEVER LOADED BY ANYTHING HERE, measured across index.html and every
+           file in `js/` -- so the branch below has never run and the fallback is what the
+           calculator has always been. It stays because it is the right thing to use IF a maths
+           library is ever added, and because deleting it would leave the fallback looking like a
+           fallback for nothing. The arithmetic was proved on the path that actually runs. */
         if (window.math) {
           result = window.math.evaluate(t, { pi: Math.PI, DEG: Math.PI / 180 });
         } else {
@@ -908,6 +924,66 @@ const HERD_BUILTIN = [
   'Name a sound that makes everybody look up.',
   'Name something you own too many of.',
   'Name a rule everybody breaks.',
+
+  /* ---------- AND EIGHTY MORE, SO THE DECK IS A HUNDRED ------------------------------------
+     THE COUNT WAS THE COMPLAINT and the deck was half of it: twenty questions is a deck you
+     reach the end of in a lesson, which is what made the round counter under it true enough
+     to be annoying. A hundred is a number nobody reaches.
+
+     TEN OF THESE WERE THROWN OUT BEFORE THEY GOT HERE, by a reviewer that had to try to
+     refute the deck rather than approve it, and every one of the ten is worth knowing:
+     `Name a colour` and `Name a shape` have nothing to decide (blue, and circle-or-square);
+     `Name something you would find in a library` has exactly one answer; `Name a reason a
+     train is late` rewards knowing rather than guessing, and splits an adult from a child;
+     `Name a school trip everybody goes on` and `Name a pudding they serve at school` are
+     both the rule about never asking a child what their family has, in a costume; and four
+     were near-duplicates of cards already above them. A question with one obvious answer is
+     not a herd question, because there is no herd to match. */
+  'Name a biscuit.', 'Name a flavour of crisps.', 'Name something people put on toast.',
+  'Name a sandwich filling.', 'Name a vegetable children leave on the side of the plate.',
+  'Name a topping on a pizza.', 'Name something people put on chips.',
+  'Name a pudding that is better with custard.', 'Name a drink for a cold day.',
+  'Name a food that is better the next day.',
+  'Name something you would never eat for breakfast.', 'Name something that melts too quickly.',
+  'Name an animal you would see at the zoo.', 'Name a bird you see in a garden.',
+  'Name an animal that is faster than you.', 'Name a farm animal.', 'Name a sea creature.',
+  'Name something a dog does that a cat never would.',
+  'Name something a teacher says every day.', 'Name something everybody wants the last one of.',
+  'Name something you are not allowed to bring into school.',
+  'Name a PE activity nobody looks forward to.',
+  'Name something every classroom has on the wall.', 'Name an excuse for late homework.',
+  'Name something that happens on the last day of term.',
+  'Name something sold at a school fair.', 'Name something written on a whiteboard.',
+  'Name something everybody borrows and never gives back.',
+  'Name a chore nobody volunteers for.', 'Name something found down the back of a sofa.',
+  'Name something everybody keeps in a kitchen drawer.',
+  'Name something that is always running out.', 'Name a noise a house makes at night.',
+  'Name something you would find in a shed.',
+  'Name something that only works if you give it a thump.',
+  'Name something you would use to prop a door open.', 'Name something you do before bed.',
+  'Name something that makes a room feel cosy.', 'Name something the weather ruins.',
+  'Name something you need when it rains.', 'Name a month with nothing good in it.',
+  'Name something you would find on a British beach.', 'Name something you do on a wet Sunday.',
+  'Name a kind of shop on every high street.', 'Name something you see from a bus window.',
+  'Name something that is always too hot to eat straight away.',
+  'Name something you hear at a railway station.', 'Name something that only happens in summer.',
+  'Name something you pack and never use.', 'Name a way to pass the time on a long journey.',
+  'Name something that goes wrong on a car journey.', 'Name something you would take camping.',
+  'Name a country with better weather than here.', 'Name a way to travel.', 'Name a board game.',
+  'Name a playground game.', 'Name a sport played with a ball.',
+  'Name something you only ever use once a year.', 'Name a card game.',
+  'Name something that is always missing a piece.',
+  'Name an instrument that is loud to practise.', 'Name something that takes ages to dry.',
+  'Name a number between one and ten.', 'Name something that is always covered in fingerprints.',
+  'Name a fairy tale.', 'Name a nursery rhyme.', 'Name a superhero.',
+  'Name something that is always tangled.', 'Name a job that starts very early.',
+  'Name something that is impossible to open.', 'Name something that is always sticky.',
+  'Name something that is never as good as the advert.',
+  'Name something that is never charged when you need it.', 'Name something in a first aid kit.',
+  'Name something everybody pretends to enjoy.',
+  'Name something people say when they are not listening.',
+  'Name a phrase adults use far too often.', 'Name something you cannot do quietly.',
+  'Name something that is worth queueing for.', 'Name something that is easier with two people.'
 ];
 
 let herd = null;
@@ -934,10 +1010,24 @@ function herdPack_() {
   return rows.length ? rows : HERD_BUILTIN;
 }
 
+/* ---------- THERE IS NO ROUND, AND THERE NEVER SHOULD HAVE BEEN ONE ------------------------------
+   REPORTED AS "herd mentality shouldnt be that 20 question round thing. should be much simpler,
+   just questions on random. and random each time."
+
+   THE COUNTER WAS THE WHOLE OF IT. The deal was already a Fisher-Yates shuffle and already
+   reshuffled at the end, so the questions really were random — and the card said `3 of 20 · round
+   2` underneath them, which is a scoreboard for a game that has no score and turns an endless
+   deal into a twenty-question test you are part-way through. A number on screen is a claim that
+   the number matters.
+
+   SO THE COUNT IS GONE AND THE DEAL IS UNCHANGED. Shuffled, dealt one at a time, reshuffled when
+   it runs out — which with a hundred questions is a thing nobody reaches in a lesson. The shuffle
+   is still Fisher-Yates and the reason is still the one above it: a bag beats picking at random
+   every tap, because picking at random repeats, and a question you have just answered coming
+   straight back is the one thing that reads as broken. */
 function initHerd() {
   if (!$('herd-q')) return;
-  const pack = herdPack_();
-  herd = { pack: herdShuffle_(pack), at: 0, round: 1 };
+  herd = { pack: herdShuffle_(herdPack_()), at: 0 };
   herdPaint();
 }
 
@@ -945,23 +1035,16 @@ function herdPaint() {
   const q = $('herd-q');
   if (!q || !herd) return;
   q.textContent = herd.pack[herd.at] || '';
-  const n = $('herd-count');
-  if (n) {
-    n.textContent = (herd.at + 1) + ' of ' + herd.pack.length
-                  + (herd.round > 1 ? ' · round ' + herd.round : '');
-  }
 }
 
 on('herd-next', () => {
   if (!herd) return;
   herd.at++;
-  /* THE PACK IS RESHUFFLED WHEN IT RUNS OUT, and the round counter says so — otherwise reaching the
-     end and starting again looks like the same questions coming round in the same order, which is
-     the one thing a shuffle is supposed to prevent. */
+  /* RESHUFFLED WHEN IT RUNS OUT, silently. Nothing says so, because nothing needs to: a hundred
+     questions later is not a moment anybody is keeping track of. */
   if (herd.at >= herd.pack.length) {
     herd.pack = herdShuffle_(herdPack_());
     herd.at = 0;
-    herd.round++;
   }
   herdPaint();
 });
@@ -1133,4 +1216,279 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   mzMove_(k);
   mazePaint();
+});
+
+/* ==================================================================================================
+   ARTICULATE — describe it without saying it.
+
+   ASKED FOR AS "can we add articulate to the games widgets". The board game: you land on a
+   category, and for thirty seconds you describe as many of its words as you can without saying the
+   word, a word that rhymes with it, or its initials. Your team guesses. Got it, or pass.
+
+   THE SPINNER IS THE ONE PIECE THAT DOES NOT SURVIVE. On the board the category is decided by where
+   your counter lands, which is a fact about a board this app does not have — so the category is
+   chosen, which is the same decision one step earlier and is also the screen this widget needs
+   anyway: six buttons is a first page that explains the game without a paragraph.
+
+   THIRTY SECONDS, WHICH IS THE GAME'S OWN NUMBER, and the reason the deck is only about twenty
+   words a category: nobody gets through twenty in thirty seconds, so a round never repeats a word
+   and the list does not have to be huge to behave as though it were.
+
+   NO SCORE IS KEPT BETWEEN ROUNDS. Articulate is scored by moving a counter, which is a thing the
+   people playing do; an app that remembered it would be keeping half a game and inviting somebody
+   to look for the other half. The round's own count is on screen while it matters and gone after.
+================================================================================================== */
+const ART_DECK = {
+  Object: ['umbrella', 'kettle', 'stapler', 'ladder', 'trampoline', 'harmonica', 'wheelbarrow',
+           'telescope', 'zip', 'hoover', 'candle', 'passport', 'skateboard', 'saucepan',
+           'toothbrush', 'seatbelt', 'chandelier', 'padlock', 'compass', 'radiator',
+           'hourglass', 'lawnmower', 'wheelie bin', 'megaphone', 'jigsaw puzzle', 'escalator',
+           'washing line', 'hammock', 'weathervane', 'drawing pin'
+  ],
+  Nature: ['avalanche', 'hedgehog', 'thunderstorm', 'coral reef', 'acorn', 'glacier', 'moth',
+           'quicksand', 'rainbow', 'beaver', 'tide', 'fossil', 'cactus', 'eclipse', 'swamp',
+           'pollen', 'volcano', 'otter', 'frost', 'mushroom',
+           'badger', 'waterfall', 'dandelion', 'tadpole', 'whirlpool', 'icicle', 'puffin',
+           'nettle', 'sand dune', 'conker'
+  ],
+  Action: ['juggling', 'whispering', 'sneezing', 'hitchhiking', 'tiptoeing', 'yawning',
+           'hibernating', 'shrugging', 'wrestling', 'queueing', 'gargling', 'skimming a stone',
+           'blushing', 'haggling', 'eavesdropping', 'sprinting', 'knitting', 'shivering',
+           'applauding', 'daydreaming',
+           'whistling', 'somersaulting', 'sleepwalking', 'abseiling', 'tying a shoelace',
+           'blowing out candles', 'plaiting hair', 'revising', 'snorkelling', 'sulking'
+  ],
+  World: ['Iceland', 'the Sahara', 'Mount Everest', 'the Amazon', 'Venice', 'the Great Wall',
+          'Antarctica', 'Tokyo', 'the Nile', 'Stonehenge', 'the Alps', 'Cairo', 'New Zealand',
+          'the Panama Canal', 'Lisbon', 'the Dead Sea', 'Kenya', 'Niagara Falls', 'Sicily',
+          'the Arctic Circle',
+           'the Eiffel Tower', 'Loch Ness', 'the Grand Canyon', 'Big Ben', 'Machu Picchu',
+           'the Channel Tunnel', 'the Colosseum', 'the Taj Mahal', 'the Lake District',
+           'the Sydney Opera House'
+  ],
+  Person: ['a lifeguard', 'a blacksmith', 'a referee', 'an astronaut', 'a plumber', 'a busker',
+           'a detective', 'a midwife', 'a lighthouse keeper', 'a beekeeper', 'a paramedic',
+           'a librarian', 'a sculptor', 'a chimney sweep', 'a surgeon', 'a tour guide',
+           'a lollipop lady', 'an archaeologist', 'a barista', 'a train driver',
+           'a window cleaner', 'a magician', 'a vet', 'a shepherd', 'a park ranger',
+           'a goalkeeper', 'a puppeteer', 'a weather forecaster', 'a caretaker',
+           'a stunt double'
+  ],
+  Random: ['jet lag', 'a leap year', 'homesickness', 'a power cut', 'déjà vu', 'the alphabet',
+           'a rumour', 'a traffic jam', 'small talk', 'a nickname', 'bad luck', 'an alibi',
+           'a bargain', 'a heatwave', 'stage fright', 'a countdown', 'an echo', 'a punchline',
+           'a shortcut', 'a coincidence',
+           'a tongue twister', 'a time capsule', 'a sleepover', 'a riddle', 'a head start',
+           'a false alarm', 'a cliffhanger', 'an apology', 'a wild goose chase',
+           'a wrong number'
+  ],
+};
+
+/* ==================================================================================================
+   CHARADES — the same round, mimed instead of described.
+
+   ASKED FOR AS "add cherades widget game as well... idk whats difference between cherades and
+   articulate in this case to be honest." It is a fair question and the answer decides both decks:
+
+     ARTICULATE is DESCRIBED. You may say anything except the word, a rhyme and its initials. So
+       its deck can hold an abstract noun — `stage fright`, `a lighthouse keeper`, `deja vu`.
+     CHARADES is MIMED. No words, no sounds, no pointing at something in the room. So every entry
+       has to be something a BODY can show: a title everybody knows the shape of, or a thing you
+       physically do. An abstract noun is a dead charades card.
+
+   THAT IS WHY THE DECKS ARE DIFFERENT AND WHY THE ROUND IS THE SAME, which is exactly the split
+   this repository keeps making between an ENGINE and the rows it reads. One implementation, two
+   decks, two verbs — a second copy of "deal a word, count thirty, keep score" would be the
+   `documents_()` fault in a fourth costume.
+
+   SIXTY SECONDS RATHER THAN THIRTY, and it is not a preference: a mime takes longer to read than a
+   sentence does, and Articulate's thirty is the board game's own number while charades has never
+   had one. */
+const CHA_DECK = {
+  /* THIRTY EACH, AND `Action` IS THE ONE THAT HAD TO BE STRONGEST — it is the category that
+     always plays, because a title only works if the room has seen it and a thing you DO always
+     works. Eleven cards were thrown out by a reviewer before they got here, and the sharpest
+     was `trying to do a handstand against a wall`: charades is MIMED, so the mime of a
+     handstand IS a handstand, in somebody else's front room, next to the furniture. Five quiz
+     shows went because a desk and a buzzer mime as nothing, and `The Snowman` went because it
+     is a Christmas card dealt in June. `Countdown` went for both reasons AND a third: it
+     collided with ARTICULATE's `a countdown`, and the two games are pages of ONE column, so
+     the same word could be dealt twice in a sitting. That collision is checked now rather
+     than remembered — see `check-widgets.js`. */
+  Film: [
+    'Jurassic Park', 'Finding Nemo', 'Toy Story', 'Paddington', 'The Lion King', 'Frozen',
+    'Harry Potter', 'Shrek', 'E.T. the Extra-Terrestrial', 'The Wizard of Oz', 'Mary Poppins',
+    'Chitty Chitty Bang Bang', '101 Dalmatians', 'Wallace and Gromit', 'Chicken Run',
+    'Despicable Me', 'Ratatouille', 'Up', 'The Incredibles', 'Ice Age', 'Star Wars',
+    'The Sound of Music', 'Peter Pan', 'Moana', 'Kung Fu Panda', 'How to Train Your Dragon',
+    'Babe', 'Nanny McPhee', 'Madagascar', 'Night at the Museum'
+  ],
+  TV: [
+    'Bake Off', 'Doctor Who', 'Strictly Come Dancing', 'Blue Peter', 'Top Gear',
+    'Only Fools and Horses', 'Match of the Day', 'Ninja Warrior', 'Peppa Pig', 'Postman Pat',
+    'Fireman Sam', 'Thomas the Tank Engine', 'Bob the Builder', 'Teletubbies', 'Shaun the Sheep',
+    'Horrible Histories', 'The Chase', 'Robot Wars', 'Mastermind', 'Art Attack',
+    'SpongeBob SquarePants', 'Scooby Doo', 'Tom and Jerry', 'The Simpsons', 'Danger Mouse',
+    'Mr Bean', 'Gladiators', 'Dragons Den', 'The Repair Shop', 'The Crystal Maze'
+  ],
+  Book: [
+    'Matilda', 'The Gruffalo', 'Treasure Island', 'The Hobbit', 'Robinson Crusoe',
+    'Charlie and the Chocolate Factory', 'James and the Giant Peach', 'The BFG',
+    'Fantastic Mr Fox', 'The Twits', 'The Lion the Witch and the Wardrobe', 'The Jungle Book',
+    'Alice in Wonderland', 'The Wind in the Willows', 'Winnie the Pooh',
+    'The Very Hungry Caterpillar', 'Where the Wild Things Are', 'The Railway Children',
+    'The Secret Garden', 'Swallows and Amazons', 'Black Beauty', 'The Tiger Who Came to Tea',
+    'Room on the Broom', 'The Worst Witch', 'Horrid Henry', 'Diary of a Wimpy Kid',
+    'Stig of the Dump', 'The Iron Man', 'Around the World in Eighty Days', 'The Cat in the Hat'
+  ],
+  Song: [
+    'Happy Birthday', 'Twinkle Twinkle Little Star', 'YMCA', 'We Will Rock You',
+    'Row Row Row Your Boat', 'The Hokey Cokey', 'The Wheels on the Bus',
+    'Head Shoulders Knees and Toes', 'If You Are Happy and You Know It',
+    'Old MacDonald Had a Farm', 'Incy Wincy Spider', 'I Am a Little Teapot', 'Five Little Ducks',
+    'Ten Green Bottles', 'One Man Went to Mow', 'The Grand Old Duke of York',
+    'London Bridge is Falling Down', 'Baa Baa Black Sheep', 'Humpty Dumpty',
+    'Hickory Dickory Dock', 'Jack and Jill', 'Pop Goes the Weasel', 'Twist and Shout',
+    'The Animals Went in Two by Two', 'You Are My Sunshine', 'The Macarena',
+    'Singing in the Rain', 'Yellow Submarine', 'Walking on Sunshine', 'Here Comes the Sun'
+  ],
+  Action: [
+    'building a flat-pack wardrobe', 'walking a dog that will not walk',
+    'carrying too many shopping bags', 'putting up a tent in the wind', 'trying to open a jar',
+    'wrapping an awkward present', 'getting chewing gum off a shoe', 'parallel parking',
+    'changing a duvet cover', 'steering a shopping trolley with a wonky wheel',
+    'getting stuck halfway out of a jumper', 'blowing up a balloon until it goes pop',
+    'eating a chip that is far too hot', 'untangling a pair of headphones',
+    'doing up a tie for the first time', 'catching a spider under a glass to put it outside',
+    'carrying a full mug of tea across a room', 'swatting a fly that keeps landing on you',
+    'pulling on a pair of wet wellies', 'cleaning a window that is still smeary',
+    'painting a ceiling and getting drips on your face', 'peeling a satsuma in one long piece',
+    'hunting for your keys at the bottom of a deep bag',
+    'skipping with a rope that keeps catching your feet',
+    'washing up in rubber gloves that are too big', 'fishing the last crisp out of the packet',
+    'running for a train and just missing it', 'threading a needle and missing every time',
+    'icing a cake with a wobbly hand', 'folding a big map back up the way it was'
+  ],
+}
+
+/* ==================================================================================================
+   ONE ROUND, TWO GAMES.
+
+   `secs` IS THE ONLY NUMBER, `deck` IS THE ONLY CONTENT and `say` IS THE ONLY SENTENCE that differ.
+   Everything else — dealing without repeats, the clock, the count, the three states the card can be
+   in — is written once. A third game of this shape is a row here.
+
+   THE DECK IS A FUNCTION rather than the object, so a deck replaced at runtime is read rather than
+   captured. Same reason `factsNow_` is a call and not a constant. */
+const ROUND_GAMES = {
+  art: { secs: 30, deck: () => ART_DECK, name: 'Articulate',
+         say: 'Describe it. Not the word, not a rhyme, not the initials.' },
+  cha: { secs: 60, deck: () => CHA_DECK, name: 'Charades',
+         say: 'Act it out. No words, no sounds, no pointing.' },
+};
+
+/* ONE STATE PER GAME, not one shared. Both cards can be on the screen at once — they are two pages
+   of the same column — and a single state would have the second one wiping the first's clock. */
+const roundAt = { art: null, cha: null };
+
+function roundPick_(k) {
+  /* THE CATEGORY IS CHOSEN FOR YOU, and that is the change the owner asked for: "less friction if
+     it just decides topic and the thing". It was six buttons, which is a decision nobody wanted to
+     make and a screen between somebody and the game. On the board the category is decided by where
+     your counter lands — random is closer to that than a menu ever was. The chip on the card still
+     says which one came up, because you have to know what you are describing. */
+  const deck = ROUND_GAMES[k].deck();
+  const cats = Object.keys(deck);
+  return cats[Math.floor(Math.random() * cats.length)];
+}
+
+function roundStop_(k) {
+  const s = roundAt[k];
+  if (s && s.timer) { clearInterval(s.timer); s.timer = 0; }
+}
+
+/* DRAWN FROM THE STATE, never patched by the handler that changed it — the `REEL_HELD` rule. A
+   mark a press puts on the element is a mark the next repaint throws away while the state keeps
+   it, and the result is a card showing one thing while the app believes another. */
+function roundPaint(k) {
+  const g = ROUND_GAMES[k];
+  const card = $(k + '-card'), said = $(k + '-said'), left = $(k + '-left'), got = $(k + '-got');
+  if (!card || !g) return;
+  const s = roundAt[k];
+  if (!s || s.phase === 'idle') {
+    card.innerHTML = `<button class="art-go" data-do="rg-start" data-g="${esc(k)}">Start</button>`;
+    if (said) said.textContent = g.say;
+    if (left) left.textContent = String(g.secs);
+    if (got) got.textContent = '0';
+    return;
+  }
+  if (s.phase === 'done') {
+    card.innerHTML = `<p class="art-over">Time</p>
+      <p class="art-score">${s.score}</p>
+      <p class="art-cat-of">${esc(s.cat)}</p>`;
+    if (said) said.textContent = 'Start again for another.';
+    if (left) left.textContent = '0';
+    return;
+  }
+  card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
+    <p class="art-word">${esc(s.word || '')}</p>`;
+  if (said) said.textContent = g.say;
+  if (left) left.textContent = String(s.left);
+  if (got) got.textContent = String(s.score);
+}
+
+function roundNext_(k) {
+  const s = roundAt[k];
+  if (!s) return;
+  /* DEALT FROM A SHUFFLED PILE, refilled when it empties, so one round cannot show a word twice —
+     which is the whole reason a category does not have to be enormous to behave as though it were.
+     `herdShuffle_` because it is Fisher-Yates and the sort trick is the famous wrong one; the note
+     over it says why. */
+  if (!s.pile.length) s.pile = herdShuffle_(ROUND_GAMES[k].deck()[s.cat] || []);
+  s.word = s.pile.pop() || '';
+}
+
+function initRound(k) {
+  if (!$(k + '-card')) return;
+  roundStop_(k);
+  roundAt[k] = null;
+  roundPaint(k);
+}
+
+on('rg-start', el => {
+  const k = el.getAttribute('data-g');
+  const g = ROUND_GAMES[k];
+  if (!g) return;
+  roundStop_(k);
+  const cat = roundPick_(k);
+  roundAt[k] = { phase: 'go', cat: cat, score: 0, left: g.secs, word: '',
+                 pile: herdShuffle_(g.deck()[cat] || []), timer: 0 };
+  roundNext_(k);
+  roundAt[k].timer = setInterval(() => {
+    const s = roundAt[k];
+    if (!s || s.phase !== 'go') return;
+    s.left--;
+    if (s.left <= 0) { s.phase = 'done'; roundStop_(k); }
+    roundPaint(k);
+  }, 1000);
+  roundPaint(k);
+});
+
+/* GOT IT AND PASS ARE THE SAME MOVE with one number different, so they are one handler — two would
+   be two places to get "deal the next one" wrong. */
+on('rg-next', el => {
+  const k = el.getAttribute('data-g');
+  const s = roundAt[k];
+  if (!s || s.phase !== 'go') return;
+  if (el.getAttribute('data-got') === '1') s.score++;
+  roundNext_(k);
+  roundPaint(k);
+});
+
+on('rg-again', el => {
+  const k = el.getAttribute('data-g');
+  if (!ROUND_GAMES[k]) return;
+  roundStop_(k);
+  roundAt[k] = null;
+  roundPaint(k);
 });
