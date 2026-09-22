@@ -924,6 +924,66 @@ const HERD_BUILTIN = [
   'Name a sound that makes everybody look up.',
   'Name something you own too many of.',
   'Name a rule everybody breaks.',
+
+  /* ---------- AND EIGHTY MORE, SO THE DECK IS A HUNDRED ------------------------------------
+     THE COUNT WAS THE COMPLAINT and the deck was half of it: twenty questions is a deck you
+     reach the end of in a lesson, which is what made the round counter under it true enough
+     to be annoying. A hundred is a number nobody reaches.
+
+     TEN OF THESE WERE THROWN OUT BEFORE THEY GOT HERE, by a reviewer that had to try to
+     refute the deck rather than approve it, and every one of the ten is worth knowing:
+     `Name a colour` and `Name a shape` have nothing to decide (blue, and circle-or-square);
+     `Name something you would find in a library` has exactly one answer; `Name a reason a
+     train is late` rewards knowing rather than guessing, and splits an adult from a child;
+     `Name a school trip everybody goes on` and `Name a pudding they serve at school` are
+     both the rule about never asking a child what their family has, in a costume; and four
+     were near-duplicates of cards already above them. A question with one obvious answer is
+     not a herd question, because there is no herd to match. */
+  'Name a biscuit.', 'Name a flavour of crisps.', 'Name something people put on toast.',
+  'Name a sandwich filling.', 'Name a vegetable children leave on the side of the plate.',
+  'Name a topping on a pizza.', 'Name something people put on chips.',
+  'Name a pudding that is better with custard.', 'Name a drink for a cold day.',
+  'Name a food that is better the next day.',
+  'Name something you would never eat for breakfast.', 'Name something that melts too quickly.',
+  'Name an animal you would see at the zoo.', 'Name a bird you see in a garden.',
+  'Name an animal that is faster than you.', 'Name a farm animal.', 'Name a sea creature.',
+  'Name something a dog does that a cat never would.',
+  'Name something a teacher says every day.', 'Name something everybody wants the last one of.',
+  'Name something you are not allowed to bring into school.',
+  'Name a PE activity nobody looks forward to.',
+  'Name something every classroom has on the wall.', 'Name an excuse for late homework.',
+  'Name something that happens on the last day of term.',
+  'Name something sold at a school fair.', 'Name something written on a whiteboard.',
+  'Name something everybody borrows and never gives back.',
+  'Name a chore nobody volunteers for.', 'Name something found down the back of a sofa.',
+  'Name something everybody keeps in a kitchen drawer.',
+  'Name something that is always running out.', 'Name a noise a house makes at night.',
+  'Name something you would find in a shed.',
+  'Name something that only works if you give it a thump.',
+  'Name something you would use to prop a door open.', 'Name something you do before bed.',
+  'Name something that makes a room feel cosy.', 'Name something the weather ruins.',
+  'Name something you need when it rains.', 'Name a month with nothing good in it.',
+  'Name something you would find on a British beach.', 'Name something you do on a wet Sunday.',
+  'Name a kind of shop on every high street.', 'Name something you see from a bus window.',
+  'Name something that is always too hot to eat straight away.',
+  'Name something you hear at a railway station.', 'Name something that only happens in summer.',
+  'Name something you pack and never use.', 'Name a way to pass the time on a long journey.',
+  'Name something that goes wrong on a car journey.', 'Name something you would take camping.',
+  'Name a country with better weather than here.', 'Name a way to travel.', 'Name a board game.',
+  'Name a playground game.', 'Name a sport played with a ball.',
+  'Name something you only ever use once a year.', 'Name a card game.',
+  'Name something that is always missing a piece.',
+  'Name an instrument that is loud to practise.', 'Name something that takes ages to dry.',
+  'Name a number between one and ten.', 'Name something that is always covered in fingerprints.',
+  'Name a fairy tale.', 'Name a nursery rhyme.', 'Name a superhero.',
+  'Name something that is always tangled.', 'Name a job that starts very early.',
+  'Name something that is impossible to open.', 'Name something that is always sticky.',
+  'Name something that is never as good as the advert.',
+  'Name something that is never charged when you need it.', 'Name something in a first aid kit.',
+  'Name something everybody pretends to enjoy.',
+  'Name something people say when they are not listening.',
+  'Name a phrase adults use far too often.', 'Name something you cannot do quietly.',
+  'Name something that is worth queueing for.', 'Name something that is easier with two people.'
 ];
 
 let herd = null;
@@ -1181,26 +1241,47 @@ document.addEventListener('keydown', e => {
 const ART_DECK = {
   Object: ['umbrella', 'kettle', 'stapler', 'ladder', 'trampoline', 'harmonica', 'wheelbarrow',
            'telescope', 'zip', 'hoover', 'candle', 'passport', 'skateboard', 'saucepan',
-           'toothbrush', 'seatbelt', 'chandelier', 'padlock', 'compass', 'radiator'],
+           'toothbrush', 'seatbelt', 'chandelier', 'padlock', 'compass', 'radiator',
+           'hourglass', 'lawnmower', 'wheelie bin', 'megaphone', 'jigsaw puzzle', 'escalator',
+           'washing line', 'hammock', 'weathervane', 'drawing pin'
+  ],
   Nature: ['avalanche', 'hedgehog', 'thunderstorm', 'coral reef', 'acorn', 'glacier', 'moth',
            'quicksand', 'rainbow', 'beaver', 'tide', 'fossil', 'cactus', 'eclipse', 'swamp',
-           'pollen', 'volcano', 'otter', 'frost', 'mushroom'],
+           'pollen', 'volcano', 'otter', 'frost', 'mushroom',
+           'badger', 'waterfall', 'dandelion', 'tadpole', 'whirlpool', 'icicle', 'puffin',
+           'nettle', 'sand dune', 'conker'
+  ],
   Action: ['juggling', 'whispering', 'sneezing', 'hitchhiking', 'tiptoeing', 'yawning',
            'hibernating', 'shrugging', 'wrestling', 'queueing', 'gargling', 'skimming a stone',
            'blushing', 'haggling', 'eavesdropping', 'sprinting', 'knitting', 'shivering',
-           'applauding', 'daydreaming'],
+           'applauding', 'daydreaming',
+           'whistling', 'somersaulting', 'sleepwalking', 'abseiling', 'tying a shoelace',
+           'blowing out candles', 'plaiting hair', 'revising', 'snorkelling', 'sulking'
+  ],
   World: ['Iceland', 'the Sahara', 'Mount Everest', 'the Amazon', 'Venice', 'the Great Wall',
           'Antarctica', 'Tokyo', 'the Nile', 'Stonehenge', 'the Alps', 'Cairo', 'New Zealand',
           'the Panama Canal', 'Lisbon', 'the Dead Sea', 'Kenya', 'Niagara Falls', 'Sicily',
-          'the Arctic Circle'],
+          'the Arctic Circle',
+           'the Eiffel Tower', 'Loch Ness', 'the Grand Canyon', 'Big Ben', 'Machu Picchu',
+           'the Channel Tunnel', 'the Colosseum', 'the Taj Mahal', 'the Lake District',
+           'the Sydney Opera House'
+  ],
   Person: ['a lifeguard', 'a blacksmith', 'a referee', 'an astronaut', 'a plumber', 'a busker',
            'a detective', 'a midwife', 'a lighthouse keeper', 'a beekeeper', 'a paramedic',
            'a librarian', 'a sculptor', 'a chimney sweep', 'a surgeon', 'a tour guide',
-           'a lollipop lady', 'an archaeologist', 'a barista', 'a train driver'],
+           'a lollipop lady', 'an archaeologist', 'a barista', 'a train driver',
+           'a window cleaner', 'a magician', 'a vet', 'a shepherd', 'a park ranger',
+           'a goalkeeper', 'a puppeteer', 'a weather forecaster', 'a caretaker',
+           'a stunt double'
+  ],
   Random: ['jet lag', 'a leap year', 'homesickness', 'a power cut', 'déjà vu', 'the alphabet',
            'a rumour', 'a traffic jam', 'small talk', 'a nickname', 'bad luck', 'an alibi',
            'a bargain', 'a heatwave', 'stage fright', 'a countdown', 'an echo', 'a punchline',
-           'a shortcut', 'a coincidence'],
+           'a shortcut', 'a coincidence',
+           'a tongue twister', 'a time capsule', 'a sleepover', 'a riddle', 'a head start',
+           'a false alarm', 'a cliffhanger', 'an apology', 'a wild goose chase',
+           'a wrong number'
+  ],
 };
 
 /* ==================================================================================================
@@ -1224,19 +1305,71 @@ const ART_DECK = {
    sentence does, and Articulate's thirty is the board game's own number while charades has never
    had one. */
 const CHA_DECK = {
-  Film:   ['Jurassic Park', 'Finding Nemo', 'Toy Story', 'Paddington', 'The Lion King',
-           'Frozen', 'Harry Potter', 'Jaws'],
-  TV:     ['Bake Off', 'Doctor Who', 'Strictly Come Dancing', 'Blue Peter', 'Top Gear',
-           'Only Fools and Horses', 'Match of the Day', 'Countdown'],
-  Book:   ['Matilda', 'The Gruffalo', 'Harry Potter', 'Treasure Island', 'Oliver Twist',
-           'The Hobbit', 'Charlotte\'s Web', 'Robinson Crusoe'],
-  Song:   ['Happy Birthday', 'Twinkle Twinkle Little Star', 'YMCA', 'Sweet Caroline',
-           'We Will Rock You', 'Jingle Bells', 'Row Row Row Your Boat', 'The Hokey Cokey'],
-  Action: ['building a flat-pack wardrobe', 'walking a dog that will not walk',
-           'carrying too many shopping bags', 'putting up a tent in the wind',
-           'trying to open a jar', 'wrapping an awkward present',
-           'getting chewing gum off a shoe', 'parallel parking'],
-};
+  /* THIRTY EACH, AND `Action` IS THE ONE THAT HAD TO BE STRONGEST — it is the category that
+     always plays, because a title only works if the room has seen it and a thing you DO always
+     works. Eleven cards were thrown out by a reviewer before they got here, and the sharpest
+     was `trying to do a handstand against a wall`: charades is MIMED, so the mime of a
+     handstand IS a handstand, in somebody else's front room, next to the furniture. Five quiz
+     shows went because a desk and a buzzer mime as nothing, and `The Snowman` went because it
+     is a Christmas card dealt in June. `Countdown` went for both reasons AND a third: it
+     collided with ARTICULATE's `a countdown`, and the two games are pages of ONE column, so
+     the same word could be dealt twice in a sitting. That collision is checked now rather
+     than remembered — see `check-widgets.js`. */
+  Film: [
+    'Jurassic Park', 'Finding Nemo', 'Toy Story', 'Paddington', 'The Lion King', 'Frozen',
+    'Harry Potter', 'Shrek', 'E.T. the Extra-Terrestrial', 'The Wizard of Oz', 'Mary Poppins',
+    'Chitty Chitty Bang Bang', '101 Dalmatians', 'Wallace and Gromit', 'Chicken Run',
+    'Despicable Me', 'Ratatouille', 'Up', 'The Incredibles', 'Ice Age', 'Star Wars',
+    'The Sound of Music', 'Peter Pan', 'Moana', 'Kung Fu Panda', 'How to Train Your Dragon',
+    'Babe', 'Nanny McPhee', 'Madagascar', 'Night at the Museum'
+  ],
+  TV: [
+    'Bake Off', 'Doctor Who', 'Strictly Come Dancing', 'Blue Peter', 'Top Gear',
+    'Only Fools and Horses', 'Match of the Day', 'Ninja Warrior', 'Peppa Pig', 'Postman Pat',
+    'Fireman Sam', 'Thomas the Tank Engine', 'Bob the Builder', 'Teletubbies', 'Shaun the Sheep',
+    'Horrible Histories', 'The Chase', 'Robot Wars', 'Mastermind', 'Art Attack',
+    'SpongeBob SquarePants', 'Scooby Doo', 'Tom and Jerry', 'The Simpsons', 'Danger Mouse',
+    'Mr Bean', 'Gladiators', 'Dragons Den', 'The Repair Shop', 'The Crystal Maze'
+  ],
+  Book: [
+    'Matilda', 'The Gruffalo', 'Treasure Island', 'The Hobbit', 'Robinson Crusoe',
+    'Charlie and the Chocolate Factory', 'James and the Giant Peach', 'The BFG',
+    'Fantastic Mr Fox', 'The Twits', 'The Lion the Witch and the Wardrobe', 'The Jungle Book',
+    'Alice in Wonderland', 'The Wind in the Willows', 'Winnie the Pooh',
+    'The Very Hungry Caterpillar', 'Where the Wild Things Are', 'The Railway Children',
+    'The Secret Garden', 'Swallows and Amazons', 'Black Beauty', 'The Tiger Who Came to Tea',
+    'Room on the Broom', 'The Worst Witch', 'Horrid Henry', 'Diary of a Wimpy Kid',
+    'Stig of the Dump', 'The Iron Man', 'Around the World in Eighty Days', 'The Cat in the Hat'
+  ],
+  Song: [
+    'Happy Birthday', 'Twinkle Twinkle Little Star', 'YMCA', 'We Will Rock You',
+    'Row Row Row Your Boat', 'The Hokey Cokey', 'The Wheels on the Bus',
+    'Head Shoulders Knees and Toes', 'If You Are Happy and You Know It',
+    'Old MacDonald Had a Farm', 'Incy Wincy Spider', 'I Am a Little Teapot', 'Five Little Ducks',
+    'Ten Green Bottles', 'One Man Went to Mow', 'The Grand Old Duke of York',
+    'London Bridge is Falling Down', 'Baa Baa Black Sheep', 'Humpty Dumpty',
+    'Hickory Dickory Dock', 'Jack and Jill', 'Pop Goes the Weasel', 'Twist and Shout',
+    'The Animals Went in Two by Two', 'You Are My Sunshine', 'The Macarena',
+    'Singing in the Rain', 'Yellow Submarine', 'Walking on Sunshine', 'Here Comes the Sun'
+  ],
+  Action: [
+    'building a flat-pack wardrobe', 'walking a dog that will not walk',
+    'carrying too many shopping bags', 'putting up a tent in the wind', 'trying to open a jar',
+    'wrapping an awkward present', 'getting chewing gum off a shoe', 'parallel parking',
+    'changing a duvet cover', 'steering a shopping trolley with a wonky wheel',
+    'getting stuck halfway out of a jumper', 'blowing up a balloon until it goes pop',
+    'eating a chip that is far too hot', 'untangling a pair of headphones',
+    'doing up a tie for the first time', 'catching a spider under a glass to put it outside',
+    'carrying a full mug of tea across a room', 'swatting a fly that keeps landing on you',
+    'pulling on a pair of wet wellies', 'cleaning a window that is still smeary',
+    'painting a ceiling and getting drips on your face', 'peeling a satsuma in one long piece',
+    'hunting for your keys at the bottom of a deep bag',
+    'skipping with a rope that keeps catching your feet',
+    'washing up in rubber gloves that are too big', 'fishing the last crisp out of the packet',
+    'running for a train and just missing it', 'threading a needle and missing every time',
+    'icing a cake with a wobbly hand', 'folding a big map back up the way it was'
+  ],
+}
 
 /* ==================================================================================================
    ONE ROUND, TWO GAMES.

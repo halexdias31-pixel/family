@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AQA GCSE Combined Science: Trilogy 8464/B/1H, June 2024 — Biology Paper 1H, 28 question rows
+"""AQA GCSE Combined Science: Trilogy 8464/B/1H, June 2024 — Biology Paper 1H, 27 question rows
 and 6 preambles. The document row is already in the file; this adds only what sits under it.
 
 WHERE EVERY ANSWER CAME FROM. `Mark scheme (Higher)_ Paper 1 Biology - June 2024.pdf`, which is
@@ -102,9 +102,13 @@ MINUS = lambda s: s.replace('-', '−')
 
 
 def t1():
-    head = ('<tr><th>Concentration of salt solution in mol/dm<sup>3</sup></th>'
-            '<th>Mass of tube at start in grams</th><th>Mass of tube after 2 hours in grams</th>'
-            '<th>Change in mass in grams</th><th>Percentage (%) change in mass</th></tr>')
+    # THE PAPER'S OWN TWO-ROW HEADER. Flattening it into five long headings was the first
+    # version and a screenshot is what refused it: "Mass of tube at start in grams" in a narrow
+    # column is seven lines of heading over a two-character number.
+    head = ('<tr><th rowspan="2">Concentration of salt solution in mol/dm<sup>3</sup></th>'
+            '<th colspan="3">Mass of tube in grams</th>'
+            '<th rowspan="2">Percentage (%) change in mass</th></tr>'
+            '<tr><th>At start</th><th>After 2 hours</th><th>Change</th></tr>')
     body = ''.join('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>'
                    % (c, s, a, MINUS(ch), '<b>X</b>' if p is None else MINUS(p))
                    for c, s, a, ch, p in TABLE1)
@@ -157,7 +161,7 @@ PHOTO4 = ('<p>A student investigated the relationship between temperature and th
 # (question, part, marks, answer_type, topics, figure, diagram, html, answer, examiner_note)
 Q = [
 ("1","1",2,"short",OG,"","", "<p>Glucose and fructose are different sugars. Fructose has a much sweeter taste than glucose.</p><p>Suggest <b>two</b> reasons why the drinks company uses fructose in the drink rather than using glucose.</p><p>Do not refer to sweetness in your answer.</p>",
- "Any two from: less fructose or sugar is needed (allow less sugar tax, allow more profit); it is cheaper to produce or to buy the drink (cheaper on its own is ignored); there is less energy in the drink, so people are more likely to buy it (allow fewer calories or joules). “Less sugar is needed so it would be cheaper” scores both marks. “Fructose is sweeter than glucose” is ignored.", ""),
+ "Any two from: less fructose or sugar is needed; it is cheaper to produce or to buy the drink — less sugar tax, or more profit (cheaper on its own is ignored); there is less energy in the drink, so people are more likely to buy it (fewer calories or joules is accepted). “Less sugar is needed so it would be cheaper” scores both marks on its own. “Fructose is sweeter than glucose” is ignored.", ""),
 ("1","2",3,"short",OG,"","", "<p>Describe how a student could test the drink for sugar.</p><p>Give the colour of a positive result.</p>",
  "Add Benedict’s reagent or solution (1); heat the reagent or solution (1) — any appropriate method of heating, and if a temperature is given it must be at least 60 °C; “warm” is ignored. Positive result: green, yellow, orange, brown or brick red (1). The starting colour is ignored.", ""),
 ("1","3",2,"short",OG,"","", "<p>Describe how a student could test the drink for protein.</p><p>Give the colour of a positive result.</p>",

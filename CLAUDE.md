@@ -8367,3 +8367,100 @@ that is refused before a path is ever sent.
 just saying no: a loop over the pattern downloads the set in one go, and **the Drive connector is
 not blocked** — which is how every other paper in this library arrived. The route is download,
 drop in a Drive folder, and the transcription happens here exactly as it does for AQA.
+
+## A hundred herd questions, and ten of them were thrown out by a reviewer told to refute
+
+**The decks were written by one agent each and then attacked by another**, whose instructions said
+a clean report over a deck with a bad card in it is worse than no review. It earned it: **24 of the
+290 cards were faulted**, and every one of the faults is a rule this file already states in another
+context.
+
+| | |
+|---|---|
+| `Name a colour.` · `Name a shape.` | **nothing to decide.** Blue, and circle-or-square. A herd question with one dominant answer is not a question, because there is no herd to match |
+| `Name something you would find in a library.` | exactly one answer — books |
+| `Name a reason a train is late.` | rewards knowing rather than guessing, and splits the adult in the room from the child |
+| `Name a school trip everybody goes on.` · `Name a pudding they serve at school.` | **the rule about never asking a child what their family has**, in a costume. A trip costs money and "everybody goes on" is false out loud in front of a parent |
+| `trying to do a handstand against a wall` | **charades is MIMED, so the mime of a handstand IS a handstand** — in somebody else's front room, beside the furniture. The sharpest finding in the set |
+| five quiz shows | a desk and a buzzer mime as nothing |
+| `The Snowman` | a Christmas card dealt in June, and a 26-minute television animation filed under Film |
+
+**Four were near-duplicates of a card three places above them** — `a ventriloquist` beside `a
+puppeteer` ("puppet" is the first clue either describer says, so the team shouts the other card),
+`cartwheeling` beside `somersaulting`, `Name a musical instrument` beside `Name an instrument that
+is loud to practise`.
+
+### The one it found that nothing else could have
+
+**`Countdown` was in the charades TV deck and `a countdown` is in Articulate's Random.** The two
+games are **pages of the same column**, so the same word could be dealt twice in one sitting — once
+to describe and once to mime — and the second time the room already knows the answer. The reviewer
+flagged it as pre-existing and supplied no replacement, which is the right call for a judgement.
+
+**It is a rule now rather than a repair**, which is this file's own sentence about `cost: 0` for the
+twelfth time: `check-widgets.js` reads both decks out of `games.js` and fails on a word in both,
+comparing with a leading article stripped because `a countdown` and `Countdown` are the same word to
+a room and different strings to a checker — the `spellKey_` argument one file along. **A deck it
+cannot read is a failure too**, not a pass, because *"I did not manage to look"* printed as *"I
+looked and it was fine"* is this repository's oldest fault. **Proved by mutation**: put `Countdown`
+back and it names both sides and exits 1.
+
+**And a double comma made an array hole.** The splice left `'…breaks.',,` — which is an elision, so
+`HERD_BUILTIN.length` was **101 with a `null` at index 20**, and the deck would have dealt a blank
+card roughly once a hundred taps. Caught by counting the deck in a real JS engine rather than by
+reading the diff; `100 / 180 / 150, unique, no holes` is the check that found it.
+
+## The home-screen app loads itself now, and three separate guards stop it looping
+
+**Asked for as "can you make it so added to homescreen version will always be up to date?"** The
+banner was the whole answer while the only safe thing to do was ASK — and in an installed app that
+is a sentence somebody has to notice and tap on a screen they opened to do something else.
+
+**The reason it only asked is four lines below the function, and it is not a small one.** `purge()`
+called `location.reload()` and became an infinite loop the day the site installed a worker of its
+own: register, purge, reload, register — for every visitor, with the app never finishing opening.
+
+**So the three things that make that impossible here, each doing a different job:**
+
+1. **It cannot loop**, because the reload is remembered against the TAG it was for. `purge`'s loop
+   was unconditional; this one has a fact to compare against, so a build that reloads and still
+   reports a different tag reloads **once** and then asks. `sessionStorage` rather than
+   `localStorage`, so it survives the reload and dies with the window.
+2. **Only on a resume, not an app-switch.** Six minutes away is somebody opening the app again;
+   twenty seconds is somebody answering a message, and reloading under them is taking the screen
+   away from somebody using it.
+3. **It never throws anything away.** An answer box persists on every keystroke and the notepad
+   saves as you type, so both are safe to reload over. A message being composed, a comment being
+   written, a profile being edited are not — anything typed and unsaved holds the reload and gets
+   the banner instead.
+
+**Measured in five states**, against a server whose ETag I could change by hand: no deploy and long
+away → nothing; a deploy 20 seconds away → the banner, no reload; a deploy 15 minutes away → it
+reloads onto the new build; **a deploy 15 minutes away with something typed → it holds and shows the
+banner**; and a reload followed by two more resumes that still report a different tag → **zero extra
+reloads**. The fourth of those was wrong the first time I measured it and the probe was at fault
+rather than the app — the only textarea on that fixture is the notepad, which is exempt, so the
+guard was never exercised until I typed into something that is not.
+
+## Corbettmaths 5-a-Day is its own category, and that is a `document_type`
+
+**Asked for as "its its own category, not to be confused with the other corbet maths work which is
+like topic learning. this is 5 a day. so i hope its navigated to sensibly in the finder."**
+
+**A worksheet and a 5-a-day are the same publisher and the opposite shape.** A worksheet is thirty
+questions on ONE topic, worked through once. A 5-a-day is five questions on five DIFFERENT topics,
+sat in ten minutes, every day of a month. `document_type` is what the funnel's Type question reads,
+so making `5-a-day` a value there is what puts the two in different answers instead of one pile —
+and the navigation is then machinery that already exists: **Type → 5-a-day, Tier → the level,
+Paper → the day.**
+
+**`Foundation Plus` and `Higher Plus` joined the `tier` vocabulary**, and they are not exam tiers —
+the boards have two. They are in that column for the reason `total_marks` is a cell: **the paper
+declares its own level**, and filing a Higher Plus under `Higher` would fold a set aimed past grade
+9 into the tier below it, which is a wrong answer on a chip rather than a missing one.
+
+**One document row per DAY**, because a day is the thing somebody sits — 31 rows a level, five
+questions under each. And five columns are **deliberately absent**: `exam_board` (Corbettmaths is
+not a board), `year`, `month`, `exam_wave` and `exam_date` (a 5-a-day has no sitting), `paper` (its
+vocabulary is 1–6 and a day is 1–31), and `total_marks` — **nothing on the sheet says what it is out
+of, and inventing one would arm a check against a number nobody printed.**

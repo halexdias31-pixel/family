@@ -76,12 +76,25 @@ const VOCAB = {
   active:        ['True', 'False'],
   subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Maths',
                   'Physics', 'Religious Studies'],
-  document_type: ['Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
+  /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the
+     reason it is a value rather than a naming convention: "its its own category, not to be
+     confused with the other corbet maths work which is like topic learning. this is 5 a day."
+     A Corbettmaths worksheet is thirty questions on ONE topic, worked through once. A 5-a-day is
+     five questions on five different topics, sat in ten minutes, every day of a month — the same
+     publisher and the opposite shape. `document_type` is what the funnel's Type question reads, so
+     making it a value is what puts the two in different answers instead of one pile. */
+  document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
      see LIST_COLS below for why a list column is checked per item. */
   key_stage:     ['KS1', 'KS2', 'KS3', 'KS4', 'KS5'],
   band_type:     ['grade', 'stage', 'tier', 'year'],
-  tier:          ['A-Level', 'AS', 'Foundation', 'Higher'],
+  /* `Foundation Plus` AND `Higher Plus` ARE CORBETTMATHS' OWN LEVELS, printed on the front of
+     every 5-a-day, and they are not exam tiers — Edexcel and AQA have two. They are in this column
+     anyway, for the reason `total_marks` is a cell: THE PAPER DECLARES ITS OWN LEVEL, and the one
+     moment anybody is certain of it is when they are looking at the front of the thing. Filing a
+     Higher Plus under `Higher` would fold a set aimed past grade 9 into the tier below it, which
+     is a wrong answer on a chip rather than a missing one. */
+  tier:          ['A-Level', 'AS', 'Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'],
   level:         ['AS', 'Alevel', 'GCSE'],
   exam_board:    ['AQA', 'Edexcel', 'STA'],
   exam_wave:     ['First wave', 'Second wave',
