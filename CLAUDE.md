@@ -8069,12 +8069,22 @@ sitting the other gets a paper that is not theirs.
 
 ### Three AQA 8464 rows, and half a series is not a set
 
-`tools/add-aqa-8464-2406-higher.py` writes the document rows for **Biology 1H, Chemistry 1H and
-Biology 2H, June 2024**, every field off the front cover. **Three of six**: Chemistry 2H, Physics 1H
-and Physics 2H are not there, **and there is no mark scheme for any of the three that are** — so this
-is CLAUDE.md's own move under *"AQA Chemistry, as two document rows and nothing else yet"*: the paper
-row is the part that can be right before anything is transcribed, and it arms the 70-mark rule before
-there is anything to check. The run says what is missing rather than reporting three as a series.
+`tools/add-aqa-8464-2406-higher.py` writes the document rows for **June 2024**, every field off the
+front cover. **Four of six** at the last upload — Biology 1H and 2H, Chemistry 1H and 2H — with both
+physics papers and **a mark scheme for none of them** still outstanding. So this is CLAUDE.md's own
+move under *"AQA Chemistry, as two document rows and nothing else yet"*: the paper row is the part
+that can be right before anything is transcribed, and it arms the 70-mark rule before there is
+anything to check. The run prints how many of the six it holds rather than reporting whatever
+arrived as a series, **and a row already in the file is left alone** — the papers come one upload at
+a time, and a generator that rewrites what is already there is the fault
+`add-aqa-english-skeletons.py` records in full.
+
+**THE FIRST VERSION ASSERTED FRIDAY.** All three covers in front of me said Friday, so the weekday
+rule said Friday — and Chemistry Paper 2H is a **Tuesday**, which broke it on the next upload. A rule
+written from the instance, which is this file's own sentence about `cost: 0` and `isEdexcelGcseMaths`
+for the eleventh time. The table carries **the cover's own day name** now and the date is checked
+against that, which is a stronger test than a weekday rule and still refuses a weekend, because no
+cover has ever named one.
 
 **`paper` is what the cover calls it**, which is the rule `total_marks` already follows. AQA numbers
 within the subject (`Chemistry Paper 1`) and Edexcel numbers straight through the six (`1SC0/1CH` is
@@ -8094,6 +8104,12 @@ code appended the tier whenever the subject did not settle it, *whether or not t
 noise that still named two things. Three columns in order, each narrowing the field for the one
 below. **Diffed over the whole library before it was kept: 2 labels changed of 690**, both of them
 the pair that caused it, and the collision is gone.
+
+**It earned itself again on the next upload.** `Chemistry Paper 2 — June 2024` is AQA's 8464/C/2H
+*and* Edexcel's 1SC0/1CH, which the 1SC0 covers number as Paper 2 of six — same name, same subject,
+same tier, second time. The count stayed at 17 rather than going to 19. And `Chemistry Paper 1` and
+`Biology Paper 2` are still drawn as their bare names, because nothing else in the library shares
+them: only what differs.
 
 **`check-funnel.js` gained the count, because its existing rule cannot reach these papers.** That one
 asks whether pressing a Paper answer leaves questions from one paper — measured on the ITEMS, so a
