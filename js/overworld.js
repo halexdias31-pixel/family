@@ -400,6 +400,9 @@ addEventListener('pointerdown', e => {
   SWIPE.held = false;
   SWIPE.vAt = Date.now(); SWIPE.vD = 0; SWIPE.v = 0;
   SWIPE.id = e.pointerId;
+  /* A NEW GESTURE HAS NOT MOVED YET — see `PRESS_MOVED` in shell.js. Cleared here as well as
+     by the click it swallows, so a drag that ends without one cannot eat the next tap. */
+  PRESS_MOVED = false;
 
   /* NO POINTER CAPTURE, AND THAT WAS THE BUG.
 
@@ -426,6 +429,12 @@ addEventListener('pointermove', e => {
   if (!SWIPE.live || e.pointerId !== SWIPE.id) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) { SWIPE.live = false; return; }
   const dx = e.clientX - SWIPE.x, dy = e.clientY - SWIPE.y;
+
+  /* THIS IS A DRAG, WHATEVER THE GRID DECIDES NEXT. The same ten pixels, read BEFORE the axis is
+     chosen — because the branch below can refuse the gesture and stop reading moves, and a drag the
+     grid will not take is still a drag as far as the thing under the finger is concerned. Without
+     it, every swipe that began on a control pressed that control. See `PRESS_MOVED` in shell.js. */
+  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) PRESS_MOVED = true;
 
   /* THE DECISION, made once. Ten pixels is enough to tell a deliberate drag from the wobble in a
      thumb, and 1.4x means an ambiguous diagonal goes to the vertical — which on a phone is the

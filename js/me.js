@@ -612,6 +612,12 @@ on('do-signin', el => {
          The name matters most, because it is what every request identifies the person by. A reply
          without one signs somebody in as nobody, and the failure that follows is a booking refused
          for not being signed in, to somebody who plainly is. */
+      /* AND THE LAST ATTEMPT'S REFUSAL GOES. Reported as "the name or PIN not recognised doesn't
+         disappear after i just logged in correctly" -- `send_` overwrites it with `Checking...` on
+         the way out and `repaint` below rebuilds the card without it, so this is belt and braces
+         rather than the only thing standing between the two. It costs a line, and the sentence it
+         removes is one that tells somebody who just got in that they did not. */
+      if (said) said.textContent = '';
       USER = Object.assign({ name: name }, d);
       if (!USER.name) USER.name = name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
@@ -1314,12 +1320,16 @@ function send_(body, o) {
     if (el) el.textContent = msg; else toast(msg);
   };
 
-  if (btn) { btn.disabled = true; if (o.busy) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
+  /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
+     button with no relabel still has to show that it is waiting. See `.btn.is-busy`. */
+  if (btn) { btn.disabled = true; btn.classList.add('is-busy');
+             if (o.busy) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
   if (o.saying) say(o.saying);
 
   const done = () => {
     if (!btn) return;
     btn.disabled = false;
+    btn.classList.remove('is-busy');
     if (btn.dataset.was) { btn.textContent = btn.dataset.was; delete btn.dataset.was; }
   };
 

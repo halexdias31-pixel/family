@@ -605,6 +605,63 @@ for (const who of VISITORS) {
     }
 
     /* ==================================================================================================
+       AND A SWIPE THAT STARTS ON A CONTROL MUST NOT PRESS IT.
+
+       EVERY SWIPE ABOVE STARTS ON BARE CARD, which is why they were all green while the worst
+       navigation fault this app has had was live. The browser fires a `click` after a drag, on the
+       nearest common ancestor of where the finger went down and where it came up — so a downward
+       swipe beginning on an answer row was delivered as a press of that row.
+
+       WHAT IT LOOKED LIKE, reported: "if i scroll down far enough then scroll back up eventually the
+       widgets above disappear". Measured on the Find screen: twenty-five drags, the page never
+       moved once, and the funnel answered three more questions on its own — 5,333 results down to
+       four and then to the first question with nothing behind it.
+
+       SO THE TEST STARTS THE DRAG ON THE CONTROL, which is the only way to ask this question, and
+       wants two things of it: the page turns, and nothing is answered. `PRESS_MOVED` in shell.js is
+       what makes both true. Proved by mutation — take it out and the Find screen reports
+       `turned 0 pages` with its chips changed underneath. */
+    for (const id of tabs) {
+      const n = await page.evaluate(x => { go(x, false, true); return typeof pageCount === 'function' ? pageCount(x) : 0; }, id);
+      await page.waitForTimeout(280);
+      if (n < 2) continue;
+      await page.evaluate(x => goPage(x, 0, true), id);
+      await page.waitForTimeout(260);
+      /* THE NEAREST CONTROL TO THE MIDDLE OF THE SCREEN, because that is where a thumb lands. A
+         column whose first page carries none is skipped rather than reported. */
+      const spot = await page.evaluate(x => {
+        const host = document.getElementById('s-' + x);
+        if (!host) return null;
+        let best = null;
+        host.querySelectorAll('[data-do]').forEach(el => {
+          const r = el.getBoundingClientRect();
+          if (r.width < 24 || r.height < 16 || r.top < 120 || r.bottom > 760) return;
+          const d = Math.abs((r.top + r.bottom) / 2 - 440);
+          if (!best || d < best.d) best = { d: d, x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2,
+                                            act: el.getAttribute('data-do') };
+        });
+        return best;
+      }, id);
+      if (!spot) continue;
+      const was = await page.evaluate(x => ({
+        page: PAGE[x] || 0,
+        chips: (typeof STUFF !== 'undefined' && STUFF && STUFF.filters)
+          ? STUFF.filters.map(f => f.field + '=' + f.value).join(',') : '',
+      }), id);
+      await drag(spot.x, spot.y, 0, -300);
+      const now = await page.evaluate(x => ({
+        page: PAGE[x] || 0,
+        chips: (typeof STUFF !== 'undefined' && STUFF && STUFF.filters)
+          ? STUFF.filters.map(f => f.field + '=' + f.value).join(',') : '',
+      }), id);
+      const turned = now.page - was.page;
+      swipes.push({ from: id + ' from [' + spot.act + ']', dir: 'up',
+                    got: 'turned ' + turned + ' page(s)' + (now.chips === was.chips ? '' : ', and answered a question'),
+                    want: 'turned 1 page(s)',
+                    ok: turned === 1 && now.chips === was.chips });
+    }
+
+    /* ==================================================================================================
        AND A MOUSE IGNORES `touch-action`, WHICH IS WHY EVERY SWIPE ABOVE WAS GREEN OVER A REAL FAULT.
 
        `page.mouse` is the right instrument for the thresholds, the axis lock and the velocity — and

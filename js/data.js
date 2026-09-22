@@ -238,7 +238,25 @@ const LAW_CLASS = {
 function lawList(name) {
   const d = DATA || {};
   switch (norm(name)) {
-    case 'subjects': return ((d.dropdowns || {}).subjects || []);
+    /* ---------- `subjects` WAS HERE, AND IT IS RETIRED ------------------------------------------
+       REPORTED AS "some subjects are green and some arent... it makes it buggy as not all subjects
+       seem to be treated the same for some reason". Measured, and that is exactly what it did: the
+       list is `dropdowns.subjects` off the payload, which is what somebody can be BOOKED for --
+       Maths, English, the things that are taught one to one. `Combined Science`, `Religious
+       Studies` and half the library's subjects have never been in it, so the funnel drew a column
+       of answers with some of them green and the rest plain, on a rule nobody could see.
+
+       A COLOUR THAT MEANS "THIS IS A SUBJECT" IS ONLY WORTH HAVING IF IT IS ON EVERY SUBJECT. One
+       that is on most of them is read as a state -- available, chosen, already done -- and the app
+       never says which. That is the `cost: 0` shape in a colour: a fact drawn confidently from a
+       column that does not hold it.
+
+       RETIRED RATHER THAN LEFT TO THE SHEET, because the law that reads it is a row in the `laws`
+       tab and a list nothing answers is a law that quietly does nothing. Returning nothing here is
+       the deletion; the row can stay where it is. If subject-green is wanted back, it wants a list
+       of every subject the library holds and not the booking dropdown -- which is the whole reason
+       it is written down here rather than just deleted. */
+    case 'subjects': return [];
     case 'tutors':   return (d.tutors || []).map(t => t.title);
     case 'venues':   return (d.venues || []).map(v => v.title);
     /* THE FAMILIES IN THE SESSIONS THIS PHONE CAN SEE. It read `d.clients || d.people`, and the
