@@ -1979,7 +1979,40 @@ function clicks(on) {
   return CLICK_LOG;
 }
 
+/* ---------- A SWIPE IS NOT A PRESS, AND THE BROWSER CANNOT TELL ----------------------------------
+   REPORTED AS "if i scroll down far enough then scroll back up eventually the widgets above
+   disappear". They did not disappear. **Every swipe was pressing whatever it started on.**
+
+   Measured: twenty-five downward drags on the Find screen, each starting on an answer row. The
+   page never moved. What happened instead was `facet-pick`, `facet-pick`, `facet-pick` — three
+   more questions answered, the list narrowed from 5,333 results to 4 and then to the funnel's
+   first question with nothing behind it. The column had not scrolled; it had been emptied.
+
+   THE BROWSER FIRES A CLICK AFTER A DRAG, on the nearest common ancestor of where the finger went
+   down and where it came up. That is correct and unavoidable — `pointerup` does not cancel it, and
+   nothing here was asking it to.
+
+   `overworld.js` RECORDS WHY THE OBVIOUS GUARD IS NOT THERE. `setPointerCapture` was tried, and it
+   sent every release to the root so that no card, chip or tick ever answered — "nothing threw, the
+   app rendered perfectly and simply stopped answering". Removing it was right, and it left the
+   opposite case unhandled: a press that should not have counted.
+
+   SO THE FINGER'S OWN TRAVEL DECIDES. Past the same ten pixels the grid uses to tell a drag from a
+   wobble, the gesture is a drag and the click it produces is swallowed. Set in `pointermove`
+   BEFORE the axis is chosen, so a drag the grid refuses — a textarea scrolling, a pad being drawn
+   on — still counts as a drag rather than becoming a press.
+
+   IT IS CLEARED BY THE PRESS IT SWALLOWS, and again by the next `pointerdown`, so a gesture that
+   ends without a click cannot eat the tap after it. */
+let PRESS_MOVED = false;
+
 document.addEventListener('click', e => {
+  /* FIRST, because a swipe that ends on a tab must not change tab either. */
+  if (PRESS_MOVED) {
+    PRESS_MOVED = false;
+    if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
+    return;
+  }
   if (CLICK_LOG) {
     const d = e.target.closest('[data-do]');
     console.log('[click]', {

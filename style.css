@@ -524,6 +524,30 @@ body {
   transition: transform var(--quick) ease, filter var(--quick) ease;
 }
 .btn:active { transform: scale(.97); filter: brightness(.92); }
+
+/* ---------- A BUTTON THAT IS WAITING HAS TO LOOK LIKE IT IS ---------------------------------------
+   REPORTED AS "sign in page feels very unresponsive even if it is loading". `send_` has disabled
+   the button and relabelled it `Checking...` since it was written, and against this backend that
+   label sits there for about fifteen seconds without moving. A word that does not move is not
+   distinguishable from a word that is stuck, and the reasonable conclusion is that the tap missed.
+
+   ONE RULE, ON `send_`'s OWN BUSY CLASS, so every write in the app gets it rather than the sign-in
+   button alone -- booking, saving a profile, posting. A ring rather than a bar or a row of dots
+   because it is the one shape that cannot be mistaken for content on a button that already holds a
+   word, and it sits in the button's own `gap` beside the label.
+
+   `currentColor` AT A THIRD, so it works on the gold button, the ghost and the quiet one without
+   three rules, and it cannot go invisible on a palette nobody has thought about. */
+.btn.is-busy::before {
+  content: ''; flex: 0 0 auto; width: 1em; height: 1em; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  animation: btn-spin .7s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+/* STILL A RING, JUST NOT A SPINNING ONE. Removing the mark entirely would take the state with it,
+   which is the thing this exists to show. */
+@media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; } }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
 .btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--bad); border: 1px solid #3a2320; }
