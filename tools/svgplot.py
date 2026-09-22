@@ -137,3 +137,52 @@ def blankgrid(cols, rows, cell, bars, per_square, label, left=40, ylab='', ynums
         p.append('<text x="%d" y="%d" class="num" style="text-anchor:middle">0</text>' % (x, B + 18))
     p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, B, R, B))
     return ''.join(p) + '</svg>'
+
+
+def pedigree(people, couples, gen_y, label, height, sz=15):
+    """A family tree, built from the FACTS rather than drawn — a square is a male, a circle a
+    female, filled means affected. `people` is {id: (x, generation, male?, affected?)}, `couples`
+    is [(a, b, [kids])] and `gen_y` is one y per generation, so "the picture disagrees with the
+    prose under it" is a shape that cannot occur: every assertion a paper's script makes is made
+    about this table, not about a coordinate somebody typed.
+
+    IT IS HERE BECAUSE TWO PAPERS NOW PRINT ONE, and CLAUDE.md's sentence about `documents_()`,
+    `paperIdOf_`, `factsNow_` and `childrenOf` is the reason — two implementations of one thing is
+    two chances to disagree about it. AQA 8461/2H Figure 10 is the polydactyly family and
+    8464/B/2H Figure 3 is the AKU family: different DATA, one renderer, which is exactly what
+    `axes()` already is. Extracted from the 8461/2H script and proved byte-identical against the
+    rows already committed from it before the local copy was deleted — the `libraryExtras_` move.
+
+    THE LABEL IS `%s`, NOT `%d`, because 8461/2H numbers its twelve people and 8464/B/2H letters
+    its thirteen. Identical output for an int, so the extraction really is a no-op for the paper
+    that came first."""
+    p = ['<svg viewBox="0 0 %d %d" role="img" aria-label="%s">' % (W, height, label)]
+    for a, b, kids in couples:
+        ya = gen_y[people[a][1]]
+        xa, xb = people[a][0], people[b][0]
+        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width="1"/>'
+                 % (xa + sz / 2, ya, xb - sz / 2, ya))
+        mid = (xa + xb) / 2.0
+        ky = gen_y[people[kids[0]][1]]
+        bar = ky - 22
+        p.append('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="currentColor" '
+                 'stroke-width="1"/>' % (mid, ya, mid, bar))
+        xs = [people[k][0] for k in kids]
+        p.append('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="currentColor" '
+                 'stroke-width="1"/>' % (min(min(xs), mid), bar, max(max(xs), mid), bar))
+        for k in kids:
+            p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="currentColor" '
+                     'stroke-width="1"/>' % (people[k][0], bar, people[k][0], ky - sz / 2))
+    for n, (x, gen, male, aff) in sorted(people.items()):
+        y = gen_y[gen]
+        fill = 'currentColor' if aff else 'none'
+        if male:
+            p.append('<rect x="%.1f" y="%.1f" width="%d" height="%d" fill="%s" '
+                     'stroke="currentColor" stroke-width="1.2"/>'
+                     % (x - sz / 2, y - sz / 2, sz, sz, fill))
+        else:
+            p.append('<circle cx="%d" cy="%d" r="%.1f" fill="%s" stroke="currentColor" '
+                     'stroke-width="1.2"/>' % (x, y, sz / 2, fill))
+        p.append('<text x="%d" y="%.1f" class="lbl" style="text-anchor:middle">%s</text>'
+                 % (x, y + sz / 2 + 12, n))
+    return ''.join(p) + '</svg>'
