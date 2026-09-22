@@ -996,24 +996,48 @@ const WIDGETS = [
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a
      maze that read them would fight the pager on the one screen it lives on -- see `initMaze`. The
      four buttons are 44px in px, which is the one measurement in this app that does not scale. */
-  /* ARTICULATE. `stop` is not optional here and the timer is why: a round left running on a column
-     nobody is looking at counts down to zero and the next arrival finds a finished game it never
-     played. Same reason the times table and the reel have one. */
-  { id: 'articulate', kind: 'game', name: 'Articulate', start: () => initArticulate?.(),
-    stop: () => { if (typeof artStop_ === 'function') artStop_(); },
+  /* ---------- ARTICULATE AND CHARADES ARE ONE ROUND WITH TWO DECKS -------------------------------
+     `ROUND_GAMES` in games.js is the engine and the note over it is where the difference between
+     the two is argued out: one is DESCRIBED and one is MIMED, which is what decides what may be in
+     each deck. Both entries below are the same markup with the key changed, and that is the point
+     — a second copy of "deal a word, count the clock, keep score" would be the `documents_()`
+     fault in a fourth costume.
+
+     `stop` IS NOT OPTIONAL AND THE TIMER IS WHY: a round left running on a column nobody is looking
+     at counts down to zero, and the next arrival finds a finished game it never played. Same reason
+     the times table and the reel have one. */
+  { id: 'articulate', kind: 'game', name: 'Articulate', start: () => initRound?.('art'),
+    stop: () => { if (typeof roundStop_ === 'function') roundStop_('art'); },
     into: 'art-card', what: 'Articulate',
     html: `<div class="card">
     <h3>Articulate</h3>
-    <p class="sub">Describe the word without saying it. Thirty seconds.</p>
+    <p class="sub">Describe it without saying it. Thirty seconds.</p>
     <div id="art-card" class="art"></div>
     <div class="art-row">
-      <button class="btn" data-do="art-next" data-got="1">Got it</button>
-      <button class="btn quiet" data-do="art-next" data-got="0">Pass</button>
+      <button class="btn" data-do="rg-next" data-g="art" data-got="1">Got it</button>
+      <button class="btn quiet" data-do="rg-next" data-g="art" data-got="0">Pass</button>
     </div>
     <p class="faint art-meta"><span id="art-left">30</span>s left &middot;
       <b id="art-got">0</b> so far</p>
     <p class="note" id="art-said"></p>
-    <button class="btn quiet" data-do="art-again">New round</button>
+    <button class="btn quiet" data-do="rg-again" data-g="art">New round</button>
+  </div>` },
+
+  { id: 'charades', kind: 'game', name: 'Charades', start: () => initRound?.('cha'),
+    stop: () => { if (typeof roundStop_ === 'function') roundStop_('cha'); },
+    into: 'cha-card', what: 'Charades',
+    html: `<div class="card">
+    <h3>Charades</h3>
+    <p class="sub">Act it out. No words, no sounds. A minute.</p>
+    <div id="cha-card" class="art"></div>
+    <div class="art-row">
+      <button class="btn" data-do="rg-next" data-g="cha" data-got="1">Got it</button>
+      <button class="btn quiet" data-do="rg-next" data-g="cha" data-got="0">Pass</button>
+    </div>
+    <p class="faint art-meta"><span id="cha-left">60</span>s left &middot;
+      <b id="cha-got">0</b> so far</p>
+    <p class="note" id="cha-said"></p>
+    <button class="btn quiet" data-do="rg-again" data-g="cha">New round</button>
   </div>` },
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
@@ -1040,7 +1064,8 @@ const WIDGETS = [
     <h3>Herd Mentality</h3>
     <p class="sub">Everybody answers. You want to match the room, not be right.</p>
     <p class="herd-q" id="herd-q"></p>
-    <p class="faint" id="herd-count" style="text-align:center"></p>
+    ${/* `herd-count` WAS HERE — "3 of 20 · round 2". See `initHerd`: a scoreboard for a game with
+         no score, on a deal that has no end. */''}
     <button class="btn" data-do="herd-next">Next question</button>
   </div>` },
 

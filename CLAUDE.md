@@ -8274,3 +8274,96 @@ repaint throws away while the state keeps it.
 **Its three colours are declared on the component**, the rule the house style states with the chess
 board's cream and charcoal: Articulate's six wedges are that game's convention and not this app's.
 Six 44px category buttons, in px — sixth conviction of that rule.
+
+## The first screen is the latest post, and the splash bars are scaled rather than resized
+
+**`TAB_HOME` was `stuff` and the owner overruled the argument for it.** That argument is still in
+the file and is worth keeping: *"the feed is a noticeboard for a tutoring business; the funnel is
+the product"* — true of what the app is FOR, and not the question a first screen answers. A funnel
+opens on a question nobody asked yet; the newest post is the business saying something, which is
+what a front door is. **`PAGE_HOME.feed` already landed on it** — page 0 is the spotlight when the
+business has chosen one and the newest post otherwise — so this is one word, and only for a phone
+that has never opened the app: the line below it still remembers wherever somebody was last.
+
+### `height` is a layout property, and these two were changing colour in the same breath
+
+**Reported as "the blue charts leave blue residue behind. same with the ordering animation bar
+graph".** Both ran correctly in a desktop browser — measured across a full cycle, the colours cross
+blue to green and back and every bar moves in every frame. So there was nothing to see here, and
+the complaint was still right.
+
+**Measured across the whole stylesheet: nine keyframes animate a layout property, and `mn-level`
+and `so-swap` are the ONLY two that animate geometry and colour together.** That is the shape that
+smears — the region to invalidate and the colour to paint are both moving, on the main thread,
+during boot, which is exactly when that thread is busy parsing 566 KB of JavaScript.
+
+**`transform: scaleY()` is the same picture without the layout.** The compositor owns it, the box
+never changes size, there is no region to invalidate — and `index.html`'s own defence of the
+splash, that it keeps moving while the thread is busy, becomes true of these two rather than merely
+claimed. `--h` is a fraction of the row now rather than a length, because a transform takes a number.
+Measured before and after at seven points in the cycle: **the bar heights are the same to the
+pixel.**
+
+**The other seven are left alone**, deliberately: none of them changes colour while it moves, and
+changing seven animations on a report about two is the fix that costs more than the fault.
+
+## The round counter was a scoreboard for a game with no score
+
+**Reported as "herd mentality shouldnt be that 20 question round thing. should be much simpler,
+just questions on random. and random each time."**
+
+**The deal was already random.** Fisher-Yates, reshuffled at the end — the note over `herdShuffle_`
+even explains why the `sort(() => Math.random() - 0.5)` trick is the famous wrong one. What was
+wrong is that the card printed **`3 of 20 · round 2`** underneath, which turns an endless deal into
+a twenty-question test you are part-way through. **A number on screen is a claim that the number
+matters**, and this one never did: Herd Mentality has no score in the app, because the scoring is
+people arguing about who matched.
+
+So the count is gone and the deal is untouched — and the bag stays a bag rather than becoming a
+pick-at-random, because picking at random repeats, and a question you have just answered coming
+straight back is the one thing that reads as broken.
+
+## Articulate and Charades are one round with two decks
+
+**Asked for as "add cherades widget game as well... idk whats difference between cherades and
+articulate in this case to be honest."** It is a fair question and the answer is what decides both
+decks:
+
+| | |
+|---|---|
+| **Articulate** is **described** | you may say anything except the word, a rhyme and its initials — so its deck can hold an abstract noun: `stage fright`, `a lighthouse keeper` |
+| **Charades** is **mimed** | no words, no sounds, no pointing at the room — so every entry has to be something a BODY can show. **An abstract noun is a dead charades card** |
+
+**That is why the decks differ and why the round is the same.** `ROUND_GAMES` is the engine and
+`secs`, `deck` and `say` are the only three things that differ; a second copy of *deal a word, count
+the clock, keep score* would be the `documents_()` fault in a fourth costume. **Sixty seconds rather
+than thirty**, and that is not a preference: a mime takes longer to read than a sentence does, and
+thirty is Articulate's own number where charades has never had one.
+
+**And the six category buttons went.** *"Less friction if it just decides topic and the thing."* A
+menu between somebody and a party game is a decision nobody wanted to make — and on the board the
+category is decided by where your counter lands rather than by choosing, so random is closer to the
+game than the menu ever was. The chip on the card still says which came up, because you have to
+know what you are describing. **One state per game, not one shared**: both cards are pages of the
+same column and can be on screen at once, and a single state would have the second wiping the
+first's clock.
+
+## corbettmaths.com is unreachable, and the URL pattern is the answer at the other end
+
+**Reported with three real URLs and "the url of the files themselves follow a pattern. cant you use
+this to extract all of the questions from this site?"** The pattern is real and useful. What stops
+it is not addressing:
+
+```
+curl  https://corbettmaths.com/.../Jan-Foundation_Part1.pdf  →  CONNECT tunnel failed, 403
+WebFetch same URL                                            →  EGRESS_BLOCKED
+```
+
+**Every host but GitHub and the MCP endpoints is denied at the proxy**, which this file already
+records four times about Google and once about github.io. A pattern cannot help with a connection
+that is refused before a path is ever sent.
+
+**Where the pattern DOES help is at the owner's end**, and that is worth writing down rather than
+just saying no: a loop over the pattern downloads the set in one go, and **the Drive connector is
+not blocked** — which is how every other paper in this library arrived. The route is download,
+drop in a Drive folder, and the transcription happens here exactly as it does for AQA.

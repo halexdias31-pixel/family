@@ -950,10 +950,24 @@ function herdPack_() {
   return rows.length ? rows : HERD_BUILTIN;
 }
 
+/* ---------- THERE IS NO ROUND, AND THERE NEVER SHOULD HAVE BEEN ONE ------------------------------
+   REPORTED AS "herd mentality shouldnt be that 20 question round thing. should be much simpler,
+   just questions on random. and random each time."
+
+   THE COUNTER WAS THE WHOLE OF IT. The deal was already a Fisher-Yates shuffle and already
+   reshuffled at the end, so the questions really were random — and the card said `3 of 20 · round
+   2` underneath them, which is a scoreboard for a game that has no score and turns an endless
+   deal into a twenty-question test you are part-way through. A number on screen is a claim that
+   the number matters.
+
+   SO THE COUNT IS GONE AND THE DEAL IS UNCHANGED. Shuffled, dealt one at a time, reshuffled when
+   it runs out — which with a hundred questions is a thing nobody reaches in a lesson. The shuffle
+   is still Fisher-Yates and the reason is still the one above it: a bag beats picking at random
+   every tap, because picking at random repeats, and a question you have just answered coming
+   straight back is the one thing that reads as broken. */
 function initHerd() {
   if (!$('herd-q')) return;
-  const pack = herdPack_();
-  herd = { pack: herdShuffle_(pack), at: 0, round: 1 };
+  herd = { pack: herdShuffle_(herdPack_()), at: 0 };
   herdPaint();
 }
 
@@ -961,23 +975,16 @@ function herdPaint() {
   const q = $('herd-q');
   if (!q || !herd) return;
   q.textContent = herd.pack[herd.at] || '';
-  const n = $('herd-count');
-  if (n) {
-    n.textContent = (herd.at + 1) + ' of ' + herd.pack.length
-                  + (herd.round > 1 ? ' · round ' + herd.round : '');
-  }
 }
 
 on('herd-next', () => {
   if (!herd) return;
   herd.at++;
-  /* THE PACK IS RESHUFFLED WHEN IT RUNS OUT, and the round counter says so — otherwise reaching the
-     end and starting again looks like the same questions coming round in the same order, which is
-     the one thing a shuffle is supposed to prevent. */
+  /* RESHUFFLED WHEN IT RUNS OUT, silently. Nothing says so, because nothing needs to: a hundred
+     questions later is not a moment anybody is keeping track of. */
   if (herd.at >= herd.pack.length) {
     herd.pack = herdShuffle_(herdPack_());
     herd.at = 0;
-    herd.round++;
   }
   herdPaint();
 });
@@ -1196,84 +1203,159 @@ const ART_DECK = {
            'a shortcut', 'a coincidence'],
 };
 
-const ART_ROUND = 30;            /* the game's own thirty seconds */
-let artState = null;
+/* ==================================================================================================
+   CHARADES — the same round, mimed instead of described.
 
-/* THE ONE PLACE THE CARD IS DRAWN FROM THE STATE, for the reason `reelCards_` records: a mark put
-   on the element by a handler is a mark a repaint throws away while the state keeps it, and the
-   result is a screen showing one thing while the app believes another. */
-function artPaint() {
-  const card = $('art-card'), said = $('art-said'), left = $('art-left'), got = $('art-got');
-  if (!card) return;
-  const s = artState;
+   ASKED FOR AS "add cherades widget game as well... idk whats difference between cherades and
+   articulate in this case to be honest." It is a fair question and the answer decides both decks:
+
+     ARTICULATE is DESCRIBED. You may say anything except the word, a rhyme and its initials. So
+       its deck can hold an abstract noun — `stage fright`, `a lighthouse keeper`, `deja vu`.
+     CHARADES is MIMED. No words, no sounds, no pointing at something in the room. So every entry
+       has to be something a BODY can show: a title everybody knows the shape of, or a thing you
+       physically do. An abstract noun is a dead charades card.
+
+   THAT IS WHY THE DECKS ARE DIFFERENT AND WHY THE ROUND IS THE SAME, which is exactly the split
+   this repository keeps making between an ENGINE and the rows it reads. One implementation, two
+   decks, two verbs — a second copy of "deal a word, count thirty, keep score" would be the
+   `documents_()` fault in a fourth costume.
+
+   SIXTY SECONDS RATHER THAN THIRTY, and it is not a preference: a mime takes longer to read than a
+   sentence does, and Articulate's thirty is the board game's own number while charades has never
+   had one. */
+const CHA_DECK = {
+  Film:   ['Jurassic Park', 'Finding Nemo', 'Toy Story', 'Paddington', 'The Lion King',
+           'Frozen', 'Harry Potter', 'Jaws'],
+  TV:     ['Bake Off', 'Doctor Who', 'Strictly Come Dancing', 'Blue Peter', 'Top Gear',
+           'Only Fools and Horses', 'Match of the Day', 'Countdown'],
+  Book:   ['Matilda', 'The Gruffalo', 'Harry Potter', 'Treasure Island', 'Oliver Twist',
+           'The Hobbit', 'Charlotte\'s Web', 'Robinson Crusoe'],
+  Song:   ['Happy Birthday', 'Twinkle Twinkle Little Star', 'YMCA', 'Sweet Caroline',
+           'We Will Rock You', 'Jingle Bells', 'Row Row Row Your Boat', 'The Hokey Cokey'],
+  Action: ['building a flat-pack wardrobe', 'walking a dog that will not walk',
+           'carrying too many shopping bags', 'putting up a tent in the wind',
+           'trying to open a jar', 'wrapping an awkward present',
+           'getting chewing gum off a shoe', 'parallel parking'],
+};
+
+/* ==================================================================================================
+   ONE ROUND, TWO GAMES.
+
+   `secs` IS THE ONLY NUMBER, `deck` IS THE ONLY CONTENT and `say` IS THE ONLY SENTENCE that differ.
+   Everything else — dealing without repeats, the clock, the count, the three states the card can be
+   in — is written once. A third game of this shape is a row here.
+
+   THE DECK IS A FUNCTION rather than the object, so a deck replaced at runtime is read rather than
+   captured. Same reason `factsNow_` is a call and not a constant. */
+const ROUND_GAMES = {
+  art: { secs: 30, deck: () => ART_DECK, name: 'Articulate',
+         say: 'Describe it. Not the word, not a rhyme, not the initials.' },
+  cha: { secs: 60, deck: () => CHA_DECK, name: 'Charades',
+         say: 'Act it out. No words, no sounds, no pointing.' },
+};
+
+/* ONE STATE PER GAME, not one shared. Both cards can be on the screen at once — they are two pages
+   of the same column — and a single state would have the second one wiping the first's clock. */
+const roundAt = { art: null, cha: null };
+
+function roundPick_(k) {
+  /* THE CATEGORY IS CHOSEN FOR YOU, and that is the change the owner asked for: "less friction if
+     it just decides topic and the thing". It was six buttons, which is a decision nobody wanted to
+     make and a screen between somebody and the game. On the board the category is decided by where
+     your counter lands — random is closer to that than a menu ever was. The chip on the card still
+     says which one came up, because you have to know what you are describing. */
+  const deck = ROUND_GAMES[k].deck();
+  const cats = Object.keys(deck);
+  return cats[Math.floor(Math.random() * cats.length)];
+}
+
+function roundStop_(k) {
+  const s = roundAt[k];
+  if (s && s.timer) { clearInterval(s.timer); s.timer = 0; }
+}
+
+/* DRAWN FROM THE STATE, never patched by the handler that changed it — the `REEL_HELD` rule. A
+   mark a press puts on the element is a mark the next repaint throws away while the state keeps
+   it, and the result is a card showing one thing while the app believes another. */
+function roundPaint(k) {
+  const g = ROUND_GAMES[k];
+  const card = $(k + '-card'), said = $(k + '-said'), left = $(k + '-left'), got = $(k + '-got');
+  if (!card || !g) return;
+  const s = roundAt[k];
   if (!s || s.phase === 'idle') {
-    card.innerHTML = Object.keys(ART_DECK)
-      .map(k => `<button class="art-cat" data-do="art-start" data-cat="${esc(k)}">${esc(k)}</button>`)
-      .join('');
-    if (said) said.textContent = 'Pick a category. Describe the word without saying it.';
-    if (left) left.textContent = String(ART_ROUND);
+    card.innerHTML = `<button class="art-go" data-do="rg-start" data-g="${esc(k)}">Start</button>`;
+    if (said) said.textContent = g.say;
+    if (left) left.textContent = String(g.secs);
     if (got) got.textContent = '0';
     return;
   }
   if (s.phase === 'done') {
     card.innerHTML = `<p class="art-over">Time</p>
-      <p class="art-score">${s.score} word${s.score === 1 ? '' : 's'}</p>`;
-    if (said) said.textContent = s.cat + ' — pick again for another round.';
+      <p class="art-score">${s.score}</p>
+      <p class="art-cat-of">${esc(s.cat)}</p>`;
+    if (said) said.textContent = 'Start again for another.';
     if (left) left.textContent = '0';
     return;
   }
   card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
     <p class="art-word">${esc(s.word || '')}</p>`;
-  if (said) said.textContent = 'Got it, or pass.';
+  if (said) said.textContent = g.say;
   if (left) left.textContent = String(s.left);
   if (got) got.textContent = String(s.score);
 }
 
-function artNext_() {
-  const s = artState;
+function roundNext_(k) {
+  const s = roundAt[k];
   if (!s) return;
-  /* DEALT FROM A SHUFFLED PILE rather than picked at random each time, so one round cannot show the
-     same word twice — which is the whole reason twenty words a category is enough. */
-  if (!s.pile.length) s.pile = ART_DECK[s.cat].slice().sort(() => Math.random() - 0.5);
-  s.word = s.pile.pop();
+  /* DEALT FROM A SHUFFLED PILE, refilled when it empties, so one round cannot show a word twice —
+     which is the whole reason a category does not have to be enormous to behave as though it were.
+     `herdShuffle_` because it is Fisher-Yates and the sort trick is the famous wrong one; the note
+     over it says why. */
+  if (!s.pile.length) s.pile = herdShuffle_(ROUND_GAMES[k].deck()[s.cat] || []);
+  s.word = s.pile.pop() || '';
 }
 
-function artStop_() {
-  if (artState && artState.timer) { clearInterval(artState.timer); artState.timer = 0; }
+function initRound(k) {
+  if (!$(k + '-card')) return;
+  roundStop_(k);
+  roundAt[k] = null;
+  roundPaint(k);
 }
 
-function initArticulate() {
-  if (!$('art-card')) return;
-  artStop_();
-  artState = null;
-  artPaint();
-}
-
-on('art-start', el => {
-  const cat = el.getAttribute('data-cat');
-  if (!ART_DECK[cat]) return;
-  artStop_();
-  artState = { phase: 'go', cat: cat, score: 0, left: ART_ROUND, word: '',
-               pile: ART_DECK[cat].slice().sort(() => Math.random() - 0.5), timer: 0 };
-  artNext_();
-  artState.timer = setInterval(() => {
-    const s = artState;
+on('rg-start', el => {
+  const k = el.getAttribute('data-g');
+  const g = ROUND_GAMES[k];
+  if (!g) return;
+  roundStop_(k);
+  const cat = roundPick_(k);
+  roundAt[k] = { phase: 'go', cat: cat, score: 0, left: g.secs, word: '',
+                 pile: herdShuffle_(g.deck()[cat] || []), timer: 0 };
+  roundNext_(k);
+  roundAt[k].timer = setInterval(() => {
+    const s = roundAt[k];
     if (!s || s.phase !== 'go') return;
     s.left--;
-    if (s.left <= 0) { s.phase = 'done'; artStop_(); }
-    artPaint();
+    if (s.left <= 0) { s.phase = 'done'; roundStop_(k); }
+    roundPaint(k);
   }, 1000);
-  artPaint();
+  roundPaint(k);
 });
 
 /* GOT IT AND PASS ARE THE SAME MOVE with one number different, so they are one handler — two would
-   be two places to get "deal the next word" wrong. */
-on('art-next', el => {
-  const s = artState;
+   be two places to get "deal the next one" wrong. */
+on('rg-next', el => {
+  const k = el.getAttribute('data-g');
+  const s = roundAt[k];
   if (!s || s.phase !== 'go') return;
   if (el.getAttribute('data-got') === '1') s.score++;
-  artNext_();
-  artPaint();
+  roundNext_(k);
+  roundPaint(k);
 });
 
-on('art-again', () => { artStop_(); artState = null; artPaint(); });
+on('rg-again', el => {
+  const k = el.getAttribute('data-g');
+  if (!ROUND_GAMES[k]) return;
+  roundStop_(k);
+  roundAt[k] = null;
+  roundPaint(k);
+});

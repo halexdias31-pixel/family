@@ -5485,7 +5485,31 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* ---------- SORTING ------------------------------------------------------------------------------ */
 #splash-sort .so-row { display: flex; align-items: flex-end; gap: .3rem; height: 6rem; }
-.so-row i { width: 1.5rem; height: var(--h); border-radius: 3px 3px 0 0; background: #6fa8dc;
+/* ---------- SCALED, NOT RESIZED, AND THAT IS WHAT THE SMEAR WAS ----------------------------------
+   REPORTED AS "the blue charts leave blue residue behind. same with the ordering animation bar
+   graph". Both of these ran correctly in a desktop browser -- measured across a full cycle, the
+   colours cross from blue to green and back and every bar moves in every frame. What they were
+   doing is animating `height`, which is a LAYOUT property: the box changes size on the main
+   thread, the old area has to be invalidated and the new one painted, and they were changing
+   their `background` in the same breath.
+
+   MEASURED ACROSS THE WHOLE STYLESHEET: nine keyframes animate a layout property, and these two
+   are the ONLY two that animate geometry and colour together. That is the shape that smears,
+   because the region to invalidate and the colour to paint are both moving at once -- and it
+   happens during boot, which is exactly when the main thread is busy parsing 566KB of JavaScript
+   and least able to keep up.
+
+   `transform: scaleY()` IS THE SAME PICTURE WITHOUT THE LAYOUT. The compositor owns it, the box
+   never changes size, there is no region to invalidate, and `index.html`'s own argument for the
+   splash -- that it keeps moving while the thread is busy -- becomes true of these two rather than
+   merely claimed. `transform-origin: bottom` is what keeps them standing on the axis.
+
+   THE OTHER SEVEN ARE LEFT ALONE, deliberately: none of them changes colour while it moves, and
+   changing seven animations on a report about two is the fix that costs more than the fault.
+   Written down so the next one is a decision rather than a rediscovery. */
+.so-row i { width: 1.5rem; height: 100%; transform-origin: bottom;
+            transform: scaleY(var(--h));
+            border-radius: 3px 3px 0 0; background: #6fa8dc;
             animation: so-swap 3.2s cubic-bezier(.5,0,.5,1) infinite;
             animation-delay: calc(var(--i) * .09s); }
 /* EACH BAR RISES TO ITS SORTED HEIGHT AND FALLS BACK. The pattern is the point: a jumble becoming
@@ -5498,9 +5522,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    The holds are trimmed to a beat each, which is enough to see the order arrive without the run
    stopping to admire it. */
 @keyframes so-swap {
-  0%, 6%    { height: var(--h); background: #6fa8dc; }
-  44%, 60%  { height: calc(12% + var(--i) * 11%); background: #6fd8a0; }
-  98%, 100% { height: var(--h); background: #6fa8dc; }
+  0%, 6%    { transform: scaleY(var(--h)); background: #6fa8dc; }
+  44%, 60%  { transform: scaleY(calc(.12 + var(--i) * .11)); background: #6fd8a0; }
+  98%, 100% { transform: scaleY(var(--h)); background: #6fa8dc; }
 }
 .so-say { margin-top: .8rem; font: 600 .76rem var(--mono); letter-spacing: .14em;
           color: rgb(240 236 224 / .5); text-align: center; }
@@ -5595,11 +5619,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Nothing is computed at runtime — the average is written in because five fixed bars have one. */
 #splash-mean .mn-row { display: flex; align-items: flex-end; justify-content: center;
                        gap: .34rem; height: 7rem; }
-.mn-row i { width: 1.5rem; height: var(--h); border-radius: 3px 3px 0 0; background: #6fa8dc;
+/* SCALED RATHER THAN RESIZED -- see the note over `.so-row i`, which is the same fault and the
+   same fix. The level the bars meet at is 3.7/7 of the row, which is the mean of the five. */
+.mn-row i { width: 1.5rem; height: 100%; transform-origin: bottom;
+            transform: scaleY(var(--h));
+            border-radius: 3px 3px 0 0; background: #6fa8dc;
             animation: mn-level 4s ease-in-out infinite; }
-@keyframes mn-level { 0%,22% { height: var(--h); }
-                      48%,72% { height: 3.7rem; background: #6fd8a0; }
-                      96%,100% { height: var(--h); } }
+/* THE COLOUR IS DECLARED AT EVERY STOP, not only at the two it changes on. A property named in
+   some keyframes and not others is interpolated from the element's own value at the ends, which
+   happens to be right here and is a thing a reader has to know rather than see. */
+@keyframes mn-level { 0%,22%   { transform: scaleY(var(--h)); background: #6fa8dc; }
+                      48%,72%  { transform: scaleY(.5286);    background: #6fd8a0; }
+                      96%,100% { transform: scaleY(var(--h)); background: #6fa8dc; } }
 .mn-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: var(--paper); text-align: center; }
 .mn-say b { color: #6fd8a0; }
 
@@ -9185,15 +9216,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border: 1px solid var(--line); border-radius: var(--r-sm);
   background: var(--art-face); text-align: center;
 }
-.art-cat {
-  /* 44px, IN PX. Six of these are the first thing anybody presses, and a fingertip is the one
-     measurement in this stylesheet that does not scale. Sixth conviction of that rule. */
-  min-height: 44px; padding: 0 .9rem;
-  border: 1px solid var(--line); border-radius: 999px;
-  background: var(--sunk); color: var(--ink);
-  font: 600 .85rem/1 var(--font); cursor: pointer;
+/* ---------- ONE BUTTON, NOT SIX ------------------------------------------------------------------
+   `.art-cat` WAS HERE — the six category chips. The owner's note is the whole argument: "less
+   friction if it just decides topic and the thing". A menu between somebody and a party game is a
+   decision nobody wanted to make, and on the board the category is decided by where your counter
+   lands rather than by choosing. `roundPick_` chooses; the chip on the card says which came up.
+
+   44px, IN PX, and it is the only thing on the card you press to begin — so it is bigger than the
+   floor rather than at it. A fingertip is the one measurement here that does not scale. */
+.art-go {
+  min-height: 52px; padding: 0 2rem;
+  border: 1px solid var(--gold); border-radius: 999px;
+  background: var(--gold); color: #000;
+  font: 700 1rem/1 var(--font); cursor: pointer;
 }
-.art-cat:active { transform: scale(.97); }
+.art-go:active { transform: scale(.97); }
 .art-cat-of { margin: 0; font: 600 .7rem/1 var(--font); letter-spacing: .09em;
               text-transform: uppercase; color: var(--gold); }
 /* `clamp` RATHER THAN A BREAKPOINT, because the longest word here is "skimming a stone" and the

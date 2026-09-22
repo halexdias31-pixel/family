@@ -1074,9 +1074,11 @@
   <!-- SORTING. Bars swap into order, over and over — the shape of an algorithm rather than its code. -->
   <div id="splash-sort" aria-hidden="true">
     <div class="so-row">
-      <i style="--h:30%;--i:0"></i><i style="--h:70%;--i:1"></i><i style="--h:45%;--i:2"></i>
-      <i style="--h:95%;--i:3"></i><i style="--h:15%;--i:4"></i><i style="--h:60%;--i:5"></i>
-      <i style="--h:80%;--i:6"></i><i style="--h:38%;--i:7"></i>
+      <!-- `--h` IS A FRACTION, not a percentage, for the reason in `.so-row i`: the bars are
+           scaled, and a transform takes a number rather than a length. Same eight heights. -->
+      <i style="--h:.30;--i:0"></i><i style="--h:.70;--i:1"></i><i style="--h:.45;--i:2"></i>
+      <i style="--h:.95;--i:3"></i><i style="--h:.15;--i:4"></i><i style="--h:.60;--i:5"></i>
+      <i style="--h:.80;--i:6"></i><i style="--h:.38;--i:7"></i>
     </div>
     <div class="so-say">sorting</div>
     <div class="sp-sig">@family.</div>
@@ -1164,7 +1166,10 @@
   <!-- THE MEAN. Five bars of different heights settle to one height — the mean is the level they
        would all share if they poured into each other, which is a thing to watch, not a sum. -->
   <div id="splash-mean" aria-hidden="true">
-    <div class="mn-row"><i style="--h:2.2rem"></i><i style="--h:5rem"></i><i style="--h:3.4rem"></i><i style="--h:6.2rem"></i><i style="--h:1.7rem"></i></div>
+    <!-- `--h` IS A FRACTION OF THE ROW, not a length, because the bars are scaled rather than
+         resized — see `.mn-row i`. 2.2/7, 5/7, 3.4/7, 6.2/7, 1.7/7 of a 7rem row: the same five
+         bars to the pixel, and the mean of them is 3.7/7, which is the level they meet at. -->
+    <div class="mn-row"><i style="--h:.3143"></i><i style="--h:.7143"></i><i style="--h:.4857"></i><i style="--h:.8857"></i><i style="--h:.2429"></i></div>
     <div class="mn-say">the <b>mean</b> is the level they share</div>
     <div class="sp-sig">@family.</div>
   </div>

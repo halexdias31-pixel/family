@@ -176,7 +176,19 @@ function applyColumns_() {
 
    A fallback that lands somewhere plausible is worse than one that lands nowhere, because nobody
    reports it. */
-const TAB_HOME = 'stuff';
+/* ---------- THE FIRST THING ANYBODY SEES IS THE LATEST POST ---------------------------------------
+   IT WAS `stuff`, AND THE ARGUMENT FOR THAT IS BELOW AND WAS OVERRULED. "The feed is a noticeboard
+   for a tutoring business; the funnel is the product" — true of what the app is FOR, and not the
+   question a first screen answers. A funnel opens on a question nobody asked yet; the newest post
+   is the business saying something, which is what a front door is.
+
+   `PAGE_HOME.feed` ALREADY LANDS ON IT — page 0 is the spotlight if the business has chosen one
+   and the newest post otherwise, and its own note says so. So this is one word, and the position
+   inside the column was already right.
+
+   ONLY THE FIRST VISIT. The line below remembers wherever somebody was last, so this decides where
+   a phone that has never opened the app lands and nothing else. */
+const TAB_HOME = 'feed';
 
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */
@@ -193,9 +205,9 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
    back to `TABS[0]` — right, but silently.
    SO IT IS CHECKED RATHER THAN TRUSTED. A remembered id that is no longer a tab is discarded here
    instead of being corrected three functions later, and `account` is a place you can be left. */
-/* FIRST VISIT LANDS ON FIND, not on the leftmost column. The feed is a noticeboard for a tutoring
-   business; the funnel is the product. Anybody who prefers the feed is one swipe away and is
-   remembered there afterwards. */
+/* FIRST VISIT LANDS ON THE LATEST POST — see `TAB_HOME` above, which is where that is decided and
+   where the argument it replaced is written down. Find is one swipe away and is remembered there
+   afterwards. */
 let AT = TAB_HOME;
 try {
   const was = localStorage.getItem('familyTab');
