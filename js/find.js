@@ -1311,7 +1311,7 @@ function paperLabels_() {
     if (!r || String(r.kind) !== 'document' || !id) return;
     const name = String(r.name || '').trim();
     if (!name) return;
-    docs.push({ id: id, name: name, subject: r.subject, tier: r.tier });
+    docs.push({ id: id, name: name, subject: r.subject, tier: r.tier, exam_board: r.exam_board });
     const k = spellKey_(name);
     (byName[k] = byName[k] || []).push(r);
   });
@@ -1319,14 +1319,26 @@ function paperLabels_() {
     const name = r.name;
     const share = byName[spellKey_(name)] || [];
     if (share.length < 2) { map[r.id] = name; return; }
-    /* ONLY WHAT DIFFERS. Adding the subject to six AQA papers that are already three subjects is
-       the whole of the fix; adding the tier as well where the subject does not settle it is the
-       rest. Appending both always would put "· Maths · Higher" on two hundred unique names. */
-    const subjects = new Set(share.map(d => String(d.subject || '').trim()));
+    /* ONLY WHAT DIFFERS, AND ONLY WHERE IT SEPARATES. Adding the subject to six AQA papers that
+       are already three subjects is the whole of the fix; the tier, and then the board, are what
+       is left when the subject does not settle it. Appending both always would put
+       "· Maths · Higher" on two hundred unique names.
+
+       THE BOARD RUNG ARRIVED WITH AQA COMBINED SCIENCE, beside the Edexcel papers that were
+       already there. `Biology Paper 1 — June 2024` is a true name of an 8464/B/1H and of a
+       1SC0/1BH, and the two agree on subject and on tier as well — so the old rule appended
+       `· Higher` to both and drew ONE label over two different papers, which is the
+       `Alevel` / `A-Level` fault with the spelling hidden instead of shown. A rung that is the
+       same on every candidate is noise that still names two things, so each is pushed only where
+       it cuts the field, and each narrows the field for the one below it. */
     const bits = [name];
-    if (subjects.size > 1 && String(r.subject || '').trim()) bits.push(String(r.subject).trim());
-    const rest = share.filter(d => String(d.subject || '') === String(r.subject || ''));
-    if (rest.length > 1 && String(r.tier || '').trim()) bits.push(String(r.tier).trim());
+    let field = share;
+    ['subject', 'tier', 'exam_board'].forEach(col => {
+      if (field.length < 2) return;
+      const mine = String(r[col] || '').trim();
+      if (mine && new Set(field.map(d => String(d[col] || '').trim())).size > 1) bits.push(mine);
+      field = field.filter(d => String(d[col] || '').trim() === mine);
+    });
     map[r.id] = bits.join(' \u00b7 ');
   });
   PAPER_LABEL.set(rows, map);
