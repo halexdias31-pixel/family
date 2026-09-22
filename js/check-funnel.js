@@ -82,7 +82,7 @@ function boot(cb) {
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, asList_,' +
-      ' filterHit };');
+      ' filterHit, paperLabels_ };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -340,6 +340,39 @@ boot(f => {
     if (vals.length !== ids.size) {
       bad.push('the Paper question offers ' + vals.length + ' answers for ' + ids.size + ' papers');
     }
+  }
+
+  /* ---------- AND THE PAPERS THE RULE ABOVE CANNOT REACH -----------------------------------------
+     THAT RULE IS ON THE ITEMS, so a paper with no questions under it yet produces no items and is
+     invisible to it. 425 of the library's papers are in that state — the transcription queue — and
+     two of them arriving with the same label is a fault that shows up on the day somebody types
+     the questions in, not on the day the rows land.
+
+     IT HAPPENED. AQA Combined Science June 2024 went in beside the Edexcel papers already there,
+     and `Biology Paper 1 \u2014 June 2024` is a true name of an 8464/B/1H and of a 1SC0/1BH. They
+     agree on subject and on tier as well, so `paperLabels_` appended `\u00b7 Higher` to both and
+     drew ONE button over two different papers. The board rung in that function is the fix; this is
+     what would have named it.
+
+     PRINTED, NOT FAILED, and the 17 it prints are why: thirteen are an `RS\u2026` stub sitting
+     beside its own transcription, which `check-library.js` already counts as the intended state,
+     and four are English stubs carrying no year and, on two of them, `subject: Maths` on an
+     English Language paper. Both are rows to repair rather than a rule to enforce, and a permanent
+     red is a red nobody reads. What guards the class of fault is the rung, not this line. */
+  if (typeof f.paperLabels_ === 'function') {
+    const labels = f.paperLabels_();
+    const byLabel = {};
+    Object.keys(labels).forEach(id => {
+      (byLabel[labels[id]] = byLabel[labels[id]] || []).push(id);
+    });
+    const shared = Object.keys(byLabel).filter(l => byLabel[l].length > 1);
+    console.log('\nPAPERS DRAWN UNDER ONE LABEL: ' + shared.length
+                + (shared.length ? ' \u2014 rows to repair, not a rule' : ''));
+    shared.slice(0, 10).forEach(l => console.log('  ' + JSON.stringify(l) + '  '
+                                                 + byLabel[l].join(', ')));
+    if (shared.length > 10) console.log('  \u2026 and ' + (shared.length - 10) + ' more');
+  } else {
+    bad.push('`paperLabels_` is not declared, so paper labels cannot be checked \u2014 not a pass');
   }
 
   done();
