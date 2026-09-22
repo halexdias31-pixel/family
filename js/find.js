@@ -5796,7 +5796,29 @@ on('fav', el => {
      pages in front of it. */
   /* STAY ON THE CARD YOU STARRED. A star adds or removes a page in front of the question, so the
      index shifts — `paintStuff` moves it by exactly that much rather than sending you to the top. */
-  if ($('s-stuff')) paintStuff(true);
+
+  /* ---------- AND EVERY OTHER COLUMN THAT LISTS WHAT IS KEPT --------------------------------------
+     REPORTED AS "if i favourite something it does appear in right place, but then if i unfavourite
+     it from the favourites tab its buggy and not responsive. should just dissapear."
+
+     IT NEVER DISAPPEARED. This rebuilt `s-stuff` and nothing else, so unstarring from the Saved
+     column took the row out of `FAVS`, relabelled the tile, repainted a screen you were not on, and
+     left the card sitting exactly where it was. The only thing that moved was the word on the
+     button — which reads as a tap that half-worked, because it is one.
+
+     THREE CASES AND THEY ARE NOT THE SAME. On Saved, the card is a PAGE and removing it removes a
+     page, so the column has to be rebuilt and the position clamped. On Find, a star adds or removes
+     a page in front of the question, which is what `paintStuff(true)` already handles. Anywhere
+     else — Tools, Games, a person's card — the card stays and is correct; what is now wrong is the
+     Saved column you are not looking at.
+
+     SO THE OTHERS ARE MARKED RATHER THAN REDRAWN, which is what `STALE` is for and what
+     `receipt.js` already does for the booking column. Redrawing Tools from here would be worse than
+     the bug: `paint` replaces the markup, `startScreen_` restarts what was in it, and unstarring a
+     timer would put it back to 25:00. */
+  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
+  if (AT === 'saved') { repaint(true); return; }
+  if (AT === 'stuff' && $('s-stuff')) paintStuff(true);
 });
 
 function stuffCard(x, credits) {

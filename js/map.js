@@ -996,6 +996,25 @@ const WIDGETS = [
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a
      maze that read them would fight the pager on the one screen it lives on -- see `initMaze`. The
      four buttons are 44px in px, which is the one measurement in this app that does not scale. */
+  /* ARTICULATE. `stop` is not optional here and the timer is why: a round left running on a column
+     nobody is looking at counts down to zero and the next arrival finds a finished game it never
+     played. Same reason the times table and the reel have one. */
+  { id: 'articulate', kind: 'game', name: 'Articulate', start: () => initArticulate?.(),
+    stop: () => { if (typeof artStop_ === 'function') artStop_(); },
+    into: 'art-card', what: 'Articulate',
+    html: `<div class="card">
+    <h3>Articulate</h3>
+    <p class="sub">Describe the word without saying it. Thirty seconds.</p>
+    <div id="art-card" class="art"></div>
+    <div class="art-row">
+      <button class="btn" data-do="art-next" data-got="1">Got it</button>
+      <button class="btn quiet" data-do="art-next" data-got="0">Pass</button>
+    </div>
+    <p class="faint art-meta"><span id="art-left">30</span>s left &middot;
+      <b id="art-got">0</b> so far</p>
+    <p class="note" id="art-said"></p>
+    <button class="btn quiet" data-do="art-again">New round</button>
+  </div>` },
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">

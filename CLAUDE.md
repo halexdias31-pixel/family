@@ -8202,3 +8202,75 @@ because the law that reads it is a row in the `laws` tab and a list nothing answ
 quietly does nothing. Measured against a payload carrying that law and a two-name dropdown: seven
 subject answers, **0 green**. If subject-green is wanted back it wants a list of every subject the
 library holds, which is the whole reason this is written down rather than deleted.
+
+## Unstarring from Saved took the row out and left the card on the screen
+
+**Reported as "if i favourite something it does appear in right place, but then if i unfavourite it
+from the favourites tab its buggy and not responsive. should just dissapear."**
+
+**It never disappeared.** `on('fav')` ended with `if ($('s-stuff')) paintStuff(true)` — it rebuilt
+the Find strip and nothing else. So unstarring from the Saved column removed the key from `FAVS`,
+toggled `.favwrap.is-fav`, relabelled the tile and repainted a screen you were not on. The card sat
+exactly where it was. The only thing that moved was the word on the button, which reads as a tap
+that half-worked, because it is one.
+
+**Three cases and they are not the same.** On **Saved** a card IS a page, so removing it removes a
+page and the column has to be rebuilt and the position clamped — `repaint(true)`. On **Find** a
+star adds or removes a page in front of the question, which is exactly what `paintStuff(true)`
+already handles. **Anywhere else** — Tools, Games, a person's card — the card is still correct and
+the tile has already changed; what is now wrong is the Saved column you are not looking at.
+
+**So the others are marked rather than redrawn**, which is what `STALE` is for and what
+`receipt.js` already does for the booking column. **Redrawing Tools from here would be worse than
+the bug**: `paint` replaces the markup, `startScreen_` restarts what was in it, and unstarring a
+timer would put it back to 25:00.
+
+Measured end to end: star chess on Games → `FAVS ['w:chess']`; swipe to Saved → the widget is
+there; unstar it → the card is gone on the spot and the empty-state card is back.
+
+## The calculator's trig was right and the bracket was the trap
+
+**Reported as "calulator sin cos and tan doesnt really work".** Measured before changing anything:
+`sin(30)` is 0.5, `cos(60)` is 0.5, `tan(45)` is 1 — all correct, in degrees, which is what a GCSE
+paper wants. **`sin(30` with no closing bracket is `Error`**, and that is the whole complaint: the
+`sin` key puts in `sin(` and every calculator anybody has held closes it for them. Press sin, 3, 0,
+= on a Casio and you get 0.5.
+
+**Only at `=`, and only the ones left open**, so nothing is added to what is on screen while it is
+being typed and a balanced expression is untouched. Measured after: `sin(30` → 0.5, `sqrt(16` → 4,
+`2 × sin(30` → 1.
+
+**AND `window.math` IS NEVER LOADED BY ANYTHING HERE.** Measured across `index.html` and every file
+in `js/`: nothing fetches a maths library, so the `if (window.math)` branch has never run once and
+the hand-rolled fallback is what the calculator has always been. The branch stays — it is the right
+thing to use if one is ever added, and deleting it would leave the fallback looking like a fallback
+for nothing — but it is written down, because a live-looking branch that cannot run is the shape
+this file records under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard.
+
+## Articulate, and the one piece of the board game that does not survive
+
+**Asked for as "can we add articulate to the games widgets".** You describe a word without saying
+it, or a word that rhymes with it, or its initials; your team guesses; thirty seconds.
+
+**The spinner is what does not come across.** On the board the category is decided by where your
+counter lands, which is a fact about a board this app does not have — so the category is chosen
+instead, which is the same decision one step earlier and is also the screen the widget needs anyway:
+six buttons is a first page that explains the game without a paragraph.
+
+**Thirty seconds is the game's own number, and it is why twenty words a category is enough.**
+Nobody gets through twenty in thirty seconds, so a round dealt from a shuffled pile never repeats a
+word and the deck does not have to be large to behave as though it were.
+
+**No score is kept between rounds.** Articulate is scored by moving a counter, which is a thing the
+people playing do. An app that remembered half of that would be inviting somebody to look for the
+other half.
+
+**`stop` is not optional and the timer is why** — a round left running on a column nobody is looking
+at counts down to zero, and the next arrival finds a finished game it never played. Same reason the
+times table and the reel have one. **And the card is drawn from the state rather than patched by
+the handler**, which is the `REEL_HELD` rule: a mark put on the element by a press is a mark a
+repaint throws away while the state keeps it.
+
+**Its three colours are declared on the component**, the rule the house style states with the chess
+board's cream and charcoal: Articulate's six wedges are that game's convention and not this app's.
+Six 44px category buttons, in px — sixth conviction of that rule.

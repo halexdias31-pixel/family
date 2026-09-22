@@ -216,9 +216,25 @@ function initMiniCalc() {
       const was = expr;
       try {
         let t = calcNormalise_(expr);
+        /* ---------- THE BRACKET THE KEY OPENED, CLOSED FOR YOU --------------------------------------
+           REPORTED AS "calulator sin cos and tan doesnt really work". Measured: `sin(30)` is 0.5,
+           `cos(60)` is 0.5 and `tan(45)` is 1, all correct. `sin(30` -- with no closing bracket --
+           is **Error**, and that is the whole complaint: the `sin` key puts in `sin(` and every
+           calculator anybody has held closes it for them. Press sin, 3, 0, = on a Casio and you get
+           0.5; here you had to remember a bracket the machine had opened on your behalf.
+
+           ONLY AT `=`, and only the ones left open, so nothing is added to what is on screen while
+           it is being typed and an expression that is already balanced is untouched. */
+        const open = (t.match(/\(/g) || []).length - (t.match(/\)/g) || []).length;
+        if (open > 0) t += ')'.repeat(open);
         // degree trig
         t = t.replace(/\b(sin|cos|tan)\(/g, '$1(DEG*');
         let result;
+        /* `window.math` IS NEVER LOADED BY ANYTHING HERE, measured across index.html and every
+           file in `js/` -- so the branch below has never run and the fallback is what the
+           calculator has always been. It stays because it is the right thing to use IF a maths
+           library is ever added, and because deleting it would leave the fallback looking like a
+           fallback for nothing. The arithmetic was proved on the path that actually runs. */
         if (window.math) {
           result = window.math.evaluate(t, { pi: Math.PI, DEG: Math.PI / 180 });
         } else {
@@ -1134,3 +1150,130 @@ document.addEventListener('keydown', e => {
   mzMove_(k);
   mazePaint();
 });
+
+/* ==================================================================================================
+   ARTICULATE — describe it without saying it.
+
+   ASKED FOR AS "can we add articulate to the games widgets". The board game: you land on a
+   category, and for thirty seconds you describe as many of its words as you can without saying the
+   word, a word that rhymes with it, or its initials. Your team guesses. Got it, or pass.
+
+   THE SPINNER IS THE ONE PIECE THAT DOES NOT SURVIVE. On the board the category is decided by where
+   your counter lands, which is a fact about a board this app does not have — so the category is
+   chosen, which is the same decision one step earlier and is also the screen this widget needs
+   anyway: six buttons is a first page that explains the game without a paragraph.
+
+   THIRTY SECONDS, WHICH IS THE GAME'S OWN NUMBER, and the reason the deck is only about twenty
+   words a category: nobody gets through twenty in thirty seconds, so a round never repeats a word
+   and the list does not have to be huge to behave as though it were.
+
+   NO SCORE IS KEPT BETWEEN ROUNDS. Articulate is scored by moving a counter, which is a thing the
+   people playing do; an app that remembered it would be keeping half a game and inviting somebody
+   to look for the other half. The round's own count is on screen while it matters and gone after.
+================================================================================================== */
+const ART_DECK = {
+  Object: ['umbrella', 'kettle', 'stapler', 'ladder', 'trampoline', 'harmonica', 'wheelbarrow',
+           'telescope', 'zip', 'hoover', 'candle', 'passport', 'skateboard', 'saucepan',
+           'toothbrush', 'seatbelt', 'chandelier', 'padlock', 'compass', 'radiator'],
+  Nature: ['avalanche', 'hedgehog', 'thunderstorm', 'coral reef', 'acorn', 'glacier', 'moth',
+           'quicksand', 'rainbow', 'beaver', 'tide', 'fossil', 'cactus', 'eclipse', 'swamp',
+           'pollen', 'volcano', 'otter', 'frost', 'mushroom'],
+  Action: ['juggling', 'whispering', 'sneezing', 'hitchhiking', 'tiptoeing', 'yawning',
+           'hibernating', 'shrugging', 'wrestling', 'queueing', 'gargling', 'skimming a stone',
+           'blushing', 'haggling', 'eavesdropping', 'sprinting', 'knitting', 'shivering',
+           'applauding', 'daydreaming'],
+  World: ['Iceland', 'the Sahara', 'Mount Everest', 'the Amazon', 'Venice', 'the Great Wall',
+          'Antarctica', 'Tokyo', 'the Nile', 'Stonehenge', 'the Alps', 'Cairo', 'New Zealand',
+          'the Panama Canal', 'Lisbon', 'the Dead Sea', 'Kenya', 'Niagara Falls', 'Sicily',
+          'the Arctic Circle'],
+  Person: ['a lifeguard', 'a blacksmith', 'a referee', 'an astronaut', 'a plumber', 'a busker',
+           'a detective', 'a midwife', 'a lighthouse keeper', 'a beekeeper', 'a paramedic',
+           'a librarian', 'a sculptor', 'a chimney sweep', 'a surgeon', 'a tour guide',
+           'a lollipop lady', 'an archaeologist', 'a barista', 'a train driver'],
+  Random: ['jet lag', 'a leap year', 'homesickness', 'a power cut', 'déjà vu', 'the alphabet',
+           'a rumour', 'a traffic jam', 'small talk', 'a nickname', 'bad luck', 'an alibi',
+           'a bargain', 'a heatwave', 'stage fright', 'a countdown', 'an echo', 'a punchline',
+           'a shortcut', 'a coincidence'],
+};
+
+const ART_ROUND = 30;            /* the game's own thirty seconds */
+let artState = null;
+
+/* THE ONE PLACE THE CARD IS DRAWN FROM THE STATE, for the reason `reelCards_` records: a mark put
+   on the element by a handler is a mark a repaint throws away while the state keeps it, and the
+   result is a screen showing one thing while the app believes another. */
+function artPaint() {
+  const card = $('art-card'), said = $('art-said'), left = $('art-left'), got = $('art-got');
+  if (!card) return;
+  const s = artState;
+  if (!s || s.phase === 'idle') {
+    card.innerHTML = Object.keys(ART_DECK)
+      .map(k => `<button class="art-cat" data-do="art-start" data-cat="${esc(k)}">${esc(k)}</button>`)
+      .join('');
+    if (said) said.textContent = 'Pick a category. Describe the word without saying it.';
+    if (left) left.textContent = String(ART_ROUND);
+    if (got) got.textContent = '0';
+    return;
+  }
+  if (s.phase === 'done') {
+    card.innerHTML = `<p class="art-over">Time</p>
+      <p class="art-score">${s.score} word${s.score === 1 ? '' : 's'}</p>`;
+    if (said) said.textContent = s.cat + ' — pick again for another round.';
+    if (left) left.textContent = '0';
+    return;
+  }
+  card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
+    <p class="art-word">${esc(s.word || '')}</p>`;
+  if (said) said.textContent = 'Got it, or pass.';
+  if (left) left.textContent = String(s.left);
+  if (got) got.textContent = String(s.score);
+}
+
+function artNext_() {
+  const s = artState;
+  if (!s) return;
+  /* DEALT FROM A SHUFFLED PILE rather than picked at random each time, so one round cannot show the
+     same word twice — which is the whole reason twenty words a category is enough. */
+  if (!s.pile.length) s.pile = ART_DECK[s.cat].slice().sort(() => Math.random() - 0.5);
+  s.word = s.pile.pop();
+}
+
+function artStop_() {
+  if (artState && artState.timer) { clearInterval(artState.timer); artState.timer = 0; }
+}
+
+function initArticulate() {
+  if (!$('art-card')) return;
+  artStop_();
+  artState = null;
+  artPaint();
+}
+
+on('art-start', el => {
+  const cat = el.getAttribute('data-cat');
+  if (!ART_DECK[cat]) return;
+  artStop_();
+  artState = { phase: 'go', cat: cat, score: 0, left: ART_ROUND, word: '',
+               pile: ART_DECK[cat].slice().sort(() => Math.random() - 0.5), timer: 0 };
+  artNext_();
+  artState.timer = setInterval(() => {
+    const s = artState;
+    if (!s || s.phase !== 'go') return;
+    s.left--;
+    if (s.left <= 0) { s.phase = 'done'; artStop_(); }
+    artPaint();
+  }, 1000);
+  artPaint();
+});
+
+/* GOT IT AND PASS ARE THE SAME MOVE with one number different, so they are one handler — two would
+   be two places to get "deal the next word" wrong. */
+on('art-next', el => {
+  const s = artState;
+  if (!s || s.phase !== 'go') return;
+  if (el.getAttribute('data-got') === '1') s.score++;
+  artNext_();
+  artPaint();
+});
+
+on('art-again', () => { artStop_(); artState = null; artPaint(); });
