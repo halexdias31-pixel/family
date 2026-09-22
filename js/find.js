@@ -4384,9 +4384,25 @@ function stuffItemsRaw_() {
        reactions, same share, same admin controls — so the two could drift without either looking
        wrong on its own. `DATA.posts` is still read by the feed, which is the one place that draws
        them now. */
+    /* ---------- A LINK'S OWN WORDS, WHICH THE SEARCH BOX COULD NOT SEE --------------------------
+       MEASURED: **115 of the 127 links carry a `description` and not one of them was searchable.**
+       The haystack in `stuffFind` is `name + sub + subject + slot + grade + text`, and a link had
+       no `text`, so it was findable by its title and by nothing else. Typing `periodic` found the
+       periodic table only because somebody had the sense to call it "Periodic table"; typing
+       `past papers` found nothing, on a list holding four sites that are nothing but past papers.
+
+       FOURTH TIME THIS FILE RECORDS THE SAME SENTENCE — after `topics`, after `company` and after
+       the practical guides: the words are in the row, the search box cannot see them, and a screen
+       whose whole job is finding things returns nothing for the thing it holds.
+
+       THE CATEGORY IS IN IT TOO, because "science" and "revision" are what somebody types when
+       they do not remember what a site is called, and the category is the only place either word
+       appears. Built onto the item, not matched per keystroke — `stuffItems` is memoised and runs
+       once; `stuffFind` runs on every letter. */
     ...(DATA.links || []).filter(l => l.title).map(l => ({
       kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
       row: l, category: l.category || '',
+      text: plainText_((l.description || '') + ' ' + (l.category || '')),
     })),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
