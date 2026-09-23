@@ -841,6 +841,41 @@ const say = (title, list, draw) => {
    18 checks pass", "one of the eighteen names", and the prose over `CARD_W` naming 88% and 4% while
    the code said 80 and 8. The sentence says what the number IS now, which is the only version that
    cannot go stale. */
+/* ---------- AN `accept` THAT CANNOT MARK ITS OWN ANSWER -------------------------------------------
+   THE MARKING IS THE ONE THING IN THIS APP THAT TELLS A CHILD THEY ARE WRONG, and `check-marking.js`
+   proves the six functions behave on thirty-five hand-written cases. What nothing asked is whether
+   the 1,399 `accept` CELLS in the library can be marked by them.
+
+   ONE QUESTION, AND IT HAS EXACTLY ONE RIGHT ANSWER: type the first thing the cell itself lists as
+   acceptable -- does it come back right? A cell that cannot pass that is a cell that marks nobody
+   right, ever, however carefully the child answered.
+
+   IT FOUND ONE, AND IT IS THE WORST SHAPE THIS FILE RECORDS. `Q-CBM-inequality-signs-6` asks for
+   four comparison symbols and its `accept` was `< > < >`; `markNorm_` keeps letters and digits
+   only, so both sides reduce to nothing, `markAnswer_` reads that as "nothing typed" and answers
+   `null` -- **Not yet, for ever, to a child who had it exactly right**. The cell is empty now and
+   the row says why: an accept a question cannot be marked by is worse than none.
+
+   IT IS A FAILURE RATHER THAN A COUNT because the number is zero and there is no backlog to swamp
+   it, which is the same argument the practicals' fold rule makes. */
+const MARKS = require('./check-marks-load.js').markingSource(path.join(__dirname, '..'));
+if (MARKS.missing.length) {
+  fail.push('the marking functions could not be cut out of find.js (' + MARKS.missing.join(', ')
+    + '), so no `accept` cell was checked \u2014 which is not the same as their being fine');
+} else {
+  /* eslint-disable no-eval */
+  const markOf = eval('(function () { ' + MARKS.source + '\n; return markAnswer_; })()');
+  rows.forEach(r => {
+    const cell = String((r && r.accept) || '').trim();
+    if (!cell) return;
+    const first = cell.split('|')[0].trim();
+    if (first && !markOf(first, cell)) {
+      fail.push(r.row_id + ' cannot be marked by its own `accept` (' + JSON.stringify(cell)
+        + ') \u2014 a child typing exactly that is told they are wrong');
+    }
+  });
+}
+
 console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} of them summed against a stated total`);
 
 say('BROKEN', fail, x => x);
