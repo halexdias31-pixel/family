@@ -8723,3 +8723,51 @@ repeated `fact_id`, a subject off the list, markup in a fact, and a heading too 
 **Measured in the app after**: 400 facts, 22 subjects, 60 deals with no repeat, and the two clips
 still answering `clipsNow_` from the code because the file holds no clip rows — which is the
 per-list rule working exactly as its note says it should.
+
+## George had not disappeared — the phone was deleting him after the server had sent him
+
+**Reported as "where did george dissapear off to?"** and nothing had gone wrong with his row. He is a
+tutor, his `listed` cell is off, and `accountPages_` read
+`.filter(t => t && t.title && t.listed !== false)` — so an unlisted tutor was dropped **on the phone,
+after `doGet` had deliberately sent him.**
+
+**`doget.gs` ALREADY DECIDES THIS AND SAYS SO OUT LOUD**, beside the gate that does it: *"An admin
+sees the unlisted ones too, marked. Without that a tutor switched off vanishes from the site and can
+only be switched back on in the spreadsheet — which would make the control worse than not having
+one."* The rule was written twice and the two disagreed. **That is the `MESSAGING` fault** — a policy
+copied onto the phone is two rules to keep in step — and here the copy silently won, on the one
+screen that can switch him back on.
+
+**IT MADE THREE THINGS UNREACHABLE THAT WERE ALREADY BUILT.** `findCard` draws such a row dimmed with
+`· not listed` beside the role, `.card.is-widget.is-off` and `.prof-off` are in the stylesheet, and
+`asItem_` three lines below the filter sets `off: t.listed === false`. None of them could ever run,
+because the row never arrived — a renderer left standing over a permanently false condition, which is
+the shape recorded here under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard.
+
+**The server is the gate and stays the gate**, which is what makes deleting the clause a repair
+rather than a disclosure: a non-admin is never sent an unlisted tutor, so there was nothing here to
+filter. **Measured on two payloads**: an admin gets 3 pages with George dimmed and labelled, a parent
+gets 2 and no George anywhere. Proved by mutation — the old clause back, and the admin gets 2 pages
+and no George.
+
+### The fixture's one tutor is listed and has a DBS, so two states had never been drawn
+
+**`check/fixture.json` has a single tutor, `listed: true`, `dbs: true`** — so the account column this
+lab has measured on every run is the one where every row is live and every stamp is green.
+`.prof-dbs.no` and `.prof-off` had **never been on a screen it looked at**, which is the same hole the
+booking receipt, the message thread and the basket were each in.
+
+**The state found a real fault on its first run**: `· not listed` at `#b9544a` is **4.15:1 against
+`--bg`**, under WCAG AA's 4.5 for small text — the one word on the card that says why it is dimmed,
+and the hardest thing on it to read. `#c4655a` is 5.02:1 and the same hue.
+
+**Repaired as a token, not at the instance.** That hex was written out twice — `No DBS on file` and
+`· not listed` — so fixing the one the check happened to name would have left the other wrong in
+exactly the same way, which is the `cost: 0` sentence for the thirteenth time. `--prof-warn` is
+**declared on `.is-prof` rather than at `:root`**, because it is this card's own word for "something
+is not right here" and nothing else in the app should be offered it — the rule the house style states
+with the chess board's cream and charcoal.
+
+**The page number comes from `accountPages_()` itself**, not from a second re-derivation of `others`
+in the harness: `termsPages_()` is concatenated after the people, so counting from the end lands on a
+legal document. That is the flyer state's own lesson — two readings of one list — one screen along.

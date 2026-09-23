@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-23-two-player-boards";
+  --css-version: "2026-09-23-unlisted-tutor";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -4647,6 +4647,22 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* WRAPS. `.pass-name` was one line with `text-overflow: ellipsis` on the lines under it, because a
    pass is a fixed object and a name that does not fit gets cut. A widget is as tall as it needs to
    be, so a long name takes two lines instead of losing its end. */
+/* ---------- THE ONE RED THIS CARD USES, DECLARED ONCE AND RAISED TO READABLE --------------------
+   IT WAS `#b9544a`, WRITTEN OUT TWICE — on `No DBS on file` and on `· not listed`. `check/ui.js`
+   measured it at 4.15:1 against `--bg` the first run that could see either of them, which is under
+   WCAG AA's 4.5 for small text. `#c4655a` is 5.02:1 and the same hue: nothing about the card reads
+   differently and the two things it says can now be read.
+
+   NEITHER HAD EVER BEEN ON A SCREEN THIS FILE MEASURED. `check/fixture.json`'s one tutor is listed
+   and carries `dbs: true`, so both states were unreachable until the unlisted-tutor state went into
+   `check/states.js` — and the moment one of them was drawn, the other was already wrong in the same
+   way. Repaired as a token rather than at the instance, which is the `cost: 0` sentence this
+   repository writes about every fault it has had to fix twice.
+
+   ON THE COMPONENT, NOT AT `:root`, because it is this card's own word for "something is not right
+   here" and nothing else in the app should be offered it — the rule the house style states with the
+   chess board's cream and charcoal. */
+.is-prof { --prof-warn: #c4655a; }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .prof-where { font: 400 .7rem/1.2 var(--mono); color: var(--dim); }
 /* THE ONE THING A PARENT IS SCANNING FOR, and the only fact on this card that is a mark rather than
@@ -4660,7 +4676,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   border: 1px solid currentColor;
 }
 .prof-dbs.yes { color: #3ddc84; }
-.prof-dbs.no  { color: #b9544a; }
+.prof-dbs.no  { color: var(--prof-warn); }
 /* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already puts the quotation marks on, so this is set
    as a quotation and not as a field: italic, indented off a rule, no label. */
 .prof-say {
@@ -4682,7 +4698,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }
-.prof-off { color: #b9544a; }
+.prof-off { color: var(--prof-warn); }
 
 /* ---------- THE BOOKING SLIP ---------------------------------------------------------------------
    The tear-off kind taped to a library door. The perforation is the trick: a rectangle with a torn

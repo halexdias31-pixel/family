@@ -5694,8 +5694,29 @@ function accountPages_() {
     `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
   ].join('');
 
+  /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON --
+     REPORTED AS "where did george dissapear off to?" — and nothing had gone wrong with his row.
+     This list read `.filter(t => t.listed !== false)`, so a tutor whose `listed` cell is off was
+     dropped here, on the phone, AFTER the server had deliberately sent him.
+
+     `doget.gs` ALREADY DECIDES THIS AND SAYS SO OUT LOUD: *"An admin sees the unlisted ones too,
+     marked. Without that a tutor switched off vanishes from the site and can only be switched back
+     on in the spreadsheet — which would make the control worse than not having one."* So the rule
+     was written twice and the two disagreed — the `MESSAGING` fault, where a role policy copied
+     onto the phone is two rules to keep in step, and here the copy silently won.
+
+     AND IT MADE TWO THINGS UNREACHABLE THAT WERE ALREADY BUILT. `findCard` draws such a row dimmed
+     with `· not listed` beside the name, `.card.is-widget.is-off` and `.prof-off` are in the
+     stylesheet, and `asItem_` three lines below sets `off: t.listed === false` — none of which
+     could ever run, because the row never arrived. A renderer left standing over a permanently
+     false condition is the shape this repo records under `resource_type` in `VOCAB` and the dead
+     `kind === 'paper'` guard.
+
+     THE SERVER IS THE GATE AND STAYS THE GATE. A non-admin is never sent an unlisted tutor, so
+     there is nothing here to filter — which is what makes deleting the clause safe rather than a
+     disclosure: the list this walks is whatever `doGet` judged this viewer may see. */
   const others = (DATA.tutors || [])
-    .filter(t => t && t.title && t.listed !== false)
+    .filter(t => t && t.title)
     /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
        account and again below as a tutor — the same duplication the `me` kind was merged away to
        avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never

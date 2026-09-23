@@ -242,6 +242,46 @@ const STATES = {
      SEEDED THROUGH `toggleFav`, THE APP'S OWN WRITER, rather than by writing the key out here: the
      prefix is `WIDGET_KEY`'s and a second spelling of it would be a second thing to keep in step.
      `leave` takes them back off, because states run in order down one page. */
+  /* ---------- AN UNLISTED TUTOR, WHICH ONLY AN ADMIN IS SENT --------------------------------------
+     REPORTED AS "where did george dissapear off to?" — and this column had been filtering unlisted
+     tutors back out on the phone after `doGet` had deliberately sent them to an admin, so that
+     `findCard`'s dimmed `· not listed` row and `asItem_`'s `off` flag were both unreachable code.
+
+     NO FIXTURE CAN HOLD THIS ONE. `check/fixture.json` has a single tutor and she is listed, so the
+     only account column the lab has ever measured is the one where every row is live — which is the
+     hole the booking receipt, the message thread and the basket were each in. Seeded onto
+     `DATA.tutors`, which is where `accountPages_` reads from and what `load()` fills.
+
+     `only:` BECAUSE A NON-ADMIN IS NEVER SENT ONE. `doget.gs` gates it on `viewerIsAdmin`, so
+     asking a stranger to reach this state would report a fault about the check rather than the app
+     — the same argument as the films two blocks up. */
+  account: [
+    { name: '' },
+    { name: 'a tutor switched off',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        window.__OFF_HELD = (DATA.tutors || []).slice();
+        DATA.tutors = (DATA.tutors || []).concat([Object.assign(
+          {}, (DATA.tutors || [])[0] || {},
+          { personId: 'P-unlisted', handle: '@unlisted', title: 'Switched Off',
+            subtitle: 'Maths, GCSE', listed: false })]);
+        paint('account');
+        /* THE PAGE NUMBER COMES FROM THE BUILDER THE COLUMN IS DRAWN FROM, not from a second
+           re-derivation of `others` here — which is the fault the flyer state above records, where
+           a count of one list indexed a column built from another. `termsPages_()` is concatenated
+           after these, so counting from the end would land on a legal document. */
+        const n = accountPages_().findIndex(h => /prof-off/.test(h));
+        if (n < 0) throw new Error('the unlisted tutor is not on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off'),
+      wants: 'the unlisted tutor drawn, dimmed, with "· not listed" beside the role',
+      leave: () => {
+        if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
+        paint('account');
+      } },
+  ],
+
   saved: [
     { name: 'nothing kept' },
     { name: 'two widgets kept',
