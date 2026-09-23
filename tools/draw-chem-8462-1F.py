@@ -531,10 +531,16 @@ def fig13():
 
 
 # ── FIGURE 14 ─────────────────────────────────────────────────────────────────────────────────
-def fig14():
+def fig14(left='Metal A', right='Metal B', liquid=('Electrolyte',),
+          label='Figure 14: a chemical cell, two metals in an electrolyte with a voltmeter across them'):
     """A chemical cell: two different metals in a beaker of electrolyte with a voltmeter across
     them. 07.2 asks which electrolyte would work and 07.3 is a hypothesis about the two metals,
-    so both electrodes have to be visibly different pieces of metal in the same liquid."""
+    so both electrodes have to be visibly different pieces of metal in the same liquid.
+
+    THE LABELS ARE ARGUMENTS BECAUSE THE HIGHER PAPER PRINTS THIS SAME CELL. 8462/1H Figure 6 is
+    this apparatus with `Nickel`, `Electrode A` and `1.0 mol/dm3 sodium chloride solution` on it --
+    the tier overlap CLAUDE.md already records for `blankgrid` and `scatter`, where AQA prints one
+    picture on both tiers and building it twice is two chances to disagree about it."""
     CX = 150
     out = [beaker(CX, 116, 96, 74, fill=0.62),
            rect(CX - 26, 62, 7, 120, 'currentColor" fill-opacity=".8', sw=1),
@@ -544,13 +550,13 @@ def fig14():
            line(CX + 13, 30, CX + 48, 18, w=.7),
            t(CX + 52, 21, 'Voltmeter', 'cap', ' style="text-anchor:start"'),
            line(CX - 26, 92, CX - 62, 92, w=.7),
-           t(CX - 66, 95, 'Metal A', 'cap', ' style="text-anchor:end"'),
+           t(CX - 66, 95, left, 'cap', ' style="text-anchor:end"'),
            line(CX + 26, 92, CX + 56, 92, w=.7),
-           t(CX + 60, 95, 'Metal B', 'cap', ' style="text-anchor:start"'),
-           line(CX + 26, 160, CX + 56, 160, w=.7),
-           t(CX + 60, 163, 'Electrolyte', 'cap', ' style="text-anchor:start"')]
-    return svg(206, ''.join(out), 'Figure 14: a chemical cell, two metals in an electrolyte with '
-                                  'a voltmeter across them')
+           t(CX + 60, 95, right, 'cap', ' style="text-anchor:start"'),
+           line(CX + 26, 160, CX + 56, 160, w=.7)]
+    for i, wordline in enumerate(liquid):
+        out.append(t(CX + 60, 163 + i * 11, wordline, 'cap', ' style="text-anchor:start"'))
+    return svg(195 + 11 * len(liquid), ''.join(out), label)
 
 
 # ── FIGURE 15 ─────────────────────────────────────────────────────────────────────────────────
