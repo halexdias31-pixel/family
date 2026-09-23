@@ -2998,6 +2998,87 @@ function companyAtoms_(v) {
   return key && key !== said.toLowerCase() ? said + ' ' + key : said;
 }
 
+/* ---------- THE CODE PRINTED ON THE COVER, WHICH THE SEARCH BOX COULD NOT SEE -------------------
+   MEASURED ON THE REAL LIBRARY, at the Find screen, through the box itself:
+
+     | typed          | hits |
+     |----------------|------|
+     | `1MA1`         | **0** |
+     | `8464`         | **0** |
+     | `8464/B/1H`    | **0** |
+
+   `1MA1` IS EDEXCEL'S CODE FOR GCSE MATHS AND IT IS ON THE FRONT OF EVERY ONE OF THOSE PAPERS —
+   *Pearson Edexcel Level 1/Level 2 GCSE (9-1) ... Paper reference 1MA1/1H*. A tutor holding the
+   paper types what is printed on it, and the library holds 26 papers under ids that literally spell
+   it (`P-1MA1-2306-1H`). Same for `8464/B/1H`, which is in a `spec_code` cell on all 126 rows of
+   the four AQA Combined Science papers.
+
+   FOURTH OCCURRENCE OF THIS FILE'S OWN SENTENCE, after `topics`, after `company` and after the
+   practical guides: the words are in the row, the search box cannot see them, and a screen whose
+   whole job is finding things returns nothing for the thing it holds.
+
+   TWO SOURCES, BECAUSE NEITHER COVERS THE OTHER. `spec_code` is a real cell on 92 document rows
+   (every AQA science and English paper) and empty on every Edexcel maths one; the qualification
+   code for those is in the `paper_id` and nowhere else. Measured across the 266 papers that have
+   questions, the id rule yields 29 distinct codes — `1MA1` on 26 papers, `9MA0` on 2, `8464B`,
+   `8464C`, `1CMP` — and the spec cell covers the rest.
+
+   THE SEGMENT RULE IS 4 TO 8 CHARACTERS WITH BOTH A LETTER AND A DIGIT, which is what a
+   qualification code looks like and what an internal id does not. `P-1MA1-2306-1H` gives `1MA1`
+   and nothing else: `2306` is digits only, `1H` is two characters, `P` is one. And the cap at
+   eight is what keeps `RS1786302107764-481` out — a fifteen-character serial nobody types, which
+   as one token shared by two hundred papers would have made `rs17` return a third of the library.
+
+   BOTH SPELLINGS, exactly as `companyAtoms_` does and for its reason: `8464/B/1H` is what is
+   printed and `8464b1h` is what a thumb types when the slashes are in the way.
+
+   WHAT IS STILL DARK IS DATA RATHER THAN THIS RULE. 187 papers carry no code either way. Most are
+   Corbettmaths and 1st Class Maths worksheets, which have no exam code to carry; the real backlog
+   is the ~94 Edexcel maths papers filed under `RS...` serials and the 20 AQA Religious Studies
+   ones, which are 1MA1 and 8062 papers with nothing on the row saying so. One `spec_code` cell
+   each, and they join this the moment it is typed. */
+/* THE CODE IS A FACT ABOUT THE PAPER, so it is read off the paper's own row rather than copied
+   onto every question under it. CLAUDE.md settles this under `needs`: "Calculator is a fact about
+   the PAPER ... writing it onto every question row would be a thousand chances for row 4 to
+   disagree with row 3." This is `needsIndex_` one column along, built once per draw.
+
+   FROM `LIBRARY_ROWS`, THE FILE ITSELF, RATHER THAN FROM `DATA.questions`. `libraryInto_` drops
+   every row whose `active` cell is not true, and 53 of the 128 document rows that carry a code are
+   marked inactive — so the mapped list holds 174 document rows against the file's 691, and reading
+   the index off it found the code for 75 papers and missed the rest in silence. `paperLabels_` is
+   built the same way and for the same reason, which CLAUDE.md records outright: "The first version
+   read `DATA.questions`, which carries only 170 of the 262 papers' document rows."
+
+   AND `active` IS THE RIGHT CELL TO IGNORE HERE. It says whether a student may open the document;
+   it has nothing to say about what is printed on its cover, and letting it decide would make the
+   search box go quiet on a paper somebody is holding. */
+function specIndex_() {
+  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  const at = {};
+  rows.forEach(r => {
+    if (!r) return;
+    const kind = String(r.kind || '').toLowerCase();
+    if (kind !== 'document' && !r.isDoc) return;
+    const pid = paperIdOf_(r);
+    const code = String(r.spec_code || (r.row && r.row.spec_code) || '').trim();
+    if (pid && code) at[pid] = code;
+  });
+  return at;
+}
+
+function paperCodeAtoms_(row, at) {
+  const out = [];
+  const spec = String((row && row.spec_code) || (at && at[paperIdOf_(row)]) || '').trim();
+  if (spec) { out.push(spec); const k = spellKey_(spec); if (k && k !== spec.toLowerCase()) out.push(k); }
+  String((row && row.paper_id) || '').split(/[^A-Za-z0-9]+/).forEach(seg => {
+    if (seg.length < 4 || seg.length > 8) return;
+    if (!/[A-Za-z]/.test(seg) || !/\d/.test(seg)) return;
+    out.push(seg);
+  });
+  return out.join(' ');
+}
+
 /* ---------- MARKUP INTO WORDS, IN ONE PLACE ------------------------------------------------------
    LIFTED OUT WHEN THE PRACTICALS NEEDED IT. A question's haystack is built from `html` and `lead`;
    a practical's is built from a dozen plain columns — but a `&frasl;` or a `<b>` in either is the
@@ -3277,6 +3358,8 @@ function questionItems() {
   /* BUILT ONCE PER DRAW, not looked up per question — `all` is 4,682 rows and this walks it once.
      Same reason `stemIndex_` is a map rather than a filter inside the loop. */
   const kit = needsIndex_(all);
+  /* AND THE CODE ON EACH PAPER'S COVER — see `specIndex_`. Built once per draw, off the file. */
+  const spec = specIndex_();
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -3368,7 +3451,11 @@ function questionItems() {
          a judgement about what somebody wants asked first, and it is not mine to make. */
       text: searchText_(r) + lead.map(p => ' ' + searchText_(p)).join('')
             + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' ')
-            + ' ' + companyAtoms_(r.row ? r.row.company : r.company),
+            + ' ' + companyAtoms_(r.row ? r.row.company : r.company)
+            /* AND THE CODE ON THE COVER — see `paperCodeAtoms_`. Off the raw file row, because
+               `spec_code` and `paper_id` are both columns of it and neither is enumerated onto the
+               payload object. */
+            + ' ' + paperCodeAtoms_(r.row || r, spec),
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */
@@ -5285,10 +5372,18 @@ const S_ = v => String(v == null ? '' : v);
    them — which is two renderers for one session, in two files, differing by a `moneyBlock`. This is
    that stack, once, and the sheet is gone.
 
-   THE ADMIN PARAGRAPH TRAVELS WITH THE TILES. `jobAdminTiles_`'s own note says why it cannot live
-   on the tiles themselves — "a tile has room for a few words" and "everyone is withdrawn" is the
-   whole reason an admin pauses — so it is one paragraph under the row, which is the shape CLAUDE.md
-   records under "A THING has tiles; a FORM has buttons". */
+   AND THE ADMIN PARAGRAPH WENT, BECAUSE EVERY WARNING IN IT IS DELIVERED AT THE MOMENT OF THE
+   PRESS. It was four sentences of consequences under the row, read once and then scrolled past on
+   every session an admin ever opened. Measured before removing it: `job-answer` goes through
+   `sure_(el, 'Turn it down?')`, `job-delete` through `sure_(el, 'End it?')`, and `job-paid` opens
+   the `askHow_` sheet, which says in its own words that it is the whole audit trail and is recorded
+   as marked by you. Each tile already carries its own `note` — 'settles the terms', 'turns it
+   down', 'cash or transfer', 'ends it for everybody'. So nothing is lost, and what is gained is
+   that the sentence arrives when somebody is about to act on it rather than a screen earlier.
+
+   `jobAdminTiles_`'s own note still argues for a paragraph under the row rather than longer tiles,
+   and it is still right about the shape — CLAUDE.md's "A THING has tiles; a FORM has buttons" says
+   one paragraph, not one per button. What changed is that there is nothing left for it to say. */
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
@@ -5301,17 +5396,7 @@ function jobPage_(j) {
     + `<div class="tile-row">${
         (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
       + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
-      }</div>`
-    + (admin
-      ? `<p class="faint" style="margin:.6rem 0 0">Accepting settles the terms for everybody in it
-           and lets the family pay; declining turns the whole booking down and tells them.${
-           stage === 'application' && yes
-             ? ' Marking it paid is for cash, a transfer, or anything that did not go through the'
-               + ' card page \u2014 it is recorded as marked by you, never as though Stripe had'
-               + ' confirmed it.'
-             : ''} Deleting withdraws everyone and removes it from the list; nothing is erased, so
-           every event stays on the events tab and what happened is still on the record.</p>`
-      : '');
+      }</div>`;
 }
 
 const forIs_ = want => (STUFF.filters || [])
