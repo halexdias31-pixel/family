@@ -2998,6 +2998,57 @@ function companyAtoms_(v) {
   return key && key !== said.toLowerCase() ? said + ' ' + key : said;
 }
 
+/* ---------- THE CODE PRINTED ON THE COVER, WHICH THE SEARCH BOX COULD NOT SEE -------------------
+   MEASURED ON THE REAL LIBRARY, at the Find screen, through the box itself:
+
+     | typed          | hits |
+     |----------------|------|
+     | `1MA1`         | **0** |
+     | `8464`         | **0** |
+     | `8464/B/1H`    | **0** |
+
+   `1MA1` IS EDEXCEL'S CODE FOR GCSE MATHS AND IT IS ON THE FRONT OF EVERY ONE OF THOSE PAPERS —
+   *Pearson Edexcel Level 1/Level 2 GCSE (9-1) ... Paper reference 1MA1/1H*. A tutor holding the
+   paper types what is printed on it, and the library holds 26 papers under ids that literally spell
+   it (`P-1MA1-2306-1H`). Same for `8464/B/1H`, which is in a `spec_code` cell on all 126 rows of
+   the four AQA Combined Science papers.
+
+   FOURTH OCCURRENCE OF THIS FILE'S OWN SENTENCE, after `topics`, after `company` and after the
+   practical guides: the words are in the row, the search box cannot see them, and a screen whose
+   whole job is finding things returns nothing for the thing it holds.
+
+   TWO SOURCES, BECAUSE NEITHER COVERS THE OTHER. `spec_code` is a real cell on 92 document rows
+   (every AQA science and English paper) and empty on every Edexcel maths one; the qualification
+   code for those is in the `paper_id` and nowhere else. Measured across the 266 papers that have
+   questions, the id rule yields 29 distinct codes — `1MA1` on 26 papers, `9MA0` on 2, `8464B`,
+   `8464C`, `1CMP` — and the spec cell covers the rest.
+
+   THE SEGMENT RULE IS 4 TO 8 CHARACTERS WITH BOTH A LETTER AND A DIGIT, which is what a
+   qualification code looks like and what an internal id does not. `P-1MA1-2306-1H` gives `1MA1`
+   and nothing else: `2306` is digits only, `1H` is two characters, `P` is one. And the cap at
+   eight is what keeps `RS1786302107764-481` out — a fifteen-character serial nobody types, which
+   as one token shared by two hundred papers would have made `rs17` return a third of the library.
+
+   BOTH SPELLINGS, exactly as `companyAtoms_` does and for its reason: `8464/B/1H` is what is
+   printed and `8464b1h` is what a thumb types when the slashes are in the way.
+
+   WHAT IS STILL DARK IS DATA RATHER THAN THIS RULE. 187 papers carry no code either way. Most are
+   Corbettmaths and 1st Class Maths worksheets, which have no exam code to carry; the real backlog
+   is the ~94 Edexcel maths papers filed under `RS...` serials and the 20 AQA Religious Studies
+   ones, which are 1MA1 and 8062 papers with nothing on the row saying so. One `spec_code` cell
+   each, and they join this the moment it is typed. */
+function paperCodeAtoms_(row) {
+  const out = [];
+  const spec = String((row && row.spec_code) || '').trim();
+  if (spec) { out.push(spec); const k = spellKey_(spec); if (k && k !== spec.toLowerCase()) out.push(k); }
+  String((row && row.paper_id) || '').split(/[^A-Za-z0-9]+/).forEach(seg => {
+    if (seg.length < 4 || seg.length > 8) return;
+    if (!/[A-Za-z]/.test(seg) || !/\d/.test(seg)) return;
+    out.push(seg);
+  });
+  return out.join(' ');
+}
+
 /* ---------- MARKUP INTO WORDS, IN ONE PLACE ------------------------------------------------------
    LIFTED OUT WHEN THE PRACTICALS NEEDED IT. A question's haystack is built from `html` and `lead`;
    a practical's is built from a dozen plain columns — but a `&frasl;` or a `<b>` in either is the
@@ -3368,7 +3419,11 @@ function questionItems() {
          a judgement about what somebody wants asked first, and it is not mine to make. */
       text: searchText_(r) + lead.map(p => ' ' + searchText_(p)).join('')
             + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' ')
-            + ' ' + companyAtoms_(r.row ? r.row.company : r.company),
+            + ' ' + companyAtoms_(r.row ? r.row.company : r.company)
+            /* AND THE CODE ON THE COVER — see `paperCodeAtoms_`. Off the raw file row, because
+               `spec_code` and `paper_id` are both columns of it and neither is enumerated onto the
+               payload object. */
+            + ' ' + paperCodeAtoms_(r.row || r),
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */

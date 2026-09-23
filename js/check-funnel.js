@@ -82,7 +82,7 @@ function boot(cb) {
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, asList_,' +
-      ' filterHit, paperLabels_ };');
+      ' filterHit, paperLabels_, stuffHay_, norm };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -304,6 +304,59 @@ boot(f => {
       + (b.withText ? ' (' + Math.round(b.chars / b.withText) + ' chars each)'
                     : ' — findable by its name and nothing else'));
   });
+
+  /* ---------- 6b. THE CODE PRINTED ON THE COVER HAS TO FIND THE PAPER --------------------------
+     A TUTOR HOLDING THE PAPER TYPES WHAT IS PRINTED ON IT. Measured on the real library before
+     `paperCodeAtoms_` existed: `1MA1` returned 0 of 794, `8464` returned 0 of 157 and `8464/B/1H`
+     returned 0 of 27 — three codes that are on the front of the paper AND in a cell on every row
+     under it. Fourth occurrence of this file's own sentence, after `topics`, after `company` and
+     after the practical guides.
+
+     THIS ONE FAILS RATHER THAN PRINTING, because it is wiring rather than a backlog. A paper that
+     HAS a `spec_code` either answers to it or something between that cell and the haystack has
+     come undone, and the question has one right answer. The papers with NO code are the backlog
+     and are counted below instead.
+
+     THROUGH `stuffHay_` AND `norm`, which is the pair `stuffFind` itself uses — asking the search
+     the way the box asks it rather than re-implementing the match, which is how a check ends up
+     green over a broken screen. */
+  const codeOf = {};
+  items.forEach(x => {
+    const r = x.row || {};
+    if (!r.paper_id) return;
+    const c = String(r.spec_code || '').trim();
+    if (c) codeOf[r.paper_id] = c;
+  });
+  const unreachable = [];
+  Object.keys(codeOf).forEach(pid => {
+    const want = f.norm(codeOf[pid]).split(/\s+/).filter(Boolean);
+    const hit = items.filter(x => x.row && x.row.paper_id === pid
+      && want.every(w => f.stuffHay_(x).includes(w)));
+    if (!hit.length) unreachable.push(pid + ' prints `' + codeOf[pid] + '` and typing it finds '
+      + 'none of its rows');
+  });
+  unreachable.slice(0, 10).forEach(u => bad.push(u));
+  if (unreachable.length > 10) bad.push('… and ' + (unreachable.length - 10) + ' more papers '
+    + 'whose own code does not find them');
+
+  /* THE BACKLOG, PRINTED. A worksheet has no exam code to carry and correctly has none; what this
+     number is for is the papers that DO have one printed on them and no cell holding it — the
+     Edexcel maths papers filed under `RS…` serials, and the AQA Religious Studies ones. One
+     `spec_code` cell each and they join the rule above with nothing here to change. */
+  const papers = {};
+  items.forEach(x => {
+    const r = x.row || {};
+    if (!r.paper_id || x.kind !== 'question') return;
+    papers[r.paper_id] = papers[r.paper_id] || { code: String(r.spec_code || '').trim(),
+                                                 board: r.exam_board || '', subject: r.subject || '' };
+  });
+  const ids = Object.keys(papers);
+  const coded = ids.filter(p => papers[p].code
+    || String(p).split(/[^A-Za-z0-9]+/).some(g => g.length >= 4 && g.length <= 8
+        && /[A-Za-z]/.test(g) && /\d/.test(g)));
+  console.log('\nPAPERS FINDABLE BY THE CODE ON THEIR COVER: ' + coded.length + ' of ' + ids.length
+    + ' — the rest carry no code in any column, which is right for a worksheet and a backlog '
+    + 'for an exam paper');
 
   /* ---------- AN ANSWER THAT NAMES A THING MUST NAME EXACTLY ONE OF THEM ------------------------
      THE `Paper` QUESTION WAS OFFERING ONE BUTTON FOR TWO PAPERS. Its `of` returned the paper's
