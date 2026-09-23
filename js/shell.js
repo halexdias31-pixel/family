@@ -495,17 +495,45 @@ function paint(id) {
  * spreadsheet. One sentence, so no screen can get it wrong on its own, and so improving the
  * wording improves it everywhere at once.
  */
-function nothingHere(whenEmpty) {
+function nothingHere(whenEmpty, needsLibrary) {
   /* EITHER REQUEST CAN BE THE ONE THAT FAILED. `LOAD_FAILED` is the backend and `LIBRARY_FAILED` is
-     `data/questions.json`, and they fail independently — the library is a 3.4 MB static file that a
-     weak signal can drop while the payload sails through. Reporting only the first meant a dropped
-     library was drawn as "nothing in the library yet". See `libraryRows_` for the whole note. */
+     `data/questions.json`, and they fail independently — the library is a static file a weak signal
+     can drop while the payload sails through. Reporting only the first meant a dropped library was
+     drawn as "nothing in the library yet". See `libraryRows_` for the whole note. */
   const why = LOAD_FAILED || LIBRARY_FAILED;
-  return why
-    ? `<p class="empty">Couldn’t load.<br>
+  if (why) {
+    return `<p class="empty">Couldn’t load.<br>
         <span class="faint">${esc(why)}</span><br>
-        <span class="text-action" data-do="retry">Try again</span></p>`
-    : `<p class="empty">${whenEmpty}</p>`;
+        <span class="text-action" data-do="retry">Try again</span></p>`;
+  }
+  /* ---------- AND STILL COMING IS NOT THE SAME AS EMPTY -------------------------------------------
+     REPORTED AS "when i click on questions it takes long to load", and what a phone was actually
+     shown is worse than slow. Measured on a 1.6 Mbps link at 4x CPU: `data/questions.json` is
+     **605 KB gzipped**, its body takes about eight seconds to arrive, and for every one of those
+     seconds the Find screen read **"Nothing in the shop or the library yet."** — a confident
+     sentence about an empty library, printed over a library of 5,790 rows that had simply not
+     landed.
+
+     THAT IS THIS REPOSITORY'S OLDEST FAULT ON ITS MAIN SCREEN. It is written down here five times
+     already — `loadMessages` showing an empty inbox for an unreachable backend, `check-booking.js`
+     printing "nothing to check" and exiting 0, Reels drawing "Nothing here yet" for a column that
+     worked, the funnel's own dropped-library banner — and every one is the same sentence: *I did
+     not manage to look, reported as I looked and there was nothing there.* `libraryRows_` and
+     `LIBRARY_FAILED` were built for the library that FAILS; nothing was ever said about the one
+     that is on its way, which is the commoner case by far and the one every visitor meets once.
+
+     `LIBRARY_ROWS` IS `null` UNTIL IT LANDS and `[]` when it legitimately holds nothing, so the
+     three states are already distinguishable and only this sentence was folding two of them
+     together. No new flag, no second piece of state to keep in step.
+
+     THE CALLER SAYS WHETHER THE LIBRARY IS ITS SUBJECT, because "the questions are still coming" is
+     the wrong thing to print on a feed with no posts in it — the same screen, the same function,
+     and a different thing missing. */
+  if (needsLibrary && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) {
+    return `<p class="empty">The questions are still coming.<br>
+        <span class="faint">It is a big file and it only downloads once.</span></p>`;
+  }
+  return `<p class="empty">${whenEmpty}</p>`;
 }
 
 /** Redraw whatever is showing. What almost everything calls after a change. */

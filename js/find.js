@@ -5770,7 +5770,7 @@ function stuffPageHtml(n) {
               : STUFF.filters.length             ? 'Nothing matches all of those together.'
               : '';
     return (!FIND_MEMO.total)
-      ? nothingHere('Nothing in the shop or the library yet.')
+      ? nothingHere('Nothing in the shop or the library yet.', true)
       : `<p class="empty">Nothing matches.${
           why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
   }
@@ -6842,7 +6842,7 @@ function stuffQuestion() {
            STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
          : STUFF.q                          ? 'Try fewer words.'
          :                                    'Nothing matches all of those together.'}</span></p>`
-      : nothingHere('Nothing in the shop or the library yet.');
+      : nothingHere('Nothing in the shop or the library yet.', true);
   }
 
   /* THE ORDINARY QUESTION FIRST, and only if there is none, the one that is too long to draw whole.
