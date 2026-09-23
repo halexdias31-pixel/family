@@ -392,12 +392,25 @@ AMP.forEach(m => {
    ONLY PAPERS THAT HAVE QUESTIONS COUNT. Most `kind: 'paper'` rows are documents with nothing
    under them yet — a link and a page count — and a document row sitting beside the transcription
    of the same paper is the normal, intended state. Seventeen of those pairs exist right now and
-   not one is a fault. */
-const ACCEPTED_TWICE = {
-  'Maths|Edexcel|2024|summer|3|A-Level':
-    'Papers 31 (Statistics) and 32 (Mechanics) are two different A-level papers and both carry ' +
-    'paper: 3, so the key collides on something that is not a duplicate.',
-};
+   not one is a fault.
+
+   AND A QUALIFICATION MAY NUMBER TWO PAPERS THE SAME, WHICH IS WHAT `spec_code` SETTLES. The key
+   has no column that can tell two papers apart when the qualification itself gives them one
+   number: Edexcel A-level Maths sits Paper 31 (Statistics) and Paper 32 (Mechanics) on one
+   afternoon and both carry `paper: 3`, and AQA Combined Science: Trilogy is SIX papers — Biology,
+   Chemistry and Physics, each sat twice — so 8464/B/1H and 8464/C/1H are both Combined Science,
+   AQA, 2024, summer, paper 1, Higher. The first of those was carried in `ACCEPTED_TWICE` with a
+   written reason, which was the right holding answer for one pair and would have needed four more
+   entries the moment a trilogy arrived. **That is this repository's own sentence about `cost: 0`
+   and `paper: true`: a fault repaired in the instance and not in the rule comes back.**
+
+   So the exemption is gone and the CODE PRINTED ON THE PAPER decides. A collision is not a
+   duplicate when every paper in it carries a `spec_code` and they are all different — `9MA0-31`
+   against `9MA0-32`, `8464/B/1H` against `8464/C/1H`. It is exactly as strict as before
+   everywhere else: 599 of the 691 document rows carry no code at all, and two transcriptions of
+   ONE paper carry the same code or none, so the case this rule was written for (June 2024 Higher
+   Paper 1, transcribed twice under two id schemes) still fires. Proved by mutation in both
+   directions. */
 const seriesOf = m => (['5', '6', '7'].includes(String(m)) ? 'summer'
                     : ['10', '11', '12'].includes(String(m)) ? 'autumn' : String(m || ''));
 const withQuestions = new Set(rows.filter(r => r && r.kind === 'question').map(r => r.paper_id));
@@ -408,14 +421,19 @@ rows.forEach(r => {
   if (bits.some(b => !b)) return;
   const key = bits.join('|');
   if (!sittings.has(key)) sittings.set(key, []);
-  sittings.get(key).push(r.paper_id);
+  sittings.get(key).push({ id: r.paper_id, spec: String(r.spec_code || '').trim() });
 });
 const twice = [];
-sittings.forEach((ids, key) => {
-  if (ids.length < 2) return;
-  if (ACCEPTED_TWICE[key]) return;
+sittings.forEach((papers, key) => {
+  if (papers.length < 2) return;
+  /* EVERY ONE CODED, AND ALL THE CODES DIFFERENT. Either half missing and it is a duplicate: a
+     blank code cannot distinguish anything, and two papers printing one code are one paper. */
+  const codes = papers.map(p => p.spec);
+  if (codes.every(Boolean) && new Set(codes).size === codes.length) return;
+  const ids = papers.map(p => p.id);
   twice.push(`${key} is transcribed ${ids.length} times: ${ids.join(', ')}. One sitting, one paper ` +
-             `— delete the newer copy, or add the key to ACCEPTED_TWICE with a written reason.`);
+             `— delete the newer copy, or, if these really are different papers the qualification ` +
+             `numbers alike, give each its own \`spec_code\` off its own cover.`);
 });
 twice.forEach(t => fail.push(t));
 

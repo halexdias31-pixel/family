@@ -5285,10 +5285,18 @@ const S_ = v => String(v == null ? '' : v);
    them — which is two renderers for one session, in two files, differing by a `moneyBlock`. This is
    that stack, once, and the sheet is gone.
 
-   THE ADMIN PARAGRAPH TRAVELS WITH THE TILES. `jobAdminTiles_`'s own note says why it cannot live
-   on the tiles themselves — "a tile has room for a few words" and "everyone is withdrawn" is the
-   whole reason an admin pauses — so it is one paragraph under the row, which is the shape CLAUDE.md
-   records under "A THING has tiles; a FORM has buttons". */
+   AND THE ADMIN PARAGRAPH WENT, BECAUSE EVERY WARNING IN IT IS DELIVERED AT THE MOMENT OF THE
+   PRESS. It was four sentences of consequences under the row, read once and then scrolled past on
+   every session an admin ever opened. Measured before removing it: `job-answer` goes through
+   `sure_(el, 'Turn it down?')`, `job-delete` through `sure_(el, 'End it?')`, and `job-paid` opens
+   the `askHow_` sheet, which says in its own words that it is the whole audit trail and is recorded
+   as marked by you. Each tile already carries its own `note` — 'settles the terms', 'turns it
+   down', 'cash or transfer', 'ends it for everybody'. So nothing is lost, and what is gained is
+   that the sentence arrives when somebody is about to act on it rather than a screen earlier.
+
+   `jobAdminTiles_`'s own note still argues for a paragraph under the row rather than longer tiles,
+   and it is still right about the shape — CLAUDE.md's "A THING has tiles; a FORM has buttons" says
+   one paragraph, not one per button. What changed is that there is nothing left for it to say. */
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
@@ -5301,17 +5309,7 @@ function jobPage_(j) {
     + `<div class="tile-row">${
         (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
       + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
-      }</div>`
-    + (admin
-      ? `<p class="faint" style="margin:.6rem 0 0">Accepting settles the terms for everybody in it
-           and lets the family pay; declining turns the whole booking down and tells them.${
-           stage === 'application' && yes
-             ? ' Marking it paid is for cash, a transfer, or anything that did not go through the'
-               + ' card page \u2014 it is recorded as marked by you, never as though Stripe had'
-               + ' confirmed it.'
-             : ''} Deleting withdraws everyone and removes it from the list; nothing is erased, so
-           every event stays on the events tab and what happened is still on the record.</p>`
-      : '');
+      }</div>`;
 }
 
 const forIs_ = want => (STUFF.filters || [])
