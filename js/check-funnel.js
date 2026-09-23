@@ -50,7 +50,7 @@ function loadOrder_() {
 
 function boot(cb) {
   const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
-  const library = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+  const library = LIBRARY;
   const practicals = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'practicals.json'), 'utf8'));
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
     .replace(/<script[\s\S]*?<\/script>/g, '');
@@ -89,6 +89,10 @@ function boot(cb) {
   }
   setTimeout(() => cb(w.__f), 1500);
 }
+
+/* THE RAW FILE, NOT THE MAPPED ITEMS. `stuffItems` drops every `kind: 'document'` row, and a
+   paper-level fact — the code on the cover, the total, the link — lives on exactly those. */
+const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
 
 /* A value the funnel would draw on a button, reduced to the thing a person would say it is. Two
    answers that differ only by a hyphen, a space or a capital are ONE answer wearing two coats, and
@@ -320,11 +324,17 @@ boot(f => {
      THROUGH `stuffHay_` AND `norm`, which is the pair `stuffFind` itself uses — asking the search
      the way the box asks it rather than re-implementing the match, which is how a check ends up
      green over a broken screen. */
+  const docCode = {};
+  LIBRARY.forEach(r => {
+    if (!r || r.kind !== 'document' || !r.paper_id) return;
+    const c = String(r.spec_code || '').trim();
+    if (c) docCode[r.paper_id] = c;
+  });
   const codeOf = {};
   items.forEach(x => {
     const r = x.row || {};
     if (!r.paper_id) return;
-    const c = String(r.spec_code || '').trim();
+    const c = String(r.spec_code || '').trim() || docCode[r.paper_id] || '';
     if (c) codeOf[r.paper_id] = c;
   });
   const unreachable = [];
@@ -347,8 +357,9 @@ boot(f => {
   items.forEach(x => {
     const r = x.row || {};
     if (!r.paper_id || x.kind !== 'question') return;
-    papers[r.paper_id] = papers[r.paper_id] || { code: String(r.spec_code || '').trim(),
-                                                 board: r.exam_board || '', subject: r.subject || '' };
+    papers[r.paper_id] = papers[r.paper_id] || {
+      code: String(r.spec_code || '').trim() || docCode[r.paper_id] || '',
+      board: r.exam_board || '', subject: r.subject || '' };
   });
   const ids = Object.keys(papers);
   const coded = ids.filter(p => papers[p].code

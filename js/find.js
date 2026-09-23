@@ -3037,9 +3037,39 @@ function companyAtoms_(v) {
    is the ~94 Edexcel maths papers filed under `RS...` serials and the 20 AQA Religious Studies
    ones, which are 1MA1 and 8062 papers with nothing on the row saying so. One `spec_code` cell
    each, and they join this the moment it is typed. */
-function paperCodeAtoms_(row) {
+/* THE CODE IS A FACT ABOUT THE PAPER, so it is read off the paper's own row rather than copied
+   onto every question under it. CLAUDE.md settles this under `needs`: "Calculator is a fact about
+   the PAPER ... writing it onto every question row would be a thousand chances for row 4 to
+   disagree with row 3." This is `needsIndex_` one column along, built once per draw.
+
+   FROM `LIBRARY_ROWS`, THE FILE ITSELF, RATHER THAN FROM `DATA.questions`. `libraryInto_` drops
+   every row whose `active` cell is not true, and 53 of the 128 document rows that carry a code are
+   marked inactive — so the mapped list holds 174 document rows against the file's 691, and reading
+   the index off it found the code for 75 papers and missed the rest in silence. `paperLabels_` is
+   built the same way and for the same reason, which CLAUDE.md records outright: "The first version
+   read `DATA.questions`, which carries only 170 of the 262 papers' document rows."
+
+   AND `active` IS THE RIGHT CELL TO IGNORE HERE. It says whether a student may open the document;
+   it has nothing to say about what is printed on its cover, and letting it decide would make the
+   search box go quiet on a paper somebody is holding. */
+function specIndex_() {
+  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  const at = {};
+  rows.forEach(r => {
+    if (!r) return;
+    const kind = String(r.kind || '').toLowerCase();
+    if (kind !== 'document' && !r.isDoc) return;
+    const pid = paperIdOf_(r);
+    const code = String(r.spec_code || (r.row && r.row.spec_code) || '').trim();
+    if (pid && code) at[pid] = code;
+  });
+  return at;
+}
+
+function paperCodeAtoms_(row, at) {
   const out = [];
-  const spec = String((row && row.spec_code) || '').trim();
+  const spec = String((row && row.spec_code) || (at && at[paperIdOf_(row)]) || '').trim();
   if (spec) { out.push(spec); const k = spellKey_(spec); if (k && k !== spec.toLowerCase()) out.push(k); }
   String((row && row.paper_id) || '').split(/[^A-Za-z0-9]+/).forEach(seg => {
     if (seg.length < 4 || seg.length > 8) return;
@@ -3328,6 +3358,8 @@ function questionItems() {
   /* BUILT ONCE PER DRAW, not looked up per question — `all` is 4,682 rows and this walks it once.
      Same reason `stemIndex_` is a map rather than a filter inside the loop. */
   const kit = needsIndex_(all);
+  /* AND THE CODE ON EACH PAPER'S COVER — see `specIndex_`. Built once per draw, off the file. */
+  const spec = specIndex_();
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -3423,7 +3455,7 @@ function questionItems() {
             /* AND THE CODE ON THE COVER — see `paperCodeAtoms_`. Off the raw file row, because
                `spec_code` and `paper_id` are both columns of it and neither is enumerated onto the
                payload object. */
-            + ' ' + paperCodeAtoms_(r.row || r),
+            + ' ' + paperCodeAtoms_(r.row || r, spec),
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */
