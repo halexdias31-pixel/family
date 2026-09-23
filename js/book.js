@@ -545,6 +545,100 @@ const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
                    ['f', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
 
+/* ---------- TEN TILL EIGHT, WRITTEN ONCE -----------------------------------------------------------
+   `for (let h = 10; h <= 20; h++)` WAS WRITTEN OUT IN TWO PLACES — `slotGrid()` and `jobGrid_` — and
+   the waiting-list blocks below would have been a third. That is survivable while all three agree
+   and is the shape this repository records under `needs_print` / `print_required` and under
+   `handle` / `username`: one fact in several places, and nothing comparing them.
+
+   IT MATTERS MORE HERE THAN IT DID, because `SLOT_BLOCKS` is DERIVED from this span. A morning is
+   whichever of these hours falls before noon — so if the day ever starts at nine, the morning block
+   gains an hour with nothing to edit, and it cannot end up describing hours the grid beside it does
+   not offer. */
+const SLOT_HOURS = [];
+for (let h = 10; h <= 20; h++) SLOT_HOURS.push(h);
+
+/* ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS ---------------------------
+   ASKED FOR AS *"i want the grid blocks to form into chunks for morning, afternoon, evening ect."*,
+   and it replaces a dropdown of five phrases: `Weekday mornings`, `Weekday afternoons`, `Weekday
+   evenings`, `Weekends`, `Flexible`. The old note over that question is still right about WHY the
+   answer must be broad — *"asking a family to tick specific hours for a session that may run in six
+   weeks is asking them to promise something nobody can promise"* — and wrong about the shape: a
+   week is a SHAPE you read, which is the argument the hour grid has carried since it was written,
+   and "Weekdays" as one word cannot say that Tuesday is the one evening that does not work.
+
+   PER DAY, SO IT IS THE SAME OBJECT AS THE GRID ABOVE IT. Seven rows, the same day letters, the
+   same builder — three columns instead of eleven. A family that means "weekday evenings" presses
+   five cells, and a family whose Tuesday is football can say so, which the five phrases could not.
+
+   `from` IS THE ONLY NUMBER, and each block takes the span's hours from there up to the next one.
+   Morning is what starts before noon; evening is after five, which is what "after school" and
+   "after work" both mean for this business. A block with no hours in the span simply has none. */
+const SLOT_BLOCKS = [
+  { key: 'morning',   name: 'Morning',   from: 0 },
+  { key: 'afternoon', name: 'Afternoon', from: 12 },
+  { key: 'evening',   name: 'Evening',   from: 17 },
+];
+
+/* ---------- WHAT THE ROW SAYS, WHICH IS NOT WHAT IS STORED ------------------------------------------
+   `Monday evening, Tuesday evening, Wednesday evening` IS WHAT THE GRID WRITES and it is the wrong
+   thing to print on a receipt line: measured at 390px with two blocks ticked, that row was 62px —
+   three wrapped lines in an 81px value column — and it grows by a line every time somebody presses
+   another cell. A row whose height depends on how much of the week suits you is the card changing
+   shape under the thumb answering it, which is the fault `SPINE` records about folding.
+
+   SO IT IS GROUPED BY BLOCK AND THE DAYS ARE SHORTENED: `Mon\u2013Fri evenings`, `Sat \u00b7 Sun
+   mornings`. At most three phrases whatever is ticked, because there are three blocks — so the row
+   has a ceiling rather than growing, and it reads as the sentence somebody would actually say.
+
+   THE STORED LIST IS UNTOUCHED, and that separation is the same one the hour grid already makes:
+   `BOOKING.slots` holds `m13, m14` and the row prints `Monday 13:00\u201315:00`, because
+   `waitlistWhen` on the backend counts the PHRASES and a grouped string would be one vote for a
+   thing nobody ticked. What is drawn is a rendering; what is sent is the answer.
+
+   A RUN OF THREE OR MORE DAYS BECOMES A RANGE, because `Mon \u00b7 Tue \u00b7 Wed \u00b7 Thu
+   \u00b7 Fri` is five times the room for one fact, and two is not a run worth a dash: `Mon \u00b7
+   Tue` is no longer than `Mon\u2013Tue` and does not claim a span. */
+function blockSay_(list) {
+  const on = list || [];
+  const out = [];
+  SLOT_BLOCKS.forEach(b => {
+    /* IN THE WEEK'S OWN ORDER, off `SLOT_DAYS`, so Sunday cannot sort to the front. */
+    const days = [];
+    SLOT_DAYS.forEach(([, label], i) => {
+      if (on.indexOf(blockPhrase_(label, b)) !== -1) days.push(i);
+    });
+    if (!days.length) return;
+    const runs = [];
+    days.forEach(i => {
+      const last = runs[runs.length - 1];
+      if (last && last.to === i - 1) last.to = i; else runs.push({ from: i, to: i });
+    });
+    const short = i => String(SLOT_DAYS[i][1]).slice(0, 3);
+    out.push(runs.map(r => r.to - r.from >= 2 ? short(r.from) + '\u2013' + short(r.to)
+                         : r.to === r.from ? short(r.from)
+                         : short(r.from) + ' \u00b7 ' + short(r.to)).join(' \u00b7 ')
+             + ' ' + b.name.toLowerCase() + 's');
+  });
+  return out.join(', ');
+}
+
+/* The hours of one block, off `SLOT_HOURS` — never a second list of numbers. */
+function blockHours_(i) {
+  const from = SLOT_BLOCKS[i].from;
+  const to = i + 1 < SLOT_BLOCKS.length ? SLOT_BLOCKS[i + 1].from : 99;
+  return SLOT_HOURS.filter(h => h >= from && h < to);
+}
+
+/* ---------- WHAT IS STORED IS THE SENTENCE, NOT A CODE --------------------------------------------
+   `Monday morning`, because that is what `waitlistWhen` counts. It splits the event message on
+   commas and tallies the phrases, so ANY phrase works and no backend change is needed — and the
+   tutor reading "Monday evening · 4 of 4" is reading the answer rather than decoding `m-evening`.
+
+   LOWER CASE ON THE BLOCK, because it is the middle of a sentence and `Monday Morning` is a title
+   nobody wrote. The day keeps its capital: it is a proper noun either way. */
+const blockPhrase_ = (dayName, b) => dayName + ' ' + b.name.toLowerCase();
+
 /* ---------- WHEN, AS ONE QUESTION -----------------------------------------------------------------
    This was three: which day, what time, how long. It is one, and the reason is written in the old
    file at `onSlotTick` — a session length chosen separately from the hours ticked meant two
@@ -614,8 +708,7 @@ function slotGrid() {
      that stops at the last START time has to explain itself. Eleven columns rather than fourteen,
      which is three fewer boxes sharing the same row and so three-fourteenths more width for each
      of them. */
-  const hours = [];
-  for (let h = 10; h <= 20; h++) hours.push(h);
+  const hours = SLOT_HOURS;
   const rows = SLOT_DAYS.map(([prefix, label]) => ({
     prefix, label,
     hours: hours.map(h => {
@@ -1026,7 +1119,11 @@ const BOOK_STEPS = [
      `grid` rather than a list, so it is drawn by hand below rather than as options. */
   /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
      nobody has booked, made to four families who have not all joined. */
-  { id: 'slots', label: 'When?', short: 'When', grid: true,
+  /* `grid: 'hours'` RATHER THAN `true`. There are two weeks on this form now — eleven hours for a
+     session, three blocks for a waiting list — and `stepRows_` renders their values differently:
+     one is `bookRuns()`, a span with a start and an end, and the other is a list of phrases. A
+     boolean could not tell them apart and the runs branch would have run over the blocks. */
+  { id: 'slots', label: 'When?', short: 'When', grid: 'hours',
     options: () => isWaiting_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
 
   /* ---------- WHEN COULD YOU COME? ----------------------------------------------------------------
@@ -1056,12 +1153,21 @@ const BOOK_STEPS = [
      `When free` IS NINE CHARACTERS and the column holds nine. It also pairs with `When` directly
      above it, which is the settled day for an instant class; these are the two halves of the same
      question and now look like it. */
+  /* ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES -------------------------------------------
+     IT WAS A MULTI-SELECT: `Weekday mornings`, `Weekday afternoons`, `Weekday evenings`,
+     `Weekends`, `Flexible — whatever suits`. Everything the note above says about the answer being
+     BROAD is still true and is why the columns are blocks rather than hours; what changed is that
+     the week is drawn, which is the argument the hour grid has always carried — *"which hours are
+     free across a week is a SHAPE"* — and five phrases in a dropdown destroyed exactly that.
+
+     `grid: 'blocks'` MAKES `stepControl_` DRAW NOTHING and `stepGrid_` draw the week, which is the
+     path the When row has taken since the panel was removed. `multi` stays because the answer is
+     still a list and `BOOKING.avail` is still initialised to `[]` by the same line.
+
+     `options` IS EMPTY AND THAT IS NOT WHAT LOCKS IT. `stepLocked_` tests `st.grid` FIRST, so a
+     grid step is answerable with no options — which is how the hour week has always worked. */
   { id: 'avail', label: 'When could you come?', short: 'When free', multi: true,
-    options: () => isWaiting_()
-      ? ['Weekday mornings', 'Weekday afternoons', 'Weekday evenings',
-         'Weekends', 'Flexible — whatever suits']
-      : [],
-    why: () => '' },
+    grid: 'blocks', options: () => [], why: () => '' },
 
   /* AND NO TERM, for the same reason as the day. */
   { id: 'interval', label: 'Over what period?', short: 'Term',
@@ -1367,6 +1473,24 @@ on('book-slot', el => {
   const at = list.indexOf(code);
   if (at === -1) list.push(code); else list.splice(at, 1);
   BOOKING.slots = list;
+  drawBooker();
+});
+
+/* ---------- AND THE SAME TOGGLE ONE GRID ALONG ------------------------------------------------------
+   `book-slot` KEEPS HOUR CODES AND THIS KEEPS SENTENCES, which is the only difference: the cell
+   carries the phrase it stands for, so there is nothing to build here and no second spelling of
+   "Monday morning" to keep in step with the one the grid drew.
+
+   IT WRITES `BOOKING.avail` AND NEVER `BOOKING.slots`. Those are two different facts and the
+   second is priced: `bookRuns()` reads it, the total multiplies by it, and a waiting list putting
+   hours in there would look like a booked session to everything downstream. A waiting list has no
+   hours — that is the whole reason this grid exists. */
+on('book-block', el => {
+  const when = el.dataset.when;
+  const list = BOOKING.avail || [];
+  const at = list.indexOf(when);
+  if (at === -1) list.push(when); else list.splice(at, 1);
+  BOOKING.avail = list;
   drawBooker();
 });
 
@@ -1910,6 +2034,55 @@ function weekGrid_(days, cell) {
   </div>`;
 }
 
+/* ---------- THE WAITING LIST'S WEEK, IN BLOCKS ------------------------------------------------------
+   THE SAME BUILDER AS THE HOUR WEEK, THREE CELLS INSTEAD OF ELEVEN. `weekGrid_`'s own note says
+   what differs between the grids in this app is THE CELL and nothing else, and that holds here:
+   the header, the day letters, the row and the collapse rule are all its.
+
+   NOTHING IS GREYED, AND THAT IS THE QUESTION BEING ASKED. The hour week greys an hour the tutor
+   does not work or the venue is shut for — right, because it offers hours that can be BOOKED. This
+   asks when the FAMILY can come, of a class with no tutor, no room and no day yet; greying a block
+   by whoever happens to be selected now would be answering a different question with the first
+   question's data. Every block is offerable and the shape on screen is entirely the family's.
+
+   THE SAME CELL AS THE WEEK ABOVE IT, AND 44px WAS MEASURED AND REFUSED. Three columns could pay
+   the tap-target rule where eleven cannot — but the waiting-list card has three pixels of headroom
+   in its pane, and a 44px block week is 330px against the hour week's 162 and runs 216px past the
+   fold. The arithmetic, and the second and better reason, are written where that rule is not, in
+   `style.css` beside `.hr`.
+
+   A DAY NOBODY WANTS IS NOT REMOVED. `shut` collapses a row on the hour week when the tutor works
+   none of it; here there is nothing to be shut, so every row is full height and the week is seven
+   equal rows — which is what makes it readable as a week rather than as a list. */
+function blockWeek_() {
+  const on = BOOKING.avail || [];
+  return `<div class="bk-open">
+    ${/* AND NO SENTENCE OVER IT. The greyed hour week carried one because a locked control with no
+          reason beside it is the invisible mode — this one is not locked, and the two places that
+          would say the same thing already do: the row above it asks "When could you come?" and the
+          Kind row's own note says the class "runs once enough others take a seat". A third copy is
+          the fault this file records where the roster's name printed an `<h3>` above every widget's
+          own heading. Worth 40px on a card that had four to spare. */''}
+    ${weekGrid_(
+      SLOT_DAYS.map(([, label]) => ({
+        label: label,
+        /* `h` IS WHAT `weekGrid_` PUTS IN THE HEADER — the hour number on the other two grids and
+           the block's name here, which is the one thing that differs in the row above the week. */
+        hours: SLOT_BLOCKS.map(b => ({ h: b.name, block: b, day: label })),
+      })),
+      (c) => {
+        const phrase = blockPhrase_(c.day, c.block);
+        return `<button class="hr${on.indexOf(phrase) !== -1 ? ' on' : ''}"
+          title="${esc(phrase)}" aria-label="${esc(phrase)}"
+          ${/* THE PHRASE ITSELF, not a code. It is what gets stored and what `waitlistWhen` counts,
+                so the handler has nothing to assemble and there is no second place for "Monday
+                morning" to be spelled — which is the fault this file records under `handle` and
+                `username`. */''}
+          data-do="book-block" data-when="${esc(phrase)}"></button>`;
+      })}
+  </div>`;
+}
+
 /* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
    THE LAST PANEL, AND THE ONE WORTH KEEPING AS A GRID. Every other question is a list, and a list is
    a dropdown. Hours are not: which hours are free across a week is a SHAPE — you read it by seeing
@@ -1937,11 +2110,23 @@ function stepGrid_(st) {
      IT IS PART OF THE PAPER NOW, drawn whenever the When row is. Costs the height it costs, every
      time, which is the point — a card whose size does not move is a card you can learn. */
   if (!st.grid) return '';
+
+  /* ---------- ONE WEEK ON THE CARD, AND WHICH ONE DEPENDS ON THE BRANCH -------------------------
+     A WAITING LIST GETS THE BLOCKS AND NOT BOTH. The hour week used to be drawn here greyed out
+     whole, with a line saying why — right while it was the only week on the card, and two weeks
+     stacked with one of them dead is a different object. Measured: the hour week is 193px and the
+     block week is about 330px, because three columns can be a real fingertip where eleven cannot;
+     527px of week on a card whose pane caps at 805 is most of the paper spent on one question,
+     and one of them unanswerable.
+
+     SO THE HOUR WEEK IS NOT DRAWN ON THAT BRANCH, and the sentence it carried moves to the blocks,
+     where it is still the reason you are being asked this rather than for exact hours. The When
+     row keeps its dash, which is what "no day yet" looks like on every other unanswered row. */
+  if (st.grid === 'blocks') return isWaiting_() ? blockWeek_() : '';
+  if (isWaiting_()) return '';
+
   const g = slotGrid();
   const on = BOOKING.slots || [];
-  /* GREYED WHOLE WHEN THE QUESTION DOES NOT APPLY — a waiting list has no day until it fills, so
-     the week is shown and cannot be ticked. Same rule as every other locked row: the thing stays,
-     the answering stops. */
   const off = stepLocked_(st);
   if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
   return `<div class="bk-open${off ? ' is-off' : ''}">
@@ -1951,9 +2136,12 @@ function stepGrid_(st) {
           and a line explaining what you can already see is the fault this file records where the
           roster's name sat above every widget's own heading.
 
-          THE WAITING-LIST LINE STAYS. Nothing else on the card says why a week is drawn and cannot
-          be ticked, and a locked control with no reason beside it is the invisible mode. */''}
-    ${off ? `<p class="faint">A waiting list has no day until it fills — this is settled once the seats are taken.</p>` : ''}
+          THE WAITING-LIST LINE HAS MOVED TO `blockWeek_`, which is the week that branch now draws.
+          It was here because this was the only week on the card and it was shown greyed; it is not
+          drawn on that branch at all any more, so a sentence explaining why it cannot be ticked
+          would be a reason with nothing to be a reason for. `off` still greys a JOINED class's
+          week, which is a different lock and needs no sentence: the row above says whose class it
+          is. */''}
     ${weekGrid_(
       g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
       (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
@@ -2038,6 +2226,11 @@ function stepRows_() {
       const v = BOOKING[st.id];
       const text = st.emails
         ? ((BOOKING.split || []).filter(x => String(x).trim()).join(', '))
+        : st.grid === 'blocks'
+        /* GROUPED — see `blockSay_`. The stored list is one phrase per cell and this is the
+           sentence they add up to, which is the same split the hour grid makes between `m13, m14`
+           and `Monday 13:00–15:00`. */
+        ? blockSay_(v)
         : st.grid
         /* ---------- THE WHOLE RUN, NOT ITS START -----------------------------------------------
            THIS SAID "Mon 13:00" and the grid printed "Monday 13:00–15:00" underneath it — the same
@@ -2105,6 +2298,18 @@ function stepRows_() {
                     a dropdown left on the dash are both silent by the same test. */
                  const answered = st.multi ? (v || []).length
                    : String(v == null ? '' : v).trim() !== '';
+                 /* ---------- AND NOTHING IS SAID ABOUT A QUESTION THIS BRANCH CANNOT ASK --------
+                    FOUND BY A DECLARED STATE, on the waiting-list form: the Subject row is locked
+                    there — `options()` is `[]` when `isWaiting_()`, because a class's subject is
+                    settled by whoever opens it — and directly under the greyed dash sat *"Pick as
+                    many as apply — choosing again adds one, and a ticked one comes back off."*
+                    Instructions for using a control that cannot be used.
+
+                    That is the same fault as the caption over the week grid this file already
+                    removed: a sentence about an action, printed where the action is not available.
+                    It is also 27px on a card that is 33px past its pane at 768, which is what made
+                    it worth looking for rather than worth arguing about. */
+                 if (stepLocked_(st)) return null;
                  if (!answered && !(st.multi && st.note)) return null;
                  const w = (answered && st.why) ? String(st.why(v) || '') : '';
                  if (w) return { text: w, warn: true };
@@ -2797,8 +3002,24 @@ function receiptRow(r) {
 
      SO A ROW THAT IS A QUESTION NEVER COLLAPSES. `id` is set by `stepRows_` and by nothing else, so
      asking for it is asking "is this a field somebody fills in". The asides still collapse, which is
-     what the rule was for. */
-  const bare = !r.id && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
+     what the rule was for.
+
+     EXCEPT THE ROW ABOVE A GRID, WHICH HAS NO FIELD TO KEEP THE SAME WIDTH AS ANYTHING. `r.open`
+     is the week hanging under it, and the note below records that such a row loses its dashed
+     underline precisely because it is a heading rather than a box — *"the answer goes in the week
+     below it"*. There is no control on the line, so the argument above it does not apply: nothing
+     can come out a different size from the field under it, because there is no field.
+
+     WHAT IT BUYS IS THE ROW'S OWN SUMMARY ON ONE LINE. Measured at 390px, the value column is 81px
+     and both grid summaries are sentences: `Monday 13:00–15:00, Wednesday 15:00–16:00` for the
+     hours and `Mon · Tue evenings` for the blocks. The second wrapped to two lines at two blocks
+     ticked and grew by a line with every press — a row whose height depends on how much of the week
+     suits you, which is the shape `SPINE` objects to about folding. Spanning, it is 240px and one
+     line, and the waiting-list card comes back inside its pane.
+
+     THE FIGURE GUARD STAYS, so a grid row that ever carries a price keeps its columns with nothing
+     here to change. */
+  const bare = (!r.id || !!r.open) && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
   /* ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD -------------------------------------
      REPORTED AS *"the 'when' dotted line is redundant as the grid is right underneath it."* It is.
      A dashed underline on this card means *an answer goes here*, and on the When row the answer
@@ -2981,8 +3202,7 @@ function jobGrid_(j) {
   const day = norm(j && j.weekday);
   const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
-  const hours = [];
-  for (let h = 10; h <= 20; h++) hours.push(h);
+  const hours = SLOT_HOURS;
   return `<div class="bk-open is-off">
     ${/* THE FORM'S OWN BUILDER, NOT A COPY OF ITS MARKUP. The first version wrote `.slot-cell`
           spans because they only had to be readable — the second wrote out the form's classes by

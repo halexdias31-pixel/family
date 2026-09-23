@@ -2585,9 +2585,21 @@ button.text-drop { color: var(--bad); }
    days and a day has to be pressable; there is no arrangement of those two facts under 140px.
 
    SO WHAT COMES BACK IS THE SURROUND, which was 36px of margin and instruction around it. */
+/* ---------- AND FOUR MORE PIXELS OF IT, MEASURED ON THE BRANCH THAT HAD NONE ----------------------
+   THE WAITING-LIST FORM IS 801px AGAINST A 797px PANE AT 768 AND 1280. Found by the declared state
+   `booking · a waiting list`, which is the first thing ever to put that branch on a screen this lab
+   looks at — and the overflow is not the block week: the grid is 162px at every width, exactly what
+   the hour week costs. It is the ROWS, which are set in `rem` off a 16px root there against 14.8 at
+   390, so a card that fits on a phone does not on a tablet.
+
+   THE SURROUND IS WHAT THIS BLOCK HAS ALWAYS PAID WITH. Its note above records 36px of margin and
+   instruction coming off it once already, and there are three separate things under the grid here:
+   `.2rem` of padding, a dashed rule, and `.18rem` of margin — 7px at 768, above a row that carries
+   a dashed underline of its own. The rule stays, because it is what closes the week off; the space
+   either side of it is what goes, and it is 4.5px, which is the 4 this needed. */
 .bk-open {
-  margin: 0 0 .18rem 0;
-  padding-bottom: .2rem;
+  margin: 0 0 .06rem 0;
+  padding-bottom: .08rem;
   border-bottom: 1px dashed var(--line);
 }
 .bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
@@ -2754,6 +2766,18 @@ button.text-drop { color: var(--bad); }
   font-size: .66em; letter-spacing: -.02em;
 }
 .hr:active { transform: scale(.9); }
+
+/* ---------- AND THE WAITING LIST'S THREE BLOCKS GET A REAL FINGERTIP -------------------------------
+   `ACCEPTED_TAP` CARRIES THE HOUR CELLS AT 20px WITH THE ARITHMETIC BESIDE THEM: eleven 44px cells
+   need 484px and no phone is that wide, so that grid pays a floor rather than the rule. THREE need
+   132px against about 280, so this one can pay the rule — and the one grid in this app that could
+   not have a proper target is not the one somebody taps seven times to say when they are free.
+
+   IT IS THE ONLY DIFFERENCE. Everything else — the day letters, the header row, the gold fill, the
+   bar that joins Monday morning to Monday afternoon — is `.hr`'s, because it is the same control
+   answering the same kind of question. `weekGrid_`'s own note says what differs between the grids
+   in this app is the cell, and here it is one declaration of it. */
+.hr.blk { min-height: 20px; }
 
 /* ---------- A GRID NOBODY CAN PRESS DOES NOT NEED A THUMB'S WORTH OF HEIGHT ------------------------
    `min-height: max(20px, 1.55em)` IS A FLOOR FOR FINGERS. Below about 20px a cell stops being

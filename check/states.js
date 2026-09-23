@@ -590,6 +590,44 @@ const STATES = {
     /* THE FORM STAYS ON THE LIST — declaring states replaces the unnamed one, and the form is the
        page everybody arrives on. Same first line as `tools` and `dm`, for the same reason. */
     { name: '' },
+
+    /* ---------- THE WAITING-LIST BRANCH, WHICH IS A DIFFERENT FORM ----------------------------
+       `isWaiting_()` CHANGES SIX ROWS AND THE WHOLE WEEK. An ordinary booking ticks eleven hours a
+       day and a waiting list ticks three blocks — different grid, different cell count, different
+       height — and until this state existed the lab had only ever seen the first. That is the same
+       hole the session receipt and the message thread were each in: a branch the fixture cannot
+       reach, measured by nothing, on the app's most control-dense card.
+
+       IT COST THE CARD'S LAST THREE PIXELS TO FIND OUT. Measured on its first run: 803px of card in
+       an 807px pane, `under: 3`. There is no headroom on this branch at all, which is why the block
+       grid's cells are 20px rather than 44 and why the row above it spans — both written up where
+       they are.
+
+       SEEDED THROUGH `BOOKING.how` AND `drawBooker()`, which is exactly what the Kind dropdown's
+       own `change` handler does. `isWaiting_` tests for "wait", so the string is the option's own
+       words rather than a shape that happens to match.
+
+       AND TWO BLOCKS ARE TICKED, because one is not a summary. `blockSay_` groups by block and
+       collapses runs of days, and a single cell exercises none of that — `Mon · Tue evenings` is
+       the shortest answer that proves the row is a sentence rather than a list of phrases. */
+    { name: 'a waiting list',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        BOOKING.how = 'Waiting list class';
+        BOOKING.avail = ['Monday evening', 'Tuesday evening'];
+        drawBooker();
+      },
+      expect: () => {
+        const cells = document.querySelectorAll('#s-booking [data-do="book-block"]');
+        const on = document.querySelectorAll('#s-booking [data-do="book-block"].on');
+        return cells.length === 21 && on.length === 2;
+      },
+      wants: 'a week of three blocks a day with two of them ticked',
+      /* PUT BACK, because states run in order down one page and the receipt state after this one
+         would otherwise be measuring a waiting list's form. `resetBooking_` is the app's own way to
+         empty it — the same call every send path ends with. */
+      leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
