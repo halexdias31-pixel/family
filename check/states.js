@@ -51,6 +51,48 @@ const STATES = {
        one. `goPage` is what the pager calls, and `stuffFirstResult_` is the app's own answer to
        "which page is the first result" — asking it rather than assuming page 1 is the whole
        reason that function exists. */
+    /* ---------- AND THE SECONDS BEFORE THE LIBRARY LANDS ---------------------------------------
+       REPORTED AS "when i click on questions it takes long to load". Measured on a 1.6 Mbps link
+       at 4x CPU: `data/questions.json` is 605 KB gzipped, its body takes about eight seconds, and
+       for every one of them the Find screen read "Nothing in the shop or the library yet." — this
+       repository's oldest fault, on its main screen, on every first visit.
+
+       `LIBRARY_ROWS` IS THE STATE AND IT IS THE APP'S OWN. `null` until the file lands, `[]` when
+       it legitimately holds nothing — so this seeds through the same door the boot uses rather
+       than inventing a flag, which is what every other state here does. The memo has to go with
+       it, or `stuffItems` hands back the list it built when the library WAS there.
+
+       `leave` PUTS IT BACK, because states run in order down one page and every state after this
+       one would otherwise be measuring an app with no library. */
+    { name: 'the library still coming',
+      enter: () => {
+        /* EVERY LIST, NOT JUST THE QUESTIONS. CLAUDE.md records why the empty-state branch is hard
+           to reach at all: "on this site the list is NEVER empty, because the payload carries
+           tutors and venues" — so clearing `DATA.questions` alone leaves the funnel drawing a
+           question about three venues and this state measures the wrong screen. Before `load()`
+           has finished, nothing is there; that is what this is. */
+        window.__LIB_HELD = { rows: LIBRARY_ROWS, data: {} };
+        Object.keys(DATA).forEach(k => {
+          if (Array.isArray(DATA[k])) { window.__LIB_HELD.data[k] = DATA[k]; DATA[k] = []; }
+        });
+        LIBRARY_ROWS = null;
+        /* EVERY MEMO, AND `DATA` IS WHAT THEY ARE KEYED ON. `stuffItems` and `stuffFiltered` both
+           hold `from: DATA` by object identity, so emptying its arrays leaves all three handing
+           back the 5,587 items they built when the payload was whole -- which is a state the app
+           is never in and would have measured the wrong screen. */
+        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+        STUFF.filters = []; STUFF.q = '';
+        paintStuff();
+      },
+      leave: () => {
+        const held = window.__LIB_HELD || { rows: null, data: {} };
+        Object.keys(held.data).forEach(k => { DATA[k] = held.data[k]; });
+        LIBRARY_ROWS = held.rows;
+        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+        paintStuff();
+      },
+      expect: () => /still coming/.test(document.getElementById('s-stuff').textContent || ''),
+      wants: 'the Find screen to say the questions are still coming, not that there are none' },
     { name: 'the results',
       enter: () => {
         STUFF.q = 'work out';
@@ -380,7 +422,14 @@ const STATES = {
           m('m5', false, 'Please do — and a ruler, there is a construction question near the end '
                        + 'that needs compasses as well.', '2026-09-16 10:03', true),
         ];
-        DM_ASKED = true;
+        /* ---------- AND THE COLUMN POLLS NOW, SO THE SEED HAS TO READ AS FRESH --------------------
+           `dmSync_` ASKS THE BACKEND WHENEVER THE LAST ANSWER IS OVER `DM_EVERY` OLD, which is how
+           the Refresh button came off the column — so a state that seeds `MESSAGES` and says
+           nothing about when is a state one tick away from being replaced by the harness's own
+           empty fixture. `DM_LAST` is when the column last asked, and this state IS an answer
+           having just arrived: seeding it is not a test hook, it is the other half of the state
+           being declared. */
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
       },
       expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
@@ -413,10 +462,13 @@ const STATES = {
           { id: 'i' + i + 'b', mine: true, read: true, withId: 'P10' + i, withName: n,
             fromName: 'You', at: '2026-09-1' + i + ' 10:1' + i, body: 'Thanks, noted.' },
         ]);
-        DM_ASKED = true;
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
       },
-      expect: () => pageCount('dm') >= 7,
+      /* SIX PAGES, NOT SEVEN. It was `>= 7` while the column opened with a head card carrying a
+         heading and a Refresh button — a page with no message on it, which is the card the owner
+         asked to be rid of. Six conversations are six pages. */
+      expect: () => pageCount('dm') >= 6,
       wants: 'six conversations, each a page of its own' },
   ],
 };

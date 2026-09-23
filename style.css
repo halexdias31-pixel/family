@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-18-home-experiments";
+  --css-version: "2026-09-23-two-player-boards";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8988,6 +8988,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    SO THE BOARD STAYS IN THE CARD and `check/ui.js` is told why a board cell is exempt — see the note
    beside `MIN_TAP` there. Contorting the layout for a number that cannot be reached would have cost
    the layout and still not reached it. */
+/* ---------- AND THIS RULE WAS DELETED, WHICH IS WHY THE BOARD WAS A BLACK STRIPE ------------------
+   REPORTED AS "connect 4 ... its blacked out right now". `.c4` had this line and lost it in the
+   commit above — "A board square cannot be 44px, and the arithmetic is the reason" — which rewrote
+   the block around it and took the `.c4` half with it. `.oth` kept its own and was fine.
+
+   WHAT A GRID WITH NO TEMPLATE DOES is one column, 42 rows, each `auto` — and a `<button>` with
+   `height: 100%` has no intrinsic height, so every row collapsed to nothing and what was left was
+   `.c4`'s own `background: var(--line)` and its 3px of padding. A 6px dark bar. Nothing threw,
+   nothing overflowed, and `check/ui.js` measures tap targets and sideways scroll rather than
+   whether a box has a size at all.
+
+   THE COMMENT ABOVE SURVIVED THE RULE IT DESCRIBES, which is how it went unnoticed: "7:6 AND 1:1
+   BECAUSE THAT IS WHAT THE GAMES ARE" was still sitting over a block that only said 1:1. Same shape
+   as `.favwrap.is-fav`, as the dead `kind === 'paper'` guard, and as `resource_type` in `VOCAB`. */
+.c4 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr);
+      aspect-ratio: 7 / 6; max-width: 22rem; }
 .oth { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
        aspect-ratio: 1; max-width: 24rem; }
 
@@ -9002,20 +9018,39 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .c4-cell[disabled], .oth-cell[disabled] { cursor: default; }
 .c4-cell:not([disabled]):active, .oth-cell:not([disabled]):active { transform: scale(.9); }
 
-/* THE TWO SIDES, IN THE APP'S OWN COLOURS rather than the red and yellow of the physical game —
-   gold is what every other active thing here is, and a red disc next to `--bad` would read as an
-   error. */
-.c4-cell.you { background: var(--gold); }
-.c4-cell.them { background: var(--dim); }
+/* ==================================================================================================
+   TWO PLAYERS MEANS TWO EQUAL COLOURS, AND THAT IS WHY GOLD LEFT BOTH BOARDS
 
-.oth { border-radius: var(--r-sm); }
+   IT WAS GOLD AGAINST `--dim` and gold against `#15130f`, which was right while one side was YOU and
+   the other was the machine: gold is what this app means by yours, and dim is what it means by the
+   other thing. Reported as "connect 4 should be not against pc but 2 player" and "othello ... the
+   black blends with the backgorund. do red and blue". Both halves follow from the first: with two
+   people at one phone there is no "yours", so a bright side and a faded side reads as one player
+   being switched off, and a near-black disc on a near-black card is not a disc at all.
+
+   DECLARED ON THE COMPONENT, NOT AT `:root`, which is the rule the house style states with the chess
+   board's cream and charcoal: a colour that belongs to ONE thing is named on that thing so it is
+   available without being offered to a black-and-gold stylesheet. Nothing else in this app may reach
+   for a red disc.
+
+   CONNECT 4 IS RED AND YELLOW because that is what is in the box, and Othello is red and blue
+   because that is what was asked for — its own discs are black and white, and black is the one pair
+   this ground cannot carry. */
+.c4 { --c4-a: #c4392f; --c4-b: #e0b23c; }
+.c4-cell.p1 { background: var(--c4-a); }
+.c4-cell.p2 { background: var(--c4-b); }
+
+.oth { border-radius: var(--r-sm); --oth-a: #c4392f; --oth-b: #3f7fd0; }
 .oth-cell { border-radius: 12%; }
-.oth-cell.b { background: #15130f; box-shadow: inset 0 0 0 2px var(--line); }
-.oth-cell.w { background: var(--gold); }
-/* WHERE YOU MAY PLAY, shown rather than left to be discovered. Othello's legal moves are not
-   obvious from the board and a beginner tapping dead squares learns nothing from nothing happening.
-   A ring, not a fill, so a hint is never mistaken for a disc already down. */
-.oth-cell.can { box-shadow: inset 0 0 0 2px var(--gold); opacity: .85; }
+.oth-cell.p1 { background: var(--oth-a); }
+.oth-cell.p2 { background: var(--oth-b); }
+/* ---------- AND THE LEGAL-MOVE RINGS ARE GONE --------------------------------------------------
+   `.oth-cell.can` DREW A GOLD RING ON EVERY SQUARE THE PLAYER COULD USE, argued for as teaching:
+   Othello's legal moves are not obvious and a beginner tapping dead squares learns nothing. Asked
+   for outright — "dont show the locations players can pic" — and the argument does not survive two
+   players anyway: the rings are one player's answer drawn on a board the other one is looking at.
+   Reading the board is the game. An illegal tap says so in the line under the board, which answers
+   the press without answering the question. */
 
 /* ---------- MAZE -----------------------------------------------------------------------------------
    THE WALLS ARE BORDERS ON THE CELLS, so the grid is the maze rather than a picture of one: a cell

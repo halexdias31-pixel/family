@@ -620,9 +620,36 @@ function feedSlide(it) {
      looking at, which is the same arithmetic `reelsWatch_` already makes about the photographs —
      `preload="none"` is a hint browsers are free to ignore and an absent `src` is not. */
   if (it.clip) {
-    return `<div class="feed-art is-clip" style="--a:${c[0]};--b:${c[1]};--c:${c[2]}">
+    /* ---------- THE FIRST FRAME ARRIVES FIRST, AND THAT IS MOST OF "IT TAKES LONG TO LOAD" --------
+       REPORTED AS "the reel isnt loading. or it takes long to load". Measured, the two clips in this
+       repository are 576x576, 104 and 92 seconds long, 7.3 and 7.9 MB — so on a phone there really
+       are several seconds between the tap and the first frame, and what was on the screen for all of
+       them was `.feed-art`'s gradient with a letter on it. A column whose whole content is a video,
+       showing no video, is indistinguishable from a broken one. That is this repository's oldest
+       shape wearing a stopwatch: *it has not arrived* drawn exactly like *there is nothing here*.
+
+       A POSTER IS ~20KB AND IT IS THE CLIP'S OWN FIRST FRAME, so the slide is the right picture
+       immediately and the video fades in over it when it is ready. Nothing about the clip is
+       changed: re-encoding the owner's video to make it smaller is a lossy edit to their material
+       and a judgement that is theirs, and it is written down in `data/reels/README.md` instead.
+
+       DERIVED FROM THE CLIP'S PATH, NOT A SIXTH FIELD. `x.mp4` beside `x.jpg` is one convention
+       with nothing to keep in step — the `images` note's argument against a numbered column, one
+       step along — and `check-reels.js` prints any clip missing one. Only for a path: a Drive id
+       has no poster to derive and an absolute URL is somebody else's server. A poster that 404s
+       draws nothing, which is exactly what this slide did before, so it degrades to the old
+       behaviour rather than to a hole. */
+    const poster = /^[a-z]+:/i.test(it.clip) || it.clip.indexOf('/') < 0
+      ? '' : String(it.clip).replace(/\.[a-z0-9]+$/i, '') + '.jpg';
+    /* `has-photo` FROM THE FIRST PAINT WHERE THERE IS A POSTER, and only there. The note over
+       `reelPlay_` says why that class waits for `loadeddata`: the scrim and the white words over a
+       slide that is still its own gradient are furniture for a picture that has not arrived. A
+       poster IS the picture arriving, so the same sentence puts the class on now — and a clip with
+       no poster still waits, exactly as before. */
+    return `<div class="feed-art is-clip${poster ? ' has-photo' : ''}" style="--a:${c[0]};--b:${c[1]};--c:${c[2]}">
       <span class="feed-mark">${esc(initial(it.subject))}</span>
-      <video class="feed-vid" data-clip="${esc(it.clip)}" playsinline muted loop preload="none"></video>
+      <video class="feed-vid" data-clip="${esc(it.clip)}"${poster ? ` poster="${esc(poster)}"` : ''}
+             playsinline muted loop preload="none"></video>
       <span class="feed-credit"></span>
       ${words}
     </div>`;
@@ -666,13 +693,18 @@ function feedSlide(it) {
 const C4_W = 7, C4_H = 6;
 let c4 = null;
 
+/* THE TWO SIDES, NAMED ONCE. The board draws `p1`/`p2` and the line under it says the word — two
+   spellings of one fact is what this repository writes about `handle` and `username`, and here it
+   would be a red disc announced as yellow. */
+const C4_NAME = { 1: 'Red', 2: 'Yellow' };
+
 function initConnect4() {
   const host = $('c4-board');
   if (!host) return;
   /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS. Coming back to a board you left half-played
      sounds kind and is not: the widget is reopened by a swipe, so "where was I" would be answered
      by a game you had forgotten starting. */
-  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Your go — tap a column.' };
+  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Red starts — tap a column.' };
   c4Paint();
 }
 
@@ -705,44 +737,32 @@ function c4Wins_(cells, x, y, who) {
 function c4Play_(x) {
   if (!c4 || c4.over) return;
   const y = c4Drop_(c4.cells, x);
-  if (y < 0) return;                                  // full column: the tap does nothing, loudly
+  if (y < 0) { c4.said = 'That column is full.'; return; }
   c4.cells[y * C4_W + x] = c4.turn;
   if (c4Wins_(c4.cells, x, y, c4.turn)) {
     c4.over = true;
-    c4.said = c4.turn === 1 ? 'You win.' : 'It wins. Again?';
+    c4.said = C4_NAME[c4.turn] + ' wins.';
   } else if (c4.cells.every(Boolean)) {
     c4.over = true; c4.said = 'Full board — a draw.';
   } else {
     c4.turn = c4.turn === 1 ? 2 : 1;
-    c4.said = c4.turn === 1 ? 'Your go.' : 'Thinking…';
+    c4.said = C4_NAME[c4.turn] + '\u2019s go.';
   }
 }
 
-/* THE THREE RULES, IN ORDER. Written as one loop over the legal columns rather than three passes,
-   because three passes over the same seven columns is three places to get the bounds wrong. */
-function c4Reply_() {
-  if (!c4 || c4.over) return;
-  const legal = [];
-  for (let x = 0; x < C4_W; x++) if (c4Drop_(c4.cells, x) >= 0) legal.push(x);
-  if (!legal.length) return;
+/* ---------- `c4Reply_` WAS HERE, AND IT WAS THE OPPONENT ------------------------------------------
+   THREE RULES IN ORDER — win if it can, block if it must, otherwise play towards the middle — and
+   the note above this block argued it was the right difficulty for four minutes between lessons.
+   Asked for outright: "connect 4 should be not against pc but 2 player."
 
-  const findFor = who => legal.find(x => {
-    const y = c4Drop_(c4.cells, x);
-    const t = c4.cells.slice();
-    t[y * C4_W + x] = who;
-    return c4Wins_(t, x, y, who);
-  });
+   IT IS A BETTER GAME ON THIS APP THAN ON A DESKTOP, which is the half worth keeping: a phone on a
+   table between two people is exactly what a board game is, and the thing this widget could never
+   be is a second person. `Tools` and `Games` are columns you open beside somebody, and Articulate
+   and Charades already work that way.
 
-  /* WIN, THEN BLOCK. In that order and not the other way round: a move that wins ends the game, so
-     blocking first would decline a win to prevent a reply that never comes. */
-  let pick = findFor(2);
-  if (pick === undefined) pick = findFor(1);
-  if (pick === undefined) {
-    /* TOWARDS THE MIDDLE, because the centre column sits on more possible fours than any other. */
-    pick = legal.slice().sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3))[0];
-  }
-  c4Play_(pick);
-}
+   THE AI IS DELETED RATHER THAN SWITCHED OFF. A dormant opponent behind a flag is a second mode
+   nothing presses, which is `orderPrints` — and the three rules are four lines somebody can write
+   again if a solo mode is ever wanted. */
 
 function c4Paint() {
   const host = $('c4-board');
@@ -753,7 +773,7 @@ function c4Paint() {
       const v = c4At(x, y);
       /* THE WHOLE COLUMN IS ONE TARGET, so every square in it carries the same `data-x` and the
          same label. A screen reader hears "column 4" six times rather than 42 unnamed squares. */
-      html += `<button class="c4-cell${v ? (v === 1 ? ' you' : ' them') : ''}" data-do="c4-drop"
+      html += `<button class="c4-cell${v ? (v === 1 ? ' p1' : ' p2') : ''}" data-do="c4-drop"
         data-x="${x}" aria-label="Column ${x + 1}"${c4.over ? ' disabled' : ''}></button>`;
     }
   }
@@ -762,12 +782,8 @@ function c4Paint() {
 }
 
 on('c4-drop', el => {
-  const x = Number(el.getAttribute('data-x'));
-  c4Play_(x);
+  c4Play_(Number(el.getAttribute('data-x')));
   c4Paint();
-  /* THE REPLY IS A BEAT LATER, so the disc you dropped is on screen before the answer lands. Played
-     immediately, both discs appear in the same frame and it reads as one move. */
-  if (!c4.over && c4.turn === 2) setTimeout(() => { c4Reply_(); c4Paint(); }, 260);
 });
 
 on('c4-again', () => { initConnect4(); });
@@ -785,13 +801,15 @@ on('c4-again', () => { initConnect4(); });
 const OTH_N = 8;
 let oth = null;
 
+const OTH_NAME = { 1: 'Red', 2: 'Blue' };
+
 function initOthello() {
   if (!$('oth-board')) return;
   const cells = new Array(OTH_N * OTH_N).fill(0);
   const m = OTH_N / 2;
   cells[(m - 1) * OTH_N + (m - 1)] = 2; cells[(m - 1) * OTH_N + m] = 1;
   cells[m * OTH_N + (m - 1)] = 1;       cells[m * OTH_N + m] = 2;
-  oth = { cells, turn: 1, over: false, said: 'Your go — black.' };
+  oth = { cells, turn: 1, over: false, said: 'Red starts.' };
   othPaint();
 }
 
@@ -833,58 +851,59 @@ function othPlay_(i, who) {
 /* WHOSE TURN IT IS NEXT, which is not simply "the other one". */
 function othAdvance_() {
   const other = oth.turn === 1 ? 2 : 1;
-  if (othMoves_(oth.cells, other).length) { oth.turn = other; return; }
+  if (othMoves_(oth.cells, other).length) { oth.turn = other; oth.said = OTH_NAME[other] + '\u2019s go.'; return; }
   if (othMoves_(oth.cells, oth.turn).length) {
-    oth.said = (other === 1 ? 'You have' : 'It has') + ' no move — going again.';
+    oth.said = OTH_NAME[other] + ' has no move \u2014 ' + OTH_NAME[oth.turn] + ' goes again.';
     return;                                            // the same player goes again
   }
   oth.over = true;
   const [b, w] = othScore_(oth.cells);
-  oth.said = b === w ? `Level, ${b}–${w}.` : b > w ? `You win, ${b}–${w}.` : `It wins, ${w}–${b}.`;
+  oth.said = b === w ? `Level, ${b}\u2013${w}.`
+           : b > w ? `Red wins, ${b}\u2013${w}.` : `Blue wins, ${w}\u2013${b}.`;
 }
 
-/* CORNERS FIRST, THEN THE BIGGEST FLIP. Greedy alone plays badly in Othello — the move that turns
-   the most discs early is usually the one that hands over an edge — and a corner can never be
-   flipped back, which is the one piece of strategy worth hard-coding. */
-function othReply_() {
-  if (!oth || oth.over) return;
-  const moves = othMoves_(oth.cells, 2);
-  if (!moves.length) { othAdvance_(); return; }
-  const CORNERS = [0, OTH_N - 1, OTH_N * (OTH_N - 1), OTH_N * OTH_N - 1];
-  const corner = moves.find(i => CORNERS.indexOf(i) !== -1);
-  const pick = corner !== undefined
-    ? corner
-    : moves.slice().sort((a, b) => othFlips_(oth.cells, b, 2).length - othFlips_(oth.cells, a, 2).length)[0];
-  othPlay_(pick, 2);
-  othAdvance_();
-  if (!oth.over && oth.turn === 2) { othReply_(); return; }   // it passed back to itself
-  if (!oth.over) oth.said = 'Your go.';
-}
+/* ---------- `othReply_` WAS HERE, AND SO WERE THE RINGS -------------------------------------------
+   CORNERS FIRST, THEN THE BIGGEST FLIP — a real little opponent, and the whole of it is deleted for
+   the reason `c4Reply_` is: "should be 2 player not against cpu". Othello across a table is the game
+   Othello is.
+
+   AND THE HINTS WENT WITH IT, asked for in the same breath — "dont show the locations players can
+   pic". They were argued for as teaching, and the argument does not survive the second player:
+   `othMoves_(cells, 1)` is one side's answer, drawn on a board the other side is reading. Working
+   out where you may play IS Othello.
+
+   SO EVERY EMPTY SQUARE IS PRESSABLE and an illegal one says why. It was `disabled` unless it was
+   a legal move, which is the ring in another form — a screen reader reading the board would have
+   heard exactly the same list. A press that does nothing at all is what `check/press.js` exists to
+   report, and a line under the board answers the press without answering the question. */
 
 function othPaint() {
   const host = $('oth-board');
   if (!host || !oth) return;
-  const hints = oth.over || oth.turn !== 1 ? [] : othMoves_(oth.cells, 1);
   let html = '';
   for (let i = 0; i < oth.cells.length; i++) {
     const v = oth.cells[i];
-    const can = hints.indexOf(i) !== -1;
-    html += `<button class="oth-cell${v === 1 ? ' b' : v === 2 ? ' w' : ''}${can ? ' can' : ''}"
+    html += `<button class="oth-cell${v === 1 ? ' p1' : v === 2 ? ' p2' : ''}"
       data-do="oth-play" data-i="${i}" aria-label="Row ${((i / OTH_N) | 0) + 1} column ${(i % OTH_N) + 1}"
-      ${can ? '' : 'disabled'}></button>`;
+      ${v || oth.over ? 'disabled' : ''}></button>`;
   }
   host.innerHTML = html;
   const [b, w] = othScore_(oth.cells);
-  const sc = $('oth-score'); if (sc) sc.textContent = b + ' – ' + w;
+  const sc = $('oth-score'); if (sc) sc.textContent = b + ' \u2013 ' + w;
   const said = $('oth-said'); if (said) said.textContent = oth.said;
 }
 
 on('oth-play', el => {
-  if (!oth || oth.over || oth.turn !== 1) return;
-  if (!othPlay_(Number(el.getAttribute('data-i')), 1)) return;
+  if (!oth || oth.over) return;
+  /* THE TAP IS ALWAYS ANSWERED, and what it says is the rule rather than the answer: "nothing to
+     trap there" is true of every illegal square and names none of the legal ones. */
+  if (!othPlay_(Number(el.getAttribute('data-i')), oth.turn)) {
+    oth.said = 'Nothing to trap there \u2014 ' + OTH_NAME[oth.turn] + ' again.';
+    othPaint();
+    return;
+  }
   othAdvance_();
   othPaint();
-  if (!oth.over && oth.turn === 2) setTimeout(() => { othReply_(); othPaint(); }, 300);
 });
 
 on('oth-again', () => { initOthello(); });

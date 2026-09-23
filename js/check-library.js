@@ -883,6 +883,24 @@ say('BROKEN', fail, x => x);
 say('WHAT THE TRANSCRIBER COULD NOT RECOVER — worth a person and the original paper', flagged,
     r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
 
+/* ---------- WHEN A FIGURE IS DRAWN, AND THE RULE IS THE OWNER'S -----------------------------------
+   IN THEIR WORDS: "only make diagrams when they are part of the question like in the paper."
+
+   TWO TESTS, AND BOTH HAVE TO PASS. The paper has to PRINT it as part of the question -- nothing is
+   invented to fill a gap, and a question that reads perfectly without a picture does not get one.
+   And what it shows has to be determined by something other than the shape of the artwork: the
+   question's own words, a table it plots, or a value the mark scheme quotes back.
+
+   THE SECOND IS WHAT STOPS THE FIRST BEING A LICENCE. Figure 1 of Chemistry Paper 1 is printed as
+   part of 01.1 and is NOT drawn, because the question is "give two conclusions from Figure 1" and
+   the conclusions are the shape of a curve nobody can read off a raster image -- redrawing it by
+   eye is the mistake this repository records where a cumulative-frequency curve read that way gave
+   50 where the pixels said 48.1. Figure 10 two questions later IS drawn, because a tank, a lining,
+   three rods, a mixture and a layer of aluminium are five facts the question already states.
+
+   THE COUNT BELOW IS THE REST: printed, not failed, because repairing one needs the original paper
+   open beside somebody. */
+
 /* ---------- A CARD IS NOT A PAGE -----------------------------------------------------------------
    A QUESTION THAT SAYS "USE FIGURE 10" OVER A CARD WITH NO FIGURE 10 ON IT IS NOT A QUESTION.
    That sentence is this repository's, written the day a transcribed exam question arrived as prose

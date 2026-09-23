@@ -440,7 +440,23 @@ const FEED_FACTS = [
    'Feefle, flindrikin, snitter, spitters, unbrak. A language grows vocabulary where its speakers need precision, which is why English has so many words for rain.', 'snow scotland landscape'],
 ];
 
-/* ---------- WHAT THE APP SHOWS TODAY, FROM WHICHEVER SOURCE HAS ANYTHING IN IT -------------------
+/* ---------- AND THIS LIST IS THE FLOOR, NOT THE LIBRARY --------------------------------------------
+   IT WAS AN EXACT DUPLICATE OF THE TAB and CLAUDE.md records that: 58 rows here, the same 58 in
+   `data/settings/facts.json`, and nothing anywhere saying which was the source. It is not a
+   duplicate any more — the file holds FOUR HUNDRED and this holds the original fifty-eight plus the
+   two clips.
+
+   WHICH MATTERS, BECAUSE THE ANSWER IS NOT THE OBVIOUS ONE. `factsNow_` below prefers `DATA.facts`,
+   `settingsInto_` fills that from the file, and the file has rows — so a fact added HERE and not
+   there is a fact nobody ever sees. Asked as "have you added the other many interstting facts? i
+   asked for 400 last night", and the honest answer was that adding them to the JavaScript would
+   have changed nothing on screen.
+
+   SO: `tools/add-facts.py` writes the file, and this is what a phone gets when the data files did
+   not arrive. That is `libraryExtras_`'s rule pointed the same way — a source with no rows leaves
+   the other one alone — and it is why these fifty-eight are not deleted now that they are a subset.
+
+   ---------- WHAT THE APP SHOWS TODAY, FROM WHICHEVER SOURCE HAS ANYTHING IN IT -------------------
    THE SHEET WINS WHERE IT HAS ROWS, because that is the whole point of the move — somebody editing
    a spreadsheet must be able to replace these without a deploy. Where it is empty, these stand.
 

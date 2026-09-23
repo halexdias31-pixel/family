@@ -211,6 +211,76 @@ def fig8():
     return ''.join(p) + '</svg>'
 
 
+def fig10():
+    """The aluminium electrolysis cell, drawn because the paper prints it as part of the question.
+
+    THE OWNER'S RULE, IN THEIR OWN WORDS: "only make diagrams when they are part of the question
+    like in the paper." This one is, and every element of it is stated in the question's own text
+    already -- a tank lined with the negative carbon electrode, three positive carbon electrode rods
+    hanging from a metal wire, a molten mixture of aluminium oxide and substance X, and molten
+    aluminium along the bottom. There is nothing here that had to be read off the artwork and
+    nothing invented; the drawing and the prose are the same five facts.
+
+    WHAT IS DELIBERATELY NOT DRAWN ON THIS PAPER, by the same rule one step further: Figure 1 is a
+    line graph whose CURVE is what 01.1 asks you to describe, and redrawing a curve by eye is the
+    mistake CLAUDE.md records where one read 50 where the pixels said 48.1. A figure being in the
+    paper is necessary and not sufficient -- what it shows has to be determined by something other
+    than the shape of the artwork.
+
+    THE PAPER FILLS THE ELECTRODES BLACK ON WHITE. Here they take the page's own ink, which is the
+    rule every drawing in this library follows: light on the dark palette, dark on the paper one,
+    and legible on both. The two liquid layers are the same ink at low opacity for the same reason.
+    """
+    L, R, TOP, BOT, T = 92, 206, 74, 152, 6        # the tank, and its lining thickness
+    rods = (110, 140, 170)
+    p = ['<svg viewBox="0 0 %d 196" role="img" aria-label="An electrolysis cell: a tank lined with '
+         'the negative carbon electrode, holding a molten mixture of aluminium oxide and substance '
+         'X with molten aluminium along the bottom, and three positive carbon electrode rods '
+         'hanging into it from a metal wire">' % W]
+    ink = 'stroke="currentColor" fill="none" stroke-width="1.1"'
+    # the two liquid layers, back to front
+    p.append('<rect x="%d" y="%d" width="%d" height="%d" fill="currentColor" opacity="0.10"/>'
+             % (L + T, TOP + 4, R - L - 2 * T, BOT - T - TOP - 14))
+    p.append('<rect x="%d" y="%d" width="%d" height="10" fill="currentColor" opacity="0.30"/>'
+             % (L + T, BOT - T - 10, R - L - 2 * T))
+    # the lining: a U, thick, which IS the negative electrode
+    p.append('<path d="M%d %d L%d %d L%d %d L%d %d" stroke="currentColor" fill="none" '
+             'stroke-width="%d" stroke-linejoin="miter"/>' % (L + T / 2.0, TOP - 6, L + T / 2.0,
+                                                              BOT - T / 2.0, R - T / 2.0,
+                                                              BOT - T / 2.0, R - T / 2.0, TOP - 6, T))
+    p.append('<rect x="%d" y="%d" width="%d" height="%d" %s/>' % (L - 4, TOP - 10, R - L + 8,
+                                                                  BOT - TOP + 14, ink))
+    # the three positive electrodes and the wire over them
+    for x in rods:
+        p.append('<rect x="%d" y="46" width="12" height="%d" fill="currentColor"/>' % (x, BOT - T - 22 - 46))
+        p.append('<line x1="%d" y1="46" x2="%d" y2="38" %s/>' % (x + 6, x + 6, ink))
+    p.append('<line x1="%d" y1="38" x2="248" y2="38" %s/>' % (rods[0] + 6, ink))
+    p.append('<circle cx="256" cy="38" r="7" %s/>' % ink)
+    p.append('<text x="256" y="42" class="lbl" style="text-anchor:middle">+</text>')
+    # the negative terminal, wired to the lining
+    p.append('<circle cx="58" cy="50" r="7" %s/>' % ink)
+    p.append('<text x="58" y="54" class="lbl" style="text-anchor:middle">\u2212</text>')
+    p.append('<path d="M65 50 L%d 50 L%d %d" %s/>' % (L + T / 2.0, L + T / 2.0, TOP - 6, ink))
+    lead = lambda x1, y1, x2, y2: p.append(
+        '<line x1="%s" y1="%s" x2="%s" y2="%s" stroke="currentColor" stroke-width="0.7"/>'
+        % (x1, y1, x2, y2))
+    say = lambda x, y, t, anc: p.append('<text x="%d" y="%d" class="lbl" style="text-anchor:%s">%s'
+                                        '</text>' % (x, y, anc, t))
+    # labels, and every one of them is a phrase the question already uses
+    say(214, 22, 'Metal wire', 'start'); lead(212, 26, 190, 38)
+    say(214, 52, 'Positive carbon', 'start')
+    say(214, 66, 'electrode', 'start'); lead(212, 56, 184, 60)
+    say(214, 112, 'Molten mixture of', 'start')
+    say(214, 126, 'aluminium oxide', 'start')
+    say(214, 140, 'and substance X', 'start'); lead(212, 116, 200, 104)
+    say(86, 92, 'Negative carbon', 'end')
+    say(86, 106, 'electrode', 'end'); lead(88, 96, L + T / 2.0, 104)
+    say(96, 186, 'Molten aluminium', 'start'); lead(150, 178, 150, BOT - T - 5)
+    return ''.join(p) + '</svg>'
+
+
+FIG10_SVG = fig10()
+
 # ---- Figure 10, written once and used by the two questions that need it -------------------------
 # A CARD IS NOT A PAGE. AQA prints Figure 10 beside 06.3 and asks about it again on 06.5, two pages
 # later, where a student turns back. There is nothing to turn back to on a phone: `fillStuffPages`
@@ -287,7 +357,7 @@ Q = [
  "Gold (Au). Silver (Ag), platinum (Pt) and copper (Cu) are also accepted.", ""),
 ("6","2",1,"short",CC,"","", "<p><b>Figure 9</b> shows a reactivity series, most reactive first:</p><ol><li>Potassium</li><li>Magnesium</li><li>Zinc</li><li>Carbon</li><li>Metal <b>Z</b></li><li>Copper</li></ol><p>Suggest the most economical method for extracting metal <b>Z</b> from an oxide of metal <b>Z</b>.</p>",
  "Reduction by carbon (heating or reacting with carbon)", ""),
-("6","3",1,"short",CC,"diagram","", FIG10 + "<p>Name substance <b>X</b> shown in <b>Figure 10</b>.</p>",
+("6","3",1,"short",CC,"diagram",FIG10_SVG, FIG10 + "<p>Name substance <b>X</b> shown in <b>Figure 10</b>.</p>",
  "Cryolite",
  "Figure 10 is artwork in the PDF and is not transcribed; every label it carries is stated in the question."),
 ("6","4",3,"explain",CC,"","", "<p>Explain what happens to the positive carbon electrodes during the extraction of aluminium from aluminium oxide.</p>",

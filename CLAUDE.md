@@ -8509,3 +8509,217 @@ returns nothing for the thing it holds.
 when they cannot remember what a site is called, and the category is the only place either word
 appears. Built onto the item rather than matched per keystroke, which is what those three notes
 also say: `stuffItems` is memoised and runs once, `stuffFind` runs on every letter.
+
+## A line of best fit slid the whole column sideways
+
+**Reported as "when i try draw a line of best fit it slides the whole widget to the left and becomes
+hard to do".** Reproduced on the first try with real touch events: a stroke across a scatter graph
+with the pen on carried the app from `stuff` to `dm`, and the mark was kept, on the wrong screen.
+
+**`touch-action: none` STOPS THE BROWSER AND NOT THIS APP, and that is the whole of it.**
+`.qpad.is-drawing .qpad-ink` has carried it since the pen was written, and the note over that rule
+is right about what it does. **The grid's swipe is a `pointermove` listener on the window.** It never
+asks the browser for a scroll, so no `touch-action` anywhere can refuse it — and a line of best fit
+is precisely the stroke that travels furthest sideways.
+
+**`axisFree` already names the list**: `select, [data-noswipe]`. So the pad says the same sentence to
+the app that the stylesheet says to the browser, and it says it in the one place both readers of
+that list already look — rather than a third selector for somebody to keep in step.
+
+**Only while the pen is on**, which is the stylesheet's own argument one rule up: a picture you
+cannot swipe past is a picture that traps you on it, and every question card carrying a diagram
+would become a page with no way off. **Measured both ways**: pen on, the stroke is kept and the
+column does not move; pen off, a swipe left over the same picture still changes column.
+
+**And the mode is drawn from `PAD_ON` now rather than left on the element by the press.** A repaint
+rebuilds the card, so the class the tap added went with it while the state stayed — leaving the pen
+taking the finger with no gold frame, no `touch-action` and no `data-noswipe`. That is the
+`REEL_HELD` fault for a second time, on the surface where it is least visible.
+
+### The instrument said nothing, twice, and the second time it was the state
+
+**`check/press.js` has driven real drags since it was written and every one starts on bare card.**
+It also drives real TOUCH events, added for the blanket `pan-y` on every textarea — and that pass
+walks a named list of surfaces that carry their own touch behaviour. A pad is not on it, because a
+pad's problem is not that it keeps a gesture it cannot use; it is that it cannot keep one at all.
+
+**So the contract is the fault's own shape**: press `Draw on it`, stroke across the picture, and want
+two things — the stroke is kept and the column has not moved — then turn the pen off and want the
+opposite. Proved by mutation: without the attribute it names the column it slid to.
+
+**And the tap that turns the pen off has to be a REAL tap.** `el.click()` reported the pen stuck on,
+and the app was right: the stroke before it set `PRESS_MOVED`, and a synthetic click cannot clear
+that because nothing sent a `pointerdown` first. On a phone a tap always does. A harness artefact
+reported as an app fault is the shape every entry under `check/load.js` already records.
+
+## The remembered tab outlived the app being opened
+
+**Reported as "the latest post isnt the defualt opening widget for some reason still. im opneing on
+phone. after having added to homescreen".** `TAB_HOME = 'feed'` was already set AND already
+deployed, which is what made this confusing. What beats it is the line under it, which remembered
+whichever column you were last on — for ever.
+
+**BOTH HALVES ARE REAL AND THEY ARE NOT THE SAME EVENT.** Opening the app is opening the app, and
+landing on a funnel question nobody asked is the argument `TAB_HOME` records. A RELOAD is not that:
+`reload-build` reloads the page under somebody the moment a new build lands, and losing the question
+they were reading would be the fix costing more than the fault.
+
+**So the id is stamped with the moment it was written and honoured only while that moment is
+recent.** The number is `AWAY_AGAIN` — six minutes — which is not a new one: `checkBuild_` already
+asks exactly this question about a resume, and its own note says six minutes is past any
+notification and well short of "I opened this tomorrow morning". It moved up beside `TAB_HOME` so
+there is one number rather than two, which is the `needs_print` / `print_required` lesson.
+
+**NOT `sessionStorage`, and the reason is the home screen.** An installed app on iOS is SUSPENDED
+rather than closed — the note over `watchBuild_` records that in full — so a window left open for
+three days is still one session and a session flag would never expire. A stamp is a fact about time
+and does not care how the window got here.
+
+## Messages poll, and the Refresh card was a page with no message on it
+
+**Reported as "when you do recieve a message you shouldnt have a refresh messages widget. it should
+already be contantly up to date. synced or whatever".** The button was worse than redundant: it was
+a PAGE. `dmPages_` opened with a card holding a heading and one control, so the first thing on the
+Messages column was a card with nothing on it — which is why `PAGE_HOME.dm` existed at all, an entry
+whose only job was hiding something nobody wanted. Both are gone in the same commit, because an
+entry left behind would open the column on the SECOND conversation for ever.
+
+**WHAT "SYNCED" CAN HONESTLY MEAN HERE IS POLLING.** The backend is Apps Script behind a `doPost`;
+there is no socket and no push channel, and a badge that updated without asking would be a sentence
+this app cannot keep. So it asks — **every twenty seconds while the column is on the screen**,
+started from `startScreen_` and stopped in `paint` beside the camera, the widgets and the reels,
+which is the list that exists for exactly this. `messages` is one tab read rather than the whole
+payload, so this is nothing like `installWarmTrigger`.
+
+**And it will not repaint under a reply somebody is typing.** `paint('dm')` rebuilds the markup and
+the composer is in it. The data is updated either way; only the redraw waits, and it happens on the
+tick after the box is empty. Asked of the DOM rather than remembered in a flag, which is what
+`msg-send` and `me-save` already do.
+
+**A FINGERPRINT RATHER THAN A COUNT decides whether to redraw.** A message being marked read changes
+no count and changes every badge on the column, so the test is id-plus-read-state per message —
+which is exactly what the cards are built from.
+
+### And an empty inbox finally says which empty it is
+
+**`loadMessages` leaves `MESSAGES` alone on a failure** — deliberately, so a blip does not read as
+everything having been deleted — so a first fetch that never arrived drew *"Nothing yet."* over an
+inbox nobody managed to read. **This repository's oldest fault, on the one screen whose whole job is
+telling you somebody wrote to you.** `MSG_FAILED` is the fact `MESSAGES` cannot carry, and it is why
+the retry button now sits on the failure and nowhere else: a genuinely empty inbox is being re-asked
+every twenty seconds and needs no button.
+
+## Two players, one phone — and Connect 4's board had been a black stripe
+
+**Reported as "connect 4 should be not against pc but 2 player. also its blacked out right now"** and
+**"othello looks a bit shit. the black blends with the backgorund. do red and blue and dont show the
+locations players can pic. also should be 2 player not against cpu".**
+
+**THE BLACK STRIPE IS A DELETED CSS RULE AND GIT NAMES THE COMMIT.** `.c4 { grid-template-columns:
+repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); aspect-ratio: 7/6 }` went in *"A board square
+cannot be 44px, and the arithmetic is the reason"*, which rewrote the block around it and took the
+`.c4` half with it. `.oth` kept its own and has been fine throughout.
+
+**A grid with no template is one column of 42 rows**, each `auto`, and a `<button>` with `height:
+100%` has no intrinsic height — so every row collapsed and what was on screen was the board's own
+`background: var(--line)` and 3px of padding. **Nothing threw, nothing overflowed, and `check/ui.js`
+measures tap targets and sideways scroll rather than whether a box has a size at all.**
+
+**And the comment survived the rule it describes**: *"7:6 AND 1:1 BECAUSE THAT IS WHAT THE GAMES
+ARE"* was still sitting over a block that only said 1:1. Same shape as `.favwrap.is-fav`, as the dead
+`kind === 'paper'` guard, and as `resource_type` in `VOCAB`.
+
+**TWO PLAYERS MEANS TWO EQUAL COLOURS, and that is why gold left both boards.** Gold against `--dim`
+and gold against `#15130f` was right while one side was YOU and the other was the machine — gold is
+what this app means by yours. With two people at one phone there is no "yours", so a bright side and
+a faded side reads as one player being switched off, and a near-black disc on a near-black card is
+not a disc. Connect 4 is red and yellow because that is what is in the box; Othello is red and blue
+because that is what was asked for. **Declared on the component**, which is the rule the house style
+states with the chess board's cream and charcoal.
+
+**THE LEGAL-MOVE RINGS WENT AND THE ARGUMENT FOR THEM DOES NOT SURVIVE A SECOND PLAYER.** They were
+defended as teaching — Othello's legal moves are not obvious — and `othMoves_(cells, 1)` is one
+side's answer drawn on a board the other side is reading. Working out where you may play IS Othello.
+**Every empty square is pressable now and an illegal one says why**: it was `disabled` unless it was
+legal, which is the ring in another form, and a screen reader would have heard the same list. A press
+that does nothing at all is what `check/press.js` exists to report.
+
+**Both opponents are deleted rather than switched off.** A dormant AI behind a flag is a second mode
+nothing presses, which is `orderPrints`; the three rules Connect 4 used are four lines somebody can
+write again if a solo mode is ever wanted, and they are kept in prose where the code was.
+
+## The reel had several seconds of gradient and it read as broken
+
+**Reported as "the reel isnt loading. or it takes long to load".** Measured with `ffprobe`: the two
+clips are **576×576, 104 and 92 seconds long, 7.3 MB and 7.9 MB**, at 450–585 kbps of video. So the
+wait is real, and what was on the screen for all of it was `.feed-art`'s gradient with a letter on
+it. **A column whose whole content is a video, showing no video, does not read as *loading*. It reads
+as *broken*** — this repository's oldest shape wearing a stopwatch.
+
+**A POSTER IS ABOUT 20 KB AND IT IS THE CLIP'S OWN FIRST FRAME.** `x.mp4` beside `x.jpg`, derived by
+`feedSlide` from the clip's own path, so there is no column to fill in and nothing to spell wrongly —
+the `images` argument against a numbered column, one step along. Only for a path: a Drive id has no
+poster to derive and an absolute URL is somebody else's server. **A poster that 404s draws nothing**,
+which is exactly what the slide did before, so it degrades to the old behaviour rather than to a hole.
+
+**`has-photo` ARRIVES WITH IT**, and only where there is one. The note over `reelPlay_` says why that
+class waits for `loadeddata` — the scrim and the white words over a slide that is still its own
+gradient are furniture for a picture that has not arrived. A poster IS the picture arriving.
+
+**WHAT WOULD ACTUALLY SHRINK THEM IS NOT DONE HERE.** Re-encoding at 540×540 was measured at 4.3 and
+4.6 MB — **42% off** — and it is a lossy edit to somebody else's footage. That is a decision for
+whoever shot it, so the command is in `data/reels/README.md` rather than in the repository. **The
+bigger win is shorter clips**: a reel is a format, and thirty seconds of either of these would be
+about 2 MB with nothing re-encoded.
+
+**`check-reels.js` counts the posters** and prints which clips have one rather than refusing a clip
+that does not: a reel with no poster works, it is simply slower to look like something.
+
+## Four hundred facts, and the fifty-eight that were there were in the wrong file to matter
+
+**Asked for as "have you added the other many interstting facts? i asked for 400 last night".** They
+were not there. `data/settings/facts.json` held 58 and `FEED_FACTS` in `js/chess.js` held the same 58
+plus the two clips — a duplicate this file already records.
+
+**WHICH FILE IS LIVE IS NOT THE OBVIOUS ONE, and getting it wrong would have shipped nothing.**
+`factsNow_` prefers `DATA.facts` and falls through to `FEED_FACTS` only when the sheet has nothing;
+`settingsInto_` fills `DATA.facts` from the JSON file, which has rows. **So a fact added to the
+JavaScript list alone is a fact nobody ever sees.** The file is the source and `FEED_FACTS` is the
+floor for a phone whose data files did not arrive — `libraryExtras_`'s rule pointed the same way,
+now written down in `chess.js` so it is not rediscovered.
+
+**`tools/add-facts.py` is the writer and it is idempotent on the heading**, so a batch can be added
+to and re-run without the ids shifting or the facts doubling. Every row asserts its own shape as it
+is written: a heading short enough for `.feed-head`, a body that is prose, a `pic` that is two or
+three ordinary words naming the SUBJECT rather than the sentence.
+
+**THE HEADING IS THE FACT.** `.feed-head` takes the space and `.feed-body` is small, so a heading
+that teases with the answer underneath makes a card you have to work for. The body says why — the
+mechanism, the number, what it means.
+
+**Six subjects were added to the sixteen already in use** — Food, Maths, Music, Science, Sea,
+Weather — and `feedColours` hashes whatever word it is handed, so a new one costs nothing and gets
+its own pair of colours. **Which is exactly why there is a closed list**: nothing anywhere would
+notice `Sport` beside `Sports`, and two spellings of one answer are two buttons, which is
+`spellKey_`'s whole argument one file along.
+
+**`Study` is the subject a tutoring app has a reason to be opinionated about**, and it went from
+three rows to fifteen: testing beats rereading, spacing beats cramming, mixing topics up feels worse
+and works better, highlighting is close to useless on its own.
+
+### The rules live in the check as well as in the writer
+
+**`tools/add-facts.py` asserts all of it at the other end and that is not enough**, which is the
+sentence `check-quizzes.js` already carries: a file can be hand-edited, appended to by another
+script, or written by a version of the tool that has since changed, and a rule living only in the
+thing that produced the data is a rule nothing enforces about the data.
+
+**Two duplicate headings is the deck repeating itself**, which is the one thing that reads as broken
+— and it is invisible from everywhere else: a duplicated fact measures perfectly, lays out perfectly,
+and is a bug you notice on the fourth tap. `check-settings.js` fails on a repeated heading, a
+repeated `fact_id`, a subject off the list, markup in a fact, and a heading too long for the card.
+**Proved by mutation** in both directions.
+
+**Measured in the app after**: 400 facts, 22 subjects, 60 deals with no repeat, and the two clips
+still answering `clipsNow_` from the code because the file holds no clip rows — which is the
+per-list rule working exactly as its note says it should.

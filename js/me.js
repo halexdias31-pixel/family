@@ -869,6 +869,17 @@ function friendsSave(list, said) {
    Held here between openings so re-opening the widget does not re-ask, and refreshed on every
    open so it is never more than one tap stale. */
 let MESSAGES = null;
+/* ---------- WHETHER THE LAST ANSWER WAS ONE ------------------------------------------------------
+   `MESSAGES` CANNOT SAY. It is left alone on a failure — deliberately, which is why a blip does not
+   read as everything having been deleted — so `null` means both *never asked* and *asked and
+   refused*, and the column drew "Nothing yet." over an inbox nobody managed to read. This
+   repository's oldest fault, on the one screen whose whole job is telling you somebody wrote.
+
+   ONE FIELD, NOT TWO. A `MSG_AT` was here as well, and the poll in posts.js gated on it — which was
+   wrong in a way only the failure path shows: it only moves on SUCCESS, so a refused fetch left the
+   gate open and every `paint('dm')` asked again. The pacing is a fact about the ASKING and lives
+   with the asking, as `DM_LAST`; this is a fact about the DATA. */
+let MSG_FAILED = false;
 
 function loadMessages() {
   if (!USER) return Promise.resolve([]);
@@ -877,11 +888,11 @@ function loadMessages() {
      empty list, and the inbox reads as empty rather than as unreachable. That is the exact fault
      the next four lines say they are guarding against, and it was reaching them as a success. */
   return send({ action: 'messages', name: USER.name, personId: USER.personId })
-    .then(d => (MESSAGES = (d && d.messages) || []))
+    .then(d => { MSG_FAILED = false; return (MESSAGES = (d && d.messages) || []); })
     /* A failure leaves whatever was already there rather than emptying the list — an unreachable
        backend is not the same fact as an empty inbox, and showing the second for the first is how
        a network blip reads as everything having been deleted. */
-    .catch(() => MESSAGES || []);
+    .catch(() => { MSG_FAILED = true; return MESSAGES || []; });
 }
 
 /* ==================================================================================================
