@@ -738,6 +738,69 @@ for (const who of VISITORS) {
     swipes.push(...held.map(h => ({ from: h.where, dir: 'touch ' + h.dir, got: h.got, want: h.want, ok: h.ok })));
 
     /* ==================================================================================================
+       A TALL QUESTION CARD IS READ BY SWIPING AND LEFT BY SWIPING, WHICH IS TWO CLAIMS
+
+       431 OF 5,032 QUESTION CARDS ARE TALLER THAN THE PANE -- `check/cards.js` counts them -- and the
+       answer is that such a pane gets `overflow-y: auto` from `paneReach_` while `scrollHost_` in
+       overworld.js scrolls it from the app's own drag. Both halves matter and only one of them is
+       obvious:
+
+         THE FIRST ATTEMPT GAVE THE PANE `touch-action: pan-y`, which is what `padReach_` does for
+         the notepad and is wrong here. `touch-action` is read once at the start of a gesture and
+         cannot say "at the bottom, going up", so the browser kept every vertical gesture for ever:
+         measured, the card scrolled to its end and then three more swipes left the page where it
+         was. A question card you cannot leave is worse than one you cannot finish reading.
+
+       SO THE CHECK IS THE CONTRACT RATHER THAN THE MECHANISM: a swipe up on a tall card scrolls it
+       and does not turn the page; at the bottom the next swipe DOES turn the page. Neither half is
+       visible to anything else here -- `check/cards.js` measures the height and `check/ui.js`
+       measures the screen, and a card that scrolls perfectly and can never be left measures clean
+       in both. */
+    const tall = await page.evaluate(async () => {
+      if (typeof stuffItems !== 'function') return null;
+      go('stuff', false, true);
+      STUFF.filters = []; STUFF.q = '8464/B/1H';
+      paintStuff(true);
+      await new Promise(r => setTimeout(r, 400));
+      const items = stuffFiltered();
+      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-AQA-8464B-2406-1H-024');
+      if (i < 0) return null;
+      goPage('stuff', i + stuffFirstResult_(), true);
+      await new Promise(r => setTimeout(r, 600));
+      const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
+        .querySelector('.pane');
+      return { page: PAGE.stuff, room: pane.scrollHeight - pane.clientHeight };
+    });
+    if (!tall || tall.room < 200) {
+      /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO. If that row ever stops being tall this
+         has to read as "not measured" rather than as a pass. */
+      swipes.push({ from: 'stuff · a tall question card', dir: 'touch up', ok: false,
+                    got: tall ? tall.room + 'px of room' : 'the card was not found',
+                    want: 'a card with something to scroll' });
+    } else {
+      await page.waitForTimeout(300);
+      await touch(160, 420, 0, -220);
+      const mid = await page.evaluate(() => {
+        const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
+          .querySelector('.pane');
+        return { page: PAGE.stuff, top: Math.round(pane.scrollTop) };
+      });
+      swipes.push({ from: 'stuff · a tall question card', dir: 'touch up', ok: mid.page === tall.page && mid.top > 40,
+                    got: 'page ' + mid.page + ', scrolled ' + mid.top + 'px',
+                    want: 'page ' + tall.page + ', scrolled' });
+      await page.evaluate(() => {
+        const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
+          .querySelector('.pane');
+        pane.scrollTop = pane.scrollHeight;
+      });
+      await page.waitForTimeout(200);
+      await touch(160, 420, 0, -220);
+      const end = await page.evaluate(() => PAGE.stuff);
+      swipes.push({ from: 'stuff · a tall question card, at its bottom', dir: 'touch up',
+                    ok: end === tall.page + 1, got: 'page ' + end, want: 'page ' + (tall.page + 1) });
+    }
+
+    /* ==================================================================================================
        AND THAT PAGE n SHOWS QUESTION n, WHICH STOPPED BEING FREE.
 
        THE FIND SCREEN HOLDS FIFTEEN RESULT PAGES AND HAS THOUSANDS -- see `stuffWindow_` in find.js.

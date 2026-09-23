@@ -309,6 +309,27 @@ function axisFree(target, axis, dir) {
      inside one — the docket's list, the notepad — and hands everything else to the grid. That is
      what makes a swipe up mean the next widget rather than a few pixels of nothing. */
 
+  return !scrollHost_(target, axis, dir);
+}
+
+/* ---------- WHICH BOX WANTS IT, NOT MERELY WHETHER ONE DOES --------------------------------------
+   `axisFree` WAS THIS WALK AND ANSWERED A BOOLEAN, which was enough while every scrollable box in
+   the app carried `touch-action: pan-y` and the BROWSER did the scrolling -- the grid only had to
+   know to keep out of the way.
+
+   A QUESTION CARD CANNOT BE `pan-y` AND THAT IS WHAT MADE THIS NECESSARY. `touch-action` is read
+   once at the start of a gesture and cannot say "at the bottom, going up", so a pane set to pan
+   keeps EVERY vertical gesture for ever: measured, a tall question card could be scrolled to its
+   end and then could not be left by swiping at all -- three more swipes and the page never turned.
+   That is fine for the notepad, which you deliberately enter and leave sideways, and not fine for
+   the surface the whole library is read on.
+
+   SO THE APP SCROLLS IT ITSELF. The pane stays `touch-action: none`, the grid keeps every gesture,
+   and this says which box under the finger should get it instead -- the same walk, the same
+   six-pixel floor, the same "can it still go THAT way" test, returning the element rather than a
+   verdict about it. `axisFree` is now one line over the top of it, so there is one walk and the two
+   answers cannot disagree. */
+function scrollHost_(target, axis, dir) {
   let el = target;
   while (el && el !== document.body) {
     const style = getComputedStyle(el);
@@ -334,12 +355,12 @@ function axisFree(target, axis, dir) {
            downward drag is nothing to it and everything to the grid, which is what lets a long
            docket be read to the end and then hand over in one movement. */
         const atStart = pos <= 0, atEnd = pos + size >= full - 1;
-        if ((dir > 0 && !atStart) || (dir < 0 && !atEnd)) return false;
+        if ((dir > 0 && !atStart) || (dir < 0 && !atEnd)) return el;
       }
     }
     el = el.parentElement;
   }
-  return true;
+  return null;
 }
 
 /* HOW FAR IS FAR ENOUGH — one distance, in pixels, whichever way you are going.
@@ -392,7 +413,7 @@ addEventListener('pointerdown', e => {
      would drag the grid. */
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
   SWIPE.x = e.clientX; SWIPE.y = e.clientY;
-  SWIPE.d = 0; SWIPE.axis = null; SWIPE.cells = null;
+  SWIPE.d = 0; SWIPE.axis = null; SWIPE.cells = null; SWIPE.scroll = null;
   SWIPE.live = true;
   SWIPE.target = e.target;
   SWIPE.frame = 0;
@@ -442,9 +463,35 @@ addEventListener('pointermove', e => {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
     const axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
     const dir = axis === 'x' ? dx : dy;
-    if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) { SWIPE.live = false; return; }
-    SWIPE.axis = axis;
-    SWIPE.cells = AXES[axis].cells();
+    if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) {
+      /* ---------- THE GRID WILL NOT TAKE IT, SO SOMETHING UNDER THE FINGER MIGHT ------------------
+         EVERY SCROLLABLE BOX IN THIS APP USED TO CARRY `touch-action: pan-y`, so a refusal here
+         meant "the browser is already scrolling it" and dropping the gesture was the whole answer.
+         A question card cannot be `pan-y` -- `touch-action` is read once at the start of a gesture
+         and cannot say "at the bottom, going up", so a pane set to pan keeps every vertical gesture
+         for ever and a tall card measured as impossible to leave by swiping. So the pane stays
+         `none` and the app does the scrolling: same walk, same floor, and the drag hands over to
+         the grid on the NEXT swipe, when there is nothing left to scroll and `axisFree` says yes.
+         That is what a native scroller does at its end, and what the notepad already does. */
+      const host = axis === 'y' && $('sheet').classList.contains('hidden')
+        && !SWIPE.target.closest?.('select, [data-noswipe]')
+        ? scrollHost_(SWIPE.target, axis, dir) : null;
+      if (!host) { SWIPE.live = false; return; }
+      SWIPE.scroll = host;
+      SWIPE.scrollFrom = host.scrollTop;
+      SWIPE.axis = axis;
+    } else {
+      SWIPE.axis = axis;
+      SWIPE.cells = AXES[axis].cells();
+    }
+  }
+
+  /* SCROLLING THAT BOX AND NOTHING ELSE. No cells, no velocity, no placement -- the grid is not
+     moving, so none of the machinery below applies. */
+  if (SWIPE.scroll) {
+    if (e.cancelable) e.preventDefault();
+    SWIPE.scroll.scrollTop = SWIPE.scrollFrom - dy;
+    return;
   }
 
   const ax = AXES[SWIPE.axis];
