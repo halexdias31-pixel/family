@@ -848,6 +848,67 @@ say('BROKEN', fail, x => x);
 say('WHAT THE TRANSCRIBER COULD NOT RECOVER — worth a person and the original paper', flagged,
     r => `${r.row_id}  ${String(r.examiner_note).slice(0, 96)}`);
 
+/* ---------- A CARD IS NOT A PAGE -----------------------------------------------------------------
+   A QUESTION THAT SAYS "USE FIGURE 10" OVER A CARD WITH NO FIGURE 10 ON IT IS NOT A QUESTION.
+   That sentence is this repository's, written the day a transcribed exam question arrived as prose
+   with its picture missing, and it is a DIFFERENT fault from the `figure` backlog above: that one
+   counts rows whose picture never came across, and a row can be in it and still be perfectly
+   answerable, because the words say what the picture showed. This counts rows that NAME a figure
+   or a table by number and then neither draw it nor say what it shows — anywhere the card can
+   reach, which is the row itself plus every preamble scoped to it.
+
+   AQA IS WHY IT HAPPENS AND THE CAUSE IS THE FORMAT RATHER THAN THE TRANSCRIBER. A paper prints a
+   figure once and then asks about it again two pages later, where the student turns back. There is
+   nothing to turn back to here: `fillStuffPages` draws one question per card. So a description that
+   is complete on 06.3 leaves 06.5 holding a reference to nothing, and the row reads perfectly in a
+   diff.
+
+   FOUND BY AUDITING THE FOUR 8464 PAPERS, one row of their 126 — `Q-AQA-8464C-2406-1H-065`, which
+   asked for the half equation "at the negative electrode in Figure 10" over a bare card. Fixed by
+   carrying the description on both rows from one string, because `preamble_` scopes to the paper,
+   the section or the QUESTION, and question 6 opens with two parts about a reactivity series that
+   have nothing to do with an electrolysis cell.
+
+   PRINTED, NOT FAILED, which is the `figure` argument rather than laziness: repairing one needs the
+   original paper open, and there are 71 of them across fifteen AQA papers that were transcribed
+   before this was measured. What the number is for is the other direction — a paper going in
+   tomorrow that adds to it. */
+const PRE_AT = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'preamble') return;
+  const k = [r.paper_id, String(r.question || ''), String(r.section || '')].join('|');
+  (PRE_AT[k] = PRE_AT[k] || []).push(r);
+});
+const words = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+const unshown = [];
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  if (String(r.diagram || '').trim()) return;          /* it draws the thing; nothing to look up */
+  const txt = words(r.html);
+  const refs = [...new Set((txt.match(/(?:Figure|Table)\s+\d+/g) || [])
+    .map(m => m.replace(/\D+/g, '')))];
+  if (!refs.length) return;
+  /* EVERYTHING THE CARD SHOWS, which is the row plus the preambles `preamble_` would attach: the
+     paper's own, its section's, and its question's. A narrower reading would report rows that are
+     perfectly well served by the paragraph above them. */
+  let shown = txt;
+  Object.keys(PRE_AT).forEach(k => {
+    const [pid, q, sec] = k.split('|');
+    if (pid !== r.paper_id) return;
+    if (q && q !== String(r.question || '')) return;
+    if (sec && sec !== String(r.section || '')) return;
+    PRE_AT[k].forEach(x => { shown += ' ' + words(x.html) + ' ' + (x.diagram || ''); });
+  });
+  /* SAYING WHAT IT SHOWS, not merely naming it. "Figure 4 shows the inheritance of AKU" is a
+     description; "complete Figure 4" is a reference. */
+  const told = refs.every(n =>
+    new RegExp('(?:Figure|Table)\\s+' + n + '\\s+(?:shows|is|represents|gives)').test(shown));
+  if (!told) unshown.push(r);
+});
+say('A FIGURE NAMED AND NOT SHOWN — the card cannot answer it, and the paper is needed',
+    unshown.slice(0, 10), r => `${r.row_id}  ${words(r.html).slice(0, 88)}`);
+if (unshown.length > 10) console.log('  … and ' + (unshown.length - 10) + ' more');
+
 /* ---------- `note` WAS PUSHED TO AND NEVER PRINTED -----------------------------------------------
    CLAUDE.md STATES THIS FILE'S JOB OUTRIGHT: "`check-library.js` says when step 2 is due rather
    than leaving it to memory: once a file has rows AND `doget.gs` still builds that key, it prints

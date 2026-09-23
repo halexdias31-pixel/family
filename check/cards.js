@@ -366,6 +366,58 @@ function outside(svg, row) {
      label sits at y = 180 in a box 176 tall, and the rule was looking the other way. Six rows in
      the library were painting a label above or below their own box, on four papers. Same fault,
      other axis -- which is why the rule is the four edges rather than the two that had bitten. */
+  /* ---------- AND EVERY QUESTION CARD, ON THE SAME AXIS -----------------------------------------
+     THE SENTENCE ABOVE SAID THIS COULD NOT HONESTLY BE SWEPT AND IT WAS RIGHT ABOUT THE WRONG
+     FUNCTION. It said "the question pass above rebuilds a question's markup with `cardHtml`, which
+     has no tiles, no mark scheme and no answer box -- a height measured off that is the height of a
+     card nobody sees", and then SAMPLED through `questionCard_` and reported 4 of 600. That sample
+     was of maths questions: two lines of prose, a value, a mark scheme. It is the whole library's
+     median and it is not the whole library.
+
+     MEASURED PROPERLY, THROUGH `questionCard_`, AT 320 x 568: the four AQA Combined Science papers
+     put **94 of their 126 cards past the 534px cap**, median 722px and the worst 2050 -- and the
+     rest of the library puts 16% of its own past it too. A science question is a paragraph of
+     scene-setting, a numbered method of eight steps, a table, a figure and then the ask, and the
+     ask is the part below the fold. `.pane` is `overflow: hidden` with no scroll and no page to
+     turn to, so on a 320px phone Q02.4 of Biology Paper 1 shows its method and cuts off before the
+     question it is asking. A screenshot is what settled it, for the fourteenth time in this
+     repository.
+
+     PRINTED, NOT FAILED, and that is the difference from the practicals one line down. There the
+     number was ZERO after the card was split, so the first card back past the fold could say so
+     without joining a red nobody reads. Here there is a real backlog across the whole library and
+     the fix is a decision about what a question card IS -- split like the practical, or a pane that
+     scrolls when it overflows, which is the move `padReach_` already makes for the notepad. Until
+     somebody takes it, a number beats a silence. */
+  const qtall = await pracPage.evaluate(width => {
+    if (typeof stuffItems !== 'function' || typeof questionCard_ !== 'function') return -1;
+    const items = stuffItems().filter(x => x.kind === 'question');
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;left:0;top:0;width:' + width + 'px';
+    host.innerHTML = '<section class="page"><div class="pane"></div></section>';
+    document.body.appendChild(host);
+    const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+    const tall = [];
+    /* ONE CARD PER PANE, IN BATCHES OF TWO HUNDRED PANES. The first version put two hundred cards
+       into ONE pane and reported `Q-1MA1-2406-2F-28a` as 67,622px past the fold -- a card that
+       measures 478px on its own. 67,622 + 534 is the height of the whole batch, because a card is
+       the pane's only child when the app draws it and takes the pane's own box; measured beside a
+       hundred and ninety-nine siblings the first of them reported the lot. A check that cannot be
+       wrong in the flattering direction can still be wrong in the alarming one, and a number that
+       large is the tell. Verified against three cards measured alone: 478, 260 and 361px. */
+    for (let i = 0; i < items.length; i += 200) {
+      host.innerHTML = items.slice(i, i + 200).map(x =>
+        '<section class="page"><div class="pane"><div data-row="' + (x.row && x.row.row_id) + '" '
+        + 'class="card is-widget">' + questionCard_(x, 0) + '</div></div></section>').join('');
+      host.querySelectorAll('.card.is-widget').forEach(el => {
+        const h = el.getBoundingClientRect().height;
+        if (h > cap) tall.push({ row: el.dataset.row, px: Math.round(h - cap) });
+      });
+    }
+    host.remove();
+    return { n: items.length, cap: Math.round(cap), tall };
+  }, WIDTH);
+
   await pracPage.evaluate('window.__measure = ' + measure.toString());
   await pracPage.evaluate('window.__outside = ' + outside.toString());
   const guides = await pracPage.evaluate(arg => {
@@ -519,6 +571,15 @@ function outside(svg, row) {
     if (papers.leak.length > 10) console.log('  … and ' + (papers.leak.length - 10) + ' more');
   }
 
+  if (qtall !== -1 && qtall.tall.length) {
+    console.log('\nA QUESTION BELOW THE FOLD  (' + qtall.tall.length + ' of ' + qtall.n
+      + ') — printed, not failed: see the note above `qtall`');
+    qtall.tall.sort((a, b) => b.px - a.px).slice(0, 8)
+      .forEach(t => console.log('  ' + t.row + ' — ' + t.px + 'px past the ' + qtall.cap
+        + 'px pane, with no scroll and no page to turn to'));
+    if (qtall.tall.length > 8) console.log('  … and ' + (qtall.tall.length - 8) + ' more');
+  }
+
   if (practicals.tall.length) {
     console.log('\nBELOW THE FOLD  (' + practicals.tall.length + ')');
     practicals.tall.sort((a, b) => b.px - a.px).slice(0, 10)
@@ -532,10 +593,16 @@ function outside(svg, row) {
   bad.push(...guides.wide);
   if (!bad.length && !practicals.tall.length && !painted.length
       && !papers.over.length && !papers.leak.length) {
-    console.log('\nOK — every question, every practical and every guide fits the narrowest phone,\n'
-              + '     every practical card fits the pane it is drawn in, every label in every\n'
-              + '     drawing is inside the drawing, and every printed quiz fits one side of A4\n'
-              + '     with its answers on the other sheet.');
+    /* IT SAID "EVERY QUESTION FITS THE NARROWEST PHONE" AND MEANT ITS WIDTH. That was true and
+       read as more than it said, which is the "all 18 checks pass" shape one more time: the
+       question pass asks about the column and the count above asks about the fold, and 431 rows
+       are past it. The sentence names the axis now. */
+    console.log('\nOK — every question, every practical and every guide fits the WIDTH of the\n'
+              + '     narrowest phone, every practical card fits the pane it is drawn in, every\n'
+              + '     label in every drawing is inside the drawing, and every printed quiz fits\n'
+              + '     one side of A4 with its answers on the other sheet.'
+              + (qtall !== -1 && qtall.tall.length
+                 ? '\n     ' + qtall.tall.length + ' question cards run past the fold — printed above.' : ''));
     process.exit(0);
   }
 

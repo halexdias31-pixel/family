@@ -211,6 +211,26 @@ def fig8():
     return ''.join(p) + '</svg>'
 
 
+# ---- Figure 10, written once and used by the two questions that need it -------------------------
+# A CARD IS NOT A PAGE. AQA prints Figure 10 beside 06.3 and asks about it again on 06.5, two pages
+# later, where a student turns back. There is nothing to turn back to on a phone: `fillStuffPages`
+# draws one question per card, so 06.5 asked for "the reaction at the negative electrode in
+# Figure 10" over a card carrying no figure and no description of one. CLAUDE.md's own sentence,
+# from the paper where this was first paid for: a question about a picture you cannot see is not a
+# question. Found by auditing these four papers, by asking which rows NAME a figure and neither draw
+# nor describe it -- one row of the 126.
+#
+# A QUESTION-SCOPED PREAMBLE WOULD HAVE BEEN THE OTHER ANSWER AND IT IS WRONG HERE. `preamble_`
+# scopes to the paper, the section or the QUESTION, and question 6 opens with two parts about the
+# reactivity series that have nothing to do with the cell -- so a preamble would hang an
+# electrolysis tank off 06.1 and 06.2. One string used twice is the narrower fix, and it is one
+# string rather than the same sentence typed twice, which is the drift this file already records
+# under `needs_print`/`print_required` and under `documents_()`.
+#
+# The figure is artwork in the PDF with no text layer and no vectors, so what is carried is every
+# label it prints.
+FIG10 = ('<p><b>Figure 10</b> shows the electrolysis cell used to extract aluminium from aluminium oxide. The tank is lined with the <b>negative carbon electrode</b>, and three <b>positive carbon electrode</b> rods hang into it from a metal wire. The tank holds a <b>molten mixture of aluminium oxide and substance X</b>, with <b>molten aluminium</b> collected in a layer along the bottom.</p>')
+
 # (q, part, marks, answer_type, topics, figure, diagram, html, answer, examiner_note)
 Q = [
 ("1","1",2,"short",BN,"graph","", "<p>Copper is a useful metal.</p><p><b>Figure 1</b> is a line graph of the mass of copper produced each year between 1900 and 2010. The year runs along the bottom, marked every 25 years from 1900 to 2025; the mass of copper produced each year, in 10<sup>9</sup> kilograms, runs up the side from 0 to 20, marked every 2. One curve is drawn across the grid.</p><p>Give <b>two</b> conclusions that can be made from <b>Figure 1</b>.</p>",
@@ -267,15 +287,15 @@ Q = [
  "Gold (Au). Silver (Ag), platinum (Pt) and copper (Cu) are also accepted.", ""),
 ("6","2",1,"short",CC,"","", "<p><b>Figure 9</b> shows a reactivity series, most reactive first:</p><ol><li>Potassium</li><li>Magnesium</li><li>Zinc</li><li>Carbon</li><li>Metal <b>Z</b></li><li>Copper</li></ol><p>Suggest the most economical method for extracting metal <b>Z</b> from an oxide of metal <b>Z</b>.</p>",
  "Reduction by carbon (heating or reacting with carbon)", ""),
-("6","3",1,"short",CC,"diagram","", "<p><b>Figure 10</b> shows the electrolysis cell used to extract aluminium from aluminium oxide. The tank is lined with the <b>negative carbon electrode</b>, and three <b>positive carbon electrode</b> rods hang into it from a metal wire. The tank holds a <b>molten mixture of aluminium oxide and substance X</b>, with <b>molten aluminium</b> collected in a layer along the bottom.</p><p>Name substance <b>X</b> shown in <b>Figure 10</b>.</p>",
+("6","3",1,"short",CC,"diagram","", FIG10 + "<p>Name substance <b>X</b> shown in <b>Figure 10</b>.</p>",
  "Cryolite",
  "Figure 10 is artwork in the PDF and is not transcribed; every label it carries is stated in the question."),
-("6","4",3,"explain",CC,"diagram","", "<p>Explain what happens to the positive carbon electrodes during the extraction of aluminium from aluminium oxide.</p>",
+("6","4",3,"explain",CC,"","", "<p>Explain what happens to the positive carbon electrodes during the extraction of aluminium from aluminium oxide.</p>",
  "Oxygen is produced, which reacts with the carbon of the electrode (the anode) to form carbon dioxide, so the electrode has to be continually replaced (it is used up, or it burns away).",
- "Figure 10 is artwork in the PDF and is not transcribed; what the cell holds is described on 06.3."),
-("6","5",2,"short",CC,"diagram","", "<p>The formula of aluminium oxide is Al<sub>2</sub>O<sub>3</sub></p><p>Write a half equation for the reaction at the negative electrode in <b>Figure 10</b>.</p>",
+ "The paper prints no figure on this page and the question names none \u2014 it is answered from what happens at the anode rather than from the cell. `figure` is deliberately empty: a cell filled here would count a picture that never came across when there is no picture to come, which is the mirror of a silence."),
+("6","5",2,"short",CC,"diagram","", FIG10 + "<p>The formula of aluminium oxide is Al<sub>2</sub>O<sub>3</sub></p><p>Write a half equation for the reaction at the negative electrode in <b>Figure 10</b>.</p>",
  "Al³⁺ + 3 e⁻ → Al. Al³⁺ + e⁻ → Al with no balancing numbers, or with incorrect ones, scores 1 of the 2.",
- "Figure 10 is artwork in the PDF and is not transcribed; the electrodes it labels are described on 06.3."),
+ "Figure 10 is artwork in the PDF and is not transcribed; its labels are carried in the question here as well as on 06.3, because a card is not a page."),
 
 ("7","1",4,"explain",BN + ', ' + AS,"","", "<p>Halogens are elements in Group 7 of the periodic table. Calcium reacts with chlorine to produce calcium chloride.</p><p>Explain what happens to calcium atoms and to chlorine atoms when calcium reacts with chlorine to produce calcium chloride.</p>",
  "Each calcium atom loses two electrons; each chlorine atom gains one electron; so one calcium atom reacts with two chlorine atoms; forming Ca²⁺ ions and Cl⁻ ions (calcium ions and chloride ions, or ions with full outer shells). 'Calcium atoms lose electrons and chlorine atoms gain electrons' on its own scores 1 of the 4.", ""),
