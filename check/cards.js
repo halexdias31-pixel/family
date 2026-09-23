@@ -383,12 +383,16 @@ function outside(svg, row) {
      question it is asking. A screenshot is what settled it, for the fourteenth time in this
      repository.
 
-     PRINTED, NOT FAILED, and that is the difference from the practicals one line down. There the
-     number was ZERO after the card was split, so the first card back past the fold could say so
-     without joining a red nobody reads. Here there is a real backlog across the whole library and
-     the fix is a decision about what a question card IS -- split like the practical, or a pane that
-     scrolls when it overflows, which is the move `padReach_` already makes for the notepad. Until
-     somebody takes it, a number beats a silence. */
+     THEY ARE REACHABLE NOW AND THIS STILL COUNTS THEM. `paneReach_` in find.js gives a pane that
+     overflows by more than 24px `overflow-y: auto`, and `scrollHost_` in overworld.js scrolls it
+     from the app's own drag -- so a tall card is read by swiping and hands over to the pager when
+     it runs out. Proved with real touch events: scroll, scroll, then the page turns.
+
+     PRINTED RATHER THAN FAILED, AND STILL WORTH PRINTING. A card you have to scroll is a card whose
+     question and answer box are not on the screen together, which is worse than one that fits even
+     though it is no longer broken -- and the number is what would say so if a change ever made the
+     typical card tall. It is the count of cards that need the scroll, not of cards that are cut
+     off, and the line printed below says which. */
   const qtall = await pracPage.evaluate(width => {
     if (typeof stuffItems !== 'function' || typeof questionCard_ !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'question');
@@ -572,11 +576,11 @@ function outside(svg, row) {
   }
 
   if (qtall !== -1 && qtall.tall.length) {
-    console.log('\nA QUESTION BELOW THE FOLD  (' + qtall.tall.length + ' of ' + qtall.n
-      + ') — printed, not failed: see the note above `qtall`');
+    console.log('\nA QUESTION THAT HAS TO BE SCROLLED  (' + qtall.tall.length + ' of ' + qtall.n
+      + ') — reachable, not cut off: see the note above `qtall`');
     qtall.tall.sort((a, b) => b.px - a.px).slice(0, 8)
       .forEach(t => console.log('  ' + t.row + ' — ' + t.px + 'px past the ' + qtall.cap
-        + 'px pane, with no scroll and no page to turn to'));
+        + 'px pane, so the pane scrolls and the pager takes over at the end'));
     if (qtall.tall.length > 8) console.log('  … and ' + (qtall.tall.length - 8) + ' more');
   }
 
@@ -602,7 +606,7 @@ function outside(svg, row) {
               + '     label in every drawing is inside the drawing, and every printed quiz fits\n'
               + '     one side of A4 with its answers on the other sheet.'
               + (qtall !== -1 && qtall.tall.length
-                 ? '\n     ' + qtall.tall.length + ' question cards run past the fold — printed above.' : ''));
+                 ? '\n     ' + qtall.tall.length + ' question cards are taller than the pane and scroll — printed above.' : ''));
     process.exit(0);
   }
 

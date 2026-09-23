@@ -665,8 +665,29 @@ function groupOrder_() {
    there. Blank strings are dropped here rather than in four places — `facetCoverage` counts what
    is left, and a row with nothing to say about a question should not be counted as having said
    something empty. */
-const asList_ = v => (Array.isArray(v) ? v : [v])
-  .map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+/* ---------- AND THE COMMON CASE IS ONE STRING, WHICH USED TO COST FOUR ALLOCATIONS -------------
+   MEASURED ON THE TAP THAT PROMPTED IT. `facetTally_` calls this once per item per facet, and
+   `nextFacet` tallies until a question qualifies -- so answering one funnel question over 5,032
+   items is about thirty thousand calls, and a CPU profile at 20x put `asList_` at 156 ms, the
+   largest piece of JavaScript on the screen. The old body wrapped the value in an array, mapped a
+   closure over it and filtered the result: three arrays and a function call to say "this string is
+   not empty".
+
+   SAME ANSWER, SAME ORDER, SAME DROPPING OF BLANKS -- a string, a number, null and an array all
+   come back exactly as before; this only stops building the scaffolding for the cases that do not
+   need it. */
+const asList_ = v => {
+  if (typeof v === 'string') { const t = v.trim(); return t ? [t] : []; }
+  if (v == null || v === false) return [];
+  if (!Array.isArray(v)) { const t = String(v).trim(); return t ? [t] : []; }
+  const out = [];
+  for (let i = 0; i < v.length; i++) {
+    const x = v[i];
+    const t = String(x == null ? '' : x).trim();
+    if (t) out.push(t);
+  }
+  return out;
+};
 
 function kindOf_(x) {
   if (x && x.wearable) return { group: 'Shop', label: 'Wearables' };
@@ -1567,6 +1588,10 @@ function facetTally_(items, facet) {
     const vals = asList_(facet.of(x));
     if (!vals.length) return;
     answered++;
+    /* ONE VALUE IS THE OVERWHELMING CASE and a `Set` of one is an allocation to prove it. The `Set`
+       is still what de-duplicates a row that lists the same group twice; it is just not built for
+       the four thousand rows that have nothing to de-duplicate. */
+    if (vals.length === 1) { by[vals[0]] = (by[vals[0]] || 0) + 1; return; }
     new Set(vals).forEach(v => { by[v] = (by[v] || 0) + 1; });
   });
 
@@ -6416,7 +6441,88 @@ function layout(which) {
    lands on a blank page; lower it if holding the markup ever starts to cost something. */
 const STUFF_NEAR = 5;
 
-function fillStuffPages() {
+/* ---------- THE THREE UNDER YOUR THUMB NOW, THE OTHER EIGHT A FRAME LATER -------------------------
+   REPORTED AS "it takes long to load when i click questions on phone", and measured at 20x CPU --
+   an ordinary phone with something else running:
+
+     | answering a funnel question | 735 ms |
+     | a search                    | 997 ms |
+     | laying out ELEVEN cards     | 935 ms |
+     | laying out ONE card         |  69 ms |
+
+   So the tap IS the eleven cards, and ten of them are pages nobody is looking at. `STUFF_NEAR`'s
+   own note is right about why it is five and must stay five -- "a flick that carries three or four
+   pages outruns it and lands on an empty page while the fill catches up" -- and that argument is
+   about the pages being THERE, not about their being there in the same frame as the tap.
+
+   A FINGER CANNOT TRAVEL THREE PAGES IN ONE FRAME. The near three are built before the paint, so
+   what you asked for is on the screen; the rest arrive on the next turn of the event loop, which
+   is the same move this file already makes for the page top-up. Booked once, and a second fill
+   cancels the first, so a run of quick taps does the far work once at the end rather than per tap.
+
+   KEYED ON NOTHING AND CANCELLED BY IDENTITY, because the only job is "finish the fill" and the
+   only thing that can invalidate it is another fill. */
+let STUFF_LATE = 0;
+const STUFF_SOON = 1;
+
+/* ---------- A CARD TALLER THAN THE PANE, WHICH USED TO BE RARE -----------------------------------
+   `.pane`'s own note chose `overflow: hidden` deliberately and priced the cost honestly: "a card
+   taller than the screen has its bottom cut off ... the right trade -- a screen where swiping does
+   not reliably swipe is worse than one where a RARE card needs shortening."
+
+   IT IS NOT RARE ANY MORE. `check/cards.js` measures it now, through the app's own `questionCard_`,
+   one card per pane: **431 of 5,032 question cards run past the 534px pane on a 320x568 phone**,
+   the worst by 2,816px, and 53% of the AQA Combined Science ones. A science question is a
+   paragraph, an eight-step method, a table, a figure and then the ask -- and the ask, the answer
+   box and the mark scheme are the part below the fold. Screenshotted: Q02.4 of Biology Paper 1
+   shows its method and cuts off before the question it is asking.
+
+   AND THE FAULT THAT NOTE WARNS OF IS THE ONE THE APP HAS SINCE LEARNED TO MEASURE. Its words are
+   "which one you got depended on whether the pane happened to be a pixel taller than its box" --
+   which is exactly the ambiguity `axisFree` now resolves with a floor, and which the textarea entry
+   in overworld.js records being fixed the same way. A pane within `PANE_REACH` of fitting is left
+   `hidden` and the grid keeps the gesture, so the pixel-taller case cannot arise; a pane a third of
+   a screen too long is not ambiguous and is handed to the reader.
+
+   THE FLOOR IS 24 RATHER THAN THE WALK'S 6, deliberately. Six is right for "is there text below the
+   fold in a box you are typing in"; here the competing gesture is the app's whole navigation, so
+   the answer has to be obvious rather than merely true.
+
+   ON THE FUNNEL'S PANES AND NOWHERE ELSE. Every one of the 431 is a question card, and
+   `check/ui.js`'s OUT OF REACH rule reports nothing on the other nine columns -- so this is as
+   narrow as the fault, which is what this repository asks of a rule. */
+const PANE_REACH = 24;
+
+/* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
+   one pane at a time -- read `scrollHeight`, write `overflowY` -- and a CPU profile of the tap put
+   it at **407 ms of 920, the single biggest thing on the screen**, because a style write
+   invalidates the layout the next read has to force again. Eleven panes is eleven layouts. Read
+   them all first and it is one.
+
+   AND IT IS BOOKED AFTER THE PAINT RATHER THAN DURING IT. Whether a card scrolls only matters when
+   a thumb tries to scroll it, which is at least a frame away; doing it on the tap path spends that
+   layout in front of the thing somebody is waiting for. See the `setTimeout` in `fillStuffPages`. */
+function paneReach_(panes) {
+  const list = [].slice.call(panes || []);
+  if (!list.length) return;
+  try {
+    const want = list.map(p => p.scrollHeight - p.clientHeight > PANE_REACH);
+    /* `overflow-y` AND NOT `touch-action`, WHICH IS THE OPPOSITE OF WHAT `padReach_` DOES AND IS
+       DELIBERATE. `pan-y` hands the whole vertical axis to the browser for the whole gesture, and
+       `touch-action` cannot say "at the bottom, going up" -- measured, a card set to pan could be
+       scrolled to its end and then could not be left by swiping at all, three swipes and the page
+       never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
+       it from the app's own drag, which hands over to the grid the moment there is nothing left. */
+    list.forEach((p, i) => { p.style.overflowY = want[i] ? 'auto' : ''; });
+  } catch (e) {}
+}
+
+/* `all` IS THE LATE PASS SAYING "DO THE REST". Without it the deferred call is not a continuation
+   but a repeat: `at` has not moved, the near three are already filled so there is no work in them,
+   and the loop reaches the same far page and defers again. Measured before it existed -- the tall
+   pane stayed `overflow: hidden` for ever, because the measuring runs at the end of the pass that
+   has nothing left to build and no pass ever did. */
+function fillStuffPages(all) {
   const host = $('s-stuff');
   if (!host) return;
   let changed = false;
@@ -6445,8 +6551,21 @@ function fillStuffPages() {
     const i = logIndex_('stuff', [].indexOf.call(pages, el));
     if (i >= first && !seen[i]) todo.push(i);
   });
+  /* THE ONES UNDER THE THUMB FIRST, and the emptying with them: a page being cleared is a page
+     whose markup is going away, which costs nothing to lay out and must not be left behind a
+     deferred pass or the strip holds cards it has been told to drop. See `STUFF_LATE`. */
+  todo.sort((a, b) => (Math.abs(a - at) <= STUFF_SOON ? 0 : 1) - (Math.abs(b - at) <= STUFF_SOON ? 0 : 1));
+  clearTimeout(STUFF_LATE);
+  let late = -1;
   for (let n = 0; n < todo.length; n++) {
     const i = todo[n];
+    /* PAST THE NEAR THREE AND THERE IS STILL SOMETHING TO BUILD -- stop here and finish after the
+       paint. A page that only needs EMPTYING is not a reason to stop, so the test is on the work
+       rather than on the distance. */
+    if (!all && Math.abs(i - at) > STUFF_SOON) {
+      const ahead = pages[domIndex_('stuff', i)];
+      if (ahead && ahead.dataset.filled !== '1') { late = n; break; }
+    }
     const el = pages[domIndex_('stuff', i)];
     if (!el) continue;
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
@@ -6488,8 +6607,24 @@ function fillStuffPages() {
     } else if (!near && el.dataset.filled === '1') {
       pane.innerHTML = '';
       delete el.dataset.filled;
+      /* AND THE SCROLL WITH IT. The pages are a window and their elements are recycled, so a pane
+         left scrolled down would hand the next card it stands for to somebody half way through it.
+         `paneReach_` puts the overflow back too, on the next fill. */
+      pane.scrollTop = 0;
+      pane.style.overflowY = '';
       changed = true;
     }
+  }
+
+  /* WHATEVER IS LEFT, AND THE MEASURING, ON THE NEXT TURN OF THE EVENT LOOP. `fillStuffPages` is
+     what a later tap calls anyway, so finishing IS calling it again and there is nothing to
+     remember about where it stopped; `paneReach_` runs at the end of whichever pass has no more
+     building to do, so a run of quick taps measures once rather than per tap. */
+  if (late >= 0) {
+    STUFF_LATE = setTimeout(() => fillStuffPages(true), 0);
+  } else {
+    STUFF_LATE = setTimeout(() => paneReach_(
+      host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
   }
 
   /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs.
