@@ -8887,3 +8887,149 @@ bullets the two things sewage affected. Nothing can tell a bullet list from an o
 paper's own instruction can.** Proved by mutation in both directions — an accept that marks none and
 one that marks two — and it prints the **133** tick-box questions elsewhere in the library that
 still carry no `accept`, so what is left is a number rather than a silence.
+
+## Two columns shipped to every phone since the games were written, and drawn for one person
+
+**Asked for as "add a high scores chart to times table and flabby pird".** Measured before anything
+was built: `doget.gs` sends `highscore: N(r.high_score_flappy)` and
+`ttHighscore: N(r.high_score_tables)` on **every tutor row and every student row**, and the only
+thing that has ever read either is the player's own `Best` line. **This repository's oldest shape
+for the seventh time** — `figure`, `orderPrints`, the four message actions, `exam_date`, `wow`, the
+eleven dead Settings writers. So the board needed no backend change, no tab and no column: it is the
+second reader of something already on every phone.
+
+**WHO IS ON IT IS THE SERVER'S DECISION AND IS NOT REPEATED ON THE PHONE.** `doGet` sends
+`payload.students` only when `maySeeChildren` — an admin, a parent or a student — so a signed-out
+stranger is sent no children at all and the board simply has fewer rows. Filtering them off here
+instead would be the `MESSAGING` fault: one policy in two places, and the copy on the phone is the
+one that gets forgotten. Absent by construction, the way the films list already is.
+
+**ONE RENDERER, BECAUSE THE TWO BOARDS ARE ONE OBJECT.** They differ in a single column name. And it
+says which empty it is: `scoreRanks_` counts the PEOPLE before it counts the scores, so "no people"
+says the scores have not arrived and "people, no scores" says nobody has played — the distinction
+`nothingHere` exists for.
+
+### `mineIs_` was local to a screen only a signed-in person sees, and at file scope it threw
+
+**THERE WERE THREE OTHER COPIES OF "WHICH ROW IS ME" AND THE WORST WAS ON THE PATH THIS NEEDED.**
+`gameOver` in receipt.js matched a student on **handle alone** and a tutor on **`title` alone** —
+two half-tests written out beside each other, either of which answers "not you" for somebody the
+other would have found. A tutor whose handle and display name differ was never located, so a record
+they had just set was written to the sheet and never to the row the app was holding. Lifted out of
+`accountPages_`, given a fourth rung for `t.name` (a student row has no `title`, so before this a
+student could only ever be matched by handle), and used by both.
+
+**AND AT FILE SCOPE IT MET A STRANGER.** `USER.personId` on `null` throws, and `toolsStart_` wraps
+each widget's `start` in its own try — so the game came up perfectly and the board beside it stayed
+an **empty div**, signed out, at every width. **Found by the lab rather than by looking**: the
+declared state reported "was entered and shows no…", which is exactly what that assertion is for.
+
+### `SCORE_TOP` is three because the pane cannot grow, and the number is measured
+
+`.pane` is `overflow: hidden`. The Flabby Pird card without a board is 634px against a pane that
+caps at 803, so the board has about 140px. At five plus your own line it was 251px and `check/ui.js`
+said so on the first run that could reach the state: *".pane holding card hides 111px below its own
+fold"*. Three plus yours, on tighter rows, is 140px at every width — measured with a twenty-character
+handle wrapping onto two lines, because twenty is what `check-handles.js` allows.
+
+**AND `.row .k` IS `flex: 0 0 auto`, WHICH IS RIGHT FOR A LABEL AND WRONG FOR A NAME.** `min-width: 0`
+alone does nothing for it because `flex-shrink` is still 0: the row ran **53px past the card at
+320px** and took the pane with it. The board's label is the content and shrinks; the value is three
+digits and does not.
+
+**YOUR OWN LINE IS A GOLD RULE DOWN THE LEFT RATHER THAN GOLD TEXT**, and that is a cascade decision
+rather than a taste. `.widget-full:has(.flappy) .row .k` scores (0,3,1) — `:has()` takes its own
+argument's specificity — so `.board .row.is-me .k` would tie at (0,3,1) and the colour would be
+settled by which rule is written later. That is `.price.faint` for the eighth time. Nothing anywhere
+sets `box-shadow` or `padding-left` on a `.row`, so this cannot lose a race it does not look like it
+is in.
+
+### The times-table save wrote `USER` and not the row the board reads
+
+`gameOver` had already done both for Flappy Bird and `endTimesTables` had only ever done the first —
+invisible while the only reader was that card's own *"Your best is"*, and a new record announced
+above a list still showing the old one the moment there is a board. Both go through `mineIs_` now.
+
+### And the state that measures it had to seed the visitor, not a name
+
+**THE FIRST VERSION PUT A SCORE ON THE FIXTURE'S ONE TUTOR AND CALLED THAT "YOU".** It is not: the
+lab signs in as `Test Admin` / `testadmin` / `P001` and the fixture's tutor is `Ada Tutor` / `@ada` /
+`P-@ada`, so `mineIs_` correctly matched nobody and the board drew three rows with no mark. **The
+assertion failed and it was right to** — the state was wrong, not the app. It is seeded off `USER`
+itself now, and it asserts `SCORE_TOP + 1` read off the app rather than a literal, which is what
+caught the assertion going stale the moment that number changed for a measured reason.
+
+**A wait for the payload went in and came out again.** `load()` ends with `DATA = d` — it REPLACES
+the object — so a state seeding `DATA.students` before that assignment would have its seed thrown
+away, and the flakiness looked exactly like that. It was not: it was the two bugs above. Three clean
+runs with the wait removed, so it is removed. **Two rules changed on a measurement nobody took is
+what `.mat-out` cost this project**, and the discipline is the same when the measurement exonerates
+the change.
+
+## Scrabble, and the dictionary that is deliberately not here
+
+**ASKED FOR AS "add scrable to games tool. 2/3/4 player".** 15×15, a hundred tiles asserted at 100
+and 187 points, seven on a rack, the standard premium layout built from one 8×8 quadrant and
+mirrored — measured against the printed board: **8 triple words, 17 double words (sixteen and the
+star), 12 triple letters, 24 double letters.**
+
+**THERE IS NO WORD LIST AND THAT IS A DECISION.** A usable English one is about 280,000 entries and
+two and a half megabytes — the size of the whole question library, for one game widget, on a site
+this file has spent two rounds making open faster on a phone. And it is not what the game needs: in
+real Scrabble a word **stands unless somebody challenges it**, and with two to four people round one
+phone the challenge is the person opposite. Same argument Herd Mentality already makes about
+scoring: the part that is people arguing is the part an app should leave to them.
+
+**WHAT IS CHECKED IS THE GEOMETRY**, which is the part people get wrong by accident: the first word
+through the centre, everything in one line, no gaps (counting tiles already down, because a word may
+bridge one), and after the first move at least one new tile touching what is there. Each refusal
+says WHICH rule was broken, because a refusal that does not is one you learn nothing from.
+
+**THE RACK IS SECRET, SO THE PHONE IS HANDED OVER.** Between turns the board stays up and the rack is
+replaced by "hand the phone to <name>" and one tap. Without it the next player reads the previous
+one's tiles on the way past, which cannot happen with a real rack and is the one part of this game a
+single screen genuinely changes.
+
+**AND IT IS NOT REBUILT ON EVERY PAINT, WHICH IS THE OPPOSITE OF THE MAZE.** `initMaze` deals a new
+maze each open and its note says why. A Scrabble game is forty minutes and four people, and
+`repaint` runs whenever a payload lands or anything saves — so `initScrabble` redraws whatever is in
+progress. `New game` is the only thing that throws one away.
+
+### Three faults the lab and a screenshot found, and one the code found first
+
+| | |
+|---|---|
+| **one tile played twice** | a placed tile stays on the rack until the turn is committed — deliberately, because taking it back has to put it somewhere — so selecting the same slot again put a second copy on the board and the commit spliced one index for two squares. Asked of the BOARD (`from` on each placed square) rather than a second list |
+| **625 tap targets under 44px** | fifteen 44px cells need 660px, wider than any phone; at 320px they are 13px. In `ACCEPTED_TAP` with the arithmetic, the same argument `.c4` and `.oth` record for their 40px and 35px cells — and what makes it liveable is that a wrong tap costs nothing, because a tile comes straight back off |
+| **the blank's alphabet was 220px** | 26 keys at 44px is five rows at 320px, which took the rack and all four actions past the pane's fold. One select instead — the shape this app uses everywhere somebody picks from a closed list, answering on `change` like `book-note` |
+| **the card was 17px past the fold** | a five-line subtitle explaining the hand-over, which the card says for itself at the moment it happens; and a standalone `New game` button, which now sits in the action row while a game is running and gives way to the 2/3/4 row once it is over |
+
+### And the lab found four more, every one a control that was on the page before it could work
+
+**`check/press.js` NAMED SIX AT ONCE**: `scr-cell`, `scr-play`, `scr-recall`, `scr-swap`, `scr-pass`
+and `scr-again`, all *"on games"*, all quiet. Every one was correct: they were pressed in the state
+the widget OPENS in, which is the three buttons saying 2, 3 or 4 players — and with no game to act
+on, five of them returned on their first line and 225 board squares did nothing at all.
+
+**A HIDDEN CONTROL IS STILL A CONTROL TO ANYTHING THAT PRESSES THE PAGE.** The action row was static
+markup with `hidden` on its container, which is the same thing to look at and not the same thing to
+press. It is built by `scrabblePaint` now and is empty until there is a turn to take. The board is
+drawn either way — an empty board under the player-count buttons says what you are about to play on
+— but with no game its squares are `<i>` rather than `<button>`, which is what the maze's cells
+already are and for the same reason: it is a picture until it is a control.
+
+**AND BUILDING IT FROM A LIST TOOK THE DOORS FROM 137 TO 132.** `check-doors.js` follows
+`data-do="x"` with a string in it and cannot follow a variable, so a row mapped out of an array
+reported all five handlers as unreachable — **a red with nothing behind it, which is the one thing
+every list in this file exists to prevent.** Written out as five literals. CLAUDE.md already records
+the same correction on `banner()`, which is why the fault was recognisable rather than puzzling.
+
+**`check/cascade.js` NAMED NINE LONGHANDS ON ONE SQUARE.** `.scr-sq.mid` — the star — against
+`.scr-sq.has`, same specificity, settled by which is written later. A tile covering the star is
+right and it was right by accident; `.scr-sq.mid:not(.has)` says it instead. Ninth conviction of
+`.price.faint` and the first one caught before a screenshot rather than after.
+
+**A BACKTICK INSIDE AN HTML COMMENT INSIDE A TEMPLATE LITERAL ENDED THE LITERAL.** `js/map.js` builds
+every widget's markup in a template string, so `` `check/ui.js` `` in a `<!-- -->` there is a syntax
+error — reported as `Unexpected identifier 'check'` and `WIDGETS is not defined`, four files away
+from the comment. The house style's backticks stop at the edge of a template literal.

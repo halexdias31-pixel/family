@@ -905,6 +905,114 @@ on('map-node', el => {
    A function that only forwards is a name to maintain and a thing to read; the note below still
    says which of the two the widget uses, which is the part that was worth keeping. */
 
+/* ==================================================================================================
+   THE HIGH SCORES — ONE BOARD, TWO GAMES, AND NOTHING NEW ON THE WIRE
+
+   ASKED FOR AS "add a high scores chart to times table and flabby pird". Measured before anything
+   was built: `doget.gs` has sent `highscore: N(r.high_score_flappy)` and
+   `ttHighscore: N(r.high_score_tables)` on EVERY tutor row and EVERY student row since those games
+   were written, and the only thing that has ever read either is the player's own `Best` line. Two
+   columns shipped to every phone on every load and drawn for one person — this repository's oldest
+   shape, already recorded under `figure`, `orderPrints`, the four message actions, `exam_date` and
+   `wow`. So the board needs no backend change, no new tab and no new column: it is the second
+   reader of something already there.
+
+   WHO IS ON IT IS THE SERVER'S DECISION AND IS NOT REPEATED HERE. `doget.gs` sends `payload.students`
+   only when `maySeeChildren` — an admin, a parent, or a student — so a signed-out stranger is sent
+   no children at all and the board simply has fewer rows. Filtering them off on the phone instead
+   would be the `MESSAGING` fault: one policy written in two places, and the copy on the phone is the
+   one that gets forgotten. Absent by construction, the way the films list already is.
+
+   ONE RENDERER, BECAUSE THE TWO BOARDS ARE ONE OBJECT. They differ in a single column name. A second
+   copy is a second chance to sort them differently, round them differently, or fix one and not the
+   other — `documents_()`, `factsNow_`, `paperIdOf_` and `childrenOf` are the four times this file
+   has paid for that.
+
+   AND IT SAYS WHICH EMPTY IT IS. A payload that never arrived and a game nobody has played both
+   produce an empty list, and showing the second for the first is how a network blip reads as
+   everything having been deleted. `scoreBoard_` counts the PEOPLE it was given before it counts the
+   scores, so "no people at all" says the scores have not arrived and "people, no scores" says
+   nobody has played.
+================================================================================================== */
+
+/* THREE, AND THEN YOU — AND THE NUMBER IS MEASURED RATHER THAN CHOSEN.
+   A leaderboard you are not on is a leaderboard you stop looking at, so if your own score is outside
+   the three the board shows it underneath with the place it is actually in. Five rows is the most
+   this can ever be, whatever the list holds.
+
+   THREE BECAUSE `.pane` IS `overflow: hidden` AND CANNOT GROW. Measured on the Flabby Pird card,
+   which is the tight one of the two: the pane caps at 803px at 768 and 1280, and the card without a
+   board is 634px — so the board has about 140px, and everything past that is below a fold with no
+   scroll and no page to turn to. At five plus your own line it was 251px, and `check/ui.js` said so
+   on the first run that could reach this state: ".pane holding card hides 111px below its own
+   fold". Three plus yours, on the tighter rows `.board` declares, is 140px at every width, measured
+   with the longest handle in the seeded list wrapping onto two lines.
+
+   THE BOARD IS THE NEWCOMER, SO THE BOARD GIVES WAY. The alternative is a smaller canvas, and
+   shrinking the game to make room for a list about the game is the wrong way round. The times-table
+   card has room for more and gets the same number anyway: one board, one renderer, one figure —
+   two numbers is two things to keep in step, and the second one goes stale. */
+const SCORE_TOP = 3;
+
+function scoreRanks_(field) {
+  const people = [].concat(DATA.students || [], DATA.tutors || []);
+  const seen = {}, all = [];
+  people.forEach(p => {
+    if (!p) return;
+    const who = String(p.handle || p.name || p.title || '').trim();
+    if (!who) return;
+    /* A HANDLE IS THE KEY BECAUSE A PERSON CAN BE ON BOTH LISTS. A tutor who is also carried as a
+       student would otherwise appear twice with the same score, which reads as two people tying. */
+    const key = norm(who);
+    if (seen[key]) return;
+    seen[key] = 1;
+    const score = Number(p[field]) || 0;
+    if (score > 0) all.push({ who, score, me: mineIs_(p) });
+  });
+  /* Highest first, and ties settled by name rather than by whatever order the sheet is in — two
+     children on the same score should not swap places between one load and the next. */
+  all.sort((a, b) => b.score - a.score || cmpText(a.who, b.who));
+  /* THE SAME SCORE IS THE SAME PLACE. Two children on forty shown as third and fourth is the board
+     inventing a difference the game did not make, and the one who got fourth is the one who reads
+     it that way. Standard competition ranking: equal scores share a place and the next one skips. */
+  all.forEach((x, i) => { x.pos = (i && all[i - 1].score === x.score) ? all[i - 1].pos : i + 1; });
+  return { people: people.length, all };
+}
+
+/* THE ROW IS THE APP'S OWN `.row`, not a thing of its own: it sits directly under `Score` and
+   `Best` in the same card, and a list that lines up with the rows above it is a list that reads as
+   part of the same object. Written out rather than built with `row()` because the mark for your own
+   line belongs on the ROW — see `.board .row.is-me` in style.css, where a gold rule down the left
+   cannot lose a specificity race to the flappy card's own row colours the way a text colour would. */
+function boardRow_(x) {
+  return `<div class="row${x.me ? ' is-me' : ''}">`
+    + `<span class="k">${esc(x.pos + ' · ' + x.who)}</span>`
+    + `<span class="v mono">${esc(String(x.score))}</span></div>`;
+}
+
+function scoreBoard_(field) {
+  const r = scoreRanks_(field);
+  if (!r.people) return '<p class="note">Scores have not arrived yet.</p>';
+  if (!r.all.length) return '<p class="note">No scores yet. Be the first.</p>';
+  const top = r.all.slice(0, SCORE_TOP);
+  const mine = r.all.filter(x => x.me)[0];
+  /* ASKED OF THE ROWS ON SCREEN RATHER THAN OF THE PLACE. `pos > SCORE_TOP` reads correctly and is
+     wrong the moment two people tie: sharing a place means the fourth ROW can be in third PLACE, so
+     somebody would be neither in the list nor under it. Whether your line is already drawn is a
+     question about the list, and the list is right here. */
+  return '<p class="board-head">High scores</p>'
+    + top.map(boardRow_).join('')
+    + (mine && top.indexOf(mine) < 0 ? boardRow_(mine) : '');
+}
+
+/* Called from `initFlappy` and `initTables`, which is to say from `startScreen_` — so the board is
+   rebuilt on every paint of the column, which is what puts the payload's figures on it the moment
+   `load()` lands. Silent when the card is not on the screen. */
+function paintBoard_(id, field) {
+  const el = $(id);
+  if (el) el.innerHTML = scoreBoard_(field);
+}
+
 const WIDGETS = [
   { id: 'chess', kind: 'game', name: 'Chess', start: () => initChess?.(),
     into: 'chess-board', what: 'The board',
@@ -940,6 +1048,7 @@ const WIDGETS = [
       <button class="btn quiet" data-do="tt-stop" style="margin-top:.5rem">Give up</button>
     </div>
     <div id="tt-over" class="hidden"></div>
+    <div id="tt-board" class="board"></div>
   </div>` },
   { id: 'flabby', kind: 'game', name: 'Flabby Pird', start: () => initFlappy?.(),
     /* An animation loop, which is the expensive one: sixty frames a second drawn into a canvas
@@ -954,6 +1063,7 @@ const WIDGETS = [
     <p class="note" id="flappy-msg" style="text-align:center;margin:.4rem 0 0">Tap to play</p>
     ${rowLive('Score', '0', 'flappy-score')}
     ${rowLive('Best', '0', 'flappy-best')}
+    <div id="flappy-board" class="board"></div>
   </div>` },
   /* THE BOARD, NOT THE DRAWING. `initOverworld` draws the flat SVG map of venues; the board that
      came out of overworld.html is the tiled one with the real Colliers Wood outlines on it, and it
@@ -1046,6 +1156,45 @@ const WIDGETS = [
     <p class="note" id="cha-said"></p>
     <button class="btn quiet" data-do="rg-again" data-g="cha">New round</button>
   </div>` },
+  /* ---------- AND THIS ONE KEEPS ITS GAME ------------------------------------------------------
+     EVERY OTHER BOARD HERE IS REBUILT ON EVERY PAINT and says why: the widget is reopened by a
+     swipe, so a half-played position is a game you have forgotten starting. A Scrabble game is
+     forty minutes and up to four people, and `repaint` runs whenever a payload lands or anything
+     saves — so `initScrabble` redraws whatever is in progress rather than dealing again. `New game`
+     is the only thing that throws one away, which is the only thing that should. */
+  { id: 'scrabble', kind: 'game', name: 'Scrabble', start: () => initScrabble?.(),
+    into: 'scr-board', what: 'The board',
+    html: `<div class="card">
+    <h3>Scrabble</h3>
+    <!-- THE HAND-OVER IS NOT EXPLAINED HERE, because the card says it at the moment it happens:
+         "Hand the phone to Player 2" is on screen with the one button that answers it. A sentence
+         under the heading describing a thing the screen will say for itself is the fault this
+         repository records where every widget printed its own name twice — and on this card it was
+         five lines, which took the rack past the pane's fold at 768 and 1280. -->
+    <p class="sub">Two to four players, one phone. Words stand unless somebody challenges them —
+       that part is yours.</p>
+    <div id="scr-who" class="scr-who"></div>
+    <div id="scr-board" class="scr"></div>
+    <div id="scr-rack-box" class="scr-box"></div>
+    <!-- THE ACTION ROW IS BUILT BY scrabblePaint AND IS EMPTY UNTIL THERE IS A TURN TO TAKE.
+         It was static markup with "hidden" on the container, which is the same thing to look at and
+         not the same thing to press: check/press.js found Pass and New game on the screen before
+         any game existed, pressed them, and reported — correctly — that they did nothing. A
+         control that cannot do anything should not be on the page.
+         (No backticks in here: this comment is inside a template literal, and one ends it — see
+         CLAUDE.md, where that cost a syntax error reported four files away.)
+         NEW GAME LIVES IN THAT ROW rather than under the card, and only while a game is running,
+         which is the only time it means anything the 2/3/4 buttons do not already mean. As a button
+         of its own it was a fifth 44px row on the tallest card in this column. -->
+    <div id="scr-acts" class="scr-acts"></div>
+    <p class="note" id="scr-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <div id="scr-start" class="btn-row">
+      <button class="btn" data-do="scr-new" data-n="2">2 players</button>
+      <button class="btn" data-do="scr-new" data-n="3">3</button>
+      <button class="btn" data-do="scr-new" data-n="4">4</button>
+    </div>
+  </div>` },
+
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">

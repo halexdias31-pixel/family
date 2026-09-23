@@ -98,6 +98,7 @@ function initTables() {
   $('tt-idle')?.classList.remove('hidden');
   $('tt-question')?.classList.add('hidden');
   $('tt-over')?.classList.add('hidden');
+  paintBoard_('tt-board', 'ttHighscore');
 }
 
 function endTimesTables() {
@@ -133,6 +134,16 @@ function endTimesTables() {
         if (d && d.error) throw new Error(d.error);
         if (typeof d.best === 'number') USER.ttHighscore = d.best;
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        /* ---------- AND THE ROW THE BOARD READS, WHICH THIS NEVER TOUCHED --------------------
+           `USER` IS THE PLAYER'S OWN COPY AND `DATA.students` / `DATA.tutors` ARE WHAT THE HIGH
+           SCORES ARE BUILT FROM. Writing one and not the other was invisible while the only
+           reader was this card's own `Your best is`; with a board under it the two disagree on
+           screen — a new record announced above a list that still shows the old one, until the
+           next payload lands. `gameOver` in receipt.js already did this for Flappy Bird and this
+           did not, which is why it is worth the lines rather than the assumption. */
+        const meRow = (DATA.students || []).concat(DATA.tutors || []).filter(mineIs_)[0];
+        if (meRow) meRow.ttHighscore = Number(USER.ttHighscore) || 0;
+        paintBoard_('tt-board', 'ttHighscore');
       })
       .catch(() => {
         /* Said quietly rather than left as a lie. A child told they set a record and finding it
@@ -563,9 +574,29 @@ function feedColours(seed) {
 
    A FULL URL IS USED AS GIVEN AND IS THE REAL ANSWER. `clip` takes an address, so a file served
    from anywhere — including beside this site — is one rung with no fallbacks and no chrome. */
+/* ---------- AN INSTAGRAM REEL HAS NO RUNG ON THIS LADDER AT ALL ----------------------------------
+   TWO WERE PASTED IN AS EMBED BLOCKQUOTES and this is the honest shape for them. Instagram serves
+   no stable direct address for the file: the CDN URLs it uses are signed, expire within hours and
+   are refused cross-origin, so there is nothing a `<video>` can be pointed at. The documented way
+   to show somebody else's reel is their own embed, and it is also the right one — it carries the
+   author's name and the post's own link, which matters when the reel is @eli_radu's rather than
+   this business's.
+
+   SO IT RETURNS NOTHING AND `clipFrame_` ANSWERS INSTEAD. Leaving the URL on the ladder would put
+   the `<video>` through a load that can only fail before the iframe it was always going to need —
+   a rung whose outcome is known is not an attempt, it is a delay with an error in the console.
+
+   WHAT THAT COSTS IS REAL AND IS THE SAME COST THE DRIVE PLAYER ALREADY HAS: an iframe from another
+   origin will not autoplay, cannot be muted or paused from this page, and wears Instagram's chrome.
+   `reelPlay_` removes the sound button when a slide ends up in one, and the column's own pause
+   cannot reach inside it. That is the price of showing somebody else's reel at all, and it is
+   written down here rather than discovered by whoever wonders why one slide behaves differently. */
+const IG_CLIP = /(?:^|\/\/)(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/;
+
 function clipSrcs_(clip) {
   const c = String(clip || '').trim();
   if (!c) return [];
+  if (IG_CLIP.test(c)) return [];
   if (/[:/]/.test(c)) return [c];
   const id = encodeURIComponent(c);
   return [
@@ -594,6 +625,13 @@ function clipSrcs_(clip) {
    over the photograph slide that waits for `img.onload`. */
 function clipFrame_(clip) {
   const c = String(clip || '').trim();
+  /* INSTAGRAM'S OWN EMBED, BUILT FROM THE SHORTCODE rather than from the address that was pasted.
+     What arrives is a share link carrying `?utm_source=ig_embed&utm_campaign=loading` and whatever
+     else was on the clipboard; the embed path wants the code and nothing else, so it is pulled out
+     rather than appended to — which also means `/reel/`, `/reels/`, `/p/` and `/tv/` all land in
+     the same place, because Instagram renamed that path twice and the old ones still resolve. */
+  const ig = IG_CLIP.exec(c);
+  if (ig) return 'https://www.instagram.com/reel/' + encodeURIComponent(ig[1]) + '/embed/';
   if (!c || /[:/]/.test(c)) return '';
   return 'https://drive.google.com/file/d/' + encodeURIComponent(c) + '/preview';
 }
@@ -1510,4 +1548,547 @@ on('rg-again', el => {
   roundStop_(k);
   roundAt[k] = null;
   roundPaint(k);
+});
+
+/* ==================================================================================================
+   SCRABBLE — two, three or four people, one phone.
+
+   ASKED FOR AS "add scrable to games tool. 2/3/4 player". The board game: 15x15, a hundred tiles,
+   seven on a rack, words crossing words, and the premium squares underneath them.
+
+   THERE IS NO DICTIONARY AND THAT IS A DECISION RATHER THAN A GAP. A usable English word list is
+   about 280,000 entries and two and a half megabytes — the size of the whole question library, for
+   one game widget, on a site this repository has already spent two rounds making open faster on a
+   phone. And it is not what the game needs: in real Scrabble a word STANDS unless somebody
+   challenges it, and with two to four people looking at one phone the challenge is the person
+   opposite saying "that is not a word". That is the same argument Herd Mentality already makes
+   about scoring — the part that is people arguing is the part an app should leave to them.
+
+   WHAT IS CHECKED IS THE GEOMETRY, WHICH IS THE PART PEOPLE ACTUALLY GET WRONG: the first word
+   through the centre, everything in one line, no gaps, and after the first move at least one new
+   tile touching what is already there. None of that is a matter of opinion and all of it is easy to
+   do by accident, so the app refuses it and says which rule was broken.
+
+   THE RACK IS SECRET, SO THE PHONE IS HANDED OVER RATHER THAN PASSED. Between turns the board stays
+   up and the rack is replaced by "hand the phone to <name>" and one tap. Without it the next player
+   reads the previous one's tiles on the way past, which is not a thing that can happen with a real
+   rack and is the one part of this game a single screen genuinely changes.
+
+   AND IT IS NOT REBUILT ON EVERY PAINT, WHICH IS THE OPPOSITE OF THE MAZE. `initMaze` starts a new
+   maze each time the widget opens, and its note says why: a half-walked maze is a game you have
+   forgotten starting. A Scrabble game is forty minutes and four people, and `repaint` runs whenever
+   a payload lands or anything saves — so this keeps whatever is in progress and redraws it. `New
+   game` is the way to start another, which is the only way it should ever be lost.
+================================================================================================== */
+const SCR_N = 15;
+
+/* THE STANDARD ENGLISH SET — 100 tiles, and the two blanks are the empty string. Written as
+   letter/count/value triples rather than a hundred entries, because a list of a hundred is a list
+   nobody proof-reads. Asserted below: it comes to 100 and it comes to 187 points. */
+const SCR_SET = [
+  ['A', 9, 1], ['B', 2, 3], ['C', 2, 3], ['D', 4, 2], ['E', 12, 1], ['F', 2, 4], ['G', 3, 2],
+  ['H', 2, 4], ['I', 9, 1], ['J', 1, 8], ['K', 1, 5], ['L', 4, 1], ['M', 2, 3], ['N', 6, 1],
+  ['O', 8, 1], ['P', 2, 3], ['Q', 1, 10], ['R', 6, 1], ['S', 4, 1], ['T', 6, 1], ['U', 4, 1],
+  ['V', 2, 4], ['W', 2, 4], ['X', 1, 8], ['Y', 2, 4], ['Z', 1, 10], ['', 2, 0],
+];
+const SCR_VALUE = {};
+SCR_SET.forEach(t => { SCR_VALUE[t[0]] = t[2]; });
+
+/* ---------- THE PREMIUM SQUARES, BUILT FROM ONE QUADRANT --------------------------------------
+   THE BOARD IS SYMMETRIC ABOUT BOTH MIDDLES, so eight rows of eight describe all 225 and a typo in
+   a 225-character string cannot hide in them. `T`/`D` are word premiums, `t`/`d` letter premiums,
+   and the centre — bottom right of the quadrant — is the star, which scores as a double word on the
+   first move exactly as the printed board does. */
+const SCR_QUAD = [
+  'T..d...T',
+  '.D...t..',
+  '..D...d.',
+  'd..D...d',
+  '....D...',
+  '.t...t..',
+  '..d...d.',
+  'T..d...D',
+];
+function scrPrem_(i) {
+  const r = (i / SCR_N) | 0, c = i % SCR_N;
+  return SCR_QUAD[Math.min(r, SCR_N - 1 - r)][Math.min(c, SCR_N - 1 - c)];
+}
+const SCR_MID = ((SCR_N * SCR_N) - 1) / 2;
+
+let scrabble = null;
+
+/* Fisher-Yates, for the reason `herdShuffle_` gives: `sort(() => Math.random() - .5)` is the famous
+   wrong one and deals the same few orders far too often. */
+function scrShuffle_(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function scrBag_() {
+  const bag = [];
+  SCR_SET.forEach(t => { for (let i = 0; i < t[1]; i++) bag.push(t[0]); });
+  return scrShuffle_(bag);
+}
+
+function scrDraw_(g, rack) {
+  while (rack.length < 7 && g.bag.length) rack.push(g.bag.pop());
+}
+
+function scrNew_(n) {
+  const g = { bag: scrBag_(), players: [], turn: 0, board: new Array(SCR_N * SCR_N).fill(null),
+              placed: [], sel: null, swap: null, blank: null, first: true,
+              handover: false, passes: 0, over: false, said: '' };
+  for (let i = 0; i < n; i++) {
+    const rack = [];
+    scrDraw_(g, rack);
+    g.players.push({ name: 'Player ' + (i + 1), rack, score: 0 });
+  }
+  return g;
+}
+
+/* ---------- WHERE THE TILES ARE, ASKED OF THE BOARD RATHER THAN REMEMBERED --------------------
+   A SQUARE HOLDS EITHER A COMMITTED TILE OR ONE OF THIS TURN'S, and the two have to be told apart
+   for scoring — a premium counts only under a tile placed this turn. Keeping a second list of
+   "which squares are new" is the second reader this repository keeps paying for, so the tile itself
+   carries `fresh` and committing a turn clears it. */
+function scrAt_(g, i) { return g.board[i]; }
+
+function scrPlace_(g, i, rackIndex) {
+  const p = g.players[g.turn];
+  const letter = p.rack[rackIndex];
+  g.board[i] = { letter: letter || '?', blank: letter === '', fresh: true, from: rackIndex };
+  g.placed.push(i);
+}
+
+function scrRecall_(g) {
+  g.placed.forEach(i => { g.board[i] = null; });
+  g.placed = [];
+  g.sel = null;
+  g.blank = null;
+}
+
+/* ---------- THE RULES THAT ARE NOT A MATTER OF OPINION ----------------------------------------
+   Each returns the sentence it refuses with, so the card can say WHICH rule was broken rather than
+   "not a valid move" — a refusal that does not say why is one you learn nothing from, which is the
+   argument this repository already makes about a toast saying "Sent" for a message that was not. */
+function scrIllegal_(g) {
+  if (!g.placed.length) return 'Put some tiles down first.';
+  const rows = {}, cols = {};
+  g.placed.forEach(i => { rows[(i / SCR_N) | 0] = 1; cols[i % SCR_N] = 1; });
+  const oneRow = Object.keys(rows).length === 1, oneCol = Object.keys(cols).length === 1;
+  if (!oneRow && !oneCol) return 'All your tiles have to be in one row or one column.';
+
+  /* NO GAPS, counting the tiles that were already there — a word may bridge a letter somebody else
+     played, and that is not a gap. */
+  const step = oneRow ? 1 : SCR_N;
+  const sorted = g.placed.slice().sort((a, b) => a - b);
+  for (let i = sorted[0]; i <= sorted[sorted.length - 1]; i += step) {
+    if (!g.board[i]) return 'There is a gap in your word.';
+  }
+
+  if (g.first) {
+    if (g.placed.indexOf(SCR_MID) < 0) return 'The first word has to cover the middle square.';
+    if (g.placed.length < 2) return 'The first word needs at least two letters.';
+    return '';
+  }
+  /* AND IT HAS TO TOUCH SOMETHING. After the first move a word floating on its own is the one
+     mistake that looks perfectly reasonable on screen. */
+  const touches = g.placed.some(i => {
+    const r = (i / SCR_N) | 0, c = i % SCR_N;
+    return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([rr, cc]) => {
+      if (rr < 0 || cc < 0 || rr >= SCR_N || cc >= SCR_N) return false;
+      const t = g.board[rr * SCR_N + cc];
+      return !!t && !t.fresh;
+    });
+  });
+  return touches ? '' : 'Your word has to touch a tile that is already down.';
+}
+
+/* ---------- WHAT IT SCORES ---------------------------------------------------------------------
+   THE MAIN WORD AND EVERY CROSS WORD A NEW TILE MAKES, which is the half of Scrabble scoring people
+   forget: a single tile laid beside an existing word scores that word again as well as its own.
+   A premium counts only under a tile placed THIS turn, which is what `fresh` is for; word premiums
+   multiply after every letter premium in the same word has been applied. */
+function scrWordAt_(g, i, step) {
+  let start = i;
+  while (start - step >= 0 && scrSameLine_(start, start - step, step) && g.board[start - step]) {
+    start -= step;
+  }
+  const out = [];
+  for (let j = start; j < SCR_N * SCR_N && g.board[j]; j += step) {
+    out.push(j);
+    if (!scrSameLine_(j, j + step, step)) break;
+  }
+  return out;
+}
+
+/* A STEP OF 1 MAY NOT CROSS A ROW END, which an index alone cannot say — 14 and 15 are adjacent
+   numbers and opposite ends of the board. */
+function scrSameLine_(a, b, step) {
+  if (b < 0 || b >= SCR_N * SCR_N) return false;
+  return step === SCR_N || ((a / SCR_N) | 0) === ((b / SCR_N) | 0);
+}
+
+function scrScoreWord_(g, idx) {
+  let sum = 0, mult = 1;
+  idx.forEach(i => {
+    const t = g.board[i];
+    let v = t.blank ? 0 : (SCR_VALUE[t.letter] || 0);
+    if (t.fresh) {
+      const p = scrPrem_(i);
+      if (p === 'd') v *= 2;
+      else if (p === 't') v *= 3;
+      else if (p === 'D') mult *= 2;
+      else if (p === 'T') mult *= 3;
+    }
+    sum += v;
+  });
+  return sum * mult;
+}
+
+function scrScore_(g) {
+  const rows = {}, cols = {};
+  g.placed.forEach(i => { rows[(i / SCR_N) | 0] = 1; cols[i % SCR_N] = 1; });
+  const acrossMain = Object.keys(rows).length === 1 && g.placed.length > 1;
+  const main = acrossMain ? scrWordAt_(g, g.placed[0], 1) : scrWordAt_(g, g.placed[0], SCR_N);
+  const words = [];
+  if (main.length > 1) words.push(main);
+  /* A one-tile move belongs to both directions and neither is "the main word", so both are gathered
+     the same way as a cross word and the pair is scored once each. */
+  g.placed.forEach(i => {
+    const cross = acrossMain || g.placed.length === 1 ? scrWordAt_(g, i, SCR_N) : scrWordAt_(g, i, 1);
+    if (cross.length > 1 && !words.some(w => w[0] === cross[0] && w.length === cross.length)) {
+      words.push(cross);
+    }
+    if (g.placed.length === 1) {
+      const other = scrWordAt_(g, i, 1);
+      if (other.length > 1 && !words.some(w => w[0] === other[0] && w.length === other.length)) {
+        words.push(other);
+      }
+    }
+  });
+  let total = words.reduce((n, w) => n + scrScoreWord_(g, w), 0);
+  /* SEVEN TILES IS FIFTY, which is the game's own number and the thing everybody plays for. */
+  if (g.placed.length === 7) total += 50;
+  return { total, words: words.length };
+}
+
+function scrPlay_(g) {
+  const why = scrIllegal_(g);
+  if (why) { g.said = why; return; }
+  const { total } = scrScore_(g);
+  const p = g.players[g.turn];
+  p.score += total;
+  /* THE RACK LOSES THE TILES THAT WENT DOWN, by index, highest first — splicing low-to-high moves
+     every index after the one removed and takes the wrong tile off next. */
+  g.placed.map(i => g.board[i].from).sort((a, b) => b - a).forEach(n => { p.rack.splice(n, 1); });
+  g.placed.forEach(i => { g.board[i].fresh = false; delete g.board[i].from; });
+  const bingo = g.placed.length === 7;
+  g.placed = [];
+  g.sel = null;
+  g.first = false;
+  g.passes = 0;
+  scrDraw_(g, p.rack);
+  g.said = p.name + ' scored ' + total + (bingo ? ' — all seven, fifty on top.' : '.');
+  /* THE GAME ENDS WHEN SOMEBODY GOES OUT AND THERE IS NOTHING LEFT TO DRAW. Everybody else's rack
+     comes off their score and goes on to the finisher's, which is what the printed rules say and is
+     also the reason anybody ever plays a short word to get rid of a Q. */
+  if (!p.rack.length && !g.bag.length) { scrFinish_(g, p); return; }
+  scrNext_(g);
+}
+
+function scrFinish_(g, out) {
+  let picked = 0;
+  g.players.forEach(q => {
+    if (q === out) return;
+    const left = q.rack.reduce((n, l) => n + (SCR_VALUE[l] || 0), 0);
+    q.score -= left;
+    picked += left;
+  });
+  if (out) out.score += picked;
+  g.over = true;
+  g.handover = false;
+  const best = g.players.slice().sort((a, b) => b.score - a.score);
+  g.said = best[0].score === best[1].score
+    ? 'A draw on ' + best[0].score + '.'
+    : best[0].name + ' wins on ' + best[0].score + '.';
+}
+
+function scrNext_(g) {
+  g.turn = (g.turn + 1) % g.players.length;
+  g.sel = null;
+  g.blank = null;
+  g.swap = null;
+  /* THE HAND-OVER IS THE STATE, not a message. Until the next player taps, the rack is not drawn at
+     all — a rack you can read on the way past is a rack that is not secret. */
+  g.handover = true;
+}
+
+function scrPass_(g) {
+  scrRecall_(g);
+  g.passes++;
+  g.said = g.players[g.turn].name + ' passed.';
+  /* TWICE ROUND AND NOBODY CAN MOVE. The printed rules end it after six scoreless turns; two
+     passes each is the same idea at any number of players and needs no second counter. */
+  if (g.passes >= g.players.length * 2) { scrFinish_(g, null); return; }
+  scrNext_(g);
+}
+
+function scrSwapDo_(g) {
+  const p = g.players[g.turn];
+  const marked = (g.swap || []).slice().sort((a, b) => b - a);
+  if (!marked.length) { g.swap = null; g.said = ''; return; }
+  if (marked.length > g.bag.length) {
+    g.said = 'Only ' + g.bag.length + ' left in the bag — you can swap that many.';
+    return;
+  }
+  const back = marked.map(n => p.rack[n]);
+  marked.forEach(n => { p.rack.splice(n, 1); });
+  scrDraw_(g, p.rack);
+  back.forEach(l => g.bag.push(l));
+  scrShuffle_(g.bag);
+  g.passes++;
+  g.said = p.name + ' swapped ' + back.length + '.';
+  if (g.passes >= g.players.length * 2) { scrFinish_(g, null); return; }
+  scrNext_(g);
+}
+
+function initScrabble() {
+  if (!$('scr-board')) return;
+  scrabblePaint();
+}
+
+function scrCellsHtml_(g) {
+  let html = '';
+  for (let i = 0; i < SCR_N * SCR_N; i++) {
+    const t = g ? g.board[i] : null;
+    const p = scrPrem_(i);
+    const cls = ['scr-sq'];
+    if (p === 'T') cls.push('tw'); else if (p === 'D') cls.push('dw');
+    else if (p === 't') cls.push('tl'); else if (p === 'd') cls.push('dl');
+    if (i === SCR_MID) cls.push('mid');
+    if (t) cls.push('has');
+    if (t && t.fresh) cls.push('new');
+    const v = t && !t.blank ? (SCR_VALUE[t.letter] || 0) : 0;
+    /* ---------- A SQUARE IS ONLY A CONTROL WHILE THERE IS A GAME ------------------------------
+       THE BOARD IS DRAWN EITHER WAY, because an empty board under the 2/3/4 buttons says what you
+       are about to play on. What it is NOT, before anybody has started, is 225 buttons that do
+       nothing — which is what `check/press.js` found and named. An `<i>` is what the maze's cells
+       already are, for the same reason: it is a picture until it is a control. */
+    if (!g) { html += '<i class="' + cls.join(' ') + '"></i>'; continue; }
+    html += '<button class="' + cls.join(' ') + '" data-do="scr-cell" data-i="' + i + '"'
+      + ' aria-label="Row ' + (((i / SCR_N) | 0) + 1) + ' column ' + ((i % SCR_N) + 1)
+      + (t ? ', ' + (t.blank ? 'blank as ' : '') + t.letter : '') + '">'
+      + (t ? esc(t.letter) + (v ? '<i>' + v + '</i>' : '') : '') + '</button>';
+  }
+  return html;
+}
+
+function scrRackHtml_(g) {
+  const p = g.players[g.turn];
+  if (g.handover) {
+    return '<p class="scr-hand">Hand the phone to <b>' + esc(p.name) + '</b>.</p>'
+      + '<button class="btn" data-do="scr-hand">I have it</button>';
+  }
+  /* ---------- TWENTY-SIX LETTERS, AND NOT AS TWENTY-SIX BUTTONS ------------------------------
+     THE FIRST VERSION WAS AN ALPHABET OF 44px KEYS and it was the right shape and the wrong size:
+     six to a row at 320px is five rows, 220px, which takes the rack and all four actions past the
+     pane's own fold — the fault `check/cards.js` and `check/ui.js` both exist to catch, on a card
+     that was already 22px inside it. A select is one control, opens the phone's own picker, and is
+     the shape this app already uses everywhere somebody chooses from a closed list. */
+  if (g.blank !== null) {
+    let opts = '<option value="">The blank is…</option>';
+    for (let n = 0; n < 26; n++) {
+      const l = String.fromCharCode(65 + n);
+      opts += '<option value="' + l + '">' + l + '</option>';
+    }
+    return '<p class="scr-say">What is the blank?</p>'
+      + '<select class="scr-sel" data-do="scr-blank" aria-label="What the blank stands for">'
+      + opts + '</select>';
+  }
+  /* ---------- A TILE THAT IS ON THE BOARD IS NOT ON THE RACK ---------------------------------
+     WITHOUT THIS YOU COULD PLAY ONE TILE TWICE. Placing a tile leaves it on the rack until the turn
+     is committed — deliberately, because taking a tile back has to put it somewhere — so selecting
+     the same rack slot again put a second copy of the same letter on the board, and the commit then
+     spliced one index for two squares. Asked of the BOARD rather than kept as a second list: every
+     placed square already carries the rack index it came from, and a list beside it is one more
+     thing to get back in step when a tile is picked up again. */
+  const used = {};
+  g.placed.forEach(i => { used[g.board[i].from] = 1; });
+
+  let html = '<div class="scr-rack">';
+  p.rack.forEach((l, n) => {
+    const marked = g.swap && g.swap.indexOf(n) >= 0;
+    const gone = !!used[n];
+    html += '<button class="scr-tile' + (g.sel === n ? ' on' : '') + (marked ? ' mark' : '')
+      + (gone ? ' used' : '') + '" data-do="scr-rack" data-i="' + n + '" aria-label="'
+      + (gone ? 'That tile is on the board' : l ? 'Tile ' + l : 'Blank tile') + '">'
+      + (gone || !l ? '' : esc(l) + '<i>' + (SCR_VALUE[l] || 0) + '</i>') + '</button>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function scrabblePaint() {
+  const host = $('scr-board');
+  if (!host) return;
+  const g = scrabble;
+  host.innerHTML = scrCellsHtml_(g);
+
+  const who = $('scr-who');
+  const rack = $('scr-rack-box');
+  const acts = $('scr-acts');
+  const said = $('scr-said');
+  const start = $('scr-start');
+
+  if (!g) {
+    if (start) start.hidden = false;
+    if (who) who.textContent = '';
+    if (rack) rack.innerHTML = '';
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = '';
+    return;
+  }
+  /* THE PLAYER-COUNT ROW COMES BACK WHEN THE GAME IS OVER, because at that point "2, 3 or 4
+     players" IS "new game" and a second control saying so is a second thing to press. While a game
+     is running it is hidden and `New game` sits in the action row, where it means abandon this one. */
+  if (start) start.hidden = !g.over;
+
+  if (who) {
+    who.innerHTML = g.players.map((p, n) =>
+      '<span class="scr-p' + (n === g.turn && !g.over ? ' on' : '') + '">'
+      + esc(p.name) + ' <b>' + p.score + '</b></span>').join('');
+  }
+  if (rack) rack.innerHTML = g.over ? '' : scrRackHtml_(g);
+  if (acts) {
+    /* BUILT, NOT HIDDEN. See the note beside the empty div in map.js: a hidden control is still a
+       control to anything that presses the page, and four of these do nothing between turns. */
+    /* EVERY ACTION WRITTEN OUT AS A LITERAL, not built from a list. `check-doors.js` follows
+       `data-do="x"` with a string in it and cannot follow a variable — the first version mapped an
+       array and took the doors from 137 to 132, reporting all five handlers as unreachable. A red
+       with nothing behind it is the one thing every list in this project exists to prevent, and
+       CLAUDE.md already records the same correction on `banner()`. */
+    const playLabel = g.swap
+      ? (g.swap.length ? 'Swap ' + g.swap.length : 'Cancel swap')
+      : 'Play';
+    acts.innerHTML = (g.over || g.handover || g.blank !== null) ? ''
+      : '<button class="scr-act" data-do="scr-play">' + esc(playLabel) + '</button>'
+      + '<button class="scr-act" data-do="scr-recall">Take back</button>'
+      + '<button class="scr-act" data-do="scr-swap">Swap</button>'
+      + '<button class="scr-act" data-do="scr-pass">Pass</button>'
+      + '<button class="scr-act" data-do="scr-again">New game</button>';
+  }
+  if (said) {
+    said.textContent = g.said
+      || (g.over ? '' : (g.bag.length + ' left in the bag.'));
+  }
+}
+
+on('scr-new', el => {
+  const n = Math.max(2, Math.min(4, Number(el.getAttribute('data-n')) || 2));
+  scrabble = scrNew_(n);
+  scrabblePaint();
+});
+
+on('scr-again', () => { scrabble = null; scrabblePaint(); });
+
+on('scr-hand', () => {
+  if (!scrabble) return;
+  scrabble.handover = false;
+  scrabble.said = '';
+  scrabblePaint();
+});
+
+on('scr-rack', el => {
+  const g = scrabble;
+  if (!g || g.over || g.handover || g.blank !== null) return;
+  const n = Number(el.getAttribute('data-i'));
+  /* A TILE ALREADY ON THE BOARD CANNOT BE PICKED UP TWICE — take it off the square to get it back,
+     which is the same gesture as on the table. */
+  if (g.placed.some(i => g.board[i].from === n)) return;
+  if (g.swap) {
+    const at = g.swap.indexOf(n);
+    if (at >= 0) g.swap.splice(at, 1); else g.swap.push(n);
+  } else {
+    g.sel = g.sel === n ? null : n;
+  }
+  scrabblePaint();
+});
+
+on('scr-cell', el => {
+  const g = scrabble;
+  if (!g || g.over || g.handover || g.blank !== null || g.swap) return;
+  const i = Number(el.getAttribute('data-i'));
+  const t = g.board[i];
+  /* TAP A TILE YOU JUST PUT DOWN AND IT COMES BACK. A committed one does not, which is what `fresh`
+     already says — so there is no separate list of what may be picked up. */
+  if (t) {
+    if (!t.fresh) return;
+    g.board[i] = null;
+    g.placed = g.placed.filter(x => x !== i);
+    g.said = '';
+    scrabblePaint();
+    return;
+  }
+  if (g.sel === null) { g.said = 'Pick a tile first.'; scrabblePaint(); return; }
+  const letter = g.players[g.turn].rack[g.sel];
+  scrPlace_(g, i, g.sel);
+  g.said = '';
+  /* A BLANK IS NOT A LETTER UNTIL SOMEBODY SAYS SO, and it is worth nought whatever they say. The
+     square is taken now and the letter arrives a tap later, so the picker cannot be answered about
+     a square that is no longer the one you tapped. */
+  if (letter === '') g.blank = i; else g.sel = null;
+  scrabblePaint();
+});
+
+/* A CHANGE RATHER THAN A PRESS, because the control is a select — the same shape `book-note` and
+   `book-emails` already use, and for the same reason: a select answers on change and never on
+   click. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="scr-blank"]');
+  if (!el) return;
+  const g = scrabble;
+  if (!g || g.blank === null) return;
+  const l = String(el.value || '').toUpperCase();
+  if (!/^[A-Z]$/.test(l)) return;
+  const t = g.board[g.blank];
+  if (t) t.letter = l;
+  g.blank = null;
+  g.sel = null;
+  scrabblePaint();
+});
+
+on('scr-play', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  if (g.swap) { scrSwapDo_(g); scrabblePaint(); return; }
+  scrPlay_(g);
+  scrabblePaint();
+});
+
+on('scr-recall', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  scrRecall_(g);
+  g.said = '';
+  scrabblePaint();
+});
+
+on('scr-swap', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  scrRecall_(g);
+  g.swap = g.swap ? null : [];
+  g.said = g.swap ? 'Tap the tiles to put back, then Swap.' : '';
+  scrabblePaint();
+});
+
+on('scr-pass', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  scrPass_(g);
+  scrabblePaint();
 });

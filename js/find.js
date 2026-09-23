@@ -5584,6 +5584,39 @@ function feedPages_() {
    list — and that position moves with whatever you have narrowed, so the one control that must
    always be in the same place was the one thing that kept shifting. One swipe right, from anywhere,
    whatever is on screen. */
+/* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE --------------------------------------------------
+   IT WAS LOCAL TO `accountPages_` AND THERE WERE THREE OTHER COPIES OF IT. `gameOver` in receipt.js
+   matched a student on handle alone and a tutor on `title` alone — two half-tests, either of which
+   answers "not you" for somebody the other would have found, and both of them written out beside
+   each other rather than asked. That is the fault this function exists to prevent, so it is a
+   function rather than a local.
+
+   THE ORDER IS `findPerson`'S ORDER and for its reason: an id beats a handle beats a name.
+   `changePin` is the entry where matching a person by their display name was a real denial — the
+   PIN you typed checked against somebody else's row, and you told you did not know your own.
+
+   `t.name` IS THE FOURTH RUNG AND IT IS FOR THE STUDENT ROWS. A tutor row carries `title` and no
+   `name`; a student row carries `name` and no `title`, so before this a student could only ever be
+   matched by handle. Additive by construction: a tutor has no `name` key for the new rung to read,
+   so nothing `accountPages_` already answered can change. */
+function mineIs_(t) {
+  /* ---------- AND A STRANGER HAS NO ROW, WHICH THIS DID NOT HAVE TO KNOW BEFORE ------------------
+     IT WAS LOCAL TO `accountPages_`, WHICH IS ONLY EVER DRAWN FOR SOMEBODY SIGNED IN, so `USER` was
+     an object by the time any of these rungs read it. At file scope it is reachable from the high
+     score board, which a stranger sees — and `USER.personId` on `null` throws.
+
+     IT THREW INTO A `catch` THAT SWALLOWED IT. `toolsStart_` wraps each widget's `start` in its own
+     try, so the game came up perfectly and the board beside it stayed an empty div, signed out, at
+     every width. Found by the lab and not by looking: `check/ui.js` reported the state as not
+     reached, which is precisely what that assertion is for. */
+  if (typeof USER === 'undefined' || !USER) return false;
+  return !!t && (
+    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
+    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
+    (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
+    (USER.name && t.name && norm(t.name) === norm(USER.name)));
+}
+
 function accountPages_() {
   if (!USER) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
@@ -5623,11 +5656,6 @@ function accountPages_() {
      AND IF YOU ARE NOT STAFF THERE IS NO ROW, so one is built from what signing in already
      returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
      the distinction the note above is about. */
-  const mineIs_ = t => !!t && (
-    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
-    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
-    (USER.name && t.title && norm(t.title) === norm(USER.name)));
-
   const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
     title: USER.name || 'Signed in',
     role:  roleOf(USER.role || 'student'),

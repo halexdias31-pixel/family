@@ -772,6 +772,68 @@ const BOOK_STEPS = [
      ONE SHORT LINE EACH, and it names the thing that differs rather than everything that is true.
      What separates these two is certainty against price: one is yours the moment you pay, the other
      is cheaper and might not happen. That is the whole decision, and it fits on a line. */
+  /* ---------- WHO IT IS FOR IS THE FIRST QUESTION ------------------------------------------------
+     ASKED FOR AS *"the 'for' field should be before 'Kind'"*, and the order of this list IS the
+     order of both documents — so moving the question moves the row on the form and on the receipt
+     together. It reads the way somebody says it out loud: who this is for, then what kind of thing
+     it is. It was last because it is admin-only and skips itself for everybody else, which is an
+     argument about who is asked rather than about where it belongs.
+
+     THE FIVE ROWS PINNED TO IT HAD TO COME OFF, and that is the half that would have gone wrong in
+     silence. `Dates`, `Note`, `About`, `A seat` and `Shared by` were pinned `after: 'For'` because
+     `For` was the last question — so moving it to the front would have carried the dates, the note
+     and the two waiting-list lines up to the top of the card with it. They are pinned to the TAIL
+     now instead, which is what they were always for: a foot that does not care which question
+     happens to be last is a foot that survives the next reordering. Same fault the note over the
+     old pinning already records about using an index.
+
+     `check-spine.js` IS WHAT MAKES THIS SAFE TO DO AT ALL — one order, both documents, and a row
+     that falls off the spine is a failure rather than a row quietly drawn somewhere else. */
+  /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
+     what makes the seat cost what it costs. */
+  /* ---------- WHOSE BOOKING IT IS ------------------------------------------------------------------
+     ADMIN ONLY, AND IT SKIPS ITSELF FOR EVERYBODY ELSE. A client has exactly one answer to this and
+     being asked it is being asked to confirm they are themselves — so the options list comes back
+     empty and `nextBookStep` passes over it, which is the same rule that already hides the children
+     question from somebody with no children. No new machinery, and nothing to keep in step.
+
+     WHY AN ADMIN NEEDS IT: somebody rings up and you book it for them. Without this the receipt
+     says the booking belongs to whoever was holding the phone, which is you. */
+  { id: 'client', label: 'Who is this for?', short: 'For',
+    /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. The same expression `bookPrice`,
+       `breakdownRows` and the submitted job have each carried privately — said once here instead,
+       so the row cannot disagree with what is actually sent. */
+    fallback: () => (USER && USER.name) || '',
+    options: () => {
+      if (!isAdmin()) return [];
+      const me = (USER && USER.name) || '';
+      /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a
+         codebase like this usually has. The payload sends `tutors` and `students` and now
+         `clients`, filtered server-side to admins, which is the right place for that decision:
+         a list the browser has to be trusted not to show is a list that has already been sent. */
+      const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
+      /* ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED ---------------------------------
+         EVERY OPTION WAS A PERSON, so an admin could not say "this is for nobody yet" — and that is
+         exactly what opening a waiting list before a campaign IS. The list has to exist with zero
+         families on it, so the first person who arrives finds one to join rather than one to start.
+
+         FIRST IN THE LIST ON A WAITING LIST, LAST OTHERWISE. On the waiting-list branch it is the
+         likely answer; on an ordinary booking it is a strange one, and the order should say which.
+
+         A SESSION FOR NOBODY IS STILL REFUSED — see `why` below. Nobody sits in the chair at a
+         session somebody booked outright, and offering it there would be offering a booking that
+         cannot happen. */
+      const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
+      return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
+    },
+
+    /* A SESSION FOR NOBODY IS REFUSED — nobody sits in the chair at a session somebody booked
+       outright, so offering it there would be offering a booking that cannot happen. */
+    why: v => (v === NOBODY && !isWaiting_())
+      ? 'a session needs somebody in it — this opens a waiting list' : '',
+    note: v => v === NOBODY ? 'the list opens empty, and families join it'
+      : (norm(v) === norm((USER && USER.name) || '') ? 'your own booking' : '') },
+
   { id: 'how', label: 'How would you like to book?', short: 'Kind',
     /* BOTH ARE "START", because both are things you set going — the difference is whether it runs
        now or waits for company. "Join a waiting list" was wrong twice over: there may be no list to
@@ -819,8 +881,25 @@ const BOOK_STEPS = [
 
   /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
      Written into the booking below so the receipt and the backend agree without asking. */
+  /* ---------- IT WAS ALWAYS MULTI AND NOTHING ON THE CARD SAID SO --------------------------------
+     ASKED FOR AS *"subject drop down should allow multi select"*, and measured before anything was
+     changed: `multi: true` has been on this step since it was written, the `change` handler
+     toggles rather than replaces, a chosen option comes back with a ✓ in front of it, and the row
+     reads "Maths, English Language" once two are picked. Every part of it works.
+
+     WHAT WAS MISSING IS THE SENTENCE. A closed dropdown showing "—" is a dropdown you pick ONE
+     thing from, everywhere else anybody has used one — so nothing invited a second tap, and a
+     feature nobody knows is there is a feature that is not. The note is drawn under the row now
+     (see `stepRows_`, which found seven of these written and drawn nowhere), which is the one place
+     it can be said without a second control to keep in step.
+
+     IT SPEAKS WHILE THERE IS SOMETHING TO SAY. Once two are chosen the row says so itself and the
+     line would be explaining a thing already on the screen — the fault this file records where the
+     roster's name printed an `<h3>` above every widget's own heading. */
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
-    options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name) },
+    options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name),
+    note: () => (BOOKING.subjects || []).length > 1 ? ''
+      : 'Pick as many as apply \u2014 choosing again adds one, and a ticked one comes back off.' },
 
   { id: 'level', label: 'What level?', short: 'Level',
     options: () => ((DATA.dropdowns || {}).levels || []) },
@@ -1092,50 +1171,6 @@ const BOOK_STEPS = [
     },
     note: v => v === UNNAMED ? 'the seat is booked, the name can wait' : '' },
 
-  /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
-     what makes the seat cost what it costs. */
-  /* ---------- WHOSE BOOKING IT IS ------------------------------------------------------------------
-     ADMIN ONLY, AND IT SKIPS ITSELF FOR EVERYBODY ELSE. A client has exactly one answer to this and
-     being asked it is being asked to confirm they are themselves — so the options list comes back
-     empty and `nextBookStep` passes over it, which is the same rule that already hides the children
-     question from somebody with no children. No new machinery, and nothing to keep in step.
-
-     WHY AN ADMIN NEEDS IT: somebody rings up and you book it for them. Without this the receipt
-     says the booking belongs to whoever was holding the phone, which is you. */
-  { id: 'client', label: 'Who is this for?', short: 'For',
-    /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. The same expression `bookPrice`,
-       `breakdownRows` and the submitted job have each carried privately — said once here instead,
-       so the row cannot disagree with what is actually sent. */
-    fallback: () => (USER && USER.name) || '',
-    options: () => {
-      if (!isAdmin()) return [];
-      const me = (USER && USER.name) || '';
-      /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a
-         codebase like this usually has. The payload sends `tutors` and `students` and now
-         `clients`, filtered server-side to admins, which is the right place for that decision:
-         a list the browser has to be trusted not to show is a list that has already been sent. */
-      const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
-      /* ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED ---------------------------------
-         EVERY OPTION WAS A PERSON, so an admin could not say "this is for nobody yet" — and that is
-         exactly what opening a waiting list before a campaign IS. The list has to exist with zero
-         families on it, so the first person who arrives finds one to join rather than one to start.
-
-         FIRST IN THE LIST ON A WAITING LIST, LAST OTHERWISE. On the waiting-list branch it is the
-         likely answer; on an ordinary booking it is a strange one, and the order should say which.
-
-         A SESSION FOR NOBODY IS STILL REFUSED — see `why` below. Nobody sits in the chair at a
-         session somebody booked outright, and offering it there would be offering a booking that
-         cannot happen. */
-      const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
-      return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
-    },
-
-    /* A SESSION FOR NOBODY IS REFUSED — nobody sits in the chair at a session somebody booked
-       outright, so offering it there would be offering a booking that cannot happen. */
-    why: v => (v === NOBODY && !isWaiting_())
-      ? 'a session needs somebody in it — this opens a waiting list' : '',
-    note: v => v === NOBODY ? 'the list opens empty, and families join it'
-      : (norm(v) === norm((USER && USER.name) || '') ? 'your own booking' : '') },
 
 ];
 
@@ -2040,6 +2075,45 @@ function stepRows_() {
                   under a control that did nothing. */
                id: st.id,
                sel: stepControl_(st),
+               /* ---------- SEVEN EXPLANATIONS WRITTEN OUT AND DRAWN NOWHERE -------------------
+                  `why` AND `note` ARE DEFINED ON SEVEN STEPS AND WERE READ BY NOTHING. Measured:
+                  `st.why(` and `st.note(` do not occur anywhere in `js/`. So the form could tell
+                  you that the tutor you picked does not teach your subject, that you have ticked
+                  more children than you have seats, that a waiting list is cheaper but waits, and
+                  that an unnamed seat is still a booked seat — and said none of it. This
+                  repository's oldest shape, already recorded under `figure`, `orderPrints`, the
+                  four message actions, `exam_date` and `wow`.
+
+                  A `why` IS A REFUSAL AND A `note` IS AN ASIDE, which is why they are one field
+                  with a flag rather than two rows. A refusal says the answer on the row is wrong
+                  for the booking — nothing else on the card says so, and a dropdown that accepts
+                  an impossible answer in silence is worse than one that refuses it. An aside says
+                  what the answer MEANS, and recedes.
+
+                  THE REFUSAL WINS WHERE BOTH SPEAK, because you cannot act on an aside about an
+                  answer you have to change. */
+               say: (() => {
+                 /* ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN ------------------
+                    THE FIRST RUN PRINTED "the minimum needs 1" IN GOLD UNDER AN EMPTY SEATS ROW.
+                    Every one of these predicates takes the chosen value and tests it, so an unset
+                    step hands them `''` and several have something to say about it — which on the
+                    card is the form refusing a question it has not asked yet. A refusal before the
+                    answer is the shape this file records where a missing fact was drawn as a
+                    negative one.
+
+                    ASKED OF THE ANSWER RATHER THAN OF THE STEP, so a multi with nothing ticked and
+                    a dropdown left on the dash are both silent by the same test. */
+                 const answered = st.multi ? (v || []).length
+                   : String(v == null ? '' : v).trim() !== '';
+                 if (!answered && !(st.multi && st.note)) return null;
+                 const w = (answered && st.why) ? String(st.why(v) || '') : '';
+                 if (w) return { text: w, warn: true };
+                 /* A MULTI'S NOTE IS ALLOWED TO SPEAK BEFORE THERE IS AN ANSWER, and it is
+                    the only one that is: "you may pick more than one" is worth knowing precisely
+                    while nothing is picked, which is the opposite of a refusal. */
+                 const n = st.note ? String(st.note(v) || '') : '';
+                 return n ? { text: n, warn: false } : null;
+               })(),
                open: stepGrid_(st) };
     });
 }
@@ -2121,18 +2195,26 @@ const SPINE_EXTRA = [
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
      form asks the question as `Split` and names the answer there. */
   { after: 'Split',   row: 'Sharing',     only: 'receipt' },
-  /* PINNED TO `For`, WHICH IS THE LAST QUESTION. They were pinned to `Tutor` while `Tutor` was
-     last; moving it to third would have carried the dates, the note and the waiting-list lines up
-     the page with it, four rows below the level. Pinning is what made that visible — an index would
-     have left them where the number said and put the wrong rows there in silence. */
-  { after: 'For',     row: 'About',     only: 'wait' },
-  { after: 'For',     row: 'Dates' },
-  { after: 'For',     row: 'Note' },
+  /* ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST -----------------------
+     THESE FIVE HAVE NOW BEEN RE-PINNED TWICE, and both times the row they hung off had moved. They
+     were on `Tutor` while `Tutor` was last and went to `For` when it became last; `For` is the
+     FIRST question now, and pinning them there would have carried the dates, the note and the two
+     waiting-list lines to the top of the card. The note that used to sit here said pinning is what
+     makes a move visible where an index would be silent — true, and it still leaves the rows
+     following a question around the form for a reason that has nothing to do with either of them.
+
+     AN EMPTY `after` IS THE TAIL, which is where they belong by description: they are the foot of
+     the document, after everything it is about. That is immune to which question is last, so this
+     cannot need repinning a third time — and the tail keeps SPINE_EXTRA's own order, so they still
+     come out in front of `Stage`, `Status` and `Asked for`. */
+  { after: '',        row: 'About',     only: 'wait' },
+  { after: '',        row: 'Dates' },
+  { after: '',        row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: the form printed
      `A seat` and `Shared between` and the receipt printed neither, so the one document that says
      what a seat costs and how many families share it was the one nobody was handed. */
-  { after: 'For',     row: 'A seat',    only: 'wait' },
-  { after: 'For',     row: 'Shared by', only: 'wait' },
+  { after: '',        row: 'A seat',    only: 'wait' },
+  { after: '',        row: 'Shared by', only: 'wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
      about — which is where a receipt puts it and where the form now puts it too. */
   { after: '',        row: 'Stage' },
@@ -2717,14 +2799,33 @@ function receiptRow(r) {
      asking for it is asking "is this a field somebody fills in". The asides still collapse, which is
      what the rule was for. */
   const bare = !r.id && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
-  return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}">
+  /* ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD -------------------------------------
+     REPORTED AS *"the 'when' dotted line is redundant as the grid is right underneath it."* It is.
+     A dashed underline on this card means *an answer goes here*, and on the When row the answer
+     goes in the week below it — so the row was advertising a blank that could never be filled in on
+     that line, with the real control two pixels under it. And an unanswered one printed a dash as
+     well, which is the same claim a second time.
+
+     THE SUMMARY STAYS WHERE THERE IS ONE. `stepRows_` reads the ticked hours back as
+     "Monday 12:00–14:00, Wednesday 15:00–16:00", which is the one thing the picture cannot say at a
+     glance — whether two ticked boxes are a two-hour session or two separate ones. That is a
+     caption on the grid rather than a value in a column, so it is drawn and the line under it is
+     not.
+
+     ASKED OF `r.open`, WHICH IS THE GRID ITSELF. Both documents hang the week off that field — see
+     `jobRows` — so the receipt's When row loses its dash for the same reason without being told
+     separately, and a row that stops carrying a grid gets its underline back with nothing here to
+     change. */
+  const heads = !!r.open;
+  return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
     <span class="bk-k">${esc(r.k)}</span>
-    <span class="bk-v">${value}</span>
+    <span class="bk-v">${heads && String(r.v) === '\u2014' ? '' : value}</span>
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>
-  </div>${r.open || ''}`;
+  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}${
+    r.open || ''}`;
 }
 
 /**

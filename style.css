@@ -2591,9 +2591,41 @@ button.text-drop { color: var(--bad); }
   border-bottom: 1px dashed var(--line);
 }
 .bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
+/* ---------- WHAT THE ROW ABOVE MEANS, OR WHY IT CANNOT BE ANSWERED THAT WAY ------------------------
+   THE SAME SIZE AND THE SAME PLACE AS THE GRID'S OWN NOTE, because they are the same kind of thing:
+   a sentence belonging to the row above rather than a row of its own. Left-aligned, where every
+   value on this card is right-aligned — a value answers the label beside it and a sentence does
+   not, so lining it up with the answers would read as one. */
+.bk-say {
+  margin: 0 0 .18rem; font-size: .66rem; line-height: 1.3;
+  color: var(--faint); text-align: left;
+}
+/* A REFUSAL IS NOT AN ASIDE. `--gold` is what this app means by "the thing to attend to", and an
+   answer the booking cannot take is exactly that — see `stepRows_`, where the two are one field. */
+.bk-say.is-warn { color: var(--gold); }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
+/* ---------- THE PICKER IS NOT THE CONTROL, AND IT WAS INHERITING BOTH THE WRONG COLOURS -----------
+   REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
+   or something, unless i hover over it."* Measured: every `<option>` computed to
+   `background-color: rgba(0,0,0,0)` and `color: rgb(128,128,128)`.
+
+   BOTH HALVES COME FROM RULES THAT ARE RIGHT ABOUT THE CONTROL. `background: none` on `.bk-sel` is
+   what makes a dropdown look like a dashed value on a receipt rather than a form field — and the
+   list the browser opens is a separate surface the page does not paint, so a transparent option is
+   drawn on whatever the SYSTEM sheet is, which is white nearly everywhere. And the `--faint` above
+   is how an unanswered row recedes on the card; inherited into the popup it is grey on white,
+   which is exactly "hard to see unless I hover over it" — the hover is the only thing supplying
+   contrast, because it is the one colour the OS paints itself.
+
+   SO THE POPUP IS TOLD BOTH, and it is the one place in this stylesheet where a control's own
+   colours have to be restated rather than inherited: the option is not inside the card and cannot
+   read anything from it. `--bg` and `--ink` rather than the card's grey, because a native list
+   sits over the page and the page's own ground is what it should look like it came from. */
+.bk-sel option { background-color: var(--bg); color: var(--ink); }
+/* THE DASH IS STILL THE QUIET ONE — inside the list, where there is something to be quiet against. */
+.bk-sel option[value=""] { color: var(--faint); }
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
    quieter; the running total is the answer, so it is the only one in full ink. */
@@ -2607,6 +2639,9 @@ button.text-drop { color: var(--bad); }
 /* Rows carrying no money give their value the whole width rather than stopping where the figures
    would begin — an empty band beside Status reads as figures that failed to draw. */
 .bk-free .bk-v { border-bottom: 0; }
+/* A ROW WHOSE ANSWER IS THE GRID UNDER IT — see `receiptRow`'s `is-head`. No dashed line, because
+   the line means "an answer goes here" and here it goes in the week two pixels below. */
+.bk-row.is-head .bk-v { border-bottom: 0; }
 .bk-dates { font-size: .72rem; line-height: 1.5; color: var(--dim); }
 
 /* A value you picked is a button. No pencil, no edit mode — the dashed underline already says
@@ -3264,6 +3299,55 @@ button.text-drop { color: var(--bad); }
 .widget-full:has(.flappy) .row { border-color: #34342f; }
 .widget-full:has(.flappy) .row .k { color: #7d786c; }
 .widget-full:has(.flappy) .row .v { color: #cfcabb; }
+
+/* ---------- THE HIGH SCORES ------------------------------------------------------------------------
+   TWO GAMES, ONE BOARD, AND IT SITS INSIDE WHICHEVER CARD DREW IT — so it borrows that card's own
+   row colours rather than declaring a second set. The flappy card retones `.row .k` and `.row .v`
+   for its dark shell and the times-table card does not; a board with colours of its own would look
+   right in one of them and pasted into the other.
+
+   WHICH IS ALSO WHY YOUR OWN LINE IS A RULE DOWN THE LEFT RATHER THAN GOLD TEXT.
+   `.widget-full:has(.flappy) .row .k` scores (0,3,1) — `:has()` takes the specificity of its own
+   argument — so `.board .row.is-me .k` ties with it at (0,3,1) and the cascade would settle a
+   colour by which rule happens to be written later in this file. That is `.price.faint` exactly,
+   for the eighth time: a declaration that reads as a decision and behaves as nothing. Nothing
+   anywhere sets `box-shadow` or `padding-left` on a `.row`, so this cannot lose a race it does not
+   look like it is in — and a gold rule down the left is already what this app means by "yours",
+   which is what `.msg.unread` used before the bubbles took the edge away.
+
+   THE ROWS ARE `.row` AND NOTHING ELSE. The board sits directly under `Score` and `Best`, and a
+   list whose baselines and rules line up with the two rows above it reads as part of the same
+   object rather than as a widget inside a widget. */
+.board { margin-top: .25rem; }
+.board-head {
+  margin: 0;
+  font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--dim);
+}
+/* ---------- A LIST IS NOT A SHEET ----------------------------------------------------------------
+   `.row` IS `.44rem 0` AND `.88rem`, which is right for a sheet you read a line at a time — Subject,
+   Level, Where — and too generous for a ranked list you scan. Five of them at that leading is 170px,
+   and the card they sit in already holds a canvas inside a pane that cannot grow: see `SCORE_TOP` in
+   map.js for the measurement. Tighter here rather than a smaller `SCORE_TOP` alone, because the
+   rows genuinely are a different kind of object from the two above them. */
+.board .row { padding: .19rem 0; font-size: .82rem; }
+.board .row.is-me {
+  box-shadow: inset 2px 0 0 var(--gold);
+  padding-left: .4rem;
+}
+/* ---------- AND HERE THE LABEL IS THE CONTENT ----------------------------------------------------
+   `.row .k` IS `flex: 0 0 auto` AND ITS OWN NOTE SAYS WHY: "Credits", "You have", "Where" are two
+   words and there is always room. A board's label is a place and a handle — up to the twenty
+   characters `check-handles.js` allows — and `min-width: 0` alone does nothing for it, because
+   `flex-shrink` is still 0. Measured with a twenty-character handle: the row ran 53px past the card
+   at 320px and took the pane with it, which `check/ui.js` named the first run that could see this
+   state. The value is the one that cannot shrink here; it is at most three digits. */
+.board .row .k { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.board .row .v { flex: 0 0 auto; }
+/* The board's own heading takes the shell's muted ink in the flappy card, like every other label
+   in it. Written as its own rule rather than left to `var(--dim)`, which is the black-and-gold
+   token and reads as a different grey against that cream panel. */
+.widget-full:has(.flappy) .board-head { color: #7d786c; }
 
 /* ---------- AND NOTHING MAY BE UNBOUNDED --------------------------------------------------------
    A widget that draws itself — a canvas, a board, a map — has no size until it has drawn, so a pane
@@ -6012,33 +6096,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    STARTS and not where it ends, and the end is the edge somebody reads. */
 .bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
 
-/* ---------- A CARD WITH NO FIGURES ON IT HAS NO FIGURE COLUMNS --------------------------------------
-   REPORTED FROM A SCREENSHOT OF THE LIVE FORM: "the grid shouldn't extend beyond the 1st column like
-   the other fields." Measured at 390px, it is the other way round and that is what made it look
-   wrong: the ROW spans 39→351 and so does the week grid — they already agree. What stops at 193 is
-   the dash, because the multiplier, the rate and the total are three reserved tracks holding
-   nothing on a booking nobody has priced yet. 145 pixels of every row, empty, on eighteen rows.
+/* ---------- THE FIGURE COLUMNS STAY, AND THE TWO COMPLAINTS CANNOT BOTH BE ANSWERED ----------------
+   THIS BLOCK USED TO HIDE `.bk-m`, `.bk-r` AND `.bk-t` on a card with no figures on it, so the
+   dashes ended where the week grid ends and the card had one right edge. It was written from
+   *"the grid shouldn't extend beyond the 1st column like the other fields"* and it was reverted
+   from *"what happened to all the columns I had before for things like multiplier"*.
 
-   SO THE FIGURE COLUMNS GO WHEN THERE ARE NO FIGURES ON THE CARD, and the value takes the width
-   they were holding. One right edge: the dashes end where the week ends, which is the alignment
-   somebody was asking for.
+   BOTH REPORTS ARE ABOUT ONE EDGE AND THEY WANT IT IN DIFFERENT PLACES, so the arithmetic decides
+   which is available. The week grid CANNOT be clipped to where the dash ends: at 390px that is
+   193px for eleven hours, which is a 7.5px cell against the 20px floor the note over `.hr` records
+   this block reaching after 222 → 174 → 146px. A day has to be pressable and that measurement does
+   not scale. So the only movable edge is the dash's, and the owner has now said twice over which
+   side they want it on: the multiplier, the rate and the running total are the columns they read.
 
-   PER CARD, NOT PER ROW, and that is the whole care. `is-bare` collapses a single row and the note
-   over it records what that did to a FORM — Subject ran the width of the card and Venue was cut to
-   "Sutton Li…", because which width a field got depended on whether its answer happened to cost
-   anything. Asked of the card, every row answers the same way, so the fields stay identical and
-   the columns still line up down the card.
-
-   AND IT UNDOES ITSELF THE MOMENT ANYTHING IS PRICED. `:has` reads the card's own totals rather
-   than a flag somebody has to set, so there is no second place for "is this priced" to be wrong —
-   which is the fault this stylesheet pays for every time a width is stated twice.
-
-   THE ONE THING IT MUST NOT REACH IS THE BASKET. `is-wide` is two columns already — a title and a
-   price — and hiding its total would take the price off a basket of free things. */
-.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-m,
-.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-r,
-.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-t { display: none; }
-.bk:not(:has(.bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-v { grid-column: 2 / -1; }
+   WHAT THE HIDDEN COLUMNS ACTUALLY COST is written down rather than argued about, because it is
+   the thing that will look wrong again: an unpriced form has 145px of empty track on eighteen rows
+   and the dashes stop at 193 while the grid runs to 351. That is two right edges on one card, and
+   it is the price of a multiplier column that is there before there is anything to multiply. */
 
 /* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR --------------------------------
    THE BASKET IS THE OTHER SHAPE. A booking row is a short label and a short answer with three
@@ -9125,6 +9199,146 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mz-key.left  { grid-column: 1; grid-row: 2; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
+
+/* ==================================================================================================
+   SCRABBLE
+
+   ITS FOUR PREMIUM COLOURS AND ITS CREAM BOARD ARE DECLARED ON THE COMPONENT, which is the rule the
+   house style states with the chess board's cream and charcoal and Othello's red and blue: a colour
+   that belongs to ONE component is named on that component rather than offered to a black-and-gold
+   stylesheet. Light blue, dark blue, pink and red on cream are not a taste — they are what is
+   printed on the board, and a Scrabble board in gold would have to be read rather than recognised.
+
+   THE SQUARES SAY WHAT THEY ARE BY COLOUR AND NOT BY WORDS. The printed board writes DOUBLE LETTER
+   SCORE across three lines of a square; fifteen squares across a phone is about seventeen pixels
+   each, where that is not small type, it is no type. A legend under the board was the other option
+   and it costs a row of height on a card that is already at the pane's limit.
+
+   A SQUARE CANNOT BE 44px AND HERE THAT IS THE POINT rather than a concession: fifteen of them is
+   660px, wider than any phone, and the same argument `.c4` and `.oth` already record. Everything
+   that is a CONTROL rather than a square — the rack, the four actions, the blank's letters — is a
+   real fingertip, in px, which is this stylesheet's seventh conviction of that rule.
+================================================================================================== */
+.scr {
+  --scr-paper: #efe6d2;
+  --scr-line: #cbbd9e;
+  --scr-ink: #2b2417;
+  --scr-dl: #a9cfe4;
+  --scr-tl: #3f88b5;
+  --scr-dw: #e9b3ae;
+  --scr-tw: #cf5a4a;
+  --scr-tile: #e3c98f;
+  display: grid; gap: 1px; margin: .5rem auto 0;
+  grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr);
+  aspect-ratio: 1; width: 100%; max-width: 24rem;
+  background: var(--scr-line); border: 1px solid var(--scr-line);
+  border-radius: var(--r-sm); overflow: hidden;
+}
+.scr-sq {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 0; padding: 0;
+  background: var(--scr-paper); color: var(--scr-ink);
+  border: 0; border-radius: 0;
+  font: 700 clamp(7px, 2.1vw, 12px)/1 var(--font);
+  position: relative;
+}
+/* THE POINTER ONLY WHERE THERE IS SOMETHING TO PRESS. Before a game starts the squares are drawn as
+   `<i>` rather than buttons — see `scrCellsHtml_` — and a cursor saying otherwise is the same small
+   lie as a control that looks pressable and does nothing. */
+button.scr-sq { cursor: pointer; }
+/* ---------- A TILE COVERS WHATEVER IS UNDER IT, AND SAYS SO IN THE SELECTOR --------------------
+   THAT IS TRUE ON THE TABLE and it was true here only because `.scr-sq.has` is written afterwards:
+   `check/cascade.js` named ten longhands on these five squares settled by file order alone. With
+   `:not(.has)` there is no contest to settle — the premium colour is what an EMPTY premium square
+   looks like, which is the fact the stylesheet was trying to state. Ninth conviction of
+   `.price.faint`, and the first caught before anybody looked at a screenshot. */
+.scr-sq.dl:not(.has) { background: var(--scr-dl); }
+.scr-sq.tl:not(.has) { background: var(--scr-tl); }
+.scr-sq.dw:not(.has) { background: var(--scr-dw); }
+.scr-sq.tw:not(.has) { background: var(--scr-tw); }
+/* THE STAR. It is a double word and it is also where the first move has to go, so it is marked
+   differently from the other double words rather than the same — that is the one square whose
+   meaning somebody has to find before the game starts. */
+/* `:not(.has)` RATHER THAN LETTING THE LATER RULE WIN. A tile covers the star exactly as it covers
+   every other premium, and with a bare `.scr-sq.mid` that was true only because `.scr-sq.has` is
+   written afterwards — `check/cascade.js` named nine longhands settled by file order alone on this
+   one square. The selector says the thing now: the star shows while the square is empty. */
+/* AND IT SETS ONLY THE RING. The centre IS a double word — `scrPrem_(112)` returns `D`, so the
+   square already carries `.dw` — and restating that colour here was one fact in two rules saying
+   the same thing, which `check/cascade.js` reports as nine longhands decided by file order. What is
+   only true of this square is the ring. */
+.scr-sq.mid:not(.has) { box-shadow: inset 0 0 0 2px var(--scr-tw); }
+/* A TILE COVERS WHATEVER IS UNDER IT, exactly as it does on the table — the premium is spent and
+   the colour going with it is what says so. */
+.scr-sq.has { background: var(--scr-tile); }
+.scr-sq.has:not(.new) { box-shadow: inset 0 0 0 1px #00000022; }
+/* AND THE ONES YOU HAVE JUST PUT DOWN are the only ones you may take back, so they say so. Gold,
+   because gold is what this app means by yours. */
+.scr-sq.new { box-shadow: inset 0 0 0 2px var(--gold); }
+/* THE VALUE, in the corner where the tile prints it. Hidden under about eleven pixels a square,
+   because a digit that cannot be read is a smudge on the letter beside it. */
+.scr-sq i {
+  position: absolute; right: 1px; bottom: 0;
+  font-size: .5em; font-style: normal; opacity: .75;
+}
+@media (max-width: 22rem) { .scr-sq i { display: none; } }
+
+/* ---------- WHOSE TURN, AND WHAT EVERYBODY HAS -------------------------------------------------- */
+.scr-who {
+  display: flex; flex-wrap: wrap; gap: .1rem .7rem; justify-content: center;
+  margin: .2rem 0 0; font-size: .74rem; color: var(--dim);
+}
+.scr-p b { color: var(--ink); font-weight: 650; }
+.scr-p.on { color: var(--gold); }
+.scr-p.on b { color: var(--gold); }
+
+.scr-box { margin: .5rem 0 0; }
+.scr-hand, .scr-say { margin: .2rem 0 .4rem; text-align: center; font-size: .82rem; color: var(--dim); }
+
+/* ---------- THE RACK -------------------------------------------------------------------------- */
+.scr-rack { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: center; }
+.scr-tile {
+  position: relative;
+  min-width: 44px; min-height: 44px; padding: 0;
+  background: var(--scr-tile, #e3c98f); color: #2b2417;
+  border: 1px solid #00000033; border-radius: var(--r-sm);
+  font: 700 1.05rem/1 var(--font); cursor: pointer;
+  transition: transform var(--quick) ease, box-shadow var(--quick) ease;
+}
+.scr-tile i { position: absolute; right: 3px; bottom: 1px; font-size: .55rem; font-style: normal; opacity: .75; }
+.scr-tile.on { box-shadow: 0 0 0 2px var(--gold); transform: translateY(-3px); }
+/* MARKED FOR SWAPPING IS NOT THE SAME AS PICKED UP, so it is not the same mark — one is a tile on
+   its way to the board and the other is a tile on its way back to the bag. */
+.scr-tile.mark { opacity: .55; box-shadow: inset 0 0 0 2px var(--scr-tw, #cf5a4a); }
+/* A TILE THAT IS ON THE BOARD LEAVES ITS PLACE ON THE RACK, exactly as it does on the table — the
+   gap is what says which one went, and the rack keeping its positions is what makes putting it back
+   land where you expect. */
+.scr-tile.used { background: none; border-style: dashed; border-color: var(--line); color: transparent; }
+.scr-tile.used i { display: none; }
+.scr-tile:active { transform: scale(.94); }
+
+/* ---------- WHAT THE BLANK STANDS FOR ----------------------------------------------------------
+   ONE CONTROL, NOT TWENTY-SIX. See `scrRackHtml_` in games.js for what an alphabet of 44px keys did
+   to this card's height. Its own class rather than `.bk-sel`: that select belongs to the booking
+   form and carries its dashed underline and its grid-cell border, which are facts about a form
+   rather than about a select. */
+.scr-sel {
+  display: block; width: 100%; min-height: 44px; padding: 0 .6rem;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font: 600 .9rem/1 var(--font); cursor: pointer;
+}
+
+/* ---------- THE FOUR ACTIONS ------------------------------------------------------------------- */
+/* NOT `.btn`, WHICH IS `width: 100%` — right for the one action on a card and wrong for a row of
+   four. `.reel-sound`, `.mz-key` and `.btn-row .btn` all record the same correction. */
+.scr-acts { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; margin: .5rem 0 0; }
+.scr-act {
+  flex: 1 1 auto; min-width: 5rem; min-height: 44px; padding: 0 .6rem;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font: 600 .82rem/1 var(--font); cursor: pointer;
+}
+.scr-act:active { background: var(--line); }
+.scr-acts .scr-act:first-child { background: var(--gold); color: #111; border-color: var(--gold); }
 
 /* ---------- HERD MENTALITY ------------------------------------------------------------------------
    THE QUESTION IS THE WHOLE CARD. It is read aloud to a room, so it is set large enough to be read

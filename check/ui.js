@@ -179,6 +179,16 @@ const ACCEPTED_TAP = [
   + 'Shrinking to fewer hours loses the mornings, and stacking them loses the week-at-a-glance '
   + 'reading that is the whole reason the grid beat a pair of time dropdowns. A finger picking a '
   + 'range on a grid is a drag, not a tap, and the drag is what `slot-row` handles.' },
+  { cls: /^scr-sq\b/, why:
+    'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
+  + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '
+  + '390px they are 18px. The alternatives were both worse: a board scrolled sideways inside its '
+  + 'own container hides most of the position, and seeing the whole board is what Scrabble IS, and '
+  + 'a smaller board is a different game. The same argument the stylesheet already records for '
+  + '`.c4` and `.oth`, whose cells are 40px and 35px for the same reason and only look acceptable '
+  + 'because those boards are seven and eight across. What makes it liveable here is that a tap on '
+  + 'the wrong square costs nothing: a tile you have just put down comes straight back off with '
+  + 'another tap, and nothing is committed until Play.' },
   { cls: /^bk-(sel|in|v)\b/, why:
     'THE BOOKING ROW IS ONE LINE AND ITS UNDERLINE IS THE CELL\'S BOTTOM BORDER. Tried twice and '
   + 'photographed both times: `min-height: 44px` on the control grows the grid cell to 44px and '

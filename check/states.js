@@ -354,6 +354,171 @@ const STATES = {
       wants: 'the week of hours drawn on screen' },
   ],
 
+  /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------
+     `check/fixture.json` HAS NO STUDENTS AND ITS ONE TUTOR SCORES NOUGHT, so the only state the lab
+     could reach is the board's empty card — which is this file's own sentence about the booking
+     receipt, the message thread and the basket, for a fourth time. A board of one row and a board
+     of six are different objects to measure: the second is where a long handle meets a `flex: 0 0
+     auto` label, and where the mark for your own line has to survive the flappy card's own row
+     colours.
+
+     SEEDED THROUGH THE PAYLOAD, which is the same door `load()` uses — `scoreRanks_` reads
+     `DATA.students` and `DATA.tutors` and nothing else, so putting rows there is the app arriving
+     at this state rather than the harness reaching past it.
+
+     AND THE SEEDED TUTOR IS DELIBERATELY EIGHTH. If the visitor were in the top five the board
+     would never draw its other branch — your own row, appended underneath with the place you are
+     actually in — and that branch is the whole reason the board is not simply `slice(0, 5)`. */
+  games: [
+    { name: '' },
+    { name: 'a full high-score board',
+      enter: () => {
+        window.__seedScores = { students: DATA.students, tutors: JSON.stringify(DATA.tutors) };
+        DATA.students = [
+          { name: 'Beatrix', handle: 'beatrix-longhandle20', highscore: 92, ttHighscore: 61 },
+          { name: 'Caleb', handle: 'caleb', highscore: 74, ttHighscore: 55 },
+          { name: 'Dilnoza', handle: 'dilnoza', highscore: 68, ttHighscore: 49 },
+          { name: 'Emeka', handle: 'emeka', highscore: 51, ttHighscore: 44 },
+          { name: 'Fen', handle: 'fen', highscore: 40, ttHighscore: 38 },
+          { name: 'Gita', handle: 'gita', highscore: 27, ttHighscore: 30 },
+          { name: 'Hal', handle: 'hal', highscore: 19, ttHighscore: 21 },
+        ];
+        /* ---------- AND THE VISITOR HAS TO BE ON IT, OR THE OTHER BRANCH NEVER DRAWS ---------
+           THE FIRST VERSION PUT A SCORE ON THE FIXTURE'S ONE TUTOR AND CALLED THAT "YOU". It is
+           not: the seeded visitor is `Test Admin` / `testadmin` / `P001` and the fixture's tutor is
+           `Ada Tutor` / `@ada` / `P-@ada`, so `mineIs_` correctly matched nobody and the board drew
+           five rows with no mark on any of them. The assertion failed and it was right to — the
+           state was wrong, not the app. Seeded off `USER` itself, so it is whoever the lab is
+           signed in as rather than a name written twice. */
+        if (typeof USER !== 'undefined' && USER) DATA.students.push(
+          { name: USER.name, handle: USER.handle, personId: USER.personId,
+            highscore: 8, ttHighscore: 7 });
+        /* `repaint` RATHER THAN `paint`, and the difference is the whole state. `paint(id)` replaces
+           the markup and stops there; the widgets that were running inside it are restarted by
+           `startScreen_`, which only `repaint` and `go` call — so a bare `paint` here rebuilt the
+           card and left the board an empty div, which is exactly what the first run of this state
+           reported. Its own note says so: "a repaint rebuilds the markup it was running in". */
+        repaint(true);
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'flabby');
+        if (n < 0) throw new Error('no Flabby Pird widget in the roster');
+        goPage('games', n, true);
+      },
+      /* ONE MORE ROW THAN `SCORE_TOP`, and the number is READ OFF THE APP rather than written here:
+         the seed puts the visitor eighth on purpose, so the board draws the top N and then their
+         own line. A literal would be the same figure in two files and the copy in this one is the
+         one nobody re-reads — which is what happened the first time, when `SCORE_TOP` went from
+         five to three for a measured reason and an assertion of `>= 5` failed every state.
+
+         Signed out there is no visitor to mark, so the extra row and the mark are both asserted
+         only where there is somebody to mark — the alternative is a state that fails for the
+         stranger it is correctly not about. */
+      expect: () => {
+        const rows = document.querySelectorAll('#s-games #flappy-board .row');
+        const me = document.querySelector('#s-games #flappy-board .row.is-me');
+        const signedIn = typeof USER !== 'undefined' && !!USER;
+        return rows.length === SCORE_TOP + (signedIn ? 1 : 0) && (!signedIn || !!me);
+      },
+      wants: 'the top scores plus your own line on the Flabby Pird card',
+      leave: () => {
+        DATA.students = window.__seedScores.students;
+        DATA.tutors = JSON.parse(window.__seedScores.tutors);
+        /* `repaint` RATHER THAN `paint`, and the difference is the whole state. `paint(id)` replaces
+           the markup and stops there; the widgets that were running inside it are restarted by
+           `startScreen_`, which only `repaint` and `go` call — so a bare `paint` here rebuilt the
+           card and left the board an empty div, which is exactly what the first run of this state
+           reported. Its own note says so: "a repaint rebuilds the markup it was running in". */
+        repaint(true);
+      } },
+    /* THE SAME RENDERER IN THE OTHER CARD, and worth its own state rather than trusted: the flappy
+       card retones `.row .k` and `.row .v` for its dark shell and the times-table card does not, so
+       the two are the same list on two different grounds. A contrast finding on one of them says
+       nothing about the other. */
+    { name: 'the times-table board',
+      enter: () => {
+        window.__seedScoresTt = { students: DATA.students, tutors: JSON.stringify(DATA.tutors) };
+        DATA.students = [
+          { name: 'Beatrix', handle: 'beatrix', ttHighscore: 61 },
+          { name: 'Caleb', handle: 'caleb', ttHighscore: 55 },
+          { name: 'Dilnoza', handle: 'dilnoza', ttHighscore: 49 },
+          { name: 'Emeka', handle: 'emeka', ttHighscore: 44 },
+          { name: 'Fen', handle: 'fen', ttHighscore: 38 },
+          { name: 'Gita', handle: 'gita', ttHighscore: 30 },
+        ];
+        if (typeof USER !== 'undefined' && USER) DATA.students.push(
+          { name: USER.name, handle: USER.handle, personId: USER.personId, ttHighscore: 5 });
+        repaint(true);
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'tables');
+        if (n < 0) throw new Error('no times-table widget in the roster');
+        goPage('games', n, true);
+      },
+      expect: () => document.querySelectorAll('#s-games #tt-board .row').length >= SCORE_TOP,
+      wants: 'the times-table high scores under the sprint',
+      leave: () => {
+        DATA.students = window.__seedScoresTt.students;
+        DATA.tutors = JSON.parse(window.__seedScoresTt.tutors);
+        repaint(true);
+      } },
+
+    /* ---------- AND A SCRABBLE GAME PART-WAY THROUGH ------------------------------------------
+       THE WIDGET OPENS ON THREE BUTTONS — 2, 3 or 4 players — and that is the only state `go()`
+       can reach. Everything the game actually is lives past them: a board with tiles on it, a
+       rack, four actions and the hand-over card between turns. Fifteen columns of squares over
+       seven 44px tiles is also the tallest card in this column, and it was 17px past the pane's
+       own fold the first time anything measured it.
+
+       SEEDED THROUGH THE GAME'S OWN FUNCTIONS — `scrNew_` deals the bag, `scrPlace_` puts a tile
+       down — rather than from a board written out here. A fixture board would be a second
+       description of what a game looks like, and the copy in this file is the one nobody
+       re-reads. */
+    { name: 'a game of scrabble',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scrabble');
+        if (n < 0) throw new Error('no scrabble widget in the roster');
+        goPage('games', n, true);
+        scrabble = scrNew_(2);
+        scrabble.handover = false;
+        /* A BLANK ON THE RACK ON PURPOSE: it is the one tile with no letter and no value, so it is
+           the one that can be drawn wrongly without anything looking odd. */
+        scrabble.players[0].rack = ['C', 'A', 'T', 'S', 'E', '', 'Q'];
+        scrPlace_(scrabble, 111, 0);
+        scrPlace_(scrabble, 112, 1);
+        scrPlace_(scrabble, 113, 2);
+        scrabblePaint();
+      },
+      expect: () => document.querySelectorAll('#s-games .scr-sq.has').length === 3
+                 && document.querySelectorAll('#s-games .scr-tile').length === 7
+                 && !document.getElementById('scr-acts').hidden,
+      wants: 'three tiles on the board, a rack of seven and the four actions',
+      leave: () => { scrabble = null; scrabblePaint(); } },
+
+    /* THE HAND-OVER IS ITS OWN STATE because it is the one that draws NO rack: the card between two
+       players is what makes a secret rack possible on one screen, and it has different content and
+       a different height from every other. */
+    { name: 'handing the phone over',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scrabble');
+        if (n < 0) throw new Error('no scrabble widget in the roster');
+        goPage('games', n, true);
+        scrabble = scrNew_(3);
+        scrabble.handover = true;
+        scrabblePaint();
+      },
+      expect: () => !!document.querySelector('#s-games .scr-hand')
+                 && document.querySelectorAll('#s-games .scr-tile').length === 0,
+      wants: 'the hand-over card, with no rack on the screen',
+      leave: () => { scrabble = null; scrabblePaint(); } },
+  ],
+
+  /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
+     THE WIDGET OPENS ON THREE BUTTONS — 2, 3 or 4 players — and that is the only state `go()` can
+     reach. Everything this game actually is lives past them: a board with tiles on it, a rack, four
+     actions, and the hand-over card between turns. Fifteen columns of squares and seven 44px tiles
+     are also the tallest thing in the games column, and the card was 17px past the pane's own fold
+     the first time anything measured it.
+
+     SEEDED THROUGH THE GAME'S OWN FUNCTIONS — `scrNew_` deals the bag and `scrPlace_` puts a tile
+     down — rather than by writing a board literal here. A fixture board would be a second
+     description of what a game looks like, and the one in this file is the one nobody re-reads. */
   /* ---------- AND A SESSION RECEIPT, WHICH THIS FILE HAS NEVER HAD ON THE SCREEN ----------------
      MEASURED, SIGNED IN, AGAINST THE REAL FIXTURE: the booking column draws ONE page and it is the
      form. `myJobs_()` keeps the sessions whose `client` or `tutor` is the visitor, and the
