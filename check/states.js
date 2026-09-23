@@ -538,6 +538,54 @@ const STATES = {
      or a value that does not fit its column, and a row with nothing in it cannot show one. Six
      dates so the `Dates` row has a range and a count; a price so the total row draws; a venue name
      as long as a real one. */
+  /* ---------- THE CAMERA WITH A PICTURE ON IT ----------------------------------------------------
+     THE `make` COLUMN OPENS ON A VIEWFINDER AND NOTHING ELSE. `Again`, `Post it`, `Save a copy`,
+     the caption box and the row that says who it goes up as are all `hidden` until there is a
+     photograph — so HALF THE CAMERA has been outside this lab for as long as it has existed, and
+     `check/press.js` reported `cam-post`, `cam-save` and `cam-again` as untouched rather than as
+     faults, because an action on no screen is one it cannot reach.
+
+     WHAT THAT COST, MEASURED THE DAY THIS WAS WRITTEN: with a picture on the card the column ran
+     55px BELOW THE SCREEN at 390 and 36px past the pane's own fold at 768. Neither is visible to
+     the two rules that were watching — the pane's `scrollHeight` equals its `clientHeight`, so
+     nothing is overflowing; it is the PANE that hangs off the bottom, because `columnShift_`
+     centres the page it was placed with and nothing re-placed it when the card grew.
+
+     THROUGH THE APP'S OWN PICKER, not by drawing on the canvas. `on('cam-pick')` reads
+     `el.files[0]`, so a `DataTransfer` carrying a real one-pixel PNG is the same event a finger
+     makes — which matters here more than usual, because the thing being measured is what that
+     handler reveals. A container has no camera, so `cam-shoot` is not a door this can use.
+
+     AND IT IS PUT BACK. States run in order down one page and `camAgain_` is the app's own way to
+     throw a picture away, so the next state and the next screen are not measured with a photograph
+     still on the card — the same reason the guide state closes its sheet. */
+  make: [
+    { name: '' },
+    { name: 'a photograph taken',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const el = document.getElementById('cam-pick');
+        if (!el) throw new Error('no cam-pick on the make column');
+        /* A ONE-PIXEL PNG, WRITTEN OUT RATHER THAN DRAWN. `canvas.toBlob` is async and this has to
+           throw synchronously to be reported as unreachable. */
+        const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const dt = new DataTransfer();
+        dt.items.add(new File([bytes], 'shot.png', { type: 'image/png' }));
+        el.files = dt.files;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+      expect: () => {
+        const still = document.getElementById('cam-still');
+        const post = document.getElementById('cam-post');
+        return !!(still && !still.hidden && post && !post.hidden);
+      },
+      wants: 'the still on the card with Post it under it',
+      leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
+  ],
+
   booking: [
     /* THE FORM STAYS ON THE LIST — declaring states replaces the unnamed one, and the form is the
        page everybody arrives on. Same first line as `tools` and `dm`, for the same reason. */

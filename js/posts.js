@@ -488,6 +488,30 @@ function cameraCard() {
       <button class="cam-side" data-do="cam-flip" id="cam-flip"
               aria-label="Switch camera" title="Switch camera" hidden>Switch</button>
     </div>
+    ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH ---
+          THE CAMERA IS THE ONLY WAY TO POST NOW — `Write a post` was removed on request and took
+          the only door to `on('new-post')` with it — so `caption: ''` in `cam-post` meant EVERY
+          post anybody could make was captionless. `postCard` draws `.post-cap` as
+          "<b>who</b> what they said", and CLAUDE.md's own note on comments says the caption IS the
+          first comment. A feed of silent pictures is not the feature that was asked for.
+
+          HIDDEN UNTIL THERE IS A PICTURE, like `Again` and `Save a copy` and for their reason: it
+          belongs to a photograph you are holding, not to a camera you are pointing, and a text box
+          under a live viewfinder is a box you cannot fill in about a picture you have not taken.
+
+          CAPTION AND NOTHING ELSE. The composer also asked `where`, `more` and a poll, and those
+          are a form — this is one line beside a shutter. A venue datalist under a card already
+          close to the pane's fold is a second field for a fact this one line can carry.
+
+          NO `<span>caption</span>` OVER IT, WHICH IS THIS APP'S OWN PATTERN FOR A SINGLE BOX. The
+          search box, the comment box, the notepad and the message composer are all a placeholder
+          and no label — and CLAUDE.md records the measurement behind it: ten controls in this app
+          have no text and every one of them carries a placeholder, which IS the accessible name
+          when there is nothing else, so a label repeating it would be two strings to keep in step.
+          It is also 21px, and this card has 26px between it and the pane's fold at 390. */''}
+    <input id="cam-cap" class="cam-cap" hidden
+           placeholder="One line about it" autocomplete="off" maxlength="200">
+
     ${/* ---------- WHO IT GOES UP AS, WHICH IS THE SAME QUESTION THE COMPOSER ASKS ---------------
           THE SAME CONTROL AND THE SAME HANDLER, not a second one that means the same thing. `on('as')`
           reads the id it was given rather than a fixed one, so both surfaces share it — and the
@@ -593,6 +617,8 @@ async function camStart_() {
     if (retry) { retry.hidden = false; retry.disabled = false; }
     const off = $('cam-off');
     if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
+    /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
+    camSettle_();
     return;
   }
 
@@ -713,8 +739,12 @@ document.addEventListener('change', e => {
     $('cam-again') && ($('cam-again').hidden = false);
     $('cam-save')  && ($('cam-save').hidden = false);
     $('cam-post')  && ($('cam-post').hidden = false);
+    $('cam-cap')   && ($('cam-cap').hidden = false);
     $('cam-as')    && ($('cam-as').hidden = false);
     $('cam-off')   && ($('cam-off').hidden = true);
+    /* SEE `cam-shoot`: `Again` already offers the camera, so this would be the second button for it. */
+    $('cam-on')    && ($('cam-on').hidden = true);
+    camSettle_();
     if (said) said.textContent = '';
     /* THE CAMERA IS LET GO, not left running behind the picture. You asked for a photograph instead
        of the viewfinder; holding the stream open for a preview nobody can see is the recording light
@@ -740,8 +770,41 @@ on('cam-shoot', () => {
   $('cam-again').hidden = false;
   $('cam-save').hidden = false;
   $('cam-post').hidden = false;
+  $('cam-cap').hidden = false;
   $('cam-as').hidden = false;
+  /* `Try the camera again` GOES WHILE A PICTURE IS BEING HELD, and that is a duplicate removed
+     rather than a control taken away. It is revealed only by a camera that FAILED to start — and
+     once you are holding a photograph, `Again` is already the button that throws it away and puts
+     the camera back, so the row was offering two ways to do one thing. It returns by itself if
+     that retry fails, because `camStart_`'s catch is what reveals it and `camAgain_` calls
+     `camStart_`. Measured on the path that can reach this with a dead camera — picking from
+     Photos — the four buttons are 491px in a 300px row, so they wrapped onto three lines and took
+     the card 36px past the pane's own fold at 768 and 1280. */
+  $('cam-on') && ($('cam-on').hidden = true);
+  camSettle_();
 });
+
+/* ==================================================================================================
+   THE COLUMN HAS TO BE MEASURED AGAIN WHEN THE CARD CHANGES SIZE.
+
+   `columnShift_` CENTRES THE PAGE YOU ARE ON — `boxH / 2 - (offsetTop + offsetHeight / 2)` — and it
+   runs when the column is placed, not when a card inside it grows. This card grows by a lot and on
+   purpose: taking a photograph reveals `Again`, `Post it`, `Save a copy`, the caption and the row
+   that says who it goes up as, which is 112px before this commit and 167px after it.
+
+   MEASURED AT 390 x 844 WITH A PHOTOGRAPH PICKED: the page was placed at 648px tall, so the shift
+   put its top at y139 — and it then grew to 760, leaving its bottom at y899. `Save a copy` was
+   55px BELOW THE SCREEN, on a pane whose own `scrollHeight` equals its `clientHeight`, so nothing
+   was overflowing and `check/ui.js`'s OUT OF REACH could not see it: the content fits its pane
+   perfectly and the PANE is what hangs off the bottom.
+
+   `placeCells('y', true, 0, 'make')` is `settle_`'s call in `find.js`, for `settle_`'s reason, and
+   `true` for its reason too — the cards have not moved as far as anybody is concerned, and
+   animating them to where they already look like they are is a second movement nobody asked for.
+================================================================================================== */
+function camSettle_() {
+  try { placeCells('y', true, 0, 'make'); } catch (err) {}
+}
 
 /* `Again` NOW HAS TO PUT THE CAMERA BACK, not just uncover it. A shot taken here leaves the stream
    running underneath, but a photograph picked from the gallery released it — see the picker — so
@@ -756,9 +819,18 @@ function camAgain_() {
   if (v) v.hidden = false;
   const hide = id => { const el = $(id); if (el) el.hidden = true; };
   hide('cam-again'); hide('cam-save'); hide('cam-post'); hide('cam-as');
+  /* EMPTIED AS WELL AS HIDDEN, and that is the half a `hidden` does not do. This function runs on
+     `Again` and on a posted shot alike, so a caption left in the box would be offered as the
+     caption for the NEXT photograph — a sentence about one picture printed under another. */
+  const cap = $('cam-cap'); if (cap) { cap.hidden = true; cap.value = ''; }
   camLive_(true);
   const said = $('cam-said'); if (said) said.textContent = '';
   camStart_();
+  /* AND THE OTHER DIRECTION. This SHRINKS the card by the same 167px, so the page it centres is a
+     different size again — without this, throwing a photograph away leaves the card floating with
+     the gap the picture used to fill still under it. `camStart_` above is async and returns before
+     it has an answer, so a failure that reveals `Try the camera again` settles itself. */
+  camSettle_();
 }
 on('cam-again', camAgain_);
 
@@ -917,7 +989,8 @@ on('cam-post', el => {
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
     data: data,
     postAs: (as && as.as) || 'brand',
-    caption: '', body: '', location: '', poll: '',
+    caption: ($('cam-cap') || {}).value || '',
+    body: '', location: '', poll: '',
   }, { button: el, busy: 'Posting…', where: 'cam-said' })
     .then(() => {
       toast('Posted'); camAgain_(); load();
@@ -982,6 +1055,7 @@ function camStop_(keepShown) {
   $('cam-again') && ($('cam-again').hidden = true);
   $('cam-save')  && ($('cam-save').hidden = true);
   $('cam-post')  && ($('cam-post').hidden = true);
+  $('cam-cap')   && ($('cam-cap').hidden = true);
   $('cam-as')    && ($('cam-as').hidden = true);
 }
 

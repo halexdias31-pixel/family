@@ -276,7 +276,7 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], tinyTargets: [], lowContrast: [], noName: [] };
+  const found = { overflow: [], hidden: [], offscreen: [], tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
      `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
@@ -446,6 +446,38 @@ function inspect(opts) {
       cls: String((el.firstElementChild && el.firstElementChild.className) || el.className || '')
              .slice(0, 40),
       by: under, height: el.clientHeight });
+  }
+
+  /* ---------- AND THE PANE ITSELF CAN BE OFF THE SCREEN, WHICH THE RULE ABOVE CANNOT SEE ----------
+     THE RULE ABOVE ASKS WHETHER CONTENT OVERFLOWS ITS PANE. This asks the same question one box
+     further out: the content fits its pane perfectly, `scrollHeight` equals `clientHeight`, and the
+     PANE hangs off the bottom of the viewport with a card inside it nobody can reach.
+
+     `columnShift_` CENTRES THE PAGE YOU ARE ON — `boxH / 2 - (offsetTop + offsetHeight / 2)` — and
+     it runs when the column is PLACED. A card that grows afterwards keeps the offset it was placed
+     with, so it grows downward out of the screen. Measured on the camera the day this was written:
+     take a photograph and the card gains 167px of controls, and at 390x844 the pane ran from y139
+     to y906 — `Save a copy` 62px below the glass, `under: 0` at every width, and the rule above
+     silent at all four. `js/find.js`'s `settle_` is the app's own answer and the camera was not
+     calling it.
+
+     ONLY THE PAGE YOU ARE ON. Every other page of a paged column is legitimately off the viewport —
+     that is what a column IS — so this asks `.page.on`, which is the class `paintPager` puts on the
+     one in front. Without that narrowing it would report every card of every column and be the
+     noise generator this file has already deleted one of.
+
+     THE RENDERED BOX, for the reason the rule above gives: a transform is invisible to layout, and
+     a `getBoundingClientRect` is what a viewer can actually see. 2px of slack, the same rounding
+     allowance as everywhere else here. */
+  const onPage = live && live.querySelector ? live.querySelector(':scope > .page.on > .pane') : null;
+  if (onPage) {
+    const r = onPage.getBoundingClientRect();
+    const past = Math.round(Math.max(r.bottom - innerHeight, -r.top));
+    if (past > 2 && r.height > 0) {
+      found.offscreen.push({ tag: 'pane',
+        cls: String((onPage.firstElementChild && onPage.firstElementChild.className) || '').slice(0, 40),
+        by: past, height: Math.round(r.height) });
+    }
   }
 
   /* ---------- A "TEXT CLIPPED RATHER THAN WRAPPED" RULE WAS HERE, AND IT WAS INERT ---------------
@@ -852,6 +884,13 @@ function inspect(opts) {
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add('OUT OF REACH',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} hides ${o.by}px below its own fold`, at));
+    /* A SEPARATE HEADING FROM THE ONE ABOVE, DELIBERATELY. They are the same loss and different
+       repairs: "below its own fold" is a card too tall for its pane, and wants the card split or
+       the column paged; "off the screen" is a pane placed for a card that has since changed size,
+       and wants `placeCells('y', …)` where the size changed. One heading would send a reader to
+       the wrong half. */
+    (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
+      `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
     (r.tinyTargets || []).forEach(t => {
       const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || ''));
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',

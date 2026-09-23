@@ -9037,6 +9037,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    three lines inside a 44px-tall box. */
 .cam-card .cam-row .btn { width: auto; flex: 0 1 auto; }
 
+/* ONE LINE ABOUT THE PICTURE, AND IT IS A BARE INPUT RATHER THAN A `label.field`. Every other
+   single box in this app — the search, the comment, the notepad, the message composer — is a
+   placeholder and no label, and the placeholder is what a screen reader reads out when there is
+   nothing else. The margin is what `label.field` was supplying; the rest comes from the global
+   `input` rule, so the box is the same 44px and the same padding as every other field here. */
+.cam-card .cam-cap { margin: 0 0 .7rem; }
+
+/* AND A GAP UNDER WHO-IT-GOES-UP-AS, WHICH IT HAD NONE OF. Both rows are `.btn-row` with no margin,
+   so the bottom edge of `@family.` was the top edge of `Again` — 789px in both cases, measured — and
+   with a gold fill on the chosen one of each row the two read as one block overlapping another
+   rather than as two rows. `.5rem` is the gap `.cam-row` already uses between its own buttons, so
+   the spacing down the card is one number rather than two. It costs nothing when there is no
+   picture, because the row is `hidden` and `[hidden]` takes it out of the flow entirely. */
+.cam-card .cam-as { margin-bottom: .5rem; }
+
+/* AND AN EMPTY STATUS LINE TAKES NO ROOM. `#cam-said` is blank until something has to be said, and
+   a `p`'s own margin is 10.7px at 390 whether or not there is a sentence in it — vertical space on
+   a card that is 26px from the pane's fold, spent on nothing. It is back the moment it has words.
+   An id and a pseudo-class, so nothing of equal specificity can be on the other side of it. */
+#cam-said:empty { margin: 0; }
+
 /* ==================================================================================================
    CONNECT 4, OTHELLO AND HERD MENTALITY
 
