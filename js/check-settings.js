@@ -241,6 +241,73 @@ if (unfetched.length) {
   console.log('   ' + unfetched.join(', '));
 }
 
+/* ==================================================================================================
+   AND THE FACTS ARE CONTENT, SO THE RULES ABOUT THEM BELONG HERE AND NOT ONLY IN THE WRITER
+
+   `tools/add-facts.py` ASSERTS ALL OF THIS AT THE OTHER END and that is not enough, which is the
+   sentence `check-quizzes.js` already carries: a file can be hand-edited, appended to by another
+   script, or written by a version of the tool that has since changed, and a rule living only in the
+   thing that produced the data is a rule nothing enforces about the data.
+
+   FOUR HUNDRED ROWS AND ONE SURFACE. `feedItem` deals them to the "One more thing" widget and the
+   heading is drawn at `.feed-head`'s size over a picture — so a heading that is a paragraph is a
+   card with no room left, and two rows with the same heading are the deck repeating itself, which
+   is the one thing that reads as broken. Neither is visible from anywhere else: a duplicated fact
+   measures perfectly, lays out perfectly and is a bug you notice on the fourth tap.
+
+   THE SUBJECT IS A CLOSED LIST for the reason `VOCAB` in check-library.js is: `feedColours` hashes
+   whatever word it is handed, so `Sport` and `Sports` would be two subjects with two colour schemes
+   and nothing anywhere would say so. */
+const FACT_SUBJECTS = [
+  'Animals', 'Body', 'Buildings', 'Earth', 'Everyday', 'Food', 'History', 'Language', 'Making',
+  'Maths', 'Money', 'Music', 'Nature', 'Oddities', 'People', 'Science', 'Sea', 'Space', 'Sport',
+  'Study', 'Tech', 'Weather', '@family.',
+];
+const factBad = [];
+let factRows = [];
+try {
+  factRows = JSON.parse(fs.readFileSync(path.join(dir, 'data', 'settings', 'facts.json'), 'utf8'));
+} catch (e) {
+  /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO. "I did not manage to look" is not the same
+     answer as "I looked and it was fine", which is this repository's oldest fault. */
+  factBad.push('data/settings/facts.json could not be read: ' + e.message);
+}
+const seenHead = {}, seenId = {};
+factRows.forEach((r, i) => {
+  const at = 'facts row ' + (i + 1) + ' (' + (r && r.fact_id || '?') + ')';
+  if (!r || typeof r !== 'object') { factBad.push(at + ' is not a row'); return; }
+  const head = String(r.heading || '').trim();
+  const key = head.toLowerCase();
+  if (!head) factBad.push(at + ' has no heading');
+  else if (seenHead[key]) factBad.push(at + ' repeats the heading of row ' + seenHead[key]
+                                     + ' — the deck would deal the same card twice');
+  else seenHead[key] = i + 1;
+  if (head.length > 78) factBad.push(at + ' has a ' + head.length + '-character heading; '
+                                   + '`.feed-head` is the size of the card');
+  const id = String(r.fact_id || '');
+  if (!id) factBad.push(at + ' has no fact_id');
+  else if (seenId[id]) factBad.push(at + ' repeats fact_id ' + id);
+  else seenId[id] = i + 1;
+  if (FACT_SUBJECTS.indexOf(String(r.subject || '')) < 0)
+    factBad.push(at + ' has subject "' + r.subject + '", which is not on the list — see '
+               + 'FACT_SUBJECTS above, and add it there deliberately');
+  if (String(r.body || '').length > 260)
+    factBad.push(at + ' has a ' + String(r.body).length + '-character body');
+  if (/[<>]/.test(String(r.heading || '') + String(r.body || '')))
+    factBad.push(at + ' carries markup; a fact is text and `esc` will print the tags');
+});
+
+const factKinds = {};
+factRows.forEach(r => { factKinds[r && r.subject] = (factKinds[r && r.subject] || 0) + 1; });
+console.log('\nFACTS: ' + factRows.length + ' row(s) across ' + Object.keys(factKinds).length
+          + ' subject(s)');
+console.log('   ' + Object.keys(factKinds).sort().map(k => k + ' ' + factKinds[k]).join(' \u00b7 '));
+if (factBad.length) {
+  console.log('\nA FACT THE DECK CANNOT DEAL  (' + factBad.length + ')');
+  factBad.forEach(b => console.log('   ' + b));
+  failed += factBad.length;
+}
+
 console.log('');
 if (failed) console.log(failed + ' problem(s) — a column read off a file that does not have it is a '
                       + 'value that is always empty, with a fallback hiding it.');

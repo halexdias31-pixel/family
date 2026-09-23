@@ -426,9 +426,10 @@ const STATES = {
            `dmSync_` ASKS THE BACKEND WHENEVER THE LAST ANSWER IS OVER `DM_EVERY` OLD, which is how
            the Refresh button came off the column — so a state that seeds `MESSAGES` and says
            nothing about when is a state one tick away from being replaced by the harness's own
-           empty fixture. `MSG_AT` is the moment the list landed and this is that moment: seeding it
-           is not a test hook, it is the other half of the state being declared. */
-        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; MSG_AT = Date.now();
+           empty fixture. `DM_LAST` is when the column last asked, and this state IS an answer
+           having just arrived: seeding it is not a test hook, it is the other half of the state
+           being declared. */
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
       },
       expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
@@ -461,7 +462,7 @@ const STATES = {
           { id: 'i' + i + 'b', mine: true, read: true, withId: 'P10' + i, withName: n,
             fromName: 'You', at: '2026-09-1' + i + ' 10:1' + i, body: 'Thanks, noted.' },
         ]);
-        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; MSG_AT = Date.now();
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
       },
       /* SIX PAGES, NOT SEVEN. It was `>= 7` while the column opened with a head card carrying a

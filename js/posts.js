@@ -2019,6 +2019,18 @@ let DM_DONE  = false;
    and the second one landing first would paint an older list over a newer one. */
 let DM_BUSY = false;
 let DM_TIMER = 0;
+/* ---------- WHEN IT LAST ASKED, NOT WHEN IT LAST GOT AN ANSWER ---------------------------------
+   THE FIRST VERSION GATED ON `MSG_AT`, WHICH ONLY MOVES ON SUCCESS, and that is the trap the note
+   over `DM_ASKED` below already describes in the other direction. A refused fetch leaves `MSG_AT`
+   where it was, so the gate is open again immediately — and `paint('dm')` happens for reasons that
+   have nothing to do with this column: a payload landing, a sign-in, a save. On a phone with a bad
+   signal that is a request per repaint.
+
+   THE PACING IS A FACT ABOUT THE ASKING, so it is kept where the asking is. `MSG_FAILED` stays in
+   me.js because it is a fact about the DATA — which empty an empty inbox is — and the two are not
+   the same question. Caught by reading the failure path rather than by measuring, which is the one
+   path a happy run never reaches. */
+let DM_LAST = 0;
 
 /* ==================================================================================================
    IT KEEPS ITSELF UP TO DATE, AND THE REFRESH BUTTON IS GONE
@@ -2069,9 +2081,9 @@ function dmTyping_() {
    leaves the skeleton on screen for ever with nothing saying why. */
 function dmSync_(force) {
   if (!USER || !LOADED || DM_BUSY) return;
-  if (!force && DM_ASKED && Date.now() - MSG_AT < DM_EVERY) return;
+  if (!force && DM_ASKED && Date.now() - DM_LAST < DM_EVERY) return;
   const first = !DM_ASKED;
-  DM_ASKED = true; DM_BUSY = true;
+  DM_ASKED = true; DM_BUSY = true; DM_LAST = Date.now();
   const was = dmStamp_();
   loadMessages().then(() => {
     DM_BUSY = false; DM_DONE = true;
