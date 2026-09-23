@@ -190,6 +190,16 @@ function applyColumns_() {
    a phone that has never opened the app lands and nothing else. */
 const TAB_HOME = 'feed';
 
+/* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN ---------------------------------------------
+   ONE NUMBER, TWO READERS. `checkBuild_` at the foot of this file asks it about a RESUME — is this
+   somebody coming back, or somebody glancing at another app and back — and the line below asks it
+   about a COLD LAUNCH. Both are the same question and a second number would be a second thing to
+   keep in step, which is what this repository writes about `needs_print` and `print_required`.
+
+   Six minutes is past any notification, any photograph taken mid-lesson, any check of a message —
+   and well short of "I opened this tomorrow morning", which is the case both readers are for. */
+const AWAY_AGAIN = 6 * 60 * 1000;
+
 /* What each screen draws. Registered separately from the tab list so a screen can be built and
    swapped without touching the navigation — which is the whole reason for splitting them. */
 const SCREENS = {};
@@ -209,9 +219,26 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
    where the argument it replaced is written down. Find is one swipe away and is remembered there
    afterwards. */
 let AT = TAB_HOME;
+/* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW ---------------------------------------------
+   REPORTED AS "the latest post isnt the defualt opening widget for some reason still. im opneing on
+   phone. after having added to homescreen". `TAB_HOME` was already `feed` and already deployed —
+   what wins over it is this line, which remembered whatever column they were last on, for ever.
+
+   BOTH HALVES ARE REAL AND THEY ARE NOT THE SAME EVENT. Opening the app is opening the app, and
+   landing on a funnel question nobody asked is the argument `TAB_HOME` records. A RELOAD is not
+   that: `reload-build` reloads the page under somebody the moment a new build lands, and losing
+   the question they were reading would be the fix costing more than the fault. So the id is
+   remembered with the moment it was written, and it is only honoured while that moment is recent —
+   which is `AWAY_AGAIN` above, the number `checkBuild_` already asks the same question with.
+
+   NOT A SESSION FLAG. `sessionStorage` dies with the window, and an installed app on iOS is
+   SUSPENDED rather than closed — see the note over `watchBuild_` — so a window left open for three
+   days still counts as one session and the flag would never expire. A stamp is a fact about time
+   and does not care how the window got here. */
 try {
   const was = localStorage.getItem('familyTab');
-  if (was && TABS.some(t => t.id === was)) AT = was;
+  const when = Number(localStorage.getItem('familyTabAt') || 0);
+  if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch {}
 
 function go(id, remember, instant) {
@@ -220,7 +247,14 @@ function go(id, remember, instant) {
            || TABS[0];
   const was = AT;
   AT = tab.id;
-  if (remember !== false) { try { localStorage.setItem('familyTab', AT); } catch {} }
+  if (remember !== false) {
+    try {
+      localStorage.setItem('familyTab', AT);
+      /* THE STAMP IS WRITTEN WITH THE ID AND NEVER WITHOUT IT — see the note over `AT` above. A
+         stamp left behind by an id that was not written is a column remembered by its timestamp. */
+      localStorage.setItem('familyTabAt', String(Date.now()));
+    } catch {}
+  }
 
   /* NOTHING IS HIDDEN ANY MORE. Every screen sits on the X axis and is placed by how far it is
      from the one in front — which is what makes a sideways swipe show the next tab arriving rather
@@ -308,6 +342,11 @@ function go(id, remember, instant) {
      somebody may have turned the sound on for, talking from a screen two swipes away, with no
      control on the screen they are now looking at. */
   if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
+  /* AND THE MESSAGE POLL, which is the fourth. It asks the backend every twenty seconds so the
+     column has no Refresh button on it — and a column nobody is looking at asking anyway is three
+     round trips a minute for a screen two swipes away, which is exactly what the other three lines
+     here are about. `dmPoll_` is started from `startScreen_` with the rest. */
+  if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
@@ -389,6 +428,9 @@ function startScreen_(id) {
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
      a thread is last month — so something has to say otherwise, once the markup exists. */
   if (id === 'dm' && typeof dmFoot_ === 'function') dmFoot_();
+  /* AND IT KEEPS ITSELF UP TO DATE WHILE IT IS THE SCREEN YOU ARE ON — see `dmPoll_` in posts.js,
+     which is where the interval and what it costs are written down. */
+  if (id === 'dm' && typeof dmPoll_ === 'function') dmPoll_();
 }
 
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
@@ -1323,11 +1365,11 @@ const PAGE_HOME = {
      to see. Spotlight still wins when there is one. */
   feed:    () => 0,
   account: () => (USER ? 1 : 0),    // past the name card; signed out there is only the sign-in pane
-  /* PAST THE HEAD CARD AND ONTO THE NEWEST CONVERSATION, for the reason `account` skips its name
-     card: the Messages column opens on Messages-and-a-Refresh-button, which is the one page on it
-     nobody came to read. `dmPages_` puts the newest thread at 1 because `messageThreads_` sorts
-     most-recent-first. With no threads there is one page and `pageHome_` never runs. */
-  dm:      () => 1,
+  /* `dm` WAS HERE, AT 1, TO SKIP THE HEAD CARD — and the head card is gone, so page 0 is the newest
+     conversation by construction (`messageThreads_` sorts most-recent-first). An entry left behind
+     would open the column on the SECOND conversation for ever: a rule outliving the thing it was
+     written about, which is the shape `resource_type` in `VOCAB` and the dead `kind === 'paper'`
+     guard already cost this repository twice. */
 };
 /* `book` WAS HERE — a column that no longer exists. */
 /* ---------- THE ICON, FROM THE SHEET ---------------------------------------------------------------
@@ -2726,10 +2768,7 @@ let BUILD_TAG = null;
 let BUILD_ASKED = 0;
 /* WHEN THE PAGE WENT AWAY, so a resume can be told from an app-switch. See `checkBuild_`. */
 let BUILD_HID = 0;
-/* COMING BACK TO IT AFTER THIS LONG IS OPENING IT AGAIN, not glancing at another app and back.
-   Six minutes is past any notification, any photograph taken mid-lesson, any check of a message —
-   and well short of "I opened this tomorrow morning", which is the case the reload is for. */
-const BUILD_AWAY = 6 * 60 * 1000;
+/* The number is `AWAY_AGAIN`, up beside `TAB_HOME`, because two things now ask it. */
 
 /* HEAD, so nothing is downloaded, and `no-store` so the answer is the server's rather than the
    browser's copy of it. `sw.js` returns early on anything that is not a GET, so this goes past the
@@ -2819,7 +2858,7 @@ function buildMayReload_(tag) {
   try { if (sessionStorage.getItem('familyBuiltFor') === tag) return false; } catch (e) { return false; }
   /* 2. A RESUME, NOT A GLANCE. `BUILD_HID` is 0 before the page has ever been hidden, which is the
         first load — and reloading the load somebody just made is the loop this is avoiding. */
-  if (!BUILD_HID || Date.now() - BUILD_HID < BUILD_AWAY) return false;
+  if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. `qp-ans` writes to localStorage on every keystroke and the
         notepad does the same, so both survive a reload; everything else in a box would not. */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))

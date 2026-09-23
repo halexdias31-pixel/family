@@ -869,6 +869,16 @@ function friendsSave(list, said) {
    Held here between openings so re-opening the widget does not re-ask, and refreshed on every
    open so it is never more than one tap stale. */
 let MESSAGES = null;
+/* ---------- WHEN THE LAST ANSWER LANDED, AND WHETHER IT WAS ONE --------------------------------
+   `MESSAGES` CANNOT SAY EITHER, and the column needs both. It is left alone on a failure — which is
+   deliberate and is why a blip does not read as everything having been deleted — so `null` means
+   both *never asked* and *asked and refused*, and a list means both *fresh* and *an hour old*.
+
+   TWO FACTS, TWO FIELDS. `MSG_AT` is what tells the poll in posts.js whether there is anything
+   worth asking for; `MSG_FAILED` is what lets an empty inbox say which empty it is, which is this
+   repository's oldest fault and the reason the Refresh button existed at all. */
+let MSG_AT = 0;
+let MSG_FAILED = false;
 
 function loadMessages() {
   if (!USER) return Promise.resolve([]);
@@ -877,11 +887,14 @@ function loadMessages() {
      empty list, and the inbox reads as empty rather than as unreachable. That is the exact fault
      the next four lines say they are guarding against, and it was reaching them as a success. */
   return send({ action: 'messages', name: USER.name, personId: USER.personId })
-    .then(d => (MESSAGES = (d && d.messages) || []))
+    .then(d => { MSG_AT = Date.now(); MSG_FAILED = false; return (MESSAGES = (d && d.messages) || []); })
     /* A failure leaves whatever was already there rather than emptying the list — an unreachable
        backend is not the same fact as an empty inbox, and showing the second for the first is how
        a network blip reads as everything having been deleted. */
-    .catch(() => MESSAGES || []);
+    /* `MSG_AT` IS NOT MOVED ON A FAILURE, and that is what makes the poll self-correcting: a refused
+       ask leaves the list as stale as it was, so the next tick asks again rather than believing it
+       has just been told. */
+    .catch(() => { MSG_FAILED = true; return MESSAGES || []; });
 }
 
 /* ==================================================================================================

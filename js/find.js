@@ -3930,6 +3930,13 @@ const padPath_ = st => {
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
   const marks = padRead_(k);
+  /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. A card is
+     rebuilt on every repaint, so a class added by the handler alone is a class a repaint throws
+     away while the state keeps it — and the state is what `pointerdown` below tests. That leaves
+     the pen taking the finger with no gold frame, no `touch-action: none` and no `data-noswipe`:
+     the invisible mode this repository already records for the reel that was paused with nothing
+     on it saying so. */
+  const pen = PAD_ON === k;
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
      than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
      makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
@@ -3941,15 +3948,16 @@ function padWrap_(x, svg, credit) {
      different thicknesses on any box that is not square. `vector-effect="non-scaling-stroke"` is
      the answer to exactly that: the width is measured on the screen rather than in the stretched
      user space, so the pen is one pen. */
-  return `<div class="qpad" data-k="${esc(k)}">
+  return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
     <div class="qpad-art">${svg}
-      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
+      <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
       </svg>
     </div>${credit || ''}
     <div class="qpad-bar">
-      <button type="button" class="qpad-btn" data-do="pad-draw" aria-pressed="false">Draw on it</button>
+      <button type="button" class="qpad-btn" data-do="pad-draw" aria-pressed="${pen}">${
+        pen ? 'Done drawing' : 'Draw on it'}</button>
       <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
       <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
     </div>
@@ -4035,12 +4043,26 @@ on('pad-draw', (el) => {
   const want = PAD_ON !== k;
   [].slice.call(document.querySelectorAll('.qpad.is-drawing'))
     .forEach(p => p.classList.remove('is-drawing'));
+  [].slice.call(document.querySelectorAll('.qpad-ink[data-noswipe]'))
+    .forEach(i => i.removeAttribute('data-noswipe'));
   [].slice.call(document.querySelectorAll('[data-do="pad-draw"]')).forEach(b => {
     b.setAttribute('aria-pressed', 'false'); b.textContent = 'Draw on it';
   });
   PAD_ON = want ? k : '';
   if (want) {
     pad.classList.add('is-drawing');
+    /* `touch-action: none` STOPS THE BROWSER AND NOT THIS APP, and that is the whole of the fault
+       it was reported as: "when i try draw a line of best fit it slides the whole widget to the
+       left". The grid's swipe is a `pointermove` listener on the window — it never asks the
+       browser for a scroll, so no `touch-action` anywhere can refuse it, and a line of best fit is
+       exactly the stroke that travels furthest sideways. `axisFree` names `[data-noswipe]`, so the
+       attribute is the app's own half of the same sentence the stylesheet makes to the browser.
+
+       ONLY WHILE THE PEN IS ON, for the reason written over `.qpad-ink` in the stylesheet: a
+       picture you cannot swipe past is a picture that traps you on it, and every question card
+       with a diagram would become a page with no way off. */
+    const ink = pad.querySelector('.qpad-ink');
+    if (ink) ink.setAttribute('data-noswipe', '');
     el.setAttribute('aria-pressed', 'true');
     el.textContent = 'Done drawing';
   }

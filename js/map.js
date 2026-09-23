@@ -972,11 +972,17 @@ const WIDGETS = [
      These three move only when tapped, so parked off-screen they cost exactly nothing and there is
      nothing to tear down. Worth saying here rather than leaving the absence to be read as an
      oversight. */
+  /* ---------- BOTH BOARDS ARE TWO PLAYERS ON ONE PHONE --------------------------------------------
+     THEY PLAYED AGAINST THE APP and were asked to stop — "connect 4 should be not against pc but 2
+     player", "should be 2 player not against cpu". The subtitle is the only place the app can say
+     so, and a board game whose subtitle still says "you are black" is a board game somebody sets up
+     wrongly. See `c4Reply_` and `othReply_` in games.js, where both opponents were deleted and the
+     argument for them is kept. */
   { id: 'connect4', kind: 'game', name: 'Connect 4', start: () => initConnect4?.(),
     into: 'c4-board', what: 'The board',
     html: `<div class="card">
     <h3>Connect 4</h3>
-    <p class="sub">Tap a column. Four in a line, any direction.</p>
+    <p class="sub">Two players, one phone. Red starts. Tap a column; four in a line, any direction.</p>
     <div id="c4-board" class="c4"></div>
     <p class="note" id="c4-said" style="text-align:center;margin:.5rem 0 0"></p>
     <button class="btn quiet" data-do="c4-again">New game</button>
@@ -986,9 +992,10 @@ const WIDGETS = [
     into: 'oth-board', what: 'The board',
     html: `<div class="card">
     <h3>Othello</h3>
-    <p class="sub">You are black. Trap a line of white between two of yours.</p>
+    <p class="sub">Two players, one phone. Red starts. Trap a line of the other colour between two
+       of yours.</p>
     <div id="oth-board" class="oth"></div>
-    ${rowLive('Black – White', '2 – 2', 'oth-score')}
+    ${rowLive('Red \u2013 Blue', '2 \u2013 2', 'oth-score')}
     <p class="note" id="oth-said" style="text-align:center;margin:.5rem 0 0"></p>
     <button class="btn quiet" data-do="oth-again">New game</button>
   </div>` },

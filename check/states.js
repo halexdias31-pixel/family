@@ -422,7 +422,13 @@ const STATES = {
           m('m5', false, 'Please do — and a ruler, there is a construction question near the end '
                        + 'that needs compasses as well.', '2026-09-16 10:03', true),
         ];
-        DM_ASKED = true;
+        /* ---------- AND THE COLUMN POLLS NOW, SO THE SEED HAS TO READ AS FRESH --------------------
+           `dmSync_` ASKS THE BACKEND WHENEVER THE LAST ANSWER IS OVER `DM_EVERY` OLD, which is how
+           the Refresh button came off the column — so a state that seeds `MESSAGES` and says
+           nothing about when is a state one tick away from being replaced by the harness's own
+           empty fixture. `MSG_AT` is the moment the list landed and this is that moment: seeding it
+           is not a test hook, it is the other half of the state being declared. */
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; MSG_AT = Date.now();
         paint('dm');
       },
       expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
@@ -455,10 +461,13 @@ const STATES = {
           { id: 'i' + i + 'b', mine: true, read: true, withId: 'P10' + i, withName: n,
             fromName: 'You', at: '2026-09-1' + i + ' 10:1' + i, body: 'Thanks, noted.' },
         ]);
-        DM_ASKED = true;
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; MSG_AT = Date.now();
         paint('dm');
       },
-      expect: () => pageCount('dm') >= 7,
+      /* SIX PAGES, NOT SEVEN. It was `>= 7` while the column opened with a head card carrying a
+         heading and a Refresh button — a page with no message on it, which is the card the owner
+         asked to be rid of. Six conversations are six pages. */
+      expect: () => pageCount('dm') >= 6,
       wants: 'six conversations, each a page of its own' },
   ],
 };

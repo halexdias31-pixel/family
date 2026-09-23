@@ -801,6 +801,93 @@ for (const who of VISITORS) {
     }
 
     /* ==================================================================================================
+       AND A LINE OF BEST FIT IS A SIDEWAYS DRAG ON A PAGE THAT SLIDES SIDEWAYS.
+
+       REPORTED AS "when i try draw a line of best fit it slides the whole widget to the left and
+       becomes hard to do". `.qpad.is-drawing .qpad-ink` has carried `touch-action: none` since the
+       pen was written, and that stops the BROWSER: the grid's swipe is a `pointermove` listener on
+       the window, which never asks the browser for anything, so no `touch-action` anywhere can
+       refuse it. Two halves of one sentence and only one of them was ever said.
+
+       THE SAME SHAPE AS THE BLANKET `pan-y` ON EVERY TEXTAREA, one rule along, and found the same
+       way: `page.mouse` cannot see it either, because what the pen and the grid are arguing over is
+       the gesture rather than the scroll. The pad names itself `[data-noswipe]` while the pen is on,
+       which is the list `axisFree` already reads.
+
+       BOTH STATES, BECAUSE ONLY ONE OF THEM IS THE FAULT. Pen on: the stroke is kept and the column
+       does not move. Pen OFF: the picture is an ordinary picture and a swipe past it still changes
+       column -- a diagram you cannot swipe past is a page with no way off, which is the argument
+       written over `.qpad-ink` in the stylesheet and the reason the mark is not permanent.
+
+       Proved by mutation: take the attribute off and the stroke above carries the column from
+       `stuff` to `dm`, which is the screenshot the owner sent. */
+    {
+      const PEN_PAPER = 'RS1786302107764-481';         // May 2017 Foundation, Q6(i): annotate a scale
+      const PEN_ROW = 'Q-1MA1-1706-1F-6i';
+      const box = await page.evaluate(async a => {
+        if (typeof stuffFiltered !== 'function') return null;
+        go('stuff', false, true);
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: a.paper }];
+        paintStuff(true);
+        await new Promise(r => setTimeout(r, 500));
+        const i = stuffFiltered().findIndex(x => x.row && x.row.row_id === a.row);
+        if (i < 0) return null;
+        goPage('stuff', i + stuffFirstResult_(), true);
+        await new Promise(r => setTimeout(r, 650));
+        const btn = document.querySelector('#s-stuff .qpad [data-do="pad-draw"]');
+        const ink = document.querySelector('#s-stuff .qpad-ink');
+        if (!btn || !ink) return null;
+        const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
+        return { at: AT, page: PAGE.stuff,
+                 ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+                        w: Math.round(r.width) },
+                 btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
+      }, { paper: PEN_PAPER, row: PEN_ROW });
+      if (!box || box.ink.w < 80) {
+        swipes.push({ from: 'stuff · the pen on a diagram', dir: 'touch across', ok: false,
+                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : 'no pad on that card',
+                      want: 'a question card carrying a pad' });
+      } else {
+        /* A TAP IS `touch(x, y, 0, 0)` AND NOT `el.click()`. The stroke below sets `PRESS_MOVED`,
+           and a synthetic click cannot clear it because nothing sent a `pointerdown` first -- so
+           the second press would be swallowed and the pen would read as stuck on. On a phone a tap
+           always sends one. Measured: with `el.click()` this reported the pen still on. */
+        await touch(box.btn.x, box.btn.y, 0, 0);
+        const on = await page.evaluate(() => {
+          const pad = document.querySelector('#s-stuff .qpad');
+          return pad && pad.classList.contains('is-drawing')
+            && !!pad.querySelector('.qpad-ink[data-noswipe]');
+        });
+        swipes.push({ from: 'stuff · Draw on it', dir: 'tap', ok: on,
+                      got: on ? 'the pen is on and the pad is named' : 'the pen did not come on',
+                      want: 'the pen on' });
+        if (on) {
+          await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + 30,
+                      Math.round(box.ink.w * 0.7), -50);
+          const drew = await page.evaluate(() => {
+            const pad = document.querySelector('#s-stuff .qpad');
+            const k = pad && pad.getAttribute('data-k');
+            let n = 0;
+            try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
+            return { at: AT, page: PAGE.stuff, strokes: n };
+          });
+          swipes.push({ from: 'stuff · a line of best fit', dir: 'touch across',
+                        ok: drew.at === box.at && drew.page === box.page && drew.strokes >= 1,
+                        got: drew.at + ' page ' + drew.page + ', ' + drew.strokes + ' stroke(s) kept',
+                        want: box.at + ' page ' + box.page + ', 1 stroke(s) kept' });
+          await touch(box.btn.x, box.btn.y, 0, 0);
+          const k = tabs.indexOf('stuff');
+          if (k + 1 < tabs.length) {
+            await touch(box.ink.x, box.ink.y, -170, 0);
+            const off = await page.evaluate(() => AT);
+            swipes.push({ from: 'stuff · the same picture, pen off', dir: 'touch left',
+                          ok: off === tabs[k + 1], got: off, want: tabs[k + 1] });
+          }
+        }
+      }
+    }
+
+    /* ==================================================================================================
        AND THAT PAGE n SHOWS QUESTION n, WHICH STOPPED BEING FREE.
 
        THE FIND SCREEN HOLDS FIFTEEN RESULT PAGES AND HAS THOUSANDS -- see `stuffWindow_` in find.js.

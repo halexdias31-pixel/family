@@ -168,7 +168,21 @@ function run() {
       bad.push('row ' + r.n + ': ' + r.clip + ' is ' + vid.join('/') + ' rather than avc1 — it will '
              + 'play on some phones and show nothing on others');
 
-    seen.push({ r: r, where: 'here', f: f });
+    /* ---------- AND WHETHER IT HAS A FIRST FRAME TO SHOW WHILE IT DOWNLOADS ----------------------
+       `feedSlide` DERIVES THE POSTER FROM THE CLIP'S OWN PATH — `x.mp4` beside `x.jpg` — so there is
+       no column to keep in step and nothing to spell wrongly. What there IS, is a file that can
+       quietly not be there: a `poster` that 404s draws nothing and the slide goes back to being a
+       gradient for the several seconds the clip takes, which is the complaint this was added for.
+       Invisible from inside the app, which is why it is counted here.
+
+       PRINTED RATHER THAN FAILED, for the reason the weight is: a clip with no poster works, it is
+       simply slower to look like something. A number somebody can act on beats a rule that refuses
+       a clip. */
+    const still = file.replace(/\.[a-z0-9]+$/i, '') + '.jpg';
+    let poster = 0;
+    try { poster = fs.existsSync(still) ? fs.statSync(still).size : 0; } catch (e) {}
+
+    seen.push({ r: r, where: 'here', f: f, poster: poster });
   });
 
   console.log('\nREELS');
@@ -180,7 +194,8 @@ function run() {
     console.log('  row ' + s.r.n + '  ' + s.r.clip);
     console.log('         ' + (s.f.size / 1048576).toFixed(1) + ' MB · '
       + (s.f.codecs.join(' + ') || '?') + ' · '
-      + (s.f.faststart ? 'moov first' : 'MOOV LAST'));
+      + (s.f.faststart ? 'moov first' : 'MOOV LAST')
+      + ' · ' + (s.poster ? 'poster ' + (s.poster / 1024).toFixed(0) + ' KB' : 'NO POSTER'));
   });
   if (!seen.length) console.log('  none');
 
@@ -191,9 +206,11 @@ function run() {
   const here = seen.filter(s => s.where === 'here');
   const heavy = here.filter(s => s.f.size > 10 * 1048576);
   const total = here.reduce((n, s) => n + s.f.size, 0);
+  const noStill = here.filter(s => !s.poster);
   console.log('\nclips in this repository: ' + here.length
     + ' · ' + (total / 1048576).toFixed(1) + ' MB in all'
-    + (heavy.length ? ' · ' + heavy.length + ' over 10 MB' : ''));
+    + (heavy.length ? ' · ' + heavy.length + ' over 10 MB' : '')
+    + (noStill.length ? ' · ' + noStill.length + ' with no poster' : ' · every one has a poster'));
 
   console.log('\nA REEL THAT WOULD BE DARK  (' + bad.length + ')');
   if (!bad.length) console.log('  none');

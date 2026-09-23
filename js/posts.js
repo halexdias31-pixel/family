@@ -1978,7 +1978,7 @@ on('reel-sound', (el) => {
    THE ASK MOVED OUT OF THE BUILDER, and that is what makes the pager safe. `PAGER.dm` has to count
    the same list the screen draws — the rule every entry in that table states — and a builder that
    starts a network request cannot be called twice. So the draw asks and `dmPages_` only reports. */
-screen('dm', () => { dmAsk_(); return pages('dm', dmPages_().map(p => p.html)); });
+screen('dm', () => { dmSync_(); return pages('dm', dmPages_().map(p => p.html)); });
 
 /* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED ----------------------------------------
    IT SAID "No messages." TO EVERYBODY, FOR EVER, AND IT WAS NOT A BUG IN THE BACKEND. It took
@@ -2015,15 +2015,87 @@ let DM_ASKED = false;
    never finishes loading. This is the fact the skeleton actually depends on. */
 let DM_DONE  = false;
 
-/* THE ONE SIDE EFFECT, CALLED FROM THE DRAW AND NOWHERE ELSE. `loadMessages` swallows its own
-   failures and always resolves, so there is no rejection path to handle — and the repaint must
-   happen either way, or a failed first fetch leaves the skeleton on screen for ever with nothing
-   saying why. */
-function dmAsk_() {
-  if (DM_ASKED || !USER || !LOADED) return;
-  DM_ASKED = true;
-  loadMessages().then(() => { DM_DONE = true; paint('dm'); });
+/* IS ONE IN FLIGHT. Two overlapping asks against this backend is two round trips for one answer,
+   and the second one landing first would paint an older list over a newer one. */
+let DM_BUSY = false;
+let DM_TIMER = 0;
+
+/* ==================================================================================================
+   IT KEEPS ITSELF UP TO DATE, AND THE REFRESH BUTTON IS GONE
+
+   REPORTED AS "when you do recieve a message you shouldnt have a refresh messages widget. it should
+   already be contantly up to date. synced or whatever". Right, and the button was worse than
+   redundant: it was a PAGE. `dmPages_` opened with a card holding a heading and one control, so the
+   first thing on the Messages column was a card with no message on it — which is why `PAGE_HOME.dm`
+   had to skip past it, an entry that existed only to hide something nobody wanted.
+
+   WHAT "SYNCED" CAN HONESTLY MEAN HERE IS POLLING. The backend is Apps Script behind a `doPost`;
+   there is no socket and no push channel, and inventing a badge that updates without asking would
+   be a sentence this app cannot keep. So it asks — while the column is on the screen, and never
+   when it is not, which is the same rule the camera, the widgets and the reels already follow and
+   is stopped in the same place in `paint`.
+
+   TWENTY SECONDS, AND WHAT IT COSTS IS WRITTEN DOWN. `messages` is one tab read rather than the
+   whole payload, so this is nothing like `installWarmTrigger` — the note over that one costs five
+   hours of script time a day and is deliberately not installed. Three asks a minute for as long as
+   somebody is actually reading their messages is the price of the button not existing.
+
+   AND IT WILL NOT REPAINT UNDER A REPLY SOMEBODY IS TYPING. `paint('dm')` rebuilds the markup, and
+   the composer at the foot of each thread is in it — so a tick landing mid-sentence would throw the
+   sentence away. The data is updated either way; only the redraw waits, and it happens on the tick
+   after the box is empty. Same judgement as the auto-reload in `checkBuild_`, which holds for
+   anything typed and unsaved.
+================================================================================================== */
+const DM_EVERY = 20 * 1000;
+
+/* WHAT WOULD LOOK DIFFERENT IF IT WERE DRAWN AGAIN. A count cannot answer this: a message being
+   marked read changes no count and changes every badge on the column. Id plus read state per
+   message is exactly what the cards are built from. */
+function dmStamp_() {
+  return (MESSAGES || []).map(m => String((m && m.id) || '') + (m && m.read ? '1' : '0')).join(',');
 }
+
+/* IS SOMEBODY MID-SENTENCE. Asked of the DOM rather than remembered in a flag, which is what
+   `msg-send` and `me-save` already do for the same reason: the fact is in the box. */
+function dmTyping_() {
+  const host = $('s-dm');
+  if (!host) return false;
+  return [].slice.call(host.querySelectorAll('.msg-form .msg-text'))
+    .some(b => String(b.value || '').trim());
+}
+
+/* THE ONE SIDE EFFECT. `loadMessages` swallows its own failures and always resolves, so there is no
+   rejection path to handle — and the first answer must repaint either way, or a failed first fetch
+   leaves the skeleton on screen for ever with nothing saying why. */
+function dmSync_(force) {
+  if (!USER || !LOADED || DM_BUSY) return;
+  if (!force && DM_ASKED && Date.now() - MSG_AT < DM_EVERY) return;
+  const first = !DM_ASKED;
+  DM_ASKED = true; DM_BUSY = true;
+  const was = dmStamp_();
+  loadMessages().then(() => {
+    DM_BUSY = false; DM_DONE = true;
+    if (first || (dmStamp_() !== was && !dmTyping_())) paint('dm');
+  });
+}
+
+/* STARTED WHEN THE COLUMN ARRIVES AND STOPPED WHEN IT LEAVES, from `startScreen_` and `paint` — the
+   one list that exists for exactly this. A poll booked anywhere else is the fault the reels' own
+   note records: a repaint rebuilds the markup it was running in and never ran the booking. */
+function dmPoll_() {
+  clearInterval(DM_TIMER);
+  dmSync_();
+  DM_TIMER = setInterval(() => { if (AT === 'dm') dmSync_(); else dmStop_(); }, DM_EVERY);
+}
+function dmStop_() { clearInterval(DM_TIMER); DM_TIMER = 0; }
+
+/* AND COMING BACK TO THE APP IS WORTH AN ASK WHATEVER THE CLOCK SAYS. A phone that was asleep has a
+   timer that did not tick, and the first thing somebody does on returning to a conversation is look
+   at it. `visibilitychange` rather than a shorter interval, because the two answer different
+   questions and only one of them costs anything while nobody is looking. */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && AT === 'dm') dmPoll_();
+});
 
 /* ---------- ONE LIST, TWO READINGS — THE MARKUP AND THE NAME IN THE HEADER ----------------------
    IT RETURNED HTML STRINGS, and a pager needs a NAME per page. Deriving those from a second walk of
@@ -2034,7 +2106,7 @@ function dmAsk_() {
    SO A PAGE IS `{ name, html }` and both readers map the same array. Page n and name n cannot
    drift, because there is only one n.
 
-   AND IT IS PURE. Every branch reads state and returns; the asking is `dmAsk_` above. That is what
+   AND IT IS PURE. Every branch reads state and returns; the asking is `dmSync_` above. That is what
    lets `PAGER.dm` call it on the app's first frame without starting a request from a header. */
 function dmPages_() {
   if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
@@ -2042,23 +2114,31 @@ function dmPages_() {
   if (!LOADED || !DM_DONE) return [{ name: '', html: skeleton() }];
 
   const threads = messageThreads_();
-  /* `quiet`, NOT GOLD. `.btn` is the one action on a card and gold is what this app means by that —
-     fetching a list again is not it, and a full-width gold slab over a column of conversations was
-     the loudest thing on the screen. Same correction as `.reel-sound`, which was a gold bar across
-     a moving picture for the same reason. */
-  const head = { name: threads.length ? 'Messages' : '', html: `<div class="card"><h3>Messages</h3>
-    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>` };
-  /* ---------- AND AN EMPTY INBOX KEEPS THE WAY BACK ----------------------------------------------
-     IT RETURNED THE EMPTY CARD ALONE, so the one state that most needs a retry was the one state
-     with no button on it: `loadMessages` deliberately leaves `MESSAGES` alone on a failure, which
-     means a first fetch that never arrived shows exactly this card — "Nothing yet." over an inbox
-     nobody managed to read. This repository's oldest fault with no door out of it.
+  /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT -------------------------------------
+     IT WAS A HEADING AND A REFRESH BUTTON, first on a column of conversations — so `PAGE_HOME.dm`
+     existed to swipe past it, an entry whose whole job was hiding a card nobody wanted. Reported as
+     "you shouldnt have a refresh messages widget". The column polls while it is on the screen (see
+     `dmPoll_` above), so there is nothing left for that button to do.
 
-     ONE PAGE RATHER THAN TWO, now that a card is a page. "Nothing yet." and the Refresh that is the
-     answer to it were two swipes apart, which is the empty state hiding its own way out. */
+     `PAGE_HOME.dm` WENT WITH IT, in the same commit. Leaving it would open the column on the SECOND
+     conversation for ever, which is the shape this repository records every time a rule outlives
+     the thing it was written about. */
+
+  /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS -------------------------------------------
+     TWO FACTS WORE ONE SENTENCE. `loadMessages` leaves `MESSAGES` alone on a failure — deliberately,
+     so a blip does not read as everything having been deleted — so a first fetch that never arrived
+     drew "Nothing yet." over an inbox nobody managed to read. THIS REPOSITORY'S OLDEST FAULT: *I
+     did not manage to look*, printed as *I looked and there was nothing there*.
+
+     THE RETRY BELONGS ON THE FAILURE AND ONLY THERE. A genuinely empty inbox is being re-asked
+     every twenty seconds and needs no button; one nobody could reach is the one state where a
+     person wants to press something, and it is the one that now has something to press. */
   if (!threads.length) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
-    ${emptyMessages_}
-    <button class="btn quiet" data-do="dm-refresh">Refresh</button></div>` }];
+    ${MSG_FAILED
+      ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
+           office is down, or this phone has no signal.</span></p>
+         <button class="btn quiet" data-do="dm-refresh">Try again</button>`
+      : emptyMessages_}</div>` }];
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2072,7 +2152,7 @@ function dmPages_() {
      to send and a failed one puts it back.
 
      AND IT IS THE ONE THING IN HERE THAT REACHES OUT, which is why the pager may call this: the
-     marking is idempotent, where the fetch `dmAsk_` holds is not. */
+     marking is idempotent, where the fetch `dmSync_` holds is not. */
   threads.forEach(t2 => markRead_(t2.msgs));
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ ---------------------------------------
      THE COLUMN SHOWED CONVERSATIONS YOU COULD NOT REPLY TO. The only composer in the app was in a
@@ -2093,14 +2173,14 @@ function dmPages_() {
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are
      reading rather than "3 of 7", which is the same judgement `PAGER.tools` makes about naming the
      widget and `PAGER.booking` about naming the session. */
-  return [head].concat(threads.map(t => ({
+  return threads.map(t => ({
     name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
       <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
     </div>`,
-  })));
+  }));
 }
 
 /* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST -----------------------------
