@@ -9209,3 +9209,37 @@ card that fits on a phone does not on a tablet. The note took 27 of it and `.bk-
 last 4 — **the space either side of the dashed rule under the grid, above a row that carries a
 dashed underline of its own.** Measured after: 771px at 390 and 797px at 768, `under: 0` at both.
 **Proved by mutation**: the old surround back and it names 4px at 768 and 1280.
+
+### And the week is a cell of its row now, so the blocks start where the answers do
+
+**Asked as "is it possible to have the grid be in the 2nd column like the other stuff."** The week
+was a SIBLING of its row, so it began at the card's left edge — under the label column, where no
+other answer on the card starts, while every value beside it begins two thirds of an inch further
+in. One left edge for the answers is most of what makes this card read as a document.
+
+**Yes for three columns and no for eleven**, and it is the same arithmetic the note over `.hr`
+records this block reaching after 222 → 174 → 146px. Measured across the value column each week
+would have, at three widths, after the day letters and the gaps come off:
+
+| | 320px | 390px | 768px |
+|---|---|---|---|
+| **blocks** | 56px a cell | 71px | 75px |
+| hours | **15px** | **19px** | 20px |
+
+**The floor is 20px** and the hour week is under it at both phone widths — 15px at 320 is a cell you
+cannot reliably hit, which is the whole reason that grid is full-bleed and the reason this was
+refused the first time it was asked. The block week loses 94px a cell for 71 and is nowhere near it.
+
+**They are never on one card.** `stepGrid_` draws exactly one week per branch — hours for a session,
+blocks for a waiting list — so this is not two shapes for one question on a screen somebody is
+reading. It is one week, indented as far as its own cells allow.
+
+**Placed by the grid rather than measured again.** The obvious version is `margin-left: 6.2em` on
+the week, which is the label column's own floor written in a second place — and that column is
+`minmax(6.2em, max-content)`, so a long label widens it and the margin would not follow. `.bk-open`
+is the last child of `.bk-row` now, which is a grid: `1 / -1` is exactly the full width it already
+had and `2 / -1` is the value column, computed by the browser. One declaration is the whole
+difference between the two weeks.
+
+**And a note on a grid row sits under the week now** rather than between the row and it. No grid step
+carries one today so nothing moved, and it is the better order if one ever does.

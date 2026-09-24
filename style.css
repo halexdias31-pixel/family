@@ -2598,10 +2598,34 @@ button.text-drop { color: var(--bad); }
    a dashed underline of its own. The rule stays, because it is what closes the week off; the space
    either side of it is what goes, and it is 4.5px, which is the 4 this needed. */
 .bk-open {
+  /* ---------- A CELL OF THE ROW ABOVE IT, ON A LINE OF ITS OWN --------------------------------
+     THE WEEK USED TO BE A SIBLING and so began at the card's left edge, under the label column,
+     where no other answer on the card starts. It is the last child of `.bk-row` now, which is a
+     grid, so `1 / -1` is exactly the full width it already had and `2 / -1` is the value column —
+     computed by the browser off `minmax(6.2em, max-content)` rather than restated as a margin that
+     a long label would leave behind. */
+  grid-column: 1 / -1;
   margin: 0 0 .06rem 0;
   padding-bottom: .08rem;
   border-bottom: 1px dashed var(--line);
 }
+/* ---------- AND THE BLOCK WEEK STARTS WHERE THE ANSWERS DO, WHICH THE HOUR WEEK CANNOT -------------
+   ASKED FOR AS *"is it possible to have the grid be in the 2nd column like the other stuff."* For
+   three columns, yes; for eleven, no, and the arithmetic is the same one the note over `.hr`
+   records this block reaching after 222 → 174 → 146px. Measured across the value column each week
+   would have, at the three widths, after the day letters and the gaps come off:
+
+     320px   blocks 56px a cell   hours 15px      390px   blocks 71px   hours 19px
+     768px   blocks 75px          hours 20px
+
+   THE FLOOR IS 20px and the hour week is under it at both phone widths — 15px at 320 is a cell you
+   cannot reliably hit, which is the whole reason that grid is full-bleed. The block week loses 94px
+   a cell for 71 and is nowhere near it.
+
+   THEY ARE NEVER ON ONE CARD. The hours are an ordinary booking's week and the blocks are a waiting
+   list's, and `stepGrid_` draws exactly one of them per branch — so this is not two shapes for one
+   question on a screen somebody is reading, it is one week indented as far as its own cells allow. */
+.bk-open.is-blocks { grid-column: 2 / -1; }
 .bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
 /* ---------- WHAT THE ROW ABOVE MEANS, OR WHY IT CANNOT BE ANSWERED THAT WAY ------------------------
    THE SAME SIZE AND THE SAME PLACE AS THE GRID'S OWN NOTE, because they are the same kind of thing:

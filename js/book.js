@@ -2056,7 +2056,7 @@ function weekGrid_(days, cell) {
    equal rows — which is what makes it readable as a week rather than as a list. */
 function blockWeek_() {
   const on = BOOKING.avail || [];
-  return `<div class="bk-open">
+  return `<div class="bk-open is-blocks">
     ${/* AND NO SENTENCE OVER IT. The greyed hour week carried one because a locked control with no
           reason beside it is the invisible mode — this one is not locked, and the two places that
           would say the same thing already do: the row above it asks "When could you come?" and the
@@ -3045,8 +3045,24 @@ function receiptRow(r) {
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>
-  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}${
-    r.open || ''}`;
+    ${/* ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT --------------------
+          ASKED AS *"is it possible to have the grid be in the 2nd column like the other stuff."*
+          It was a sibling of the row, so it started at the CARD's left edge — under the label
+          column, where no other answer on the card begins — and every value beside it starts two
+          thirds of an inch further in. One left edge for the answers is most of what makes this
+          read as a document.
+
+          PLACED BY THE GRID RATHER THAN MEASURED AGAIN. The obvious version is `margin-left: 6.2em`
+          on the week, which is the label column's own floor written in a second place — and that
+          column is `minmax(6.2em, max-content)`, so a long label widens it and the margin would not
+          follow. As a CELL it takes whatever the browser worked out, and `grid-column` is the one
+          declaration that differs between the two weeks.
+
+          AND A NOTE ON A GRID ROW NOW SITS UNDER THE WEEK rather than between the row and it. No
+          grid step carries one today, so nothing moved; it is the better order if one ever does,
+          because a sentence about a control belongs under the control. */''}
+    ${r.open || ''}
+  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}`;
 }
 
 /**
