@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-20-a-quizzes";
+const BOOKING_VERSION = "2026-09-24-a-busy-days";
 
 
 /**
@@ -534,8 +534,12 @@ function sendInvite(jobId, fromName, toEmail, toName) {
  * subtraction, done fresh every time it is asked, and it is right by construction: cancel the
  * session and the hour comes back on its own because nothing was ever taken away.
  *
- * WEEKLY, because that is how these sessions run — one weekday and one time, repeating. An hour is
- * busy for the tutor's week if any live session of theirs sits on it.
+ * WEEKLY, because that is how these sessions run — repeating at the same hours each week. An hour
+ * is busy for the tutor's week if any live session of theirs sits on it.
+ *
+ * A SESSION MAY RUN ON SEVERAL DAYS. `weekday` holds every day the booking runs, joined with
+ * commas, and each of them is busy for the span the job states — see the note inside, and the
+ * double booking that reading the cell as one day name allowed.
  */
 function busyHours(tutorName) {
   const out = {};
@@ -553,14 +557,35 @@ function busyHours(tutorName) {
        chosen is not busy. */
     if (key(confirmedTutorOf_(id)) !== key(tutorName)) return;
 
-    const d = DAY[norm(j.weekday)];
-    if (!d) return;
+    /* ---------- A SESSION MAY RUN ON MORE THAN ONE DAY, AND THIS MISSED ALL OF THEM ------------
+       THIS LOOKED THE WHOLE CELL UP IN `DAY`. The booking form has let somebody tick hours across
+       several days for a long time, and `bookSpec` joins them — so `weekday` reads `Monday, Friday`
+       and `DAY['monday, friday']` is undefined. The `if (!d) return` then dropped the job entirely.
+
+       WHICH MEANS A TUTOR ALREADY TEACHING THOSE HOURS READ AS FREE. This is what greys an hour on
+       the booking grid; a job it cannot see contributes nothing, so both of its days stay open and
+       the next family books the same tutor at the same time. A double booking, silently, and the
+       only jobs it happens to are the multi-day ones.
+
+       ONE SPAN ON EACH NAMED DAY, because the job row holds one `start_time` and one
+       `hours_per_session`. That is already a simplification of a booking whose runs differ — see
+       `bookSpec`, where the first run of the week names the session — and marking the stated span
+       busy on each of its own days is the safe reading of it. Marking none was not: of the two ways
+       to be wrong here, one offers an hour that is taken and the other holds an hour that is free,
+       and only the first sells the same hour twice.
+
+       The note above this function said "one weekday and one time, repeating". That was true when
+       it was written and stopped being true when the grid grew days. */
+    const days = String(S(j.weekday)).split(',').map(x => DAY[norm(x)]).filter(Boolean);
+    if (!days.length) return;
     const from = Number(String(fmtTime(j.start_time)).split(':')[0]);
     if (!from && from !== 0) return;
     const hours = Math.max(1, N(j.hours_per_session) || N(config().h) || 2);
-    for (let h = from; h < from + hours; h++) {
-      out[d + String(h).padStart(2, '0')] = S(j.subject) || 'Booked';
-    }
+    days.forEach(d => {
+      for (let h = from; h < from + hours; h++) {
+        out[d + String(h).padStart(2, '0')] = S(j.subject) || 'Booked';
+      }
+    });
   });
   return out;
 }

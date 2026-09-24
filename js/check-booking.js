@@ -101,6 +101,20 @@ const PRELUDE = `
   const key = v => norm(v).replace(/[^a-z0-9]/g, '');
   let EVENTS = [];
   function eventsForJob() { return EVENTS; }
+
+  /* ---------- AND THE FEW THE TUTOR'S WEEK NEEDS -------------------------------------------------
+     \`busyHours\` IS THE ONE FUNCTION HERE THAT TOUCHES A SHEET, and it is worth the four stubs:
+     it decides which hours the booking grid greys out, so a job it cannot see is an hour sold
+     twice. \`N\` is copied from \`constants.gs\` verbatim rather than approximated — a stub that
+     rounds differently from the real one would prove the wrong thing. */
+  let JOBS = [];
+  let TUTOR_OF = {};
+  const TAB = { jobs: 'jobs' };
+  function read() { return { rows: JOBS }; }
+  function confirmedTutorOf_(id) { return TUTOR_OF[id] || ''; }
+  function fmtTime(v) { return S(v); }
+  function config() { return { h: 2 }; }
+  const N = v => { const x = parseFloat(String(v == null ? '' : v).replace(/[£$,\s]/g, '')); return isNaN(x) ? 0 : x; };
 `;
 
 let api;
@@ -116,8 +130,11 @@ try {
     + fn(booking, 'tutorStatusOf')
     + fn(booking, 'bmActionsFor')
     + fn(booking, 'bmApply')
+    + fn(booking, 'busyHours')
     + `; module.exports = { BM, ACT, set: e => { EVENTS = e },
-         participantsOf, clientsIn, jobStatusOf, tutorStatusOf, bmActionsFor, bmApply };`;
+         setJobs: (j, t) => { JOBS = j; TUTOR_OF = t || {}; },
+         participantsOf, clientsIn, jobStatusOf, tutorStatusOf, bmActionsFor, bmApply,
+         busyHours };`;
   const m = { exports: {} };
   new Function('module', 'exports', src)(m, m.exports);
   api = m.exports;
@@ -260,6 +277,67 @@ const RULES = [
       return bad;
     } },
 ];
+
+/* ---------- AND THE HOURS A TUTOR IS ALREADY TEACHING ------------------------------------------
+   `busyHours` IS WHAT GREYS AN HOUR ON THE BOOKING GRID, so a job it cannot see is an hour offered
+   to a second family while the first already has it. That is the one fault in this file's subject
+   area that takes money from two people for one session.
+
+   IT READ THE WHOLE `weekday` CELL AS ONE DAY NAME. The form has let somebody tick hours across
+   several days for a long time and `bookSpec` joins them, so a real cell reads `Monday, Friday` —
+   `DAY['monday, friday']` is undefined, the `if (!d) return` dropped the job, and BOTH of its days
+   stayed open. Silently, and only on multi-day bookings.
+
+   ONE SPAN ON EACH NAMED DAY, because the job row holds one `start_time` and one
+   `hours_per_session`. Of the two ways to be wrong, one offers an hour that is taken and the other
+   holds an hour that is free; only the first sells the same hour twice. */
+RULES.push({
+  what: 'a tutor teaching on two days is busy on both',
+  check: () => {
+    const bad = [];
+    const job = (id, weekday) => ({ job_id: id, weekday: weekday, start_time: '10:00',
+                                    hours_per_session: 2, subject: 'Maths' });
+    /* A LIVE ROSTER, because `busyHours` skips a job `jobStatusOf` reads as cancelled — and with no
+       events at all there are no clients, which IS cancelled. Seeding nothing measured the skip
+       rather than the day mapping, and reported "nothing" for every case including the one-day one
+       that has always worked. */
+    const LIVE = [REQUEST('Rasa'), REQUEST('George', 'tutor')];
+    const busy = (weekday, tutor) => {
+      api.set(LIVE);
+      api.setJobs([job('J', weekday)], { J: tutor || 'George' });
+      return Object.keys(api.busyHours('George')).sort();
+    };
+    const want = (weekday, keys) => {
+      const got = busy(weekday);
+      if (got.join(' ') !== keys.join(' ')) {
+        bad.push('"' + weekday + '" marks [' + (got.join(' ') || 'nothing')
+          + '], expected [' + keys.join(' ') + ']');
+      }
+    };
+    want('Monday', ['m10', 'm11']);
+    want('Monday, Friday', ['f10', 'f11', 'm10', 'm11']);
+    want('Monday, Wednesday, Friday', ['f10', 'f11', 'm10', 'm11', 'w10', 'w11']);
+    /* A CELL THAT NAMES NO DAY MARKS NOTHING, which is the case the old guard was written for and
+       is still right: an empty `weekday` is a booking with no day yet, not every day. */
+    want('', []);
+    want('whenever', []);
+    /* AND ONLY THE TUTOR ACTUALLY TEACHING IT. Somebody who applied and was not chosen is free. */
+    api.set(LIVE);
+    api.setJobs([job('J', 'Monday, Friday')], { J: 'Someone Else' });
+    if (Object.keys(api.busyHours('George')).length) {
+      bad.push('a job another tutor teaches made George busy');
+    }
+    /* AND A CANCELLED SESSION RELEASES ITS HOURS, which is what `jobStatusOf` is consulted for —
+       asserted here because the case above leans on it, and a guard nothing measures is a guard
+       that can quietly become the reason a rule passes. */
+    api.set([REQUEST('Rasa'), REQUEST('George', 'tutor'), e('Rasa', 'client', ACT.WITHDRAW)]);
+    api.setJobs([job('J', 'Monday, Friday')], { J: 'George' });
+    if (Object.keys(api.busyHours('George')).length) {
+      bad.push('a cancelled session still held its hours');
+    }
+    return bad;
+  },
+});
 
 /* ---------- RUN ---------------------------------------------------------------------------------- */
 let failed = 0;

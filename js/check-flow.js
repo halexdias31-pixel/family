@@ -216,6 +216,13 @@ function boot(opts) {
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
+      /* WHAT WOULD GO ON THE WIRE. The day list, the start time and the session length are all
+         taken from the FIRST run, so a journey asking whether the week reads in order is asking
+         about three cells of the job row as well as about the card. */
+      'spec: () => (typeof bookSpec === "function" ? bookSpec() : null),' +
+      /* THE RECEIPT'S WEEK, built from a saved job rather than from the form, so a journey can ask
+         whether what was sent is what comes back drawn. */
+      'jobGrid: typeof jobGrid_ === "function" ? jobGrid_ : null,' +
       /* AN ADMIN'S ACTIONS ON A SESSION, so a journey can ask that moving them from buttons to
          tiles did not lose one. */
       /* THE PAGER TABLE AND THE PAGE COUNTER, so a journey can ask whether what the header counts is
@@ -733,9 +740,27 @@ check('the booking form asks a session everything and a class almost nothing', a
 });
 
 check('a class books through joinWaitlist, a session through createJob', async () => {
+  /* ---------- THE TWO KINDS ARE READ OFF THE STEP, NOT TYPED HERE ------------------------------
+     THIS SEEDED `'A session of your own'` AND `'A shared class — join the waiting list'`, and the
+     Kind question has offered `Instant class` and `Waiting list class` for months. It went on
+     passing because `isWaiting_` is a substring test for "wait" and the old label happened to carry
+     one — so both branches really were exercised, by luck, on two strings nobody can choose.
+
+     THAT IS A CHECK MEASURING A STATE THE APP CANNOT BE IN, which is this file's own recurring
+     fault seen from the instrument's side. The step's `options()` is the one list the form offers;
+     `isWaiting_` still decides which is which, so the mapping cannot go stale either. */
   const bad = [];
-  for (const [how, action] of [['A session of your own', 'createJob'],
-                               ['A shared class — join the waiting list', 'joinWaitlist']]) {
+  const { w: w0 } = boot();
+  await wait(300);
+  const kind = (w0.__t.STEPS || []).find(s => s.id === 'how');
+  if (!kind) return ['the Kind step is not in BOOK_STEPS — cannot check the send paths'];
+  const kinds = kind.options().filter(Boolean);
+  if (kinds.length !== 2) return ['the Kind question offers ' + kinds.length + ' answers, not 2'];
+  const pairs = kinds.map(k => [k, /wait/i.test(k) ? 'joinWaitlist' : 'createJob']);
+  if (new Set(pairs.map(p => p[1])).size !== 2) {
+    return ['both Kind answers take the same send path: ' + JSON.stringify(pairs)];
+  }
+  for (const [how, action] of pairs) {
     const { w, sent } = boot();
     await wait(300);
     w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
@@ -752,6 +777,70 @@ check('a class books through joinWaitlist, a session through createJob', async (
       bad.push(how + ' sent [' + (got.join(', ') || 'nothing') + '], expected ' + action);
     }
   }
+  return bad;
+});
+
+check('a booking over several days reads in the week\'s own order', async () => {
+  /* ---------- THE RUNS CAME BACK ALPHABETICALLY BY THEIR CODE PREFIX ---------------------------
+     `bookRuns` SORTED `a.day.localeCompare(b.day)` OVER `m / tu / w / th / f / sa / su`, which is
+     Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday. A Monday-and-Friday booking —
+     the commonest two-day shape there is — came back `Friday, Monday`.
+
+     THREE THINGS ARE TAKEN FROM THE FIRST RUN, so it was never only the reading order: the day list
+     goes into the job's `weekday` cell, `time` becomes `start_time`, and `hours` becomes
+     `hours_per_session`, which `priceLooksWrong` measures the total against. A Monday 10-12 with a
+     Friday 16-18 recorded its start as 16:00.
+
+     THE TOTAL IS UNAFFECTED and that is exactly why nothing caught it: the money is built from
+     `hoursPerWeek` and the real session dates, both sums over every run, so every figure on the
+     card was right while the day and the time beside them were not.
+
+     THE RULE RATHER THAN THE INSTANCE. `blockSay_` already orders the waiting list's week off
+     `SLOT_DAYS` with a note saying why; the hour week kept the old sort. This is what makes the
+     next one fail instead of being noticed. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.spec) return ['bookSpec is not exported — cannot check the day order'];
+  const B = w.__t.BOOKING;
+  const bad = [];
+
+  [['Monday and Friday', ['m10', 'm11', 'f16', 'f17'], 'Monday, Friday', '10:00'],
+   ['Thursday and Saturday', ['th14', 'sa10'], 'Thursday, Saturday', '14:00'],
+   ['three days', ['m10', 'm11', 'w15', 'f9', 'f10', 'f11'], 'Monday, Wednesday, Friday', '10:00'],
+   ['Sunday and Monday', ['su12', 'm9'], 'Monday, Sunday', '09:00'],
+  ].forEach(([name, slots, day, time]) => {
+    B.slots = slots;
+    const s = w.__t.spec();
+    if (s.day !== day) bad.push(name + ': the days read "' + s.day + '", wanted "' + day + '"');
+    if (s.time !== time) bad.push(name + ': the session starts "' + s.time + '", wanted "' + time + '"');
+  });
+  B.slots = [];
+  return bad;
+});
+
+check('a receipt lights every day its booking runs on', async () => {
+  /* ---------- THE WEEK WAS COMPARED TO ONE DAY NAME --------------------------------------------
+     `jobGrid_` DID `norm(label) === norm(j.weekday)`, and `weekday` holds what `bookSpec` sent:
+     every day the booking runs, joined with commas. So `norm('Monday')` never equalled
+     `norm('Monday, Friday')` — not for Monday and not for Friday — and a two-day booking lit
+     NOTHING. Measured: 2 cells on a one-day job, 0 on a two-day one, 0 on a three-day one.
+
+     THE TALLEST BLOCK ON THE RECEIPT, DARK, on exactly the bookings somebody most needs to check,
+     and it reads as a week with no session in it rather than as a fault. That grid exists, by its
+     own note, so a family can SEE when their session runs instead of reading it off a line.
+
+     THE SPAN IS ONE SPAN and is shown on each named day, because `start_time` and
+     `hours_per_session` are single cells on the job row. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.jobGrid) return ['jobGrid_ is not exported — cannot check the receipt week'];
+  const lit = wd => (String(w.__t.jobGrid({ weekday: wd, time: '10:00', hours: 2 }))
+    .match(/class="hr on/g) || []).length;
+  const bad = [];
+  [['Monday', 2], ['Monday, Friday', 4], ['Monday, Wednesday, Friday', 6]].forEach(([wd, want]) => {
+    const got = lit(wd);
+    if (got !== want) bad.push('"' + wd + '" lights ' + got + ' cells, wanted ' + want);
+  });
   return bad;
 });
 

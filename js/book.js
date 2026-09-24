@@ -753,7 +753,27 @@ function bookRuns() {
     const dayName = (SLOT_DAYS.find(d => d[0] === t.day) || [])[1] || t.day;
     runs.push({ day: t.day, dayName, hour: t.hour, hours });
   });
-  return runs.sort((a, b) => a.day.localeCompare(b.day) || a.hour - b.hour);
+  /* ---------- IN THE WEEK'S OWN ORDER, OFF `SLOT_DAYS` -----------------------------------------
+     THIS SORTED THE CODE PREFIXES ALPHABETICALLY — `f`, `m`, `sa`, `su`, `th`, `tu`, `w` — which is
+     Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday. Measured: a Monday-and-Friday
+     booking, which is the commonest two-day shape there is, came back `Friday, Monday`.
+
+     AND IT IS NOT ONLY THE READING ORDER, because three things are taken from the FIRST run. The
+     day list goes on the receipt and into the job's `weekday` cell; `time` is the first run's hour
+     and becomes `start_time`; `hours` is the first run's length and becomes `hours_per_session`,
+     which `priceLooksWrong` then measures the total against. So a Monday 10-12 with a Friday 16-18
+     recorded its start as 16:00, and a Monday 10-12 / Wednesday 15-16 / Friday 09-12 recorded a
+     three-hour session because Friday sorted first. The comment above says the first run names the
+     session, and it meant the first of the WEEK.
+
+     THE TOTAL IS UNAFFECTED, which is why nothing showed: the money is built from `hoursPerWeek`
+     and the real session dates (see `priceFrom`), and both are sums over every run.
+
+     `blockSay_` ALREADY LEARNED THIS — *"in the week's own order, off `SLOT_DAYS`, so Sunday cannot
+     sort to the front"* — on the waiting list's week, written months after this one. One lesson,
+     applied to one of the two weeks, which is this repository's oldest shape. */
+  const dayAt_ = d => { const i = SLOT_DAYS.findIndex(x => x[0] === d); return i === -1 ? 99 : i; };
+  return runs.sort((a, b) => dayAt_(a.day) - dayAt_(b.day) || a.hour - b.hour);
 }
 
 /* Every question, in the order somebody assembles a booking: WHAT, then WHO FOR, then WHERE, then
@@ -1201,7 +1221,7 @@ const BOOK_STEPS = [
      THE SESSIONS ARE COUNTED PER TERM AND ADDED, NOT FROM THE FIRST START TO THE LAST END. That
      distinction is the whole of why this is worth more than one line: `Autumn 1` and `Autumn 2` have
      the October half term between them, and a window drawn end to end would bill a family for a week
-     the school is shut. `bookSpec` sends `windows`, one per chosen term, and `computePrice` walks
+     the school is shut. `bookSpec` sends `windows`, one per chosen term, and `priceFrom` walks
      them — see the note there.
 
      `multi: true` IS ALL THE CONTROL NEEDED. `stepControl_` already draws a toggling dropdown with
@@ -1453,7 +1473,7 @@ function bookSpec() {
 
        `windows` IS WHAT THE SESSIONS ARE COUNTED FROM, one per chosen term, and it is the reason
        this is not just a longer string: Autumn 1 and Autumn 2 have the October half term between
-       them, so an outer span would bill a family for a week nobody teaches. `computePrice` walks
+       them, so an outer span would bill a family for a week nobody teaches. `priceFrom` walks
        the list where there is one and falls back to the single pair where there is not — a live
        job prices from `spec.slots` and never reaches either. */
     interval: ivs.map(x => x.label || x.term).join(', '),
@@ -3446,7 +3466,22 @@ function jobRows(j) {
    is a question about what COULD be booked; a receipt is about what WAS. So a session on Monday at
    12 for two hours lights Monday 12 and 13, and every other cell is simply a cell. */
 function jobGrid_(j) {
-  const day = norm(j && j.weekday);
+  /* ---------- A BOOKING MAY RUN ON MORE THAN ONE DAY, AND THE CELL SAYS SO -----------------------
+     THIS COMPARED THE WHOLE CELL TO ONE DAY NAME. `weekday` holds what `bookSpec` sent, which is
+     every day the booking runs joined with commas — so `norm('Monday') === norm('Monday, Friday')`
+     is false for Monday AND for Friday, and a two-day booking lit NOTHING. Measured: 2 cells on a
+     one-day job, **0 on a two-day one and 0 on a three-day one**.
+
+     THE TALLEST BLOCK ON THE RECEIPT, DARK, on exactly the bookings somebody most needs to check —
+     and it reads as a week with no session in it rather than as a fault. The note above says this
+     grid exists so a family can SEE when their session runs instead of reading it off a line.
+
+     ONE SPAN, SHOWN ON EVERY DAY, because that is what the job row holds: `start_time` and
+     `hours_per_session` are single cells. Where the runs really differ the row is already a
+     simplification of them — see `bookSpec`, where the first run of the week names the session —
+     and lighting the span this receipt states on each of its own days is the honest reading of it.
+     Lighting nothing was not. */
+  const days = String((j && j.weekday) || '').split(',').map(norm).filter(Boolean);
   const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
   const hours = SLOT_HOURS;
@@ -3457,7 +3492,8 @@ function jobGrid_(j) {
           `weekGrid_`, three cells; see the note over it. Disabled, because nothing on a receipt is
           answerable. */''}
     ${weekGrid_(
-      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours, on: norm(label) === day })),
+      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours,
+                                      on: days.indexOf(norm(label)) !== -1 })),
       (h, d) => {
         const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
         return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
