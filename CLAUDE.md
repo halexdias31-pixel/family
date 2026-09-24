@@ -9465,3 +9465,69 @@ still there — the same shape as `.favwrap.is-fav`, as `resource_type` in `VOCA
 **Measured after, three states × four widths**: `gridLeft === valueLeft` on the form at every width,
 no sideways scroll anywhere, `under: 0` on every pane, and the block week unchanged at 55/70/74px a
 cell.
+
+## All the answers in one column, which needed the other three to give their width up
+
+**Asked for as "label each column at the top. Small", and then the reason behind three requests:**
+*"I want all input fields in 1 column. I don't want them to mix with other things. That's why I'm
+trying to get the time grid in the coloumn. However I know it's a big thing to have in one column."*
+
+**That principle cannot be held with the figure columns there, and the arithmetic is why.** An
+answer lives in track 2, which is **78px of 312 at 390** with the multiplier, the rate and the total
+behind it — and eleven hours in 78px is a **seven-pixel cell**. So either the week spans the figure
+tracks and mixes, which is the complaint, or the figure tracks give their width up when they hold
+nothing. There is no third arrangement: the week needs 244px and the card has 312.
+
+**So the answer column is the wide one until figures need the room.** `.bk-v` spans `2 / -1`, which
+is exactly where `.bk-open` puts the week — measured on the form at three widths, **the dash and the
+grid now share both edges**: `[111, 351]` at 390, `[93, 287]` at 320, `[295, 549]` at 768.
+
+### This rule has been written, reverted and written again, and the third time has a reason
+
+**Written from *"the grid shouldn't extend beyond the 1st coloumn like the other fields"*; reverted
+from *"what happened to all the columns I had before for things like multiplier"*.** Both reports
+are about one edge and they wanted it in different places, which is why it flip-flopped.
+
+**What the revert was about is answered by the header rather than by the columns.** "What happened
+to all the columns" is a question about columns that vanished with nothing saying so. `spineHead_`
+names them, so `× RATE TOTAL` appear **labelled** the moment there is a figure to put under them,
+and their absence on an unpriced form reads as *nothing is priced yet* instead of as something
+having gone missing. **Proved by the waiting-list state**, which is the one branch the fixture can
+price: it carries an `About` total, so the columns are there, `TOTAL` sits over `£144.00`, and the
+dash correctly stops at 189 while the week runs to 351.
+
+**`:has` reads the card's own totals** rather than a flag somebody sets, so there is no second place
+for "is this priced" to be wrong — and **the header is excluded from its own test**, which is the
+line that is easy to get wrong. `spineHead_` writes the word `Total` into a `.bk-t`, so a plain
+`:has(.bk-t:not(:empty))` is true on every card and the rule could never fire. The descendant is
+`.bk-row:not(.is-cols)`.
+
+### The column headings existed once and were deleted for being big
+
+**The note where they were says they were *"six words explaining a layout nobody was confused by,
+and the widest band of text on the card"*.** Half of that has stopped being true — the report that
+brought them back is somebody counting the columns and asking which is which — and the other half is
+exactly why the word **Small** was in the request. `.58rem` of tracked uppercase in the faint ink,
+reading as a caption rather than as a row of the document.
+
+**The stub head is blank**, which is what a table does with the column its row names live in. **The
+value column's word comes from the caller** — `Answer` on the form and `Detail` on the receipt,
+because the two documents are not the same sentence: the same `fieldsHtml(head)` move, cheaper than
+a second builder differing by one word.
+
+### It cost 11px on the one card that had 8, and where they came back is the entry
+
+**`check/ui.js` named it immediately**: the waiting-list branch runs 812px of content into an 805px
+pane at 768, and its own note already records it arriving with **three pixels spare at 390 and eight
+at 768**. A header at an ordinary line-height put it 11px past the fold.
+
+| | |
+|---|---|
+| **the `.rc-rule` above the rows** | **8px.** A rule and a dashed border under the header is two lines doing one job, and the second is labelled. Without a header the rule stays, because then nothing else closes the block above off |
+| **the header's own spacing** | 17.8px → **12.1px.** 1.15 rather than 1.4, almost no padding under the words, and no margin under the rule — a `.bk-row` has none either, and the border IS the separation |
+| **`.bk`'s top margin** | `.4rem` → `.15rem`, off `:has`, because that margin was sized for a rule and its `.22rem` that are no longer there |
+
+**Measured after: `under: 0` on all four states at all four widths**, no sideways scroll, and all 37
+checks pass. **Nothing redundant was found on that card first** — its blocks were listed and the
+tiles are 44px targets, the terms line is a link and the summary is content — so the header paid for
+itself rather than being funded by something else's headroom.

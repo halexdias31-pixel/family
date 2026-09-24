@@ -2857,6 +2857,8 @@ function bookBreakdown(L, foot) {
     /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
+    /* THE COLUMN HEADER'S WORD FOR THE INPUT COLUMN — see `spineHead_`. A form is answered. */
+    cols: 'Answer',
     rows: out,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE ---------------------------------
        The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
@@ -3008,6 +3010,37 @@ function rosterHtml(o) {
    walked once — the shared picture reads the same list, and a second layout is how the screen and
    the picture come to disagree.
 ================================================================================================== */
+/* ---------- WHAT EACH COLUMN IS, IN ONE SMALL ROW AT THE TOP -------------------------------------
+   ASKED FOR AS *"label each column at the top. Small"*, and the word that matters is the last one.
+   THIS CARD HAD COLUMN HEADINGS ONCE and they were deleted — the note where they were says they were
+   *"six words explaining a layout nobody was confused by, and the widest band of text on the card"*.
+   Half of that has stopped being true: the report that brought them back is somebody counting the
+   columns and asking which is which. The other half is why this is .58rem of uppercase tracking
+   rather than a band: a heading that costs a line of reading is the thing that was right to delete.
+
+   THE STUB HEAD IS BLANK, which is what a table does with the column its row names live in. A word
+   over "For / Kind / Subject" would be a label for labels.
+
+   AND IT IS THE SAME ROW AS EVERY OTHER ROW, `.bk-row` and the six spans, so the labels sit over
+   their columns by construction rather than by a second set of widths that can disagree. That is
+   `weekGrid_`'s header one card out, and the fault it avoids is the one this stylesheet keeps
+   paying for.
+
+   THE VALUE COLUMN'S WORD COMES FROM THE CALLER because the two documents are not the same
+   sentence: the form is what you ANSWER and the receipt is what was DECIDED. Same move as
+   `fieldsHtml(head)`, and cheaper than a second builder differing by one word. */
+function spineHead_(r) {
+  if (!r || !r.cols || !(r.rows || []).length) return '';
+  return `<div class="bk-row is-cols">
+    <span class="bk-n"></span>
+    <span class="bk-k"></span>
+    <span class="bk-v">${esc(r.cols)}</span>
+    <span class="bk-m">×</span>
+    <span class="bk-r">Rate</span>
+    <span class="bk-t">Total</span>
+  </div>`;
+}
+
 function receiptHtml(r) {
   /* ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD -------------
      `kind` PICKED ONE OF FOUR COSTUMES — screen, application, waitlist, receipt — and appended a
@@ -3047,12 +3080,20 @@ function receiptHtml(r) {
         ? `<p>${(r.lines || []).filter(Boolean).map(esc).join(' · ')}</p>` : ''}
     </div>
     ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
-    <div class="rc-rule"></div>
-    ${/* THE COLUMN HEADINGS ARE GONE. "# Item × Rate Total" over four rows that are plainly a
+    ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN ------------------------------
+         A `.rc-rule` HERE AND A DASHED BORDER UNDER `.is-cols` IS TWO LINES DOING ONE JOB, and the
+         second one is labelled. It is not tidiness: the waiting-list card has three pixels of
+         headroom in its pane at 390 and eight at 768 — measured, and written up where the block
+         week is — so the header had to be paid for out of something. `.rc-rule` is 1px and
+         `.22rem` either side, which is 8px at 768, and that is most of what the header costs.
+
+         WITHOUT A HEADER THE RULE STAYS, because then nothing else closes the block above off. */''}
+    ${spineHead_(r) ? '' : '<div class="rc-rule"></div>'}
+    ${/* THE OLD COLUMN HEADINGS ARE STILL GONE, and `spineHead_` is not them. "# Item × Rate Total" over four rows that are plainly a
          number, a thing, a multiplier and a price — six words explaining a layout nobody was
          confused by, and the widest band of text on the card. A receipt is read by shape rather
          than by heading, and the shape was already doing the work. */''}
-    <div class="bk">${(r.rows || []).join('')}</div>
+    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}</div>
     <div class="rc-rule"></div>
     <div class="bk-row rc-total">
       <span class="bk-n"></span>
@@ -3524,6 +3565,8 @@ function jobReceipt(j) {
        what somebody is deciding about. Both names are tried, because two lists genuinely use two. */
     lines: [j.venue || j.location || 'No venue', j.tutor || 'No tutor yet', j.term || '']
       .filter(Boolean),
+    /* AND THE RECEIPT'S, which is not "Answer": nothing on it is being asked. */
+    cols: 'Detail',
     rows: rows.map(receiptRow),
     /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" was the default
        everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to
