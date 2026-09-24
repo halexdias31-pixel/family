@@ -2768,6 +2768,45 @@ button.text-drop { color: var(--bad); }
    than 2px, which is the same trade the joined-hours bridge already paints into.
 ================================================================================================== */
 .bk-row.bk-wk { align-items: center; padding: 0; }
+/* ---------- 44% OF THE ANSWER COLUMN, ASKED FOR TWICE AND MEASURED BOTH TIMES --------------------
+   ASKED FOR AS *"i would like the grid to be half as wide"* and then *"can you make the grid even
+   slightly thinner"*, and the arithmetic was put in front of the owner before either was written,
+   because this is the one measurement in this stylesheet the house style says must not scale.
+
+     full width   320px 18.5px a cell      390px 23.1      768px 24.4
+     half         320px  8.8               390px 11.1      768px 11.8
+     44%          320px  7.6               390px  9.7      768px 10.3
+
+   AND 44 RATHER THAN 40 BECAUSE THE HOUR NUMBERS BECOME THE FLOOR, which is the same shape of stop
+   as the day name on the height axis. A two-digit hour is 6.4px of ink at 320: at 44% its box is
+   7.6px, so it has 1.2px either side; at 42% that is 0.9px and at 40% it is 0.5px, which is inside
+   the margin between this container's font rendering and a real phone's. Below 44 the thing that
+   breaks first is the label, not the target.
+
+   THE HEIGHT AXIS IS SPENT AND WAS RE-MEASURED RATHER THAN QUOTED. At 390 the day name's own line
+   box is 14.8px against a 14px cell, so the LABEL already decides the row: asking for a 13px cell
+   takes the whole week from 111.7 to 110.7 — one pixel, across seven rows. At 320 the label box is
+   12.3px and there are about twelve pixels to be had, on the narrowest phone only. That is why
+   "even slightly thinner" was answered on the width.
+
+   `ACCEPTED_TAP` has carried these cells at 18.5 with the arithmetic beside them — eleven fingertips
+   need 484px and no phone is that wide — and this takes an accepted compromise well past where a
+   wrong tap is rare. The three shapes that give half the width for free were offered with their own
+   numbers (five-hour rows 18.6/23.2/24.5, turned on its side 13/16.3/17.2, a shorter span) and the
+   squeeze was chosen over all three. It is the owner's card and the owner's call, made with the
+   numbers visible; they are written here so it is a decision rather than something nobody measured.
+
+   ONE DECLARATION ON THE CELL, so the hour strip and the numbers above it cannot come out different
+   widths — which is the argument `.slot-hh`'s own note makes about a header sized by hand. And the
+   LEFT edge does not move: a grid item with an explicit width starts where its track starts, so the
+   week still begins at 111.3 with every other answer on the card, which is the thing four rounds of
+   this were about.
+
+   NOT THE BLOCK WEEK. `blk` is the one class that says "this week's cells are different" — three of
+   them a row, which is why they can pay a real fingertip where eleven cannot — so halving those as
+   well would shrink the one grid in this app that is not a compromise, for a complaint about the
+   other one. They are never on the same card. */
+.bk-row.bk-wk .bk-v:not(:has(.blk)) { width: 44%; }
 .bk-row.bk-wk .slot-hours { gap: 1px; }
 .bk-row.bk-wk .hr { min-height: 14px; }
 /* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
