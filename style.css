@@ -2648,18 +2648,21 @@ button.text-drop { color: var(--bad); }
      rule for both now, because they are never on one card — `stepGrid_` draws the hours for an
      ordinary booking and the blocks for a waiting list, one per branch.
 
-     AND THE RIGHT EDGE IS THE HALF THAT CANNOT MOVE, which is worth saying here because it is what
-     the next screenshot will be about. `2 / -1` is the value column AND the three figure tracks
-     behind it, so the week starts where the answers start and still runs to the card's edge while
-     an unanswered row's dash stops at 189 of 351. Clipping it to 189 is `2 / 3`, and that is 78px
-     for eleven hours — a SEVEN-pixel cell, which is the arithmetic already written beside
-     `.bk-row.is-blank` where this was refused once before.
+     AND THE RIGHT EDGE IS THE HALF THAT CANNOT MOVE — asked for a third time, measured, and the
+     measurement is the reason rather than a preference. `2 / -1` looks as though it spans the value
+     column and the three figure tracks; on THIS row it does not. `.bk-row.is-head` is `.is-bare`,
+     which is two tracks — `67.98px | 239.86px` at 390 — so `2 / -1` and `2 / 3` are the same edge
+     here and the week is already the whole of column 2 of its own row.
 
-     SO THE CARD'S TWO RIGHT EDGES ARE NOT THIS RULE'S TO CLOSE. They are the price of the
-     multiplier, the rate and the total being on an unpriced form at all — hidden once, on this
-     same complaint, and put back on *"what happened to all the columns I had before"*. That lever
-     is beside `is-blank` and it is the owner's; this one only moves the left edge, which is the
-     half the arithmetic allows. */
+     WHAT THE NEXT SCREENSHOT ASKS FOR IS 189, where an answer's dash stops on the ordinary
+     five-track row. Giving this row those tracks puts eleven cells and ten gaps into 78.2px: a
+     FIVE-PIXEL cell, against the 20px floor the note over `.hr` sets from a fingertip. On its side
+     is no better — seven day-columns in 78.2px is 11px — and the tracks cannot give the width back,
+     because they hold `× 6`, `£12.00/h` and `£144.00`, which is 148px of digits that have to fit.
+
+     SO THE CARD HAS TWO RIGHT EDGES, and the header row is what makes that legible: `× RATE TOTAL`
+     are named above the space to the right of a dash, so it reads as three columns waiting for a
+     price rather than as a value that stopped early. See the note beside `.bk-row.is-cols`. */
   grid-column: 2 / -1;
   margin: 0 0 .06rem 0;
   padding-bottom: .08rem;
@@ -6183,49 +6186,35 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    STARTS and not where it ends, and the end is the edge somebody reads. */
 .bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
 
-/* ---------- A CARD WITH NO FIGURES ON IT HAS NO FIGURE COLUMNS, THIRD TIME OF ASKING ---------------
-   THIS RULE HAS BEEN WRITTEN, REVERTED AND WRITTEN AGAIN, and the third time is the one with a
-   reason behind it rather than a preference. Written from *"the grid shouldn’t extend beyond the
-   1st coloumn like the other fields"*; reverted from *"what happened to all the columns I had
-   before for things like multiplier"*; and back now because the owner said what they were actually
-   after: *"I want all input fields in 1 column. I don’t want them to mix with other things. That’s
-   why I’m trying to get the time grid in the coloumn."*
+/* ---------- THE FIGURE COLUMNS STAY ON AN UNPRICED CARD, FOURTH TIME OF ASKING --------------------
+   A RULE THAT COLLAPSED THEM WAS HERE AND IS GONE. It hid `.bk-m`, `.bk-r` and `.bk-t` on every row
+   of a card carrying no totals, and let the value span `2 / -1` to take the width back — written
+   from *"I want all input fields in 1 column"*, and reported the next morning with a photograph of
+   a form headed `ANSWER` and nothing else: *"now there's only 2 columns again. Resume the 4-5
+   columns."* Written, reverted, written, reverted. It is not coming back a third time; the header
+   row names the columns and the columns are always there, which is what "resume" means.
 
-   THAT PRINCIPLE CANNOT BE HELD WITH THE COLUMNS THERE, and the arithmetic is why. An answer lives
-   in track 2, which is 78px of 312 at 390 with the multiplier, the rate and the total behind it —
-   and eleven hours in 78px is a SEVEN-pixel cell. So either the week spans the figure tracks (and
-   mixes, which is the complaint) or the figure tracks give their width up when they are holding
-   nothing. There is no third arrangement: the week needs 244px and the card has 312.
+   WHAT IT COSTS IS THE ANSWER COLUMN, and the number is the whole reason it kept being written:
+   with the three figure tracks present a value is 58.6px at 320, 78.2px at 390 and 84.1px at 768.
+   That is what an answer had before any of this and it is what it has again.
 
-   SO THE ANSWER COLUMN IS THE WIDE ONE UNTIL FIGURES NEED THE ROOM. `.bk-v` spans `2 / -1`, which
-   is exactly where `.bk-open` puts the week — one left edge and one right edge for every answer on
-   the card, the grid included, which is the whole of what was asked for.
+   AND THE WEEK CANNOT JOIN THEM, WHICH IS THE HALF THAT IS ARITHMETIC RATHER THAN TASTE.
+   *"Have the grid be in only one column. The second column. The input column."* — measured, the
+   week already IS column 2 of its own row: `.bk-row.is-head` is `.is-bare`, two tracks of
+   `67.98px | 239.86px` at 390, so `2 / -1` and `2 / 3` are the same edge on that row and the grid
+   starts exactly where every answer on the card starts.
 
-   AND WHAT THE REVERT WAS ABOUT IS ANSWERED BY THE HEADER RATHER THAN BY THE COLUMNS. "What
-   happened to all the columns" is a question about columns that vanished with nothing saying so —
-   `spineHead_` names them now, so `× Rate Total` appear, labelled, the moment there is a figure to
-   put under them, and their absence on an unpriced form reads as "nothing is priced yet" instead of
-   as something having gone missing.
+   WHAT IS BEING ASKED FOR IS ITS RIGHT EDGE, at 189 where an answer's dash stops. Giving the grid
+   row the ordinary five tracks puts eleven hours and ten gaps into 78.2px: a FIVE-PIXEL cell, and
+   the note over `.hr` sets the floor at 20 against a fingertip. Turning the week on its side does
+   not save it either — seven day-columns in 78px is 11px. The figure tracks cannot give the room
+   back, because they hold `× 6`, `£12.00/h` and `£144.00` and those are 148px of digits.
 
-   IT UNDOES ITSELF THE MOMENT ANYTHING IS PRICED. `:has` reads the card’s own totals rather than a
-   flag somebody has to set, so there is no second place for "is this priced" to be wrong — the
-   fault this stylesheet pays for every time a width is stated twice. Nothing moves vertically when
-   it flips, which is what `SPINE`’s objection to a changing shape is about.
-
-   THE HEADER IS EXCLUDED FROM ITS OWN TEST, and that is the one line that is easy to get wrong:
-   `spineHead_` writes the word "Total" into a `.bk-t`, so a plain `:has(.bk-t:not(:empty))` is true
-   on every card and this rule could never fire. The descendant is `.bk-row:not(.is-cols)`, so the
-   header is read as a label and not as a figure — and it collapses with the columns it names,
-   because it is not `.is-wide` either.
-
-   TO PUT THE COLUMNS BACK ON AN UNPRICED FORM, delete this block. The week then spans the figure
-   tracks as before and the card has two right edges again, which is the trade this note records. */
-.bk:not(:has(.bk-row:not(.is-cols) .bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-m,
-.bk:not(:has(.bk-row:not(.is-cols) .bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-r,
-.bk:not(:has(.bk-row:not(.is-cols) .bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-t { display: none; }
-.bk:not(:has(.bk-row:not(.is-cols) .bk-t:not(:empty))) .bk-row:not(.is-wide) .bk-v {
-  grid-column: 2 / -1;
-}
+   SO THE CARD HAS TWO RIGHT EDGES AND THIS IS WHY. The answers and the figures share one; the week
+   has the other, because 240px is what a pressable week costs and the card has 312. The header row
+   is what makes that readable rather than arbitrary — `× RATE TOTAL` are named, so the space to the
+   right of a dash is visibly three columns waiting for a price rather than a value that stopped
+   early. */
 
 /* ---------- AND THE SMALL ROW THAT SAYS WHICH COLUMN IS WHICH -------------------------------------
    *"Label each column at the top. Small"* — and small is the requirement, not the decoration. The
@@ -6240,7 +6229,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    everywhere else.
 
    AND ITS FIGURES ARE NOT IN `--mono`. `.bk-m`, `.bk-r` and `.bk-t` are monospaced because they hold
-   digits that have to line up down a column; `×`, `Rate` and `Total` are words. */
+   digits that have to line up down a column; `×`, `Rate` and `Total` are words.
+
+   IT NAMES ALL FIVE ON EVERY CARD NOW. It used to collapse to two with the columns it named, under
+   the rule that hid them on an unpriced form — which is what produced a form headed `ANSWER` and
+   the report that the columns had gone again. The columns are permanent; so is the header. Its own
+   job is exactly that: the empty space right of a dash is three named columns waiting for a price,
+   which is the only thing that makes the card's two right edges read as a layout rather than as a
+   row that stopped early. */
 /* ---------- AND IT IS TRIMMED TO WHAT THE TIGHTEST CARD CAN PAY -----------------------------------
    THE WAITING-LIST BRANCH IS THE ONE THAT DECIDES THESE FOUR NUMBERS, not taste. It runs 812px of
    content into an 805px pane at 768 the moment anything is added — its own note records it arriving
