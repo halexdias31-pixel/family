@@ -753,7 +753,27 @@ function bookRuns() {
     const dayName = (SLOT_DAYS.find(d => d[0] === t.day) || [])[1] || t.day;
     runs.push({ day: t.day, dayName, hour: t.hour, hours });
   });
-  return runs.sort((a, b) => a.day.localeCompare(b.day) || a.hour - b.hour);
+  /* ---------- IN THE WEEK'S OWN ORDER, OFF `SLOT_DAYS` -----------------------------------------
+     THIS SORTED THE CODE PREFIXES ALPHABETICALLY — `f`, `m`, `sa`, `su`, `th`, `tu`, `w` — which is
+     Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday. Measured: a Monday-and-Friday
+     booking, which is the commonest two-day shape there is, came back `Friday, Monday`.
+
+     AND IT IS NOT ONLY THE READING ORDER, because three things are taken from the FIRST run. The
+     day list goes on the receipt and into the job's `weekday` cell; `time` is the first run's hour
+     and becomes `start_time`; `hours` is the first run's length and becomes `hours_per_session`,
+     which `priceLooksWrong` then measures the total against. So a Monday 10-12 with a Friday 16-18
+     recorded its start as 16:00, and a Monday 10-12 / Wednesday 15-16 / Friday 09-12 recorded a
+     three-hour session because Friday sorted first. The comment above says the first run names the
+     session, and it meant the first of the WEEK.
+
+     THE TOTAL IS UNAFFECTED, which is why nothing showed: the money is built from `hoursPerWeek`
+     and the real session dates (see `priceFrom`), and both are sums over every run.
+
+     `blockSay_` ALREADY LEARNED THIS — *"in the week's own order, off `SLOT_DAYS`, so Sunday cannot
+     sort to the front"* — on the waiting list's week, written months after this one. One lesson,
+     applied to one of the two weeks, which is this repository's oldest shape. */
+  const dayAt_ = d => { const i = SLOT_DAYS.findIndex(x => x[0] === d); return i === -1 ? 99 : i; };
+  return runs.sort((a, b) => dayAt_(a.day) - dayAt_(b.day) || a.hour - b.hour);
 }
 
 /* Every question, in the order somebody assembles a booking: WHAT, then WHO FOR, then WHERE, then
@@ -1169,7 +1189,26 @@ const BOOK_STEPS = [
 
      `options` IS EMPTY AND THAT IS NOT WHAT LOCKS IT. `stepLocked_` tests `st.grid` FIRST, so a
      grid step is answerable with no options — which is how the hour week has always worked. */
+  /* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL -------------------------------------
+     REPORTED AS *"When free field is redundant now as we are using the grid bit."* Measured on the
+     ordinary form: a row reading `When free  —`, with no control, no week and nothing that can ever
+     fill it — directly under the When row, which had just answered the same question to the hour.
+     `stepGrid_` draws the blocks only on the waiting branch and `options()` is empty, so
+     `stepControl_` draws nothing either: a question with no way to answer it, printed under the
+     answer.
+
+     THE RULE IS THE ONE `only:` ALREADY STATES on `SPINE_EXTRA`, and the distinction it draws is
+     the whole of why this is a deletion rather than a lock. A row you have not answered YET keeps
+     its dash — you are about to answer it, and a line appearing under your thumb moves everything
+     below it. A row this BRANCH can never answer was never on this document: an ordinary booking
+     does not become a waiting list.
+
+     `When` IS NOT MARKED AND THAT ASYMMETRY IS DELIBERATE. On a waiting list it is a dash too — and
+     it says *no day yet*, which is TRUE of that booking and becomes a real day once the list fills.
+     `When free` on an instant booking is not a fact about the booking; it is a question already
+     answered one row above, more precisely, by the grid that prompted this. */
   { id: 'avail', label: 'When could you come?', short: 'When free', multi: true,
+    only: 'wait',
     grid: 'blocks', options: () => [], why: () => '' },
 
   /* AND NO TERM, for the same reason as the day. */
@@ -1182,7 +1221,7 @@ const BOOK_STEPS = [
      THE SESSIONS ARE COUNTED PER TERM AND ADDED, NOT FROM THE FIRST START TO THE LAST END. That
      distinction is the whole of why this is worth more than one line: `Autumn 1` and `Autumn 2` have
      the October half term between them, and a window drawn end to end would bill a family for a week
-     the school is shut. `bookSpec` sends `windows`, one per chosen term, and `computePrice` walks
+     the school is shut. `bookSpec` sends `windows`, one per chosen term, and `priceFrom` walks
      them — see the note there.
 
      `multi: true` IS ALL THE CONTROL NEEDED. `stepControl_` already draws a toggling dropdown with
@@ -1358,7 +1397,15 @@ function bookAnswered_(step) {
  * to consult somebody it has already decided for.
  */
 function nextBookStep() {
+  const on = bookOn_();
   for (const step of BOOK_STEPS) {
+    /* THE OTHER BRANCH'S QUESTIONS ARE NOT ASKED — see the `only:` note on the `avail` step. It
+       changes nothing today, because that step offers no options and this loop already skips a
+       question with nothing to offer. It is here so `only:` means ONE thing rather than two: a
+       branch-only step added tomorrow WITH a list would otherwise be dropped from the card by
+       `stepRows_` and then asked by the funnel, which is the worst of both — a question on screen
+       that the document it belongs to does not have a row for. */
+    if (step.only && step.only !== on) continue;
     if (bookAnswered_(step)) continue;
     const opts = step.options().filter(Boolean);
     if (!opts.length) continue;                    // nothing to offer: leave it unanswered
@@ -1426,7 +1473,7 @@ function bookSpec() {
 
        `windows` IS WHAT THE SESSIONS ARE COUNTED FROM, one per chosen term, and it is the reason
        this is not just a longer string: Autumn 1 and Autumn 2 have the October half term between
-       them, so an outer span would bill a family for a week nobody teaches. `computePrice` walks
+       them, so an outer span would bill a family for a week nobody teaches. `priceFrom` walks
        the list where there is one and falls back to the single pair where there is not — a live
        job prices from `spec.slots` and never reaches either. */
     interval: ivs.map(x => x.label || x.term).join(', '),
@@ -2173,7 +2220,12 @@ function weekGrid_(days, cell) {
    equal rows — which is what makes it readable as a week rather than as a list. */
 function blockWeek_() {
   const on = BOOKING.avail || [];
-  return `<div class="bk-open is-blocks">
+  /* ---------- `is-blocks` HAS GONE, BECAUSE BOTH WEEKS ARE INDENTED NOW ---------------------------
+     IT WAS THE ONE THING THAT SAID "THIS WEEK MAY START AT THE VALUE COLUMN", back when the hour
+     week could not. `.bk-open` is `2 / -1` for both, so the class had no reader left and a class
+     with no rule behind it is the shape this file records under `.favwrap.is-fav` — markup that
+     reads as a decision and does nothing. The measurement that split them is where the rule is. */
+  return `<div class="bk-open">
     ${/* AND NO SENTENCE OVER IT. The greyed hour week carried one because a locked control with no
           reason beside it is the invisible mode — this one is not locked, and the two places that
           would say the same thing already do: the row above it asks "When could you come?" and the
@@ -2334,11 +2386,21 @@ function stepControl_(st) {
    A QUESTION WITH NOTHING TO OFFER IS NOT DRAWN. `nextBookStep` skips those and never asks them —
    the subjects question on a shared class, the children question for somebody with no children —
    so a row for one would be a line nobody can ever fill in. */
+/* WHICH OF THE FORM'S TWO BRANCHES THIS IS, in one place. `stepRows_` drops the other branch's
+   questions and `bookBreakdown` tells `spineRows_` not to invent them as dashes — two readings of
+   one fact, and a second `isWaiting_() ? 'wait' : 'book'` written out is the second reader this
+   file keeps finding. The words are the ones `SPINE_EXTRA`'s `only:` already uses. */
+function bookOn_() { return isWaiting_() ? 'wait' : 'book'; }
+
 function stepRows_() {
   let line = 0;
-  /* NO FILTER. Every step, every time — see `stepLocked_` for why a question with nothing to offer
-     is greyed rather than dropped. */
+  /* ONE FILTER, AND IT IS NOT ABOUT WHETHER A QUESTION CAN BE ANSWERED YET — see `stepLocked_` for
+     why a question with nothing to offer is greyed rather than dropped, and the `only:` note on the
+     `avail` step for the one thing that is dropped: a question belonging to the branch this card is
+     not on. */
+  const on = bookOn_();
   return BOOK_STEPS
+    .filter(st => !(st.only && st.only !== on))
     .map(st => {
       const v = BOOKING[st.id];
       const text = st.emails
@@ -2587,11 +2649,17 @@ const SPINE = (() => {
 const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '',
                       'Extra subjects': 'Extra subj.' };
 
-/* One row name to the one document that can fill it, read off `SPINE_EXTRA` so there is no second
-   list to keep in step. */
+/* One row name to the one document that can fill it, read off the two lists that declare rows so
+   there is no third one to keep in step.
+
+   BOTH, BECAUSE A STEP CAN BE BRANCH-ONLY TOO. `SPINE` is built from every step's `short`, so a
+   question `stepRows_` correctly drops would come straight back as an invented dash under the same
+   name — the row removed and then re-added by the function two hundred lines down. The flag is
+   declared once, beside the row it belongs to, wherever that row is declared. */
 const ONLY_ON = (() => {
   const m = {};
   SPINE_EXTRA.forEach(x => { if (x.only) m[x.row] = x.only; });
+  BOOK_STEPS.forEach(st => { if (st.only && st.short) m[st.short] = st.only; });
   return m;
 })();
 
@@ -2808,11 +2876,13 @@ function bookBreakdown(L, foot) {
      version did, and `Assignment to constant variable` took the whole screen down with it. One
      expression, so there is nothing to reassign and no order for the two steps to get wrong. */
   /* `on` SAYS WHICH OF THE FORM'S TWO BRANCHES THIS IS, so the other one's rows are not invented as
-     dashes — see the note over `SPINE_EXTRA`. Read from `isWaiting_()` rather than remembered,
-     because that is the one test the branch itself is taken on, four hundred lines up. */
+     dashes — see the note over `SPINE_EXTRA`. Through `bookOn_()`, which is the same answer
+     `stepRows_` drops the other branch's questions on: the row must not be re-added here under the
+     name the filter just removed, and one reader is what makes that impossible rather than
+     remembered. It resolves to `isWaiting_()`, the one test the branch itself is taken on. */
   const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]), { on: isWaiting_() ? 'wait' : 'book', said: merged });
+    .concat([noteRow_()]), { on: bookOn_(), said: merged });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
@@ -2852,6 +2922,8 @@ function bookBreakdown(L, foot) {
     /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
+    /* THE COLUMN HEADER'S WORD FOR THE INPUT COLUMN — see `spineHead_`. A form is answered. */
+    cols: 'Answer',
     rows: out,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE ---------------------------------
        The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
@@ -3003,6 +3075,37 @@ function rosterHtml(o) {
    walked once — the shared picture reads the same list, and a second layout is how the screen and
    the picture come to disagree.
 ================================================================================================== */
+/* ---------- WHAT EACH COLUMN IS, IN ONE SMALL ROW AT THE TOP -------------------------------------
+   ASKED FOR AS *"label each column at the top. Small"*, and the word that matters is the last one.
+   THIS CARD HAD COLUMN HEADINGS ONCE and they were deleted — the note where they were says they were
+   *"six words explaining a layout nobody was confused by, and the widest band of text on the card"*.
+   Half of that has stopped being true: the report that brought them back is somebody counting the
+   columns and asking which is which. The other half is why this is .58rem of uppercase tracking
+   rather than a band: a heading that costs a line of reading is the thing that was right to delete.
+
+   THE STUB HEAD IS BLANK, which is what a table does with the column its row names live in. A word
+   over "For / Kind / Subject" would be a label for labels.
+
+   AND IT IS THE SAME ROW AS EVERY OTHER ROW, `.bk-row` and the six spans, so the labels sit over
+   their columns by construction rather than by a second set of widths that can disagree. That is
+   `weekGrid_`'s header one card out, and the fault it avoids is the one this stylesheet keeps
+   paying for.
+
+   THE VALUE COLUMN'S WORD COMES FROM THE CALLER because the two documents are not the same
+   sentence: the form is what you ANSWER and the receipt is what was DECIDED. Same move as
+   `fieldsHtml(head)`, and cheaper than a second builder differing by one word. */
+function spineHead_(r) {
+  if (!r || !r.cols || !(r.rows || []).length) return '';
+  return `<div class="bk-row is-cols">
+    <span class="bk-n"></span>
+    <span class="bk-k"></span>
+    <span class="bk-v">${esc(r.cols)}</span>
+    <span class="bk-m">×</span>
+    <span class="bk-r">Rate</span>
+    <span class="bk-t">Total</span>
+  </div>`;
+}
+
 function receiptHtml(r) {
   /* ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD -------------
      `kind` PICKED ONE OF FOUR COSTUMES — screen, application, waitlist, receipt — and appended a
@@ -3042,12 +3145,20 @@ function receiptHtml(r) {
         ? `<p>${(r.lines || []).filter(Boolean).map(esc).join(' · ')}</p>` : ''}
     </div>
     ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
-    <div class="rc-rule"></div>
-    ${/* THE COLUMN HEADINGS ARE GONE. "# Item × Rate Total" over four rows that are plainly a
+    ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN ------------------------------
+         A `.rc-rule` HERE AND A DASHED BORDER UNDER `.is-cols` IS TWO LINES DOING ONE JOB, and the
+         second one is labelled. It is not tidiness: the waiting-list card has three pixels of
+         headroom in its pane at 390 and eight at 768 — measured, and written up where the block
+         week is — so the header had to be paid for out of something. `.rc-rule` is 1px and
+         `.22rem` either side, which is 8px at 768, and that is most of what the header costs.
+
+         WITHOUT A HEADER THE RULE STAYS, because then nothing else closes the block above off. */''}
+    ${spineHead_(r) ? '' : '<div class="rc-rule"></div>'}
+    ${/* THE OLD COLUMN HEADINGS ARE STILL GONE, and `spineHead_` is not them. "# Item × Rate Total" over four rows that are plainly a
          number, a thing, a multiplier and a price — six words explaining a layout nobody was
          confused by, and the widest band of text on the card. A receipt is read by shape rather
          than by heading, and the shape was already doing the work. */''}
-    <div class="bk">${(r.rows || []).join('')}</div>
+    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}</div>
     <div class="rc-rule"></div>
     <div class="bk-row rc-total">
       <span class="bk-n"></span>
@@ -3355,7 +3466,22 @@ function jobRows(j) {
    is a question about what COULD be booked; a receipt is about what WAS. So a session on Monday at
    12 for two hours lights Monday 12 and 13, and every other cell is simply a cell. */
 function jobGrid_(j) {
-  const day = norm(j && j.weekday);
+  /* ---------- A BOOKING MAY RUN ON MORE THAN ONE DAY, AND THE CELL SAYS SO -----------------------
+     THIS COMPARED THE WHOLE CELL TO ONE DAY NAME. `weekday` holds what `bookSpec` sent, which is
+     every day the booking runs joined with commas — so `norm('Monday') === norm('Monday, Friday')`
+     is false for Monday AND for Friday, and a two-day booking lit NOTHING. Measured: 2 cells on a
+     one-day job, **0 on a two-day one and 0 on a three-day one**.
+
+     THE TALLEST BLOCK ON THE RECEIPT, DARK, on exactly the bookings somebody most needs to check —
+     and it reads as a week with no session in it rather than as a fault. The note above says this
+     grid exists so a family can SEE when their session runs instead of reading it off a line.
+
+     ONE SPAN, SHOWN ON EVERY DAY, because that is what the job row holds: `start_time` and
+     `hours_per_session` are single cells. Where the runs really differ the row is already a
+     simplification of them — see `bookSpec`, where the first run of the week names the session —
+     and lighting the span this receipt states on each of its own days is the honest reading of it.
+     Lighting nothing was not. */
+  const days = String((j && j.weekday) || '').split(',').map(norm).filter(Boolean);
   const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
   const hours = SLOT_HOURS;
@@ -3366,7 +3492,8 @@ function jobGrid_(j) {
           `weekGrid_`, three cells; see the note over it. Disabled, because nothing on a receipt is
           answerable. */''}
     ${weekGrid_(
-      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours, on: norm(label) === day })),
+      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours,
+                                      on: days.indexOf(norm(label)) !== -1 })),
       (h, d) => {
         const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
         return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
@@ -3519,6 +3646,8 @@ function jobReceipt(j) {
        what somebody is deciding about. Both names are tried, because two lists genuinely use two. */
     lines: [j.venue || j.location || 'No venue', j.tutor || 'No tutor yet', j.term || '']
       .filter(Boolean),
+    /* AND THE RECEIPT'S, which is not "Answer": nothing on it is being asked. */
+    cols: 'Detail',
     rows: rows.map(receiptRow),
     /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" was the default
        everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to

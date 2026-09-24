@@ -6014,6 +6014,21 @@ app.
 **And the basket is excluded by name.** `is-wide` is already two columns — a title and a price — so
 hiding its total would take the price off a basket of free things.
 
+#### THIS WAS REVERTED, AND THE THREE SECTIONS ABOVE WENT ON DESCRIBING IT FOR WEEKS
+
+**The figure columns are NOT hidden on an unpriced card.** They were put back on *"what happened to
+all the columns I had before for things like multiplier"* — the revert is written up in `style.css`
+beside `.bk-row.is-blank`, and **nothing came back here to say so**. So every number in the table
+above is wrong about the live card: the value's right edge is 189 of 351 at 390px, not 351, and an
+unpriced form carries 145px of empty track on eighteen rows.
+
+**Found by measuring the card while answering a complaint about the week grid**, which is the only
+reason it is not still there. That is this file's own recurring fault pointed at itself — the same
+shape as `.favwrap.is-fav`, as `resource_type` in `VOCAB` and as the dead `kind === 'paper'` guard:
+a confident paragraph that outlived the code under it. **The entry stays** rather than being
+deleted, because the arithmetic in it is what the next person needs — and this heading is what
+stops them acting on it.
+
 ## Stabilising it: the lab measured one axis, and the app is navigated on the other
 
 **Asked for as "ok stabelise website. make it more scalable and make it more stable and so on. like
@@ -8772,6 +8787,60 @@ with the chess board's cream and charcoal.
 in the harness: `termsPages_()` is concatenated after the people, so counting from the end lands on a
 legal document. That is the flyer state's own lesson — two readings of one list — one screen along.
 
+### Asked again, and this time the answer was in the cell rather than in the code
+
+**Reported as "Where's George I still don't see him on my site."** The fix above landed on `main` at
+14:53 the day before, so the obvious reading is that it did not work. **It does. Every link in the
+chain was measured this time rather than read, and the last one is a spreadsheet cell.**
+
+| | |
+|---|---|
+| the front end | `accountPages_` and `stuffItemsRaw_` both filter on `t.title` and nothing else — the `listed` clause is gone from both, and it is on `main` |
+| **the sheet** | **`listed` on P002 is `FALSE`.** Read through the Drive connector, positioned against the header rather than off a collapsed snippet: column 55 of 75, blank on the other tutor and on the admin |
+| his role | `tutor`, so `hasRole(r, 'tutor')` passes and he is a candidate at all |
+| the server | `(listed \|\| viewerIsAdmin)` — so he is sent to an admin and to nobody else |
+| **`viewerIsAdmin`** | `isAdminPerson(S(p.name))` → `findPerson` → `hasRole(p,'admin')`. P001's role is `admin`, and **both** the boot fetch in `index.html` and `load()`'s own fallback send `name=`, which is the fault `shell.js` already records having fixed |
+| the switch | `set-listed` → `setListed` in `dopost.gs`, access-listed `admin`, writing that same cell |
+
+**SO NOTHING IS BROKEN AND THE CONTROL IS WORKING AS DESIGNED.** `listed: FALSE` is a tutor switched
+off, which is what that column is for; he is drawn for an admin only, dimmed, with `· not listed`
+beside the name and a `Not listed` tile under it reading *"clients cannot see them"*. One tap on
+that tile is what puts him back on the public site.
+
+**AND THE TAP IS THE RIGHT ROUTE RATHER THAN THE CELL**, which is worth saying because editing the
+sheet by hand looks equivalent and is not: `setCell` sets `POST_WROTE` and retires the six-hour
+payload immediately, where a cell typed by hand reaches the site only if `onSheetChange` is
+installed — the trap this file records under "the cache, and the trap in it".
+
+**What could not be checked from here is the one thing that never can**: which build that phone is
+running. Every host but GitHub is blocked, so a live open is the owner's to do — which is what the
+build stamp on the You screen and the reload banner are both for.
+
+#### The DBS is not why he is hidden, and nothing anywhere ties the two
+
+**Asked as "even if he doesn't have a dbs he should still be listed", which is right and is already
+how it works.** `dbs` and `listed` are two independent cells read by two independent lines —
+`dbs: TRUE_(r.dbs_checked)` and `listed: ON_(r.listed)` — and the gate at `doget.gs:541` reads only
+the second. Measured across `js/` and `backend/`: **nothing anywhere reads a DBS to decide a
+listing.** The only two writers of that cell are `setListed`, which is the tile, and
+`makeBrandAccount`, which touches the brand row alone and only when the cell is blank. So the
+missing DBS did not switch him off; somebody or something wrote `FALSE`, and the remedy is the tap.
+
+**WHAT THE TAP PUBLISHES IS WORTH NAMING BEFORE IT IS PRESSED, because it is a public statement
+about a named person.** Rendered as an admin against a row shaped like his — `listed: false`,
+`dbs: false` — his card draws dimmed, `· not listed` beside the role, and **`No DBS on file` in
+red**. Listed, the dimming and the words go and **the red stamp stays**, on a card clients can see.
+That is `findCard`'s own decision and its note defends it outright: *"a pass without one is visibly
+a pass without one, which is exactly the right amount of alarming."* It is right for somebody a
+parent is checking, and it is not a side effect of anything in this commit — so listing him is a
+choice to show that stamp, not a way round it.
+
+**And the tile is a sibling of the card rather than a child of it**, which is how the first probe
+came back reporting no tile on a page carrying two. `cardTiles_` returns its own row, so a selector
+scoped to `.card.is-prof` finds nothing and reads as the control being absent — the shape this file
+records every time an instrument cannot reach its subject. Measured properly: `set-listed` once per
+tutor, `data-who` the display name, and `isAdmin()` true.
+
 ## Chemistry Paper 1 is a replica of the paper now, both tiers
 
 **Reported from inside the exam**: *"im doing chemistry paper 1 now and there are already places
@@ -9397,3 +9466,300 @@ measuring them.
 the card. `bookBreakdown` collects the keys it merged (through `SPINE_ALIAS`, so `Students` counts as
 `Seats`) and hands them to `spineRows_` as `said`, which is the same argument as `only:`: a row that
 cannot be filled and a row that is already filled are both rows with no dash to invent.
+
+## The week starts where the answers start, and only its left edge could move
+
+**Reported with a screenshot of the form: "can you see how grid stretches across all columns? I want
+it squashed into the second column which is the input column."** The second time it has been asked —
+the first was about the block week, where it was granted, and the hour week was refused on
+arithmetic.
+
+**Measured on the card rather than quoted, because the recorded numbers had gone soft.** `.bk-open`
+was `1 / -1` and is `2 / -1`, which hands back the label column and its gap:
+
+| | cell before | cell after |
+|---|---|---|
+| 320px | 19.1 × 20 | **13.6 × 20** |
+| 390px | 24.1 × 20 | **17.6 × 20** |
+| 768px+ | 25.6 × 20 | **18.7 × 20** |
+
+**That is a real reduction and it is written down rather than smoothed over.** The height floor is
+untouched at 20px; what gives is width, and the note over `.hr` sets that floor against a cell *24px
+wide* — which is exactly what 390 used to be. At 320 the target is now 13.6px with its neighbour two
+pixels away. **`ACCEPTED_TAP` already carries these cells** with the arithmetic beside them — eleven
+fingertips need 484px and no phone is that wide — so nothing new is reported and this makes an
+accepted finding smaller. Asked twice, measured, and the owner's call.
+
+**One rule for both weeks now, so `is-blocks` had no reader left.** It existed only to say *this
+week may start at the value column*, back when the hour week could not; a class with no rule behind
+it is `.favwrap.is-fav` again, so it is off the markup too.
+
+### The right edge is the half that cannot move, and the reason is a decision already reversed once
+
+**`2 / -1` is the value column AND the three figure tracks behind it.** So the week starts where the
+answers start and still runs to the card's edge, while an unanswered row's dash stops at **189 of
+351**. Clipping the week to 189 is `2 / 3` — **78px for eleven hours, a seven-pixel cell** — which is
+the same arithmetic written beside `.bk-row.is-blank` where it was refused before.
+
+**So the card's two right edges are not this rule's to close.** They are the price of the multiplier,
+the rate and the total sitting on a form with nothing priced on it — hidden once, on this same
+complaint, and put back on *"what happened to all the columns I had before for things like
+multiplier"*. Hiding them again is one line and it closes both edges at 351; it is the owner's
+judgement and it has already been made in both directions, so it is offered rather than taken.
+
+### And CLAUDE.md had been describing the hidden version for weeks
+
+**The three sections under "the rows were holding three empty columns" say the figure columns go on
+an unpriced card. They do not.** The revert was written up in `style.css` and nothing came back
+here, so this file's own table said the value's right edge was 351 while the live card said 189.
+**Found by measuring the card while answering this complaint**, which is the only reason it is not
+still there — the same shape as `.favwrap.is-fav`, as `resource_type` in `VOCAB` and as the dead
+`kind === 'paper'` guard, pointed at the map rather than at the code.
+
+**Measured after, three states × four widths**: `gridLeft === valueLeft` on the form at every width,
+no sideways scroll anywhere, `under: 0` on every pane, and the block week unchanged at 55/70/74px a
+cell.
+
+## All the answers in one column, which needed the other three to give their width up
+
+**Asked for as "label each column at the top. Small", and then the reason behind three requests:**
+*"I want all input fields in 1 column. I don't want them to mix with other things. That's why I'm
+trying to get the time grid in the coloumn. However I know it's a big thing to have in one column."*
+
+**That principle cannot be held with the figure columns there, and the arithmetic is why.** An
+answer lives in track 2, which is **78px of 312 at 390** with the multiplier, the rate and the total
+behind it — and eleven hours in 78px is a **seven-pixel cell**. So either the week spans the figure
+tracks and mixes, which is the complaint, or the figure tracks give their width up when they hold
+nothing. There is no third arrangement: the week needs 244px and the card has 312.
+
+**So the answer column is the wide one until figures need the room.** `.bk-v` spans `2 / -1`, which
+is exactly where `.bk-open` puts the week — measured on the form at three widths, **the dash and the
+grid now share both edges**: `[111, 351]` at 390, `[93, 287]` at 320, `[295, 549]` at 768.
+
+### This rule has been written, reverted and written again, and the third time has a reason
+
+**Written from *"the grid shouldn't extend beyond the 1st coloumn like the other fields"*; reverted
+from *"what happened to all the columns I had before for things like multiplier"*.** Both reports
+are about one edge and they wanted it in different places, which is why it flip-flopped.
+
+**What the revert was about is answered by the header rather than by the columns.** "What happened
+to all the columns" is a question about columns that vanished with nothing saying so. `spineHead_`
+names them, so `× RATE TOTAL` appear **labelled** the moment there is a figure to put under them,
+and their absence on an unpriced form reads as *nothing is priced yet* instead of as something
+having gone missing. **Proved by the waiting-list state**, which is the one branch the fixture can
+price: it carries an `About` total, so the columns are there, `TOTAL` sits over `£144.00`, and the
+dash correctly stops at 189 while the week runs to 351.
+
+**`:has` reads the card's own totals** rather than a flag somebody sets, so there is no second place
+for "is this priced" to be wrong — and **the header is excluded from its own test**, which is the
+line that is easy to get wrong. `spineHead_` writes the word `Total` into a `.bk-t`, so a plain
+`:has(.bk-t:not(:empty))` is true on every card and the rule could never fire. The descendant is
+`.bk-row:not(.is-cols)`.
+
+### The column headings existed once and were deleted for being big
+
+**The note where they were says they were *"six words explaining a layout nobody was confused by,
+and the widest band of text on the card"*.** Half of that has stopped being true — the report that
+brought them back is somebody counting the columns and asking which is which — and the other half is
+exactly why the word **Small** was in the request. `.58rem` of tracked uppercase in the faint ink,
+reading as a caption rather than as a row of the document.
+
+**The stub head is blank**, which is what a table does with the column its row names live in. **The
+value column's word comes from the caller** — `Answer` on the form and `Detail` on the receipt,
+because the two documents are not the same sentence: the same `fieldsHtml(head)` move, cheaper than
+a second builder differing by one word.
+
+### It cost 11px on the one card that had 8, and where they came back is the entry
+
+**`check/ui.js` named it immediately**: the waiting-list branch runs 812px of content into an 805px
+pane at 768, and its own note already records it arriving with **three pixels spare at 390 and eight
+at 768**. A header at an ordinary line-height put it 11px past the fold.
+
+| | |
+|---|---|
+| **the `.rc-rule` above the rows** | **8px.** A rule and a dashed border under the header is two lines doing one job, and the second is labelled. Without a header the rule stays, because then nothing else closes the block above off |
+| **the header's own spacing** | 17.8px → **12.1px.** 1.15 rather than 1.4, almost no padding under the words, and no margin under the rule — a `.bk-row` has none either, and the border IS the separation |
+| **`.bk`'s top margin** | `.4rem` → `.15rem`, off `:has`, because that margin was sized for a rule and its `.22rem` that are no longer there |
+
+**Measured after: `under: 0` on all four states at all four widths**, no sideways scroll, and all 37
+checks pass. **Nothing redundant was found on that card first** — its blocks were listed and the
+tiles are 44px targets, the terms line is a link and the summary is content — so the header paid for
+itself rather than being funded by something else's headroom.
+
+### A question the other branch answers, printed under the answer
+
+**Reported as "When free field is redundant now as we are using the grid bit."** Measured on the
+ordinary form before anything was changed: a row reading `When free  —`, **no control, no week, and
+nothing that can ever fill it** — sitting directly under the `When` row, which is 186px of hour grid
+that had just answered the same question to the hour.
+
+**It could not be answered there by construction.** `stepGrid_` draws the blocks only on the waiting
+branch and `avail`'s `options()` is empty, so `stepControl_` draws nothing either. A question with
+no way to answer it, printed under the answer.
+
+**THE RULE IS THE ONE `only:` ALREADY STATES**, and the distinction it draws is why this is a
+deletion rather than a lock. `SPINE`'s own argument — *"a document whose SHAPE changes with its
+contents cannot be read at a glance: you find a line by where it is"* — is about a row you have not
+answered **yet**: you are about to, and a line appearing under your thumb moves everything below it.
+**A row this BRANCH can never answer was never on this document**, because an ordinary booking does
+not become a waiting list. That is the same sentence that took six rows off the ordinary form when
+`only:` was written.
+
+**`When` IS NOT MARKED AND THAT ASYMMETRY IS DELIBERATE.** On a waiting list it is a dash too — and
+it says *no day yet*, which is **true of that booking** and becomes a real day once the list fills.
+`When free` on an instant booking is not a fact about the booking; it is a question already answered
+one row above, more precisely, by the grid that prompted the complaint.
+
+### The flag has to be read in three places or the row comes straight back
+
+**`SPINE` is built from every step's `short`.** So a question `stepRows_` correctly drops is
+re-invented by `spineRows_` two hundred lines down, as a dash, under the same name — **the row
+removed and then added back by the same card**. `ONLY_ON` reads `BOOK_STEPS` as well as
+`SPINE_EXTRA` now, so the flag is declared once beside the row it belongs to wherever that row is
+declared.
+
+**And `nextBookStep` skips it too, which changes nothing today and is the point.** That loop already
+passes over a question with no options, so `avail` was never asked. Without the guard, `only:` would
+mean two different things — *not drawn* to one walker and *still asked* to another — and a
+branch-only step added tomorrow **with** a list would be dropped from the card and then asked by the
+funnel: a question on screen that the document it belongs to has no row for.
+
+**`bookOn_()` is the one reader.** `isWaiting_() ? 'wait' : 'book'` was written out at the
+`spineRows_` call site and would have been written out twice more; three copies of which branch this
+is, on a card whose two branches differ in seven rows, is the second reader this file keeps finding
+— `documents_()`, `paperIdOf_`, `factsNow_`, `childrenOf`.
+
+**Measured after**: the ordinary form loses the row and gains no dash in its place, the waiting-list
+card is unchanged with its blocks ticked and its summary reading `Mon · Tue evenings`, and the
+receipt is untouched because it is built with `fill: false` and never invented the row anyway.
+
+#### `check-flow` refused it, and this time the refusal was half right
+
+**The journey *"the paper keeps the same rows whatever is answered"* failed immediately**, naming
+`When free` — which is the check doing exactly what it was written for. The last time this happened,
+over `Asked for`, the refusal was right and the row stayed.
+
+**It is not right here, and the distinction is one this file already draws.** That journey's fault
+was rows vanishing when you ANSWER — *"answering a level made Kind, When, Term, Split, Child, For
+and Tutor disappear off the card while still being asked"*. `blank` against `priced` is that half
+and is compared whole, untouched. Across the BRANCH it is narrowed to what the code declares, by
+reading `only:` off `BOOK_STEPS` rather than listing names in the check — which is the same sentence
+`SPINE_EXTRA` has carried since four derived rows were given the flag, and it is the first time a
+QUESTION has one.
+
+**AND THE TWO SHAPE COMPARISONS CANNOT FIRE ANY MORE.** Measured on four mutants rather than
+assumed: `stepRows_` pushes a row for every step answered or not, and `spineRows_` invents a dash
+for any spine row neither builder produced — so dropping **Subject and Level** from the waiting
+branch leaves the shape identical, the row coming straight back under the same name two hundred
+lines later. Turning the form's `fill` off changes nothing either, because no question row was ever
+missing to be filled. **Both halves of the fault that journey is named for have been structurally
+impossible since the spine was written**, and nothing anywhere said so.
+
+**`ONLY_ON` is the only route left by which a question row can vanish**, which is why the live
+assertions are the two `only:` ones: a branch-only question must be ON its own document and OFF the
+other, and the flag-does-nothing mutant is the one that fires. **The comparisons are kept**, for the
+reason `check-funnel.js` test 2 is kept after the spelling fold made it unfirable — it is where the
+invariant is written down, `!blank` still fails if the paper stops drawing questions at all, and
+both come back to life the day anything upstream stops guaranteeing them. What is not kept is the
+pretence: the journey's note now says which half is load-bearing, because a rule that cannot fail
+under a confident comment about what it protects is a green light with nothing behind it.
+
+## A booking may run on several days, and three readers thought it ran on one
+
+**Asked for as "audit the booking system and address any issues to make it more stable."** The state
+machine itself came back clean — measured across nine states of the form, in a real browser: **no
+throw, no NaN, no card that failed to draw, and `resetBooking_` leaves nothing behind.** What was
+wrong is one fact, read three ways, in three files, and all three were written when a booking had
+one day.
+
+**The hour grid has let somebody tick hours across several days for a long time.** `bookRuns` folds
+those ticks into runs and `bookSpec` joins the days with commas — so `weekday` genuinely reads
+`Monday, Friday`, and it has done since the grid was built.
+
+### The days came back alphabetically by their code prefix
+
+**`bookRuns` ended `sort((a, b) => a.day.localeCompare(b.day))` over `m / tu / w / th / f / sa /
+su`**, which is **Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday**. Measured: a
+Monday-and-Friday booking — the commonest two-day shape there is — came back `Friday, Monday`.
+
+**AND IT IS NOT ONLY THE READING ORDER, because three things are taken from the FIRST run.** The day
+list goes on the receipt and into the job's `weekday` cell; `time` is the first run's hour and
+becomes `start_time`; `hours` is the first run's length and becomes `hours_per_session`, which
+`priceLooksWrong` then measures the total against. So **a Monday 10–12 with a Friday 16–18 recorded
+its start as 16:00**, and a Monday 10–12 / Wednesday 15–16 / Friday 09–12 recorded a three-hour
+session because Friday sorted first.
+
+**The total is unaffected and that is exactly why nothing caught it**: the money is `hoursPerWeek ×
+weeksBooked` and the real session dates, both sums over every run, so every figure on the card was
+right while the day and the time beside them were not.
+
+**`blockSay_` ALREADY LEARNED THIS** — *"in the week's own order, off `SLOT_DAYS`, so Sunday cannot
+sort to the front"* — on the waiting list's week, written months after this one. One lesson, applied
+to one of the two weeks, which is this repository's oldest shape.
+
+### The receipt drew an empty week for every multi-day booking
+
+**`jobGrid_` did `norm(label) === norm(j.weekday)`.** For `Monday, Friday` that is false for Monday
+AND for Friday, so **nothing lit**. Measured: **2 cells on a one-day job, 0 on a two-day one, 0 on a
+three-day one** — the tallest block on the receipt, dark, on exactly the bookings somebody most
+needs to check, and reading as a week with no session in it rather than as a fault. That grid exists,
+by its own note, so a family can SEE when their session runs instead of reading it off a line.
+
+**One span, shown on each named day**, because the job row holds one `start_time` and one
+`hours_per_session`. Where the runs really differ the row is already a simplification of them, and
+lighting the span the receipt states on each of its own days is the honest reading of it. Lighting
+nothing was not.
+
+### AND THE SAME CELL SOLD THE SAME HOUR TWICE
+
+**`busyHours` in `backend/booking.gs` did `DAY[norm(j.weekday)]` and then `if (!d) return`.** A
+multi-day job is not in that table, so it was **dropped entirely** — and `busyHours` is what greys an
+hour on the booking grid. **A tutor already teaching Monday and Friday 10–12 read as free on both**,
+so the next family could book the same tutor at the same time. Silently, and only on the multi-day
+bookings.
+
+**Of the two ways to be wrong here, one offers an hour that is taken and the other holds an hour that
+is free, and only the first sells the same hour twice.** The function's own header said *"one weekday
+and one time, repeating"* — true when it was written, and it stopped being true when the grid grew
+days.
+
+### Three rules, because a repair to the instance is this file's oldest fault
+
+| | |
+|---|---|
+| `check-flow.js` | *a booking over several days reads in the week's own order* — the day list AND the start time, over four shapes including Sunday-and-Monday |
+| `check-flow.js` | *a receipt lights every day its booking runs on* — 2, 4 and 6 cells |
+| `check-booking.js` | *a tutor teaching on two days is busy on both* — and a cancelled session still releases its hours |
+
+**Proved by mutation in both directions**, each against the exact line it replaced.
+
+**`busyHours` is the first function in `check-booking.js` that touches a sheet**, and it is worth its
+four stubs: it is the one thing in this subject area whose failure takes money from two people for
+one session. **`N` is lifted from `constants.gs` verbatim rather than approximated** — a stub that
+rounds differently from the real one proves the wrong thing.
+
+**AND THE FIRST RUN OF THAT RULE REPORTED "nothing" FOR EVERY CASE, INCLUDING THE ONE-DAY ONE THAT
+HAS ALWAYS WORKED.** With no events there are no clients, and `jobStatusOf` reads that as
+**cancelled** — so the rule was measuring the skip rather than the day mapping. A live roster is
+seeded now, and the cancelled case is asserted deliberately beside it, because a guard nothing
+measures is a guard that can quietly become the reason a rule passes.
+
+### Two things the audit found in the instruments rather than the app
+
+**`check-flow`'s send-path journey seeded two Kind answers the form has not offered for months** —
+`'A session of your own'` and `'A shared class — join the waiting list'`, against the real `Instant
+class` / `Waiting list class`. It went on passing because `isWaiting_` is a substring test for "wait"
+and the old label happened to carry one, so both branches really were exercised, **by luck, on two
+strings nobody can choose.** It reads the step's own `options()` now and refuses if the two do not
+take different send paths.
+
+**And `computePrice` is named in two comments and exists nowhere.** The function that walks
+`spec.windows` is `priceFrom` in `js/core.js`. **A backtick scan for the whole class of fault is not
+shippable and was thrown away rather than committed**: over the four booking files it reports **38
+findings and about one real one** — `orderPrints`, `toggleTopicTick`, `pastCard_`, `isClass_`,
+`stepIsPanel_` are all things that were deleted and are correctly described in the past tense, which
+is the house style. Nothing can tell that from a name that never existed. That is the
+`check-rows.js` lesson, and the honest answer is that this one stays a reading job.
+
+**The version stamps are bumped all four together**, because `backend/booking.gs` changed and the
+You screen compares the whole stamp.
