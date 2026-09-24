@@ -10181,3 +10181,23 @@ worked — `screen('settings')`, five pages, the `Your settings` tile on your ow
 it — and it was **four swipes past You** with no tab bar to jump with. `sort_order` 8 in
 `data/settings/columns.json`, which is one cell and no deploy: the one column you reach for from
 your own card is now the one beside it. Saved takes the end.
+
+### "your own booking" was the row read back to you
+
+**Reported as "There seems to be writing under one of the fields at the top. It's redundant or
+unnecessary."** Measured rather than guessed at: the booking card draws its notes as `.bk-say`
+under the row they belong to, and the first one on the card, under the first field, was
+
+| under | | |
+|---|---|---|
+| **`For`** | *your own booking* | over a row already reading `For — <your own name>` |
+| `Kind` | *It happens. Yours from the moment you pay…* | says what the dropdown label cannot |
+
+**One fact drawn twice**, which is the fault this file already records where the roster's `name` put
+an `<h3>` above every widget's own heading: both were correct and both were on the screen at once.
+Thirteen pixels, on the first field of the app's most crowded card.
+
+**The other branch of the same note stays, and the line between them is worth stating.** `Nobody yet
+— just open it` is what you PICKED; *"the list opens empty, and families join it"* is what happens
+NEXT, and nothing else on the card says it. A note that repeats the row is a caption; a note that
+says what the row cannot is why the mechanism exists.
