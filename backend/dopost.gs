@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-24-b-library-card";
+const DOPOST_VERSION = "2026-09-24-c-role-titles";
 
 
 function doPost(e) {
@@ -355,7 +355,7 @@ function doPost(e) {
     if (action === 'listPeople') {
       const people = read(TAB.people).rows.map(r => ({
         name: personDisplayName(r),
-        role: rolesOf(r).map(x => ROLE_LABEL[x] || x).join(', '),
+        role: rolesOf(r).map(roleLabel_).join(', '),
         roles: rolesOf(r),
         handle: S(r.handle), email: S(r.email), phone: S(r.phone), dob: fmtDate(r.date_of_birth),
         photo: S(r.photo), description: S(r.headline), city: S(r.city),

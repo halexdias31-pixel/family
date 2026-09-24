@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-24-b-library-card";
+const BACKEND_VERSION = "2026-09-24-c-role-titles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1537,6 +1537,41 @@ const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };
+
+/* ---------- A TITLE IS A ROLE THAT DECIDES NOTHING, AND SAYING SO IS THE WHOLE POINT -------------
+   ASKED FOR AS *"I want to add a role. For George he is the head of boxing. For now leave this as
+   just a title or something. In the future it will mean something."*
+
+   IT GOES IN THE `role` CELL RATHER THAN A COLUMN OF ITS OWN, and that is safe because the role
+   machinery was already built for it. `rolesOf` splits the cell on commas — "a person may hold
+   SEVERAL roles… one role is not more real than another" — and `mainRole` picks from a DECLARED
+   list, `['admin','tutor','client','student']`, so a value that is not on it can never win. Every
+   gate in this project asks `hasRole(row, 'tutor')`; nothing asks the other way round. So a title
+   sitting beside a real role grants precisely nothing, today, by construction rather than by
+   somebody remembering.
+
+   AND THAT IS WHY IT IS DECLARED HERE RATHER THAN LEFT AS A STRAY STRING IN A CELL. `head of
+   boxing` typed into the sheet with nothing naming it is a value the code has never heard of: it
+   would print in the roster in lower case, mean nothing to any reader of this file, and the day
+   somebody DOES want it to gate something they would have no idea whether it was deliberate. One
+   entry, one written reason — the `ACCEPTED` / `VOCAB` / `RETIRED_FACETS` / `HANDLE_ALLOWED`
+   pattern this file uses for exactly this, an eighth time.
+
+   IT IS AN ADDITION, NOT A REPLACEMENT. The cell must read `tutor, head of boxing` — a row holding
+   only titles has no real role left, and `mainRole` falls back to `client`, which would quietly
+   take George off the tutor list and off the Find screen. The comma is load-bearing.
+
+   WHEN IT STARTS TO MEAN SOMETHING, this is where to look: give it a line in `ACTION_ACCESS`, or
+   ask `hasRole(r, 'head of boxing')` wherever the meaning belongs, and move the entry out of here
+   into `ROLE_LABEL` beside the four that already decide things. */
+const ROLE_TITLES = {
+  'head of boxing': 'Head of Boxing',
+};
+
+/* ONE READER FOR BOTH MAPS, because the roster prints a person's whole role list and the card
+   prints one of them, and two lookups written separately are two chances for a title to come out
+   as the raw lower-case cell in one place and properly in the other. */
+const roleLabel_ = x => ROLE_LABEL[x] || ROLE_TITLES[norm(x)] || x;
 
 /**
  * POSTCODES INTO COORDINATES.
