@@ -2802,11 +2802,15 @@ button.text-drop { color: var(--bad); }
    week still begins at 111.3 with every other answer on the card, which is the thing four rounds of
    this were about.
 
-   NOT THE BLOCK WEEK. `blk` is the one class that says "this week's cells are different" — three of
-   them a row, which is why they can pay a real fingertip where eleven cannot — so halving those as
-   well would shrink the one grid in this app that is not a compromise, for a complaint about the
-   other one. They are never on the same card. */
-.bk-row.bk-wk .bk-v:not(:has(.blk)) { width: 44%; }
+   AND THE BLOCK WEEK TAKES THE SAME WIDTH, asked for as *"the waitlist grid needs to take from the
+   instant class grid. Same width. But there's no individual slots. Just chunks."* It was excluded
+   for one commit, on the argument that halving the one grid here that is NOT a compromise answers a
+   complaint about the other one — and that argument is about the cell, which survives: three
+   columns in 44% is **27.8 / 34.5 / 36.5px wide by 20 tall**, still a real fingertip and still six
+   times the hour cell beside it. What it was not about is the two branches of one card drawing one
+   control at two widths, which is what somebody swiping between them sees. One declaration, both
+   weeks; `blk` goes on carrying the height, which is the difference that is still real. */
+.bk-row.bk-wk .bk-v { width: 44%; }
 .bk-row.bk-wk .slot-hours { gap: 1px; }
 .bk-row.bk-wk .hr { min-height: 14px; }
 /* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than

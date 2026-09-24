@@ -10028,3 +10028,35 @@ trust, and the thing that breaks below it is the LABEL rather than the target.
 
 **Measured after**: week 105.4 / 111.7 / 116.1, card 530 / 593 / 617, `under: 0` at every width, no
 sideways scroll, and the block week untouched at 64 / 79.3 / 83.8 × 20. 37 checks pass.
+
+### The waiting list takes the same width, and the word it stores is not the word on the header
+
+**Asked for as "the waitlist grid needs to take from the instant class grid. Same width. But there's
+no individual slots. Just chunks."** The width is one declaration — the block week was excluded from
+the 44% for exactly one commit and the exclusion is gone.
+
+**THE ARGUMENT FOR EXCLUDING IT WAS ABOUT THE CELL AND THE CELL SURVIVES.** Three columns in 44% is
+**27.8 / 34.5 / 36.5px wide by 20 tall** — still a real fingertip, and still about three times the
+hour cell beside it on the other branch. What that argument did not weigh is that the two branches
+of ONE card were drawing one control at two widths, which is what somebody switching Kind actually
+sees. `blk` goes on carrying the height, which is the difference that is still real.
+
+**AND THE LABELS COULD NOT SURVIVE IT, which is the part that is not a one-line edit.** Measured at
+44% before anything was changed: `Afternoon` is **34.5px of ink in a 34.5px box at 390** — zero
+margin — and at 320 it **wraps onto two lines**, so the header grows to 14.8px against its siblings'
+8.9 and reads as ragged. `Morn · Aft · Eve` is 12.7 / 9.6 / 9.6 in 27.8 at the narrowest.
+
+**SO `head` IS A SECOND FIELD AND `name` IS UNTOUCHED.** `name` goes through `blockPhrase_` into the
+cell as `Monday morning`, and `waitlistWhen` on the backend splits the event message on commas and
+tallies those phrases — so shortening it would leave every row written before today saying `morning`
+and every row after it saying `morn`, **counted as two different answers in the one place somebody
+reads to decide when to open a class.** That is two spellings of one answer, which this file records
+under `level`, `exam_wave`, `topics` and `company`, and it would have been invisible until a tally
+was wrong.
+
+**The shortening is visual only and that was proved on the wire**: pressing a cell stores
+`"Monday morning"` and its `title` and `aria-label` are still `Monday morning`, so a screen reader
+and a long press both get the full word. No backend change, and nothing already in the sheet moves.
+
+**Measured after**: both weeks 85.4 / 105.5 / 111.5 wide, every header label on one line at every
+width, `under: 0`, no sideways scroll, 37 checks pass.

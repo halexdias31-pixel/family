@@ -600,10 +600,24 @@ for (let h = 9; h <= 18; h++) SLOT_HOURS.push(h);
    `from` IS THE ONLY NUMBER, and each block takes the span's hours from there up to the next one.
    Morning is what starts before noon; evening is after five, which is what "after school" and
    "after work" both mean for this business. A block with no hours in the span simply has none. */
+/* ---------- `head` IS THE COLUMN LABEL AND `name` IS THE WORD THAT GETS STORED ---------------------
+   THEY HAVE TO BE TWO FIELDS, and that is the whole reason this is not a one-line edit. `name` goes
+   through `blockPhrase_` into the cell as `Monday morning`, which is what `waitlistWhen` splits and
+   tallies on the backend — so shortening it would leave every row written before today saying
+   `morning` and every row after it saying `morn`, counted as two different answers. That is two
+   spellings of one answer, which is the fault this repository records under `level`, `exam_wave`,
+   `topics` and `company`, and the one place it must not happen is a tally somebody reads to decide
+   when to open a class.
+
+   SO THE SHORTENING IS VISUAL ONLY. The header is a label on a column; the cell's own `title` and
+   `aria-label` are still `blockPhrase_`, so a screen reader and a long press both get the full
+   word. Measured at the width the owner asked for: `Afternoon` is 34.5px of ink in a 34.5px box at
+   390 and WRAPS ONTO TWO LINES at 320, which makes the header ragged and taller than its own row —
+   `Aft` is about 11px in 27.8. */
 const SLOT_BLOCKS = [
-  { key: 'morning',   name: 'Morning',   from: 0 },
-  { key: 'afternoon', name: 'Afternoon', from: 12 },
-  { key: 'evening',   name: 'Evening',   from: 17 },
+  { key: 'morning',   name: 'Morning',   head: 'Morn', from: 0 },
+  { key: 'afternoon', name: 'Afternoon', head: 'Aft',  from: 12 },
+  { key: 'evening',   name: 'Evening',   head: 'Eve',  from: 17 },
 ];
 
 /* ---------- WHAT THE ROW SAYS, WHICH IS NOT WHAT IS STORED ------------------------------------------
@@ -2322,7 +2336,7 @@ function blockWeekRows_() {
       label: label,
       /* `h` IS WHAT THE HEADER GETS — the hour number on the other two weeks and the block's name
          here, which is the one thing that differs in the strip above the first row. */
-      hours: SLOT_BLOCKS.map(b => ({ h: b.name, block: b, day: label })),
+      hours: SLOT_BLOCKS.map(b => ({ h: b.head, block: b, day: label })),
     })),
     (c) => {
       const phrase = blockPhrase_(c.day, c.block);
