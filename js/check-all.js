@@ -308,7 +308,21 @@ for (const c of SUITE) {
     } else {
       failed++;
       console.log('  FAIL  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
-      out.split('\n').filter(Boolean).slice(-14).forEach(l => console.log('          ' + l));
+      /* ---------- AND IT SAYS WHEN THE TAIL IS NOT THE REPORT ---------------------------------
+         `slice(-14)` IS THE LAST FOURTEEN LINES AND A LONG REPORT ENDS WITH ITS ACCEPTED LIST. So
+         `check/press.js` failed here once and the fourteen lines printed under it were the twelve
+         controls that are correctly quiet and a count — the part that is fine. Two full suite runs
+         went into finding out what that failure said, and it could not be found from this output at
+         all. That is this repository's oldest shape pointed at its own runner: "I did not manage to
+         look", printed as a report.
+
+         THE TAIL STAYS, because for most checks it IS the finding. What is added is the one fact it
+         cannot carry — that there was more — and the command that prints the whole thing. */
+      const lines = out.split('\n').filter(Boolean);
+      lines.slice(-14).forEach(l => console.log('          ' + l));
+      if (lines.length > 14) console.log('          … ' + (lines.length - 14)
+        + ' earlier line(s) not shown — `node '
+        + (c.file.includes('/') ? c.file : 'js/' + c.file) + '` for the whole report');
     }
   }
 

@@ -2307,11 +2307,16 @@ function weekGrid_(days, cell) {
    equal rows — which is what makes it readable as a week rather than as a list. */
 function blockWeekRows_() {
   const on = BOOKING.avail || [];
-  /* ---------- `is-blocks` HAS GONE, BECAUSE BOTH WEEKS ARE INDENTED NOW ---------------------------
-     IT WAS THE ONE THING THAT SAID "THIS WEEK MAY START AT THE VALUE COLUMN", back when the hour
-     week could not. `.bk-open` is `2 / -1` for both, so the class had no reader left and a class
-     with no rule behind it is the shape this file records under `.favwrap.is-fav` — markup that
-     reads as a decision and does nothing. The measurement that split them is where the rule is. */
+  /* ---------- `is-blocks` HAS GONE AND `blk` HAS NOT ----------------------------------------------
+     `is-blocks` SAID "THIS WEEK MAY START AT THE VALUE COLUMN", back when the hour week could not.
+     Both weeks are rows of the card now, so it had no reader left and a class with no rule behind it
+     is `.favwrap.is-fav` — markup that reads as a decision and does nothing.
+
+     `blk` IS THE OPPOSITE AND IT WAS DROPPED BY MISTAKE. It is the one thing that differs between
+     this week and the hour week — three cells a row can pay a real fingertip where eleven cannot —
+     and without it the blocks quietly took the hour week's 14px when that grid was made thinner.
+     Nothing on screen said so; `check-css.js` did, by naming `blk` as a class styled and nowhere
+     produced. */
   return weekRows_(
     SLOT_DAYS.map(([, label]) => ({
       label: label,
@@ -2321,7 +2326,7 @@ function blockWeekRows_() {
     })),
     (c) => {
       const phrase = blockPhrase_(c.day, c.block);
-      return `<button class="hr${on.indexOf(phrase) !== -1 ? ' on' : ''}"
+      return `<button class="hr blk${on.indexOf(phrase) !== -1 ? ' on' : ''}"
         title="${esc(phrase)}" aria-label="${esc(phrase)}"
         ${/* THE PHRASE ITSELF, not a code. It is what gets stored and what `waitlistWhen` counts,
               so the handler has nothing to assemble and there is no second place for "Monday
