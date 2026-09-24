@@ -105,6 +105,20 @@ const TABS = [
      duplicate that one was. APPENDED, because this table is append-only — `AT` is remembered by id
      and the X axis clamps by index. `TAB_ORDER` is what puts it last. */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
+  /* ---------- AND YOUR SETTINGS, AT THE FAR END ----------------------------------------------
+     ASKED FOR AS "account setting should appear in a new column by itself. For now make that new
+     column at the end." It was one sheet off a tile on your own account card; see `settingsPages_`
+     in me.js for what moved and why it moved rather than being copied.
+
+     NOT A SECOND ROUTE TO SOMETHING THE FUNNEL REACHES, which is the test every column above is
+     judged by: your PIN, your username and your own editable fields are not findable by answering a
+     question and never were. They are the same argument as `account` two notes up — the state the
+     app is in rather than a thing in it.
+
+     APPENDED, because this table is append-only: `AT` is remembered by id and the X axis clamps by
+     index. `TAB_ORDER` is what puts it last, which is the "for now" the request asked for — moving
+     it is one row of `data/settings/columns.json` with no deploy. */
+  { id: 'settings', icon: '⚙', label: 'Settings', title: 'Settings' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -120,7 +134,8 @@ const TABS = [
      camera · post · booking · reel · DM · search · profile · tools · games
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
-const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved'];
+const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+                   'settings'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
@@ -1225,6 +1240,10 @@ const PAGER = {
      disagreement is what made the You column unmovable. `savedCards_` answers with one card when
      there is nothing kept, so this is never nought over a page that exists. */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
+  /* AND THE SAME AGAIN FOR SETTINGS. `settingsPages_` is the list `screen('settings')` draws, so
+     there is one answer to how many pages there are. It is never nought: signed out it returns the
+     one card that says to sign in, which is a page somebody has to be able to be on. */
+  settings: () => (typeof settingsPages_ === 'function' ? settingsPages_().length : 1),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -1420,7 +1439,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0 };
+               saved: 0, settings: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.

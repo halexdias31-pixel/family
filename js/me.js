@@ -1195,8 +1195,58 @@ const answerClaim_ = (el, accept) => {
 on('claim-yes', el => answerClaim_(el, true));
 on('claim-no', el => answerClaim_(el, false));
 
-on('edit-me', () => {
-  if (!USER) { toast('Sign in first'); return; }
+/* ==================================================================================================
+   YOUR SETTINGS, AS A COLUMN.
+
+   ASKED FOR AS "account setting should appear in a new column by itself. For now make that new
+   column at the end." What was there was one sheet — `openSheet('Your details', …)` — holding the
+   profile form, the username and the PIN, opened by a tile on your own account card.
+
+   MOVED, NOT COPIED, AND THE IDS ARE WHY. `handle-new`, `handle-said`, `pin-now`, `pin-new`,
+   `pin-again`, `pin-said` and `me-said` are looked up with `$()`. Drawing them on a column AND
+   leaving them in a sheet would put two elements under one id on the page at once, and `$()` hands
+   every Save button the first of them — the `$('msg-text')` bug this repository already records,
+   where a reply typed into the second thread posted to the first. So the sheet is gone and the tile
+   is a door to the column.
+
+   `settings` IS A SCREEN ID AND `js/settings.js` IS ABOUT THE SHEET EXPORTS. Two different things
+   wearing one word, which this repository has paid for before (`kind` colliding with two columns,
+   `resource_type` after the rename) — so it is named here rather than discovered. Nothing in
+   `js/settings.js` reads a screen and nothing here reads `data/settings/*.json`; the collision is
+   in the prose only, and this paragraph is the whole of the fix.
+
+   ONE THING PER PAGE, BECAUSE `.pane` IS `overflow: hidden`. The sheet scrolls and a pane does not:
+   `#sheet-body` could hold the profile fields, a week of seventy-seven tickboxes, a username and
+   three PIN boxes in one scroller, and a column cannot. So each group the backend sends is a page,
+   then the username, then the PIN. Which is also what every other column in this app is — one thing
+   you are looking at, and the next one a swipe away.
+
+   AND EACH PAGE SAVES ITSELF, WHICH THE BACKEND ALREADY ALLOWS. `updateProfile` writes only the
+   fields it is given (`wanted.forEach(f => setCell(…))`), so a partial post cannot blank what it
+   did not name. The ONE exception is the timetable: `availGridIn(fields)` rebuilds the whole
+   `availability` cell from whatever hour codes arrive, so a half-sent week would erase the other
+   half. That is exactly why the grid is one page and not split — `isTimetable_` keeps a group
+   whole, and a group is a page.
+
+   SIGN OUT STAYS ON YOUR ACCOUNT CARD. It is not a setting, it is the one action that must be
+   reachable without knowing where anything is, and it is already one swipe from everywhere at the
+   foot of your own card in `accountPages_`. Drawing it here as well would be two doors to one
+   action, which is the duplication this app's own tab table spends four paragraphs regretting. */
+function settingsPages_() {
+  if (!USER) {
+    /* THE COLUMN IS NAMED OFF `TABS` RATHER THAN WRITTEN OUT. `applyColumns_` takes every label
+       from `data/settings/columns.json`, so "You" is a cell somebody can edit — and a sentence here
+       spelling it out is a second place for that word to be wrong the afternoon it changes. */
+    const you = (TABS.find(t => t.id === 'account') || {}).label || 'You';
+    return [`<div class="card">
+      <h3>Your settings</h3>
+      <p class="sub">Sign in on ${esc(you)} and your details, your username and your PIN are
+        here.</p>
+    </div>`];
+  }
+
+  /* THE SAME CHOICE THE SHEET MADE, unchanged: the backend says which fields a role may edit, and
+     an admin too old a deployment to have been told still gets a few. */
   const role = roleOf(USER.role || '');
   const groups = (role === 'client' && DATA.clientFields && Object.keys(DATA.clientFields).length)
       ? DATA.clientFields
@@ -1212,53 +1262,77 @@ on('edit-me', () => {
   const p = USER.profile || {};
   const readonly = DATA.profileReadonly || [];
 
-  openSheet('Your details',
-    fieldsHtml(groups, {
+  /* ONE GROUP AT A TIME, THROUGH THE SAME WALK. `fieldsHtml` is handed `{ [g]: groups[g] }` rather
+     than reimplemented per page — it is the one place that knows a group of hour codes is a week
+     grid and everything else is a column of boxes, and a second walk here would be a second answer
+     to that question. Its own note says so: "one walk now, so a group of hour codes becomes a
+     timetable everywhere rather than only where somebody remembered." */
+  const pages = Object.keys(groups).map(g => `<div class="card">
+    <div class="me-form">${fieldsHtml({ [g]: groups[g] }, {
+      /* A CARD'S TITLE IS AN `h3` — see the note over `fieldsHtml`. Each group is a card here, so
+         the group's name IS that card's title rather than a divider inside it. */
+      head: 'h3',
       attr: 'data-me',
       value: f => p[f] ?? '',
       raw: p,
       readonly: readonly,
       /* The backend says which fields have a fixed set of answers. */
       options: f => (DATA.validations || {})[f],
-    })
-    + `<button class="btn" data-do="me-save">Save</button>
-       <p class="faint me-said" id="me-said" style="margin:.6rem 0 0"></p>
+    })}
+      <button class="btn" data-do="me-save">Save</button>
+      <p class="faint me-said" style="margin:.6rem 0 0"></p></div>
+  </div>`);
 
-       ${/* ---------- YOUR USERNAME, ABOVE THE PIN AND FOR THE SAME REASON ------------------------
-             THE TWO THINGS ONLY YOU MAY CHANGE, and neither goes through `Save`. Everything above
-             is `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; these
-             two have rules a form cannot be trusted with — a PIN needs the old one, a handle has to
-             be free, allowed, and not changed last week.
+  /* ---------- YOUR USERNAME, BEFORE THE PIN AND FOR THE SAME REASON ------------------------------
+     THE TWO THINGS ONLY YOU MAY CHANGE, and neither goes through `Save`. Everything above is
+     `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; these two have
+     rules a form cannot be trusted with — a PIN needs the old one, a handle has to be free,
+     allowed, and not changed last week.
 
-             NOT ONE RULE IS REPEATED HERE. The box checks nothing, the button posts, and whatever
-             comes back is what the line underneath says. `MESSAGING` records the argument and it is
-             the same one: a rule written twice is two rules to keep in step, and the server's own
-             sentence already says what to do instead. Writing "3 to 20 characters" in this file
-             would be a third place for that number to be wrong. */''}
-       <h2><span>Your username</span></h2>
-       <label class="field"><span>username</span>
-         <input id="handle-new" type="text" autocapitalize="none" autocorrect="off"
-           spellcheck="false" maxlength="20"
-           value="${esc((USER && (USER.handle || '')) || '')}"></label>
-       <button class="btn quiet" data-do="handle-save">Change my username</button>
-       <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
-         You can change it once a month.</p>
+     NOT ONE RULE IS REPEATED HERE. The box checks nothing, the button posts, and whatever comes
+     back is what the line underneath says. `MESSAGING` records the argument and it is the same one:
+     a rule written twice is two rules to keep in step, and the server's own sentence already says
+     what to do instead. Writing "3 to 20 characters" in this file would be a third place for that
+     number to be wrong. */
+  pages.push(`<div class="card">
+    <h3>Your username</h3>
+    <label class="field"><span>username</span>
+      <input id="handle-new" type="text" autocapitalize="none" autocorrect="off"
+        spellcheck="false" maxlength="20"
+        value="${esc((USER && (USER.handle || '')) || '')}"></label>
+    <button class="btn quiet" data-do="handle-save">Change my username</button>
+    <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
+      You can change it once a month.</p>
+  </div>`);
 
-       ${/* THE PIN, at the bottom of your own details — which is what it is. It had a card of its
-             own on the You screen opening a sheet of its own, to change one of the things this
-             sheet already exists to change.
-             SAVED SEPARATELY, and that is not an inconsistency: a PIN needs the current one to
-             change it, and folding it into `Save` would mean every change of an address asking for
-             a password. */''}
-       <h2><span>Your PIN</span></h2>
-       <label class="field"><span>current PIN</span>
-         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
-       <label class="field"><span>new PIN</span>
-         <input id="pin-new" type="password" inputmode="numeric" autocomplete="new-password"></label>
-       <label class="field"><span>and again</span>
-         <input id="pin-again" type="password" inputmode="numeric" autocomplete="new-password"></label>
-       <button class="btn quiet" data-do="pin-save">Change my PIN</button>
-       <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>`);
+  /* THE PIN, at the end of your own settings — which is what it is. It had a card of its own on the
+     You screen opening a sheet of its own, to change one of the things this column already exists
+     to change.
+     SAVED SEPARATELY, and that is not an inconsistency: a PIN needs the current one to change it,
+     and folding it into `Save` would mean every change of an address asking for a password. */
+  pages.push(`<div class="card">
+    <h3>Your PIN</h3>
+    <label class="field"><span>current PIN</span>
+      <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
+    <label class="field"><span>new PIN</span>
+      <input id="pin-new" type="password" inputmode="numeric" autocomplete="new-password"></label>
+    <label class="field"><span>and again</span>
+      <input id="pin-again" type="password" inputmode="numeric" autocomplete="new-password"></label>
+    <button class="btn quiet" data-do="pin-save">Change my PIN</button>
+    <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>
+  </div>`);
+
+  return pages;
+}
+
+screen('settings', () => pages('settings', settingsPages_()));
+
+/* THE TILE ON YOUR OWN CARD IS THE DOOR, and it is one line now. It opened the sheet; the sheet is
+   a column. Kept as a door rather than deleted because `meTiles_` is where somebody looks for their
+   own settings, and a column at the far right of nine others is a column you have to know about. */
+on('edit-me', () => {
+  if (!USER) { toast('Sign in first'); return; }
+  go('settings');
 });
 
 /**
@@ -1474,8 +1548,23 @@ function availCodes_() {
   return hit ? groups[hit] : [];
 }
 
+/* ---------- AND WHAT A GROUP HEADING IS DEPENDS ON THE SURFACE, SO THE SURFACE SAYS --------------
+   IT ALWAYS EMITTED `<h2>` and that was right while the only caller was a sheet: `#sheet-body h2`
+   is a section marker with no rules above or below it, because the sheet is one thing rather than a
+   list of things. The settings column is a list of things, one group per card — and on a screen an
+   `<h2>` is something else entirely: `.screen h2` draws a full-width rule above and below with a
+   `> ` prompt in front, which inside a card is a section divider where a title belongs.
+
+   IT IS ALSO WHAT `split_` CUTS ON. `check-dead.js` states the rule outright — "a heading inside a
+   card is an h3, a heading between cards is an h2" — and names the screenshot it took to find it
+   the last time an `<h2>` sat in the You card and quietly cut it in two.
+
+   ONE OPTION, DEFAULTING TO WHAT IT ALWAYS DID, which is the same move `me-save` makes two hundred
+   lines down: the caller knows which container it is, and asking it is cheaper than a second
+   renderer that differs by one tag. */
 function fieldsHtml(groups, o) {
   o = o || {};
+  const head = o.head || 'h2';
   const value = o.value || (() => '');
   return Object.keys(groups).map(g => {
     const list = groups[g] || [];
@@ -1488,7 +1577,7 @@ function fieldsHtml(groups, o) {
           suggest: o.suggest ? o.suggest(f) : null,
           readonly: (o.readonly || []).indexOf(f) !== -1,
         })).join('');
-    return `<h2><span>${esc(g)}</span></h2>` + body;
+    return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }
 
@@ -1528,7 +1617,7 @@ function initAvail() {
      older than `profileFields` says so and offers the sheet, which is where it used to live. */
   if (!codes.length) {
     into.innerHTML = `<p class="note">The hours have not arrived from the server yet.<br>
-      <span class="faint">Your details → the week grid still works.</span></p>`;
+      <span class="faint">Settings → the week grid is there when they do.</span></p>`;
     return;
   }
 
@@ -1553,7 +1642,13 @@ function initAvail() {
    with one id and `$()` handing both Save buttons the first of them — the `$('msg-text')` bug this
    repository already records, which would have written "Saving…" onto the wrong card. */
 on('me-save', el => {
-  const box = el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
+  /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. Each group the backend sends is a card of
+     its own there with its own Save, so the container has to be that card's form and not the
+     document: `document.body` would gather the profile fields AND the seventy-seven hour codes on
+     the page below, and `availGridIn` rebuilds the whole availability cell from whatever hour codes
+     arrive — so a Save on "About you" would post half a week and erase the other half. */
+  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot')
+           || document.body;
   const said = box.querySelector('.me-said');
   const fields = {};
   box.querySelectorAll('[data-me]').forEach(box => {
@@ -1617,7 +1712,7 @@ on('handle-save', el => {
     .catch(err => { el.disabled = false; if (said) said.textContent = why_(err); });
 });
 
-on('pin-save', () => {
+on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
@@ -1636,7 +1731,11 @@ on('pin-save', () => {
     currentPin: v('pin-now'), newPin: v('pin-new') })
     .then(d => {
       if (d && d.error) { if (said) said.textContent = d.error; return; }
-      toast('PIN changed'); closeSheet();
+      /* ASKED OF THE DOM, LIKE `me-save` AND `msg-send`. These three boxes are a page of the
+         settings column now rather than the foot of a sheet, and an unconditional `closeSheet()`
+         would dismiss whatever else somebody happened to have open. */
+      toast('PIN changed');
+      if (el.closest('#sheet-body')) closeSheet();
     })
     .catch(err => { if (said) said.textContent = why_(err); });
 });

@@ -565,9 +565,28 @@ function priceFrom(spec) {
   const bookedDays = [...new Set(runList
     .map(r => r.dayName || DAY_FROM_PREFIX[r.day] || '')
     .filter(Boolean))];
+  /* ---------- ONE WINDOW PER TERM, NOT ONE ACROSS ALL OF THEM -------------------------------
+     THE TERM QUESTION TAKES SEVERAL ANSWERS NOW, and the difference between walking each term and
+     walking from the first start to the last end is a holiday: Autumn 1 ends, the October half term
+     runs a week, Autumn 2 begins. An outer span puts a session in that week and charges for it.
+
+     ONE WINDOW IS STILL ONE WINDOW. `spec.windows` absent — a live job, the backend's own spec, an
+     older saved form — falls back to the single pair this has always used, so nothing that was
+     working changes.
+
+     DEDUPED ON THE DAY, because two terms must not overlap and the terms tab has had rows that did:
+     `doGet`'s own note records four rows, two named the same thing and one ending before it starts.
+     A date counted twice is a session charged twice, which is the one arithmetic error here that
+     reaches somebody's bank. */
+  const windows = (spec.windows && spec.windows.length) ? spec.windows
+                                                        : [{ startDate: startDate, lastSun: lastSun }];
+  const seenDay = {};
   const sessionDates = bookedDays
-    .map(d => computeSessionDates(d, lastSun, startDate))
+    .map(d => windows
+      .map(w => computeSessionDates(d, w.lastSun || w.endDate, w.startDate))
+      .reduce((all, list) => all.concat(list), []))
     .reduce((all, list) => all.concat(list), [])
+    .filter(dt => { const k = dt.getTime(); if (seenDay[k]) return false; seenDay[k] = 1; return true; })
     .sort((a, b) => a - b);
   // A live job already knows how many sessions it runs; only a fresh booking derives them
   // from the term window. spec.slots lets a job card price itself without a term dropdown.

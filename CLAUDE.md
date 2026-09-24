@@ -9209,3 +9209,191 @@ card that fits on a phone does not on a tablet. The note took 27 of it and `.bk-
 last 4 — **the space either side of the dashed rule under the grid, above a row that carries a
 dashed underline of its own.** Measured after: 771px at 390 and 797px at 768, `under: 0` at both.
 **Proved by mutation**: the old surround back and it names 4px at 768 and 1280.
+
+### And the week is a cell of its row now, so the blocks start where the answers do
+
+**Asked as "is it possible to have the grid be in the 2nd column like the other stuff."** The week
+was a SIBLING of its row, so it began at the card's left edge — under the label column, where no
+other answer on the card starts, while every value beside it begins two thirds of an inch further
+in. One left edge for the answers is most of what makes this card read as a document.
+
+**Yes for three columns and no for eleven**, and it is the same arithmetic the note over `.hr`
+records this block reaching after 222 → 174 → 146px. Measured across the value column each week
+would have, at three widths, after the day letters and the gaps come off:
+
+| | 320px | 390px | 768px |
+|---|---|---|---|
+| **blocks** | 56px a cell | 71px | 75px |
+| hours | **15px** | **19px** | 20px |
+
+**The floor is 20px** and the hour week is under it at both phone widths — 15px at 320 is a cell you
+cannot reliably hit, which is the whole reason that grid is full-bleed and the reason this was
+refused the first time it was asked. The block week loses 94px a cell for 71 and is nowhere near it.
+
+**They are never on one card.** `stepGrid_` draws exactly one week per branch — hours for a session,
+blocks for a waiting list — so this is not two shapes for one question on a screen somebody is
+reading. It is one week, indented as far as its own cells allow.
+
+**Placed by the grid rather than measured again.** The obvious version is `margin-left: 6.2em` on
+the week, which is the label column's own floor written in a second place — and that column is
+`minmax(6.2em, max-content)`, so a long label widens it and the margin would not follow. `.bk-open`
+is the last child of `.bk-row` now, which is a grid: `1 / -1` is exactly the full width it already
+had and `2 / -1` is the value column, computed by the browser. One declaration is the whole
+difference between the two weeks.
+
+**And a note on a grid row sits under the week now** rather than between the row and it. No grid step
+carries one today so nothing moved, and it is the better order if one ever does.
+
+## Your settings are a column, and the tile that opened them was drawn on no screen
+
+**Asked for as "account setting should appear in a new column by itself. For now make that new
+column at the end."** What was there was one sheet — `openSheet('Your details', …)` — holding the
+profile form, a week of seventy-seven tickboxes, the username and the PIN.
+
+**MOVED, NOT COPIED, AND THE IDS ARE THE REASON.** `handle-new`, `handle-said`, `pin-now`,
+`pin-new`, `pin-again`, `pin-said` and `me-said` are all looked up with `$()`. Drawing them on a
+column AND leaving them in a sheet puts two elements under one id on the page at once, and `$()`
+hands every Save button the first of them — **the `$('msg-text')` bug this file already records**,
+where a reply typed into the second thread posted to the first. So the sheet is gone.
+
+**ONE THING PER PAGE, BECAUSE `.pane` IS `overflow: hidden`.** `#sheet-body` scrolls and a pane does
+not. Measured at the four widths: **five pages, 237–400px each, `over = 0` everywhere** against a
+pane capping at 534px on a 320×568 phone. Each group the backend sends is a page, then the username,
+then the PIN.
+
+**AND EACH PAGE SAVES ITSELF, WHICH THE BACKEND ALREADY ALLOWS.** `updateProfile` does
+`wanted.forEach(f => setCell(…))`, so a partial post cannot blank what it did not name. **The one
+exception is the timetable**: `availGridIn(fields)` rebuilds the whole `availability` cell from
+whatever hour codes arrive, so a half-sent week would erase the other half. That is why `me-save`'s
+container is `.me-form` — the card's own form — before `#sheet-body` and `.widget-slot`: with
+`document.body` as the container a Save on *About you* would have gathered the seventy-seven hour
+codes on the page below it as well. **Measured on the wire**: page 0's Save posts
+`{first_name, last_name, photo}` and nothing else.
+
+**`settings` IS A SCREEN ID AND `js/settings.js` IS ABOUT THE SHEET EXPORTS.** Two different things
+wearing one word, which is what `kind` colliding with two columns already cost. Named in the code
+rather than discovered: nothing in `js/settings.js` reads a screen and nothing in the column reads
+`data/settings/*.json`.
+
+**Sign out stays on your account card.** It is not a setting, it is the one action that must be
+reachable without knowing where anything is. Drawing it here as well would be two doors to one
+action.
+
+### `kind: 'me'` is a kind nothing had ever built, so four tiles were on no screen at all
+
+**`cardTiles_` routes `meTiles_` on `x.kind === 'me'` and, measured across `js/`, `kind: 'me'`
+occurs nowhere.** So `Edit your details`, `Add your child`, `Your figure` and `Build` — four tiles,
+written, styled, each with a live handler behind it — **were drawn nowhere**, and the sheet they
+opened had no door. `accountPages_`'s `asItem_` builds `kind: 'tutor'` for everybody including you.
+
+**A renderer left standing over a permanently false condition**, which is the shape recorded here
+under `resource_type` in `VOCAB`, under the dead `kind === 'paper'` guard, and under the unlisted
+tutor this same function used to filter away.
+
+**`check-doors.js` could not see it and says why itself**: it pairs a `data-do` STRING against an
+`on()` handler, and both halves were there — what was missing is anything that DRAWS the string.
+That is a fourth kind of gap beside the three that file already names, and it is the one a checker
+reading source cannot close: `meTiles_` is a live function returning a live string, and only asking
+a rendered page whether the string is on it settles whether anybody can reach it.
+
+**And `tutor` was wrong on your own row for a second reason**: `tutorTiles_` is Message, so your own
+card carried a Message tile addressed to yourself. One kind, two repairs. Others are untouched —
+`withTiles_` asks for no kind and still gets `tutor`.
+
+**Proved in the browser**: the tile on your own card lands on `settings`; the column is `paged`,
+five pages, `pageCount('settings')` five, and `handle-new`, `pin-now` are one element each.
+
+### And `<h2>` inside a card is a section rule, which `check-dead.js` caught on the first run
+
+**`fieldsHtml` has always emitted `<h2><span>…</span></h2>` for a group heading, and that was right
+while its only caller was a sheet.** `#sheet-body h2` has no rules above or below it, *"because the
+sheet is one thing rather than a list of things"*. The settings column is a list of things — one
+group per card — and on a screen `.screen h2` is something else entirely: a full-width rule above
+and below with a `> ` prompt in front, which inside a card is a divider where a title belongs.
+
+**It is also what `split_` cuts on**, and `check-dead.js` states the rule outright — *"a heading
+inside a card is an h3, a heading between cards is an h2"* — naming the screenshot it took the last
+time an `<h2>` sat in the You card and quietly cut it in two. Measured: **0 findings before, 2
+after**, both of them my new cards.
+
+**One option, defaulting to what it always did.** `fieldsHtml` takes `head` and the caller says
+which surface it is on — the same move `me-save` makes with its container, and cheaper than a second
+renderer differing by one tag. Screenshotted at 390px across all five pages: the card title reads as
+a title, and the week grid keeps its own header row.
+
+## Two rows went and the term became a multi-select, and the term block had been silent throughout
+
+**Asked for as "Remove weeks left running bit. Let term be multi select."** Two things, and the
+second is why the first was worth measuring rather than deleting on sight.
+
+**`Running` and `Weeks left` are gone from both documents**, the waiting-list card and the session
+receipt, with their two `SPINE_EXTRA` entries and the three sentences of prose that described them.
+**What is lost is the term's DATES**: `Running` printed *"Autumn 1 — 02/09 to 24/10"* and nothing
+else on the card says when the term is. The term's NAME is still there, and the estimate under it —
+`About  6 × £24.00  £144.00` — still says how many weeks it is worth. Written down here because it
+is a real reduction rather than a tidy-up.
+
+### The term is a multi-select, and the sessions are counted per term
+
+**A family booking Autumn 1 and Autumn 2 was two jobs.** `multi: true` on the `interval` step is the
+visible half; the arithmetic is the part that could have been wrong quietly.
+
+**`bookSpec` returns `windows` — one `{startDate, lastSun}` per chosen term** — and `core.js` walks
+each separately and dedupes, rather than taking the first term's start and the last term's end as one
+span. **Proved by mutation, and the gap between the two numbers is a school holiday**: forcing the
+outer span gives **12 sessions and £264, including `26/10`** — the October half-term week, when the
+school is shut; the per-window walk gives **11 and £242**. A family would have been charged £22 for a
+week nobody is teaching.
+
+**Everything downstream is a count rather than a span, which is what made this safe.** `slots` is
+`sessionDates.length`, and `priceLooksWrong` on the backend derives its weeks from that same count —
+so the price scales with the dates and no `.gs` file changed. `term_name: S(body.interval)` is a
+string cell and takes `Autumn 1, Autumn 2` as written.
+
+**And the ticked list is kept in the order it is OFFERED, not the order it is tapped.** Ticking
+Autumn 2 and then Autumn 1 reads back `Autumn 1, Autumn 2`, because a receipt listing a family's
+terms out of order reads as a mistake in the booking.
+
+### `new Date('02/11/2026')` is 11 February, and that is why the whole block drew nothing
+
+**The waiting-list term block had never once run.** `waitTerm_`'s predecessor sorted and compared
+with `new Date(v)` on this app's own `dd/mm/yyyy` cells: `02/11/2026` is 11 February to a browser —
+already past, so never "the next term" — and `23/10/2026` is month 23, which is `NaN`, so never "the
+term running now". **Both branches were permanently false**, and the card simply had two fewer rows
+on it.
+
+**`parseDMY` is the app's own reader and was three files away the whole time.** Same shape as
+`waveOf`'s timezone fault, which cost this app seven buttons, and the same fix: one reader.
+
+**It was only visible because the harness was given a seat price.** `bookPrice()` returns `null` for
+a waiting list with no `BOOKING.loc`, so `breakdownRows` returns on its second line — and
+`check/fixture.json` had no `waitlistSeat` at all. **So `booking · a waiting list` had been measuring
+the branch EMPTY on every run since it was declared**, which is this file's own sentence about the
+fixture that could not reach the receipt, the message thread or the basket. One venue in the fixture
+and one line in the state, and the priced branch drew for the first time.
+
+### A push naming a question is dropped, so the term could not be pushed at all
+
+**`bookBreakdown` builds `said` from every step's label and drops any priced row naming one twice** —
+which is right, and it means `push('For', …)` and `push('Term', …)` were both silently discarded.
+`jobRows` had already found this on the receipt and written it down; the form kept the copy.
+
+**So the term fills its own STEP instead**, through `st.fallback` — the hook the `client` step
+already uses to show what a booking would be submitted as. **And `fallback` was ignored for a multi
+in three places**: `stepRows_`'s value chain, `stepSelect_`'s locked branch (which is the one a
+waiting list actually takes, because `options()` is empty there) and `stepSelect_`'s open first
+option. One `fb`, read once, used in all three.
+
+### Two things the newly-reachable card reported, and neither was the new feature
+
+**`span.bk-r overflows by 2–3px` at all four widths.** `.bk-row`'s rate track was `7.5ch` and
+**`£12.00/h` measures 52px of `--mono` in a 49.45px track** — `ch` resolves in the ROW's proportional
+font while the figure is set in the mono one, which is the `6 dates` fault one column along. It is
+`8ch` again, and the note records that the earlier reduction from 8 counted characters instead of
+measuring them.
+
+**`.pane hides 4px below its own fold` at 768 and 1280.** `A seat` merges onto the Venue row, and
+`spineRows_` then invented a dash for a row that was already drawn — a blank for a fact that is on
+the card. `bookBreakdown` collects the keys it merged (through `SPINE_ALIAS`, so `Students` counts as
+`Seats`) and hands them to `spineRows_` as `said`, which is the same argument as `only:`: a row that
+cannot be filled and a row that is already filled are both rows with no dash to invent.

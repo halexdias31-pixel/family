@@ -2387,8 +2387,24 @@ button.text-drop { color: var(--bad); }
      with a hyphen in the middle. 5.6rem holds the longest of them on one line.
 
      AND THE VALUE COLUMN GETS THE REST. "No preference" came out as "No prefer- / ence" for the
-     same reason one column along. The rate column was 8ch for figures like "£10.00/h" that already
-     fit in 7.5, and the multiplier 5.5ch for "× 10"; both give back what they were not using.
+     same reason one column along. The multiplier was 5.5ch for "× 10" and gives back what it was
+     not using.
+
+     THE RATE WENT 8ch → 7.5ch ON THAT PASS AND IT DID NOT FIT. Measured at 390: `£12.00/h` is EIGHT
+     glyphs of `--mono` and 52px wide, in a track of 7.5ch × 6.59px = 49.45px. Three pixels over, and
+     `.bk-r` then took `.bk-row`, `.rc` and `.pane` sideways with it.
+
+     `ch` IS THE ROW'S FONT AND THE FIGURES ARE THE CHILD'S. That is the whole of it, and it is the
+     `6 dates` fault one column along, written up on the receipt: a track sized in the PROPORTIONAL
+     font of the grid container, handed the same number of characters in a wider monospace. Eight
+     characters need eight of the wider kind, so the track is 8ch again — and the note that said
+     `£10.00/h` "already fits in 7.5" was counting characters rather than measuring the box. The
+     value column is `1fr` and gives the half-character up.
+
+     NOTHING COULD SEE IT UNTIL THE LAB COULD DRAW THE CARD. The only rows carrying a `/h` rate are
+     `Tuition` and the waiting list's `A seat`, and the PRICED waiting-list card had never been on a
+     screen `check/ui.js` looked at: `bookPrice` answers `null` with no venue, and the fixture had no
+     seat price at all. See the note on that state in `check/states.js`.
 
      THE FLOOR STAYS. `minmax(0, 1fr)` let the value collapse to nothing once the fixed columns had
      taken theirs, which is how a word ends up one letter per line. */
@@ -2417,7 +2433,7 @@ button.text-drop { color: var(--bad); }
      the longest on the spine wants about two pixels more than the floor. The same repair already
      sits on `.bk-row.is-bare` and `.bk-row.is-blank`; having it in three places and not in the one
      they are variants OF is the fault this file keeps writing down. */
-  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 7.5ch 7.5ch;
+  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 8ch 7.5ch;
   /* ---------- TWELVE ROWS IS A LOT OF ROWS -----------------------------------------------------
      The card lists every question now, so what used to be four or five priced lines is twelve
      before anything is answered. At .34rem top and bottom plus a .5rem gap that is most of a phone
@@ -2598,10 +2614,34 @@ button.text-drop { color: var(--bad); }
    a dashed underline of its own. The rule stays, because it is what closes the week off; the space
    either side of it is what goes, and it is 4.5px, which is the 4 this needed. */
 .bk-open {
+  /* ---------- A CELL OF THE ROW ABOVE IT, ON A LINE OF ITS OWN --------------------------------
+     THE WEEK USED TO BE A SIBLING and so began at the card's left edge, under the label column,
+     where no other answer on the card starts. It is the last child of `.bk-row` now, which is a
+     grid, so `1 / -1` is exactly the full width it already had and `2 / -1` is the value column —
+     computed by the browser off `minmax(6.2em, max-content)` rather than restated as a margin that
+     a long label would leave behind. */
+  grid-column: 1 / -1;
   margin: 0 0 .06rem 0;
   padding-bottom: .08rem;
   border-bottom: 1px dashed var(--line);
 }
+/* ---------- AND THE BLOCK WEEK STARTS WHERE THE ANSWERS DO, WHICH THE HOUR WEEK CANNOT -------------
+   ASKED FOR AS *"is it possible to have the grid be in the 2nd column like the other stuff."* For
+   three columns, yes; for eleven, no, and the arithmetic is the same one the note over `.hr`
+   records this block reaching after 222 → 174 → 146px. Measured across the value column each week
+   would have, at the three widths, after the day letters and the gaps come off:
+
+     320px   blocks 56px a cell   hours 15px      390px   blocks 71px   hours 19px
+     768px   blocks 75px          hours 20px
+
+   THE FLOOR IS 20px and the hour week is under it at both phone widths — 15px at 320 is a cell you
+   cannot reliably hit, which is the whole reason that grid is full-bleed. The block week loses 94px
+   a cell for 71 and is nowhere near it.
+
+   THEY ARE NEVER ON ONE CARD. The hours are an ordinary booking's week and the blocks are a waiting
+   list's, and `stepGrid_` draws exactly one of them per branch — so this is not two shapes for one
+   question on a screen somebody is reading, it is one week indented as far as its own cells allow. */
+.bk-open.is-blocks { grid-column: 2 / -1; }
 .bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
 /* ---------- WHAT THE ROW ABOVE MEANS, OR WHY IT CANNOT BE ANSWERED THAT WAY ------------------------
    THE SAME SIZE AND THE SAME PLACE AS THE GRID'S OWN NOTE, because they are the same kind of thing:

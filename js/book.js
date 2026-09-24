@@ -514,7 +514,10 @@ const BOOKING = {
      child who has no account here. That is why the seats say "Child" rather than your name: a seat
      is a person and we do not know which, and inventing one is worse than admitting it. */
   kids: [],
-  interval: '', tutor: '', service: '',
+  /* A LIST NOW — see the `interval` step. `resetBooking_` reads `st.multi` and would set `[]`
+     anyway; this literal is what the form is built from on the very first draw, before anything
+     has been reset, and a string here would have `bookPick` push onto a `String` and throw. */
+  interval: [], tutor: '', service: '',
 };
 
 /* ---------- THE ONE YOU JUST ASKED FOR ------------------------------------------------------------
@@ -1015,7 +1018,7 @@ const BOOK_STEPS = [
      count everything downstream expects. Presentation moved; the data did not. */
   /* ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST -----------------------------------------------
      IT WAS THE FINAL QUESTION, and on the receipt that put `Tutor` twenty rows down among the
-     arithmetic — under `Weeks left`, `Running` and `Split` — when it is one of the three things
+     arithmetic — under the term rows and `Split` — when it is one of the three things
      anybody actually looks for. The order of this list IS the order of both documents now, so
      moving the question is the whole change: the form asks it here and the receipt prints it here.
 
@@ -1170,7 +1173,31 @@ const BOOK_STEPS = [
     grid: 'blocks', options: () => [], why: () => '' },
 
   /* AND NO TERM, for the same reason as the day. */
-  { id: 'interval', label: 'Over what period?', short: 'Term',
+  /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM ------------------------------
+     ASKED FOR AS *"Let term be multi select."* It was one choice, so a family who wanted the whole
+     of the autumn had to book Autumn 1 and then book Autumn 2 — two jobs, two prices, two receipts,
+     for one arrangement that never changes. Every other question on this form that can have more
+     than one answer already takes them.
+
+     THE SESSIONS ARE COUNTED PER TERM AND ADDED, NOT FROM THE FIRST START TO THE LAST END. That
+     distinction is the whole of why this is worth more than one line: `Autumn 1` and `Autumn 2` have
+     the October half term between them, and a window drawn end to end would bill a family for a week
+     the school is shut. `bookSpec` sends `windows`, one per chosen term, and `computePrice` walks
+     them — see the note there.
+
+     `multi: true` IS ALL THE CONTROL NEEDED. `stepControl_` already draws a toggling dropdown with
+     a tick beside what is chosen, `bookPick` already toggles, `bookAnswered_` already reads a list,
+     and `stepRows_` already joins one for the row. Nothing about this step is special except what
+     it means. */
+  /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF ----------------------------------------
+     THE QUESTION IS NOT ASKED ON THAT BRANCH and the card still has to say when. `fallback` is the
+     hook the `client` step already uses for exactly this shape — *"the row shows what the booking
+     would be submitted as, which is the only honest thing for it to show"* — and here what it would
+     be submitted as is whatever term is running. Nothing is written into `BOOKING`, so `bookSpec`
+     still prices from an empty list and a family has answered nothing they did not answer. */
+  { id: 'interval', label: 'Over what period?', short: 'Term', multi: true,
+    fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
+                      return t ? (t.label || t.term) : ''; },
     options: () => isWaiting_() ? [] : (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
 
   /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
@@ -1350,7 +1377,22 @@ function nextBookStep() {
 
 /** What the pricing chain wants, out of what has been answered so far. */
 function bookSpec() {
-  const iv = (DATA.intervals || []).find(x => (x.label || x.term) === BOOKING.interval) || {};
+  /* ---------- EVERY TERM CHOSEN, IN DATE ORDER ---------------------------------------------------
+     THIS WAS `.find(...)` AGAINST A STRING. The step takes several answers now, so it is a filter —
+     and the ORDER is the sheet's rather than the order somebody happened to tick, because the spine
+     row reads them out and "Spring 1, Autumn 2" is a sentence about the wrong school year.
+     `DATA.intervals` arrives chronologically from `doGet` (see the `computed` block there), so
+     keeping its order is the whole of it. Nothing sorts by parsed date: a term whose dates are the
+     wrong way round is a fault `dateFault` already reports, and sorting on it would hide it.
+
+     A STRING STILL WORKS, deliberately. `check-flow.js` seeds `BOOKING` directly and an older
+     saved form could hold one, so a bare name is read as a list of one rather than throwing. */
+  const want = Array.isArray(BOOKING.interval) ? BOOKING.interval
+             : (BOOKING.interval ? [BOOKING.interval] : []);
+  const ivs = (DATA.intervals || [])
+    .filter(x => want.some(w => norm(w) === norm(x.label || x.term)));
+  const first = ivs[0] || {};
+  const last = ivs[ivs.length - 1] || {};
   const runs = bookRuns();
   /* The session length IS the length of a run — not a separate answer that has to be reconciled
      with the hours ticked. Where runs differ, the first one names the session; the total hours a
@@ -1377,8 +1419,22 @@ function bookSpec() {
     hoursPerWeek: perWeek,
     /* The runs themselves, so the chain can work out the real session dates across every day. */
     runs: runs.map(r => ({ dayName: r.dayName, day: r.day, hours: r.hours })),
-    interval: BOOKING.interval, weeks: iv.weeks || 0,
-    startDate: iv.startDate || '', endDate: iv.endDate || '', lastSun: iv.lastSun || iv.endDate || '',
+    /* ---------- THE SPAN, AND THE WINDOWS INSIDE IT --------------------------------------------
+       `startDate` / `endDate` / `lastSun` ARE THE OUTER SPAN and are kept because half a dozen
+       readers still want one pair of dates — `price-rows.js`, the receipt, the breakdown. With one
+       term they are exactly what they always were.
+
+       `windows` IS WHAT THE SESSIONS ARE COUNTED FROM, one per chosen term, and it is the reason
+       this is not just a longer string: Autumn 1 and Autumn 2 have the October half term between
+       them, so an outer span would bill a family for a week nobody teaches. `computePrice` walks
+       the list where there is one and falls back to the single pair where there is not — a live
+       job prices from `spec.slots` and never reaches either. */
+    interval: ivs.map(x => x.label || x.term).join(', '),
+    weeks: ivs.reduce((n, x) => n + (Number(x.weeks) || 0), 0),
+    startDate: first.startDate || '', endDate: last.endDate || '',
+    lastSun: last.lastSun || last.endDate || '',
+    windows: ivs.map(x => ({ startDate: x.startDate || '',
+                             lastSun: x.lastSun || x.endDate || '' })),
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
   };
 }
@@ -1522,6 +1578,23 @@ document.addEventListener('change', e => {
       const list = BOOKING[step.id] || [];
       const at = list.findIndex(x => norm(x) === norm(v));
       if (at === -1) list.push(v); else list.splice(at, 1);
+      /* ---------- KEPT IN THE ORDER THE QUESTION OFFERS THEM, NOT THE ORDER THEY WERE TICKED -----
+         THE TERM STEP IS WHAT MADE THIS MATTER. `stepRows_` joins the list onto one row, so ticking
+         Autumn 2 and then Autumn 1 read back as "Autumn 2, Autumn 1" — a sentence about the wrong
+         school year, on the row somebody checks before they pay.
+
+         AGAINST `options()` RATHER THAN SORTED, because the offered order is the only order this
+         form knows: chronological for terms, whatever the sheet says for subjects. A comparator on
+         the option index says "read them back the way you read them" for every multi at once.
+
+         A GRID STEP IS UNTOUCHED BY CONSTRUCTION. `avail` offers no options, so every key is −1,
+         every comparison is 0, and a stable sort leaves the list exactly as it was. Wrapped anyway:
+         an `options()` that throws must not take a tick with it. */
+      try {
+        const offered = (step.options() || []).map(norm);
+        const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
+        list.sort((a, b) => at_(a) - at_(b));
+      } catch (err) {}
       BOOKING[step.id] = list;
     }
     /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. `done` was how a multiple-choice question said
@@ -1648,6 +1721,45 @@ document.addEventListener('change', e => {
  * which rows exist would be duplication of MEANING, and that is the kind that drifts — a row added
  * to the card and not to the picture makes a shared receipt that quietly disagrees with the screen.
  */
+/* ---------- WHICH TERM A WAITING LIST IS FOR ------------------------------------------------------
+   A LIST OPENED NOW IS FOR THE TERM RUNNING NOW, or the next to start if today is a holiday: nobody
+   opens a list for a term already half gone. `DATA.intervals` is on the phone with every term's
+   dates on it, so this is a find rather than a second copy of the school year.
+
+   NOT A QUESTION, WHICH IS WHY IT IS A LOOKUP. The waiting-list branch skips "over what period" on
+   purpose — a list has no dates until it fills and somebody sets a day — so the answer has to come
+   from the calendar or the card says nothing about when at all.
+
+   A FUNCTION RATHER THAN A LOCAL, because two things want it now: the `About` estimate inside
+   `breakdownRows`, and the `interval` step's `fallback`, which is what actually puts the term on the
+   card. Two lookups would be two answers to which term this is.
+
+   ---------- `new Date('02/11/2026')` IS THE SECOND OF NOVEMBER TO A PERSON AND THE ELEVENTH OF
+   FEBRUARY TO A BROWSER ------------------------------------------------------------------------
+   THIS READ `v => { const d = new Date(v); … }` AND EVERY DATE HERE IS `dd/mm/yyyy` — `fmtDate`
+   writes them that way and `opensOn`/`closesOn` come straight from it. So every comparison was
+   against a date in the American order: a term opening on 2 November was read as 11 February, which
+   is in the past, so it was never "next"; one closing on 23 October parsed as month 23 and came back
+   `null`, so it was never "running" either.
+
+   WHICH MEANS THIS HAS BEEN SILENT RATHER THAN WRONG — the lookup found nothing, the caller's
+   `if (term)` was false, and the card simply had no term on it. Nothing threw and nothing looked
+   broken, which is why it survived: a row that is absent reads as a row nobody has filled in.
+
+   `parseDMY` IS THE APP'S OWN READER and is right about both orders: it takes the three numbers in
+   the order this business writes them, and falls back to `new Date` only for a string that is not a
+   date at all. One parser, in core.js, used by everything that reads one. */
+function waitTerm_() {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const terms = (DATA.intervals || []).filter(t => norm(t.kind) !== 'holiday');
+  const dt = v => parseDMY(v);
+  const running = terms.find(t => dt(t.opensOn) && dt(t.closesOn)
+    && now >= dt(t.opensOn) && now <= dt(t.closesOn));
+  const next = terms.filter(t => dt(t.opensOn) && dt(t.opensOn) > now)
+    .sort((a, b) => dt(a.opensOn) - dt(b.opensOn))[0];
+  return running || next || null;
+}
+
 function breakdownRows(L) {
   const fmt = { money, esc, pct: x => x };
   const rows = [];
@@ -1701,31 +1813,24 @@ function breakdownRows(L) {
     push('Shared by', esc(w.seats) + ' families', '', '', '', { free: true });
     push('Per session', esc(w.hours) + ' hours', '', '', '', { free: true });
 
-    /* ---------- WHICH TERM, AND WHEN IT RUNS ------------------------------------------------------
-       THE FORM SHOWED NEITHER. The waiting-list branch skips the "over what period" question on
-       purpose — a list has no dates until it fills and somebody sets a day — and the card then said
-       nothing about WHEN at all, which reads as "this might be for any time" on the one decision a
-       family is making in August.
-
-       THE TERM IS A DATE LOOKUP, not a question. A list opened now is for the term running now, or
-       the next to start if today is a holiday: nobody opens a list for a term already half gone.
-       `DATA.intervals` is already on the phone with every term's dates on it, so this is a find
-       rather than a second copy of the school year. */
-    const now = new Date(); now.setHours(0, 0, 0, 0);
-    const terms = (DATA.intervals || []).filter(t => norm(t.kind) !== 'holiday');
-    const dt = v => { const d = new Date(v); return isNaN(d) ? null : d; };
-    const running = terms.find(t => dt(t.opensOn) && dt(t.closesOn)
-      && now >= dt(t.opensOn) && now <= dt(t.closesOn));
-    const next = terms.filter(t => dt(t.opensOn) && dt(t.opensOn) > now)
-      .sort((a, b) => dt(a.opensOn) - dt(b.opensOn))[0];
-    const term = running || next;
+    const term = waitTerm_();
     if (term) {
-      push('For', esc(term.label || term.term), '', '', '', { free: true });
-      /* THE DATES IT COVERS, because "Autumn 1" is a name and a family wants the weeks. */
-      if (term.opensOn && term.closesOn) {
-        push('Running', esc(fmtDate(term.opensOn)) + ' to ' + esc(fmtDate(term.closesOn)),
-          '', '', '', { free: true });
-      }
+      /* ---------- `Running`, `Weeks left` AND A `For` HOLDING THE TERM WERE ALL HERE -------------
+         REMOVED ON REQUEST: *"Remove weeks left running bit."* `Running` printed the term's two
+         dates and `Weeks left` printed a bare number, one under the other.
+
+         WHAT IS LOST IS THE DATES, and it is worth writing down rather than discovering: a family
+         reading `Autumn 1` now has to know when Autumn 1 is. The count itself is not lost — it is
+         the multiplier on the `About` row below, where it is doing arithmetic somebody can follow
+         rather than sitting on a line of its own.
+
+         AND THE TERM'S OWN ROW IS NOT PUSHED FROM HERE AT ALL, which is the part that took
+         measuring. It went into `For` — the row that means the CLIENT, the exact fault `jobRows`
+         fixed on the receipt and wrote up — and a push naming a question is DROPPED: `bookBreakdown`
+         builds `said` from every step's label and filters the priced rows against it, *"anything
+         naming a question twice is dropped"*. `For` is a step and so is `Term`, so a push under
+         either name has never reached the card under any label. The row belongs to the `interval`
+         STEP, and it fills itself through that step's `fallback` — see it in `BOOK_STEPS`. */
       /* ---------- AND WHAT THE TERM WOULD COME TO ---------------------------------------------
          A PER-SESSION FIGURE IS NOT WHAT ANYBODY IS DECIDING. "£19.00 a seat" answers a question
          nobody asked; "seven weeks, so about £133" is the number a family weighs against the month.
@@ -1736,7 +1841,6 @@ function breakdownRows(L) {
          through is honestly cheaper; and nothing runs until the seats fill, so the real figure
          depends on when that happens. A precise-looking total would be a promise this cannot keep. */
       if (term.weeks) {
-        push('Weeks left', esc(term.weeks), '', '', '', { free: true });
         push('About', esc(term.weeks) + ' × ' + money(w.perSeatSession),
           '', '', money(w.perSeatSession * term.weeks), { est: true });
       }
@@ -1898,7 +2002,11 @@ function stepSelect_(st) {
      selected because `BOOKING.client` is only set by choosing.
      So the same one rule is read here too. The control opens on whoever is signed in — which is
      what the booking would be submitted as — and picking a family still overwrites it. */
-  const v = st.multi ? '' : (BOOKING[st.id] || (st.fallback ? st.fallback() : ''));
+  /* READ ONCE, BECAUSE THREE PLACES IN THIS FUNCTION WANT IT: the value a single-answer control
+     opens on, the text a LOCKED row prints, and the first option of an open multi. It was inlined
+     into the first of those alone, so a multi never saw it — see the two notes below. */
+  const fb = st.fallback ? String(st.fallback() || '') : '';
+  const v = st.multi ? '' : (BOOKING[st.id] || fb);
 
   /* ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL ----------------------------------------------
      A LOCKED SELECT STILL SHOWED "—" ON A MULTI. The dropdown on a multiple-answer row is a way of
@@ -1913,7 +2021,12 @@ function stepSelect_(st) {
   if (stepLocked_(st)) {
     const said = st.emails
       ? (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ')
-      : st.multi ? chosen.join(', ')
+      /* ---------- AND A LOCKED MULTI HAD NO FALLBACK EITHER ---------------------------------
+         THE LINE BELOW ALREADY SAYS `v` CARRIES IT and this one, one branch up, did not — so the
+         `interval` step on a waiting list printed a dash over a term it had already worked out.
+         That step is locked on that branch by construction (`stepLocked_` reads `options()`, which
+         is empty there), so this IS the branch it takes, every time. */
+      : st.multi ? (chosen.join(', ') || fb)
       : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
     return `<span class="bk-set">${esc(String(said || '—'))}</span>`;
   }
@@ -1929,8 +2042,12 @@ function stepSelect_(st) {
           NEXT one rather than a display of what is picked. WHICH MEANS IT HAS TO SAY WHAT IS PICKED:
           it is the only label on the row, so leaving it as "—" made a row with three subjects on it
           read as empty. */''}
+    ${/* AND AN OPEN MULTI WITH NOTHING TICKED SHOWS THE FALLBACK, for the same reason the locked
+          one does. No step reaches this today — `interval` is the only multi with a fallback and it
+          is locked wherever that fallback answers — and writing the dash here instead would be a
+          third place for one rule, which is how the other two came to disagree. */''}
     <option value=""${(st.multi || !v) ? ' selected' : ''}>${
-      st.multi && chosen.length ? esc(chosen.join(', ')) : '—'}</option>
+      st.multi && chosen.length ? esc(chosen.join(', ')) : esc(fb || '—')}</option>
     ${opts.map(o => `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}
       >${st.multi && isOn(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
   </select>`;
@@ -2056,7 +2173,7 @@ function weekGrid_(days, cell) {
    equal rows — which is what makes it readable as a week rather than as a list. */
 function blockWeek_() {
   const on = BOOKING.avail || [];
-  return `<div class="bk-open">
+  return `<div class="bk-open is-blocks">
     ${/* AND NO SENTENCE OVER IT. The greyed hour week carried one because a locked control with no
           reason beside it is the invisible mode — this one is not locked, and the two places that
           would say the same thing already do: the row above it asks "When could you come?" and the
@@ -2241,7 +2358,11 @@ function stepRows_() {
            The full form is on the row now and the line under the grid has gone with it. */
         ? bookRuns().map(r => r.dayName + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00')
             .join(', ')
-        : st.multi ? (v || []).join(', ')
+        /* A MULTI WITH NOTHING TICKED FALLS BACK LIKE ANY OTHER STEP. It could not before: this
+           branch sits above the `fallback` line and returned `''` for an empty list, so the one
+           step that has both — `interval`, which takes several terms and answers itself on a
+           waiting list — would have shown a dash over an answer it already knew. */
+        : st.multi ? ((v || []).join(', ') || (st.fallback ? st.fallback() : ''))
         /* ---------- A QUESTION WITH AN OBVIOUS ANSWER SHOWS IT ---------------------------------
            "FOR" SAT EMPTY WHILE EVERY OTHER PART OF THE APP ALREADY KNEW. `BOOKING.client` is only
            set when somebody CHOOSES — which for an admin booking on behalf of a family is the whole
@@ -2358,7 +2479,7 @@ let BOOK_ROWS = [];
    question to the form and the receipt grows a row for it, with no second place to remember.
 
    AND THE ROWS THAT ARE NOT QUESTIONS ARE DECLARED HERE, because they have nowhere else to come
-   from: `Extra subjects` is arithmetic, `Running` and `Weeks left` are looked up from the term,
+   from: `Extra subjects` is arithmetic, `About` is looked up from the term,
    `Stage` and `Status` and `Asked for` only exist once a booking has been sent. Each is pinned
    AFTER the question it belongs with rather than given an index, so inserting a step upstream moves
    them along with it instead of leaving them stranded at a number that no longer means anything. */
@@ -2377,7 +2498,7 @@ let BOOK_ROWS = [];
 /* ---------- `only` — WHICH DOCUMENT CAN EVER FILL THIS ROW -------------------------------------
    THE SPINE IS THE UNION OF THREE DOCUMENTS AND THE FORM WAS PRINTING ALL THREE. Measured on a
    priced ordinary booking at 390px: nine rows drew a dash and EIGHT of them were another document's
-   — `A seat`, `Shared by`, `Per session`, `Running`, `Weeks left` and `About` are pushed only
+   — `A seat`, `Shared by`, `Per session` and `About` are pushed only
    inside `if (isWaiting_()) { … return rows; }`, which an ordinary booking never enters, and
    `Sharing` and `Asked for` are pushed only by `jobRows`, which is the receipt.
 
@@ -2395,8 +2516,6 @@ let BOOK_ROWS = [];
 const SPINE_EXTRA = [
   { after: 'Subject', row: 'Extra subj.' },
   { after: 'When',    row: 'Per session', only: 'wait' },
-  { after: 'Term',    row: 'Weeks left',  only: 'wait' },
-  { after: 'Term',    row: 'Running',     only: 'wait' },
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
      form asks the question as `Split` and names the answer there. */
   { after: 'Split',   row: 'Sharing',     only: 'receipt' },
@@ -2526,7 +2645,23 @@ function spineRows_(rows, opts) {
      beside the row it belongs to rather than listed again here. No `on` means invent everything,
      which is what every caller that does not know about branches gets. */
   const on = (opts && opts.on) || '';
-  const out = SPINE.map(k => (say[k] || (fill && !(on && ONLY_ON[k] && ONLY_ON[k] !== on) ? {
+  /* ---------- AND A ROW WHOSE FIGURES WENT ONTO A QUESTION IS NOT A ROW TO INVENT ----------------
+     `A seat` IS PUSHED BY THE WAITING BRANCH AND CARRIES `step: 'loc'`, so `bookBreakdown` merges
+     its rate and total onto the Venue row and marks it used — which is right: the venue IS what a
+     seat is priced from, and printing `Colliers Wood Library · £12.00/h · £24.00` twice under two
+     names is the duplication that merge exists to stop.
+
+     WHAT WAS LEFT IS THE NAME. The row never reached here, so the spine saw a key nothing had
+     filled and invented a dash for it — on the one branch the row belongs to, under a label whose
+     content is four lines above. A blank that can never fill, which is exactly what `only:` was
+     added to stop one kind of.
+
+     `check-spine.js` CANNOT SEE THIS and does not claim to: it reads what the builders PUSH, and
+     `A seat` is genuinely pushed. The merge happens afterwards, in `bookBreakdown`, which is the one
+     place that knows — so it is the one place that can say so. */
+  const gone = (opts && opts.said) || {};
+  const out = SPINE.map(k => (say[k] || (fill && !gone[k]
+    && !(on && ONLY_ON[k] && ONLY_ON[k] !== on) ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
        the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`. */
     n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true, blank: true,
@@ -2623,11 +2758,16 @@ function bookBreakdown(L, foot) {
     if (!ownRow(r)) return;
     if (r.step && !byStep[r.step]) byStep[r.step] = r;
   });
+  /* WHICH PRICED ROWS WERE CONSUMED BY A QUESTION, under the name the spine knows them by — so
+     `spineRows_` does not invent a blank for a row whose figures are already on the card. */
+  const merged = {};
   steps.forEach(r => {
     const p = byStep[r.id];
     if (!p) return;
     r.mul = p.mul; r.rate = p.rate; r.total = p.total;
     p.used = true;
+    const k = SPINE_ALIAS[p.k] !== undefined ? SPINE_ALIAS[p.k] : p.k;
+    if (k) merged[k] = true;
   });
 
   /* WHAT THE QUESTIONS ALREADY SAY, both by name and by which step they stand for. The name alone
@@ -2672,7 +2812,7 @@ function bookBreakdown(L, foot) {
      because that is the one test the branch itself is taken on, four hundred lines up. */
   const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]), { on: isWaiting_() ? 'wait' : 'book' });
+    .concat([noteRow_()]), { on: isWaiting_() ? 'wait' : 'book', said: merged });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
@@ -3045,8 +3185,24 @@ function receiptRow(r) {
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>
-  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}${
-    r.open || ''}`;
+    ${/* ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT --------------------
+          ASKED AS *"is it possible to have the grid be in the 2nd column like the other stuff."*
+          It was a sibling of the row, so it started at the CARD's left edge — under the label
+          column, where no other answer on the card begins — and every value beside it starts two
+          thirds of an inch further in. One left edge for the answers is most of what makes this
+          read as a document.
+
+          PLACED BY THE GRID RATHER THAN MEASURED AGAIN. The obvious version is `margin-left: 6.2em`
+          on the week, which is the label column's own floor written in a second place — and that
+          column is `minmax(6.2em, max-content)`, so a long label widens it and the margin would not
+          follow. As a CELL it takes whatever the browser worked out, and `grid-column` is the one
+          declaration that differs between the two weeks.
+
+          AND A NOTE ON A GRID ROW NOW SITS UNDER THE WEEK rather than between the row and it. No
+          grid step carries one today, so nothing moved; it is the better order if one ever does,
+          because a sentence about a control belongs under the control. */''}
+    ${r.open || ''}
+  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}`;
 }
 
 /**
@@ -3107,11 +3263,11 @@ function jobRows(j) {
        the school term twice under two names while never once saying whose booking it was. The
        spine put them next to each other and made it obvious.
        DROPPED, because `Term` already says it. `For` now means one thing on both documents. */
-    if (iv && iv.opensOn && iv.closesOn) {
-      push('Running', fmtDate(iv.opensOn) + ' to ' + fmtDate(iv.closesOn));
-    }
+    /* `Running` AND `Weeks left` WERE TWO PUSHES HERE and went with the form's — see the note by
+       the waiting-list branch above. Both documents lose the same two rows in the same commit,
+       which is what `check-spine.js` exists to make unavoidable: a row on one and not the other is
+       the drift it was written for. */
     if (iv && iv.weeks) {
-      push('Weeks left', String(iv.weeks));
       /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
          precise total here would be a promise the list cannot keep. */
       push('About', iv.weeks + ' × ' + money(j.price || 0), money((j.price || 0) * iv.weeks));
