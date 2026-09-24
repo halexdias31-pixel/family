@@ -1098,6 +1098,11 @@ function initFlappy() {
   const canvas = $('flappy-canvas');
   if (!canvas) return;
 
+  /* THE BOARD IS DRAWN HERE because `startScreen_` calls this on every paint of the column, so it
+     picks up the payload the moment `load()` lands and again whenever anything repaints. It is one
+     innerHTML over at most six rows and it happens before the game starts. */
+  paintBoard_('flappy-board', 'highscore');
+
   /* THE ELEMENT'S OWN SIZE, not its box. A canvas has two sizes — the CSS one it occupies and the
      `width`/`height` attributes it actually draws into — and stretching the first without the
      second draws at the old resolution and scales the result. Everything blurs, and worse, every
@@ -1183,9 +1188,18 @@ function initFlappy() {
                personId: (USER && USER.personId) || '', score: S.score })
           .then(() => {
 
-            const meS = (DATA.students||[]).find(s => norm(s.handle) === norm(USER.handle)); if (meS) meS.highscore = S.score;
-            const meT = (DATA.tutors||[]).find(x => norm(x.title) === norm(USER.name)); if (meT) meT.highscore = S.score;
-            // No re-render mid-game — the "Best" display already updated; cards refresh naturally later
+            /* ---------- TWO HALF-TESTS FOR ONE QUESTION, REPLACED BY THE ONE THAT ASKS IT ----
+               THIS MATCHED A STUDENT ON HANDLE ALONE AND A TUTOR ON `title` ALONE. Either half
+               answers "not you" for somebody the other would have found — a tutor signed in with
+               a handle and a display name that differ was simply never located, so a record they
+               had just set was written to the sheet and never to the row the app was holding.
+               `mineIs_` is the one test, id first, and it is used here and by `accountPages_`. */
+            const meRow = (DATA.students || []).concat(DATA.tutors || []).filter(mineIs_)[0];
+            if (meRow) meRow.highscore = S.score;
+            /* The board is a list, not the game — redrawing it mid-play costs one innerHTML on a
+               dead bird and is the only thing that stops the card announcing a record above a
+               chart that still shows the old one. The canvas is untouched. */
+            paintBoard_('flappy-board', 'highscore');
           })
           /* The screen already says "New best!". If the save never lands, a child believes a score
              was kept that was not, and finds it gone next visit with nothing to explain it. Say so

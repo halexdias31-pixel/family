@@ -37,6 +37,13 @@
 ================================================================================================== */
 
 const fs = require('fs');
+/* THE SAME EXPRESSION `clipFrame_` USES, and it is written twice on purpose: this file must be able
+   to say a row is wrong even when `js/games.js` is the thing that is wrong. Every other shared rule
+   here is cut out of the app's own source for the opposite reason — see `check-marks-load.js` — and
+   the difference is whether the check is about the DATA or about the CODE. This one is about the
+   data, so it carries its own copy and a drift between them shows up as a row this names and the
+   app draws, or the reverse. */
+const IG = /(?:^|\/\/)(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/;
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -185,10 +192,36 @@ function run() {
     seen.push({ r: r, where: 'here', f: f, poster: poster });
   });
 
+  /* ---------- AN INSTAGRAM SHORTCODE THAT IS NOT ONE IS A DARK REEL ------------------------------
+     THE SAME FAULT THIS FILE WAS WRITTEN FOR, one host along. A path typed one character wrong 404s
+     and the column shows a gradient; an Instagram URL typed one character wrong resolves to a page
+     that is not a reel and the frame shows Instagram's own "sorry, this page isn't available" —
+     which reads as the feature half-working rather than as a row nobody checked.
+
+     THE SHAPE IS THE HALF A CHECKER CAN SETTLE. Whether the post still exists is a question for the
+     network, and every host but GitHub is blocked from this environment; whether the row names a
+     post at all is arithmetic. A shortcode is 11 characters of Instagram's own base64 alphabet, and
+     a share link that carries no `/reel/`, `/reels/`, `/p/` or `/tv/` segment names no post. */
+  seen.filter(s => /instagram\.com/i.test(String(s.r.clip)))
+    .filter(s => { const m = IG.exec(String(s.r.clip));
+                   return !m || m[1].length < 5 || m[1].length > 24; })
+    .forEach(s => bad.push('row ' + s.r.n + ' names instagram.com and no post on it: '
+      + JSON.stringify(String(s.r.clip).slice(0, 60))
+      + ' — an embed needs a /reel/, /reels/, /p/ or /tv/ segment and its shortcode.'));
+
   console.log('\nREELS');
   seen.forEach(s => {
     if (s.where === 'elsewhere') {
-      console.log('  row ' + s.r.n + '  ' + s.r.clip.slice(0, 44) + '   (not in this repository)');
+      /* ---------- SOMEBODY ELSE'S POST IS A THIRD KIND, AND IT IS SAID RATHER THAN LUMPED IN ------
+         "NOT IN THIS REPOSITORY" IS TRUE OF A DRIVE ID AND OF AN INSTAGRAM URL and they do not
+         behave alike: a Drive clip climbs the `<video>` ladder and usually plays; an Instagram one
+         has no rung at all and is always somebody else's player in a frame — no autoplay, no mute,
+         no pause from this column. A reader of this list has to be able to tell which of their
+         rows will behave that way without opening `clipSrcs_`. */
+      const ig = IG.exec(String(s.r.clip));
+      console.log('  row ' + s.r.n + '  ' + s.r.clip.slice(0, 48)
+        + (ig ? '\n         Instagram ' + ig[1] + ' — drawn in their embed: no autoplay, no mute, '
+                + 'no pause' : '   (not in this repository)'));
       return;
     }
     console.log('  row ' + s.r.n + '  ' + s.r.clip);

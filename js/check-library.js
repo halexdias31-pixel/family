@@ -874,6 +874,46 @@ if (MARKS.missing.length) {
         + ') \u2014 a child typing exactly that is told they are wrong');
     }
   });
+
+  /* ---------- A TICK BOX HAS ONE RIGHT OPTION AND THE PAPER PRINTS THE OTHERS --------------------
+     A MULTIPLE-CHOICE QUESTION IS THE ONE PLACE THE WRONG ANSWERS ARE WRITTEN DOWN, so it is the
+     one place a checker can prove an `accept` is not too generous. The rule above asks whether a
+     cell can mark its own answer right; this asks whether it marks anything ELSE right, and a cell
+     that lets two of the four printed options through is a question with two right answers.
+
+     IT WOULD HAVE FIRED ON A REAL DRAFT. Chemistry 8462/1F 03.8 prints four options that differ in
+     two halves -- energy in or out, endothermic or exothermic -- and an `accept` of the bare word
+     `endothermic`, which is the obvious short form to reach for, marks two of them right.
+
+     NARROWED TO WHAT PRINTS "TICK ONE BOX", and that narrowing is the `check-rows.js` lesson. The
+     general form -- any row with an `accept` and a bulleted list -- reports two rows across the
+     library and both are wrong: Q-1MA1-1706-1F-7 bullets Fahima's shopping and
+     Q-AQA-8464B-2406-2H-053 bullets the two things sewage affected. Neither is a set of options.
+     Nothing can tell a bullet list from an option list; the paper's own instruction can. */
+  const TICK = /tick\s*(<[^>]*>)?\s*one/i;
+  const optionsOf = html => (String(html || '').match(/<li>[\s\S]*?<\/li>/g) || [])
+    .map(o => o.replace(/<\/?su[pb]>/g, '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
+               .replace(/\s+/g, ' ').trim().replace(/\.$/, ''))
+    .filter(Boolean);
+  let tickable = 0, tickBlank = 0;
+  rows.forEach(r => {
+    if (!r || r.kind !== 'question' || !TICK.test(String(r.html || ''))) return;
+    const opts = optionsOf(r.html);
+    if (!opts.length) return;
+    const cell = String(r.accept || '').trim();
+    if (!cell) { tickBlank++; return; }
+    tickable++;
+    const hit = opts.filter(o => markOf(o, cell) === true);
+    if (hit.length !== 1) {
+      fail.push(r.row_id + ' prints ' + opts.length + ' options to tick and its `accept` ('
+        + JSON.stringify(cell) + ') marks ' + hit.length + ' of them right'
+        + (hit.length ? ' \u2014 ' + JSON.stringify(hit.slice(0, 3)) : '')
+        + '. A tick box has one right option.');
+    }
+  });
+  note.push(tickable + ' tick-box question(s) can mark themselves and each was checked against '
+    + 'every other option its paper prints; ' + tickBlank + ' print their options and have no '
+    + '`accept`, so they draw no Check button');
 }
 
 console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} of them summed against a stated total`);

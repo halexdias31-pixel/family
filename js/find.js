@@ -5584,6 +5584,39 @@ function feedPages_() {
    list — and that position moves with whatever you have narrowed, so the one control that must
    always be in the same place was the one thing that kept shifting. One swipe right, from anywhere,
    whatever is on screen. */
+/* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE --------------------------------------------------
+   IT WAS LOCAL TO `accountPages_` AND THERE WERE THREE OTHER COPIES OF IT. `gameOver` in receipt.js
+   matched a student on handle alone and a tutor on `title` alone — two half-tests, either of which
+   answers "not you" for somebody the other would have found, and both of them written out beside
+   each other rather than asked. That is the fault this function exists to prevent, so it is a
+   function rather than a local.
+
+   THE ORDER IS `findPerson`'S ORDER and for its reason: an id beats a handle beats a name.
+   `changePin` is the entry where matching a person by their display name was a real denial — the
+   PIN you typed checked against somebody else's row, and you told you did not know your own.
+
+   `t.name` IS THE FOURTH RUNG AND IT IS FOR THE STUDENT ROWS. A tutor row carries `title` and no
+   `name`; a student row carries `name` and no `title`, so before this a student could only ever be
+   matched by handle. Additive by construction: a tutor has no `name` key for the new rung to read,
+   so nothing `accountPages_` already answered can change. */
+function mineIs_(t) {
+  /* ---------- AND A STRANGER HAS NO ROW, WHICH THIS DID NOT HAVE TO KNOW BEFORE ------------------
+     IT WAS LOCAL TO `accountPages_`, WHICH IS ONLY EVER DRAWN FOR SOMEBODY SIGNED IN, so `USER` was
+     an object by the time any of these rungs read it. At file scope it is reachable from the high
+     score board, which a stranger sees — and `USER.personId` on `null` throws.
+
+     IT THREW INTO A `catch` THAT SWALLOWED IT. `toolsStart_` wraps each widget's `start` in its own
+     try, so the game came up perfectly and the board beside it stayed an empty div, signed out, at
+     every width. Found by the lab and not by looking: `check/ui.js` reported the state as not
+     reached, which is precisely what that assertion is for. */
+  if (typeof USER === 'undefined' || !USER) return false;
+  return !!t && (
+    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
+    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
+    (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
+    (USER.name && t.name && norm(t.name) === norm(USER.name)));
+}
+
 function accountPages_() {
   if (!USER) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
@@ -5623,11 +5656,6 @@ function accountPages_() {
      AND IF YOU ARE NOT STAFF THERE IS NO ROW, so one is built from what signing in already
      returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
      the distinction the note above is about. */
-  const mineIs_ = t => !!t && (
-    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
-    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
-    (USER.name && t.title && norm(t.title) === norm(USER.name)));
-
   const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
     title: USER.name || 'Signed in',
     role:  roleOf(USER.role || 'student'),
@@ -5694,8 +5722,29 @@ function accountPages_() {
     `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
   ].join('');
 
+  /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON --
+     REPORTED AS "where did george dissapear off to?" — and nothing had gone wrong with his row.
+     This list read `.filter(t => t.listed !== false)`, so a tutor whose `listed` cell is off was
+     dropped here, on the phone, AFTER the server had deliberately sent him.
+
+     `doget.gs` ALREADY DECIDES THIS AND SAYS SO OUT LOUD: *"An admin sees the unlisted ones too,
+     marked. Without that a tutor switched off vanishes from the site and can only be switched back
+     on in the spreadsheet — which would make the control worse than not having one."* So the rule
+     was written twice and the two disagreed — the `MESSAGING` fault, where a role policy copied
+     onto the phone is two rules to keep in step, and here the copy silently won.
+
+     AND IT MADE TWO THINGS UNREACHABLE THAT WERE ALREADY BUILT. `findCard` draws such a row dimmed
+     with `· not listed` beside the name, `.card.is-widget.is-off` and `.prof-off` are in the
+     stylesheet, and `asItem_` three lines below sets `off: t.listed === false` — none of which
+     could ever run, because the row never arrived. A renderer left standing over a permanently
+     false condition is the shape this repo records under `resource_type` in `VOCAB` and the dead
+     `kind === 'paper'` guard.
+
+     THE SERVER IS THE GATE AND STAYS THE GATE. A non-admin is never sent an unlisted tutor, so
+     there is nothing here to filter — which is what makes deleting the clause safe rather than a
+     disclosure: the list this walks is whatever `doGet` judged this viewer may see. */
   const others = (DATA.tutors || [])
-    .filter(t => t && t.title && t.listed !== false)
+    .filter(t => t && t.title)
     /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
        account and again below as a tutor — the same duplication the `me` kind was merged away to
        avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never

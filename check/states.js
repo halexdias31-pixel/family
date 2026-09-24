@@ -242,6 +242,46 @@ const STATES = {
      SEEDED THROUGH `toggleFav`, THE APP'S OWN WRITER, rather than by writing the key out here: the
      prefix is `WIDGET_KEY`'s and a second spelling of it would be a second thing to keep in step.
      `leave` takes them back off, because states run in order down one page. */
+  /* ---------- AN UNLISTED TUTOR, WHICH ONLY AN ADMIN IS SENT --------------------------------------
+     REPORTED AS "where did george dissapear off to?" — and this column had been filtering unlisted
+     tutors back out on the phone after `doGet` had deliberately sent them to an admin, so that
+     `findCard`'s dimmed `· not listed` row and `asItem_`'s `off` flag were both unreachable code.
+
+     NO FIXTURE CAN HOLD THIS ONE. `check/fixture.json` has a single tutor and she is listed, so the
+     only account column the lab has ever measured is the one where every row is live — which is the
+     hole the booking receipt, the message thread and the basket were each in. Seeded onto
+     `DATA.tutors`, which is where `accountPages_` reads from and what `load()` fills.
+
+     `only:` BECAUSE A NON-ADMIN IS NEVER SENT ONE. `doget.gs` gates it on `viewerIsAdmin`, so
+     asking a stranger to reach this state would report a fault about the check rather than the app
+     — the same argument as the films two blocks up. */
+  account: [
+    { name: '' },
+    { name: 'a tutor switched off',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        window.__OFF_HELD = (DATA.tutors || []).slice();
+        DATA.tutors = (DATA.tutors || []).concat([Object.assign(
+          {}, (DATA.tutors || [])[0] || {},
+          { personId: 'P-unlisted', handle: '@unlisted', title: 'Switched Off',
+            subtitle: 'Maths, GCSE', listed: false })]);
+        paint('account');
+        /* THE PAGE NUMBER COMES FROM THE BUILDER THE COLUMN IS DRAWN FROM, not from a second
+           re-derivation of `others` here — which is the fault the flyer state above records, where
+           a count of one list indexed a column built from another. `termsPages_()` is concatenated
+           after these, so counting from the end would land on a legal document. */
+        const n = accountPages_().findIndex(h => /prof-off/.test(h));
+        if (n < 0) throw new Error('the unlisted tutor is not on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off'),
+      wants: 'the unlisted tutor drawn, dimmed, with "· not listed" beside the role',
+      leave: () => {
+        if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
+        paint('account');
+      } },
+  ],
+
   saved: [
     { name: 'nothing kept' },
     { name: 'two widgets kept',
@@ -314,6 +354,171 @@ const STATES = {
       wants: 'the week of hours drawn on screen' },
   ],
 
+  /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------
+     `check/fixture.json` HAS NO STUDENTS AND ITS ONE TUTOR SCORES NOUGHT, so the only state the lab
+     could reach is the board's empty card — which is this file's own sentence about the booking
+     receipt, the message thread and the basket, for a fourth time. A board of one row and a board
+     of six are different objects to measure: the second is where a long handle meets a `flex: 0 0
+     auto` label, and where the mark for your own line has to survive the flappy card's own row
+     colours.
+
+     SEEDED THROUGH THE PAYLOAD, which is the same door `load()` uses — `scoreRanks_` reads
+     `DATA.students` and `DATA.tutors` and nothing else, so putting rows there is the app arriving
+     at this state rather than the harness reaching past it.
+
+     AND THE SEEDED TUTOR IS DELIBERATELY EIGHTH. If the visitor were in the top five the board
+     would never draw its other branch — your own row, appended underneath with the place you are
+     actually in — and that branch is the whole reason the board is not simply `slice(0, 5)`. */
+  games: [
+    { name: '' },
+    { name: 'a full high-score board',
+      enter: () => {
+        window.__seedScores = { students: DATA.students, tutors: JSON.stringify(DATA.tutors) };
+        DATA.students = [
+          { name: 'Beatrix', handle: 'beatrix-longhandle20', highscore: 92, ttHighscore: 61 },
+          { name: 'Caleb', handle: 'caleb', highscore: 74, ttHighscore: 55 },
+          { name: 'Dilnoza', handle: 'dilnoza', highscore: 68, ttHighscore: 49 },
+          { name: 'Emeka', handle: 'emeka', highscore: 51, ttHighscore: 44 },
+          { name: 'Fen', handle: 'fen', highscore: 40, ttHighscore: 38 },
+          { name: 'Gita', handle: 'gita', highscore: 27, ttHighscore: 30 },
+          { name: 'Hal', handle: 'hal', highscore: 19, ttHighscore: 21 },
+        ];
+        /* ---------- AND THE VISITOR HAS TO BE ON IT, OR THE OTHER BRANCH NEVER DRAWS ---------
+           THE FIRST VERSION PUT A SCORE ON THE FIXTURE'S ONE TUTOR AND CALLED THAT "YOU". It is
+           not: the seeded visitor is `Test Admin` / `testadmin` / `P001` and the fixture's tutor is
+           `Ada Tutor` / `@ada` / `P-@ada`, so `mineIs_` correctly matched nobody and the board drew
+           five rows with no mark on any of them. The assertion failed and it was right to — the
+           state was wrong, not the app. Seeded off `USER` itself, so it is whoever the lab is
+           signed in as rather than a name written twice. */
+        if (typeof USER !== 'undefined' && USER) DATA.students.push(
+          { name: USER.name, handle: USER.handle, personId: USER.personId,
+            highscore: 8, ttHighscore: 7 });
+        /* `repaint` RATHER THAN `paint`, and the difference is the whole state. `paint(id)` replaces
+           the markup and stops there; the widgets that were running inside it are restarted by
+           `startScreen_`, which only `repaint` and `go` call — so a bare `paint` here rebuilt the
+           card and left the board an empty div, which is exactly what the first run of this state
+           reported. Its own note says so: "a repaint rebuilds the markup it was running in". */
+        repaint(true);
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'flabby');
+        if (n < 0) throw new Error('no Flabby Pird widget in the roster');
+        goPage('games', n, true);
+      },
+      /* ONE MORE ROW THAN `SCORE_TOP`, and the number is READ OFF THE APP rather than written here:
+         the seed puts the visitor eighth on purpose, so the board draws the top N and then their
+         own line. A literal would be the same figure in two files and the copy in this one is the
+         one nobody re-reads — which is what happened the first time, when `SCORE_TOP` went from
+         five to three for a measured reason and an assertion of `>= 5` failed every state.
+
+         Signed out there is no visitor to mark, so the extra row and the mark are both asserted
+         only where there is somebody to mark — the alternative is a state that fails for the
+         stranger it is correctly not about. */
+      expect: () => {
+        const rows = document.querySelectorAll('#s-games #flappy-board .row');
+        const me = document.querySelector('#s-games #flappy-board .row.is-me');
+        const signedIn = typeof USER !== 'undefined' && !!USER;
+        return rows.length === SCORE_TOP + (signedIn ? 1 : 0) && (!signedIn || !!me);
+      },
+      wants: 'the top scores plus your own line on the Flabby Pird card',
+      leave: () => {
+        DATA.students = window.__seedScores.students;
+        DATA.tutors = JSON.parse(window.__seedScores.tutors);
+        /* `repaint` RATHER THAN `paint`, and the difference is the whole state. `paint(id)` replaces
+           the markup and stops there; the widgets that were running inside it are restarted by
+           `startScreen_`, which only `repaint` and `go` call — so a bare `paint` here rebuilt the
+           card and left the board an empty div, which is exactly what the first run of this state
+           reported. Its own note says so: "a repaint rebuilds the markup it was running in". */
+        repaint(true);
+      } },
+    /* THE SAME RENDERER IN THE OTHER CARD, and worth its own state rather than trusted: the flappy
+       card retones `.row .k` and `.row .v` for its dark shell and the times-table card does not, so
+       the two are the same list on two different grounds. A contrast finding on one of them says
+       nothing about the other. */
+    { name: 'the times-table board',
+      enter: () => {
+        window.__seedScoresTt = { students: DATA.students, tutors: JSON.stringify(DATA.tutors) };
+        DATA.students = [
+          { name: 'Beatrix', handle: 'beatrix', ttHighscore: 61 },
+          { name: 'Caleb', handle: 'caleb', ttHighscore: 55 },
+          { name: 'Dilnoza', handle: 'dilnoza', ttHighscore: 49 },
+          { name: 'Emeka', handle: 'emeka', ttHighscore: 44 },
+          { name: 'Fen', handle: 'fen', ttHighscore: 38 },
+          { name: 'Gita', handle: 'gita', ttHighscore: 30 },
+        ];
+        if (typeof USER !== 'undefined' && USER) DATA.students.push(
+          { name: USER.name, handle: USER.handle, personId: USER.personId, ttHighscore: 5 });
+        repaint(true);
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'tables');
+        if (n < 0) throw new Error('no times-table widget in the roster');
+        goPage('games', n, true);
+      },
+      expect: () => document.querySelectorAll('#s-games #tt-board .row').length >= SCORE_TOP,
+      wants: 'the times-table high scores under the sprint',
+      leave: () => {
+        DATA.students = window.__seedScoresTt.students;
+        DATA.tutors = JSON.parse(window.__seedScoresTt.tutors);
+        repaint(true);
+      } },
+
+    /* ---------- AND A SCRABBLE GAME PART-WAY THROUGH ------------------------------------------
+       THE WIDGET OPENS ON THREE BUTTONS — 2, 3 or 4 players — and that is the only state `go()`
+       can reach. Everything the game actually is lives past them: a board with tiles on it, a
+       rack, four actions and the hand-over card between turns. Fifteen columns of squares over
+       seven 44px tiles is also the tallest card in this column, and it was 17px past the pane's
+       own fold the first time anything measured it.
+
+       SEEDED THROUGH THE GAME'S OWN FUNCTIONS — `scrNew_` deals the bag, `scrPlace_` puts a tile
+       down — rather than from a board written out here. A fixture board would be a second
+       description of what a game looks like, and the copy in this file is the one nobody
+       re-reads. */
+    { name: 'a game of scrabble',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scrabble');
+        if (n < 0) throw new Error('no scrabble widget in the roster');
+        goPage('games', n, true);
+        scrabble = scrNew_(2);
+        scrabble.handover = false;
+        /* A BLANK ON THE RACK ON PURPOSE: it is the one tile with no letter and no value, so it is
+           the one that can be drawn wrongly without anything looking odd. */
+        scrabble.players[0].rack = ['C', 'A', 'T', 'S', 'E', '', 'Q'];
+        scrPlace_(scrabble, 111, 0);
+        scrPlace_(scrabble, 112, 1);
+        scrPlace_(scrabble, 113, 2);
+        scrabblePaint();
+      },
+      expect: () => document.querySelectorAll('#s-games .scr-sq.has').length === 3
+                 && document.querySelectorAll('#s-games .scr-tile').length === 7
+                 && !document.getElementById('scr-acts').hidden,
+      wants: 'three tiles on the board, a rack of seven and the four actions',
+      leave: () => { scrabble = null; scrabblePaint(); } },
+
+    /* THE HAND-OVER IS ITS OWN STATE because it is the one that draws NO rack: the card between two
+       players is what makes a secret rack possible on one screen, and it has different content and
+       a different height from every other. */
+    { name: 'handing the phone over',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scrabble');
+        if (n < 0) throw new Error('no scrabble widget in the roster');
+        goPage('games', n, true);
+        scrabble = scrNew_(3);
+        scrabble.handover = true;
+        scrabblePaint();
+      },
+      expect: () => !!document.querySelector('#s-games .scr-hand')
+                 && document.querySelectorAll('#s-games .scr-tile').length === 0,
+      wants: 'the hand-over card, with no rack on the screen',
+      leave: () => { scrabble = null; scrabblePaint(); } },
+  ],
+
+  /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
+     THE WIDGET OPENS ON THREE BUTTONS — 2, 3 or 4 players — and that is the only state `go()` can
+     reach. Everything this game actually is lives past them: a board with tiles on it, a rack, four
+     actions, and the hand-over card between turns. Fifteen columns of squares and seven 44px tiles
+     are also the tallest thing in the games column, and the card was 17px past the pane's own fold
+     the first time anything measured it.
+
+     SEEDED THROUGH THE GAME'S OWN FUNCTIONS — `scrNew_` deals the bag and `scrPlace_` puts a tile
+     down — rather than by writing a board literal here. A fixture board would be a second
+     description of what a game looks like, and the one in this file is the one nobody re-reads. */
   /* ---------- AND A SESSION RECEIPT, WHICH THIS FILE HAS NEVER HAD ON THE SCREEN ----------------
      MEASURED, SIGNED IN, AGAINST THE REAL FIXTURE: the booking column draws ONE page and it is the
      form. `myJobs_()` keeps the sessions whose `client` or `tutor` is the visitor, and the
@@ -333,10 +538,96 @@ const STATES = {
      or a value that does not fit its column, and a row with nothing in it cannot show one. Six
      dates so the `Dates` row has a range and a count; a price so the total row draws; a venue name
      as long as a real one. */
+  /* ---------- THE CAMERA WITH A PICTURE ON IT ----------------------------------------------------
+     THE `make` COLUMN OPENS ON A VIEWFINDER AND NOTHING ELSE. `Again`, `Post it`, `Save a copy`,
+     the caption box and the row that says who it goes up as are all `hidden` until there is a
+     photograph — so HALF THE CAMERA has been outside this lab for as long as it has existed, and
+     `check/press.js` reported `cam-post`, `cam-save` and `cam-again` as untouched rather than as
+     faults, because an action on no screen is one it cannot reach.
+
+     WHAT THAT COST, MEASURED THE DAY THIS WAS WRITTEN: with a picture on the card the column ran
+     55px BELOW THE SCREEN at 390 and 36px past the pane's own fold at 768. Neither is visible to
+     the two rules that were watching — the pane's `scrollHeight` equals its `clientHeight`, so
+     nothing is overflowing; it is the PANE that hangs off the bottom, because `columnShift_`
+     centres the page it was placed with and nothing re-placed it when the card grew.
+
+     THROUGH THE APP'S OWN PICKER, not by drawing on the canvas. `on('cam-pick')` reads
+     `el.files[0]`, so a `DataTransfer` carrying a real one-pixel PNG is the same event a finger
+     makes — which matters here more than usual, because the thing being measured is what that
+     handler reveals. A container has no camera, so `cam-shoot` is not a door this can use.
+
+     AND IT IS PUT BACK. States run in order down one page and `camAgain_` is the app's own way to
+     throw a picture away, so the next state and the next screen are not measured with a photograph
+     still on the card — the same reason the guide state closes its sheet. */
+  make: [
+    { name: '' },
+    { name: 'a photograph taken',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const el = document.getElementById('cam-pick');
+        if (!el) throw new Error('no cam-pick on the make column');
+        /* A ONE-PIXEL PNG, WRITTEN OUT RATHER THAN DRAWN. `canvas.toBlob` is async and this has to
+           throw synchronously to be reported as unreachable. */
+        const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const dt = new DataTransfer();
+        dt.items.add(new File([bytes], 'shot.png', { type: 'image/png' }));
+        el.files = dt.files;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+      expect: () => {
+        const still = document.getElementById('cam-still');
+        const post = document.getElementById('cam-post');
+        return !!(still && !still.hidden && post && !post.hidden);
+      },
+      wants: 'the still on the card with Post it under it',
+      leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
+  ],
+
   booking: [
     /* THE FORM STAYS ON THE LIST — declaring states replaces the unnamed one, and the form is the
        page everybody arrives on. Same first line as `tools` and `dm`, for the same reason. */
     { name: '' },
+
+    /* ---------- THE WAITING-LIST BRANCH, WHICH IS A DIFFERENT FORM ----------------------------
+       `isWaiting_()` CHANGES SIX ROWS AND THE WHOLE WEEK. An ordinary booking ticks eleven hours a
+       day and a waiting list ticks three blocks — different grid, different cell count, different
+       height — and until this state existed the lab had only ever seen the first. That is the same
+       hole the session receipt and the message thread were each in: a branch the fixture cannot
+       reach, measured by nothing, on the app's most control-dense card.
+
+       IT COST THE CARD'S LAST THREE PIXELS TO FIND OUT. Measured on its first run: 803px of card in
+       an 807px pane, `under: 3`. There is no headroom on this branch at all, which is why the block
+       grid's cells are 20px rather than 44 and why the row above it spans — both written up where
+       they are.
+
+       SEEDED THROUGH `BOOKING.how` AND `drawBooker()`, which is exactly what the Kind dropdown's
+       own `change` handler does. `isWaiting_` tests for "wait", so the string is the option's own
+       words rather than a shape that happens to match.
+
+       AND TWO BLOCKS ARE TICKED, because one is not a summary. `blockSay_` groups by block and
+       collapses runs of days, and a single cell exercises none of that — `Mon · Tue evenings` is
+       the shortest answer that proves the row is a sentence rather than a list of phrases. */
+    { name: 'a waiting list',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        BOOKING.how = 'Waiting list class';
+        BOOKING.avail = ['Monday evening', 'Tuesday evening'];
+        drawBooker();
+      },
+      expect: () => {
+        const cells = document.querySelectorAll('#s-booking [data-do="book-block"]');
+        const on = document.querySelectorAll('#s-booking [data-do="book-block"].on');
+        return cells.length === 21 && on.length === 2;
+      },
+      wants: 'a week of three blocks a day with two of them ticked',
+      /* PUT BACK, because states run in order down one page and the receipt state after this one
+         would otherwise be measuring a waiting list's form. `resetBooking_` is the app's own way to
+         empty it — the same call every send path ends with. */
+      leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {

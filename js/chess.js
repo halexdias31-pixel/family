@@ -304,9 +304,25 @@ function search(pos, depth, alpha, beta) {
    — "a board is self-explanatory in a way almost nothing else in this app is" — and a clip you are
    watching is too. So the test is heading OR clip, and `feedSlide` leaves the text block out
    entirely rather than drawing an empty one. */
+/* ---------- A CLIP IS A PATH, A DRIVE ID, OR SOMEBODY ELSE'S POST --------------------------------
+   THE TWO INSTAGRAM ONES WERE PASTED IN AS EMBED BLOCKQUOTES and the URL is what is kept: the code
+   is pulled out of it by `clipFrame_`, so whichever of `/reel/`, `/reels/`, `/p/` and `/tv/` the
+   share link happens to use lands in the same place, and the row stays something a person can
+   paste without editing. `?utm_source=ig_embed` and the rest of the share tail are ignored.
+
+   THEY BEHAVE DIFFERENTLY FROM THE TWO LOCAL ONES AND THAT IS NOT FIXABLE HERE. An Instagram reel
+   has no address a `<video>` can read — see `clipSrcs_` — so it is drawn in Instagram's own frame:
+   no autoplay, no mute, no pause from this column, and their chrome round it. The alternative is
+   not showing somebody else's reel at all.
+
+   `pic` IS THE SUBJECT AND THE SUBJECT IS THE AUTHOR. A frame paints itself, so the gradient behind
+   it is only ever seen for the moment before it loads — but the subject is also the word
+   `feedColours` hashes, and naming the account keeps two people's reels visibly two people's. */
 const FEED_FACTS = [
   ['@family.', '', '', '', 'data/reels/archetest.mp4'],
   ['@family.', '', '', '', 'data/reels/v24044gl0000d88i15nog65im2kilnbg.mp4'],
+  ['@eli_radu', '', '', '', 'https://www.instagram.com/reel/DbpludDAk7z/'],
+  ['@safeyah', '', '', '', 'https://www.instagram.com/reel/DbgYM-FqcGl/'],
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
   ['Space', 'There is a planet where it rains glass, sideways',

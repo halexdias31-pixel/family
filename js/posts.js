@@ -488,9 +488,49 @@ function cameraCard() {
       <button class="cam-side" data-do="cam-flip" id="cam-flip"
               aria-label="Switch camera" title="Switch camera" hidden>Switch</button>
     </div>
+    ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH ---
+          THE CAMERA IS THE ONLY WAY TO POST NOW — `Write a post` was removed on request and took
+          the only door to `on('new-post')` with it — so `caption: ''` in `cam-post` meant EVERY
+          post anybody could make was captionless. `postCard` draws `.post-cap` as
+          "<b>who</b> what they said", and CLAUDE.md's own note on comments says the caption IS the
+          first comment. A feed of silent pictures is not the feature that was asked for.
+
+          HIDDEN UNTIL THERE IS A PICTURE, like `Again` and `Save a copy` and for their reason: it
+          belongs to a photograph you are holding, not to a camera you are pointing, and a text box
+          under a live viewfinder is a box you cannot fill in about a picture you have not taken.
+
+          CAPTION AND NOTHING ELSE. The composer also asked `where`, `more` and a poll, and those
+          are a form — this is one line beside a shutter. A venue datalist under a card already
+          close to the pane's fold is a second field for a fact this one line can carry.
+
+          NO `<span>caption</span>` OVER IT, WHICH IS THIS APP'S OWN PATTERN FOR A SINGLE BOX. The
+          search box, the comment box, the notepad and the message composer are all a placeholder
+          and no label — and CLAUDE.md records the measurement behind it: ten controls in this app
+          have no text and every one of them carries a placeholder, which IS the accessible name
+          when there is nothing else, so a label repeating it would be two strings to keep in step.
+          It is also 21px, and this card has 26px between it and the pane's fold at 390. */''}
+    <input id="cam-cap" class="cam-cap" hidden
+           placeholder="One line about it" autocomplete="off" maxlength="200">
+
+    ${/* ---------- WHO IT GOES UP AS, WHICH IS THE SAME QUESTION THE COMPOSER ASKS ---------------
+          THE SAME CONTROL AND THE SAME HANDLER, not a second one that means the same thing. `on('as')`
+          reads the id it was given rather than a fixed one, so both surfaces share it — and the
+          feed cannot end up with two vocabularies for who a post is from.
+
+          THE BUSINESS BY DEFAULT AND THE BACKEND DECIDES ANYWAY. `addPost` tests `hasRole(me,
+          'admin')` before it honours `postAs`, so a client's photo goes up under their own name
+          whatever this row says. Repeating the rule here would be two rules to keep in step, which
+          is the fault recorded under `MESSAGING` and under `childrenOf`. */''}
+    <span class="btn-row cam-as" id="cam-as" data-as="brand" hidden>
+      <button class="btn quiet on" data-do="as" data-for="cam-as" data-as="brand"
+        >${esc(brand('name', '@family.'))}</button>
+      <button class="btn quiet" data-do="as" data-for="cam-as" data-as="me"
+        >${esc(USER ? USER.name : 'me')}</button>
+    </span>
     <div class="btn-row cam-row">
       <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
-      <button class="btn" data-do="cam-save" id="cam-save" hidden>Save it</button>
+      <button class="btn" data-do="cam-post" id="cam-post" hidden>Post it</button>
+      <button class="btn quiet" data-do="cam-save" id="cam-save" hidden>Save a copy</button>
       ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
       <button class="btn" data-do="cam-on" id="cam-on" hidden>Try the camera again</button>
@@ -577,6 +617,8 @@ async function camStart_() {
     if (retry) { retry.hidden = false; retry.disabled = false; }
     const off = $('cam-off');
     if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
+    /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
+    camSettle_();
     return;
   }
 
@@ -696,7 +738,13 @@ document.addEventListener('change', e => {
     camLive_(false);
     $('cam-again') && ($('cam-again').hidden = false);
     $('cam-save')  && ($('cam-save').hidden = false);
+    $('cam-post')  && ($('cam-post').hidden = false);
+    $('cam-cap')   && ($('cam-cap').hidden = false);
+    $('cam-as')    && ($('cam-as').hidden = false);
     $('cam-off')   && ($('cam-off').hidden = true);
+    /* SEE `cam-shoot`: `Again` already offers the camera, so this would be the second button for it. */
+    $('cam-on')    && ($('cam-on').hidden = true);
+    camSettle_();
     if (said) said.textContent = '';
     /* THE CAMERA IS LET GO, not left running behind the picture. You asked for a photograph instead
        of the viewfinder; holding the stream open for a preview nobody can see is the recording light
@@ -721,22 +769,70 @@ on('cam-shoot', () => {
   camLive_(false);
   $('cam-again').hidden = false;
   $('cam-save').hidden = false;
+  $('cam-post').hidden = false;
+  $('cam-cap').hidden = false;
+  $('cam-as').hidden = false;
+  /* `Try the camera again` GOES WHILE A PICTURE IS BEING HELD, and that is a duplicate removed
+     rather than a control taken away. It is revealed only by a camera that FAILED to start — and
+     once you are holding a photograph, `Again` is already the button that throws it away and puts
+     the camera back, so the row was offering two ways to do one thing. It returns by itself if
+     that retry fails, because `camStart_`'s catch is what reveals it and `camAgain_` calls
+     `camStart_`. Measured on the path that can reach this with a dead camera — picking from
+     Photos — the four buttons are 491px in a 300px row, so they wrapped onto three lines and took
+     the card 36px past the pane's own fold at 768 and 1280. */
+  $('cam-on') && ($('cam-on').hidden = true);
+  camSettle_();
 });
+
+/* ==================================================================================================
+   THE COLUMN HAS TO BE MEASURED AGAIN WHEN THE CARD CHANGES SIZE.
+
+   `columnShift_` CENTRES THE PAGE YOU ARE ON — `boxH / 2 - (offsetTop + offsetHeight / 2)` — and it
+   runs when the column is placed, not when a card inside it grows. This card grows by a lot and on
+   purpose: taking a photograph reveals `Again`, `Post it`, `Save a copy`, the caption and the row
+   that says who it goes up as, which is 112px before this commit and 167px after it.
+
+   MEASURED AT 390 x 844 WITH A PHOTOGRAPH PICKED: the page was placed at 648px tall, so the shift
+   put its top at y139 — and it then grew to 760, leaving its bottom at y899. `Save a copy` was
+   55px BELOW THE SCREEN, on a pane whose own `scrollHeight` equals its `clientHeight`, so nothing
+   was overflowing and `check/ui.js`'s OUT OF REACH could not see it: the content fits its pane
+   perfectly and the PANE is what hangs off the bottom.
+
+   `placeCells('y', true, 0, 'make')` is `settle_`'s call in `find.js`, for `settle_`'s reason, and
+   `true` for its reason too — the cards have not moved as far as anybody is concerned, and
+   animating them to where they already look like they are is a second movement nobody asked for.
+================================================================================================== */
+function camSettle_() {
+  try { placeCells('y', true, 0, 'make'); } catch (err) {}
+}
 
 /* `Again` NOW HAS TO PUT THE CAMERA BACK, not just uncover it. A shot taken here leaves the stream
    running underneath, but a photograph picked from the gallery released it — see the picker — so
    showing the `<video>` again would have shown a dead black box on exactly that path. `camStart_`
    returns immediately when a stream is already live, so the shot case costs nothing. */
-on('cam-again', () => {
+/* ONE FUNCTION, TWO CALLERS. `Again` presses it and a posted shot runs it, because "the photo has
+   left, put the camera back" and "throw this one away, put the camera back" are the same four
+   lines — and two copies of them is the second reader this repository keeps writing about. */
+function camAgain_() {
   const v = $('cam-view'), c = $('cam-still');
   if (c) c.hidden = true;
   if (v) v.hidden = false;
-  $('cam-again').hidden = true;
-  $('cam-save').hidden = true;
+  const hide = id => { const el = $(id); if (el) el.hidden = true; };
+  hide('cam-again'); hide('cam-save'); hide('cam-post'); hide('cam-as');
+  /* EMPTIED AS WELL AS HIDDEN, and that is the half a `hidden` does not do. This function runs on
+     `Again` and on a posted shot alike, so a caption left in the box would be offered as the
+     caption for the NEXT photograph — a sentence about one picture printed under another. */
+  const cap = $('cam-cap'); if (cap) { cap.hidden = true; cap.value = ''; }
   camLive_(true);
   const said = $('cam-said'); if (said) said.textContent = '';
   camStart_();
-});
+  /* AND THE OTHER DIRECTION. This SHRINKS the card by the same 167px, so the page it centres is a
+     different size again — without this, throwing a photograph away leaves the card floating with
+     the gap the picture used to fill still under it. `camStart_` above is async and returns before
+     it has an answer, so a failure that reveals `Try the camera again` settles itself. */
+  camSettle_();
+}
+on('cam-again', camAgain_);
 
 /* ---------- RECORDING, WHICH IS THE SAME SHAPE AS A PHOTOGRAPH ------------------------------------
    A PHOTO HERE IS A DOWNLOAD, and the note on `cam-save` says why: this app holds no write
@@ -845,17 +941,75 @@ function stamp_() {
   return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 }
 
+/* ==================================================================================================
+   POSTING THE SHOT, AND THE ENDPOINT HAD BEEN THERE THE WHOLE TIME
+
+   REPORTED AS *"if i take a pic it says now add to drive for it to work. fuck that. i want to be
+   able to post from there. either as the business or as me."*
+
+   `addPost` HAS TAKEN BYTES SINCE IT WAS WRITTEN. Measured before anything was built:
+   `backend/dopost.gs` reads `body.data`, base64-decodes it, creates the file in the posts folder,
+   sets it `ANYONE_WITH_LINK / VIEW` so it is not a broken image on every client's phone, and posts
+   the row — and **nothing in `js/` has ever sent that field.** The one `addPost` caller is the
+   composer, and it sends `image:` (an address) and no `data:`.
+
+   SO THE SENTENCE THE CAMERA PRINTED WAS FALSE. "this app does not hold write permission on your
+   Drive and the backend has no endpoint that takes an image" is written over `cam-save` and over
+   the recorder, and the endpoint is forty lines long in a file this repository owns. That is
+   `orderPrints` for the thirteenth time — access-listed, argued for at length, never once called —
+   and this one had a comment explaining why it could not exist.
+
+   THE DOWNLOAD STAYS AS THE SECOND BUTTON. Posting is what somebody wants nine times in ten and is
+   now the gold one; a copy on the phone is still worth having and is now the quiet one beside it.
+
+   A VIDEO IS STILL A DOWNLOAD, and that is a real limit rather than the same oversight: `addPost`
+   decodes into `Utilities.newBlob` inside one Apps Script request, and a minute of 1080p is tens of
+   megabytes against a `doPost` body limit measured in single figures. A photograph at 0.85 JPEG is
+   a few hundred kilobytes. Said here rather than discovered by somebody whose recording vanished.
+================================================================================================== */
+on('cam-post', el => {
+  const c = $('cam-still'), said = $('cam-said');
+  if (!c) return;
+  if (!USER) { if (said) said.textContent = 'Sign in first — a post needs somebody to be from.'; return; }
+  /* 0.85 RATHER THAN THE DOWNLOAD'S 0.92. The copy you keep should be the better one; the one that
+     travels goes through a base64 body and a spreadsheet round trip, and the difference between
+     the two qualities is about a third of the bytes and nothing anybody can see on a feed card. */
+  let data = '';
+  try { data = c.toDataURL('image/jpeg', 0.85); }
+  catch (err) { if (said) said.textContent = 'Could not read that photo: '
+    + String((err && err.message) || err); return; }
+
+  const as = ($('cam-as') || {}).dataset;
+  /* `send_` RATHER THAN `api`, WHICH IS THE WHOLE OF `check-replies.js`. This handler is about to
+     say "Posted", and a refusal that resolves rather than throws would let it say so about a post
+     that was never written — measured on `sendMessage`, where a closed sheet and a toast reported
+     a message the backend had refused. */
+  send_({
+    action: 'addPost',
+    name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
+    data: data,
+    postAs: (as && as.as) || 'brand',
+    caption: ($('cam-cap') || {}).value || '',
+    body: '', location: '', poll: '',
+  }, { button: el, busy: 'Posting…', where: 'cam-said' })
+    .then(() => {
+      toast('Posted'); camAgain_(); load();
+    })
+    /* `send_` HAS ALREADY WRITTEN THE REASON into `cam-said` and marked the error handled; this
+       catch exists so the rejection does not reach the console as an unhandled one. */
+    .catch(() => {});
+});
+
 on('cam-save', () => {
   const c = $('cam-still'), said = $('cam-said');
   if (!c) return;
-  /* A DOWNLOAD, BECAUSE THERE IS NOWHERE ELSE FOR IT TO GO. See the note at the top: this app does
-     not hold write permission on your Drive and the backend has no endpoint that takes an image. */
+  /* A DOWNLOAD, WHICH IS NOW THE SECOND WAY OUT RATHER THAN THE ONLY ONE — see `cam-post` above. */
   try {
     const a = document.createElement('a');
     a.href = c.toDataURL('image/jpeg', 0.92);
     a.download = 'family-' + stamp_() + '.jpg';
     document.body.appendChild(a); a.click(); a.remove();
-    if (said) said.textContent = 'Saved. Put it in the posts folder and it will be in the list below.';
+    if (said) said.textContent = 'Saved to this device.';
   } catch (err) {
     if (said) said.textContent = 'Could not save that: ' + String((err && err.message) || err);
   }
@@ -900,6 +1054,9 @@ function camStop_(keepShown) {
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
   $('cam-again') && ($('cam-again').hidden = true);
   $('cam-save')  && ($('cam-save').hidden = true);
+  $('cam-post')  && ($('cam-post').hidden = true);
+  $('cam-cap')   && ($('cam-cap').hidden = true);
+  $('cam-as')    && ($('cam-as').hidden = true);
 }
 
 /* ---------- REACTIONS ---------------------------------------------------------------------------
@@ -1233,8 +1390,13 @@ on('new-post', () => {
    any admin has ever made has gone out as the business whichever button they pressed.
    The state lives on the container rather than on the pressed button, because that is where the
    sender already looks for it. */
+/* `data-for` NAMES THE ROW, because there are two of them now — the composer's and the camera's —
+   and `$('post-as')` was the id of one. Two surfaces asking one question through one handler is the
+   `msg-send`/`me-save` move: the control says which container it belongs to and the handler reads
+   it, rather than a second copy of twenty lines. Defaults to the composer's id so the sheet's own
+   buttons need nothing added. */
 on('as', el => {
-  const row = $('post-as');
+  const row = $(el.dataset.for || 'post-as');
   if (!row) return;
   row.dataset.as = el.dataset.as || 'brand';
   row.querySelectorAll('[data-do="as"]').forEach(b => b.classList.toggle('on', b === el));
@@ -1859,11 +2021,43 @@ function reelMore_(host) {
    browser saying which — and the `/preview` iframe that replaces it is the documented embed,
    with Google's chrome and a play button instead of an autoplay, which is a worse reel and a
    working one. A column that shows a black rectangle is neither. */
+
+/* ---------- THE LAST THING A SLIDE CAN BE: SOMEBODY ELSE'S PLAYER IN A FRAME ---------------------
+   ONE FUNCTION, TWO CALLERS, and they are not the same case. A Drive clip reaches here having run
+   out of addresses a `<video>` could read; an Instagram reel reaches here without ever having had
+   one. Both end in the same element, so writing the swap twice would be the second reader this
+   repository keeps recording — and the sound button has to go on both endings, because a control
+   that cannot reach into a cross-origin document is a control that does nothing. */
+function reelFrame_(v) {
+  if (!v || v.dataset.dead) return;
+  v.dataset.dead = '1';
+  const slide = v.closest('.reel');
+  const btn0 = slide && slide.querySelector('.reel-sound');
+  if (btn0) btn0.remove();
+  const frame = clipFrame_(v.dataset.clip);
+  if (!frame || !slide) return;
+  /* THE SCRIM AND THE WHITE WORDS ARRIVE HERE TOO. A frame is the picture having arrived, which is
+     what `has-photo` means — and without it the words sit unreadable over somebody else's video
+     instead of over this slide's own gradient. */
+  const art = v.closest('.feed-art');
+  if (art) art.classList.add('has-photo');
+  v.outerHTML = `<iframe class="feed-vid" src="${esc(frame)}" allow="autoplay; encrypted-media"
+    referrerpolicy="no-referrer" loading="lazy" title="Reel"></iframe>`;
+}
+
 function reelPlay_(v) {
   if (!v || v.dataset.dead) return;
   if (!v.getAttribute('src')) {
     const srcs = clipSrcs_(v.dataset.clip);
-    if (!srcs.length) return;
+    /* ---------- NO RUNG AT ALL IS AN ANSWER, NOT A DEAD SLIDE ----------------------------------
+       THIS RETURNED AND LEFT A `<video>` WITH NO SOURCE, which was right while every clip had at
+       least one address a `<video>` could be pointed at. An Instagram reel has none — see
+       `clipSrcs_` — so the slide would have been a gradient for ever, which is the "column that
+       shows a black rectangle" this file already refuses one paragraph down.
+
+       SO IT GOES STRAIGHT TO THE FRAME. Same swap the last rung makes and for the same reason;
+       what differs is only that there was never a rung to fail first. */
+    if (!srcs.length) { reelFrame_(v); return; }
     /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
        waits for `img.onload`: until then the slide is its own gradient and its subject's initial,
        which is a finished thing rather than a hole. */
@@ -1890,18 +2084,7 @@ function reelPlay_(v) {
         if (p2 && p2.catch) p2.catch(() => {});
         return;
       }
-      v.dataset.dead = '1';
-      const slide = v.closest('.reel');
-      /* NOTHING TO UNMUTE EITHER WAY. A clip that has run out of rungs is silent whether it is
-         replaced by Google's player — which this page cannot reach into — or left as a `<video>`
-         with no source it can read. The button went with the iframe already; it goes with the
-         other ending too, because a control that does nothing is worse than no control. */
-      const btn0 = slide && slide.querySelector('.reel-sound');
-      if (btn0) btn0.remove();
-      const frame = clipFrame_(v.dataset.clip);
-      if (!frame || !slide) return;
-      v.outerHTML = `<iframe class="feed-vid" src="${esc(frame)}" allow="autoplay"
-        referrerpolicy="no-referrer" title="Reel"></iframe>`;
+      reelFrame_(v);
     });
     v.dataset.rung = '0';
     v.src = srcs[0];

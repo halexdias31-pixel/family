@@ -8723,3 +8723,489 @@ repeated `fact_id`, a subject off the list, markup in a fact, and a heading too 
 **Measured in the app after**: 400 facts, 22 subjects, 60 deals with no repeat, and the two clips
 still answering `clipsNow_` from the code because the file holds no clip rows — which is the
 per-list rule working exactly as its note says it should.
+
+## George had not disappeared — the phone was deleting him after the server had sent him
+
+**Reported as "where did george dissapear off to?"** and nothing had gone wrong with his row. He is a
+tutor, his `listed` cell is off, and `accountPages_` read
+`.filter(t => t && t.title && t.listed !== false)` — so an unlisted tutor was dropped **on the phone,
+after `doGet` had deliberately sent him.**
+
+**`doget.gs` ALREADY DECIDES THIS AND SAYS SO OUT LOUD**, beside the gate that does it: *"An admin
+sees the unlisted ones too, marked. Without that a tutor switched off vanishes from the site and can
+only be switched back on in the spreadsheet — which would make the control worse than not having
+one."* The rule was written twice and the two disagreed. **That is the `MESSAGING` fault** — a policy
+copied onto the phone is two rules to keep in step — and here the copy silently won, on the one
+screen that can switch him back on.
+
+**IT MADE THREE THINGS UNREACHABLE THAT WERE ALREADY BUILT.** `findCard` draws such a row dimmed with
+`· not listed` beside the role, `.card.is-widget.is-off` and `.prof-off` are in the stylesheet, and
+`asItem_` three lines below the filter sets `off: t.listed === false`. None of them could ever run,
+because the row never arrived — a renderer left standing over a permanently false condition, which is
+the shape recorded here under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard.
+
+**The server is the gate and stays the gate**, which is what makes deleting the clause a repair
+rather than a disclosure: a non-admin is never sent an unlisted tutor, so there was nothing here to
+filter. **Measured on two payloads**: an admin gets 3 pages with George dimmed and labelled, a parent
+gets 2 and no George anywhere. Proved by mutation — the old clause back, and the admin gets 2 pages
+and no George.
+
+### The fixture's one tutor is listed and has a DBS, so two states had never been drawn
+
+**`check/fixture.json` has a single tutor, `listed: true`, `dbs: true`** — so the account column this
+lab has measured on every run is the one where every row is live and every stamp is green.
+`.prof-dbs.no` and `.prof-off` had **never been on a screen it looked at**, which is the same hole the
+booking receipt, the message thread and the basket were each in.
+
+**The state found a real fault on its first run**: `· not listed` at `#b9544a` is **4.15:1 against
+`--bg`**, under WCAG AA's 4.5 for small text — the one word on the card that says why it is dimmed,
+and the hardest thing on it to read. `#c4655a` is 5.02:1 and the same hue.
+
+**Repaired as a token, not at the instance.** That hex was written out twice — `No DBS on file` and
+`· not listed` — so fixing the one the check happened to name would have left the other wrong in
+exactly the same way, which is the `cost: 0` sentence for the thirteenth time. `--prof-warn` is
+**declared on `.is-prof` rather than at `:root`**, because it is this card's own word for "something
+is not right here" and nothing else in the app should be offered it — the rule the house style states
+with the chess board's cream and charcoal.
+
+**The page number comes from `accountPages_()` itself**, not from a second re-derivation of `others`
+in the harness: `termsPages_()` is concatenated after the people, so counting from the end lands on a
+legal document. That is the flyer state's own lesson — two readings of one list — one screen along.
+
+## Chemistry Paper 1 is a replica of the paper now, both tiers
+
+**Reported from inside the exam**: *"im doing chemistry paper 1 now and there are already places
+where there are no diagrams like question 1a and so on... i want it to be a replica of the actual
+exam."* 01.1 is four boxes of atoms and the question is *which box is a pure compound* — a question
+about a picture you cannot see is not a question, which is the fault this file records under *"on
+the app it's just text"*.
+
+| | |
+|---|---|
+| **8462/1F** | 15 figures onto 21 rows |
+| **8462/1H** | 5 figures onto 6 rows, two of them the Foundation paper's own builders |
+| | **every figure row on both tiers is drawn** — the library's backlog went 737 → 707 |
+
+**MEASURED OFF THE PAPER, NOT WRITTEN FROM THE PROSE.** Every figure in these two PDFs is an
+embedded raster PNG with no text layer and no vectors, so the four that CARRY DATA were read in
+pixels — the rule this file already sets for a picture that decides an answer. Figure 1's atoms were
+split out of the touching molecules by a distance transform (A 12, B 6, C 10, D 12); Figure 5's
+three numbered burette ticks at y = 199, 327 and 455.5 px with the meniscus at 275.5 give
+16 + 76.5/128 = **16.60, which is one of the paper's four options and no other**; Figure 6's corner
+is 0.80 g, which is 03.4's answer; Figure 7's crosses were found as connected components.
+
+**THE TIER OVERLAP IS PROVED RATHER THAN CLAIMED.** AQA prints the same picture on both tiers, so
+`fig14` gained three label arguments and `check()` asserts BOTH shared builders still reproduce,
+byte for byte, the diagrams already committed on the Foundation rows. **The first run of that
+assertion failed** — the refactor had changed the aria-label and the height by five units, and
+nothing on screen would have said so. Same move as the `libraryExtras_` cutover and `svgplot.py`:
+prove it identical, then make it.
+
+**AND THE ARROWS ON FIGURE 8 WERE BOTH WRONG.** Four reaction profiles differing in exactly two
+things — where the products sit and which way the arrow points — which is the whole of 08.2. The
+arrowhead was drawn with its base on the wrong side, so all four pointed at the level they started
+from; and `down` was written as reactants-to-products rather than as a direction on the page, so C
+and D came out identical. **Two profiles that are the same picture is a question with two right
+answers.** `check()` refuses a set where two differ in nothing, and B is asserted to be the only one
+that is both exothermic and labelled downwards. Twelfth time this file writes that a screenshot is
+the last word on a drawing.
+
+### The prose that stood in for the pictures had to go with them, and five rows handed over the answer
+
+**THIS IS THE HALF THAT MATTERS MORE THAN THE DRAWINGS.** Every one of these rows was transcribed
+with the figure written out in words, because the figure was not there. 01.1 said *"D — four
+molecules, every one of them white-black-white"*, which IS *which is the pure compound*; 02.5 said
+the meniscus sits six small divisions below the 16 mark, which IS 16.6; 03.4 said the points level
+off *"at 0.80 g"*; 08.2 printed all four profiles as a bullet list, and the answer is B *because*
+the products are lower; 03.1 described model A as a shaded ball of positive charge with electrons
+dotted about inside it, which is the plum pudding model said out loud.
+
+**The rule was already here and is being applied in the other direction**: *what a figure shows is
+not what its answer is*, written about the AQA Biology pie chart. A description accurate enough to
+teach around is right while the picture is missing and a second source for one fact the moment it
+arrives — the `.reel .over` fault, where one object was written twice and the two drifted. Each row
+keeps AQA's own lead-in and its ask and loses the sentence that was standing in for the drawing.
+
+**The Higher paper's cuts are by ANCHOR rather than by rewriting each string**, because 06.1 carries
+a five-row table of voltages and retyping a table to delete a clause beside it is how a digit
+changes.
+
+**And three rows carried a `figure` they never needed.** 05.1 says the nuclide out loud and 05.2 and
+05.3 ask about that same atom, so nothing is missing from any of them — a count of work that does
+not exist, which is the mirror of a silence and the direction this repository had only ever recorded
+the other way round.
+
+## The one thing in the app that marks could not mark a single answer on it
+
+**Measured while the owner was sitting the paper**: 102 questions across the two tiers, 102 with an
+answer written out, and **`accept` empty on every one** — so `ansBox_` drew a box and no Check
+button on all of them, and the only way to find out whether you were right was to open the mark
+scheme, which is the one thing a student on their own will not do honestly. The rest of the library
+is not like this: 1,398 rows already carry one. **37 do now.**
+
+**THE RULE IS AS NARROW AS THE FAIRNESS ARGUMENT NEEDS**, because this is the one thing in the app
+that tells a child they are wrong and there is nobody for them to appeal to. Two shapes qualify:
+
+| | |
+|---|---|
+| **a tick box** | the paper prints the options, so the set of right answers is closed and printed |
+| **one value** | a calculation whose answer is a single number. `markBare_` already drops the unit |
+
+**Everything else is left alone and that is most of the paper.** Every `explain`, every level-marked
+answer, every "any two of", every answer that is two facts in one box. A mark scheme that reads
+working is not a string comparison and pretending otherwise is worse than no button. **The sentence
+options and the equation options are left out too**: this app has a text box rather than radio
+buttons, nobody types `2 Cl⁻ → Cl₂ + 2 e⁻`, and a right answer marked wrong is the failure that
+makes a student stop trusting the marking.
+
+**Every entry is proved both ways before it is written**, through the app's own `markAnswer_` rather
+than a second opinion about what a right answer is — `check-quizzes.js`'s rule, which found three
+real faults on its first run. **The writer refused six entries on its first runs and every refusal
+was real**: `3.4 mg/cm³` is not `3.4 mg/cm3` to a string comparison; `72.41` is a right answer to a
+question that asks for no significant figures; `Trials 2 and 3` is not `Trial 2 and Trial 3`; `Fe`
+is iron; and two rows whose printed answer is itself a list of alternatives or carries its own
+working needed saying what a student actually types rather than papering over it with a wider cell.
+
+### `check-library.js` — a tick box has one right option, and the paper prints the others
+
+**A rule living only in the thing that produced the data is a rule nothing enforces about the
+data**, which is this file's sentence about `cost: 0` for the fourteenth time. A file can be
+hand-edited, appended to by another script, or written by a version of the tool that has since
+changed.
+
+**A MULTIPLE-CHOICE QUESTION IS THE ONE PLACE THE WRONG ANSWERS ARE WRITTEN DOWN**, so it is the one
+place a checker can prove an `accept` is not too GENEROUS — the rule beside it only asks whether a
+cell can mark its own answer right. Exactly one printed option may mark right, and **it would have
+fired on a real draft of this commit**: 03.8's four options differ in two halves — energy in or out,
+endothermic or exothermic — and `endothermic`, the obvious short form to reach for, marks none of
+them.
+
+**Narrowed to what prints "tick one box", and that narrowing is the `check-rows.js` lesson.** The
+general form — any row with an `accept` and a bulleted list — reports two rows across the library
+and both are wrong: `Q-1MA1-1706-1F-7` bullets Fahima's shopping and `Q-AQA-8464B-2406-2H-053`
+bullets the two things sewage affected. Nothing can tell a bullet list from an option list; **the
+paper's own instruction can.** Proved by mutation in both directions — an accept that marks none and
+one that marks two — and it prints the **133** tick-box questions elsewhere in the library that
+still carry no `accept`, so what is left is a number rather than a silence.
+
+## Two columns shipped to every phone since the games were written, and drawn for one person
+
+**Asked for as "add a high scores chart to times table and flabby pird".** Measured before anything
+was built: `doget.gs` sends `highscore: N(r.high_score_flappy)` and
+`ttHighscore: N(r.high_score_tables)` on **every tutor row and every student row**, and the only
+thing that has ever read either is the player's own `Best` line. **This repository's oldest shape
+for the seventh time** — `figure`, `orderPrints`, the four message actions, `exam_date`, `wow`, the
+eleven dead Settings writers. So the board needed no backend change, no tab and no column: it is the
+second reader of something already on every phone.
+
+**WHO IS ON IT IS THE SERVER'S DECISION AND IS NOT REPEATED ON THE PHONE.** `doGet` sends
+`payload.students` only when `maySeeChildren` — an admin, a parent or a student — so a signed-out
+stranger is sent no children at all and the board simply has fewer rows. Filtering them off here
+instead would be the `MESSAGING` fault: one policy in two places, and the copy on the phone is the
+one that gets forgotten. Absent by construction, the way the films list already is.
+
+**ONE RENDERER, BECAUSE THE TWO BOARDS ARE ONE OBJECT.** They differ in a single column name. And it
+says which empty it is: `scoreRanks_` counts the PEOPLE before it counts the scores, so "no people"
+says the scores have not arrived and "people, no scores" says nobody has played — the distinction
+`nothingHere` exists for.
+
+### `mineIs_` was local to a screen only a signed-in person sees, and at file scope it threw
+
+**THERE WERE THREE OTHER COPIES OF "WHICH ROW IS ME" AND THE WORST WAS ON THE PATH THIS NEEDED.**
+`gameOver` in receipt.js matched a student on **handle alone** and a tutor on **`title` alone** —
+two half-tests written out beside each other, either of which answers "not you" for somebody the
+other would have found. A tutor whose handle and display name differ was never located, so a record
+they had just set was written to the sheet and never to the row the app was holding. Lifted out of
+`accountPages_`, given a fourth rung for `t.name` (a student row has no `title`, so before this a
+student could only ever be matched by handle), and used by both.
+
+**AND AT FILE SCOPE IT MET A STRANGER.** `USER.personId` on `null` throws, and `toolsStart_` wraps
+each widget's `start` in its own try — so the game came up perfectly and the board beside it stayed
+an **empty div**, signed out, at every width. **Found by the lab rather than by looking**: the
+declared state reported "was entered and shows no…", which is exactly what that assertion is for.
+
+### `SCORE_TOP` is three because the pane cannot grow, and the number is measured
+
+`.pane` is `overflow: hidden`. The Flabby Pird card without a board is 634px against a pane that
+caps at 803, so the board has about 140px. At five plus your own line it was 251px and `check/ui.js`
+said so on the first run that could reach the state: *".pane holding card hides 111px below its own
+fold"*. Three plus yours, on tighter rows, is 140px at every width — measured with a twenty-character
+handle wrapping onto two lines, because twenty is what `check-handles.js` allows.
+
+**AND `.row .k` IS `flex: 0 0 auto`, WHICH IS RIGHT FOR A LABEL AND WRONG FOR A NAME.** `min-width: 0`
+alone does nothing for it because `flex-shrink` is still 0: the row ran **53px past the card at
+320px** and took the pane with it. The board's label is the content and shrinks; the value is three
+digits and does not.
+
+**YOUR OWN LINE IS A GOLD RULE DOWN THE LEFT RATHER THAN GOLD TEXT**, and that is a cascade decision
+rather than a taste. `.widget-full:has(.flappy) .row .k` scores (0,3,1) — `:has()` takes its own
+argument's specificity — so `.board .row.is-me .k` would tie at (0,3,1) and the colour would be
+settled by which rule is written later. That is `.price.faint` for the eighth time. Nothing anywhere
+sets `box-shadow` or `padding-left` on a `.row`, so this cannot lose a race it does not look like it
+is in.
+
+### The times-table save wrote `USER` and not the row the board reads
+
+`gameOver` had already done both for Flappy Bird and `endTimesTables` had only ever done the first —
+invisible while the only reader was that card's own *"Your best is"*, and a new record announced
+above a list still showing the old one the moment there is a board. Both go through `mineIs_` now.
+
+### And the state that measures it had to seed the visitor, not a name
+
+**THE FIRST VERSION PUT A SCORE ON THE FIXTURE'S ONE TUTOR AND CALLED THAT "YOU".** It is not: the
+lab signs in as `Test Admin` / `testadmin` / `P001` and the fixture's tutor is `Ada Tutor` / `@ada` /
+`P-@ada`, so `mineIs_` correctly matched nobody and the board drew three rows with no mark. **The
+assertion failed and it was right to** — the state was wrong, not the app. It is seeded off `USER`
+itself now, and it asserts `SCORE_TOP + 1` read off the app rather than a literal, which is what
+caught the assertion going stale the moment that number changed for a measured reason.
+
+**A wait for the payload went in and came out again.** `load()` ends with `DATA = d` — it REPLACES
+the object — so a state seeding `DATA.students` before that assignment would have its seed thrown
+away, and the flakiness looked exactly like that. It was not: it was the two bugs above. Three clean
+runs with the wait removed, so it is removed. **Two rules changed on a measurement nobody took is
+what `.mat-out` cost this project**, and the discipline is the same when the measurement exonerates
+the change.
+
+## Scrabble, and the dictionary that is deliberately not here
+
+**ASKED FOR AS "add scrable to games tool. 2/3/4 player".** 15×15, a hundred tiles asserted at 100
+and 187 points, seven on a rack, the standard premium layout built from one 8×8 quadrant and
+mirrored — measured against the printed board: **8 triple words, 17 double words (sixteen and the
+star), 12 triple letters, 24 double letters.**
+
+**THERE IS NO WORD LIST AND THAT IS A DECISION.** A usable English one is about 280,000 entries and
+two and a half megabytes — the size of the whole question library, for one game widget, on a site
+this file has spent two rounds making open faster on a phone. And it is not what the game needs: in
+real Scrabble a word **stands unless somebody challenges it**, and with two to four people round one
+phone the challenge is the person opposite. Same argument Herd Mentality already makes about
+scoring: the part that is people arguing is the part an app should leave to them.
+
+**WHAT IS CHECKED IS THE GEOMETRY**, which is the part people get wrong by accident: the first word
+through the centre, everything in one line, no gaps (counting tiles already down, because a word may
+bridge one), and after the first move at least one new tile touching what is there. Each refusal
+says WHICH rule was broken, because a refusal that does not is one you learn nothing from.
+
+**THE RACK IS SECRET, SO THE PHONE IS HANDED OVER.** Between turns the board stays up and the rack is
+replaced by "hand the phone to <name>" and one tap. Without it the next player reads the previous
+one's tiles on the way past, which cannot happen with a real rack and is the one part of this game a
+single screen genuinely changes.
+
+**AND IT IS NOT REBUILT ON EVERY PAINT, WHICH IS THE OPPOSITE OF THE MAZE.** `initMaze` deals a new
+maze each open and its note says why. A Scrabble game is forty minutes and four people, and
+`repaint` runs whenever a payload lands or anything saves — so `initScrabble` redraws whatever is in
+progress. `New game` is the only thing that throws one away.
+
+### Three faults the lab and a screenshot found, and one the code found first
+
+| | |
+|---|---|
+| **one tile played twice** | a placed tile stays on the rack until the turn is committed — deliberately, because taking it back has to put it somewhere — so selecting the same slot again put a second copy on the board and the commit spliced one index for two squares. Asked of the BOARD (`from` on each placed square) rather than a second list |
+| **625 tap targets under 44px** | fifteen 44px cells need 660px, wider than any phone; at 320px they are 13px. In `ACCEPTED_TAP` with the arithmetic, the same argument `.c4` and `.oth` record for their 40px and 35px cells — and what makes it liveable is that a wrong tap costs nothing, because a tile comes straight back off |
+| **the blank's alphabet was 220px** | 26 keys at 44px is five rows at 320px, which took the rack and all four actions past the pane's fold. One select instead — the shape this app uses everywhere somebody picks from a closed list, answering on `change` like `book-note` |
+| **the card was 17px past the fold** | a five-line subtitle explaining the hand-over, which the card says for itself at the moment it happens; and a standalone `New game` button, which now sits in the action row while a game is running and gives way to the 2/3/4 row once it is over |
+
+### And the lab found four more, every one a control that was on the page before it could work
+
+**`check/press.js` NAMED SIX AT ONCE**: `scr-cell`, `scr-play`, `scr-recall`, `scr-swap`, `scr-pass`
+and `scr-again`, all *"on games"*, all quiet. Every one was correct: they were pressed in the state
+the widget OPENS in, which is the three buttons saying 2, 3 or 4 players — and with no game to act
+on, five of them returned on their first line and 225 board squares did nothing at all.
+
+**A HIDDEN CONTROL IS STILL A CONTROL TO ANYTHING THAT PRESSES THE PAGE.** The action row was static
+markup with `hidden` on its container, which is the same thing to look at and not the same thing to
+press. It is built by `scrabblePaint` now and is empty until there is a turn to take. The board is
+drawn either way — an empty board under the player-count buttons says what you are about to play on
+— but with no game its squares are `<i>` rather than `<button>`, which is what the maze's cells
+already are and for the same reason: it is a picture until it is a control.
+
+**AND BUILDING IT FROM A LIST TOOK THE DOORS FROM 137 TO 132.** `check-doors.js` follows
+`data-do="x"` with a string in it and cannot follow a variable, so a row mapped out of an array
+reported all five handlers as unreachable — **a red with nothing behind it, which is the one thing
+every list in this file exists to prevent.** Written out as five literals. CLAUDE.md already records
+the same correction on `banner()`, which is why the fault was recognisable rather than puzzling.
+
+**`check/cascade.js` NAMED NINE LONGHANDS ON ONE SQUARE.** `.scr-sq.mid` — the star — against
+`.scr-sq.has`, same specificity, settled by which is written later. A tile covering the star is
+right and it was right by accident; `.scr-sq.mid:not(.has)` says it instead. Ninth conviction of
+`.price.faint` and the first one caught before a screenshot rather than after.
+
+**A BACKTICK INSIDE AN HTML COMMENT INSIDE A TEMPLATE LITERAL ENDED THE LITERAL.** `js/map.js` builds
+every widget's markup in a template string, so `` `check/ui.js` `` in a `<!-- -->` there is a syntax
+error — reported as `Unexpected identifier 'check'` and `WIDGETS is not defined`, four files away
+from the comment. The house style's backticks stop at the edge of a template literal.
+
+## Every post anybody could make had nothing said about it
+
+**`Write a post` was removed on request and it took the only door to `on('new-post')` with it** —
+this file already records that, and `check-doors.js` has printed it as a handler waiting for a
+button ever since. What the note did not follow through is what the removal left: the CAMERA is the
+only way to post now, and `cam-post` sends `caption: '', body: '', location: '', poll: ''`.
+
+**So every post anybody could make was a photograph with nothing said about it.** `postCard` draws
+`.post-cap` as *"**who** what they said"* and this file's own note on comments says the caption IS
+the first comment. A feed of silent pictures is not the feature that was asked for.
+
+**One line, hidden until there is a picture**, like `Again` and `Save a copy` and for their reason:
+it belongs to a photograph you are holding, not to a camera you are pointing. Emptied as well as
+hidden by `camAgain_`, which runs on `Again` AND on a posted shot — a caption left in the box would
+be offered as the caption for the next photograph.
+
+**No `<span>caption</span>` over it, which is this app's own pattern for a single box.** The search,
+the comment box, the notepad and the message composer are all a placeholder and no label, and this
+file already records the measurement behind it: ten controls have no text, every one carries a
+placeholder, and **a placeholder IS the accessible name when there is nothing else** — so a label
+repeating it is two strings to keep in step. It is also 21px, which mattered (below).
+
+**Caption and nothing else.** The composer also asked `where`, `more` and a poll; those are a form
+and this is one line beside a shutter. No backend change: `addPost` has written `S(body.caption)`
+since it was written.
+
+### The card grew off the bottom of the screen, and `under` was 0 at every width
+
+**`columnShift_` centres the page you are on** — `boxH / 2 - (offsetTop + offsetHeight / 2)` — **and
+it runs when the column is PLACED, not when a card inside it grows.** Taking a photograph reveals
+five things at once: 112px before this commit, 167px after. Measured at 390×844 with a picture on
+the card, the pane was placed at 648px tall so its top went to y139, then grew to 768 — **bottom at
+y906, `Save a copy` 62px below the glass.** At 768 and 1280 it was 79px.
+
+**Nothing could see it, and that is the part worth keeping.** `check/ui.js`'s OUT OF REACH asks
+whether content overflows its pane; here the content fits its pane perfectly — `scrollHeight` equals
+`clientHeight`, `under: 0` at all four widths — and **it is the PANE that hangs off the bottom.**
+Same loss, one box further out, and the rule was measuring the wrong box.
+
+**`js/find.js`'s `settle_` is the app's own answer and the camera was not calling it.**
+`placeCells('y', true, 0, 'make')`, at each of the four places the card changes height: a picture
+picked, a shot taken, a picture thrown away, and a camera that failed to start and revealed its
+retry. `true` for `settle_`'s reason — the cards have not moved as far as anybody is concerned.
+
+### `PANE OFF THE SCREEN` — the same question, one box out
+
+**A separate heading from OUT OF REACH, deliberately.** They are the same loss and different
+repairs: *below its own fold* is a card too tall for its pane and wants the column paged; *off the
+screen* is a pane placed for a card that has since changed size and wants `placeCells` where the
+size changed. One heading would send a reader to the wrong half.
+
+**Only `.page.on`, and that narrowing is what stops it being the noise generator this file has
+already deleted one of**: every other page of a paged column is legitimately off the viewport —
+that is what a column IS. The rendered box rather than layout, for the `.mat-out` reason. **Proved
+by mutation**: without the `placeCells` calls it names all four widths; the real files are silent.
+
+### `make · a photograph taken` — half the camera had never been on a screen the lab looked at
+
+**The column opens on a viewfinder and nothing else.** `Again`, `Post it`, `Save a copy`, the
+caption and the who-row are `hidden` until there is a photograph, so `check/press.js` listed
+`cam-post`, `cam-save` and `cam-again` as untouched rather than as faults — an action on no screen
+is one it cannot reach. **Entered through the app's own picker**, a `DataTransfer` carrying a real
+one-pixel PNG on `#cam-pick`, because a container has no camera and `cam-shoot` is not a door this
+can use. `camAgain_` puts it back, since states run in order down one page.
+
+### Two things a screenshot caught, and one of them was four buttons on three lines
+
+**`Try the camera again` stayed on the card while a picture was being held.** It is revealed only by
+a camera that FAILED to start — and once you are holding a photograph, `Again` is already the button
+that throws it away and puts the camera back, so the row offered two ways to do one thing. Measured
+on the one path that reaches this with a dead camera, picking from Photos: the four buttons are
+491px in a 300px row, so they **wrapped onto three lines and cost 52px**. It comes back by itself,
+because `camStart_`'s catch is what reveals it and `camAgain_` calls `camStart_`.
+
+**And the who-row sat flush on the button row.** Both are `.btn-row` with no margin, so the bottom
+edge of `@family.` was the top edge of `Again` — 789px in both cases, measured — and with a gold
+fill on the chosen one of each row the two read as one block overlapping another. `.5rem`, which is
+the gap `.cam-row` already uses between its own buttons, so the spacing down the card is one number
+rather than two. **Fourteenth time this file writes that a screenshot is the last word.**
+
+**8px of headroom left at 768, and that is why `where` is not a second field.** The pane is 797
+against a `max-height` of 805.
+
+## A waiting list picks blocks on the week, and the five phrases go
+
+**Asked for as "I want the grid blocks to form into chunks for morning, afternoon, evening ect."**
+What was there was a multi-select of five phrases — `Weekday mornings`, `Weekday afternoons`,
+`Weekday evenings`, `Weekends`, `Flexible — whatever suits` — with the hour week above it **greyed
+out whole** and a line saying why it could not be ticked.
+
+**The old note is right about WHY the answer must be broad and wrong about its shape.** *"Asking a
+family to tick specific hours for a session that may run in six weeks is asking them to promise
+something nobody can promise"* — so the columns are blocks. But a week is a SHAPE you read, which is
+the argument the hour grid has carried since it was written, and `Weekdays` as one word cannot say
+that Tuesday is the one evening that does not work.
+
+**Three columns, seven rows, `weekGrid_`'s own builder.** That function's note says what differs
+between this app's grids is THE CELL and nothing else, and it holds: the header, the day letters,
+the row and the gold bar that joins Monday morning to Monday afternoon are all its.
+
+**Nothing is greyed, and that is the question being asked.** The hour week greys an hour the tutor
+does not work — right, because it offers hours that can be BOOKED. This asks when the FAMILY can
+come, of a class with no tutor, no room and no day yet; greying a block by whoever happens to be
+selected now would be answering a different question with the first question's data.
+
+**One week on the card, not two.** The greyed hour week is not drawn on this branch at all. Measured:
+a 44px block week is 330px against the hour week's 162, and 527px of week on a card whose pane caps
+at about 800 is most of the paper spent on one question with half of it unanswerable. The sentence
+the greyed week carried went with it — the row above still asks *"When could you come?"* and the
+Kind row's own note still says the class *"runs once enough others take a seat"*.
+
+**No backend change.** `waitlistWhen` splits the joining event's message on commas and tallies the
+phrases, so any phrase works — and the cell carries the phrase it stands for, so there is no second
+place for "Monday morning" to be spelled. `Mon–Fri evenings · 4 of 4` is the tutor reading the
+answer rather than decoding a code.
+
+### 44px was measured and refused, and the card had three pixels
+
+**Three columns CAN pay the tap-target rule where eleven cannot.** `ACCEPTED_TAP` carries the hour
+cells at 20px with the arithmetic beside them — eleven fingertips need 484px and no phone is that
+wide — and three need 132 against about 280. So it was written as `.hr.blk { min-height: 44px }`.
+
+**Then it was measured.** The waiting-list card is **803px in an 807px pane at 390**, `under: 3`.
+At 44px the block week takes it **216px past the pane's own fold** — content nobody can reach, on
+the question the card exists to ask. At 20px the two weeks are the same height and it fits.
+
+**So there is no rule at all, which is the better answer for a second reason**: the blocks are the
+same control as the week above them at the same size, one `ACCEPTED_TAP` entry covers both, and a
+94×20 cell is 1,880 square pixels of target against a 44×44's 1,936 — the half that rule cannot
+express.
+
+### The row's own summary is grouped, because a list of phrases grew a line per tap
+
+**`Monday evening, Tuesday evening, Wednesday evening` is what the grid writes** and it is the wrong
+thing to print on a receipt line: measured at 390px with two blocks ticked that row was **62px —
+three wrapped lines in an 81px value column** — and it grew by a line with every press. A row whose
+height depends on how much of the week suits you is the card changing shape under the thumb
+answering it, which is what `SPINE` objects to about folding.
+
+**`blockSay_` groups by block and collapses runs of days**: `Mon–Fri evenings`, `Sat · Sun mornings`.
+Three phrases at most, because there are three blocks. **The stored list is untouched** — the same
+split the hour grid already makes between `m13, m14` and `Monday 13:00–15:00`, and it has to be:
+`waitlistWhen` counts the phrases, and a grouped string would be one vote for a thing nobody ticked.
+
+**And the row above a grid spans now.** `is-bare` collapses a row to two columns and deliberately
+refuses to do it for a QUESTION, because two editable fields in two widths is the fault that note
+records. A grid's heading has no field — its own note says the dashed underline goes *because "the
+answer goes in the week below it"* — so nothing can come out a different size from a control that is
+not there. It buys both grid summaries one line instead of two, and the waiting-list card came back
+inside its pane at 390.
+
+### `booking · a waiting list` — the branch nothing had ever put on a screen
+
+**`isWaiting_()` changes six rows and the whole week**, and until this state existed the lab had only
+ever seen the other branch: `check/ui.js` measured the form, the receipt and the basket, all
+ordinary. Same hole the receipt and the message thread were each in, on the app's most control-dense
+card. Seeded through `BOOKING.how` and `drawBooker()`, which is what the Kind dropdown's own
+`change` handler does.
+
+**Two things it found on its first run, and both were already there.**
+
+**A note explaining how to use a control that cannot be used.** Subject is locked on a waiting list
+— a class's subject is settled by whoever opens it — and directly under the greyed dash sat *"Pick
+as many as apply — choosing again adds one, and a ticked one comes back off."* That is the caption
+this file already removed from over the week grid, in a new place: a sentence about an action,
+printed where the action is not available. A `note` is not drawn on a locked step now, and it took
+**28px off the ordinary form too** — so there were locked steps with notes on that branch as well.
+
+**And the waiting-list form has been past its pane at 768 and 1280 for as long as it has existed.**
+33px, and the block week is not the cause — that grid is 162px at every width, exactly what the hour
+week costs. It is the ROWS: they are set in `rem` off a 16px root there against 14.8 at 390, so a
+card that fits on a phone does not on a tablet. The note took 27 of it and `.bk-open`'s surround the
+last 4 — **the space either side of the dashed rule under the grid, above a row that carries a
+dashed underline of its own.** Measured after: 771px at 390 and 797px at 768, `under: 0` at both.
+**Proved by mutation**: the old surround back and it names 4px at 768 and 1280.
