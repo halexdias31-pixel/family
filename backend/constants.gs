@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-24-a-busy-days";
+const BACKEND_VERSION = "2026-09-24-b-library-card";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -343,7 +343,34 @@ const SCHEMA = {
     "qual_3", "qual_3_level", "qual_3_grade", "extra_quals",
     "availability", "xp", "credits", "high_score_flappy",
     "high_score_tables", "friends", "notepad", "todo", "ticks_1",
-    "ticks_2", "ticks_3", "children"
+    "ticks_2", "ticks_3", "children",
+    /* ---------- THE LIBRARY CARD, WHICH IS A NOTE RATHER THAN A CREDENTIAL OF OURS ---------------
+       ASKED FOR AS "a place to make notes for library card numbers and library card pins", and the
+       reason it is three ordinary columns on `people` rather than anything cleverer is the
+       three-question test at the top of CLAUDE.md, answered in order.
+
+       IS IT SECRET? YES, so it is a sheet and never `data/`. This repository is public and its
+       history is permanent; a card number and its four digits are exactly the shape of thing that
+       must not be committed, and the same sentence already keeps PINs, e-mail addresses and dates
+       of birth in this tab and out of git.
+
+       DOES THE APP WRITE TO IT? YES — `updateProfile`, from the Settings column, which is what
+       makes it a sheet column rather than something kept on the phone. A note that lives in
+       `localStorage` is a note you lose when you change phone, and the whole point of writing a
+       library card number down is that it is there in a year when you cannot find the card.
+
+       `library_note` IS THE THIRD COLUMN AND IT IS DELIBERATE, not padding. Somebody with cards
+       for two boroughs, or a card in a child's name, has a fact the other two columns have nowhere
+       to put — and the alternative to one free line is `library_card_2`, which is the numbered-
+       column fault this file records three times over under `images`, `needs` and the practicals.
+
+       WHO SEES IT: nobody by default. `doGet` sends no profile column to anybody — `profileFields`
+       is the SHAPE of the form, not its values — so these three never reach the public payload.
+       They reach the person themselves in their own sign-in reply (`profileOf_`, answered only
+       after the PIN has passed), and an ADMIN through `getProfile` — which is how every other
+       column on this tab has behaved since it was written. Said rather than buried, because one of
+       the three is a PIN and the owner is the admin. */
+    "library_card", "library_pin", "library_note"
   ],
   /* ---------- THE MAP -----------------------------------------------------------------------
      WHERE THE GROUND COMES FROM, and the reason this tab exists at all.
@@ -1751,6 +1778,10 @@ const PROFILE_GROUPS = {
   'More qualifications': ['extra_quals'],
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   'Contact':     ['email','phone','date_of_birth'],
+  /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
+     It is in all three group maps because a tutor, a parent and a student each have one library
+     card and one set of digits they cannot remember. */
+  'Library card': ['library_card','library_pin','library_note'],
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
@@ -1759,12 +1790,14 @@ const CLIENT_GROUPS = {
   /* An address, because a printed copy has to go somewhere. Without it the basket can offer
      collection and nothing else, and the reason is invisible on a form that never asked. */
   'Where you are': ['address','postcode'],
+  'Library card': ['library_card','library_pin','library_note'],
 };
 const STUDENT_GROUPS = {
   'About you': ['first_name','last_name','date_of_birth','photo'],
   'Contact':   ['email','phone'],
   'Where':     ['borough','city','town'],
   'Where you are': ['address','postcode'],
+  'Library card': ['library_card','library_pin','library_note'],
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
    `RESOURCE_EDITABLE` was its flattened allow-list. Both are gone with the tab they wrote to. The

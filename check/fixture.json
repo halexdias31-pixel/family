@@ -439,6 +439,11 @@
       "su17",
       "su18",
       "su19"
+    ],
+    "Library card": [
+      "library_card",
+      "library_pin",
+      "library_note"
     ]
   },
   "studentFields": [],

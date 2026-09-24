@@ -10060,3 +10060,124 @@ and a long press both get the full word. No backend change, and nothing already 
 
 **Measured after**: both weeks 85.4 / 105.5 / 111.5 wide, every header label on one line at every
 width, `under: 0`, no sideways scroll, 37 checks pass.
+
+## "Too many attempts" was paid for by the person and free to the guesser
+
+**Reported as "I don't like this too many attempts nonsense just let me sign in"**, and the
+arithmetic agrees with the complaint rather than merely conceding to it. `MAX_TRIES: 5`,
+`LOCK_MINUTES: 15`, and `tries` set back to nought at every lock — so every lock was the same
+length, for ever.
+
+**A FLAT LOCK IS THE WRONG SHAPE IN BOTH DIRECTIONS.** Somebody who mistypes their own four digits
+five times is held out for a quarter of an hour with nothing to do but wait. A script is held out
+for the same quarter of an hour and does not mind, because waiting costs it nothing: **5 tries per
+15 minutes is 485 guesses a day, so ten thousand PINs is three weeks.** The person pays attention
+and the guesser pays nothing.
+
+| | wrong answers before anything happens | guesses a day after that | ten thousand PINs |
+|---|---|---|---|
+| **before** | 5 | **485** | three weeks |
+| **after** | **10** | **38 on the first day, 24 after** | **over a year** |
+
+**Ten free, then one minute, two, five, fifteen, and an hour for ever.** Ten wrong answers is past
+anybody's second guess at which of their PINs it is; a guesser gets fifteen tries in the first
+twenty-three minutes, thirty-eight in the first day, and one an hour after that. **Gentler on the
+person and twenty times harder on the guesser in the steady state**, which is why the flat number
+was worth replacing rather than raising.
+
+**Those three figures are measured**, by walking the ladder in a loop against a clock — the first
+draft of this section said 480 and 24 from arithmetic done in my head, and both were wrong by enough
+to matter. A number written into a comment and never run is the shape this file records under "all
+18 checks pass".
+
+**`tries` IS THE ESCALATION'S ONLY MEMORY and it is a column that already exists.** Resetting it at
+each lock is precisely what made the wait flat; it counts on now, and `authNewSession_` already
+clears it on a successful sign-in — so the rung is *wrong answers since you last got in* rather than
+a second column to keep in step. No schema change, one rung per wrong answer, `WAITS` written once.
+
+**And the sentence says how long.** *"Try again in a few minutes"* is the same words whether the
+wait is one minute or an hour, so the only thing to do with it is keep pressing — which makes the
+wait longer. `authWaitMins_` is one reader for the gate's yes-or-no and the number in the message,
+because two functions asking the clock separately is a message that says four minutes about a wait
+of five.
+
+**The e-mail is sent on the FIRST rung only.** With a rung per wrong answer, one email each is an
+email per guess — a mailbox nobody reads, and therefore the warning nobody sees.
+
+### Getting back in when the hash and the PIN disagree, which is written down nowhere else
+
+**`authSetPin_` clears the plaintext `pin` cell, so a row carrying a hash AND a plaintext cannot
+happen by accident** — after any PIN change in the app that cell is empty. And `authCheckPin_`
+consults the plaintext only when there is no hash, which is right: that is the migration path for a
+row that predates hashing.
+
+**What that leaves is an account with no remedy, and the owner's was in it.** If the hash stops
+matching the PIN somebody believes is theirs — a PIN changed in the app and the old one typed back
+into the cell by hand, or `AUTH_PEPPER` regenerated — every attempt answers *"Name or PIN not
+recognised"* while the right four digits sit in the cell in front of them.
+
+**THE SHEET IS THE RESET AND IT NEEDS NO DEPLOY.** On that person's row in `Ledger` → `people`:
+put the PIN in **`pin`**, empty **`pin_hash`** and **`pin_salt`**, empty **`locked_until`**, and set
+**`tries`** to 0. The next sign-in takes the plaintext path, succeeds, and re-hashes immediately —
+the cell is cleared again by `authSetPin_`, so nothing is left lying about. Four cells, and the code
+already does the rest.
+
+**Emptying the hash is the whole of it**; putting the PIN back is what stops that being a lockout of
+a different kind.
+
+## Library card numbers and PINs are three columns on `people`
+
+**Asked for as "a place to make notes for library card numbers and library card pins"**, and the
+three-question test at the top of this file answers where it goes before anything is designed.
+
+**IS IT SECRET? YES — so a sheet, and never `data/`.** This repository is public and its history is
+permanent. A card number and its four digits are exactly the shape this file already keeps out of
+git alongside PINs, e-mail addresses and dates of birth.
+
+**DOES THE APP WRITE TO IT? YES**, through `updateProfile` from the Settings column — which is what
+makes it a sheet column rather than something kept on the phone. A note in `localStorage` is a note
+you lose when you change phone, and the point of writing a library card number down is that it is
+there in a year when you cannot find the card.
+
+**`library_note` IS THE THIRD COLUMN AND IT IS DELIBERATE.** Somebody with cards for two boroughs,
+or a card in a child's name, has a fact the other two have nowhere to put — and the alternative to
+one free line is `library_card_2`, the numbered-column fault this file already records under
+`images`, under `needs` and under the practicals' `equipment_1 … equipment_10`.
+
+**WHO SEES IT: nobody by default.** `doGet` sends no profile column to anybody — `profileFields` is
+the SHAPE of the form, not its values — so these three never reach the public payload. They reach
+the person themselves in their own signed-in reply, and an **admin** through `getProfile`, which is
+how every other column on this tab has behaved since it was written. Said rather than buried,
+because it is a PIN and the owner is the admin.
+
+**One entry in each of `PROFILE_GROUPS`, `CLIENT_GROUPS` and `STUDENT_GROUPS`** — a tutor, a parent
+and a student each have one card and one set of digits they cannot remember — and `PROFILE_EDITABLE`
+is derived from those three, so there is no second list to add it to.
+
+### Every box on that form opened empty, and the first Save wrote the blanks back
+
+**Found while wiring the new group up, and it is the older and worse fault.** `settingsPages_` fills
+its fields from `USER.profile`, and **nothing has ever sent one to the person themselves**:
+`getProfile` builds one for an ADMIN looking at somebody else, and `loginReplyFor_` — the reply a
+person gets about their own row — did not. So every group on that column drew a card of blank boxes
+on a fresh sign-in, whatever was in the sheet.
+
+**AND A BLANK BOX IS NOT THE ABSENCE OF AN ANSWER TO `me-save`.** It gathers every `[data-me]` in
+the card, empty ones included, and `updateProfile` writes what it is given. So opening Settings,
+pressing Save on *About you* and changing nothing wrote `''` over the headline, the photograph, the
+years of experience and all three adjectives. **The one screen for editing your own details was the
+one screen that could erase them**, on the first press, with a toast saying *Saved*.
+
+**`profileOf_` is the one builder and both callers use it.** It is `getProfile`'s own block lifted
+out: an admin's view of somebody and that somebody's view of themselves are the same object, and
+writing it twice is the second reader this file records under `documents_()`, `factsNow_` and
+`childrenOf`. It is not a disclosure — the reply is answered only after `authCheckPin_` has passed,
+and it carries the row of the person who just proved they are it.
+
+### And the column moved next to You, because it was eleventh of eleven
+
+**Reported as "The account setting should be in new coloumn I don't see it".** It was there and it
+worked — `screen('settings')`, five pages, the `Your settings` tile on your own account card opens
+it — and it was **four swipes past You** with no tab bar to jump with. `sort_order` 8 in
+`data/settings/columns.json`, which is one cell and no deploy: the one column you reach for from
+your own card is now the one beside it. Saved takes the end.

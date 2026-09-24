@@ -151,8 +151,23 @@ const { STATES, statesOf } = require('./states.js');
    visitor half the app refuses to draw anything for, which would measure the sign-in screen twice. */
 const VISITORS = [
   { as: 'out', user: null },
+  /* ---------- AND A `profile`, BECAUSE AN EMPTY BOX IS NOT THE BOX PEOPLE HAVE --------------------
+     THE SEED CARRIED NONE, so every card on the Settings column has been measured EMPTY on every
+     run — which for a form is measuring the one state that cannot overflow. `loginReplyFor_` sends
+     a person their own values now (see `profileOf_`), so a returning visitor arrives with boxes
+     that have something in them, and this is that visitor.
+
+     INVENTED, AND SHAPED TO BE THE WIDEST CASE RATHER THAN THE TIDIEST. The note is the longest
+     thing any of these boxes ever holds; the card number is the full length a borough prints on
+     one. Nothing here is anybody's — this file is committed to a public repository, which is the
+     whole reason the real ones live in a spreadsheet. */
   { as: 'in',  user: { name: 'Test Admin', personId: 'P001', person_id: 'P001',
-                       role: 'admin', roles: ['admin'], handle: 'testadmin' } },
+                       role: 'admin', roles: ['admin'], handle: 'testadmin',
+                       profile: { first_name: 'Test', last_name: 'Admin',
+                                  borough: 'Sutton', city: 'London',
+                                  library_card: '2000000000000',
+                                  library_pin: '0000',
+                                  library_note: 'Example note — the second card is in the top drawer' } } },
 ];
 
 /* 44 CSS PIXELS is Apple's published minimum for something a finger has to hit, and Google says 48.

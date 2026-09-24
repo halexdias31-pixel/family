@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-24-a-busy-days";
+const BOOKING_VERSION = "2026-09-24-b-library-card";
 
 
 /**
@@ -1161,11 +1161,39 @@ function closeFinishedJobs() {
    rounds, which is what makes guessing expensive. The pepper lives in Script Properties rather than
    the sheet, so the spreadsheet alone is not enough to test guesses against.
 ================================================================================================== */
+/* ---------- FIVE WRONG ANSWERS AND A FLAT FIFTEEN MINUTES WAS THE WRONG SHAPE, BOTH WAYS ---------
+   REPORTED AS "I don't like this too many attempts nonsense just let me sign in", and the
+   arithmetic agrees with the complaint AND with the note above it — which is what makes this a
+   repair rather than a concession to it.
+
+   A FLAT LOCK IS PAID BY THE WRONG PERSON. Somebody who mistypes their own four digits five times
+   is held out for a quarter of an hour with nothing to do but wait. A script is held out for the
+   same quarter of an hour and does not mind, because waiting is free to it: 5 tries per 15 minutes
+   is 480 guesses a day, so ten thousand PINs is three weeks. The person pays attention and the
+   guesser pays nothing.
+
+   SO THE FIRST TEN COST NOTHING AND THE WAIT GROWS AFTER THAT. Ten wrong answers before anything
+   happens at all — which is past anybody's second guess at which of their PINs it is — and then one
+   minute, two, five, fifteen, and an hour for ever. A guesser gets about fifteen tries in the first
+   half-hour, THIRTY-EIGHT IN THE FIRST DAY and TWENTY-FOUR A DAY after that — ten thousand PINs is
+   over a year. Ten free guesses out of ten thousand is a rounding error against that.
+
+   THOSE THREE NUMBERS ARE MEASURED, not reasoned: the ladder was walked in a loop against a clock,
+   because a figure written into a comment from arithmetic done in somebody's head is the shape this
+   repository records under "all 18 checks pass".
+
+   GENTLER ON THE PERSON AND TWENTY TIMES HARDER ON THE GUESSER IN THE STEADY STATE (24 a day
+   against 485), which is why the flat number was worth replacing rather than merely raising.
+
+   `tries` IS THE ESCALATION'S ONLY MEMORY and it is a column that already exists. It used to be set
+   back to nought at every lock, which is precisely what made every lock the same length; it counts
+   on now, and `authNewSession_` clears it on a successful sign-in — so the rung is "wrong answers
+   since you last got in" rather than a second column somebody has to keep in step. */
 const AUTH = {
   ROUNDS: 4000,          // ~50ms per check here; a login is rare and a guess is not free
   SESSION_DAYS: 30,      // signed in for a month, then the PIN again
-  MAX_TRIES: 5,
-  LOCK_MINUTES: 15
+  FREE_TRIES: 10,        // nothing happens at all until the eleventh wrong answer
+  WAITS: [1, 2, 5, 15, 60]   // minutes: one rung per wrong answer after that, then the last for ever
 };
 
 /* THE PEPPER. Made once and kept out of the sheet — Script Properties belong to the project, not to
@@ -1223,24 +1251,37 @@ function authCheckPin_(t, r, pin) {
 
 /* THE THROTTLE. Read before the PIN is even looked at, so a locked account costs a guesser the same
    whether the guess was right or not. */
-function authLocked_(r) {
+/* HOW MUCH LONGER, IN MINUTES, AND NOUGHT FOR NOT HELD. ONE READER, because the gate wants the
+   yes-or-no and the sentence it prints wants the number — and two functions asking the clock
+   separately is a message that says four minutes about a wait of five. Rounded UP, so it never
+   says nought to somebody who is still held. */
+function authWaitMins_(r) {
   const until = r.locked_until ? new Date(r.locked_until) : null;
-  return !!(until && until.getTime() > Date.now());
+  if (!until) return 0;
+  const left = until.getTime() - Date.now();
+  return left > 0 ? Math.ceil(left / 60000) : 0;
 }
+
+function authLocked_(r) { return authWaitMins_(r) > 0; }
 
 function authWrong_(t, r) {
   const n = N(r.tries) + 1;
   setCell(t, r, 'tries', n);
-  if (n >= AUTH.MAX_TRIES) {
-    setCell(t, r, 'locked_until', new Date(Date.now() + AUTH.LOCK_MINUTES * 60000));
-    setCell(t, r, 'tries', 0);
-    /* TOLD, BECAUSE A LOCKOUT IS THE ONLY WARNING A GUESSED ACCOUNT EVER GIVES. */
-    try {
-      notify(personDisplayName(r), 'Too many sign-in attempts',
-        'Somebody tried your @family. PIN ' + AUTH.MAX_TRIES + ' times and got it wrong.\n\n'
-        + 'The account is locked for ' + AUTH.LOCK_MINUTES + ' minutes. If that was not you, reply here.');
-    } catch (err) {}
-  }
+  if (n <= AUTH.FREE_TRIES) return;
+  /* ONE RUNG PER WRONG ANSWER PAST THE FREE TEN, and the top rung for ever after. `tries` is
+     deliberately NOT set back to nought here — see AUTH. */
+  const step = Math.min(n - AUTH.FREE_TRIES - 1, AUTH.WAITS.length - 1);
+  setCell(t, r, 'locked_until', new Date(Date.now() + AUTH.WAITS[step] * 60000));
+  /* TOLD, BECAUSE A LOCKOUT IS THE ONLY WARNING A GUESSED ACCOUNT EVER GIVES — and told on the
+     FIRST rung ONLY, because with a rung per wrong answer an email each time is an email per guess,
+     which is a mailbox nobody reads and therefore a warning nobody sees. */
+  if (step !== 0) return;
+  try {
+    notify(personDisplayName(r), 'Too many sign-in attempts',
+      'Somebody has tried your @family. PIN ' + n + ' times and got it wrong.\n\n'
+      + 'Signing in is held up for a minute, and for longer on each wrong answer after that.\n'
+      + 'If that was not you, reply here.');
+  } catch (err) {}
 }
 
 /* A NEW SESSION. The token is returned once and never stored — only its digest is kept, so this is
