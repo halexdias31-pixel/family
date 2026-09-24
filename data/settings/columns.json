@@ -8,5 +8,6 @@
 {"screen": "account", "label": "You", "icon": "👤", "active": "TRUE", "sort_order": 7, "notes": "your account, and a page per person."},
 {"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 8, "notes": "the widgets."},
 {"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 9, "notes": "the arcade."},
-{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 10, "notes": "what you starred \u2014 widgets first, then anything else. Right of Games."}
+{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 10, "notes": "what you starred \u2014 widgets first, then anything else. Right of Games."},
+{"screen": "settings", "label": "Settings", "icon": "\u2699", "active": "TRUE", "sort_order": 11, "notes": "your details, your username and your PIN. One page each. Last, as asked."}
 ]

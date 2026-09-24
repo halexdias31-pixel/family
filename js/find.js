@@ -5693,8 +5693,25 @@ function accountPages_() {
      draws a Message button addressed to nobody. So the shape is built the way `stuffItems` builds
      it, in one helper used for you and for everybody else — the same argument as `mineIs_` above:
      two places constructing one thing is two chances to construct it differently. */
-  const asItem_ = t => ({
-    kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
+  /* ---------- AND YOUR OWN CARD IS `me`, WHICH IS THE KIND NOTHING HAD EVER BUILT ----------------
+     `cardTiles_` ROUTES `meTiles_` ON `x.kind === 'me'` AND NO ITEM IN THIS APP CARRIED THAT KIND.
+     Measured across `js/`: `kind: 'me'` occurs nowhere. So `Your settings`, `Add your child`,
+     `Your figure` and `Build` — four tiles, written, styled, each with a live handler behind it —
+     were drawn on no screen at all, and the only way to any of them was a swipe to a column at the
+     far right of nine others.
+
+     A RENDERER LEFT STANDING OVER A PERMANENTLY FALSE CONDITION, which is the shape this repository
+     already records under `resource_type` in `VOCAB`, under the dead `kind === 'paper'` guard, and
+     under the unlisted tutor this same function used to filter away. `check-doors.js` could not see
+     it and says why itself: it pairs a `data-do` STRING against an `on()` handler, and both halves
+     were there — what was missing is anything that draws the string.
+
+     `tutor` WAS ALSO WRONG ON YOUR OWN ROW FOR A SECOND REASON. `tutorTiles_` is Message, so your
+     own card carried a Message tile addressed to yourself. One kind, two repairs.
+
+     OTHERS ARE UNCHANGED: `withTiles_` asks for no kind and gets `tutor`, which is what they are. */
+  const asItem_ = (t, kind) => ({
+    kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
     cost: priced_(t.rate), off: t.listed === false, row: t,
   });
 
@@ -5718,7 +5735,7 @@ function accountPages_() {
      answers to "which row are you", which is the fault `mineIs_` exists to prevent. */
   const me = [
     typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
-    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow)) : '',
+    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me')) : '',
     `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
   ].join('');
 
