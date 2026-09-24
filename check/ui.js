@@ -174,11 +174,19 @@ const MIN_TAP = 44;
    happens to say 10; the class is what the stylesheet acts on. */
 const ACCEPTED_TAP = [
   { cls: /^hr\b/, why:
-    'THE HOUR GRID IS THE CONTROL, and it cannot be made of 44px parts. Eleven hours across a '
-  + '242px row is 22px each; eleven 44px cells need 484px, which is wider than any phone made. '
-  + 'Shrinking to fewer hours loses the mornings, and stacking them loses the week-at-a-glance '
-  + 'reading that is the whole reason the grid beat a pair of time dropdowns. A finger picking a '
-  + 'range on a grid is a drag, not a tap, and the drag is what `slot-row` handles.' },
+    'THE HOUR GRID IS THE CONTROL, and it cannot be made of 44px parts. Ten hours across a 240px '
+  + 'row is 23px each; ten 44px cells need 440px, which is wider than any phone made. Shrinking '
+  + 'to fewer hours loses the mornings, and stacking them loses the week-at-a-glance reading '
+  + 'that is the whole reason the grid beat a pair of time dropdowns.\n'
+  + '        AND 14px IS UNDER `.hr`\u2019s OWN 20px FLOOR, on purpose and on the fourth asking: '
+  + '*"make the grid squares and grid thinner"*. What stops it at 14 is that the day name takes '
+  + 'over as the row\u2019s floor below it \u2014 12px buys two pixels at 390 and costs a sixth of '
+  + 'the target. The arithmetic is beside `.bk-row.bk-wk` in style.css.\n'
+  + '        THE OLD REASON ENDED "a finger picking a range on a grid is a DRAG, and the drag is '
+  + 'what `slot-row` handles." IT DOES NOT. Measured: no pointer handler anywhere names '
+  + '`slot-row` or `slot-hours`, every cell is an ordinary tap, and `slot-row` is not even the '
+  + 'element any more \u2014 a day is a row of the card. A sentence that outlived what it '
+  + 'described, which is the shape this repository records under `.favwrap.is-fav`.' },
   { cls: /^scr-sq\b/, why:
     'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
   + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '

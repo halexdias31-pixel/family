@@ -2545,8 +2545,6 @@ button.text-drop { color: var(--bad); }
 .bk-sel:disabled, .bk-in:read-only {
   opacity: 1; cursor: default; color: var(--dim);
 }
-/* THE WEEK, WHEN THERE IS NO WEEK TO PICK. Greyed whole rather than removed — see `stepGrid_`. */
-.bk-open.is-off .slot-grid { opacity: .45; }
 
 /* A TYPED ANSWER, IN THE SAME CLOTHES AS A CHOSEN ONE. The split is addresses rather than a choice,
    so its row holds a text box — and it has to look like the dashed value it sits on, not like a
@@ -2572,103 +2570,29 @@ button.text-drop { color: var(--bad); }
    Its row has no figures at all, so it already spans the card — see `is-bare`. */
 .bk-in-l { text-align: left; }
 
-/* ---------- A CONTROL THAT UNFOLDS UNDER ITS OWN ROW -----------------------------------------------
-   THE WEEK GRID IS THE ONE ANSWER THAT IS NOT A LINE OF TEXT. Which hours are free is a shape you
-   read across seven days, so it stays a grid — but it belongs to the When row, so it opens directly
-   beneath it rather than below the card and after everything else.
+/* ==================================================================================================
+   `.bk-open` WAS THE WEEK'S OWN BOX AND THERE IS NO WEEK'S OWN BOX ANY MORE.
 
-   FULL WIDTH, OUTSIDE THE COLUMNS. It is not a value in the value column; it is the control for the
-   row above. Squeezing seven days into 55px would be worse than the panel it replaces.
+   It held the grid under the When row for as long as the week was one control belonging to one
+   question: full width at first, then indented to the value column, then `2 / -1`, then argued over
+   a fourth time when a screenshot asked for it *"squashed into the second column"*. Every round was
+   the same trade and the arithmetic is worth keeping, because it is what finally ruled the shape out
+   rather than a preference:
 
-   INDENTED TO THE VALUE COLUMN so it reads as belonging to that row rather than to the card, and
-   ruled off at the bottom so the rows continuing underneath do not look like part of it. */
-/* INDENTED, BUT NOT BY MUCH. 6.5em lined it up with the value column and cost the grid a fifth of
-   its width — which on a row of fourteen hours is the difference between a target you can hit and
-   one you cannot. It reads as belonging to the row above from the rule underneath it and from being
-   the only thing there; it does not also need to start where the values start. */
-/* THE INDENT COSTS THE GRID A CELL AND A HALF. It reads as belonging to the When row from the rule
-   underneath it and from being the only thing there; on a 307px card it does not also need to be
-   inset. */
-/* ---------- THE WEEK IS ONE QUESTION DRAWN TEN ROWS TALL ------------------------------------------
-   MEASURED ON THE EMPTY FORM AT 390px: this block is 182px of an 807px card — a fifth of it, to ask
-   one of the form's fifteen questions, where every other question is a 19px row. That is the
-   disproportion somebody looking at this card sees, and it is worth saying what CAN and cannot be
-   done about it.
+     indented, eleven cells and eleven gaps      320px  13.6 wide   390px  17.6   768px+  18.7
+     clipped to where an answer's dash stops     78.2px of track — a FIVE-PIXEL cell
+     on its side, seven day-columns in 78.2px    11px
 
-   THE GRID ITSELF IS AT ITS FLOOR AND HAS BEEN TWICE MEASURED THERE. Seven rows at `max(20px,
-   1.55em)` plus six 1px gaps is 146px, and the 20px is a fingertip rather than a preference — the
-   note over `.hr` records this block going 222 → 174 → 146 and why it stops there. A week has seven
-   days and a day has to be pressable; there is no arrangement of those two facts under 140px.
+   against `.hr`'s floor of 20px, which is a fingertip and not a preference. The card simply has two
+   right edges — the value column stops at 189 and the grid needs 240 — and no box hung under one row
+   can be on both.
 
-   SO WHAT COMES BACK IS THE SURROUND, which was 36px of margin and instruction around it. */
-/* ---------- AND FOUR MORE PIXELS OF IT, MEASURED ON THE BRANCH THAT HAD NONE ----------------------
-   THE WAITING-LIST FORM IS 801px AGAINST A 797px PANE AT 768 AND 1280. Found by the declared state
-   `booking · a waiting list`, which is the first thing ever to put that branch on a screen this lab
-   looks at — and the overflow is not the block week: the grid is 162px at every width, exactly what
-   the hour week costs. It is the ROWS, which are set in `rem` off a 16px root there against 14.8 at
-   390, so a card that fits on a phone does not on a tablet.
-
-   THE SURROUND IS WHAT THIS BLOCK HAS ALWAYS PAID WITH. Its note above records 36px of margin and
-   instruction coming off it once already, and there are three separate things under the grid here:
-   `.2rem` of padding, a dashed rule, and `.18rem` of margin — 7px at 768, above a row that carries
-   a dashed underline of its own. The rule stays, because it is what closes the week off; the space
-   either side of it is what goes, and it is 4.5px, which is the 4 this needed. */
-.bk-open {
-  /* ---------- A CELL OF THE ROW ABOVE IT, ON A LINE OF ITS OWN --------------------------------
-     THE WEEK USED TO BE A SIBLING and so began at the card's left edge, under the label column,
-     where no other answer on the card starts. It is the last child of `.bk-row` now, which is a
-     grid, so `2 / -1` is the value column — computed by the browser off `minmax(6.2em, max-content)`
-     rather than restated as a margin that a long label would leave behind. */
-  /* ---------- AND IT STARTS WHERE THE ANSWERS DO, WHICH COSTS SIX PIXELS A CELL ------------------
-     ASKED FOR TWICE. The first time was about the block week — *"is it possible to have the grid be
-     in the 2nd column like the other stuff"* — and only the blocks were given it, on the arithmetic
-     below. The second was a screenshot of the hour week: *"can you see how grid stretches across all
-     columns? I want it squashed into the second column which is the input column."*
-
-     WHAT IT COSTS, MEASURED ON THIS CARD RATHER THAN QUOTED. Indenting hands the label column and
-     its gap back — 68px of 312 at 390 — and eleven cells and eleven gaps divide the rest:
-
-       320px   cell 19.1 → 13.6 wide      390px   24.1 → 17.6      768px+   25.6 → 18.7
-
-     THE HEIGHT FLOOR IS UNTOUCHED at 20px; what gives is width, and the note over `.hr` sets that
-     floor against a cell *24px wide*, which is what 390 used to be. So this is a real reduction and
-     not a tidy-up: at 320 the target is 13.6px with its neighbour two pixels away. It is the
-     owner's card and the owner's call, made twice; the number is written here so it is a decision
-     rather than something nobody measured. `ACCEPTED_TAP` already carries these cells with the
-     arithmetic — eleven fingertips need 484px and no phone is that wide — so nothing new is
-     reported and this makes an accepted one smaller.
-
-     WHAT WAS WEIGHED AND REFUSED: turning the week on its side. Seven day-columns instead of eleven
-     hour-columns gives 28.6px a cell at 390 indented, WIDER than today — and eleven rows instead of
-     seven, about 80px of height on a card whose own notes record this block fighting for every
-     pixel, plus a new shape to read on all three surfaces that draw a week. A bigger change than
-     the one asked for, so it is written down rather than made.
-
-     THE BLOCK WEEK LOSES NOTHING BY IT: 56/71/75px a cell, nowhere near the floor either way. One
-     rule for both now, because they are never on one card — `stepGrid_` draws the hours for an
-     ordinary booking and the blocks for a waiting list, one per branch.
-
-     AND THE RIGHT EDGE IS THE HALF THAT CANNOT MOVE — asked for a third time, measured, and the
-     measurement is the reason rather than a preference. `2 / -1` looks as though it spans the value
-     column and the three figure tracks; on THIS row it does not. `.bk-row.is-head` is `.is-bare`,
-     which is two tracks — `67.98px | 239.86px` at 390 — so `2 / -1` and `2 / 3` are the same edge
-     here and the week is already the whole of column 2 of its own row.
-
-     WHAT THE NEXT SCREENSHOT ASKS FOR IS 189, where an answer's dash stops on the ordinary
-     five-track row. Giving this row those tracks puts eleven cells and ten gaps into 78.2px: a
-     FIVE-PIXEL cell, against the 20px floor the note over `.hr` sets from a fingertip. On its side
-     is no better — seven day-columns in 78.2px is 11px — and the tracks cannot give the width back,
-     because they hold `× 6`, `£12.00/h` and `£144.00`, which is 148px of digits that have to fit.
-
-     SO THE CARD HAS TWO RIGHT EDGES, and the header row is what makes that legible: `× RATE TOTAL`
-     are named above the space to the right of a dash, so it reads as three columns waiting for a
-     price rather than as a value that stopped early. See the note beside `.bk-row.is-cols`. */
-  grid-column: 2 / -1;
-  margin: 0 0 .06rem 0;
-  padding-bottom: .08rem;
-  border-bottom: 1px dashed var(--line);
-}
-.bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
+   A DAY IS A ROW NOW, so the question is answered rather than traded: seven `.bk-row.bk-wk` rows,
+   each an ordinary row of the document with `Monday` in the label column where `Subject` goes. See
+   the block further down this file. Nothing builds `.bk-open` any more — `stepGrid_`, `blockWeek_`
+   and `jobGrid_` are all `weekRows_` — so the rules went with it rather than being left to read as
+   decisions that do nothing, which is `.favwrap.is-fav` and is the fault this file keeps recording.
+================================================================================================== */
 /* ---------- WHAT THE ROW ABOVE MEANS, OR WHY IT CANNOT BE ANSWERED THAT WAY ------------------------
    THE SAME SIZE AND THE SAME PLACE AS THE GRID'S OWN NOTE, because they are the same kind of thing:
    a sentence belonging to the row above rather than a row of its own. Left-aligned, where every
@@ -2779,6 +2703,87 @@ button.text-drop { color: var(--bad); }
 
    THE DAY LABEL DROPS TO TWO LETTERS. `Mo Tu We Th Fr Sa Su` is unambiguous where one letter is not
    (T and S are each two days), and the 14px it gives back goes to the cells, which need it more. */
+/* ==================================================================================================
+   A DAY IS A ROW OF THE CARD.
+
+   ASKED FOR AS *"get rid of When and instead have the day names be the field questions. So it
+   becomes Monday field Tuesday field Wednesday field."* The week was a block hanging under one row
+   and every attempt to put it "in the input column" was a trade: indent it and its left edge lines
+   up but its right edge cannot, because eleven pressable cells need 240px and the answer column
+   beside three figure tracks is 78px. Four rounds of that, written up either side of this file.
+
+   A DAY IS A QUESTION, so it gets a row. The label column holds `Monday` exactly as it holds
+   `Subject`; the answer cell holds the eleven hours. Nothing is nested and nothing is indented,
+   which is what makes "the grid is in the input column" true by construction rather than by a rule.
+
+   NO NEW GEOMETRY. `.slot-hours` is the same flex strip it has always been and `.hr` is the same
+   cell; what changed is the box it sits in. `weekRows_` marks the row `is-bare`, so the three
+   figure tracks go to the answer and the cell measures 17.6px at 390 — the width it had inside the
+   old indented block, to the pixel.
+================================================================================================== */
+/* NO GUTTER BETWEEN THE NUMBERS AND THE BOXES THEY NAME — the strip is a label on Monday's own
+   cells, and a pixel of air between them reads as two things rather than one. It was declared 1px
+   here and 0 again ninety lines down when the week was made thinner; both were written deliberately
+   and the first never applied, which is `.price.faint` for the tenth time and `check-css.js` is
+   what said so. One declaration, and the later rule is gone. */
+.bk-row.bk-wk .bk-v { display: flex; flex-direction: column; }
+/* THE HOUR NUMBERS RIDE ON MONDAY. One strip for eleven columns rather than one per row — the
+   argument `slotHead_` records for taking them out of seventy-seven cells — and inside Monday's own
+   answer cell rather than on a row of its own, because a row of its own would need a name, a place
+   in `SPINE` and a label column holding nothing. `1 1 0` on each, matching `.hr`, so the numbers sit
+   over the columns they name whatever the card's width. */
+.bk-row.bk-wk .wk-hh { display: flex; gap: 1px; }
+/* ==================================================================================================
+   AND THE WEEK IS THINNER, WHICH IS THREE NUMBERS AND ONE OF THEM IS NOT A CELL.
+
+   ASKED FOR AS *"make the grid squares and grid thinner"*. Measured at 390 before touching it: a
+   cell was 22.2 x 20 and a day row was 32.8 tall — so TWELVE PIXELS OF EVERY ROW WERE NOT THE
+   CONTROL, seven times over, and the week was 199px of a 518px card.
+
+   `align-items: baseline` IS WHERE TEN OF THE TWELVE WENT. `.bk-row` aligns a label's baseline with
+   its value's, which is right for a line of text beside a line of text and wrong for a label beside
+   a strip of boxes: a grid cell's baseline sits at the bottom of its content box, so the row grew to
+   put the day name's baseline there. `center` is what a row of boxes wants, and it costs the other
+   rows nothing because they do not have it.
+
+   THE OTHER TWO ARE `.bk-row`'s OWN `.1rem 0`, which is there to keep twelve lines of text apart and
+   is not needed between rows whose content already has a 1px gutter of its own.
+
+   ---------- 14px, AND THE REASON TO STOP THERE IS MEASURED RATHER THAN CHOSEN ---------------------
+   `.hr`'s FLOOR IS 20px AND ITS NOTE SAYS WHY — *"below about 20px a cell 24px wide stops being
+   reliably pressable"*. This goes under it deliberately, on the fourth asking, and `ACCEPTED_TAP`
+   carries a smaller finding for it.
+
+   WHAT SETS 14 RATHER THAN 12 IS THE DAY NAME. At 12px the cell stops being the tallest thing in
+   the row and `Wednesday`'s own line box becomes the floor: measured, 12px buys **two pixels** at
+   390 (109.6 against 111.6) and costs a sixth of the target. Below the label there is nothing left
+   to win, which is a better place to stop than a number somebody liked.
+
+   | at 390 | cell | row pitch | the week |
+   |---|---|---|---|
+   | before | 22.2 x 20 | 32.8 | 199.2px |
+   | after  | 23.1 x 14 | 22.8 | 111.6px |
+
+   The card goes 518px to 430px, and the cells got WIDER doing it — a 1px gutter between them rather
+   than 2px, which is the same trade the joined-hours bridge already paints into.
+================================================================================================== */
+.bk-row.bk-wk { align-items: center; padding: 0; }
+.bk-row.bk-wk .slot-hours { gap: 1px; }
+.bk-row.bk-wk .hr { min-height: 14px; }
+/* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
+   the rest, so a top-aligned label read as the name of the NUMBERS rather than of the boxes under
+   them — the one row of the seven where the eye could pair the wrong two things. `end` puts it on
+   the same line as its own cells; every other day row has nothing above its strip, so the rule is
+   written for the row that has, off `:has` rather than a class the builder has to remember. */
+.bk-row.bk-wk:has(.wk-hh) .bk-k { align-self: end; }
+/* A DAY NOBODY WORKS IS STILL DRAWN AND IS NOT THUMB-SIZED. Same rule the old `.slot-row` had: a
+   missing Wednesday and a Wednesday nobody works are different facts, and only one of them has
+   anything to press. */
+.bk-row.bk-wk.is-shut .hr { min-height: 11px; }
+/* AND A WEEK THAT CANNOT BE ANSWERED RECEDES RATHER THAN VANISHING — a joined class's hours are
+   somebody else's decision, and greying them still says which ones they were. */
+.bk-row.bk-wk.is-off .slot-hours, .bk-row.bk-wk.is-off .wk-hh { opacity: .45; }
+
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
 .slot-row.is-shut .hr { min-height: 11px; font-size: .55rem; }
@@ -2843,7 +2848,12 @@ button.text-drop { color: var(--bad); }
    bar that joins Monday morning to Monday afternoon — is `.hr`'s, because it is the same control
    answering the same kind of question. `weekGrid_`'s own note says what differs between the grids
    in this app is the cell, and here it is one declaration of it. */
-.hr.blk { min-height: 20px; }
+/* NAMED THROUGH THE ROW, because a day is a row of the card now and `.bk-row.bk-wk .hr` is three
+   classes deep — a bare `.hr.blk` is two and lost, so the blocks silently took the hour week's 14px
+   the day that grid was made thinner. Four beats three. A SAVED waiting list is five
+   (`.rc.is-done .bk-row.bk-wk .hr`) and beats this in turn, which is right: a receipt's week is read
+   rather than pressed. */
+.bk-row.bk-wk .hr.blk { min-height: 20px; }
 
 /* ---------- A GRID NOBODY CAN PRESS DOES NOT NEED A THUMB'S WORTH OF HEIGHT ------------------------
    `min-height: max(20px, 1.55em)` IS A FLOOR FOR FINGERS. Below about 20px a cell stops being
@@ -2867,20 +2877,33 @@ button.text-drop { color: var(--bad); }
    move this repository keeps making: replace a property that was only true by accident of
    interaction with one a reader can check. Smaller than the form's 20px floor, because a receipt's
    grid is read and not pressed, and large enough that a lit hour is a bar rather than a line. */
-.rc.is-done .hr { min-height: 1.1em; padding: 0; font-size: .58em; }
-.rc.is-done .slot-grid { gap: 0; margin: .1rem 0 0; }
-.rc.is-done .slot-hours { gap: 1px; }
-.rc.is-done .slot-row { gap: .2rem; }
-/* AND THE DAY LABEL STOPS SETTING THE ROW'S HEIGHT. Measured: a 9.2px label with the browser's
-   normal line-height makes a 14.2px row round a 9.45px cell, so the booked hours sat in a band of
-   air rather than in a grid. On the form the cell is 20px and wins this outright; on the receipt it
-   is the label that was deciding, which is the wrong element to be deciding it. */
-.rc.is-done .slot-day { line-height: 1; }
-.rc.is-done .slot-row.is-shut .hr { min-height: 1.1em; }
+/* ---------- AND IT SAYS SO BY SPECIFICITY RATHER THAN BY SITTING LOWER IN THE FILE ----------------
+   `.rc.is-done .hr` AND `.bk-row.bk-wk .hr` ARE BOTH THREE CLASSES DEEP, so which height a receipt's
+   cell got was decided by which rule happened to be written later — `check/cascade.js` named it on
+   seventy elements the moment the receipt started drawing the form's own day rows. The answer was
+   right and the reason was an accident of ordering, which is the shape this stylesheet has now been
+   caught in ten times.
+
+   NAMING THE ROW MAKES IT FIVE, and that also settles the shut day without a second rule:
+   `.bk-row.bk-wk.is-shut .hr` is four, so an 11px Wednesday-nobody-works stopped overruling this
+   and standing a pixel and a half taller than the days either side of it on a document nobody can
+   press. That is what the deleted `.rc.is-done .slot-row.is-shut .hr` was for, and it is covered
+   here rather than restated. */
+.rc.is-done .bk-row.bk-wk .hr { min-height: 1.1em; padding: 0; font-size: .58em; }
 .rc.is-done .slot-hh { font-size: .55em; }
-/* AND THE INSTRUCTION ABOVE IT GOES. "Two together is a two-hour session" tells somebody how to
-   answer a question that has been answered. */
-.rc.is-done .bk-open > p { display: none; }
+/* ---------- AND SIX RULES UNDER THIS ONE WERE COMPACTING A GRID THE RECEIPT NO LONGER DRAWS -------
+   `.slot-grid`, `.slot-row`, `.slot-day`, `.slot-row.is-shut .hr` and `.bk-open > p` were the
+   receipt's copy of the week when the week was a block hanging under one row. It is seven `.bk-wk`
+   day rows now — the same rows the form draws — so `jobGrid_` is gone and none of those five
+   classes can appear inside `.rc.is-done` at all. `weekGrid_` still builds them, for `availGrid_`
+   in `me.js`, which is on the settings column and has never been inside a receipt.
+
+   AND `.rc.is-done .slot-hours { gap: 1px }` WENT WITH THEM FOR A SHARPER REASON. `.bk-row.bk-wk
+   .slot-hours` says the same thing three classes deep, so the two tied on specificity and ORDER
+   ALONE decided it — `check/cascade.js` named it on seven elements. They agreed about the value, so
+   nothing was ever wrong on screen; what was wrong is that a rule written for the form was being
+   overruled by a rule written for the receipt, and the day the two stop agreeing the loser is
+   whichever is further up the file. The day rows compact both documents at once now. */
 
 /* ---------- A ROW THAT SAYS NOTHING TAKES THE ROOM OF ONE THAT DOES --------------------------------
    TWENTY-SEVEN ROWS AND SIX OF THEM ARE A DASH on any given booking — Class, Extra subj., When
@@ -6185,6 +6208,33 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    them. Where the label overhangs, the value column gives way — which changes where the dash
    STARTS and not where it ends, and the end is the edge somebody reads. */
 .bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
+
+/* ---------- AND A ROW WITH NO FIGURES ON IT GIVES ITS THREE TRACKS TO THE ANSWER ------------------
+   PER ROW, NOT PER CARD, AND THAT IS THE WHOLE DIFFERENCE. The rule this replaces asked whether the
+   CARD was priced and collapsed every row when it was not — which took `× RATE TOTAL` off an
+   unpriced form entirely and produced the report that the columns had gone again. This asks the
+   question of the row, so the header keeps all five names on every card and a row simply uses the
+   width it is not spending.
+
+   IT IS WHAT MAKES THE DAY ROWS LINE UP WITH THE ANSWERS. A day row carries no figures, so its
+   hours run to the card's edge; before this, every other unanswered row stopped two-thirds across
+   and the card had two right edges with the week on the far one. Measured at 390: every dash and
+   every day strip now share `111 → 351`.
+
+   THE COST IS ON A PRICED CARD AND IT IS REAL. `Venue` carries a surcharge and `Subject` does not,
+   so their two dropdowns come out 78px and 240px — two editable fields, one above the other, in two
+   sizes, which is the fault the note over `is-bare` records from the last time this was tried. What
+   is different is that the columns are now NAMED: a short value with `× RATE TOTAL` over the space
+   beside it reads as a row that has figures, which is exactly what it is. Asked for four times; the
+   trade is written here rather than argued again.
+
+   THE HEADER IS EXCLUDED FROM ITS OWN TEST. `spineHead_` writes the word `Total` into a `.bk-t`, so
+   a header row would otherwise see itself as priced and keep tracks the rows under it had given up.
+   `.is-wide` is the basket, which is two columns by its own rule and must not be touched. */
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-m,
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-r,
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-v { grid-column: 2 / -1; }
 
 /* ---------- THE FIGURE COLUMNS STAY ON AN UNPRICED CARD, FOURTH TIME OF ASKING --------------------
    A RULE THAT COLLAPSED THEM WAS HERE AND IS GONE. It hid `.bk-m`, `.bk-r` and `.bk-t` on every row

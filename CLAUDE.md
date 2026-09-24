@@ -9763,3 +9763,180 @@ is the house style. Nothing can tell that from a name that never existed. That i
 
 **The version stamps are bumped all four together**, because `backend/booking.gs` changed and the
 You screen compares the whole stamp.
+
+## A day is a question, so the week stopped being a picture beside one
+
+**Asked for as "get rid of When and instead have the day names be the field questions. So it becomes
+Monday field Tuesday field Wednesday field."** It is the fourth round of one complaint and the only
+answer that is not a trade.
+
+**THE THREE ROUNDS BEFORE IT WERE ALL THE SAME TWO BAD CHOICES.** The week was a block hanging under
+a `When` row. Indent it to the answer column and its left edge lines up and its right edge cannot —
+eleven pressable cells need 240px and the answer column beside three figure tracks is 78px, a
+five-pixel cell. Collapse the figure columns to make room and the form loses `× RATE TOTAL`, which
+is what *"now there's only 2 columns again"* was. Written, reverted, written, reverted; the
+arithmetic is in `style.css` either side of `.bk-open`.
+
+**A DAY IS A QUESTION.** *"Monday · which hours"* is a field with a label, exactly like *"Subject ·
+which one"* — so it belongs on a row of the card rather than inside a picture drawn beside one. The
+day name moves out of the grid's own 1.5rem gutter and into the label column every other question
+uses; the eleven hours become that row's answer. Nothing is nested, nothing is indented, and *"the
+grid is in the input column"* stops needing a rule to enforce it: the hours ARE in it, because they
+are what the row answers.
+
+**AND THE CELLS GOT BIGGER, WHICH NO VERSION OF THE OLD SHAPE COULD DO.** The `.slot-day` gutter is
+24px that the label column was already paying for.
+
+| | 320px | 390px | 768px |
+|---|---|---|---|
+| indented block, last commit | 13.6px | 17.6px | 18.7px |
+| **a day as a row** | **15.8px** | **20px** | **21.2px** |
+
+20px is the floor the note over `.hr` sets from a fingertip, reached for the first time since the
+week was indented. The waiting-list card went 762px to **594px** and its blocks are 78.6px wide.
+
+### The figure columns collapse per ROW now, not per card
+
+**That is the whole difference between this and the rule reverted yesterday.** That one asked whether
+the CARD was priced and collapsed every row when it was not — so an unpriced form lost its column
+names entirely. This asks the question of the ROW, so the header keeps all five names on every card
+and a row simply uses the width it is not spending. Measured at 390: **every dash and every day
+strip share `111 → 351`**, which is the single right edge three screenshots were about.
+
+**THE COST IS ON A PRICED CARD AND IT IS REAL.** `Venue` carries a surcharge and `Subject` does not,
+so their two dropdowns come out 78px and 240px — the *"two editable fields, one above the other, in
+two sizes"* the note over `is-bare` records from the last time this was tried. What is different is
+that the columns are NAMED: a short value with `× RATE TOTAL` over the space beside it reads as a
+row that has figures, which is what it is.
+
+### One builder, three surfaces, and `short` stopped being a label
+
+**`weekRows_` returns row objects rather than markup**, and the form, the waiting list and the
+receipt all call it — so a week restyled once is restyled on all three. `stepGrid_`, `blockWeek_`
+and `jobGrid_` are gone; `stepWeekRows_`, `blockWeekRows_` and `jobWeekRows_` replace them, and
+`stepRows_` is a `flatMap` because one step is no longer one row.
+
+**`short: 'When'` IS AN ANCHOR NOW AND NAMES NO ROW.** `SPINE` holds Monday to Sunday in that step's
+place — **once**, deduped, because both week steps answer the same seven questions and only one of
+them is ever on a card. What `short` still does is hold the position: `SPINE_EXTRA`'s
+`{ after: 'When', row: 'Per session' }` pins itself to it, so that row still lands after Sunday
+without naming a day.
+
+**The hour numbers ride on Monday's own answer cell**, above its strip — one fact about eleven
+columns, drawn once, which is `slotHead_`'s own argument for taking them out of seventy-seven cells.
+A row of their own would need a name, a place in `SPINE` and a label column holding nothing. **And a
+screenshot caught the one thing that went with it**: top-aligned, `Monday` sat level with the
+NUMBERS rather than with its own boxes — the one row of seven where the eye could pair the wrong two
+things. `align-self: end`, off `:has(.wk-hh)` rather than a class the builder has to remember.
+
+### Two journeys failed and both were right to
+
+**`every question the form asks has a row on the paper`** looked for a row called `When`. The
+invariant is unchanged and what satisfies it is seven rows rather than one, read off `SLOT_DAYS`
+through the harness — a list of day names written into the check would be a second copy to keep in
+step.
+
+**`the paper keeps the same rows whatever is answered`** tests that an `only:` step's row is on its
+own branch and off the other. **A week step's rows are on BOTH by design**: `avail` is `only: 'wait'`
+and draws Monday to Sunday, which is exactly what `slots` draws on the other branch. So week steps
+are exempt from that one assertion, with the reason written in — and what still governs them is that
+`stepWeekRows_` returns `[]` on the wrong branch, which the shape comparison covers. Every non-week
+`only:` step is tested exactly as before.
+
+### Nine till six, and the two spans had disagreed at both ends since the grid was written
+
+**Asked for as "make it go from 9-6 instead of 10- to 8".** One line — `SLOT_HOURS` is written once and
+everything derives from it, which is what the note over it was for — and the two ends were not
+equally free to move.
+
+**`AVAIL_HOURS` IN `constants.gs` IS `[9 … 19]`.** That is the span a tutor's own availability grid
+offers and the cells `slotGrid` looks a booking code up in. The booking grid was `10 … 20`. So the
+two disagreed at **both** ends, silently, for as long as both have existed:
+
+| | |
+|---|---|
+| **hour 20** | no availability cell exists, so `tAvail['m20']` is `undefined` for everybody — **any tutor who had ticked a single hour was unavailable at eight in the evening, on every day, for ever.** The column was drawn, looked pressable, and was permanently grey |
+| **hour 9** | had a cell and nothing could book it. A tutor ticking nine o'clock was recording a fact the form never asked about |
+
+**Nine to eighteen sits inside `AVAIL_HOURS` at both ends**, so the disagreement is gone rather than
+moved — and that is the rule rather than luck: anything wider than the sheet's own span comes up
+grey for everyone the moment they set any hours at all, so `AVAIL_HOURS` has to move first. Written
+where `SLOT_HOURS` is.
+
+**Six is included, as eight was** — a session starting at six is a session. Ten columns rather than
+eleven, and the cells go **17.6 / 22.2 / 23.5px** at 320 / 390 / 768, past the 20px floor at two of
+the three widths. The morning block gains an hour by derivation with nothing to edit, which is
+exactly the hypothetical that note was written as: `Morning 9, 10, 11 · Afternoon 12–16 · Evening
+17, 18`.
+
+## The week is thinner, and twelve pixels of every row were not the control
+
+**Asked for as "make the grid squares and grid thinner".** Measured at 390 before touching anything:
+a cell was **22.2 × 20** and a day row was **32.8** tall — so twelve pixels of every row were not the
+cell, seven times over, and the week was 199px of a 518px card.
+
+**`align-items: baseline` IS WHERE TEN OF THE TWELVE WENT.** `.bk-row` aligns a label's baseline with
+its value's, which is right for a line of text beside a line of text and wrong for a label beside a
+strip of boxes: a grid cell's baseline sits at the bottom of its content box, so the row grew to put
+the day name's baseline there. `center` is what a row of boxes wants and it costs the other rows
+nothing, because they do not have it. **The other two are `.bk-row`'s own `.1rem 0`**, which keeps
+twelve lines of text apart and is not needed between rows whose content already has a 1px gutter.
+
+**14px, AND WHAT SETS 14 RATHER THAN 12 IS THE DAY NAME.** `.hr`'s floor is 20px and its note says
+why — *"below about 20px a cell 24px wide stops being reliably pressable"* — so this goes under it
+deliberately, on the fourth asking, and `ACCEPTED_TAP` carries a smaller finding for it. At 12px the
+cell stops being the tallest thing in the row and `Wednesday`'s own line box becomes the floor:
+measured, 12px buys **two pixels** at 390 and costs a sixth of the target. Below the label there is
+nothing left to win, which is a better place to stop than a number somebody liked.
+
+| at 390 | cell | row pitch | the week | the card |
+|---|---|---|---|---|
+| before | 22.2 × 20 | 32.8 | 199.2px | 518px |
+| after | **23.1 × 14** | **22.9** | **111.7px** | **430px** |
+
+**The cells got WIDER doing it** — a 1px gutter between them rather than 2px, which is the same trade
+the joined-hours bridge already paints into. At 320 it is 18.5 × 14 and at 768 24.4 × 14, `under: 0`
+and no sideways scroll at any of the three.
+
+### The waiting list quietly came with it, and `check-css.js` is what said so
+
+**`blk` IS THE ONE THING THAT DIFFERS BETWEEN THE TWO WEEKS** — three cells a row can pay a real
+fingertip where eleven cannot, which is the whole argument written beside `.hr.blk` — **and the day-
+row refactor dropped the class from the markup.** So the blocks took the hour week's 14px along with
+everything else. Nothing on screen said so and no measurement would have: a 14px block is a legal
+box in a card that fits.
+
+**What said so is a class styled and nowhere produced**, in a list that prints and does not fail. Put
+back, the rule then had to be named **through the row** — `.bk-row.bk-wk .hr` is three classes deep
+and a bare `.hr.blk` is two, so it had been losing a race it did not look like it was in.
+`.price.faint` for the tenth time. Measured after: the blocks are **64 / 79.3 / 83.8 × 20**, and a
+SAVED waiting list is five classes (`.rc.is-done .bk-row.bk-wk .hr`) and beats this in turn — right,
+because a receipt's week is read rather than pressed.
+
+### Three rules fought and two of the three fights were decided by file order alone
+
+| | |
+|---|---|
+| `.bk-row.bk-wk .bk-v` | `gap` declared **1px at one line and 0 ninety lines down**. Both written deliberately, the first never applied. `check-css.js` |
+| `.bk-row.bk-wk .slot-hours` | tied with `.rc.is-done .slot-hours`, three classes each, **on seven elements**. They agreed about the value, so nothing was ever wrong on screen — what was wrong is that the day the two stop agreeing the loser is whichever is further up the file. `check/cascade.js` |
+| `.bk-row.bk-wk .hr` | tied with `.rc.is-done .hr`, **on seventy elements**. Named through the row, which is five and also settles the shut day without a second rule |
+
+**And five receipt rules were compacting a grid the receipt no longer draws.** `.slot-grid`,
+`.slot-row`, `.slot-day`, `.slot-row.is-shut .hr` and `.bk-open > p` were its copy of the week from
+when the week was a block hanging under one row. `.bk-open` went with them — its rules had had no
+markup since `jobGrid_` became `weekRows_`, and the arithmetic that ruled that shape out is kept as
+prose where the rules were.
+
+### The runner printed the last fourteen lines, and a long report ends with the part that is fine
+
+**`check/press.js` failed once inside `npm run check` and the fourteen lines under the FAIL were the
+twelve controls that are correctly quiet and a count.** Two full suite runs went into finding out
+what that failure said; it could not be found from that output at all, and running the check alone
+passed. **This repository's oldest shape pointed at its own runner** — *I did not manage to look*,
+printed as a report.
+
+**The tail stays, because for most checks it IS the finding.** What is added is the one fact it
+cannot carry: that there was more, and the command that prints it. **Proved by mutation** — a second
+`gap` on `.slot-hours` makes `check-css.js` fail and the visible fourteen lines read `(0) none`
+three times and `rules read: 2033`, with `… 30 earlier line(s) not shown — node js/check-css.js`
+underneath them.

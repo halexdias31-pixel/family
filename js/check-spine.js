@@ -38,17 +38,42 @@ function run() {
      `BOOK_STEPS`, in order, with the non-question rows pinned after the step they belong with. So
      this replays that — which also means the checker fails if the derivation stops matching, rather
      than checking a list that no longer exists. */
+  /* ---------- AND A WEEK STEP CONTRIBUTES SEVEN ROWS, NOT ITS `short` -----------------------------
+     `short: 'When'` NAMES NO ROW ANY MORE. The day names are the questions — see `weekRows_` — and
+     `short` survives only as the anchor `SPINE_EXTRA` pins `Per session` to. Replayed here rather
+     than assumed, because this checker exists to fail when the derivation stops matching: without
+     it, `When` and `When free` were reported as rows nothing fills, which is a checker describing a
+     card that is not on the screen. Both week steps answer the SAME seven, so they are deduped
+     exactly as `SPINE` dedupes them. */
+  const week = {};
+  /* SCANNED TO THE END OF THE STEP OBJECT, not to the end of the line. `avail` writes `short` on its
+     first line and `week: true` on its third, so a one-line lookahead found `slots` and missed it —
+     and a checker that sees six of the seven day rows and one phantom `When free` is worse than one
+     that cannot run. `},\n` closes a step, and `[\s\S]` has to stop there or every step after a
+     week step would be counted as one too. */
+  [...src.matchAll(/short: '([^']+)'([\s\S]*?)\},\n/g)].forEach(m => {
+    if (/\bweek: true\b/.test(m[2])) week[m[1]] = 1;
+  });
+  const dayBlock = src.match(/const SLOT_DAYS = \[([\s\S]*?)\];/);
+  const DAYS = dayBlock ? [...dayBlock[1].matchAll(/'[a-z]+',\s*'([A-Za-z]+)'/g)].map(m => m[1]) : [];
   const shorts = [...src.matchAll(/short: '([^']+)'/g)].map(m => m[1]);
   const exBlock = src.match(/const SPINE_EXTRA = \[([\s\S]*?)\];/);
   if (!shorts.length || !exBlock) {
     console.log('COULD NOT RUN — BOOK_STEPS or SPINE_EXTRA not found in book.js');
     process.exitCode = 1; return;
   }
+  /* A WEEK STEP WITH NO DAYS TO PUT IN ITS PLACE IS A CHECKER THAT CANNOT SEE ITS SUBJECT, which is
+     this repository's oldest fault. Said, and failed, rather than quietly checking six-sevenths. */
+  if (Object.keys(week).length && DAYS.length !== 7) {
+    console.log('COULD NOT RUN — a step is marked `week: true` and SLOT_DAYS did not yield seven names');
+    process.exitCode = 1; return;
+  }
   const extras = [...exBlock[1].matchAll(/after:\s*'([^']*)',\s*row:\s*'([^']+)'/g)]
     .map(m => ({ after: m[1], row: m[2] }));
   const spine = [];
   shorts.forEach(k => {
-    spine.push(k);
+    if (week[k]) DAYS.forEach(d => { if (spine.indexOf(d) === -1) spine.push(d); });
+    else spine.push(k);
     extras.forEach(x => { if (x.after === k) spine.push(x.row); });
   });
   extras.forEach(x => { if (x.after && spine.indexOf(x.row) === -1) spine.push(x.row); });
@@ -74,6 +99,12 @@ function run() {
   (src.match(/push\('([A-Za-z][A-Za-z ]*)'/g) || []).forEach(m => {
     pushed.add(m.slice(6, -1));
   });
+  /* ---------- A DAY ROW IS FILLED BY `weekRows_`, NOT BY A `push` --------------------------------
+     IT TAKES ITS LABEL FROM `SLOT_DAYS`, so there is no literal for the pattern above to find and
+     all seven were being reported as rows that print a dash on every document for ever. They are
+     the opposite: both builders fill them and one of them always does. Counted as pushed when some
+     step is marked `week: true`, which is the same fact the spine half of this checker reads. */
+  if (Object.keys(week).length) DAYS.forEach(d => pushed.add(d));
 
   const bad = [];
   const unknown = [...pushed].filter(k => {

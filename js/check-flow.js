@@ -220,9 +220,12 @@ function boot(opts) {
          taken from the FIRST run, so a journey asking whether the week reads in order is asking
          about three cells of the job row as well as about the card. */
       'spec: () => (typeof bookSpec === "function" ? bookSpec() : null),' +
+      /* THE SEVEN DAY NAMES, because a week step is seven rows of the card rather than one and
+         a journey that listed them here would be a second copy of `SLOT_DAYS` to keep in step. */
+      'days: () => (typeof SLOT_DAYS !== "undefined" ? SLOT_DAYS.map(d => d[1]) : []),' +
       /* THE RECEIPT'S WEEK, built from a saved job rather than from the form, so a journey can ask
          whether what was sent is what comes back drawn. */
-      'jobGrid: typeof jobGrid_ === "function" ? jobGrid_ : null,' +
+      'jobGrid: typeof jobWeekRows_ === "function" ? (j => jobWeekRows_(j).map(r => r.strip).join("")) : null,' +
       /* AN ADMIN'S ACTIONS ON A SESSION, so a journey can ask that moving them from buttons to
          tiles did not lose one. */
       /* THE PAGER TABLE AND THE PAGE COUNTER, so a journey can ask whether what the header counts is
@@ -520,12 +523,23 @@ check('every question the form asks has a row on the paper', async () => {
   const html = w.__t.paper ? w.__t.paper() : '';
   if (!html) return ['bookBreakdown is not exported — cannot check the paper'];
   const bad = [];
+  /* ---------- A WEEK STEP IS SEVEN ROWS AND ITS `short` NAMES NONE OF THEM ------------------------
+     `When?` HAS NO ROW CALLED `When` ANY MORE. The day names are the questions — Monday to Sunday,
+     each with its hours in the answer column — and `short` is only the anchor `SPINE_EXTRA` pins
+     `Per session` to. So the invariant is the same and what satisfies it is seven rows rather than
+     one: read off `SLOT_DAYS` through the harness, because a list of day names written out here
+     would be a second copy to keep in step. */
+  const days = w.__t.days ? w.__t.days() : [];
   w.__t.STEPS
     .filter(s => { try { return s.options().filter(Boolean).length > 0; } catch (e) { return false; } })
     .forEach(s => {
-      if (!html.includes('>' + (s.short || s.id) + '<')) {
-        bad.push('"' + s.label + '" is asked but has no row on the paper');
-      }
+      const want = s.week ? days : [s.short || s.id];
+      if (s.week && !days.length) { bad.push('SLOT_DAYS is not exported — cannot check a week step'); return; }
+      want.forEach(k => {
+        if (!html.includes('>' + k + '<')) {
+          bad.push('"' + s.label + '" is asked but has no ' + (s.week ? k + ' ' : '') + 'row on the paper');
+        }
+      });
     });
   return bad;
 });
@@ -588,14 +602,24 @@ check('the paper keeps the same rows whatever is answered', async () => {
      drawing questions at all, and both comparisons come back to life the day anything upstream
      stops guaranteeing them. What is not kept is the pretence — a rule that cannot fail under a
      confident comment about what it protects is a green light with nothing behind it. */
-  const BRANCHED = w.__t.STEPS.filter(s => s.only).map(s => s.short || s.id);
+  /* ---------- A WEEK STEP'S ROWS ARE SHARED BY BOTH BRANCHES ON PURPOSE ---------------------------
+     `avail` IS `only: 'wait'` AND IS A WEEK, so the rows it draws are Monday to Sunday — the same
+     seven `slots` draws on the other branch. `SPINE` holds them once and whichever branch is live
+     fills them, which is the whole reason the two weeks are never both on a card.
+
+     SO THE FLAG CANNOT BE TESTED BY ROW NAME HERE, and pretending otherwise would be a rule that
+     fires on the design. What the flag still governs for a week step is whether the step DRAWS —
+     `stepWeekRows_` returns `[]` on the wrong branch — and that is what the shape comparison above
+     covers: seven day rows exist on both branches and only one step ever produced them. Every
+     non-week `only:` step is tested exactly as before. */
+  const BRANCHED = w.__t.STEPS.filter(s => s.only && !s.week).map(s => s.short || s.id);
   const has = k => shape().split('|').indexOf(k) !== -1;
 
   B.how = 'Instant class'; B.loc = 'Colliers Wood Library';
   B.subjects = []; B.level = ''; B.joining = '';
   const blank = shape();
   const blankShared = shape(BRANCHED);
-  const bookOnly = w.__t.STEPS.filter(s => s.only).map(s => [s.short || s.id, s.only, has(s.short || s.id)]);
+  const bookOnly = w.__t.STEPS.filter(s => s.only && !s.week).map(s => [s.short || s.id, s.only, has(s.short || s.id)]);
 
   B.subjects = ['Maths']; B.level = '11+';
   const priced = shape();
@@ -603,7 +627,7 @@ check('the paper keeps the same rows whatever is answered', async () => {
   B.how = 'Waiting list class';
   const klass = shape();
   const klassShared = shape(BRANCHED);
-  const waitOnly = w.__t.STEPS.filter(s => s.only).map(s => [s.short || s.id, s.only, has(s.short || s.id)]);
+  const waitOnly = w.__t.STEPS.filter(s => s.only && !s.week).map(s => [s.short || s.id, s.only, has(s.short || s.id)]);
 
   const bad = [];
   if (!blank) bad.push('the paper drew no rows at all');
@@ -833,7 +857,7 @@ check('a receipt lights every day its booking runs on', async () => {
      `hours_per_session` are single cells on the job row. */
   const { w } = boot();
   await wait(300);
-  if (!w.__t.jobGrid) return ['jobGrid_ is not exported — cannot check the receipt week'];
+  if (!w.__t.jobGrid) return ['jobWeekRows_ is not exported — cannot check the receipt week'];
   const lit = wd => (String(w.__t.jobGrid({ weekday: wd, time: '10:00', hours: 2 }))
     .match(/class="hr on/g) || []).length;
   const bad = [];
