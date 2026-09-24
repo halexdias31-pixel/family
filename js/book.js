@@ -548,18 +548,41 @@ const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
                    ['f', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
 
-/* ---------- TEN TILL EIGHT, WRITTEN ONCE -----------------------------------------------------------
-   `for (let h = 10; h <= 20; h++)` WAS WRITTEN OUT IN TWO PLACES — `slotGrid()` and `jobGrid_` — and
-   the waiting-list blocks below would have been a third. That is survivable while all three agree
-   and is the shape this repository records under `needs_print` / `print_required` and under
-   `handle` / `username`: one fact in several places, and nothing comparing them.
+/* ---------- NINE TILL SIX, WRITTEN ONCE ------------------------------------------------------------
+   `for (let h = 10; h <= 20; h++)` WAS WRITTEN OUT IN TWO PLACES — `slotGrid()` and the receipt's
+   week — and the waiting-list blocks below would have been a third. That is survivable while all
+   three agree and is the shape this repository records under `needs_print` / `print_required` and
+   under `handle` / `username`: one fact in several places, and nothing comparing them.
 
    IT MATTERS MORE HERE THAN IT DID, because `SLOT_BLOCKS` is DERIVED from this span. A morning is
-   whichever of these hours falls before noon — so if the day ever starts at nine, the morning block
-   gains an hour with nothing to edit, and it cannot end up describing hours the grid beside it does
-   not offer. */
+   whichever of these hours falls before noon — so moving the day to nine gives the morning block a
+   third hour with nothing to edit, and it cannot end up describing hours the grid beside it does
+   not offer. That is the note this block carried BEFORE the span moved, written as a hypothetical.
+   It is what happened.
+
+   ---------- AND THE SPAN IT MOVED TO IS THE ONE THE SHEET ALREADY HELD ------------------------------
+   ASKED FOR AS *"make it go from 9-6 instead of 10- to 8"*, and the two ends were not equally free
+   to move. `AVAIL_HOURS` in `constants.gs` is `[9 … 19]` — the hours a tutor's own availability
+   grid offers, and the cells `slotGrid` looks a code up in.
+
+   SO THE TWO SPANS DISAGREED AT BOTH ENDS, silently, since the booking grid was written:
+
+     · HOUR 20 HAD NO AVAILABILITY CELL AT ALL. `tAvail['m20']` is `undefined` for everybody, so any
+       tutor who had ticked a single hour was unavailable at eight in the evening on every day of
+       the week, for ever. The column was drawn, pressable-looking and permanently grey.
+     · HOUR 9 HAD ONE AND NOTHING COULD BOOK IT. A tutor ticking nine o'clock was recording a fact
+       the booking form never asked about.
+
+   NINE TO EIGHTEEN SITS INSIDE `AVAIL_HOURS` AT BOTH ENDS, so that disagreement is gone rather than
+   moved. It is not luck: the span being asked for is narrower than the sheet's on both sides, and
+   the rule for anything wider is that `AVAIL_HOURS` has to move first — the column would otherwise
+   be grey for everyone the moment they set any hours at all.
+
+   SIX IS INCLUDED, as eight was: a session STARTING at six is a session, and a grid that stops at
+   the last start time has to explain itself. Ten columns rather than eleven, which is one fewer box
+   sharing the row and so a tenth more width for each of them. */
 const SLOT_HOURS = [];
-for (let h = 10; h <= 20; h++) SLOT_HOURS.push(h);
+for (let h = 9; h <= 18; h++) SLOT_HOURS.push(h);
 
 /* ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS ---------------------------
    ASKED FOR AS *"i want the grid blocks to form into chunks for morning, afternoon, evening ect."*,
@@ -707,10 +730,8 @@ function slotGrid() {
      tutor does not work from a Tuesday that was never offered, and the row moving under your thumb
      as you pick a venue is the same fault the dropdowns had before they started showing WHY an
      option does not fit instead of dropping it. */
-  /* TEN TILL EIGHT, and eight is included — a session starting at eight is a session, and a grid
-     that stops at the last START time has to explain itself. Eleven columns rather than fourteen,
-     which is three fewer boxes sharing the same row and so three-fourteenths more width for each
-     of them. */
+  /* THE SPAN IS `SLOT_HOURS` AND THE ARGUMENT FOR ITS TWO ENDS IS WRITTEN THERE — including why the
+     late end cannot be pushed past `AVAIL_HOURS` without moving that first. */
   const hours = SLOT_HOURS;
   const rows = SLOT_DAYS.map(([prefix, label]) => ({
     prefix, label,

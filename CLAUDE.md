@@ -9842,3 +9842,29 @@ and draws Monday to Sunday, which is exactly what `slots` draws on the other bra
 are exempt from that one assertion, with the reason written in — and what still governs them is that
 `stepWeekRows_` returns `[]` on the wrong branch, which the shape comparison covers. Every non-week
 `only:` step is tested exactly as before.
+
+### Nine till six, and the two spans had disagreed at both ends since the grid was written
+
+**Asked for as "make it go from 9-6 instead of 10- to 8".** One line — `SLOT_HOURS` is written once and
+everything derives from it, which is what the note over it was for — and the two ends were not
+equally free to move.
+
+**`AVAIL_HOURS` IN `constants.gs` IS `[9 … 19]`.** That is the span a tutor's own availability grid
+offers and the cells `slotGrid` looks a booking code up in. The booking grid was `10 … 20`. So the
+two disagreed at **both** ends, silently, for as long as both have existed:
+
+| | |
+|---|---|
+| **hour 20** | no availability cell exists, so `tAvail['m20']` is `undefined` for everybody — **any tutor who had ticked a single hour was unavailable at eight in the evening, on every day, for ever.** The column was drawn, looked pressable, and was permanently grey |
+| **hour 9** | had a cell and nothing could book it. A tutor ticking nine o'clock was recording a fact the form never asked about |
+
+**Nine to eighteen sits inside `AVAIL_HOURS` at both ends**, so the disagreement is gone rather than
+moved — and that is the rule rather than luck: anything wider than the sheet's own span comes up
+grey for everyone the moment they set any hours at all, so `AVAIL_HOURS` has to move first. Written
+where `SLOT_HOURS` is.
+
+**Six is included, as eight was** — a session starting at six is a session. Ten columns rather than
+eleven, and the cells go **17.6 / 22.2 / 23.5px** at 320 / 390 / 768, past the 20px floor at two of
+the three widths. The morning block gains an hour by derivation with nothing to edit, which is
+exactly the hypothetical that note was written as: `Morning 9, 10, 11 · Afternoon 12–16 · Evening
+17, 18`.
