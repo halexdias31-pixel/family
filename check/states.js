@@ -614,6 +614,18 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         BOOKING.how = 'Waiting list class';
+        /* ---------- AND A VENUE, BECAUSE WITHOUT ONE THE BRANCH RETURNS ON ITS SECOND LINE --------
+           `bookPrice` ANSWERS `null` FOR A WAITING LIST WITH NO VENUE — *"the venue is the only
+           answer it needs"* — and `breakdownRows` does `const w = bookPrice(); if (!w) return rows;`
+           right at the top of the waiting block. So every run of this state has measured the card
+           WITHOUT `A seat`, `Shared by`, `Per session`, `Term` or `About` on it: five of the rows
+           that only exist on this branch, on the state written to measure this branch.
+
+           IT NEEDED A SEAT PRICE IN THE FIXTURE TOO. `DATA.waitlistSeat` is a venue-keyed map the
+           backend computes, and the fixture had no such key — so the lab could not have drawn this
+           card however the state was seeded. Both halves in one commit, or the state reads as
+           seeded and still measures the empty branch. */
+        BOOKING.loc = 'Colliers Wood Library';
         BOOKING.avail = ['Monday evening', 'Tuesday evening'];
         drawBooker();
       },

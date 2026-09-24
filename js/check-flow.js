@@ -697,7 +697,7 @@ check('a class books through joinWaitlist, a session through createJob', async (
     Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
     B.how = how; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
     B.subjects = ['Maths']; B.n = '1'; B.hosting = 'No — we book the room';
-    B.slots = ['m16']; B.interval = 'Autumn 1'; B.avail = ['Weekday evenings'];
+    B.slots = ['m16']; B.interval = ['Autumn 1']; B.avail = ['Weekday evenings'];
     try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); }
     catch (e) { bad.push(how + ' threw: ' + e.message); continue; }
     await wait(250);
@@ -783,7 +783,7 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   Object.keys(P).forEach(k => { if (Array.isArray(P[k])) P[k] = []; else P[k] = ''; });
   P.how = 'A session of your own'; P.level = 'GCSE'; P.loc = 'Colliers Wood Library';
   P.subjects = ['Maths']; P.n = '1'; P.hosting = 'No — we book the room';
-  P.slots = ['m16']; P.interval = 'Autumn 1';
+  P.slots = ['m16']; P.interval = ['Autumn 1'];
   const priced = formPage();
   if (!w.__t.paper || w.__t.paper()) dashes(priced, 'priced');
 
@@ -791,7 +791,7 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   B.how = 'A session of your own'; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
   B.subjects = ['Maths']; B.n = '1'; B.hosting = 'No — we book the room';
-  B.slots = ['m16']; B.interval = 'Autumn 1';
+  B.slots = ['m16']; B.interval = ['Autumn 1'];
   try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); }
   catch (e) { return bad.concat('book-send threw: ' + e.message); }
   await wait(600);

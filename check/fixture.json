@@ -331,6 +331,9 @@
     ]
   },
   "multipliers": {},
+  "waitlistSeat": {
+    "Colliers Wood Library": { "perHour": 12, "perSession": 24, "seats": 4, "hours": 2 }
+  },
   "intervals": [
     {
       "rel": "Current",

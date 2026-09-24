@@ -2387,8 +2387,24 @@ button.text-drop { color: var(--bad); }
      with a hyphen in the middle. 5.6rem holds the longest of them on one line.
 
      AND THE VALUE COLUMN GETS THE REST. "No preference" came out as "No prefer- / ence" for the
-     same reason one column along. The rate column was 8ch for figures like "£10.00/h" that already
-     fit in 7.5, and the multiplier 5.5ch for "× 10"; both give back what they were not using.
+     same reason one column along. The multiplier was 5.5ch for "× 10" and gives back what it was
+     not using.
+
+     THE RATE WENT 8ch → 7.5ch ON THAT PASS AND IT DID NOT FIT. Measured at 390: `£12.00/h` is EIGHT
+     glyphs of `--mono` and 52px wide, in a track of 7.5ch × 6.59px = 49.45px. Three pixels over, and
+     `.bk-r` then took `.bk-row`, `.rc` and `.pane` sideways with it.
+
+     `ch` IS THE ROW'S FONT AND THE FIGURES ARE THE CHILD'S. That is the whole of it, and it is the
+     `6 dates` fault one column along, written up on the receipt: a track sized in the PROPORTIONAL
+     font of the grid container, handed the same number of characters in a wider monospace. Eight
+     characters need eight of the wider kind, so the track is 8ch again — and the note that said
+     `£10.00/h` "already fits in 7.5" was counting characters rather than measuring the box. The
+     value column is `1fr` and gives the half-character up.
+
+     NOTHING COULD SEE IT UNTIL THE LAB COULD DRAW THE CARD. The only rows carrying a `/h` rate are
+     `Tuition` and the waiting list's `A seat`, and the PRICED waiting-list card had never been on a
+     screen `check/ui.js` looked at: `bookPrice` answers `null` with no venue, and the fixture had no
+     seat price at all. See the note on that state in `check/states.js`.
 
      THE FLOOR STAYS. `minmax(0, 1fr)` let the value collapse to nothing once the fixed columns had
      taken theirs, which is how a word ends up one letter per line. */
@@ -2417,7 +2433,7 @@ button.text-drop { color: var(--bad); }
      the longest on the spine wants about two pixels more than the floor. The same repair already
      sits on `.bk-row.is-bare` and `.bk-row.is-blank`; having it in three places and not in the one
      they are variants OF is the fault this file keeps writing down. */
-  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 7.5ch 7.5ch;
+  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 8ch 7.5ch;
   /* ---------- TWELVE ROWS IS A LOT OF ROWS -----------------------------------------------------
      The card lists every question now, so what used to be four or five priced lines is twelve
      before anything is answered. At .34rem top and bottom plus a .5rem gap that is most of a phone
