@@ -2617,31 +2617,54 @@ button.text-drop { color: var(--bad); }
   /* ---------- A CELL OF THE ROW ABOVE IT, ON A LINE OF ITS OWN --------------------------------
      THE WEEK USED TO BE A SIBLING and so began at the card's left edge, under the label column,
      where no other answer on the card starts. It is the last child of `.bk-row` now, which is a
-     grid, so `1 / -1` is exactly the full width it already had and `2 / -1` is the value column —
-     computed by the browser off `minmax(6.2em, max-content)` rather than restated as a margin that
-     a long label would leave behind. */
-  grid-column: 1 / -1;
+     grid, so `2 / -1` is the value column — computed by the browser off `minmax(6.2em, max-content)`
+     rather than restated as a margin that a long label would leave behind. */
+  /* ---------- AND IT STARTS WHERE THE ANSWERS DO, WHICH COSTS SIX PIXELS A CELL ------------------
+     ASKED FOR TWICE. The first time was about the block week — *"is it possible to have the grid be
+     in the 2nd column like the other stuff"* — and only the blocks were given it, on the arithmetic
+     below. The second was a screenshot of the hour week: *"can you see how grid stretches across all
+     columns? I want it squashed into the second column which is the input column."*
+
+     WHAT IT COSTS, MEASURED ON THIS CARD RATHER THAN QUOTED. Indenting hands the label column and
+     its gap back — 68px of 312 at 390 — and eleven cells and eleven gaps divide the rest:
+
+       320px   cell 19.1 → 13.6 wide      390px   24.1 → 17.6      768px+   25.6 → 18.7
+
+     THE HEIGHT FLOOR IS UNTOUCHED at 20px; what gives is width, and the note over `.hr` sets that
+     floor against a cell *24px wide*, which is what 390 used to be. So this is a real reduction and
+     not a tidy-up: at 320 the target is 13.6px with its neighbour two pixels away. It is the
+     owner's card and the owner's call, made twice; the number is written here so it is a decision
+     rather than something nobody measured. `ACCEPTED_TAP` already carries these cells with the
+     arithmetic — eleven fingertips need 484px and no phone is that wide — so nothing new is
+     reported and this makes an accepted one smaller.
+
+     WHAT WAS WEIGHED AND REFUSED: turning the week on its side. Seven day-columns instead of eleven
+     hour-columns gives 28.6px a cell at 390 indented, WIDER than today — and eleven rows instead of
+     seven, about 80px of height on a card whose own notes record this block fighting for every
+     pixel, plus a new shape to read on all three surfaces that draw a week. A bigger change than
+     the one asked for, so it is written down rather than made.
+
+     THE BLOCK WEEK LOSES NOTHING BY IT: 56/71/75px a cell, nowhere near the floor either way. One
+     rule for both now, because they are never on one card — `stepGrid_` draws the hours for an
+     ordinary booking and the blocks for a waiting list, one per branch.
+
+     AND THE RIGHT EDGE IS THE HALF THAT CANNOT MOVE, which is worth saying here because it is what
+     the next screenshot will be about. `2 / -1` is the value column AND the three figure tracks
+     behind it, so the week starts where the answers start and still runs to the card's edge while
+     an unanswered row's dash stops at 189 of 351. Clipping it to 189 is `2 / 3`, and that is 78px
+     for eleven hours — a SEVEN-pixel cell, which is the arithmetic already written beside
+     `.bk-row.is-blank` where this was refused once before.
+
+     SO THE CARD'S TWO RIGHT EDGES ARE NOT THIS RULE'S TO CLOSE. They are the price of the
+     multiplier, the rate and the total being on an unpriced form at all — hidden once, on this
+     same complaint, and put back on *"what happened to all the columns I had before"*. That lever
+     is beside `is-blank` and it is the owner's; this one only moves the left edge, which is the
+     half the arithmetic allows. */
+  grid-column: 2 / -1;
   margin: 0 0 .06rem 0;
   padding-bottom: .08rem;
   border-bottom: 1px dashed var(--line);
 }
-/* ---------- AND THE BLOCK WEEK STARTS WHERE THE ANSWERS DO, WHICH THE HOUR WEEK CANNOT -------------
-   ASKED FOR AS *"is it possible to have the grid be in the 2nd column like the other stuff."* For
-   three columns, yes; for eleven, no, and the arithmetic is the same one the note over `.hr`
-   records this block reaching after 222 → 174 → 146px. Measured across the value column each week
-   would have, at the three widths, after the day letters and the gaps come off:
-
-     320px   blocks 56px a cell   hours 15px      390px   blocks 71px   hours 19px
-     768px   blocks 75px          hours 20px
-
-   THE FLOOR IS 20px and the hour week is under it at both phone widths — 15px at 320 is a cell you
-   cannot reliably hit, which is the whole reason that grid is full-bleed. The block week loses 94px
-   a cell for 71 and is nowhere near it.
-
-   THEY ARE NEVER ON ONE CARD. The hours are an ordinary booking's week and the blocks are a waiting
-   list's, and `stepGrid_` draws exactly one of them per branch — so this is not two shapes for one
-   question on a screen somebody is reading, it is one week indented as far as its own cells allow. */
-.bk-open.is-blocks { grid-column: 2 / -1; }
 .bk-open > p { margin: 0 0 .1rem; font-size: .66rem; line-height: 1.25; }
 /* ---------- WHAT THE ROW ABOVE MEANS, OR WHY IT CANNOT BE ANSWERED THAT WAY ------------------------
    THE SAME SIZE AND THE SAME PLACE AS THE GRID'S OWN NOTE, because they are the same kind of thing:

@@ -2173,7 +2173,12 @@ function weekGrid_(days, cell) {
    equal rows — which is what makes it readable as a week rather than as a list. */
 function blockWeek_() {
   const on = BOOKING.avail || [];
-  return `<div class="bk-open is-blocks">
+  /* ---------- `is-blocks` HAS GONE, BECAUSE BOTH WEEKS ARE INDENTED NOW ---------------------------
+     IT WAS THE ONE THING THAT SAID "THIS WEEK MAY START AT THE VALUE COLUMN", back when the hour
+     week could not. `.bk-open` is `2 / -1` for both, so the class had no reader left and a class
+     with no rule behind it is the shape this file records under `.favwrap.is-fav` — markup that
+     reads as a decision and does nothing. The measurement that split them is where the rule is. */
+  return `<div class="bk-open">
     ${/* AND NO SENTENCE OVER IT. The greyed hour week carried one because a locked control with no
           reason beside it is the invisible mode — this one is not locked, and the two places that
           would say the same thing already do: the row above it asks "When could you come?" and the
