@@ -9997,3 +9997,34 @@ ordinary form has been of a card where the money columns are empty** — hidden 
 collapsed per card, collapsed per row, each decision argued from a card that could never show the
 thing being argued about. `waitlistSeat` was added for the waiting-list state and prices only that
 branch. Written down rather than fixed here, because it is the next piece of work and not this one.
+
+### And one step thinner again, which is where the hour numbers take over as the floor
+
+**Asked for as "can you make the grid even slightly thinner".** The word had meant HEIGHT the last
+time it was used and WIDTH this time, so both axes were measured before either was moved — and one
+of them turned out to be spent.
+
+**THE HEIGHT AXIS IS GONE AND THE RE-MEASUREMENT IS WHY IT IS WRITTEN DOWN RATHER THAN QUOTED.** At
+390 the day name's own line box is **14.8px against a 14px cell**, so the LABEL already decides the
+row: asking for a 13px cell takes the whole week from 111.7 to **110.7** — one pixel, spread across
+seven rows. At 320 the label box is 12.3px and there are about twelve pixels to be had, on the
+narrowest phone only. The note over `.bk-row.bk-wk` already claimed the day name was the floor; this
+is the measurement that confirms it at the width the app is mostly read at.
+
+**So the width took the step, and it stops at 44% because the NUMBERS become the floor** — the same
+shape of stop as the day name on the other axis, which is what makes it a place to stop rather than
+a number somebody liked:
+
+| | 320px | 390px | 768px |
+|---|---|---|---|
+| full width | 18.5px | 23.1 | 24.4 |
+| half | 8.8 | 11.1 | 11.8 |
+| **44%** | **7.6** | **9.7** | **10.3** |
+| hour number, ink against its box at 320 | **6.4 in 7.6** | — | — |
+
+**At 42% that margin is 0.9px and at 40% it is 0.5px**, which is inside the difference between this
+container's font rendering and a real phone's — so 44 is the last step with a margin anybody can
+trust, and the thing that breaks below it is the LABEL rather than the target.
+
+**Measured after**: week 105.4 / 111.7 / 116.1, card 530 / 593 / 617, `under: 0` at every width, no
+sideways scroll, and the block week untouched at 64 / 79.3 / 83.8 × 20. 37 checks pass.

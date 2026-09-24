@@ -2768,12 +2768,26 @@ button.text-drop { color: var(--bad); }
    than 2px, which is the same trade the joined-hours bridge already paints into.
 ================================================================================================== */
 .bk-row.bk-wk { align-items: center; padding: 0; }
-/* ---------- HALF THE ANSWER COLUMN, ASKED FOR AND MEASURED FIRST ---------------------------------
-   ASKED FOR AS *"i would like the grid to be half as wide"*, and the arithmetic was put in front of
-   the owner before it was written, because this is the one measurement in this stylesheet the house
-   style says must not scale. Ten columns in half the width:
+/* ---------- 44% OF THE ANSWER COLUMN, ASKED FOR TWICE AND MEASURED BOTH TIMES --------------------
+   ASKED FOR AS *"i would like the grid to be half as wide"* and then *"can you make the grid even
+   slightly thinner"*, and the arithmetic was put in front of the owner before either was written,
+   because this is the one measurement in this stylesheet the house style says must not scale.
 
-     320px  18.5px a cell -> 8.8px      390px  23.1 -> 11.1      768px  24.4 -> 11.8
+     full width   320px 18.5px a cell      390px 23.1      768px 24.4
+     half         320px  8.8               390px 11.1      768px 11.8
+     44%          320px  7.6               390px  9.7      768px 10.3
+
+   AND 44 RATHER THAN 40 BECAUSE THE HOUR NUMBERS BECOME THE FLOOR, which is the same shape of stop
+   as the day name on the height axis. A two-digit hour is 6.4px of ink at 320: at 44% its box is
+   7.6px, so it has 1.2px either side; at 42% that is 0.9px and at 40% it is 0.5px, which is inside
+   the margin between this container's font rendering and a real phone's. Below 44 the thing that
+   breaks first is the label, not the target.
+
+   THE HEIGHT AXIS IS SPENT AND WAS RE-MEASURED RATHER THAN QUOTED. At 390 the day name's own line
+   box is 14.8px against a 14px cell, so the LABEL already decides the row: asking for a 13px cell
+   takes the whole week from 111.7 to 110.7 — one pixel, across seven rows. At 320 the label box is
+   12.3px and there are about twelve pixels to be had, on the narrowest phone only. That is why
+   "even slightly thinner" was answered on the width.
 
    `ACCEPTED_TAP` has carried these cells at 18.5 with the arithmetic beside them — eleven fingertips
    need 484px and no phone is that wide — and this takes an accepted compromise well past where a
@@ -2792,7 +2806,7 @@ button.text-drop { color: var(--bad); }
    them a row, which is why they can pay a real fingertip where eleven cannot — so halving those as
    well would shrink the one grid in this app that is not a compromise, for a complaint about the
    other one. They are never on the same card. */
-.bk-row.bk-wk .bk-v:not(:has(.blk)) { width: 50%; }
+.bk-row.bk-wk .bk-v:not(:has(.blk)) { width: 44%; }
 .bk-row.bk-wk .slot-hours { gap: 1px; }
 .bk-row.bk-wk .hr { min-height: 14px; }
 /* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
