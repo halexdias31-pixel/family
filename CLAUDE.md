@@ -8816,6 +8816,31 @@ installed — the trap this file records under "the cache, and the trap in it".
 running. Every host but GitHub is blocked, so a live open is the owner's to do — which is what the
 build stamp on the You screen and the reload banner are both for.
 
+#### The DBS is not why he is hidden, and nothing anywhere ties the two
+
+**Asked as "even if he doesn't have a dbs he should still be listed", which is right and is already
+how it works.** `dbs` and `listed` are two independent cells read by two independent lines —
+`dbs: TRUE_(r.dbs_checked)` and `listed: ON_(r.listed)` — and the gate at `doget.gs:541` reads only
+the second. Measured across `js/` and `backend/`: **nothing anywhere reads a DBS to decide a
+listing.** The only two writers of that cell are `setListed`, which is the tile, and
+`makeBrandAccount`, which touches the brand row alone and only when the cell is blank. So the
+missing DBS did not switch him off; somebody or something wrote `FALSE`, and the remedy is the tap.
+
+**WHAT THE TAP PUBLISHES IS WORTH NAMING BEFORE IT IS PRESSED, because it is a public statement
+about a named person.** Rendered as an admin against a row shaped like his — `listed: false`,
+`dbs: false` — his card draws dimmed, `· not listed` beside the role, and **`No DBS on file` in
+red**. Listed, the dimming and the words go and **the red stamp stays**, on a card clients can see.
+That is `findCard`'s own decision and its note defends it outright: *"a pass without one is visibly
+a pass without one, which is exactly the right amount of alarming."* It is right for somebody a
+parent is checking, and it is not a side effect of anything in this commit — so listing him is a
+choice to show that stamp, not a way round it.
+
+**And the tile is a sibling of the card rather than a child of it**, which is how the first probe
+came back reporting no tile on a page carrying two. `cardTiles_` returns its own row, so a selector
+scoped to `.card.is-prof` finds nothing and reads as the control being absent — the shape this file
+records every time an instrument cannot reach its subject. Measured properly: `set-listed` once per
+tutor, `data-who` the display name, and `isAdmin()` true.
+
 ## Chemistry Paper 1 is a replica of the paper now, both tiers
 
 **Reported from inside the exam**: *"im doing chemistry paper 1 now and there are already places
