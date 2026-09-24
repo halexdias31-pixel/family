@@ -549,7 +549,9 @@ const STATES = {
      55px BELOW THE SCREEN at 390 and 36px past the pane's own fold at 768. Neither is visible to
      the two rules that were watching — the pane's `scrollHeight` equals its `clientHeight`, so
      nothing is overflowing; it is the PANE that hangs off the bottom, because `columnShift_`
-     centres the page it was placed with and nothing re-placed it when the card grew.
+     places the page once and nothing re-placed it when the card grew. (It centred the page on the
+     day those two numbers were taken; it puts every column's card on one line now, and a card that
+     grows after the placement is still a card the placement never saw.)
 
      THROUGH THE APP'S OWN PICKER, not by drawing on the canvas. `on('cam-pick')` reads
      `el.files[0]`, so a `DataTransfer` carrying a real one-pixel PNG is the same event a finger

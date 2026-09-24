@@ -787,8 +787,11 @@ on('cam-shoot', () => {
 /* ==================================================================================================
    THE COLUMN HAS TO BE MEASURED AGAIN WHEN THE CARD CHANGES SIZE.
 
-   `columnShift_` CENTRES THE PAGE YOU ARE ON — `boxH / 2 - (offsetTop + offsetHeight / 2)` — and it
-   runs when the column is placed, not when a card inside it grows. This card grows by a lot and on
+   `columnShift_` PLACES THE PAGE YOU ARE ON — on the line every column's card starts on — and it
+   runs when the column is placed, not when a card inside it grows. (It CENTRED the page when the
+   numbers below were taken, which is why they are the ones they are; the fault and its fix are the
+   same either way, because a card that grows after the placement is a card the placement never
+   saw.) This card grows by a lot and on
    purpose: taking a photograph reveals `Again`, `Post it`, `Save a copy`, the caption and the row
    that says who it goes up as, which is 112px before this commit and 167px after it.
 
