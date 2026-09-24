@@ -545,20 +545,58 @@ check('the paper keeps the same rows whatever is answered', async () => {
      booked days, an estimate — appears when there is something to say and belongs at the foot, below
      everything that can be answered. Those are additive and do not move a question. */
   const asked = w.__t.STEPS.map(s => s.short || s.id);
-  const shape = () => (w.__t.paper().match(/class="bk-k">[^<]*/g) || [])
+  const shape = skip => (w.__t.paper().match(/class="bk-k">[^<]*/g) || [])
     .map(x => x.split('>')[1])
-    .filter(k => asked.indexOf(k) !== -1)
+    .filter(k => asked.indexOf(k) !== -1 && (!skip || skip.indexOf(k) === -1))
     .join('|');
+
+  /* ---------- AND ONE QUESTION MAY BELONG TO ONE BRANCH, IF IT SAYS SO ------------------------
+     THE INVARIANT ABOVE IS ABOUT ANSWERING, and that half is untouched: `blank` against `priced` is
+     the fault this was written for — answering a level made seven rows vanish — and it is still
+     compared whole.
+
+     ACROSS THE BRANCH IT IS NARROWED TO WHAT THE CODE DECLARES. `only:` on a step says the question
+     belongs to one of the two documents and the other never becomes it, which is the same sentence
+     `SPINE_EXTRA` has carried since four derived rows were given the flag. Read off `BOOK_STEPS`
+     rather than listed here, so the check cannot drift from the thing it is checking — and the old
+     fault still fires with four names, because Subject, Level, When and Term declare nothing.
+
+     A FLAG THAT DOES NOTHING IS WORSE THAN NO FLAG, so it is checked in both directions rather than
+     merely tolerated: a branch-only question must be ON its own document and OFF the other. Without
+     that, writing `only:` and forgetting to read it anywhere would quietly widen this exemption.
+
+     ---------- AND THE TWO SHAPE COMPARISONS CANNOT FIRE ANY MORE, WHICH IS WORTH SAYING ----------
+     MEASURED RATHER THAN ASSUMED, on four mutants. `stepRows_` pushes a row for EVERY step whether
+     or not it is answered, and `spineRows_` then invents a dash for any spine row neither builder
+     produced — so a question dropped from `stepRows_` comes straight back under the same name, and
+     `fill: false` changes nothing here because no question row was ever missing to be filled. Both
+     halves of the original fault are now structurally impossible: dropping Subject and Level on the
+     waiting branch leaves the shape identical, and so does turning the form's `fill` off.
+
+     `ONLY_ON` IS THE ONLY ROUTE LEFT by which a question row can vanish, which is why the live
+     assertions are the two `only:` ones — the flag-does-nothing mutant is the one that fires.
+
+     THEY ARE KEPT, for the reason `check-funnel.js` test 2 is kept after the spelling fold made it
+     unfirable: this is where the invariant is written down, `!blank` still fails if the paper stops
+     drawing questions at all, and both comparisons come back to life the day anything upstream
+     stops guaranteeing them. What is not kept is the pretence — a rule that cannot fail under a
+     confident comment about what it protects is a green light with nothing behind it. */
+  const BRANCHED = w.__t.STEPS.filter(s => s.only).map(s => s.short || s.id);
+  const has = k => shape().split('|').indexOf(k) !== -1;
 
   B.how = 'Instant class'; B.loc = 'Colliers Wood Library';
   B.subjects = []; B.level = ''; B.joining = '';
   const blank = shape();
+  const blankShared = shape(BRANCHED);
+  const bookOnly = w.__t.STEPS.filter(s => s.only).map(s => [s.short || s.id, s.only, has(s.short || s.id)]);
 
   B.subjects = ['Maths']; B.level = '11+';
   const priced = shape();
 
   B.how = 'Waiting list class';
   const klass = shape();
+  const klassShared = shape(BRANCHED);
+  const waitOnly = w.__t.STEPS.filter(s => s.only).map(s => [s.short || s.id, s.only, has(s.short || s.id)]);
 
   const bad = [];
   if (!blank) bad.push('the paper drew no rows at all');
@@ -566,10 +604,18 @@ check('the paper keeps the same rows whatever is answered', async () => {
     bad.push('answering changed which rows exist:\n            was  ' + blank
       + '\n            now  ' + priced);
   }
-  if (klass !== blank) {
+  if (klassShared !== blankShared) {
     bad.push('choosing a waiting list changed which rows exist:\n            was  ' + blank
       + '\n            now  ' + klass);
   }
+  [['book', bookOnly], ['wait', waitOnly]].forEach(([on, list]) => {
+    list.forEach(([k, only, there]) => {
+      if (only === on && !there) bad.push('"' + k + '" is declared only: ' + only
+        + ' and is not on that branch\'s paper');
+      if (only !== on && there) bad.push('"' + k + '" is declared only: ' + only
+        + ' and is drawn on the ' + on + ' branch as well, so the flag does nothing');
+    });
+  });
   return bad;
 });
 

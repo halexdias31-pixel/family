@@ -1169,7 +1169,26 @@ const BOOK_STEPS = [
 
      `options` IS EMPTY AND THAT IS NOT WHAT LOCKS IT. `stepLocked_` tests `st.grid` FIRST, so a
      grid step is answerable with no options — which is how the hour week has always worked. */
+  /* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL -------------------------------------
+     REPORTED AS *"When free field is redundant now as we are using the grid bit."* Measured on the
+     ordinary form: a row reading `When free  —`, with no control, no week and nothing that can ever
+     fill it — directly under the When row, which had just answered the same question to the hour.
+     `stepGrid_` draws the blocks only on the waiting branch and `options()` is empty, so
+     `stepControl_` draws nothing either: a question with no way to answer it, printed under the
+     answer.
+
+     THE RULE IS THE ONE `only:` ALREADY STATES on `SPINE_EXTRA`, and the distinction it draws is
+     the whole of why this is a deletion rather than a lock. A row you have not answered YET keeps
+     its dash — you are about to answer it, and a line appearing under your thumb moves everything
+     below it. A row this BRANCH can never answer was never on this document: an ordinary booking
+     does not become a waiting list.
+
+     `When` IS NOT MARKED AND THAT ASYMMETRY IS DELIBERATE. On a waiting list it is a dash too — and
+     it says *no day yet*, which is TRUE of that booking and becomes a real day once the list fills.
+     `When free` on an instant booking is not a fact about the booking; it is a question already
+     answered one row above, more precisely, by the grid that prompted this. */
   { id: 'avail', label: 'When could you come?', short: 'When free', multi: true,
+    only: 'wait',
     grid: 'blocks', options: () => [], why: () => '' },
 
   /* AND NO TERM, for the same reason as the day. */
@@ -1358,7 +1377,15 @@ function bookAnswered_(step) {
  * to consult somebody it has already decided for.
  */
 function nextBookStep() {
+  const on = bookOn_();
   for (const step of BOOK_STEPS) {
+    /* THE OTHER BRANCH'S QUESTIONS ARE NOT ASKED — see the `only:` note on the `avail` step. It
+       changes nothing today, because that step offers no options and this loop already skips a
+       question with nothing to offer. It is here so `only:` means ONE thing rather than two: a
+       branch-only step added tomorrow WITH a list would otherwise be dropped from the card by
+       `stepRows_` and then asked by the funnel, which is the worst of both — a question on screen
+       that the document it belongs to does not have a row for. */
+    if (step.only && step.only !== on) continue;
     if (bookAnswered_(step)) continue;
     const opts = step.options().filter(Boolean);
     if (!opts.length) continue;                    // nothing to offer: leave it unanswered
@@ -2339,11 +2366,21 @@ function stepControl_(st) {
    A QUESTION WITH NOTHING TO OFFER IS NOT DRAWN. `nextBookStep` skips those and never asks them —
    the subjects question on a shared class, the children question for somebody with no children —
    so a row for one would be a line nobody can ever fill in. */
+/* WHICH OF THE FORM'S TWO BRANCHES THIS IS, in one place. `stepRows_` drops the other branch's
+   questions and `bookBreakdown` tells `spineRows_` not to invent them as dashes — two readings of
+   one fact, and a second `isWaiting_() ? 'wait' : 'book'` written out is the second reader this
+   file keeps finding. The words are the ones `SPINE_EXTRA`'s `only:` already uses. */
+function bookOn_() { return isWaiting_() ? 'wait' : 'book'; }
+
 function stepRows_() {
   let line = 0;
-  /* NO FILTER. Every step, every time — see `stepLocked_` for why a question with nothing to offer
-     is greyed rather than dropped. */
+  /* ONE FILTER, AND IT IS NOT ABOUT WHETHER A QUESTION CAN BE ANSWERED YET — see `stepLocked_` for
+     why a question with nothing to offer is greyed rather than dropped, and the `only:` note on the
+     `avail` step for the one thing that is dropped: a question belonging to the branch this card is
+     not on. */
+  const on = bookOn_();
   return BOOK_STEPS
+    .filter(st => !(st.only && st.only !== on))
     .map(st => {
       const v = BOOKING[st.id];
       const text = st.emails
@@ -2592,11 +2629,17 @@ const SPINE = (() => {
 const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '',
                       'Extra subjects': 'Extra subj.' };
 
-/* One row name to the one document that can fill it, read off `SPINE_EXTRA` so there is no second
-   list to keep in step. */
+/* One row name to the one document that can fill it, read off the two lists that declare rows so
+   there is no third one to keep in step.
+
+   BOTH, BECAUSE A STEP CAN BE BRANCH-ONLY TOO. `SPINE` is built from every step's `short`, so a
+   question `stepRows_` correctly drops would come straight back as an invented dash under the same
+   name — the row removed and then re-added by the function two hundred lines down. The flag is
+   declared once, beside the row it belongs to, wherever that row is declared. */
 const ONLY_ON = (() => {
   const m = {};
   SPINE_EXTRA.forEach(x => { if (x.only) m[x.row] = x.only; });
+  BOOK_STEPS.forEach(st => { if (st.only && st.short) m[st.short] = st.only; });
   return m;
 })();
 
@@ -2813,11 +2856,13 @@ function bookBreakdown(L, foot) {
      version did, and `Assignment to constant variable` took the whole screen down with it. One
      expression, so there is nothing to reassign and no order for the two steps to get wrong. */
   /* `on` SAYS WHICH OF THE FORM'S TWO BRANCHES THIS IS, so the other one's rows are not invented as
-     dashes — see the note over `SPINE_EXTRA`. Read from `isWaiting_()` rather than remembered,
-     because that is the one test the branch itself is taken on, four hundred lines up. */
+     dashes — see the note over `SPINE_EXTRA`. Through `bookOn_()`, which is the same answer
+     `stepRows_` drops the other branch's questions on: the row must not be re-added here under the
+     name the filter just removed, and one reader is what makes that impossible rather than
+     remembered. It resolves to `isWaiting_()`, the one test the branch itself is taken on. */
   const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]), { on: isWaiting_() ? 'wait' : 'book', said: merged });
+    .concat([noteRow_()]), { on: bookOn_(), said: merged });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
