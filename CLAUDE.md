@@ -8787,6 +8787,35 @@ with the chess board's cream and charcoal.
 in the harness: `termsPages_()` is concatenated after the people, so counting from the end lands on a
 legal document. That is the flyer state's own lesson — two readings of one list — one screen along.
 
+### Asked again, and this time the answer was in the cell rather than in the code
+
+**Reported as "Where's George I still don't see him on my site."** The fix above landed on `main` at
+14:53 the day before, so the obvious reading is that it did not work. **It does. Every link in the
+chain was measured this time rather than read, and the last one is a spreadsheet cell.**
+
+| | |
+|---|---|
+| the front end | `accountPages_` and `stuffItemsRaw_` both filter on `t.title` and nothing else — the `listed` clause is gone from both, and it is on `main` |
+| **the sheet** | **`listed` on P002 is `FALSE`.** Read through the Drive connector, positioned against the header rather than off a collapsed snippet: column 55 of 75, blank on the other tutor and on the admin |
+| his role | `tutor`, so `hasRole(r, 'tutor')` passes and he is a candidate at all |
+| the server | `(listed \|\| viewerIsAdmin)` — so he is sent to an admin and to nobody else |
+| **`viewerIsAdmin`** | `isAdminPerson(S(p.name))` → `findPerson` → `hasRole(p,'admin')`. P001's role is `admin`, and **both** the boot fetch in `index.html` and `load()`'s own fallback send `name=`, which is the fault `shell.js` already records having fixed |
+| the switch | `set-listed` → `setListed` in `dopost.gs`, access-listed `admin`, writing that same cell |
+
+**SO NOTHING IS BROKEN AND THE CONTROL IS WORKING AS DESIGNED.** `listed: FALSE` is a tutor switched
+off, which is what that column is for; he is drawn for an admin only, dimmed, with `· not listed`
+beside the name and a `Not listed` tile under it reading *"clients cannot see them"*. One tap on
+that tile is what puts him back on the public site.
+
+**AND THE TAP IS THE RIGHT ROUTE RATHER THAN THE CELL**, which is worth saying because editing the
+sheet by hand looks equivalent and is not: `setCell` sets `POST_WROTE` and retires the six-hour
+payload immediately, where a cell typed by hand reaches the site only if `onSheetChange` is
+installed — the trap this file records under "the cache, and the trap in it".
+
+**What could not be checked from here is the one thing that never can**: which build that phone is
+running. Every host but GitHub is blocked, so a live open is the owner's to do — which is what the
+build stamp on the You screen and the reload banner are both for.
+
 ## Chemistry Paper 1 is a replica of the paper now, both tiers
 
 **Reported from inside the exam**: *"im doing chemistry paper 1 now and there are already places
