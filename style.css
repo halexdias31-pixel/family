@@ -2779,6 +2779,45 @@ button.text-drop { color: var(--bad); }
 
    THE DAY LABEL DROPS TO TWO LETTERS. `Mo Tu We Th Fr Sa Su` is unambiguous where one letter is not
    (T and S are each two days), and the 14px it gives back goes to the cells, which need it more. */
+/* ==================================================================================================
+   A DAY IS A ROW OF THE CARD.
+
+   ASKED FOR AS *"get rid of When and instead have the day names be the field questions. So it
+   becomes Monday field Tuesday field Wednesday field."* The week was a block hanging under one row
+   and every attempt to put it "in the input column" was a trade: indent it and its left edge lines
+   up but its right edge cannot, because eleven pressable cells need 240px and the answer column
+   beside three figure tracks is 78px. Four rounds of that, written up either side of this file.
+
+   A DAY IS A QUESTION, so it gets a row. The label column holds `Monday` exactly as it holds
+   `Subject`; the answer cell holds the eleven hours. Nothing is nested and nothing is indented,
+   which is what makes "the grid is in the input column" true by construction rather than by a rule.
+
+   NO NEW GEOMETRY. `.slot-hours` is the same flex strip it has always been and `.hr` is the same
+   cell; what changed is the box it sits in. `weekRows_` marks the row `is-bare`, so the three
+   figure tracks go to the answer and the cell measures 17.6px at 390 — the width it had inside the
+   old indented block, to the pixel.
+================================================================================================== */
+.bk-row.bk-wk .bk-v { display: flex; flex-direction: column; gap: 1px; }
+/* THE HOUR NUMBERS RIDE ON MONDAY. One strip for eleven columns rather than one per row — the
+   argument `slotHead_` records for taking them out of seventy-seven cells — and inside Monday's own
+   answer cell rather than on a row of its own, because a row of its own would need a name, a place
+   in `SPINE` and a label column holding nothing. `1 1 0` on each, matching `.hr`, so the numbers sit
+   over the columns they name whatever the card's width. */
+.bk-row.bk-wk .wk-hh { display: flex; gap: 2px; }
+/* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
+   the rest, so a top-aligned label read as the name of the NUMBERS rather than of the boxes under
+   them — the one row of the seven where the eye could pair the wrong two things. `end` puts it on
+   the same line as its own cells; every other day row has nothing above its strip, so the rule is
+   written for the row that has, off `:has` rather than a class the builder has to remember. */
+.bk-row.bk-wk:has(.wk-hh) .bk-k { align-self: end; }
+/* A DAY NOBODY WORKS IS STILL DRAWN AND IS NOT THUMB-SIZED. Same rule the old `.slot-row` had: a
+   missing Wednesday and a Wednesday nobody works are different facts, and only one of them has
+   anything to press. */
+.bk-row.bk-wk.is-shut .hr { min-height: 11px; }
+/* AND A WEEK THAT CANNOT BE ANSWERED RECEDES RATHER THAN VANISHING — a joined class's hours are
+   somebody else's decision, and greying them still says which ones they were. */
+.bk-row.bk-wk.is-off .slot-hours, .bk-row.bk-wk.is-off .wk-hh { opacity: .45; }
+
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
 .slot-row.is-shut .hr { min-height: 11px; font-size: .55rem; }
@@ -6185,6 +6224,33 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    them. Where the label overhangs, the value column gives way — which changes where the dash
    STARTS and not where it ends, and the end is the edge somebody reads. */
 .bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
+
+/* ---------- AND A ROW WITH NO FIGURES ON IT GIVES ITS THREE TRACKS TO THE ANSWER ------------------
+   PER ROW, NOT PER CARD, AND THAT IS THE WHOLE DIFFERENCE. The rule this replaces asked whether the
+   CARD was priced and collapsed every row when it was not — which took `× RATE TOTAL` off an
+   unpriced form entirely and produced the report that the columns had gone again. This asks the
+   question of the row, so the header keeps all five names on every card and a row simply uses the
+   width it is not spending.
+
+   IT IS WHAT MAKES THE DAY ROWS LINE UP WITH THE ANSWERS. A day row carries no figures, so its
+   hours run to the card's edge; before this, every other unanswered row stopped two-thirds across
+   and the card had two right edges with the week on the far one. Measured at 390: every dash and
+   every day strip now share `111 → 351`.
+
+   THE COST IS ON A PRICED CARD AND IT IS REAL. `Venue` carries a surcharge and `Subject` does not,
+   so their two dropdowns come out 78px and 240px — two editable fields, one above the other, in two
+   sizes, which is the fault the note over `is-bare` records from the last time this was tried. What
+   is different is that the columns are now NAMED: a short value with `× RATE TOTAL` over the space
+   beside it reads as a row that has figures, which is exactly what it is. Asked for four times; the
+   trade is written here rather than argued again.
+
+   THE HEADER IS EXCLUDED FROM ITS OWN TEST. `spineHead_` writes the word `Total` into a `.bk-t`, so
+   a header row would otherwise see itself as priced and keep tracks the rows under it had given up.
+   `.is-wide` is the basket, which is two columns by its own rule and must not be touched. */
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-m,
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-r,
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
+.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-v { grid-column: 2 / -1; }
 
 /* ---------- THE FIGURE COLUMNS STAY ON AN UNPRICED CARD, FOURTH TIME OF ASKING --------------------
    A RULE THAT COLLAPSED THEM WAS HERE AND IS GONE. It hid `.bk-m`, `.bk-r` and `.bk-t` on every row

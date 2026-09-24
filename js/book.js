@@ -1146,7 +1146,12 @@ const BOOK_STEPS = [
      session, three blocks for a waiting list — and `stepRows_` renders their values differently:
      one is `bookRuns()`, a span with a start and an end, and the other is a list of phrases. A
      boolean could not tell them apart and the runs branch would have run over the blocks. */
-  { id: 'slots', label: 'When?', short: 'When', grid: 'hours',
+  /* ---------- `week: true` MAKES THIS STEP SEVEN ROWS RATHER THAN ONE -----------------------------
+     `short` IS NOT A LABEL ANY MORE, IT IS AN ANCHOR. No row is drawn called "When": the seven days
+     are the questions and `SPINE` holds their names in this step's place. What `short` still does is
+     hold the position — `SPINE_EXTRA`'s `{ after: 'When', row: 'Per session' }` pins itself to it,
+     so that row lands after Sunday without naming a day. */
+  { id: 'slots', label: 'When?', short: 'When', grid: 'hours', week: true,
     options: () => isWaiting_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
 
   /* ---------- WHEN COULD YOU COME? ----------------------------------------------------------------
@@ -1209,7 +1214,7 @@ const BOOK_STEPS = [
      answered one row above, more precisely, by the grid that prompted this. */
   { id: 'avail', label: 'When could you come?', short: 'When free', multi: true,
     only: 'wait',
-    grid: 'blocks', options: () => [], why: () => '' },
+    grid: 'blocks', week: true, options: () => [], why: () => '' },
 
   /* AND NO TERM, for the same reason as the day. */
   /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM ------------------------------
@@ -1943,8 +1948,12 @@ function breakdownRows(L) {
            blanking it meant every priced line failed to find its question and printed as a row of
            its own, with the figures stranded away from the answer that caused them. Which is
            exactly what "the multiplier is gone" was. */
-        { end: gi === inGroup.length - 1, step: asked, key: r.key, sel: sel,
-          open: st ? stepGrid_(st) : '' });
+        /* ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE --------------------------------------
+           THIS DREW `stepGrid_(st)` so a priced row standing for the When step kept its grid. The
+           week is not a block under a row now — it is seven rows of the card with the day names as
+           their labels — so there is nothing to hang, and `bookBreakdown` merges figures onto those
+           rows by `step` exactly as it does onto any other question's. */
+        { end: gi === inGroup.length - 1, step: asked, key: r.key, sel: sel });
     });
   });
 
@@ -2180,6 +2189,63 @@ function slotHead_(hours) {
    first day name the columns, which is true by construction everywhere this is used: `slotGrid()`
    builds one hour span and every day maps over it, the receipt counts 10 to 20, and a tutor's
    codes are that same span grouped by prefix. */
+/* ---------- THE WEEK AS SEVEN ROWS OF THE CARD, NOT ONE BLOCK UNDER ONE ROW ------------------------
+   ASKED FOR AS *"get rid of When and instead have the day names be the field questions. So it
+   becomes Monday field Tuesday field Wednesday field."* — the fourth round of one complaint, and
+   the one that dissolves it instead of trading against it.
+
+   EVERY OTHER ARRANGEMENT WAS A CHOICE BETWEEN TWO BAD ONES. The week was a block hanging off a
+   `When` row: indent it to the answer column and its left edge lines up but its right edge cannot,
+   because eleven pressable cells need 240px and the answer column beside three figure columns is
+   78px. Written, reverted, written, reverted — see the notes in `style.css`.
+
+   A DAY IS A QUESTION. "Monday · which hours" is a field with a label, exactly like "Subject · which
+   one", so it belongs on a row of the card rather than inside a picture drawn beside one. The day
+   name moves out of the grid's own 1.5rem gutter and into the label column every other question
+   uses, and the eleven hours become that row's answer. Nothing is nested, nothing is indented, and
+   the phrase "the input column" stops needing a rule to enforce it: the hours ARE in it, because
+   they are what the row answers.
+
+   AND IT COSTS NOTHING IN WIDTH. The cells were 17.6px at 390 inside the old indented block and
+   they are 17.6px here, because a day row carries no figures and so gives its three figure tracks
+   to the answer — which is what every other unpriced row on the card now does too.
+
+   THE HOUR NUMBERS RIDE ON THE FIRST ROW. They are one fact about eleven columns, so drawing them
+   once is the same argument that took them out of seventy-seven cells: `slotHead_`'s note records
+   it. They sit above Monday's strip inside Monday's own answer cell rather than on a row of their
+   own, because a row of their own would need a name, a place in `SPINE` and a label column holding
+   nothing. */
+function weekRows_(days, cell, opts) {
+  const o = opts || {};
+  const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
+  return days.map((d, i) => ({
+    n: '', k: String(d.label), v: '',
+    mul: '', rate: '', total: '',
+    /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
+       question on `id`, and seven rows answering one question all carry the same one. */
+    id: o.id || '',
+    /* ---------- THE ANSWER IS DRAWN, NOT WRITTEN --------------------------------------------------
+       `strip` IS MARKUP AND `v` IS TEXT, which is why it is a field of its own rather than a flag on
+       `v`: the renderer escapes a value and must not escape this. Same shape as `sel`, which is how
+       a dropdown already reaches the value cell. */
+    strip: (i === 0 ? '<span class="wk-hh" aria-hidden="true">'
+              + cols.map(h => '<span class="slot-hh">' + esc(String(h)) + '</span>').join('')
+              + '</span>' : '')
+      + '<span class="slot-hours">' + d.hours.map(h => cell(h, d)).join('') + '</span>',
+    /* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
+       nobody works are different facts, which is the same reason a shut hour is greyed rather than
+       removed — but it does not need a thumb-sized row, because there is nothing on it to press. */
+    shut: !!d.shut,
+    off: !!o.off,
+    /* ---------- ONE SENTENCE, UNDER THE LAST DAY --------------------------------------------------
+       THE WEEK'S OWN REASON, where the week ends rather than where it starts: "nobody has set any
+       hours yet" is about the seven rows above it, and a note printed over a control is a note you
+       read before you know what it is about. It used to replace the grid entirely, which threw away
+       the one thing a greyed week still says — WHICH hours are shut and why. */
+    say: (i === days.length - 1 && o.say) ? { text: String(o.say), warn: false } : null,
+  }));
+}
+
 function weekGrid_(days, cell) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
   return `<div class="slot-grid">
@@ -2218,38 +2284,31 @@ function weekGrid_(days, cell) {
    A DAY NOBODY WANTS IS NOT REMOVED. `shut` collapses a row on the hour week when the tutor works
    none of it; here there is nothing to be shut, so every row is full height and the week is seven
    equal rows — which is what makes it readable as a week rather than as a list. */
-function blockWeek_() {
+function blockWeekRows_() {
   const on = BOOKING.avail || [];
   /* ---------- `is-blocks` HAS GONE, BECAUSE BOTH WEEKS ARE INDENTED NOW ---------------------------
      IT WAS THE ONE THING THAT SAID "THIS WEEK MAY START AT THE VALUE COLUMN", back when the hour
      week could not. `.bk-open` is `2 / -1` for both, so the class had no reader left and a class
      with no rule behind it is the shape this file records under `.favwrap.is-fav` — markup that
      reads as a decision and does nothing. The measurement that split them is where the rule is. */
-  return `<div class="bk-open">
-    ${/* AND NO SENTENCE OVER IT. The greyed hour week carried one because a locked control with no
-          reason beside it is the invisible mode — this one is not locked, and the two places that
-          would say the same thing already do: the row above it asks "When could you come?" and the
-          Kind row's own note says the class "runs once enough others take a seat". A third copy is
-          the fault this file records where the roster's name printed an `<h3>` above every widget's
-          own heading. Worth 40px on a card that had four to spare. */''}
-    ${weekGrid_(
-      SLOT_DAYS.map(([, label]) => ({
-        label: label,
-        /* `h` IS WHAT `weekGrid_` PUTS IN THE HEADER — the hour number on the other two grids and
-           the block's name here, which is the one thing that differs in the row above the week. */
-        hours: SLOT_BLOCKS.map(b => ({ h: b.name, block: b, day: label })),
-      })),
-      (c) => {
-        const phrase = blockPhrase_(c.day, c.block);
-        return `<button class="hr${on.indexOf(phrase) !== -1 ? ' on' : ''}"
-          title="${esc(phrase)}" aria-label="${esc(phrase)}"
-          ${/* THE PHRASE ITSELF, not a code. It is what gets stored and what `waitlistWhen` counts,
-                so the handler has nothing to assemble and there is no second place for "Monday
-                morning" to be spelled — which is the fault this file records under `handle` and
-                `username`. */''}
-          data-do="book-block" data-when="${esc(phrase)}"></button>`;
-      })}
-  </div>`;
+  return weekRows_(
+    SLOT_DAYS.map(([, label]) => ({
+      label: label,
+      /* `h` IS WHAT THE HEADER GETS — the hour number on the other two weeks and the block's name
+         here, which is the one thing that differs in the strip above the first row. */
+      hours: SLOT_BLOCKS.map(b => ({ h: b.name, block: b, day: label })),
+    })),
+    (c) => {
+      const phrase = blockPhrase_(c.day, c.block);
+      return `<button class="hr${on.indexOf(phrase) !== -1 ? ' on' : ''}"
+        title="${esc(phrase)}" aria-label="${esc(phrase)}"
+        ${/* THE PHRASE ITSELF, not a code. It is what gets stored and what `waitlistWhen` counts,
+              so the handler has nothing to assemble and there is no second place for "Monday
+              morning" to be spelled — which is the fault this file records under `handle` and
+              `username`. */''}
+        data-do="book-block" data-when="${esc(phrase)}"></button>`;
+    },
+    { id: 'avail' });
 }
 
 /* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
@@ -2269,66 +2328,44 @@ function blockWeek_() {
    row was showing its grid and that pressing the row again closed it. That stopped being true in
    the paragraph below — the grid is drawn whenever the When row is — and the control, the field and
    this sentence all outlived it by months. See the note over the deleted `book-edit`. */
-function stepGrid_(st) {
-  /* ---------- ALWAYS OPEN ---------------------------------------------------------------------
-     IT UNFOLDED WHEN YOU PRESSED THE ROW, and folding is the thing to avoid: the card changed
+function stepWeekRows_(st) {
+  /* ---------- ALWAYS DRAWN --------------------------------------------------------------------
+     IT UNFOLDED WHEN YOU PRESSED THE ROW ONCE, and folding is the thing to avoid: the card changed
      height under your thumb, every row below it moved, and whether the week was on screen depended
-     on something you had to discover. A control that is sometimes there is one you have to look
-     for twice.
-
-     IT IS PART OF THE PAPER NOW, drawn whenever the When row is. Costs the height it costs, every
-     time, which is the point — a card whose size does not move is a card you can learn. */
-  if (!st.grid) return '';
+     on something you had to discover. Seven rows of the paper, every time, which is the point — a
+     card whose size does not move is a card you can learn. */
+  if (!st.grid) return [];
 
   /* ---------- ONE WEEK ON THE CARD, AND WHICH ONE DEPENDS ON THE BRANCH -------------------------
-     A WAITING LIST GETS THE BLOCKS AND NOT BOTH. The hour week used to be drawn here greyed out
-     whole, with a line saying why — right while it was the only week on the card, and two weeks
-     stacked with one of them dead is a different object. Measured: the hour week is 193px and the
-     block week is about 330px, because three columns can be a real fingertip where eleven cannot;
-     527px of week on a card whose pane caps at 805 is most of the paper spent on one question,
-     and one of them unanswerable.
-
-     SO THE HOUR WEEK IS NOT DRAWN ON THAT BRANCH, and the sentence it carried moves to the blocks,
-     where it is still the reason you are being asked this rather than for exact hours. The When
-     row keeps its dash, which is what "no day yet" looks like on every other unanswered row. */
-  if (st.grid === 'blocks') return isWaiting_() ? blockWeek_() : '';
-  if (isWaiting_()) return '';
+     A WAITING LIST GETS THE BLOCKS AND NOT BOTH, and they share the seven row names — `SPINE` holds
+     Monday to Sunday once and whichever branch is live fills them. Two weeks stacked with one of
+     them dead is a different object, and on a card whose pane caps at 805px it is most of the paper
+     spent on one question with half of it unanswerable. */
+  if (st.grid === 'blocks') return isWaiting_() ? blockWeekRows_() : [];
+  if (isWaiting_()) return [];
 
   const g = slotGrid();
   const on = BOOKING.slots || [];
   const off = stepLocked_(st);
-  if (!g.anyOpen) return `<div class="bk-open"><p class="note">${esc(g.why)}</p></div>`;
-  return `<div class="bk-open${off ? ' is-off' : ''}">
-    ${/* THE INSTRUCTION IS GONE AND THE REASON IS NOT, because they were never the same kind of
-          sentence. "Two together is a two-hour session" was a caption on a picture that now says it
-          itself: adjacent ticked hours join into one bar, so the shape on screen IS the sentence,
-          and a line explaining what you can already see is the fault this file records where the
-          roster's name sat above every widget's own heading.
-
-          THE WAITING-LIST LINE HAS MOVED TO `blockWeek_`, which is the week that branch now draws.
-          It was here because this was the only week on the card and it was shown greyed; it is not
-          drawn on that branch at all any more, so a sentence explaining why it cannot be ticked
-          would be a reason with nothing to be a reason for. `off` still greys a JOINED class's
-          week, which is a different lock and needs no sentence: the row above says whose class it
-          is. */''}
-    ${weekGrid_(
-      g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
-      (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
-        (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
-        ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they
-              are already teaching are the same grey box, and only the second is worth trying a
-              different week for. */''}
-        title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
-        ${/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hour in the header row the box is
-              empty, and an empty button has no accessible name at all — so the day and the hour
-              are said here, which is more than the bare numeral ever managed. */''}
-        aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
-        data-do="book-slot" data-code="${esc(h.code)}"></button>`)}
-    ${/* THE RUNS LINE WAS HERE — "Monday 13:00–15:00" under the grid. It is the When row's value
-          now, in full, which is where an answer belongs: a line under the control repeating what the
-          control just decided is the card saying one thing in two places, and the row was the one
-          that had it in the shorter form. */''}
-  </div>`;
+  return weekRows_(
+    g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
+    (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
+      (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
+      ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they are
+            already teaching are the same grey box, and only the second is worth trying a different
+            week for. */''}
+      title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
+      ${/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hours in one strip above the first row
+            the box is empty, and an empty button has no accessible name at all — so the day and the
+            hour are said here, which is more than the bare numeral ever managed. */''}
+      aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
+      data-do="book-slot" data-code="${esc(h.code)}"></button>`,
+    { id: st.id, off: off,
+      /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN -------------------------------------
+         IT USED TO BE REPLACED BY THE SENTENCE, which threw away the half a greyed week still says:
+         which hours are shut and why each one is. The reason goes under the last day instead, which
+         is where a note about the seven rows above it belongs. */
+      say: g.anyOpen ? '' : g.why });
 }
 
 /* Which steps open something under their row rather than answering in it. */
@@ -2401,7 +2438,12 @@ function stepRows_() {
   const on = bookOn_();
   return BOOK_STEPS
     .filter(st => !(st.only && st.only !== on))
-    .map(st => {
+    /* ---------- ONE STEP IS NOT ALWAYS ONE ROW ---------------------------------------------------
+       A WEEK IS SEVEN. `flatMap` rather than `map` because the When question is answered on seven
+       lines of the card — Monday to Sunday, each with its hours in the answer column — and a step
+       that draws no week on this branch contributes none at all. See `weekRows_`. */
+    .flatMap(st => {
+      if (st.week) return stepWeekRows_(st);
       const v = BOOKING[st.id];
       const text = st.emails
         ? ((BOOKING.split || []).filter(x => String(x).trim()).join(', '))
@@ -2437,7 +2479,7 @@ function stepRows_() {
            submitted as, which is the only honest thing for it to show, and choosing anything else
            still overwrites it exactly as before. */
         : (st.label_ ? st.label_(v) : (v || (st.fallback ? st.fallback() : '')));
-      return { n: String(++line).padStart(3, '0'),
+      return [{ n: String(++line).padStart(3, '0'),
                k: st.short || st.id,
                /* AN EM DASH, NOT AN EMPTY CELL. A blank looks like a row that failed to draw; a
                   dash looks like a blank somebody is expected to fill, which is what it is. */
@@ -2501,8 +2543,7 @@ function stepRows_() {
                     while nothing is picked, which is the opposite of a refusal. */
                  const n = st.note ? String(st.note(v) || '') : '';
                  return n ? { text: n, warn: false } : null;
-               })(),
-               open: stepGrid_(st) };
+               })() }];
     });
 }
 
@@ -2621,7 +2662,18 @@ const SPINE = (() => {
   const tail = SPINE_EXTRA.filter(x => !x.after).map(x => x.row);
   BOOK_STEPS.forEach(st => {
     if (!st.short) return;
-    out.push(st.short);
+    /* ---------- A WEEK STEP IS SEVEN ROWS AND THEY ARE THE SAME SEVEN ON BOTH BRANCHES -----------
+       MONDAY TO SUNDAY ONCE, not twice. Both week steps — hours for a session, blocks for a waiting
+       list — answer the same seven questions, and only one of them is ever on the card, so they
+       share the row names rather than each contributing a set. Deduped here rather than by ordering
+       the two steps carefully, because an order is a thing to keep in step and this is not.
+
+       `st.short` STILL ANCHORS ITS EXTRAS. It names no row now; it is the name `SPINE_EXTRA` pins
+       to, so `Per session` still lands directly after Sunday. */
+    if (st.week) SLOT_DAYS.forEach(([, label]) => {
+      if (out.indexOf(label) === -1) out.push(label);
+    });
+    else out.push(st.short);
     SPINE_EXTRA.forEach(x => { if (x.after === st.short) out.push(x.row); });
   });
   /* AN EXTRA PINNED TO A STEP THAT NO LONGER EXISTS would vanish silently, which is the same class
@@ -3215,7 +3267,11 @@ function receiptRow(r) {
      rest of what a row looks like, rather than by the caller patching the string afterwards. */
   const cls = [r.blank ? 'is-blank' : '',
                r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
-               r.wide ? 'is-wide' : '']
+               r.wide ? 'is-wide' : '',
+               /* THE WEEK'S OWN THREE. `bk-wk` lays the strip out in the answer cell, `is-shut`
+                  collapses a day nobody works, `is-off` greys a week that cannot be answered. */
+               r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '',
+               r.strip && r.off ? 'is-off' : '']
     .filter(Boolean).join(' ');
   /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so
      a day on the receipt and a day in the grid are visibly the same thing.
@@ -3225,7 +3281,12 @@ function receiptRow(r) {
   /* A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it: the
      select already shows what is chosen, and a cell that printed the answer AND a control showing
      the same answer would be the row saying it twice. */
-  const value = r.sel ? r.sel
+  /* ---------- A DAY'S HOURS ARE ITS ANSWER --------------------------------------------------------
+     `strip` IS MARKUP AND IS NOT ESCAPED, which is why it is its own field rather than a flag on
+     `v` — the same distinction `sel` already draws for a dropdown. It is built by `weekRows_` and by
+     nothing else, so there is one place that decides what a day row looks like. */
+  const value = r.strip ? r.strip
+    : r.sel ? r.sel
     : r.hours
     ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
         || { hours: [] }).hours).map(h => `<span class="bk-hr${
@@ -3270,7 +3331,11 @@ function receiptRow(r) {
 
      THE FIGURE GUARD STAYS, so a grid row that ever carries a price keeps its columns with nothing
      here to change. */
-  const bare = (!r.id || !!r.open) && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
+  /* AND A DAY ROW NEVER COLLAPSES TO THE NARROW COLUMN EITHER, for the reason the grid row had it:
+     eleven pressable cells need 240px and the answer column beside three figure tracks is 78px, so
+     a day row that kept them would have a five-pixel cell. It is the same exception, and it is the
+     last one — `strip` is what carries a control that cannot be squeezed. */
+  const bare = (!r.id || !!r.open || !!r.strip) && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
   /* ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD -------------------------------------
      REPORTED AS *"the 'when' dotted line is redundant as the grid is right underneath it."* It is.
      A dashed underline on this card means *an answer goes here*, and on the When row the answer
@@ -3288,7 +3353,10 @@ function receiptRow(r) {
      `jobRows` — so the receipt's When row loses its dash for the same reason without being told
      separately, and a row that stops carrying a grid gets its underline back with nothing here to
      change. */
-  const heads = !!r.open;
+  /* AND A DAY ROW LOSES ITS DASHED UNDERLINE FOR THE SAME REASON THE `When` ROW DID: the underline
+     means *an answer goes here*, and on these rows the answer is the row of boxes itself. A dashed
+     line under a strip of cells is the card advertising a blank that is already filled in. */
+  const heads = !!r.open || !!r.strip;
   return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
     <span class="bk-k">${esc(r.k)}</span>
@@ -3343,12 +3411,12 @@ function jobRows(j) {
   push('Students', j.students || j.maxStudents || '');
   push('Venue', j.venue || '');
   push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
-  push('When', [j.weekday, j.time].filter(Boolean).join(' '));
-  /* THE WEEK UNDER IT, exactly where the form draws it — see `jobGrid_`. `grid: true` marks the row
-     so `receiptRow` prints the picture rather than a value. */
-  /* HUNG OFF THE `When` ROW'S `open`, which is the exact field the form uses for its grid — so the
-     picture lands in the same place on both documents and `receiptRow` needed no new case. */
-  { const w = rows.find(r => r.k === 'When'); if (w) w.open = jobGrid_(j); }
+  /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS ---------------------------------------------
+     THE FORM ASKS ON SEVEN LINES NOW and the receipt answers on the same seven, in the same place,
+     built by the same function — which is what stops the two documents drifting. The old single
+     `When` row said "Monday, Friday 10:00" and hung the picture underneath it; the day names are
+     the labels, so the sentence had nowhere left to be that was not a second copy of the picture. */
+  jobWeekRows_(j).forEach(r => rows.push(r));
   push('Per session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
   push('Term', j.term || '');
   /* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: the whole
@@ -3465,41 +3533,33 @@ function jobRows(j) {
    BUILT FROM THE JOB, NOT FROM `slotGrid()`. That reads the tutor's and venue's free hours, which
    is a question about what COULD be booked; a receipt is about what WAS. So a session on Monday at
    12 for two hours lights Monday 12 and 13, and every other cell is simply a cell. */
-function jobGrid_(j) {
-  /* ---------- A BOOKING MAY RUN ON MORE THAN ONE DAY, AND THE CELL SAYS SO -----------------------
-     THIS COMPARED THE WHOLE CELL TO ONE DAY NAME. `weekday` holds what `bookSpec` sent, which is
-     every day the booking runs joined with commas — so `norm('Monday') === norm('Monday, Friday')`
-     is false for Monday AND for Friday, and a two-day booking lit NOTHING. Measured: 2 cells on a
-     one-day job, **0 on a two-day one and 0 on a three-day one**.
+/* ---------- THE SAME SEVEN ROWS ON THE RECEIPT --------------------------------------------------
+   A BOOKING MAY RUN ON MORE THAN ONE DAY, AND THE ROW SAYS SO. This once compared the whole cell to
+   one day name — `weekday` holds what `bookSpec` sent, which is every day the booking runs joined
+   with commas, so `norm('Monday') === norm('Monday, Friday')` is false for Monday AND for Friday and
+   a two-day booking lit NOTHING. Measured: 2 cells on a one-day job, 0 on a two-day one.
 
-     THE TALLEST BLOCK ON THE RECEIPT, DARK, on exactly the bookings somebody most needs to check —
-     and it reads as a week with no session in it rather than as a fault. The note above says this
-     grid exists so a family can SEE when their session runs instead of reading it off a line.
+   ONE SPAN, SHOWN ON EVERY DAY, because that is what the job row holds: `start_time` and
+   `hours_per_session` are single cells. Where the runs really differ the row is already a
+   simplification of them — see `bookSpec`, where the first run of the week names the session.
 
-     ONE SPAN, SHOWN ON EVERY DAY, because that is what the job row holds: `start_time` and
-     `hours_per_session` are single cells. Where the runs really differ the row is already a
-     simplification of them — see `bookSpec`, where the first run of the week names the session —
-     and lighting the span this receipt states on each of its own days is the honest reading of it.
-     Lighting nothing was not. */
+   `weekRows_`, NOT A SECOND SET OF MARKUP. The form and the receipt draw a day the same way down to
+   the class names, so a week restyled once is restyled on both. Disabled, because nothing on a
+   receipt is answerable. */
+function jobWeekRows_(j) {
   const days = String((j && j.weekday) || '').split(',').map(norm).filter(Boolean);
   const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
   const hours = SLOT_HOURS;
-  return `<div class="bk-open is-off">
-    ${/* THE FORM'S OWN BUILDER, NOT A COPY OF ITS MARKUP. The first version wrote `.slot-cell`
-          spans because they only had to be readable — the second wrote out the form's classes by
-          hand, which held until the hour header arrived and had to be added in two places. One
-          `weekGrid_`, three cells; see the note over it. Disabled, because nothing on a receipt is
-          answerable. */''}
-    ${weekGrid_(
-      SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours,
-                                      on: days.indexOf(norm(label)) !== -1 })),
-      (h, d) => {
-        const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
-        return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
-          title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
-      })}
-  </div>`;
+  return weekRows_(
+    SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours,
+                                    on: days.indexOf(norm(label)) !== -1 })),
+    (h, d) => {
+      const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
+      return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
+        title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
+    },
+    { off: true });
 }
 
 /* ---------- WHAT THE BUSINESS TAKES, UNDERNEATH RATHER THAN ON IT ---------------------------------
