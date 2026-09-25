@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-24-c-role-titles";
+const DOGET_VERSION = "2026-09-25-a-stage-ticks";
 
 
 function doGet(e) {
@@ -1614,6 +1614,19 @@ function doGet(e) {
         weeks: dates.length, dates: dates.join(', '),
         hours: N(j.hours_per_session) || N(cfg.h) || 2,
         startDate: dates[0] || '', endDate: dates[dates.length - 1] || '',
+        /* ---------- WHEN IT WAS ASKED FOR, WHICH HAS BEEN WRITTEN AND NEVER SENT ------------------
+           `created_at` IS ON THE JOBS TAB and three handlers write it — `createJob`, `joinWaitlist`
+           and `openWaitlist`. Nothing has ever read it back. `jobRows` on the phone has an
+           `if (j.createdAt) push('Asked for', …)` that could not fire, so a row this repository
+           argued about at length — `check-flow.js` refused to let it be dropped — has never once
+           been drawn on a receipt.
+
+           That is the shape recorded here under `figure`, under `orderPrints`, under the four
+           message actions and under `exam_date`: a column written and never read. It has a reader
+           now, because `Requested` is the first of the five stage ticks and this is the date beside
+           it. `check-payload.js` cannot see this class of fault and says so — it compares top-level
+           `DATA.*` keys, and a field inside a row that nothing reads is invisible to it. */
+        createdAt: fmtDate(j.created_at),
         /* THE CHILDREN, as a list. The roster puts a name on a seat and says "Child" for the rest,
            so a tutor opening a session knows who to expect. */
         forChildren: iAmIn
@@ -1641,6 +1654,24 @@ function doGet(e) {
                          || (ts[0] && ts[0].name) || '') : '',
         requestedTutor: (confirmedTutor && confirmedTutor.name) || 'No preference',
         tutorStatus: tutorStatusOf(jobId),
+        /* ---------- WHO BOOKS THE ROOM, WHICH THE RECEIPT HAS BEEN ANSWERING FOR ITSELF ----------
+           `jobRows` DRAWS `Host` FROM `j.clientHosts` AND THIS HAS NEVER SENT IT, so
+           `TRUEish_(undefined)` is false and every receipt ever handed over said **"We book the
+           room"** — including to the families who host at home, which is the opposite of true and
+           is a line about who is responsible for a venue. The column is `client_hosts` on the jobs
+           tab and the form has asked the question since it was written. */
+        clientHosts: TRUE_(j.client_hosts),
+        /* ---------- AND WHO THE BOOKING IS SPLIT WITH, TO THE PERSON WHO CHOSE THEM -------------
+           SAME SHAPE, AND IT WAS SAYING SOMETHING WRONG RATHER THAN NOTHING. `Sharing` reads
+           `j.splitEmails || 'Just you'`, so a session split three ways printed **"Just you"**.
+
+           NARROWER THAN `iAmIn`, DELIBERATELY. These are addresses the BOOKER typed in — the
+           people they invited — and `iAmIn` is the whole roster, so on a shared class it would
+           hand one family the e-mail addresses another family chose. The booker is `cs[0]`, which
+           is the same seat `client` above is taken from, and an admin sees the lot because
+           somebody has to. */
+        splitEmails: (viewerIsAdmin || (cs[0] && key(cs[0].name) === key(S(p.name))))
+          ? S(j.split_emails) : '',
         stealable: TRUE_(j.stealable),
         // Emitted in the shape the frontend already reads, so nothing there had to change. The
         // numbering is presentational now — there are no fixed slots behind it.

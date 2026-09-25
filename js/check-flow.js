@@ -244,6 +244,10 @@ function boot(opts) {
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
+      /* THE FIVE STAGE ROWS AND THE BUILDER BOTH DOCUMENTS USE, so a journey asking about the ticks
+         reads the app's own list rather than a copy of it written out here. */
+      'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
+      'stageRows: typeof stageRows_ === "function" ? stageRows_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
@@ -842,6 +846,149 @@ check('a booking over several days reads in the week\'s own order', async () => 
   return bad;
 });
 
+check('a refusal is a toast and never a banner that outlives it', async () => {
+  /* ==================================================================================================
+     REPORTED AS *"I don't like how name or pin not recognised is a banner. It should be like the
+     other pop ups that come up at the bottom of screen."* Measured before it was changed: a wrong
+     PIN put a gold bar across the top of the app — **and it was still there after signing in
+     correctly**, because `banner('')` is called in exactly two places and neither is on that path.
+
+     `why_` RAISED IT FOR ALL THIRTEEN OF ITS CALLERS, so this was never only the sign-in card: every
+     failed write in the app left a standing alarm. Eight of the thirteen already toasted the same
+     sentence, so the banner was a second copy at alarm volume that outlived what it was about.
+
+     THE RULE IS THE DISTINCTION RATHER THAN THE SCREEN. A banner is for a STANDING condition — the
+     sheet is missing columns, the questions did not load, a newer build is ready — each true until
+     something changes. A refused action is a MOMENT. So: the sentence must be on the screen, and
+     the banner must not be the thing carrying it.
+
+     DRIVEN THROUGH THE APP'S OWN DOOR: the stub refuses the POST, `do-signin` runs, and what is
+     asserted is what a person would see. */
+  const { w } = boot({ reply: { success: false, error: 'Name or PIN not recognised.' } });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const d = w.document;
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['the sign-in card is not on the account column, so nothing can be refused'];
+  name.value = 'Nobody'; pin.value = '9999';
+  const btn = d.querySelector('[data-do="do-signin"]');
+  if (!btn) return ['there is no Sign in button to press'];
+  /* ---------- WHAT THE BANNER SAID BEFORE, BECAUSE A STANDING ONE IS CORRECT -------------------
+     THE FIXTURE RAISES ONE AT BOOT — its `version` is `test`, so `load()` warns that the
+     deployment cannot do half the actions, which is exactly the standing condition a banner is
+     for. A rule that asked "is any banner up" would have been red on that and taught nobody
+     anything. The question is whether the REFUSAL raised one, so it is the change that is read. */
+  const bannerWas = (() => { const b = d.getElementById('banner');
+    return b && !b.classList.contains('hidden') ? String(b.textContent || '') : ''; })();
+  try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
+  await wait(400);
+
+  const toastEl = d.getElementById('toast');
+  const said = toastEl ? String(toastEl.textContent || '') : '';
+  if (!/not recognised/i.test(said)) {
+    bad.push('the refusal is not in a toast (the toast says ' + JSON.stringify(said) + ')');
+  }
+  const ban = d.getElementById('banner');
+  const shown = ban && !ban.classList.contains('hidden') ? String(ban.textContent || '') : '';
+  if (shown !== bannerWas) {
+    bad.push('the refusal changed the banner to ' + JSON.stringify(shown)
+             + (bannerWas ? ' (it said ' + JSON.stringify(bannerWas) + ' before)' : ''));
+  }
+
+  /* AND NOTHING IS LEFT ON THE CARD. `#in-said` carried a third copy — a faint line under the
+     button — and it is gone; a rule that only checked the banner would let it come back. */
+  if (d.getElementById('in-said')) bad.push('#in-said is back, so the sentence is on screen twice');
+  return bad;
+});
+
+check('each stage tick takes the date it actually happened on', async () => {
+  /* ==================================================================================================
+     ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get
+     ticked they should also have a date."* The dates were already on the phone and nothing read
+     them: `doGet` has put `events: eventsForJob(jobId)` on every job since the roster was derived
+     from the log, and `js/` had no reader for it at all.
+
+     THIS TESTS THE RULE RATHER THAN THE RENDERING, because the rule is the part that can be subtly
+     wrong for years. Each date is taken to match its own predicate and the two are OPPOSITE ends of
+     the list — `Accepted` needs EVERY seat agreed, so it is the LAST `Accept`; `Paid` needs a seat
+     BOOKED, and on a session that is one, so it is the FIRST `Confirm`. A log where everybody moved
+     on the same day would pass whichever way round they were read, so the job below has two
+     families moving four days apart and the two right answers are the two INNER dates: the second
+     Accept and the first Confirm, never the first Accept or the last Confirm.
+
+     AND THE WAITING LIST IS THE OTHER HALF OF `Paid`. `jobStage_` wants the whole house booked
+     there, so the same log gives the LAST `Confirm` on a two-seat list — one rule, two answers, and
+     the test is that changing only `kind` and `maxKids` moves that one date.
+
+     A CHAIN, SO NOTHING BELOW AN EMPTY BOX MAY CARRY A DATE. That is the half a rendering test
+     cannot see: a stage whose own test is true but whose predecessor is not must draw neither the
+     tick nor the date. */
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t || typeof t.stageRows !== 'function') return ['stageRows_ is not exported, so the dates cannot be checked — not a pass'];
+  if (!Array.isArray(t.JOB_STAGES) || t.JOB_STAGES.length !== 5) {
+    return ['JOB_STAGES is not the five rows the receipt is built from — not a pass'];
+  }
+  const bad = [];
+  const log = [
+    { at: '22/09/2026', actor: 'A', role: 'client', action: 'Request', target: '', message: '' },
+    { at: '23/09/2026', actor: 'B', role: 'client', action: 'Request', target: '', message: '' },
+    { at: '24/09/2026', actor: 'A', role: 'client', action: 'Accept',  target: '', message: '' },
+    { at: '25/09/2026', actor: 'B', role: 'client', action: 'Accept',  target: '', message: '' },
+    { at: '26/09/2026', actor: 'A', role: 'client', action: 'Confirm', target: '', message: '' },
+    { at: '28/09/2026', actor: 'B', role: 'client', action: 'Confirm', target: '', message: '' },
+  ];
+  /* BOTH SESSION DATES IN THE PAST, so all five tick and all five have a date to be wrong about. */
+  const job = { kind: 'session', createdAt: '21/09/2026', events: log,
+                startDate: '01/10/2025', endDate: '05/11/2025',
+                slots: [{ n: 1, client: 'A', status: 'Booked' }, { n: 2, client: 'B', status: 'Booked' }],
+                tutorSlots: [] };
+  const got = t.stageRows(job);
+  const by = {};
+  got.forEach(r => { by[r.k] = r; });
+  const want = { Requested: '21/09/26', Accepted: '25/09/26', Paid: '26/09/26',
+                 Started: '01/10/25', Completed: '05/11/25' };
+  Object.keys(want).forEach(k => {
+    const r = by[k];
+    if (!r) { bad.push('no "' + k + '" row at all'); return; }
+    if (!r.tick) { bad.push('"' + k + '" is not ticked on a job where it plainly happened'); return; }
+    if (r.v !== want[k]) bad.push('"' + k + '" is dated ' + JSON.stringify(r.v) + ', not ' + JSON.stringify(want[k]));
+  });
+
+  /* THE WAITING LIST WANTS THE LAST `Confirm`, because its own predicate wants every seat. */
+  const list = t.stageRows(Object.assign({}, job, { kind: 'waitlist', maxKids: 2 }));
+  const paid = list.find(r => r.k === 'Paid');
+  if (!paid || !paid.tick) bad.push('a full waiting list does not tick Paid');
+  else if (paid.v !== '28/09/26') {
+    bad.push('a full waiting list is dated Paid ' + JSON.stringify(paid.v) + ', not "28/09/26" — '
+             + 'it needs every seat, so the LAST Confirm is the one that filled it');
+  }
+
+  /* AND A STAGE BELOW AN EMPTY BOX CARRIES NOTHING, tick or date. `Accepted` is false here because
+     one seat is still Waiting, so `Paid` must stay blank even though a `Confirm` sits in the log
+     and both session dates are long past. */
+  const part = t.stageRows(Object.assign({}, job, {
+    slots: [{ n: 1, client: 'A', status: 'Booked' }, { n: 2, client: 'B', status: 'Waiting' }] }));
+  part.forEach(r => {
+    if (r.k === 'Requested') return;
+    if (r.tick) bad.push('"' + r.k + '" ticks below an unticked Accepted, so the chain is broken');
+    if (r.v) bad.push('"' + r.k + '" carries the date ' + JSON.stringify(r.v) + ' with no tick');
+  });
+
+  /* A JOB WITH NO LOG DRAWS THE TICK AND NOTHING ELSE — never a nearby date, which on a document
+     somebody keeps is the `cost: 0` shape. */
+  const bare = t.stageRows(Object.assign({}, job, { events: [], createdAt: '' }));
+  const acc = bare.find(r => r.k === 'Accepted');
+  if (!acc || !acc.tick) bad.push('a job with no event log stops ticking Accepted');
+  else if (acc.v) bad.push('a job with no event log dates Accepted ' + JSON.stringify(acc.v));
+  return bad;
+});
+
 check('a receipt lights every day its booking runs on', async () => {
   /* ---------- THE WEEK WAS COMPARED TO ONE DAY NAME --------------------------------------------
      `jobGrid_` DID `norm(label) === norm(j.weekday)`, and `weekday` holds what `bookSpec` sent:
@@ -902,30 +1049,55 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   if (before.includes('J-ASK')) bad.push('a booking is shown under the form before one was asked for');
   if (w.__t.asked()) bad.push('something is remembered as asked for before any send');
 
-  /* ---------- THE THREE STATE ROWS ARE ON THE BLANK FORM, AND THEY ARE BLANK ----------------------
-     `Stage`, `Status` and `Asked for` are pinned to the end of the spine so the document reads the
-     same from the first question to the last payment. On a form nobody has sent they have nothing
-     to report, and they print `—` like every other unanswered row rather than a sentence that stops
-     the eye. Two of them carried sentences until the spec asked for dashes; this keeps them dashes.
+  /* ---------- THE STATE ROWS ARE ON THE BLANK FORM, AND THEY ARE EMPTY ---------------------------
+     THE STAGE ROWS ARE PINNED TO THE END OF THE SPINE so the document reads the same from the first
+     question to the last payment — which is the invariant, and it is untouched by what those rows
+     look like. On a form nobody has sent they have nothing to report: `Status` prints `—` like
+     every other unanswered row, and the five stages print an EMPTY TICK BOX, which is the same
+     "nothing yet" with the difference that it also says what will be reported.
+
+     `Stage` AND `Asked for` WERE TWO OF THE THREE THIS ASKED ABOUT. Both are gone — see
+     `JOB_STAGES` in book.js: the sentence is what the five ticks say in words and the date is the
+     `Requested` tick's own value. So the rule is the same rule against the rows that exist.
 
      READ OFF `bk-k`/`bk-v`, WHICH IS THE MARKUP THE FORM ACTUALLY USES. The first version of this
      looked for `</tr>` and reported all three rows missing — they were present and already correct,
      and the check was describing its own selector rather than the page. A row here is a
-     `div.bk-row` of spans, and the value is the `bk-v` following the `bk-k` that carries the label. */
-  const cellOf = (html, label) => {
+     `div.bk-row` of spans, and the value is the `bk-v` following the `bk-k` that carries the label.
+
+     THE TICK IS READ OFF THE WHOLE CELL rather than its text, because a ticked and an unticked box
+     hold the SAME GLYPH and are told apart by one class. A rule reading the text would pass on both
+     — which is the shape of every inert check this repository has deleted. */
+  const cellOf = (html, label, whole) => {
     const k = html.indexOf('<span class="bk-k">' + label + '</span>');
     if (k < 0) return null;
     const v = html.indexOf('bk-v', k);
     if (v < 0) return null;
-    return html.slice(v, html.indexOf('</span>', v)).replace(/^[^>]*>/, '').trim();
+    const cell = html.slice(v, html.indexOf('</span>', v));
+    return whole ? cell : cell.replace(/^[^>]*>/, '').trim();
   };
-  const dashes = (html, where) => ['Stage', 'Status', 'Asked for'].forEach(label => {
-    const v = cellOf(html, label);
-    if (v === null) bad.push(`the ${where} booking form has no "${label}" row`);
-    else if (v !== '—') {
-      bad.push(`"${label}" on the ${where} form reads ${JSON.stringify(v)}, not a dash`);
+  /* THE FIVE, READ OFF THE APP so a stage added or renamed needs nothing changed here. A list
+     written out in this file would be a second copy of `JOB_STAGES` to keep in step. */
+  const STAGES = (w.__t.JOB_STAGES || []).map(s => s.row);
+  const dashes = (html, where) => {
+    if (STAGES.length !== 5) {
+      bad.push(`JOB_STAGES has ${STAGES.length} rows, not the five the receipt is built from`);
     }
-  });
+    const v = cellOf(html, 'Status');
+    if (v === null) bad.push(`the ${where} booking form has no "Status" row`);
+    else if (v !== '—') {
+      bad.push(`"Status" on the ${where} form reads ${JSON.stringify(v)}, not a dash`);
+    }
+    STAGES.forEach(label => {
+      const cell = cellOf(html, label, true);
+      if (cell === null) bad.push(`the ${where} booking form has no "${label}" row`);
+      else if (cell.indexOf('bk-tick') === -1) {
+        bad.push(`"${label}" on the ${where} form is not drawn as a tick box`);
+      } else if (/bk-tick[^"]*\bon\b/.test(cell)) {
+        bad.push(`"${label}" is ticked on the ${where} form, which nobody has sent`);
+      }
+    });
+  };
   dashes(before, 'blank');
 
   /* ---------- AND ON THE PRICED FORM, WHICH IS A DIFFERENT BUILDER ---------------------------------
@@ -965,10 +1137,22 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   }
   const after = formPage();
   if (!after.includes('J-ASK')) bad.push('the booking just made is not drawn under the form');
-  /* THE STAGE ROW, TWICE: the blank form still says "Not asked for yet" and the receipt under it
-     says where the real booking has got to. One of them is the answer to the other. */
-  if ((after.split('Stage').length - 1) < 2) {
-    bad.push('the second document has no Stage row, so it is not the booking widget');
+  /* ---------- `Requested` IS TICKED THE MOMENT IT IS SENT, AND ONLY ON THE SECOND DOCUMENT -------
+     ASKED FOR AS *"a line for requested and it gets ticked automatically by system"* — so this is
+     that sentence as a rule: nothing was ticked a moment ago, `book-send` has now gone, and the
+     receipt under the form has its first box filled in. The form above it still has five empty
+     ones, which is the spine's own argument about a document reading the same either side of a
+     send, and the test that stops the tick being drawn on everything.
+
+     IT REPLACES A COUNT OF THE WORD "Stage". That version asked only that the string appeared
+     twice, so it would have passed on two blank forms — it was there to say "the second document
+     is the booking widget" and could not say the widget had anything in it. */
+  const ticked = s => (s.match(/class="bk-tick on"/g) || []).length;
+  if (ticked(formPage()) < 1) {
+    bad.push('nothing is ticked after the booking was sent, so the receipt is not under the form');
+  }
+  if (ticked(before) !== 0) {
+    bad.push('the blank form had a ticked stage on it before anything was sent');
   }
   /* ---------- IT MUST NOT GROW, AND IT IS ALLOWED TO SHRINK -------------------------------------
      THE RULE IS "BELOW, NOT BESIDE" — the booking just sent goes under the form rather than

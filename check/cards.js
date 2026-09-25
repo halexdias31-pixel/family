@@ -427,8 +427,8 @@ function outside(svg, row) {
   const guides = await pracPage.evaluate(arg => {
     if (typeof practicalGuide_ !== 'function' || typeof openSheet !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'practical');
-    const wide = [], clipped = [];
-    let drawings = 0;
+    const wide = [], clipped = [], order = [];
+    let drawings = 0, chips = 0, withQty = 0;
     items.forEach(x => {
       openSheet(x.name, practicalGuide_(x), null, null);
       const gd = document.querySelector('#sheet-body .gd');
@@ -440,9 +440,34 @@ function outside(svg, row) {
         drawings++;
         clipped.push(...window.__outside(svg, x.key));
       });
+      /* ---------- THE PICTURE, THEN THE THINGS NEEDED, AND EXACTLY ONE OF EACH ------------------
+         ASKED FOR IN THAT ORDER, AND AN ORDER IS INVISIBLE TO EVERY OTHER RULE HERE. A guide with
+         its drawing back below the method measures perfectly: nothing overflows, nothing is
+         clipped, every card still fits its pane. So it is asserted rather than left to a reader
+         of the template, which is this repository's own move — take a fact that was only true by
+         accident and give it somewhere to be stated and somewhere to be tested.
+
+         AND DRAWN ONCE. `diagram` holds one `<svg>` — `check-practicals.js` asserts that at the
+         file — so two `<figure>`s in one guide is the drawing rendered twice, which is the
+         `.reel .over` fault: one object, two descriptions, drifting apart the first time either is
+         touched. It is the exact mistake putting the picture at the top invites somebody to make
+         by leaving a copy behind. */
+      const figs = gd.querySelectorAll('figure');
+      const kit = gd.querySelector('.prac-kit');
+      if (figs.length > 1) {
+        order.push(x.key + ' draws its apparatus drawing ' + figs.length + ' times in one guide');
+      } else if (figs.length === 1 && kit
+                 && !(figs[0].compareDocumentPosition(kit) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+        order.push(x.key + ' draws its apparatus drawing BELOW the kit list — the picture of the '
+          + 'practical comes first, then the things it is made of');
+      }
+      gd.querySelectorAll('.kit-chip').forEach(c => {
+        chips++;
+        if (c.querySelector('.kit-q')) withQty++;
+      });
       if (typeof closeSheet === 'function') closeSheet();
     });
-    return { n: items.length, drawings, wide, clipped };
+    return { n: items.length, drawings, wide, clipped, order, chips, withQty };
   }, { slack: SLACK });
 
   /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO AND FAIL -- "I did not check" is not the same
@@ -542,6 +567,8 @@ function outside(svg, row) {
             + `${practicals.tall.length} practical card(s) are taller than that`);
   console.log(`${guides.n} practical guide(s) opened in the app's own sheet, `
             + `carrying ${guides.drawings} apparatus drawing(s)`);
+  console.log(`${guides.chips} kit chip(s) drawn across those guides, `
+            + `${guides.withQty} of them carrying a quantity`);
   if (papers === -1 || !papers.n) {
     console.error('\nthe app laid out no printed quiz at all -- not a pass');
     process.exit(1);
@@ -552,6 +579,14 @@ function outside(svg, row) {
   const painted = outOfBox.concat(guides.clipped);
   console.log(`${withDiag} question card(s) carry a drawing, and every label in every drawing `
             + `was measured against its own box`);
+
+  /* ---------- AND THE ORDER THE OWNER ASKED FOR ----------------------------------------------
+     A FAILURE RATHER THAN A COUNT, because the number is zero and can stay zero: this is a fact
+     about one template, not a backlog anybody has to work through. */
+  if (guides.order.length) {
+    console.log('\nTHE GUIDE IS IN THE WRONG ORDER  (' + guides.order.length + ')');
+    guides.order.forEach(o => console.log('  ' + o));
+  }
 
   if (painted.length) {
     console.log('\nPAINTED OUTSIDE THE DRAWING  (' + painted.length + ')');
@@ -595,7 +630,7 @@ function outside(svg, row) {
   }
 
   bad.push(...guides.wide);
-  if (!bad.length && !practicals.tall.length && !painted.length
+  if (!bad.length && !practicals.tall.length && !painted.length && !guides.order.length
       && !papers.over.length && !papers.leak.length) {
     /* IT SAID "EVERY QUESTION FITS THE NARROWEST PHONE" AND MEANT ITS WIDTH. That was true and
        read as more than it said, which is the "all 18 checks pass" shape one more time: the
@@ -605,6 +640,7 @@ function outside(svg, row) {
               + '     narrowest phone, every practical card fits the pane it is drawn in, every\n'
               + '     label in every drawing is inside the drawing, and every printed quiz fits\n'
               + '     one side of A4 with its answers on the other sheet.'
+              + '\n     The picture of a practical comes before the things it is made of, once each.'
               + (qtall !== -1 && qtall.tall.length
                  ? '\n     ' + qtall.tall.length + ' question cards are taller than the pane and scroll — printed above.' : ''));
     process.exit(0);

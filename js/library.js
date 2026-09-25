@@ -71,6 +71,33 @@ const libTrue = v => {
   return s === 'true' || s === 'yes' || s === '1' || s === 'y' || s === 'on';
 };
 
+/* ---------- A KIT LIST, SPLIT INTO WHAT THE THING IS AND HOW MUCH OF IT ---------------------------
+   THE STORAGE FORMAT IS `Name × qty`, ONE PIPE-SEPARATED ITEM EACH, and this is its only reader.
+   `Lolly sticks × 12`, `Water × 100 ml`, `Beaker (250 ml)` — the last has no quantity because one
+   beaker is one beaker, and a chip reading `× 1` says nothing.
+
+   SPLIT ON THE LAST `×`, NOT THE FIRST. A name may one day carry one (`10 × 10 grid`); a quantity
+   is always the tail, so taking the last occurrence is right under both readings and taking the
+   first is right under only one.
+
+   `×` RATHER THAN `x`, AND THAT IS MEASURED. A bare `x` sits inside `box`, `flex` and `Perspex`,
+   and ` x ` would still catch `10 x 10`. The multiplication sign appears ZERO times across the 640
+   items this column holds — counted before it was chosen — so it cannot collide with a name
+   already written, and it is the character the booking card already uses for the same idea.
+
+   THE NAME IS WHAT IS LEFT AND IT IS NEVER EMPTY. An item that is nothing but a quantity is a
+   quantity of nothing, so a leading `×` keeps the whole string as the name rather than producing a
+   chip with no label — and `check-practicals.js` fails the row, which is where that is repaired. */
+function kitParse_(cell) {
+  return libS(cell).split('|').map(s => s.trim()).filter(Boolean).map(item => {
+    const at = item.lastIndexOf('\u00d7');
+    if (at <= 0) return { name: item, qty: '' };
+    const name = item.slice(0, at).trim();
+    const qty = item.slice(at + 1).trim();
+    return name ? { name: name, qty: qty } : { name: item, qty: '' };
+  });
+}
+
 /* `libPrintPrice_` AND `libCanPrint_` WERE HERE — what a printed copy costs, computed while the
    checklists were built so a document arrived with its price on it. The checklists are not built
    any more (see below), so both went with the block that called them. Orphaned by the same change
@@ -279,11 +306,46 @@ function libraryExtras_(d, extra) {
            which is the whole argument for printing counts: nothing threw and the card simply
            told a tutor the exam board demands an experiment it does not. */
         required: libS(r.compliance) === 'AQA required practical',
+        /* ---------- AN EXPERIMENT OR A THING YOU MAKE -------------------------------------------
+           ASKED FOR AS "differentiate between a science experiment and a contraption/art and craft
+           thing". `subject` says what it is ABOUT and `compliance` says whether a board demands it;
+           neither says which of the two SHAPES it is, and a periscope and a titration are not the
+           same kind of afternoon.
+
+           WRITTEN PER ROW, NEVER DERIVED. Every word that would make a rule is in both sets —
+           "build" is in the steps of half the experiments and "measure" is in the steps of most of
+           the builds — and this repository already records what a substring costs here: the five
+           practicals that say they are NOT a required practical were flagged as one by
+           /required practical/. The tie-break is the row's own `outcome`: if the OBJECT is what you
+           end up with it is a build, and if the READING is, it is an experiment.
+
+           IT IS ON `row`, SO THE FUNNEL CAN ASK ABOUT IT WITH NO DEPLOY. `facetFromSheet_` reads
+           `x.row[field]`, so one `facets` row naming `practicalType` is a question — and the
+           coverage rule keeps it silent until the list is practicals, exactly as it does for
+           `Topic`. Nothing here decides that; the sheet does. */
+        practicalType: libS(r.practical_type),
         topics: libS(r.topics), aim: libS(r.aim), outcome: libS(r.outcome),
         venue: libS(r.venue), feasible: libS(r.feasible),
         groupSize: libN(r.group_size), minutes: libN(r.minutes),
         safety: libS(r.safety), mathsLink: libS(r.maths_link),
-        equipment: libS(r.equipment).split('|').map(s => s.trim()).filter(Boolean),
+        /* ---------- THE KIT, AS A NAME AND A QUANTITY ------------------------------------------
+           ASKED FOR AS "each item/ingredient to be like a chip ... and it's quantity". A chip has
+           two halves and the file has to carry both, so `kitParse_` splits each item on its own
+           `×`. That character appears NOWHERE in the 640 items this column already holds, measured
+           before it was chosen, and it is the one this app already means multiplication by — the
+           booking card prints `2 × £24.00` in the same face.
+
+           ONE STRING PER ITEM RATHER THAN A SECOND LIST BESIDE IT, and the argument is written out
+           ten lines above this one about `risks`: "three lists that have to line up by index is
+           the numbered-column fault wearing a different hat — nothing can check that item 3 of one
+           belongs to item 3 of another". A parallel `equipment_qty` is two lists with exactly that
+           problem, on a column somebody edits by hand.
+
+           AND THE QUANTITY IS OFTEN ABSENT ON PURPOSE. One stopwatch, one clamp stand, one pair of
+           goggles: writing `× 1` on five hundred chips is five hundred pieces of furniture. A
+           quantity is written where it MATTERS — more than one, or an amount the method states —
+           and `check-practicals.js` refuses a `× 1`. */
+        equipment: kitParse_(libS(r.equipment)),
         steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
         /* THE SHOP JOIN, BY ID, AND NOTHING READS IT YET. 20 of the 41 name the stock they need --
            `I023,I026,I045,I022` is the trundle wheel, the tape measure, the cones and the first aid

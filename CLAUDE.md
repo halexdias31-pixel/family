@@ -10125,6 +10125,81 @@ already does the rest.
 **Emptying the hash is the whole of it**; putting the PIN back is what stops that being a lockout of
 a different kind.
 
+#### It happened, and the tell was the column that should have made it impossible
+
+**Reported as "For some reason I can't login to my account", with the name and the four digits.**
+The section above was written as a hypothetical remedy for a state nobody had been in. The row was
+in it.
+
+**THE SHEET IS THE DIAGNOSIS AND THE CODE IS THE PROOF.** On that person's row in `Ledger` ->
+`people`: `pin_hash` populated, `pin_salt` populated, **and the plaintext `pin` holding the four
+digits being typed.** `authSetPin_` writes the hash and clears the plaintext *in the same call*, so
+that pair cannot be produced by any path through this code — the digits were typed back into the
+cell by hand after the hash existed. And `authCheckPin_`'s second line is
+`if (hash) return authSame_(...)`: **a row with a hash never consults the plaintext again.** So the
+right answer was sitting in a cell nothing reads, one column away from the one that decides.
+
+**`tries` IS WHAT MAKES IT CERTAIN RATHER THAN LIKELY.** `verifyLogin` reaches `authWrong_` only
+after `findPerson` has found a row and `authCheckPin_` has returned false — a name that does not
+resolve returns two lines earlier and a locked row returns one line earlier, and neither touches
+that cell. It read 4. So the name resolves, the round trip works, and the PIN check is what fails.
+
+**AND THE SAME CELL SAYS WHICH BACKEND IS DEPLOYED**, which is the one fact this environment can
+never fetch — every host but GitHub is blocked, so what `/exec` is serving has always had to come
+from somebody opening the URL. It can be read off the throttle instead: the version in this
+repository locks only past `FREE_TRIES` (10) and never sets `tries` back, so **`tries: 4` beside a
+`locked_until` that has been written is arithmetically impossible under it.** The version before it
+locked at 5 and reset to nought, which produces exactly that pair. The sign-in throttle rewrite has
+not been pulled into Apps Script, and the row proves it without a request leaving the container.
+
+**The lockout is NOT the cause and both readings say so.** `locked_until` held yesterday's date. As
+a real Date that is in the past, so `authWaitMins_` returns 0; as a *string* —
+`new Date('24/09/2026')` is month 24, which is an Invalid Date — `getTime()` is `NaN`, `NaN > 0` is
+false, and it returns 0 again. Worth writing down because the second reading is the one that looks
+alarming and it lands in the same place: a `dd/mm/yyyy` string in that cell is a permanently *open*
+account, never a permanently locked one.
+
+**One branch this cannot rule out from here**, and it is separable by the sentence on screen: a row
+whose `verified` cell says `PENDING` is refused *after* the PIN passes, with *"Please confirm your
+email first"* — a different message, and a different cell to blank.
+
+### `node js/check-secrets.js` — and the credential was in this repository, not in the sheet
+
+**Found while reading `verifyLogin` to answer the above.** `backend/constants.gs` carried two usage
+lines in the comment block explaining how to run a job from a URL, and where the placeholders belong
+they had a real admin's real name and their real four digits — the same four being typed into the
+sign-in box. For months, under a heading about deployment, in a repository that is **public**.
+
+**DELETING THE LINE UN-PUBLISHES NOTHING.** Git history is permanent, which is the sentence this
+file opens its three-question test with and repeats for `ticks_1/2/3` and for the learner profiles.
+The line going stops the next reader finding it; **the only repair that repairs anything is changing
+the PIN.** That is the owner's to do and it is said plainly rather than implied, because a tidy diff
+here reads exactly like a fix.
+
+**One question, one right answer: a PIN literal in this repository must be `0000`.** Not "must look
+like a placeholder", which is a judgement — a single reserved value, so there is nothing to tune and
+nothing to argue about. Measured across all 207 source files before the rule was written: **seven
+PIN literals, every one of them `0000`**, all in a usage line telling somebody to substitute their
+own. The word boundary is what keeps `spin`, `pinned` and `pinch` out of it.
+
+**It is deliberately not a search for secrets in general.** An API key or a token needs a rule that
+decides what a high-entropy string is, and this file already records what a check with ninety-five
+findings and two real ones is worth. Four digits beside the word `pin` is the one shape this app
+has, because four digits beside the word `pin` is what this app's credential IS.
+
+**AND IT CAUGHT ITS OWN AUTHOR ON ITS FIRST RUN.** The first version of its header pasted both
+`constants.gs` lines in to show what the fault looked like, and the run named `check-secrets.js:7`
+and `:8`. **A check that quotes the credential it found is the credential in one more file** —
+which is why it prints the line and the digit count and never the digits, the same argument
+`check-handles.js` makes about never quoting a refused word back. Proved by mutation in both
+directions.
+
+**The fault it guards is the one no instrument here could have seen**, and that is the whole
+argument for it: nothing renders a comment, nothing measures prose, and `check-backend.js` reads
+those same files asking a different question entirely. It was found by a person reading the file for
+an unrelated reason — which is this file's own definition of luck.
+
+
 ## Library card numbers and PINs are three columns on `people`
 
 **Asked for as "a place to make notes for library card numbers and library card pins"**, and the
@@ -10349,3 +10424,594 @@ now, and thirteen controls that had not changed by a pixel started failing. Prov
 genuinely under the floor in this app is 38, 40, 20 or 13, so half a pixel is nowhere near any of
 them and is below what a screen can draw or a stylesheet can mean. **Proved by mutation**: forcing
 `.mc-btn.fn` to 43px names all of them and exits 1.
+
+## The thing you pressed stayed dark for an eighth of a second
+
+**Reported as "make the button pressing feel more responsive on the finder."** Measured before
+anything was changed, at 8x CPU — an ordinary phone — answering one of the funnel's questions:
+
+| | |
+|---|---|
+| finger down → the press state painted | 19–42 ms |
+| **finger up → the screen having changed** | **130–138 ms** |
+| the whole of it, contact to answer | 270–308 ms |
+
+**`:active` ENDS AT THE LIFT.** So a tap is a brief flash, then an eighth of a second of a screen
+identical to the one you were just looking at, and only then the answer. That gap is the complaint:
+nothing on the phone says the tap landed, and the reasonable conclusion is that it missed.
+
+**AND ON THE OWNER'S PHONE THERE MAY BE NO FLASH AT ALL, which is the half nothing here can test.**
+`:active` on touch is a browser heuristic rather than a rule — it is withheld until the gesture is
+known not to be a scroll, and Safari has historically wanted a touch listener on the ELEMENT. Every
+listener this app has is on the window. So the one piece of feedback a press had was the piece that
+depends on the one platform this environment cannot reach.
+
+**A class depends on none of it.** `pressMark_` in shell.js puts `.is-pressed` on the nearest
+`[data-do]` at `pointerdown` — before any browser is deciding what the gesture is — and takes it
+off **two frames** after the handler ran, which is one frame after the repaint it is covering for
+has painted. Measured through a `MutationObserver` in the page rather than from the harness, which
+got it wrong first: a round trip out to node is longer than two frames, so the class read as gone
+the instant the finger lifted. In the page: **lit at 0 ms, and never unlit — the repaint replaces
+the row carrying it at 168 ms.**
+
+**IT IS NOT A SECOND PRESS STATE.** `.is-pressed` is added to the ten `:active` selectors that
+already exist rather than given rules of its own. Two descriptions of one look is the `.reel .over`
+fault, and these two would sit on the same element a tenth of a second apart — which is the version
+somebody notices. **A control with no `:active` rule is unchanged**, deliberately: the mark is on
+every control in the app and the stylesheet decides which of them show it, exactly as `:active`
+does.
+
+**The drag is the clear that is not optional.** A swipe that begins on an answer must not leave that
+answer lit for the length of the gesture — it reads as the row being held down while the column
+slides under it. Cleared at the one line that already decides a press has become a drag, beside
+`PRESS_MOVED`, so the two cannot disagree about when a tap stopped being a tap. Measured: lit at
+0px of travel, dark at 112px, and no answer added. A 1200 ms timeout sits behind all of it, because
+a mark that is never cleared is a control that looks permanently pressed and the cost of one wrong
+clear is nothing.
+
+### `check/press.js` asks whether it lit up, and the finder had to learn to hit-test
+
+**NOTHING HERE COULD SEE EITHER HALF OF THIS.** The press pass reaches a control with
+`dispatchEvent`, which fires no `pointerdown` at all and says so in its header — *"by the DISPATCH
+rather than by hit-testing, because whether a box can be hit is `check/ui.js`'s question"*. And
+`check/ui.js` measures whether a control can be read and hit, where **a control with no press state
+measures perfectly.**
+
+**TWO QUESTIONS, BECAUSE THE TWO FAILURES ARE OPPOSITE**: a mark that never goes ON is the app
+silently back to feeling dead, and one that never comes OFF is a control that looks permanently
+pressed. Plus the drag, which runs first, so anything still lit afterwards is a mark the drag failed
+to clear. **Proved by mutation in both directions**: the `pressMark_` call removed names three
+columns *"nothing lit"*; the clear removed names two *"1 still lit after"*; the real files report
+*"53 swipes, every one landed where it should"*.
+
+**THE FIRST RUN REPORTED FIVE COLUMNS DEAD AND EVERY ONE WAS THE HARNESS.** The drag above turns the
+page — that is the whole thing it asserts — and the press was using the coordinate taken BEFORE it,
+so it landed on card the control had slid away from. The spot is found again after the drag.
+
+**AND THE SECOND RUN REPORTED TWO, WHICH WAS A REAL FAULT IN THE FINDER.** `Tools` and `Games` both
+chose the star tile at the foot of a widget card: a rect in the middle of the screen whose own
+centre answers `elementsFromPoint` with the bare `.screen`, because it is **clipped below its pane's
+fold**. A rect is a layout position and a pane clips. That never mattered while every press here was
+dispatched; the moment one became a real pointer, the finder had to answer the other question too —
+so it checks `document.elementFromPoint` at the centre and skips anything that is not there.
+
+**IT MAKES THE DRAG TEST HONEST AS WELL, which is the part worth having.** A drag from a point where
+the control is not begins on bare card — the exact case that test exists to stop being the only one
+measured — and it would have gone on passing while proving nothing. 59 swipes became 53, and the six
+that went are the ones that were never touching a control.
+
+**The repaint itself was profiled and deliberately left alone.** Of the 130 ms: `stuffQuestion` 33,
+`fillStuffPages` 8, `stuffWindow_` 3, `filterChips` 2.7, and about 74 ms of the browser's own style,
+layout and paint. Splitting it — chips and the next question now, the results a frame later — would
+put the first visible change at 66 ms, and it is not done: `paintStuff(keepPage)` is also called by
+a star and by a dropdown on the booking form, where you are standing ON a result page, and a
+deferred second half would show the old card for a frame. **The gap was the problem and the mark is
+what fills it**; halving a number nobody can see any more is not worth a conditional repaint.
+
+## The receipt says where a booking has got to in five ticks
+
+**Asked for as "I think it needs a line for requested and it gets ticked automatically by system.
+Then line for accepted, then line for paid, then line for started. Then line for completed. All tick
+boxes."**
+
+**What was there was `Stage`** — one row carrying one of `jobSaid_`'s four sentences, *"Asked for —
+waiting on us"*, *"Accepted — waiting for payment"* — **and `Asked for`, a date.** A sentence says
+where you are; it cannot say the shape of the whole thing, so "how far along is this" took reading a
+line and knowing the vocabulary. Five ticks say it at a glance, and **the first un-ticked one IS
+what happens next**, which is the half the sentence was carrying.
+
+| | is it ticked | from |
+|---|---|---|
+| **Requested** | always — the row exists | `createdAt`, drawn beside it |
+| **Accepted** | `jobAccepted_(j)` | every seat Agreed, Paying or Booked |
+| **Paid** | `jobStage_(j) === 'receipt'` | a seat at `Booked` |
+| **Started** | the first planned date has passed | `startDate` |
+| **Completed** | the last planned date has passed | `endDate` |
+
+**NOBODY TICKS THESE BY HAND, AND THAT IS WHY THERE ARE NO CHECKBOXES IN THEM.** Every one is
+already derivable from the roster the backend folds out of the events and from the session dates. A
+tick somebody could press would be a SECOND source for a fact the roster already answers, which is
+the drift this file records under `documents_()`, `factsNow_` and `childrenOf`. So they are a MARK
+rather than a CONTROL: `.check` is this app's only checkbox and it is a `<label>` round an `<input>`
+at a 44px floor, and five of those is 220px of pressable nothing on a card whose headroom has been
+measured in single pixels. `.bk-tick` borrows that control's argument — a visible edge, a ghost ✓ in
+an empty box, gold when it is done — at receipt-row size.
+
+**EACH ONE ASKS ITS OWN QUESTION AND THEN THE ONE ABOVE IT.** A chain, because the calendar alone is
+not evidence that a lesson happened: a session accepted and never paid for, whose start date has
+passed, would tick `Started` off the clock — the app claiming teaching took place that nobody paid
+for. **And cancellation falls out of it for free**: `jobAccepted_` answers false on an empty roster
+and `participantsOf` empties the roster when everybody has gone, so a cancelled booking ticks
+`Requested` and stops, with nothing here that knows the word. Measured in five states through the
+real app: paid with future dates → 3 of 5; the same dates in the past → 5 of 5; nobody agreed → 1;
+nobody left → 1; the blank form → 0 of 5, drawn as five empty boxes.
+
+**THEY ARE ON THE FORM TOO, AND NOT MARKED `only:`.** `SPINE`'s own argument is that the form and
+the receipt are one document across TIME, so a row that appears only once the thing is saved is a
+row that changes shape at the moment somebody is checking it — which is exactly what `check-flow.js`
+refused when that argument was made about `Asked for`. An unsent booking shows the five stages
+ahead of it and pressing Send ticks the first.
+
+**`stageRows_` IS ONE BUILDER AND BOTH DOCUMENTS CALL IT**, which is the whole of what stops them
+drifting — the same argument `weekRows_` makes for the three week grids. `j` is null on the form.
+
+### `jobSaid_` claimed three readers and had one
+
+Its own note said *"the receipt row, the booking form and the stamp on the card"*. **Measured before
+deleting it: one.** The stamp went when the four receipt skins became one document — written up in
+`style.css`, which kept the argument and deleted the code — and the form pushes a literal dash. So
+the sentence had one home and it was the row this replaces. **Third sentence in this file to outlive
+the thing it described**, after `.favwrap.is-fav` and the dead `kind === 'paper'` guard.
+
+### `created_at` has been written by three handlers and sent by nothing
+
+`createJob`, `joinWaitlist` and `openWaitlist` all write it; `doGet` sent it nowhere. So
+`if (j.createdAt) push('Asked for', …)` in `jobRows` **could not fire**, and a row this repository
+argued about at length — `check-flow.js` refused to let it be dropped — has never once been drawn on
+a receipt. **This repository's oldest shape for the eighth time**, after `figure`, `orderPrints`, the
+four message actions, `exam_date`, `wow`, the eleven dead Settings writers and the two high-score
+columns. It has a reader now: `Requested`'s own value.
+
+**`check-payload.js` cannot see this class of fault and says so** — it compares top-level `DATA.*`
+keys, so a field inside a row that nothing reads is invisible to it.
+
+### And the `Dates` row has printed a dash on every receipt ever handed over
+
+**`doGet` ships the run as `dates: dates.join(', ')` and `jobRows` read `j.sessionDates`** — a name
+the payload has never carried. So the one row on the document whose whole job is to record WHEN the
+sessions are was empty on every real booking, and the fix is one `||`.
+
+**NOTHING COULD SEE IT, AND THE REASON IS THE ONE THIS FILE KEEPS FINDING.** `check/states.js` seeds
+a job carrying `sessionDates` — **the name the CODE reads rather than the name the SERVER sends** —
+so the lab has been measuring a shape that does not exist and reporting the row working. That is the
+fixture stating `focus` as a string `doGet` does not send, one data path along. The state seeds
+`dates` now, with a paid seat and a future start so the five ticks come out **three on and two off**:
+a state where all five agreed would measure one box five times.
+
+### The rule moved with the rows, and it is a stronger rule than the one it replaces
+
+`check-flow.js` asserted that `Stage`, `Status` and `Asked for` are all on the blank form and all
+dashes. The invariant is untouched and the rows have changed, so it asserts the five stages are on
+both the blank and the priced form, drawn as tick boxes, **none of them ticked** — and that
+something IS ticked once `book-send` has gone. **The list is read off the app's own `JOB_STAGES`**
+rather than written out here, and **the tick is read off the whole cell rather than its text**,
+because a ticked and an unticked box hold the same glyph and differ by one class: a rule reading the
+text would pass on both, which is the shape of every inert check this repository has deleted.
+
+**It replaces a count of the word "Stage".** That version asked only that the string appeared twice
+— so it would have passed on two blank forms. It was there to say "the second document is the
+booking widget" and could not say the widget had anything in it.
+
+**Proved by mutation in three directions**: every stage always ticked names five rows on the blank
+form and five on the priced one; nothing ever ticked names the receipt under the form; and the tick
+class renamed names all ten. The real files pass all 30 journeys.
+
+### A screenshot caught the one thing measurement could not
+
+**`Requested` carries a date and the other four do not**, so written box-then-date its box sat where
+its date started while the other four sat at the card's right edge — **five boxes in two columns**,
+on a row of ticks whose whole job is to be read down. `.bk-v` is right-aligned, so the box goes
+LAST. Every row measured correctly, nothing overflowed, and no check here asks whether five things
+line up inside their own column. **Fourteenth time this file writes that a screenshot is the last
+word on something drawn.**
+
+### And `check/ui.js` found the four pixels the waiting-list card did not have
+
+**FIVE ROWS WHERE THERE WERE THREE.** `Stage`, `Status` and `Asked for` became five ticks and
+`Status`, and the waiting-list branch is the card that `check/ui.js`'s own note records arriving
+with **three pixels of headroom at 768** — *"there is no headroom on this branch at all, which is
+why the block grid's cells are 20px rather than 44"*. It said so on the first run after the ticks
+went in: *".pane holding pane hides 4px below its own fold"*, at 768 and 1280, signed in.
+
+**THE LEADING IS WHERE IT CAME FROM, and the blanks had already solved it.** `.bk-v` is
+`line-height: 1.35`, which is a line for READING — and `.bk-row.is-blank` already drops to 1.1 with
+the argument written beside it: *"a dash is not read, it is counted past on the way to the row
+below"*. A tick is the same: five of them are SCANNED down, which is the whole point of drawing
+them as a column. At 1.1 a stage row is **15.7px against an ordinary row's 19.6**, the five come to
+78px instead of 94, and the card is back inside its pane with eleven pixels to spare.
+
+**Asked of `:has(.bk-tick)` rather than a class on the row**, because the row carrying a tick is
+exactly the row a tick was put in — a flag would be a second thing for `receiptRow` to remember and
+a second thing to go stale.
+
+**AND THE BOX IS SIZED TO WHATEVER LINE THAT LEAVES.** `font-size: inherit` with a `1.05em` box is
+12.6px against a 12.6px line at 768. The first version used `.check .box`'s own pair scaled down —
+`.82rem` with a `1.05em` box — which is **13.3px inside a 12.1px line**, so the mark was setting the
+row's height instead of fitting it. `vertical-align: middle` is the half that is easy to miss: an
+inline box sits ON the baseline, so its whole height hangs above it and the descender space is
+added underneath, which is where the extra pixels were.
+
+### Four more rows were reading names the payload has never sent
+
+**"Check the receipt booker that it all is well" was the other half of the ask, and it was not.**
+The method is `check-payload.js`'s question asked one level down, where that check cannot go — it
+compares top-level `DATA.*` keys, so a field inside a row that nothing sends is invisible to it.
+Every `j.<field>` `jobRows` reads, against every key `doGet` puts on a job: **sixteen against
+forty-seven, and six came back.**
+
+| the row | read | sent | what a real receipt said |
+|---|---|---|---|
+| **Students** | `students`, `maxStudents` | `maxKids` | **the row was absent** — `push` skips a row with no value |
+| **Venue** | `venue` | `location` | **absent** |
+| **Host** | `clientHosts` | *nothing* | **"We book the room"**, to every family hosting at home |
+| **Sharing** | `splitEmails` | *nothing* | **"Just you"**, on a session split three ways |
+| Dates | `sessionDates` | `dates` | a dash — recorded above |
+| — | `maxStudents` | — | the second half of the `Students` read |
+
+**TWO ARE REPAIRED ON THE PHONE AND TWO AT THE SERVER, and which end is not a coin toss.**
+`Students` and `Venue` were drawing NOTHING, and the right name is already in the app: `seatsOf_`
+is its one reader of "how many seats" — used by the roster and by the stamp, so a third spelling
+here would be the `documents_()` fault — and `jobReceipt`'s own header already tries `venue` then
+`location`, with the note *"both names are tried, because two lists genuinely use two"*. It was
+found once, for the line under the title, and not for the row two inches below it.
+
+**`Host` and `Sharing` were drawing a CONFIDENT WRONG ANSWER rather than nothing**, which is the
+worse half: a line about who is responsible for a venue, and a line naming who is splitting the
+cost. Neither fact is anywhere on the phone, so guessing a name here would have been inventing one.
+`doGet` sends them.
+
+**`splitEmails` IS NARROWER THAN `iAmIn`, DELIBERATELY.** Those are addresses the BOOKER typed in —
+the people they invited — and `iAmIn` is the whole roster, so sending it that way would hand one
+family the e-mail addresses another family chose. It goes to `cs[0]`, which is the same seat
+`client` is taken from, and to an admin because somebody has to.
+
+**And the state seeded `students` and `venue` too**, so the lab has been drawing two rows nobody
+holding a real booking has ever seen — the third instance in one commit of a fixture stating a
+shape `doGet` does not send.
+
+## A wrong PIN put a gold bar across the app and left it there
+
+**Reported as "I don't like how name or pin not recognised is a banner. It should be like the other
+pop ups that come up at the bottom of screen."** Measured before anything was changed, by refusing a
+`verifyLogin` and looking:
+
+| | |
+|---|---|
+| a gold `#banner` across the top of the app | *"Name or PIN not recognised."* |
+| a faint grey line under the button | *"Name or PIN not recognised."* |
+| a toast | none |
+| **after then signing in CORRECTLY** | **`bannerHidden: false` — the bar is still there** |
+
+**THAT LAST ROW IS THE COMPLAINT THIS FILE ALREADY RECORDED AND HALF-FIXED.** *"The name or PIN not
+recognised doesn't disappear after i just logged in correctly"* — the fix went onto the faint line,
+under a note calling itself *"belt and braces rather than the only thing standing between the two"*.
+The thing it thought it was bracing was **itself**. `banner('')` is called in exactly two places, the
+`retry` handler and `load()` guarded by `LOAD_SLOW` — which is set only by a thirty-second watchdog,
+so on an ordinary load it never fires. A wrong PIN was an alarm for the rest of the session, on every
+screen.
+
+### `why_` raised it for all thirteen of its callers, and it was a duplicate at every one
+
+**The argument for it is written above the function and it is right about the wrong thing:** *"the
+line under a button is where somebody looks; the banner is where text can be selected and pasted to
+somebody who can fix it. Both, from one place."* True of a DIAGNOSTIC — a backend that threw, a
+deployment serving old code. **False of a REFUSAL**, which is the app answering the question somebody
+just asked, and `why_` cannot tell the two apart from a string.
+
+**Measured across the thirteen: eight are `toast(why_(err))` and five write the sentence into a line
+under their own button.** Every caller already had somewhere to say it. So the banner was never the
+only copy anywhere — it was a second one, at alarm volume, that outlived the thing it was about. It
+is gone from `why_`; the sentence is untouched.
+
+**THE BANNER IS FOR A STANDING CONDITION** and the seven calls that raise it directly are all of that
+shape: the sheet is missing columns, the questions did not load, a part of the app did not arrive, a
+newer build is ready. Each is true until something changes, so persisting is the point.
+
+### And the sign-in card said it twice more
+
+**The refusal was written to `#in-said` TWICE and `banner()` was raised TWICE** — once from `send_`'s
+own catch, and again from `do-signin`'s `.catch(err => said.textContent = why_(err))`, which runs
+because `send_` rethrows. Two lines, one sentence, on the one card where somebody is waiting.
+
+**`#in-said` IS GONE, because with the refusal toasted it had three jobs and none of them was still
+its**: `"Both, please."` (a validation, now a toast), `"Checking…"` (which the BUTTON already says,
+with a spinner, from `send_`'s `busy`), and the refusal. **`send_`'s own `say()` toasts when no
+`where` is given**, so dropping the option is the whole of the change — one place decides, and the
+camera's `where: 'cam-said'` is untouched.
+
+**Both doors changed together.** `googleSignedIn_` wrote to the same element, and two ways in that
+report differently are two ways in where the one that behaves unlike the other reads as broken.
+
+**`#pin-said` is deliberately left alone.** It is a different thing on a different mechanism: it
+ships with standing text (*"4 to 8 numbers, and not 1234"*), which is a HINT rather than a message,
+and `pin-save` uses `api()` directly rather than `send_`. What it needed was the banner, and it has
+that fix for free.
+
+### The rule, and the first version was too wide
+
+`check-flow.js` refuses the POST, presses `do-signin`, and asks three things: the sentence is in a
+toast, `#in-said` has not come back, and **the banner did not CHANGE**.
+
+**That last word is the narrowing and it took a failing run to find.** The first version asked
+whether any banner was up — and `check/fixture.json`'s `version` is `test`, so `load()` correctly
+raises a standing warning that the deployment cannot do half the actions. A rule red on that is red
+on a banner doing exactly its job, and teaches nobody anything. **Proved by mutation**: the
+`banner(said)` put back in `why_` names the refusal and the standing sentence it replaced.
+
+## Every tick carries the day it happened, and the dates were already on the phone
+
+**Asked for as "The tick boxes have a date for when it got requested. When other things get ticked
+they should also have a date."**
+
+**`doGet` HAS PUT `events: eventsForJob(jobId)` ON EVERY JOB SINCE THE ROSTER WAS DERIVED FROM THE
+LOG** — six fields a row, `at` among them — and the only reader anywhere in `js/` was nothing at all.
+This repository's oldest shape once more, and it means the dates for `Accepted` and `Paid` needed no
+backend change: they are days the job's own log already records.
+
+| | its date | from |
+|---|---|---|
+| **Requested** | the job's own `created_at`, or the first `Request` if that cell predates the column | a cell, then the log |
+| **Accepted** | the **last** `Accept` | the predicate needs EVERY seat agreed |
+| **Paid** | the **first** `Confirm` on a session, the **last** on a full waiting list | `jobStage_` needs one booked seat, or the whole house |
+| **Started** | `startDate` | the dates the tick is read from |
+| **Completed** | `endDate` | the same |
+
+**THE TWO RULES ARE OPPOSITE ENDS OF THE LIST AND THAT IS NOT A PREFERENCE** — each is taken to match
+its own predicate, which is the only rule that stays right when the predicates differ. `paidNeeds_`
+is `jobStage_`'s own arithmetic rather than a second reading of it.
+
+**THE LAST `Accept` IS EXACT FOR EVERY STATE THE APP CAN REACH, and that took checking.** Two things
+could have broken it. An `Edit` drops everybody un-booked back to Waiting, so a re-Accept follows —
+and the last Accept IS that re-Accept, which is the right day. And the admin's Accept writes one
+event per participant on every press, so a second press would move the date with nothing having
+changed — except that `bmActionsFor` withholds `ACT.ACCEPT` from a seat already at `Agreed`, and
+`check-flow.js` already asserts an admin is only offered it on a booking that is waiting.
+
+**`at` IS DAY-GRANULAR** — `eventsForJob` puts it through `fmtDate`, so the time `logEvent` wrote is
+thrown away. Right as a label and useless as a sort key, so nothing sorts by it: the log is
+append-only and **array order is the order things happened in**.
+
+### One date format, because the three sources spell a day three ways
+
+`createdAt` and an event's `at` both go through the backend's `fmtDate` and arrive as `dd/mm/yyyy`;
+`startDate` and `endDate` are cut straight out of the `session_dates` cell and are whatever somebody
+typed. So **`Accepted 25/09/2026` sat above `Started 06/10/26`** — one column, two spellings, on a
+document read by running your eye down it. The app's own `fmtDate` is the format the `Dates` row
+three lines up already speaks, applied where the value is built so no `when` has to remember.
+
+### An un-ticked stage shows no date, and `Started` is why that is a rule
+
+`Started` and `Completed` are read off the PLANNED calendar, so their dates are known in advance and
+could be shown before the tick. **They are not.** The value column everywhere else means *the day
+this became true*; a future date in it would make one column mean two things, told apart only by
+whether the box beside it is filled. The plan is already on the card — `Dates` prints the range and
+the count.
+
+**And a ticked stage with no event draws the tick and nothing else.** Printing a dash or the word
+unknown is content where a blank is skimmed past; reaching for a nearby event's date is the `cost: 0`
+shape on a document somebody keeps.
+
+### The rule tests the arithmetic, not the rendering
+
+A wrong end of the list is the kind of thing that is subtly wrong for years, so the journey runs
+`stageRows_` over a log where **two families move four days apart** — the two right answers are the
+two INNER dates, the second `Accept` and the first `Confirm`, never the first Accept or the last
+Confirm. A log where everybody moved on one day would pass whichever way round they were read. The
+same log with `kind: 'waitlist'` must move `Paid` to the LAST Confirm, which is one rule giving two
+answers. And the chain is asserted from the other side: a stage below an un-ticked one carries
+neither a tick nor a date.
+
+**Proved by mutation in four directions** — the first `Accept`, the last `Confirm`, the chain removed
+so a date appears under an empty box, and a job with no log. All four are named; the real files pass
+all 32 journeys.
+
+### And the state was seeding a receipt with no log at all
+
+`check/states.js` seeded no `events`, so `Accepted` and `Paid` could tick with no date and **the lab
+could not tell that from a date that failed to draw**. It seeds a real log now, with the two families
+moving on different days, and `createdAt` in the long form the server actually sends so the card's
+shortening is measured rather than assumed. Third time in two commits that a state was found stating
+a shape `doGet` does not send.
+
+## The kit was a bulleted list with no amounts, and a sixth of the practicals are not experiments
+
+**Asked for as "For the practicals I want each item/ingredient to be like a chip. Like how Google
+has chips in documents and stuff ... The picture of the practical like a diagram. Then the things
+needed. And it's quantity. I also want to differentiate between a science experiment and a
+contraption/art and craft thing."** Four things, and the second one did not exist as data at all.
+
+### The quantity is inside the item, because three lists that line up by index is the fault already recorded here
+
+**`equipment` is a pipe list of 640 items across 82 rows and NOT ONE OF THEM SAID HOW MANY.** So a
+guide asked a tutor to bring `Lemons` and `Lolly sticks` without saying four and about ten, which is
+the half of a kit list you pack from.
+
+**A PARALLEL `equipment_qty` COLUMN IS REFUSED BY THIS FILE'S OWN RULE**, written ten lines above
+the mapper it would have sat beside: *"three lists that have to line up by index is the
+numbered-column fault wearing a different hat — nothing can check that item 3 of one belongs to item
+3 of another"*. It is the `images` and `needs` argument a third time. So the quantity goes INSIDE
+the item: `Lolly sticks × about 10`, `Water × 100 ml`, and `Beaker (250 ml)` with nothing, because
+one beaker is one beaker.
+
+**`×` RATHER THAN `x`, AND THAT IS MEASURED RATHER THAN PREFERRED.** A bare `x` sits inside `box`,
+`flex` and `Perspex`, and even ` x ` would catch `10 x 10`. The multiplication sign appears **zero
+times across all 640 items**, counted before it was chosen, so it cannot collide with a name already
+written — and it is the character the booking card already prints for the same idea. `kitParse_` in
+`js/library.js` is its only reader and it splits on the LAST one, because a name may one day carry
+one and a quantity is always the tail.
+
+**A QUANTITY OF ONE IS NOT A QUANTITY**, and `check-practicals.js` refuses a `× 1`. One stopwatch is
+one stopwatch; `× 1` on five hundred chips is five hundred pieces of furniture that say nothing. The
+absence IS the answer, which is this file's own sentence about an age nobody has judged. **58 of the
+640 carry one** — written where the row's own steps state an amount, and nowhere else.
+
+### `.chip` is the funnel's filter, and borrowing it would have given 640 inert boxes a fingertip each
+
+**`.chip` is a 44px tap target with a gold ✕ on it** — its own note records this stylesheet's fourth
+conviction of the tap-target rule. A kit item is not pressable. Reusing that class would have put
+`check/ui.js` in the position of measuring tap targets on things nobody can tap, which is the
+`.price.faint` shape from the other end: a class that reads as a decision and behaves as something
+else. `.kit-chip` is its own component, at reading size.
+
+**AND `.prac-kit ul` HAD TO COME OFF THREE SELECTOR GROUPS.** It is a class plus a type — (0,1,1) —
+against `.kit-chips`'s (0,1,0), so its `padding-left: 1.1rem` would have won and indented the chip
+block by a bullet's width, with nothing below looking wrong enough to find. Tenth conviction of
+`.price.faint`, refused before it was written rather than after a screenshot.
+
+### `space-between` spreads the space between EVERY child, and there are two flags now
+
+`Build` and `Extra` answer two different questions and belong together on the row that already
+answers one of them. `.prac-head` is `justify-content: space-between`, so a third child put
+`is-type` at **[12→82]** and `is-req` at **[141→256]** — fifty-nine pixels of nothing between two
+chips that are a pair. Measured at 320px before the wrapper was written. One `.prac-flags` box takes
+the head back to two children, so the rule goes on meaning what it meant and the pair wraps under a
+long title as a pair — which `Electrolysis` and `Gear build — follow the drive through` both do.
+
+**NEITHER TYPE IS GOLD, DELIBERATELY.** Gold on this card answers exactly one yes/no question —
+`.prac-flag.is-req`'s own note says an "Extra" in the same colour would make the distinction
+decorative — and colouring `Build` would put a second meaning on that colour an inch away, on the
+same row.
+
+### The picture moved above the kit, and it is NOT on the card
+
+**Asked for in that order: the picture, then the things needed.** It used to sit at the head of the
+method and the note that put it there is still right about what the seventeen drawings ARE — every
+one is a set-up or a construction, something you build before the first reading. That argument was
+answering a different question. Seeing the thing, then what it is made of, then how to make it is
+the order a set of instructions comes in, and for a BUILD the picture IS the outcome and the kit
+list is its parts.
+
+**WHAT IT COSTS IS SAID RATHER THAN BURIED**: somebody on step 4 is now a scroll from the figure it
+refers to. A second copy beside the steps would close that and is exactly the `.reel .over` fault —
+one object, two descriptions, drifting apart the first time either is touched.
+
+**NOT ON THE CARD, AND THAT IS ARITHMETIC RATHER THAN TASTE.** `.pane` caps at 534px on a 320×568
+phone, a practical card has a median height of 274px, and `.qsheet figure svg` lays out at
+`min(100%, 20rem)` — so a drawing plus a chip block is about 280px more, which would put the
+seventeen cards that have one straight back past the fold. That is the whole fault the card/guide
+split was made to repair.
+
+**AND ONLY 17 OF 82 PRACTICALS HAVE A PICTURE AT ALL**, so on 65 of them "the picture of the
+practical" is an absence rather than a layout. That is the rule this file already states twice —
+draw only where the row's own words determine the picture — and the number is printed on every run
+rather than left as a silence.
+
+### An experiment or a build, written per row and never derived from a word
+
+**`subject` says what a practical is ABOUT and `compliance` says whether a board demands it; neither
+says which of the two SHAPES it is**, and a periscope and a titration are not the same kind of
+afternoon. `practical_type` is the column, and the tie-break is the row's own `outcome`: if the
+OBJECT is what you end up with it is a build, and if the READING is, it is an experiment. Assembling
+standard apparatus is not building a thing — which is what keeps a clamp stand, a circuit from a kit
+and a filtration set-up on the experiment side.
+
+**Measured: 71 experiments, 6 builds, 5 refused and not asked.** The six are the pinball table, the
+scribble bot, the periscope, the balloon car, the gear build and the shoebox projector — every one
+of them a row whose own `outcome` leads with the object.
+
+**NEVER DERIVED FROM A SUBSTRING, and this file records what one costs on this very column**:
+`/required practical/` matched `AQA-aligned, NOT a required practical` and put a gold flag on five
+cards saying they are not one. "build" is in the steps of half the experiments and "measure" is in
+the steps of most of the builds.
+
+**A CLOSED LIST RATHER THAN A BOOLEAN.** A third value is plainly possible — a DEMONSTRATION you
+watch rather than measure or make — and a boolean would have to be replaced to admit one where a
+word beside two other words does not. `PRACTICAL_TYPE` in `check-practicals.js` is the `VOCAB` /
+`ACCEPTED` / `RETIRED_FACETS` pattern again, and a new value goes in there by somebody who has just
+read the two already in use.
+
+**A REFUSED EXPERIMENT IS NOT ASKED WHICH SHAPE IT WOULD HAVE BEEN**, and it is on the same list as
+`steps` and `risks` for the same reason: saying which shape an afternoon nobody will run would have
+had is content invented to satisfy a checker.
+
+**And the header said `82 experiments`.** That was the ordinary English word for all of them until
+this made `experiment` one of two values, and a header reading `82 experiments` three lines above
+`71 experiment(s), 6 build(s)` is one word meaning two things — the `kind`/`paper` collision this
+repository already renamed its way out of. It says `82 practicals`.
+
+### One row in `facets.json`, and the coverage rule keeps it off every other screen
+
+`facetFromSheet_` reads `x.row[field]`, so `practicalType` is a funnel question with **no deploy** —
+and `FACET_COVERAGE` keeps it silent until the list IS practicals, exactly as it does for `Topic`.
+Measured: **1% coverage across the whole app and 94% once the funnel is on practicals**, offering
+`Experiment` 71 and `Build` 6. The six per cent is the five refused rows, which correctly carry no
+type — so the number is a fact about the data rather than a gap. The sheet owns whether it is asked
+at all.
+
+### Every judgement was refuted before it was written, and the writer refuses what no reader would see
+
+**The 82 rows were classified and their 640 items split by eleven agents, and every batch was then
+re-read by a second agent told to REFUTE it** — the rule being that a clean report over a wrong
+quantity is worse than no review, because these cards are read by children and packed into a bag
+taken to a client's house. **674 items read, 12 faults raised, 12 corrections applied.** Three of
+them are the kind nothing else here could have reached:
+
+| | |
+|---|---|
+| `PR-FN11` spaghetti, marshmallows, tape | `20 sticks` is a **per-team ration** read as the kit total. The row runs in teams; a tutor packing from that chip brings one team's worth for four. `20/team` |
+| `PR-HM02` `Glass test tubes and a rack` | `6 to 8` counts the TUBES, on a compound item whose second noun is a rack. `6–8 tubes` |
+| `PR-HM16` `About 1.5 m of string` | the split dropped the row's own hedge, turning an approximate length into an exact one. `about 1.5 m` |
+
+**AND `tools/practical-chips.py` ASSERTS AT THE WRITE, WHICH IS THE HALF A CHECKER CANNOT DO.** Once
+the cell says `Name × qty` the original is gone, so the file can never again be asked *was anything
+lost?* The proposal carries the original beside the two halves, so the write asks it: every word of
+the original must be in the name, in the quantity, or on one of two closed lists — and the name may
+not invent a word either. **It refuses the archetype this file already names**: `Nichrome wire
+(about 1 m, taped to a metre rule)` split as `Nichrome wire × 1 m` reports `metre, rule, taped, to`
+in neither half.
+
+**A MEASURE WORD MAY BE DROPPED ONLY WHERE A QUANTITY WAS WRITTEN, and that one condition is the
+whole difference between the two things a number in a name can be.** `A teaspoon of washing-up
+liquid` gives up `teaspoon` because `1 tsp` now holds it; `250 ml beaker` gives up nothing, because
+its quantity is empty and `250 ml` is the beaker's SIZE.
+
+**TWO MORE SHAPES ARE STRUCTURAL AND ARE REFUSED OUTRIGHT.** A hyphen — `Two-litre bottles` is a
+bottle's size where `Two graphite electrodes` is a count, and that one character is the whole
+difference. And a bracket — `Balance (0.01 g)` and `Quadrat (0.5 m)` put a tool's own specification
+in parentheses, and nothing in this column has ever written a count in one.
+
+**Both rules had to be narrowed once, and both times a CORRECT fix was being refused.** `at least`
+joined the droppable words, because `Paper cupcake cases (at least 20 identical) × 20+` left `at,
+least` in neither half and neither carries identity. And the bracket rule fires only where the WHOLE
+bracket went: `(at least 20 identical)` keeps `identical` in the name, so that bracket was holding a
+real count beside a real adjective and the rule has no business in it. Fourteen mutation cases, zero
+mismatches.
+
+**WHAT IT CANNOT SEE IS SAID RATHER THAN IMPLIED.** `250 ml beaker` and `100 ml of water` are the
+same sentence to any rule about which words moved where; one is a vessel and the other is a
+substance, and only a reader knows which. That is what the refuters are for, and it is the first
+thing they are told to hunt.
+
+**IT REFUSED EXACTLY ONE OF THE 640 AND THE REFUSAL WAS RIGHT.** `Washing-up liquid, one good
+squeeze` split as `Washing-up liquid × a squeeze` drops **good**, which is not a droppable word and
+does not fit the twelve-character cap as `a good squeeze`. The refuter was right that an amount is
+stated and the writer is right that the split loses a word, so the item stays whole — a chip reading
+the sentence beats a chip reading a shortened one. **That cap is not a preference**: `.kit-q` is
+`flex: 0 0 auto` and cannot wrap, so a long quantity pushes the name out of its own chip.
+
+### And the search box would have gone dark on all 82 in one line
+
+`practicalText_` built its haystack with `(p.equipment || []).join(' ')`. `equipment` is a list of
+objects now, so that line would have put `[object Object]` into the haystack of every practical in
+the library — `goggles` 13, `stopwatch` 18, `nichrome` 2, every kit word the note above that
+function says it exists to make findable, gone, **silently, because a haystack cannot report what is
+missing from it**. Both halves go in, because `250 ml` is a thing somebody types.
+
+### The order is asserted, because an order is invisible to every other rule here
+
+A guide with its drawing back below the method measures perfectly: nothing overflows, nothing is
+clipped, every card still fits its pane. So `check/cards.js` asks the two questions that are left —
+the figure is drawn **once**, and it is drawn **above** the kit — which is this repository's own
+move of taking a fact that was only true by accident and giving it somewhere to be stated and
+somewhere to be tested. Measured after: **640 kit chips across 82 guides, 58 of them carrying a
+quantity**, 0 cards past the pane and nothing past the column at 320px.

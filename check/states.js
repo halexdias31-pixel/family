@@ -647,12 +647,58 @@ const STATES = {
       enter: () => {
         DATA.liveJobs = [{
           id: 'J-UI', jobId: 'J-UI', title: 'GCSE Maths, Tuesday 4pm',
-          subject: 'Maths', level: 'GCSE', students: '2',
-          venue: 'Colliers Wood Library', clientHosts: '',
+          subject: 'Maths', level: 'GCSE',
+          /* ---------- `maxKids` AND `location`, WHICH ARE THE NAMES `doGet` SENDS --------------
+             THIS SEEDED `students` AND `venue` AND THE PAYLOAD CARRIES NEITHER. Both were read by
+             `jobRows`, so on every real receipt the `Students` row was absent entirely — `push`
+             skips a row with no value — and `Venue` with it. The state was seeding the names the
+             CODE reads rather than the names the SERVER sends, so the lab drew two rows nobody
+             holding a real booking has ever seen. Same fault as `sessionDates` below it, found the
+             same way: every field this receipt reads, compared against every key `doGet` puts on a
+             job. `clientHosts` and `splitEmails` are sent now, so they keep their names. */
+          maxKids: 2, location: 'Colliers Wood Library', clientHosts: true,
           weekday: 'Tuesday', time: '16:00', hours: '1.5', term: 'Autumn 2026',
-          kind: 'session', splitEmails: '', tutor: 'Ada Tutor', client: USER.name,
-          sessionDates: '06/10/26, 13/10/26, 20/10/26, 27/10/26, 03/11/26, 10/11/26',
-          startDate: '06/10/26', endDate: '10/11/26',
+          kind: 'session', splitEmails: 'gran@example.org', tutor: 'Ada Tutor', client: USER.name,
+          /* ---------- `dates`, BECAUSE THAT IS THE NAME `doGet` SENDS ---------------------------
+             THIS SAID `sessionDates` AND THE PAYLOAD HAS NEVER CARRIED THAT KEY. `doGet` ships the
+             run as `dates: dates.join(', ')`, so `jobRows` — which read `j.sessionDates` — found
+             nothing on every real job and the `Dates` row printed a dash on every receipt anybody
+             has been handed. The state was seeding the name the CODE reads rather than the name the
+             SERVER sends, which is the fault CLAUDE.md records about the fixture stating `focus` as
+             a string `doGet` does not send: the lab measured a shape that does not exist and
+             reported the row working.
+
+             A PAID SEAT AND A FUTURE START, so the five stage ticks are THREE ON AND TWO OFF.
+             `jobAccepted_` takes `Booked` and `jobStage_` reads it as a receipt, so `Requested`,
+             `Accepted` and `Paid` are true; the dates are still ahead, so `Started` and `Completed`
+             are not. A state where all five agreed would measure one box five times. */
+          dates: '06/10/26, 13/10/26, 20/10/26, 27/10/26, 03/11/26, 10/11/26',
+          startDate: '06/10/26', endDate: '10/11/26', createdAt: '22/09/2026',
+          slots: [{ n: 1, client: USER.name, status: 'Booked' },
+                  { n: 2, client: 'Second Family', status: 'Booked' }],
+          /* ---------- THE JOB'S OWN LOG, WHICH IS WHERE TWO OF THE FIVE DATES COME FROM --------
+             `doGet` HAS PUT `events: eventsForJob(jobId)` ON EVERY JOB SINCE THE ROSTER WAS
+             DERIVED FROM IT, and this state seeded none — so `Accepted` and `Paid` could tick with
+             no date and the lab could not tell that from a date that failed to draw.
+
+             TWO FAMILIES, EACH ACCEPTING AND PAYING ON A DIFFERENT DAY, because that is the only
+             shape that proves the two rules are opposite ends of the list: `Accepted` needs every
+             seat, so it takes the LAST Accept (25th, not the 24th); `Paid` needs one booked seat
+             on a session, so it takes the FIRST Confirm (26th, not the 28th). A log where everyone
+             moved on one day would pass whichever way round they were read.
+
+             `at` IS `dd/mm/yyyy` HERE because that is what `eventsForJob` sends — it puts the cell
+             through `fmtDate` on the backend. `createdAt` is the same. The card's own `fmtDate`
+             shortens both to the `dd/mm/yy` the `Dates` row above them already uses, and seeding
+             the long form is what measures that rather than assuming it. */
+          events: [
+            { at: '22/09/2026', actor: USER.name, role: 'client', action: 'Request', target: '', message: 'asked for a session' },
+            { at: '23/09/2026', actor: 'Second Family', role: 'client', action: 'Request', target: '', message: 'asked to join' },
+            { at: '24/09/2026', actor: USER.name, role: 'client', action: 'Accept', target: '', message: 'accepted by us' },
+            { at: '25/09/2026', actor: 'Second Family', role: 'client', action: 'Accept', target: '', message: 'accepted by us' },
+            { at: '26/09/2026', actor: USER.name, role: 'client', action: 'Confirm', target: '', message: 'payment confirmed' },
+            { at: '28/09/2026', actor: 'Second Family', role: 'client', action: 'Confirm', target: '', message: 'payment confirmed' },
+          ],
           price: '270', tutorPay: '135', stage: 'accepted', status: 'accepted',
         }];
         paint('booking');

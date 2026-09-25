@@ -1992,18 +1992,40 @@ function closeSheet() {
    old code, and an action the backend has never heard of. Each needs a different thing done about
    it and none of them was named.
 
-   AND IT GOES IN THE BANNER TOO. The line under a button is where somebody looks; the banner is
-   where text can be selected and pasted to somebody who can fix it. Both, from one place. */
+   ---------- AND IT PUT EVERY ONE OF THEM IN THE BANNER, WHICH WAS WRONG ------------------------
+   THE ARGUMENT WAS *"the line under a button is where somebody looks; the banner is where text can
+   be selected and pasted to somebody who can fix it. Both, from one place."* That is right about a
+   DIAGNOSTIC and wrong about a REFUSAL, and this function could not tell them apart.
+
+   REPORTED AS *"I don't like how name or pin not recognised is a banner. It should be like the
+   other pop ups that come up at the bottom of screen."* Measured: typing the wrong PIN puts a gold
+   bar across the top of the app — **and it is still there after you sign in correctly.** Nothing
+   clears it. `banner('')` is called in exactly two places, the `retry` handler and `load()` when
+   the load was slow, so a wrong PIN is an alarm for the rest of the session on every screen.
+
+   That is the complaint this repository already recorded once and half-fixed: *"the name or PIN
+   not recognised doesn't disappear after i just logged in correctly"*. The fix went onto the faint
+   line under the button, with a note calling itself *"belt and braces rather than the only thing
+   standing between the two"* — and the thing it thought it was bracing was itself. The loud copy
+   was never touched.
+
+   IT IS A DUPLICATE AT EVERY CALLER, WHICH IS WHAT SETTLES IT. Measured across the thirteen: eight
+   are `toast(why_(err))` and five write the sentence into a line under their own button. Every one
+   already has somewhere to say it, so the banner was never the only copy anywhere — it was a
+   second one, at alarm volume, that outlived the thing it was about.
+
+   THE BANNER IS FOR A STANDING CONDITION and the calls that raise it directly are all of that
+   shape: the sheet is missing columns, the questions did not load, a newer build is ready, a file
+   did not arrive. Each is true until something changes, so persisting is the point. A failed
+   action is a MOMENT, and a moment belongs in a toast. */
 function why_(err) {
   const msg = String((err && err.message) || err || '').trim();
   /* A GENUINELY UNREACHABLE SERVER IS THE ONE CASE THE OLD SENTENCE WAS RIGHT ABOUT. `fetch`
      rejects with a TypeError and no useful text when there is no connection at all, which is the
      only time nothing better can be said. */
-  const said = (!msg || /^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg))
+  return (!msg || /^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg))
     ? 'No connection — the server could not be reached at all.'
     : msg;
-  try { banner(said); } catch (e) {}
-  return said;
 }
 
 function api(body) {
@@ -2173,13 +2195,87 @@ function clicks(on) {
    ends without a click cannot eat the tap after it. */
 let PRESS_MOVED = false;
 
+/* ==================================================================================================
+   THE THING YOU PRESSED STAYS LIT UNTIL THE SCREEN HAS ANSWERED.
+
+   REPORTED AS *"make the button pressing feel more responsive on the finder"*, and measured before
+   anything was changed: at 8x CPU — an ordinary phone — answering one of the funnel's questions is
+   **130 ms from the finger lifting to the screen having changed**. `:active` ends at the LIFT. So
+   what a tap actually looks like is a brief flash, then an eighth of a second of a screen identical
+   to the one you were just looking at, and only then the answer. That gap is the whole complaint:
+   nothing on the phone says the tap landed.
+
+   AND ON THE OWNER'S PHONE THERE MAY BE NO FLASH AT ALL. `:active` on touch is a browser heuristic
+   rather than a rule — it is withheld until the gesture is known not to be a scroll, and Safari has
+   historically wanted a touch listener on the element itself. Every listener this app has is on the
+   WINDOW. So the one piece of feedback a press had was the piece nothing here can test, on the one
+   platform this environment cannot reach.
+
+   A CLASS DOES NOT DEPEND ON ANY OF THAT. It goes on at `pointerdown`, which has already happened
+   by the time a browser is deciding what the gesture is, and it comes off two frames after the
+   handler has run — by which time either the screen has changed or the markup carrying it has been
+   replaced. So the lit state covers exactly the window the complaint is about.
+
+   ---------- IT IS NOT A SECOND PRESS STATE, IT IS THE SAME ONE -----------------------------------
+   `.is-pressed` is added to the `:active` selectors that already exist rather than given rules of
+   its own — see `.row.tap.counted:active` in style.css. Two descriptions of one look is the fault
+   this repository records under `.reel .over`, and here they would sit on the same element a tenth
+   of a second apart, which is the version that gets noticed.
+
+   A CONTROL WITH NO `:active` RULE IS UNCHANGED, and that is deliberate: the mark is on every
+   control in the app and the stylesheet decides which of them show it, exactly as `:active` does.
+
+   ---------- WHAT CLEARS IT, AND THE ONE THAT IS NOT OPTIONAL -------------------------------------
+   THE DRAG. `PRESS_MOVED` is set the moment a finger travels ten pixels, and a swipe that began on
+   an answer must not leave that answer lit for the length of the gesture — it would read as the row
+   being held down while the column slides under it. Cleared at the same line, so there is one place
+   that decides a press has become a drag.
+
+   AND A TIMEOUT BEHIND ALL OF IT, because a mark that is never cleared is a control that looks
+   permanently pressed, and the cost of one wrong clear is nothing. */
+let PRESSED = null;
+let PRESSED_OFF = 0;
+
+function pressMark_(t) {
+  pressClear_();
+  /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
+     card, which is the same rule `SHEET_FROM` follows for where a sheet grows from. */
+  const el = t && t.closest && t.closest('[data-do], .tab');
+  if (!el) return;
+  PRESSED = el;
+  el.classList.add('is-pressed');
+  PRESSED_OFF = setTimeout(pressClear_, 1200);
+}
+
+function pressClear_() {
+  clearTimeout(PRESSED_OFF);
+  if (PRESSED) { try { PRESSED.classList.remove('is-pressed'); } catch (e) {} }
+  PRESSED = null;
+}
+
+/* TWO FRAMES, NOT ONE. A handler that repaints does its work synchronously and the browser paints
+   it on the NEXT frame; clearing on the first would take the mark off before the answer it is
+   covering for has been drawn, which is the gap this exists to fill, one frame shorter. */
+function pressDone_() {
+  requestAnimationFrame(() => requestAnimationFrame(pressClear_));
+}
+
+addEventListener('pointerdown', e => {
+  if (!e.isPrimary) return;
+  if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+  pressMark_(e.target);
+}, { passive: true, capture: true });
+addEventListener('pointercancel', pressClear_, { passive: true });
+
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
+    pressClear_();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
     return;
   }
+  pressDone_();
   if (CLICK_LOG) {
     const d = e.target.closest('[data-do]');
     console.log('[click]', {

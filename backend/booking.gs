@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-24-c-role-titles";
+const BOOKING_VERSION = "2026-09-25-a-stage-ticks";
 
 
 /**

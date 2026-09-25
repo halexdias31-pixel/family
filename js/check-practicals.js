@@ -83,6 +83,26 @@ const HAZARD = new Set(['none', 'very low', 'low', 'medium', 'high']);
    required. The nuance did not go anywhere: it is in `notes`, which is prose and is drawn as prose. */
 const WOW = new Set(['low', 'medium', 'medium-high', 'high', 'very high']);
 
+/* ---------- AN EXPERIMENT OR A THING YOU MAKE -----------------------------------------------------
+   ASKED FOR AS "differentiate between a science experiment and a contraption/art and craft thing",
+   and it is a closed list for `WOW`'s reason one rule up: the card reads it to print a word, so it
+   has to be comparable. A third value is plainly possible — a DEMONSTRATION you watch rather than
+   measure or make — and it goes in HERE, deliberately, by somebody who has just read the two
+   already in use. That is the argument `check-library.js` makes about `Resit` arriving beside
+   `Second wave`.
+
+   NEVER DERIVED FROM A WORD IN THE ROW. "build" is in the steps of half the experiments and
+   "measure" is in the steps of most of the builds, and a substring over this data is the fault
+   this file already carries in its own comments: /required practical/ matched `AQA-aligned, NOT a
+   required practical` and called five extras required. */
+const PRACTICAL_TYPE = new Set(['experiment', 'build']);
+
+/* ---------- A QUANTITY IS SHORT, OR IT IS NOT A QUANTITY ------------------------------------------
+   IT RENDERS INSIDE A CHIP beside the item's own name, and `.kit-q` is `flex: 0 0 auto` so it
+   cannot wrap — a long one pushes the name out of its chip rather than wrapping politely. Twelve
+   characters holds `2`, `250 ml`, `a handful` and `2 per person`, and refuses a sentence. */
+const QTY_MAX = 12;
+
 /* The numbered columns this file exists to have replaced. A returning `equipment_11` is not untidy,
    it is the fault coming back — the same argument `RETIRED_FACETS` makes about a deleted facet. */
 const NUMBERED = /^(equipment|step|topic)_\d+$/;
@@ -91,6 +111,7 @@ const seen = new Set();
 let joined = 0, topicLinks = 0, required = 0;
 let excluded = 0, hazards = 0, ages = 0, costed = 0;
 let risked = 0, riskLines = 0;
+let experiments = 0, builds = 0;
 const unknownTopics = new Map();
 
 rows.forEach(r => {
@@ -135,11 +156,16 @@ rows.forEach(r => {
   const gone = String(r.excluded_reason || '').trim();
   if (gone) {
     excluded++;
-    ['steps', 'risks'].forEach(col => {
+    /* `practical_type` IS ON THIS LIST FOR THE SAME REASON THE OTHER TWO ARE. Saying which shape
+       an afternoon that is not happening would have had is a judgement about a thing nobody will
+       do — content invented to fill a column, which is what this block exists to refuse. */
+    const NEEDLESS = { steps: 'a method', risks: 'a risk assessment',
+                       practical_type: 'a shape (experiment or build)' };
+    Object.keys(NEEDLESS).forEach(col => {
       if (String(r[col] || '').trim()) {
-        fail.push(id + ' is refused and carries ' + (col === 'steps' ? 'a method' : 'a risk '
-          + 'assessment') + ' anyway — an experiment nobody is going to run does not need one, '
-          + 'and one that is there will eventually get run');
+        fail.push(id + ' is refused and carries ' + NEEDLESS[col] + ' anyway — an experiment '
+          + 'nobody is going to run does not need one, and one that is there will eventually '
+          + 'get run');
       }
     });
   } else {
@@ -171,9 +197,66 @@ rows.forEach(r => {
         if (!part.trim()) fail.push(id + ' has an empty item in ' + col + ' — a doubled pipe');
       });
     });
-    risked++;
+    /* ---------- AND THE KIT CARRIES ITS OWN QUANTITY, IN ONE STRING ---------------------------
+       THE FORMAT IS `Name × qty` AND THIS IS WHERE IT IS REFUSED. `kitParse_` in js/library.js is
+       its only reader and it is deliberately forgiving — a chip with no label is worse than a chip
+       with a long one, so a malformed item falls back to drawing the whole string. That forgiveness
+       is exactly why the rule has to be here: a `Water ×` with nothing after it would render as the
+       words `Water ×` and look like a design.
+
+       THE SEPARATOR IS `×` AND NOT `x`, measured: a bare `x` sits inside `box`, `flex` and
+       `Perspex`, and the multiplication sign appeared ZERO times across the 640 items this column
+       held before it was chosen. It is also the character the booking card already prints for the
+       same idea.
+
+       A QUANTITY OF ONE IS NOT A QUANTITY. One stopwatch is one stopwatch, and `× 1` on five
+       hundred chips is five hundred pieces of furniture that say nothing. The absence IS the
+       answer, which is the same argument this file makes three columns along about an age nobody
+       has judged. */
+    String(r.equipment || '').split('|').map(t => t.trim()).filter(Boolean).forEach(item => {
+      const bits = item.split('\u00d7');
+      if (bits.length === 1) return;
+      if (bits.length > 2) {
+        fail.push(id + ' has a kit item with two × in it — "' + item + '". One item is one thing '
+          + 'and one quantity; two of anything here is a doubled pipe wearing a different hat');
+        return;
+      }
+      const name = bits[0].trim(), qty = bits[1].trim();
+      if (!name) {
+        fail.push(id + ' has a kit item that is a quantity and no thing — "' + item + '"');
+      }
+      if (!qty) {
+        fail.push(id + ' has a kit item ending in × with nothing after it — "' + item + '". '
+          + 'The chip would draw the × as part of the name');
+      }
+      if (qty === '1') {
+        fail.push(id + ' has a kit item with a quantity of 1 — "' + item + '". Leave it off: one '
+          + 'of a thing is what a chip with no quantity already means');
+      }
+      if (qty.length > QTY_MAX) {
+        fail.push(id + ' has a kit quantity of ' + qty.length + ' characters — "' + qty + '". It '
+          + 'renders in a chip beside the name and cannot wrap; put the detail in the name');
+      }
+    });
     riskLines += String(r.risks || '').split('|').filter(t => t.trim()).length;
+    risked++;
   }
+
+  /* ---------- WHICH OF THE TWO SHAPES IT IS ----------------------------------------------------
+     ASKED OF A LIVE ROW ONLY. A refused experiment is a row so the reasoning is findable, and it
+     is already excused its method and its risk assessment for the same reason — saying which shape
+     an afternoon that is not happening would have had is content invented to satisfy a checker. */
+  const pt = String(r.practical_type || '').trim();
+  if (pt && !PRACTICAL_TYPE.has(pt)) {
+    fail.push(id + ' has practical_type "' + pt + '", which is neither of the two written down. '
+      + 'Add it to PRACTICAL_TYPE here deliberately, or fix the row.');
+  }
+  if (!pt && !gone) {
+    fail.push(id + ' has no practical_type — say whether it is an experiment (you end up with a '
+      + 'reading) or a build (you end up with a thing you keep)');
+  }
+  if (pt === 'experiment') experiments++;
+  if (pt === 'build') builds++;
 
   /* ---------- THE HAZARD IS A CLOSED LIST, FOR `VOCAB`'S REASON ---------------------------------
      It is the one word a tutor triages on before reading anything else — "medium, involves fire"
@@ -247,7 +330,12 @@ unknownTopics.forEach((ids, t) => {
 });
 
 /* ---------- SAY IT ------------------------------------------------------------------------------ */
-console.log('\nTHE PRACTICALS  —  ' + rows.length + ' experiments, ' + required + ' AQA required, '
+/* `practicals` RATHER THAN `experiments`, BECAUSE `experiment` IS A VALUE NOW. It was the
+   ordinary English word for all of them until `practical_type` made it one of two shapes, and a
+   header reading `82 experiments` over a line reading `71 experiment(s), 6 build(s)` is one word
+   meaning two things three lines apart — the `kind`/`paper` collision this repository already
+   renamed its way out of. */
+console.log('\nTHE PRACTICALS  —  ' + rows.length + ' practicals, ' + required + ' AQA required, '
   + (rows.length - required) + ' extra');
 console.log('topic links: ' + topicLinks + ' across ' + rows.length + ' practicals ('
   + (rows.length ? (topicLinks / rows.length).toFixed(1) : 0) + ' each), '
@@ -354,6 +442,21 @@ rows.forEach(r => {
    A COLUMN ON A SUBSET IS EXACTLY THE FAULT ABOVE, and the only way it is visible before somebody
    opens two cards side by side is a count. Printed rather than failed for the ones that are
    deliberately partial. */
+/* ---------- THE TWO SHAPES, AND HOW MUCH OF THE KIT CARRIES A QUANTITY ----------------------------
+   BOTH ARE PRINTED RATHER THAN DRIVEN TO A TARGET, and they are different kinds of number. The
+   split is a fact about the library — if it ever reads 82 and 0 something has stopped being
+   decided per row, which is what a rule could never catch. The quantities are a BACKLOG: a
+   quantity is written where the row's own method states one, and inventing the rest would send a
+   tutor to a client's house with the wrong bag. That is this file's oldest sentence, and it is why
+   a blank here is a number rather than a failure. */
+const kitItems = rows.reduce((n, r) => n
+  + String(r.equipment || '').split('|').filter(t => t.trim()).length, 0);
+const kitQty = rows.reduce((n, r) => n
+  + String(r.equipment || '').split('|').filter(t => t.indexOf('\u00d7') > 0).length, 0);
+console.log('shape: ' + experiments + ' experiment(s), ' + builds + ' build(s), '
+  + excluded + ' refused and not asked; kit: ' + kitQty + ' of ' + kitItems
+  + ' items carry a quantity');
+
 const COVER = ['age_min', 'wow', 'cost_per_run_gbp', 'setup_cost_gbp', 'science', 'variables',
                'log', 'risks', 'diagram', 'item_ids'];
 note.push('per column, of ' + rows.length + ' rows: ' + COVER

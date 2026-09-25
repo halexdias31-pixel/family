@@ -150,6 +150,16 @@ const SUITE = [
      `full_name`, `handle` AND `username`, so a handle that duplicates one of those makes
      `changePin` check a PIN against the wrong row. It caught a real one on its first run. */
   { file: 'check-handles.js', what: 'what a person may call themselves' },
+  /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
+     The third check here about SAFETY rather than about working, after `check-marking.js` and
+     `check-handles.js` — and the only one whose subject is this repository rather than the app.
+     `constants.gs` carried a real admin's real name and real four digits in a usage line for
+     months, under a heading about deployment, where nothing renders and nobody re-reads. Public
+     repository, permanent history: deleting the line stops the next reader finding it and
+     un-publishes nothing. One question with one right answer — a PIN literal here must be the
+     `0000` placeholder — and it caught its own author on its first run, naming the two lines the
+     header had pasted in to explain the fault. */
+  { file: 'check-secrets.js', what: 'no PIN written into the source' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
      `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
      that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels
