@@ -148,7 +148,7 @@ const SUITE = [
      has done nothing. And the rule that is not about words at all: `findPerson` answers to
      `full_name`, `handle` AND `username`, so a handle that duplicates one of those makes
      `changePin` check a PIN against the wrong row. It caught a real one on its first run. */
-  { file: 'check-handles.js', what: 'what a person may call themselves' },
+  { file: 'check-handles.js', what: 'what a person may change, and how often' },
   /* ---------- AND THE CELLS ON THAT SAME TAB THAT HOLD MORE THAN ONE FACT -------------------------
      `availability` AND `library_card` ARE PACKED, each because the alternative is a numbered column,
      and neither packer had ever been run by anything. It is the one shape where a fault is

@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-25-c-forgot-pin";
+const BACKEND_VERSION = "2026-09-25-d-seat-cap";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -333,6 +333,18 @@ const SCHEMA = {
        because they like it. */
     "address", "postcode", "favourite_colour",
     "travel_km", "rate_per_hour", "max_students", "min_students",
+    /* WHEN THE SEAT CAP LAST MOVED, AND IT IS THE `handle_changed_at` SHAPE ON A SECOND COLUMN.
+       ASKED FOR AS *"make it so tutors cant update their maximum number of kids willing to work
+       with more then once a month."* A tutor's `max_students` is not a preference: it is what
+       `seatLimits` offers a family, and every booking already taken was priced and seated against
+       whatever it said on the day. A cap that moves on a whim leaves classes already agreed sitting
+       above it, so the answer somebody gave a week ago stops being an answer.
+
+       ONE DATE AND NO COUNTER, for the reason written over `handle_changed_at`: the rule is "has a
+       month passed" rather than a tally to keep in step, and a row that has never changed has no
+       cell and is free. There is no `max_students_was` beside it — a previous handle is a
+       safeguarding fact about a person, and a previous seat count is not. */
+    "max_students_changed_at",
     /* These four were added to forms, payloads and pricing over several rounds and never to the
        schema — so ensureSchema never created the columns, every write went nowhere, and each
        feature failed silently for want of one line here. Nothing else was wrong with any of them. */
@@ -1292,6 +1304,17 @@ const CONFIG_DEFAULTS = [
   ['a', 0, 'advance discount taken off per week ahead AFTER THE FIRST. 0 = off'],
   ['h', 2, 'hours per session'],
   ['max_students_per_job', 4, 'seat cap when neither the tutor nor the venue sets one'],
+  /* ---------- A VISIT TO SOMEBODY'S HOUSE HAS A FLOOR, AND IT IS EDITORIAL -----------------------
+     ASKED FOR AS *"if its at clients house, then it should minimum 3 extra seats."* Three extra is
+     four chairs, and it is a judgement about the business rather than arithmetic: a tutor crossing
+     London to a front room needs a group to be worth the journey, and at a paid venue the room is
+     already booked so nothing of the kind applies.
+
+     A CELL RATHER THAN A LITERAL, because *how many* is exactly the sort of number an owner changes
+     without wanting a deploy — the argument `brand(k, or)` makes about every editorial figure in
+     this app. `seatLimits` falls back to 4 so an empty tab still enforces the rule that was asked
+     for. Set it to 1 and the floor is gone. */
+  ['min_seats_at_home', 4, 'chairs a session at the client\'s own home must be booked for, yours included'],
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
   ['showcase_folder_id', '', 'Drive folder the Showcase reads'],
 
@@ -1962,6 +1985,18 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
    eventually. A cooldown turns that into a month of waiting per attempt. Admins are exempt, because
    an admin fixing somebody else's bad handle is the remedy rather than the abuse. */
 const HANDLE_COOLDOWN_DAYS = 30;
+
+/* ---------- AND A MONTH ON THE SEAT CAP, WHICH IS ITS OWN NUMBER ---------------------------------
+   THE SAME THIRTY AND DELIBERATELY NOT THE SAME CONSTANT. The two rules answer different questions
+   and could honestly diverge: a username cooldown is a brake on an arms race, and this is about
+   bookings already taken against a stated capacity. Folding them onto one name would make a change
+   to either a change to both, which is the shape this repository records under `needs_print` /
+   `print_required` — one fact in two columns is a fault, and two facts under one name is the same
+   fault the other way round.
+
+   ADMINS ARE EXEMPT AND NOTHING ELSE IS, exactly as the handle rule has it: an admin fixing a
+   tutor's cap is the remedy rather than the thing being braked. */
+const SEATS_COOLDOWN_DAYS = 30;
 
 /* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER.
    NO UNICODE, and that is the one rule here that is about safety rather than tidiness: `раul` with a

@@ -249,6 +249,13 @@ function boot(opts) {
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
+      /* THE RECEIPT'S ROWS AS OBJECTS, because the count on the Dates row is a figure in a COLUMN and
+         cutting it back out of the markup would be a second reading of `receiptRow`'s template. */
+      'jobRows: typeof jobRows === "function" ? jobRows : null,' +
+      /* THE ONE PLACE A SEAT COUNT IS BOUNDED, so a journey can ask what a venue does to the floor
+         without reaching into the step that reads it. */
+      'seatLimits: typeof seatLimits === "function" ? seatLimits : null,' +
+      'spaceFor: typeof spaceFor === "function" ? spaceFor : null,' +
       /* THE FIVE STAGE ROWS AND THE BUILDER BOTH DOCUMENTS USE, so a journey asking about the ticks
          reads the app's own list rather than a copy of it written out here. */
       'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
@@ -1263,6 +1270,101 @@ check('a day says how many hours it is, in the column that multiplies', async ()
     bad.push('the day figures add to ' + sum + ' and the price is built on '
              + spec.hoursPerWeek + ' hours a week');
   }
+  return bad;
+});
+
+check('the dates row says how many dates it lists', async () => {
+  /* ---------- ASKED FOR AS A MULTIPLIER FOR THE NUMBER OF DATES ---------------------------------
+     *"there should be a multipler for the number of dates bit."* The count WAS on this card, as an
+     aside beside the price, and was removed one commit earlier on the argument that *"the count is
+     the MULTIPLIER on the row that does the arithmetic"* — which named the wrong number: the `Time
+     interval` row multiplies by WEEKS, so three days a week over twelve weeks shows `× 12` and the
+     thirty-six sessions were nowhere on the document.
+
+     THE COUNT IS OF WHAT THE ROW LISTS, and that is what makes this assertable rather than a matter
+     of taste: the figure and the value come from one array, so a row that lists six dates and counts
+     five is a shape that cannot occur — unless somebody writes the count from somewhere else, which
+     is exactly what this refuses.
+
+     AND IT IS SILENT ON ONE DATE. `× 1` is the multiplier this app already declines to print, and a
+     single session listing its one date needs no count of it.
+
+     THE DISPLAY HALF IS CSS AND IS NOT ASSERTABLE HERE, the same as the day rows' own journey above:
+     `.bk-m` is hidden on any row with no running total, which is right about every other row and
+     would have hidden this. Proved by mutation in a browser instead — with the exemption removed the
+     markup says `× 6` and the card paints nothing. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.jobRows) return ['jobRows is not exported — cannot read the receipt'];
+  const bad = [];
+  const dates = of => (w.__t.jobRows({ id: 'J1', jobId: 'J1', subject: 'Maths', dates: of })
+    .filter(r => r.k === 'Dates')[0] || {});
+
+  const six = dates('06/10/26, 13/10/26, 20/10/26, 27/10/26, 03/11/26, 10/11/26');
+  if (six.mul !== '\u00d7 6') {
+    bad.push('six dates read ' + JSON.stringify(six.mul || '') + ' in the multiplier column');
+  }
+  if (String(six.v || '').split(',').length !== 6) {
+    bad.push('the row lists ' + String(six.v || '').split(',').length + ' dates and counts 6');
+  }
+  const one = dates('06/10/26');
+  if (one.mul) bad.push('one date reads ' + JSON.stringify(one.mul) + ' rather than nothing');
+  const none = dates('');
+  if (none.mul) bad.push('no dates reads ' + JSON.stringify(none.mul) + ' rather than nothing');
+  return bad;
+});
+
+check('a session at the client\'s own home cannot be booked for one', async () => {
+  /* ---------- ASKED FOR AS A FLOOR AND AS AN OPTION THAT MUST NOT EXIST -------------------------
+     *"if its at clients house, then it should minimum 3 extra seats. there should be no option for 1
+     extra seat."* The second sentence is what the first one means: `BOOKING.n` is the TOTAL, so
+     three extra is four chairs and 1, 2 and 3 are not offered at all.
+
+     TWO HALVES AND BOTH ARE ASSERTED, because they used to disagree. `seatLimits` has had a minimum
+     since it was written — a venue with a minimum party size sets one — and the seats step's option
+     list ignored it, starting at 1 whatever it said, so the refusal one line below was refusing
+     numbers the list had just offered. The list starts at the floor now.
+
+     AND THE SENTENCE IS IN THE ROW'S OWN UNITS. `lim.min` is a total and the row draws extras, so a
+     refusal reading "needs 4" under a control offering 0, 1, 2 and 3 is the same fact in two units an
+     inch apart — the shape this repository records under `needs_print` / `print_required`. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.seatLimits || !w.__t.STEPS) return ['seatLimits is not exported — cannot check the floor'];
+  const bad = [];
+  const B = w.__t.BOOKING;
+  const st = w.__t.STEPS.filter(x => x.id === 'n')[0];
+  if (!st) return ['the form has no seats step called `n`'];
+
+  /* THE FLOOR ITSELF, asked of the one function that decides it. */
+  if (w.__t.seatLimits(null, null, 'At home').min < 4) {
+    bad.push('a session at home has a seat floor of '
+             + w.__t.seatLimits(null, null, 'At home').min + ', not 4');
+  }
+  if (w.__t.seatLimits(null, null, '').min !== 1) {
+    bad.push('an unanswered venue imposes a floor of ' + w.__t.seatLimits(null, null, '').min);
+  }
+
+  B.loc = 'At home';
+  const home = st.options();
+  if (home.indexOf('1') !== -1 || home.indexOf('2') !== -1 || home.indexOf('3') !== -1) {
+    bad.push('at home the seats list still offers ' + JSON.stringify(home));
+  }
+  if (!home.length) bad.push('at home the seats list is empty, which greys the row');
+  /* THE REFUSAL SPEAKS EXTRAS. `1` is one chair, which is nought extra. */
+  const why = String(st.why('1') || '');
+  if (!why) bad.push('one seat at home is not refused at all');
+  else if (/\b4\b/.test(why) || why.indexOf('extra seat') === -1) {
+    bad.push('the refusal reads ' + JSON.stringify(why) + ' — a total where the row draws extras');
+  }
+
+  B.loc = '';
+  const away = st.options();
+  if (away.indexOf('1') === -1) {
+    bad.push('with no venue chosen the seats list is ' + JSON.stringify(away)
+             + ' — the floor has leaked onto every booking');
+  }
+  if (st.why('1')) bad.push('one seat with no venue chosen is refused: ' + st.why('1'));
   return bad;
 });
 

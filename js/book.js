@@ -1181,19 +1181,50 @@ const BOOK_STEPS = [
        session."* A family with two children joining a list wants two seats on it, and an empty
        option list is how `stepLocked_` greys a row, so the question was not merely unasked: it was
        shown, greyed, with whatever the previous branch had left in it. */
+    /* ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE ----------------------------------------
+       ASKED FOR AS *"if its at clients house, then it should minimum 3 extra seats. there should be
+       no option for 1 extra seat."* The floor is `seatLimits`' job and always was — a venue with a
+       minimum party size has set one for as long as that function has existed — and this loop
+       ignored it, offering 1, 2, 3 and 4 whatever it said. So the rule that refused a number below
+       the minimum one line down was refusing numbers this list had just offered.
+
+       FOUR OPTIONS FROM THE FLOOR rather than four from one, so "four options, because four was
+       asked for" still holds and the window slides. At a paid venue the floor is 1 and the list is
+       1, 2, 3, 4 exactly as before; at somebody's own house it is 4, 5, 6, 7 — extras 3, 4, 5 and 6.
+
+       AND THE FLOOR IS ALWAYS OFFERED, even where it is above the ceiling. A tutor who takes two
+       students and a home visit that needs four is a real contradiction, and an empty list is how
+       `stepLocked_` greys a row — the exact fault this step was reported for. One option and the gold
+       line under it saying what is wrong beats a dead control saying nothing. */
     options: () => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
+      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       const out = [];
-      for (let i = 1; i <= Math.max(1, Math.min(4, lim.max)); i++) out.push(String(i));
+      const top = Math.max(lim.min, Math.min(lim.min + 3, lim.max));
+      for (let i = lim.min; i <= top; i++) out.push(String(i));
       return out;
     },
     /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
        sit beside this — what each number means, one sentence per option — is gone with the other
        three; see `stepRows_`. */
+    /* THE SAME THREE ARGUMENTS AS THE LIST ABOVE, and that is what makes this the refusal for a
+       number the list cannot offer rather than a second opinion about what the bounds are. `loc`
+       reads the CURRENT venue, so a seat count chosen before the venue and left behind by it says so
+       here — which is where the floor becomes visible on a form that asks these two in this order. */
     why: v => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
+      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
-      if (Number(v) < lim.min) return (lim.why.min || 'the minimum') + ' needs ' + lim.min;
+      /* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF --------------------
+         `lim.min` IS A TOTAL and this row draws EXTRAS — `label_` above subtracts your own chair, and
+         this sentence did not. So the one rule that makes the minimum reachable in practice would
+         have put "needs 4" under a control offering 0, 1, 2 and 3: the same fact in two units, one
+         inch apart, which is the shape this repository records under `needs_print` / `print_required`
+         and under `BOOKING.n` itself. Reachable before this commit too, on any venue with a minimum
+         party size — nothing here has ever had one, which is why nobody had read the sentence. */
+      if (Number(v) < lim.min) {
+        const need = Math.max(0, lim.min - 1);
+        return (lim.why.min || 'the minimum') + ' needs ' + need
+             + ' extra seat' + (need === 1 ? '' : 's');
+      }
       return '';
     } },
 
@@ -2155,8 +2186,32 @@ function breakdownRows(L) {
 
      `dates: true` STILL MARKS THE ROW so `.bk-dates` can set the run in the mono figures face and
      let it wrap — see the note there. A single session still prints its one date. */
+  /* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS ----------------------
+     ASKED FOR AS *"there should be a multipler for the number of dates bit."*
+
+     THE COUNT WAS ON THIS CARD AND WAS TAKEN OFF IT, one commit ago, as *"remove the 36 sessions at
+     the bottom next to the price"* — and the reason given was that *"the count is the MULTIPLIER on
+     the row that does the arithmetic"*. That sentence was wrong about which number: the `Time
+     interval` row's multiplier is `weeksBooked`, so a booking of three days a week for twelve weeks
+     shows `× 12` and the thirty-six sessions it really is are now nowhere on the document. Which is
+     exactly what is being asked for back, in the column a count belongs in.
+
+     IT IS NOT IN THE CHAIN AND THE CARD SAYS SO BY HAVING NO TOTAL BESIDE IT. The × column holds two
+     kinds of thing: a factor the running total is multiplied by, which carries a rate and a total,
+     and a count of what the row lists, which carries neither. The day rows are already the second
+     kind — `× 3` is how many hours that day is — so this is the same shape one row along rather than
+     a new one, and a reader following the `+` column straight down is never handed 36 to multiply by.
+
+     AND IT IS HONEST ARITHMETIC RATHER THAN DECORATION: the price is the rate times hours-a-session
+     times sessions, which is the same product the card already shows decomposed the other way as
+     hours-a-week times weeks. 36 is a factor of the total in its own right; it is simply not the
+     factor the row above it uses.
+
+     SILENT ON ONE DATE. `× 1` is the multiplier this file already refuses to print on a `rate-mult`
+     row, for the reason written there, and a single session listing one date needs no count of it. */
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
-  push('Dates', dates.length ? dates.join(', ') : '—', '', '', '', { free: true, dates: true });
+  push('Dates', dates.length ? dates.join(', ') : '—',
+       dates.length > 1 ? '× ' + dates.length : '', '', '', { free: true, dates: true });
 
   /* ---------- WHERE THIS ONE IS, TOO ---------------------------------------------------------------
      THREE ROWS WERE REMOVED FROM HERE — "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE ·
@@ -4176,7 +4231,13 @@ function jobRows(j) {
      FOUND BY `check/ui.js` ON ITS FIRST RUN WITH A RECEIPT ON THE SCREEN. It had never had one —
      see the note beside the `booking` state in that file — so this had been on every receipt with
      more than one date for as long as receipts have had dates. */
-  push('Dates', dates.length ? dates.join(', ') : '—', '', { free: true, dates: true });
+  /* THE SAME COUNT AS THE BOOKING CARD, THROUGH `opts` BECAUSE THIS `push` HARDCODES `mul: ''`.
+     Every other row on a receipt carries its figure in the total column, so the multiplier was never
+     a parameter here — and `Object.assign` puts the options on last, which is what lets this one row
+     have one without a fourth argument nothing else would ever pass. See the note on the form's own
+     Dates row for why the count is a count rather than a link in the chain. */
+  push('Dates', dates.length ? dates.join(', ') : '—', '',
+       { free: true, dates: true, mul: dates.length > 1 ? '× ' + dates.length : '' });
 
   /* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor
      sees what they earn; an admin sees both and the difference. Same receipt, three readings —

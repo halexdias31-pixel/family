@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-25-week-multiplier";
+  --css-version: "2026-09-25-dates-multiplier";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -3069,7 +3069,14 @@ button.text-drop { color: var(--bad); }
 
    THE CELL IS WHAT SETS THE HEIGHT HERE, which is the same argument as the tick rows one block
    down: the strip is the content of a day row and the figure beside it is a caption on it. */
-.bk-row.bk-wk .bk-m { line-height: 1; }
+/* ---------- AND THE DATES ROW IS THE SAME SHAPE FOR THE SAME REASON -----------------------------
+   `× 6` IS A CAPTION ON A LIST OF DATES and the list is what sets the row's height — it wraps to
+   three or four lines. Measured, the mono line box added ONE pixel at 320 and 390 and TWO at 768, on
+   a receipt already listing every date; a figure that changes the height of the row it is counting is
+   the fault the day rows paid eight pixels for one commit ago, and this is that rule's second
+   subject rather than a new one. */
+.bk-row.bk-wk .bk-m,
+.bk-row:has(.bk-dates) .bk-m { line-height: 1; }
 /* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
    the rest, so a top-aligned label read as the name of the NUMBERS rather than of the boxes under
    them — the one row of the seven where the eye could pair the wrong two things. `end` puts it on
@@ -6535,9 +6542,22 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    to `.bk-wk` rather than widened to "any non-empty figure" — that wider rule also un-hides the `—`
    a rate multiplier of exactly 1 writes into its own column, which is a separate decision on
    twenty-odd other rows and not this one's to make. */
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-t:not(:empty))) .bk-m,
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-t:not(:empty))) .bk-r,
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
+/* ---------- AND THE DATES ROW IS THE SECOND OF THOSE, ASKED FOR BY NAME --------------------------
+   `× 36` IS HOW MANY DATES THE ROW LISTS, and a list of dates has no running total for the same
+   reason a day has none: the price is a product over the whole booking rather than per date. So the
+   count would have been written into the markup and painted nowhere, which is exactly what happened
+   to `× 3` the first time and took a browser to find.
+   `:has(.bk-dates)` RATHER THAN A CLASS ON THE ROW, because `dates: true` already puts that span on
+   this row and nothing else — a second flag naming the same row is a second thing to keep in step.
+   STILL AS NARROW AS `.bk-wk` IS, and the general rule is still refused for the reason above. Worth
+   recording what that refusal now costs: `out.mul = '—'` on a `rate-mult` whose multiplier is
+   exactly 1 is written, has no total beside it, and is therefore hidden on every card — so the
+   comment defending it ("it read as a blank row, which looks like a value that failed to load") is
+   describing a dash nobody has ever seen. A real finding, on twenty-odd rows, and not this one's to
+   act on. */
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-m,
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-r,
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
 /* ---------- AND THE ANSWER STAYS IN THE ANSWER COLUMN --------------------------------------------
    THE LINE HERE SAID `.bk-v { grid-column: 2 / -1 }` and it is the other half of why nothing lined
    up. A row with no figures gave its answer the three money tracks as well, so on one priced card
