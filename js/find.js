@@ -2181,6 +2181,17 @@ function decadesOf_(x) {
    THE STEPS ARE AN `<ol>` AND THE KIT IS A `<ul>`, because the first is an order and the second is
    a set. That is the whole reason the export's `step_1 … step_10` columns had to become a list
    that keeps its order rather than a bag. */
+/* ---------- THE TWO SHAPES A PRACTICAL COMES IN --------------------------------------------------
+   A CLOSED LIST RATHER THAN A BOOLEAN, because a third is plainly possible — a DEMONSTRATION you
+   watch rather than measure or make is a real category and five of these rows are arguably it. A
+   boolean would have to be replaced to admit one; a word beside two other words does not. That is
+   the `hazard` / `wow` / `compliance` argument three columns along, and the vocabulary is refused
+   or accepted in `check-practicals.js` by somebody who has just read what is already in use.
+
+   THE FILE HOLDS THE WORD AND THIS HOLDS THE LABEL, so the sentence a card prints can change
+   without rewriting 82 rows — the `blockPhrase_` / `head` split the booking week already makes. */
+const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
+
 function practicalCard_(x) {
   const p = x.row;
   /* THE STRIP SAID "lab · needs a lab" AND A SCREENSHOT IS WHAT CAUGHT IT. `venue` and `feasible`
@@ -2218,8 +2229,32 @@ function practicalCard_(x) {
   return `<div class="card prac${off ? ' is-off' : ''}">
     <div class="prac-head">
       <h3>${esc(x.name)}</h3>
-      <span class="prac-flag${off ? ' is-no' : p.required ? ' is-req' : ''}">${
-        off ? 'Not for now' : p.required ? 'Required practical' : 'Extra'}</span>
+      ${/* ---------- WHAT KIND OF AFTERNOON THIS IS, BESIDE WHETHER A BOARD DEMANDS IT ----------
+            ASKED FOR AS "differentiate between a science experiment and a contraption/art and
+            craft thing". The two chips answer two different questions and both belong on the row
+            that already answers one of them: `Build · Extra` is *you make a thing, and no board
+            asks for it*, which is two facts in four words.
+
+            NEITHER TYPE IS GOLD, DELIBERATELY. Gold in this app means one thing — the answer to
+            the yes/no question is yes — and `.prac-flag.is-req`'s own note says an "Extra" in the
+            same colour would make the distinction decorative. Colouring `Build` would put a second
+            meaning on the one colour that currently has exactly one, on the same row, an inch
+            apart. The word is unambiguous and needs no help.
+
+            THE RAW CELL IS DRAWN FOR A VALUE THE MAP HAS NEVER HEARD OF, which is `tileIcon_`'s
+            rule: visibly wrong beats invisible. `check-practicals.js` refuses an unknown value at
+            the file, so this is what a phone running an older build does, not what ships. */''}
+      ${/* BOTH FLAGS IN ONE BOX, AND THE MEASUREMENT IS WHY. `.prac-head` is
+            `justify-content: space-between`, which distributes the free space between EVERY child
+            — so three of them put `Build` hard against the title and `Extra` hard against the
+            right edge with fifty-nine pixels of nothing between two chips that belong together.
+            Measured at 320px before it was written: `is-type [12→82]`, `is-req [141→256]`. One
+            wrapper takes the head back to two children, so the rule keeps meaning what it meant,
+            and the pair wraps under a long title as a pair. */''}
+      <span class="prac-flags">${p.practicalType ? `<span class="prac-flag is-type">${
+        esc(PRAC_TYPE[p.practicalType] || p.practicalType)}</span>` : ''
+      }<span class="prac-flag${off ? ' is-no' : p.required ? ' is-req' : ''}">${
+        off ? 'Not for now' : p.required ? 'Required practical' : 'Extra'}</span></span>
     </div>
     <p class="sub">${esc([p.subject, p.specRef || p.level].filter(Boolean).join(' · '))}</p>
     ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
@@ -2320,6 +2355,41 @@ function guideBox_(x, slot, ask, hint) {
   </label>`;
 }
 
+/* ---------- THE KIT, AS CHIPS -------------------------------------------------------------------
+   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
+   documents and stuff ... Then the things needed. And it's quantity."
+
+   A BULLETED LIST IS A THING YOU READ DOWN AND A KIT LIST IS A THING YOU CHECK OFF. Twelve items
+   as `<li>`s is twelve lines of one column, scanned top to bottom, with the ruler and the
+   stopwatch three inches apart; as chips they wrap into a block you take in at once and can run a
+   finger along while you pack the bag. That is what the shape is FOR, and it is why the quantity
+   belongs on the chip rather than in a second column: the two facts about an item are what it is
+   and how much of it, and a chip is exactly big enough for both.
+
+   IT IS NOT `.chip`, AND THAT IS NOT FUSSINESS. `.chip` is the funnel's FILTER — a 44px tap
+   target with a gold ✕, whose own note records this stylesheet's fourth conviction of the
+   tap-target rule. A kit item is not pressable, so borrowing that class would give five hundred
+   inert boxes a fingertip's height each and put `check/ui.js` in the position of measuring tap
+   targets on things nobody can tap. `.price.faint` is what this repository calls the other half
+   of that mistake, and it has recorded it ten times.
+
+   `×` IS DRAWN BACK IN FRONT OF A BARE NUMBER AND NOT IN FRONT OF AN AMOUNT. `Lolly sticks 12`
+   is ambiguous — twelve of them, or the twelfth? — and `Water × 100 ml` is not English. One is a
+   count and the other is an amount, and the only thing that tells them apart is whether the
+   quantity is nothing but digits. One rule, at the one place the badge is drawn. */
+function kitChips_(list) {
+  /* THE NAME IS A SPAN RATHER THAN A BARE TEXT NODE, so it can be told to shrink. A chip is a
+     flex box and a flex item's minimum is its MIN-CONTENT — which is the fault `.prac-head h3`
+     already records on this very card, where four titles ran past a 320px column because they
+     could not shrink below their longest word. `Nichrome wire (about 1 m, taped to a metre rule)`
+     is the longest thing this list holds, and it has to wrap INSIDE its chip. */
+  return `<ul class="kit-chips">${list.map(e => `<li class="kit-chip"><span class="kit-n">${
+    esc(e.name)}</span>${
+    e.qty ? `<b class="kit-q">${/^\d+$/.test(e.qty) ? '\u00d7' : ''}${esc(e.qty)}</b>` : ''
+  }</li>`).join('')}</ul>`;
+}
+
+
 function practicalGuide_(x) {
   const p = x.row;
   /* ---------- IT IS THE CARD'S OWN CLASSES, BECAUSE THEY ARE THE CARD'S OWN BLOCKS --------------
@@ -2348,8 +2418,36 @@ function practicalGuide_(x) {
     ${p.science ? `<section class="prac-why"><h4>What is going on</h4>
       <p>${esc(p.science)}</p></section>` : ''}
 
+    ${/* ---------- THE PICTURE, THEN THE THINGS IT IS MADE OF -----------------------------------
+          ASKED FOR IN THAT ORDER: "The picture of the practical like a diagram. Then the things
+          needed. And it's quantity."
+
+          IT USED TO SIT AT THE HEAD OF THE METHOD and the note that put it there is still worth
+          reading: every one of the seventeen drawings is a SET-UP or a CONSTRUCTION, something you
+          build before the first reading, so it belonged above the numbered steps. That argument is
+          not wrong; it is answering a different question. Seeing the thing, then what it is made
+          of, then how to make it is the order a set of instructions comes in — and for a build,
+          which is what half of these now are, the picture IS the outcome and the kit list is its
+          parts. The owner asked for that order; the drawing is drawn once and only here.
+
+          WHAT IT COSTS, SAID RATHER THAN BURIED: somebody following step 4 is now a scroll away
+          from the figure it refers to, where before it was directly above. A second copy beside
+          the steps would close that and is exactly the fault this repository records where
+          `.reel .over` was a second description of `.feed-art` — one object, two descriptions,
+          drifting apart the first time either is touched.
+
+          NOT ON THE CARD, AND THAT IS MEASURED. `.pane` caps at 534px on a 320×568 phone, a
+          practical card has a median height of 274px, and `.qsheet figure svg` lays out at
+          `min(100%, 20rem)` — so a drawing plus a chip block is about 280px more and would put the
+          seventeen cards that have one straight back past the fold, which is the whole fault the
+          guide was split out to repair. The card is the search result; this is the document. */''}
+    ${/* NO CLASS ON IT: `.gd figure` and `.gd figure svg` already centre it and cap it at
+          `min(100%, 20rem)`, which is the constant every drawing in this app lays out inside.
+          A class styled nowhere is what `check-css.js` prints. */''}
+    ${p.diagram ? `<figure>${p.diagram}</figure>` : ''}
+
     ${p.equipment.length ? `<section class="prac-kit"><h4>What you need</h4>
-      <ul>${p.equipment.map(e => `<li>${esc(e)}</li>`).join('')}</ul></section>` : ''}
+      ${kitChips_(p.equipment)}</section>` : ''}
 
     <section class="gd-sec">
       <h4>Risk assessment</h4>
@@ -2386,20 +2484,14 @@ function practicalGuide_(x) {
         'Write it before you start. A prediction after the event is a description.')}
     </section>
 
-    ${/* ---------- THE DRAWING SITS AT THE HEAD OF THE METHOD, AND ONLY THERE ------------------
-          A DIAGRAM HERE IS ALWAYS A SET-UP OR A CONSTRUCTION — a circuit, a clamp stand, a
-          condenser with its thermometer in the one place that matters, the right-angled triangle
-          behind R = d²/2h. Every one of the seventeen is something you BUILD before the first
-          reading, so it belongs above the numbered steps and nowhere else. One placement rather
-          than a rule about which kind goes where: a flag saying "this one is explanatory" is a
-          second thing to keep in step with the drawing, and CLAUDE.md records what that costs.
-
-          NOTHING HERE IS A RESULT. No cooling curve, no I–V graph, no line of best fit. See
-          tools/draw-practicals.py — a guide that prints the answer has taken the practical away,
-          which is the same line `science` above is written along. */''}
-    ${(p.steps.length || p.diagram) ? `<section class="prac-steps"><h4>How it runs</h4>
-      ${p.diagram ? `<figure>${p.diagram}</figure>` : ''}
-      ${p.steps.length ? `<ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>` : ''}
+    ${/* ---------- THE METHOD, WITHOUT THE DRAWING, WHICH IS NOW ABOVE THE KIT -----------------
+          THE DRAWING MOVED and the reason is written where it went. What has not changed is which
+          drawings exist: a SET-UP or a CONSTRUCTION only, and NOTHING HERE IS A RESULT — no
+          cooling curve, no I–V graph, no line of best fit. See tools/draw-practicals.py. A guide
+          that prints the answer has taken the practical away, which is the same line `science` is
+          written along. */''}
+    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
+      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>
       </section>` : ''}
 
     <section class="gd-sec">
@@ -3148,7 +3240,15 @@ function searchText_(r) {
 function practicalText_(p) {
   return plainText_([p.aim, p.outcome, p.science, p.safety, p.feasible, p.venue, p.excluded,
                      p.notes, p.mathsLink, p.specRef, p.hazard,
-                     (p.equipment || []).join(' '), (p.steps || []).join(' '),
+                     /* THE KIT IS `{name, qty}` NOW AND BOTH HALVES GO IN. `equipment` was a list
+                        of strings and is a list of objects, so a bare `.join` here would have put
+                        `[object Object]` into the haystack of all 82 practicals — every kit word
+                        this file's own note says it exists to make findable (`goggles` 13,
+                        `nichrome` 2, `stopwatch` 18) gone in one line, silently, because a haystack
+                        cannot report what is missing from it. The quantity goes in beside the name
+                        because `250 ml` is a thing somebody types. */
+                     (p.equipment || []).map(e => e.name + ' ' + e.qty).join(' '),
+                     (p.steps || []).join(' '),
                      (p.risks || []).join(' '), (p.variables || []).join(' '),
                      (p.log || []).join(' ')].filter(Boolean).join(' '));
 }

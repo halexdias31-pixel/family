@@ -4,6 +4,7 @@
 {"field": "subject", "label": "Subject", "sort_order": 30, "min_coverage": "", "note": "", "active": true},
 {"field": "boxKind", "label": "Boxers or fights", "sort_order": 34, "min_coverage": "", "note": "asked before the weight class", "active": true},
 {"field": "division", "label": "Division", "sort_order": 35, "min_coverage": "", "note": "boxers and bouts only; the coverage rule hides it elsewhere", "active": true},
+{"field": "practicalType", "label": "Experiment or build", "sort_order": 36, "min_coverage": "", "note": "practicals only; the coverage rule hides it elsewhere", "active": true},
 {"field": "resourceType", "label": "Type", "sort_order": 40, "min_coverage": "", "note": "", "active": true},
 {"field": "keystage", "label": "Key stage", "sort_order": 50, "min_coverage": "", "note": "", "active": true},
 {"field": "examBoard", "label": "Exam board", "sort_order": 60, "min_coverage": "", "note": "", "active": true},

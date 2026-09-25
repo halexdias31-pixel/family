@@ -7990,7 +7990,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    NO TAP TARGET ANYWHERE IN IT, which is why there is no `px` in this block. Every rule here sizes
    text, and text is the one thing that SHOULD scale with the root; the px rule is about fingertips
    and this card has nothing to press. */
-.prac-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+/* ---------- IT WRAPS NOW, BECAUSE THERE ARE TWO FLAGS ---------------------------------------------
+   `Build` AND `Extra` are two chips where there was one, and at 320px a long title beside both is
+   more than the row holds. `min-width: 0` on the h3 is what stopped the title overflowing (see
+   below) and it cannot help the flags, which are `flex: 0 0 auto` on purpose — a flag that shrinks
+   is a flag with a word cut off. Wrapping is the only version where neither has to give: the flags
+   drop under the title on the narrowest phone and sit beside it everywhere else. `check/cards.js`
+   lays out all 82 of these at 320px, which is what says whether that is true. */
+.prac-head { display: flex; flex-wrap: wrap; align-items: baseline;
+             justify-content: space-between; gap: .5rem; }
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------
    A FLEX ITEM'S MINIMUM IS `auto`, WHICH IS ITS MIN-CONTENT — the widest unbreakable word, not
    nothing. So a one-word title beside a `flex: 0 0 auto` flag could not shrink to the card, and
@@ -8010,6 +8018,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
              text-transform: uppercase; color: var(--faint); border: 1px solid var(--line);
              border-radius: .5rem; padding: .22rem .4rem; }
 .prac-flag.is-req { color: var(--gold); border-color: var(--gold); }
+/* WHAT KIND OF THING IT IS, IN THE SAME CHIP AS WHETHER A BOARD DEMANDS IT — and deliberately in
+   the same quiet ink as `Extra`. Gold answers exactly one yes/no question on this card and giving
+   `Build` a colour would put a second meaning on it an inch away; the rule directly above says why
+   the negative answer is not coloured either. The word carries it. */
+.prac-flag.is-type { color: var(--dim); }
+/* THE TWO FLAGS ARE ONE BOX, and it is `flex: 0 0 auto` for the reason the flag itself is: a flag
+   that shrinks is a flag with a word cut off. The head row is `space-between`, so without this
+   wrapper the free space would open BETWEEN the two chips rather than before them — measured at
+   320px, fifty-nine pixels of nothing. `flex-wrap` on the row then drops the pair together under a
+   title that needs the whole line, rather than splitting it. */
+.prac-flags { display: flex; flex: 0 0 auto; gap: .3rem; align-items: baseline; }
 .prac-aim { margin: .45rem 0 0; font-size: .86rem; line-height: 1.5; }
 /* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
    you run this today, on one line, in the mono face the rest of the app uses for measurements. */
@@ -8019,9 +8038,41 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .prac-kit, .prac-steps, .gd-sec { margin: .65rem 0 0; }
 .prac-kit h4, .prac-steps h4, .gd-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-.prac-kit ul, .prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
-.prac-kit li, .prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
-.prac-kit li, .gd-sec li { margin: 0; }
+/* `.prac-kit` IS OFF THESE THREE GROUPS BECAUSE IT NO LONGER HOLDS A LIST. The kit is chips, and
+   leaving `.prac-kit ul` here would be a rule with no markup — which `check-css.js` prints — AND a
+   rule that wins: `.prac-kit ul` is a class plus a type (0,1,1) against `.kit-chips`'s (0,1,0), so
+   its `padding-left: 1.1rem` would have indented the chip block by a bullet's width and nothing
+   below would have looked wrong enough to find. Tenth conviction of `.price.faint`, refused before
+   it was written rather than after a screenshot. */
+.prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
+.prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.gd-sec li { margin: 0; }
+
+/* ---------- THE KIT, AS CHIPS --------------------------------------------------------------------
+   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
+   documents and stuff." A bulleted list is read down a column; a kit list is checked off while
+   packing a bag, and chips wrap into a block you take in at once.
+
+   NOT `.chip`, WHICH IS THE FUNNEL'S FILTER — 44px of tap target with a gold ✕ on it, and its own
+   note records this stylesheet's fourth conviction of the tap-target rule. Five hundred inert kit
+   items inheriting a fingertip's height is both wrong to look at and wrong to measure, because
+   `check/ui.js` would then be asked about tap targets on things nobody can tap.
+
+   THE NAME SHRINKS AND THE QUANTITY DOES NOT. `min-width: 0` is the `.prac-head h3` lesson, which
+   this card has already paid for once: a flex item's minimum is its min-content, so without it the
+   longest item (`Nichrome wire (about 1 m, taped to a metre rule)`) could not wrap inside its own
+   chip and would take the sheet sideways. The badge is `flex: 0 0 auto` for the opposite reason —
+   a quantity with a digit wrapped onto the next line is a different number.
+
+   THE QUANTITY IS GOLD AND MONO because that is what this app already dresses a measurement in:
+   `.prac-strip` two rules up prints `45 min · 7+ · £0.40 a run` in exactly that pair. */
+.kit-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.kit-chip { display: inline-flex; align-items: baseline; gap: .3rem; max-width: 100%;
+            font-size: .76rem; line-height: 1.4; color: var(--ink);
+            border: 1px solid var(--line); border-radius: .5rem; padding: .22rem .45rem;
+            background: rgb(255 255 255 / .03); }
+.kit-n { min-width: 0; overflow-wrap: break-word; }
+.kit-q { flex: 0 0 auto; font: 600 .68rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .prac-steps li { margin: 0 0 .25rem; }
 /* A REAL WARNING, GIVEN THE ROOM A WARNING NEEDS. The house rule puts one paragraph under a row
    rather than three words on a tile, and these sentences are the reason it exists: "Adult operates
