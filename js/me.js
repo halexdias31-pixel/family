@@ -725,11 +725,41 @@ on('signout', () => {
    column; the tile on your own card opens it. Admin-only, because the tile is. */
 on('build-said', () => openSheet('Build', versionSaid_()));
 
-on('wardrobe', () => {
-  if (!USER) { toast('Sign in first'); return; }
+/* ---------- IT IS A COLUMN OF PAGES NOW, NOT A SHEET -------------------------------------------
+   *"editing clothing for avatar character shouldnt be a new menu pop up i dont like menu pop ups."*
+   MEASURED BEFORE ANY OF THE THREE ALTERNATIVES WAS PICKED, because the sheet is the one shape that
+   could hold it: rendered whole it is **1517.1px at 320x568 against a 534.25px pane cap** — 1010px
+   that can be neither scrolled to nor paged to — and 1365.8px against 806.95 at 390x844. So an
+   inline card on your own account page and a widget on Tools are out by arithmetic rather than by
+   preference: a widget is one `.card.is-widget` in the same capped pane and the numbers are
+   identical. That is exactly the `OUT OF REACH` fault, and the same sum that sent the practical
+   guide and the quiz into a sheet in the first place.
+
+   SO IT IS PAGED, and the cheapest column is the one that already exists. `settingsPages_` returns
+   an array and `PAGER.settings` counts that same array, so this touches NONE of the five places a
+   new screen id needs — no `TABS`, no `TAB_ORDER`, no `PAGER`, no `PAGE`, no `<section>`, and no
+   row in `data/settings/columns.json`.
+
+   ONE SLOT PER PAGE, WHICH IS `settingsPages_`'s OWN RULE AND ALSO THE MEASUREMENT. Splitting it in
+   two leaves Things at 948.1px; in three, all three pages are over; in four there are 34.1px spare
+   and the "Saving…" line takes it 18px over the moment it appears. One slot per page is **356.0px
+   with 178.3px spare at 320** and fits at all four widths.
+
+   APPENDED, NOT PREPENDED. `PAGE.settings` remembers where somebody was, so inserting at the front
+   moves every existing index and a returning visitor lands on a different page. */
+function wardrobePages_() {
+  if (!USER) return [];
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   const items = wardrobe();
-  const level = levelFromXp(USER.xp);
+
+  /* THE FIGURE IS ON EVERY PAGE and it is a CLASS rather than an id. Four pages carrying
+     `id="av-figure"` is four elements with one id, and `$()` hands every one of them the first —
+     which is the `$('msg-text')` fault this file records in full, and here it means picking a
+     colour on page five moves the figure on page one and not the one you are looking at.
+     64px RATHER THAN 120. It is a reminder of what you are dressing rather than the subject of the
+     page, and the 56px is most of what buys the Colours page its room. */
+  const figure = () => `<div class="av-wrap av-figure">${
+    avatarFor(USER.handle || USER.name, 64, USER.avatar)}</div>`;
 
   const swatches = (field, colours) => `<div class="av-swatches">
     ${colours.map((col, i) => `<span class="av-sw${cfg[field] === i ? ' on' : ''}"
@@ -737,11 +767,12 @@ on('wardrobe', () => {
       title="${esc(col)}"></span>`).join('')}
   </div>`;
 
-  const slotRow = ([slot, label]) => {
+  const slotCard = ([slot, label]) => {
     const mine = items.filter(x => x.slot === slot);
     if (!mine.length) return '';
-    return `<div class="av-slot">
-      <div class="av-slot-name">${esc(label)}</div>
+    return `<div class="card"><h3><span>${esc(label)}</span></h3>
+      ${figure()}
+      <div class="av-slot">
       <div class="av-opts">${mine.map(it => {
         const on = cfg[slot] === it.id;
         /* WHY it is not yours, on the item itself. "Locked" is a state; "Level 8" is a thing you
@@ -756,23 +787,38 @@ on('wardrobe', () => {
           ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
         </button>`;
       }).join('')}</div>
-    </div>`;
+    </div></div>`;
   };
 
-  openSheet('Your figure', `
-    <div class="av-wrap av-big" id="av-figure">${avatarFor(USER.handle || USER.name, 120, USER.avatar)}</div>
-    ${row('Level', level)}
-    ${row('Credits', USER.credits || 0, 'mono gold')}
+  /* `Credits` IS DROPPED AND `Level` IS KEPT, which is not tidying. `cards.js` already draws the
+     credit balance on this same column, so a second copy is one fact in two places — and dropping
+     it is what buys this page its room. The level has one home and the locked items say `Lv 8`, so
+     this is the page that makes the number mean something. */
+  return [`<div class="card"><h3><span>Colours</span></h3>
+      ${figure()}
+      ${row('Level', levelFromXp(USER.xp))}
+      <p class="faint" style="margin:.4rem 0">Free, all of them. Nobody earns their own hair.</p>
+      <div class="av-slot"><div class="av-slot-name">Skin</div>${swatches('skin', AV_SKIN)}</div>
+      <div class="av-slot"><div class="av-slot-name">Hair</div>${swatches('hairColour', AV_HAIR)}</div>
+      <div class="av-slot"><div class="av-slot-name">Shirt</div>${swatches('shirt', AV_SHIRT)}</div>
+    </div>`].concat(AV_SLOTS.map(slotCard).filter(Boolean));
+}
 
-    <h2>Colours</h2>
-    <p class="faint" style="margin:0 0 .4rem">Free, all of them. Nobody earns their own hair.</p>
-    <div class="av-slot"><div class="av-slot-name">Skin</div>${swatches('skin', AV_SKIN)}</div>
-    <div class="av-slot"><div class="av-slot-name">Hair</div>${swatches('hairColour', AV_HAIR)}</div>
-    <div class="av-slot"><div class="av-slot-name">Shirt</div>${swatches('shirt', AV_SHIRT)}</div>
+/* ---------- AND THE TILE IS A DOOR RATHER THAN A SHEET -------------------------------------------
+   `on('edit-me')` TWO HUNDRED LINES DOWN IS LITERALLY `go('settings')`, which is the precedent: a
+   tile on your own card takes you to the column that holds the thing.
 
-    <h2>Things</h2>
-    ${AV_SLOTS.map(slotRow).join('')}
-    <p class="faint" id="av-said"></p>`);
+   THE PAGE IS FOUND BY ASKING THE DOM, not by a remembered index. `settingsPages_`'s length varies
+   with what the backend sends — `profileFields` is the SHAPE of the form and a deployment that
+   sends one group fewer moves every page after it — so a literal would drift silently. The colour
+   swatches are the first thing on the first wardrobe page and nothing else in the app carries
+   `av-colour`. */
+on('wardrobe', () => {
+  if (!USER) { toast('Sign in first'); return; }
+  go('settings');
+  const at = [...document.querySelectorAll('#s-settings .page')]
+    .findIndex(pg => pg.querySelector('[data-do="av-colour"]'));
+  if (at >= 0) goPage('settings', at, true);
 });
 
 /* A colour and an item go through the SAME request, because to the server they are the same
@@ -780,15 +826,21 @@ on('wardrobe', () => {
 function avatarSave(change) {
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   Object.assign(cfg, change);
-  const said = $('av-said');
-  if (said) said.textContent = 'Saving…';
+
+  /* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS ------------------------
+     THE WARDROBE IS SEVEN PAGES AND EACH CARRIES THE FIGURE. As an id that was four elements with
+     one id and `$()` handing all of them the first — so picking a colour on page five moved the
+     figure on page one and the one under your thumb did not change. The `$('msg-text')` fault, on
+     the surface where the whole point is that you SEE the change. A class, and all of them. */
+  const draw = () => document.querySelectorAll('.av-figure').forEach(el => {
+    el.innerHTML = avatarFor(USER.handle || USER.name, 64, USER.avatar);
+  });
 
   /* The figure redraws IMMEDIATELY, before the server answers — picking a colour and waiting a
      second to see it is the difference between a wardrobe and a form. Put back if refused. */
   const before = USER.avatar;
   USER.avatar = Object.keys(cfg).map(k => k + ':' + cfg[k]).join('|');
-  const fig = $('av-figure');
-  if (fig) fig.innerHTML = avatarFor(USER.handle || USER.name, 120, USER.avatar);
+  draw();
 
   api({ action: 'saveAvatar',
     name: USER.name, personId: USER.personId, avatar: cfg })
@@ -798,15 +850,20 @@ function avatarSave(change) {
       if (typeof d.credits === 'number') USER.credits = d.credits;
       if (d.owned) USER.avatarItems = d.owned;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      const el = $('av-said');
-      if (el) el.textContent = (d.bought || []).length ? 'Bought ' + d.bought.join(', ') : 'Saved';
-      if (fig) fig.innerHTML = avatarFor(USER.handle || USER.name, 120, USER.avatar);
+      /* ---------- A TOAST, BECAUSE THE PAGE NO LONGER HAS A LINE TO WRITE TO --------------
+         `#av-said` WENT WITH THE SHEET and it was the second duplicate id on these pages. What it
+         said on the happy path was "Saved" over a figure that had already changed — which is what
+         `avatarSave`'s own comment above calls the difference between a wardrobe and a form. Only
+         BUYING is worth a word, because that one spends credits. */
+      if ((d.bought || []).length) toast('Bought ' + d.bought.join(', '));
+      draw();
     })
     .catch(err => {
       USER.avatar = before;
-      if (fig) fig.innerHTML = avatarFor(USER.handle || USER.name, 120, USER.avatar);
-      const el = $('av-said');
-      if (el) el.textContent = String(err.message || err);
+      draw();
+      /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
+         shell.js — and the line it used to be written to is gone. */
+      toast(String(err.message || err));
     });
 }
 
@@ -1316,7 +1373,7 @@ function settingsPages_() {
       options: f => (DATA.validations || {})[f],
     })}
       <button class="btn" data-do="me-save">Save</button>
-      <p class="faint me-said" style="margin:.6rem 0 0"></p></div>
+      <p class="faint me-said"></p></div>
   </div>`);
 
   /* ---------- YOUR USERNAME, BEFORE THE PIN AND FOR THE SAME REASON ------------------------------
@@ -1357,6 +1414,14 @@ function settingsPages_() {
     <button class="btn quiet" data-do="pin-save">Change my PIN</button>
     <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>
   </div>`);
+
+
+  /* ---------- AND THE WARDROBE, AT THE END -------------------------------------------------------
+     APPENDED RATHER THAN PREPENDED, because `PAGE.settings` remembers where somebody was: inserting
+     at the front moves every existing index and a returning visitor lands on a different page.
+     Thirteen pages is long and in range — games is eleven and tools ten — and nobody walks to it:
+     the `Your figure` tile on your own card jumps straight there. */
+  pages.push(...wardrobePages_());
 
   return pages;
 }
@@ -1553,8 +1618,18 @@ function fieldHtml(name, value, o) {
   const pad = FIELD_IS_DECIMAL.test(name) ? 'decimal'
             : FIELD_IS_NUMERIC.test(name) ? 'numeric' : '';
 
-  return `<label class="field"><span>${esc(label)}</span>
+  /* ---------- A CAPTION OR A PLACEHOLDER, NEVER BOTH ---------------------------------------------
+     A PLACEHOLDER IS THE ACCESSIBLE NAME WHEN THERE IS NOTHING ELSE, which this app has measured:
+     ten controls have no text and no `aria-label`, every one carries a placeholder, and adding a
+     label repeating it would be two strings to keep in step. So a caller that asks for one gets a
+     box with no caption above it and 15px of the card back — which is what makes three library
+     cards fit a 568px phone at all. Every other field keeps its caption, because a form of nine
+     unlabelled boxes is a form you have to guess at. */
+  const hint = o.placeholder || '';
+
+  return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+           ${hint ? `placeholder="${esc(hint)}"` : ''}
            ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
@@ -1574,6 +1649,46 @@ function fieldHtml(name, value, o) {
    chance for one of them to stop recognising it. */
 const isTimetable_ = list => (list || []).length > 12
   && (list || []).every(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+
+/* ---------- AND A GROUP OF `libN_*` NAMES IS A SHELF OF LIBRARY CARDS ----------------------------
+   RECOGNISED BY THE SHAPE OF THE NAMES, exactly as the timetable above is and for the same reason:
+   the group's title is the backend's to choose, and a renderer that keys on it stops working the
+   day somebody renames it. The one field that is not a card — `library_note` — is drawn as an
+   ordinary box under the shelf, so the test asks whether ANY of the names is a card rather than
+   whether all of them are.
+
+   WHY IT NEEDS A RENDERER AT ALL, measured rather than asserted: nine ordinary `label.field` boxes
+   are 63.1px each at 320 and the group came to **790.2px in a pane that caps at 534.25** — 283px
+   below the fold, with no scroll and no page to turn to, which is exactly the `OUT OF REACH` fault.
+   Two rows per card — the name and the PIN across, the number full width beneath — is **430.4px
+   with 78.9px of headroom**. */
+const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
+const isLibrary_ = list => (list || []).some(isLibraryCard_);
+
+/* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
+   BUILT FROM THE FIELD LIST THE BACKEND SENT, not from a count written here. `LIBRARY_CARDS` is a
+   constant in `constants.gs` and the nine names are derived from it there; a `3` written again on
+   this side would be the second copy this repository keeps paying for — and a fourth library would
+   then draw three cards and silently drop the fourth's answers on every save.
+
+   THE NAME IS THE WIDE ONE. A borough's name is words and a PIN is four digits, so the row is
+   `1fr` and `max-content`; the card number is its own line because it is the longest thing on the
+   shelf and the one somebody reads back digit by digit.
+
+   NO `<h4>` PER CARD. A heading per library is three more lines of chrome on the group that could
+   not fit in the first place; the name box IS the heading, and its own caption says so. */
+function libraryShelf_(list, value) {
+  const nums = [...new Set((list || []).filter(isLibraryCard_)
+    .map(f => String(f).match(/^lib(\d+)_/)[1]))];
+  return `<div class="lib-shelf">${nums.map(i => `
+    <div class="lib-card">
+      <div class="lib-row">
+        ${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'), { placeholder: 'Library' })}
+        ${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'), { placeholder: 'PIN' })}
+      </div>
+      ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
+    </div>`).join('')}</div>`;
+}
 
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
    this looks for the shape rather than for a name — and answers an empty list when no deployment
@@ -1605,9 +1720,16 @@ function fieldsHtml(groups, o) {
   return Object.keys(groups).map(g => {
     const list = groups[g] || [];
     const timetable = isTimetable_(list);
+    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. `library_note` sits in the same group and is
+       an ordinary box, so the shelf takes the card fields and the rest of the list is drawn under
+       it in the usual way — one `filter`, rather than a second group in the backend that would
+       then need a heading of its own. */
+    const library = !timetable && isLibrary_(list);
+    const rest = library ? list.filter(f => !isLibraryCard_(f)) : list;
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
-      : list.map(f => fieldHtml(f, value(f), {
+      : (library ? libraryShelf_(list, value) : '')
+      + rest.map(f => fieldHtml(f, value(f), {
           attr: o.attr,
           options: o.options ? o.options(f) : null,
           suggest: o.suggest ? o.suggest(f) : null,
@@ -1659,7 +1781,7 @@ function initAvail() {
 
   into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [])
     + `<button class="btn" data-do="me-save">Save my hours</button>
-       <p class="faint me-said" style="margin:.6rem 0 0"></p>`;
+       <p class="faint me-said"></p>`;
 }
 
 /* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH ---------------------------------------

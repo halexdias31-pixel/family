@@ -150,6 +150,12 @@ const SUITE = [
      `full_name`, `handle` AND `username`, so a handle that duplicates one of those makes
      `changePin` check a PIN against the wrong row. It caught a real one on its first run. */
   { file: 'check-handles.js', what: 'what a person may call themselves' },
+  /* ---------- AND THE CELLS ON THAT SAME TAB THAT HOLD MORE THAN ONE FACT -------------------------
+     `availability` AND `library_card` ARE PACKED, each because the alternative is a numbered column,
+     and neither packer had ever been run by anything. It is the one shape where a fault is
+     completely silent: a dropped field writes a shorter cell, the form reloads with an empty box,
+     and the person who typed it assumes they forgot. */
+  { file: 'check-people.js', what: 'the packed cells on the people tab, round-tripped' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.

@@ -108,11 +108,21 @@ if (PAYLOAD_AT) {
 const SHOTS = process.argv.includes('--shots');
 const ONLY  = arg('screen');
 
-/* THE NINE SCREENS, as registered by `screen(id, draw)` in the js/ files. If you add a screen, add
-   it here — and if you forget, the check still passes, which is the one failure this file cannot
-   catch by itself. `check/ui.js --list` prints what the app actually registered, so the two can be
-   compared by eye once in a while. */
-const SCREENS = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'make', 'reel', 'dm'];
+/* ---------- THE SCREENS, READ OFF THE APP RATHER THAN WRITTEN OUT HERE ---------------------------
+   THIS WAS A LIST OF NINE AND ITS OWN NOTE NAMED THE FAULT: *"if you add a screen, add it here —
+   and if you forget, the check still passes, which is the one failure this file cannot catch by
+   itself."* It was forgotten. The app has ELEVEN columns; `settings` and `saved` have been on it
+   for weeks and have never been measured at any width by any visitor — and `saved` has a
+   declared STATE in `check/states.js` that has therefore never run once.
+
+   SO IT IS DERIVED, which is the repair `check-doors.js` already made when its own hand-kept file
+   list had drifted to three files: read the list the browser itself uses. `TABS` is the column
+   order the app draws, so a column added tomorrow is measured tomorrow with nothing here to
+   remember. The fallback below is only for a boot that failed outright — and it says so loudly,
+   because a silent fallback to nine is exactly the silence this replaces.
+
+   `--list` STILL PRINTS WHAT IT FOUND, and there is nothing left to compare it against by eye. */
+const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'make', 'reel', 'dm'];
 
 /* THE WIDTHS THAT EXIST. 320 is the smallest phone still in use and the one everything breaks on
    first; 390 is the modern iPhone; 768 is a tablet held upright; 1280 is a laptop. Four is enough —
@@ -165,8 +175,18 @@ const VISITORS = [
                        role: 'admin', roles: ['admin'], handle: 'testadmin',
                        profile: { first_name: 'Test', last_name: 'Admin',
                                   borough: 'Sutton', city: 'London',
-                                  library_card: '2000000000000',
-                                  library_pin: '0000',
+                                  /* ---------- THREE LIBRARIES, BECAUSE THE SHELF DRAWS THREE ------
+                                     THE SEED HELD `library_card`/`library_pin`, which are the
+                                     names from before the nine boxes became one cell — so it
+                                     would have measured an EMPTY shelf, which is the fault this
+                                     file records about the fixture stating `focus` as a string
+                                     `doGet` does not send. All three filled, and the longest
+                                     library name the shelf will ever hold, because the row is
+                                     `1fr max-content` and the name is the track that gives. */
+                                  lib1_name: 'Merton', lib1_no: '2000000000000', lib1_pin: '0000',
+                                  lib2_name: 'Sutton', lib2_no: '2000000000001', lib2_pin: '0000',
+                                  lib3_name: 'Wandsworth Town and Putney',
+                                  lib3_no: '2000000000002', lib3_pin: '0000',
                                   library_note: 'Example note — the second card is in the top drawer' } } },
 ];
 
@@ -193,23 +213,25 @@ const ACCEPTED_TAP = [
   + 'which is wider than any phone made. Shrinking to fewer hours loses the mornings, and stacking '
   + 'them loses the week-at-a-glance reading that is the whole reason the grid beat a pair of time '
   + 'dropdowns.\n'
-  + '        AND IT IS 44% OF THE ANSWER COLUMN NOW, WHICH IS THE LARGEST COMPROMISE ON THIS LIST. '
-  + 'Asked for as *"i would like the grid to be half as wide"* and then *"can you make the grid '
-  + 'even slightly thinner"*. Ten hours across the full answer column was 18.5 / 23.1 / 24.4px a '
-  + 'cell at 320 / 390 / 768; halved it was 8.8 / 11.1 / 11.8 and at 44% it is **7.6 / 9.7 / '
-  + '10.3**, with a 1px gutter, so at 320 a fingertip covers about four columns at once. THAT IS '
-  + 'PAST WHERE A WRONG TAP IS RARE and the entry says so rather than dressing it up: what makes '
-  + 'it liveable is that a wrong tap costs nothing \u2014 a lit hour comes straight back off with '
-  + 'another tap and nothing is sent until Send.\n'
-  + '        THE THREE SHAPES THAT GIVE HALF THE WIDTH FOR FREE WERE OFFERED WITH THEIR OWN '
-  + 'NUMBERS and refused: two rows of five hours a day (18.6 / 23.2 / 24.5, twice the height), '
-  + 'turned on its side as seven day-columns (13 / 16.3 / 17.2, ten rows), and a shorter span. The '
-  + 'squeeze was chosen over all three with the arithmetic visible, which is what makes this a '
-  + 'decision rather than something nobody measured. Measured after: the hour numbers still fit '
-  + 'their boxes (6.4px of ink in 7.6px at 320, 1.2px either side), nothing scrolls sideways, and '
-  + 'the block week is untouched at 64 / 79.3 / 83.8 \u2014 `blk` is the class that keeps them '
-  + 'apart. 44 rather than 40 because those numbers are the floor: at 40% they have 0.5px of '
-  + 'margin, which is inside the difference between this container and a real phone.\n'
+  + '        AND IT SPANS TWO OF THE CARD\u2019S FIVE COLUMNS, WHICH IS THE LARGEST COMPROMISE ON '
+  + 'THIS LIST. The card is one grid now \u2014 *"each field in its correct column"* \u2014 so the '
+  + 'answer column is 56.3 / 75.3 / 80.9px at 320 / 390 / 768, and ten hours with their gutters in '
+  + 'that is a **4.7 / 6.6 / 7.2px** cell. `grid-column: 2 / 4` gives the week the multiplier '
+  + 'column as well, which a day row can never fill, and lands it on a real column edge: measured '
+  + 'after, **8.97 / 11.69 / 12.48px** with a 1px gutter, and the block week 32.2 / 41.3 / 44.0. '
+  + 'At 320 a fingertip still covers about three columns at once. THAT IS PAST WHERE A WRONG TAP '
+  + 'IS RARE and the entry says so rather than dressing it up: what makes it liveable is that a '
+  + 'wrong tap costs nothing \u2014 a lit hour comes straight back off with another tap and '
+  + 'nothing is sent until Send.\n'
+  + '        ASKED FOR THINNER TWICE AND THIS GIVES A FIFTH OF IT BACK. Ten hours across the full '
+  + 'answer column was 18.5 / 23.1 / 24.4 before either ask; 44% of a span took it to 7.6 / 9.7 / '
+  + '10.3 and ended the strip 29px inside the multiplier column, which is what *"each field in its '
+  + 'correct column"* then convicted. The three shapes that give half the width for free were '
+  + 'offered with their own numbers and refused: two rows of five hours a day (18.6 / 23.2 / 24.5, '
+  + 'twice the height), turned on its side as seven day-columns (13 / 16.3 / 17.2, ten rows), and '
+  + 'a shorter span. One declaration reverses it \u2014 `2 / -1; width: 44%` \u2014 and the trade '
+  + 'is written here and beside the rule so it is a decision rather than something nobody '
+  + 'measured.\n'
   + '        AND 14px IS UNDER `.hr`\u2019s OWN 20px FLOOR, on purpose and on the fourth asking: '
   + '*"make the grid squares and grid thinner"*. What stops it at 14 is that the day name takes '
   + 'over as the row\u2019s floor below it \u2014 12px buys two pixels at 390 and costs a sixth of '
@@ -219,6 +241,22 @@ const ACCEPTED_TAP = [
   + '`slot-row` or `slot-hours`, every cell is an ordinary tap, and `slot-row` is not even the '
   + 'element any more \u2014 a day is a row of the card. A sentence that outlived what it '
   + 'described, which is the shape this repository records under `.favwrap.is-fav`.' },
+  { cls: /^av-sw\b/, why:
+    'A COLOUR SWATCH AT 44px COSTS THE PAGE MORE THAN IT BUYS, and that is measured rather than '
+  + 'argued \u2014 the mistake this repository records under `.mat-out` is changing a rule on a '
+  + 'measurement nobody took, so 44px was written, rendered and read back. Twenty-one swatches, '
+  + 'seven to a row at 30px; at 44 each group needs two rows, and the Colours page goes from 454.9px '
+  + 'to **574.9px in a 532px pane at 320x568** \u2014 68px that can be neither scrolled to nor paged '
+  + 'to, which is the OUT OF REACH fault this same file has a rule for. A control you cannot reach '
+  + 'is worse than one you occasionally mis-tap.\n'
+  + '        WHAT MAKES IT LIVEABLE is the same thing that makes an hour cell liveable: a wrong tap '
+  + 'costs nothing you cannot undo with the next one. The circles are 30px on a 37px pitch, so a '
+  + 'fingertip covers about one and a half of them \u2014 nothing like the four columns the hour grid '
+  + 'accepts \u2014 and picking the wrong brown is fixed by picking the right one.\n'
+  + '        SPLITTING THE COLOURS ONTO THREE PAGES would give the 44px and was refused: skin, hair '
+  + 'and shirt are the one thing most people come here to change, and three swipes to change a look '
+  + 'is a worse wardrobe than a slightly small circle. The trade is written here so it is a decision '
+  + 'rather than something nobody measured.' },
   { cls: /^scr-sq\b/, why:
     'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
   + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '
@@ -316,7 +354,8 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], offscreen: [], tinyTargets: [], lowContrast: [], noName: [] };
+  const found = { overflow: [], hidden: [], offscreen: [], strays: [],
+                 tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
      `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
@@ -409,6 +448,23 @@ function inspect(opts) {
     if (!el) continue;
     const s = getComputedStyle(el);
     if (/(auto|scroll)/.test(s.overflowX)) continue;
+    /* ---------- A ONE-LINE TEXT FIELD IS A BOX THAT WAS TOLD IT COULD --------------------------
+       THIS RULE'S OWN QUESTION IS *"does this box scroll sideways when it was NOT told it could"*,
+       and an `<input>` is the one element the platform tells: a value longer than the box scrolls
+       inside it and the caret follows, which is what every text field on every site does. There is
+       no `overflow-x` on it to read — the behaviour is the control's, not a declaration — so the
+       test above cannot see the permission and reported the value instead of the layout.
+
+       IT WAS FIRING ON REAL DATA AND NOTHING ELSE. `--screen=settings` exited 1 on `library_note`
+       holding a sentence, and on a library called `Wandsworth Town and Putney`: up to 270px, which
+       is simply how much of that name is scrolled out of view. A rule that fires on somebody typing
+       a long borough is a rule that gets switched off.
+
+       AND THE BOX AROUND IT IS STILL MEASURED. A track that collapses takes `label.field` with it,
+       which this same rule reports — it did, at 4px wide — and an input too small to hit is the
+       tap-target rule's question. Only the input's own horizontal scroll is exempt, and only it.
+       `<textarea>` is NOT exempt: it wraps, so a sideways scroll there is a real fault. */
+    if (el.tagName === 'INPUT') continue;
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
       const box = el.getBoundingClientRect();
@@ -520,6 +576,58 @@ function inspect(opts) {
     }
   }
 
+  /* ---------- AND A FIELD CAN BE IN THE WRONG COLUMN, WHICH NOTHING HERE COULD ASK ----------------
+     REPORTED AS *"make reciept builder more like ordely. each field in its correct column"*, the
+     morning after five column heads went onto the booking card. They sat over nothing, and every
+     instrument in this repository was green: nothing overflowed, nothing was clipped, every row
+     measured exactly what it asked for, and both mutants an adversarial review wrote against the
+     header survived the whole suite.
+
+     THE CAUSE WAS STRUCTURAL AND SO IS THE RULE. Every `.bk-row` used to declare `display: grid`
+     and its own `grid-template-columns`, so `max-content` and `1fr` resolved PER ROW — five
+     independent grids stacked up, lining up only by accident. Measured at 390 on a priced booking
+     before the repair: the head's `Q` ended at 60.9 and every label at 75.6; an answer ended at
+     158.3 on a priced row and 319.9 on one with no figures; three blank rows started their dash at
+     44.3, 50.8 and 83.
+
+     SO: EVERY CELL OF A COLUMN MUST HAVE THE SAME TWO EDGES. One question, asked of the card the
+     visitor is looking at, over the classes the card's own grid names. The header is a row like any
+     other here, which is the half that matters: a head that does not sit over its column is exactly
+     as much a finding as a value that does not.
+
+     THE WEEK IS THE ONE EXEMPTION AND ONLY ON ONE EDGE. `.bk-row.bk-wk .bk-v` spans two tracks
+     deliberately — ten pressable hours do not fit in the answer column, and the arithmetic is in
+     style.css beside the declaration — so its RIGHT edge is allowed to differ and its LEFT edge is
+     not, because the left edge is the one the eye tracks down the card.
+
+     1.5px OF SLACK, WHICH IS SUB-PIXEL LAYOUT AND NOTHING ELSE. The smallest real fault this would
+     have caught is 3px (`Extra subj.` overhanging its own label column); a track resolved by the
+     browser differs between rows by hundredths. */
+  for (const card of (live ? live.querySelectorAll('.bk') : [])) {
+    const rows = [...card.children].filter(el => el.classList.contains('bk-row'));
+    if (rows.length < 2) continue;
+    for (const col of ['bk-k', 'bk-v', 'bk-m', 'bk-r', 'bk-t']) {
+      for (const edge of ['left', 'right']) {
+        const seen = [];
+        for (const row of rows) {
+          const el = row.querySelector(':scope > .' + col);
+          if (!el) continue;
+          const b = el.getBoundingClientRect();
+          if (!b.width && !b.height) continue;            // display:none has no box to be wrong
+          /* THE WEEK'S RIGHT EDGE, EXEMPT WITH ITS REASON ABOVE. */
+          if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-wk')) continue;
+          seen.push({ at: Math.round(b[edge] * 10) / 10,
+                      k: (row.querySelector(':scope > .bk-k') || {}).textContent || row.className });
+        }
+        if (seen.length < 2) continue;
+        const lo = seen.reduce((a, b) => b.at < a.at ? b : a);
+        const hi = seen.reduce((a, b) => b.at > a.at ? b : a);
+        if (hi.at - lo.at > 1.5) found.strays.push({ col, edge, by: Math.round((hi.at - lo.at) * 10) / 10,
+                                                     lo: lo.k.trim().slice(0, 18), hi: hi.k.trim().slice(0, 18) });
+      }
+    }
+  }
+
   /* ---------- A "TEXT CLIPPED RATHER THAN WRAPPED" RULE WAS HERE, AND IT WAS INERT ---------------
      I WROTE IT, IT NEVER FIRED ONCE, AND DELETING IT IS THE HONEST OUTCOME. The fault it was for is
      real: the funnel's answer rows lost their counts, which left `.k` — `flex: 0 0 auto` — the only
@@ -550,8 +658,14 @@ function inspect(opts) {
     /* SUMMARY IS A TAP TARGET AND WAS NOT ON THIS LIST. `<details>` arrived with the answer block on
        a question card (see `answerBlock_` in find.js) — the summary is the only way to open it, so a
        small one is exactly the fault this check exists to find, and it would have been invisible. */
+    /* ---------- AND `data-do` IS WHAT A CONTROL IS IN THIS APP -----------------------------------
+       THE WHOLE DISPATCH IS ONE DELEGATED LISTENER ON `data-do`, and `check/press.js` presses
+       exactly those — so an element carrying one is a control by construction, whatever tag it
+       happens to be. The colour swatches in the wardrobe are `<span data-do="av-colour">`: twenty-one
+       of them, 30x30, invisible to this rule for as long as it asked about tag names only. A control
+       nobody put in a `<button>` is not a smaller control. */
     const tappable = /^(BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL|SUMMARY)$/.test(tag)
-      || role === 'button' || el.hasAttribute('onclick');
+      || role === 'button' || el.hasAttribute('onclick') || el.hasAttribute('data-do');
     if (!tappable) continue;
     if (el.closest('[hidden]')) continue;
 
@@ -733,9 +847,42 @@ function inspect(opts) {
               .find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
-  const screens = ONLY ? [ONLY] : SCREENS;
   let failures = 0;
   const rows = [];
+
+  /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
+     ONE THROWAWAY PAGE, SIGNED IN, because `applyColumns_` can switch a column off and `TABS` is
+     what it rewrites — so the honest list is the one the app is holding after a real boot rather
+     than the one `columns.json` happens to say. Signed in, because that is the visitor who can
+     reach the most of them. */
+  const found = await (async () => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    try {
+      const who = VISITORS.find(v => v.user);
+      if (who) await page.addInitScript(u => {
+        try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {}
+      }, who.user);
+      await page.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1800);
+      return await page.evaluate(() => {
+        /* `TABS` IS A LIST OF OBJECTS, NOT OF IDS — `check/press.js` maps `t.id` and the first
+           version here did not, which handed `go()` an object and skipped every column. It came
+           back as 88 combinations where the run before it was 132, which is the only reason it was
+           caught: a derived list that silently measures nothing looks exactly like a short one. */
+        try { return (typeof TABS !== 'undefined' ? TABS : []).map(t => (t && t.id) || t)
+                .filter(x => typeof x === 'string'); } catch (e) { return []; }
+      });
+    } catch (e) { return []; } finally { await page.close(); }
+  })();
+  if (!found.length) {
+    console.warn('  ! the app did not report its columns, so this run measures the nine written '
+               + 'into SCREENS_FALLBACK. A column added since is NOT being measured.');
+    failures++;
+  }
+  const SCREENS = found.length ? found : SCREENS_FALLBACK;
+  const screens = ONLY ? [ONLY] : SCREENS;
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 
@@ -987,6 +1134,11 @@ function inspect(opts) {
        the column paged; "off the screen" is a pane placed for a card that has since changed size,
        and wants `placeCells('y', …)` where the size changed. One heading would send a reader to
        the wrong half. */
+    /* A SEPARATE HEADING AGAIN, AND FOR THE SAME REASON: this is not a box that is too big or in
+       the wrong place, it is a box in the wrong COLUMN, and the repair is always the card's grid
+       rather than the element. */
+    (r.strays || []).forEach(o => add('FIELD OUT OF ITS COLUMN',
+      `.${o.col} ${o.edge} edge varies by ${o.by}px down one card — "${o.hi}" against "${o.lo}"`, at));
     (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
     (r.tinyTargets || []).forEach(t => {

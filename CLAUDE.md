@@ -9544,7 +9544,7 @@ are about one edge and they wanted it in different places, which is why it flip-
 
 **What the revert was about is answered by the header rather than by the columns.** "What happened
 to all the columns" is a question about columns that vanished with nothing saying so. `spineHead_`
-names them, so `× RATE TOTAL` appear **labelled** the moment there is a figure to put under them,
+names them, so `× +/h +` appear **labelled** the moment there is a figure to put under them,
 and their absence on an unpriced form reads as *nothing is priced yet* instead of as something
 having gone missing. **Proved by the waiting-list state**, which is the one branch the fixture can
 price: it carries an `About` total, so the columns are there, `TOTAL` sits over `£144.00`, and the
@@ -9552,7 +9552,7 @@ dash correctly stops at 189 while the week runs to 351.
 
 **`:has` reads the card's own totals** rather than a flag somebody sets, so there is no second place
 for "is this priced" to be wrong — and **the header is excluded from its own test**, which is the
-line that is easy to get wrong. `spineHead_` writes the word `Total` into a `.bk-t`, so a plain
+line that is easy to get wrong. `spineHead_` writes `+` into a `.bk-t`, so a plain
 `:has(.bk-t:not(:empty))` is true on every card and the rule could never fire. The descendant is
 `.bk-row:not(.is-cols)`.
 
@@ -9564,10 +9564,12 @@ brought them back is somebody counting the columns and asking which is which —
 exactly why the word **Small** was in the request. `.58rem` of tracked uppercase in the faint ink,
 reading as a caption rather than as a row of the document.
 
-**The stub head is blank**, which is what a table does with the column its row names live in. **The
-value column's word comes from the caller** — `Answer` on the form and `Detail` on the receipt,
-because the two documents are not the same sentence: the same `fieldsHtml(head)` move, cheaper than
-a second builder differing by one word.
+**The stub head was blank**, which is what a table does with the column its row names live in, and
+**the value column's word came from the caller** — `Answer` on the form and `Detail` on the receipt,
+because the two documents are not the same sentence. **Both are gone**, and the entry stays because
+the arithmetic below it is what somebody needs: the owner later dictated the five heads glyph by
+glyph — `Q A × +/h +` — so the stub is named, the word is the same on both documents, and `cols` is
+a flag rather than a string. See *"Five column heads, dictated column by column"* below.
 
 ### It cost 11px on the one card that had 8, and where they came back is the entry
 
@@ -9773,7 +9775,7 @@ answer that is not a trade.
 **THE THREE ROUNDS BEFORE IT WERE ALL THE SAME TWO BAD CHOICES.** The week was a block hanging under
 a `When` row. Indent it to the answer column and its left edge lines up and its right edge cannot —
 eleven pressable cells need 240px and the answer column beside three figure tracks is 78px, a
-five-pixel cell. Collapse the figure columns to make room and the form loses `× RATE TOTAL`, which
+five-pixel cell. Collapse the figure columns to make room and the form loses `× +/h +`, which
 is what *"now there's only 2 columns again"* was. Written, reverted, written, reverted; the
 arithmetic is in `style.css` either side of `.bk-open`.
 
@@ -9806,7 +9808,7 @@ strip share `111 → 351`**, which is the single right edge three screenshots we
 **THE COST IS ON A PRICED CARD AND IT IS REAL.** `Venue` carries a surcharge and `Subject` does not,
 so their two dropdowns come out 78px and 240px — the *"two editable fields, one above the other, in
 two sizes"* the note over `is-bare` records from the last time this was tried. What is different is
-that the columns are NAMED: a short value with `× RATE TOTAL` over the space beside it reads as a
+that the columns are NAMED: a short value with `× +/h +` over the space beside it reads as a
 row that has figures, which is what it is.
 
 ### One builder, three surfaces, and `short` stopped being a label
@@ -11145,3 +11147,390 @@ rather than the near miss: `check/ui.js` renders that state and `expect` counts 
 mutation that proved the assertion is the same assertion that refuses the botched restore. A
 mutation is not finished when it fires — it is finished when the check is green again, and the only
 thing that says so is a run.
+
+## Five column heads, dictated column by column, and two of them overrule what was written here
+
+**Asked for over a sketch of the five-column head**: *"There should be 5 columns in receipt. Q for
+the prompt, a for answer. X for multipliers. +/h for plus rate per hour, then + for full added
+price"*. `Q A × +/h +`, and the mapping was checked against `js/price-rows.js` before anything was
+typed: `out.rate = signed(perHour, '/h')` puts `+£2.50/h` under `+/h` and `out.total = running()`
+puts the running figure under `+`. The two symbols the owner chose are the two the column already
+prints.
+
+**THE STUB HEAD WAS BLANK AND THE ARGUMENT FOR IT WAS MINE TO LOSE.** It read *"a word over
+'For / Kind / Subject' would be a label for labels"*, which is what a table does with the column its
+row names live in — and it left **four headings over five columns**, so a reader counting across has
+to work out which one is unlabelled. `Q` names it, and the card's own rows say why the word is
+right: every label in that column IS a question the document asks.
+
+**AND THE VALUE COLUMN'S WORD NO LONGER COMES FROM THE CALLER.** It was `Answer` on the form and
+`Detail` on the receipt, on the argument that *"the form is what you ANSWER and the receipt is what
+was DECIDED"* — true, and `A` is the same letter for both, so the difference has nowhere left to
+show. `cols` stays as the **flag** it also was: the basket passes none, which is how a caller says
+it wants no header at all — its card is two columns and there is nothing for five names to sit over.
+The five words are written once, in `spineHead_`, over the columns they name.
+
+**`×` RATHER THAN A LETTER X, and it is the same glyph to a reader.** The values beneath it are
+`× 6` and `× 1.005`, so the header is the character the column already uses rather than a second
+spelling of it.
+
+### `text-transform: uppercase` went with the words, and it was one wrong character
+
+It was on `.bk-row.is-cols` for `ANSWER`, `RATE` and `TOTAL`. Of the five symbols now in that row
+the only letter it can touch is the **`h` of `+/h`**, which it raised to `H` — a header spelling the
+unit one way over a column of `£12.00/h` spelling it the other. One property removed and what the
+source says is what the row draws. **The tracking stays**: at `.58rem` it is what still reads these
+five as a label rather than as a row of the document.
+
+**Measured at 320 / 390 / 768, on both headers the booking column draws** — the form's and the
+receipt's: `"Q" "A" "×" "+/h" "+"`, no span overflowing its track at any width, `text-transform:
+none`, the pane hiding 0px, and no JS errors. Screenshotted at 390, which is the **seventeenth**
+time this file says a screenshot is the last word on something drawn — counted off the lines
+above rather than remembered, because this tally has been wrong in its own warning twice.
+
+**WHAT WAS NOT FIXED BY IT WAS FIXED THE NEXT MORNING, under its own heading below.** The header kept
+all five tracks while a row with no figures collapsed to two, so on the receipt `A` sat over the
+right edge of a **114px** track (102..216 at 390) while the `Subject` value under it was
+right-aligned at **351px**, under `+`. That was recorded here as not fixed and was the whole of the
+next report.
+
+**IT IS UNCHANGED BY THIS, AND THAT IS MEASURED RATHER THAN REASONED.** `.bk-k` is
+`minmax(6.2em, max-content)`, so an empty span and a `Q` both resolve to the 6.2em floor — and the
+mutation says so outright: putting `'' / Detail / × / Rate / Total` and the uppercase back into the
+live header gives **`44..97 102..216 221..257 262..303 307..346`**, the same five boxes to the pixel.
+Only the glyphs moved.
+
+
+## Each field in its correct column, which needed the card to stop being thirty grids
+
+**Reported as *"make reciept builder more like ordely. each field in its correct column"***, the
+morning after the five column heads went on. They sat over nothing, and the reason is structural
+rather than a width somebody got wrong.
+
+**EVERY `.bk-row` DECLARED `display: grid` AND ITS OWN `grid-template-columns`.** So `max-content`
+and `1fr` resolved PER ROW — thirty independent grids stacked up, which cannot line up except by
+accident. Measured at 390 on a priced booking, relative to the card's left edge:
+
+| | label | answer | × | +/h | + |
+|---|---|---|---|---|---|
+| **the head** | 7.7→60.9 | 65.4→190.5 | 194.9→231 | 235.5→276.8 | 281.2→319.9 |
+| `Tutor` — priced | 7.7→**75.6** | 80.1→**158.3** | 162.7→208.9 | 213.3→266 | 270.5→319.9 |
+| `Subject` — no figures | 7.7→75.6 | 80.1→**319.9** | — | — | — |
+| `Dates` — a dash | 7.7→**39.9** | **44.3**→319.9 | — | — | — |
+
+**Not one of the head's five boundaries was a boundary of any row**, the answers ended at two
+different x on one card, and three blank rows started their dash in three different places.
+
+**SO THE CARD DECLARES THE COLUMNS AND EVERY ROW SUBGRIDS ONTO THEM.** `grid-template-columns:
+subgrid` is the only thing that makes a track shared: `display: contents` would drop the row, and
+the row is what carries the padding, the tick line-height and the week's own layout. `max-content`
+on the label now resolves once across every label on the card, and `1fr` once. After: **every row
+and the head at `7.7→78.6 | 83→158.3 | 162.7→208.9 | 213.3→266 | 270.5→319.9`.**
+
+**THE TWO PER-ROW TEMPLATES HAD TO GO IN THE SAME COMMIT.** `.is-bare` and `.is-blank` each declare
+their own five tracks and both are two classes, so either would have won on order and taken the
+alignment straight back — the `.price.faint` shape, on the one rule whose whole job is that the
+columns agree. What each MEANS is unchanged and is now said by hiding the three money spans, which
+is what `is-bare` already meant.
+
+**AND THE FONT-SIZE HAD TO MOVE WITH THEM.** Every track is `em` or `ch`, which resolve against the
+element that DECLARES them — so tracks on `.bk` at the card's own size and text in the row at
+`.74rem` size the columns for a font nothing is set in. Measured before that line existed: `6.2em`
+came out **96px** against a label 56px wide, and the five columns wanted **385px on a card with
+328**. One selector for both, rather than the same expression written twice.
+
+### An answer stays in the answer column, and what that costs is the answer column
+
+**`.bk-v { grid-column: 2 / -1 }` WAS THE OTHER HALF.** A row with no figures gave its answer the
+three money tracks as well, which is why `Subject` ended at 319.9 and `Tutor` at 158.3 on one card.
+It is gone: an answer is column A whether or not the row beside it happens to carry a price.
+
+**WHAT IT COSTS IS REAL AND IS THE NARROWER OF TWO WIDTHS THE CARD ALREADY HAD.** A value box is
+**56.3 / 75.3 / 80.9px** at 320 / 390 / 768, read off the card's own `grid-template-columns`. Every
+PRICED row was already that — *"two editable fields, one above the other, in two sizes"* is what the
+note over `is-bare` calls it — so nothing new is introduced; the card settles on one. A dropdown
+whose option is longer than that ellipsises, which `Instant cl…` does at 390.
+
+**THE WEEK IS THE ONE EXEMPTION AND IT IS ARITHMETIC.** Ten hour cells with their 1px gutters in the
+answer track is **4.7 / 6.6 / 7.2px a cell**, under the 7.6 `ACCEPTED_TAP` already calls the largest
+compromise on its list. `grid-column: 2 / 4` gives it the multiplier column — the one track beside
+it a day row could never fill — so it lands on a REAL column edge instead of wherever a percentage
+falls, and the two money columns stay unbroken down the card's whole height. Measured: **8.97 /
+11.69 / 12.48px a cell**, against 7.6 / 9.7 / 10.3 at 44% of a span that ended 29px inside the
+multiplier column. **That gives a fifth of the thinness back, asked for twice**, and `2 / -1;
+width: 44%` is the one declaration that reverses it.
+
+**Nothing overflows anywhere**: `over: 0` and no sideways scroll on the blank form, the priced form
+and the waiting list at all four widths, with the waiting-list card — the one with three pixels of
+headroom in its own note — at 761 in a 769 pane.
+
+### `FIELD OUT OF ITS COLUMN` — and two mutants had already survived the whole suite
+
+**Nothing here could ask this question, and that was proved before it was written.** An adversarial
+review of the header wrote two mutants against it and both passed every check: nothing overflowed,
+nothing was clipped, every row measured exactly what it asked for. `check/cascade.js` pairs two
+rules matching ONE element at equal specificity; `check-css.js` reads the file. Neither can ask
+whether a box is in the wrong COLUMN.
+
+**One question, over the classes the card's own grid names**: every cell of a column has the same
+two edges. The header is a row like any other to it, which is the half that matters — a head that
+does not sit over its column is exactly as much a finding as a value that does not. The week's RIGHT
+edge is exempt with the arithmetic above; its LEFT edge is not, because the left edge is the one the
+eye tracks down the card. 1.5px of slack, which is sub-pixel layout and nothing else: the smallest
+real fault here was 3px.
+
+**Proved by mutation in both directions** — the header given back its own template names 33 findings
+and exits 1 (`.bk-k right edge varies by 10.3px down one card — "For" against "Q"`); the real files
+exit 0 and all 38 checks pass.
+
+### And `Q` was drawn in the ink of the rows underneath it
+
+**Found by the same review, and it is the twelfth conviction of `.price.faint` in this stylesheet.**
+`.bk-k { color: var(--dim) }` is a declaration ON the span; `.bk-row.is-cols { color: var(--faint) }`
+is on the row and reaches it only by inheritance, and a direct declaration beats inheritance at any
+specificity. Measured: `Q` came out `#9a9a9a` at 6.99:1 and `A × +/h +` came out `#808080` at
+4.98:1 — and `#9a9a9a` is `Venue` and `Subject` and every other label in that column exactly. One
+heading a step louder than the other four, in the ink of the rows it heads, starting at the same x.
+
+**The other four each carry `color: inherit` and were written to defeat this.** `.bk-k` had none
+because until the heads went on it was **empty**, and a rule that paints nothing cannot be seen to
+be wrong. Neither check could see it and that is worth stating rather than assuming: both colours
+pass 4.5:1, so `check/ui.js` is silent, and the loser is inheritance rather than a competing rule,
+so `check/cascade.js` is too.
+
+## "I still don't see george" for the third time, and he was on the screen
+
+**Reported three times.** The chain this file already records held exactly: George is `role: tutor`,
+`listed: FALSE` in the sheet; `doGet`'s gate is `(listed || viewerIsAdmin)`, so he is sent to an
+admin and to nobody else; and both front-end `listed` filters came off `js/find.js` on 2026-09-13,
+twelve days and many successful Pages builds ago.
+
+**MEASURED IN A BROWSER AS THE ADMIN: the account column OPENS on him.** `PAGE_HOME.account` is page
+1, that page is the unlisted tutor, and the card draws dimmed with `· not listed` beside the role, a
+red `NO DBS ON FILE` stamp and a `set-listed` tile under it. Three signals, all correct.
+
+**AND EVERY ONE OF THEM SAYS A STATE. NONE OF THEM SAYS WHAT TO DO.** `tile_` puts a tile's label in
+`title` and `aria-label` only — a recorded decision, *"THE MARK IS THE WHOLE BUTTON NOW, AND THE WORD
+IS GONE"*, and not one to undo from here — so on a phone the way back is an unlabelled crossed-out
+eye in a row of icons. One sentence under the mark, admin-only, saying the consequence rather than
+the cell: *"Clients cannot see them. The crossed-out eye below puts them back on the site."* The
+house style already says this shape — *"put ONE paragraph under the row rather than one per
+button"*.
+
+### And the booking dropdown was a second copy of a policy the server had already decided
+
+**`js/book.js` FILTERED `t.listed !== false` WITH NO WRITTEN REASON**, and there was nothing for that
+clause to remove: a client is never SENT an unlisted tutor, so it could only ever hide them from the
+one person the server had deliberately shown them to. Measured as the admin against one payload: the
+roster drew three tutors and the dropdown offered two. **`js/find.js` had its own copy of the same
+clause removed months earlier and this one was never found** — which is the `MESSAGING` fault, and
+the reason is the one this file writes every time: a rule written twice is two rules to keep in step,
+and the copy is the one that goes stale.
+
+**MARKED RATHER THAN SILENT**, because an admin offering a switched-off tutor to a family needs to
+know that is what they are doing. `label_` changes the option's TEXT and not its VALUE, which is what
+keeps `priceFrom`'s `norm(t.title) === norm(tutor)` working — a decorated value would price the
+booking at the open rate with nothing on screen saying so. Two assertions in `check-flow.js` for
+exactly those two halves, **proved by mutation**: the old clause back and it names the list it was
+offered.
+
+### What is still true and is not a bug
+
+**No tutor at all is on the Find screen**, George included: `kindOf_('tutor').group` is `Booking` and
+`FUNNEL_NOT_FOR` is `Booking`. That is the decision written up under *"Booking is out of the
+funnel"*, and searching a tutor's name there returns nothing by design. If that is where the looking
+has been happening, this is the answer and no amount of tapping changes it.
+
+**And `role` must keep its comma.** `head of boxing` appears nowhere in the Ledger — the title
+lives in code, not in that cell — but the rule the titles entry states is load-bearing and worth
+repeating: a cell holding only titles has no real role left, `mainRole` falls back to `client`, and
+the tutor drops off the site entirely.
+
+## Three library cards on one page, and the ninth box could not have fitted
+
+**Asked for as *"there are many different librarys for library card detais so make it smaller so can
+fit in like 3."*** The answer is not a narrower box. Measured in the real app, nine ordinary
+`label.field` boxes are **790.2px in a pane that caps at 534.25px** at 320x568 — 283px below the
+fold with no scroll and no page to turn to — and the irreducible floor, nine 44px inputs plus 161.5px
+of measured card chrome, is **557.5px**. It cannot fit at 320 with zero captions and zero gaps.
+
+**SO THE SHAPE CHANGES RATHER THAN THE SIZE.** Two rows a card — the library and the PIN across, the
+number full width beneath — is three boxes in the height of two, and every input keeps its 44px
+floor, which is the one measurement in this stylesheet that does not scale.
+
+| at 320x568 | |
+|---|---|
+| nine stacked boxes | 790.2px, **283 past the fold** |
+| three cards, two rows each | shelf **308.5px**, card **504.7 in a 530 pane** |
+
+### One cell, nine boxes, and the precedent was one column along
+
+**`library_card_2` IS WHAT `SCHEMA` ALREADY REFUSES IN WRITING** — the numbered-column fault this
+file records under `images`, under `needs` and under the practicals' `equipment_1 … equipment_10`.
+So the three cards are one cell: `name:number:pin` items joined by `|`, which is `avatar`'s own
+`key:value|…` format **on this same tab**. `libCardsOut` expands it into nine form fields and
+`libCardsIn` packs them back — exactly the arrangement `availGridOut`/`availGridIn` already have for
+the 77 hour boxes, which is the one precedent this tab has for *a form with many boxes and a sheet
+with one cell*.
+
+**`library_pin` IS GONE WITH IT**, and that costs nothing: measured against the live sheet, none of
+the three columns has ever been created — `?setup=1` has not been run since they were added — so
+there is no data to migrate and no cell anywhere holding a PIN under the old name.
+
+**THE NAME MAY HOLD A COLON AND THE OTHER TWO MAY NOT**, so an item is parsed from the RIGHT: the
+last two colon-parts are the number and the PIN, everything before them is the name. `Merton:
+Wimbledon` survives. A PIPE typed into a box is stripped rather than escaped — left in, `Merton|
+Sutton` comes back as TWO cards on the next load, which is a silent corruption of the one thing this
+cell exists to remember.
+
+**AND THE NINE ARE NOT COLUMNS, WHICH `updateProfile` HAD TO BE TOLD TWICE.** They are out of
+`wanted` — left in, `lib1_name` would be refused by the very error that exists to catch a field with
+no column — and `library_card` is checked for a header explicitly, because with the nine excluded
+nothing else would, and `setCell` writes to a header that is not there and loses the value with no
+error anywhere.
+
+### `node js/check-people.js` — the packed cells, round-tripped
+
+**NOTHING HAD EVER RUN EITHER PACKER.** `availGridIn` has been the only writer of a tutor's
+availability since it was written and no check has opened it. It is the one shape where a fault is
+completely silent: a packer that drops a field writes a shorter cell, the form reloads with an empty
+box, and the person who typed it assumes they forgot.
+
+**Fourteen cases, each a fault that could happen**: the round trip, a colon inside a name, a pipe
+typed into one, a trailing empty card dropped, a gap in the middle KEPT (it is somebody's second slot
+left blank on purpose), a ragged cell, and an hour outside the span. It cuts the five functions out
+of the `.gs` by name and runs them — not a second implementation, which would agree with itself and
+with nothing else. **Proved by mutation**: parsing an item from the left instead of the right names
+the colon case and exits 1.
+
+### A caption or a placeholder, never both — and that is the 90px
+
+**`fieldHtml` GAINED ONE OPTION and the argument for it is already in this file**: ten controls in
+this app have no text and no `aria-label`, every one carries a placeholder, and **a placeholder IS
+the accessible name when there is nothing else** — so adding a label repeating it would be two
+strings to keep in step. A caller that asks for one gets a box with no caption and 15px back, six
+times over. Every other field keeps its caption, because a form of nine unlabelled boxes is a form
+you have to guess at.
+
+**AND AN EMPTY STATUS LINE TOOK EIGHT PIXELS ON EVERY CARD IT SAT ON.** `.me-said` carried an inline
+`style="margin:.6rem 0 0"` in two places, so the gap was there whether or not there was anything to
+say. Out of the markup and zero while empty — which is the eight pixels that put the shelf inside a
+568px phone, and a real repair to six other cards.
+
+### Three faults the lab found, and one of them was the lab
+
+**`max-content` ON A TRACK HOLDING AN `<input>` IS THE INPUT'S IDEA OF ITSELF.** The default `size`
+is about twenty characters, so the PIN column took ~250px and the library name was left with **four**
+— `<label>.field "Library" is 4x63`, plus eleven sideways scrolls up to 270px, on the first run of
+`--screen=settings` that had ever existed. A fixed 7rem track and `min-width: 0` on both.
+
+**AND THE ELEVEN SCROLLS WERE NOT ALL THE APP.** Six of them were an `<input>` whose VALUE is longer
+than its box — which is what every text field on every site does, and the one element the platform
+tells it may scroll. There is no `overflow-x` on it for the rule to read, so it reported the value
+instead of the layout, and it was firing on a library called `Wandsworth Town and Putney` and on
+`library_note` holding a sentence. `<input>` is exempt from rule 1 now; `<textarea>` is not, because
+it wraps. The box AROUND an input is still measured, which is what caught the 4px track.
+
+**AND `check/cascade.js` CAUGHT MY OWN TWO NEW RULES.** `.lib-shelf label.field` and `.lib-row >
+label.field` are both (0,2,1), so which margin the two top boxes got was settled by which line came
+later. The **twelfth** conviction of `.price.faint` in this stylesheet, and the first one caught by
+the check rather than by a person reading two blocks side by side.
+
+### The lab had nine screens and the app has eleven
+
+**`SCREENS` in `check/ui.js` WAS A LIST WRITTEN BY HAND AND ITS OWN NOTE NAMED THE FAULT**: *"if you
+add a screen, add it here — and if you forget, the check still passes, which is the one failure this
+file cannot catch by itself."* It was forgotten. `settings` and `saved` have been columns for weeks
+and had **never been measured at any width by any visitor** — and `saved` has a declared STATE in
+`check/states.js` that had therefore never run once.
+
+**It is derived now**, off the app's own `TABS` after a real boot, which is the repair
+`check-doors.js` already made when its hand-kept file list had drifted to three files. A column added
+tomorrow is measured tomorrow with nothing here to remember; a boot that fails outright says so
+loudly and fails, because a silent fallback to nine is exactly the silence this replaces.
+
+## The wardrobe is a column of pages, because a sheet was the only shape it could not be
+
+**Asked for as *"editing clothing for avatar character shouldnt be a new menu pop up i dont like
+menu pop ups."*** Three alternatives, and two of them are ruled out by arithmetic rather than
+preference — measured with the app's own `wardrobe()`, `avatarConfig()` and `itemArt()`, laid into a
+real pane:
+
+| as one card | |
+|---|---|
+| 320x568 | **1517.1px in a 534.25px pane — 1010px hidden** |
+| 390x844 | 1365.8px in 806.95 — 588px hidden |
+
+**AN INLINE CARD ON YOUR OWN ACCOUNT PAGE AND A WIDGET ON TOOLS ARE THE SAME NUMBERS**, because a
+widget is one `.card.is-widget` in the same capped pane. That is the `OUT OF REACH` fault this lab
+has a rule for, and the same sum that sent the practical guide and the quiz into a sheet in the
+first place. **A new tab is refused outright by `check-surfaces.js`**, which would fail the build.
+
+**SO IT IS PAGED, AND THE CHEAPEST COLUMN IS THE ONE THAT ALREADY EXISTS.** `settingsPages_` returns
+an array and `PAGER.settings` counts that same array — so this touches **none** of the five places a
+new screen id needs: no `TABS`, no `TAB_ORDER`, no `PAGER`, no `PAGE`, no `<section>`, and no row in
+`columns.json`.
+
+**ONE SLOT PER PAGE, WHICH IS `settingsPages_`'s OWN RULE AND ALSO THE MEASUREMENT.** Split in two,
+Things is 948.1px; in three, all three are over; in four there are 34.1px spare and the "Saving…"
+line takes it 18px over the moment it appears. One slot per page measures **454.9 / 265.2 / 204px**
+at 320x568 in a 480px pane, `over: 0` at all four widths and on all thirteen pages.
+
+**APPENDED, NOT PREPENDED.** `PAGE.settings` remembers where somebody was, so inserting at the front
+moves every existing index and a returning visitor lands on a different page. The tile jumps
+straight there, found by asking the DOM for the page holding `av-colour` rather than a remembered
+index — `settingsPages_`'s length varies with what the backend sends, so a literal would drift.
+
+### The figure was an id on seven pages, which is the fault this file records in full
+
+**`id="av-figure"` ON EVERY WARDROBE PAGE IS SEVEN ELEMENTS WITH ONE ID**, and `$()` hands
+`avatarSave` the first — so picking a hairstyle on page eight redrew the figure on page seven and the
+one under your thumb did not move. The `$('msg-text')` fault, on the surface whose whole point is
+that you SEE the change. A class, and all of them.
+
+**`#av-said` WENT WITH THE SHEET AND WAS THE SECOND DUPLICATE ID.** What it said on the happy path
+was "Saved" over a figure that had already changed, which `avatarSave`'s own comment calls the
+difference between a wardrobe and a form. Only BUYING is worth a word now, because that one spends
+credits — and a refusal is a toast, which this app decided once already.
+
+**AND `Credits` CAME OFF THE PAGE.** `cards.js` already draws the balance on this same column, so it
+was one fact in two places, and dropping it is what buys the Colours page its room. `Level` stays: it
+has one home and the locked items say `Lv 8`, so this is the page that makes the number mean
+something.
+
+### `settings · a slot page` — and the assertion had to be read in the same tick
+
+**A DECLARED STATE THAT TURNS TO A SLOT PAGE, PRESSES A PICK AND ASKS THAT PAGE'S FIGURE.** Nothing
+else could: `check/press.js` presses `av-pick` and correctly reports that SOMETHING changed, which is
+true of the wrong figure as well. **Proved by mutation** — `draw()` reduced to the first `.av-figure`
+names the state at all four widths and exits 1.
+
+**IT GOT TWO THINGS WRONG FIRST AND BOTH ARE WORTH KEEPING.** `.page.on` is set by `paintPager` and
+reading it in the same tick as `goPage` finds the page the column was on BEFORE the turn, so the
+first version pressed nothing and failed about the app rather than about itself. And the redraw has
+to be read AT THE PRESS: `check/fixture.json` is one payload served to every request, so the stubbed
+reply carries no `avatar` key, `USER.avatar` becomes undefined a moment later and the figure returns
+to the default. Asserting on that would report the app broken for the fixture's shape.
+
+### `data-do` is what a control is in this app, and the tap rule asked about tag names
+
+**TWENTY-ONE COLOUR SWATCHES ARE `<span data-do="av-colour">`**, 30x30, and the tap-target rule could
+not see one of them: it tested `BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL|SUMMARY`, a `role`, or an
+`onclick`. **The whole dispatch is one delegated listener on `data-do`** and `check/press.js` presses
+exactly those, so an element carrying one is a control by construction whatever tag it happens to be.
+Added, and across the whole app it surfaces **four findings and they are all the swatches** —
+everything else that carries a `data-do` is already 44px or already accepted.
+
+**AND 44px WAS WRITTEN, RENDERED AND READ BACK RATHER THAN ARGUED.** At 44 the Colours page goes from
+454.9px to **574.9px in a 532px pane at 320x568** — 68px unreachable, which is worse than a mis-tap.
+`ACCEPTED_TAP`, with the arithmetic and with what was tried: splitting the colours onto three pages
+gives the 44px and costs three swipes to change a look, which is a worse wardrobe than a slightly
+small circle. A wrong tap here is undone by the next one.
+
+### And `SCREENS` came back as objects, which is how a derived list measures nothing
+
+**`TABS` IS A LIST OF OBJECTS AND THE FIRST VERSION OF THE DERIVED LIST DID NOT MAP `t.id`** — so
+`go()` was handed an object and every column was skipped. It came back as **88 combinations where the
+run before it was 132**, and that drop is the only reason it was caught: a derived list that silently
+measures nothing looks exactly like a short one. 216 now, against the 132 of the hand-kept nine.
+

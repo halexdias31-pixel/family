@@ -1093,9 +1093,27 @@ const BOOK_STEPS = [
 
      THE ROWS PINNED AFTER IT MOVE TOO, so they are re-pinned to `For` — the last question now.
      `Dates`, `Note` and the two waiting-list lines belong at the foot, not beside the tutor. */
+  /* ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S --------------------
+     THIS FILTERED `t.listed !== false` AND THAT WAS A SECOND COPY OF A POLICY. `doGet`'s gate is
+     `(listed || viewerIsAdmin)`, so a client is never SENT an unlisted tutor and there was nothing
+     here for that clause to remove — it only ever hid them from the one person the server had
+     deliberately shown them to. Measured as the admin: the dropdown offered two tutors and the
+     roster three, on the same payload, and `js/find.js` had had its own copy of the same clause
+     removed months earlier while this one was never found. The `MESSAGING` fault, and the reason
+     is always the same: a rule written twice is two rules to keep in step, and the copy is the one
+     that goes stale.
+
+     MARKED RATHER THAN SILENT, because an admin offering a switched-off tutor to a family needs to
+     know that is what they are doing. `label_` changes the option's TEXT and not its value, which
+     is what keeps `priceFrom`'s `norm(t.title) === norm(tutor)` working — the same split
+     `shortLabels_` draws in the funnel. The card says it the same way: `· not listed`. */
   { id: 'tutor', label: 'Anyone in particular?', short: 'Tutor',
     options: () => isWaiting_() ? [] : ['No preference'].concat(
-      (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
+      (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
+    label_: v => {
+      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
+      return t && t.listed === false ? v + ' · not listed' : v;
+    },
     why: v => {
       if (v === 'No preference') return '';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
@@ -2174,9 +2192,11 @@ function stepSelect_(st) {
    redraw between typing and sending — starting the grid, changing a subject — would have wiped it
    silently. Kept with the answers, it survives every redraw the way every other answer does.
 
-   NO FIGURES, SO IT SPANS. `receiptRow` gives a row with no multiplier, rate or total the full
-   width for its value, which is what a sentence needs and what a right-aligned 55px column would
-   have made impossible. */
+   AND IT IS THE NARROWEST BOX ON THE CARD, which is the price of five columns and is stated rather
+   than worked around. It used to take the three money tracks as well — `receiptRow` gave a row with
+   no multiplier, rate or total the full width for its value — and that is the span removed by
+   *"each field in its correct column"*, measured up in style.css. A sentence in 75px scrolls
+   sideways inside its own input the way every other text field on the card does. */
 function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
     sel: `<input class="bk-in bk-in-l" type="text" data-do="book-note"
@@ -3238,8 +3258,10 @@ function bookBreakdown(L, foot) {
     /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
-    /* THE COLUMN HEADER'S WORD FOR THE INPUT COLUMN — see `spineHead_`. A form is answered. */
-    cols: 'Answer',
+    /* DRAW THE COLUMN HEADER. It carried the word for the input column until the five headings were
+       dictated as symbols — see `spineHead_`, which writes all five now — so what is left here is
+       the yes-or-no it always also was. The basket is the caller that says no, by omission. */
+    cols: true,
     rows: out,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE ---------------------------------
        The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
@@ -3399,26 +3421,47 @@ function rosterHtml(o) {
    columns and asking which is which. The other half is why this is .58rem of uppercase tracking
    rather than a band: a heading that costs a line of reading is the thing that was right to delete.
 
-   THE STUB HEAD IS BLANK, which is what a table does with the column its row names live in. A word
-   over "For / Kind / Subject" would be a label for labels.
+   FIVE SYMBOLS, DICTATED COLUMN BY COLUMN: *"Q for the prompt, a for answer. X for multipliers.
+   +/h for plus rate per hour, then + for full added price"*, over a sketch of the five-column head.
+   They are what this row says now, and two of the five overrule what was written here before.
+
+   THE STUB HEAD WAS BLANK AND THE ARGUMENT FOR IT IS THE OWNER'S TO OVERRULE. It read *"a word over
+   'For / Kind / Subject' would be a label for labels"*, which is what a table does with the column
+   its row names live in — and it leaves four headings over five columns, so the reader counting
+   across has to work out which one is unlabelled. `Q` names it, and the card's own rows say why the
+   word is right: every label in that column IS a question the document asks.
+
+   AND THE VALUE COLUMN'S WORD NO LONGER COMES FROM THE CALLER. It was `Answer` on the form and
+   `Detail` on the receipt, on the argument that *"the form is what you ANSWER and the receipt is
+   what was DECIDED"* — true, and `A` is the same letter for both, so the difference has nowhere
+   left to show. `cols` stays as the FLAG it also was (the basket passes none, which is how a caller
+   says it wants no header at all — see `collections.js`, where the card is two columns and there is
+   nothing for five names to sit over), and the five words are written once, here, where they sit
+   over the columns they name.
+
+   `×` RATHER THAN A LETTER X, and it is the same glyph to a reader. The values beneath it are
+   `× 6` and `× 1.005`, so the header is the character the column already uses rather than a
+   second spelling of it.
+
+   AND `text-transform: uppercase` CAME OFF THE ROW WITH THE WORDS. It was there for `ANSWER`,
+   `RATE` and `TOTAL`; of the five symbols now in it the only letter it would touch is the `h` of
+   `+/h`, which it would raise to `H` — a header spelling the unit one way over a column of
+   `£12.00/h` spelling it the other. One property removed, and what the source says is what the
+   row draws.
 
    AND IT IS THE SAME ROW AS EVERY OTHER ROW, `.bk-row` and the six spans, so the labels sit over
    their columns by construction rather than by a second set of widths that can disagree. That is
    `weekGrid_`'s header one card out, and the fault it avoids is the one this stylesheet keeps
-   paying for.
-
-   THE VALUE COLUMN'S WORD COMES FROM THE CALLER because the two documents are not the same
-   sentence: the form is what you ANSWER and the receipt is what was DECIDED. Same move as
-   `fieldsHtml(head)`, and cheaper than a second builder differing by one word. */
+   paying for. */
 function spineHead_(r) {
   if (!r || !r.cols || !(r.rows || []).length) return '';
   return `<div class="bk-row is-cols">
     <span class="bk-n"></span>
-    <span class="bk-k"></span>
-    <span class="bk-v">${esc(r.cols)}</span>
+    <span class="bk-k">Q</span>
+    <span class="bk-v">A</span>
     <span class="bk-m">×</span>
-    <span class="bk-r">Rate</span>
-    <span class="bk-t">Total</span>
+    <span class="bk-r">+/h</span>
+    <span class="bk-t">+</span>
   </div>`;
 }
 
@@ -4029,8 +4072,9 @@ function jobReceipt(j) {
        what somebody is deciding about. Both names are tried, because two lists genuinely use two. */
     lines: [j.venue || j.location || 'No venue', j.tutor || 'No tutor yet', j.term || '']
       .filter(Boolean),
-    /* AND THE RECEIPT'S, which is not "Answer": nothing on it is being asked. */
-    cols: 'Detail',
+    /* AND THE RECEIPT DRAWS IT TOO. This said `Detail` where the form said `Answer`, because nothing
+       on a receipt is being asked; both are `A` now and the distinction has nowhere to show. */
+    cols: true,
     rows: rows.map(receiptRow),
     /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" was the default
        everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to

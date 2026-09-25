@@ -281,12 +281,87 @@ const STATES = {
         if (n < 0) throw new Error('the unlisted tutor is not on the account column');
         goPage('account', n, true);
       },
-      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off'),
-      wants: 'the unlisted tutor drawn, dimmed, with "· not listed" beside the role',
+      /* ---------- AND THE LINE THAT SAYS WHAT THE MARK MEANS -----------------------------------
+         THE THREE SIGNALS THIS STATE ALREADY MEASURED ALL SAY A STATE AND NONE SAYS WHAT TO DO.
+         The card dims, the role reads `· not listed`, the tile shows a crossed-out eye — and
+         `tile_` puts a tile's label in `title` and `aria-label` only, so on a phone the way back
+         is an unlabelled icon in a row of icons. Reported three times as *"i still dont see
+         george"* about a tutor who was on the screen. The sentence is admin-only, so this is the
+         only state in the file that can reach it. */
+      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off')
+                 && document.querySelector('#s-account .card.is-widget.is-off .prof-hid'),
+      wants: 'the unlisted tutor drawn, dimmed, with "· not listed" and the line saying what it means',
       leave: () => {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
         paint('account');
       } },
+  ],
+
+  /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
+     IT HAS THIRTEEN PAGES AND THE LAB HAD ONLY EVER SEEN THE FIRST. `check/ui.js` measures the page
+     a column opens on, so `About you` was the whole of Settings as far as this file was concerned
+     — and that column now also holds the library cards and the seven wardrobe pages. Same fault as
+     the Find screen measured only on its first question, one column along: what was missing was
+     never a rule, it was a state.
+
+     THE WARDROBE IS FOUND BY ASKING THE DOM, exactly as the tile that opens it does. A literal page
+     number would drift the moment a deployment sends one `profileFields` group fewer — which is
+     the fault the tile's own note records, and a state that lands on the wrong page fails loudly
+     through `expect` rather than measuring the wrong card in silence. */
+  settings: [
+    { name: '' },
+    { name: 'the wardrobe',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-do="av-colour"]'));
+        if (at < 0) throw new Error('no wardrobe page on the settings column');
+        goPage('settings', at, true);
+      },
+      /* THE COLOURS PAGE HOLDS TWENTY-ONE SWATCHES — seven skins, seven hairs, seven shirts — so
+         a count is what proves this landed on the page rather than beside it. */
+      expect: () => document.querySelectorAll('#s-settings .page.on [data-do="av-colour"]').length,
+      wants: 'the wardrobe\'s colour swatches' },
+
+    /* ---------- AND A SLOT PAGE, WHICH IS WHERE THE DUPLICATE-ID FAULT LIVED --------------------
+       THE FIGURE IS ON EVERY WARDROBE PAGE. As `id="av-figure"` that was four elements with one id
+       and `$()` handed `avatarSave` the first — so picking a hairstyle on page eight redrew the
+       figure on page seven and the one under your thumb did not move. Measured before the repair,
+       and invisible to everything: the markup is valid, nothing overflows, and `check/press.js`
+       correctly reports that SOMETHING changed.
+
+       SO THIS PRESSES ONE AND ASKS THE PAGE IT IS ON. The item chosen is the first unlocked one
+       that is not already worn — pressing the one already on is a save that changes nothing, which
+       is the harness fault `check/press.js` records about pressing the option that is already
+       chosen. */
+    { name: 'a slot page',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-do="av-pick"]'));
+        if (at < 0) throw new Error('no wardrobe slot page on the settings column');
+        goPage('settings', at, true);
+        /* THE PAGE BY INDEX, NOT BY `.page.on`. `goPage` sets that class through `paintPager` and
+           the first version of this read it in the same tick — so it found the page the column was
+           on BEFORE the turn, pressed nothing, and the assertion failed about the app rather than
+           about itself. `pages[at]` is the element `goPage` was just handed. */
+        const pg = pages[at];
+        const fig = pg.querySelector('.av-figure');
+        const was = fig ? fig.innerHTML : '';
+        const pick = [...pg.querySelectorAll('[data-do="av-pick"]')]
+          .find(b => !b.classList.contains('on') && !b.classList.contains('locked'));
+        if (pick) pick.click();
+        /* ---------- READ IT HERE, IN THE SAME TICK AS THE PRESS ----------------------------------
+           `avatarSave` REDRAWS BEFORE THE SERVER ANSWERS — its own note says that is the difference
+           between a wardrobe and a form — and that immediate redraw is the thing this state is
+           about. Read later, the answer is the HARNESS's: `check/fixture.json` is one payload served
+           to every request, so the stubbed reply carries no `avatar` key, `USER.avatar` becomes
+           undefined and the figure goes back to the default. That is a fact about the stub, and
+           asserting on it would report the app broken for the fixture's shape. */
+        window.__AV_MOVED = !!fig && !!was && fig.innerHTML !== was;
+      },
+      expect: () => window.__AV_MOVED,
+      wants: 'the figure ON THIS PAGE redrawn by a pick made on it' },
   ],
 
   saved: [
