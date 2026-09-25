@@ -176,16 +176,19 @@ rows.forEach(r => {
        wrong "you need compasses" sends a tutor into a lesson with the wrong bag while a blank one
        sends them to look at the paper.
 
-       A RISK ASSESSMENT IS THE ONE PLACE THAT ARGUMENT DOES NOT HOLD. The blank does not send
-       anybody to look: it produces a guide that opens with a heading reading `Risk assessment`
-       over nothing, which reads as an experiment with no hazards in it. That is a claim, and it
-       is the one claim in this app that could hurt somebody. So a live practical arriving with no
-       hazards written out fails here, where it is one row of editorial work, rather than shipping
-       and being found in a client's kitchen.
+       A RISK ASSESSMENT IS THE ONE PLACE THAT ARGUMENT DOES NOT HOLD, and the reason it gives has
+       changed while the rule has not. It used to be about the SCREEN: a blank produced a guide
+       opening on a heading reading `Risk assessment` over nothing, which reads as an experiment
+       with no hazards in it. The guide draws no such section now — see `practicalGuide_`, which
+       was cut to five things — so this rule guards the DATA and nothing else.
 
-       The guide still draws a fallback for it — see `practicalGuide_` — because a phone running a
-       file from before this rule existed is a thing that happens, and half a second of honest
-       prose beats an empty heading. This is what stops that fallback ever being reached. */
+       IT IS STILL A FAILURE AND NOT A COUNT. Everywhere else a blank here is work somebody
+       intends to do and a number is how you act on it. Hazards are not that: this is the one
+       column in this file that is about whether a child gets hurt, and "nobody has written them
+       yet" and "there are none" are indistinguishable from outside the row. A number printed
+       against that is a backlog you can ship; a failure is one row of editorial work now. The
+       column is one `<section>` from being drawn again, and the 250 hazards already written are
+       what makes putting it back a decision rather than a project. */
     ['equipment', 'steps', 'risks'].forEach(col => {
       const v = String(r[col] || '').trim();
       if (!v) {
@@ -352,12 +355,17 @@ console.log('risk assessments: ' + risked + ' of ' + (rows.length - excluded) + 
   + ' · the ' + excluded + ' refused correctly carry none');
 
 /* ---------- THE GUIDE'S OWN THREE COLUMNS, AND THE DRAWINGS -------------------------------------
-   `science`, `variables` AND `log` ARE WHAT THE GUIDE ASKS FROM. Without them it hands a student
-   the kit, the method and eight empty boxes with nothing suggesting what to change or measure —
-   which is what 41 of these rows did until somebody counted. Printed rather than failed for the
-   same reason the drawings are: writing a paragraph about a practical is editorial work, and a
-   number somebody can act on beats a silence. It is zero today, so the next row added without one
-   shows up as a one.
+   `variables` AND `log` ARE WHAT THE GUIDE ASKS FROM. Without them it hands a student the kit, the
+   method and three empty boxes with nothing suggesting what to change or measure — which is what
+   41 of these rows did until somebody counted. Printed rather than failed for the same reason the
+   drawings are: writing a paragraph about a practical is editorial work, and a number somebody can
+   act on beats a silence. It is zero today, so the next row added without one shows up as a one.
+
+   `science` IS COUNTED AND NO LONGER DRAWN, and that is said rather than left to be discovered.
+   The guide was cut to five things — the name, the picture, the kit, the method and the three
+   worksheet questions — so "What is going on" is a column this file counts and nothing renders.
+   It is deliberate rather than accidental, which is the whole difference from `figure`,
+   `orderPrints` and `exam_date`: keep it filled and a guide that wants it again has it.
 
    A DRAWING IS A DIFFERENT KIND OF BACKLOG. Only 17 of the live rows carry one, and most of the
    rest never will: CLAUDE.md's rule is to draw only where the row's own words determine the
@@ -368,10 +376,10 @@ const noSci = live.filter(r => !String(r.science || '').trim()).length;
 const noVar = live.filter(r => !String(r.variables || '').trim()
                             || !String(r.log || '').trim()).length;
 const drawn = live.filter(r => String(r.diagram || '').indexOf('<svg') === 0).length;
-console.log('the guide: ' + (live.length - noSci) + ' of ' + live.length
-  + ' explain what is going on, ' + (live.length - noVar)
-  + ' offer things to change and things to measure, ' + drawn + ' carry an apparatus drawing');
-if (noSci) note.push(noSci + ' live practical(s) open a guide with no "What is going on" paragraph');
+console.log('the guide: ' + (live.length - noVar) + ' of ' + live.length
+  + ' offer things to change and things to measure, ' + drawn + ' carry an apparatus drawing; '
+  + (live.length - noSci) + ' hold a "What is going on" the guide does not draw at present');
+if (noSci) note.push(noSci + ' live practical(s) have no "What is going on" paragraph held');
 if (noVar) note.push(noVar + ' live practical(s) ask for an independent variable with nothing '
   + 'on the card suggesting one');
 

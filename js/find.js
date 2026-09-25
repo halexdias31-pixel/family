@@ -2268,8 +2268,10 @@ function practicalCard_(x) {
     ${/* ---------- `wow` STAYS ON THE CARD, WHERE EVERYTHING ELSE MOVED INTO THE GUIDE -----------
           IT ANSWERS EXACTLY ONE QUESTION and its own note says which: which of these do you open a
           session with. That is a fact about CHOOSING between practicals, so it belongs on the thing
-          you choose from, not inside the document you open once you have chosen. The kit, the
-          method and the safety line are the opposite — you read them after deciding.
+          you choose from, not inside the document you open once you have chosen. The kit and the
+          method are the opposite — you read them after deciding. (The safety line moved with them
+          and the guide no longer draws it; see `practicalGuide_` for what the cut took and what it
+          cost.)
 
           A closed vocabulary, so the test is an equality rather than a substring — see the note in
           `check-practicals.js` and the five cards a substring wrongly called required. */''}
@@ -2297,9 +2299,15 @@ function practicalCard_(x) {
           for a name it has never heard of — "visibly wrong rather than invisible", which is what
           `icon: 'paper'` got: a square reading `Guide` among a column of glyphs. A guide is a
           document, so it takes the document. */''}
+    ${/* THE NOTE NAMES WHAT THE GUIDE HOLDS, and it said `method, risks, variables` until the
+          guide was cut to five things — a tile advertising a risk assessment that is no longer
+          behind it. Worse, it was a CONDITIONAL on `p.risks.length` whose other branch could
+          never run: the tile is drawn only on a live row and `check-practicals.js` FAILS a live
+          row with no risks, so `method and variables` was dead the day that rule was written.
+          Three words, unconditional, in the order the guide draws them. */''}
     ${off ? '' : `<div class="tile-row">${tile_({
       icon: 'doc', label: 'Guide',
-      note: p.risks.length ? 'method, risks, variables' : 'method and variables',
+      note: 'kit, method, worksheet',
       act: 'prac-guide', data: { key: x.key } })}</div>`}
     ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
       and it is bought once.</p>` : ''}
@@ -2311,7 +2319,10 @@ function practicalCard_(x) {
    THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE.
 
    ASKED FOR AS "each practicle needs to have a guide with it. like a risk assessment, something
-   which asks for iv dv and control variable."
+   which asks for iv dv and control variable." — AND THEN NARROWED, in the owner's own words: "Should
+   be name diagram, ingredients with their quantity, steps. And then worksheet bit which records iv
+   DV cv. Just that for now for each." The risk assessment is the half that went; `practicalGuide_`
+   below lists what else did, and says what it costs.
 
    IT ASKS RATHER THAN STATES, AND THAT IS THE WHOLE DESIGN. Naming the independent variable FOR a
    student removes the one thing the practical is teaching: every exam board marks identifying the
@@ -2324,7 +2335,8 @@ function practicalCard_(x) {
    four thousand question boxes already use, keyed per person by `ansKey_`. A second writer would be
    a second thing to keep in step, which is the sentence this repository writes about `documents_()`,
    `factsNow_` and `childrenOf`. The only new thing is a SLOT on the end of the key, so one practical
-   can hold six answers instead of one.
+   can hold an answer per question instead of one. It held eight and holds three; every key ever
+   written is still there, so a question that comes back comes back filled.
 
    IT OPENS IN THE SHEET BECAUSE IT DOES NOT FIT ANYWHERE ELSE. `#sheet-body` is `overflow-y: auto`;
    `.pane` is `overflow: hidden` and caps at 805px, and 51 of the 56 practical cards were already
@@ -2332,9 +2344,14 @@ function practicalCard_(x) {
 ================================================================================================== */
 
 /* ---------- ONE BOX, ONE SLOT --------------------------------------------------------------------
-   `ansKey_(x)` IS ONE KEY PER ITEM and a guide needs six. The slot goes on the end rather than into
+   `ansKey_(x)` IS ONE KEY PER ITEM and a guide needs one per question. The slot goes on the end
+   rather than into
    a second key-builder, so `whoIs_` still decides whose answers these are and the "working as"
-   switch still moves all of them together — which it would not if this invented its own key. */
+   switch still moves all of them together — which it would not if this invented its own key.
+
+   THE SLOTS ARE NOT REUSED WHEN A QUESTION GOES. `risk`, `pred`, `res`, `conc` and `eval` are no
+   longer drawn and their keys are still in people's browsers; giving one of those words to a new
+   question would hand somebody last month's answer to a different question. */
 function guideBox_(x, slot, ask, hint) {
   const k = ansKey_(x) + '#' + slot;
   /* ---------- THE BOX IS `ansBox_`'S BOX, DOWN TO THE CLASS NAMES ------------------------------
@@ -2371,7 +2388,9 @@ function guideBox_(x, slot, ask, hint) {
    tap-target rule. A kit item is not pressable, so borrowing that class would give five hundred
    inert boxes a fingertip's height each and put `check/ui.js` in the position of measuring tap
    targets on things nobody can tap. `.price.faint` is what this repository calls the other half
-   of that mistake, and it has recorded it ten times.
+   of that mistake — a rule that reads as a decision and behaves as nothing — and it is the fault
+   this stylesheet has been convicted of more often than any other. The tally is kept where the
+   rules are, because a count written in a second file is a count that goes stale.
 
    `×` IS DRAWN BACK IN FRONT OF A BARE NUMBER AND NOT IN FRONT OF AN AMOUNT. `Lolly sticks 12`
    is ambiguous — twelve of them, or the twelfth? — and `Water × 100 ml` is not English. One is a
@@ -2392,78 +2411,65 @@ function kitChips_(list) {
 
 function practicalGuide_(x) {
   const p = x.row;
-  /* ---------- IT IS THE CARD'S OWN CLASSES, BECAUSE THEY ARE THE CARD'S OWN BLOCKS --------------
-     THE KIT LIST, THE METHOD, THE SAFETY LINE, THE TWO-COLUMN VARIABLES TABLE AND THE NOTES ALL
-     MOVED HERE OFF THE CARD. Giving them new names would be a second description of one object,
-     which is the fault this repository already records where `.reel .over` was a second
-     description of `.feed-art` — same thing, two stylesheets' worth of rules, drifting apart the
-     first time either is touched. `.prac-tab`'s own note says it is "what I changed" beside "what
-     I measured", which is exactly the pair this guide asks somebody to name.
+  /* ---------- FIVE THINGS, IN THIS ORDER, AND NOTHING ELSE FOR NOW -----------------------------
+     ASKED FOR AS "Should be name diagram, ingredients with their quantity, steps. And then
+     worksheet bit which records iv DV cv. Just that for now for each."
 
-     WHAT IS GENUINELY NEW IS THE ASKING. `.gd-sec` is a section the card never had — the risk
-     assessment, the prediction, the results, the conclusion — and `.gd-box` is the answer box.
+     THE NAME IS THE SHEET'S OWN TITLE. `openSheet(x.name, …)` draws it above this markup with the
+     close control beside it, so a heading here would be the practical's name twice on one screen —
+     which is the fault this repository records where the roster's `name` printed an `<h3>` over
+     every widget's own heading, and where the maze printed its one instruction twice.
 
-     THE RISK ASSESSMENT IS NOT FINISHED WHEN IT ARRIVES. What is in the row is what is true of the
-     EXPERIMENT. What nothing in a database can know is the ROOM: whether there is a rug under the
-     table, whether a toddler is in the house, whether the only socket is beside the sink. A risk
-     assessment that reads as complete is one nobody looks up from, so the written hazards are the
-     START of the list and the last line of that section is a box.
+     WHAT WENT, SAID RATHER THAN BURIED, because a reduction that reads as a tidy-up is the thing
+     this file warns about: "What is going on", the whole RISK ASSESSMENT section (its written
+     hazards, the safety line, the public-liability line for a home venue and the box asking what
+     else is in the room), the prediction, the results, the conclusion, the evaluation, the maths
+     link and the tutor notes. COUNTED RATHER THAN DESCRIBED: it drew eight answer boxes and draws
+     three — `risk`, `pred`, `res`, `conc` and `eval` went, `iv`, `dv` and `cv` stayed — and its
+     eleven headings are five. A number in a sentence nobody re-reads is the fault this repository
+     records as "all 18 checks pass", and the first draft of this paragraph had it wrong.
 
-     THE HOME LINE IS DRAWN FROM THE VENUE and not written into ten rows — the AQA insert argument,
-     which this file already makes twice: one fact several rows hang from belongs to whatever draws
-     them, or it is ten cells to keep in step the day the wording changes. */
+     NOTHING IS DELETED FROM THE DATA AND NOTHING TYPED IS THROWN AWAY. `risks`, `safety`,
+     `science`, `maths_link` and `notes` are still columns, `check-practicals.js` still FAILS a
+     live row with no risk assessment, and the card still prints the hazard level. Every answer
+     already typed is still under its own key in `localStorage` — `guideBox_` reads `ansKey_(x) +
+     '#' + slot`, so a box that comes back comes back filled.
+
+     THE ONE THING WORTH WEIGHING BEFORE IT COMES BACK is that `risks` is now a column nothing
+     draws. That is this repository's oldest shape — `figure`, `orderPrints`, `exam_date`, `wow` —
+     and it is deliberate here rather than accidental, which is the whole difference. */
   return `<div class="gd">
-    <p class="prac-aim">${esc(p.aim)}</p>
-    ${p.outcome ? `<p class="prac-out"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
-    ${p.science ? `<section class="prac-why"><h4>What is going on</h4>
-      <p>${esc(p.science)}</p></section>` : ''}
+    ${/* THE PICTURE FIRST, WHICH IS WHERE THE LAST ROUND PUT IT and the reason has not changed:
+          seeing the thing, then what it is made of, then how to make it is the order a set of
+          instructions comes in. No class on the `<figure>` — `.gd figure` and `.gd figure svg`
+          already centre it and cap it at `min(100%, 20rem)`, the constant every drawing in this
+          app lays out inside, and a class styled nowhere is what `check-css.js` prints.
 
-    ${/* ---------- THE PICTURE, THEN THE THINGS IT IS MADE OF -----------------------------------
-          ASKED FOR IN THAT ORDER: "The picture of the practical like a diagram. Then the things
-          needed. And it's quantity."
-
-          IT USED TO SIT AT THE HEAD OF THE METHOD and the note that put it there is still worth
-          reading: every one of the seventeen drawings is a SET-UP or a CONSTRUCTION, something you
-          build before the first reading, so it belonged above the numbered steps. That argument is
-          not wrong; it is answering a different question. Seeing the thing, then what it is made
-          of, then how to make it is the order a set of instructions comes in — and for a build,
-          which is what half of these now are, the picture IS the outcome and the kit list is its
-          parts. The owner asked for that order; the drawing is drawn once and only here.
-
-          WHAT IT COSTS, SAID RATHER THAN BURIED: somebody following step 4 is now a scroll away
-          from the figure it refers to, where before it was directly above. A second copy beside
-          the steps would close that and is exactly the fault this repository records where
-          `.reel .over` was a second description of `.feed-art` — one object, two descriptions,
-          drifting apart the first time either is touched.
-
-          NOT ON THE CARD, AND THAT IS MEASURED. `.pane` caps at 534px on a 320×568 phone, a
-          practical card has a median height of 274px, and `.qsheet figure svg` lays out at
-          `min(100%, 20rem)` — so a drawing plus a chip block is about 280px more and would put the
-          seventeen cards that have one straight back past the fold, which is the whole fault the
-          guide was split out to repair. The card is the search result; this is the document. */''}
-    ${/* NO CLASS ON IT: `.gd figure` and `.gd figure svg` already centre it and cap it at
-          `min(100%, 20rem)`, which is the constant every drawing in this app lays out inside.
-          A class styled nowhere is what `check-css.js` prints. */''}
+          ONLY 17 OF THE 77 LIVE ROWS HAVE ONE, so on sixty of these the guide opens on the kit.
+          That is the rule this file states twice — draw only where the row's own words determine
+          the picture — and `check-practicals.js` prints the count so it is a backlog rather than a
+          silence. */''}
     ${p.diagram ? `<figure>${p.diagram}</figure>` : ''}
 
     ${p.equipment.length ? `<section class="prac-kit"><h4>What you need</h4>
       ${kitChips_(p.equipment)}</section>` : ''}
 
-    <section class="gd-sec">
-      <h4>Risk assessment</h4>
-      ${p.risks.length ? `<ul>${p.risks.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`
-        : `<p class="gd-none">No hazards have been written out for this one yet. Read the safety
-           line and the kit list, and write down what you can see.</p>`}
-      ${p.safety ? `<p class="prac-safety"><b>Safety</b> ${esc(p.safety)}</p>` : ''}
-      ${p.venue === 'home' ? `<p class="prac-home">Running in a client’s house: check the public
-        liability cover extends to practical work, and get the parent’s agreement in writing
-        describing what will actually be done.</p>` : ''}
-      ${guideBox_(x, 'risk', 'What else can you see in THIS room?',
-        'The list above is about the experiment. This one is about where you are running it — the floor, the sockets, who else is in the house.')}
-    </section>
+    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
+      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>
+      </section>` : ''}
 
+    ${/* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT ----------------------
+          `prac-tab` IS THIS SECTION'S OWN SCAFFOLDING RATHER THAN A SIXTH THING. The last round
+          of this filled `variables` and `log` on all 77 live rows precisely because a box asking
+          a student to name an independent variable with nothing on the card suggesting one is a
+          worksheet with the scaffolding removed — that entry is in this file under its own
+          heading. So the two lists stay inside the section whose three questions they answer.
+
+          THEY ARE CANDIDATES AND NOT ANSWERS, which is why the box still asks — two to six of
+          each across the 77, so the choice is real rather than a single suggestion wearing a
+          list's clothes. */''}
     <section class="gd-sec">
-      <h4>Variables</h4>
+      <h4>Worksheet</h4>
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
         ${p.variables.length ? `<div><h4>Things you could change</h4><ul>${
           p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
@@ -2477,43 +2483,6 @@ function practicalGuide_(x) {
       ${guideBox_(x, 'cv', 'Control variables — what you must keep the same',
         'Usually the longest of the three. Everything you are NOT changing.')}
     </section>
-
-    <section class="gd-sec">
-      <h4>Prediction</h4>
-      ${guideBox_(x, 'pred', 'What do you think will happen, and why?',
-        'Write it before you start. A prediction after the event is a description.')}
-    </section>
-
-    ${/* ---------- THE METHOD, WITHOUT THE DRAWING, WHICH IS NOW ABOVE THE KIT -----------------
-          THE DRAWING MOVED and the reason is written where it went. What has not changed is which
-          drawings exist: a SET-UP or a CONSTRUCTION only, and NOTHING HERE IS A RESULT — no
-          cooling curve, no I–V graph, no line of best fit. See tools/draw-practicals.py. A guide
-          that prints the answer has taken the practical away, which is the same line `science` is
-          written along. */''}
-    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
-      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>
-      </section>` : ''}
-
-    <section class="gd-sec">
-      <h4>Results</h4>
-      <p class="gd-none">Rule the table up before you start: what you changed down the left, what
-        you measured across the top, and a row for every repeat.</p>
-      ${guideBox_(x, 'res', 'What happened?',
-        'Numbers and units. Anything you noticed that the table has no column for goes here too.')}
-    </section>
-
-    <section class="gd-sec">
-      <h4>Conclusion</h4>
-      ${guideBox_(x, 'conc', 'What does that tell you about the question you started with?')}
-      ${guideBox_(x, 'eval', 'What would you do differently next time?',
-        'What was hardest to measure accurately — and what would you change about the METHOD, rather than about the answer?')}
-    </section>
-
-    ${p.mathsLink ? `<section class="gd-sec"><h4>The maths in it</h4>
-      <p class="prac-maths">${esc(p.mathsLink)}</p></section>` : ''}
-    ${p.notes ? `<section class="gd-sec"><h4>Notes for the tutor</h4>
-      <div class="prac-note">${p.notes.split('|').map(t => t.trim()).filter(Boolean)
-        .map(t => `<p>${esc(t)}</p>`).join('')}</div></section>` : ''}
   </div>`;
 }
 
@@ -3229,7 +3198,9 @@ function searchText_(r) {
    THIS IS THE `topics` FIX AND THE `company` FIX ONE DATA FILE ALONG, and the sentence is the same
    both times: the words are in the row and the search box cannot see them, so a screen whose whole
    job is finding things returns nothing for the thing it holds. There it was one column; here it is
-   the entire guide — the kit, the method, the hazards, the variables and the science.
+   the whole ROW — the kit, the method, the hazards, the variables and the science. It is the row
+   rather than the guide, and that gap is deliberate: the guide draws five things now and the
+   haystack still holds all of it, so a word can be findable and drawn nowhere. See CLAUDE.md.
 
    BUILT ONTO THE ITEM, NOT MATCHED PER KEYSTROKE, which is what those two notes also say:
    `stuffItems` is memoised on the payload and runs once, and `stuffFind` runs on every letter.

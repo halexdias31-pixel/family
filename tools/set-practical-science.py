@@ -4,11 +4,14 @@
 #
 # THE GUIDE OPENED ON EIGHT EMPTY BOXES AND NO EXPLANATION, ON 41 OF THE 57 PRACTICALS.
 #
-# `practicalGuide_` draws "What is going on" from `science`, and "Things you could change" /
-# "Things you could measure" from `variables` and `log`. Those three columns existed on the eleven
-# home practicals and on nothing else — so every AQA required practical and every fun one handed a
-# student the kit, the method, and then asked them to name an independent variable with nothing on
-# the card suggesting one. Measured before this ran: 57 guides, 11 with a "What is going on".
+# `practicalGuide_` DREW "What is going on" from `science`, and draws "Things you could change" /
+# "Things you could measure" from `variables` and `log`. The first of those went with the cut to
+# five things; the other two are the worksheet's own scaffolding and are why that section works.
+#
+# Those three columns existed on the eleven home practicals and on nothing else — so every AQA
+# required practical and every fun one handed a student the kit, the method, and then asked them to
+# name an independent variable with nothing on the card suggesting one. Measured before this ran:
+# 57 guides, 11 with a "What is going on".
 #
 # WRITTEN FROM EACH ROW'S OWN AIM, OUTCOME, STEPS AND `maths_link`, never from the title. That is
 # the rule the whole library runs on: a practical called "Osmosis" could be any of four experiments,
