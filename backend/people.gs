@@ -179,6 +179,43 @@ function handleTrouble_(want, me, isAdmin) {
   return '';
 }
 
+/* ==================================================================================================
+   AND THE SEAT CAP MOVES ONCE A MONTH TOO.
+
+   ASKED FOR AS *"make it so tutors cant update their maximum number of kids willing to work with more
+   then once a month."* A tutor's `max_students` is not a preference: it is what `seatLimits` offers a
+   family, and every booking already taken was priced and seated against whatever it said on the day.
+
+   A FUNCTION BESIDE `handleRefusal` RATHER THAN SIX LINES INSIDE `updateProfile`, and that is about
+   what can be CHECKED. `check-people.js` cuts functions out of these files by name and runs them;
+   a rule written inside a request handler is a rule nothing here can reach, and this repository's
+   own sentence is that a check which cannot reach its subject is not a check. Same shape, same file,
+   same three arguments as the handle rule — the row, what is wanted, and whether the asker is an
+   admin — so the two read alike and neither has to be remembered separately.
+
+   IT ANSWERS '' FOR A CHANGE THAT IS NOT ONE. The Group size page posts `max_students` AND
+   `min_students` every time it is saved, whether or not either was touched, so a rule that fired on
+   the field being PRESENT would refuse a save of the row beside it for a month over a number nobody
+   edited. That is the fault this handler already paid for once, where a blank box was written back
+   over every profile field on the first press of Save.
+================================================================================================== */
+function seatCapRefusal_(me, want, isAdmin) {
+  if (!me) return '';
+  if (N(want) === N(me.max_students)) return '';      // not a change at all
+  /* AN ADMIN FIXING A TUTOR'S CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the same
+     exemption, for the same reason, as the handle cooldown above. */
+  if (isAdmin) return '';
+  /* ONE DATE AND NO COUNTER: the rule is "has a month passed", and a row that has never changed has
+     no cell and is free. */
+  const last = sheetDate(me.max_students_changed_at);
+  if (!last) return '';
+  const next = new Date(last.getTime() + SEATS_COOLDOWN_DAYS * 864e5);
+  if (next <= new Date()) return '';
+  return 'You changed the most students you will teach on ' + fmtDate(last)
+       + '. You can change it again on ' + fmtDate(next) + '. Nothing was saved.';
+}
+
+
 /** Every row that answers to this name — so a collision can be SEEN rather than silently resolved. */
 function peopleNamed(name) {
   const want = key(name);

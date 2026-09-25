@@ -27,6 +27,18 @@
    second thing to keep in step — the fault this repository records under `childrenOf`, under
    `link`/`source_url` and under `factsNow_`.
 
+   ---------- AND THE OTHER THING A PERSON MAY ONLY CHANGE ONCE A MONTH -------------------------------
+
+   `seatCapRefusal_` IS THE SAME MECHANISM ONE COLUMN ALONG — a tutor's `max_students`, which is what
+   `seatLimits` offers a family, and which every booking already taken was priced and seated against.
+   It lives beside `handleRefusal` in `people.gs` *so that this file can run it*: written inside
+   `updateProfile` it would be six lines nothing here can reach, which is the shape this repository
+   records every time a check could not see its subject.
+
+   ITS OWN CASES ARE BELOW THE USERNAMES, and the one that would have gone wrong silently is the
+   first: a page that posts the number unchanged must NOT be refused, because the Group size form
+   posts `max_students` on every save whether or not anybody touched it.
+
    RUN IT:  node js/check-handles.js
 ================================================================================================== */
 
@@ -53,6 +65,8 @@ const SRC = [
   grab(consts, /const HANDLE_ALLOWED\s*=\s*\{[\s\S]*?\n\};/, 'HANDLE_ALLOWED'),
   grab(people, /function handleFold_\([\s\S]*?\n\}/, 'handleFold_'),
   grab(people, /function handleTrouble_\([\s\S]*?\n\}\n/, 'handleTrouble_'),
+  grab(consts, /const SEATS_COOLDOWN_DAYS[^;]*;/, 'SEATS_COOLDOWN_DAYS'),
+  grab(people, /function seatCapRefusal_\([\s\S]*?\n\}/, 'seatCapRefusal_'),
 ].join('\n\n');
 
 /* The eight Apps Script helpers those two reach for, and nothing else. If one of them ever changes
@@ -67,11 +81,13 @@ const PRELUDE = `
   const TAB = { people: 'people' };
   const read = () => ({ rows: ROWS });
   const setRows = r => { ROWS = r; };
+  const N = v => { const x = parseFloat(String(v == null ? '' : v).replace(/[£$,\s]/g, ''));
+                   return isNaN(x) ? 0 : x; };
 `;
 
 const box = {};
 new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = handleFold_;'
-           + ' box.setRows = setRows;')(box);
+           + ' box.setRows = setRows; box.seatCap = seatCapRefusal_;')(box);
 
 const DAY = 864e5;
 const ago = n => new Date(Date.now() - n * DAY);
@@ -163,12 +179,39 @@ function run() {
   if (!box.trouble('fuckface', MEnew, true)) bad.push({ handle: 'fuckface', want: 'no',
     why: 'an admin does NOT skip the word list', said: '(allowed)' });
 
+  /* ---------- AND THE SEAT CAP, WHICH IS THE SAME MONTH ON A DIFFERENT NUMBER --------------------
+     EVERY CASE HERE IS A FAULT THAT WOULD HAVE HAPPENED. The first is the one that would have broken
+     the form without looking broken: the Group size page posts `max_students` on every save, touched
+     or not, so a rule that fired on the field being PRESENT would refuse a save of `min_students`
+     beside it for a month over a number nobody edited. The last is the other direction — a tutor who
+     has never changed it has no cell and is free, and a rule reading a missing date as zero would
+     refuse everybody for ever. */
+  const CAP     = { person_id: 'P001', max_students: 4 };
+  const CAPnew  = Object.assign({}, CAP, { max_students_changed_at: ago(5)   });
+  const CAPold  = Object.assign({}, CAP, { max_students_changed_at: ago(200) });
+  const CAPS = [
+    ['yes', CAPnew, 4,   false, 'the same number is not a change, whenever it last moved'],
+    ['yes', CAPnew, '4', false, 'and "4" off a form is the same number as 4 in the cell'],
+    ['no',  CAPnew, 6,   false, 'moved five days ago'],
+    ['no',  CAPnew, 2,   false, 'down is a change too — a cap that falls strands seats already sold'],
+    ['yes', CAPold, 6,   false, 'moved two hundred days ago'],
+    ['yes', CAP,    6,   false, 'never moved — no cell, so no cooldown'],
+    ['yes', CAPnew, 6,   true,  'an admin fixing a cap is the remedy, not the thing being braked'],
+  ];
+  CAPS.forEach(([want, me, n, isAdmin, why]) => {
+    const said = box.seatCap(me, n, isAdmin);
+    const got = said ? 'no' : 'yes';
+    if (got !== want) bad.push({ handle: 'max_students \u2192 ' + n + (isAdmin ? ' (admin)' : ''),
+      want, why, said: said || '(allowed)' });
+  });
+
   console.log('\nA USERNAME JUDGED WRONGLY  (' + bad.length + ')');
   if (!bad.length) console.log('  none');
   bad.forEach(b => console.log('  ' + JSON.stringify(b.handle) + '  wanted ' + b.want
     + ' — ' + b.why + '\n      server said: ' + b.said));
 
   console.log('\nusernames checked: ' + (CASES.length + 3)
+    + '  ·  seat-cap changes checked: ' + CAPS.length
     + '  ·  words on the block list: ' + (SRC.match(/const HANDLE_BLOCKED[\s\S]*?\];/)[0]
         .match(/'/g).length / 2)
     + '  ·  innocent words allowed back: '
@@ -180,7 +223,7 @@ function run() {
     process.exitCode = 1;
   } else {
     console.log('OK — every rude one refused, every innocent one allowed, nobody can take a name '
-              + 'that already answers to somebody else, and the month holds.');
+              + 'that already answers to somebody else, and both months hold.');
   }
 }
 

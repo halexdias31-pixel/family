@@ -255,9 +255,37 @@ function isHome(loc) {
 }
 
 
-function seatLimits(space, tutor) {
+/* ---------- AND A THIRD THING BOUNDS A SEAT COUNT: WHERE THE SESSION IS -------------------------
+   ASKED FOR AS *"if its at clients house, then it should minimum 3 extra seats. there should be no
+   option for 1 extra seat."* Three extra is four chairs including the booker's own, which is what
+   `BOOKING.n` counts — see the note over the `n` step for why the stored number is the total and the
+   drawn one is the total minus yours. So the second sentence is what the first one already means:
+   with a floor of four, 1, 2 and 3 are not offered at all, and nothing has to forbid 1 separately.
+
+   `loc` RATHER THAN `hosting`, AND THEY ARE NOT THE SAME QUESTION. "At the client's house" is where
+   the session happens; `hosting` is who provides the room, and a family that books a hall themselves
+   answers yes to that while being nowhere near their own front room. `isHome` is the app's one
+   reader of the first question and it already handles both the literal "At home" and a venue that
+   costs nothing.
+
+   AN EMPTY `loc` IS NOT A HOME. The venue is asked AFTER the seats, so this runs with nothing chosen
+   on the way down and must not impose a floor on a question whose answer cannot yet be known.
+   `isHome('')` is already false — no name matches, no space and no venue resolve — and it is guarded
+   anyway, because that answer falls out of three lookups rather than being stated.
+
+   SO THE FLOOR ARRIVES WHEN THE VENUE DOES, and the row says so rather than resetting itself: the
+   `loc` step's own note records that decision for the maximum — *"the seat count is already chosen
+   by now, so a room too small says so rather than quietly resetting it"* — and `n`'s `why` reads the
+   CURRENT `BOOKING.loc`, so a booking for one that becomes a home visit grows a gold line under the
+   seats row naming the minimum. Reordering the two questions would be the tidier fix and it moves a
+   row on both documents for everybody, which is not this rule's to do. */
+function seatLimits(space, tutor, loc) {
   const v = (DATA.constants || {}).vars || {};
   const houseMax = Number(v.max_students_per_job) || 0;
+  /* A CELL WITH A CODE FALLBACK, which is this app's pattern for every editorial number — the
+     `brand(k, or)` argument. Four is what was asked for, so an empty config tab enforces it; a 1 in
+     that cell turns the floor off without a deploy. */
+  const homeMin = Number(v.min_seats_at_home) || 4;
 
   let max = 99, min = 1;
   const why = { max: '', min: '' };
@@ -269,6 +297,7 @@ function seatLimits(space, tutor) {
   if (tutor)  { capMax(Number(tutor.maxStudents), tutor.title);
                 capMin(Number(tutor.minStudents), tutor.title); }
   capMax(houseMax, 'your limit');
+  if (loc && isHome(loc)) capMin(homeMin, 'a session at your own home');
 
   return { max, min, why };
 }

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-25-c-forgot-pin";
+const DOPOST_VERSION = "2026-09-25-d-seat-cap";
 
 
 function doPost(e) {
@@ -445,7 +445,54 @@ function doPost(e) {
           + '. Run ensureSchema() to add it — nothing was saved.' });
       }
 
+      /* ---------- THE SEAT CAP MOVES ONCE A MONTH -------------------------------------------------
+         ASKED FOR AS *"make it so tutors cant update their maximum number of kids willing to work
+         with more then once a month."*
+
+         ONLY WHEN IT ACTUALLY CHANGES, and that is the half that would have broken the form. The
+         Group size page posts `max_students` AND `min_students` every time it is saved, whether or
+         not either was touched — so a rule that fired on the field being PRESENT would refuse a save
+         of the row beside it, for a month, over a number nobody had edited. That is the fault this
+         repository already paid for on this very handler, where a blank box was written back over
+         every profile field on the first press of Save. Compared against the cell.
+
+         REFUSED RATHER THAN DROPPED, and the whole page with it. Writing the other fields and
+         silently keeping the old cap is a save that reports success about something it did not do —
+         this file's oldest shape. Nothing is written, and the sentence says when they may.
+
+         THE SENTENCE IS NOT REPEATED ON THE PHONE. `me-save` prints whatever the server said, which
+         is the arrangement `MESSAGING` and `changeHandle` both record: a rule written twice is two
+         rules to keep in step, and the copy on the phone is the one that goes stale.
+
+         THE RULE ITSELF IS `seatCapRefusal_` IN `people.gs`, beside `handleRefusal`, so something can
+         RUN it — see the note over it. What is here is when to ask and what to do with the answer.
+
+         READ BEFORE THE WRITE, BECAUSE `setCell` UPDATES THE ROW IN MEMORY. `row[field] = value` is
+         the last thing it does, under a comment saying so — "read-after-write within this request now
+         sees the truth" — so asking whether the number moved AFTER the write compares the new value
+         against itself, which is always equal, and the stamp below would never be set: the clock
+         would never start and the cooldown would never fire once. */
+      const capMoved = wanted.indexOf('max_students') !== -1
+        && N(fields.max_students) !== N(r.max_students);
+      const capNo = capMoved
+        ? seatCapRefusal_(r, fields.max_students, isAdminPerson(asker)) : '';
+      if (capNo) return jsonOut({ error: capNo });
+
       wanted.forEach(f => setCell(t, r, f, fields[f]));
+      /* ---------- AND THE STAMP GOES ON AFTER THE WRITE, NOT INSTEAD OF IT -----------------------
+         Written before `setCell`, a refusal further down would leave the clock started on a change
+         that never happened. It is the same `capMoved` the guard read, so the two cannot disagree
+         about whether the number moved. An admin's edit stamps it too: the cell records when the cap
+         last moved, which is true whoever moved it, and the exemption above is about who may move it
+         rather than about what is recorded.
+
+         AND NO COLUMN CHECK, DELIBERATELY. This is not a field any form sends, so it is not in
+         `wanted` and the `noColumn` refusal above cannot see it — and unlike `library_card`, which
+         needed that check written out by hand, a missing cell here loses a STAMP rather than
+         somebody's data. `setCell` reports it through `missedWrite_` and returns false; the cap is
+         still saved, and the next change is still allowed, which is the safe direction to fail in.
+         `max_students_changed_at` is in `SCHEMA.people`, so one `ensureSchema` run creates it. */
+      if (capMoved) setCell(t, r, 'max_students_changed_at', new Date());
       if (fields.first_name !== undefined || fields.last_name !== undefined) {
         const full = (S(fields.first_name !== undefined ? fields.first_name : r.first_name) + ' ' +
                       S(fields.last_name  !== undefined ? fields.last_name  : r.last_name)).trim();
