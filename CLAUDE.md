@@ -10603,3 +10603,147 @@ family the e-mail addresses another family chose. It goes to `cs[0]`, which is t
 **And the state seeded `students` and `venue` too**, so the lab has been drawing two rows nobody
 holding a real booking has ever seen — the third instance in one commit of a fixture stating a
 shape `doGet` does not send.
+
+## A wrong PIN put a gold bar across the app and left it there
+
+**Reported as "I don't like how name or pin not recognised is a banner. It should be like the other
+pop ups that come up at the bottom of screen."** Measured before anything was changed, by refusing a
+`verifyLogin` and looking:
+
+| | |
+|---|---|
+| a gold `#banner` across the top of the app | *"Name or PIN not recognised."* |
+| a faint grey line under the button | *"Name or PIN not recognised."* |
+| a toast | none |
+| **after then signing in CORRECTLY** | **`bannerHidden: false` — the bar is still there** |
+
+**THAT LAST ROW IS THE COMPLAINT THIS FILE ALREADY RECORDED AND HALF-FIXED.** *"The name or PIN not
+recognised doesn't disappear after i just logged in correctly"* — the fix went onto the faint line,
+under a note calling itself *"belt and braces rather than the only thing standing between the two"*.
+The thing it thought it was bracing was **itself**. `banner('')` is called in exactly two places, the
+`retry` handler and `load()` guarded by `LOAD_SLOW` — which is set only by a thirty-second watchdog,
+so on an ordinary load it never fires. A wrong PIN was an alarm for the rest of the session, on every
+screen.
+
+### `why_` raised it for all thirteen of its callers, and it was a duplicate at every one
+
+**The argument for it is written above the function and it is right about the wrong thing:** *"the
+line under a button is where somebody looks; the banner is where text can be selected and pasted to
+somebody who can fix it. Both, from one place."* True of a DIAGNOSTIC — a backend that threw, a
+deployment serving old code. **False of a REFUSAL**, which is the app answering the question somebody
+just asked, and `why_` cannot tell the two apart from a string.
+
+**Measured across the thirteen: eight are `toast(why_(err))` and five write the sentence into a line
+under their own button.** Every caller already had somewhere to say it. So the banner was never the
+only copy anywhere — it was a second one, at alarm volume, that outlived the thing it was about. It
+is gone from `why_`; the sentence is untouched.
+
+**THE BANNER IS FOR A STANDING CONDITION** and the seven calls that raise it directly are all of that
+shape: the sheet is missing columns, the questions did not load, a part of the app did not arrive, a
+newer build is ready. Each is true until something changes, so persisting is the point.
+
+### And the sign-in card said it twice more
+
+**The refusal was written to `#in-said` TWICE and `banner()` was raised TWICE** — once from `send_`'s
+own catch, and again from `do-signin`'s `.catch(err => said.textContent = why_(err))`, which runs
+because `send_` rethrows. Two lines, one sentence, on the one card where somebody is waiting.
+
+**`#in-said` IS GONE, because with the refusal toasted it had three jobs and none of them was still
+its**: `"Both, please."` (a validation, now a toast), `"Checking…"` (which the BUTTON already says,
+with a spinner, from `send_`'s `busy`), and the refusal. **`send_`'s own `say()` toasts when no
+`where` is given**, so dropping the option is the whole of the change — one place decides, and the
+camera's `where: 'cam-said'` is untouched.
+
+**Both doors changed together.** `googleSignedIn_` wrote to the same element, and two ways in that
+report differently are two ways in where the one that behaves unlike the other reads as broken.
+
+**`#pin-said` is deliberately left alone.** It is a different thing on a different mechanism: it
+ships with standing text (*"4 to 8 numbers, and not 1234"*), which is a HINT rather than a message,
+and `pin-save` uses `api()` directly rather than `send_`. What it needed was the banner, and it has
+that fix for free.
+
+### The rule, and the first version was too wide
+
+`check-flow.js` refuses the POST, presses `do-signin`, and asks three things: the sentence is in a
+toast, `#in-said` has not come back, and **the banner did not CHANGE**.
+
+**That last word is the narrowing and it took a failing run to find.** The first version asked
+whether any banner was up — and `check/fixture.json`'s `version` is `test`, so `load()` correctly
+raises a standing warning that the deployment cannot do half the actions. A rule red on that is red
+on a banner doing exactly its job, and teaches nobody anything. **Proved by mutation**: the
+`banner(said)` put back in `why_` names the refusal and the standing sentence it replaced.
+
+## Every tick carries the day it happened, and the dates were already on the phone
+
+**Asked for as "The tick boxes have a date for when it got requested. When other things get ticked
+they should also have a date."**
+
+**`doGet` HAS PUT `events: eventsForJob(jobId)` ON EVERY JOB SINCE THE ROSTER WAS DERIVED FROM THE
+LOG** — six fields a row, `at` among them — and the only reader anywhere in `js/` was nothing at all.
+This repository's oldest shape once more, and it means the dates for `Accepted` and `Paid` needed no
+backend change: they are days the job's own log already records.
+
+| | its date | from |
+|---|---|---|
+| **Requested** | the job's own `created_at`, or the first `Request` if that cell predates the column | a cell, then the log |
+| **Accepted** | the **last** `Accept` | the predicate needs EVERY seat agreed |
+| **Paid** | the **first** `Confirm` on a session, the **last** on a full waiting list | `jobStage_` needs one booked seat, or the whole house |
+| **Started** | `startDate` | the dates the tick is read from |
+| **Completed** | `endDate` | the same |
+
+**THE TWO RULES ARE OPPOSITE ENDS OF THE LIST AND THAT IS NOT A PREFERENCE** — each is taken to match
+its own predicate, which is the only rule that stays right when the predicates differ. `paidNeeds_`
+is `jobStage_`'s own arithmetic rather than a second reading of it.
+
+**THE LAST `Accept` IS EXACT FOR EVERY STATE THE APP CAN REACH, and that took checking.** Two things
+could have broken it. An `Edit` drops everybody un-booked back to Waiting, so a re-Accept follows —
+and the last Accept IS that re-Accept, which is the right day. And the admin's Accept writes one
+event per participant on every press, so a second press would move the date with nothing having
+changed — except that `bmActionsFor` withholds `ACT.ACCEPT` from a seat already at `Agreed`, and
+`check-flow.js` already asserts an admin is only offered it on a booking that is waiting.
+
+**`at` IS DAY-GRANULAR** — `eventsForJob` puts it through `fmtDate`, so the time `logEvent` wrote is
+thrown away. Right as a label and useless as a sort key, so nothing sorts by it: the log is
+append-only and **array order is the order things happened in**.
+
+### One date format, because the three sources spell a day three ways
+
+`createdAt` and an event's `at` both go through the backend's `fmtDate` and arrive as `dd/mm/yyyy`;
+`startDate` and `endDate` are cut straight out of the `session_dates` cell and are whatever somebody
+typed. So **`Accepted 25/09/2026` sat above `Started 06/10/26`** — one column, two spellings, on a
+document read by running your eye down it. The app's own `fmtDate` is the format the `Dates` row
+three lines up already speaks, applied where the value is built so no `when` has to remember.
+
+### An un-ticked stage shows no date, and `Started` is why that is a rule
+
+`Started` and `Completed` are read off the PLANNED calendar, so their dates are known in advance and
+could be shown before the tick. **They are not.** The value column everywhere else means *the day
+this became true*; a future date in it would make one column mean two things, told apart only by
+whether the box beside it is filled. The plan is already on the card — `Dates` prints the range and
+the count.
+
+**And a ticked stage with no event draws the tick and nothing else.** Printing a dash or the word
+unknown is content where a blank is skimmed past; reaching for a nearby event's date is the `cost: 0`
+shape on a document somebody keeps.
+
+### The rule tests the arithmetic, not the rendering
+
+A wrong end of the list is the kind of thing that is subtly wrong for years, so the journey runs
+`stageRows_` over a log where **two families move four days apart** — the two right answers are the
+two INNER dates, the second `Accept` and the first `Confirm`, never the first Accept or the last
+Confirm. A log where everybody moved on one day would pass whichever way round they were read. The
+same log with `kind: 'waitlist'` must move `Paid` to the LAST Confirm, which is one rule giving two
+answers. And the chain is asserted from the other side: a stage below an un-ticked one carries
+neither a tick nor a date.
+
+**Proved by mutation in four directions** — the first `Accept`, the last `Confirm`, the chain removed
+so a date appears under an empty box, and a job with no log. All four are named; the real files pass
+all 32 journeys.
+
+### And the state was seeding a receipt with no log at all
+
+`check/states.js` seeded no `events`, so `Accepted` and `Paid` could tick with no date and **the lab
+could not tell that from a date that failed to draw**. It seeds a real log now, with the two families
+moving on different days, and `createdAt` in the long form the server actually sends so the card's
+shortening is measured rather than assumed. Third time in two commits that a state was found stating
+a shape `doGet` does not send.

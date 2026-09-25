@@ -846,6 +846,149 @@ check('a booking over several days reads in the week\'s own order', async () => 
   return bad;
 });
 
+check('a refusal is a toast and never a banner that outlives it', async () => {
+  /* ==================================================================================================
+     REPORTED AS *"I don't like how name or pin not recognised is a banner. It should be like the
+     other pop ups that come up at the bottom of screen."* Measured before it was changed: a wrong
+     PIN put a gold bar across the top of the app — **and it was still there after signing in
+     correctly**, because `banner('')` is called in exactly two places and neither is on that path.
+
+     `why_` RAISED IT FOR ALL THIRTEEN OF ITS CALLERS, so this was never only the sign-in card: every
+     failed write in the app left a standing alarm. Eight of the thirteen already toasted the same
+     sentence, so the banner was a second copy at alarm volume that outlived what it was about.
+
+     THE RULE IS THE DISTINCTION RATHER THAN THE SCREEN. A banner is for a STANDING condition — the
+     sheet is missing columns, the questions did not load, a newer build is ready — each true until
+     something changes. A refused action is a MOMENT. So: the sentence must be on the screen, and
+     the banner must not be the thing carrying it.
+
+     DRIVEN THROUGH THE APP'S OWN DOOR: the stub refuses the POST, `do-signin` runs, and what is
+     asserted is what a person would see. */
+  const { w } = boot({ reply: { success: false, error: 'Name or PIN not recognised.' } });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const d = w.document;
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['the sign-in card is not on the account column, so nothing can be refused'];
+  name.value = 'Nobody'; pin.value = '9999';
+  const btn = d.querySelector('[data-do="do-signin"]');
+  if (!btn) return ['there is no Sign in button to press'];
+  /* ---------- WHAT THE BANNER SAID BEFORE, BECAUSE A STANDING ONE IS CORRECT -------------------
+     THE FIXTURE RAISES ONE AT BOOT — its `version` is `test`, so `load()` warns that the
+     deployment cannot do half the actions, which is exactly the standing condition a banner is
+     for. A rule that asked "is any banner up" would have been red on that and taught nobody
+     anything. The question is whether the REFUSAL raised one, so it is the change that is read. */
+  const bannerWas = (() => { const b = d.getElementById('banner');
+    return b && !b.classList.contains('hidden') ? String(b.textContent || '') : ''; })();
+  try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
+  await wait(400);
+
+  const toastEl = d.getElementById('toast');
+  const said = toastEl ? String(toastEl.textContent || '') : '';
+  if (!/not recognised/i.test(said)) {
+    bad.push('the refusal is not in a toast (the toast says ' + JSON.stringify(said) + ')');
+  }
+  const ban = d.getElementById('banner');
+  const shown = ban && !ban.classList.contains('hidden') ? String(ban.textContent || '') : '';
+  if (shown !== bannerWas) {
+    bad.push('the refusal changed the banner to ' + JSON.stringify(shown)
+             + (bannerWas ? ' (it said ' + JSON.stringify(bannerWas) + ' before)' : ''));
+  }
+
+  /* AND NOTHING IS LEFT ON THE CARD. `#in-said` carried a third copy — a faint line under the
+     button — and it is gone; a rule that only checked the banner would let it come back. */
+  if (d.getElementById('in-said')) bad.push('#in-said is back, so the sentence is on screen twice');
+  return bad;
+});
+
+check('each stage tick takes the date it actually happened on', async () => {
+  /* ==================================================================================================
+     ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get
+     ticked they should also have a date."* The dates were already on the phone and nothing read
+     them: `doGet` has put `events: eventsForJob(jobId)` on every job since the roster was derived
+     from the log, and `js/` had no reader for it at all.
+
+     THIS TESTS THE RULE RATHER THAN THE RENDERING, because the rule is the part that can be subtly
+     wrong for years. Each date is taken to match its own predicate and the two are OPPOSITE ends of
+     the list — `Accepted` needs EVERY seat agreed, so it is the LAST `Accept`; `Paid` needs a seat
+     BOOKED, and on a session that is one, so it is the FIRST `Confirm`. A log where everybody moved
+     on the same day would pass whichever way round they were read, so the job below has two
+     families moving four days apart and the two right answers are the two INNER dates: the second
+     Accept and the first Confirm, never the first Accept or the last Confirm.
+
+     AND THE WAITING LIST IS THE OTHER HALF OF `Paid`. `jobStage_` wants the whole house booked
+     there, so the same log gives the LAST `Confirm` on a two-seat list — one rule, two answers, and
+     the test is that changing only `kind` and `maxKids` moves that one date.
+
+     A CHAIN, SO NOTHING BELOW AN EMPTY BOX MAY CARRY A DATE. That is the half a rendering test
+     cannot see: a stage whose own test is true but whose predecessor is not must draw neither the
+     tick nor the date. */
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t || typeof t.stageRows !== 'function') return ['stageRows_ is not exported, so the dates cannot be checked — not a pass'];
+  if (!Array.isArray(t.JOB_STAGES) || t.JOB_STAGES.length !== 5) {
+    return ['JOB_STAGES is not the five rows the receipt is built from — not a pass'];
+  }
+  const bad = [];
+  const log = [
+    { at: '22/09/2026', actor: 'A', role: 'client', action: 'Request', target: '', message: '' },
+    { at: '23/09/2026', actor: 'B', role: 'client', action: 'Request', target: '', message: '' },
+    { at: '24/09/2026', actor: 'A', role: 'client', action: 'Accept',  target: '', message: '' },
+    { at: '25/09/2026', actor: 'B', role: 'client', action: 'Accept',  target: '', message: '' },
+    { at: '26/09/2026', actor: 'A', role: 'client', action: 'Confirm', target: '', message: '' },
+    { at: '28/09/2026', actor: 'B', role: 'client', action: 'Confirm', target: '', message: '' },
+  ];
+  /* BOTH SESSION DATES IN THE PAST, so all five tick and all five have a date to be wrong about. */
+  const job = { kind: 'session', createdAt: '21/09/2026', events: log,
+                startDate: '01/10/2025', endDate: '05/11/2025',
+                slots: [{ n: 1, client: 'A', status: 'Booked' }, { n: 2, client: 'B', status: 'Booked' }],
+                tutorSlots: [] };
+  const got = t.stageRows(job);
+  const by = {};
+  got.forEach(r => { by[r.k] = r; });
+  const want = { Requested: '21/09/26', Accepted: '25/09/26', Paid: '26/09/26',
+                 Started: '01/10/25', Completed: '05/11/25' };
+  Object.keys(want).forEach(k => {
+    const r = by[k];
+    if (!r) { bad.push('no "' + k + '" row at all'); return; }
+    if (!r.tick) { bad.push('"' + k + '" is not ticked on a job where it plainly happened'); return; }
+    if (r.v !== want[k]) bad.push('"' + k + '" is dated ' + JSON.stringify(r.v) + ', not ' + JSON.stringify(want[k]));
+  });
+
+  /* THE WAITING LIST WANTS THE LAST `Confirm`, because its own predicate wants every seat. */
+  const list = t.stageRows(Object.assign({}, job, { kind: 'waitlist', maxKids: 2 }));
+  const paid = list.find(r => r.k === 'Paid');
+  if (!paid || !paid.tick) bad.push('a full waiting list does not tick Paid');
+  else if (paid.v !== '28/09/26') {
+    bad.push('a full waiting list is dated Paid ' + JSON.stringify(paid.v) + ', not "28/09/26" — '
+             + 'it needs every seat, so the LAST Confirm is the one that filled it');
+  }
+
+  /* AND A STAGE BELOW AN EMPTY BOX CARRIES NOTHING, tick or date. `Accepted` is false here because
+     one seat is still Waiting, so `Paid` must stay blank even though a `Confirm` sits in the log
+     and both session dates are long past. */
+  const part = t.stageRows(Object.assign({}, job, {
+    slots: [{ n: 1, client: 'A', status: 'Booked' }, { n: 2, client: 'B', status: 'Waiting' }] }));
+  part.forEach(r => {
+    if (r.k === 'Requested') return;
+    if (r.tick) bad.push('"' + r.k + '" ticks below an unticked Accepted, so the chain is broken');
+    if (r.v) bad.push('"' + r.k + '" carries the date ' + JSON.stringify(r.v) + ' with no tick');
+  });
+
+  /* A JOB WITH NO LOG DRAWS THE TICK AND NOTHING ELSE — never a nearby date, which on a document
+     somebody keeps is the `cost: 0` shape. */
+  const bare = t.stageRows(Object.assign({}, job, { events: [], createdAt: '' }));
+  const acc = bare.find(r => r.k === 'Accepted');
+  if (!acc || !acc.tick) bad.push('a job with no event log stops ticking Accepted');
+  else if (acc.v) bad.push('a job with no event log dates Accepted ' + JSON.stringify(acc.v));
+  return bad;
+});
+
 check('a receipt lights every day its booking runs on', async () => {
   /* ---------- THE WEEK WAS COMPARED TO ONE DAY NAME --------------------------------------------
      `jobGrid_` DID `norm(label) === norm(j.weekday)`, and `weekday` holds what `bookSpec` sent:

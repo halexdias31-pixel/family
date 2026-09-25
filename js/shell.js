@@ -1992,18 +1992,40 @@ function closeSheet() {
    old code, and an action the backend has never heard of. Each needs a different thing done about
    it and none of them was named.
 
-   AND IT GOES IN THE BANNER TOO. The line under a button is where somebody looks; the banner is
-   where text can be selected and pasted to somebody who can fix it. Both, from one place. */
+   ---------- AND IT PUT EVERY ONE OF THEM IN THE BANNER, WHICH WAS WRONG ------------------------
+   THE ARGUMENT WAS *"the line under a button is where somebody looks; the banner is where text can
+   be selected and pasted to somebody who can fix it. Both, from one place."* That is right about a
+   DIAGNOSTIC and wrong about a REFUSAL, and this function could not tell them apart.
+
+   REPORTED AS *"I don't like how name or pin not recognised is a banner. It should be like the
+   other pop ups that come up at the bottom of screen."* Measured: typing the wrong PIN puts a gold
+   bar across the top of the app — **and it is still there after you sign in correctly.** Nothing
+   clears it. `banner('')` is called in exactly two places, the `retry` handler and `load()` when
+   the load was slow, so a wrong PIN is an alarm for the rest of the session on every screen.
+
+   That is the complaint this repository already recorded once and half-fixed: *"the name or PIN
+   not recognised doesn't disappear after i just logged in correctly"*. The fix went onto the faint
+   line under the button, with a note calling itself *"belt and braces rather than the only thing
+   standing between the two"* — and the thing it thought it was bracing was itself. The loud copy
+   was never touched.
+
+   IT IS A DUPLICATE AT EVERY CALLER, WHICH IS WHAT SETTLES IT. Measured across the thirteen: eight
+   are `toast(why_(err))` and five write the sentence into a line under their own button. Every one
+   already has somewhere to say it, so the banner was never the only copy anywhere — it was a
+   second one, at alarm volume, that outlived the thing it was about.
+
+   THE BANNER IS FOR A STANDING CONDITION and the calls that raise it directly are all of that
+   shape: the sheet is missing columns, the questions did not load, a newer build is ready, a file
+   did not arrive. Each is true until something changes, so persisting is the point. A failed
+   action is a MOMENT, and a moment belongs in a toast. */
 function why_(err) {
   const msg = String((err && err.message) || err || '').trim();
   /* A GENUINELY UNREACHABLE SERVER IS THE ONE CASE THE OLD SENTENCE WAS RIGHT ABOUT. `fetch`
      rejects with a TypeError and no useful text when there is no connection at all, which is the
      only time nothing better can be said. */
-  const said = (!msg || /^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg))
+  return (!msg || /^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg))
     ? 'No connection — the server could not be reached at all.'
     : msg;
-  try { banner(said); } catch (e) {}
-  return said;
 }
 
 function api(body) {

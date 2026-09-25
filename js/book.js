@@ -2725,24 +2725,98 @@ let BOOK_ROWS = [];
    dates, because that is the only record there is. A session paid for and then not taught still
    ticks. A "the lesson happened" record would be a column and a person to maintain it, which is
    exactly what the paragraph above refuses. */
+/* ---------- AND EVERY TICK CARRIES THE DAY IT HAPPENED -------------------------------------------
+   ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get ticked
+   they should also have a date."*
+
+   THE DATES WERE ALREADY ON THE PHONE and nothing was reading them. `doGet` has put
+   `events: eventsForJob(jobId)` on every job since the roster was derived from the log — six
+   fields per row, `at` among them — and the only reader anywhere in `js/` was nothing at all. That
+   is this repository's oldest shape once more, and the fix needs no backend change: `Accepted` and
+   `Paid` are days the job's own log already records.
+
+   `at` IS DAY-GRANULAR. `eventsForJob` puts it through `fmtDate`, so the time `logEvent` wrote is
+   thrown away and what arrives is `dd/mm/yyyy`. That is exactly right as a label and useless as a
+   sort key, so nothing here sorts by it: the log is append-only and ARRAY ORDER is the order things
+   happened in.
+
+   ---------- WHICH EVENT, AND THE TWO ANSWERS ARE OPPOSITE ENDS OF THE LIST --------------------
+   EACH DATE IS TAKEN TO MATCH ITS OWN PREDICATE, which is the only rule that stays right when the
+   predicates differ:
+
+     `Accepted` needs EVERY seat agreed, so it became true at the LAST `Accept`.
+     `Paid` needs a seat BOOKED, and `jobStage_` counts how many — one for a session, all of them
+     for a waiting list — so it became true at the Nth `Confirm`.
+
+   THE LAST `Accept` IS EXACT FOR EVERY STATE THE APP CAN REACH, and that took checking rather than
+   assuming. Two things could have broken it. An `Edit` drops everybody un-booked back to Waiting,
+   so a re-Accept follows — and the last Accept is that re-Accept, which is the right day. And the
+   admin's Accept writes one event per participant on every press, so pressing it twice would move
+   the date with nothing having changed — except that `bmActionsFor` withholds `ACT.ACCEPT` from a
+   seat already at `Agreed`, and `check-flow.js` asserts an admin is only offered it on a booking
+   that is waiting. So the second press is not a thing the app offers.
+
+   `Confirm` IS THE ONE VERB THAT REACHES `Booked` and it is a bare string in three places rather
+   than a member of `ACT` — `dopost.gs` writes it twice, `booking.gs` reads it once. Named here
+   where it is read, because the phone has no `ACT` to reach for.
+
+   ---------- A TICK WITH NO DATE IS A TICK, AND A DATE WITH NO TICK IS A LIE -------------------
+   `stageRows_` computes the value only when the tick is on, so an un-ticked row is blank by
+   construction. That is deliberate for `Started` and `Completed`, whose dates are the PLANNED ones
+   and are known in advance: putting a future date in the column that everywhere else means *the
+   day this became true* would make one column mean two things, told apart only by whether the box
+   beside it is filled. The plan is already on the card — `Dates` prints the range and the count.
+
+   And where a ticked stage has no event to date it, it draws the tick and nothing else. Printing a
+   dash or the word unknown would be content where a blank is skimmed past; inventing a nearby
+   event's date would be the `cost: 0` shape on a document somebody keeps. */
 const JOB_STAGES = [
   /* THE ROW EXISTS, SO IT WAS ASKED FOR. This is the one the owner described as ticked by the
      system, and it is ticked by the booking's own existence rather than by anything writing a cell:
-     `jobRows` only ever runs on a job, and a job is a row on the jobs tab. */
-  { row: 'Requested', is: j => true, when: j => S_(j.createdAt) },
+     `jobRows` only ever runs on a job, and a job is a row on the jobs tab.
+
+     `created_at` IS THE JOB'S OWN CELL and the first `Request` is the fallback, because that column
+     is newer than the tab: a job made before it existed has a blank cell and an event log that
+     still says exactly when somebody asked. */
+  { row: 'Requested', is: j => true,
+    when: j => S_(j.createdAt) || evAt_(j, 'Request', 1) },
   /* THE BUSINESS HAS SAID YES. `jobAccepted_` is the same function the receipt has always used and
      its note is the argument: an accepted application is still an application, because money has
      not moved, and both facts are true at once. */
-  { row: 'Accepted',  is: j => jobAccepted_(j) },
+  { row: 'Accepted',  is: j => jobAccepted_(j),
+    when: j => evAt_(j, 'Accept', -1) },
   /* MONEY HAS MOVED. A seat at `Booked` is the machine's own record of a payment — `jobStage_`
      reads the same seats to decide which of the four documents this is, so the tick and the
-     document cannot disagree. */
-  { row: 'Paid',      is: j => jobStage_(j) === 'receipt' },
+     document cannot disagree.
+
+     AND THE SAME ARITHMETIC DECIDES THE DATE. `jobStage_` needs one booked seat on a session and
+     a full house on a waiting list, so the `Confirm` that ticked it is the first or the last, and
+     `paidNeeds_` is that count rather than a second reading of the rule. */
+  { row: 'Paid',      is: j => jobStage_(j) === 'receipt',
+    when: j => evAt_(j, 'Confirm', paidNeeds_(j)) },
   /* THE FIRST PLANNED SESSION IS IN THE PAST. `startDate` and `endDate` are sent by `doGet` off the
-     job's own `session_dates`, so this needs nothing new in the sheet. */
-  { row: 'Started',   is: j => datePassed_(j.startDate) },
-  { row: 'Completed', is: j => datePassed_(j.endDate) },
+     job's own `session_dates`, so this needs nothing new in the sheet — and they are the dates the
+     two ticks are READ from, so a tick and its date cannot disagree here by construction. */
+  { row: 'Started',   is: j => datePassed_(j.startDate), when: j => S_(j.startDate) },
+  { row: 'Completed', is: j => datePassed_(j.endDate),   when: j => S_(j.endDate) },
 ];
+
+/* THE nTH EVENT OF A KIND, AND `-1` IS THE LAST. Array order is the order they were written, which
+   is the only ordering there is — `at` is a day and two things can happen on one day. A job with
+   no log, or too few of that kind, answers with nothing rather than with the nearest thing. */
+function evAt_(j, action, n) {
+  const all = (j && j.events || []).filter(e => norm(e && e.action) === norm(action));
+  if (!all.length) return '';
+  const e = n === -1 ? all[all.length - 1] : all[n - 1];
+  return e ? S_(e.at) : '';
+}
+
+/* HOW MANY BOOKED SEATS `jobStage_` IS WAITING FOR — one on a session, the whole house on a waiting
+   list. Read here so the tick and its date are made of one rule; a waiting list with no seat count
+   cannot be full, which is `jobStage_`'s own early answer, and `0` here means the same thing. */
+function paidNeeds_(j) {
+  return norm(j && j.kind) === 'waitlist' ? seatsOf_(j) : 1;
+}
 
 /* HAS THIS DAY BEEN AND GONE. `parseDMY` is the app's one reader of a `dd/mm/yyyy` cell and it
    zeroes the time, so this is a comparison of days rather than of moments — a session at four this
@@ -2768,7 +2842,19 @@ function stageRows_(j) {
     /* THE CHAIN. Once one is unticked, nothing below it can be — see the note above. `on` carries
        that down the list rather than each test repeating the ones before it. */
     on = on && !!j && !!st.is(j);
-    return { n: '', k: st.row, v: (on && st.when && st.when(j)) || '',
+    /* ---------- ONE DATE FORMAT FOR THE FIVE, DECIDED HERE AND NOT IN FIVE PLACES ---------------
+       THE THREE SOURCES SPELL A DAY THREE WAYS. `createdAt` and an event's `at` both go through
+       the backend's `fmtDate` and arrive as `dd/mm/yyyy`; `startDate` and `endDate` are cut
+       straight out of the `session_dates` cell and are whatever somebody typed. So `Accepted
+       25/09/2026` sat above `Started 06/10/26` — one column, two spellings, on a document read by
+       running your eye down it.
+
+       `fmtDate` IS THE APP'S OWN VOICE and the `Dates` row three lines up already speaks it, so
+       this is the format the card had rather than a new one. Applied where the value is built, so
+       no `when` has to remember — and it passes through anything it cannot parse, which is the
+       right answer for a cell nobody has normalised. */
+    const at = on && st.when ? st.when(j) : '';
+    return { n: '', k: st.row, v: (at && fmtDate(at)) || '',
              mul: '', rate: '', total: '', free: true, tick: on };
   });
 }

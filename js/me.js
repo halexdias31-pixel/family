@@ -71,7 +71,9 @@ function signInCard_() {
              app signs in are children — so this is a second way in, never a replacement. */''}
         ${(DATA.googleClientId || '') ? `<div class="in-or"><span>or</span></div>
         <div id="g-btn"></div>` : ''}
-        <p class="faint" id="in-said" style="margin:.6rem 0 0"></p>
+        ${/* `#in-said` STOOD HERE — a faint grey line carrying a validation, a "Checking…" the
+              button already says with a spinner on it, and a refusal that is now a toast. See the
+              note over `do-signin`: three jobs, and none of them is still its. */''}
       </div>
       <div class="card tap" data-do="register">
         <h3>No account yet?</h3>
@@ -568,11 +570,14 @@ function googleMount() {
    the server, which asks Google whether it signed it. Reading it in the browser would prove nothing
    — the browser is the party being checked. */
 function googleSignedIn_(res) {
-  const said = $('in-said');
-  if (said) said.textContent = 'Checking with Google…';
-  send_({ action: 'googleLogin', credential: (res && res.credential) || '' }, { where: 'in-said' })
+  /* THE SAME VOICE AS THE PIN DOOR, which is the point: two ways in that report differently are
+     two ways in, and the one that behaves unlike the other reads as the broken one. See the note
+     over `do-signin` for why `#in-said` is gone. There is no button to disable here — Google draws
+     its own — so the toast is the only thing that says anything is happening. */
+  toast('Checking with Google…');
+  send_({ action: 'googleLogin', credential: (res && res.credential) || '' })
     .then(d => {
-      if (!d.success) { if (said) said.textContent = d.error || 'That did not work.'; return; }
+      if (!d.success) { toast(d.error || 'That did not work.'); return; }
       /* THE SAME THREE LINES AS THE PIN PATH, because the reply is the same reply — one function
          builds it on the server for exactly this reason. */
       USER = Object.assign({}, d);
@@ -583,14 +588,36 @@ function googleSignedIn_(res) {
       repaint();
       load();
     })
-    .catch(err => { if (said) said.textContent = why_(err); });
+    /* `send_` HAS ALREADY TOASTED IT — see the note over `do-signin`. */
+    .catch(() => {});
 }
 
+/* ==================================================================================================
+   THE SIGN-IN CARD SPEAKS IN TOASTS, AND IT USED TO SAY EVERYTHING THREE TIMES.
+
+   REPORTED AS *"I don't like how name or pin not recognised is a banner. It should be like the
+   other pop ups that come up at the bottom of screen."* Measured on a wrong PIN: a gold banner
+   across the top of the app, a faint grey line under the button, and — the part that is not in the
+   complaint — **the banner is still there after you sign in correctly.** `why_` in shell.js carries
+   that half; it no longer raises one.
+
+   AND THE LINE UNDER THE BUTTON WAS THE THIRD COPY, doing three jobs badly:
+
+     "Both, please."   a validation, before any request has left the phone
+     "Checking…"       which the BUTTON already says, with a spinner, from `send_`
+     the refusal       which is now the toast
+
+   So there is nothing left for `#in-said` to carry and it is gone from the markup. `send_`'s own
+   `say()` falls through to `toast()` when no `where` is given — one place decides, which is why
+   dropping the option is the whole of the change rather than a second call to `toast` here.
+
+   A TOAST IS 2.6 SECONDS AND THAT IS ENOUGH FOR THIS. Somebody has just pressed a button and is
+   looking at the screen; eight of the thirteen `why_` callers in this app already answer a failed
+   write exactly this way. What a toast must not carry is a STANDING condition — see `banner()`. */
 on('do-signin', el => {
   const name = ($('in-name') || {}).value || '';
   const pin = ($('in-pin') || {}).value || '';
-  const said = $('in-said');
-  if (!name || !pin) { if (said) said.textContent = 'Both, please.'; return; }
+  if (!name || !pin) { toast('Both, please.'); return; }
   /* ---------- THE BUTTON HAS TO LOOK PRESSED ------------------------------------------------------
      `send_` HAS DONE THIS ALL ALONG and this call was the one that did not ask. It takes `button`
      and disables it, and `busy` and relabels it, restoring both whatever happens — and signing in
@@ -601,10 +628,16 @@ on('do-signin', el => {
      button invites a second press for all of them, and a second press is a second verifyLogin —
      so the fix is not decoration, it is the thing that stops two sessions being opened by somebody
      who thought the first tap missed. */
-  send_({ action: 'verifyLogin', name, pin },
-        { where: 'in-said', button: el, busy: 'Checking…', saying: 'Checking…' })
+  /* NO `where` AND NO `saying`. Without a `where`, `send_`'s own `say()` toasts — see the note
+     over this handler. `saying` wrote "Checking…" into a line under a button that `busy` has
+     already relabelled "Checking…" with a spinner on it, which is the same word twice, six pixels
+     apart, on the one card where somebody is waiting. */
+  send_({ action: 'verifyLogin', name, pin }, { button: el, busy: 'Checking…' })
     .then(d => {
-      if (!d.success) { if (said) said.textContent = d.error || 'That did not work.'; return; }
+      /* `send_` THROWS ON A REPLY CARRYING `error`, and `verifyLogin` refuses with one — so this
+         branch is for a reply that says `success: false` and nothing else, which is the shape a
+         future refusal could take without anybody here noticing. */
+      if (!d.success) { toast(d.error || 'That did not work.'); return; }
       /* THE REPLY, PLUS WHAT WE ALREADY KNEW. This was `USER = d` — the reply wholesale — so any
          field the backend did not send simply did not exist on the person afterwards. Not
          hypothetical: `todo` was missing from this reply for weeks and every docket vanished at
@@ -612,12 +645,12 @@ on('do-signin', el => {
          The name matters most, because it is what every request identifies the person by. A reply
          without one signs somebody in as nobody, and the failure that follows is a booking refused
          for not being signed in, to somebody who plainly is. */
-      /* AND THE LAST ATTEMPT'S REFUSAL GOES. Reported as "the name or PIN not recognised doesn't
-         disappear after i just logged in correctly" -- `send_` overwrites it with `Checking...` on
-         the way out and `repaint` below rebuilds the card without it, so this is belt and braces
-         rather than the only thing standing between the two. It costs a line, and the sentence it
-         removes is one that tells somebody who just got in that they did not. */
-      if (said) said.textContent = '';
+      /* ---------- CLEARING THE LAST ATTEMPT'S REFUSAL IS NOT A LINE ANY MORE ------------------
+         THIS CLEARED `#in-said`, and the report it was written for — *"the name or PIN not
+         recognised doesn't disappear after i just logged in correctly"* — was only half true of
+         that element. The LOUD copy was the banner, which nothing cleared at all and which was
+         still across the top of the app after a successful sign-in. A toast expires by itself, so
+         there is nothing here to clear and nothing that can outlive the thing it was about. */
       USER = Object.assign({ name: name }, d);
       if (!USER.name) USER.name = name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
@@ -639,7 +672,10 @@ on('do-signin', el => {
       repaint();
       load();
     })
-    .catch(err => { if (said) said.textContent = why_(err); });
+    /* NO `.catch` THAT SPEAKS. `send_` has already toasted the sentence through `why_`, and a
+       second copy here is what put the refusal on the screen twice. The rejection is swallowed
+       rather than left unhandled, and marked `handled` by `send_` so nothing else reports it. */
+    .catch(() => {});
 });
 
 /* ---------- ENTER SUBMITS, BECAUSE THE KEYBOARD SAYS IT WILL --------------------------------------
