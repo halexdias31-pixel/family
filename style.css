@@ -6402,8 +6402,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the `.rc-rule` above it; the rest is here: 1.15 rather than 1.4, almost no padding under the
    words, and no margin at all under the rule, because a `.bk-row` has none either and the border IS
    the separation. Measured at 17.8px and 12.1px, and `under` at 7 and 0. */
+/* ---------- AND `text-transform: uppercase` WENT WHEN THE WORDS BECAME SYMBOLS --------------------
+   IT WAS HERE FOR `ANSWER`, `RATE` AND `TOTAL`. The five headings are `Q A × +/h +` now, and the only
+   letter left for it to touch is the `h` of `+/h` — which it raised to `H`, a header spelling the
+   unit one way over a column of `£12.00/h` spelling it the other. Nothing else in the row changes
+   under it, so it bought one wrong character and nothing at all. The tracking stays: it is what
+   still reads these five as a label rather than as a row of the document. */
 .bk-row.is-cols {
-  font-size: .58rem; letter-spacing: .07em; text-transform: uppercase;
+  font-size: .58rem; letter-spacing: .07em;
   color: var(--faint); line-height: 1.15;
   padding-bottom: .05rem; margin-bottom: 0;
   border-bottom: 1px dashed var(--line);

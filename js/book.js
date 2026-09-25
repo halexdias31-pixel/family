@@ -3238,8 +3238,10 @@ function bookBreakdown(L, foot) {
     /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
-    /* THE COLUMN HEADER'S WORD FOR THE INPUT COLUMN — see `spineHead_`. A form is answered. */
-    cols: 'Answer',
+    /* DRAW THE COLUMN HEADER. It carried the word for the input column until the five headings were
+       dictated as symbols — see `spineHead_`, which writes all five now — so what is left here is
+       the yes-or-no it always also was. The basket is the caller that says no, by omission. */
+    cols: true,
     rows: out,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE ---------------------------------
        The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
@@ -3399,26 +3401,47 @@ function rosterHtml(o) {
    columns and asking which is which. The other half is why this is .58rem of uppercase tracking
    rather than a band: a heading that costs a line of reading is the thing that was right to delete.
 
-   THE STUB HEAD IS BLANK, which is what a table does with the column its row names live in. A word
-   over "For / Kind / Subject" would be a label for labels.
+   FIVE SYMBOLS, DICTATED COLUMN BY COLUMN: *"Q for the prompt, a for answer. X for multipliers.
+   +/h for plus rate per hour, then + for full added price"*, over a sketch of the five-column head.
+   They are what this row says now, and two of the five overrule what was written here before.
+
+   THE STUB HEAD WAS BLANK AND THE ARGUMENT FOR IT IS THE OWNER'S TO OVERRULE. It read *"a word over
+   'For / Kind / Subject' would be a label for labels"*, which is what a table does with the column
+   its row names live in — and it leaves four headings over five columns, so the reader counting
+   across has to work out which one is unlabelled. `Q` names it, and the card's own rows say why the
+   word is right: every label in that column IS a question the document asks.
+
+   AND THE VALUE COLUMN'S WORD NO LONGER COMES FROM THE CALLER. It was `Answer` on the form and
+   `Detail` on the receipt, on the argument that *"the form is what you ANSWER and the receipt is
+   what was DECIDED"* — true, and `A` is the same letter for both, so the difference has nowhere
+   left to show. `cols` stays as the FLAG it also was (the basket passes none, which is how a caller
+   says it wants no header at all — see `collections.js`, where the card is two columns and there is
+   nothing for five names to sit over), and the five words are written once, here, where they sit
+   over the columns they name.
+
+   `×` RATHER THAN A LETTER X, and it is the same glyph to a reader. The values beneath it are
+   `× 6` and `× 1.005`, so the header is the character the column already uses rather than a
+   second spelling of it.
+
+   AND `text-transform: uppercase` CAME OFF THE ROW WITH THE WORDS. It was there for `ANSWER`,
+   `RATE` and `TOTAL`; of the five symbols now in it the only letter it would touch is the `h` of
+   `+/h`, which it would raise to `H` — a header spelling the unit one way over a column of
+   `£12.00/h` spelling it the other. One property removed, and what the source says is what the
+   row draws.
 
    AND IT IS THE SAME ROW AS EVERY OTHER ROW, `.bk-row` and the six spans, so the labels sit over
    their columns by construction rather than by a second set of widths that can disagree. That is
    `weekGrid_`'s header one card out, and the fault it avoids is the one this stylesheet keeps
-   paying for.
-
-   THE VALUE COLUMN'S WORD COMES FROM THE CALLER because the two documents are not the same
-   sentence: the form is what you ANSWER and the receipt is what was DECIDED. Same move as
-   `fieldsHtml(head)`, and cheaper than a second builder differing by one word. */
+   paying for. */
 function spineHead_(r) {
   if (!r || !r.cols || !(r.rows || []).length) return '';
   return `<div class="bk-row is-cols">
     <span class="bk-n"></span>
-    <span class="bk-k"></span>
-    <span class="bk-v">${esc(r.cols)}</span>
+    <span class="bk-k">Q</span>
+    <span class="bk-v">A</span>
     <span class="bk-m">×</span>
-    <span class="bk-r">Rate</span>
-    <span class="bk-t">Total</span>
+    <span class="bk-r">+/h</span>
+    <span class="bk-t">+</span>
   </div>`;
 }
 
@@ -4029,8 +4052,9 @@ function jobReceipt(j) {
        what somebody is deciding about. Both names are tried, because two lists genuinely use two. */
     lines: [j.venue || j.location || 'No venue', j.tutor || 'No tutor yet', j.term || '']
       .filter(Boolean),
-    /* AND THE RECEIPT'S, which is not "Answer": nothing on it is being asked. */
-    cols: 'Detail',
+    /* AND THE RECEIPT DRAWS IT TOO. This said `Detail` where the form said `Answer`, because nothing
+       on a receipt is being asked; both are `A` now and the distinction has nowhere to show. */
+    cols: true,
     rows: rows.map(receiptRow),
     /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" was the default
        everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to
