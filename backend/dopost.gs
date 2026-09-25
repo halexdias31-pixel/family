@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-25-b-library-cards";
+const DOPOST_VERSION = "2026-09-25-c-forgot-pin";
 
 
 function doPost(e) {
@@ -1017,16 +1017,154 @@ function doPost(e) {
        comment rather than a control.
        Admin only, and deliberately so: a tutor who could list themselves could put themselves in
        front of clients before you had agreed to it. */
+    /* ---------- IT LOOKED THE PERSON UP ITSELF, AND HALF THE ROSTER HAS NO `full_name` ----------
+       REPORTED AS *"why does george have a crossed out eye even if i click it. then it says no such
+       person."* The tile sent the DISPLAY name and this compared it against `full_name` alone —
+       but `personDisplayName`, which is what built that name, is `full_name` OR `first + last`.
+       A row with the two halves filled in and the whole-name cell empty therefore produced a name
+       this lookup could never match: the switch refused every press, put the tile back, and said
+       the person did not exist while their card was on the screen above it.
+
+       `findPerson` IS THE ONE READER and resolves person_id, full_name, first + last, handle and
+       username in that order — which is exactly the list `personDisplayName` draws from. A second
+       lookup written out here is the second reader this repository records under `documents_()`,
+       `factsNow_` and `childrenOf`, and this is what it cost. The phone sends the id now as well,
+       so the name is the fallback rather than the only route. */
     if (action === 'setListed') {
       const t = read(TAB.people);
-      const who = t.rows.find(x => key(x.full_name) === key(S(body.who))
-                                || S(x.person_id) === S(body.who));
+      const who = findPerson(S(body.who), S(body.whoId));
       if (!who) return jsonOut({ error: 'No such person.' });
       /* Written as the word rather than as a blank when off — blank already MEANS listed, for
          every row that predates the column, so an empty cell cannot also mean hidden. */
       setCell(t, who, 'listed', TRUE_(body.on) ? 'TRUE' : 'FALSE');
       clearCache();
       return jsonOut({ success: true, listed: TRUE_(body.on) });
+    }
+
+    /* --- a forgotten PIN --------------------------------------------------------------------------
+       ASKED FOR AS *"add forgot pin option. it will send an email to their email."*
+
+       IT SAYS THE SAME SENTENCE WHATEVER HAPPENS, and that is the only security this has. A reply
+       that said "no such person" would turn the sign-in card into a machine for confirming who
+       holds an account here — and half the people on this tab are children. So every branch below
+       returns one success, and the difference between them is only whether an email leaves.
+
+       IT SETS A NEW PIN RATHER THAN SENDING A LINK. A reset link needs a token column, an expiry,
+       a second screen and a route that works when nobody is signed in; a temporary PIN needs none
+       of that and lands in the one place this app already trusts — `authSetPin_` writes the hash
+       and clears the plaintext, exactly as a change from the settings column does.
+
+       SESSIONS ARE NOT ENDED, and that is deliberate and is the opposite of `changePin`. There the
+       person asking has proved who they are, so ending every other session removes an intruder.
+       Here anybody may ask, so ending sessions would let a stranger sign the owner out of their own
+       phone by typing their name. Whoever reads the email can sign in with what it says; whoever is
+       already signed in stays signed in. */
+    if (action === 'forgotPin') {
+      const said = { success: true,
+        message: 'If there is an account with that name and an email on it, a new PIN is on its '
+               + 'way. Check your inbox, then change it in your settings.' };
+
+      const asked = S(body.who).trim();
+      if (!asked) return jsonOut({ error: 'Type your name, username or email first.' });
+
+      const tPeople = read(TAB.people);
+      /* BY EMAIL TOO, because "forgot" is exactly the state in which somebody cannot remember
+         which of the two names they signed up with. `findPerson` does not do addresses — this is
+         not a second copy of it, it is the one column it has never looked at. */
+      const r = findPerson(asked)
+        || tPeople.rows.find(x => S(x.email) && key(x.email) === key(asked));
+      if (!r) return jsonOut(said);
+
+      const to = S(r.email);
+      if (!to) return jsonOut(said);
+
+      /* SIX DIGITS, AND NOT ONE OF THE ONES `changePin` REFUSES. Generated rather than chosen, and
+         re-drawn until it passes the same test — a reset that handed somebody 111111 would be the
+         site issuing the PIN it tells people not to pick. */
+      let fresh = '';
+      for (let tries = 0; tries < 20; tries++) {
+        fresh = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+        if (!/^(\d)\1+$/.test(fresh) && fresh !== '123456' && fresh !== '123123') break;
+      }
+
+      const row = tPeople.rows.find(x => x._row === r._row);
+      authSetPin_(tPeople, row, fresh);
+      clearCache();
+
+      /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
+         second lookup on a name that may have matched by email is a second chance to send somebody
+         else's PIN to somebody else's inbox. */
+      try {
+        MailApp.sendEmail({ to: to, name: BRAND_NAME,
+          subject: 'Your new ' + BRAND_NAME + ' PIN',
+          body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account.\n\n'
+              + 'Your new PIN is ' + fresh + '\n\n'
+              + 'Sign in with it, then change it under Settings → Your PIN.\n\n'
+              + 'If this was not you, sign in and change it now — whoever asked cannot read '
+              + 'this email, so they do not have it.' });
+      } catch (err) { /* a mail quota is not a reason to tell a stranger the account exists */ }
+
+      return jsonOut(said);
+    }
+
+    /* --- one message to everybody ------------------------------------------------------------------
+       ASKED FOR AS *"have a message sent to everyone from halex saying Hi wlecome!"*
+
+       IT IS `sendMessage` WITHOUT THE PICKER AND WITHOUT THE GAP. The same tab, the same row shape
+       and the same `mayMessage` policy asked per recipient — so a broadcast cannot put a note in
+       front of somebody the rules say the sender may not reach, and a policy written twice is the
+       fault this repository records under `MESSAGING`.
+
+       THE FIVE-MINUTE GAP IS SKIPPED, and only here: it exists to stop one person writing to many
+       people quickly, which is precisely what this is for and is why it is admin-only instead.
+
+       THE EMAIL IS OFF UNLESS ASKED FOR. `MailApp` has a daily quota, and spending it on a whole
+       roster at once means the next booking confirmation goes nowhere — a broadcast that silently
+       breaks the mail everything else depends on. The message is in the app either way. */
+    if (action === 'broadcast') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+
+      const text = S(body.body).trim();
+      if (!text) return jsonOut({ error: 'Nothing to send.' });
+      if (text.length > 2000) {
+        return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
+      }
+
+      const mine = S(me.person_id);
+      const who = read(TAB.people).rows.filter(r =>
+        S(r.person_id) && S(r.person_id) !== mine && mayMessage(mainRole(me), mainRole(r)));
+      if (!who.length) return jsonOut({ error: 'There is nobody to send it to.' });
+
+      const t = read(TAB.messages);
+      const stamp = new Date();
+      who.forEach((r, i) => addRow(t, {
+        /* ONE ID PER ROW. `'M' + Date.now()` is the same millisecond for every row of one loop, so
+           a broadcast to forty people would write forty rows sharing an id — and `readMessage`
+           finds a message by that id. */
+        message_id: 'M' + stamp.getTime() + '-' + i,
+        from_id: mine,
+        to_id: S(r.person_id),
+        sent_at: stamp,
+        body: text,
+      }));
+      clearCache();
+
+      let mailed = 0;
+      if (TRUE_(body.alsoEmail)) {
+        who.forEach(r => {
+          const to = S(r.email);
+          if (!to) return;
+          try {
+            MailApp.sendEmail({ to: to, name: BRAND_NAME,
+              subject: 'A message from ' + personDisplayName(me),
+              body: text + '\n\n— reply on the site.' });
+            mailed++;
+          } catch (err) { /* one blocked address must not stop the rest */ }
+        });
+      }
+
+      return jsonOut({ success: true, sent: who.length, mailed: mailed });
     }
 
     /* --- reacting -------------------------------------------------------------------------------

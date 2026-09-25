@@ -2336,7 +2336,7 @@ function dmPages_() {
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
          <button class="btn quiet" data-do="dm-refresh">Try again</button>`
-      : emptyMessages_}</div>` }];
+      : emptyMessages_}</div>` }].concat(castPages_());
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2378,7 +2378,44 @@ function dmPages_() {
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
     </div>`,
-  }));
+  })).concat(castPages_());
+}
+
+/* ---------- ONE MESSAGE TO EVERYBODY, ON THE COLUMN MESSAGES ALREADY LIVE ON ---------------------
+   ASKED FOR AS *"have a message sent to everyone from halex saying Hi wlecome!"*
+
+   IT IS A PAGE RATHER THAN A SHEET, which is the wardrobe's own decision one column along: a sheet
+   is a pop-up, and the owner has said twice what they think of those. `#sheet-body` scrolls and a
+   pane does not, so a sheet earns itself only where the content is longer than a card — a heading,
+   a box and a button is not.
+
+   APPENDED RATHER THAN PREPENDED. `dmPages_` used to open with a head card carrying one control,
+   and `PAGE_HOME.dm` existed purely to swipe past it; both were deleted together. Putting an admin
+   card at the FRONT would be that fault again, on the same column, three commits later — so this
+   is last, where the newest conversation is still what the column opens on.
+
+   ADMIN ONLY, AND ABSENT RATHER THAN DISABLED for everybody else. The gate is on the server —
+   `broadcast: 'admin'` in `ACTION_ACCESS` — and this is the door to it, so a client simply has one
+   fewer page rather than a control that refuses. Same shape as the films list.
+
+   THE EMAIL IS OFF BY DEFAULT and the tick says why. `MailApp` has a daily quota and a roster can
+   spend the whole of it in one press, which would take down the booking confirmations everything
+   else depends on — so the loud option is the one you have to choose. */
+function castPages_() {
+  if (typeof isAdmin !== 'function' || !isAdmin()) return [];
+  return [{ name: 'Everyone', html: `<div class="card">
+    <h3>Message everyone</h3>
+    <p class="sub">One note to every person on the roster who you are allowed to write to. It lands
+      in their Messages here.</p>
+    <label class="field"><span>your message</span>
+      <textarea id="cast-text" rows="3" maxlength="2000"
+        placeholder="e.g. Hi welcome!"></textarea></label>
+    <label class="check"><input type="checkbox" id="cast-mail"><span class="box"></span>
+      <span>email it as well</span></label>
+    <p class="faint">Leave that off unless it matters — one broadcast can spend the day's whole
+      email allowance, and the booking confirmations come out of the same pot.</p>
+    <button class="btn" data-do="cast-send">Send to everyone</button>
+  </div>` }];
 }
 
 /* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST -----------------------------

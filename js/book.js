@@ -993,7 +993,7 @@ const BOOK_STEPS = [
        what you PICKED; *the list opens empty, and families join it* is what happens NEXT, and
        nothing else on the card says it. That is the line between a note worth its thirteen pixels
        and a caption. */
-    note: v => v === NOBODY ? 'the list opens empty, and families join it' : '' },
+  },
 
   { id: 'how', label: 'How would you like to book?', short: 'Kind',
     /* BOTH ARE "START", because both are things you set going — the difference is whether it runs
@@ -1005,10 +1005,7 @@ const BOOK_STEPS = [
        receipt and the saved job all say the same noun.
        `isWaiting_` still matches on "wait", which both old and new wording contain. */
     options: () => ['Instant class', 'Waiting list class'],
-    /* A NOTE, NOT A REFUSAL — both of these are things you may pick. */
-    note: v => /wait/i.test(String(v))
-      ? 'Cheaper, but it waits — it runs once enough others take a seat.'
-      : 'It happens. Yours from the moment you pay, and others can join later.' },
+  },
 
   /* ---------- JOINING ONE, OR STARTING ONE ----------------------------------------------------------
      THE OPEN CLASSES WERE CARDS IN FIND, each with a "Take a seat" button — a whole findable kind
@@ -1057,10 +1054,27 @@ const BOOK_STEPS = [
      IT SPEAKS WHILE THERE IS SOMETHING TO SAY. Once two are chosen the row says so itself and the
      line would be explaining a thing already on the screen — the fault this file records where the
      roster's name printed an `<h3>` above every widget's own heading. */
+  /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN ----------------------------------------------
+     REPORTED WITH A SCREENSHOT OF THE CARD AND ONE WORD: "remove this text". The note above is the
+     argument for it and it is still true of a dropdown nobody has opened — and it was printed on
+     the most crowded card in the app, under the first field, where the row above it already reads
+     back whatever has been picked. The owner has now read it, so it has done the one job it had.
+
+     `multi: true` IS UNTOUCHED, which is the half that matters: choosing again still adds one and a
+     ticked one still comes back off. What is gone is the caption saying so. */
+  /* ---------- AND A WAITING LIST IS ASKED IT TOO ------------------------------------------------
+     THIS RETURNED `[]` WHEN `isWaiting_()`, on the argument written above it: *"A class is Maths
+     and English, and that is what the class IS rather than something to pick."* True of JOINING a
+     list that somebody has already opened — and the row above this one asks exactly that, and
+     `book-set` writes the class's subject in when you choose one, so joining is already covered by
+     a different mechanism.
+
+     WHAT IT ALSO DID WAS SILENCE THE QUESTION FOR SOMEBODY OPENING A NEW LIST. Reported as *"it
+     doesnt let choosing a subject even though im trying to start a NEW waitlist"*, which is the
+     one case the old rule had nothing to say about: there is no class yet, so there is nobody whose
+     decision this already is. */
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
-    options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name),
-    note: () => (BOOKING.subjects || []).length > 1 ? ''
-      : 'Pick as many as apply \u2014 choosing again adds one, and a ticked one comes back off.' },
+    options: () => (subjectRows() || []).map(x => x.name) },
 
   { id: 'level', label: 'What level?', short: 'Level',
     options: () => ((DATA.dropdowns || {}).levels || []) },
@@ -1114,6 +1128,18 @@ const BOOK_STEPS = [
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       return t && t.listed === false ? v + ' · not listed' : v;
     },
+    /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE -----------
+       REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
+       let change. it should defualt to no preference and not be able to change."* Both halves were
+       true and only one of them was intended: `options()` is empty on this branch, so `stepLocked_`
+       greys the row — correct, because who teaches a list is settled when it fills — and a locked
+       row prints `BOOKING[st.id]`, which was whatever had been picked before the kind was switched.
+
+       `fallback` IS THE HOOK THE `client` STEP ALREADY USES for exactly this shape: *"the row shows
+       what the booking would be submitted as, which is the only honest thing for it to show."* And
+       `bookPick` clears the tutor when the kind changes, so the stale name cannot win the `||`
+       above it — the fallback alone would have been a second rule losing to a stale cell. */
+    fallback: () => isWaiting_() ? 'No preference' : '',
     why: v => {
       if (v === 'No preference') return '';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
@@ -1122,47 +1148,45 @@ const BOOK_STEPS = [
       const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
       return missing.length ? 'does not teach ' + missing.join(', ') : '';
     } },
-  { id: 'n', label: 'How many extra seats?', short: 'Seats',
-    label_: v => Number(v) === 1 ? 'Just mine'
-      : Number(v) === 2 ? 'One more seat'
-      : (Number(v) - 1) + ' more seats',
+  /* ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL ----
+     ASKED FOR AS *"change this to be extra seats, then options are 0,1,2,3."* The question already
+     said "How many extra seats?" and then offered `Just mine`, `One more seat`, `2 more seats` —
+     three different ways of counting one thing, none of them the bare number that was asked for.
+
+     `BOOKING.n` STAYS THE TOTAL, which is the half that matters and the half nobody sees.
+     `seatLimits`, `spaceFor`, `priceFrom` and the backend all read it as *how many chairs*, so
+     storing the extras would be one fact in two units — the `needs_print`/`print_required` shape
+     this repository has paid for three times. `label_` is the whole of the change: the stored value
+     is the total and the drawn value is the total minus yours.
+
+     `String(...)`, NOT THE NUMBER. `stepRows_` does `String(text || '—')`, and `0` is falsy — so a
+     `label_` returning the number zero would print a dash over an answer somebody had given.
+
+     FOUR OPTIONS, BECAUSE FOUR WAS ASKED FOR, and still capped by what the room and the tutor
+     allow: a rule that offers three extra seats in a room that holds two is a rule that has to be
+     refused a line below, which is worse than not offering them. */
+  { id: 'n', label: 'How many extra seats?', short: 'Extra seats',
+    label_: v => String(Math.max(0, Number(v) - 1)),
+    /* ---------- AND A WAITING LIST GETS TO ANSWER IT TOO --------------------------------------
+       THIS RETURNED `[]` WHEN `isWaiting_()`, under a comment saying a class is one seat and the
+       seat is the price — reported as *"it doesnt let me select number of extra seats for waitlist
+       session."* A family with two children joining a list wants two seats on it, and an empty
+       option list is how `stepLocked_` greys a row, so the question was not merely unasked: it was
+       shown, greyed, with whatever the previous branch had left in it. */
     options: () => {
-      /* A class is one seat and the seat is the price, so there is nothing to choose. */
-      if (isWaiting_()) return [];
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
       const out = [];
-      for (let i = 1; i <= Math.min(12, lim.max); i++) out.push(String(i));
+      for (let i = 1; i <= Math.max(1, Math.min(4, lim.max)); i++) out.push(String(i));
       return out;
     },
-    /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. */
+    /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
+       sit beside this — what each number means, one sentence per option — is gone with the other
+       three; see `stepRows_`. */
     why: v => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
       if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
       if (Number(v) < lim.min) return (lim.why.min || 'the minimum') + ' needs ' + lim.min;
       return '';
-    },
-    /* AND WHAT EACH NUMBER MEANS, which is a note — every one of these is pickable. */
-    note: v => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_());
-      if (Number(v) > lim.max || Number(v) < lim.min) return '';
-      /* SAID AGAINST THE NUMBER THEY HAVE PICKED, not as general advice. "Others may join" means
-         nothing until you know whether you have left room for them, and the answer is different
-         for every number on this list. */
-      /* THE TOP OPTION READS AS A CONTRADICTION OTHERWISE. Labelled "3 more seats" and noted "the
-         whole session, privately" — more people and private at once. It IS private, because the
-         extra seats are yours and nobody else can take them, and that is the thing to say. */
-      if (Number(v) >= lim.max) return 'the room is yours — nobody else can join';
-      /* THE VERB HAS TO AGREE TOO. "the other 1 seat stay open" — I pluralised the noun and left
-         the verb, which is the half-done version of this fix and reads worse than not bothering.
-         And "1" written as a numeral where a word belongs: "the last seat" is what a person says. */
-      /* THE TAIL WAS THE SAME ON EVERY OPTION — "if somebody takes one, everybody pays less" under
-         all four, which is three repetitions of a fact that only needs stating once. What differs
-         is the number of seats left, so that is all each line says now. */
-      const left = lim.max - Number(v);
-      return left === 1 ? 'one seat left open for somebody else'
-                        : left + ' seats left open — a cheaper session if they fill';
-      /* THE WHY STILL COUNTS IN SEATS REMAINING, which is the same fact either way — how many are
-         left does not depend on whether you counted yourself in. */
     } },
 
   { id: 'loc', label: 'Where?', short: 'Venue',
@@ -1305,7 +1329,13 @@ const BOOK_STEPS = [
   { id: 'interval', label: 'Over what period?', short: 'Term', multi: true,
     fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
                       return t ? (t.label || t.term) : ''; },
-    options: () => isWaiting_() ? [] : (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
+    /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW ----------------------------------------
+       THIS RETURNED `[]` WHEN `isWaiting_()` and the fallback above stood in for it, so a family
+       opening a list got whatever term happened to be running and could not say otherwise —
+       reported as *"it also doesnt let me select which terms."* The fallback is still right for a
+       list nobody has answered: it says what the booking WOULD be submitted as. It is a default
+       now rather than a ceiling. */
+    options: () => (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
 
   /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
      three families in one session each pay a third — and the form never set it, so the feature
@@ -1317,7 +1347,27 @@ const BOOK_STEPS = [
      So there is no number to pick. The count IS how many addresses have been given. */
   /* SHARING IS THE WHOLE PRODUCT here — there is nobody to invite, because the other three seats
      are for whoever joins the list. */
+  /* ---------- AND A TYPED ADDRESS IS CHECKED FOR BEING ONE ---------------------------------------
+     ASKED FOR AS *"for split field, have something which verifies that its an email format that has
+     been entered."* Every other thing this list is used for — the price per family, the roster, the
+     invitation the backend sends — treats an entry as a person, so `dan@` or `dan gmail.com` is a
+     family who is charged a share and never hears about it.
+
+     A REFUSAL, NOT A REWRITE. `why` is the one mechanism this form has for saying an answer is
+     wrong, it is drawn under the row it is about, and it leaves what was typed alone — a box that
+     silently drops what somebody entered is the fault this file records under `nothingHere`. The
+     backend still checks; this is the half that can answer before Send is pressed.
+
+     THE SHAPE IS THE NARROW ONE. Something, an `@`, something with a dot in it, no spaces — which
+     is what a browser's own `type="email"` asks and as far as a string can honestly go. Anything
+     stricter refuses real addresses, and a right answer marked wrong is the worse of the two
+     failures, which is this repository's own sentence about the marking. */
   { id: 'split', label: 'Sharing the cost with anyone?', short: 'Split', emails: true,
+    why: () => {
+      const bad = (BOOKING.split || []).map(x => String(x).trim()).filter(Boolean)
+        .filter(x => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
+      return bad.length ? 'not an email address: ' + bad.join(', ') : '';
+    },
     options: () => isWaiting_() ? [] : ['emails'] },
 
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? --------------------------------
@@ -1409,7 +1459,7 @@ const BOOK_STEPS = [
       return (seats && on >= seats && (BOOKING.kids || []).indexOf(v) === -1)
         ? 'that is ' + seats + ' seat' + (seats === 1 ? '' : 's') + ' already' : '';
     },
-    note: v => v === UNNAMED ? 'the seat is booked, the name can wait' : '' },
+  },
 
 
 ];
@@ -1679,6 +1729,45 @@ on('book-block', el => {
    AN EMPTY CHOICE CLEARS THE STEP, which is what the "—" option is: putting a field back to unset
    without a separate control for it. `done` goes too, or a cleared field would refuse to be asked
    again — the same fault `book-undo` had. */
+/* ---------- TICKING ONE ANSWER OF SEVERAL, WHICH TWO CONTROLS NOW DO ------------------------------
+   IT WAS INLINE IN THE `change` HANDLER, which was right while a dropdown was the only way to
+   answer a multiple-answer question. The sheet below is a second way — see `stepMulti_` — and two
+   copies of *toggle, then re-sort into the offered order* is the second reader this file keeps
+   finding, with the sort as the half that would quietly drift. */
+function bookToggle_(step, v) {
+  if (v) {
+    const list = BOOKING[step.id] || [];
+    const at = list.findIndex(x => norm(x) === norm(v));
+    if (at === -1) list.push(v); else list.splice(at, 1);
+    /* ---------- KEPT IN THE ORDER THE QUESTION OFFERS THEM, NOT THE ORDER THEY WERE TICKED -----
+       THE TERM STEP IS WHAT MADE THIS MATTER. `stepRows_` joins the list onto one row, so ticking
+       Autumn 2 and then Autumn 1 read back as "Autumn 2, Autumn 1" — a sentence about the wrong
+       school year, on the row somebody checks before they pay.
+
+       AGAINST `options()` RATHER THAN SORTED, because the offered order is the only order this
+       form knows: chronological for terms, whatever the sheet says for subjects. A comparator on
+       the option index says "read them back the way you read them" for every multi at once.
+
+       A GRID STEP IS UNTOUCHED BY CONSTRUCTION. `avail` offers no options, so every key is −1,
+       every comparison is 0, and a stable sort leaves the list exactly as it was. Wrapped anyway:
+       an `options()` that throws must not take a tick with it. */
+    try {
+      const offered = (step.options() || []).map(norm);
+      const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
+      list.sort((a, b) => at_(a) - at_(b));
+    } catch (err) {}
+    BOOKING[step.id] = list;
+  }
+  /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. `done` was how a multiple-choice question said
+     "I have finished adding", which existed because the panel moved on to the next question as
+     soon as you picked once. Nothing moves on any more — the whole form is on screen — so the
+     list being non-empty is the whole of what "answered" means here. */
+  BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
+  if (!(BOOKING[step.id] || []).length) {
+    BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
+  }
+}
+
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="book-set"]');
   if (!el) return;
@@ -1688,42 +1777,28 @@ document.addEventListener('change', e => {
   if (step.multi) {
     /* TOGGLE, AND NEVER ON THE DASH. Choosing "—" on a multi is choosing nothing — it is what the
        select falls back to after every pick — so it must not clear the list somebody has built. */
-    const v = el.value;
-    if (v) {
-      const list = BOOKING[step.id] || [];
-      const at = list.findIndex(x => norm(x) === norm(v));
-      if (at === -1) list.push(v); else list.splice(at, 1);
-      /* ---------- KEPT IN THE ORDER THE QUESTION OFFERS THEM, NOT THE ORDER THEY WERE TICKED -----
-         THE TERM STEP IS WHAT MADE THIS MATTER. `stepRows_` joins the list onto one row, so ticking
-         Autumn 2 and then Autumn 1 read back as "Autumn 2, Autumn 1" — a sentence about the wrong
-         school year, on the row somebody checks before they pay.
-
-         AGAINST `options()` RATHER THAN SORTED, because the offered order is the only order this
-         form knows: chronological for terms, whatever the sheet says for subjects. A comparator on
-         the option index says "read them back the way you read them" for every multi at once.
-
-         A GRID STEP IS UNTOUCHED BY CONSTRUCTION. `avail` offers no options, so every key is −1,
-         every comparison is 0, and a stable sort leaves the list exactly as it was. Wrapped anyway:
-         an `options()` that throws must not take a tick with it. */
-      try {
-        const offered = (step.options() || []).map(norm);
-        const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
-        list.sort((a, b) => at_(a) - at_(b));
-      } catch (err) {}
-      BOOKING[step.id] = list;
-    }
-    /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. `done` was how a multiple-choice question said
-       "I have finished adding", which existed because the panel moved on to the next question as
-       soon as you picked once. Nothing moves on any more — the whole form is on screen — so the
-       list being non-empty is the whole of what "answered" means here. */
-    BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
-    if (!(BOOKING[step.id] || []).length) {
-      BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
-    }
+    bookToggle_(step, el.value);
   } else {
     BOOKING[step.id] = el.value || '';
     BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
+
+  /* ---------- SWITCHING THE KIND CLEARS THE ANSWER ONLY THE OTHER KIND COULD HAVE GIVEN ---------
+     REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
+     let change."* A waiting list has no tutor — the question is locked on that branch because who
+     teaches a list is settled when it fills — and a locked row prints `BOOKING[st.id]`, which was
+     whatever had been picked while the form was still an instant class.
+
+     THE FALLBACK ALONE WOULD NOT HAVE DONE IT. `stepSelect_` reads `BOOKING[st.id] || fb`, so a
+     stale name wins the `||` and `'No preference'` is never reached — two rules, and the older one
+     silently in front. Cleared here, where the kind actually changes, so the fallback is reached
+     because there is nothing in front of it rather than because it out-ranks something.
+
+     ONE STEP, NOT A SWEEP. Every other question on this form is asked on both branches now, so
+     their answers carry across as they should: a family switching from an instant class to a list
+     keeps the subject, the level, the venue, the seats and the term they had already chosen. The
+     tutor is the one answer the other branch has no way to honour. */
+  if (step.id === 'how') BOOKING.tutor = '';
 
   /* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS ------------------------------------
      A LIST THAT IS ALREADY GOING HAS A VENUE, A LEVEL AND A SUBJECT, decided by whoever opened it
@@ -1875,6 +1950,20 @@ function waitTerm_() {
   return running || next || null;
 }
 
+/* HOW MANY FAMILIES ARE SPLITTING IT, IN ONE WORDING. Both branches of the card push this row now
+   — see below — and two spellings of one count is the shape this file records under `handle` and
+   `username`, under `needs_print` and `print_required`, and under `category` and `compliance`. The
+   waiting branch said `4 families` and would have said `1 families`; it never met a one-seat list. */
+function familiesSay_(n) {
+  const k = Math.max(1, Number(n) || 1);
+  /* ONE FAMILY IS NOT A SPLIT, AND "1 family" ON A ROW CALLED `Shared by` READS AS A FAULT. The
+     receipt's own `Sharing` row already says `Just you` for a session nobody is splitting, so this
+     is that wording rather than a second one — the two rows sit four lines apart on the same
+     document. Seen on a screenshot of an unsplit instant booking. */
+  if (k === 1) return 'Just you';
+  return k + ' families';
+}
+
 function breakdownRows(L) {
   const fmt = { money, esc, pct: x => x };
   const rows = [];
@@ -1925,7 +2014,7 @@ function breakdownRows(L) {
     push('Kind', 'Waiting list class', '', '', '', { free: true });
     push('A seat', esc(BOOKING.loc || 'no venue'), '', money(w.chargePerHour) + '/h',
       money(w.perSeatSession), { end: true, step: 'loc' });
-    push('Shared by', esc(w.seats) + ' families', '', '', '', { free: true });
+    push('Shared by', familiesSay_(w.seats), '', '', '', { free: true });
     push('Per session', esc(w.hours) + ' hours', '', '', '', { free: true });
 
     const term = waitTerm_();
@@ -2022,18 +2111,40 @@ function breakdownRows(L) {
     });
   });
 
-  /* ---------- SIX DATES IS A SPAN, NOT A LIST -----------------------------------------------------
-     EVERY DATE, COMMA-SEPARATED, WRAPPED TO SIX LINES on the card and was truncated mid-date on the
-     shared picture — "05/10" with the year cut off, and the sixth missing entirely. Nobody reads a
-     weekly booking date by date; what they check is when it starts, when it ends, and how many.
-     FIRST TO LAST, WITH THE COUNT WHERE THE COUNT ALREADY WAS. One line, nothing to wrap, nothing to
-     truncate. A single session still prints its one date rather than a span of itself. */
+  /* ---------- AND THE COUNT OF FAMILIES IS ON BOTH DOCUMENTS NOW ---------------------------------
+     ASKED FOR AS *"\"shared by 4 families\" is a new line i think!? there should be no exclusive
+     field lines to one then the other. add that line to instant session too."* It was pushed by the
+     waiting branch and by nothing else, so a family splitting an instant session three ways had the
+     price divided by three on the card and nothing anywhere saying by what.
+
+     `splitShares` IS THE PRICING'S OWN COUNT, not a second reading of `BOOKING.split`. `priceFrom`
+     computes `splitOthers + 1` and divides the hourly charge by it, so this row is the denominator
+     of the figure two rows up rather than a description of it — which is the difference between a
+     row that can be wrong and a row that cannot.
+
+     `Per session` IS STILL WAITING-ONLY, AND THAT IS NOT THE SAME KIND OF EXCLUSIVITY. On a waiting
+     list nothing else on the card says how long a session is: there is no day yet, so the week is
+     blocks rather than hours. On an instant booking the When rows already print `Monday 13:00–15:00`
+     — the length, on the row that decides it, in the place somebody reads it — and a second line
+     restating it is the fault this file records where the roster's `name` printed an `<h3>` over
+     every widget's own heading. */
+  push('Shared by', familiesSay_(L.splitShares), '', '', '', { free: true });
+
+  /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND -----
+     ASKED FOR AS *"also look at dates, it should outline every date there."* This row was a SPAN
+     and a count — `28/09/26 – 16/10/27  ·  36 dates` — and the note that made it one is still worth
+     reading, because everything it says is true: every date comma-separated wraps to six lines on
+     the card and is truncated mid-date on the shared picture.
+
+     WHAT IT GOT WRONG IS WHOSE QUESTION IT WAS. "Nobody reads a weekly booking date by date" is an
+     assumption about the reader, and the reader has now said otherwise: a family checking a booking
+     against a diary wants the days, and a span plus a count cannot say which Mondays are missed for
+     half term. The wrapping is a real cost and it is a cost the owner has chosen.
+
+     `dates: true` STILL MARKS THE ROW so `.bk-dates` can set the run in the mono figures face and
+     let it wrap — see the note there. A single session still prints its one date. */
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
-  const span = !dates.length ? '—'
-    : dates.length === 1 ? dates[0]
-    : dates[0] + ' – ' + dates[dates.length - 1];
-  push('Dates', span, '', '',
-    dates.length ? dates.length + ' date' + (dates.length === 1 ? '' : 's') : '', { free: true, dates: true });
+  push('Dates', dates.length ? dates.join(', ') : '—', '', '', '', { free: true, dates: true });
 
   /* ---------- WHERE THIS ONE IS, TOO ---------------------------------------------------------------
      THREE ROWS WERE REMOVED FROM HERE — "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE ·
@@ -2216,6 +2327,75 @@ function stepInput_(st) {
     value="${esc(v)}" placeholder="—" aria-label="${esc(st.label)}"
     ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
+
+/* ---------- PICKING SEVERAL ANSWERS WAS FOUR TAPS FOR TWO SUBJECTS ---------------------------------
+   REPORTED AS *"for me to multiselect i have to click on field then click on subject then click on
+   field then click on another subject. thats long. should be click on subject field then click on
+   the subjects."*
+
+   THE NATIVE SELECT CANNOT DO IT AND THAT IS NOT A BUG IN THE APP. A `<select>` closes when you
+   choose — that is what choosing MEANS to it — so a question taking three answers is three opens,
+   three scrolls and three closes. The toggling worked perfectly; the gesture was the cost.
+
+   `<select multiple>` IS STILL REFUSED, for the reason written over `stepSelect_`: on a phone it
+   renders as a list box with its own scrollbar, which is the deleted panel in a worse shape.
+
+   SO IT IS A SHEET, WHICH IS THIS APP'S OWN ANSWER TO ANYTHING LONGER THAN A ROW. `#sheet-body`
+   scrolls where `.pane` does not — the practical guide, the quiz and the tutor profile all take
+   that route, and `check-surfaces.js` fails the build on the alternative. Every option is a real
+   44px target, several can be ticked without the surface closing, and closing it is one press on
+   the back of the sheet.
+
+   THE SHEET REDRAWS ITSELF AND THE CARD UNDERNEATH ON EVERY TICK, which is what makes the tick
+   visible in two places at once — the ✓ in the list and the row's own summary filling in behind it.
+   `bookToggle_` is the one place either control changes the list.
+
+   THE ROW'S CONTROL IS A BUTTON WEARING `.bk-sel`. It is the same object as far as the card is
+   concerned — right-aligned, no chrome, the answer as its text — and drawing it as a second thing
+   would be the `.reel .over` fault, where one object was described twice in this stylesheet and the
+   two drifted. What it cannot inherit is `:has(option[value=""]:checked)`, which is how an
+   unanswered select recedes: a button has no options, so it says so with a class instead. */
+function stepMulti_(st) {
+  const chosen = BOOKING[st.id] || [];
+  const fb = st.fallback ? String(st.fallback() || '') : '';
+  const said = chosen.join(', ') || fb;
+  return `<button type="button" class="bk-sel bk-many${said ? '' : ' is-unset'}"
+    data-do="book-many" data-step="${esc(st.id)}"
+    aria-label="${esc(st.label)}">${esc(said || '\u2014')}</button>`;
+}
+
+/* THE LIST INSIDE THE SHEET. A form's controls are buttons rather than tiles — the house style
+   settles that — and a full-width one per option is the shape every other list in a sheet has. */
+function manySheet_(st) {
+  let opts = [];
+  try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
+  const chosen = BOOKING[st.id] || [];
+  const on = o => chosen.some(c => norm(c) === norm(o));
+  if (!opts.length) return `<p class="muted">Nothing to choose here yet.</p>`;
+  return `<div class="many-list">${opts.map(o => `<button type="button"
+      class="btn quiet many-opt${on(o) ? ' on' : ''}" data-do="book-many-pick"
+      data-step="${esc(st.id)}" data-val="${esc(o)}"
+      aria-pressed="${on(o) ? 'true' : 'false'}"
+      >${on(o) ? '\u2713 ' : ''}${esc(st.label_ ? st.label_(o) : o)}</button>`).join('')}</div>`;
+}
+
+on('book-many', el => {
+  const st = bookStep_(el.dataset.step);
+  if (!st || stepLocked_(st)) return;
+  openSheet(st.label, manySheet_(st));
+});
+
+on('book-many-pick', el => {
+  const st = bookStep_(el.dataset.step);
+  if (!st) return;
+  bookToggle_(st, el.dataset.val);
+  /* THE SHEET STAYS OPEN, which is the whole feature — so its body is rewritten in place rather
+     than reopened. `openSheet` again would work and would re-run the opening animation on every
+     tick, which reads as the panel flinching. */
+  const body = $('sheet-body');
+  if (body) body.innerHTML = manySheet_(st);
+  drawBooker();
+});
 
 /* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
    SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
@@ -2481,7 +2661,11 @@ function stepLocked_(st) {
    control, drawn under the row by `stepGrid_`, so the row itself carries no dropdown. */
 function stepControl_(st) {
   if (st.grid) return '';
-  return st.emails ? stepInput_(st) : stepSelect_(st);
+  if (st.emails) return stepInput_(st);
+  /* A QUESTION TAKING SEVERAL ANSWERS OPENS A SHEET — see `stepMulti_`. A locked one has nothing to
+     open, so it falls through to the text `stepSelect_` draws for a settled answer. */
+  if (st.multi && !stepLocked_(st)) return stepMulti_(st);
+  return stepSelect_(st);
 }
 
 /* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT -----------------------------------------------
@@ -2516,7 +2700,7 @@ function stepRows_() {
      not on. */
   const on = bookOn_();
   return BOOK_STEPS
-    .filter(st => !(st.only && st.only !== on))
+    .filter(st => onlyHas_(st.only, on))
     /* ---------- ONE STEP IS NOT ALWAYS ONE ROW ---------------------------------------------------
        A WEEK IS SEVEN. `flatMap` rather than `map` because the When question is answered on seven
        lines of the card — Monday to Sunday, each with its hours in the answer column — and a step
@@ -2572,23 +2756,33 @@ function stepRows_() {
                   under a control that did nothing. */
                id: st.id,
                sel: stepControl_(st),
-               /* ---------- SEVEN EXPLANATIONS WRITTEN OUT AND DRAWN NOWHERE -------------------
-                  `why` AND `note` ARE DEFINED ON SEVEN STEPS AND WERE READ BY NOTHING. Measured:
-                  `st.why(` and `st.note(` do not occur anywhere in `js/`. So the form could tell
-                  you that the tutor you picked does not teach your subject, that you have ticked
-                  more children than you have seats, that a waiting list is cheaper but waits, and
-                  that an unnamed seat is still a booked seat — and said none of it. This
-                  repository's oldest shape, already recorded under `figure`, `orderPrints`, the
-                  four message actions, `exam_date` and `wow`.
+               /* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE ---------------
+                  MEASURED WHEN IT WAS WIRED UP: `st.why(` occurred nowhere in `js/`, so the form
+                  could tell you that the tutor you picked does not teach your subject and that you
+                  had ticked more children than you had seats, and said neither. This repository's
+                  oldest shape, already recorded under `figure`, `orderPrints`, the four message
+                  actions, `exam_date` and `wow`.
 
-                  A `why` IS A REFUSAL AND A `note` IS AN ASIDE, which is why they are one field
-                  with a flag rather than two rows. A refusal says the answer on the row is wrong
-                  for the booking — nothing else on the card says so, and a dropdown that accepts
-                  an impossible answer in silence is worse than one that refuses it. An aside says
-                  what the answer MEANS, and recedes.
+                  IT IS A REFUSAL AND NOT AN ASIDE. `note` was the other half of this pair and is
+                  gone — see below for why, and for why this one is not. */
+               /* ---------- AND THE ASIDES ARE GONE, WHICH IS THE THIRD TIME OF ASKING ---
+                  REPORTED AS *"theres text there AGAIN! fucking stop with that."* Four steps
+                  carried a `note` — what "Nobody yet" means, what each kind of booking is, what
+                  each seat count leaves open, what an unnamed seat is — and every one of them was
+                  a correct sentence printed under the first fields of the app's most crowded card,
+                  explaining a control whose own row already reads back what was chosen.
 
-                  THE REFUSAL WINS WHERE BOTH SPEAK, because you cannot act on an aside about an
-                  answer you have to change. */
+                  THE `note` PROPERTIES WENT WITH THE RENDERING, not just the rendering. A hook
+                  left behind with nothing reading it is the shape this file records under
+                  `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard: four live
+                  functions, drawn nowhere, for the next reader to wonder about.
+
+                  `why` STAYS, AND IT IS NOT THE SAME THING. A refusal says the answer ON THE ROW is
+                  wrong for the booking — more seats than the room holds, a tutor who does not teach
+                  the subject, an address that is not an address — and nothing else on the card says
+                  so. It is silent on every answer that is fine, which is why none of the four
+                  screenshots has one on it. Removing it would let somebody send a booking the
+                  backend will refuse, with no way of knowing which field did it. */
                say: (() => {
                  /* ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN ------------------
                     THE FIRST RUN PRINTED "the minimum needs 1" IN GOLD UNDER AN EMPTY SEATS ROW.
@@ -2603,25 +2797,12 @@ function stepRows_() {
                  const answered = st.multi ? (v || []).length
                    : String(v == null ? '' : v).trim() !== '';
                  /* ---------- AND NOTHING IS SAID ABOUT A QUESTION THIS BRANCH CANNOT ASK --------
-                    FOUND BY A DECLARED STATE, on the waiting-list form: the Subject row is locked
-                    there — `options()` is `[]` when `isWaiting_()`, because a class's subject is
-                    settled by whoever opens it — and directly under the greyed dash sat *"Pick as
-                    many as apply — choosing again adds one, and a ticked one comes back off."*
-                    Instructions for using a control that cannot be used.
-
-                    That is the same fault as the caption over the week grid this file already
-                    removed: a sentence about an action, printed where the action is not available.
-                    It is also 27px on a card that is 33px past its pane at 768, which is what made
-                    it worth looking for rather than worth arguing about. */
-                 if (stepLocked_(st)) return null;
-                 if (!answered && !(st.multi && st.note)) return null;
-                 const w = (answered && st.why) ? String(st.why(v) || '') : '';
-                 if (w) return { text: w, warn: true };
-                 /* A MULTI'S NOTE IS ALLOWED TO SPEAK BEFORE THERE IS AN ANSWER, and it is
-                    the only one that is: "you may pick more than one" is worth knowing precisely
-                    while nothing is picked, which is the opposite of a refusal. */
-                 const n = st.note ? String(st.note(v) || '') : '';
-                 return n ? { text: n, warn: false } : null;
+                    FOUND BY A DECLARED STATE, on the waiting-list form: a locked row is a control
+                    that cannot be used, and a sentence about using it is the same fault as the
+                    caption over the week grid this file already removed. */
+                 if (!answered || stepLocked_(st)) return null;
+                 const w = st.why ? String(st.why(v) || '') : '';
+                 return w ? { text: w, warn: true } : null;
                })() }];
     });
 }
@@ -2800,6 +2981,32 @@ const JOB_STAGES = [
      still says exactly when somebody asked. */
   { row: 'Requested', is: j => true,
     when: j => S_(j.createdAt) || evAt_(j, 'Request', 1) },
+  /* ---------- PUT TO A TUTOR, WHICH FOR MOST BOOKINGS IS THE SAME MOMENT AS THE ASKING -----------
+     ASKED FOR AS *"add \"applied for\" line under requested, above accepted. its not really
+     applicable for sessions booked with specific tutors, but it is for no preference tutors.
+     however it will just be autimatically ticked with requested after it has been requeted for a
+     specific tutor."*
+
+     SO IT IS `true`, LIKE `Requested`, AND THE CHAIN DOES THE REST. A booking naming a tutor is an
+     application to that tutor and there is no second moment to wait for; a booking saying "No
+     preference" is put out to whoever is free, which also happens at the asking. The row earns its
+     place on the second kind — where "asked for" and "put in front of somebody" are two different
+     things a family wants to see separately — and costs the first kind nothing, because a stage
+     that is always true the instant the one above it is true reads exactly as the automatic tick
+     the owner described.
+
+     A ROW RATHER THAN A CONDITIONAL ROW. `stageRows_` draws every stage on every document and the
+     chain decides which are filled — so a stage that came and went with the tutor answer would be
+     the document changing shape at the moment somebody is checking it, which is `SPINE`'s own rule
+     and what `check-flow.js` refused when the argument was made about `Asked for`.
+
+     `Apply` IS READ FIRST AND NOTHING WRITES ONE. When a job is put to tutors as its own act — an
+     admin offering a no-preference booking round — that is the event this row is dated by, and
+     until then it falls back to the asking's own date. A reader left standing over a condition
+     nothing can satisfy is this repository's oldest shape, so it is said here rather than left to
+     be discovered: the fallback is the behaviour, and the first branch is the hook. */
+  { row: 'Applied for', is: j => true,
+    when: j => evAt_(j, 'Apply', 1) || S_(j.createdAt) || evAt_(j, 'Request', 1) },
   /* THE BUSINESS HAS SAID YES. `jobAccepted_` is the same function the receipt has always used and
      its note is the argument: an accepted application is still an application, because money has
      not moved, and both facts are true at once. */
@@ -2852,7 +3059,7 @@ function datePassed_(v) {
 
 /* ONE BUILDER, BOTH DOCUMENTS — which is the whole of what stops them drifting, the same argument
    `weekRows_` makes for the three week grids. `j` is null on the form: five rows, none ticked, so
-   an unsent booking shows the five stages ahead of it and pressing Send ticks the first. That is
+   an unsent booking shows the stages ahead of it and pressing Send ticks the first. That is
    `SPINE`'s own rule about a document not changing shape at the moment somebody is checking it,
    which is why these are NOT marked `only: 'receipt'` — the form and the receipt are one document
    across time, and the placeholder is the point. */
@@ -2904,7 +3111,17 @@ const SPINE_EXTRA = [
      `A seat` and `Shared between` and the receipt printed neither, so the one document that says
      what a seat costs and how many families share it was the one nobody was handed. */
   { after: '',        row: 'A seat',    only: 'wait' },
-  { after: '',        row: 'Shared by', only: 'wait' },
+  /* ---------- `Shared by` BELONGS TO THE FORM, ON BOTH ITS BRANCHES --------------------------
+     IT WAS `only: 'wait'` and `breakdownRows` pushes it on both branches now — see the note there.
+     Dropping the flag altogether put it on the RECEIPT too, where `Sharing` two rows up already
+     answers the question in the words that document needs: the addresses somebody was invited by
+     name, or `Open — 3 seats free` on a list. Two rows for one fact, the second of them a permanent
+     dash, and 13px past the pane at 768 and 1280 — which `check/ui.js` named on its first run.
+
+     SO THE FLAG IS A SET RATHER THAN A WORD. A row can belong to two of the three documents, and
+     the alternative — a `not:` beside `only:` — is a second way of saying one thing, which is the
+     shape this file spends most of its length recording. */
+  { after: '',        row: 'Shared by', only: 'book, wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
      about — which is where a receipt puts it and where the form now puts it too.
 
@@ -2917,7 +3134,7 @@ const SPINE_EXTRA = [
      are a different branch of the FORM, which is one document across nothing — an ordinary booking
      never becomes a waiting list.
 
-     `Stage` AND `Asked for` STOOD HERE. See `JOB_STAGES`: the sentence is what the five ticks say
+     `Stage` AND `Asked for` STOOD HERE. See `JOB_STAGES`: the sentence is what the ticks say
      in words, and the date is the `Requested` tick's own value. */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
   { after: '',        row: 'Status' },
@@ -2964,7 +3181,12 @@ const SPINE = (() => {
    drew it at the FOOT of the card — below `Status` — while `Extra subj.` drew a dash up beside
    `Subject` where `AFTER` had carefully placed it. One fact, twice, in two places, on the live
    form. Measured: nine dashes and a stray `Extra subjects` row after `Status`. */
-const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '',
+/* `Students` → `Extra seats`, WHICH MOVED WITH THE STEP'S OWN `short`. The form's seats question is
+   asked and drawn as the EXTRAS now — see the step — and an alias left pointing at `Seats` would
+   name a spine row that no longer exists, so the merge would mark a row nothing draws and
+   `spineRows_` would invent a dash beside the answer. Same fault as `Extra subjects` below, which
+   is the note this line already carries. */
+const SPINE_ALIAS = { Students: 'Extra seats', Host: 'Space', Total: '',
                       'Extra subjects': 'Extra subj.' };
 
 /* One row name to the one document that can fill it, read off the two lists that declare rows so
@@ -2974,6 +3196,15 @@ const SPINE_ALIAS = { Students: 'Seats', Host: 'Space', Total: '',
    question `stepRows_` correctly drops would come straight back as an invented dash under the same
    name — the row removed and then re-added by the function two hundred lines down. The flag is
    declared once, beside the row it belongs to, wherever that row is declared. */
+/* WHICH DOCUMENTS A FLAG NAMES, READ THE SAME WAY BY BOTH READERS. `stepRows_` asks it of a step
+   and `spineRows_` of a spine row, and the two comparing a string one way and a list another is the
+   second reader this file keeps finding. A flag naming several is comma-separated, which is the
+   shape `topics`, `keystage` and `needs` already have in the data. */
+function onlyHas_(only, on) {
+  if (!only || !on) return true;
+  return String(only).split(',').map(x => x.trim()).filter(Boolean).indexOf(on) !== -1;
+}
+
 const ONLY_ON = (() => {
   const m = {};
   SPINE_EXTRA.forEach(x => { if (x.only) m[x.row] = x.only; });
@@ -3062,7 +3293,7 @@ function spineRows_(rows, opts) {
      place that knows — so it is the one place that can say so. */
   const gone = (opts && opts.said) || {};
   const out = SPINE.map(k => (say[k] || (fill && !gone[k]
-    && !(on && ONLY_ON[k] && ONLY_ON[k] !== on) ? {
+    && onlyHas_(ONLY_ON[k], on) ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
        the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`.
        A TICK ROW IS NOT BLANK IN THAT SENSE: an empty box is its answer, so it keeps a full row's
@@ -3271,7 +3502,10 @@ function bookBreakdown(L, foot) {
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
-    aside: (L && L.W) ? L.W + ' session' + (L.W === 1 ? '' : 's') : '',
+    /* `aside` WAS HERE — "36 sessions", beside the figure on the total bar. REMOVED ON REQUEST:
+       *"remove the 36 sessions at the bottom next to the price."* It is not lost: the session count
+       is the multiplier on the row that does the arithmetic, where it is doing a job somebody can
+       follow rather than sitting beside an answer as a caption. `.rc-total .bk-r` went with it. */
     /* ---------- THE ROSTER IS NOT ON EITHER DOCUMENT ----------------------------------------------
        IT WAS ON THE RECEIPT, THEN ON BOTH, AND NOW ON NEITHER — and the last move is the right one
        for a reason the first two missed. The chairs are not a row of a document: they are a view of
@@ -3517,16 +3751,33 @@ function receiptHtml(r) {
          number, a thing, a multiplier and a price — six words explaining a layout nobody was
          confused by, and the widest band of text on the card. A receipt is read by shape rather
          than by heading, and the shape was already doing the work. */''}
-    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}</div>
-    <div class="rc-rule"></div>
-    <div class="bk-row rc-total">
+    ${/* ---------- THE TOTAL IS A ROW OF THE TABLE NOW, NOT A BAR BESIDE IT --------------------
+         ASKED FOR AS *"the final cost needs to be in same style as everything else. cost is in the
+         Q column and the total cost is in the + column, styled like everything else for maximum
+         uniformity."* It was OUTSIDE `.bk` with three columns of its own — `auto minmax(0,1fr)
+         max-content` — so the one figure the whole card adds up to was the only figure on it that
+         did not sit under the `+` heading, and the word `COST` was the only label not under `Q`.
+
+         INSIDE `.bk`, IT SUBGRIDS LIKE EVERY OTHER ROW and the five tracks place it with nothing to
+         keep in step: `Cost` lands in the label column because that is where a label goes, and the
+         figure lands in the last one because that is where `.bk-t` goes. The three columns it
+         declared for itself are deleted rather than restated — see `style.css`.
+
+         AND THE FIGURE STOPS BEING BIGGER. It was `1.05rem` at weight 700 in a `7.5ch` track, which
+         that stylesheet's own note records overflowing by 18px on a receipt and 28 in the basket.
+         "Styled like everything else" is the fix for both the complaint and the overflow.
+
+         THE RULE ABOVE IT GOES TOO. A `.rc-rule` between the rows and the total was closing off a
+         block the total is now part of; the row's own top border does that job, in the one place
+         the card already draws a line between rows. */''}
+    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}<div class="bk-row rc-total">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
       <span class="bk-v"></span>
       <span class="bk-m"></span>
-      <span class="bk-r">${esc(r.aside || '')}</span>
+      <span class="bk-r"></span>
       <span class="bk-t">${esc(r.total || '')}</span>
-    </div>
+    </div></div>
     ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. Kept rather than
           cut out, because `rosterHtml` is what `Your sessions` draws and this is the one line that
           would put chairs back on a document if that ever turns out to be right. Removing it would
@@ -3603,7 +3854,7 @@ function receiptRow(r) {
      nothing to anybody who cannot separate gold from grey. */
   /* THE BOX LAST, BECAUSE `.bk-v` IS RIGHT-ALIGNED AND FIVE BOXES HAVE TO BE ONE COLUMN. Written
      the other way round — box, then date — the four stages with nothing beside them put their box
-     on the card's edge and `Requested` put its box wherever its date started, so the five ticks
+     on the card's edge and `Requested` put its box wherever its date started, so the ticks
      came out at two different x positions. A progression you read DOWN cannot be ragged across,
      and the date is the subordinate half of that row either way. Caught on a screenshot, which is
      the only thing that could have: every row measured correctly and none of them overflowed. */
@@ -3754,7 +4005,15 @@ function jobRows(j) {
      both were drawing a CONFIDENT WRONG ANSWER rather than nothing — "We book the room" to a
      family hosting at home, and "Just you" on a session split three ways — so a name tried here
      would have been a second guess at a fact the sheet holds and the payload was not carrying. */
-  push('Students', seatsOf_(j) || '');
+  /* ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED -------------------
+     `seatsOf_` IS THE TOTAL and the form's question is *"How many extra seats?"* — so a receipt
+     printing the total under the label the form prints the extras under is the two documents
+     disagreeing about what one row MEANS, which is the whole fault the spine was built to stop.
+     Minus yours, in the one place a saved job is read.
+     A JOB WITH NO SEAT COUNT STILL DRAWS NOTHING, which is what the `|| ''` was for: `seatsOf_`
+     answers 0 for a job that never had one, and that is an absence rather than a booking with no
+     extra seats. The two are told apart before the subtraction rather than after it. */
+  push('Students', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
   push('Venue', j.venue || j.location || '');
   push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS ---------------------------------------------
@@ -3817,8 +4076,9 @@ function jobRows(j) {
      can only read one of them is a receipt that goes blank when it meets the other. */
   const dates = String(j.dates || j.sessionDates || '')
     .split(/[,\n]/).map(x => x.trim()).filter(Boolean);
-  /* THE SAME SPAN AS THE BOOKING CARD — see the note there. A job's receipt and the form it came
-     from must not disagree about how a run of dates is written. */
+  /* THE SAME EVERY-DATE LIST AS THE BOOKING CARD — see the note there. A job's receipt and the form
+     it came from must not disagree about how a run of dates is written, and the whole point of
+     spelling them out is that a family can check them against a diary. */
   /* ---------- HOW MANY DATES IS NOT A FIGURE, AND THE FIGURE COLUMN IS SIZED FOR MONEY -----------
      "6 dates" WAS IN THE TOTAL COLUMN AND OVERFLOWED IT BY 18 TO 21 PIXELS at all four widths.
      Two things meet: `.bk-t` is `--mono`, and the column is `7.5ch` measured against the ROW's
@@ -3833,10 +4093,7 @@ function jobRows(j) {
      FOUND BY `check/ui.js` ON ITS FIRST RUN WITH A RECEIPT ON THE SCREEN. It had never had one —
      see the note beside the `booking` state in that file — so this had been on every receipt with
      more than one date for as long as receipts have had dates. */
-  push('Dates', !dates.length ? '—'
-    : (dates.length === 1 ? dates[0] : dates[0] + ' – ' + dates[dates.length - 1])
-      + (dates.length > 1 ? '  ·  ' + dates.length + ' dates' : ''),
-    '', { free: true, dates: true });
+  push('Dates', dates.length ? dates.join(', ') : '—', '', { free: true, dates: true });
 
   /* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor
      sees what they earn; an admin sees both and the difference. Same receipt, three readings —
@@ -3979,7 +4236,7 @@ const seatsOf_ = j => Math.max(0, Number((j && (j.maxKids || j.maxStudents)) || 
    card, which is what this repository already records about the roster's `name` printing an `<h3>`
    above every widget's own heading.
 
-   `jobStage_` AND `jobAccepted_` SURVIVE IT. They are the tests two of the five ticks are made of,
+   `jobStage_` AND `jobAccepted_` SURVIVE IT. They are the tests two of the stage ticks are made of,
    and `jobStage_` still says which of the four documents a saved booking is. */
 
 /* AND WHAT THE SEATS SAY, which is the machine's own record rather than a summary of it. A session
@@ -4094,8 +4351,10 @@ function jobReceipt(j) {
        AND IT DID NOT FIT. The label is `nowrap` and up to sixteen characters at this stage, so on a
        narrow card the word and the label drew over each other. Removing it fixes the collision and
        the duplication in one go — which is usually the sign that the thing should not have been
-       there. */
-    aside: '',
+       there.
+
+       THE FIELD ITSELF IS GONE NOW, on both documents: the total is an ordinary row of the table
+       and there is no column beside the figure for a remark to sit in. See `receiptHtml`. */
     /* NO ROSTER HERE EITHER — see the note on the form. The chairs are `Your sessions`, one widget
        per class, which is the view that answers "who is in it". */
     ref: 'Session ' + esc(String(j.id || j.jobId || '')),

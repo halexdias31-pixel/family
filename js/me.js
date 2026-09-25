@@ -62,6 +62,17 @@ function signInCard_() {
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         <button class="btn" data-do="do-signin">Sign in</button>
+        ${/* ---------- AND THE WAY BACK IN WHEN THE PIN HAS GONE ------------------------------------
+             ASKED FOR AS *"add forgot pin option. it will send an email to their email."*
+
+             IT TAKES NO SECOND BOX. The name is already typed into the field above — it is the
+             first thing anybody fills in — so asking for it again would be asking somebody who
+             cannot get in to type their name twice. `forgotPin` accepts the name, the username or
+             the email, which is the whole point: "forgot" is the state in which you are not sure
+             which one you signed up with.
+
+             QUIET, because gold on this card is `Sign in` and there is one of those. */''}
+        <button class="btn quiet" data-do="forgot-pin">Forgotten your PIN?</button>
         ${/* ---------- AND THE OTHER DOOR ----------------------------------------------------------
              DRAWN ONLY WHEN THERE IS AN ID TO DRAW IT FOR. `googleClientId` comes off the payload;
              with no id in the config tab the button is absent rather than present and broken, which
@@ -614,6 +625,24 @@ function googleSignedIn_(res) {
    A TOAST IS 2.6 SECONDS AND THAT IS ENOUGH FOR THIS. Somebody has just pressed a button and is
    looking at the screen; eight of the thirteen `why_` callers in this app already answer a failed
    write exactly this way. What a toast must not carry is a STANDING condition — see `banner()`. */
+/* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE ------------------------------
+   NOT ONE RULE IS REPEATED HERE, which is the same argument `handle-save` and `pin-save` already
+   make one column along: the box checks whether it is empty and nothing else, and whatever comes
+   back is what gets said. The server decides whether that name resolves, whether there is an
+   address on it, and what to tell somebody who asked about an account that is not theirs — and it
+   deliberately says the SAME sentence to all three, so a copy of that reasoning here would be a
+   second place to get it wrong.
+
+   THE SENTENCE IS THE SERVER'S. `d.message` is what the handler wrote; the fallback below is for a
+   deployment too old to carry the action at all, which answers a refusal rather than this. */
+on('forgot-pin', el => {
+  const who = (($('in-name') || {}).value || '').trim();
+  if (!who) { toast('Type your name, username or email first.'); return; }
+  send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
+    .then(d => toast((d && d.message)
+      || 'If there is an account with that name, a new PIN is on its way.'));
+});
+
 on('do-signin', el => {
   const name = ($('in-name') || {}).value || '';
   const pin = ($('in-pin') || {}).value || '';
@@ -1024,6 +1053,31 @@ function messageSheet(to, toId) {
 }
 
 on('msg-open', el => messageSheet(el.dataset.to, el.dataset.id));
+
+/* ---------- AND THE SAME ROUND TRIP WITH NO RECIPIENT TO NAME ------------------------------------
+   `send`, NOT `api`, FOR THE REASON WRITTEN OUT UNDER `msg-send`: a refusal that resolves is a
+   refusal a `.then` treats as a success, and this one would empty the box and say "Sent" about a
+   note that never left. `broadcast` can refuse four ways and every one of them is real.
+
+   THE COUNT COMES BACK FROM THE SERVER. How many people the roster holds, and which of them the
+   messaging policy allows the sender to reach, are the server's arithmetic — counting them here
+   would be a second copy of `mayMessage` on the phone, which is the fault `MESSAGING` records. */
+on('cast-send', el => {
+  const box = $('cast-text');
+  const text = ((box && box.value) || '').trim();
+  if (!text) { box && box.focus(); toast('Type the message first.'); return; }
+  if (!USER) { toast('Sign in first'); return; }
+  const alsoEmail = !!(($('cast-mail') || {}).checked);
+
+  send_({ action: 'broadcast', name: USER.name, personId: USER.personId,
+          body: text, alsoEmail }, { button: el, busy: 'Sending\u2026' })
+    .then(d => {
+      if (box) box.value = '';
+      const n = (d && d.sent) || 0;
+      toast('Sent to ' + n + ' ' + (n === 1 ? 'person' : 'people')
+        + ((d && d.mailed) ? ' \u00b7 ' + d.mailed + ' emailed' : ''));
+    });
+});
 
 on('msg-send', el => {
   /* ---------- FOUND BY WALKING UP, NOT BY ID -----------------------------------------------------

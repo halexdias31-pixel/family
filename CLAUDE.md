@@ -11534,3 +11534,327 @@ small circle. A wrong tap here is undone by the next one.
 run before it was 132**, and that drop is the only reason it was caught: a derived list that silently
 measures nothing looks exactly like a short one. 216 now, against the 132 of the hand-kept nine.
 
+
+## Seven reports in one message, and three of them were one column opening on the wrong page
+
+**Asked for as *"add email field in account settings. add forgot pin option. it will send an email
+to their email. why does george have a crossed out eye even if iclick it. then it says no such
+person. have a message sent to everyone from halex saying Hi wlecome! fix how the reels appear at
+the top of screen on my pc. im logged into halex, i dont see account settings."*** — plus, from the
+message before it, a crop of the booking card with one word on it: *"remove this text"*.
+
+### The column called You opened on somebody else
+
+**`PAGE_HOME.account` WAS `USER ? 1 : 0` AND ITS OWN COMMENT SAID "past the name card".** That was
+true when it was written: page 0 was a name, a role and a button. `meCard` draws your photograph,
+your credits, your e-mail and every tile you own — **`Your settings`, `Add your child`, `Your
+figure`, `Sign out`** — and this line skipped it, so the column opened on the first OTHER person in
+the roster.
+
+**THAT IS THREE OF THE SEVEN REPORTS AT ONCE.** *"I don't see account settings"* — the door to the
+Settings column is the `Your settings` tile and the tile is on the page this skipped. *"Why does
+George have a crossed-out eye"* — because George's card is what the column opened on, which is also
+why he has been the subject of four reports in a row. And the previous entry in this file records
+*"the account column OPENS on him (page 1)"* as though it were the feature working.
+
+**THE SAME SHAPE AS `PAGE_HOME.dm`, FOUR LINES DOWN, WHICH WAS DELETED FOR IT** — a rule outliving
+the thing it was written about. That one was caught when its head card was removed; this one was
+not, because the page it skips never disappeared. **It simply became the page you want.**
+
+### `setListed` looked the person up itself, and half the roster has no `full_name`
+
+**REPORTED AS *"why does george have a crossed out eye even if i click it. then it says no such
+person."*** The tile sent the DISPLAY name; the handler compared it against `full_name` **alone**.
+
+**`personDisplayName` IS `full_name` OR `first + last`.** So a row with the two halves filled in and
+the whole-name cell empty produces a name that lookup can never match — the switch refuses every
+press, the tile flips back, and the app says the person does not exist **while their card is on the
+screen above it**.
+
+**`findPerson` RESOLVES person_id, full_name, first + last, handle and username**, which is exactly
+the list `personDisplayName` draws from, and it is what every other handler in that file already
+uses. A second lookup written out inline is the second reader this repository records under
+`documents_()`, `factsNow_` and `childrenOf`, and this is what it cost. **The phone sends the id
+now as well** (`pid` off the item's own row), so the name is the fallback rather than the only
+route — and the success path updates the row by id too, because it was matching on the same name.
+
+### The email field was there, thirteen swipes down
+
+**REPORTED AS *"add email field in account settings"*, and `Contact: ['email','phone',
+'date_of_birth']` has been in `PROFILE_GROUPS` for as long as that object has existed.** What is
+also true is where: `settingsPages_` maps those keys straight onto pages in order, and `Contact` was
+**the thirteenth of twenty-three**, under About you, Where, Group size, Your rate, Where you are,
+Yours, What you teach, three qualifications, More qualifications and a week of seventy-seven hour
+boxes.
+
+**A FIELD NOBODY CAN FIND IS A FIELD THAT IS NOT THERE** — the sentence this file already writes
+about the calculator, about `topics`, about `company` and about the practical guides. It is second
+now, after About you, which is where `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it; this
+was the one map of the three that disagreed.
+
+### A forgotten PIN, and the only security it has is that it says nothing
+
+**ASKED FOR AS *"add forgot pin option. it will send an email to their email."*** One button under
+`Sign in`, taking the name already typed into the box above it — `forgotPin` accepts a name, a
+username **or an email address**, because "forgot" is the state in which you are not sure which one
+you signed up with.
+
+**IT SAYS THE SAME SENTENCE WHATEVER HAPPENS.** A reply that said *no such person* would turn the
+sign-in card into a machine for confirming who holds an account here, and half the people on that
+tab are children. So every branch returns one success and the difference between them is only
+whether an email leaves.
+
+**IT SETS A NEW PIN RATHER THAN SENDING A LINK.** A reset link needs a token column, an expiry, a
+second screen and a route that works when nobody is signed in; a temporary PIN needs none of that
+and lands where this app already trusts — `authSetPin_` writes the hash and clears the plaintext,
+exactly as a change from the settings column does. Six digits, re-drawn until they pass the same
+test `changePin` applies, because a reset that handed somebody `111111` would be the site issuing
+the PIN it tells people not to pick.
+
+**SESSIONS ARE NOT ENDED, AND THAT IS THE OPPOSITE OF `changePin`.** There the person asking has
+proved who they are, so ending every other session removes an intruder. **Here anybody may ask** —
+so ending sessions would let a stranger sign the owner out of their own phone by typing their name.
+
+**And it does not go through `notify`**, which looks the person up again by name: the row is already
+in hand, and a second lookup on a name that may have matched by EMAIL is a second chance to send
+somebody else's PIN to somebody else's inbox.
+
+### One message to everybody, which is `sendMessage` without the picker and without the gap
+
+**ASKED FOR AS *"have a message sent to everyone from halex saying Hi wlecome!"*** — and nothing
+here can press it, because every host but GitHub is blocked from this environment. So what is built
+is the control; the sending is one tap on the last page of the Messages column.
+
+**THE SAME TAB, THE SAME ROW SHAPE AND `mayMessage` ASKED PER RECIPIENT**, so a broadcast cannot put
+a note in front of somebody the rules say the sender may not reach — a policy written twice is the
+fault `MESSAGING` records. **The five-minute gap is skipped and only here**: it exists to stop one
+person writing to many people quickly, which is precisely what this is for, and is why it is
+admin-only instead.
+
+**`'M' + Date.now()` WOULD HAVE GIVEN EVERY ROW OF ONE BROADCAST THE SAME ID.** One loop is one
+millisecond, so forty recipients would share one `message_id` — and `readMessage` finds a message by
+that id. The index is on the end of it.
+
+**THE EMAIL IS OFF UNLESS ASKED FOR, and the tick says why.** `MailApp` has a daily quota and a
+roster can spend the whole of it in one press, which would take down the booking confirmations
+everything else depends on. The message is in the app either way.
+
+**A PAGE RATHER THAN A SHEET**, which is the wardrobe's decision one column along, and **appended
+rather than prepended**: `dmPages_` used to open with a head card carrying one control and
+`PAGE_HOME.dm` existed purely to swipe past it. Putting an admin card at the front would be that
+fault again, on the same column, three commits later.
+
+### The reel was a small box pinned to the top of a laptop screen
+
+**REPORTED AS *"fix how the reels appear at the top of screen on my pc."*** Measured at 1440x900,
+signed in: the card ran **y39 to y555 — 502px of card and 345px of nothing under it.**
+
+**THE PLACEMENT IS CORRECT AND THE CARD WAS SHORT.** Every column starts on that same line, which is
+what `COLUMNS OUT OF LINE` exists to keep true. What decided the height is `min(62svh, 30rem)` — and
+**30rem is 480px wherever the root is 16px, which is every screen wider than about 420**, so the rem
+cap rather than the viewport term decided it on every laptop.
+
+| measured, signed in | 320x568 | 390x844 | 1440x900 |
+|---|---|---|---|
+| the card, before | — | 480 | **502** |
+| the card, after | 475 | **628** | **657** |
+| the pane it sits in, against its own cap | 502 of 534 | 658 of 807 | **688 of 861** |
+
+Nothing is hidden below a pane's fold at any of the three, which is the number that must not be
+crossed — see OUT OF REACH.
+
+**IT IS NOT TALLER STILL, AND THE CLIPS ARE WHY.** `.feed-vid` is `object-fit: cover` and both clips
+in the column are **576x576 — square**. A 9:16 box is the right shape for a reel shot as one and
+would crop half the picture off these.
+
+### And the sentence under the subjects row came off
+
+**The note above it is the argument for it and is still true of a dropdown nobody has opened** — a
+closed multi-select showing a dash is one you pick a single thing from, everywhere else anybody has
+used one. It was also printed under the first field of the most crowded card in the app, and the
+owner has now read it, so it has done the one job it had. **`multi: true` is untouched**: choosing
+again still adds one and a ticked one still comes back off.
+
+## Fourteen things about the booking card, and four of them were one `[]`
+
+**Reported in one message with four screenshots**, and the list is worth keeping whole because the
+answers are not fourteen separate changes: four come from one line, three are deletions, and one is
+a gesture the control could never have made.
+
+### The four that were one `[]`
+
+**`options: () => isWaiting_() ? [] : […]` ON FOUR STEPS.** Reported as *"it just defualts to sasha
+motola and wont let change"*, *"it doesnt let choosing a subject even though im trying to start a
+NEW waitlist"*, *"it also doesnt let me select number of extra seats for waitlist session"*, and
+*"it also doesnt let me select which terms."*
+
+**AN EMPTY OPTION LIST IS HOW `stepLocked_` GREYS A ROW**, which is right and is not what those four
+wanted. So the questions were not merely unasked: they were drawn, greyed, holding **whatever the
+instant branch had left in them** — which is the whole of the Sasha Matola report. The argument
+written over each was about JOINING a list somebody else had opened, where the subject, the level
+and the seat are settled by whoever opened it. The row above them asks exactly that (`joining`), and
+`book-set` writes the class's answers in when you choose one. **The one case the old rule had
+nothing to say about is somebody opening a NEW list**, and that is the case being reported.
+
+**THREE OF THE FOUR ARE ASKED ON BOTH BRANCHES NOW.** The fourth — the tutor — genuinely cannot be
+answered on a list, because who teaches one is settled when it fills. It keeps its lock and gains
+the `fallback` hook the `client` step already uses: *"the row shows what the booking would be
+submitted as."*
+
+**AND THE FALLBACK ALONE WOULD NOT HAVE DONE IT.** `stepSelect_` reads `BOOKING[st.id] || fb`, so
+the stale name wins the `||` and `'No preference'` is never reached — two rules, with the older one
+silently in front. `bookToggle_`'s sibling in the `change` handler clears `BOOKING.tutor` when the
+kind changes, so the fallback is reached because nothing is in front of it rather than because it
+out-ranks something. **Proved by mutation in both directions.**
+
+### Picking several answers was three opens, three scrolls and three closes
+
+**Reported as *"for me to multiselect i have to click on field then click on subject then click on
+field then click on another subject. thats long."*** A `<select>` closes when you choose — that is
+what choosing MEANS to it — so the toggling worked perfectly and the GESTURE was the cost.
+
+**`<select multiple>` IS STILL REFUSED**, for the reason written over `stepSelect_`: on a phone it
+renders as a list box with its own scrollbar, which is the deleted panel in a worse shape. So it is
+a **sheet**, which is this app's own answer to anything longer than a row — `#sheet-body` scrolls
+where `.pane` does not, the practical guide and the quiz both take that route, and
+`check-surfaces.js` fails the build on the alternative (a new tab). Measured: every option is a
+**358×44** button, several tick without the surface closing, and the row behind fills in as they do.
+
+**`bookToggle_` IS LIFTED OUT OF THE `change` HANDLER** so the dropdown and the sheet are one
+toggle — the half that would have drifted is the re-sort into the offered order, which is what stops
+`Autumn 2, Autumn 1` reading back as a sentence about the wrong school year.
+
+**AND THE FIRST VERSION OF THE CHECK COULD NOT FAIL ON THE FAULT IT WAS WRITTEN FOR.** It called the
+two handlers and asserted the sheet stayed open — so putting the row back to a `<select>` left every
+assertion green, because the journey opened the sheet itself. It asserts the ROW carries
+`data-do="book-many"` now. Measured by mutation, which is the only way that was ever going to be
+known.
+
+### Three deletions, and the notes were right and still had to go
+
+| | |
+|---|---|
+| the `.bk-say` asides | *"theres text there AGAIN! fucking stop with that."* Four steps carried a `note` and every one was a correct sentence under the first fields of the app's most crowded card, explaining a control whose own row already reads back what was chosen |
+| `aside` | *"remove the 36 sessions at the bottom next to the price."* The count is the MULTIPLIER on the row that does the arithmetic, where it is doing a job somebody can follow |
+| `rc-terms` | *"remove the nothing is booked yet text."* The gold tile says `Ask for it`, the six stage ticks are all empty, and the first of them is `Requested` — the document already says it in its own shape |
+
+**THE `note` PROPERTIES WENT WITH THE RENDERING**, not just the rendering: four live functions drawn
+nowhere is the shape this file records under `resource_type` in `VOCAB` and the dead
+`kind === 'paper'` guard. **`why` STAYS AND IS NOT THE SAME THING** — a refusal says the answer on
+the row is wrong for the booking, nothing else on the card says so, and it is silent on every answer
+that is fine, which is why none of the four screenshots had one on it.
+
+### The total was the one figure not under the column that names it
+
+**ASKED FOR AS *"cost is in the Q column and the total cost is in the + column, styled like
+everything else for maximum uniformity."*** It was OUTSIDE `.bk` with three columns of its own, so
+`COST` was the only label not under `Q` and the figure the whole card adds up to was the only one
+not under `+`. Inside `.bk` it subgrids like every other row and the five tracks place it with
+nothing to keep in step. Measured at 390: label `[374, 445]` under `Q` at `[374, 445]`, figure
+`[637, 687]` under `+` at `[637, 687]`.
+
+**AND THE FIGURE STOPPED BEING BIGGER**, which answers the complaint and a measurement at once:
+`1.05rem` at weight 700 in a `7.5ch` track is the overflow this stylesheet already records at 18px
+on a receipt and 28 in the basket.
+
+**`.bk-row.rc-total`'s THREE COLUMNS ARE GONE FOR THE THIRD TIME.** They were declared at its own
+block and lost to `.bk-row` sixty lines later; restated where they won; and now deleted, because a
+row inside `.bk` has no template of its own to win or lose with — which is the one arrangement where
+that fault cannot come back.
+
+### Every date, which is the second time round and the owner's call
+
+**ASKED FOR AS *"also look at dates, it should outline every date there."*** This row was a span and
+a count, and the note that made it one is still true: every date comma-separated wraps to six lines
+on the card and is truncated mid-date on the shared picture. **What it got wrong is whose question
+it was.** "Nobody reads a weekly booking date by date" is an assumption about the reader, and the
+reader has said otherwise — a family checking against a diary wants the days, and a span cannot say
+which Mondays are missed for half term. Both documents changed together, because *a job's receipt
+and the form it came from must not disagree about how a run of dates is written*.
+
+### `Shared by` on both branches, and `only:` had to become a set
+
+**ASKED FOR AS *"shared by 4 families is a new line i think!? there should be no exclusive field
+lines to one then the other. add that line to instant session too."*** It was pushed by the waiting
+branch and by nothing else, so a family splitting an instant session three ways had the price
+divided by three and nothing anywhere saying by what. `L.splitShares` is the pricing's own
+denominator rather than a second reading of `BOOKING.split`.
+
+**DROPPING THE FLAG ALTOGETHER PUT IT ON THE RECEIPT TOO**, where `Sharing` two rows up already
+answers the question in the words that document needs — the addresses somebody was invited by name,
+or `Open — 3 seats free` on a list. Two rows for one fact, the second a permanent dash, and **13px
+past the pane at 768 and 1280**, which `check/ui.js` named on its first run. So `only:` is a
+comma-separated set read by one `onlyHas_`, and the row is `only: 'book, wait'`. A `not:` beside
+`only:` would have been a second way of saying one thing.
+
+**`Per session` IS STILL WAITING-ONLY AND THAT IS NOT THE SAME EXCLUSIVITY.** On a list nothing else
+says how long a session is — there is no day yet, so the week is blocks. On an instant booking the
+When rows already print `Monday 13:00–15:00`, on the row that decides it.
+
+### `Extra seats`, where the stored number and the drawn number are different units
+
+**ASKED FOR AS *"change this to be extra seats, then options are 0,1,2,3."*** The question already
+said "How many extra seats?" and then offered `Just mine`, `One more seat`, `2 more seats` — three
+ways of counting one thing, none of them the bare number asked for.
+
+**`BOOKING.n` STAYS THE TOTAL**, which is the half nobody sees and the half that matters:
+`seatLimits`, `spaceFor`, `priceFrom` and the backend all read it as *how many chairs*, so storing
+the extras would be one fact in two units. `label_` is the whole change. **`String(…)`, not the
+number** — `stepRows_` does `String(text || '—')` and `0` is falsy, so a `label_` returning zero
+would print a dash over an answer somebody gave.
+
+**AND THE RECEIPT HAD TO FOLLOW.** `jobRows` pushes `Students` with the TOTAL, aliased onto the same
+spine row — so without the subtraction the two documents would print different numbers under one
+label, which is the whole fault the spine was built to stop. `SPINE_ALIAS` moved with the step's
+`short`; left pointing at `Seats` it would have named a row that no longer exists.
+
+### `Applied for`, and a sixth stage had to be paid for out of the ones already there
+
+**ASKED FOR AS *"its not really applicable for sessions booked with specific tutors, but it is for
+no preference tutors. however it will just be autimatically ticked with requested."*** So it is
+`is: j => true` and the chain does the rest: a booking naming a tutor is an application to that
+tutor and there is no second moment to wait for; a no-preference booking is put out to whoever is
+free, which also happens at the asking. `evAt_(j, 'Apply', 1)` is read first and **nothing writes
+one** — said here rather than left to be discovered, because the fallback is the behaviour and the
+first branch is the hook.
+
+**`check/ui.js` NAMED IT THE SAME AFTERNOON**: `.pane holding rc hides 13px below its own fold`, on
+the session receipt and the basket. **The row that made the card too tall is the row that paid for
+it**: `.bk-row:has(.bk-tick)` loses its `.1rem 0`, because the argument already written over its
+line-height is that a column of ticks is not twelve lines of prose — it is one block, scanned down,
+and what separates its rows is the boxes rather than air. Six rows × 6.2px is 37px, three times what
+the new row costs, so the block is shorter with the extra stage than it was with five.
+
+**AND TWO CHECKS WERE COUNTING TO FIVE.** `check-flow.js` asserted `JOB_STAGES.length !== 5` in one
+place and `STAGES.length !== 5` in another — the second one line under a list it had just derived
+from `JOB_STAGES`. Both are the "all 18 checks pass" fault; what a guard like that is for is *can
+this check see its subject*, which is a non-empty list of rows with predicates on them. And the
+chain test **skipped `Requested` by name**, so a row behaving exactly as designed would have failed
+it: it finds the first unticked row and asserts nothing after it ticks, which is the property itself.
+
+### The split box took anything at all
+
+**ASKED FOR AS *"for split field, have something which verifies that its an email format that has
+been entered."*** Every other thing that list feeds — the price per family, the roster, the
+invitation the backend sends — treats an entry as a person, so `dan@` is a family who is charged a
+share and never hears about it.
+
+**A REFUSAL, NOT A REWRITE.** `why` is the one mechanism this form has for saying an answer is
+wrong, it is drawn under the row it is about, and it leaves what was typed alone — a box that
+silently drops what somebody entered is the fault `nothingHere` records. **The shape is the narrow
+one**: something, an `@`, something with a dot, no spaces, which is what a browser's own
+`type="email"` asks. Anything stricter refuses real addresses, and a right answer marked wrong is
+the worse of the two failures.
+
+### And two things a screenshot caught that nothing else could
+
+**`.many-opt { text-align: left }` DID NOTHING.** `.btn` is `display: flex; justify-content: center`,
+so the label is an anonymous flex item centred by the CONTAINER — there is no line box for
+`text-align` to move. **The `.price.faint` shape, and no check here can see it**: nothing overrides
+the declaration, so `check/cascade.js` and `check-css.js` are both correctly silent.
+`justify-content: flex-start`, because a list is scanned down its left edge.
+
+**AND `Shared by · 1 family` READ AS A FAULT.** The receipt's own `Sharing` row already says
+`Just you` for a session nobody is splitting, four lines away on the same document. **Eighteenth
+time this file writes that a screenshot is the last word on something drawn** — counted off the
+entries above rather than remembered, because this tally has been wrong in its own warning twice.

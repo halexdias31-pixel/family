@@ -254,6 +254,10 @@ function boot(opts) {
       'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
       'stageRows: typeof stageRows_ === "function" ? stageRows_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
+      /* THE CONTROL A ROW CARRIES, so the multi-sheet journey can ask whether the row reads back
+         what has been ticked — the button is the only label on it, which is the half of that
+         feature a sheet full of ✓s cannot show. */
+      'control: typeof stepControl_ === "function" ? stepControl_ : null,' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -786,29 +790,170 @@ check('an unlisted tutor is offered to an admin, marked, with its value untouche
   return bad;
 });
 
-check('the booking form asks a session everything and a class almost nothing', async () => {
+check('a waiting list is asked everything an instant class is, bar the four it cannot answer', async () => {
+  /* ---------- THE WAITING BRANCH USED TO BE ASKED ALMOST NOTHING, AND THREE OF THOSE WERE WRONG ---
+     REPORTED AS *"it doesnt let choosing a subject even though im trying to start a NEW waitlist",
+     "it also doesnt let me select number of extra seats for waitlist session", "it also doesnt let
+     me select which terms."* All three steps returned `[]` when `isWaiting_()`, and an empty option
+     list is how `stepLocked_` GREYS a row — so the questions were not merely unasked, they were
+     drawn, greyed, holding whatever the instant branch had left in them.
+
+     THIS CHECK ASSERTED THAT AS THE DESIGN. It is the same journey pointed the other way now: four
+     steps genuinely cannot be answered on a list, and everything else must be.
+
+     THE FOUR, AND EACH FOR ITS OWN REASON. `tutor` — who teaches a list is settled when it fills.
+     `slots` — an hour grid needs a day, and there is no day until it fills; `avail` asks the same
+     question in blocks instead. `split` — the other seats are for whoever joins, so there is nobody
+     to invite. `kids` — seeded here with no children on the account, so it is off both lists and is
+     not what this journey is about. */
   const { w } = boot();
   await wait(300);
   if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
+  /* THE TWO KINDS READ OFF THE STEP, not typed here — the sister journey below records what two
+     invented strings cost when the labels changed underneath them. */
+  const kinds = (w.__t.STEPS.find(s => s.id === 'how') || { options: () => [] }).options();
+  const waitLabel = kinds.filter(k => /wait/i.test(k))[0];
+  const nowLabel = kinds.filter(k => !/wait/i.test(k))[0];
+  if (!waitLabel || !nowLabel) return ['the Kind question does not offer both kinds — not a pass'];
   const askedFor = how => {
-    B.how = how; B.loc = 'Colliers Wood Library';
+    B.how = how; B.loc = 'Colliers Wood Library'; B.tutor = '';
     return w.__t.STEPS.filter(s => s.id !== 'how')
       .filter(s => { try { return s.options().filter(Boolean).length > 0; } catch (e) { return false; } })
       .map(s => s.id);
   };
   const bad = [];
-  const session = askedFor('A session of your own');
-  const klass = askedFor('A shared class — join the waiting list');
-  ['subjects', 'level', 'loc', 'slots', 'interval'].forEach(id => {
+  const session = askedFor(nowLabel);
+  const klass = askedFor(waitLabel);
+  ['subjects', 'level', 'loc', 'slots', 'interval', 'n'].forEach(id => {
     if (!session.includes(id)) bad.push('a session is not asked "' + id + '"');
   });
-  ['tutor', 'n', 'slots', 'interval', 'subjects', 'split'].forEach(id => {
-    if (klass.includes(id)) bad.push('a class is asked "' + id + '", which it cannot answer');
+  ['tutor', 'slots', 'split'].forEach(id => {
+    if (klass.includes(id)) bad.push('a list is asked "' + id + '", which it cannot answer');
   });
-  if (!klass.includes('loc')) bad.push('a class is not asked which venue');
-  if (!klass.includes('level')) bad.push('a class is not asked which level');
+  ['subjects', 'n', 'interval', 'loc', 'level'].forEach(id => {
+    if (!klass.includes(id)) bad.push('a list is not asked "' + id + '", which it can answer');
+  });
+
+  /* ---------- AND THE ONE LOCKED ROW SAYS WHAT IT WILL BE SUBMITTED AS ---------------------------
+     REPORTED AS *"it just defualts to sasha motola and wont let change. it should defualt to no
+     preference and not be able to change."* Two halves: the row must stay locked, and what it shows
+     must be `No preference` rather than whatever the instant branch left behind.
+
+     SEEDED THROUGH THE HANDLER RATHER THAN BY WRITING `BOOKING.tutor`, because clearing it is the
+     handler's job and asserting the fallback with the cell already empty would prove nothing. */
+  /* THROUGH THE REAL `change` LISTENER, because `book-set` is not an `on()` action — a select is
+     answered by choosing, which fires `change` and never a click, so it is bound on the document
+     rather than in `ACTIONS`. A harness that wrote `BOOKING.tutor = ''` itself would be asserting
+     its own line. */
+  B.how = nowLabel; B.tutor = 'Sasha Matola';
+  const sel = w.document.createElement('select');
+  sel.setAttribute('data-do', 'book-set');
+  sel.setAttribute('data-step', 'how');
+  const opt = w.document.createElement('option');
+  opt.value = waitLabel; opt.textContent = waitLabel;
+  sel.appendChild(opt); sel.value = waitLabel;
+  w.document.body.appendChild(sel);
+  try { sel.dispatchEvent(new w.Event('change', { bubbles: true })); }
+  catch (e) { bad.push('choosing the waiting kind threw: ' + e.message); }
+  sel.remove();
+  if (!/wait/i.test(String(B.how || ''))) {
+    bad.push('choosing ' + JSON.stringify(waitLabel) + ' did not set the kind — not a pass');
+  }
+  const tutor = w.__t.STEPS.find(s => s.id === 'tutor');
+  if (!tutor) bad.push('there is no tutor step');
+  else {
+    if ((tutor.options() || []).filter(Boolean).length) {
+      bad.push('a waiting list offers a tutor to choose, and who teaches one is settled when it fills');
+    }
+    const fb = tutor.fallback ? String(tutor.fallback() || '') : '';
+    if (fb !== 'No preference') {
+      bad.push('a waiting list\'s tutor row falls back to ' + JSON.stringify(fb) + ', not "No preference"');
+    }
+    if (B.tutor) {
+      bad.push('switching to a waiting list keeps the tutor ' + JSON.stringify(B.tutor)
+               + ', so the locked row prints it instead of the fallback');
+    }
+  }
+  return bad;
+});
+
+check('picking several answers is one open of a sheet, not one per answer', async () => {
+  /* ---------- FOUR TAPS FOR TWO SUBJECTS, AND NOTHING COULD SEE IT ------------------------------
+     REPORTED AS *"for me to multiselect i have to click on field then click on subject then click
+     on field then click on another subject. thats long."* A `<select>` closes when you choose —
+     that is what choosing means to it — so a question taking three answers was three opens, three
+     scrolls and three closes. The toggling always worked; the gesture was the cost.
+
+     `check/ui.js` CANNOT ASK THIS. It measures whether a control can be read and hit, and a select
+     that closes after every pick measures perfectly. `check/press.js` presses each action once and
+     asks whether anything changed, which is true of both shapes. What is worth asserting is the one
+     thing that differs: the surface is still open after a tick, so the next tick is one press away.
+
+     THROUGH THE APP'S OWN HANDLERS, so the toggle, the sheet and the re-render are the ones that
+     ship — a harness rewriting `BOOKING.interval` itself would prove nothing about either. */
+  const { w } = boot();
+  await wait(300);
+  const A = w.__t.ACTIONS || {};
+  if (!A['book-many'] || !A['book-many-pick']) {
+    return ['book-many / book-many-pick are not registered — cannot check the multi sheet'];
+  }
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const B = w.__t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  const step = (w.__t.STEPS || []).filter(x => x.multi && !x.grid)
+    .filter(x => { try { return x.options().filter(Boolean).length >= 2; } catch (e) { return false; } })[0];
+  if (!step) return ['no multiple-answer question offers two options — cannot check the multi sheet'];
+  const opts = step.options().filter(Boolean);
+  const bad = [];
+
+  A['book-many']({ dataset: { step: step.id } });
+  const body = w.document.getElementById('sheet-body');
+  const open = () => !w.document.getElementById('sheet').classList.contains('hidden');
+  if (!open()) bad.push('pressing the "' + step.id + '" row does not open a sheet');
+  const drawn = body.querySelectorAll('.many-opt').length;
+  if (drawn !== opts.length) {
+    bad.push('the sheet draws ' + drawn + ' options for a question with ' + opts.length);
+  }
+
+  /* TWO TICKS WITHOUT REOPENING — which is the whole of what was asked for. */
+  A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
+  if (!open()) bad.push('ticking an answer closes the sheet, so the next one is another open');
+  A['book-many-pick']({ dataset: { step: step.id, val: opts[1] } });
+  if (!open()) bad.push('ticking a second answer closes the sheet');
+  if ((B[step.id] || []).length !== 2) {
+    bad.push('two ticks left ' + JSON.stringify(B[step.id]) + ' rather than two answers');
+  }
+  if (body.querySelectorAll('.many-opt.on').length !== 2) {
+    bad.push('the sheet shows ' + body.querySelectorAll('.many-opt.on').length
+             + ' options marked, not the two that are chosen');
+  }
+
+  /* AND TICKING AGAIN TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
+  A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
+  if ((B[step.id] || []).length !== 1) {
+    bad.push('ticking a chosen answer again does not take it off: ' + JSON.stringify(B[step.id]));
+  }
+
+  /* ---------- AND THE ROW IS WHAT OPENS IT, WHICH THE REST OF THIS CANNOT SAY -------------------
+     THE FIRST VERSION CALLED THE HANDLERS AND NOTHING ELSE, so putting the row back to a `<select>`
+     left every assertion above green: the sheet still opened, because the journey opened it. A
+     check that cannot fail on the fault it was written for is the shape this file has deleted one
+     of — measured by mutation, which is the only way to know.
+     TWO THINGS OF THE CONTROL: it carries the action, and it reads back what has been ticked —
+     the button is the only label on the row, so a sheet full of ✓s cannot show the second. */
+  const row = String(w.__t.control ? w.__t.control(step) : '');
+  if (!w.__t.control) bad.push('stepControl_ is not exported — the row itself cannot be checked');
+  else {
+    if (row.indexOf('data-do="book-many"') === -1) {
+      bad.push('the "' + step.id + '" row does not open the sheet — it draws '
+               + JSON.stringify(row.slice(0, 80)));
+    }
+    if (row.indexOf(opts[1]) === -1) {
+      bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
+    }
+  }
   return bad;
 });
 
@@ -976,8 +1121,14 @@ check('each stage tick takes the date it actually happened on', async () => {
   await wait(300);
   const t = w.__t;
   if (!t || typeof t.stageRows !== 'function') return ['stageRows_ is not exported, so the dates cannot be checked — not a pass'];
-  if (!Array.isArray(t.JOB_STAGES) || t.JOB_STAGES.length !== 5) {
-    return ['JOB_STAGES is not the five rows the receipt is built from — not a pass'];
+  /* REACHED, NOT COUNTED. This said `length !== 5` and would have gone stale the first time a stage
+     was added — which it did, when `Applied for` went in between `Requested` and `Accepted`. What
+     the guard is for is *can this check see its subject*, and the honest test of that is that there
+     is a list of stages with rows and predicates on them. The rows themselves are asserted below by
+     name and by the chain. */
+  if (!Array.isArray(t.JOB_STAGES) || !t.JOB_STAGES.length
+      || t.JOB_STAGES.some(x => !x || !x.row || typeof x.is !== 'function')) {
+    return ['JOB_STAGES is not the list of rows the receipt is built from — not a pass'];
   }
   const bad = [];
   const log = [
@@ -996,7 +1147,12 @@ check('each stage tick takes the date it actually happened on', async () => {
   const got = t.stageRows(job);
   const by = {};
   got.forEach(r => { by[r.k] = r; });
-  const want = { Requested: '21/09/26', Accepted: '25/09/26', Paid: '26/09/26',
+  /* `Applied for` TAKES THE ASKING'S OWN DATE on a booking with no `Apply` event, which is every
+     booking today — see `JOB_STAGES`. Asserted rather than assumed, because "ticked with Requested"
+     is the whole of what the owner asked for and a date reaching for a nearby event instead would
+     look identical on the card. */
+  const want = { Requested: '21/09/26', 'Applied for': '21/09/26',
+                 Accepted: '25/09/26', Paid: '26/09/26',
                  Started: '01/10/25', Completed: '05/11/25' };
   Object.keys(want).forEach(k => {
     const r = by[k];
@@ -1017,11 +1173,18 @@ check('each stage tick takes the date it actually happened on', async () => {
   /* AND A STAGE BELOW AN EMPTY BOX CARRIES NOTHING, tick or date. `Accepted` is false here because
      one seat is still Waiting, so `Paid` must stay blank even though a `Confirm` sits in the log
      and both session dates are long past. */
+  /* ---------- ASKED AS THE CHAIN RATHER THAN AS A LIST OF ROW NAMES -----------------------------
+     THIS SKIPPED `Requested` BY NAME and reported every other row as broken, which was right while
+     `Requested` was the only stage above `Accepted`. `Applied for` is above it too now, so a check
+     naming rows would have failed on a row behaving exactly as designed.
+     THE PROPERTY IS WHAT IS TESTED: find the first unticked row, and nothing after it may tick or
+     carry a date. That is the chain itself, and it needs no list here to go stale. */
   const part = t.stageRows(Object.assign({}, job, {
     slots: [{ n: 1, client: 'A', status: 'Booked' }, { n: 2, client: 'B', status: 'Waiting' }] }));
-  part.forEach(r => {
-    if (r.k === 'Requested') return;
-    if (r.tick) bad.push('"' + r.k + '" ticks below an unticked Accepted, so the chain is broken');
+  const broke = part.findIndex(r => !r.tick);
+  if (broke === -1) bad.push('one seat is still Waiting and every stage ticks anyway');
+  else part.slice(broke).forEach(r => {
+    if (r.tick) bad.push('"' + r.k + '" ticks below the unticked "' + part[broke].k + '", so the chain is broken');
     if (r.v) bad.push('"' + r.k + '" carries the date ' + JSON.stringify(r.v) + ' with no tick');
   });
 
@@ -1098,11 +1261,11 @@ check('a booking you just asked for is still on the screen afterwards', async ()
      THE STAGE ROWS ARE PINNED TO THE END OF THE SPINE so the document reads the same from the first
      question to the last payment — which is the invariant, and it is untouched by what those rows
      look like. On a form nobody has sent they have nothing to report: `Status` prints `—` like
-     every other unanswered row, and the five stages print an EMPTY TICK BOX, which is the same
+     every other unanswered row, and the stages print an EMPTY TICK BOX, which is the same
      "nothing yet" with the difference that it also says what will be reported.
 
      `Stage` AND `Asked for` WERE TWO OF THE THREE THIS ASKED ABOUT. Both are gone — see
-     `JOB_STAGES` in book.js: the sentence is what the five ticks say in words and the date is the
+     `JOB_STAGES` in book.js: the sentence is what the ticks say in words and the date is the
      `Requested` tick's own value. So the rule is the same rule against the rows that exist.
 
      READ OFF `bk-k`/`bk-v`, WHICH IS THE MARKUP THE FORM ACTUALLY USES. The first version of this
@@ -1125,9 +1288,11 @@ check('a booking you just asked for is still on the screen afterwards', async ()
      written out in this file would be a second copy of `JOB_STAGES` to keep in step. */
   const STAGES = (w.__t.JOB_STAGES || []).map(s => s.row);
   const dashes = (html, where) => {
-    if (STAGES.length !== 5) {
-      bad.push(`JOB_STAGES has ${STAGES.length} rows, not the five the receipt is built from`);
-    }
+    /* READ OFF THE APP, SO A STAGE ADDED NEEDS NOTHING HERE. This asserted `length !== 5` beside a
+       list it had just derived from `JOB_STAGES` — a number in a sentence nobody re-reads, sitting
+       one line under the thing that made the number unnecessary. What is worth refusing is an
+       EMPTY list, which is this check unable to reach its subject. */
+    if (!STAGES.length) bad.push('JOB_STAGES has no rows, so the stage ticks cannot be checked');
     const v = cellOf(html, 'Status');
     if (v === null) bad.push(`the ${where} booking form has no "Status" row`);
     else if (v !== '—') {

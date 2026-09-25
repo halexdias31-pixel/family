@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-25-b-library-cards";
+const DOGET_VERSION = "2026-09-25-c-forgot-pin";
 
 
 function doGet(e) {

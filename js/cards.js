@@ -475,14 +475,20 @@ on('set-listed', el => {
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
   api({ action: 'setListed',
-    adminName: USER.name, name: USER.name, who: el.dataset.who, on })
+    adminName: USER.name, name: USER.name,
+    who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       toast(on ? 'Listed' : 'Hidden from clients');
       /* `load()` WAS HERE — the whole payload fetched again to change one word. Nothing else on the
          screen depends on whether one tutor is listed, so nothing else needs redrawing. The row's
          own `listed` is updated so a later repaint from anything else agrees with the tile. */
-      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(el.dataset.who));
+      /* BY ID WHERE THERE IS ONE, for the reason the handler on the other end now records: a
+         display name is derived from up to two cells and matching it is the fallback, not the
+         route. */
+      const id = el.dataset.pid || '';
+      const t = (DATA.tutors || []).find(x => (id && String(x.personId) === id)
+                                           || norm(x.title) === norm(el.dataset.who));
       if (t) t.listed = on;
     })
     .catch(err => {
