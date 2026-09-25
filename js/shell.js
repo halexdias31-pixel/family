@@ -1449,7 +1449,22 @@ const PAGE_HOME = {
      skips past the first festive card or the newest post instead, which is a page somebody wants
      to see. Spotlight still wins when there is one. */
   feed:    () => 0,
-  account: () => (USER ? 1 : 0),    // past the name card; signed out there is only the sign-in pane
+  /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE ---------------------------------
+     REPORTED AS *"im logged into halex, i dont see account settings."* It was there: the door to
+     the Settings column is the `Your settings` tile, and that tile is on YOUR OWN card, which is
+     page 0 of this column. This line opened the column on page 1.
+
+     THE ENTRY WAS RIGHT WHEN IT WAS WRITTEN AND STOPPED BEING RIGHT. Its own comment says "past
+     the name card", and page 0 WAS a name card — a name, a role and a button. `meCard` draws your
+     photograph, your credits, your e-mail, and every tile you own: your settings, add your child,
+     your figure, sign out. Skipping it opens the column called You on the first OTHER person in
+     the roster, which is exactly what the screenshot showed — George's card, with no way from
+     there to anything of your own.
+
+     THE SAME SHAPE AS `PAGE_HOME.dm` FOUR LINES DOWN, which was deleted for it: a rule outliving
+     the thing it was written about. That one was caught when its head card went; this one was not,
+     because the page it skips never disappeared — it simply became the page you want. */
+  account: () => 0,
   /* `dm` WAS HERE, AT 1, TO SKIP THE HEAD CARD — and the head card is gone, so page 0 is the newest
      conversation by construction (`messageThreads_` sorts most-recent-first). An entry left behind
      would open the column on the SECOND conversation for ever: a rule outliving the thing it was

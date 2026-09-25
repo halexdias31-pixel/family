@@ -1057,10 +1057,16 @@ const BOOK_STEPS = [
      IT SPEAKS WHILE THERE IS SOMETHING TO SAY. Once two are chosen the row says so itself and the
      line would be explaining a thing already on the screen — the fault this file records where the
      roster's name printed an `<h3>` above every widget's own heading. */
+  /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN ----------------------------------------------
+     REPORTED WITH A SCREENSHOT OF THE CARD AND ONE WORD: "remove this text". The note above is the
+     argument for it and it is still true of a dropdown nobody has opened — and it was printed on
+     the most crowded card in the app, under the first field, where the row above it already reads
+     back whatever has been picked. The owner has now read it, so it has done the one job it had.
+
+     `multi: true` IS UNTOUCHED, which is the half that matters: choosing again still adds one and a
+     ticked one still comes back off. What is gone is the caption saying so. */
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
-    options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name),
-    note: () => (BOOKING.subjects || []).length > 1 ? ''
-      : 'Pick as many as apply \u2014 choosing again adds one, and a ticked one comes back off.' },
+    options: () => isWaiting_() ? [] : (subjectRows() || []).map(x => x.name) },
 
   { id: 'level', label: 'What level?', short: 'Level',
     options: () => ((DATA.dropdowns || {}).levels || []) },

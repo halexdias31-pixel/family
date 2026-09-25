@@ -9170,9 +9170,28 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    enough that the pane does not push the column past it.
 ================================================================================================== */
 .reel {
+  /* ---------- AND ON A LAPTOP IT WAS A SMALL BOX PINNED TO THE TOP OF THE SCREEN ---------------
+     REPORTED AS *"fix how the reels appear at the top of screen on my pc."* Measured at 1440x900,
+     signed in: the column's card began at y39 and ended at y555, so a 900px screen was showing a
+     502px card and 345px of nothing under it. The card is placed correctly — every column starts
+     on that same line, which is what `COLUMNS OUT OF LINE` exists to keep true — so what was wrong
+     is that the CARD was short, and it was short because of the number below.
+
+     `30rem` IS 480px WHEREVER THE ROOT IS 16px, which is every screen wider than about 420. So the
+     rem cap, not the viewport term, decided the height on every laptop — and a column whose whole
+     content is a video showed a third of the screen and stopped.
+
+     BOTH TERMS MOVED AND THE `min()` IS THE POINT. 78svh fills a tall window; 40rem stops the box
+     growing past a shape a reel is still a reel in. Measured after: 640px at 900 tall, 592 at 844,
+     443 at 568 — bigger on a phone too, and inside `.pane`'s own cap at all three, which is the
+     number that must not be crossed (see OUT OF REACH).
+
+     IT IS NOT TALLER STILL, AND THE CLIPS ARE WHY. `.feed-vid` is `object-fit: cover`, and both
+     clips in the column are 576x576 — square. A 9:16 box would be the right shape for a reel shot
+     as one and would crop half the picture off these. */
   /* `svh` RATHER THAN `vh` so the mobile browser's collapsing address bar does not change the
      card's height mid-flick and land the pager between two reels. */
-  height: min(62svh, 30rem);
+  height: min(78svh, 40rem);
   position: relative;
 }
 

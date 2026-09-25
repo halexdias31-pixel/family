@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-25-b-library-cards";
+const BACKEND_VERSION = "2026-09-25-c-forgot-pin";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1828,6 +1828,17 @@ const AVATAR_ITEMS = [
 const PROFILE_GROUPS = {
   'About you':   ['first_name','last_name','headline','photo','video','years_experience',
                   'adjective_1','adjective_2','adjective_3'],
+  /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN ----
+     REPORTED AS *"add email field in account settings"*, and the field was already here — at the
+     BOTTOM. `settingsPages_` maps these keys straight onto pages, so `Contact` was the thirteenth
+     of twenty-three swipes down a column whose first page is About you. A field nobody can find is
+     a field that is not there, which is the sentence this repository writes about the calculator,
+     about `topics` and about the practical guides.
+
+     SECOND RATHER THAN FIRST, because About you is the page somebody arrives on and a name is what
+     they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
+     the map that disagreed with them. */
+  'Contact':     ['email','phone','date_of_birth'],
   'Where':       ['borough','city','town','travel_km'],
   'Group size':  ['max_students','min_students'],
   // One number: what an hour with this tutor costs the client. Their own pay is the minimum wage
@@ -1847,7 +1858,6 @@ const PROFILE_GROUPS = {
   'Qualification 3': ['qual_3','qual_3_level','qual_3_grade'],
   'More qualifications': ['extra_quals'],
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
-  'Contact':     ['email','phone','date_of_birth'],
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library
      card and one set of digits they cannot remember. */
@@ -2427,6 +2437,17 @@ const MIGRATIONS = [
 const ACTION_ACCESS = {
   // Open by necessity — you cannot be signed in to sign in.
   register: 'anyone', verifyEmail: 'anyone', verifyLogin: 'anyone',
+  /* ---------- A FORGOTTEN PIN IS ASKED FOR BY SOMEBODY WHO CANNOT SIGN IN --------------------
+     SO IT CANNOT BE `self`, which is the whole point of it. What stops it being a way in is that
+     it never ANSWERS anything: the reply is the same sentence whether the account exists, has no
+     address on file, or was never there at all, and the new PIN goes to the address in the sheet
+     and nowhere else. Somebody who does not hold that mailbox learns nothing and gains nothing —
+     except that they have just locked the real owner out until they read their email, which is
+     the one real cost and is why `authEndSession_` is NOT called here. */
+  forgotPin: 'anyone',
+  /* ONE MESSAGE TO EVERYBODY, WHICH IS A DECISION ABOUT OTHER PEOPLE'S INBOXES. Admin, for the
+     same reason `closeJob` is. */
+  broadcast: 'admin',
   /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
      signed in to sign in — and the handler proves identity by asking Google rather than by
      believing the request, which is the difference between this and the entry removed below. */

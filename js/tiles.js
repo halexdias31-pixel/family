@@ -358,7 +358,9 @@ function tutorTiles_(x) {
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',
               note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
-              data: { who: x.key } }) : ''}`;
+              /* THE ID AS WELL AS THE NAME. `x.key` is a display name, and naming a person by
+                 one is the fault `findPerson` exists to fall back from rather than rely on. */
+              data: { who: x.key, pid: (x.row && x.row.personId) || '' } }) : ''}`;
 }
 
 
