@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-23-unlisted-tutor";
+  --css-version: "2026-09-25-week-multiplier";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2765,7 +2765,18 @@ button.text-drop { color: var(--bad); }
    a column of eight gold slabs is the loudest thing in the app on a list where several are normally
    chosen. Full ink and a ✓ says the same thing at reading volume — and `aria-pressed` says it to a
    screen reader, which no colour can. */
-.many-list { display: flex; flex-direction: column; gap: .4rem; }
+/* ---------- THE PICKER IS A PAGE OF THE BOOKING COLUMN, NOT A SHEET OVER IT -----------------------
+   `.many-list` WAS A COLUMN OF FULL-WIDTH BUTTONS IN A SHEET, and the sheet went on *"no pop up
+   menus"*. What replaces it draws on the page the form was on, so it has a pane's height rather
+   than a scroller's — and the arithmetic is why this is a grid: twelve 44px buttons stacked is
+   528px against a pane that caps at **534px at 320×568**, before the heading and the Done. Two
+   columns is six rows and 276px, and the card measures **432.7px at 320** with twelve options on
+   it — a hundred pixels inside the pane.
+
+   `minmax(7.5rem, 1fr)` RATHER THAN `repeat(2, 1fr)`, so a wider screen gets more columns and the
+   number is never one somebody has to keep in step with a width. */
+.pick-list { display: grid; gap: .4rem; margin: .6rem 0;
+             grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); }
 /* ---------- `text-align: left` DID NOTHING, WHICH A SCREENSHOT IS WHAT SAID ---------------------
    `.btn` IS `display: flex; justify-content: center`, so the label is an anonymous flex item sized
    to its own content and centred by the CONTAINER — there is no line box for `text-align` to move.
@@ -2774,8 +2785,8 @@ button.text-drop { color: var(--bad); }
    both correctly silent.
    LEFT, BECAUSE A LIST IS SCANNED DOWN ITS LEFT EDGE. Centred labels of different lengths put every
    word in a different place, and the ✓ that marks a chosen one moves with them. */
-.many-opt { justify-content: flex-start; }
-.many-opt.on { color: var(--ink); border-color: var(--gold); }
+.pick-opt { justify-content: flex-start; text-align: left; min-height: 44px; }
+.pick-opt.on { color: var(--ink); border-color: var(--gold); }
 /* ---------- THE PICKER IS NOT THE CONTROL, AND IT WAS INHERITING BOTH THE WRONG COLOURS -----------
    REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
    or something, unless i hover over it."* Measured: every `<option>` computed to
@@ -3030,26 +3041,35 @@ button.text-drop { color: var(--bad); }
    drawing one control at two widths, which is what somebody swiping between them sees. One
    declaration, both weeks; `blk` goes on carrying the height, which is the difference that is
    still real. */
-/* ---------- AND THE WEEK IS THE ONE ANSWER THAT CANNOT LIVE IN THE ANSWER COLUMN ALONE ------------
-   EVERY OTHER ROW'S ANSWER IS COLUMN A AND THIS ONE SPANS TWO, which is an exception and is stated
-   as one rather than left to be rediscovered. The arithmetic, measured on the card: the answer
-   track is **56.3 / 75.3 / 80.9px** at 320 / 390 / 768, and ten hour cells with their 1px gutters
-   in that is **4.7 / 6.6 / 7.2px a cell** — under the 7.6 that `ACCEPTED_TAP` already calls the
-   largest compromise on its list. A fingertip would cover six columns at 320.
+/* ---------- AND THE WEEK IS IN THE ANSWER COLUMN, BECAUSE A DAY HAS A MULTIPLIER NOW -------------
+   IT SPANNED `2 / 4` — the answer column and the multiplier column — on the argument that a day row
+   could never fill the second. That stopped being true: a day's hours are a `× 3`, and it goes in
+   the column that multiplies. Reported as *"can you see how in screenshot i booked 3 hours? there
+   should be a 3 hour multiplier in the multiplication column, but i can also see theres no space
+   for that. so make the time grid thinner by scale facter 0.5."* Both halves of that are one
+   change, and the ask is the reason rather than the size.
 
-   SO IT TAKES THE ONE TRACK BESIDE IT THAT A DAY ROW COULD NEVER FILL. A day has no multiplier, so
-   `2 / 4` costs the card nothing and lands the strip on a REAL column edge rather than at whatever
-   x a percentage happens to give — which is the whole of *"each field in its correct column"*: 44%
-   of a `2 / -1` span ended it 29px inside the multiplier column, under a head that named five.
-   The two money columns stay unbroken down the card's whole height. Measured after: **8.97 / 11.69
-   / 12.48px a cell**, against 7.6 / 9.7 / 10.3 at 44%.
+   WHAT IT COSTS IS MEASURED AND IS THE LARGEST COMPROMISE ON `ACCEPTED_TAP`'S LIST. The answer
+   track is **56.3 / 75.3 / 80.9px** at 320 / 390 / 768, so ten cells with their 1px gutters are
+   **4.7 / 6.6 / 7.2px** each, down from 8.97 / 11.69 / 12.48 — a fingertip covers about six columns
+   at 320. That is 0.53× at every width, which is as near the half that was asked for as a column
+   edge lands, and the owner's *"i dont care if its really thin now"* is the authority for it.
+   `2 / 4` is the one declaration that puts it back, and it takes the `× 3` with it.
 
-   THAT IS A FIFTH OF THE THINNESS GIVEN BACK, asked for twice, and it is the trade rather than an
-   oversight. `2 / -1; width: 44%` is the one declaration that reverses it, and it is written here
-   so the next person has the number rather than the argument. */
-.bk-row.bk-wk .bk-v { grid-column: 2 / 4; width: 100%; }
+   THE LEFT EDGE HAS NOT MOVED, which is the half four rounds of this were about: the strip starts
+   where every other answer on the card starts, and now it ends where every other answer ends too.
+   The hour numbers could not survive it and say their span instead — see `.wk-hh.wk-rule`. */
+.bk-row.bk-wk .bk-v { grid-column: 2 / 3; width: 100%; }
 .bk-row.bk-wk .slot-hours { gap: 1px; }
 .bk-row.bk-wk .hr { min-height: 14px; }
+/* ---------- AND THE HOUR COUNT MUST NOT BE THE TALLEST THING ON THE ROW ---------------------------
+   `.bk-m` IS `--mono` AT THE ROW'S OWN SIZE, so its line box is 14.8px at 320 against a 14px cell —
+   which made every day row that had a figure a pixel taller than one that did not, and took the
+   card from 10px past its pane at 320 to 18. Measured before and after: seven rows, eight pixels.
+
+   THE CELL IS WHAT SETS THE HEIGHT HERE, which is the same argument as the tick rows one block
+   down: the strip is the content of a day row and the figure beside it is a caption on it. */
+.bk-row.bk-wk .bk-m { line-height: 1; }
 /* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
    the rest, so a top-aligned label read as the name of the NUMBERS rather than of the boxes under
    them — the one row of the seven where the eye could pair the wrong two things. `end` puts it on
@@ -3090,6 +3110,19 @@ button.text-drop { color: var(--bad); }
            font-size: .6em; letter-spacing: -.02em; color: var(--faint);
            font-variant-numeric: tabular-nums; }
 .slot-head { margin-bottom: 1px; }
+/* ---------- AND WHERE A COLUMN IS NARROWER THAN ITS OWN LABEL, THE STRIP SAYS ITS SPAN -------------
+   `9 – 18` INSTEAD OF TEN NUMERALS, on the hour weeks only. The reason is measured and is written
+   over the builder in `book.js`: a cell in the answer column is 4.7px at 320 and `18` is about
+   7.4px of ink here, so every two-digit hour wrapped and the header doubled in height to carry
+   numbers nobody could read. The block week keeps its three names, because a block is a third of
+   the strip rather than a tenth.
+
+   `nowrap` IS THE LOAD-BEARING HALF. It is one string in a box narrower than the ten cells it names
+   at no width in this app, but the rule that put it here was a wrap, and leaving the default in
+   would be the same fault waiting on a longer span. */
+.wk-hh.wk-rule { display: block; text-align: center; white-space: nowrap;
+                 font-size: .6em; letter-spacing: -.02em; color: var(--faint);
+                 font-variant-numeric: tabular-nums; }
 /* A BUTTON IN THE BOOKER, A LABEL IN THE FORM. The booker's grid is answered by pressing; the
    availability form's is answered by ticking, because it saves with every other field and a
    checkbox is what `me-save` already knows how to read. Same box either way — it is the same
@@ -6491,9 +6524,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    would otherwise read itself as priced — harmless now that nothing here moves a column, and kept
    because the exclusion is what says the head is not a row of the document.
    `.is-wide` is the basket, whose card is two columns by its own rule and must not be touched. */
-.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-m,
-.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-r,
-.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
+/* ---------- AND A DAY ROW IS THE ONE THAT CARRIES A MULTIPLIER WITHOUT A TOTAL --------------------
+   THE TEST IS `.bk-t`, WHICH IS THE RIGHT QUESTION FOR EVERY OTHER ROW: a priced row has a running
+   total, and a row with no total has no figures at all. A day row breaks that in one direction — its
+   `× 3` is how many hours that day is, and a day has no running total, because the price is a
+   product over the whole week rather than per day.
+
+   SO WITHOUT THIS THE FIGURE WOULD HAVE BEEN WRITTEN AND HIDDEN, which is the worst of the three
+   outcomes: the markup says `× 3`, the card shows nothing, and nothing anywhere says why. Narrowed
+   to `.bk-wk` rather than widened to "any non-empty figure" — that wider rule also un-hides the `—`
+   a rate multiplier of exactly 1 writes into its own column, which is a separate decision on
+   twenty-odd other rows and not this one's to make. */
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-t:not(:empty))) .bk-m,
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-t:not(:empty))) .bk-r,
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
 /* ---------- AND THE ANSWER STAYS IN THE ANSWER COLUMN --------------------------------------------
    THE LINE HERE SAID `.bk-v { grid-column: 2 / -1 }` and it is the other half of why nothing lined
    up. A row with no figures gave its answer the three money tracks as well, so on one priced card
@@ -6522,23 +6566,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    of this and it is what it has again — and since the card became one grid it is what EVERY answer
    has, priced or not, which is the half that was missing every previous time.
 
-   AND THE WEEK IS THE ONE ANSWER THAT SPANS, WHICH IS ARITHMETIC RATHER THAN TASTE.
-   *"Have the grid be in only one column. The second column. The input column."* Its LEFT edge is
-   that column and always has been. Its right edge is the ask, and the sums say what it costs: ten
-   hours and their gutters in the answer track's 75.3px is a **6.6px cell** at 390 and 4.7 at 320,
-   under the 7.6 that `ACCEPTED_TAP` already calls the largest compromise on its list. Turning the
-   week on its side does not save it — seven day-columns in 75.3px is 10px — and the figure tracks
-   cannot give the room back, because they hold `× 6`, `£12.00/h` and `£144.00` and those are 148px
-   of digits.
+   AND THE WEEK IS AN ANSWER LIKE ANY OTHER NOW, WHICH IS THE THIRD ROUND OF ONE ASK.
+   *"Have the grid be in only one column. The second column. The input column."* Its LEFT edge was
+   always that column; its right edge spanned into the multiplier for one commit, on the argument
+   that a day row could never fill that track. It fills it — a day's hours are a `× 3` — so the
+   week stops at the answer column's own edge and every field on the card, the week included, is
+   one column wide.
 
-   SO IT STOPS ON THE MULTIPLIER COLUMN'S EDGE, which is a real edge rather than a percentage that
-   lands wherever it lands. `grid-column: 2 / 4` — the answer column and the one beside it, the two
-   a day row could never fill — so the two money columns stay unbroken down the whole card and the
-   week ends where a column ends. Measured at 320/390/768: **8.97 / 11.69 / 12.48px a cell**, up
-   from 7.6 / 9.7 / 10.3 when it was 44% of a span that ended at no edge at all.
-   ASKED FOR THINNER TWICE AND THIS GIVES A FIFTH OF IT BACK, which is the trade and is stated
-   rather than buried: the alternative that honours "thinner" exactly is `2 / -1; width: 44%`, one
-   declaration, and it puts the week's right edge 29px inside the multiplier column. */
+   WHAT IT COSTS: ten hours and their gutters in the answer track's 56.3 / 75.3 / 80.9px is a
+   **4.7 / 6.6 / 7.2px** cell, down from 8.97 / 11.69 / 12.48. That is the largest compromise on
+   `ACCEPTED_TAP`'s list and it was asked for in those words — *"i dont care if its really thin
+   now"*. Turning the week on its side does not save it — seven day-columns in 75.3px is 10px —
+   and the figure tracks cannot give the room back, because they hold `× 6`, `£12.00/h` and
+   `£144.00` and those are 148px of digits.
+   THE HOUR NUMBERS COULD NOT SURVIVE IT and say their span instead — see `.wk-hh.wk-rule`. */
 
 /* ---------- AND THE SMALL ROW THAT SAYS WHICH COLUMN IS WHICH -------------------------------------
    *"Label each column at the top. Small"* — and small is the requirement, not the decoration. The
@@ -10136,3 +10177,48 @@ button.scr-sq { cursor: pointer; }
 .art-score { margin: 0; font: 700 1.8rem/1.1 var(--font); color: var(--gold); }
 .art-row { display: flex; gap: .5rem; margin-top: .6rem; }
 .art-meta { text-align: center; margin: .5rem 0 0; }
+
+/* ==================================================================================================
+   SHARING A BOOKING IS PRINTING IT — THE ELEMENT ON THE SCREEN, NOT A DRAWING OF IT.
+
+   ASKED FOR AS *"all i want is for when i share a booking/reciept it just shares a pdf of an exact
+   copy of what they are seeing on the screen."* The old answer redrew the receipt onto a canvas,
+   which is a second renderer and drifted from the first four separate times — the whole account is
+   over `on('book-share')` in receipt.js. What prints here is the `.rc` the share tile is inside.
+
+   THE COLUMN IS WHAT CLIPS THE PAGE, FOR THE FOURTH TIME. `body` is a centred 26.5rem column with
+   `overflow-x: clip`, so anything printed inside the app's own markup starts where the COLUMN
+   starts and everything past about 115mm is cut off. The cheat sheet, the flyer and the printed
+   quiz each learned that separately; these are the same three lines.
+
+   `print-color-adjust: exact` IS THE WHOLE OF *"exact copy"*. A browser drops backgrounds when it
+   prints, on the reasonable assumption that a page is black on white — and this document is black
+   and gold. Without it a receipt prints as grey ink on nothing and the gold marks, which are how
+   the week and the stage ticks say anything, disappear.
+
+   AND THE SCALE IS A TRANSFORM RATHER THAN A WIDTH. A width would re-lay the grid out, and a
+   document that re-flows for the paper is no longer a copy of what was on the screen. `--rc-k` is
+   set by the handler from this same page size — see `RC_PAGE_W` in receipt.js, which names the
+   numbers `@page` sets here — so the card is enlarged to the sheet, one page, nothing reshaped.
+================================================================================================== */
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body.printing-rc { max-width: none !important; margin: 0 !important; padding: 0 !important;
+                     overflow: visible !important; }
+  body.printing-rc * { visibility: hidden !important; }
+  body.printing-rc .rc-print,
+  body.printing-rc .rc-print * { visibility: visible !important; }
+  body.printing-rc .rc-print {
+    position: absolute; left: 10mm; top: 10mm; margin: 0;
+    /* THE WIDTH IT HAD ON THE SCREEN, set by the handler — see the note there. `max-width: none`
+       because `body` is a 26.5rem column and the card is moved into it for the print. */
+    width: var(--rc-w, auto); max-width: none;
+    transform: scale(var(--rc-k, 1)); transform-origin: top left;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* THE TILES ARE ON THE PAPER AND MUST NOT BE ON THE PRINT. `Ask for it` and `Share this booking`
+     are controls printed inside the receipt's own foot — see `bookBreakdown` — so they are part of
+     the element being printed, and a PDF of a booking with a gold Send button on it is a picture of
+     a control nobody can press. Everything else on the card is the document. */
+  body.printing-rc .rc-print .rc-tiles { display: none !important; }
+}

@@ -730,6 +730,36 @@ const STATES = {
          empty it — the same call every send path ends with. */
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
+    /* ---------- THE LIST THAT REPLACES THE FORM ------------------------------------------------
+       `check/press.js` REPORTED IT BEFORE THIS EXISTED: *"named on a screen and then not found to
+       press (2): booking/book-many-pick, booking/book-many-done"*. Both controls are drawn only
+       once a field has been pressed, and the press pass builds its queue from what is on the screen
+       — so the two halves of the picker were pressed by nothing. While it was a sheet they were
+       collected with everything else a press opens; on the page they are a state or they are
+       nowhere, which is exactly the hole this file's own header describes.
+
+       AND `check/ui.js` HAD NEVER LAID IT OUT EITHER. Twelve 44px options in a pane that caps at
+       534px is the arithmetic the whole design turns on, and until this state it was measured in a
+       probe rather than on every commit.
+
+       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does — the
+       app's own door rather than markup poked into the page. The step is found rather than named:
+       which questions take several answers is `BOOK_STEPS`'s to say, and a literal here would be a
+       second copy of that list. */
+    { name: 'a list of answers open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const st = (typeof BOOK_STEPS !== 'undefined' ? BOOK_STEPS : []).filter(x => x.multi && !x.grid)
+          .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
+        if (st) { BOOKING.picking = st.id; drawBooker(); }
+      },
+      expect: () => document.querySelectorAll('#s-booking .pick-opt').length >= 1
+        && !!document.querySelector('#s-booking [data-do="book-many-done"]'),
+      wants: 'a page of options with a Done under them',
+      /* PUT BACK, because states run in order down one page and the receipt state after this one
+         would otherwise be measuring a picker. */
+      leave: () => { BOOKING.picking = ''; drawBooker(); } },
+
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {

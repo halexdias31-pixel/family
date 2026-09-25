@@ -258,6 +258,9 @@ function boot(opts) {
          what has been ticked — the button is the only label on it, which is the half of that
          feature a sheet full of ✓s cannot show. */
       'control: typeof stepControl_ === "function" ? stepControl_ : null,' +
+      /* THE FORM'S PAGE AS DRAWN, because a picker replaces it rather than covering it — so the
+         only way to ask "is the list on screen" is to ask what page 0 of the booking column holds. */
+      'bookerCard: typeof bookerCard === "function" ? bookerCard : null,' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -879,55 +882,67 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   return bad;
 });
 
-check('picking several answers is one open of a sheet, not one per answer', async () => {
-  /* ---------- FOUR TAPS FOR TWO SUBJECTS, AND NOTHING COULD SEE IT ------------------------------
+check('picking several answers is one open, on the page, with nothing over the app', async () => {
+  /* ---------- FOUR TAPS FOR TWO SUBJECTS, AND THEN A PANEL OVER THE CARD ------------------------
      REPORTED AS *"for me to multiselect i have to click on field then click on subject then click
      on field then click on another subject. thats long."* A `<select>` closes when you choose —
      that is what choosing means to it — so a question taking three answers was three opens, three
      scrolls and three closes. The toggling always worked; the gesture was the cost.
 
-     `check/ui.js` CANNOT ASK THIS. It measures whether a control can be read and hit, and a select
-     that closes after every pick measures perfectly. `check/press.js` presses each action once and
-     asks whether anything changed, which is true of both shapes. What is worth asserting is the one
-     thing that differs: the surface is still open after a tick, so the next tick is one press away.
+     THE FIRST FIX WAS A SHEET AND THE SECOND REPORT WAS *"i dont like this. this is shit. no pop
+     up menus."* So there are two things to assert and they pull in opposite directions: the list
+     must stay open across ticks, AND nothing may open over the app. A check that asks only the
+     first passes on the shape that was just rejected.
 
-     THROUGH THE APP'S OWN HANDLERS, so the toggle, the sheet and the re-render are the ones that
-     ship — a harness rewriting `BOOKING.interval` itself would prove nothing about either. */
+     `check/ui.js` CANNOT ASK EITHER. It measures whether a control can be read and hit, and a
+     select that closes after every pick measures perfectly. `check/press.js` presses each action
+     once and asks whether anything changed, which is true of all three shapes.
+
+     THROUGH THE APP'S OWN HANDLERS AND ITS OWN PAGE BUILDER, so the toggle, the picker and the
+     re-render are the ones that ship — a harness rewriting `BOOKING.interval` itself would prove
+     nothing about any of them. */
   const { w } = boot();
   await wait(300);
   const A = w.__t.ACTIONS || {};
-  if (!A['book-many'] || !A['book-many-pick']) {
-    return ['book-many / book-many-pick are not registered — cannot check the multi sheet'];
+  if (!A['book-many'] || !A['book-many-pick'] || !A['book-many-done']) {
+    return ['book-many / book-many-pick / book-many-done are not registered — cannot check the picker'];
   }
+  if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   const step = (w.__t.STEPS || []).filter(x => x.multi && !x.grid)
     .filter(x => { try { return x.options().filter(Boolean).length >= 2; } catch (e) { return false; } })[0];
-  if (!step) return ['no multiple-answer question offers two options — cannot check the multi sheet'];
+  if (!step) return ['no multiple-answer question offers two options — cannot check the picker'];
   const opts = step.options().filter(Boolean);
   const bad = [];
+  const page = () => String(w.__t.bookerCard() || '');
+  const marked = () => (page().match(/class="btn quiet pick-opt on"/g) || []).length;
 
   A['book-many']({ dataset: { step: step.id } });
-  const body = w.document.getElementById('sheet-body');
-  const open = () => !w.document.getElementById('sheet').classList.contains('hidden');
-  if (!open()) bad.push('pressing the "' + step.id + '" row does not open a sheet');
-  const drawn = body.querySelectorAll('.many-opt').length;
+  const sheetOpen = () => !w.document.getElementById('sheet').classList.contains('hidden');
+  if (page().indexOf('pick-list') === -1) {
+    bad.push('pressing the "' + step.id + '" row does not put the list on the page');
+  }
+  /* THE HALF THE SECOND REPORT WAS ABOUT. */
+  if (sheetOpen()) bad.push('the "' + step.id + '" row opens a sheet over the app');
+  const drawn = (page().match(/data-do="book-many-pick"/g) || []).length;
   if (drawn !== opts.length) {
-    bad.push('the sheet draws ' + drawn + ' options for a question with ' + opts.length);
+    bad.push('the page draws ' + drawn + ' options for a question with ' + opts.length);
   }
 
   /* TWO TICKS WITHOUT REOPENING — which is the whole of what was asked for. */
   A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
-  if (!open()) bad.push('ticking an answer closes the sheet, so the next one is another open');
+  if (page().indexOf('pick-list') === -1) {
+    bad.push('ticking an answer closes the list, so the next one is another open');
+  }
   A['book-many-pick']({ dataset: { step: step.id, val: opts[1] } });
-  if (!open()) bad.push('ticking a second answer closes the sheet');
+  if (page().indexOf('pick-list') === -1) bad.push('ticking a second answer closes the list');
   if ((B[step.id] || []).length !== 2) {
     bad.push('two ticks left ' + JSON.stringify(B[step.id]) + ' rather than two answers');
   }
-  if (body.querySelectorAll('.many-opt.on').length !== 2) {
-    bad.push('the sheet shows ' + body.querySelectorAll('.many-opt.on').length
-             + ' options marked, not the two that are chosen');
+  if (marked() !== 2) {
+    bad.push('the page shows ' + marked() + ' options marked, not the two that are chosen');
   }
 
   /* AND TICKING AGAIN TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
@@ -935,6 +950,14 @@ check('picking several answers is one open of a sheet, not one per answer', asyn
   if ((B[step.id] || []).length !== 1) {
     bad.push('ticking a chosen answer again does not take it off: ' + JSON.stringify(B[step.id]));
   }
+
+  /* ---------- AND DONE PUTS THE FORM BACK, WHICH IS THE ONLY WAY OUT ----------------------------
+     A LIST WITH NO WAY BACK IS A PAGE SOMEBODY IS STUCK ON. The sheet had the app's own close;
+     this replaces the form, so the close is a control on it and there is nothing else to press. */
+  A['book-many-done']({ dataset: {} });
+  if (B.picking) bad.push('Done leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
+  if (page().indexOf('pick-list') !== -1) bad.push('Done leaves the list on the page');
+  if (page().indexOf('id="bookr"') === -1) bad.push('Done does not put the form back');
 
   /* ---------- AND THE ROW IS WHAT OPENS IT, WHICH THE REST OF THIS CANNOT SAY -------------------
      THE FIRST VERSION CALLED THE HANDLERS AND NOTHING ELSE, so putting the row back to a `<select>`
@@ -947,7 +970,7 @@ check('picking several answers is one open of a sheet, not one per answer', asyn
   if (!w.__t.control) bad.push('stepControl_ is not exported — the row itself cannot be checked');
   else {
     if (row.indexOf('data-do="book-many"') === -1) {
-      bad.push('the "' + step.id + '" row does not open the sheet — it draws '
+      bad.push('the "' + step.id + '" row does not open the list — it draws '
                + JSON.stringify(row.slice(0, 80)));
     }
     if (row.indexOf(opts[1]) === -1) {
@@ -1194,6 +1217,52 @@ check('each stage tick takes the date it actually happened on', async () => {
   const acc = bare.find(r => r.k === 'Accepted');
   if (!acc || !acc.tick) bad.push('a job with no event log stops ticking Accepted');
   else if (acc.v) bad.push('a job with no event log dates Accepted ' + JSON.stringify(acc.v));
+  return bad;
+});
+
+check('a day says how many hours it is, in the column that multiplies', async () => {
+  /* ---------- REPORTED AS A COLUMN WITH NOTHING IN IT -------------------------------------------
+     *"can you see how in screenshot i booked 3 hours? there should be a 3 hour mutultiplier in the
+     multiplication column."* The `Hours a week` row was deleted a long way back with a note saying
+     the When row reported the same number beside the grid that decides it — and then the When row
+     became seven day rows and the number went with it.
+
+     IT IS A MULTIPLIER RATHER THAN A CAPTION, which is why it goes in that column and why this
+     journey asserts the arithmetic as well as the markup: `priceFrom` does `p *= L.hoursPerWeek`,
+     and hours-a-week is the sum of the seven figures. A day's `× 3` that does not add up to the
+     number the price is built from is two statements of one fact.
+
+     THE DISPLAY HALF IS CSS AND IS NOT ASSERTABLE HERE. `.bk-m` is hidden on any row with no
+     running total, which is right about every other row and would have hidden this — proved by
+     mutation in a browser: with the week's exemption removed the markup says `× 3` and the card
+     shows nothing. jsdom applies no stylesheet, so what this can hold is that the figure is written
+     and that it is right. */
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.paper) return ['bookBreakdown is not exported — cannot read the card'];
+  const B = w.__t.BOOKING;
+  const bad = [];
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.slots = ['m11', 'm12', 'm13', 'w12'];
+
+  const rows = String(w.__t.paper() || '')
+    .split('<div class="bk-row').filter(r => r.indexOf('bk-wk') !== -1);
+  if (rows.length !== 7) return ['the card draws ' + rows.length + ' day rows, not 7'];
+  const mul = r => (/<span class="bk-m">([^<]*)<\/span>/.exec(r) || ['', ''])[1].trim();
+  const said = rows.map(mul);
+  const want = ['\u00d7 3', '', '\u00d7 1', '', '', '', ''];
+  if (JSON.stringify(said) !== JSON.stringify(want)) {
+    bad.push('three hours on Monday and one on Wednesday reads ' + JSON.stringify(said)
+             + ', wanted ' + JSON.stringify(want));
+  }
+  /* AND THE SEVEN ADD UP TO WHAT THE PRICE IS BUILT FROM. */
+  const spec = w.__t.spec ? w.__t.spec() : null;
+  const sum = said.reduce((a, t) => a + (parseFloat(String(t).replace(/[^\d.]/g, '')) || 0), 0);
+  if (spec && Number(spec.hoursPerWeek) !== sum) {
+    bad.push('the day figures add to ' + sum + ' and the price is built on '
+             + spec.hoursPerWeek + ' hours a week');
+  }
   return bad;
 });
 

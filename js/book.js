@@ -86,7 +86,12 @@ function bookBlocks() {
   /* BELOW THE FORM, NOT AS A SECOND PAGE. Each element of this array is a page somebody swipes to,
      and the booking they just made is not somewhere else — it is the answer to the form they are
      looking at. Same string, under the money block. */
-  return [bookerCard()
+  /* WHILE A LIST IS OPEN THE PAGE IS THE LIST. The money block and the receipt for what was just
+     asked for are both ABOUT the form, and neither is what somebody pressing a field went looking
+     for — `bookerCard` returns the picker in that state and this is the rest of the same sentence.
+     The page COUNT does not change, which is what keeps `PAGE.booking` pointing where it was. */
+  return [BOOKING.picking ? bookerCard()
+    : bookerCard()
     + (typeof moneyBlock === 'function'
        ? moneyBlock({ tutor: BOOKING.tutor, tutorPay: L && L.tutorPay, profit: L && L.profit })
        : '')
@@ -518,6 +523,9 @@ const BOOKING = {
      anyway; this literal is what the form is built from on the very first draw, before anything
      has been reset, and a string here would have `bookPick` push onto a `String` and throw. */
   interval: [], tutor: '', service: '',
+  /* WHICH QUESTION'S LIST IS OPEN, or '' for the form. Here rather than in the DOM for the reason
+     `note` is: a redraw rebuilds the page, and state kept in the markup is state a redraw loses. */
+  picking: '',
 };
 
 /* ---------- THE ONE YOU JUST ASKED FOR ------------------------------------------------------------
@@ -1680,6 +1688,10 @@ function resetBooking_() {
      note over the deleted `book-edit`. */
   BOOKING.done = [];
   BOOKING.note = '';
+  /* AND WHICH LIST IS OPEN, for the same reason: it is about the form rather than about the
+     booking. A reset with it left set would draw the next booking's first page as a picker for a
+     question nobody had pressed. */
+  BOOKING.picking = '';
 }
 
 /* `on('new-booking')` AND `on('book-close')` WERE HERE. One opened the form and one shut it, and
@@ -2340,15 +2352,29 @@ function stepInput_(st) {
    `<select multiple>` IS STILL REFUSED, for the reason written over `stepSelect_`: on a phone it
    renders as a list box with its own scrollbar, which is the deleted panel in a worse shape.
 
-   SO IT IS A SHEET, WHICH IS THIS APP'S OWN ANSWER TO ANYTHING LONGER THAN A ROW. `#sheet-body`
-   scrolls where `.pane` does not — the practical guide, the quiz and the tutor profile all take
-   that route, and `check-surfaces.js` fails the build on the alternative. Every option is a real
-   44px target, several can be ticked without the surface closing, and closing it is one press on
-   the back of the sheet.
+   AND IT WAS A SHEET FOR ONE COMMIT. `#sheet-body` scrolls where `.pane` does not, which is this
+   app's answer to anything longer than a row — the practical guide, the quiz and the tutor profile
+   all take it. Reported the next morning as *"i dont like this. this is shit. no pop up menus."*
 
-   THE SHEET REDRAWS ITSELF AND THE CARD UNDERNEATH ON EVERY TICK, which is what makes the tick
-   visible in two places at once — the ✓ in the list and the row's own summary filling in behind it.
-   `bookToggle_` is the one place either control changes the list.
+   SO THE PAGE THE FORM IS ON SHOWS THE PICKER INSTEAD OF THE FORM, and that is the only shape left
+   once the geometry is measured. `.pane` is `overflow: hidden` and the booking card is **544px of
+   content in a 534px pane at 320 and 605.7 in 613 at 390** — seven pixels of headroom at the widest
+   phone and ten past the fold at the narrowest. So a list that opens UNDER a row, wrapped chips or otherwise,
+   pushes the rows below it past a fold with no scroll and no page to turn to: twelve subjects is
+   about 276px at 320, and the Send tile ends up somewhere nobody can reach. Every in-card
+   expansion overflows, whatever shape it takes.
+
+   IT IS NOT SOMEWHERE ELSE, WHICH IS THE WHOLE DIFFERENCE FROM A SHEET. Nothing covers anything,
+   the page count does not change — `bookBlocks` still returns the form's page first and the
+   receipts after it — so `PAGE.booking` is where it was, the back gesture does not leave the app,
+   and the card in front of you becomes the list and then becomes the card again. Pressing the field
+   opens it and pressing Done closes it, which is the gesture that was asked for in the first place:
+   *"click on subject field then click on the subjects."*
+
+   `BOOKING.picking` IS THE WHOLE OF THE STATE, and it is an answer like every other one — kept with
+   them rather than in the DOM, so a redraw cannot lose it. Every tick redraws the page, which is
+   what makes the ✓ and the row's own summary land together; `bookToggle_` is the one place either
+   control changes the list.
 
    THE ROW'S CONTROL IS A BUTTON WEARING `.bk-sel`. It is the same object as far as the card is
    concerned — right-aligned, no chrome, the answer as its text — and drawing it as a second thing
@@ -2364,38 +2390,59 @@ function stepMulti_(st) {
     aria-label="${esc(st.label)}">${esc(said || '\u2014')}</button>`;
 }
 
-/* THE LIST INSIDE THE SHEET. A form's controls are buttons rather than tiles — the house style
-   settles that — and a full-width one per option is the shape every other list in a sheet has. */
-function manySheet_(st) {
+/* ---------- THE LIST, ON THE PAGE THE FORM WAS ON --------------------------------------------------
+   A FORM'S CONTROLS ARE BUTTONS RATHER THAN TILES — the house style settles that — and one per
+   option is the shape every list in this app has.
+
+   TWO COLUMNS RATHER THAN A STACK, AND THAT IS ARITHMETIC. Twelve full-width 44px buttons is 528px
+   against a pane that caps at **534px at 320×568**, with no room left for the heading or the way
+   back. `minmax(7.5rem, 1fr)` gives two columns on a phone and as many as fit on anything wider:
+   six rows of 44 is 276, and the card measures **432.7px at 320** with twelve options, the heading
+   and the Done on it — a hundred pixels inside the pane.
+
+   44px EACH, IN px, because a fingertip does not scale — this stylesheet's own rule, and the one
+   thing on this page that was never negotiable.
+
+   THE HEADING IS THE STEP'S OWN QUESTION, so the page says what it is for without a second string
+   to keep in step with the row it came from. */
+function pickerCard_(st) {
   let opts = [];
   try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
   const chosen = BOOKING[st.id] || [];
   const on = o => chosen.some(c => norm(c) === norm(o));
-  if (!opts.length) return `<p class="muted">Nothing to choose here yet.</p>`;
-  return `<div class="many-list">${opts.map(o => `<button type="button"
-      class="btn quiet many-opt${on(o) ? ' on' : ''}" data-do="book-many-pick"
-      data-step="${esc(st.id)}" data-val="${esc(o)}"
-      aria-pressed="${on(o) ? 'true' : 'false'}"
-      >${on(o) ? '\u2713 ' : ''}${esc(st.label_ ? st.label_(o) : o)}</button>`).join('')}</div>`;
+  const said = chosen.join(', ');
+  return `<div class="card pick-card">
+    <h3>${esc(st.label)}</h3>
+    ${/* WHAT IS TICKED, ABOVE THE LIST. The row it came from is not on screen while this is, so
+          without it the only record of the answer is twelve buttons you have to read. */''}
+    <p class="sub">${said ? esc(said) : 'Nothing chosen yet — tap as many as apply.'}</p>
+    ${opts.length ? `<div class="pick-list">${opts.map(o => `<button type="button"
+        class="btn quiet pick-opt${on(o) ? ' on' : ''}" data-do="book-many-pick"
+        data-step="${esc(st.id)}" data-val="${esc(o)}"
+        aria-pressed="${on(o) ? 'true' : 'false'}"
+        >${on(o) ? '\u2713 ' : ''}${esc(st.label_ ? st.label_(o) : o)}</button>`).join('')}</div>`
+      : `<p class="muted">Nothing to choose here yet.</p>`}
+    <button type="button" class="btn" data-do="book-many-done">Done</button>
+  </div>`;
 }
 
 on('book-many', el => {
   const st = bookStep_(el.dataset.step);
   if (!st || stepLocked_(st)) return;
-  openSheet(st.label, manySheet_(st));
+  BOOKING.picking = st.id;
+  drawBooker();
 });
 
 on('book-many-pick', el => {
   const st = bookStep_(el.dataset.step);
   if (!st) return;
   bookToggle_(st, el.dataset.val);
-  /* THE SHEET STAYS OPEN, which is the whole feature — so its body is rewritten in place rather
-     than reopened. `openSheet` again would work and would re-run the opening animation on every
-     tick, which reads as the panel flinching. */
-  const body = $('sheet-body');
-  if (body) body.innerHTML = manySheet_(st);
+  /* THE LIST STAYS OPEN, which is the whole feature. `drawBooker` redraws the page it is on, so the
+     ✓ and the line above it saying what is chosen move together and neither is patched by hand. */
   drawBooker();
 });
+
+on('book-many-done', () => { BOOKING.picking = ''; drawBooker(); });
 
 /* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
    SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
@@ -2474,7 +2521,22 @@ function weekRows_(days, cell, opts) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
   return days.map((d, i) => ({
     n: '', k: String(d.label), v: '',
-    mul: '', rate: '', total: '',
+    /* ---------- HOW MANY HOURS THAT DAY IS, IN THE COLUMN THAT MULTIPLIES ---------------------
+       REPORTED AS *"can you see how in screenshot i booked 3 hours? there should be a 3 hour
+       multiplier in the multiplication column, but i can also see theres no space for that."*
+       Both halves are right and the second is why this is two changes: the week was spanning the
+       multiplier column, so there was nowhere for the figure to go. It stops at the answer
+       column's edge now — see `.bk-row.bk-wk .bk-v` in style.css.
+
+       IT IS A COUNT AND IT IS ALSO A MULTIPLIER, which is what makes the column the honest place
+       for it rather than a convenient one. `priceFrom` does `p *= L.hoursPerWeek`, and
+       hours-a-week is the sum of these seven numbers — so a day's figure is a term of the product
+       the card is already reading down, not a label that happens to start with a `×`.
+
+       COUNTED FROM THE TICKS, never stored beside them. Three lit cells and a `× 3` that disagree
+       is the shape this repository pays for every time a fact is written twice, and here the two
+       would be a foot apart on one row. */
+    mul: d.mul ? '\u00d7 ' + d.mul : '', rate: '', total: '',
     /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
        question on `id`, and seven rows answering one question all carry the same one. */
     id: o.id || '',
@@ -2482,9 +2544,28 @@ function weekRows_(days, cell, opts) {
        `strip` IS MARKUP AND `v` IS TEXT, which is why it is a field of its own rather than a flag on
        `v`: the renderer escapes a value and must not escape this. Same shape as `sel`, which is how
        a dropdown already reaches the value cell. */
-    strip: (i === 0 ? '<span class="wk-hh" aria-hidden="true">'
-              + cols.map(h => '<span class="slot-hh">' + esc(String(h)) + '</span>').join('')
-              + '</span>' : '')
+    /* ---------- AND A TEN-COLUMN STRIP HAS NO ROOM TO LETTER EVERY COLUMN ----------------------
+       ONE LABEL PER COLUMN IS RIGHT UNTIL THE COLUMN IS NARROWER THAN THE LABEL. With the week in
+       the answer column a cell is 4.7px at 320, and `18` is about 7.4px of ink at `.slot-hh`'s
+       size — so every two-digit hour wrapped onto two lines and the header went from 7.4px tall to
+       14.8, on the one row of the seven that carries it. Measured in the arrangement that ships:
+       the card went 544 to 551 at 320 — seven pixels for a row of numbers nobody could read.
+
+       SO THE HOUR WEEK SAYS ITS SPAN AND THE BLOCK WEEK NAMES ITS COLUMNS, and which of the two is
+       the caller's to state because it is a fact about the caller's grid: a block's name is a third
+       of the strip and an hour's is a tenth. `9 – 18` over ten evenly spaced cells is a ruler — you
+       count along it — and every cell still says its own hour in `title` and `aria-label`, which is
+       more than the numerals ever gave a screen reader.
+
+       NOT AN ELLIPSIS AND NOT A SHRUNK FONT. Both leave a number on screen that cannot be read,
+       which is the shape this repository records under `figure`: a thing drawn confidently and
+       wrongly beats nothing only if it can be read. */
+    strip: (i === 0 ? (o.ruler
+              ? '<span class="wk-hh wk-rule" aria-hidden="true">'
+                + esc(String(cols[0])) + ' \u2013 ' + esc(String(cols[cols.length - 1])) + '</span>'
+              : '<span class="wk-hh" aria-hidden="true">'
+                + cols.map(h => '<span class="slot-hh">' + esc(String(h)) + '</span>').join('')
+                + '</span>') : '')
       + '<span class="slot-hours">' + d.hours.map(h => cell(h, d)).join('') + '</span>',
     /* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
        nobody works are different facts, which is the same reason a shut hour is greyed rather than
@@ -2607,7 +2688,9 @@ function stepWeekRows_(st) {
   const on = BOOKING.slots || [];
   const off = stepLocked_(st);
   return weekRows_(
-    g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open) })),
+    g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open),
+                       /* THE TICKS THEMSELVES, counted where they are read. */
+                       mul: r.hours.filter(h => on.indexOf(h.code) !== -1).length })),
     (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
       (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
       ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they are
@@ -2619,7 +2702,7 @@ function stepWeekRows_(st) {
             hour are said here, which is more than the bare numeral ever managed. */''}
       aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
       data-do="book-slot" data-code="${esc(h.code)}"></button>`,
-    { id: st.id, off: off,
+    { id: st.id, off: off, ruler: true,
       /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN -------------------------------------
          IT USED TO BE REPLACED BY THE SENTENCE, which threw away the half a greyed week still says:
          which hours are shut and why each one is. The reason goes under the last day instead, which
@@ -2807,9 +2890,10 @@ function stepRows_() {
     });
 }
 
-/* THE ROWS THE CARD LAST DREW. Read by `receiptCanvas` so a shared picture is the document on the
-   screen rather than a second attempt at it. */
-let BOOK_ROWS = [];
+/* `BOOK_ROWS` STOOD HERE and it was a list the card kept for something else to read. `receiptCanvas`
+   drew the receipt a second time onto a canvas, and this was how it got the rows the card had
+   actually drawn rather than the priced ones alone. Sharing prints the element now — see
+   `on('book-share')` — so the second renderer is gone and so is the only thing that read this. */
 
 /* ==================================================================================================
    THE SPINE — ONE ROW LIST, TWO DOCUMENTS.
@@ -3474,7 +3558,6 @@ function bookBreakdown(L, foot) {
   let seq = 0;
   rows.forEach(r => { if (r.n !== '') r.n = String(++seq).padStart(3, '0'); });
 
-  BOOK_ROWS = rows;
   const out = rows.map(receiptRow);
 
   return receiptHtml({
@@ -4173,14 +4256,20 @@ function jobWeekRows_(j) {
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
   const hours = SLOT_HOURS;
   return weekRows_(
-    SLOT_DAYS.map(([, label]) => ({ label: label, hours: hours,
-                                    on: days.indexOf(norm(label)) !== -1 })),
+    SLOT_DAYS.map(([, label]) => {
+      const runs = days.indexOf(norm(label)) !== -1;
+      /* THE SAME FIGURE THE FORM PRINTS, off the row rather than off the ticks — a saved job holds
+         `hours_per_session` and one span, so a day it runs on is that many hours and a day it does
+         not is none. The two documents agree because they say the same number, not because they
+         share a function that guesses it. */
+      return { label: label, hours: hours, on: runs, mul: runs ? hrs : 0 };
+    }),
     (h, d) => {
       const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
       return `<button class="hr${lit ? ' on' : ''}${lit ? '' : ' shut'}" disabled
         title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
     },
-    { off: true });
+    { off: true, ruler: true });
 }
 
 /* ---------- WHAT THE BUSINESS TAKES, UNDERNEATH RATHER THAN ON IT ---------------------------------
@@ -4197,15 +4286,27 @@ function jobWeekRows_(j) {
    the questions are answered, which is exactly when you want to see them. */
 function moneyBlock(o) {
   if (!o) return '';
+  /* A TUTOR SAW THIS BLOCK BECAUSE IT HELD THEIR OWN PAY, and that line is gone — so the test
+     that let them in has nothing left to let them in for. An admin-only block with a `theirs`
+     branch that can only ever draw an empty div is the shape this repository records under
+     `resource_type` in `VOCAB`: a reader left standing over a condition that no longer produces
+     anything. */
   const admin = typeof isAdmin === 'function' && isAdmin();
-  const theirs = USER && o.tutor && norm(o.tutor) === norm(USER.name);
-  if (!admin && !theirs) return '';
-  const pay = Number(o.tutorPay) || 0;
+  if (!admin) return '';
+  /* ---------- THE TUTOR'S SHARE IS NOT DRAWN ANY MORE ---------------------------------------
+     REPORTED AS *"delete the text 'to the tutor' bit"*, over a screenshot of `£332.16 to the
+     tutor` floating under the card. It went whole rather than being reworded: what it said was
+     already the one thing on that block a tutor could read about themselves, so shortening it
+     would have left a figure with no sentence.
+
+     WHAT IS LEFT IS ADMIN-ONLY, which is what the block now is: the business's own arithmetic
+     about an agreement, beside the agreement rather than in it. `tutorPay` is still computed and
+     still posted — `priceFrom` sets it and the backend writes it — so nothing about what a tutor
+     is paid has changed; it is not printed on this screen. */
   const left = Number(o.profit) || 0;
-  if (!pay && !left) return '';
+  if (!admin || !left) return '';
   return `<div class="money-note">
-    ${pay ? `<span><b>${esc(money(pay))}</b> to the tutor</span>` : ''}
-    ${(admin && left) ? `<span><b>${esc(money(left))}</b> left over</span>` : ''}
+    <span><b>${esc(money(left))}</b> left over</span>
   </div>`;
 }
 
