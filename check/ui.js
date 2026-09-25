@@ -241,6 +241,22 @@ const ACCEPTED_TAP = [
   + '`slot-row` or `slot-hours`, every cell is an ordinary tap, and `slot-row` is not even the '
   + 'element any more \u2014 a day is a row of the card. A sentence that outlived what it '
   + 'described, which is the shape this repository records under `.favwrap.is-fav`.' },
+  { cls: /^av-sw\b/, why:
+    'A COLOUR SWATCH AT 44px COSTS THE PAGE MORE THAN IT BUYS, and that is measured rather than '
+  + 'argued \u2014 the mistake this repository records under `.mat-out` is changing a rule on a '
+  + 'measurement nobody took, so 44px was written, rendered and read back. Twenty-one swatches, '
+  + 'seven to a row at 30px; at 44 each group needs two rows, and the Colours page goes from 454.9px '
+  + 'to **574.9px in a 532px pane at 320x568** \u2014 68px that can be neither scrolled to nor paged '
+  + 'to, which is the OUT OF REACH fault this same file has a rule for. A control you cannot reach '
+  + 'is worse than one you occasionally mis-tap.\n'
+  + '        WHAT MAKES IT LIVEABLE is the same thing that makes an hour cell liveable: a wrong tap '
+  + 'costs nothing you cannot undo with the next one. The circles are 30px on a 37px pitch, so a '
+  + 'fingertip covers about one and a half of them \u2014 nothing like the four columns the hour grid '
+  + 'accepts \u2014 and picking the wrong brown is fixed by picking the right one.\n'
+  + '        SPLITTING THE COLOURS ONTO THREE PAGES would give the 44px and was refused: skin, hair '
+  + 'and shirt are the one thing most people come here to change, and three swipes to change a look '
+  + 'is a worse wardrobe than a slightly small circle. The trade is written here so it is a decision '
+  + 'rather than something nobody measured.' },
   { cls: /^scr-sq\b/, why:
     'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
   + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '
@@ -642,8 +658,14 @@ function inspect(opts) {
     /* SUMMARY IS A TAP TARGET AND WAS NOT ON THIS LIST. `<details>` arrived with the answer block on
        a question card (see `answerBlock_` in find.js) — the summary is the only way to open it, so a
        small one is exactly the fault this check exists to find, and it would have been invisible. */
+    /* ---------- AND `data-do` IS WHAT A CONTROL IS IN THIS APP -----------------------------------
+       THE WHOLE DISPATCH IS ONE DELEGATED LISTENER ON `data-do`, and `check/press.js` presses
+       exactly those — so an element carrying one is a control by construction, whatever tag it
+       happens to be. The colour swatches in the wardrobe are `<span data-do="av-colour">`: twenty-one
+       of them, 30x30, invisible to this rule for as long as it asked about tag names only. A control
+       nobody put in a `<button>` is not a smaller control. */
     const tappable = /^(BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL|SUMMARY)$/.test(tag)
-      || role === 'button' || el.hasAttribute('onclick');
+      || role === 'button' || el.hasAttribute('onclick') || el.hasAttribute('data-do');
     if (!tappable) continue;
     if (el.closest('[hidden]')) continue;
 
@@ -845,7 +867,12 @@ function inspect(opts) {
       await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(1800);
       return await page.evaluate(() => {
-        try { return (typeof TABS !== 'undefined' ? TABS : []).slice(); } catch (e) { return []; }
+        /* `TABS` IS A LIST OF OBJECTS, NOT OF IDS — `check/press.js` maps `t.id` and the first
+           version here did not, which handed `go()` an object and skipped every column. It came
+           back as 88 combinations where the run before it was 132, which is the only reason it was
+           caught: a derived list that silently measures nothing looks exactly like a short one. */
+        try { return (typeof TABS !== 'undefined' ? TABS : []).map(t => (t && t.id) || t)
+                .filter(x => typeof x === 'string'); } catch (e) { return []; }
       });
     } catch (e) { return []; } finally { await page.close(); }
   })();
