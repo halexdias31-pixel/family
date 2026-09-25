@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-25-a-stage-ticks";
+const DOPOST_VERSION = "2026-09-25-b-library-cards";
 
 
 function doPost(e) {
@@ -405,14 +405,40 @@ function doPost(e) {
       if (Object.keys(fields).some(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f))) {
         setCell(t, r, 'availability', availGridIn(fields));
       }
+      /* ---------- AND THE LIBRARY CARDS ARRIVE AS NINE BOXES AND ARE STORED AS ONE CELL --------
+         THE SAME ARRANGEMENT ONE COLUMN ALONG, and the same care: `libCardsIn` is fed the WHOLE
+         field map, so a form that sent two of the three writes the third as empty rather than
+         leaving whatever was there — which is what a partial write would do if these were columns.
+         The page saves as a page, exactly as the week does.
+         ALLOWED FOR AN ADMIN EDITING SOMEBODY ELSE TOO, because `library_card` is in
+         `PROFILE_EDITABLE` and the nine are only its spelling on a form. The gate above is what
+         decides who may edit; this is what decides how. */
+      const libSent = Object.keys(fields).some(f => LIBRARY_FIELD.test(f))
+                   && LIBRARY_FIELDS.some(f => allowed.indexOf(f) !== -1);
+      /* THE COLUMN IS CHECKED HERE BECAUSE THE LIST BELOW CANNOT SEE IT. These nine are not
+         columns, so they are out of `wanted` and out of the `noColumn` refusal under it — and
+         `setCell` writes to a header that is not there and loses the value with no error anywhere,
+         which is the exact fault that refusal exists to prevent. `library_card` has never been
+         created in the live sheet (`?setup=1` has not been run since it was added), so this is the
+         first thing anybody saving this page will meet, and it says what to do. */
+      if (libSent && t.headers.indexOf('library_card') === -1) {
+        return jsonOut({ error: 'The sheet has no column for: library_card. '
+          + 'Run ensureSchema() to add it — nothing was saved.' });
+      }
+      if (libSent) setCell(t, r, 'library_card', libCardsIn(fields));
       /* A field with no column vanishes silently: setCell writes to a header that isn't there and
          the value is gone with no error anywhere. That's how an extra-seat fraction was entered
          four times and lost four times, with the site showing a stale default each time and
          nothing connecting the two.
          Refuse the save and name the column. The fix is one ensureSchema run, and nobody can act
          on an error they were never shown. */
+      /* NEITHER THE HOUR CODES NOR THE LIBRARY BOXES ARE COLUMNS, so both are out of this list and
+         out of the `noColumn` refusal under it. Left in, `lib1_name` would be refused by the very
+         error that exists to catch a field with no column — correctly, and about a field that is
+         never meant to have one. */
       const wanted = Object.keys(fields)
-        .filter(f => !/^(m|tu|w|th|f|sa|su)\d\d$/.test(f) && allowed.indexOf(f) !== -1);
+        .filter(f => !/^(m|tu|w|th|f|sa|su)\d\d$/.test(f) && !LIBRARY_FIELD.test(f)
+                  && allowed.indexOf(f) !== -1);
       const noColumn = wanted.filter(f => t.headers.indexOf(f) === -1);
       if (noColumn.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
@@ -2896,9 +2922,14 @@ function doPost(e) {
    `getProfile` has handed an admin since it was written. */
 function profileOf_(r) {
   const avail = availSet(r.availability);
+  /* ONE CELL, EXPANDED ONCE, for the reason `availSet` is called once above rather than per hour
+     code. `libCardsOut` is the only reader of the `name:number:pin|…` format on this side. */
+  const cards = libCardsOut(r.library_card);
   const out = { avatar: S(r.avatar), role: S(r.role) };
   PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
-    out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '') : S(r[f]);
+    out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
+           : LIBRARY_FIELD.test(f) ? S(cards[f])
+           : S(r[f]);
   });
   return out;
 }

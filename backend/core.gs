@@ -901,6 +901,53 @@ function availGridIn(fields) {
   return on.join(',');
 }
 
+/* ---------- THE LIBRARY CARDS, WHICH ARE ONE CELL AND NINE BOXES ---------------------------------
+   THE SAME ARRANGEMENT THE HOURS HAVE, one column along, and for the same reason: three cards is
+   nine facts, nine columns is the `library_card_2` shape `SCHEMA` refuses in writing, and the sheet
+   already stores a list of small things this way — `avatar` is `key:value|key:value` on this very
+   tab.
+
+   PARSED FROM THE RIGHT. A library's NAME can hold a colon (`Merton: Wimbledon`); a card number and
+   a PIN are digits. So the last two colon-parts are the number and the PIN and everything before
+   them is the name, which makes the one ambiguous character safe rather than forbidden. */
+function libCardsOut(cellValue) {
+  const out = {};
+  const items = S(cellValue).split('|');
+  for (let i = 1; i <= LIBRARY_CARDS; i++) {
+    const bits = S(items[i - 1]).split(':');
+    const pin = bits.length > 1 ? S(bits.pop()) : '';
+    const no  = bits.length > 1 ? S(bits.pop()) : '';
+    out['lib' + i + '_name'] = S(bits.join(':')).trim();
+    out['lib' + i + '_no']   = no.trim();
+    out['lib' + i + '_pin']  = pin.trim();
+  }
+  return out;
+}
+
+/* ---------- AND BACK, WITH THE EMPTY ONES AT THE END DROPPED -------------------------------------
+   A TRAILING EMPTY CARD IS NOT A CARD. Writing `a:1:2||` would make the cell grow a separator every
+   time somebody saved a form with two libraries filled in, and the count is already a constant here
+   — so the round trip is exact for what was typed rather than for how many boxes were drawn. A gap
+   in the MIDDLE is kept, because it is somebody's second slot left blank on purpose and moving the
+   third one up would rearrange a form under them.
+
+   THE COLON AND THE PIPE ARE STRIPPED OUT OF WHAT IS TYPED, not escaped. A library called
+   `Merton|Wimbledon` would otherwise become two cards on the next load, which is a silent
+   corruption of the one thing this cell exists to remember; a colon inside the NAME is safe (see
+   above) and is left alone. */
+function libCardsIn(fields) {
+  const items = [];
+  for (let i = 1; i <= LIBRARY_CARDS; i++) {
+    const cut = v => S(v).replace(/\|/g, ' ').trim();
+    const name = cut(fields['lib' + i + '_name']);
+    const no   = cut(fields['lib' + i + '_no']).replace(/:/g, '');
+    const pin  = cut(fields['lib' + i + '_pin']).replace(/:/g, '');
+    items.push((name || no || pin) ? [name, no, pin].join(':') : '');
+  }
+  while (items.length && !items[items.length - 1]) items.pop();
+  return items.join('|');
+}
+
 /** A sheet date, however it's stored. A real Date, or dd/mm/yyyy text — never mm/dd, which is
     what new Date() assumes and why "25/10/2026" parsed as an invalid month 25 and silently
     became zero sessions. */

@@ -580,6 +580,64 @@ label.field > span {
    the label, so it does not get the label's uppercase treatment. */
 label.field > .faint { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
 
+/* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
+   *"there are many different librarys for library card detais so make it smaller so can fit in like
+   3."* MEASURED BEFORE ANYTHING WAS DRAWN: nine ordinary `label.field` boxes are 63.1px each at 320
+   — a 15.06px caption, a 44px input and 10.125px of margin — so the group came to **790.2px in a
+   pane that caps at 534.25**, 283px below the fold with no scroll and no page to turn to. The floor
+   is arithmetic rather than styling: nine 44px inputs plus 161.5px of measured card chrome is
+   557.5px, so it cannot fit at 320 with zero captions and zero gaps.
+
+   SO THE SHAPE CHANGES RATHER THAN THE SIZE. Two rows a card — the library and the PIN across, the
+   number full width beneath — is three boxes in the height of two, and the whole shelf measures
+   **430.4px with 78.9px of headroom**. Nothing shrinks: every input keeps its 44px floor, which is
+   the one measurement in this stylesheet that does not scale.
+
+   THE TWO TRACKS ARE NOT THE SAME KIND OF ANSWER. A borough's name is words and wants whatever is
+   left; a PIN is four digits and wants exactly that.
+
+   AND `max-content` ON THE PIN WAS WRONG, WHICH THE FIRST RUN OF `--screen=settings` SAID IN
+   NUMBERS: `<label>.field "Library" is 4x63` and eleven sideways scrolls up to 270px. An `<input>`
+   has an INTRINSIC width — the default `size` is about twenty characters — so `max-content` on a
+   track holding one is that input's idea of itself, not the caption's: the PIN took ~250px and the
+   name was left with four. A fixed track, and `min-width: 0` on both so neither refuses to shrink
+   below its intrinsic size. 7rem is 94.5px at 320 and holds seven digits at the 16px an input is
+   pinned to — the `font: 16px` above is deliberate and is why this cannot be stated in `ch` of the
+   row's own font.
+
+   A RULE BETWEEN THE CARDS AND NOT ROUND THEM. A border on each is three boxes inside a box inside
+   a card, which is the "not everything is a card" fault; a hairline between them says the same
+   thing for one declaration and no inset. */
+.lib-shelf { display: flex; flex-direction: column; }
+.lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
+/* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
+   SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
+   `.75rem` is sized for a column of captioned boxes read one at a time; inside a card of three
+   identical things it is six gaps' worth of a page that has 31px to find. `.4rem` on the last row
+   of each card and `.35rem` inside the row keeps the three visibly separate — the dashed rule
+   between cards is doing most of that work anyway — and buys the shelf back onto a 568px phone. */
+.lib-shelf label.field { margin-bottom: .4rem; }
+
+/* ---------- AND AN EMPTY STATUS LINE TOOK EIGHT PIXELS ON EVERY CARD IT SAT ON --------------------
+   IT WAS AN INLINE `style="margin:.6rem 0 0"` IN TWO PLACES, so the gap was there whether or not
+   there was anything to say — six settings cards and the details form, each paying for a sentence
+   that appears for a moment after Save. Out of the markup (a number written twice is the fault this
+   stylesheet keeps paying for) and zero while it is empty, which is the eight pixels that put three
+   library cards inside a 568px phone. */
+.me-said { margin: .6rem 0 0; }
+.me-said:empty { margin: 0; }
+.lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
+.lib-row label.field, .lib-row input { min-width: 0; }
+/* THE MARGIN COMES OFF THE ROW'S OWN CHILDREN, because the row is what separates them now. The
+   number underneath keeps its margin: it is the last thing on the card and the gap before the
+   dashed rule is what stops the three reading as one long list. */
+/* THREE CLASSES, BECAUSE TWO WOULD HAVE TIED WITH THE RULE ABOVE. `.lib-shelf label.field` and
+   `.lib-row > label.field` are both (0,2,1), so which margin the two top boxes got was settled by
+   which line came later — `check/cascade.js` said so on the first run that had a shelf on a screen,
+   naming six elements. The twelfth conviction of `.price.faint` in this stylesheet, and the first
+   one caught by the check rather than by a person reading two blocks side by side. */
+.lib-shelf .lib-row > label.field { margin-bottom: .35rem; }
+
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the
    sort of thing that gets waved through and then misses on a real thumb. */

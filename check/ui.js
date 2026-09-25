@@ -108,11 +108,21 @@ if (PAYLOAD_AT) {
 const SHOTS = process.argv.includes('--shots');
 const ONLY  = arg('screen');
 
-/* THE NINE SCREENS, as registered by `screen(id, draw)` in the js/ files. If you add a screen, add
-   it here — and if you forget, the check still passes, which is the one failure this file cannot
-   catch by itself. `check/ui.js --list` prints what the app actually registered, so the two can be
-   compared by eye once in a while. */
-const SCREENS = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'make', 'reel', 'dm'];
+/* ---------- THE SCREENS, READ OFF THE APP RATHER THAN WRITTEN OUT HERE ---------------------------
+   THIS WAS A LIST OF NINE AND ITS OWN NOTE NAMED THE FAULT: *"if you add a screen, add it here —
+   and if you forget, the check still passes, which is the one failure this file cannot catch by
+   itself."* It was forgotten. The app has ELEVEN columns; `settings` and `saved` have been on it
+   for weeks and have never been measured at any width by any visitor — and `saved` has a
+   declared STATE in `check/states.js` that has therefore never run once.
+
+   SO IT IS DERIVED, which is the repair `check-doors.js` already made when its own hand-kept file
+   list had drifted to three files: read the list the browser itself uses. `TABS` is the column
+   order the app draws, so a column added tomorrow is measured tomorrow with nothing here to
+   remember. The fallback below is only for a boot that failed outright — and it says so loudly,
+   because a silent fallback to nine is exactly the silence this replaces.
+
+   `--list` STILL PRINTS WHAT IT FOUND, and there is nothing left to compare it against by eye. */
+const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'make', 'reel', 'dm'];
 
 /* THE WIDTHS THAT EXIST. 320 is the smallest phone still in use and the one everything breaks on
    first; 390 is the modern iPhone; 768 is a tablet held upright; 1280 is a laptop. Four is enough —
@@ -165,8 +175,18 @@ const VISITORS = [
                        role: 'admin', roles: ['admin'], handle: 'testadmin',
                        profile: { first_name: 'Test', last_name: 'Admin',
                                   borough: 'Sutton', city: 'London',
-                                  library_card: '2000000000000',
-                                  library_pin: '0000',
+                                  /* ---------- THREE LIBRARIES, BECAUSE THE SHELF DRAWS THREE ------
+                                     THE SEED HELD `library_card`/`library_pin`, which are the
+                                     names from before the nine boxes became one cell — so it
+                                     would have measured an EMPTY shelf, which is the fault this
+                                     file records about the fixture stating `focus` as a string
+                                     `doGet` does not send. All three filled, and the longest
+                                     library name the shelf will ever hold, because the row is
+                                     `1fr max-content` and the name is the track that gives. */
+                                  lib1_name: 'Merton', lib1_no: '2000000000000', lib1_pin: '0000',
+                                  lib2_name: 'Sutton', lib2_no: '2000000000001', lib2_pin: '0000',
+                                  lib3_name: 'Wandsworth Town and Putney',
+                                  lib3_no: '2000000000002', lib3_pin: '0000',
                                   library_note: 'Example note — the second card is in the top drawer' } } },
 ];
 
@@ -412,6 +432,23 @@ function inspect(opts) {
     if (!el) continue;
     const s = getComputedStyle(el);
     if (/(auto|scroll)/.test(s.overflowX)) continue;
+    /* ---------- A ONE-LINE TEXT FIELD IS A BOX THAT WAS TOLD IT COULD --------------------------
+       THIS RULE'S OWN QUESTION IS *"does this box scroll sideways when it was NOT told it could"*,
+       and an `<input>` is the one element the platform tells: a value longer than the box scrolls
+       inside it and the caret follows, which is what every text field on every site does. There is
+       no `overflow-x` on it to read — the behaviour is the control's, not a declaration — so the
+       test above cannot see the permission and reported the value instead of the layout.
+
+       IT WAS FIRING ON REAL DATA AND NOTHING ELSE. `--screen=settings` exited 1 on `library_note`
+       holding a sentence, and on a library called `Wandsworth Town and Putney`: up to 270px, which
+       is simply how much of that name is scrolled out of view. A rule that fires on somebody typing
+       a long borough is a rule that gets switched off.
+
+       AND THE BOX AROUND IT IS STILL MEASURED. A track that collapses takes `label.field` with it,
+       which this same rule reports — it did, at 4px wide — and an input too small to hit is the
+       tap-target rule's question. Only the input's own horizontal scroll is exempt, and only it.
+       `<textarea>` is NOT exempt: it wraps, so a sideways scroll there is a real fault. */
+    if (el.tagName === 'INPUT') continue;
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
       const box = el.getBoundingClientRect();
@@ -788,9 +825,37 @@ function inspect(opts) {
               .find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
-  const screens = ONLY ? [ONLY] : SCREENS;
   let failures = 0;
   const rows = [];
+
+  /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
+     ONE THROWAWAY PAGE, SIGNED IN, because `applyColumns_` can switch a column off and `TABS` is
+     what it rewrites — so the honest list is the one the app is holding after a real boot rather
+     than the one `columns.json` happens to say. Signed in, because that is the visitor who can
+     reach the most of them. */
+  const found = await (async () => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    try {
+      const who = VISITORS.find(v => v.user);
+      if (who) await page.addInitScript(u => {
+        try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {}
+      }, who.user);
+      await page.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1800);
+      return await page.evaluate(() => {
+        try { return (typeof TABS !== 'undefined' ? TABS : []).slice(); } catch (e) { return []; }
+      });
+    } catch (e) { return []; } finally { await page.close(); }
+  })();
+  if (!found.length) {
+    console.warn('  ! the app did not report its columns, so this run measures the nine written '
+               + 'into SCREENS_FALLBACK. A column added since is NOT being measured.');
+    failures++;
+  }
+  const SCREENS = found.length ? found : SCREENS_FALLBACK;
+  const screens = ONLY ? [ONLY] : SCREENS;
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 

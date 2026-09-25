@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-25-a-stage-ticks";
+const BACKEND_VERSION = "2026-09-25-b-library-cards";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -369,8 +369,25 @@ const SCHEMA = {
        They reach the person themselves in their own sign-in reply (`profileOf_`, answered only
        after the PIN has passed), and an ADMIN through `getProfile` — which is how every other
        column on this tab has behaved since it was written. Said rather than buried, because one of
-       the three is a PIN and the owner is the admin. */
-    "library_card", "library_pin", "library_note"
+       the three is a PIN and the owner is the admin.
+
+       THREE LIBRARIES, IN ONE CELL, AND `library_pin` IS GONE WITH THE SECOND.
+       *"there are many different librarys for library card detais so make it smaller so can fit
+       in like 3."* Nine stacked boxes do not fit and that is arithmetic rather than styling:
+       measured in the real app, a nine-field group is **790.2px in a pane that caps at 534.25px**
+       at 320x568, and the irreducible floor — nine 44px inputs plus 161.5px of measured card
+       chrome — is 557.5px, so it cannot fit at 320 with zero captions and zero gaps.
+
+       AND `library_card_2` IS WHAT THE PARAGRAPH ABOVE ALREADY REFUSES, so the three cards are one
+       cell: `name:number:pin` items joined by `|`, which is `avatar`'s own `key:value|...` format
+       on this same tab. `libCardsOut` expands it into nine form fields and `libCardsIn` packs them
+       back, exactly as `availGridOut`/`availGridIn` do for the 77 hour boxes — the one precedent
+       this tab already has for "a form with many boxes and a sheet with one cell".
+
+       THE NAME MAY CONTAIN A COLON AND THE OTHER TWO MAY NOT, so an item is parsed from the RIGHT:
+       the last two colon-parts are the number and the PIN and everything before them is the name.
+       `Merton: Wimbledon` survives; a card number is digits and a PIN is digits. */
+    "library_card", "library_note"
   ],
   /* ---------- THE MAP -----------------------------------------------------------------------
      WHERE THE GROUND COMES FROM, and the reason this tab exists at all.
@@ -1533,6 +1550,24 @@ const ON_ = v => S(v) === '' || TRUE_(v);
 /* ---------- AVAILABILITY ---------------------------------------------------------------------
    One cell, "m13,m14,tu09", replacing 77 TRUE/FALSE columns. */
 const AVAIL_DAYS  = [['m','Mon'], ['tu','Tue'], ['w','Wed'], ['th','Thu'], ['f','Fri'], ['sa','Sat'], ['su','Sun']];
+/* ---------- THREE LIBRARY CARDS, AS NINE FORM FIELDS OVER ONE CELL -------------------------------
+   THE NUMBER IS THE ASK — *"so can fit in like 3"* — and it is one constant because everything
+   downstream derives from it: the field list, the form, the packer and the unpacker. A fourth
+   library is this number, and nothing else.
+   `lib1_name` RATHER THAN `library_card_1`, so the shape is recognisable at a glance by the form
+   (`isLibrary_` in js/me.js reads the SHAPE of the names, exactly as `isTimetable_` does) and
+   cannot be mistaken for a column: none of these nine is one. The cell is `library_card`. */
+const LIBRARY_CARDS = 3;
+const LIBRARY_FIELDS = (() => {
+  const out = [];
+  for (let i = 1; i <= LIBRARY_CARDS; i++) out.push('lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin');
+  return out;
+})();
+/* ONE TEST, EVERY READER. `updateProfile` uses it to keep these nine out of the column check and
+   out of `wanted`, and `profileOf_` uses it to know they are not columns to read. A second regex
+   is a second chance for one of them to stop recognising a field — the `isTimetable_` argument
+   one file along. */
+const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
 const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
@@ -1816,7 +1851,7 @@ const PROFILE_GROUPS = {
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library
      card and one set of digits they cannot remember. */
-  'Library card': ['library_card','library_pin','library_note'],
+  'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
@@ -1825,14 +1860,14 @@ const CLIENT_GROUPS = {
   /* An address, because a printed copy has to go somewhere. Without it the basket can offer
      collection and nothing else, and the reason is invisible on a form that never asked. */
   'Where you are': ['address','postcode'],
-  'Library card': ['library_card','library_pin','library_note'],
+  'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 const STUDENT_GROUPS = {
   'About you': ['first_name','last_name','date_of_birth','photo'],
   'Contact':   ['email','phone'],
   'Where':     ['borough','city','town'],
   'Where you are': ['address','postcode'],
-  'Library card': ['library_card','library_pin','library_note'],
+  'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
    `RESOURCE_EDITABLE` was its flattened allow-list. Both are gone with the tab they wrote to. The

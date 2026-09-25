@@ -1316,7 +1316,7 @@ function settingsPages_() {
       options: f => (DATA.validations || {})[f],
     })}
       <button class="btn" data-do="me-save">Save</button>
-      <p class="faint me-said" style="margin:.6rem 0 0"></p></div>
+      <p class="faint me-said"></p></div>
   </div>`);
 
   /* ---------- YOUR USERNAME, BEFORE THE PIN AND FOR THE SAME REASON ------------------------------
@@ -1553,8 +1553,18 @@ function fieldHtml(name, value, o) {
   const pad = FIELD_IS_DECIMAL.test(name) ? 'decimal'
             : FIELD_IS_NUMERIC.test(name) ? 'numeric' : '';
 
-  return `<label class="field"><span>${esc(label)}</span>
+  /* ---------- A CAPTION OR A PLACEHOLDER, NEVER BOTH ---------------------------------------------
+     A PLACEHOLDER IS THE ACCESSIBLE NAME WHEN THERE IS NOTHING ELSE, which this app has measured:
+     ten controls have no text and no `aria-label`, every one carries a placeholder, and adding a
+     label repeating it would be two strings to keep in step. So a caller that asks for one gets a
+     box with no caption above it and 15px of the card back — which is what makes three library
+     cards fit a 568px phone at all. Every other field keeps its caption, because a form of nine
+     unlabelled boxes is a form you have to guess at. */
+  const hint = o.placeholder || '';
+
+  return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+           ${hint ? `placeholder="${esc(hint)}"` : ''}
            ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
@@ -1574,6 +1584,46 @@ function fieldHtml(name, value, o) {
    chance for one of them to stop recognising it. */
 const isTimetable_ = list => (list || []).length > 12
   && (list || []).every(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+
+/* ---------- AND A GROUP OF `libN_*` NAMES IS A SHELF OF LIBRARY CARDS ----------------------------
+   RECOGNISED BY THE SHAPE OF THE NAMES, exactly as the timetable above is and for the same reason:
+   the group's title is the backend's to choose, and a renderer that keys on it stops working the
+   day somebody renames it. The one field that is not a card — `library_note` — is drawn as an
+   ordinary box under the shelf, so the test asks whether ANY of the names is a card rather than
+   whether all of them are.
+
+   WHY IT NEEDS A RENDERER AT ALL, measured rather than asserted: nine ordinary `label.field` boxes
+   are 63.1px each at 320 and the group came to **790.2px in a pane that caps at 534.25** — 283px
+   below the fold, with no scroll and no page to turn to, which is exactly the `OUT OF REACH` fault.
+   Two rows per card — the name and the PIN across, the number full width beneath — is **430.4px
+   with 78.9px of headroom**. */
+const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
+const isLibrary_ = list => (list || []).some(isLibraryCard_);
+
+/* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
+   BUILT FROM THE FIELD LIST THE BACKEND SENT, not from a count written here. `LIBRARY_CARDS` is a
+   constant in `constants.gs` and the nine names are derived from it there; a `3` written again on
+   this side would be the second copy this repository keeps paying for — and a fourth library would
+   then draw three cards and silently drop the fourth's answers on every save.
+
+   THE NAME IS THE WIDE ONE. A borough's name is words and a PIN is four digits, so the row is
+   `1fr` and `max-content`; the card number is its own line because it is the longest thing on the
+   shelf and the one somebody reads back digit by digit.
+
+   NO `<h4>` PER CARD. A heading per library is three more lines of chrome on the group that could
+   not fit in the first place; the name box IS the heading, and its own caption says so. */
+function libraryShelf_(list, value) {
+  const nums = [...new Set((list || []).filter(isLibraryCard_)
+    .map(f => String(f).match(/^lib(\d+)_/)[1]))];
+  return `<div class="lib-shelf">${nums.map(i => `
+    <div class="lib-card">
+      <div class="lib-row">
+        ${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'), { placeholder: 'Library' })}
+        ${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'), { placeholder: 'PIN' })}
+      </div>
+      ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
+    </div>`).join('')}</div>`;
+}
 
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
    this looks for the shape rather than for a name — and answers an empty list when no deployment
@@ -1605,9 +1655,16 @@ function fieldsHtml(groups, o) {
   return Object.keys(groups).map(g => {
     const list = groups[g] || [];
     const timetable = isTimetable_(list);
+    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. `library_note` sits in the same group and is
+       an ordinary box, so the shelf takes the card fields and the rest of the list is drawn under
+       it in the usual way — one `filter`, rather than a second group in the backend that would
+       then need a heading of its own. */
+    const library = !timetable && isLibrary_(list);
+    const rest = library ? list.filter(f => !isLibraryCard_(f)) : list;
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
-      : list.map(f => fieldHtml(f, value(f), {
+      : (library ? libraryShelf_(list, value) : '')
+      + rest.map(f => fieldHtml(f, value(f), {
           attr: o.attr,
           options: o.options ? o.options(f) : null,
           suggest: o.suggest ? o.suggest(f) : null,
@@ -1659,7 +1716,7 @@ function initAvail() {
 
   into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [])
     + `<button class="btn" data-do="me-save">Save my hours</button>
-       <p class="faint me-said" style="margin:.6rem 0 0"></p>`;
+       <p class="faint me-said"></p>`;
 }
 
 /* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH ---------------------------------------
