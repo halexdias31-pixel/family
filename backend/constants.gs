@@ -2121,9 +2121,15 @@ const PAGES_TIME_BUDGET = 4 * 60 * 1000;
    that with no credentials is a URL anybody who has ever seen the address can use. So the same
    name and PIN that log you into the site, checked the same way.
 
-   Usage:
-     /exec?run=checkEverything&name=Halex%20Dias&pin=1234
-     /exec?run=makeBrandAccount&name=Halex%20Dias&pin=1234&arg=4821
+   Usage — YOUR OWN name and PIN, not the ones written here:
+     /exec?run=checkEverything&name=Your%20Name&pin=0000
+     /exec?run=makeBrandAccount&name=Your%20Name&pin=0000&arg=4821
+
+   AND NOT A REAL ONE IN THIS FILE. These two lines carried a real admin's real name and real
+   four digits for months, in a repository that is PUBLIC and whose history is permanent — so the
+   PIN was published the moment it was committed and stays published whatever this file says now.
+   An example is a placeholder or it is a credential; there is no third kind. The same rule this
+   file already keeps for `ticks_1/2/3` and for the learner profiles, one comment block along.
 
    THE CHICKEN AND EGG: if no admin row has a working PIN, nothing here can be reached, and the
    editor is the only way back. `dataProblems` reports that case for exactly this reason.
