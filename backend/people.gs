@@ -180,39 +180,60 @@ function handleTrouble_(want, me, isAdmin) {
 }
 
 /* ==================================================================================================
-   AND THE SEAT CAP MOVES ONCE A MONTH TOO.
+   AND WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER.
 
-   ASKED FOR AS *"make it so tutors cant update their maximum number of kids willing to work with more
-   then once a month."* A tutor's `max_students` is not a preference: it is what `seatLimits` offers a
-   family, and every booking already taken was priced and seated against whatever it said on the day.
+   ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of kids willing
+   to work with and fraction extra rate all together. and they can only change once a month."* None of
+   the four is a preference: `priceFrom` builds the price from `rate_per_hour` and `extra_seat_rate`,
+   `seatLimits` offers the seat count from `max_students` and `min_students`, and every booking already
+   taken was priced and seated against whatever they said on the day.
+
+   ONE CLOCK FOR THE FOUR, WHICH IS WHAT *"ALL TOGETHER"* MEANS. A stamp each would be four clocks and
+   a tutor could walk round them a week at a time — raise the rate on Monday, the extra-seat fraction
+   next Monday — which is the arms race the handle cooldown above was written against. `PRICING_FIELDS`
+   in `constants.gs` is that list, and `PROFILE_GROUPS` builds the one page from the same constant, so
+   the page and this rule cannot disagree about which fields are the quote.
 
    A FUNCTION BESIDE `handleRefusal` RATHER THAN SIX LINES INSIDE `updateProfile`, and that is about
-   what can be CHECKED. `check-people.js` cuts functions out of these files by name and runs them;
+   what can be CHECKED. `check-handles.js` cuts functions out of these files by name and runs them;
    a rule written inside a request handler is a rule nothing here can reach, and this repository's
-   own sentence is that a check which cannot reach its subject is not a check. Same shape, same file,
-   same three arguments as the handle rule — the row, what is wanted, and whether the asker is an
-   admin — so the two read alike and neither has to be remembered separately.
+   own sentence is that a check which cannot reach its subject is not a check. Same shape and same
+   file as the handle rule — the row, what is wanted, and whether the asker is an admin — so the two
+   read alike and neither has to be remembered separately.
 
-   IT ANSWERS '' FOR A CHANGE THAT IS NOT ONE. The Group size page posts `max_students` AND
-   `min_students` every time it is saved, whether or not either was touched, so a rule that fired on
-   the field being PRESENT would refuse a save of the row beside it for a month over a number nobody
-   edited. That is the fault this handler already paid for once, where a blank box was written back
-   over every profile field on the first press of Save.
+   IT TAKES THE WHOLE `fields` OBJECT WHERE THE HANDLE RULE TAKES ONE VALUE, because the question is
+   *has any of the four moved* and only the posted object can answer it.
+
+   AND IT ANSWERS '' FOR A CHANGE THAT IS NOT ONE. That page posts all four every time it is saved,
+   whether or not any was touched, so a rule firing on a field being PRESENT would refuse a save of
+   the boxes beside it for a month over a number nobody edited. That is the fault this handler already
+   paid for once, where a blank box was written back over every profile field on the first press of
+   Save — and it is why `pricingMoved_` compares values rather than counting keys.
 ================================================================================================== */
-function seatCapRefusal_(me, want, isAdmin) {
+function pricingMoved_(me, fields) {
+  if (!me || !fields) return [];
+  /* `N` ON BOTH SIDES, so `'4'` off a form and `4` off a sheet are the same answer. All four of these
+     are numbers — two counts and two money figures — and a string compare would refuse every save. */
+  return PRICING_FIELDS.filter(f => Object.prototype.hasOwnProperty.call(fields, f)
+                                 && N(fields[f]) !== N(me[f]));
+}
+
+function pricingRefusal_(me, fields, isAdmin) {
   if (!me) return '';
-  if (N(want) === N(me.max_students)) return '';      // not a change at all
-  /* AN ADMIN FIXING A TUTOR'S CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the same
-     exemption, for the same reason, as the handle cooldown above. */
+  if (!pricingMoved_(me, fields).length) return '';   // nothing moved: not a change at all
+  /* AN ADMIN FIXING A TUTOR'S RATE OR CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the
+     same exemption, for the same reason, as the handle cooldown above. */
   if (isAdmin) return '';
   /* ONE DATE AND NO COUNTER: the rule is "has a month passed", and a row that has never changed has
      no cell and is free. */
-  const last = sheetDate(me.max_students_changed_at);
+  const last = sheetDate(me.pricing_changed_at);
   if (!last) return '';
-  const next = new Date(last.getTime() + SEATS_COOLDOWN_DAYS * 864e5);
+  const next = new Date(last.getTime() + PRICING_COOLDOWN_DAYS * 864e5);
   if (next <= new Date()) return '';
-  return 'You changed the most students you will teach on ' + fmtDate(last)
-       + '. You can change it again on ' + fmtDate(next) + '. Nothing was saved.';
+  /* WHAT IT SAYS IS THE GROUP, NOT THE FIELD THAT HAPPENED TO MOVE. Naming one of the four would
+     read as an invitation to change the other three, which is exactly what one clock refuses. */
+  return 'You changed what you charge and the class sizes you take on ' + fmtDate(last)
+       + '. You can change them again on ' + fmtDate(next) + '. Nothing was saved.';
 }
 
 

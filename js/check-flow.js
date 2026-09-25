@@ -220,6 +220,10 @@ function boot(opts) {
          taken from the FIRST run, so a journey asking whether the week reads in order is asking
          about three cells of the job row as well as about the card. */
       'spec: () => (typeof bookSpec === "function" ? bookSpec() : null),' +
+      /* THE LEDGER THE CARD IS BUILT FROM. `paper()` above is the markup; this is the figures,
+         and `sessionDates` is the one of them a journey can ask a question about that no
+         rendering can answer — which year a session falls in. */
+      'price: () => (typeof bookPrice === "function" ? bookPrice() : null),' +
       /* THE SEVEN DAY NAMES, because a week step is seven rows of the card rather than one and
          a journey that listed them here would be a second copy of `SLOT_DAYS` to keep in step. */
       'days: () => (typeof SLOT_DAYS !== "undefined" ? SLOT_DAYS.map(d => d[1]) : []),' +
@@ -1311,6 +1315,76 @@ check('the dates row says how many dates it lists', async () => {
   if (one.mul) bad.push('one date reads ' + JSON.stringify(one.mul) + ' rather than nothing');
   const none = dates('');
   if (none.mul) bad.push('no dates reads ' + JSON.stringify(none.mul) + ' rather than nothing');
+  return bad;
+});
+
+check('one ticked term prices one term', async () => {
+  /* ---------- REPORTED AS *"why is it coming out to so much?"* -----------------------------------
+     Over a card totalling £1024.59 whose Dates row listed EIGHTEEN sessions across two Septembers —
+     September 2026 AND September 2027 — for one ticked term. Reproduced before anything was changed:
+     with two rows named `Autumn 1` in the payload, `bookSpec().windows` came back with a length of
+     two, the `Time interval` row read `Autumn 1, Autumn 1`, and three sessions became ten.
+
+     THE PAYLOAD REALLY SHIPS THE NAME TWICE, and `doget.gs` believed otherwise — its own comment
+     said that once terms which have ENDED are dropped *"each name appears once inside the next
+     twelve months"*. Measured against the real `schoolYear` on 25/09/2026, that filter keeps
+     `Autumn 1 2026-09-07..2026-10-23` AND `Autumn 1 2027-09-06..2027-10-22`: the first has not
+     ended and the second starts four days inside the 370-day cut-off. So it held for most of the
+     year and failed every autumn, which is the one term it matters for.
+
+     REPAIRED AT SOURCE AND ON THE PHONE. The source fix is a deploy away and this app's house rule
+     is that a broken sheet must still produce a working site, so `intervals_()` answers one row per
+     name — and that is the half this journey can reach, because a journey seeds a payload rather
+     than running `doGet`.
+
+     THE ASSERTION IS THE WINDOWS AND THE SESSIONS, not the pounds. A price is a chain of six other
+     rows and a figure here would fail for reasons that have nothing to do with terms; how many
+     windows one ticked name opens is the fault itself. */
+  const twice = payload();
+  const one = twice.intervals[0];
+  twice.intervals = [one, Object.assign({}, one, { startDate: '01/09/2027', endDate: '18/10/2027',
+    lastSun: '18/10/2027', rel: 'Next year' })];
+  const { w } = boot({ payload: twice });
+  await wait(300);
+  if (!w.__t.spec) return ['bookSpec is not exported — cannot check the term windows'];
+  const bad = [];
+
+  /* THE STEP MUST NOT OFFER THE NAME TWICE EITHER. Two identical buttons is not a choice anybody
+     can make, and it is the half a person sees before the price is ever wrong. */
+  const st = (w.__t.STEPS || []).filter(x => x.id === 'interval')[0];
+  if (!st) bad.push('no interval step — cannot check what the term question offers');
+  else {
+    const offered = st.options();
+    if (offered.length !== new Set(offered.map(x => String(x).toLowerCase())).size) {
+      bad.push('the term question offers ' + JSON.stringify(offered)
+             + ' — one name, two buttons');
+    }
+  }
+
+  const B = w.__t.BOOKING;
+  B.kind = 'Instant class'; B.subjects = ['Maths']; B.level = 'GCSE';
+  B.interval = ['Autumn 1']; B.n = '1'; B.slots = ['m13', 'm14'];
+  const spec = w.__t.spec();
+  if ((spec.windows || []).length !== 1) {
+    bad.push('one ticked term opened ' + (spec.windows || []).length + ' windows: '
+           + JSON.stringify(spec.windows));
+  }
+  if (spec.interval !== 'Autumn 1') {
+    bad.push('the Term row reads ' + JSON.stringify(spec.interval)
+           + ' for one ticked term');
+  }
+  /* AND THE SESSIONS ARE INSIDE THAT ONE TERM, which is the thing the report was actually about: a
+     second window a year away shows up as a date in the wrong year on the Dates row, and that is
+     what the family would have been billed for. */
+  if (w.__t.price) {
+    const L = w.__t.price() || {};
+    const out = (L.sessionDates || []).filter(d => d.getFullYear() !== 2026);
+    if (out.length) {
+      bad.push(out.length + ' of ' + (L.sessionDates || []).length
+             + ' sessions fall outside the ticked term: '
+             + out.map(d => d.getFullYear()).join(', '));
+    }
+  }
   return bad;
 });
 

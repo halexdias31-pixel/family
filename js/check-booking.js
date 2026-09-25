@@ -144,6 +144,81 @@ try {
   process.exit(1);
 }
 
+/* ==================================================================================================
+   AND THE TERM LIST, WHICH PUT A BOOKING IN TWO ACADEMIC YEARS AT ONCE.
+
+   REPORTED AS *"why is it coming out to so much?"* over a card totalling £1024.59 whose Dates row
+   listed eighteen sessions across September 2026 AND September 2027 for one ticked term. `doget.gs`
+   sends the term list and `bookSpec` FILTERS it by name, so a name sent twice gave one ticked button
+   two windows a year apart: three sessions became ten and £60 became £200.
+
+   THE FILTER'S OWN COMMENT CLAIMED OTHERWISE — that once terms which have ENDED are dropped *"each
+   name appears once inside the next twelve months"*. It holds for most of the year and fails every
+   autumn: on 25/09/2026 the current `Autumn 1` has not ended and the next one starts four days inside
+   the 370-day cut-off, so both are sent. A sentence that is true in March and false in September is
+   exactly the kind of claim a check is for.
+
+   IT RUNS THE REAL BLOCK, cut out of `doget.gs`, over a whole year of "todays" — because one date
+   proves one date, and the fault is a date range. `Date` is shadowed in the sandbox rather than the
+   source being edited, so what is measured is the code that ships.
+
+   `termsFor` IS THE COMPUTED SCHOOL YEAR, which is what it returns when nobody has typed the dates
+   into the sheet — the case that ships, and the only one reachable from here.
+================================================================================================== */
+const doget = backendFile(['doget.gs', '20_doget.gs']);
+let termList;
+try {
+  if (!doget) throw new Error('doget.gs could not be found');
+  /* THE ONE PLACE THE YEAR IS DECIDED, AND THE BLOCK THAT FILTERS IT, cut rather than copied: a copy
+     would agree with itself and with nothing else.
+
+     NOTE FOR THE NEXT READER — NO BACKTICKS IN THIS TEMPLATE. The house style writes a name in
+     backticks and this is a template literal, so one here ends the string and the syntax error lands
+     four hundred lines away from the comment. The same trap `js/map.js` records for widget markup. */
+  const src = [
+    "const S = v => String(v == null ? '' : v).trim();",
+    "const norm = v => S(v).toLowerCase();",
+    "const DAY_MS = 864e5;",
+    block(booking, 'const MON = ', ';'),
+    fn(booking, 'easter'),
+    block(booking, 'const add = ', ';'),
+    fn(booking, 'nth'),
+    fn(booking, 'schoolYear'),
+    /* WHAT termsFor ANSWERS WITH NO SHEET OVERRIDE, which is the case that ships and the only one
+       reachable from here — the real one reads the terms tab and falls back to exactly this. */
+    'function termsFor(y) { return schoolYear(y); }',
+    'module.exports = function (at) {',
+    '  setNOW(at);',
+    '  const yNow = (new Date()).getMonth() >= 7',
+    '    ? (new Date()).getFullYear() : (new Date()).getFullYear() - 1;',
+    /* UP TO THE NEXT STATEMENT, not to a closing brace. The first version ended the cut at the
+       dedupe filter's own '});' — so removing that filter, which is the one mutation worth making
+       here, took the cut to some unrelated brace and the check failed with 'missing ) after argument
+       list'. A guard firing for a fault in its own cutter teaches nothing. */
+    block(doget, 'const nowMs = Date.now();', 'computed.forEach(')
+      .replace(/computed\.forEach\($/, ''),
+    "  return computed.filter(c => c.kind === 'term');",
+    '};',
+  ].join('\n');
+
+  const m = { exports: {} };
+  let NOW = Date.now();
+  /* DATE SHADOWED AS A PARAMETER, so Date.now() and new Date() inside the real block both read the
+     day being tested and not one character of the source is rewritten. */
+  const Real = Date;
+  class Fake extends Real {
+    constructor(...a) { super(...(a.length ? a : [NOW])); }
+    static now() { return NOW; }
+  }
+  new Function('module', 'exports', 'Date', 'setNOW', src)(m, m.exports, Fake, v => { NOW = v; });
+  termList = m.exports;
+} catch (err) {
+  console.log('');
+  console.log('  FAIL — the term list could not be run: ' + err.message);
+  console.log('  A check that cannot reach its subject has not checked it.');
+  process.exit(1);
+}
+
 const { BM, ACT } = api;
 const e = (actor, role, action, target) => ({ actor, role, action, target });
 
@@ -230,6 +305,30 @@ const SEQUENCES = [
    Separate from the fold: these are about what somebody is ALLOWED to do, which is the other half of
    the machine and the half that decides whether money can move. */
 const RULES = [
+  { what: 'no day of the year offers one term name twice',
+    check: () => {
+      const bad = [];
+      /* EVERY DAY OF A YEAR FROM TODAY. The fault is a range — it appears in September and clears in
+         November — so a single date would have proved whichever answer that date happens to give. */
+      for (let i = 0; i < 365; i++) {
+        const at = Date.UTC(2026, 8, 25) + i * 864e5;
+        let terms;
+        try { terms = termList(at); } catch (err) { bad.push('threw: ' + err.message); break; }
+        const seen = {};
+        terms.forEach(t => { (seen[String(t.name)] = seen[String(t.name)] || []).push(t); });
+        Object.keys(seen).forEach(n => {
+          if (seen[n].length < 2) return;
+          bad.push(new Date(at).toISOString().slice(0, 10) + ' offers ' + JSON.stringify(n)
+            + ' ' + seen[n].length + ' times: '
+            + seen[n].map(t => t.start.toISOString().slice(0, 10)).join(' and '));
+        });
+      }
+      /* AND IT MUST OFFER SOMETHING, or a list that is always empty passes this for ever. */
+      const now = termList(Date.UTC(2026, 8, 25));
+      if (!now.length) bad.push('no terms at all are offered — the list cannot be checked');
+      return bad;
+    } },
+
   { what: 'only a client can pay, and only when both sides have agreed',
     check: () => {
       const bad = [];

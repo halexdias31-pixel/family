@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-25-d-seat-cap";
+const DOGET_VERSION = "2026-09-25-e-one-quote";
 
 
 function doGet(e) {
@@ -1341,12 +1341,33 @@ function doGet(e) {
        August 2026 came out as Autumn 2 running November 2027, a year and a bit out.
 
        Two years are still needed, because a list opened in July is for the September after it. But
-       a term that has already ENDED cannot be booked, and once the past ones are dropped each name
-       appears once inside the next twelve months, which is the only span anybody is booking in. */
+       a term that has already ENDED cannot be booked, and the next twelve months is the only span
+       anybody is booking in.
+
+       AND DROPPING THE PAST ONES IS NOT ENOUGH, which this comment claimed for months. Measured
+       against the real `schoolYear` on 25/09/2026, that filter alone keeps
+       `Autumn 1 2026-09-07..2026-10-23` AND `Autumn 1 2027-09-06..2027-10-22`: the first has not
+       ended and the second starts four days inside the cut-off. So the name went out twice for
+       every autumn, and `bookSpec` — which FILTERS by name rather than finding — gave one ticked
+       button two windows a year apart: eighteen sessions where there should have been six, and a
+       card reading £1024.59 against £338. Reported from the live site.
+
+       ONE ROW PER NAME, THE EARLIEST, which is what the sentence above always meant to say. The
+       list is already chronological (this school year, then the next), so keeping the first is
+       keeping the one somebody is about to be taught. The 370-day window stays as it is — a
+       shorter one would drop July's list of the September after it, which is the case two years
+       are here for. */
     const nowMs = Date.now();
     const yearOut = nowMs + 370 * 864e5;
+    const onceOnly = {};
     const computed = termsFor(yNow).concat(termsFor(yNow + 1))
-      .filter(c => c.end.getTime() >= nowMs && c.start.getTime() <= yearOut);
+      .filter(c => c.end.getTime() >= nowMs && c.start.getTime() <= yearOut)
+      .filter(c => {
+        const k = norm(c.name);
+        if (!k || onceOnly[k]) return false;
+        onceOnly[k] = 1;
+        return true;
+      });
     computed.forEach(c => {
       /* SHAPED LIKE A SHEET ROW, so everything below reads the same fields either way. */
       const r = { term_name: c.name, start_date: c.start, end_date: c.end,

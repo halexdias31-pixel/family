@@ -1374,7 +1374,7 @@ const BOOK_STEPS = [
        reported as *"it also doesnt let me select which terms."* The fallback is still right for a
        list nobody has answered: it says what the booking WOULD be submitted as. It is a default
        now rather than a ceiling. */
-    options: () => (DATA.intervals || []).map(x => x.label || x.term).filter(Boolean) },
+    options: () => intervals_().map(x => x.label || x.term).filter(Boolean) },
 
   /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
      three families in one session each pay a third — and the form never set it, so the feature
@@ -1579,6 +1579,40 @@ function nextBookStep() {
   return null;
 }
 
+/* ---------- ONE TERM PER NAME, AND THE NEAREST ONE ----------------------------------------------
+   REPORTED AS *"why is it coming out to so much?"* over a card totalling £1024.59 whose Dates row
+   listed EIGHTEEN sessions across two Septembers — September 2026 AND September 2027 — for one
+   chosen term. Reproduced: with two rows named `Autumn 1` in the payload, ticking that one button
+   gave `windows` a length of two, `Time interval` read `Autumn 1, Autumn 1`, and three sessions
+   became ten. A family would have been billed for a term a year away that nobody has taught.
+
+   THE PAYLOAD REALLY SHIPS THE NAME TWICE TODAY, and `doget.gs` believes otherwise — its own
+   comment says that once terms which have ENDED are dropped *"each name appears once inside the
+   next twelve months"*. Measured against the real `schoolYear`: on 25/09/2026 that filter keeps
+   `Autumn 1 2026-09-07..2026-10-23` AND `Autumn 1 2027-09-06..2027-10-22`, because the first has
+   not ended and the second starts four days inside the 370-day cut-off. The claim holds for most
+   of the year and fails every autumn, which is the one term this actually matters for. Repaired
+   there too — but the deploy that carries it is blocked on the Cloud-project switch, and this app's
+   house rule is that a broken sheet must still produce a working site, so the phone answers it.
+
+   A NAME IS AN ANSWER TO A QUESTION AND A QUESTION HAS ONE ANSWER. Two identical buttons is not a
+   choice anybody can make, and ticking one cannot honestly mean "both of them" — it means the one
+   they are about to teach, which is the first, because `doGet` sends them chronologically.
+
+   FOUR READERS, ONE ANSWER. The step's option list, this filter, `waitTerm_` and the receipt's
+   term lookup all read the same deduped list. The last two used `.find`, so they were already
+   right by accident; going through here makes it a rule rather than luck, and stops the option
+   list offering a name the price would then read differently. */
+function intervals_() {
+  const seen = {};
+  return (DATA.intervals || []).filter(x => {
+    const k = norm(x.label || x.term);
+    if (!k || seen[k]) return false;
+    seen[k] = 1;
+    return true;
+  });
+}
+
 /** What the pricing chain wants, out of what has been answered so far. */
 function bookSpec() {
   /* ---------- EVERY TERM CHOSEN, IN DATE ORDER ---------------------------------------------------
@@ -1593,7 +1627,7 @@ function bookSpec() {
      saved form could hold one, so a bare name is read as a list of one rather than throwing. */
   const want = Array.isArray(BOOKING.interval) ? BOOKING.interval
              : (BOOKING.interval ? [BOOKING.interval] : []);
-  const ivs = (DATA.intervals || [])
+  const ivs = intervals_()
     .filter(x => want.some(w => norm(w) === norm(x.label || x.term)));
   const first = ivs[0] || {};
   const last = ivs[ivs.length - 1] || {};
@@ -1984,7 +2018,7 @@ document.addEventListener('change', e => {
    date at all. One parser, in core.js, used by everything that reads one. */
 function waitTerm_() {
   const now = new Date(); now.setHours(0, 0, 0, 0);
-  const terms = (DATA.intervals || []).filter(t => norm(t.kind) !== 'holiday');
+  const terms = intervals_().filter(t => norm(t.kind) !== 'holiday');
   const dt = v => parseDMY(v);
   const running = terms.find(t => dt(t.opensOn) && dt(t.closesOn)
     && now >= dt(t.opensOn) && now <= dt(t.closesOn));
@@ -4178,7 +4212,7 @@ function jobRows(j) {
      THE TERM IS ON THE JOB — `term_name`, written when the list was opened — and its dates come off
      `DATA.intervals` by name. So this is a lookup rather than a second copy of the school year. */
   if (norm(j.kind) === 'waitlist') {
-    const iv = (DATA.intervals || []).find(x => norm(x.label || x.term) === norm(j.term)) || null;
+    const iv = intervals_().find(x => norm(x.label || x.term) === norm(j.term)) || null;
     /* ---------- `For` MEANS THE CLIENT, AND HERE IT MEANT THE TERM -------------------------------
        ON THE FORM `For` IS WHO THE SESSION IS FOR — the family paying. On a waiting list it was
        pushed with the TERM in it, and there is a `Term` row four lines up, so the receipt printed

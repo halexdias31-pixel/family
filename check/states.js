@@ -310,6 +310,32 @@ const STATES = {
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
+    /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
+       `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
+       they are one decision and one monthly clock — asked for as *"…all together. and they can only
+       change once a month."* `check/fixture.json` carried neither group, so the lab has never
+       rendered a pricing box at all: the same hole the booking receipt, the message thread and the
+       basket were each in, and the third time in three commits that the fixture was found stating a
+       shape `doGet` does not send.
+
+       FOUND BY ASKING THE DOM for the rate box, exactly as the wardrobe state below does. A literal
+       page number drifts the moment a deployment sends one group fewer. */
+    { name: 'the rate and group size',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="rate_per_hour"]'));
+        if (at < 0) throw new Error('no pricing page on the settings column');
+        goPage('settings', at, true);
+      },
+      /* EXACTLY FOUR, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
+         boxes would pass a bare count — and two is precisely what splitting the group back into
+         `Group size` and `Your rate` produces. The whole point is that they are on ONE page, so the
+         number is the assertion. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 4
+                     ? 4 : 0),
+      wants: 'all four pricing boxes on one page' },
+
     { name: 'the wardrobe',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
