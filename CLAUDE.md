@@ -11970,3 +11970,212 @@ off the entries above rather than remembered, because this tally has been wrong 
 twice. Nothing measured wrong at any point: the card is 467 / 554 / 583px at 320 / 390 / 768,
 identical to the pixel before and after, because the canvas is `margin: auto` in a card the pane
 sizes. What a screenshot settles is whether it reads as the game, and it does.
+
+## Five reports, and the one that decided the other four was a column with no room in it
+
+**Asked for in one message over three screenshots**: *"i dont like this. this is shit. no pop up
+menus. can you see how in screenshot i booked 3 hours? there should be a 3 hour mutultiplier in the
+multiplication column, but i can also see theres no space for that. so make the time grid thinner by
+scale facter 0.5. i dont care if its really thin now. delete the text "tot the tutor bit". can you
+also wipe everything we know about the sharing reciept? I want the feature fully wiped and remade
+again. all i want is for when i share a booking/reciept it just shares a pdf of an exact copy of
+what they are seeing on the screen."*
+
+### A day's hours are a multiplier, and the week was standing in the column they go in
+
+**The second and third asks are one change and the owner's own sentence says so.** The week spanned
+`grid-column: 2 / 4` — the answer column and the multiplier column — on an argument written a
+fortnight earlier: *"the two a day row could never fill"*. It fills it. `priceFrom` does
+`p *= L.hoursPerWeek`, and hours-a-week is the sum of the seven day rows, so a day's own figure is a
+term of the product the card is already read down rather than a label that happens to start with a
+`×`.
+
+**COUNTED FROM THE TICKS, NEVER STORED BESIDE THEM.** Three lit cells and a `× 3` that disagree
+would be a foot apart on one row, which is this repository's oldest shape with the two copies in
+sight of each other. The receipt's week takes its figure off `hours_per_session` instead — a saved
+job holds one span — so both documents print the same number because they say the same fact, not
+because they share a guess.
+
+| at 320 / 390 / 768 | before | after |
+|---|---|---|
+| the strip | 98.7 / 125.8 / 133.9px | **56.3 / 75.3 / 80.9** |
+| a cell | 8.97 / 11.69 / 12.48 | **4.7 / 6.6 / 7.2** |
+
+**0.53× at every width**, which is as near the half that was asked for as a column edge lands, and
+*"i dont care if its really thin now"* is the authority for it. `ACCEPTED_TAP` carries the
+arithmetic and says plainly that a fingertip covers about six columns at 320 — what makes it
+liveable is unchanged and is the same sentence a Scrabble square gets: a wrong tap costs nothing,
+because a lit hour comes straight back off and nothing is sent until Send.
+
+### `.bk-m` IS HIDDEN ON A ROW WITH NO TOTAL, WHICH IS RIGHT ABOUT EVERY OTHER ROW
+
+The figure-collapse rule asks `:has(.bk-t:not(:empty))` — a priced row has a running total, and a
+row with no total has no figures. A day row breaks that in one direction only: its `× 3` is a count
+of hours and a day has no running total, because the price is a product over the week. **Without the
+`:not(.bk-wk)` the markup would have said `× 3` and the card would have shown nothing**, which is
+the worst of the three outcomes. Narrowed to the week rather than widened to "any non-empty figure",
+because the wider rule also un-hides the `—` a rate multiplier of exactly 1 writes into its own
+column — a separate decision about twenty-odd other rows.
+
+### The hour numbers could not survive it, and the header doubled in height carrying them
+
+**`18` IS ABOUT 7.4px OF INK AT `.slot-hh`'s SIZE AND THE COLUMN IS 4.7px.** So every two-digit hour
+wrapped onto two lines and the one row of the seven that carries the header went 7.4px tall to 14.8.
+Measured in the arrangement that ships: the card went **544 to 551 at 320** — seven pixels for a row
+of numbers nobody could read.
+
+**So the hour week says its span and the block week names its columns**, and which of the two is the
+caller's to state because it is a fact about the caller's grid: a block's name is a third of the
+strip and an hour's is a tenth. `9 – 18` over ten evenly spaced cells is a ruler — you count along
+it — and every cell still says its own hour in `title` and `aria-label`, which is more than the
+numerals ever gave a screen reader. **Neither an ellipsis nor a shrunk font**: both leave a number on
+screen that cannot be read.
+
+**Measured after: the card is back to 544 at 320**, which is exactly where it was before any of
+this — the ruler gives back what the multiplier cost, and the 10px that card has been past its pane
+at 320 is untouched and is nobody's doing tonight.
+
+## There is no room in the booking card, so the list is the page rather than a sheet over it
+
+**Reported as *"i dont like this. this is shit. no pop up menus."*** — over a screenshot of the
+multi-select sheet built the day before, which was itself the fix for *"for me to multiselect i have
+to click on field then click on subject then click on field then click on another subject."*
+
+**THE GEOMETRY RULES OUT EVERY IN-CARD EXPANSION AND THAT IS THE WHOLE OF THE DESIGN.** `.pane` is
+`overflow: hidden`, and measured on the booking column the card's own content is **544px in a 534px
+pane at 320×568 and 605.7 in 613 at 390** — seven pixels of headroom at the widest phone and ten
+past the fold at the narrowest. Twelve subjects as wrapped 44px chips is about 276px at 320; as a
+stacked list, 528.
+Either way the rows below it, the Send tile among them, go past a fold with no scroll and no page to
+turn to. A capped block with its own scroller does not help, because the card grows by whatever the
+cap is. **Every shape that opens under the row overflows**, and that is arithmetic rather than an
+opinion.
+
+**SO THE PAGE THE FORM IS ON SHOWS THE LIST INSTEAD OF THE FORM.** Nothing covers anything, the page
+COUNT does not change — `bookBlocks` still returns the form's page first and the receipts after it —
+so `PAGE.booking` is where it was, the back gesture does not leave the app, and the card in front of
+you becomes the list and then becomes the card again. Pressing the field opens it and pressing Done
+closes it, which is the gesture that was asked for in the first place.
+
+**`#bookr` IS THE WRAPPER EITHER WAY, AND THAT IS NOT TIDINESS.** `paintBook_` finds the screen to
+repaint by walking up from `#bookr`, so a picker drawn outside it would come up once and then be
+unable to redraw itself — every tick would run the handler and change nothing, which is the fourth
+of the four causes `clicks()` lists and the one that looks exactly like the app being dead. That is
+the fault this file already records under *"grid not working when click"*, and it is why the state
+lives in `BOOKING.picking` rather than in the DOM: a redraw rebuilds the page, and state kept in
+markup is state a redraw loses.
+
+**TWO COLUMNS RATHER THAN A STACK, WHICH IS THE SAME ARITHMETIC AGAIN.** Twelve full-width 44px
+buttons is 528px against a 534px pane before the heading and the Done.
+`repeat(auto-fill, minmax(7.5rem, 1fr))` is two columns on a phone and more on anything wider — six
+rows of 44 — and the card measures **432.7px at 320 with twelve options on it**, every one a real
+44px target, with a hundred pixels to spare. Screenshotted, which is the **twentieth** time this
+file says so — counted off the entries above rather than remembered, the last of them being the
+Flappy Bird sky one heading up.
+
+**A STEP THAT CANNOT BE ANSWERED CLOSES THE LIST** rather than drawing an unpressable one. Changing
+Kind can lock the very question being picked — a joined class settles its own subjects — and a page
+of twelve greyed buttons with a Done under it is a state nobody chose to be in.
+
+### The journey had to assert the two things that pull against each other
+
+`check-flow`'s multi-select journey asserted that the surface stays open across ticks, **which is
+also true of the shape that was just rejected.** It asks both now: the list is on the page after two
+ticks, AND `#sheet` is still hidden — so the sheet coming back fails it — and Done puts the form
+back, because a list drawn in place of the form is a page somebody is stuck on if its one way out
+stops working. `bookerCard` is exported for it, since the only way to ask "is the list on screen" is
+to ask what page 0 of the booking column holds.
+
+## Sharing is a print of the element, and the second renderer is gone
+
+**Asked for as *"can you also wipe everything we know about the sharing reciept? ... all i want is
+for when i share a booking/reciept it just shares a pdf of an exact copy of what they are seeing on
+the screen."*** Wiped: `receiptCanvas` (about two hundred lines), `corsImage_`, `BOOK_ROWS`, and
+`js/check-canvas.js` with its roster entry.
+
+**THE HONEST READING OF "AN EXACT COPY" IS THE ELEMENT ITSELF**, and this file's own record of that
+canvas is the argument. It had its own column arithmetic, its own fonts, its own palette read off
+the document and its own rules and dashes — and over its life it drew *a green terminal of a card
+that was cream paper*, printed the venue and the tutor twice, went on drawing photographs the card
+had stopped drawing, and said `TO PAY` where the screen said `COST`. Every one of those is one
+document told the answer twice. **A second renderer is not a copy of the first; it is a thing that
+has to be kept in step with it.**
+
+**SO IT PRINTS, WHICH IS THE ROUTE THIS APP ALREADY HAS THREE OF.** The cheat sheet, the flyer and
+`quiz-print` each build their paper, put a class on `body` and call `window.print()`. A print
+dialogue is where every phone and every laptop keeps *save as PDF* and *share*, so the PDF is the
+platform's, made from the real markup with real text in it rather than a picture of some pixels —
+and `check-surfaces.js` fails the build on the alternative anyway.
+
+**THE `.rc` THE BUTTON IS IN, ASKED OF THE DOM.** The share tile is printed on the receipt's own
+foot, so the document to print is the one the control is part of — the same move as `msg-send`
+walking up to its nearest `.msg-form`. The form, a saved session and the basket all share the
+handler without any of them being named.
+
+### Three things it got wrong before it was right, and all three were measured
+
+| | |
+|---|---|
+| **`position: absolute` landed it at x = 101.3** | `.screen` is `position: absolute` and `placeCells` puts a transform on the columns, and either makes an ancestor the containing block. So `left: 10mm` was 10mm from whichever column the card was parked in. The other three printable things are children of `body` and never met this, because they BUILD their paper. This one moves, and a comment node holds its place so it goes back whether the dialogue was used or dismissed |
+| **a print re-lays the page out** | the receipt is 327.6px on a 390px phone and **472 once the page box is A4** — so what would have printed is a wider re-flow of the card, with different column widths and different wraps, against a scale computed from a box that no longer existed. `--rc-w` pins it to the width it had on the glass |
+| **a browser drops backgrounds when it prints** | on the reasonable assumption that a page is black on white. This document is black and gold, so without `print-color-adjust: exact` the gold marks — which are how the week and the six stage ticks say anything at all — disappear |
+
+**THE SCALE IS A TRANSFORM RATHER THAN A WIDTH**, because a width would re-lay the grid out and a
+document that re-flows for the paper is no longer a copy of what was on the screen. The smaller of
+the two fits, so a long receipt shrinks onto one page rather than being cut in half by a page break.
+Measured on the real card: k = 1.729, the sheet lands at **10mm, 10mm, 566.4 × 993.4** inside a
+718 × 1047 printable area.
+
+**AND THE TWO TILES ARE HIDDEN ON THE PRINT.** `Ask for it` and `Share this booking` are printed
+inside the receipt's own foot — see `bookBreakdown`, which put them there deliberately — so they are
+part of the element, and a PDF of a booking with a gold Send button on it is a picture of a control
+nobody can press.
+
+**WHAT IT COSTS IS AN A4 OF BLACK IF SOMEBODY PUTS IT ON PAPER**, and that is the trade rather than
+an oversight: *"an exact copy of what they are seeing on the screen"* is a dark card on a dark page,
+and a white sheet would be a different document. It is written down here rather than quietly
+lightened, because which of the two a PDF should be is the owner's call and the line to change is
+one `print-color-adjust`.
+
+## `£332.16 to the tutor` is gone, and the block under it is admin-only now
+
+**Asked for as *"delete the text 'tot the tutor bit'"***, over a screenshot of that line floating
+under the card. It went whole rather than being reworded: what it said was already the one thing on
+that block a tutor could read about themselves, so shortening it would have left a figure with no
+sentence.
+
+**AND THE TEST THAT LET A TUTOR SEE THE BLOCK WENT WITH IT.** `moneyBlock` admitted an admin *or the
+tutor whose booking it is*, and with the pay line gone the second branch can only ever draw an empty
+div — a reader left standing over a condition that no longer produces anything, which is the shape
+this file records under `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard. What is
+left is the business's own arithmetic about an agreement, beside the agreement rather than in it.
+
+**`tutorPay` IS STILL COMPUTED AND STILL POSTED** — `priceFrom` sets it and the backend writes it —
+so nothing about what a tutor is paid has changed. It is not printed on this screen.
+
+### Proved by mutation, and the two halves of the multiplier need two different instruments
+
+**`check-flow` HOLDS THE ARITHMETIC AND THE MARKUP.** A new journey reads the seven day rows off the
+card the app actually draws and wants `× 3`, nothing, `× 1`, nothing — and then that those figures
+**add up to the `hoursPerWeek` the price is built on**, because a day figure that does not sum to
+the number `priceFrom` multiplies by is two statements of one fact. Putting `mul: ''` back names
+both: *"reads ["","","","","","",""], wanted ["× 3","","× 1",…]"* and *"the day figures add to 0 and
+the price is built on 4 hours a week"*.
+
+**THE DISPLAY HALF IS CSS AND JSDOM APPLIES NO STYLESHEET**, so it was measured in a browser
+instead: with the week's exemption removed from the figure-collapse rule, `.bk-m` computes to
+`display: none` with `× 3` inside it. Written down rather than turned into a rule, because the thing
+that guards it is the `:not(.bk-wk)` and the thing that found it is a person laying the card out.
+
+**AND THE PICKER'S TWO CONTROLS WERE PRESSED BY NOTHING.** `check/press.js` said so itself —
+*"named on a screen and then not found to press (2): booking/book-many-pick, booking/book-many-done"*
+— because both are drawn only once a field has been pressed, and the press pass builds its queue
+from what is on the screen. While it was a sheet they were collected with everything else a press
+opens; on the page they are a declared state or they are nowhere. `booking · a list of answers open`
+seeds `BOOKING.picking` through `drawBooker()`, which is what `book-many` does, and finds the step
+off `BOOK_STEPS` rather than naming one — a literal here would be a second copy of which questions
+take several answers.
+
+**Restoring the sheet fails the journey in four places at once**, which is what asking both
+questions buys: *"pressing the 'subjects' row does not put the list on the page"*, *"the 'subjects'
+row opens a sheet over the app"*, and twice that a tick closes it.

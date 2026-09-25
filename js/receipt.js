@@ -15,318 +15,107 @@
 ================================================================================================== */
 
 
-/* The one entry point. Everything that changes an answer calls this, and it is the only thing
-   that calls `drawBooker_` — so nothing can redraw the sheet without keeping its place. */
-/* ---------- THE RECEIPT AS A PICTURE --------------------------------------------------------------
-   Drawn onto a canvas from the same booking the card is drawn from, then handed to the phone's own
-   share sheet.
+/* ---------- SHARING IS A PRINT OF WHAT IS ON THE SCREEN -------------------------------------------
+   ASKED FOR AS *"can you also wipe everything we know about the sharing reciept? I want the feature
+   fully wiped and remade again. all i want is for when i share a booking/reciept it just shares a
+   pdf of an exact copy of what they are seeing on the screen."*
 
-   WHY NOT SCREENSHOT THE ELEMENT. There is no way to do it without a library — html2canvas and its
-   kind are a hundred kilobytes and a fourth permanent file — and the SVG-foreignObject trick that
-   avoids them is worse: it silently drops remote images and any font the page did not inline. So
-   the receipt is drawn twice, once in HTML and once here. That is real duplication and the honest
-   cost of not taking a dependency; the ROW DATA is shared, so what differs between them is only
-   how a row is painted.
+   WHAT WENT: `receiptCanvas`, about two hundred lines of it, and `corsImage_` beside it. It drew
+   the receipt A SECOND TIME onto a canvas — its own column arithmetic, its own fonts, its own
+   palette read off the document, its own rules and dashes — and `js/check-canvas.js` existed for
+   the one fault that arrangement has and nothing else can see: a canvas has no DOM, so a column
+   landing on top of another is invisible to every other instrument here. Both are gone. So is
+   `BOOK_ROWS`, which was the list the card had just drawn, put where the canvas could reach it.
 
-   THE PHOTOGRAPHS ARE THE HARD PART. Drawing a remote image onto a canvas TAINTS it — the browser
-   refuses `toBlob` afterwards, on the reasoning that a page should not be able to read pixels it
-   was only allowed to display. Drive does not send the header that would allow it. So each photo is
-   attempted with CORS and, when that fails, a drawn frame takes its place: the share always works,
-   and it never half-works.
+   THE HONEST READING OF *"an exact copy of what they are seeing"* IS THE ELEMENT ITSELF. A second
+   renderer is not a copy of the first, it is a thing that has to be kept in step with it — and this
+   file's own history is the argument: the canvas drew a green terminal of a card that was cream
+   paper, printed the venue and the tutor twice, drew photographs the card had stopped drawing, and
+   said TO PAY where the screen said COST. Every one of those is one document told the answer twice.
+
+   SO IT PRINTS, WHICH IS THE ROUTE THIS APP ALREADY HAS THREE OF. The cheat sheet, the flyer and
+   `quiz-print` all build their paper, put a class on `body` and call `window.print()`; this does
+   the same to an element that is already on the screen. A print dialogue is where every phone and
+   every laptop keeps "save as PDF" and "share" — so the PDF is the platform's, made from the real
+   markup with real text in it, rather than a picture of some pixels.
+
+   AND IT IS THE `.rc` THE BUTTON IS IN, asked of the DOM rather than remembered. The share tile is
+   printed on the receipt's own foot, so the document to print is the one the control is part of —
+   the same move as `msg-send` walking up to its nearest `.msg-form`, and it means the form, a saved
+   session and a basket all share this handler without any of them being named.
 --------------------------------------------------------------------------------------------- */
 
-/* `corsImage_` IS UNUSED SINCE THE PHOTOGRAPHS LEFT THE SHARED PICTURE, and it is kept rather than
-   deleted: it is the one piece of knowledge in this file about how a Drive image can be got onto a
-   canvas at all — see the note above it — and the next thing that wants a picture in a share will
-   want exactly this. Deleting it would mean rediscovering the CORS behaviour from scratch. */
-/** Load an image for canvas use, or nothing. Never rejects — a missing photo is not a failed share. */
-function corsImage_(src) {
-  return new Promise(resolve => {
-    if (!src) return resolve(null);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
-    /* Some hosts neither load nor error — they hang. A share that never happens is worse than one
-       without pictures. */
-    setTimeout(() => resolve(img.complete && img.naturalWidth ? img : null), 2500);
-  });
-}
+/* A4 AT 96dpi, WHICH IS THE ONE PLACE THESE NUMBERS ARE WRITTEN. `@page` in the stylesheet sets the
+   same size and the same margin; a scale computed against a different sheet from the one being
+   printed on is a card that runs off the paper, so the pair is named here and cross-referenced
+   there rather than each being a number somebody typed. */
+const RC_PAGE_W = 794, RC_PAGE_H = 1123, RC_PAGE_M = 38;   /* 210mm x 297mm, 10mm margins */
 
-/* ---------- THE PICTURE IS THE CARD, IN THE CARD'S OWN COLOURS -----------------------------------
-   IT TOOK A `stage` AND CHOSE ONE OF FOUR SKINS, so that sharing an application did not send
-   somebody a picture of a paid receipt. The argument is right. What it could not survive was being
-   told the answer twice.
+on('book-share', el => {
+  /* THE DOCUMENT THIS CONTROL IS PART OF. Nothing is cloned and nothing is rebuilt: what prints is
+     the element the person is looking at, with whatever is answered in it at this moment. */
+  const rc = el.closest && el.closest('.rc');
+  if (!rc) return toast('There is nothing to share on this card yet');
 
-   THE CARD PICKED ITS SKIN WITH `kind`, PASSED BY `bookBreakdown`. The picture picked its skin with
-   `stage`, read off `data-stage` on the share button — written in exactly one place, the share tile
-   in this file, as `{ stage: 'screen' }`. Two constants, two files, one document. When an earlier
-   pass moved the booking form onto the receipt skin it changed the first and not the second, so
-   every share from that day on drew A GREEN TERMINAL of a card that was cream paper: the same
-   booking, sent as a different object from the one on screen, which is the precise fault the four
-   skins were added to prevent.
+  /* ---------- AS BIG AS THE PAPER TAKES, AND NOT ONE PIXEL RESHAPED ------------------------------
+     A PHONE CARD IS ABOUT 312px WIDE and A4 is 794, so printed at its natural size the receipt is a
+     third of the sheet in one corner. Scaled up it fills the page — and a TRANSFORM is what makes
+     that an enlargement rather than a re-layout: setting a width instead would reflow the grid, and
+     a document that re-flows is no longer a copy of what was on the screen.
 
-   THAT IS THE SECOND REASON THE COSTUMES HAD TO GO, and the more convincing one. A choice between
-   four appearances, made twice, in two files, by two names for the same thing, is a choice that is
-   wrong as soon as one of them is edited — and nothing anywhere can tell you which. It was found
-   by reading, not by a check, because there is no check that can see it.
+     THE SMALLER OF THE TWO FITS, so a long receipt shrinks to one page rather than being cut in
+     half by a page break, and a short one does not blow up past the paper. Capped at 3, because
+     beyond that the thing being read is the pixels. */
+  const box = rc.getBoundingClientRect();
+  const k = Math.min(3,
+    (RC_PAGE_W - 2 * RC_PAGE_M) / Math.max(1, box.width),
+    (RC_PAGE_H - 2 * RC_PAGE_M) / Math.max(1, box.height));
+  rc.style.setProperty('--rc-k', String(Math.max(1, k).toFixed(3)));
+  /* ---------- AND ITS WIDTH IS PINNED TO THE ONE IT HAD ON THE SCREEN ----------------------------
+     A PRINT RE-LAYS THE PAGE OUT AT THE PAPER'S WIDTH. Measured: the receipt is 327.6px on a 390px
+     phone and 472 once the page box is A4, so without this the thing printed is a wider re-flow of
+     the card rather than the card — different column widths, different wraps, and a scale computed
+     against a box that no longer exists. Frozen in pixels, so what goes on the paper is the layout
+     that was on the glass and the only thing the transform does is make it bigger. */
+  rc.style.setProperty('--rc-w', box.width.toFixed(1) + 'px');
+  rc.classList.add('rc-print');
 
-   SO THE PICTURE ASKS THE STYLESHEET. A canvas cannot read CSS rules, but it can read custom
-   properties off the document, and those are the same six tokens the card is drawn with. Restyle
-   the card and the picture has already followed — which is what "the card is what they read and
-   checked; the picture is what they send" requires and could not have before.
+  /* ---------- OUT OF THE COLUMN, BECAUSE `absolute` IS RELATIVE TO WHATEVER IS ABOVE IT ----------
+     `.screen` IS `position: absolute` AND `placeCells` PUTS A TRANSFORM ON THE COLUMNS, and either
+     of those makes an ancestor the containing block for an absolutely positioned child — so a
+     receipt pinned to `left: 10mm` landed 10mm from the COLUMN it happens to be parked in, which on
+     a screen whose columns are off-canvas either side is anywhere at all. Measured: x = 101.3 on a
+     page 794 wide.
 
-   THE SHOP NAME STAYS ON THE PICTURE, and only here. It came off the card because a document on
-   screen, inside the app, has not left anywhere. This is the copy that leaves. */
-async function receiptCanvas() {
-  const L = bookPrice();
-  if (!L) return null;
-  /* ---------- THE ROWS THE CARD DREW, NOT A SECOND OPINION --------------------------------------
-     THIS CALLED `breakdownRows(L)` AND DREW THE RESULT, which is the priced lines only — before the
-     card merges them onto the questions, orders them, and adds the ones that have no price at all.
-     What somebody shared was therefore a different document from the one they were looking at:
-     fewer rows, a duplicate tutor line the card had already merged away, and Extra subjects in the
-     wrong place. The card is what they read and checked; the picture is what they send.
+     THE OTHER THREE PRINTABLE THINGS IN THIS APP ARE CHILDREN OF `body` and never met this, because
+     they build their paper rather than printing something already on screen. This is the one that
+     has to move, and it moves back: a comment node holds its place, so the card returns to exactly
+     where it was whether the dialogue was used or dismissed. */
+  const mark = document.createComment('rc-print');
+  if (rc.parentNode) rc.parentNode.insertBefore(mark, rc);
+  document.body.appendChild(rc);
+  document.body.classList.add('printing-rc');
 
-     `BOOK_ROWS` IS THAT LIST, set by `bookBreakdown` every time the card is drawn — and the card is
-     always drawn before there is a share button to press. The fallback is the old behaviour, for
-     the one case where a picture is asked for without a card having been built. */
-  const rows = (typeof BOOK_ROWS !== 'undefined' && BOOK_ROWS && BOOK_ROWS.length)
-    ? BOOK_ROWS
-    : breakdownRows(L);
-  /* Drawn at three times the size and scaled down by the device, so it is sharp on a phone and
-     still sharp when somebody opens it on a laptop. */
-  /* ---------- WIDE ENOUGH FOR WHAT IS ON IT ------------------------------------------------------
-     380 WAS THE PHONE-CARD WIDTH and this is not a phone card, it is a picture somebody opens in
-     WhatsApp and pinches to read. Sized to the columns instead: a 14-character label, a value worth
-     reading, and three numeric columns that cannot be squeezed. At 380 the value column came out
-     eight characters — "Summer Holiday" arriving as "Summer H", which is a clash solved by
-     destroying the content, and no better than the clash. */
-  const S = 3, W = 540 * S, PAD = 26 * S;
-  const LINE = 17 * S;
-
-  /* Height has to be known before drawing, so the rows are measured first. Two passes over the same
-     list rather than a guess: a canvas that is too short crops the total off the bottom. */
-  const photoH = 0;   /* the two photographs are gone — see below */
-  const headH = 92 * S;
-  const footH = 118 * S;
-  const H = photoH + headH + rows.length * LINE + footH;
-
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const g = cv.getContext('2d');
-  if (!g) return null;
-
-  /* ---------- THE COLOURS COME OFF THE DOCUMENT, NOT OUT OF A TABLE HERE --------------------------
-     THIS WAS A `SKINS` TABLE of four palettes in raw hex, with a note calling it "the one honest
-     duplication in this file, because a canvas cannot read CSS". The premise is wrong and it is the
-     useful kind of wrong: a canvas cannot read CSS RULES, but `getComputedStyle` on the root element
-     hands back custom properties, and those are exactly what the card is drawn with.
-
-     SO THE PICTURE READS THE SAME FIVE TOKENS THE STYLESHEET DOES. Change the palette in one place
-     and the shared image follows on its own, which is the only version of "the card and the picture
-     cannot say different things" that survives somebody restyling the card and not knowing this
-     file exists.
-
-     WITH A FALLBACK EACH, like every other read in this app. A canvas drawn on a page whose
-     stylesheet has not arrived would otherwise come out as black on black — an empty string is a
-     perfectly legal fill and paints nothing anybody can see. */
-  const TOK = getComputedStyle(document.documentElement);
-  const tok = (name, or) => (TOK.getPropertyValue(name) || '').trim() || or;
-  const PAPER = tok('--raised', '#0b0b0b');
-  const INK   = tok('--ink', '#e6e6e6');
-  const FAINT = tok('--faint', '#808080');
-  const EDGE  = tok('--line', '#232323');
-  g.fillStyle = PAPER;
-  g.fillRect(0, 0, W, H);
-
-  /* THE BORDER, because the card has one. On screen a hairline is what says where the document
-     stops; in a picture posted into a chat it is what stops a dark card dissolving into a dark
-     thread. Drawn as a stroke inside the edge rather than a rect behind it, so the corner radius
-     the card has is at least approximated by a square one rather than contradicted by a bleed. */
-  g.strokeStyle = EDGE;
-  g.lineWidth = 1 * S;
-  g.strokeRect(S / 2, S / 2, W - S, H - S);
-
-  /* ---------- THE TORN ENDS WERE HERE, AND SO WAS A TRAP WORTH KEEPING ----------------------------
-     A ZIGZAG WAS CUT OUT OF THE TOP AND BOTTOM with `destination-out`, matching the card's mask.
-     Both are gone for the same reason: the tear is what says a till printed this, and this document
-     is also the booking form and the basket.
-
-     `tooth` SET WHERE THE CONTENT STARTS AS WELL AS HOW DEEP THE TEAR WAS, and a previous pass moved
-     its `const` inside the `if` that drew the tear — so every share of a document that was not torn
-     threw `tooth is not defined`, which was every share. The inset survives the tear because the
-     content needed it either way; it is named for what it does now. */
-  const TOP = 18 * S;
-
-  let y = TOP + 8 * S;
-
-  /* ---------- THE PHOTOGRAPHS WENT FROM THE CARD AND STAYED IN THE PICTURE ------------------------
-     TWO SQUARES, A VENUE AND A TUTOR, ABOUT A THIRD OF THE PAGE. `bookBreakdown` removed them from
-     the card and gave the reason: they were the largest thing on the screen and, before anything
-     was answered, both were empty outlines saying nothing. The picture kept drawing them — so the
-     document somebody SENDS opened with a blank grey box captioned "Sutton Library" above a
-     photograph of the tutor, and the receipt itself started a third of the way down.
-
-     IT IS A RECEIPT, NOT A LISTING. What is being shared is what was asked for and what it costs;
-     a picture of the room is an advertisement, and it belongs on the venue's own card where
-     somebody is choosing one. Gone here for the same reason it went there. */
-
-  /* ---- the head ---- */
-  g.textAlign = 'center'; g.fillStyle = INK;
-  g.font = `700 ${13 * S}px ui-monospace, monospace`;
-  g.fillText('@family.', W / 2, y); y += 16 * S;
-  /* THE STAGE LINE STOOD HERE — "ASKING FOR A SESSION", "ON THE WAITING LIST" — set from the same
-     `stage` the skin came from, and so wrong in the same way: it said "ASKING FOR A SESSION" on a
-     picture of a card that had stopped being a form. With one document there is one thing to say
-     and the rows say it. When a stage line is wanted again it belongs on the card first, where
-     somebody can see whether it appears, and the picture should read it from there. */
-  /* ---------- THE VENUE, TUTOR AND TERM WERE PRINTED TWICE ----------------------------------------
-     A THREE-LINE SUBHEADING SAYING "Morden Library / Halex Dias / Autumn 1" — and every one of
-     those is a row of the receipt eight lines further down, with its multiplier and its price
-     beside it. The card has no such heading; it starts at the first question. So the picture opened
-     with a summary of itself, which is the one thing a receipt should never do: the same fact
-     twice, once without the figures that make it mean anything.
-
-     GONE, and with it the last thing the shared image said that the screen did not. */
-  y += 6 * S;
-
-  const rule = () => {
-    g.strokeStyle = '#b3aa9c'; g.lineWidth = 1 * S;
-    g.setLineDash([3 * S, 3 * S]);
-    g.beginPath(); g.moveTo(PAD, y); g.lineTo(W - PAD, y); g.stroke();
-    g.setLineDash([]); y += 14 * S;
+  /* `afterprint` AND A FOUR-SECOND BACKSTOP, which is what the other three printable things in this
+     app use and for the reason written over `quiz-print`: some browsers never fire the event when
+     the dialogue is dismissed, and a body left with `printing-rc` on it is a blank app. */
+  const done = () => {
+    document.body.classList.remove('printing-rc');
+    rc.classList.remove('rc-print');
+    rc.style.removeProperty('--rc-k');
+    rc.style.removeProperty('--rc-w');
+    /* PUT BACK ONLY IF THE PLACE IS STILL THERE. A repaint between the print and the dismissal
+       rebuilds the column, and re-inserting into a detached tree would leave the card in a document
+       fragment nobody can see. If the mark has gone the card has already been redrawn, so dropping
+       this one is the right answer rather than the lossy one. */
+    if (mark.parentNode) mark.parentNode.insertBefore(rc, mark);
+    else if (rc.parentNode === document.body) rc.remove();
+    if (mark.parentNode) mark.remove();
+    window.removeEventListener('afterprint', done);
   };
-  rule();
-
-  /* ---- the rows. Same six columns as the card, in the same order. ---- */
-  /* ---------- COLUMNS MEASURED FROM WHAT GOES IN THEM ---------------------------------------------
-     THE RATE COLUMN RAN INTO THE MULTIPLIER BY UP TO A HUNDRED UNITS on every row that had both —
-     "x 1.01" and "+ £0.10/h" drawn over each other, which is the clash. The positions were picked
-     by eye and each is right-aligned, so a column has no idea how wide the one before it grew.
-
-     WIDTHS FROM THE LONGEST THING EACH COLUMN ACTUALLY HOLDS, at this font, with a gap that cannot
-     be eaten:
-
-       total   "£1,234.56"   9 chars
-       rate    "+ £10.00/h"  10 chars
-       mul     "x 1.01"      6 chars
-
-     Monospace makes this exact rather than approximate: every glyph is 0.6em, so the width of a
-     column is its longest string and no measurement is a guess. A proportional font would need
-     `measureText` and a fallback when it lies. */
-  const CH = 9.5 * S * 0.6;                    /* one character, at the table's font */
-  const GAP = 8 * S;                           /* the least space that still reads as a gap */
-  const totW = 9 * CH, rateW = 10 * CH, mulW = 6 * CH;
-  const totR = W - PAD;
-  const rateR = totR - totW - GAP;
-  const mulR = rateR - rateW - GAP;
-  const valR = mulR - mulW - GAP;
-  const cols = [PAD, PAD + 26 * S, valR, valR, mulR, totR];
-  g.font = `${9.5 * S}px ui-monospace, monospace`;
-  rows.forEach(r => {
-    g.textAlign = 'left';
-    g.fillStyle = FAINT; g.fillText(r.n || '', cols[0], y);
-    g.fillStyle = r.big ? INK : '#6a6259';
-    g.font = `${r.big ? 700 : 400} ${9.5 * S}px ui-monospace, monospace`;
-    g.fillText(r.k, cols[1], y);
-    g.textAlign = 'right';
-    g.fillStyle = INK;
-    /* Trimmed to what fits. A value that runs into the next column is worse than one cut short. */
-    /* TRIMMED TO WHAT THE COLUMN HOLDS, not to a number somebody typed. 22 was a guess and the
-       room is whatever is left between the label and the multiplier — computed, so it stays true
-       if any of the widths above change. */
-    /* AGAINST THE LONGEST LABEL, not against a guess. Reserving 15 characters when the longest
-       label is 14 leaves the value one character of margin on the widest row and lies about the
-       rest — measuring the label actually on this row gives each one the room it really has. */
-    const valRoom = Math.max(6, Math.floor((valR - (cols[1] + (r.k || '').length * CH + GAP)) / CH));
-    g.fillText(String(r.v || '').slice(0, valRoom), valR, y);
-    g.fillStyle = FAINT; g.fillText(r.mul || '', mulR, y);
-    g.fillStyle = FAINT; g.fillText(r.rate || '', rateR, y);
-    g.fillStyle = INK; g.font = `${r.big ? 700 : 400} ${9.5 * S}px ui-monospace, monospace`;
-    g.fillText(r.total || '', cols[5], y);
-    y += LINE;
-  });
-
-  y += 4 * S; rule();
-
-  /* ---- what it costs ---- */
-  g.textAlign = 'left'; g.fillStyle = INK;
-  g.font = `700 ${11 * S}px ui-monospace, monospace`;
-  /* THE WORD THE CARD USES. The screen says COST and the picture said TO PAY — the same figure
-     under two names, and the one people send was the one that said a payment was due on a booking
-     that has not been accepted yet. */
-  g.fillText('COST', PAD, y);
-  g.textAlign = 'right';
-  g.font = `700 ${15 * S}px ui-monospace, monospace`;
-  g.fillText(money(L.total), W - PAD, y);
-  y += 22 * S;
-  rule();
-
-  /* THE BARCODE WAS HERE, 44 bars off the same seed the card used, and it went from both in the
-     same change. It encoded nothing and nothing could scan it. What it cost was not the pixels: it
-     was drawn twice, from one seed, by two functions in two files, and keeping those two in step
-     was work being done for a thing that was never read. */
-  /* THE FOOTER SENTENCE WAS DRAWN HERE, after a `y += 14 * S` lead, and both went with the card's
-     — see `receiptHtml`. The rule that put it here is unchanged and is what made removing it in one
-     commit necessary: the card's footer is the promise being made, and a picture of the card that
-     promises something slightly different is a second promise.
-
-     `footH` KEEPS ITS 118 AND THAT IS A DECISION. It is the fixed foot the height is computed from
-     before anything is drawn, so with one line less in it the picture ends with a deeper margin
-     under its last rule — which on something opened in WhatsApp and pinched reads as a receipt with
-     a tear-off, not as a gap. Trimming it is a number to measure rather than a number to guess, and
-     nothing here can measure a canvas. */
-
-  return cv;
-}
-
-on('book-share', async el => {
-  /* ---------- A TILE HAS NO TEXT TO REPLACE -------------------------------------------------------
-     THIS WROTE "Drawing…" INTO THE BUTTON, which worked while the button was a word. It is a mark
-     now, and `textContent` on it would have deleted the SVG — the control would go blank mid-press
-     and never come back, because `was` would have been the empty string it started with.
-
-     `tileSet_` IS THE WAY TO CHANGE A TILE, and what it changes is the title: the name is the only
-     text a mark has. Drawing a receipt takes a moment on a long card, so saying so is still worth
-     it — it is just said where an icon-only control says anything. */
-  el.disabled = true;
-  const was = el.getAttribute('title') || 'Share this booking';
-  tileSet_(el, { label: 'Drawing…' });
-  try {
-    /* THIS READ `data-stage` OFF THE BUTTON, under a note saying the card that drew the button had
-       already decided and deciding twice is two answers waiting to differ. Exactly right, and the
-       two answers had already differed for months — see `receiptCanvas`. There is one document, so
-       there is nothing to read. */
-    const cv = await receiptCanvas();
-    if (!cv) throw new Error('Not enough answered to print it yet');
-    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
-    if (!blob) throw new Error('The picture could not be made');
-    const file = new File([blob], 'family-session.png', { type: 'image/png' });
-
-    /* THE PHONE'S OWN SHARE SHEET where there is one — that is how this reaches WhatsApp, which is
-       where these actually get sent. `canShare` is checked with the FILE, not just for existence:
-       a browser can have `share` and refuse files, and finding that out from a rejected promise
-       means the download never happens. */
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: '@family. session' });
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'family-session.png';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      toast('Saved to your downloads');
-    }
-  } catch (err) {
-    /* Somebody dismissing the share sheet is not an error and must not look like one. */
-    if (!/abort/i.test(String(err && err.name))) {
-      toast(String(err && err.message || 'Could not share that'));
-    }
-  }
-  el.disabled = false;
-  tileSet_(el, { label: was });
+  window.addEventListener('afterprint', done);
+  setTimeout(done, 4000);
+  window.print();
 });
 
 /* ==================================================================================================
@@ -346,10 +135,25 @@ on('book-share', async el => {
    WHY IT WAS A SHEET AT ALL: because the funnel needs somewhere that is only the question, with
    the answers so far above it and the price below. A sheet gave that for free. A card gives it
    too, and gives it without hiding the column it belongs to. */
+/* The one entry point. Everything that changes an answer calls this, and it is the only thing that
+   calls `drawBooker_` — so nothing can redraw the card without keeping its place. It sat orphaned
+   at the head of this file for as long as the shared picture was written between it and here. */
 function drawBooker() { redrawBooker_(paintBook_); }
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
 function bookerCard() {
+  /* ---------- OR THE LIST, ON THE SAME PAGE ------------------------------------------------------
+     `#bookr` IS THE WRAPPER EITHER WAY, and that is not tidiness: `paintBook_` finds the screen to
+     repaint by walking up from `#bookr`, so a picker drawn outside it would come up once and then
+     be unable to redraw itself — every tick would run the handler and change nothing, which is the
+     fourth of the four causes `clicks()` lists and the one that looks like the app being dead.
+
+     A STEP THAT CANNOT BE ANSWERED CLOSES THE LIST RATHER THAN DRAWING AN UNPRESSABLE ONE. Changing
+     Kind can lock the very question being picked — a joined class settles its own subjects — and a
+     page of twelve greyed buttons with a Done under it is a state nobody chose to be in. */
+  const pick = BOOKING.picking ? bookStep_(BOOKING.picking) : null;
+  if (pick && !stepLocked_(pick)) return `<div id="bookr">${pickerCard_(pick)}</div>`;
+  if (BOOKING.picking) BOOKING.picking = '';
   const out = drawBooker_();
   if (!out) return '';
   return `<div id="bookr">
@@ -450,8 +254,9 @@ function drawBooker_() {
       ${tile_({ icon: 'send', label: 'Ask for it', tone: 'buy', act: 'book-send' })}
       ${tile_({ icon: 'share', label: 'Share this booking',
                 /* `data: { stage: 'screen' }` WAS HERE and it was the second half of a choice this
-                   document made twice — see `receiptCanvas`. The picture is the card now; there is
-                   nothing left for the button to tell it. */
+                   document made twice, back when sharing drew the receipt again onto a canvas.
+                   Sharing IS the card now — it prints this element — so there is nothing left for
+                   the button to tell it and nothing left to disagree with. */
                 act: 'book-share' })}
     </div>
     ${/* ---------- THE FOOTER LINE WENT ------------------------------------------------------
@@ -468,9 +273,11 @@ function drawBooker_() {
           `id="book-said"` WENT WITH IT AND NOTHING READ IT — measured across `js/`. It was the
           status line of a form that reports through toasts now.
 
-          THE COPY ON THE SHARED PICTURE WENT IN THE SAME COMMIT. `receiptCanvas` drew the same
-          sentence, and its own note says why the two must agree: *"a picture of the card that
-          promises something slightly different is a second promise."* */''}`;
+          THE COPY ON THE SHARED PICTURE WENT IN THE SAME COMMIT, back when there was one to keep
+          in step: the canvas drew this sentence too, and its own note said why the two had to
+          agree — *"a picture of the card that promises something slightly different is a second
+          promise."* What is shared is this element now, so there is one copy of everything on it
+          and that class of drift is gone rather than guarded against. */''}`;
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION ---------------------------------------

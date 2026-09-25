@@ -57,7 +57,6 @@ const SUITE = [
      was that nothing after that line inside the try could ever run, which stayed invisible until
      something was finally put there. */
   { file: 'check-const.js',   what: 'nothing declared const is assigned to' },
-  { file: 'check-canvas.js', what: 'the shared picture, column by column' },
   /* backend/files.json must name every backend file — sync.gs pulls by that list, and a name
      missing from it is a file DELETED from the live project on the next pull. */
   { file: 'check-manifest.js', what: 'the backend file list sync.gs pulls by' },
