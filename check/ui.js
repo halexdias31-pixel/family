@@ -193,23 +193,25 @@ const ACCEPTED_TAP = [
   + 'which is wider than any phone made. Shrinking to fewer hours loses the mornings, and stacking '
   + 'them loses the week-at-a-glance reading that is the whole reason the grid beat a pair of time '
   + 'dropdowns.\n'
-  + '        AND IT IS 44% OF THE ANSWER COLUMN NOW, WHICH IS THE LARGEST COMPROMISE ON THIS LIST. '
-  + 'Asked for as *"i would like the grid to be half as wide"* and then *"can you make the grid '
-  + 'even slightly thinner"*. Ten hours across the full answer column was 18.5 / 23.1 / 24.4px a '
-  + 'cell at 320 / 390 / 768; halved it was 8.8 / 11.1 / 11.8 and at 44% it is **7.6 / 9.7 / '
-  + '10.3**, with a 1px gutter, so at 320 a fingertip covers about four columns at once. THAT IS '
-  + 'PAST WHERE A WRONG TAP IS RARE and the entry says so rather than dressing it up: what makes '
-  + 'it liveable is that a wrong tap costs nothing \u2014 a lit hour comes straight back off with '
-  + 'another tap and nothing is sent until Send.\n'
-  + '        THE THREE SHAPES THAT GIVE HALF THE WIDTH FOR FREE WERE OFFERED WITH THEIR OWN '
-  + 'NUMBERS and refused: two rows of five hours a day (18.6 / 23.2 / 24.5, twice the height), '
-  + 'turned on its side as seven day-columns (13 / 16.3 / 17.2, ten rows), and a shorter span. The '
-  + 'squeeze was chosen over all three with the arithmetic visible, which is what makes this a '
-  + 'decision rather than something nobody measured. Measured after: the hour numbers still fit '
-  + 'their boxes (6.4px of ink in 7.6px at 320, 1.2px either side), nothing scrolls sideways, and '
-  + 'the block week is untouched at 64 / 79.3 / 83.8 \u2014 `blk` is the class that keeps them '
-  + 'apart. 44 rather than 40 because those numbers are the floor: at 40% they have 0.5px of '
-  + 'margin, which is inside the difference between this container and a real phone.\n'
+  + '        AND IT SPANS TWO OF THE CARD\u2019S FIVE COLUMNS, WHICH IS THE LARGEST COMPROMISE ON '
+  + 'THIS LIST. The card is one grid now \u2014 *"each field in its correct column"* \u2014 so the '
+  + 'answer column is 56.3 / 75.3 / 80.9px at 320 / 390 / 768, and ten hours with their gutters in '
+  + 'that is a **4.7 / 6.6 / 7.2px** cell. `grid-column: 2 / 4` gives the week the multiplier '
+  + 'column as well, which a day row can never fill, and lands it on a real column edge: measured '
+  + 'after, **8.97 / 11.69 / 12.48px** with a 1px gutter, and the block week 32.2 / 41.3 / 44.0. '
+  + 'At 320 a fingertip still covers about three columns at once. THAT IS PAST WHERE A WRONG TAP '
+  + 'IS RARE and the entry says so rather than dressing it up: what makes it liveable is that a '
+  + 'wrong tap costs nothing \u2014 a lit hour comes straight back off with another tap and '
+  + 'nothing is sent until Send.\n'
+  + '        ASKED FOR THINNER TWICE AND THIS GIVES A FIFTH OF IT BACK. Ten hours across the full '
+  + 'answer column was 18.5 / 23.1 / 24.4 before either ask; 44% of a span took it to 7.6 / 9.7 / '
+  + '10.3 and ended the strip 29px inside the multiplier column, which is what *"each field in its '
+  + 'correct column"* then convicted. The three shapes that give half the width for free were '
+  + 'offered with their own numbers and refused: two rows of five hours a day (18.6 / 23.2 / 24.5, '
+  + 'twice the height), turned on its side as seven day-columns (13 / 16.3 / 17.2, ten rows), and '
+  + 'a shorter span. One declaration reverses it \u2014 `2 / -1; width: 44%` \u2014 and the trade '
+  + 'is written here and beside the rule so it is a decision rather than something nobody '
+  + 'measured.\n'
   + '        AND 14px IS UNDER `.hr`\u2019s OWN 20px FLOOR, on purpose and on the fourth asking: '
   + '*"make the grid squares and grid thinner"*. What stops it at 14 is that the day name takes '
   + 'over as the row\u2019s floor below it \u2014 12px buys two pixels at 390 and costs a sixth of '
@@ -316,7 +318,8 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], offscreen: [], tinyTargets: [], lowContrast: [], noName: [] };
+  const found = { overflow: [], hidden: [], offscreen: [], strays: [],
+                 tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
      `paint(id)` writes into `#s-<id>`, so that element IS the screen and there is nothing to work
@@ -517,6 +520,58 @@ function inspect(opts) {
       found.offscreen.push({ tag: 'pane',
         cls: String((onPage.firstElementChild && onPage.firstElementChild.className) || '').slice(0, 40),
         by: past, height: Math.round(r.height) });
+    }
+  }
+
+  /* ---------- AND A FIELD CAN BE IN THE WRONG COLUMN, WHICH NOTHING HERE COULD ASK ----------------
+     REPORTED AS *"make reciept builder more like ordely. each field in its correct column"*, the
+     morning after five column heads went onto the booking card. They sat over nothing, and every
+     instrument in this repository was green: nothing overflowed, nothing was clipped, every row
+     measured exactly what it asked for, and both mutants an adversarial review wrote against the
+     header survived the whole suite.
+
+     THE CAUSE WAS STRUCTURAL AND SO IS THE RULE. Every `.bk-row` used to declare `display: grid`
+     and its own `grid-template-columns`, so `max-content` and `1fr` resolved PER ROW — five
+     independent grids stacked up, lining up only by accident. Measured at 390 on a priced booking
+     before the repair: the head's `Q` ended at 60.9 and every label at 75.6; an answer ended at
+     158.3 on a priced row and 319.9 on one with no figures; three blank rows started their dash at
+     44.3, 50.8 and 83.
+
+     SO: EVERY CELL OF A COLUMN MUST HAVE THE SAME TWO EDGES. One question, asked of the card the
+     visitor is looking at, over the classes the card's own grid names. The header is a row like any
+     other here, which is the half that matters: a head that does not sit over its column is exactly
+     as much a finding as a value that does not.
+
+     THE WEEK IS THE ONE EXEMPTION AND ONLY ON ONE EDGE. `.bk-row.bk-wk .bk-v` spans two tracks
+     deliberately — ten pressable hours do not fit in the answer column, and the arithmetic is in
+     style.css beside the declaration — so its RIGHT edge is allowed to differ and its LEFT edge is
+     not, because the left edge is the one the eye tracks down the card.
+
+     1.5px OF SLACK, WHICH IS SUB-PIXEL LAYOUT AND NOTHING ELSE. The smallest real fault this would
+     have caught is 3px (`Extra subj.` overhanging its own label column); a track resolved by the
+     browser differs between rows by hundredths. */
+  for (const card of (live ? live.querySelectorAll('.bk') : [])) {
+    const rows = [...card.children].filter(el => el.classList.contains('bk-row'));
+    if (rows.length < 2) continue;
+    for (const col of ['bk-k', 'bk-v', 'bk-m', 'bk-r', 'bk-t']) {
+      for (const edge of ['left', 'right']) {
+        const seen = [];
+        for (const row of rows) {
+          const el = row.querySelector(':scope > .' + col);
+          if (!el) continue;
+          const b = el.getBoundingClientRect();
+          if (!b.width && !b.height) continue;            // display:none has no box to be wrong
+          /* THE WEEK'S RIGHT EDGE, EXEMPT WITH ITS REASON ABOVE. */
+          if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-wk')) continue;
+          seen.push({ at: Math.round(b[edge] * 10) / 10,
+                      k: (row.querySelector(':scope > .bk-k') || {}).textContent || row.className });
+        }
+        if (seen.length < 2) continue;
+        const lo = seen.reduce((a, b) => b.at < a.at ? b : a);
+        const hi = seen.reduce((a, b) => b.at > a.at ? b : a);
+        if (hi.at - lo.at > 1.5) found.strays.push({ col, edge, by: Math.round((hi.at - lo.at) * 10) / 10,
+                                                     lo: lo.k.trim().slice(0, 18), hi: hi.k.trim().slice(0, 18) });
+      }
     }
   }
 
@@ -987,6 +1042,11 @@ function inspect(opts) {
        the column paged; "off the screen" is a pane placed for a card that has since changed size,
        and wants `placeCells('y', …)` where the size changed. One heading would send a reader to
        the wrong half. */
+    /* A SEPARATE HEADING AGAIN, AND FOR THE SAME REASON: this is not a box that is too big or in
+       the wrong place, it is a box in the wrong COLUMN, and the repair is always the card's grid
+       rather than the element. */
+    (r.strays || []).forEach(o => add('FIELD OUT OF ITS COLUMN',
+      `.${o.col} ${o.edge} edge varies by ${o.by}px down one card — "${o.hi}" against "${o.lo}"`, at));
     (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
     (r.tinyTargets || []).forEach(t => {

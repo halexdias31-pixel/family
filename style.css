@@ -2362,7 +2362,45 @@ button.text-drop { color: var(--bad); }
    own is a number you either trust or you don't, and a chain you can read down is one you can
    check.
 --------------------------------------------------------------------------------------------- */
-.bk { display: flex; flex-direction: column; margin: .4rem 0 .2rem; }
+/* ---------- ONE GRID FOR THE WHOLE CARD, BECAUSE EVERY ROW WAS ITS OWN ---------------------------
+   REPORTED AS *"make reciept builder more like ordely. each field in its correct column"*, the
+   morning after the five column heads went on. They sat over nothing, and the reason is structural:
+   every `.bk-row` declared `display: grid` and its own `grid-template-columns`, so `max-content` and
+   `1fr` resolved PER ROW. Five independent grids stacked up cannot line up except by accident.
+
+   MEASURED AT 390 ON A PRICED BOOKING, before this:
+
+     the head        Q 7.7→60.9   A 65.4→190.5   × 194.9→231    +/h 235.5→276.8   + 281.2→319.9
+     Tutor           K 7.7→75.6   V 80.1→158.3   M 162.7→208.9  R   213.3→266     T 270.5→319.9
+     Subject         K 7.7→75.6   V 80.1→319.9   — no figures, so the answer ran to the card's edge
+     Dates (blank)   K 7.7→39.9   V 44.3→319.9   — `max-content` on a four-letter label
+
+   Not one of the head's five boundaries was a boundary of any row, the answers ended at two
+   different x on one card, and three blank rows started their dash in three different places.
+
+   SO THE CARD DECLARES THE COLUMNS AND EVERY ROW SUBGRIDS ONTO THEM. `max-content` on the label
+   now resolves once, across every label on the card, and `1fr` once — which is what makes a column
+   a column rather than a coincidence. The widths are unchanged; what changed is that there is one
+   set of them instead of thirty.
+
+   THE FONT-SIZE IS SHARED WITH THE ROW AND DECLARED IN ONE PLACE. Every track here is `em` or `ch`,
+   which resolve against the element that DECLARES them — so tracks on `.bk` at the card's font size
+   and text in the row at `.74rem` would size the columns for a font nothing is set in. That is the
+   `rem`-versus-`em` fault the note below records, one level up. */
+.bk {
+  display: grid;
+  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 8ch 7.5ch;
+  column-gap: .3rem;
+  margin: .4rem 0 .2rem;
+}
+/* A ROW SPANS THE CARD AND BORROWS ITS TRACKS. `subgrid` is the only thing that makes a track
+   shared: `display: contents` would drop the row itself, and the row is what carries the padding,
+   the tick-box line-height and the week's own layout. */
+.bk > .bk-row { grid-column: 1 / -1; grid-template-columns: subgrid; }
+/* AND A NOTE UNDER A ROW IS A ROW OF THE CARD TOO. `.bk-say` is a `<p>` sibling emitted after the
+   row it belongs to, and a plain grid item would be placed in the first track — a sentence in the
+   label column. */
+.bk > .bk-say { grid-column: 1 / -1; }
 /* FIVE COLUMNS, and they must feel like five.
    `auto` on the last three meant each row sized its own figures, so £10.00 and £317.75 started in
    different places and the card read as rows that happen to contain numbers rather than as a
@@ -2433,7 +2471,8 @@ button.text-drop { color: var(--bad); }
      the longest on the spine wants about two pixels more than the floor. The same repair already
      sits on `.bk-row.is-bare` and `.bk-row.is-blank`; having it in three places and not in the one
      they are variants OF is the fault this file keeps writing down. */
-  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 8ch 7.5ch;
+  /* THE TRACKS ARE ON `.bk` NOW — see the note over it. A row subgrids onto them, so this is
+     where they used to be and the widths are unchanged. */
   /* ---------- TWELVE ROWS IS A LOT OF ROWS -----------------------------------------------------
      The card lists every question now, so what used to be four or five priced lines is twelve
      before anything is answered. At .34rem top and bottom plus a .5rem gap that is most of a phone
@@ -2462,8 +2501,18 @@ button.text-drop { color: var(--bad); }
      because the two curves meet: 2.85vw equals .74rem at exactly the width the root stops moving,
      so this is .74rem at every width the card already fitted and continuous at the crossover. No
      breakpoint to keep in step with the clamp, and no second set of column widths. */
-  font-size: min(.74rem, 2.85vw);
+  /* THE SIZE IS DECLARED BELOW, WITH THE CARD'S, because the card's tracks are `em` and `ch`. */
 }
+/* ---------- ONE SIZE, BECAUSE THE TRACKS ARE MEASURED IN IT --------------------------------------
+   `em` AND `ch` RESOLVE AGAINST THE ELEMENT THAT DECLARES THEM, and the tracks now live on `.bk`
+   while the words live in the row. Declared separately, the two drift the moment either moves —
+   which is the `rem`-versus-`em` fault recorded in the grid note above, one level up: with `.bk`
+   left at the card's own size, `6.2em` came out 96px against a label 56px wide and the five columns
+   wanted 385px on a card with 328 to give. Measured, before this line existed.
+   ONE SELECTOR FOR BOTH, rather than the same expression written twice. `.rc-total` is a `.bk-row`
+   outside `.bk` and takes it from here as well, so the total's figure sits in the same-sized column
+   as the figures above it. */
+.bk, .bk-row { font-size: min(.74rem, 2.85vw); }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break.
    This said `anywhere`, which breaks eagerly rather than as a last resort — so "Possession" came
    out as "Possessio / n" in a column that was very nearly wide enough for it. `break-word` splits
@@ -2857,11 +2906,29 @@ button.text-drop { color: var(--bad); }
    instant class grid. Same width. But there's no individual slots. Just chunks."* It was excluded
    for one commit, on the argument that halving the one grid here that is NOT a compromise answers a
    complaint about the other one — and that argument is about the cell, which survives: three
-   columns in 44% is **27.8 / 34.5 / 36.5px wide by 20 tall**, still a real fingertip and still six
-   times the hour cell beside it. What it was not about is the two branches of one card drawing one
-   control at two widths, which is what somebody swiping between them sees. One declaration, both
-   weeks; `blk` goes on carrying the height, which is the difference that is still real. */
-.bk-row.bk-wk .bk-v { width: 44%; }
+   columns in 44% is **32.2 / 41.3 / 44.0px wide by 20 tall**, still a real fingertip and still
+   three times the hour cell beside it. What it was not about is the two branches of one card
+   drawing one control at two widths, which is what somebody swiping between them sees. One
+   declaration, both weeks; `blk` goes on carrying the height, which is the difference that is
+   still real. */
+/* ---------- AND THE WEEK IS THE ONE ANSWER THAT CANNOT LIVE IN THE ANSWER COLUMN ALONE ------------
+   EVERY OTHER ROW'S ANSWER IS COLUMN A AND THIS ONE SPANS TWO, which is an exception and is stated
+   as one rather than left to be rediscovered. The arithmetic, measured on the card: the answer
+   track is **56.3 / 75.3 / 80.9px** at 320 / 390 / 768, and ten hour cells with their 1px gutters
+   in that is **4.7 / 6.6 / 7.2px a cell** — under the 7.6 that `ACCEPTED_TAP` already calls the
+   largest compromise on its list. A fingertip would cover six columns at 320.
+
+   SO IT TAKES THE ONE TRACK BESIDE IT THAT A DAY ROW COULD NEVER FILL. A day has no multiplier, so
+   `2 / 4` costs the card nothing and lands the strip on a REAL column edge rather than at whatever
+   x a percentage happens to give — which is the whole of *"each field in its correct column"*: 44%
+   of a `2 / -1` span ended it 29px inside the multiplier column, under a head that named five.
+   The two money columns stay unbroken down the card's whole height. Measured after: **8.97 / 11.69
+   / 12.48px a cell**, against 7.6 / 9.7 / 10.3 at 44%.
+
+   THAT IS A FIFTH OF THE THINNESS GIVEN BACK, asked for twice, and it is the trade rather than an
+   oversight. `2 / -1; width: 44%` is the one declaration that reverses it, and it is written here
+   so the next person has the number rather than the argument. */
+.bk-row.bk-wk .bk-v { grid-column: 2 / 4; width: 100%; }
 .bk-row.bk-wk .slot-hours { gap: 1px; }
 .bk-row.bk-wk .hr { min-height: 14px; }
 /* AND MONDAY'S NAME SITS BESIDE MONDAY'S HOURS. The hour strip makes the first day's row taller than
@@ -6223,7 +6290,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    said `3ch 4.4rem` — the widths the main rule used before it was widened for "Possession" — so a
    bare row's label started in a different place from a priced one's, on the same card. Third copy of
    the same fault: a width stated twice and the second one forgotten. */
-.bk-row.is-bare { grid-template-columns: minmax(6.2em, max-content) minmax(0, 1fr); }
+/* AND THE TEMPLATE IS GONE, because a row inside `.bk` subgrids onto the card's tracks and a
+   second template here would override it — the `.price.faint` shape, and on the one rule whose
+   whole job is that the columns agree. What `is-bare` MEANS is unchanged and is stated below by
+   hiding the three figure spans: a hidden span is not placed, so the label and the answer take
+   tracks 1 and 2 and the money columns stand empty. The arithmetic above is kept because it is why
+   the label track is `minmax` and not `max-content`. */
 /* ---------- AND THE LABEL COLUMN GIVES WAY WHEREVER NOTHING BESIDE IT WANTS THE ROOM -------------
    THE RULE OVER `.bk-row.is-blank` SAYS "a row with a real value keeps the fixed column, because
    there the two columns are genuinely competing for the width" — and on the RECEIPT they are not.
@@ -6277,7 +6349,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    basket draws nothing unless `CART` has something in it — which a fixture cannot put there,
    because it lives in `localStorage`. Both are declared states in that file now, and both findings
    came from their first run. */
-.bk-row.is-wide { grid-template-columns: minmax(0, 1fr) max-content; }
+/* A BASKET CARD IS TWO COLUMNS, SO IT SAYS SO ON THE CARD. The template moved off the row for the
+   reason over `is-bare`: inside `.bk` a row subgrids, and a template here would win on order and
+   take the alignment back. `:has` reads the rows the card actually holds — a basket is never mixed
+   with booking rows, so the card either is one or is not. */
+.bk:has(> .is-wide) { grid-template-columns: minmax(0, 1fr) max-content; }
 /* ---------- AND A BLANK ROW'S LABEL COLUMN GIVES WAY INSTEAD OF THE LABEL -------------------------
    THE COLUMN GIVES WAY, NOT THE LABEL, and the first version of this got that backwards. `Extra
    subj.` and `Per session` are the only two of the spine's twenty-eight labels one character too
@@ -6314,34 +6390,41 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    character too long for 6.2em, and the note over `is-bare` records what the fixed column did to
    them. Where the label overhangs, the value column gives way — which changes where the dash
    STARTS and not where it ends, and the end is the edge somebody reads. */
-.bk-row.is-blank { grid-template-columns: max-content minmax(0, 1fr) 7ch 7.5ch 7.5ch; }
+/* AND THIS TEMPLATE IS GONE TOO, for the reason over `is-bare` — and it is the rule that made the
+   fault visible. `max-content` here was PER ROW, so `Dates` started its dash at 44.3, `Status` at
+   50.8 and `Extra subj.` at 83 while every answered row started at 80.1: four left edges down one
+   card, on the rows that have nothing to say. The card's own `minmax(6.2em, max-content)` resolves
+   once across every label, so the dash starts where every other answer starts. */
 
-/* ---------- AND A ROW WITH NO FIGURES ON IT GIVES ITS THREE TRACKS TO THE ANSWER ------------------
-   PER ROW, NOT PER CARD, AND THAT IS THE WHOLE DIFFERENCE. The rule this replaces asked whether the
-   CARD was priced and collapsed every row when it was not — which took `× RATE TOTAL` off an
-   unpriced form entirely and produced the report that the columns had gone again. This asks the
-   question of the row, so the header keeps all five names on every card and a row simply uses the
-   width it is not spending.
-
-   IT IS WHAT MAKES THE DAY ROWS LINE UP WITH THE ANSWERS. A day row carries no figures, so its
-   hours run to the card's edge; before this, every other unanswered row stopped two-thirds across
-   and the card had two right edges with the week on the far one. Measured at 390: every dash and
-   every day strip now share `111 → 351`.
-
-   THE COST IS ON A PRICED CARD AND IT IS REAL. `Venue` carries a surcharge and `Subject` does not,
-   so their two dropdowns come out 78px and 240px — two editable fields, one above the other, in two
-   sizes, which is the fault the note over `is-bare` records from the last time this was tried. What
-   is different is that the columns are now NAMED: a short value with `× RATE TOTAL` over the space
-   beside it reads as a row that has figures, which is exactly what it is. Asked for four times; the
-   trade is written here rather than argued again.
-
-   THE HEADER IS EXCLUDED FROM ITS OWN TEST. `spineHead_` writes the word `Total` into a `.bk-t`, so
-   a header row would otherwise see itself as priced and keep tracks the rows under it had given up.
-   `.is-wide` is the basket, which is two columns by its own rule and must not be touched. */
+/* ---------- A ROW WITH NO FIGURES DRAWS NO FIGURES, AND KEEPS THE TRACKS ANYWAY -------------------
+   ALL THIS DOES NOW IS HIDE THREE EMPTY SPANS. It used to hand their width to the answer as well —
+   `.bk-v { grid-column: 2 / -1 }`, removed above with the measurement that convicted it — so the
+   part that is left is the part that was never the problem: an empty `.bk-m` and no `.bk-m` render
+   the same, and hiding them is what `is-bare` already means one rule along.
+   THE TRACKS STAY BECAUSE THE CARD OWNS THEM. They are declared on `.bk` and every row subgrids, so
+   a row that draws nothing in the money columns still lines up with the row above it that does.
+   That is the whole of *"each field in its correct column"*, and it is why this rule can be about
+   ink rather than about width.
+   THE HEADER IS EXCLUDED FROM ITS OWN TEST. `spineHead_` writes `+` into a `.bk-t`, so a header row
+   would otherwise read itself as priced — harmless now that nothing here moves a column, and kept
+   because the exclusion is what says the head is not a row of the document.
+   `.is-wide` is the basket, whose card is two columns by its own rule and must not be touched. */
 .bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-m,
 .bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-r,
 .bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
-.bk-row:not(.is-cols):not(.is-wide):not(:has(.bk-t:not(:empty))) .bk-v { grid-column: 2 / -1; }
+/* ---------- AND THE ANSWER STAYS IN THE ANSWER COLUMN --------------------------------------------
+   THE LINE HERE SAID `.bk-v { grid-column: 2 / -1 }` and it is the other half of why nothing lined
+   up. A row with no figures gave its answer the three money tracks as well, so on one priced card
+   `Subject` ended at 319.9 and `Tutor` at 158.3 — two right edges, twenty-eight rows apart, under a
+   head that named five columns.
+   *"each field in its correct column"* is what settles it: an answer is column A whether or not the
+   row beside it happens to carry a price. What the three money columns hold on such a row is
+   nothing, which is the honest reading of a row that costs nothing.
+   WHAT IT COSTS IS THE ANSWER COLUMN'S WIDTH and it is real: at 390 a value box goes from 240px to
+   78. Every priced row was already 78 — that is what "two editable fields, one above the other, in
+   two sizes" meant — so this is the card settling on the narrower of two widths it already had,
+   not a new one. The hiding below stays: an empty `.bk-t` and no `.bk-t` render the same, and the
+   hiding is what `is-bare` already means. */
 
 /* ---------- THE FIGURE COLUMNS STAY ON AN UNPRICED CARD, FOURTH TIME OF ASKING --------------------
    A RULE THAT COLLAPSED THEM WAS HERE AND IS GONE. It hid `.bk-m`, `.bk-r` and `.bk-t` on every row
@@ -6352,26 +6435,28 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    row names the columns and the columns are always there, which is what "resume" means.
 
    WHAT IT COSTS IS THE ANSWER COLUMN, and the number is the whole reason it kept being written:
-   with the three figure tracks present a value is 58.6px at 320, 78.2px at 390 and 84.1px at 768.
-   That is what an answer had before any of this and it is what it has again.
+   with the three figure tracks present a value is **56.3px at 320, 75.3px at 390 and 80.9px at
+   768**, measured off the card's own `grid-template-columns`. That is what an answer had before any
+   of this and it is what it has again — and since the card became one grid it is what EVERY answer
+   has, priced or not, which is the half that was missing every previous time.
 
-   AND THE WEEK CANNOT JOIN THEM, WHICH IS THE HALF THAT IS ARITHMETIC RATHER THAN TASTE.
-   *"Have the grid be in only one column. The second column. The input column."* — measured, the
-   week already IS column 2 of its own row: `.bk-row.is-head` is `.is-bare`, two tracks of
-   `67.98px | 239.86px` at 390, so `2 / -1` and `2 / 3` are the same edge on that row and the grid
-   starts exactly where every answer on the card starts.
+   AND THE WEEK IS THE ONE ANSWER THAT SPANS, WHICH IS ARITHMETIC RATHER THAN TASTE.
+   *"Have the grid be in only one column. The second column. The input column."* Its LEFT edge is
+   that column and always has been. Its right edge is the ask, and the sums say what it costs: ten
+   hours and their gutters in the answer track's 75.3px is a **6.6px cell** at 390 and 4.7 at 320,
+   under the 7.6 that `ACCEPTED_TAP` already calls the largest compromise on its list. Turning the
+   week on its side does not save it — seven day-columns in 75.3px is 10px — and the figure tracks
+   cannot give the room back, because they hold `× 6`, `£12.00/h` and `£144.00` and those are 148px
+   of digits.
 
-   WHAT IS BEING ASKED FOR IS ITS RIGHT EDGE, at 189 where an answer's dash stops. Giving the grid
-   row the ordinary five tracks puts eleven hours and ten gaps into 78.2px: a FIVE-PIXEL cell, and
-   the note over `.hr` sets the floor at 20 against a fingertip. Turning the week on its side does
-   not save it either — seven day-columns in 78px is 11px. The figure tracks cannot give the room
-   back, because they hold `× 6`, `£12.00/h` and `£144.00` and those are 148px of digits.
-
-   SO THE CARD HAS TWO RIGHT EDGES AND THIS IS WHY. The answers and the figures share one; the week
-   has the other, because 240px is what a pressable week costs and the card has 312. The header row
-   is what makes that readable rather than arbitrary — `× RATE TOTAL` are named, so the space to the
-   right of a dash is visibly three columns waiting for a price rather than a value that stopped
-   early. */
+   SO IT STOPS ON THE MULTIPLIER COLUMN'S EDGE, which is a real edge rather than a percentage that
+   lands wherever it lands. `grid-column: 2 / 4` — the answer column and the one beside it, the two
+   a day row could never fill — so the two money columns stay unbroken down the whole card and the
+   week ends where a column ends. Measured at 320/390/768: **8.97 / 11.69 / 12.48px a cell**, up
+   from 7.6 / 9.7 / 10.3 when it was 44% of a span that ended at no edge at all.
+   ASKED FOR THINNER TWICE AND THIS GIVES A FIFTH OF IT BACK, which is the trade and is stated
+   rather than buried: the alternative that honours "thinner" exactly is `2 / -1; width: 44%`, one
+   declaration, and it puts the week's right edge 29px inside the multiplier column. */
 
 /* ---------- AND THE SMALL ROW THAT SAYS WHICH COLUMN IS WHICH -------------------------------------
    *"Label each column at the top. Small"* — and small is the requirement, not the decoration. The
@@ -6386,7 +6471,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    everywhere else.
 
    AND ITS FIGURES ARE NOT IN `--mono`. `.bk-m`, `.bk-r` and `.bk-t` are monospaced because they hold
-   digits that have to line up down a column; `×`, `Rate` and `Total` are words.
+   digits that have to line up down a column; `×`, `+/h` and `+` are not figures.
 
    IT NAMES ALL FIVE ON EVERY CARD NOW. It used to collapse to two with the columns it named, under
    the rule that hid them on an unpriced form — which is what produced a form headed `ANSWER` and
@@ -6419,6 +6504,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    line where there were two, and the margin is sized for the pair. Off `:has` rather than a class
    on `.bk`, so it is true exactly when the header is drawn and there is no second place to set it. */
 .bk:has(.bk-row.is-cols) { margin-top: .15rem; }
+/* ---------- AND `Q` TOOK THE LABEL COLUMN'S OWN INK -----------------------------------------------
+   `.bk-k { color: var(--dim) }` IS A DECLARATION ON THE SPAN and `.bk-row.is-cols { color:
+   var(--faint) }` is on the row, so the row only ever INHERITS — and a direct declaration beats
+   inheritance at any specificity. Measured: `Q` came out `#9a9a9a` at 6.99:1 and `A × +/h +` came
+   out `#808080` at 4.98:1, which is `Venue` and `Subject` and every other label in that column
+   EXACTLY. One heading a step louder than the other four, in the ink of the rows it heads, starting
+   at the same x — which is the one thing the row's own tracking is there to prevent.
+   THE OTHER FOUR EACH CARRY `color: inherit` AND WERE WRITTEN TO DEFEAT THIS. `.bk-k` has none
+   because until the heads went on it was EMPTY, and a rule that paints nothing cannot be seen to be
+   wrong. `.price.faint` again, and the twelfth conviction of it in this stylesheet.
+   NEITHER CHECK CAN SEE IT, and that is worth knowing rather than assuming: `check/cascade.js` pairs
+   two rules matching ONE element at equal specificity, and here the loser is inheritance rather than
+   a rule; `check/ui.js`'s contrast rule wants under 4.5:1 and both of these pass. */
+.bk-row.is-cols .bk-k { color: inherit; }
 .bk-row.is-cols .bk-v { border-bottom: 0; color: inherit; }
 .bk-row.is-cols .bk-m,
 .bk-row.is-cols .bk-r,

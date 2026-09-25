@@ -2174,9 +2174,11 @@ function stepSelect_(st) {
    redraw between typing and sending — starting the grid, changing a subject — would have wiped it
    silently. Kept with the answers, it survives every redraw the way every other answer does.
 
-   NO FIGURES, SO IT SPANS. `receiptRow` gives a row with no multiplier, rate or total the full
-   width for its value, which is what a sentence needs and what a right-aligned 55px column would
-   have made impossible. */
+   AND IT IS THE NARROWEST BOX ON THE CARD, which is the price of five columns and is stated rather
+   than worked around. It used to take the three money tracks as well — `receiptRow` gave a row with
+   no multiplier, rate or total the full width for its value — and that is the span removed by
+   *"each field in its correct column"*, measured up in style.css. A sentence in 75px scrolls
+   sideways inside its own input the way every other text field on the card does. */
 function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
     sel: `<input class="bk-in bk-in-l" type="text" data-do="book-note"
