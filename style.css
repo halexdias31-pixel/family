@@ -2369,28 +2369,47 @@ button.text-drop { color: var(--bad); }
    Three columns instead, which is what this row actually has: what it is, a note about it, and the
    amount. The note takes whatever is left over and wraps if it must, and the amount is last and
    sized to itself, so nothing can reach it. */
+/* ---------- AND THEN IT BECAME A ROW OF THE TABLE, WHICH IS THE THIRD ANSWER AND THE ASKED-FOR ONE
+   ASKED FOR AS *"the final cost needs to be in same style as everything else. cost is in the Q
+   column and the total cost is in the + column, styled like everything else for maximum
+   uniformity."* Everything above this line is the argument for the opposite and it was right about
+   one thing and wrong about the rest: the note beside the figure really did land in a nine-character
+   RATE column and really did overlap it — and the fix for that was to delete the note, which has now
+   happened for a different reason. See `aside` in `book.js`.
+
+   WITH NO NOTE THERE IS NOTHING FOR A THIRD COLUMN TO HOLD. The row is a label and a figure, which
+   is what the first and last of the card's five tracks already are — so it moved INSIDE `.bk` and
+   subgrids like every other row, and `Cost` lands under `Q` and the figure under `+` with nothing
+   here to place them.
+
+   AND THE FIGURE IS THE SAME SIZE AS THE FIGURES ABOVE IT. `1.05rem` at weight 700 in a `7.5ch`
+   track is the overflow the note further down this file measured at 18px on a receipt and 28 in the
+   basket; "styled like everything else" answers the complaint and that measurement at once. What is
+   left to say the row is the total is weight and full ink, which is what `.bk-t` already does one
+   step less of.
+
+   THE BORDER REPLACES A `.rc-rule`. There was a hand-drawn rule between the rows and the total,
+   closing off a block the total is now part of — so the line is the row's own top edge, which is
+   where every other line between rows on this card is drawn. */
 .rc-total {
   margin-top: .3rem;
-  grid-template-columns: auto minmax(0, 1fr) max-content;
-  align-items: baseline;
+  padding-top: .3rem;
+  border-top: 1px solid var(--line);
 }
-/* The five spans this row does not use are collapsed rather than removed from the markup: the row
-   is built by the same function as every other and giving it its own markup would be a second
-   receipt to keep in step with the first. */
-.rc-total .bk-n, .rc-total .bk-v, .rc-total .bk-m { display: none; }
-/* The note. Right up against the figure, quiet, and allowed to wrap — it is a remark about the
-   total rather than a column of its own. */
-.rc-total .bk-r {
-  font-size: .68rem; font-weight: 400; color: var(--dim);
-  text-align: right; white-space: normal;
-}
-/* THE LABEL MAY WRAP AFTER ALL. `auto` sizes this column to its content and `nowrap` forbade it
-   ever being narrower — so "IT WOULD COME TO" took whatever width it wanted and drew straight
-   through the note beside it. Four words is not two: allowed to break, it gives way instead of
-   overlapping, and on a card wide enough it still sits on one line exactly as before. */
+/* THE LABEL IS THE ONE THING THAT STILL SAYS THIS ROW IS DIFFERENT — full ink, heavier, and in the
+   small caps the column heads use, so it reads as a summary of the column rather than another
+   question in it. */
 .rc-total .bk-k { color: var(--ink); font-weight: 700; text-transform: uppercase;
                   letter-spacing: .06em; }
-.rc-total .bk-t { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+.rc-total .bk-t { font-weight: 700; color: var(--ink); }
+/* ---------- AND ON A BASKET IT IS TWO COLUMNS, BECAUSE THE BASKET'S CARD IS ----------------------
+   `.bk:has(> .is-wide)` GIVES THAT CARD TWO TRACKS and `.bk-row.is-wide` hides four of its six
+   spans to match. The total row is not `is-wide` — it is the same row on both documents — so
+   without this it would put five spans into two tracks and wrap itself over three lines. The four
+   it hides are the four that are empty there, which is the same four `is-wide` hides. */
+.bk:has(> .is-wide) > .rc-total .bk-v,
+.bk:has(> .is-wide) > .rc-total .bk-m,
+.bk:has(> .is-wide) > .rc-total .bk-r { display: none; }
 
 /* ---------- ELEVEN RULES THAT SAID THE SAME ELEVEN THINGS IN A SECOND COLOUR ----------------------
    THIS BLOCK WAS "the rows inside the paper: the same five columns, in ink rather than in screen
@@ -2715,6 +2734,35 @@ button.text-drop { color: var(--bad); }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
+/* ---------- AND THE SAME, SAID BY A CLASS, FOR THE CONTROL THAT IS NOT A SELECT ------------------
+   A QUESTION TAKING SEVERAL ANSWERS IS A BUTTON THAT OPENS A SHEET — see `stepMulti_` — wearing
+   `.bk-sel` because it is the same object on the card: right-aligned, no chrome, the answer as its
+   own text. What it cannot inherit is the rule above, which recedes an unanswered row by asking a
+   `<select>` whether its blank option is chosen. A button has no options, so it says so itself.
+   A `<button>`'s own font and alignment are not inherited either, which `font: inherit` and the
+   `text-align` on `.bk-sel` already set — the one thing left is the browser's centring of button
+   text, which that rule's `text-align: right` overrides. */
+.bk-sel.is-unset { color: var(--faint); }
+/* ---------- THE LIST INSIDE THAT SHEET -----------------------------------------------------------
+   ONE FULL-WIDTH BUTTON PER OPTION, which is the shape every other list in a sheet has, and the
+   reason this is a sheet at all: `#sheet-body` scrolls where `.pane` does not, so a subject list
+   forty long costs nothing and every option is a real fingertip. `.btn` is already `width: 100%`
+   and already carries the 44px floor, so this is the gap between them and the tick in front.
+   THE TICK IS A GLYPH RATHER THAN A FILL. `.btn-row .btn.on` is the gold-filled chosen button, and
+   a column of eight gold slabs is the loudest thing in the app on a list where several are normally
+   chosen. Full ink and a ✓ says the same thing at reading volume — and `aria-pressed` says it to a
+   screen reader, which no colour can. */
+.many-list { display: flex; flex-direction: column; gap: .4rem; }
+/* ---------- `text-align: left` DID NOTHING, WHICH A SCREENSHOT IS WHAT SAID ---------------------
+   `.btn` IS `display: flex; justify-content: center`, so the label is an anonymous flex item sized
+   to its own content and centred by the CONTAINER — there is no line box for `text-align` to move.
+   It read as a decision and behaved as nothing, which is the `.price.faint` shape, and no check
+   here can see it: nothing overrides the declaration, so `check/cascade.js` and `check-css.js` are
+   both correctly silent.
+   LEFT, BECAUSE A LIST IS SCANNED DOWN ITS LEFT EDGE. Centred labels of different lengths put every
+   word in a different place, and the ✓ that marks a chosen one moves with them. */
+.many-opt { justify-content: flex-start; }
+.many-opt.on { color: var(--ink); border-color: var(--gold); }
 /* ---------- THE PICKER IS NOT THE CONTROL, AND IT WAS INHERITING BOTH THE WRONG COLOURS -----------
    REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
    or something, unless i hover over it."* Measured: every `<option>` computed to
@@ -3165,6 +3213,20 @@ button.text-drop { color: var(--bad); }
    exactly the row a tick was put in — a flag would be a second thing for `receiptRow` to remember
    and a second thing to go stale. */
 .bk-row:has(.bk-tick) .bk-k, .bk-row:has(.bk-tick) .bk-v { line-height: 1.1; }
+/* ---------- AND THE PADDING GOES WITH IT, WHICH IS WHAT `Applied for` HAD TO BE PAID FOR OUT OF ---
+   A SIXTH STAGE WENT IN ON REQUEST — *"add \"applied for\" line under requested, above accepted"* —
+   and `check/ui.js` named it the same afternoon: `.pane holding rc hides 13px below its own fold`,
+   at 768 and 1280, on the session receipt and the basket. One more row at ~13px on a card the note
+   above records arriving with three pixels of headroom.
+
+   `.bk-row`'s `.1rem 0` IS THE GAP BETWEEN TWELVE LINES OF PROSE, and the argument above is that a
+   column of ticks is not twelve lines of prose: it is one block, scanned down, and what separates
+   its rows is the boxes themselves rather than air. Six rows × 6.2px is 37px — three times what the
+   new row costs, so the block is shorter with the extra stage in it than it was with five.
+
+   NOT A FIXED NUMBER TRIMMED SOMEWHERE ELSE. The row that made the card too tall is the row that
+   paid for it, which is the only version of this that stays true when a seventh stage arrives. */
+.bk-row:has(.bk-tick) { padding-block: 0; }
 /* ---------- AND THE LABEL RECEDES WITH THE VALUE -------------------------------------------------
    TWENTY-EIGHT ROWS, TEN OF THEM QUESTIONS. The value already dims on a blank row and the label did
    not, so `Weeks left` — a fact that does not exist until a term is chosen — was set in exactly the
@@ -6383,21 +6445,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    columns beside the label are empty — and `It would come to` is sixteen characters in a 6.2em
    column, which the note over `aside` already noticed and worked around by deleting something
    else. There is nothing there for a wider label to take. */
-/* ---------- AND `.rc-total`'s OWN COLUMNS HAD NEVER APPLIED --------------------------------------
-   IT DECLARES `auto minmax(0, 1fr) max-content` UP AT ITS OWN BLOCK — three tracks, because it
-   hides `bk-n`, `bk-v` and `bk-m`, so three children are left: the label, the note, the figure. And
-   `.rc-total` is ONE class while `.bk-row` is one class sixty lines LATER, so the cascade settles
-   the tie by order and the total row has been drawn on the five-column booking grid since the day
-   that line was written. Its figure landed in a `7ch` track and overflowed it by 18px on a receipt
-   and 28px in the basket.
+/* ---------- `.bk-row.rc-total`'s THREE COLUMNS WERE HERE, AND THE ROW HAS NONE NOW ----------------
+   IT DECLARED `auto minmax(0, 1fr) max-content` at its own block and lost that to `.bk-row` sixty
+   lines later — a declaration that read as a decision and behaved as nothing, the fourth conviction
+   of that rule in this stylesheet after `.price.faint`, `--fly-ink` and `.bk-row.is-blank`. It was
+   restated here, where it wins, and the restatement lasted until the owner asked for the total to be
+   *"styled like everything else"*.
 
-   FOURTH CONVICTION OF THIS RULE IN THIS STYLESHEET, after `.price.faint`, `--fly-ink` and
-   `.bk-row.is-blank` — which was written beside `is-blank` and lost to `is-bare` 3,000 lines down.
-   A declaration that reads as a decision and behaves as nothing.
-
-   SO IT IS RESTATED WHERE IT WINS, with the three tracks it always meant, and the note above it
-   is left where it is because it explains WHY the label may wrap. */
-.bk-row.rc-total { grid-template-columns: auto minmax(0, 1fr) max-content; }
+   THE ROW IS INSIDE `.bk` NOW AND SUBGRIDS LIKE THE REST, so it has no template of its own to win
+   or lose with — which is the one arrangement where the fault cannot come back. The argument is
+   kept because the SHAPE is what recurs: a row given its own `grid-template-columns` at one
+   specificity, beside a `.bk-row` rule at the same one, is decided by file order. */
 /* ---------- AND THE FIGURE COLUMN WAS NEVER WIDE ENOUGH FOR THE FIGURE ---------------------------
    `£270.00` OVERFLOWED ITS OWN COLUMN BY 18px, and `£2050.00` in the basket by 28. Three facts
    meet and each is reasonable on its own: the track is `7.5ch`, `ch` is measured against the ROW's

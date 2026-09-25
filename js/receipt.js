@@ -268,13 +268,16 @@ async function receiptCanvas() {
      same change. It encoded nothing and nothing could scan it. What it cost was not the pixels: it
      was drawn twice, from one seed, by two functions in two files, and keeping those two in step
      was work being done for a thing that was never read. */
-  y += 14 * S;
+  /* THE FOOTER SENTENCE WAS DRAWN HERE, after a `y += 14 * S` lead, and both went with the card's
+     — see `receiptHtml`. The rule that put it here is unchanged and is what made removing it in one
+     commit necessary: the card's footer is the promise being made, and a picture of the card that
+     promises something slightly different is a second promise.
 
-  g.textAlign = 'center'; g.fillStyle = FAINT;
-  g.font = `${9 * S}px ui-monospace, monospace`;
-  /* AND THE SAME SENTENCE, for the same reason. The card's footer is the promise being made;
-     a picture of the card that promises something slightly different is a second promise. */
-  g.fillText('Nothing is booked or charged yet — this asks, and we come back to you.', W / 2, y);
+     `footH` KEEPS ITS 118 AND THAT IS A DECISION. It is the fixed foot the height is computed from
+     before anything is drawn, so with one line less in it the picture ends with a deeper margin
+     under its last rule — which on something opened in WhatsApp and pinched reads as a receipt with
+     a tear-off, not as a gap. Trimming it is a number to measure rather than a number to guess, and
+     nothing here can measure a canvas. */
 
   return cv;
 }
@@ -451,8 +454,23 @@ function drawBooker_() {
                    nothing left for the button to tell it. */
                 act: 'book-share' })}
     </div>
-    <p class="rc-terms" id="book-said">Nothing is booked or charged yet — this asks, and we come
-      back to you.</p>`;
+    ${/* ---------- THE FOOTER LINE WENT ------------------------------------------------------
+          REMOVED ON REQUEST: *"remove the nothing is booked yet text."* It read "Nothing is booked
+          or charged yet — this asks, and we come back to you", under the two tiles.
+
+          WHAT IT SAID IS SAID BY THE CARD. The gold tile is "Ask for it" rather than "Pay", the
+          six stage ticks along the bottom are all empty on an unsent form, and the first of them
+          is `Requested` — so the document already shows, in its own shape, that nothing has
+          happened yet and what the next thing to happen is. A sentence repeating it is the fault
+          this file records where the roster's `name` printed an `<h3>` above every widget's own
+          heading: both correct, both on the screen at once.
+
+          `id="book-said"` WENT WITH IT AND NOTHING READ IT — measured across `js/`. It was the
+          status line of a form that reports through toasts now.
+
+          THE COPY ON THE SHARED PICTURE WENT IN THE SAME COMMIT. `receiptCanvas` drew the same
+          sentence, and its own note says why the two must agree: *"a picture of the card that
+          promises something slightly different is a second promise."* */''}`;
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION ---------------------------------------
