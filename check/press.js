@@ -954,6 +954,66 @@ for (const who of VISITORS) {
     }
 
     /* ==================================================================================================
+       AND A TAP ON THE GAME FLAPS ON THE FINGER GOING DOWN, NOT ON IT COMING UP.
+
+       REPORTED AS "when you tap theres like a slight delay" ON AN IPAD, and the delay was the
+       binding: the flap hung off `click`, which fires on the RELEASE, so every flap this game has
+       taken waited out the whole of a tap — the eighty to a hundred and fifty milliseconds between
+       a finger landing and it lifting — before the bird moved.
+
+       NOTHING ELSE IN THIS SUITE CAN SEE THAT, which is why the rule is here. `check/ui.js` asks
+       whether a control can be read and hit, and a late control measures perfectly. The press pass
+       above DISPATCHES at elements rather than touching them, so it never produces the gap. And the
+       canvas carries no `data-do`, so it is not in that queue at all.
+
+       THE QUESTION IS ASKED BETWEEN `touchStart` AND `touchEnd`, which is the one moment the two
+       bindings differ — with `click` nothing has happened yet and with `pointerdown` the bird is
+       already on its way up. Anything measured after the lift passes either way, which is exactly
+       how a check that cannot fail gets written.
+
+       AND THE LOOP IS STOPPED AFTERWARDS, by hand rather than by leaving the column: a
+       `requestAnimationFrame` running behind the pages walked below would be sharing their frame
+       budget, and that is what the widget's own `stop` exists for. */
+    {
+      const at = await page.evaluate(() => {
+        go('games');
+        const i = widgetsOf_('game').findIndex(w => w.id === 'flabby');
+        if (i >= 0) goPage('games', i, true);
+        return i;
+      });
+      await page.waitForTimeout(900);
+      const box = await page.evaluate(() => {
+        const c = document.querySelector('#s-games .flappy');
+        if (!c || typeof flappyState === 'undefined' || !flappyState) return null;
+        const r = c.getBoundingClientRect();
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+                 w: Math.round(r.width) };
+      });
+      if (at < 0 || !box || box.w < 60) {
+        swipes.push({ from: 'games · Flabby Pird', dir: 'touch down', ok: false,
+                      got: box ? 'the canvas was ' + box.w + 'px wide' : 'no game on that column',
+                      want: 'the game drawn and ready' });
+      } else {
+        await cdp.send('Input.dispatchTouchEvent',
+          { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+        const down = await page.evaluate(() => ({ running: flappyState.running,
+                                                  vy: flappyState.bird.vy }));
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await page.evaluate(() => {
+          if (typeof flappyState !== 'undefined' && flappyState) {
+            if (flappyState.raf) cancelAnimationFrame(flappyState.raf);
+            flappyState.raf = null; flappyState.running = false;
+          }
+        });
+        swipes.push({ from: 'games · Flabby Pird', dir: 'touch down',
+                      ok: !!down.running && down.vy < 0,
+                      got: down.running ? 'flapped, vy ' + down.vy.toFixed(1)
+                                        : 'nothing until the finger came up',
+                      want: 'the bird already rising before the finger lifts' });
+      }
+    }
+
+    /* ==================================================================================================
        AND THAT PAGE n SHOWS QUESTION n, WHICH STOPPED BEING FREE.
 
        THE FIND SCREEN HOLDS FIFTEEN RESULT PAGES AND HAS THOUSANDS -- see `stuffWindow_` in find.js.

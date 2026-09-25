@@ -1050,11 +1050,24 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
-/* THE SKY IS PAINTED ON THE CANVAS, not behind it — so the element's own background only shows in
-   the moment before the first frame. Set to the same blue so that moment is not a black flash. */
-.flappy { width: 100%; aspect-ratio: 4/5; border-radius: 2px; /* The sky colour lives in the canvas, which paints it — see `sky()`. A colour here was a second
-   answer to the same question and it lost to the one below it anyway. */
-          background: var(--sunk); display: block; touch-action: none; }
+/* ---------- THE SCREEN ---------------------------------------------------------------------------
+   THE SKY IS PAINTED ON THE CANVAS AND NOT BEHIND IT — see `sky()` in receipt.js, which fills the
+   whole box on the same tick the canvas is sized. So this background is not a second copy of the
+   sky and must not be made one: it shows for exactly one case, a canvas the browser has not laid
+   out yet, where `fitCanvas_` bails and retries. The app's own sunk grey is the honest thing to
+   show in that moment, and a blue written here would be one colour in two files that quietly drift.
+
+   A HAIRLINE FRAME, which is all that is left of the bezel the handheld block used to draw — see
+   "THE HANDHELD, AND WHY IT IS NOT HERE ANY MORE" at the foot of this file. A bright sky butted
+   straight against a dark card reads as a coloured rectangle; one line of the card's own line
+   colour makes it a picture, and that is the whole of the difference.
+
+   `touch-action: none` IS NOT FOR THE SWIPE, which is a `pointermove` listener on the window and
+   cannot be refused by any value here. It is for the browser's own double-tap-to-zoom wait, which
+   is the delay people reach for first when a canvas game feels slow — it was already gone, and the
+   delay actually reported was `click` firing on the release. See the binding note in `initFlappy`. */
+.flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
+          background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
 
 /* ---------- WHAT THE LAWS PAINT -----------------------------------------------------------------
    One class per colour a law can name. The LAW says "green"; this says what green is — so the
@@ -3633,78 +3646,24 @@ button.text-drop { color: var(--bad); }
 .widget-full:has(.cal-head) .faint { color: var(--paper-faint); }
 .widget-full:has(.cal-head) .cal-arrow { color: var(--paper-dim); }
 
-/* ---------- THE HANDHELD ------------------------------------------------------------------------
-   A DARK SHELL, NOT A CREAM ONE. The first attempt was warm grey plastic, and it was the brightest
-   object in a black app — a toy sitting on a terminal. The console this is quoting was sold in
-   charcoal too, and charcoal is the version of it that belongs here: the same object, in the room
-   it is actually in.
+/* ---------- THE HANDHELD, AND WHY IT IS NOT HERE ANY MORE ---------------------------------------
+   ABOUT THIRTY LINES STOOD HERE: a charcoal shell, a bezel deeper at the foot than at the head, a
+   power light to the left of the panel, a line of tiny type reading DOT MATRIX · @family., and a
+   raked speaker grille. Every cue was on the real object and none of them was a control that did
+   nothing, which is why it worked.
 
-   THE CUES ARE SMALL AND THERE ARE FOUR. A bezel much darker than the screen and much bigger below
-   it than above; a power light to the left; a line of tiny type under the panel; a raked speaker
-   grille at the foot. Every one of those is on the real thing, none of them is a control that does
-   nothing, and together they are about thirty lines. The plastic case was twice that and read as
-   fancy dress, because it was ALL case: a shell round a sky-blue game is a costume, while a shell
-   round an olive panel is the object itself.
+   IT WENT WHEN THE PANEL DID, AND ITS OWN ARGUMENT IS WHAT DECIDED THAT. It said, in as many
+   words, that "a shell round a sky-blue game is a costume, while a shell round an olive panel is
+   the object itself" — so the moment the screen became a sky again (asked for as "make it look
+   more like flappy bird. blue scky green pipes and the bird"; see the palette in `initFlappy`) the
+   case was the fancy dress its own note had refused. Keeping it would have been a Game Boy bezel
+   with a power light and a maker's mark around somebody else's game.
 
-   WHAT DOES THE MOST WORK IS NOT HERE AT ALL. It is the four-shade palette in `initFlappy` — see
-   `LCD` there. The screen is what anybody recognises. This is the part you hold.
---------------------------------------------------------------------------------------------- */
-.widget-full:has(.flappy) > .card {
-  /* TWO LAYERS: the raked speaker grille at the foot, then the shell itself. Six lines at 115deg,
-     dark on dark — visible when you look for it and not before, which is how it is on the object.
-     A background rather than an element, because it is a marking and not a thing. */
-  background:
-    repeating-linear-gradient(115deg, #35352f 0 2px, transparent 2px 7px)
-      bottom .95rem right 1.05rem / 44px 26px no-repeat,
-    linear-gradient(#2a2a28, #1d1d1b);
-  border: 1px solid #34342f;
-  /* Square at three corners and turned at the fourth, which is the shape of the thing. Softer than
-     the first attempt — 34px was a cartoon of it. */
-  border-radius: 10px 10px 22px 10px;
-  padding: .85rem .85rem 2.6rem;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .06), 0 14px 30px rgb(0 0 0 / .5);
-  position: relative;
-}
-.widget-full:has(.flappy) h3 { color: #cfcabb; margin: 0 0 .1rem; font-size: .9rem; }
-.widget-full:has(.flappy) .sub { color: #7d786c; font-size: .7rem; margin: 0 0 .7rem; }
-
-/* THE BEZEL, which is most of what says "screen". Deeper at the foot than at the head, because on
-   the real panel it is — and that asymmetry is the detail the eye reads without naming. */
-.widget-full:has(.flappy) .flappy {
-  display: block;
-  background: #12130f;
-  border: 0;
-  border-radius: 4px;
-  box-shadow: 0 0 0 .55rem #12130f, 0 0 0 calc(.55rem + 1px) #0a0a08,
-              inset 0 2px 8px rgb(0 0 0 / .5);
-  margin-bottom: .55rem;
-}
-/* THE POWER LIGHT, left of the panel where it has always been. Not centred, not a row of them. */
-.widget-full:has(.flappy) > .card::before {
-  content: '';
-  position: absolute; left: 1.45rem; top: 50%;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #d0453a;
-  box-shadow: 0 0 6px rgb(208 69 58 / .55);
-}
-/* THE LINE OF TINY TYPE under the panel, and the maker's mark. One line, not two, and set in the
-   app's own mono so it reads as belonging to this app rather than to the one it is quoting. */
-.widget-full:has(.flappy) > .card::after {
-  content: 'DOT MATRIX  ·  @family.';
-  position: absolute; left: 0; right: 0; bottom: 1.5rem;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: .52rem; letter-spacing: .22em;
-  color: #57544c;
-}
-/* THE SPEAKER, raked. Six lines at an angle, dark on dark — visible when you look for it and not
-   before, which is how it is on the object. */
-.widget-full:has(.flappy) .note { color: #8a8578; }
-/* `rowLive` DRAWS `.row` WITH `.k` AND `.v` — the score rows are the app's ordinary rows, so they
-   are toned to the shell rather than restyled into something else. */
-.widget-full:has(.flappy) .row { border-color: #34342f; }
-.widget-full:has(.flappy) .row .k { color: #7d786c; }
-.widget-full:has(.flappy) .row .v { color: #cfcabb; }
+   SO THE CARD IS AN ORDINARY WIDGET, like the chess board and the maze beside it, and nothing here
+   retones its heading, its rows, its note or its board any more — all four go back to the app's own
+   tokens, which is what every other game in this column already uses. The one thing kept is the
+   screen: see `.flappy` under "TIMES TABLES AND FLAPPY", which carries a hairline frame so the sky
+   reads as a picture rather than as a coloured rectangle in a card. */
 
 /* ---------- THE HIGH SCORES ------------------------------------------------------------------------
    TWO GAMES, ONE BOARD, AND IT SITS INSIDE WHICHEVER CARD DREW IT — so it borrows that card's own
@@ -3713,13 +3672,14 @@ button.text-drop { color: var(--bad); }
    right in one of them and pasted into the other.
 
    WHICH IS ALSO WHY YOUR OWN LINE IS A RULE DOWN THE LEFT RATHER THAN GOLD TEXT.
-   `.widget-full:has(.flappy) .row .k` scores (0,3,1) — `:has()` takes the specificity of its own
-   argument — so `.board .row.is-me .k` ties with it at (0,3,1) and the cascade would settle a
-   colour by which rule happens to be written later in this file. That is `.price.faint` exactly,
-   for the eighth time: a declaration that reads as a decision and behaves as nothing. Nothing
-   anywhere sets `box-shadow` or `padding-left` on a `.row`, so this cannot lose a race it does not
-   look like it is in — and a gold rule down the left is already what this app means by "yours",
-   which is what `.msg.unread` used before the bubbles took the edge away.
+   It was written that way against `.widget-full:has(.flappy) .row .k`, which scored (0,3,1) —
+   `:has()` takes the specificity of its own argument — so a colour on `.board .row.is-me .k` would
+   have tied at (0,3,1) and the cascade would have settled which ink won by which rule happened to
+   sit later in this file. That was `.price.faint` exactly. The rule it tied with has gone with the
+   handheld shell above, so the tie has gone with it; the edge stays, because it was never only a
+   way round a race. Nothing anywhere sets `box-shadow` or `padding-left` on a `.row`, so it cannot
+   lose one it does not look like it is in — and a gold rule down the left is already what this app
+   means by "yours", which is what `.msg.unread` used before the bubbles took the edge away.
 
    THE ROWS ARE `.row` AND NOTHING ELSE. The board sits directly under `Score` and `Best`, and a
    list whose baselines and rules line up with the two rows above it reads as part of the same
@@ -3750,10 +3710,9 @@ button.text-drop { color: var(--bad); }
    state. The value is the one that cannot shrink here; it is at most three digits. */
 .board .row .k { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .board .row .v { flex: 0 0 auto; }
-/* The board's own heading takes the shell's muted ink in the flappy card, like every other label
-   in it. Written as its own rule rather than left to `var(--dim)`, which is the black-and-gold
-   token and reads as a different grey against that cream panel. */
-.widget-full:has(.flappy) .board-head { color: #7d786c; }
+/* The heading took a muted ink of its own while the flappy card was a charcoal handheld with greys
+   of its own. That card is an ordinary one again, so there is one board on two cards and both of
+   them are the app's — `var(--dim)` above is the whole of it. */
 
 /* ---------- AND NOTHING MAY BE UNBOUNDED --------------------------------------------------------
    A widget that draws itself — a canvas, a board, a map — has no size until it has drawn, so a pane

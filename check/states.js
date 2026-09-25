@@ -441,8 +441,10 @@ const STATES = {
      could reach is the board's empty card — which is this file's own sentence about the booking
      receipt, the message thread and the basket, for a fourth time. A board of one row and a board
      of six are different objects to measure: the second is where a long handle meets a `flex: 0 0
-     auto` label, and where the mark for your own line has to survive the flappy card's own row
-     colours.
+     auto` label, and where the mark for your own line has to be visible against the rows either
+     side of it. (It was also written when that card was a charcoal handheld with row colours of
+     its own — see "THE HANDHELD, AND WHY IT IS NOT HERE ANY MORE" in style.css. Both boards are on
+     the app's own ground now; the rest of the argument is untouched by that.)
 
      SEEDED THROUGH THE PAYLOAD, which is the same door `load()` uses — `scoreRanks_` reads
      `DATA.students` and `DATA.tutors` and nothing else, so putting rows there is the app arriving
@@ -511,10 +513,14 @@ const STATES = {
            reported. Its own note says so: "a repaint rebuilds the markup it was running in". */
         repaint(true);
       } },
-    /* THE SAME RENDERER IN THE OTHER CARD, and worth its own state rather than trusted: the flappy
-       card retones `.row .k` and `.row .v` for its dark shell and the times-table card does not, so
-       the two are the same list on two different grounds. A contrast finding on one of them says
-       nothing about the other. */
+    /* THE SAME RENDERER IN THE OTHER CARD, and still worth its own state although the reason it
+       was written for has gone. That reason was that the flappy card retoned `.row .k` and `.row
+       .v` for a charcoal shell and the times-table card did not, so a contrast finding on one said
+       nothing about the other; the shell went with the Game Boy panel and both boards sit on the
+       app's own ground now. What is left is that `paintBoard_` is called from two `init`s and this
+       is the only thing that reaches the second one — a board drawn by `initTables` and not by
+       `initFlappy` is a card that measures itself into existence on one column and not the other,
+       which is precisely what an empty div looked like the first time this state ran. */
     { name: 'the times-table board',
       enter: () => {
         window.__seedScoresTt = { students: DATA.students, tutors: JSON.stringify(DATA.tutors) };
