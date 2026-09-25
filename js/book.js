@@ -982,8 +982,18 @@ const BOOK_STEPS = [
        outright, so offering it there would be offering a booking that cannot happen. */
     why: v => (v === NOBODY && !isWaiting_())
       ? 'a session needs somebody in it — this opens a waiting list' : '',
-    note: v => v === NOBODY ? 'the list opens empty, and families join it'
-      : (norm(v) === norm((USER && USER.name) || '') ? 'your own booking' : '') },
+    /* ---------- "your own booking" WAS HERE AND IT WAS THE ROW READ BACK TO YOU -----------------
+       REPORTED AS *"There seems to be writing under one of the fields at the top. It's redundant or
+       unnecessary."* It was the first note on the card, under the first field, and it printed
+       `your own booking` beneath a row already reading `For — <your own name>`. One fact drawn
+       twice, which is the fault this repository records where the roster's `name` put an `<h3>`
+       above every widget's own heading: both were correct, and both were on the screen at once.
+
+       THE OTHER BRANCH STAYS, because it is not the row said again. `Nobody yet — just open it` is
+       what you PICKED; *the list opens empty, and families join it* is what happens NEXT, and
+       nothing else on the card says it. That is the line between a note worth its thirteen pixels
+       and a caption. */
+    note: v => v === NOBODY ? 'the list opens empty, and families join it' : '' },
 
   { id: 'how', label: 'How would you like to book?', short: 'Kind',
     /* BOTH ARE "START", because both are things you set going — the difference is whether it runs

@@ -850,16 +850,80 @@ const CELL_GAP   = 16;        // pixels between one card and the next, going DOW
    is a thing browsers do perfectly and re-do by themselves the instant anything on the page
    changes size. Two boxes in a column cannot overlap — not late, not early, not ever.
 
-   WHAT IS LEFT FOR THIS FILE: sliding the whole column so the page you are reading is in the
-   middle of the screen. One number, from `offsetTop`, which the browser maintains. And if it is
-   ever read at a bad moment the worst that happens is the column sits a little high or low for a
-   frame — never one card on top of another. */
-function columnShift_(host, at) {
+   WHAT IS LEFT FOR THIS FILE: sliding the whole column so the page you are reading is on the
+   line every column puts its card on — see `cardTop_` below, which is where that line comes from
+   and why it is not the middle of the screen any more. One number, from `offsetTop`, which the
+   browser maintains. And if it is ever read at a bad moment the worst that happens is the column
+   sits a little high or low for a frame — never one card on top of another. */
+/* ---------- WHERE A FULL CARD ALREADY SITS, AND THEREFORE WHERE EVERY CARD SITS -----------------
+   REPORTED AS *"when I swipe left and right on certain things I see the edge are slid up or down at
+   times. Happens with games and tools widget too."* Measured at 390x844 before anything was changed,
+   the current card's TOP edge across the eleven columns: make 98, tools 108.5, account 117,
+   booking 125.5, reel 167.5, games 199, settings 223.5, stuff 255, feed 286.5, dm 322.5, saved 343.
+   **A 245px spread.** Screenshotted mid-swipe: the calculator and the chess card side by side with
+   their top edges ninety pixels apart, which is exactly the report.
+
+   THE CAUSE WAS THE CENTRING AND NOT A DRIFT. Nothing moves during the gesture — sampled every
+   frame of a real drag, every column's translateY is constant — and nothing settles afterwards:
+   four round trips between Tools and Games give the same two numbers every time. It is static, and
+   it is arithmetic: this function centred each column on ITS OWN card, and the cards are different
+   heights, so a card 180px shorter than its neighbour starts 90px lower. Centres agreed; edges
+   never could.
+
+   SO THE TOPS AGREE INSTEAD, and the line they agree on is not invented. `.pane` is capped at
+   `100dvh - var(--bar) - var(--safe-bottom) - 2.5rem`, so the stylesheet already keeps a strip of
+   the screen clear — and the whole of that strip goes ABOVE the card. Two things fall out of it and
+   both are the reason for choosing it over any other line:
+
+     · **the tallest card a pane may hold still fits.** Its bottom lands exactly on the bottom of
+       the screen, so no arrangement of cards can be pushed off — which a line chosen by eye could
+       not promise at any screen height.
+     · **it leaves a sliver of the card above**, 21px at 390x844 against the 23px of the column
+       beside it. The two axes peek by the same amount without either number being told the other.
+
+   SPLITTING THE RESERVE — half above, half below, which is what centring a cap-height card gives —
+   was written first and measured: every column lands on 18.5px, and 18.5 minus the column's own
+   16px gap is **two and a half pixels of the card above**. Aligned, and the vertical affordance
+   gone. The reserve is small because the cap is generous, so halving it is halving almost nothing.
+
+   The number is read off a real `.pane` rather than re-derived here, because a copy of that
+   expression in this file is two places to edit one cap.
+
+   WHAT IT COSTS, said rather than buried: a card much shorter than the screen no longer floats in
+   the middle of it. The one-page columns are where that shows — Saved's card was at 343 and is at
+   the same line as everything else now, with the space below it rather than split above and below.
+   That is the price of a row of columns reading as a row, and it is one `return` to put back.
+
+   AND THE PEEK ABOVE BECOMES CONSTANT WITH IT, which was the same fault seen down the other axis:
+   the gap above the current card was `top - 16px`, so it varied by 245px between columns exactly as
+   the top edge did. It is the same strip of the previous card on every screen now.
+
+   THE FALLBACK IS THE OLD BEHAVIOUR. No pane on the page, or a cap that does not resolve to a
+   sensible number, and it centres — because a card placed by a rule that did not answer is worse
+   than a card placed by the rule this replaced. */
+function cardTop_(boxH) {
+  const pane = document.querySelector('.pane');
+  if (!pane) return null;
+  const cap = parseFloat(getComputedStyle(pane).maxHeight);
+  const reserve = boxH - cap;
+  /* A cap that does not resolve, or one that leaves so much room that the line would be a third of
+     the way down the screen, is not a cap this can place a card against — so it says so and the
+     caller centres, which is what every card did before this. */
+  if (!(cap > 0) || !(reserve > 0) || reserve > boxH / 3) return null;
+  return reserve;
+}
+
+function columnShift_(host, at, top) {
   const pages = host.querySelectorAll(':scope > .page');
   const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
   if (!cur) return 0;
   const boxH = host.clientHeight || innerHeight;
-  return boxH / 2 - (cur.offsetTop + cur.offsetHeight / 2);
+  /* `top` is worked out once per placement and handed in — see `placeGrid`. Asking the browser for
+     a computed style once per column per frame is eleven forced style recalculations inside a drag,
+     for one number that cannot differ between them. */
+  const line = top === undefined ? cardTop_(boxH) : top;
+  if (line === null) return boxH / 2 - (cur.offsetTop + cur.offsetHeight / 2);
+  return line - cur.offsetTop;
 }
 
 /* ---------- HOW FAR IT IS TO THE NEXT CARD DOWN ---------------------------------------------------
@@ -955,6 +1019,8 @@ function placeGrid(instant, drag) {
   const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
   const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
   const stepX = stepX_();
+  /* ONE LINE FOR EVERY COLUMN, read once — see `cardTop_`. */
+  const topLine = cardTop_($('screen') ? $('screen').clientHeight || innerHeight : innerHeight);
 
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
@@ -977,7 +1043,7 @@ function placeGrid(instant, drag) {
     const at = PAGE[id] || 0;
     /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen
        in front; the others have no finger on them. */
-    const shift = columnShift_(host, domIndex_(id, at)) + (id === AT ? dyPx : 0);
+    const shift = columnShift_(host, domIndex_(id, at), topLine) + (id === AT ? dyPx : 0);
 
     host.style.transition = instant ? 'none' : '';
     host.style.transform =

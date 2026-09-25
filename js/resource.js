@@ -54,6 +54,9 @@ const FIELD_LABEL = {
   exam_board: 'exam board', exam_wave: 'exam wave', document_type: 'type',
   print_required: 'needs printing', level_required: 'unlocks at level',
   pages_checked: 'page count checked', trackable: 'can be ticked off',
+  /* Inside a group already called "Library card", "library card" and "library pin" say the word
+     twice and read as two different cards. The group names the thing; these name the parts. */
+  library_card: 'card number', library_pin: 'PIN', library_note: 'note to yourself',
 };
 const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
 

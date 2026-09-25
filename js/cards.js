@@ -250,7 +250,14 @@ function findCard(x) {
      green or red, and the `undefined` rule below is unchanged and still the sharp edge. */
   if (x.kind === 'tutor') return `
     <div class="card is-widget is-prof${t.listed === false ? ' is-off' : ''}">
-      <h3>${esc(t.role || 'Tutor')}${
+      ${/* ---------- A TITLE SITS BESIDE THE ROLE, IN THE ROLE'S OWN LABEL ---------------------
+             `doGet` SENDS `titles` — the values in the role cell that are titles rather than
+             roles, `Head of Boxing` among them — and this heading is the one place on the card
+             that already says what somebody IS. A row of its own would be a twelfth label/value
+             line for a fact three words long; a longer `role` string would put a title through the
+             funnel, which reads that field as a kind. `profList_` because the shape is not
+             something this card gets to assume — see its note. */''}
+      <h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
         t.listed === false ? ' <span class="prof-off">· not listed</span>' : ''}</h3>
       <div class="prof-top">
         ${t.image

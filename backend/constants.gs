@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-24-a-busy-days";
+const BACKEND_VERSION = "2026-09-24-c-role-titles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -343,7 +343,34 @@ const SCHEMA = {
     "qual_3", "qual_3_level", "qual_3_grade", "extra_quals",
     "availability", "xp", "credits", "high_score_flappy",
     "high_score_tables", "friends", "notepad", "todo", "ticks_1",
-    "ticks_2", "ticks_3", "children"
+    "ticks_2", "ticks_3", "children",
+    /* ---------- THE LIBRARY CARD, WHICH IS A NOTE RATHER THAN A CREDENTIAL OF OURS ---------------
+       ASKED FOR AS "a place to make notes for library card numbers and library card pins", and the
+       reason it is three ordinary columns on `people` rather than anything cleverer is the
+       three-question test at the top of CLAUDE.md, answered in order.
+
+       IS IT SECRET? YES, so it is a sheet and never `data/`. This repository is public and its
+       history is permanent; a card number and its four digits are exactly the shape of thing that
+       must not be committed, and the same sentence already keeps PINs, e-mail addresses and dates
+       of birth in this tab and out of git.
+
+       DOES THE APP WRITE TO IT? YES — `updateProfile`, from the Settings column, which is what
+       makes it a sheet column rather than something kept on the phone. A note that lives in
+       `localStorage` is a note you lose when you change phone, and the whole point of writing a
+       library card number down is that it is there in a year when you cannot find the card.
+
+       `library_note` IS THE THIRD COLUMN AND IT IS DELIBERATE, not padding. Somebody with cards
+       for two boroughs, or a card in a child's name, has a fact the other two columns have nowhere
+       to put — and the alternative to one free line is `library_card_2`, which is the numbered-
+       column fault this file records three times over under `images`, `needs` and the practicals.
+
+       WHO SEES IT: nobody by default. `doGet` sends no profile column to anybody — `profileFields`
+       is the SHAPE of the form, not its values — so these three never reach the public payload.
+       They reach the person themselves in their own sign-in reply (`profileOf_`, answered only
+       after the PIN has passed), and an ADMIN through `getProfile` — which is how every other
+       column on this tab has behaved since it was written. Said rather than buried, because one of
+       the three is a PIN and the owner is the admin. */
+    "library_card", "library_pin", "library_note"
   ],
   /* ---------- THE MAP -----------------------------------------------------------------------
      WHERE THE GROUND COMES FROM, and the reason this tab exists at all.
@@ -1511,6 +1538,41 @@ const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };
 
+/* ---------- A TITLE IS A ROLE THAT DECIDES NOTHING, AND SAYING SO IS THE WHOLE POINT -------------
+   ASKED FOR AS *"I want to add a role. For George he is the head of boxing. For now leave this as
+   just a title or something. In the future it will mean something."*
+
+   IT GOES IN THE `role` CELL RATHER THAN A COLUMN OF ITS OWN, and that is safe because the role
+   machinery was already built for it. `rolesOf` splits the cell on commas — "a person may hold
+   SEVERAL roles… one role is not more real than another" — and `mainRole` picks from a DECLARED
+   list, `['admin','tutor','client','student']`, so a value that is not on it can never win. Every
+   gate in this project asks `hasRole(row, 'tutor')`; nothing asks the other way round. So a title
+   sitting beside a real role grants precisely nothing, today, by construction rather than by
+   somebody remembering.
+
+   AND THAT IS WHY IT IS DECLARED HERE RATHER THAN LEFT AS A STRAY STRING IN A CELL. `head of
+   boxing` typed into the sheet with nothing naming it is a value the code has never heard of: it
+   would print in the roster in lower case, mean nothing to any reader of this file, and the day
+   somebody DOES want it to gate something they would have no idea whether it was deliberate. One
+   entry, one written reason — the `ACCEPTED` / `VOCAB` / `RETIRED_FACETS` / `HANDLE_ALLOWED`
+   pattern this file uses for exactly this, an eighth time.
+
+   IT IS AN ADDITION, NOT A REPLACEMENT. The cell must read `tutor, head of boxing` — a row holding
+   only titles has no real role left, and `mainRole` falls back to `client`, which would quietly
+   take George off the tutor list and off the Find screen. The comma is load-bearing.
+
+   WHEN IT STARTS TO MEAN SOMETHING, this is where to look: give it a line in `ACTION_ACCESS`, or
+   ask `hasRole(r, 'head of boxing')` wherever the meaning belongs, and move the entry out of here
+   into `ROLE_LABEL` beside the four that already decide things. */
+const ROLE_TITLES = {
+  'head of boxing': 'Head of Boxing',
+};
+
+/* ONE READER FOR BOTH MAPS, because the roster prints a person's whole role list and the card
+   prints one of them, and two lookups written separately are two chances for a title to come out
+   as the raw lower-case cell in one place and properly in the other. */
+const roleLabel_ = x => ROLE_LABEL[x] || ROLE_TITLES[norm(x)] || x;
+
 /**
  * POSTCODES INTO COORDINATES.
  *
@@ -1751,6 +1813,10 @@ const PROFILE_GROUPS = {
   'More qualifications': ['extra_quals'],
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   'Contact':     ['email','phone','date_of_birth'],
+  /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
+     It is in all three group maps because a tutor, a parent and a student each have one library
+     card and one set of digits they cannot remember. */
+  'Library card': ['library_card','library_pin','library_note'],
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
@@ -1759,12 +1825,14 @@ const CLIENT_GROUPS = {
   /* An address, because a printed copy has to go somewhere. Without it the basket can offer
      collection and nothing else, and the reason is invisible on a form that never asked. */
   'Where you are': ['address','postcode'],
+  'Library card': ['library_card','library_pin','library_note'],
 };
 const STUDENT_GROUPS = {
   'About you': ['first_name','last_name','date_of_birth','photo'],
   'Contact':   ['email','phone'],
   'Where':     ['borough','city','town'],
   'Where you are': ['address','postcode'],
+  'Library card': ['library_card','library_pin','library_note'],
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
    `RESOURCE_EDITABLE` was its flattened allow-list. Both are gone with the tab they wrote to. The

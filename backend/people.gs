@@ -37,6 +37,15 @@ function mainRole(row) {
   return ['admin', 'tutor', 'client', 'student'].find(x => r.indexOf(x) !== -1) || 'client';
 }
 
+/* The other half of that cell: the values that are TITLES rather than roles. `mainRole` picks from
+   a declared list and cannot return one of these, and `hasRole` is only ever asked about a role
+   somebody named — so without this they reach no screen at all, which is a fact typed into the
+   sheet that nothing draws. Read off `ROLE_TITLES` rather than "anything mainRole did not pick",
+   because that second rule would print a typo in the role cell as somebody's job title. */
+function titlesOf(row) {
+  return rolesOf(row).map(x => ROLE_TITLES[x]).filter(Boolean);
+}
+
 /**
  * Find a person by ID FIRST, then by name.
  *

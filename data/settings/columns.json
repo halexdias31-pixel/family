@@ -6,8 +6,8 @@
 {"screen": "dm", "label": "DMs", "icon": "✉", "active": "TRUE", "sort_order": 5, "notes": "one conversation per page."},
 {"screen": "stuff", "label": "Find", "icon": "🔎", "active": "TRUE", "sort_order": 6, "notes": "the funnel. TAB_HOME — switching this one off leaves go('stuff') with nowhere to land."},
 {"screen": "account", "label": "You", "icon": "👤", "active": "TRUE", "sort_order": 7, "notes": "your account, and a page per person."},
-{"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 8, "notes": "the widgets."},
-{"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 9, "notes": "the arcade."},
-{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 10, "notes": "what you starred \u2014 widgets first, then anything else. Right of Games."},
-{"screen": "settings", "label": "Settings", "icon": "\u2699", "active": "TRUE", "sort_order": 11, "notes": "your details, your username and your PIN. One page each. Last, as asked."}
+{"screen": "settings", "label": "Settings", "icon": "\u2699", "active": "TRUE", "sort_order": 8, "notes": "your details, your username and your PIN. One page each. RIGHT OF YOU, because it was eleventh of eleven and reported as \"I don't see it\" \u2014 the one column you reach for from your own account card should not be four swipes past it."},
+{"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 9, "notes": "the widgets."},
+{"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 10, "notes": "the arcade."},
+{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 11, "notes": "what you starred \u2014 widgets first, then anything else. Last, since Settings took the place beside You."}
 ]

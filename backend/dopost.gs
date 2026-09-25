@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-24-a-busy-days";
+const DOPOST_VERSION = "2026-09-24-c-role-titles";
 
 
 function doPost(e) {
@@ -313,9 +313,15 @@ function doPost(e) {
       /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
          guess was right or not — a lock that only applies to wrong answers tells a guesser when
          they have found the right one. */
-      if (authLocked_(r)) {
+      /* AND IT SAYS HOW LONG. "Try again in a few minutes" is a sentence you cannot act on: it is
+         the same words whether the wait is one minute or an hour, so the only thing to do with it
+         is keep pressing — which is what makes the wait longer. A number is a thing somebody can
+         wait out. See `authWaitMins_`. */
+      const wait = authWaitMins_(r);
+      if (wait > 0) {
         return jsonOut({ success: false,
-          error: 'Too many attempts. Try again in a few minutes.' });
+          error: wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
+                            : 'Too many wrong PINs. Try again in ' + wait + ' minutes.' });
       }
       /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
       if (!authCheckPin_(t0, r, body.pin)) {
@@ -338,10 +344,7 @@ function doPost(e) {
       const r = findPerson(body.target);
       if (!r) return jsonOut({ error: 'Person not found.' });
       const appRole = toAppRole(mainRole(r));
-      const out = { avatar: S(r.avatar), role: S(r.role) };
-      PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
-        out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (availSet(r.availability)[f] ? 'TRUE' : '') : S(r[f]);
-      });
+      const out = profileOf_(r);
       return jsonOut({ success: true, profile: out, role: appRole, name: personDisplayName(r),
                        personId: S(r.person_id),
                        // So the editor can draw the figure and say what it's wearing.
@@ -352,7 +355,7 @@ function doPost(e) {
     if (action === 'listPeople') {
       const people = read(TAB.people).rows.map(r => ({
         name: personDisplayName(r),
-        role: rolesOf(r).map(x => ROLE_LABEL[x] || x).join(', '),
+        role: rolesOf(r).map(roleLabel_).join(', '),
         roles: rolesOf(r),
         handle: S(r.handle), email: S(r.email), phone: S(r.phone), dob: fmtDate(r.date_of_birth),
         photo: S(r.photo), description: S(r.headline), city: S(r.city),
@@ -2868,6 +2871,38 @@ function doPost(e) {
    would be missing a field within a month — this reply has lost `todo`, `photo`, `avatar` and
    `avatarItems` one at a time already, each for weeks, each because it was assembled somewhere
    that did not know about them. */
+/* ==================================================================================================
+   EVERY BOX ON THE SETTINGS FORM OPENED EMPTY, AND SAVING ONE EMPTIED THE SHEET TO MATCH.
+
+   `settingsPages_` fills its fields from `USER.profile` and NOTHING HAS EVER SENT ONE to the person
+   themselves. `getProfile` built one — for an ADMIN, looking at somebody else — and this reply, the
+   one a person gets about their own row, did not. So every group on the Settings column drew a card
+   of blank boxes on a fresh sign-in, whatever was actually in the sheet.
+
+   AND A BLANK BOX IS NOT THE ABSENCE OF AN ANSWER TO `me-save`. It gathers every `[data-me]` in the
+   card, empty ones included, and `updateProfile` writes what it is given — so opening Settings,
+   pressing Save on "About you" and changing nothing wrote `''` over the headline, the photograph,
+   the years of experience and all three adjectives. The one screen for editing your own details
+   was the one screen that could erase them, on the first press, with a toast saying "Saved".
+
+   `profileOf_` IS THE ONE BUILDER AND BOTH CALLERS USE IT. This was `getProfile`'s own block,
+   lifted out — an admin's view of somebody and that somebody's view of themselves are the same
+   object, and writing it twice is the second reader this repository records under `documents_()`,
+   `factsNow_` and `childrenOf`. `availSet` is called once here rather than once per hour code,
+   which it was.
+
+   IT IS NOT A DISCLOSURE. This reply is answered only after `authCheckPin_` has passed, and it
+   carries the row of the person who just proved they are it — which is strictly less than
+   `getProfile` has handed an admin since it was written. */
+function profileOf_(r) {
+  const avail = availSet(r.availability);
+  const out = { avatar: S(r.avatar), role: S(r.role) };
+  PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
+    out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '') : S(r[f]);
+  });
+  return out;
+}
+
 function loginReplyFor_(r, token) {
 // 'parent'/'kid' are what the frontend calls client/student.
   const appRole = toAppRole(mainRole(r));
@@ -2909,6 +2944,9 @@ function loginReplyFor_(r, token) {
                 /* The address, because the basket has to know whether it can offer to post
                    anything. Without it the option is missing and the reason is invisible. */
                 address: S(r.address), postcode: S(r.postcode),
+                /* THE SETTINGS FORM'S OWN VALUES — see `profileOf_` above. Without it every box on
+                   that column opens blank and the first Save writes the blanks back. */
+                profile: profileOf_(r),
                 highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
                 friends: S(r.friends) };
   /* `childNamesOf`, NOT `childrenOf` — see the note on it. This said `childrenOf(r)`, which after

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-24-a-busy-days";
+const DOGET_VERSION = "2026-09-24-c-role-titles";
 
 
 function doGet(e) {
@@ -541,6 +541,12 @@ function doGet(e) {
       if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || hasRole(r, 'admin'))) {
         payload.tutors.push({
           id: i, type: 'tutor', role: ROLE_LABEL[mainRole(r)] || 'Tutor',
+          /* A TITLE IS A SEPARATE FIELD RATHER THAN A LONGER `role` STRING, because `role` is
+             one word: the card sets it as its own heading and the funnel reads that field as a
+             kind. Joining `Tutor · Head of Boxing` into it would put a title through every reader
+             of it, and there is no way back out of one string. `titlesOf` reads `ROLE_TITLES`, so
+             a person with no title sends an empty list rather than a word nobody declared. */
+          titles: titlesOf(r),
           /* ---------- WHO THEY ARE, NOT WHAT THEY ARE CALLED ------------------------------------
              `id` ABOVE IS A POSITION IN THIS ARRAY and `title` is a display name; neither is the
              person. The Message control on a tutor's pass has to name a recipient, and naming one

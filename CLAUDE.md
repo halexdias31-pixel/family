@@ -10060,3 +10060,292 @@ and a long press both get the full word. No backend change, and nothing already 
 
 **Measured after**: both weeks 85.4 / 105.5 / 111.5 wide, every header label on one line at every
 width, `under: 0`, no sideways scroll, 37 checks pass.
+
+## "Too many attempts" was paid for by the person and free to the guesser
+
+**Reported as "I don't like this too many attempts nonsense just let me sign in"**, and the
+arithmetic agrees with the complaint rather than merely conceding to it. `MAX_TRIES: 5`,
+`LOCK_MINUTES: 15`, and `tries` set back to nought at every lock — so every lock was the same
+length, for ever.
+
+**A FLAT LOCK IS THE WRONG SHAPE IN BOTH DIRECTIONS.** Somebody who mistypes their own four digits
+five times is held out for a quarter of an hour with nothing to do but wait. A script is held out
+for the same quarter of an hour and does not mind, because waiting costs it nothing: **5 tries per
+15 minutes is 485 guesses a day, so ten thousand PINs is three weeks.** The person pays attention
+and the guesser pays nothing.
+
+| | wrong answers before anything happens | guesses a day after that | ten thousand PINs |
+|---|---|---|---|
+| **before** | 5 | **485** | three weeks |
+| **after** | **10** | **38 on the first day, 24 after** | **over a year** |
+
+**Ten free, then one minute, two, five, fifteen, and an hour for ever.** Ten wrong answers is past
+anybody's second guess at which of their PINs it is; a guesser gets fifteen tries in the first
+twenty-three minutes, thirty-eight in the first day, and one an hour after that. **Gentler on the
+person and twenty times harder on the guesser in the steady state**, which is why the flat number
+was worth replacing rather than raising.
+
+**Those three figures are measured**, by walking the ladder in a loop against a clock — the first
+draft of this section said 480 and 24 from arithmetic done in my head, and both were wrong by enough
+to matter. A number written into a comment and never run is the shape this file records under "all
+18 checks pass".
+
+**`tries` IS THE ESCALATION'S ONLY MEMORY and it is a column that already exists.** Resetting it at
+each lock is precisely what made the wait flat; it counts on now, and `authNewSession_` already
+clears it on a successful sign-in — so the rung is *wrong answers since you last got in* rather than
+a second column to keep in step. No schema change, one rung per wrong answer, `WAITS` written once.
+
+**And the sentence says how long.** *"Try again in a few minutes"* is the same words whether the
+wait is one minute or an hour, so the only thing to do with it is keep pressing — which makes the
+wait longer. `authWaitMins_` is one reader for the gate's yes-or-no and the number in the message,
+because two functions asking the clock separately is a message that says four minutes about a wait
+of five.
+
+**The e-mail is sent on the FIRST rung only.** With a rung per wrong answer, one email each is an
+email per guess — a mailbox nobody reads, and therefore the warning nobody sees.
+
+### Getting back in when the hash and the PIN disagree, which is written down nowhere else
+
+**`authSetPin_` clears the plaintext `pin` cell, so a row carrying a hash AND a plaintext cannot
+happen by accident** — after any PIN change in the app that cell is empty. And `authCheckPin_`
+consults the plaintext only when there is no hash, which is right: that is the migration path for a
+row that predates hashing.
+
+**What that leaves is an account with no remedy, and the owner's was in it.** If the hash stops
+matching the PIN somebody believes is theirs — a PIN changed in the app and the old one typed back
+into the cell by hand, or `AUTH_PEPPER` regenerated — every attempt answers *"Name or PIN not
+recognised"* while the right four digits sit in the cell in front of them.
+
+**THE SHEET IS THE RESET AND IT NEEDS NO DEPLOY.** On that person's row in `Ledger` → `people`:
+put the PIN in **`pin`**, empty **`pin_hash`** and **`pin_salt`**, empty **`locked_until`**, and set
+**`tries`** to 0. The next sign-in takes the plaintext path, succeeds, and re-hashes immediately —
+the cell is cleared again by `authSetPin_`, so nothing is left lying about. Four cells, and the code
+already does the rest.
+
+**Emptying the hash is the whole of it**; putting the PIN back is what stops that being a lockout of
+a different kind.
+
+## Library card numbers and PINs are three columns on `people`
+
+**Asked for as "a place to make notes for library card numbers and library card pins"**, and the
+three-question test at the top of this file answers where it goes before anything is designed.
+
+**IS IT SECRET? YES — so a sheet, and never `data/`.** This repository is public and its history is
+permanent. A card number and its four digits are exactly the shape this file already keeps out of
+git alongside PINs, e-mail addresses and dates of birth.
+
+**DOES THE APP WRITE TO IT? YES**, through `updateProfile` from the Settings column — which is what
+makes it a sheet column rather than something kept on the phone. A note in `localStorage` is a note
+you lose when you change phone, and the point of writing a library card number down is that it is
+there in a year when you cannot find the card.
+
+**`library_note` IS THE THIRD COLUMN AND IT IS DELIBERATE.** Somebody with cards for two boroughs,
+or a card in a child's name, has a fact the other two have nowhere to put — and the alternative to
+one free line is `library_card_2`, the numbered-column fault this file already records under
+`images`, under `needs` and under the practicals' `equipment_1 … equipment_10`.
+
+**WHO SEES IT: nobody by default.** `doGet` sends no profile column to anybody — `profileFields` is
+the SHAPE of the form, not its values — so these three never reach the public payload. They reach
+the person themselves in their own signed-in reply, and an **admin** through `getProfile`, which is
+how every other column on this tab has behaved since it was written. Said rather than buried,
+because it is a PIN and the owner is the admin.
+
+**One entry in each of `PROFILE_GROUPS`, `CLIENT_GROUPS` and `STUDENT_GROUPS`** — a tutor, a parent
+and a student each have one card and one set of digits they cannot remember — and `PROFILE_EDITABLE`
+is derived from those three, so there is no second list to add it to.
+
+### Every box on that form opened empty, and the first Save wrote the blanks back
+
+**Found while wiring the new group up, and it is the older and worse fault.** `settingsPages_` fills
+its fields from `USER.profile`, and **nothing has ever sent one to the person themselves**:
+`getProfile` builds one for an ADMIN looking at somebody else, and `loginReplyFor_` — the reply a
+person gets about their own row — did not. So every group on that column drew a card of blank boxes
+on a fresh sign-in, whatever was in the sheet.
+
+**AND A BLANK BOX IS NOT THE ABSENCE OF AN ANSWER TO `me-save`.** It gathers every `[data-me]` in
+the card, empty ones included, and `updateProfile` writes what it is given. So opening Settings,
+pressing Save on *About you* and changing nothing wrote `''` over the headline, the photograph, the
+years of experience and all three adjectives. **The one screen for editing your own details was the
+one screen that could erase them**, on the first press, with a toast saying *Saved*.
+
+**`profileOf_` is the one builder and both callers use it.** It is `getProfile`'s own block lifted
+out: an admin's view of somebody and that somebody's view of themselves are the same object, and
+writing it twice is the second reader this file records under `documents_()`, `factsNow_` and
+`childrenOf`. It is not a disclosure — the reply is answered only after `authCheckPin_` has passed,
+and it carries the row of the person who just proved they are it.
+
+### And the column moved next to You, because it was eleventh of eleven
+
+**Reported as "The account setting should be in new coloumn I don't see it".** It was there and it
+worked — `screen('settings')`, five pages, the `Your settings` tile on your own account card opens
+it — and it was **four swipes past You** with no tab bar to jump with. `sort_order` 8 in
+`data/settings/columns.json`, which is one cell and no deploy: the one column you reach for from
+your own card is now the one beside it. Saved takes the end.
+
+### "your own booking" was the row read back to you
+
+**Reported as "There seems to be writing under one of the fields at the top. It's redundant or
+unnecessary."** Measured rather than guessed at: the booking card draws its notes as `.bk-say`
+under the row they belong to, and the first one on the card, under the first field, was
+
+| under | | |
+|---|---|---|
+| **`For`** | *your own booking* | over a row already reading `For — <your own name>` |
+| `Kind` | *It happens. Yours from the moment you pay…* | says what the dropdown label cannot |
+
+**One fact drawn twice**, which is the fault this file already records where the roster's `name` put
+an `<h3>` above every widget's own heading: both were correct and both were on the screen at once.
+Thirteen pixels, on the first field of the app's most crowded card.
+
+**The other branch of the same note stays, and the line between them is worth stating.** `Nobody yet
+— just open it` is what you PICKED; *"the list opens empty, and families join it"* is what happens
+NEXT, and nothing else on the card says it. A note that repeats the row is a caption; a note that
+says what the row cannot is why the mechanism exists.
+
+## A title is a role that decides nothing, and the cell it goes in was already built for it
+
+**Asked for as "I want to add a role. For George he is the head of boxing. For now leave this as
+just a title or something. In the future it will mean something. Just have it be in code somewhere
+idk."** The first move was to read the role machinery rather than invent a column, and most of the
+answer is that it was there already.
+
+**`rolesOf` SPLITS THE `role` CELL ON COMMAS** — *"a person may hold SEVERAL roles… one role is not
+more real than another"* — **and `mainRole` picks from a DECLARED list**, `['admin','tutor','client',
+'student']`, so a value that is not on it can never win. Every gate in this project asks
+`hasRole(row, 'tutor')` and nothing asks the other way round. So a title sitting beside a real role
+grants precisely nothing today **by construction rather than by somebody remembering**, which is
+what made this three fields rather than a schema change.
+
+**IT IS DECLARED IN `ROLE_TITLES` RATHER THAN LEFT AS A STRAY CELL STRING.** `head of boxing` typed
+into the sheet with nothing naming it prints in the roster in lower case, means nothing to a reader
+of `constants.gs`, and the day somebody DOES want it to gate something there is no way to tell
+whether it was deliberate or a typo. One entry, one written reason — the `ACCEPTED` / `VOCAB` /
+`RETIRED_FACETS` / `HANDLE_ALLOWED` pattern for an eighth time — and the note says where to look
+when it starts to mean something.
+
+**THE COMMA IS LOAD-BEARING AND THAT IS THE ONE THING TO GET RIGHT IN THE SHEET.** The cell must
+read `tutor, head of boxing`. A row holding only titles has no real role left, `mainRole` falls back
+to `client`, and George drops off the tutor list and off the site — the control doing the opposite
+of what it was asked for, silently.
+
+**`titlesOf` READS OFF `ROLE_TITLES` RATHER THAN "whatever `mainRole` did not pick".** That second
+rule is one line shorter and would print a typo in the role cell as somebody's job title, on a
+public card, which is the fault `/required practical/` matching *"AQA-aligned, NOT a required
+practical"* already cost five cards.
+
+**`titles` IS A SEPARATE PAYLOAD FIELD, NOT A LONGER `role` STRING.** `role` is one word the card
+sets in the pass's own label and the funnel reads as a kind; joining `Tutor · Head of Boxing` into
+it would put a title through every reader of that field and there is no way back out of one string.
+Drawn in the heading that already says what somebody IS — a row of its own would be a twelfth
+label/value line for a fact three words long — and read through `profList_`, because the shape is
+not something that card gets to assume.
+
+**And `listPeople` and the card were two lookups for one label.** `ROLE_LABEL[x] || x` written out
+in `dopost.gs` would have printed a title as the raw lower-case cell in the roster while the card
+printed it properly. `roleLabel_` is the one reader, which is this file's sentence about
+`documents_()`, `paperIdOf_`, `factsNow_` and `childrenOf`.
+
+**And the fixture said `role: 'tutor'` where `doGet` sends `Tutor`.** Lower case beside a Title Case
+title reads as broken, and it is the shape recorded here where the fixture stated `focus` as a
+string `doGet` does not send. Measured in a browser after: the account column draws
+`Tutor · Head of Boxing`, and every other heading is unchanged.
+
+## Eleven columns, eleven different top edges, and nothing could see it because nothing looked across
+
+**Reported as "Navigation is a bit buggy. When I swipe left and right on certain things I see the
+edge are slid up or down at times. Happens with games and tools widget too."** Measured at 390×844
+before anything was touched — the top edge of each column's current card:
+
+| | | | | | | | | | | |
+|---|---|---|---|---|---|---|---|---|---|---|
+| make | tools | account | booking | reel | games | settings | stuff | feed | dm | saved |
+| 98 | 108.5 | 117 | 125.5 | 167.5 | 199 | 223.5 | 255 | 286.5 | 322.5 | **343** |
+
+**A 245px spread**, and screenshotted mid-swipe it is exactly the report: the calculator and the
+chess card side by side with ninety pixels between their top edges.
+
+### It is static, which is the half worth proving before changing anything
+
+**"At times" reads as a drift and it is not one.** Sampled every frame of a real drag: every
+column's `translateY` is constant through the whole gesture. Sampled for three seconds after
+landing: unchanged. Four round trips between Tools and Games: the same two numbers, eight times.
+What varies is WHICH PAIR of columns you are between — `stuff → feed` is 31px and reads as fine,
+`settings → saved` is 120px and reads as broken.
+
+**THE CAUSE IS THE CENTRING.** `columnShift_` was `boxH / 2 - (offsetTop + offsetHeight / 2)` — each
+column centred on its OWN card — and the cards are different heights. Measured, every card's CENTRE
+is at 422px, exactly half of 844. The centres agreed perfectly; the edges never could, and the edge
+is the only part of a neighbour you can see.
+
+### The line the tops agree on is the stylesheet's own reserve, not a number I picked
+
+**`.pane` is capped at `100dvh − var(--bar) − var(--safe-bottom) − 2.5rem`**, so the stylesheet
+already keeps a strip of the screen clear. The whole of that strip goes ABOVE the card, and two
+things fall out of that choice:
+
+- **the tallest card a pane may hold still fits** — its bottom lands exactly on the bottom of the
+  screen. Proved at 320×568, where a card really is at the cap: bottom edge **568 of 568**. A line
+  chosen by eye could not promise that at every screen height.
+- **it leaves a sliver of the card above** — 20.7px at 390×844 against the 23px of the column beside
+  it. The two axes peek by the same amount without either number being told the other.
+
+**SPLITTING THE RESERVE WAS WRITTEN FIRST AND MEASURED.** Half above and half below — which is what
+centring a cap-height card gives — puts every column on **18.5px**, and 18.5 minus the column's own
+16px gap is **two and a half pixels of the card above**. Aligned, and the vertical affordance gone.
+The reserve is small because the cap is generous, so halving it halves almost nothing.
+
+| | tops: min | max | spread | tallest card's bottom edge |
+|---|---|---|---|---|
+| 390×844 | 36.7 | 37 | **0.3px** | 663.8 of 844 |
+| 320×568 | 33.3 | 33.8 | **0.5px** | **568 of 568** |
+| 768×1024 | 38.8 | 39.1 | **0.3px** | 683.5 of 1024 |
+
+**WHAT IT COSTS, said rather than buried**: a card much shorter than the screen no longer floats in
+the middle of it. The one-page columns are where that shows — Saved's card was at 343 and is on the
+same line as everything else now, with the space below it rather than split above and below. That
+is the price of a row of columns reading as a row, and it is one `return` to put back.
+
+**And the peek ABOVE was the same fault down the other axis.** It was `top − 16px`, so it varied by
+the same 245px: 92px of the previous card on Tools, 327px on Saved. It is 21px on every screen now.
+
+### `COLUMNS OUT OF LINE` — the rule, because nothing here measures between screens
+
+**Every geometry rule in `check/ui.js` measures ONE screen**, and this is a fault BETWEEN screens:
+each column was individually perfect. So the question is asked once per width and visitor, after
+every screen has been visited — there is no per-screen pass this could have been a line in.
+
+**The tolerance is 2px and it is sub-pixel layout and nothing else**: the spread is 0.3–0.5px across
+the three sizes, which is `offsetTop` rounding. A column with no page is skipped rather than counted
+as zero — a screen this visitor cannot reach is not a column out of line.
+
+**Proved by mutation**: the old centring back and it names six findings, at every width and both
+visitors, worst **258.5px apart across 11 columns — dm at 373, stuff at 114.5** at 320px, and exits
+1. The real files report nothing.
+
+**And three notes described the centring in the present tense.** `columnShift_`'s own header, the
+camera's note in `posts.js` and the state's note in `check/states.js` all said "centres"; the
+mechanism the last two describe — a card that grows after its column was placed is a card the
+placement never saw — is unchanged, and only the word was wrong. Corrected in all three rather than
+in the one I happened to be editing, which is this file's own sentence about `cost: 0`.
+
+### And the tap-target rule had been one translate away from thirteen false findings
+
+**The first clean run of the aligned columns reported `TAP TARGET (13)`, every one of them printing
+a size that passes.** `<button>.mc-btn.fn "sin" is 51x44` — flagged for being under a floor of 44 by
+a report that says it is 44. A finding nobody can act on, which is the tell.
+
+**Measured at full precision it is `43.99998474121094`.** `offsetHeight` is 44, `min-height` is
+`44px`, `height` computes to `44px`. The control is 44px. What is not 44 is
+`getBoundingClientRect`, which on an element inside a translated ancestor is the floating-point sum
+of its layout position and the column's `translateY` — and the top and the bottom round the other
+way from each other.
+
+**SO IT IS THE INSTRUMENT AND NOT THE APP, and it has been one translate away since the rule was
+written.** The columns were sliding by 108.5px, which happens to sum exactly; they slide by 33.8
+now, and thirteen controls that had not changed by a pixel started failing. Proved by taking the old
+`columnShift_` back — the thirteen go, and the six `COLUMNS OUT OF LINE` come back.
+
+**Half a pixel, not a rounding.** `Math.round` would wave a real 43.5px control through. Everything
+genuinely under the floor in this app is 38, 40, 20 or 13, so half a pixel is nowhere near any of
+them and is below what a screen can draw or a stylesheet can mean. **Proved by mutation**: forcing
+`.mc-btn.fn` to 43px names all of them and exits 1.

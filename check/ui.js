@@ -151,8 +151,23 @@ const { STATES, statesOf } = require('./states.js');
    visitor half the app refuses to draw anything for, which would measure the sign-in screen twice. */
 const VISITORS = [
   { as: 'out', user: null },
+  /* ---------- AND A `profile`, BECAUSE AN EMPTY BOX IS NOT THE BOX PEOPLE HAVE --------------------
+     THE SEED CARRIED NONE, so every card on the Settings column has been measured EMPTY on every
+     run — which for a form is measuring the one state that cannot overflow. `loginReplyFor_` sends
+     a person their own values now (see `profileOf_`), so a returning visitor arrives with boxes
+     that have something in them, and this is that visitor.
+
+     INVENTED, AND SHAPED TO BE THE WIDEST CASE RATHER THAN THE TIDIEST. The note is the longest
+     thing any of these boxes ever holds; the card number is the full length a borough prints on
+     one. Nothing here is anybody's — this file is committed to a public repository, which is the
+     whole reason the real ones live in a spreadsheet. */
   { as: 'in',  user: { name: 'Test Admin', personId: 'P001', person_id: 'P001',
-                       role: 'admin', roles: ['admin'], handle: 'testadmin' } },
+                       role: 'admin', roles: ['admin'], handle: 'testadmin',
+                       profile: { first_name: 'Test', last_name: 'Admin',
+                                  borough: 'Sutton', city: 'London',
+                                  library_card: '2000000000000',
+                                  library_pin: '0000',
+                                  library_note: 'Example note — the second card is in the top drawer' } } },
 ];
 
 /* 44 CSS PIXELS is Apple's published minimum for something a finger has to hit, and Google says 48.
@@ -622,8 +637,24 @@ function inspect(opts) {
         act: el.dataset ? (el.dataset.do || '') : '' });
     }
 
+    /* ---------- HALF A PIXEL, BECAUSE THE RECT IS A SUM AND NOT A SIZE ------------------------
+       A BARE `< MIN_TAP` REPORTED THIRTEEN CONTROLS AS `51x44` — a size the report itself prints as
+       passing, which is a finding nobody can act on. Measured at full precision, the calculator's
+       `sin` key is **43.99998474121094** tall: `offsetHeight` is 44, `min-height` is `44px`, and
+       `height` computes to `44px`. It is 44. What is not 44 is `getBoundingClientRect`, which on an
+       element inside a translated ancestor is the floating-point sum of its layout position and the
+       column's `translateY` — and the bottom and the top round the other way from each other.
+
+       IT HAS BEEN ONE TRANSLATE AWAY FROM THIS SINCE THE RULE WAS WRITTEN. The columns were being
+       slid by 108.5px, which happens to sum exactly; the day they slid by 33.8 instead, thirteen
+       controls that had not changed by a pixel started failing. The instrument reporting its own
+       arithmetic as the app's fault is the shape this project keeps finding in its own checks.
+
+       HALF A PIXEL AND NOT A ROUNDING. `Math.round` would wave a real 43.5px control through;
+       everything genuinely under the floor in this app is 38, 40, 20 or 13, so half a pixel is
+       nowhere near any of them and is below what a screen can draw or a stylesheet can mean. */
     const r = el.getBoundingClientRect();
-    if (r.height < MIN_TAP || r.width < MIN_TAP) {
+    if (r.height < MIN_TAP - 0.5 || r.width < MIN_TAP - 0.5) {
       /* THE CLASS COMES BACK WITH IT, because a finding has to be identifiable to be accepted. A
          report keyed on the element's TEXT cannot tell a 22px hour button from a 22px anything
          else, so an ACCEPTED entry written against the text would silence whatever happens to say
@@ -866,6 +897,41 @@ function inspect(opts) {
       }
     }
 
+    /* ---------- EVERY COLUMN'S CARD STARTS ON THE SAME LINE ------------------------------------
+       REPORTED AS *"when I swipe left and right on certain things I see the edge are slid up or
+       down at times"*, and nothing here could see it: every rule above measures ONE screen, and
+       this is a fault between screens. Measured at the time, the current card's top edge ran from
+       98px on Make to 343px on Saved — a 245px spread — because `columnShift_` centred each column
+       on its own card and the cards are different heights. What you see at the edge while swiping
+       is a sliver of the neighbour, so a neighbour whose top is 90px lower is a step in the edge.
+
+       ASKED ONCE PER WIDTH AND VISITOR, AFTER EVERY SCREEN HAS BEEN VISITED, because it is a
+       property of the grid rather than of a screen — there is no per-screen pass this could have
+       been a line in. A column with no page is skipped rather than counted as zero: a screen this
+       visitor cannot reach is not a column out of line.
+
+       THE TOLERANCE IS SUB-PIXEL LAYOUT AND NOTHING ELSE. Measured across the three sizes the
+       spread is 0.3–0.5px, which is `offsetTop` rounding; 2px leaves room for that and no room for
+       a card placed by a different rule. */
+    const ragged = await page.evaluate(() => {
+      const tops = [];
+      document.querySelectorAll('.screen').forEach(s => {
+        const id = s.id.slice(2);
+        const pages = s.querySelectorAll(':scope > .page');
+        if (!pages.length) return;
+        let at = 0;
+        try { at = domIndex_(id, PAGE[id] || 0); } catch (e) { at = 0; }
+        const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
+        if (!cur) return;
+        tops.push({ id, top: +cur.getBoundingClientRect().top.toFixed(1) });
+      });
+      if (tops.length < 2) return null;
+      const lo = tops.reduce((a, b) => a.top < b.top ? a : b);
+      const hi = tops.reduce((a, b) => a.top > b.top ? a : b);
+      return { by: +(hi.top - lo.top).toFixed(1), lo, hi, n: tops.length };
+    });
+    if (ragged && ragged.by > 2) rows.push({ width, id: '—', as: who.as, ragged });
+
     if (jsErrors.length) {
       failures += jsErrors.length;
       rows.push({ width, id: '—', as: who.as, jsErrors });
@@ -902,6 +968,13 @@ function inspect(opts) {
     const at = `${r.id}@${r.width}${r.as === 'in' ? ' signed in' : ''}`;
     (r.jsErrors || []).forEach(e => add('JS ERROR', e,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`));
+    /* NOT GROUPED UNDER A SCREEN NAME, because it is not about one: the place is the width and the
+       visitor, and the finding names the two columns furthest apart so there is something to look
+       at rather than a number. */
+    if (r.ragged) add('COLUMNS OUT OF LINE',
+      `the current card starts ${r.ragged.by}px apart across ${r.ragged.n} columns — `
+      + `${r.ragged.hi.id} at ${r.ragged.hi.top}, ${r.ragged.lo.id} at ${r.ragged.lo.top}`,
+      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
