@@ -244,6 +244,10 @@ function boot(opts) {
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
+      /* THE FIVE STAGE ROWS AND THE BUILDER BOTH DOCUMENTS USE, so a journey asking about the ticks
+         reads the app's own list rather than a copy of it written out here. */
+      'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
+      'stageRows: typeof stageRows_ === "function" ? stageRows_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
@@ -902,30 +906,55 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   if (before.includes('J-ASK')) bad.push('a booking is shown under the form before one was asked for');
   if (w.__t.asked()) bad.push('something is remembered as asked for before any send');
 
-  /* ---------- THE THREE STATE ROWS ARE ON THE BLANK FORM, AND THEY ARE BLANK ----------------------
-     `Stage`, `Status` and `Asked for` are pinned to the end of the spine so the document reads the
-     same from the first question to the last payment. On a form nobody has sent they have nothing
-     to report, and they print `—` like every other unanswered row rather than a sentence that stops
-     the eye. Two of them carried sentences until the spec asked for dashes; this keeps them dashes.
+  /* ---------- THE STATE ROWS ARE ON THE BLANK FORM, AND THEY ARE EMPTY ---------------------------
+     THE STAGE ROWS ARE PINNED TO THE END OF THE SPINE so the document reads the same from the first
+     question to the last payment — which is the invariant, and it is untouched by what those rows
+     look like. On a form nobody has sent they have nothing to report: `Status` prints `—` like
+     every other unanswered row, and the five stages print an EMPTY TICK BOX, which is the same
+     "nothing yet" with the difference that it also says what will be reported.
+
+     `Stage` AND `Asked for` WERE TWO OF THE THREE THIS ASKED ABOUT. Both are gone — see
+     `JOB_STAGES` in book.js: the sentence is what the five ticks say in words and the date is the
+     `Requested` tick's own value. So the rule is the same rule against the rows that exist.
 
      READ OFF `bk-k`/`bk-v`, WHICH IS THE MARKUP THE FORM ACTUALLY USES. The first version of this
      looked for `</tr>` and reported all three rows missing — they were present and already correct,
      and the check was describing its own selector rather than the page. A row here is a
-     `div.bk-row` of spans, and the value is the `bk-v` following the `bk-k` that carries the label. */
-  const cellOf = (html, label) => {
+     `div.bk-row` of spans, and the value is the `bk-v` following the `bk-k` that carries the label.
+
+     THE TICK IS READ OFF THE WHOLE CELL rather than its text, because a ticked and an unticked box
+     hold the SAME GLYPH and are told apart by one class. A rule reading the text would pass on both
+     — which is the shape of every inert check this repository has deleted. */
+  const cellOf = (html, label, whole) => {
     const k = html.indexOf('<span class="bk-k">' + label + '</span>');
     if (k < 0) return null;
     const v = html.indexOf('bk-v', k);
     if (v < 0) return null;
-    return html.slice(v, html.indexOf('</span>', v)).replace(/^[^>]*>/, '').trim();
+    const cell = html.slice(v, html.indexOf('</span>', v));
+    return whole ? cell : cell.replace(/^[^>]*>/, '').trim();
   };
-  const dashes = (html, where) => ['Stage', 'Status', 'Asked for'].forEach(label => {
-    const v = cellOf(html, label);
-    if (v === null) bad.push(`the ${where} booking form has no "${label}" row`);
-    else if (v !== '—') {
-      bad.push(`"${label}" on the ${where} form reads ${JSON.stringify(v)}, not a dash`);
+  /* THE FIVE, READ OFF THE APP so a stage added or renamed needs nothing changed here. A list
+     written out in this file would be a second copy of `JOB_STAGES` to keep in step. */
+  const STAGES = (w.__t.JOB_STAGES || []).map(s => s.row);
+  const dashes = (html, where) => {
+    if (STAGES.length !== 5) {
+      bad.push(`JOB_STAGES has ${STAGES.length} rows, not the five the receipt is built from`);
     }
-  });
+    const v = cellOf(html, 'Status');
+    if (v === null) bad.push(`the ${where} booking form has no "Status" row`);
+    else if (v !== '—') {
+      bad.push(`"Status" on the ${where} form reads ${JSON.stringify(v)}, not a dash`);
+    }
+    STAGES.forEach(label => {
+      const cell = cellOf(html, label, true);
+      if (cell === null) bad.push(`the ${where} booking form has no "${label}" row`);
+      else if (cell.indexOf('bk-tick') === -1) {
+        bad.push(`"${label}" on the ${where} form is not drawn as a tick box`);
+      } else if (/bk-tick[^"]*\bon\b/.test(cell)) {
+        bad.push(`"${label}" is ticked on the ${where} form, which nobody has sent`);
+      }
+    });
+  };
   dashes(before, 'blank');
 
   /* ---------- AND ON THE PRICED FORM, WHICH IS A DIFFERENT BUILDER ---------------------------------
@@ -965,10 +994,22 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   }
   const after = formPage();
   if (!after.includes('J-ASK')) bad.push('the booking just made is not drawn under the form');
-  /* THE STAGE ROW, TWICE: the blank form still says "Not asked for yet" and the receipt under it
-     says where the real booking has got to. One of them is the answer to the other. */
-  if ((after.split('Stage').length - 1) < 2) {
-    bad.push('the second document has no Stage row, so it is not the booking widget');
+  /* ---------- `Requested` IS TICKED THE MOMENT IT IS SENT, AND ONLY ON THE SECOND DOCUMENT -------
+     ASKED FOR AS *"a line for requested and it gets ticked automatically by system"* — so this is
+     that sentence as a rule: nothing was ticked a moment ago, `book-send` has now gone, and the
+     receipt under the form has its first box filled in. The form above it still has five empty
+     ones, which is the spine's own argument about a document reading the same either side of a
+     send, and the test that stops the tick being drawn on everything.
+
+     IT REPLACES A COUNT OF THE WORD "Stage". That version asked only that the string appeared
+     twice, so it would have passed on two blank forms — it was there to say "the second document
+     is the booking widget" and could not say the widget had anything in it. */
+  const ticked = s => (s.match(/class="bk-tick on"/g) || []).length;
+  if (ticked(formPage()) < 1) {
+    bad.push('nothing is ticked after the booking was sent, so the receipt is not under the form');
+  }
+  if (ticked(before) !== 0) {
+    bad.push('the blank form had a ticked stage on it before anything was sent');
   }
   /* ---------- IT MUST NOT GROW, AND IT IS ALLOWED TO SHRINK -------------------------------------
      THE RULE IS "BELOW, NOT BESIDE" — the booking just sent goes under the form rather than

@@ -628,20 +628,42 @@ for (const who of VISITORS) {
       await page.evaluate(x => goPage(x, 0, true), id);
       await page.waitForTimeout(260);
       /* THE NEAREST CONTROL TO THE MIDDLE OF THE SCREEN, because that is where a thumb lands. A
-         column whose first page carries none is skipped rather than reported. */
-      const spot = await page.evaluate(x => {
+         column whose first page carries none is skipped rather than reported.
+
+         ASKED AGAIN AFTER THE DRAG, which is why it is a function rather than a value. The drag
+         below turns the page — that is the whole thing it asserts — so a coordinate taken before it
+         names a control that has since slid off the screen. The press-mark rule was written against
+         the stale one and reported five columns lit nothing; every one of them was the harness
+         pressing empty card, which is the shape every entry under `check/load.js` already records
+         about this kind of probe lying in whichever direction is easiest to believe. */
+      const findSpot = () => page.evaluate(x => {
         const host = document.getElementById('s-' + x);
         if (!host) return null;
         let best = null;
         host.querySelectorAll('[data-do]').forEach(el => {
           const r = el.getBoundingClientRect();
           if (r.width < 24 || r.height < 16 || r.top < 120 || r.bottom > 760) return;
-          const d = Math.abs((r.top + r.bottom) / 2 - 440);
-          if (!best || d < best.d) best = { d: d, x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2,
+          const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+          /* ---------- AND SOMETHING HAS TO BE THERE WHEN A REAL FINGER ARRIVES ------------------
+             A RECT IS A LAYOUT POSITION AND A PANE CLIPS. The star tile at the foot of a widget
+             card on Tools and on Games reports a box in the middle of the screen and
+             `elementsFromPoint` at its own centre gives the bare `.screen` — it is below its pane's
+             fold, so it is drawn nowhere and a mouse lands on nothing. Every press this file made
+             before the press-mark rule went in was `dispatchEvent`, which needs no hit test and
+             says so in the header; the moment one of them became a real pointer the finder had to
+             answer the other question too.
+             IT MAKES THE DRAG ABOVE HONEST AS WELL. A drag from a point where the control is not
+             begins on bare card, which is the exact case that test exists to stop being the only
+             one measured — and it would have gone on passing while proving nothing. */
+          const hit = document.elementFromPoint(cx, cy);
+          if (!hit || !el.contains(hit)) return;
+          const d = Math.abs(cy - 440);
+          if (!best || d < best.d) best = { d: d, x: cx, y: cy,
                                             act: el.getAttribute('data-do') };
         });
         return best;
       }, id);
+      const spot = await findSpot();
       if (!spot) continue;
       const was = await page.evaluate(x => ({
         page: PAGE[x] || 0,
@@ -659,6 +681,50 @@ for (const who of VISITORS) {
                     got: 'turned ' + turned + ' page(s)' + (now.chips === was.chips ? '' : ', and answered a question'),
                     want: 'turned 1 page(s)',
                     ok: turned === 1 && now.chips === was.chips });
+
+      /* ==================================================================================================
+         AND THE THING YOU PRESSED HAS TO LIGHT UP WHILE THE SCREEN IS THINKING.
+
+         `:active` ENDS AT THE LIFT and the funnel's answer takes 130 ms to arrive at 8x CPU, so a
+         tap was a flash, an eighth of a second of an unchanged screen, and then the answer —
+         reported as *"make the button pressing feel more responsive on the finder"*. `pressMark_`
+         in shell.js puts `.is-pressed` on at `pointerdown` and takes it off two frames after the
+         handler ran.
+
+         NOTHING ELSE HERE CAN SEE EITHER HALF OF THAT. The press pass reaches a control with
+         `dispatchEvent`, which fires no `pointerdown` at all; `check/ui.js` measures whether a
+         control can be read and hit, and a control with no press state measures perfectly.
+
+         TWO QUESTIONS, BECAUSE THE TWO FAILURES ARE OPPOSITE. A mark that never goes ON is the app
+         silently back to feeling dead; a mark that never comes OFF is a control that looks
+         permanently pressed. And the drag above is the third: a swipe that began on this control
+         must not leave it lit for the length of the gesture, which is why this runs AFTER it —
+         anything still marked here is a mark the drag failed to clear.
+
+         REAL POINTER EVENTS, for the reason the swipes are real: a class added on `pointerdown` is
+         invisible to a dispatched click, which is exactly the hole this rule is closing. */
+      const stray = await page.evaluate(() => document.querySelectorAll('.is-pressed').length);
+      swipes.push({ from: id + ' after a drag from [' + spot.act + ']', dir: 'press mark',
+                    got: stray + ' left lit', want: '0 left lit', ok: stray === 0 });
+
+      const now2 = await findSpot();
+      if (now2) {
+        await page.mouse.move(now2.x, now2.y);
+        await page.mouse.down();
+        await page.waitForTimeout(40);
+        const lit = await page.evaluate(() => {
+          const el = document.querySelector('.is-pressed');
+          return el ? (el.getAttribute('data-do') || el.className) : '';
+        });
+        await page.mouse.up();
+        await page.waitForTimeout(350);
+        const after = await page.evaluate(() => document.querySelectorAll('.is-pressed').length);
+        swipes.push({ from: id + ' pressing [' + now2.act + ']', dir: 'press mark',
+                      got: (lit ? 'lit ' + lit : 'nothing lit') + ', ' + after + ' still lit after',
+                      want: 'lit ' + now2.act + ', 0 still lit after',
+                      ok: lit === now2.act && after === 0 });
+        await page.waitForTimeout(120);
+      }
     }
 
     /* ==================================================================================================

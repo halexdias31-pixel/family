@@ -2173,13 +2173,87 @@ function clicks(on) {
    ends without a click cannot eat the tap after it. */
 let PRESS_MOVED = false;
 
+/* ==================================================================================================
+   THE THING YOU PRESSED STAYS LIT UNTIL THE SCREEN HAS ANSWERED.
+
+   REPORTED AS *"make the button pressing feel more responsive on the finder"*, and measured before
+   anything was changed: at 8x CPU — an ordinary phone — answering one of the funnel's questions is
+   **130 ms from the finger lifting to the screen having changed**. `:active` ends at the LIFT. So
+   what a tap actually looks like is a brief flash, then an eighth of a second of a screen identical
+   to the one you were just looking at, and only then the answer. That gap is the whole complaint:
+   nothing on the phone says the tap landed.
+
+   AND ON THE OWNER'S PHONE THERE MAY BE NO FLASH AT ALL. `:active` on touch is a browser heuristic
+   rather than a rule — it is withheld until the gesture is known not to be a scroll, and Safari has
+   historically wanted a touch listener on the element itself. Every listener this app has is on the
+   WINDOW. So the one piece of feedback a press had was the piece nothing here can test, on the one
+   platform this environment cannot reach.
+
+   A CLASS DOES NOT DEPEND ON ANY OF THAT. It goes on at `pointerdown`, which has already happened
+   by the time a browser is deciding what the gesture is, and it comes off two frames after the
+   handler has run — by which time either the screen has changed or the markup carrying it has been
+   replaced. So the lit state covers exactly the window the complaint is about.
+
+   ---------- IT IS NOT A SECOND PRESS STATE, IT IS THE SAME ONE -----------------------------------
+   `.is-pressed` is added to the `:active` selectors that already exist rather than given rules of
+   its own — see `.row.tap.counted:active` in style.css. Two descriptions of one look is the fault
+   this repository records under `.reel .over`, and here they would sit on the same element a tenth
+   of a second apart, which is the version that gets noticed.
+
+   A CONTROL WITH NO `:active` RULE IS UNCHANGED, and that is deliberate: the mark is on every
+   control in the app and the stylesheet decides which of them show it, exactly as `:active` does.
+
+   ---------- WHAT CLEARS IT, AND THE ONE THAT IS NOT OPTIONAL -------------------------------------
+   THE DRAG. `PRESS_MOVED` is set the moment a finger travels ten pixels, and a swipe that began on
+   an answer must not leave that answer lit for the length of the gesture — it would read as the row
+   being held down while the column slides under it. Cleared at the same line, so there is one place
+   that decides a press has become a drag.
+
+   AND A TIMEOUT BEHIND ALL OF IT, because a mark that is never cleared is a control that looks
+   permanently pressed, and the cost of one wrong clear is nothing. */
+let PRESSED = null;
+let PRESSED_OFF = 0;
+
+function pressMark_(t) {
+  pressClear_();
+  /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
+     card, which is the same rule `SHEET_FROM` follows for where a sheet grows from. */
+  const el = t && t.closest && t.closest('[data-do], .tab');
+  if (!el) return;
+  PRESSED = el;
+  el.classList.add('is-pressed');
+  PRESSED_OFF = setTimeout(pressClear_, 1200);
+}
+
+function pressClear_() {
+  clearTimeout(PRESSED_OFF);
+  if (PRESSED) { try { PRESSED.classList.remove('is-pressed'); } catch (e) {} }
+  PRESSED = null;
+}
+
+/* TWO FRAMES, NOT ONE. A handler that repaints does its work synchronously and the browser paints
+   it on the NEXT frame; clearing on the first would take the mark off before the answer it is
+   covering for has been drawn, which is the gap this exists to fill, one frame shorter. */
+function pressDone_() {
+  requestAnimationFrame(() => requestAnimationFrame(pressClear_));
+}
+
+addEventListener('pointerdown', e => {
+  if (!e.isPrimary) return;
+  if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+  pressMark_(e.target);
+}, { passive: true, capture: true });
+addEventListener('pointercancel', pressClear_, { passive: true });
+
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
+    pressClear_();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
     return;
   }
+  pressDone_();
   if (CLICK_LOG) {
     const d = e.target.closest('[data-do]');
     console.log('[click]', {

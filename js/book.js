@@ -1943,9 +1943,11 @@ function breakdownRows(L) {
       }
     }
 
-    /* A DASH, for the same reason as the one on the ordinary form below — every unanswered row on
-       this card prints one, and a waiting list nobody has joined is not a special case. */
-    push('Stage', '—', '', '', '', { free: true });
+    /* THE FIVE STAGES, NONE OF THEM TICKED — for the same reason as the ones on the ordinary form
+       below, and a waiting list nobody has joined is not a special case. `stageRows_(null)` is the
+       one builder both documents use; see `JOB_STAGES` for why an unsent booking shows the five
+       ahead of it rather than a dash. */
+    stageRows_(null).forEach(r => rows.push(r));
     return rows;
   }
 
@@ -2042,10 +2044,17 @@ function breakdownRows(L) {
      reads like every other blank is a blank somebody can skim past; "Not asked for yet" reads as
      content and stops the eye on the one row that has nothing to say.
 
-     The sentences have not gone anywhere. `jobSaid_` still writes them, on the SECOND widget — the
-     one that appears under the form once a booking exists and has something true to report. Same
-     vocabulary, same one place; it is simply used where there is a booking to describe. */
-  push('Stage', '—', '', '', '', { free: true });
+     ---------- AND `Stage` IS FIVE TICK ROWS NOW, WHICH IS THE THIRD ANSWER AND THE RIGHT ONE ------
+     The paragraph above is the argument between a SENTENCE and a DASH, and both are one row trying
+     to say where a booking has got to. Five boxes say it without a vocabulary to learn, and an
+     empty one is the same "nothing to report yet" a dash was carrying — with the difference that it
+     also says what WILL be reported. `stageRows_(null)` is the unsent form's five; see
+     `JOB_STAGES`. `jobSaid_` is gone with the row it was written for.
+
+     `Status` KEEPS ITS DASH. It is the seat statuses — Waiting, Agreed, Paying, Booked — which is
+     not a stage anything reaches but a list of who among several families is where, and a form
+     nobody has sent has no seats to list. */
+  stageRows_(null).forEach(r => rows.push(r));
   push('Status', '—', '', '', '', { free: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
      "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
@@ -2666,6 +2675,104 @@ let BOOK_ROWS = [];
    goes stale can hide nothing. The order is untouched, `check-spine.js` reads the labels both
    builders push rather than the markup, and the receipt passes `fill: false` so none of this
    reaches it. */
+/* ==================================================================================================
+   WHERE A BOOKING HAS GOT TO, AS FIVE TICKS RATHER THAN ONE SENTENCE.
+
+   ASKED FOR AS *"it needs a line for requested and it gets ticked automatically by system. Then
+   line for accepted, then line for paid, then line for started. Then line for completed. All tick
+   boxes."*
+
+   WHAT WAS THERE was `Stage` — one row carrying one of `jobSaid_`'s four sentences ("Asked for —
+   waiting on us", "Accepted — waiting for payment") — and `Asked for`, a date. A sentence says
+   where you are; it cannot say what the shape of the whole thing is, so "how far along is this"
+   took reading a line and knowing the vocabulary. Five ticks say it at a glance, and the first
+   un-ticked one IS what happens next, which is the half the sentence was carrying.
+
+   SO `Stage` IS GONE AND SO IS `jobSaid_`. The ticks and the sentence are the same fact drawn two
+   ways, which is the fault recorded in CLAUDE.md where every widget printed its own name twice —
+   and that function's own note claimed three readers ("the receipt row, the booking form and the
+   stamp on the card"). Measured before deleting it: one. The stamp went with the four receipt
+   skins and the form pushes a literal dash, so the sentence had one home and it was this row.
+
+   `Asked for` IS GONE TOO, and it is the other half of the same duplication: it is the DATE of the
+   Requested tick, so it is that row's value rather than a row of its own. It had never drawn —
+   `created_at` is written by three handlers and `doGet` sent it nowhere, so the guard
+   `if (j.createdAt)` in `jobRows` could not fire. The date arrives now because this row reads it.
+
+   ---------- NOBODY TICKS THESE BY HAND, AND THAT IS WHY THERE ARE NO CHECKBOXES IN THEM ----------
+   Every one of the five is already derivable from what the machine holds — the roster the backend
+   folds out of the events, and the session dates. A tick somebody could press would be a SECOND
+   source for a fact the roster already answers, which is the drift this file records under
+   `documents_()`, `factsNow_` and `childrenOf`: two places to say one thing, and the one a person
+   maintains is the one that goes wrong.
+
+   So they are a MARK rather than a CONTROL. `.check` is this app's only checkbox and it is a
+   `<label>` round an `<input>` at a 44px floor; five of those is 220px of pressable nothing on a
+   card whose headroom has been measured in single pixels. `.bk-tick` borrows that control's
+   argument — a visible edge, a ghost ✓ in an empty box, gold when it is done — at receipt-row size.
+
+   ---------- EACH ONE ASKS ITS OWN QUESTION, AND THEN THE ONE ABOVE IT -----------------------------
+   A CHAIN, because that is what a progression means and because the calendar alone is not evidence
+   that a lesson happened. A session accepted but never paid for, whose start date has passed, would
+   tick `Started` off the clock — the app claiming teaching took place that nobody paid for. Read as
+   a chain it cannot: `Started` needs `Paid`, which needs `Accepted`, which needs the seats agreed.
+
+   AND CANCELLATION FALLS OUT OF IT FOR FREE. `jobAccepted_` answers false on an empty roster, and
+   `participantsOf` empties the roster when everybody has gone — so a cancelled booking ticks
+   `Requested` and stops, with nothing here that knows the word.
+
+   WHAT IT CANNOT SAY, said rather than implied: `Started` and `Completed` are read off the PLANNED
+   dates, because that is the only record there is. A session paid for and then not taught still
+   ticks. A "the lesson happened" record would be a column and a person to maintain it, which is
+   exactly what the paragraph above refuses. */
+const JOB_STAGES = [
+  /* THE ROW EXISTS, SO IT WAS ASKED FOR. This is the one the owner described as ticked by the
+     system, and it is ticked by the booking's own existence rather than by anything writing a cell:
+     `jobRows` only ever runs on a job, and a job is a row on the jobs tab. */
+  { row: 'Requested', is: j => true, when: j => S_(j.createdAt) },
+  /* THE BUSINESS HAS SAID YES. `jobAccepted_` is the same function the receipt has always used and
+     its note is the argument: an accepted application is still an application, because money has
+     not moved, and both facts are true at once. */
+  { row: 'Accepted',  is: j => jobAccepted_(j) },
+  /* MONEY HAS MOVED. A seat at `Booked` is the machine's own record of a payment — `jobStage_`
+     reads the same seats to decide which of the four documents this is, so the tick and the
+     document cannot disagree. */
+  { row: 'Paid',      is: j => jobStage_(j) === 'receipt' },
+  /* THE FIRST PLANNED SESSION IS IN THE PAST. `startDate` and `endDate` are sent by `doGet` off the
+     job's own `session_dates`, so this needs nothing new in the sheet. */
+  { row: 'Started',   is: j => datePassed_(j.startDate) },
+  { row: 'Completed', is: j => datePassed_(j.endDate) },
+];
+
+/* HAS THIS DAY BEEN AND GONE. `parseDMY` is the app's one reader of a `dd/mm/yyyy` cell and it
+   zeroes the time, so this is a comparison of days rather than of moments — a session at four this
+   afternoon has not started at nine this morning, and it has by tomorrow. An unparseable or absent
+   date is not passed, which is the right answer for a booking with no dates yet. */
+function datePassed_(v) {
+  const d = parseDMY(v);
+  if (!d) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d <= today;
+}
+
+/* ONE BUILDER, BOTH DOCUMENTS — which is the whole of what stops them drifting, the same argument
+   `weekRows_` makes for the three week grids. `j` is null on the form: five rows, none ticked, so
+   an unsent booking shows the five stages ahead of it and pressing Send ticks the first. That is
+   `SPINE`'s own rule about a document not changing shape at the moment somebody is checking it,
+   which is why these are NOT marked `only: 'receipt'` — the form and the receipt are one document
+   across time, and the placeholder is the point. */
+function stageRows_(j) {
+  let on = true;
+  return JOB_STAGES.map(st => {
+    /* THE CHAIN. Once one is unticked, nothing below it can be — see the note above. `on` carries
+       that down the list rather than each test repeating the ones before it. */
+    on = on && !!j && !!st.is(j);
+    return { n: '', k: st.row, v: (on && st.when && st.when(j)) || '',
+             mul: '', rate: '', total: '', free: true, tick: on };
+  });
+}
+
 const SPINE_EXTRA = [
   { after: 'Subject', row: 'Extra subj.' },
   { after: 'When',    row: 'Per session', only: 'wait' },
@@ -2693,18 +2800,21 @@ const SPINE_EXTRA = [
   { after: '',        row: 'A seat',    only: 'wait' },
   { after: '',        row: 'Shared by', only: 'wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
-     about — which is where a receipt puts it and where the form now puts it too. */
-  { after: '',        row: 'Stage' },
+     about — which is where a receipt puts it and where the form now puts it too.
+
+     NONE OF THE FIVE IS MARKED `only:`, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. By the
+     rule above they would go — they are pushed by `jobRows` and by the form's two branches, never
+     by a builder that can only reach one document. `check-flow.js` refused exactly that argument
+     when it was made about `Asked for`, and the reason is the one `SPINE` opens with: the form and
+     the receipt are one document across TIME, so a row that appears only once the thing is saved
+     is a row that changes shape at the moment somebody is checking it. The waiting-list rows above
+     are a different branch of the FORM, which is one document across nothing — an ordinary booking
+     never becomes a waiting list.
+
+     `Stage` AND `Asked for` STOOD HERE. See `JOB_STAGES`: the sentence is what the five ticks say
+     in words, and the date is the `Requested` tick's own value. */
+  ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
   { after: '',        row: 'Status' },
-  /* `Asked for` IS NOT MARKED, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. It is pushed only
-     by `jobRows`, so by the rule above it would go — and `check-flow.js` refused it, naming the
-     argument this file already records beside `Stage` and `Status`: those three are the state of
-     the booking, and *"a row that appears only once the thing is saved is a row that changes shape
-     at exactly the moment somebody is checking it"*. They are one document across TIME, the form
-     and the receipt for the same session, so the placeholder is the point. The six above are a
-     different branch of the form, which is one document across NOTHING — an ordinary booking never
-     becomes a waiting list. Worth twelve pixels. */
-  { after: '',        row: 'Asked for' },
 ];
 
 const SPINE = (() => {
@@ -2762,6 +2872,21 @@ const ONLY_ON = (() => {
   const m = {};
   SPINE_EXTRA.forEach(x => { if (x.only) m[x.row] = x.only; });
   BOOK_STEPS.forEach(st => { if (st.only && st.short) m[st.short] = st.only; });
+  return m;
+})();
+
+/* ---------- AND WHICH SPINE ROWS ARE A TICK RATHER THAN A VALUE --------------------------------
+   AN INVENTED ROW HAS TO KNOW, and a blank form is where it is invented: `breakdownRows` does not
+   run until there is enough answered to price the booking, so on the form somebody has just opened
+   all five stages come from `spineRows_`. Without this they would draw a dash, and the same five
+   rows would draw an empty box the moment a price appeared — one document in two shapes, which is
+   the fault the spine exists to stop.
+
+   READ OFF `SPINE_EXTRA` FOR `ONLY_ON`'S REASON: the flag is declared once, beside the row it
+   belongs to, rather than listed a second time here. */
+const TICK_ROW = (() => {
+  const m = {};
+  SPINE_EXTRA.forEach(x => { if (x.tick) m[x.row] = true; });
   return m;
 })();
 
@@ -2833,8 +2958,11 @@ function spineRows_(rows, opts) {
   const out = SPINE.map(k => (say[k] || (fill && !gone[k]
     && !(on && ONLY_ON[k] && ONLY_ON[k] !== on) ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
-       the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`. */
-    n: '', k: k, v: '—', mul: '', rate: '', total: '', free: true, faint: true, blank: true,
+       the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`.
+       A TICK ROW IS NOT BLANK IN THAT SENSE: an empty box is its answer, so it keeps a full row's
+       height and draws the mark unticked. See `TICK_ROW`. */
+    n: '', k: k, v: TICK_ROW[k] ? '' : '—', mul: '', rate: '', total: '', free: true,
+    faint: !TICK_ROW[k], blank: !TICK_ROW[k], tick: TICK_ROW[k] ? false : undefined,
   } : null))).filter(Boolean);
   return out.concat(extra);
 }
@@ -3335,7 +3463,26 @@ function receiptRow(r) {
      `strip` IS MARKUP AND IS NOT ESCAPED, which is why it is its own field rather than a flag on
      `v` — the same distinction `sel` already draws for a dropdown. It is built by `weekRows_` and by
      nothing else, so there is one place that decides what a day row looks like. */
-  const value = r.strip ? r.strip
+  /* ---------- A STAGE IS A MARK, NOT A VALUE ------------------------------------------------------
+     `tick` IS THREE-VALUED AND THAT IS DELIBERATE: `true` is done, `false` is not yet, and absent
+     is not one of these rows at all. A plain boolean could not tell the third from the second, and
+     every row on this card would have grown a box.
+
+     IT IS NOT A CHECKBOX AND IT IS NOT PRESSABLE — see `JOB_STAGES` for why nobody ticks these by
+     hand. So the state is an `aria-label` rather than a hidden word: a ✓ that is the same glyph
+     ticked and unticked, told apart by colour alone, says nothing at all to a screen reader and
+     nothing to anybody who cannot separate gold from grey. */
+  /* THE BOX LAST, BECAUSE `.bk-v` IS RIGHT-ALIGNED AND FIVE BOXES HAVE TO BE ONE COLUMN. Written
+     the other way round — box, then date — the four stages with nothing beside them put their box
+     on the card's edge and `Requested` put its box wherever its date started, so the five ticks
+     came out at two different x positions. A progression you read DOWN cannot be ragged across,
+     and the date is the subordinate half of that row either way. Caught on a screenshot, which is
+     the only thing that could have: every row measured correctly and none of them overflowed. */
+  const value = r.tick !== undefined
+    ? `${S_(r.v) ? `<span class="bk-when">${esc(r.v)}</span> ` : ''}<span
+       class="bk-tick${r.tick ? ' on' : ''}" role="img" aria-label="${
+       r.tick ? 'done' : 'not yet'}">✓</span>`
+    : r.strip ? r.strip
     : r.sel ? r.sel
     : r.hours
     ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
@@ -3458,8 +3605,28 @@ function jobRows(j) {
 
   push('Subject', j.subject || '');
   push('Level', j.level || '');
-  push('Students', j.students || j.maxStudents || '');
-  push('Venue', j.venue || '');
+  /* ---------- FOUR ROWS WERE READING NAMES THE PAYLOAD HAS NEVER SENT --------------------------
+     FOUND BY COMPARING EVERY `j.<field>` THIS FUNCTION READS against every key `doGet` puts on a
+     job — sixteen against forty-seven — which is `check-payload.js`'s question asked one level
+     down, where it cannot go: that check compares top-level `DATA.*` keys, so a field inside a row
+     that nothing sends is invisible to it. Six came back, and four of them were drawing something.
+
+     `Students` READ `j.students` AND `j.maxStudents`, and the payload sends `maxKids`. So the row
+     was absent from every real receipt — `push` skips a row with no value, so not even a dash.
+     `seatsOf_` is the app's one reader of "how many seats", already used by the roster and the
+     stamp, so asking it here is the `documents_()` argument rather than a third spelling. The
+     `|| ''` matters: it answers 0 for a job with no seat count and `push` would print "Students 0".
+
+     `Venue` READ `j.venue` AND THE PAYLOAD SENDS `location`. `jobReceipt`'s own header already
+     tries both, with the note *"both names are tried, because two lists genuinely use two"* — it
+     was found once, for the line under the title, and not for the row. Same fix, same reason.
+
+     `Host` AND `Sharing` were the other two and they are repaired at the other end, in `doGet`:
+     both were drawing a CONFIDENT WRONG ANSWER rather than nothing — "We book the room" to a
+     family hosting at home, and "Just you" on a session split three ways — so a name tried here
+     would have been a second guess at a fact the sheet holds and the payload was not carrying. */
+  push('Students', seatsOf_(j) || '');
+  push('Venue', j.venue || j.location || '');
   push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS ---------------------------------------------
      THE FORM ASKS ON SEVEN LINES NOW and the receipt answers on the same seven, in the same place,
@@ -3505,7 +3672,22 @@ function jobRows(j) {
 
   if (j.tutor) push('Tutor', j.tutor);
 
-  const dates = String(j.sessionDates || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean);
+  /* ---------- `dates` IS WHAT THE SERVER SENDS AND THIS ASKED FOR `sessionDates` -----------------
+     THE PAYLOAD HAS NEVER CARRIED THAT NAME. `doGet` builds the run with `sessionDatesOf(j)` and
+     ships it as `dates: dates.join(', ')` — so this read `undefined` on every real job and the
+     `Dates` row printed a dash on every receipt anybody has ever been handed. A row about WHEN the
+     sessions are, on the document whose whole job is to record them.
+
+     NOTHING COULD SEE IT, and the reason is the one this repository keeps finding: `check/states.js`
+     seeds a job carrying `sessionDates`, so the lab has been measuring the name the CODE reads
+     rather than the name the SERVER sends — the same fault as the fixture stating `focus` as a
+     string `doGet` does not send. The state seeds `dates` now.
+
+     BOTH NAMES, because a job object is also built elsewhere and `j.venue || j.location` two rows
+     up already carries the same argument: two lists genuinely use two spellings, and a receipt that
+     can only read one of them is a receipt that goes blank when it meets the other. */
+  const dates = String(j.dates || j.sessionDates || '')
+    .split(/[,\n]/).map(x => x.trim()).filter(Boolean);
   /* THE SAME SPAN AS THE BOOKING CARD — see the note there. A job's receipt and the form it came
      from must not disagree about how a run of dates is written. */
   /* ---------- HOW MANY DATES IS NOT A FIGURE, AND THE FIGURE COLUMN IS SIZED FOR MONEY -----------
@@ -3543,15 +3725,18 @@ function jobRows(j) {
      its life the thing had got to, which is the one question somebody opening a receipt is actually
      asking: has anybody agreed to this, do I owe money, is it done.
 
-     TWO LINES, BOTH DERIVED. `Stage` is `jobStage_` plus `jobAccepted_` — the same two functions the
-     stamp on the card reads, so the line and the stamp cannot disagree. `Status` keeps the seat
-     statuses, which is what the machine is actually tracking: Waiting, Agreed, Paying, Booked.
+     SIX LINES, ALL DERIVED. Five ticks say where in its life it has got to — see `JOB_STAGES` —
+     and `Status` keeps the seat statuses, which is what the machine is actually tracking: Waiting,
+     Agreed, Paying, Booked. That second one is not a summary of the first: a session where one
+     family has paid and another has not is one line here and could not be one tick above.
+
+     `Stage` WAS ONE OF `jobSaid_`'s FOUR SENTENCES and `Asked for` was the date under it. Both are
+     in the ticks now — the first as the shape of them, the second as `Requested`'s own value.
 
      PLAIN WORDS. A parent has no use for "lifecycle" or "possession"; they want to know whether it
      is settled. */
-  push('Stage', jobSaid_(j), '', { free: true });
+  stageRows_(j).forEach(r => rows.push(r));
   push('Status', jobStatusSaid_(j), '', { free: true });
-  if (j.createdAt) push('Asked for', String(j.createdAt), '', { free: true });
   /* THE SAME ORDER THE FORM USES, so a receipt does not reshuffle what somebody just filled in —
      and NOT a dash for every question this job cannot answer. See the note over `spineRows_`: the
      dashes are what makes a form readable while it is being filled in, and they are a quarter of a
@@ -3653,21 +3838,23 @@ function moneyBlock(o) {
    which is invisible and wrong. Of the two, the one somebody notices is the one to have. */
 const seatsOf_ = j => Math.max(0, Number((j && (j.maxKids || j.maxStudents)) || 0));
 
-/* ---------- THE STAGE, IN THE WORDS SOMEBODY READS -------------------------------------------------
-   `jobStage_` RETURNS THE MACHINE'S WORD — application, waitlist, receipt — and `jobAccepted_` adds
-   the half it cannot say on its own: an accepted application is still an application, because money
-   has not moved, and both facts are true at once.
-   Said once here so the receipt row, the booking form and the stamp on the card all read the same
-   sentence. Four states, and every one of them names what happens next. */
-function jobSaid_(j) {
-  const st = jobStage_(j);
-  if (st === 'receipt')  return 'Paid — booked';
-  if (st === 'waitlist') return 'On the waiting list';
-  return jobAccepted_(j) ? 'Accepted — waiting for payment' : 'Asked for — waiting on us';
-}
+/* ---------- `jobSaid_` STOOD HERE, AND THE STAGE IS FIVE TICKS NOW --------------------------------
+   IT RETURNED ONE OF FOUR SENTENCES — "Paid — booked", "On the waiting list", "Accepted — waiting
+   for payment", "Asked for — waiting on us" — and its own note claimed three readers: *"the receipt
+   row, the booking form and the stamp on the card"*. Measured before deleting it: ONE. The stamp
+   went when the four receipt skins became one document, and the form pushes a literal dash.
+
+   THE SENTENCES ARE NOT LOST, THEY ARE THE PICTURE. `JOB_STAGES` draws the same four facts as a row
+   of ticks, and the first un-ticked one is "what happens next" — which is the half a sentence was
+   doing that a single stage word could not. Keeping both would be one fact drawn twice on the same
+   card, which is what this repository already records about the roster's `name` printing an `<h3>`
+   above every widget's own heading.
+
+   `jobStage_` AND `jobAccepted_` SURVIVE IT. They are the tests two of the five ticks are made of,
+   and `jobStage_` still says which of the four documents a saved booking is. */
 
 /* AND WHAT THE SEATS SAY, which is the machine's own record rather than a summary of it. A session
-   where one family has paid and another has not is one line here and could not be one word above. */
+   where one family has paid and another has not is one line here and could not be one tick above. */
 function jobStatusSaid_(j) {
   const seats = (j.slots || []).map(sl => String(sl.status || '').trim()).filter(Boolean);
   if (!seats.length) return 'nobody in it yet';

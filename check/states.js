@@ -647,12 +647,35 @@ const STATES = {
       enter: () => {
         DATA.liveJobs = [{
           id: 'J-UI', jobId: 'J-UI', title: 'GCSE Maths, Tuesday 4pm',
-          subject: 'Maths', level: 'GCSE', students: '2',
-          venue: 'Colliers Wood Library', clientHosts: '',
+          subject: 'Maths', level: 'GCSE',
+          /* ---------- `maxKids` AND `location`, WHICH ARE THE NAMES `doGet` SENDS --------------
+             THIS SEEDED `students` AND `venue` AND THE PAYLOAD CARRIES NEITHER. Both were read by
+             `jobRows`, so on every real receipt the `Students` row was absent entirely — `push`
+             skips a row with no value — and `Venue` with it. The state was seeding the names the
+             CODE reads rather than the names the SERVER sends, so the lab drew two rows nobody
+             holding a real booking has ever seen. Same fault as `sessionDates` below it, found the
+             same way: every field this receipt reads, compared against every key `doGet` puts on a
+             job. `clientHosts` and `splitEmails` are sent now, so they keep their names. */
+          maxKids: 2, location: 'Colliers Wood Library', clientHosts: true,
           weekday: 'Tuesday', time: '16:00', hours: '1.5', term: 'Autumn 2026',
-          kind: 'session', splitEmails: '', tutor: 'Ada Tutor', client: USER.name,
-          sessionDates: '06/10/26, 13/10/26, 20/10/26, 27/10/26, 03/11/26, 10/11/26',
-          startDate: '06/10/26', endDate: '10/11/26',
+          kind: 'session', splitEmails: 'gran@example.org', tutor: 'Ada Tutor', client: USER.name,
+          /* ---------- `dates`, BECAUSE THAT IS THE NAME `doGet` SENDS ---------------------------
+             THIS SAID `sessionDates` AND THE PAYLOAD HAS NEVER CARRIED THAT KEY. `doGet` ships the
+             run as `dates: dates.join(', ')`, so `jobRows` — which read `j.sessionDates` — found
+             nothing on every real job and the `Dates` row printed a dash on every receipt anybody
+             has been handed. The state was seeding the name the CODE reads rather than the name the
+             SERVER sends, which is the fault CLAUDE.md records about the fixture stating `focus` as
+             a string `doGet` does not send: the lab measured a shape that does not exist and
+             reported the row working.
+
+             A PAID SEAT AND A FUTURE START, so the five stage ticks are THREE ON AND TWO OFF.
+             `jobAccepted_` takes `Booked` and `jobStage_` reads it as a receipt, so `Requested`,
+             `Accepted` and `Paid` are true; the dates are still ahead, so `Started` and `Completed`
+             are not. A state where all five agreed would measure one box five times. */
+          dates: '06/10/26, 13/10/26, 20/10/26, 27/10/26, 03/11/26, 10/11/26',
+          startDate: '06/10/26', endDate: '10/11/26', createdAt: '22/09/26',
+          slots: [{ n: 1, client: USER.name, status: 'Booked' },
+                  { n: 2, client: 'Second Family', status: 'Booked' }],
           price: '270', tutorPay: '135', stage: 'accepted', status: 'accepted',
         }];
         paint('booking');

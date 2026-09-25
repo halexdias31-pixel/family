@@ -472,7 +472,7 @@ body {
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
    and it must SAY something happened the instant it is touched. */
 .card.tap { cursor: pointer; transition: transform var(--quick) ease, background var(--quick) ease; }
-.card.tap:active { transform: scale(.985); background: #221e19; }
+.card.tap:active, .card.tap.is-pressed { transform: scale(.985); background: #221e19; }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .9rem .5rem; }
 
@@ -523,7 +523,7 @@ body {
   cursor: pointer;
   transition: transform var(--quick) ease, filter var(--quick) ease;
 }
-.btn:active { transform: scale(.97); filter: brightness(.92); }
+.btn:active, .btn.is-pressed { transform: scale(.97); filter: brightness(.92); }
 
 /* ---------- A BUTTON THAT IS WAITING HAS TO LOOK LIKE IT IS ---------------------------------------
    REPORTED AS "sign in page feels very unresponsive even if it is loading". `send_` has disabled
@@ -1537,12 +1537,12 @@ button.text-drop { color: var(--bad); }
   color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
-.chip:active { transform: scale(.94); }
+.chip:active, .chip.is-pressed { transform: scale(.94); }
 /* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
    information, and with four chips on a line the second one is a puzzle. */
 .chip-k { color: var(--faint); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
 .chip-x { color: var(--faint); margin-left: .15rem; }
-.chip:active .chip-x { color: var(--bad); }
+.chip:active .chip-x, .chip.is-pressed .chip-x { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
    invitation, not a state. */
 .chip.add { border-color: var(--gold); color: var(--gold); background: none; }
@@ -2646,6 +2646,57 @@ button.text-drop { color: var(--bad); }
 .bk-row.is-head .bk-v { border-bottom: 0; }
 .bk-dates { font-size: .72rem; line-height: 1.5; color: var(--dim); }
 
+/* ---------- THE FIVE STAGE TICKS -------------------------------------------------------------------
+   ASKED FOR AS *"line for requested ... then accepted, then paid, then started. Then completed. All
+   tick boxes."* `JOB_STAGES` in book.js is the list and the argument; this is what one looks like.
+
+   IT BORROWS `.check`'s ARGUMENT AND NOT ITS SIZE. That is the app's only checkbox and its own note
+   is the reasoning worth copying: the EDGE and the GROUND are what make a box read as a box —
+   `--line` on a dark card is a dark square on a dark square — and a ghost ✓ at low alpha says what
+   would go in an empty one. What is NOT copied is the 44px floor, because that floor is for a thing
+   a finger presses and nothing ticks these by hand; five 44px rows would be 220px on a card whose
+   headroom has been measured in single pixels.
+
+   ---------- AND IT IS SIZED SO THAT IT DOES NOT SET THE ROW'S HEIGHT --------------------------
+   THE FIRST VERSION WAS `.82rem` WITH A `1.05em` BOX — `.check .box`'s own numbers, scaled down —
+   and it came out **13.3px inside a 12.1px line box**, so each stage row was 18.6px against the
+   15.4px of the eighteen rows above it. Two things went wrong with that at once: the waiting-list
+   card, which `check/ui.js` already records arriving with three pixels of headroom at 390 and
+   eight at 768, ran 3px past its pane and the check said so; and five rows a fifth taller than
+   their neighbours is a visible step on a document whose whole readability is that you find a line
+   by where it is.
+
+   SO IT IS A FRACTION OF THE ROW'S OWN TYPE and never of the root. `font-size: inherit` with a
+   `1.05em` box is exactly the line box the rule below gives a stage row — measured at 12.6px
+   against a 12.6px line at 768 — so the mark fits the row rather than setting its height. Written
+   as `.82rem` and `1.05em` of it, which is `.check .box`'s own pair scaled down, the box came out
+   **13.3px inside a 12.1px line** and every stage row was 18.8px.
+
+   `vertical-align: middle` IS THE HALF THAT IS EASY TO MISS. An inline box sits ON the baseline by
+   default, so its whole height hangs above it and the descender space is added underneath — which
+   is where the extra pixels came from rather than from the box being too big.
+
+   GOLD IS WHAT THIS APP MEANS BY DONE — the ticked hour, the starred thing, the one button to
+   press — so a ticked stage is a gold box with dark ink in it, which is exactly what
+   `.check input:checked + .box` already does. The unticked one is the ghost. */
+.bk-tick {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.05em; height: 1.05em; flex: none;
+  vertical-align: middle;
+  border-radius: 2px;
+  border: 1.5px solid rgb(255 255 255 / .14);
+  background: rgb(255 255 255 / .04);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
+  font-size: inherit; line-height: 1;
+  /* THE GHOST OF THE MARK. The same glyph as a ticked one, at the alpha `.check .box::after` uses,
+     so an empty box says what would go in it rather than sitting there as an empty square. */
+  color: rgb(255 255 255 / .16);
+}
+.bk-tick.on { background: var(--gold); border-color: var(--gold); box-shadow: none; color: #1a1409; }
+/* THE DATE BESIDE `Requested`, and it is the only stage that has one — see `JOB_STAGES`. Set like
+   `.bk-dates`, because it is the same kind of thing: a date, subordinate to the row it is on. */
+.bk-when { font-size: .72rem; color: var(--dim); }
+
 /* A value you picked is a button. No pencil, no edit mode — the dashed underline already says
    somebody chose this, so it is the obvious thing to press when you want to choose differently. */
 /* `.bk-pick` WAS HERE — a gold underline and a pointer on the one value in the form that opened a
@@ -2977,6 +3028,18 @@ button.text-drop { color: var(--bad); }
    AND THE LEADING COMES DOWN WITH IT. 1.35 is a line for reading; a dash is not read, it is counted
    past on the way to the row below. Thirteen rows at 12px instead of 15. */
 .bk-row.is-blank .bk-k, .bk-row.is-blank .bk-v { line-height: 1.1; }
+/* ---------- AND A STAGE ROW TAKES THE SAME LEADING, FOR THE SAME REASON ------------------------
+   1.35 IS A LINE FOR READING AND A TICK IS NOT READ, it is scanned down — which is what the five
+   of them are for. At the ordinary 19.6px a stage row is a line of prose carrying a 12px mark, and
+   five of those replaced the three rows `Stage`, `Status` and `Asked for` used to be on a card
+   `check/ui.js` records arriving with **three pixels of headroom at 768**. It said so on the first
+   run after the ticks went in: *".pane holding pane hides 4px below its own fold"* on the
+   waiting-list branch, at 768 and 1280.
+
+   ASKED OF `:has(.bk-tick)` RATHER THAN A CLASS ON THE ROW, because the row carrying a tick is
+   exactly the row a tick was put in — a flag would be a second thing for `receiptRow` to remember
+   and a second thing to go stale. */
+.bk-row:has(.bk-tick) .bk-k, .bk-row:has(.bk-tick) .bk-v { line-height: 1.1; }
 /* ---------- AND THE LABEL RECEDES WITH THE VALUE -------------------------------------------------
    TWENTY-EIGHT ROWS, TEN OF THEM QUESTIONS. The value already dims on a blank row and the label did
    not, so `Weeks left` — a fact that does not exist until a term is chosen — was set in exactly the
@@ -4773,7 +4836,8 @@ textarea { touch-action: none; }
   transition: color var(--quick) ease, transform var(--quick) ease;
   pointer-events: none;
 }
-.card.tap:active::after, .row.tap:active::after, .rc-stub.tap:active::after {
+.card.tap:active::after, .row.tap:active::after, .rc-stub.tap:active::after,
+.card.tap.is-pressed::after, .row.tap.is-pressed::after, .rc-stub.tap.is-pressed::after {
   color: var(--gold); transform: translateY(-50%) translateX(2px);
 }
 /* ---------- A ROW THAT ENDS IN A NUMBER HAS NO ROOM FOR ONE ---------------------------------------
@@ -8431,11 +8495,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   transition: color var(--quick) ease, background var(--quick) ease,
               border-color var(--quick) ease, transform var(--quick) ease;
 }
-.tile:active { background: rgb(255 255 255 / .08); border-color: var(--line); }
+.tile:active, .tile.is-pressed { background: rgb(255 255 255 / .08); border-color: var(--line); }
 /* A DISABLED TILE LOSES THE PLATE ENTIRELY. Dimming a button still reads as a button; taking the
    surface away is what says there is nothing here to press. */
 .tile[disabled] { background: none; border-color: transparent; }
-.tile:active { transform: scale(.88); }
+.tile:active, .tile.is-pressed { transform: scale(.88); }
 /* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
    all say so by going bright — which is the star's own pattern, applied to every mark. */
 .tile.on { color: var(--ink); background: rgb(255 255 255 / .09); border-color: var(--line); }
@@ -8494,10 +8558,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   background: rgb(242 210 75 / .07);
   border-color: rgb(242 210 75 / .22);
 }
-.tile.is-admin:active { background: rgb(242 210 75 / .16); border-color: rgb(242 210 75 / .45); }
+.tile.is-admin:active, .tile.is-admin.is-pressed { background: rgb(242 210 75 / .16); border-color: rgb(242 210 75 / .45); }
 .tile.is-admin.on { background: rgb(242 210 75 / .2); border-color: rgb(242 210 75 / .5); }
 
-@media (prefers-reduced-motion: reduce) { .tile:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tile:active, .tile.is-pressed { transform: none; } }
 
 
 /* `.card .ticks` AND ITS TWO CHILDREN WERE HERE — the row that put the count in words at the left
@@ -8789,7 +8853,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* PRESSED, AND IT MOVES. `:active` alone is invisible on a phone — the finger is over the row.
    A shift of one pixel is felt rather than seen, which is the point. */
-.row.tap.counted:active {
+/* ---------- AND `.is-pressed` IS THE SAME STATE, HELD LONG ENOUGH TO BE SEEN --------------------
+   `:active` ENDS WHEN THE FINGER LIFTS and the funnel's answer takes 130 ms to arrive at 8x CPU —
+   so a tap was a flash, an eighth of a second of an unchanged screen, and then the answer. Worse on
+   the platform that cannot be tested from here: `:active` on touch is a browser heuristic, and
+   Safari has wanted a touch listener on the element itself where every listener this app has is on
+   the window. `pressMark_` in shell.js puts the class on at `pointerdown` and takes it off two
+   frames after the handler ran.
+
+   IT IS ADDED TO THE `:active` RULES RATHER THAN GIVEN ITS OWN, here and on the nine other press
+   states in this file. Two descriptions of one look is the `.reel .over` fault, and these two would
+   sit on the same element a tenth of a second apart — which is the version somebody notices. */
+.row.tap.counted:active, .row.tap.counted.is-pressed {
   background: rgb(255 255 255 / .06);
   border-color: var(--gold);
   transform: translateY(1px);
