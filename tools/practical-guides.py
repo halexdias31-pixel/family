@@ -5,9 +5,14 @@
 # ONE COLUMN, `risks`, AND ONE NEW PRACTICAL.
 #
 # WHY A COLUMN RATHER THAN A RENDERER. Every practical already carries `safety`, which is one
-# sentence of prose, and the guide asks for a risk assessment — hazard and what you do about it,
-# item by item. Deriving those from the prose is the fault CLAUDE.md records twice: a substring over
-# free text called five practicals "required" when they say outright they are not, and parsing
+# sentence of prose, and the guide asked for a risk assessment — hazard and what you do about it,
+# item by item. THE GUIDE NO LONGER DRAWS ONE: it was cut on 2026-09-25 to the five things the
+# owner asked for, and `practicalGuide_` lists what went. The column stays filled and
+# `check-practicals.js` still FAILS a live row without it, so the section is one `<section>` from
+# coming back — which is the whole reason this file is worth keeping as it is.
+#
+# Deriving those from the prose is the fault CLAUDE.md records twice: a substring over free text
+# called five practicals "required" when they say outright they are not, and parsing
 # "why intuition fails" into a topic was refused for the same reason. So each one is WRITTEN, from
 # that row's own kit list and its own safety line, and the prose stays where it is.
 #

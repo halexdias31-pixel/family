@@ -9,7 +9,9 @@ CLAUDE.md allows: a picture the row's own words determine, with one figure answe
 AND WHAT IS DELIBERATELY NOT DRAWN IS THE RESULT. No cooling curve, no I-V graph, no line of best
 fit, no density tower with its layers labelled. Every one of those is the answer to the experiment,
 and a guide that prints it has taken the practical away — the same line the `science` paragraphs
-are written along, where the mechanism is explained and the outcome is not.
+are written along, where the mechanism is explained and the outcome is not. (Those paragraphs are
+still in the data and the guide stopped drawing them in the cut to five things; the rule they share
+with these drawings is what matters here, and it is unchanged.)
 
 `W` COMES FROM svgplot SO THE SCALE IS STATED ONCE. `.qsheet figure svg` (and now `.gd figure svg`)
 is `width: min(100%, 20rem)`, so the viewBox width IS the scale and two drawings with different

@@ -132,9 +132,16 @@ const STATES = {
        below the fold. `#sheet` is a sibling of the screens rather than a child of one, so nothing
        here could see it until `inspect` was taught to — see the note there.
 
-       SEVEN TEXTAREAS, A RISK LIST AND A PAGE OF PROSE, none of it measured for a tap target, a
-       contrast ratio or a sideways scroll until this. `openSheet` is what the tile's handler
-       calls, so this is the app's own door and not a reach past it.
+       THE KIT, THE METHOD AND THREE TEXTAREAS, none of it measured for a tap target, a contrast
+       ratio or a sideways scroll until this. `openSheet` is what the tile's handler calls, so this
+       is the app's own door and not a reach past it.
+
+       IT WAS EIGHT BOXES AND A RISK LIST until the guide was cut to the five things its own note
+       names. The number is asserted rather than described — `>= 3` would pass on a guide that had
+       quietly grown a fourth question nobody decided on, and this state is the only thing that
+       renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
+       ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
+       which is a state that measures nothing it claims to.
 
        LAST IN THE LIST, AND IT PUTS THE SHEET BACK. States run in order down one page and `go()`
        does not close a sheet, so an open guide would otherwise be measured again as part of Tools
@@ -145,9 +152,9 @@ const STATES = {
         if (!x) throw new Error('no practical in the list to open a guide on');
         openSheet(x.name, practicalGuide_(x), null, null);
       },
-      expect: () => document.querySelectorAll('#sheet-body .gd-box').length >= 7
-                 && document.querySelector('#sheet-body .prac-kit li'),
-      wants: 'the guide open in the sheet, with its kit list and all seven boxes',
+      expect: () => document.querySelectorAll('#sheet-body .gd-box').length === 3
+                 && document.querySelector('#sheet-body .prac-kit .kit-chip'),
+      wants: 'the guide open in the sheet, with its kit chips and the three worksheet boxes',
       leave: () => closeSheet() },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,

@@ -343,7 +343,8 @@ function outside(svg, row) {
   }, WIDTH);
   /* ---------- AND EVERY GUIDE, THROUGH THE SHEET THE APP OPENS IT IN ----------------------------
      THE CARD IS THE SEARCH RESULT AND THE GUIDE IS THE DOCUMENT, and the split above moved the kit,
-     the method, the safety line and now seventeen apparatus drawings out of one and into the other.
+     the method and seventeen apparatus drawings out of one and into the other. (The safety line went
+     with them and the guide has since stopped drawing it; the split is what matters here.)
      Nothing was measuring the half that moved: `check/ui.js` has ONE declared state that opens a
      guide, which is one practical of fifty-two, and this file was laying out the card.
 

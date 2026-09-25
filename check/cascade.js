@@ -20,6 +20,7 @@
      `text-anchor="end"` → `.qsheet .num`   CSS beats an SVG presentation attribute, so ten y-axis
                                        numbers sat centred on the axis line.
      `.gd-sec p` → `.prac-safety`      caught before it was written, by reading the block first.
+                                       (both rules have since gone with the guide's risk section)
      `.dock-new .btn` → `.btn.tiny`    the docket's ＋ was written at 1.1rem and has always rendered
                                        at 0.80rem — 11.86px inside a 44px box. Found by this file.
 

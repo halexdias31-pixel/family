@@ -8074,15 +8074,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .kit-n { min-width: 0; overflow-wrap: break-word; }
 .kit-q { flex: 0 0 auto; font: 600 .68rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .prac-steps li { margin: 0 0 .25rem; }
-/* A REAL WARNING, GIVEN THE ROOM A WARNING NEEDS. The house rule puts one paragraph under a row
-   rather than three words on a tile, and these sentences are the reason it exists: "Adult operates
-   the microwave" does not survive being trimmed to fit. */
-.prac-safety { margin: .65rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--ink);
-               border-left: 2px solid var(--gold); padding-left: .55rem; }
-.prac-maths { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
+/* `.prac-safety` AND `.prac-maths` WERE HERE, and the guide was the only thing that drew either.
+   The safety line was a gold-ruled paragraph and its note is worth keeping: the house rule puts one
+   paragraph under a row rather than three words on a tile, because "Adult operates the microwave"
+   does not survive being trimmed to fit. Both went when the guide was cut to five things — the
+   name, the picture, the kit, the method and the three worksheet questions. `safety` and
+   `maths_link` are still columns and `check-practicals.js` still counts them, so a guide that wants
+   either back needs these two rules and nothing else. */
 .prac-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
-/* `notes` IS A PIPE LIST NOW and each part takes its own line — three asides run together in one
-   paragraph is three things nobody reads. The margin goes on the element rather than on every `p`,
+/* `notes` IS A PIPE LIST IN THE DATA AND ONLY ONE CALLER EVER SPLIT IT. That was the guide, which
+   no longer draws the practical's notes at all; what produces this class now is a FILM card, with a
+   single `<p>` inside it. The rule is unchanged and still right — three asides run together in one
+   paragraph is three things nobody reads, so the day anything splits the pipes again each part
+   takes its own line. The margin goes on the element rather than on every `p`,
    so a single-note card is unchanged. */
 .prac-note p { margin: 0 0 .3rem; }
 .prac-note p:last-child { margin-bottom: 0; }
@@ -8096,16 +8100,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    changes a card that existed before.
 ================================================================================================== */
 
-/* ---------- WHAT IS GOING ON ---------------------------------------------------------------------
-   THE MOST VALUABLE FIELD ON THE CARD and it gets the ink to say so. `aim` is one line and
-   `outcome` is what you end up with; this is the paragraph that actually teaches, and it is the
-   one a tutor reads before deciding whether they can explain it. */
-.prac-why { margin: .65rem 0 0; }
-.prac-why h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
-               text-transform: uppercase; color: var(--faint); }
-.prac-why p { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--ink); }
+/* ---------- WHAT IS GOING ON WAS HERE ------------------------------------------------------------
+   `.prac-why` DREW THE `science` PARAGRAPH and went with the cut to five things. The argument for
+   the ink it had is the part worth keeping: `aim` is one line and `outcome` is what you end up
+   with, and this was the paragraph that actually teaches — the one a tutor reads before deciding
+   whether they can explain it. `science` is still filled on all 77 live rows and still counted, so
+   it is a column held rather than a column lost; three rules bring it back. */
 
-/* ---------- THE TWO HALVES OF THE RESULTS TABLE --------------------------------------------------
+/* ---------- THE TWO HALVES OF THE CANDIDATE TABLE ------------------------------------------------
+   IT WAS THE RESULTS TABLE UNTIL THE GUIDE WAS CUT TO FIVE THINGS. There is no results section now;
+   what draws this is the Worksheet's own scaffolding — things you could change beside things you
+   could measure — and the argument below is unchanged, because it was always about the PAIR.
    SIDE BY SIDE WHERE THERE IS ROOM, and stacked on a phone. They are two columns of one table —
    "what I changed" and "what I measured" — and the whole point of drawing them together is that
    the pair is the method. `minmax(0, 1fr)` rather than `1fr`: a grid track's default minimum is
@@ -8113,7 +8118,26 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    sideways instead of wrapping. That is the `.bk-row` fault one card along. */
 .prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
 @media (min-width: 30rem) { .prac-tab { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.prac-tab h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono); letter-spacing: .06em;
+/* A COLUMN LABEL, NOT A SECTION HEAD, AND IT WAS DRAWN AS BOTH. This was byte-for-byte
+   `.gd-sec h4` — same font, same size, same weight, same tracking, same ink — which was invisible
+   while six sections carried that style and the pair sat side by side at 30rem. With the guide cut
+   to three sections it is the only nesting left, and at 320px the table stacks: WORKSHEET, THINGS
+   YOU COULD CHANGE and THINGS YOU COULD MEASURE came out as three identical lines, so the section
+   head read as a section with nothing in it and its own table read as two sections beside it.
+
+   WEIGHT RATHER THAN SIZE, because at this size there is nothing else to spend. `.68rem` is 9.2px
+   on a 320px phone and `.62rem` is 8.4 — under a pixel, which nobody reads as a rank. 400 against
+   600 is a stroke a reader can see at any size, and it keeps the mono uppercase that is this app's
+   own idiom for a label. Found on a screenshot, which is the only thing that could have: both
+   rules are correct and nothing measures wrong.
+
+   AND IT HAS TO OUT-SPECIFY `.gd-sec h4` RATHER THAN OUT-SIT IT. These two labels are `<h4>`s
+   inside a `.prac-tab` inside a `.gd-sec`, so both rules match them, both are (0,1,1), and while
+   they said the same thing it did not matter which came later. The moment they differ, order alone
+   would decide — which is the `.price.faint` fault this stylesheet has now been convicted of
+   eleven times (`.prac-kit ul` four hundred lines up is the tenth), and `check/cascade.js` is the
+   rule that reports it. `.gd-sec .prac-tab h4` is (0,2,1) and wins wherever it is written. */
+.gd-sec .prac-tab h4 { margin: 0 0 .3rem; font: 400 .64rem/1 var(--mono); letter-spacing: .08em;
                text-transform: uppercase; color: var(--faint); }
 .prac-tab ul { margin: 0; padding-left: 1.1rem; }
 .prac-tab li { font-size: .78rem; line-height: 1.5; color: var(--dim); }
@@ -8150,29 +8174,39 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    rather than running on from the reason. */
 .prac-again { display: block; margin-top: .2rem; color: var(--dim); }
 
-/* ---------- ONE SENTENCE THAT BELONGS TO THE VENUE, NOT TO ANY ROW -------------------------------
-   Public liability and a written parental agreement are true of every experiment run in somebody
-   else's house. Drawn from `venue`, so there is one copy of the wording — see the note in
-   `practicalCard_`. Bordered rather than dimmed: it is the one line on the card that is about the
-   tutor rather than the science. */
-.prac-home { margin: .65rem 0 0; padding: .45rem .6rem;
-             border: 1px dashed var(--line); border-radius: var(--r-sm);
-             font-size: .76rem; line-height: 1.5; color: var(--dim); }
+/* ---------- ONE SENTENCE THAT BELONGED TO THE VENUE, NOT TO ANY ROW ------------------------------
+   `.prac-home` DREW THE PUBLIC-LIABILITY LINE — true of every experiment run in somebody else's
+   house, drawn from `venue` so there was one copy of the wording rather than one per row. It went
+   with the risk assessment when the guide was cut to five things. **That is the one deletion here
+   with a cost outside the layout**, and it is written where the rule was rather than only in
+   CLAUDE.md: nothing in the app now says that a practical at a client's house wants the cover
+   checked and the parent's agreement in writing. The fact is still `venue === 'home'` on 34 of the
+   77 live rows, so the sentence is one rule and one line of markup away. */
 .prac-cost { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
 /* The one line on the card that is a recommendation rather than a fact, so it is the one that
    carries the gold. */
 .prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
-.prac-safety b, .prac-maths b, .prac-out b { color: var(--gold); font-weight: 600; }
+/* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
+   `.prac-out` is the card's own "You end up with", which is untouched. */
+.prac-out b { color: var(--gold); font-weight: 600; }
 
 /* ==================================================================================================
-   THE GUIDE.
+   THE GUIDE. FIVE THINGS: the sheet's own title, the drawing, the kit, the method, and a
+   worksheet holding the three variables.
 
-   FOUR RULES, BECAUSE EVERYTHING ELSE IN IT ALREADY HAD ONE. The kit list, the method, the safety
-   line, the home line, the two-column variables table and the notes are the CARD's blocks, moved —
-   so the guide draws them with the card's own classes and this block adds nothing for any of them.
-   The answer box is `ansBox_`'s box, `.qp-ans` and `.qp-ans-in`, for the same reason. A second set
-   of rules describing one object is the `.reel .over` fault, where a fact, a heading, a paragraph
-   and a credit over a picture were written twice in this stylesheet and drifted.
+   THREE RULES, BECAUSE EVERYTHING ELSE IN IT ALREADY HAD ONE. The drawing is `.gd figure`, which
+   is `.qsheet figure`'s own rule with `.gd` added to the selector — one description of an inline
+   drawing, laid out inside the `min(100%, 20rem)` every picture in this app shares. The kit list,
+   the method and the two-column candidate table are the CARD's blocks, moved, so the guide draws
+   them with the card's own classes. The answer box is `ansBox_`'s box, `.qp-ans` and `.qp-ans-in`.
+   A second set of rules describing one object is the `.reel .over` fault, where a subject, a
+   heading, a paragraph and a credit over a picture were written twice here and drifted.
+
+   IT DREW EIGHT ANSWER BOXES AND A RISK ASSESSMENT UNTIL 2026-09-25 — eleven headings, of which
+   five are left — and four rules went with the cut:
+   `.prac-safety`, `.prac-maths`, `.prac-home` and `.gd-none`, each with its argument kept as prose
+   where the rule was. What went is written out over `practicalGuide_` rather than here, because
+   the list belongs beside the markup that stopped producing it.
 
    WHY IT IS IN THE SHEET AND NOT ON THE CARD, measured before a word of it was written: `.pane` is
    `overflow: hidden` and caps at 805px on an 844px phone, and **51 of the 56 practical cards were
@@ -8198,24 +8232,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .gd-hint { display: block; margin: .15rem 0 .35rem; font-size: .72rem; line-height: 1.45;
            color: var(--faint); }
 
-/* ---------- AN INSTRUCTION, WHICH IS NOT A FACT ---------------------------------------------------
-   THE ONLY PROSE IN THE GUIDE THAT IS NOT A COLUMN. "Rule the table up before you start" and "no
-   hazards have been written out for this one yet" are the guide talking; the maths line, the
-   notes, the safety line and the home line all came out of the row and keep the card's classes.
-   So it recedes — `--dim` in here means a fact from the database and `--faint` means it is not.
+/* ---------- `.gd-none` WAS HERE: AN INSTRUCTION, WHICH IS NOT A FACT ------------------------------
+   IT WENT WITH THE SECTIONS IT SPOKE IN. "Rule the table up before you start" and "no hazards have
+   been written out for this one yet" were the guide talking, in the results and risk sections; the
+   guide draws neither now, so nothing produces the class. Three things it settled are kept here,
+   because each one is a fault that has cost this stylesheet before:
 
-   ITS OWN CLASS RATHER THAN `.gd-sec p`, AND THAT IS NOT TIDINESS. A descendant rule is one class
-   plus a type, (0,1,1), against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both of which are
-   `<p>` inside a `.gd-sec` — so it would have won every declaration they make and flattened the
-   gold-ruled warning into ordinary body text. That is `.price.faint` and `.bk-row.is-blank` losing
-   to `.bk-row.is-bare` three thousand lines down: a rule that reads as a decision and behaves as
-   something else, for the sixth time in this stylesheet.
+   `--dim` IN THE GUIDE MEANS A FACT FROM THE DATABASE AND `--faint` MEANS IT DOES NOT. That is the
+   convention `.gd-hint` still follows — a question is a fact, the sentence explaining why it is
+   being asked is not — and `.quiz-why` cites it one block down.
 
-   FOUND ON A SCREENSHOT, AND NOTHING COULD HAVE CAUGHT IT. Before this the guide's maths line and
+   A DESCENDANT RULE FOR IT WOULD HAVE BEEN A TRAP. `.gd-sec p` is one class plus a type, (0,1,1),
+   against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both `<p>` inside a `.gd-sec` — so it
+   would have won every declaration they made and flattened the gold-ruled warning into ordinary
+   body text. Caught before it was written, which is the one place in this stylesheet's list of
+   `.price.faint` convictions that reads that way. Those two rules are gone now, so nothing is left
+   for `.gd-sec p` to beat — and it is still the wrong shape to reach for, because the next
+   paragraph added inside a section is the one it would flatten.
+
+   AND A SCREENSHOT IS WHAT FOUND THE FAULT IT FIXED. Before it existed, the guide's maths line and
    its tutor notes were bare `<p>`s and drew at the browser's default 16px — a third larger than
-   every other paragraph on the card. Valid markup, no overflow, nothing to measure. Ninth time
-   this file records that a screenshot is the last word on something drawn. */
-.gd-none { margin: .35rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--faint); }
+   every other paragraph on the card. Valid markup, no overflow, nothing to measure. */
 
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP ---------------------------------------
    `textarea` IS `min-height: 5.8rem` GLOBALLY, which is a page-long box seven times over. These are
@@ -8310,7 +8347,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- WHY --------------------------------------------------------------------------------
    THE EXPLANATION IS THE POINT OF THE WHOLE FEATURE, so it is body text rather than a footnote.
    `--dim` because it is content from the row, which is what `--dim` means everywhere else in this
-   block — see the note over `.gd-none`. */
+   block — see the note where `.gd-none` was, which is where that convention is written down. */
 .quiz-why { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
 .quiz-why b { color: var(--ink); font-weight: 600; }
 
