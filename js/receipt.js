@@ -1144,19 +1144,44 @@ function initFlappy() {
      store would put the bird three times too far right on a phone. */
   const W = Number(canvas.dataset.w) || canvas.width;
   const H = Number(canvas.dataset.h) || canvas.height;
-  /* ---------- FOUR COLOURS, WHICH IS WHAT MAKES IT A HANDHELD ------------------------------------
-     THE SHELL WAS NEVER THE THING. A grey plastic case round a sky-blue game is fancy dress; the
-     screen is what anybody actually recognises, and that screen could only ever show four shades of
-     the same olive green — the panel had two bits per pixel and no backlight, so everything drawn
-     on it, sky and bird and score alike, came out of these four.
-     WHICH IS ALSO WHY IT SUITS THIS APP. A blue gradient was the brightest thing on a black screen;
-     an olive LCD is dim by nature and sits beside a terminal without shouting. */
-  const LCD = {
-    off:  '#9bbc0f',   // the panel with nothing on it — the lightest a pixel gets
-    pale: '#8bac0f',   // one shade down, for the ground and the edges
-    mid:  '#306230',   // pipes
-    ink:  '#0f380f',   // the bird, the score, anything that must read as ON
-  };
+  /* ---------- BLUE SKY, GREEN PIPES, AND A BIRD ---------------------------------------------------
+     ASKED FOR AS "make it look more like flappy bird. blue scky green pipes and the bird", and it
+     overrules a decision this file argued at length: four shades of olive green, because the panel
+     the original ran on had two bits per pixel and no backlight.
+
+     THE OLIVE ARGUMENT IS KEPT HERE BECAUSE IT IS STILL TRUE OF WHAT IT WAS ARGUING — a shell round
+     an olive panel is the object itself, where a shell round a sky-blue game is fancy dress. What
+     it was not is an answer to what the owner asked for: the game is called Flabby Pird, everybody
+     who opens it knows what it is quoting, and the thing they know is blue. So the panel is a sky
+     again — AND THE HANDHELD CASE WENT WITH IT, in the same commit, by that same sentence. See
+     `.widget-full:has(.flappy)` in style.css, where the shell was.
+
+     EIGHT COLOURS AND THEY ARE THE ORIGINAL'S OWN. A cyan sky rather than a pure blue, because that
+     is what the sprite sheet holds and a flat cornflower reads as a template; a pipe that is three
+     greens rather than one, because a lit edge and a shaded one are the whole of what makes a
+     rectangle a tube; and one dark outline shared by the pipes, the bird and the floor, which is
+     what keeps a bright palette from reading as clip art.
+
+     DECLARED HERE RATHER THAN IN THE STYLESHEET, where `LCD` was and for its reason: the canvas is
+     the only thing that paints any of them, and a colour written in two places is the pair that
+     disagrees. `.flappy`'s own background is the app's sunk grey and is not a second copy of the
+     sky — see the note there for the one moment it shows. */
+  const SKY     = '#4ec0ca';   // the sky, flat, as the original's is
+  const CLOUD   = '#e8f4f4';
+  const BUSH    = '#5bc49a';   // the band of scrub between the sky and the floor
+  const GRASS   = '#7ec850';
+  const GRASS_D = '#4f9b28';
+  const SAND    = '#ded895';   // the floor
+  const SAND_D  = '#c8bd72';   // its hatch, which is the thing that makes the floor move
+  const PIPE    = '#74bf2e';
+  const PIPE_L  = '#a9e25c';
+  const PIPE_D  = '#4f8021';
+  const EDGE    = '#39301f';   // one outline for everything drawn on top of the sky
+  const BODY    = '#f8d030';
+  const BELLY   = '#fdf0c0';
+  const WING    = '#ffffff';
+  const EYE     = '#ffffff';
+  const BEAK    = '#f4761e';
 
   // reset any previous loop
   if (flappyState?.raf) cancelAnimationFrame(flappyState.raf);
@@ -1172,17 +1197,26 @@ function initFlappy() {
      difficulty holds with them, which is the whole point of scaling rather than hard-coding. */
   const k = W / 300;
   const GRAV = 0.45 * k, FLAP = -7 * k, GAP = 110 * k, PIPE_W = 42 * k, SPEED = 2 * k;
+  /* THE FLOOR IS PART OF THE GAME NOW rather than a stripe painted over the bottom of it. The bird
+     died at the canvas EDGE while the old panel's two-shade band sat above that line, so the last
+     few pixels of every fall were a bird inside the ground. A strip you can hit is what the game
+     being quoted has, and it is the only thing that makes the bottom of the picture read as a
+     floor rather than as where the picture stops.
+     EVERYTHING THAT USED `H` AS THE BOTTOM NOW USES `FLOOR` — the death test, the bottom pipe, and
+     where a pipe's mouth may fall. One name, so they cannot disagree about where down is. */
+  const GROUND = Math.max(8, Math.round(H * 0.09));
+  const FLOOR = H - GROUND;
   S.bird.r = 9 * k;
   S.bird.x = 60 * k;
-  S.bird.y = H / 2;
+  S.bird.y = FLOOR / 2;
 
   const reset = () => {
-    S.bird.y = H/2; S.bird.vy = 0; S.pipes = []; S.score = 0; S.frame = 0; S.dead = false;
+    S.bird.y = FLOOR/2; S.bird.vy = 0; S.pipes = []; S.score = 0; S.frame = 0; S.dead = false;
     const sc = $('flappy-score'); if (sc) sc.textContent = '0';
   };
   const spawnPipe = () => {
     /* The margins scale too, or on a tall canvas every pipe would cluster at the top. */
-    const top = 40 * k + Math.random() * Math.max(10, H - GAP - 110 * k);
+    const top = 40 * k + Math.random() * Math.max(10, FLOOR - GAP - 110 * k);
     S.pipes.push({ x: W, top, scored: false });
   };
   const flap = () => {
@@ -1192,7 +1226,7 @@ function initFlappy() {
   };
   const gameOver = () => {
     S.dead = true; S.running = false;
-    $('flappy-msg').textContent = `Game over — score ${S.score}. Click to retry.`;
+    $('flappy-msg').textContent = `Game over — score ${S.score}. Tap to retry.`;
     // Save score if a logged-in kid or tutor
     if (canTrack()) {
       const prev = USER.highscore || 0;
@@ -1228,7 +1262,7 @@ function initFlappy() {
             if ($('flappy-msg')) $('flappy-msg').textContent =
               `${S.score}! Not saved — no connection.`;
           });
-        $('flappy-msg').textContent = `New best: ${S.score}! Click to retry.`;
+        $('flappy-msg').textContent = `New best: ${S.score}! Tap to retry.`;
       }
     }
   };
@@ -1248,78 +1282,207 @@ function initFlappy() {
       const hitY = S.bird.y - S.bird.r < p.top || S.bird.y + S.bird.r > p.top + GAP;
       if (inX && hitY) return gameOver();
     }
-    if (S.bird.y + S.bird.r > H || S.bird.y - S.bird.r < 0) return gameOver();
+    if (S.bird.y + S.bird.r > FLOOR || S.bird.y - S.bird.r < 0) return gameOver();
     // draw
     sky();
-    /* PIPES IN THE MID SHADE, with a darker lip at the mouth of each. A flat rectangle is a block;
-       a block with a rim is a pipe, and a rim is the only detail four colours will pay for. */
-    S.pipes.forEach(p => {
-      ctx.fillStyle = LCD.mid;
-      ctx.fillRect(p.x, 0, PIPE_W, p.top);
-      ctx.fillRect(p.x, p.top + GAP, PIPE_W, H - p.top - GAP);
-      ctx.fillStyle = LCD.ink;
-      const lip = Math.max(3, PIPE_W * 0.12);
-      ctx.fillRect(p.x, p.top - lip, PIPE_W, lip);
-      ctx.fillRect(p.x, p.top + GAP, PIPE_W, lip);
-    });
+    S.pipes.forEach(pipe);
     bird();
     hud();
     S.raf = requestAnimationFrame(loop);
   };
 
-  /* THE PANEL, painted rather than cleared — `clearRect` leaves the canvas transparent and the app's
-     black shows through, which is what once made this a bird in a cave.
-     FLAT, NOT A GRADIENT. The gradient was right for a sky and is wrong for this: an LCD cannot
-     shade, and a graded background is the one detail that would give the whole thing away. */
+  /* PAINTED RATHER THAN CLEARED — `clearRect` leaves the canvas transparent and the app's black
+     shows through, which is what once made this a bird in a cave.
+     FLAT, NOT A GRADIENT, and this time for the sky's own reason rather than the panel's: the game
+     being quoted has a flat sky with things drawn ON it, and a vertical gradient behind clouds is
+     the one detail that reads as a stock template. The depth is in the parallax instead. */
   function sky() {
-    ctx.fillStyle = LCD.off;
-    ctx.fillRect(0, 0, W, H);
-    /* A band of the next shade down along the foot — the ground. Two shades is all it takes to say
-       which way is down, and it is the only depth cue a four-colour panel can give. */
-    ctx.fillStyle = LCD.pale;
-    ctx.fillRect(0, H - Math.max(6, H * 0.03), W, H);
+    ctx.fillStyle = SKY;
+    ctx.fillRect(0, 0, W, FLOOR);
+    clouds();
+    bushes();
+    ground();
   }
 
-  /* THE SCORE, ON THE SCREEN. It was two rows underneath in the app's own settings styling, which is
-     the detail that made the case look like a costume: no handheld has ever kept its score on a
-     shelf beside itself.
-     THE BEST COMES OUT OF THE ROW THAT ALREADY HOLDS IT rather than a second variable — that row is
-     written by the code that decides what a best is, and two places holding one number is the pair
-     that disagrees. */
-  function hud() {
-    const px = Math.max(9, Math.round(W / 22));
-    ctx.font = `700 ${px}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    ctx.fillStyle = LCD.ink;
-    ctx.textAlign = 'left';
-    ctx.fillText(String(S.score), px * 0.8, px * 1.8);
-    const best = ($('flappy-best') || {}).textContent || '0';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = LCD.mid;
-    ctx.fillText('BEST ' + best, W - px * 0.8, px * 1.8);
+  /* ---------- THREE LAYERS AT THREE SPEEDS, WHICH IS THE WHOLE BACKGROUND -------------------------
+     The clouds crawl at a third of the pipes, the scrub at a half and the floor at the full speed.
+     That is what says "far away" without drawing anything further away, and it is also the only
+     thing that makes the game feel fast: with a still floor the eye reads the whole screen as
+     slower than the pipes actually are.
+     EVERY OFFSET COMES OFF `S.frame`, so a game that is not running holds still — a background
+     scrolling under a "Tap to play" is a screen that looks like it has already started. */
+  function clouds() {
+    const r = Math.max(8, W * 0.075);
+    const span = W + r * 6;
+    const off = (S.frame * SPEED / 3) % span;
+    ctx.fillStyle = CLOUD;
+    for (let i = 0; i < 3; i++) {
+      const cx = ((i * span / 3 - off) % span + span) % span - r * 3;
+      const cy = FLOOR * (0.15 + 0.13 * (i % 2));
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.arc(cx + r, cy - r * 0.4, r * 0.78, 0, Math.PI * 2);
+      ctx.arc(cx + r * 1.9, cy, r * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
-  /* THE BIRD, and it is round. `arc` always draws a circle in canvas coordinates — the egg was the
-     canvas being stretched, not the shape being wrong — so this is the same call it always was,
-     now that the box and the backing store agree. */
-  function bird() {
-    ctx.fillStyle = LCD.ink;
+  /* A SCALLOPED BAND ALONG THE TOP OF THE FLOOR. Half-circles rather than a skyline, because a
+     skyline is a drawing somebody has to get right and a row of arcs is three primitives that
+     reads as scrub at any size. Contiguous by construction — each arc spans exactly its own step,
+     so the band has no seams to line up. */
+  function bushes() {
+    const h = Math.max(6, FLOOR * 0.06);
+    const r = h * 0.75;
+    const span = r * 2;
+    const off = (S.frame * SPEED / 2) % span;
+    ctx.fillStyle = BUSH;
     ctx.beginPath();
-    ctx.arc(S.bird.x, S.bird.y, S.bird.r, 0, Math.PI * 2);
-    ctx.fill();
-    /* An eye and a beak: three primitives, and the difference between a bird and a dot. The eye is
-       the PANEL colour rather than a colour of its own — on a screen with four shades you make a
-       highlight by switching a pixel off, not by finding a lighter ink. */
-    ctx.fillStyle = LCD.off;
-    ctx.beginPath();
-    ctx.arc(S.bird.x + S.bird.r * 0.35, S.bird.y - S.bird.r * 0.3, S.bird.r * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = LCD.mid;
-    ctx.beginPath();
-    ctx.moveTo(S.bird.x + S.bird.r * 0.8, S.bird.y);
-    ctx.lineTo(S.bird.x + S.bird.r * 1.5, S.bird.y + S.bird.r * 0.18);
-    ctx.lineTo(S.bird.x + S.bird.r * 0.8, S.bird.y + S.bird.r * 0.36);
+    ctx.moveTo(-span, FLOOR);
+    for (let x = -off - span; x < W + span; x += span) ctx.arc(x + r, FLOOR, r, Math.PI, 0);
+    ctx.lineTo(W + span, FLOOR);
     ctx.closePath();
     ctx.fill();
+  }
+
+  function ground() {
+    const grass = Math.max(3, Math.round(GROUND * 0.28));
+    ctx.fillStyle = SAND;
+    ctx.fillRect(0, FLOOR, W, GROUND);
+    /* THE HATCH. Leaning parallelograms, scrolling at the pipes' own speed — the floor is the one
+       layer the bird is actually travelling over, so it is the one that must not lag. */
+    ctx.fillStyle = SAND_D;
+    const step = Math.max(8, W * 0.05);
+    const off = (S.frame * SPEED) % step;
+    for (let x = -off - step; x < W + step; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, H);
+      ctx.lineTo(x + step * 0.34, FLOOR + grass);
+      ctx.lineTo(x + step * 0.6, FLOOR + grass);
+      ctx.lineTo(x + step * 0.26, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = GRASS;
+    ctx.fillRect(0, FLOOR, W, grass);
+    ctx.fillStyle = GRASS_D;
+    ctx.fillRect(0, FLOOR + grass - Math.max(1, grass * 0.25), W, Math.max(1, grass * 0.25));
+    ctx.fillStyle = EDGE;
+    ctx.fillRect(0, FLOOR, W, Math.max(1, k));
+  }
+
+  /* ---------- A PIPE IS A TUBE WITH A MOUTH -------------------------------------------------------
+     FOUR RECTANGLES, NOT TWO: the shaft and a wider cap at each end. The cap is what the bird
+     actually flies between, so widening it is not decoration — it is the edge you are judging, and
+     a shaft with a flat end gives the eye nothing to judge against.
+     THE COLLISION IS STILL THE SHAFT. The cap overhangs it by a few pixels on each side and those
+     pixels are free, deliberately: a hitbox tighter than the drawing is the version of this game
+     that feels fair, and one wider than it is the version people stop playing. */
+  function pipe(p) {
+    const capH = Math.max(6, PIPE_W * 0.26);
+    const capW = PIPE_W * 1.18;
+    const capX = p.x - (capW - PIPE_W) / 2;
+    const line = Math.max(1, PIPE_W * 0.05);
+    const tube = (x, y, w, h) => {
+      if (h <= 0) return;
+      ctx.fillStyle = PIPE;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = PIPE_L;
+      ctx.fillRect(x + w * 0.13, y, w * 0.17, h);
+      ctx.fillStyle = PIPE_D;
+      ctx.fillRect(x + w * 0.74, y, w * 0.26, h);
+      ctx.strokeStyle = EDGE;
+      ctx.lineWidth = line;
+      ctx.strokeRect(x + line / 2, y, w - line, h);
+    };
+    tube(p.x, -line, PIPE_W, p.top - capH + line);
+    tube(capX, p.top - capH, capW, capH);
+    tube(p.x, p.top + GAP + capH, PIPE_W, FLOOR - p.top - GAP - capH);
+    tube(capX, p.top + GAP, capW, capH);
+  }
+
+  /* THE SCORE IS ON THE SCREEN. It used to be two rows underneath and nothing else, in the app's
+     own settings styling — a score kept on a shelf beside the game rather than in it. The `Score`
+     and `Best` rows are still there and still right, because they are what a person reads when the
+     go is over; this is what they read while it is running, and no version of this game has ever
+     asked anybody to look away from the bird to find out how they are doing. */
+  function hud() {
+    /* BIG, CENTRED AND OUTLINED, which is where the original keeps it and is also the only place a
+       white number survives: a sky, a green pipe and a tan floor all pass under this line, and an
+       unoutlined figure disappears into whichever of them it happens to be over. */
+    const px = Math.max(14, Math.round(W / 9));
+    const face = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.lineJoin = 'round';
+    ctx.font = `700 ${px}px ${face}`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = Math.max(2, px * 0.14);
+    ctx.strokeStyle = EDGE;
+    ctx.strokeText(String(S.score), W / 2, px * 1.3);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(String(S.score), W / 2, px * 1.3);
+    /* THE BEST COMES OUT OF THE ROW THAT ALREADY HOLDS IT rather than a second variable — that row
+       is written by the code that decides what a best is, and two places holding one number is the
+       pair that disagrees. Small and to one side: it is a fact about you, not about this go. */
+    const best = ($('flappy-best') || {}).textContent || '0';
+    const bp = Math.max(8, Math.round(W / 26));
+    ctx.font = `700 ${bp}px ${face}`;
+    ctx.textAlign = 'right';
+    ctx.lineWidth = Math.max(1.5, bp * 0.16);
+    ctx.strokeText('BEST ' + best, W - bp, bp * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('BEST ' + best, W - bp, bp * 2);
+  }
+
+  /* ---------- THE BIRD, AND THE TWO THINGS THAT MAKE IT ONE --------------------------------------
+     IT TILTS WITH ITS OWN VELOCITY. Nose up on the way out of a flap, nose down in a dive — which
+     is not decoration: it is the only thing on the screen that tells you how fast you are falling
+     before you have fallen. A bird drawn level is a bird you have to read the gap to judge.
+     AND THE WING BEATS WHILE THE GAME RUNS AND HOLDS WHILE IT DOES NOT. A bird flapping over a
+     "Tap to play" is a bird nobody has told to stop, and it is the same fault as a background that
+     scrolls before the game has started.
+
+     DRAWN AT THE ORIGIN AND MOVED BY THE CANVAS, because the tilt is a rotation about the bird and
+     every coordinate here would otherwise have to carry `S.bird.x` through a trig function. The
+     collision is untouched by it — that is a circle of `S.bird.r`, and a rotation does not move a
+     circle's centre or change its radius. */
+  function bird() {
+    const r = S.bird.r;
+    const tilt = Math.max(-0.5, Math.min(1.2, (S.bird.vy / (9 * k)) * 0.85));
+    const beat = S.running ? Math.sin(S.frame * 0.35) * r * 0.3 : r * 0.1;
+    ctx.save();
+    ctx.translate(S.bird.x, S.bird.y);
+    ctx.rotate(tilt);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = EDGE;
+    ctx.lineWidth = Math.max(1, r * 0.15);
+    ctx.fillStyle = BODY;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.15, r, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = BELLY;
+    ctx.beginPath();
+    ctx.ellipse(r * 0.2, r * 0.4, r * 0.58, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = WING;
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.22, beat, r * 0.55, r * 0.33, -0.25, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = EYE;
+    ctx.beginPath();
+    ctx.arc(r * 0.5, -r * 0.4, r * 0.33, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = EDGE;
+    ctx.beginPath();
+    ctx.arc(r * 0.62, -r * 0.4, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = BEAK;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.85, -r * 0.12);
+    ctx.lineTo(r * 1.75, r * 0.1);
+    ctx.lineTo(r * 0.85, r * 0.42);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
   }
 
   // idle draw (bird sitting) — with the score, so the panel never shows a blank corner
@@ -1327,7 +1490,30 @@ function initFlappy() {
   bird();
   hud();
 
-  canvas.onclick = flap;
+  /* ---------- THE FLAP LANDS ON THE FINGER GOING DOWN ---------------------------------------------
+     REPORTED AS "when you tap theres like a slight delay" ON AN IPAD, and the delay was the binding
+     rather than anything being drawn. `click` FIRES ON THE RELEASE — so every flap this game has
+     ever taken waited out the whole of a tap, the eighty to a hundred and fifty milliseconds
+     between a finger landing and it lifting again, before the bird moved. There is nothing to tune:
+     no part of that is removable while the event is the wrong one.
+     (`.flappy` already carries `touch-action: none`, so the browser's own double-tap wait was not
+     in it — that is the delay people usually reach for and it was not this one.)
+
+     `pointerdown` FIRES THE INSTANT THE FINGER LANDS, and it answers a finger, a pen and a mouse
+     from one binding, which is why it is this rather than `touchstart` beside a click.
+
+     A SWIPE THAT BEGINS ON THE CANVAS ALREADY FLAPPED, so nothing is lost by moving off `click`.
+     `PRESS_MOVED` in shell.js swallows the click a drag produces, but it does so in the document's
+     own bubble handler — an element handler in the target phase runs first and always did.
+
+     `onclick` IS CLEARED RATHER THAN LEFT ALONE. The canvas is rebuilt on every paint of the column
+     so there is normally nothing on it, and a stale one would be a second flap per tap. */
+  canvas.onclick = null;
+  canvas.onpointerdown = e => {
+    if (e.isPrimary === false) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    flap();
+  };
   // space/arrow to flap (only when arcade canvas exists)
   S.keyHandler = e => { if ((e.code === 'Space' || e.code === 'ArrowUp') && $('flappy-canvas')) { e.preventDefault(); flap(); } };
   document.removeEventListener('keydown', window._flappyKey || (()=>{}));
