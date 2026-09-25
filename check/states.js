@@ -281,8 +281,16 @@ const STATES = {
         if (n < 0) throw new Error('the unlisted tutor is not on the account column');
         goPage('account', n, true);
       },
-      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off'),
-      wants: 'the unlisted tutor drawn, dimmed, with "· not listed" beside the role',
+      /* ---------- AND THE LINE THAT SAYS WHAT THE MARK MEANS -----------------------------------
+         THE THREE SIGNALS THIS STATE ALREADY MEASURED ALL SAY A STATE AND NONE SAYS WHAT TO DO.
+         The card dims, the role reads `· not listed`, the tile shows a crossed-out eye — and
+         `tile_` puts a tile's label in `title` and `aria-label` only, so on a phone the way back
+         is an unlabelled icon in a row of icons. Reported three times as *"i still dont see
+         george"* about a tutor who was on the screen. The sentence is admin-only, so this is the
+         only state in the file that can reach it. */
+      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off')
+                 && document.querySelector('#s-account .card.is-widget.is-off .prof-hid'),
+      wants: 'the unlisted tutor drawn, dimmed, with "· not listed" and the line saying what it means',
       leave: () => {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
         paint('account');

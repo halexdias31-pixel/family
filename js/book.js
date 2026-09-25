@@ -1093,9 +1093,27 @@ const BOOK_STEPS = [
 
      THE ROWS PINNED AFTER IT MOVE TOO, so they are re-pinned to `For` — the last question now.
      `Dates`, `Note` and the two waiting-list lines belong at the foot, not beside the tutor. */
+  /* ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S --------------------
+     THIS FILTERED `t.listed !== false` AND THAT WAS A SECOND COPY OF A POLICY. `doGet`'s gate is
+     `(listed || viewerIsAdmin)`, so a client is never SENT an unlisted tutor and there was nothing
+     here for that clause to remove — it only ever hid them from the one person the server had
+     deliberately shown them to. Measured as the admin: the dropdown offered two tutors and the
+     roster three, on the same payload, and `js/find.js` had had its own copy of the same clause
+     removed months earlier while this one was never found. The `MESSAGING` fault, and the reason
+     is always the same: a rule written twice is two rules to keep in step, and the copy is the one
+     that goes stale.
+
+     MARKED RATHER THAN SILENT, because an admin offering a switched-off tutor to a family needs to
+     know that is what they are doing. `label_` changes the option's TEXT and not its value, which
+     is what keeps `priceFrom`'s `norm(t.title) === norm(tutor)` working — the same split
+     `shortLabels_` draws in the funnel. The card says it the same way: `· not listed`. */
   { id: 'tutor', label: 'Anyone in particular?', short: 'Tutor',
     options: () => isWaiting_() ? [] : ['No preference'].concat(
-      (DATA.tutors || []).filter(t => t.listed !== false && t.title).map(t => t.title)),
+      (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
+    label_: v => {
+      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
+      return t && t.listed === false ? v + ' · not listed' : v;
+    },
     why: v => {
       if (v === 'No preference') return '';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));

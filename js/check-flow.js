@@ -234,6 +234,11 @@ function boot(opts) {
          used to read `PAGER[id]().length` -- a second definition, and one that broke the day an
          entry started answering with a COUNT instead of a list of names. `PAGE_KEEP` and
          `STUFF_WIN` say how much of a windowed screen is in the document at once. */
+      /* THE PAYLOAD ITSELF, AS A GETTER RATHER THAN A REFERENCE. `load()` ends with `DATA = d` —
+         it REPLACES the object — so a captured reference would be a snapshot of whatever was there
+         when this hook was built, which is the fault CLAUDE.md records about a state seeding
+         `DATA.students` before that assignment. */
+      'DATA: () => DATA,' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
       + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
@@ -738,6 +743,46 @@ check('an instant class with room can be joined, not only a waiting list', async
   B.how = 'Waiting list class';
   const lists = step.options().filter(Boolean);
   if (!lists.length) bad.push('a waiting list booking is offered nothing');
+  return bad;
+});
+
+/* ---------- AN UNLISTED TUTOR IS THE SERVER'S DECISION, AND THE FORM HAD ITS OWN COPY ------------
+   `doGet`'s GATE IS `(listed || viewerIsAdmin)`, so a client is never SENT an unlisted tutor and the
+   `t.listed !== false` this dropdown carried could only ever hide them from the one person the
+   server had deliberately shown them to. Reported three times as *"i still dont see george"* about
+   a tutor who was on the account column the whole time and missing from this list.
+
+   TWO ASSERTIONS, BECAUSE THE FAULT HAS TWO HALVES. The option must be OFFERED, and its VALUE must
+   still be the plain title — `priceFrom` matches `norm(t.title) === norm(tutor)`, so a decorated
+   value would price the booking at the open rate with nothing on screen saying so. `label_` is what
+   keeps the two apart and this is what proves it did not leak into one.
+
+   THE PAYLOAD IS THE ADMIN'S, which is the only payload that can carry such a row. A client's copy
+   has no unlisted tutor in it at all, so there is nothing here for a client-side filter to do. */
+check('an unlisted tutor is offered to an admin, marked, with its value untouched', async () => {
+  const { w } = boot();
+  await wait(300);
+  if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
+  w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+  const D = w.__t.DATA();
+  const held = (D.tutors || []).slice();
+  D.tutors = held.concat([Object.assign({}, held[0] || {},
+    { title: 'Switched Off', listed: false })]);
+  const B = w.__t.BOOKING;
+  B.how = 'Instant class'; B.loc = 'Colliers Wood Library';
+  const step = w.__t.STEPS.find(s => s.id === 'tutor');
+  const bad = [];
+  if (!step) { D.tutors = held; return ['there is no tutor step']; }
+  const opts = step.options().filter(Boolean);
+  if (opts.indexOf('Switched Off') === -1) {
+    bad.push('an admin is not offered the unlisted tutor: ' + JSON.stringify(opts));
+  }
+  const shown = step.label_ ? step.label_('Switched Off') : 'Switched Off';
+  if (shown === 'Switched Off') bad.push('the unlisted tutor is offered with nothing saying so');
+  if (step.label_ && step.label_('Sasha Matola') !== 'Sasha Matola') {
+    bad.push('a listed tutor is marked too: ' + step.label_('Sasha Matola'));
+  }
+  D.tutors = held;
   return bad;
 });
 

@@ -259,6 +259,26 @@ function findCard(x) {
              something this card gets to assume — see its note. */''}
       <h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
         t.listed === false ? ' <span class="prof-off">· not listed</span>' : ''}</h3>
+      ${/* ---------- AND WHAT `· not listed` MEANS, SAID ONCE, WHERE THE MARK IS ------------------
+            REPORTED THREE TIMES AS *"i still dont see george"*, AND HE WAS ON THE SCREEN. Measured:
+            an admin's account column opens ON the unlisted tutor — `PAGE_HOME.account` is page 1
+            — dimmed, with `· not listed` beside the role and a `set-listed` tile under the card.
+            What was missing is that every one of those signals says a STATE and none of them says
+            what to do about it: `tile_` puts a tile's label in `title` and `aria-label` only, which
+            is a recorded decision and not one to undo here, so on a phone the only way back is an
+            unlabelled crossed-out eye in a row of icons.
+
+            ONE LINE UNDER THE ROW RATHER THAN A WORD ON THE BUTTON is what the house style says for
+            exactly this — see `jobAdminTiles_` — and here it is at the TOP of the card because
+            that is where the mark it explains is. It says the consequence rather than the cell:
+            "clients cannot see them" is what `listed` means, and the tile is what changes it.
+
+            ADMIN ONLY, because nobody else is ever sent an unlisted tutor: `doGet`'s gate is
+            `(listed || viewerIsAdmin)`, so a client's payload has no such row and repeating the
+            rule here would be the second copy this repository keeps paying for. */''}
+      ${t.listed === false && isAdmin()
+        ? `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
+             them back on the site.</p>` : ''}
       <div class="prof-top">
         ${t.image
           ? `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy">`

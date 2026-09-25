@@ -5070,6 +5070,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }
 .prof-off { color: var(--prof-warn); }
+/* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. `.prof-say` is the tutor's own words, so this
+   borrows its type and takes the card's own warning ink to say it is not theirs — the same token
+   the heading's `· not listed` and the DBS stamp use, declared on `.is-prof` because it is this
+   card's word for "something is not right here" and nothing else in the app is offered it.
+   NOT ITALIC AND NOT QUOTED. `.prof-say` is set as something somebody said; this is the app
+   talking, and a sentence in the same voice as the description would read as part of the profile. */
+.prof-hid { color: var(--prof-warn); font-style: normal; }
 
 /* ---------- THE BOOKING SLIP ---------------------------------------------------------------------
    The tear-off kind taped to a library door. The perforation is the trick: a rectangle with a torn
