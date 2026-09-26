@@ -348,6 +348,10 @@
       var qs = [];
       if (u && u.personId) qs.push('person=' + encodeURIComponent(u.personId));
       if (u && u.name) qs.push('name=' + encodeURIComponent(u.name));
+      /* AND THE TOKEN, which is what `doGet` now decides who you are from — a name was a claim, and
+         the app prints names. The same three keys `load()` builds, spelt the same way, because a URL
+         that differs from the one it would have built is a second request rather than a head start. */
+      if (u && u.token) qs.push('token=' + encodeURIComponent(u.token));
       var url = 'https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8zSY8TjB8EKY30ZWxBfDIR0QztN4B64V9c-mud7Go/exec'
         + (qs.length ? '?' + qs.join('&') + '&' : '?') + '_=' + Date.now();
       /* CAUGHT HERE AS WELL AS THERE. An unhandled rejection on a promise nobody has awaited yet is

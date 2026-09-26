@@ -2492,9 +2492,21 @@ async function load() {
          · `orders` holds only your own, so the queue of paper to print is always empty
          · `health.problems` is never filled in
        None of those looks like a fault. Each looks like a feature that does nothing. */
+    /* ---------- AND THE TOKEN, WHICH IS THE ONLY ONE OF THE THREE THAT PROVES ANYTHING -----------
+       `doGet` DECIDED WHO YOU WERE FROM `name`, and the name of every tutor is on the screen — so the
+       admin payload was one query string away for anybody. `api()` has attached `USER.token` to every
+       POST since sessions were built and `accessDenied` has resolved it there; the GET was simply
+       never moved onto it. The block at the top of `doget.gs` has the measurement and the trade.
+
+       ALL THREE ARE STILL SENT, and that is what makes this safe to push before the backend deploys
+       — which is blocked on the Cloud-project switch, so the two land days apart whichever order they
+       are written in. Old backend, new phone: `name` still decides, nothing changes. New backend, old
+       phone: no token, so an admin is served the ordinary payload — degraded, and safe. Both new: the
+       token decides. There is no ordering in which somebody is served more than they should be. */
     const q = [];
     if (USER && USER.personId) q.push('person=' + encodeURIComponent(USER.personId));
     if (USER && USER.name) q.push('name=' + encodeURIComponent(USER.name));
+    if (USER && USER.token) q.push('token=' + encodeURIComponent(USER.token));
     const who = q.length ? '?' + q.join('&') : '';
     /* NO CACHE, AND A DIFFERENT URL EVERY TIME. Both, because either alone can be got round.
        This is a plain GET, which a browser is entitled to hold — so an edit to the spreadsheet
