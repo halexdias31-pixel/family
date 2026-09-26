@@ -13,6 +13,6 @@
 {"key": "ink", "value": "#16160f", "notes": "the colour text is set in"},
 {"key": "accent", "value": "#c8452f", "notes": "marks the one thing to look at"},
 {"key": "ground", "value": "#ffffff", "notes": "the paper"},
-{"key": "logo_square", "value": "", "notes": "a URL. Used as an avatar where a person has none"},
+{"key": "logo_square", "value": "icon.png", "notes": "a URL. The tab icon, the home-screen icon, the face on a post made as the business, and the avatar of anybody with no photograph. Holds the drawn mark tools/make-icon.py builds; paste a Drive share link over it and all four change on the next load, with no deploy"},
 {"key": "logo_circle", "value": "", "notes": "a URL"}
 ]

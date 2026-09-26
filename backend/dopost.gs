@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-25-e-one-quote";
+const DOPOST_VERSION = "2026-09-26-a-sign-in-by-email";
 
 
 function doPost(e) {
@@ -482,6 +482,25 @@ function doPost(e) {
       const priceMoved = pricingMoved_(r, priceAsked).length > 0;
       const priceNo = pricingRefusal_(r, priceAsked, isAdminPerson(asker));
       if (priceNo) return jsonOut({ error: priceNo });
+
+      /* ---------- AN ADDRESS THAT ALREADY ANSWERS TO SOMEBODY ELSE ------------------------------
+         SINCE `findPerson` RESOLVES AN E-MAIL, THIS COLUMN IS A CREDENTIAL. Two rows holding one
+         address means the first wins and the second person is told their own PIN is wrong — the
+         denial recorded under `changePin`, one column along. The rule is `emailRefusal_` in
+         `people.gs` rather than four lines here, beside `handleRefusal` and `pricingRefusal_` and
+         for their reason: something has to be able to RUN it.
+
+         READ BEFORE THE WRITE, like the pricing clock above and for the same reason — `setCell`
+         ends with `row[field] = value`, so asking afterwards compares the new address against
+         itself and finds no clash, every time.
+
+         ONLY WHEN THE FORM SENT ONE. `About you` and every other page post no `email` at all, and a
+         rule firing on absence would refuse them. An admin is NOT exempt: an admin putting a
+         duplicate address on somebody's row is still the collision. */
+      if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
+        const mailNo = emailRefusal_(fields.email, r);
+        if (mailNo) return jsonOut({ error: mailNo });
+      }
 
       wanted.forEach(f => setCell(t, r, f, fields[f]));
       /* ---------- AND THE STAMP GOES ON AFTER THE WRITE, NOT INSTEAD OF IT -----------------------
@@ -1683,7 +1702,30 @@ function doPost(e) {
     if (action === 'changeHandle') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'We could not find your account.' });
-      const want = S(body.handle).trim().toLowerCase();
+      /* ---------- WHAT WAS TYPED IS WHAT IS STORED, AND EVERY COMPARISON STILL FOLDS ------------
+         ASKED FOR AS *"i would like peoples username logins to be case sensitive."* This line was
+         `.toLowerCase()`, so somebody who typed `HaLeX` was stored and shown as `halex` — the case
+         they chose thrown away at the moment they chose it, which is the half of that sentence a
+         person actually sees.
+
+         THE MATCHING IS NOT TOUCHED AND MUST NOT BE. `findPerson` compares through `key()`, which
+         lower-cases AND strips everything but letters and digits, and it has 85 call sites across
+         this backend: the roster, the booking, the messaging, every gate. Making THAT case
+         sensitive would mean somebody typing `Halex` at the sign-in box is told the name is not
+         recognised — which is sign-in getting harder for everybody, and is what every site on the
+         internet deliberately does not do.
+
+         AND IT WOULD OPEN AN IMPERSONATION SURFACE ON A SITE CHILDREN USE. `handleTrouble_` checks
+         a new handle against every column `findPerson` answers to, through that same fold — so
+         while it folds, `HaLeX` cannot be taken when `halex` exists. Case-sensitive matching makes
+         those two different accounts that render identically, which is exactly what
+         `HANDLE_SHAPE`'s ASCII-only rule already refuses unicode lookalikes for: `paul` with a
+         Cyrillic a is impersonation with nothing to point at, and `HaLeX` beside `halex` is the
+         same object in a cheaper disguise.
+
+         SO: CASE-PRESERVING, CASE-INSENSITIVE. Store the letters as typed; fold for every
+         comparison. That is what "case sensitive" means everywhere it is safe to mean anything. */
+      const want = S(body.handle).trim();
       const why = handleTrouble_(want, me, isAdminPerson(S(body.name)));
       if (why) return jsonOut({ error: why });
 

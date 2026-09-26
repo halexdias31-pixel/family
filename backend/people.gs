@@ -74,11 +74,59 @@ function findPerson(nameOrId, altId) {
   // An exact id match wins outright.
   const byId = rows.find(r => key(r.person_id) === want);
   if (byId) return byId;
+  /* ---------- AND AN E-MAIL ADDRESS, MATCHED AS AN ADDRESS RATHER THAN AS A NAME ------------------
+     ASKED FOR AS *"i want people to be able to sign in with email as well."* `verifyLogin` resolves
+     through this function and nothing else, so one rung here is the whole of it — and it is the
+     last rung, after every name, so nothing that used to resolve can start resolving to somebody
+     different.
+
+     `norm` RATHER THAN `key`, AND THAT IS NOT TIDINESS. `key` strips everything that is not a letter
+     or a digit, so `alex@dias.com` reduces to `alexdiascom` — and so does a person whose full name
+     is "Alex Dias Com". Two different people, one key, and `changePin` then checks the PIN somebody
+     typed against the other one's row: the denial this file already records happening once, for
+     real, to one person. An address is a machine identifier rather than a name typed with variable
+     spacing, so it is compared whole, case-folded and trimmed, and the `@` it must contain is what
+     makes that collision impossible rather than merely unlikely.
+
+     A BLANK CELL IS NOT A MATCH. Most rows on this tab have no e-mail; without the guard the first
+     of them would answer to an empty search term, which `want` above already refuses — but `norm`
+     is a different fold and would not. */
+  const mail = norm(nameOrId);
   return rows.find(r =>
     key(r.full_name) === want ||
     key(S(r.first_name) + ' ' + S(r.last_name)) === want ||
     key(r.handle) === want ||
-    key(r.username) === want) || null;
+    key(r.username) === want ||
+    (mail.indexOf('@') !== -1 && norm(r.email) === mail)) || null;
+}
+
+/* ==================================================================================================
+   AN E-MAIL ADDRESS THAT ALREADY ANSWERS TO SOMEBODY ELSE.
+
+   THE MOMENT AN ADDRESS CAN SIGN YOU IN, IT IS A CREDENTIAL, and two rows holding one is the
+   `findPerson` denial with a new column in front of it: the first row wins, so the second person
+   types their own address and their own PIN and is told the PIN is wrong — confidently, about the
+   one thing they are certain of, with no way to argue. That happened once already, by accident,
+   because a call forgot to send an id.
+
+   BESIDE `handleRefusal` AND `pricingRefusal_` SO THAT SOMETHING CAN RUN IT. Written inline in
+   `updateProfile` it is four lines nothing here can reach, and a rule with no check is the shape
+   this repository records every time an instrument could not see its subject. Same three arguments,
+   same sentence-not-a-boolean, same reason: "that is taken" is the only useful part.
+
+   NOT A FORMAT CHECK. The box already refuses a shape the browser will not accept, and a stricter
+   rule here would refuse real addresses — which is the failure this repository calls the worse of
+   the two everywhere it marks an answer. This asks one question: does anybody else already answer
+   to it. */
+function emailRefusal_(want, me) {
+  const mail = norm(want);
+  if (!mail) return '';                       // clearing your address is not taking anybody's
+  const mine = me ? key(me.person_id) : '';
+  const clash = read(TAB.people).rows.some(r => {
+    if (mine && key(r.person_id) === mine) return false;      // your own row is not a clash
+    return !!norm(r.email) && norm(r.email) === mail;
+  });
+  return clash ? 'That e-mail address is already on another account.' : '';
 }
 
 /* ==================================================================================================
@@ -110,7 +158,17 @@ function handleFold_(v) {
  * `me` is their row. Pass `isAdmin` true to skip the cooldown only.
  */
 function handleTrouble_(want, me, isAdmin) {
-  const raw = String(want == null ? '' : want).trim().toLowerCase();
+  /* ---------- TWO FORMS, AND WHICH ONE EACH LINE BELOW USES IS THE WHOLE OF IT -------------------
+     `shown` IS WHAT THEY TYPED and is the only thing quoted back; `raw` is it folded, and every
+     comparison in this function uses that. `changeHandle` stores `shown`, so a person keeps the
+     case they chose — and because nothing here compares on it, `HaLeX` is still refused when
+     `halex` exists, which is the guard that stops two accounts rendering identically on a site
+     children use. See the long note in `dopost.gs` over the line that stopped lower-casing.
+
+     A REFUSAL THAT QUOTES THE FOLDED FORM IS A REFUSAL ABOUT A STRING NOBODY TYPED. Told `"halex"
+     is taken` after typing `HaLeX`, a person reasonably tries the capitals again. */
+  const shown = String(want == null ? '' : want).trim();
+  const raw = shown.toLowerCase();
   if (!raw) return 'Type the name you want.';
   if (!HANDLE_SHAPE.test(raw)) {
     return 'A username is 3 to 20 characters, starts with a letter, and holds only letters, '
@@ -120,7 +178,7 @@ function handleTrouble_(want, me, isAdmin) {
   const folded = handleFold_(raw);
 
   if (HANDLE_RESERVED.indexOf(raw) !== -1 || HANDLE_RESERVED.indexOf(folded) !== -1) {
-    return '"' + raw + '" is kept for the school\'s own accounts.';
+    return '"' + shown + '" is kept for the school\'s own accounts.';
   }
 
   /* THE ALLOW LIST IS CHECKED FIRST, or `analysis` never gets the chance. A handle that IS one of
@@ -159,7 +217,7 @@ function handleTrouble_(want, me, isAdmin) {
         || key(r.full_name) === key(raw)
         || key(S(r.first_name) + ' ' + S(r.last_name)) === key(raw);
   });
-  if (clash) return '"' + raw + '" is taken.';
+  if (clash) return '"' + shown + '" is taken.';
 
   /* ---------- A MONTH SINCE THE LAST ONE ----------------------------------------------------------
      Read off `handle_changed_at` rather than counted, so there is one piece of state and nothing to

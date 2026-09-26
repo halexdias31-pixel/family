@@ -57,8 +57,22 @@ function signInCard_() {
   return `<div class="card">
         <h3>Sign in</h3>
         <p class="sub">You need an account to book, to keep a checklist, or to spend credits.</p>
-        <label class="field"><span>your name</span>
-          <input id="in-name" autocomplete="username" placeholder="e.g. Halex Dias"></label>
+        ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO -----------------------
+             ASKED FOR AS *"i want people to be able to sign in with email as well."* `findPerson`
+             takes an address now — but a box captioned "your name" is a box nobody tries an address
+             in, which is this repository's own sentence about the calculator and about `topics`: a
+             thing nobody can find is a thing that is not there.
+
+             THREE WORDS RATHER THAN A SENTENCE UNDER IT. A caption is read; a paragraph explaining
+             a single text box is the note this app has now been asked three times to take off a
+             card. The placeholder carries the example, which is what a placeholder is for.
+
+             `autocomplete="username"` IS UNCHANGED AND IS STILL RIGHT. It is the token for "the
+             thing you sign in with" whatever that thing is, and a phone offers a saved address
+             under it as readily as a saved handle — `email` would tell the phone this box is only
+             ever an address, which it is not. */''}
+        <label class="field"><span>name, username or email</span>
+          <input id="in-name" autocomplete="username" placeholder="Halex Dias, @halex, or your email"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         <button class="btn" data-do="do-signin">Sign in</button>
@@ -769,10 +783,38 @@ on('build-said', () => openSheet('Build', versionSaid_()));
    new screen id needs — no `TABS`, no `TAB_ORDER`, no `PAGER`, no `PAGE`, no `<section>`, and no
    row in `data/settings/columns.json`.
 
-   ONE SLOT PER PAGE, WHICH IS `settingsPages_`'s OWN RULE AND ALSO THE MEASUREMENT. Splitting it in
-   two leaves Things at 948.1px; in three, all three pages are over; in four there are 34.1px spare
-   and the "Saving…" line takes it 18px over the moment it appears. One slot per page is **356.0px
-   with 178.3px spare at 320** and fits at all four widths.
+   ONE SLOT PER PAGE WAS THE FIRST ANSWER AND IT IS TWO NOW. Splitting the whole wardrobe in two
+   leaves Things at 948.1px; in three, all three pages are over; in four there are 34.1px spare and
+   the "Saving…" line takes it 18px over the moment it appears. One slot per page is 356.0px with
+   178.3px spare at 320 and fits at all four widths — and it made SEVEN pages, six of them carrying
+   the same picture.
+
+   ---------- AND SEVEN COPIES OF ONE PICTURE IS WHAT GOT REPORTED ---------------------------------
+   *"the avatar customisation has like over 5 different widgets of same avater. bit redundant."* —
+   and it is exactly seven: `Colours` plus one per slot in `AV_SLOTS`, every one drawing the same
+   64px figure at the top. Settings is not windowed (`PAGE_KEEP` is written only for `stuff`), so
+   all seven are in the document at once — 84 element nodes for one picture — and swiping the
+   wardrobe is the same avatar going past six times.
+
+   TWO SLOTS A PAGE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN. At 320x568 against the 534.25px
+   pane cap: the worst pair, Hairstyle (6 options) with Headwear (5), is 424.7px — **109.6px
+   spare** — and Face+Shoulders is 302.3 and Holding+Legs is 363.5. Every pairing fits at every
+   width, so nothing has to be hand-balanced. THREE a page does not: the naive grouping is 569px,
+   **over the cap by 34.7**, and only a hand-picked one fits with 26.5px spare — which is two option
+   rows from failing the day a shop row adds an item, because `avatarCatalogue()` builds this list
+   from the shop tab and a new row needs no deploy. That is the `isEdexcelGcseMaths` shape: a rule
+   fitted to the data somebody had in front of them.
+
+   THE FIGURE STAYS ON EVERY PAGE, AND THAT IS THE ONE THING NOT TRADED. Dropping it from the slot
+   pages takes them to 202.1px and answers the complaint completely — and it deletes the live
+   preview `avatarSave` redraws before the server answers, which its own note calls the difference
+   between a wardrobe and a form. You cannot try a hat on without seeing it on. Seven pictures
+   become four; the picture stays where the change happens.
+
+   AND THE LAB CANNOT REFUSE A TOO-TALL PAGE, so these numbers were taken at a real 320x568 rather
+   than read off a run. `check/ui.js` gives every width an 844px viewport, so its "320" has an 807px
+   cap and the three-a-page merge that is 34.7px over on an iPhone SE measures green there. Same gap
+   CLAUDE.md records under `.post-pic`.
 
    APPENDED, NOT PREPENDED. `PAGE.settings` remembers where somebody was, so inserting at the front
    moves every existing index and a returning visitor lands on a different page. */
@@ -796,12 +838,14 @@ function wardrobePages_() {
       title="${esc(col)}"></span>`).join('')}
   </div>`;
 
-  const slotCard = ([slot, label]) => {
+  /* ONE SLOT'S OPTIONS, WITH ITS OWN NAME OVER THEM — which is what the Colours card already does
+     for Skin, Hair and Shirt. With two slots to a card the card's `h3` names both and `.av-slot-name`
+     says which block is which, so nothing new had to be styled. */
+  const slotBlock = ([slot, label]) => {
     const mine = items.filter(x => x.slot === slot);
     if (!mine.length) return '';
-    return `<div class="card"><h3><span>${esc(label)}</span></h3>
-      ${figure()}
-      <div class="av-slot">
+    return `<div class="av-slot">
+      <div class="av-slot-name">${esc(label)}</div>
       <div class="av-opts">${mine.map(it => {
         const on = cfg[slot] === it.id;
         /* WHY it is not yours, on the item itself. "Locked" is a state; "Level 8" is a thing you
@@ -816,8 +860,27 @@ function wardrobePages_() {
           ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
         </button>`;
       }).join('')}</div>
-    </div></div>`;
+    </div>`;
   };
+
+  /* PAIRED IN THE ORDER `AV_SLOTS` DECLARES THEM, which is top of the head downwards — so the card
+     reads Hairstyle & Headwear, Face & Shoulders, Holding & Legs rather than a grouping somebody
+     picked. Every pairing fits (see above), so there is nothing to balance and nothing to go stale.
+     A slot with no items drops out first, so a pair is never half empty. */
+  const pairCard = pair => {
+    /* BUILT ONCE AND KEPT WITH ITS LABEL. A first version mapped for the markup and then filtered
+       the labels by calling `slotBlock` again — two readings of "does this slot have items", which
+       is the second reader this repository keeps finding, and here it would have put a name over a
+       block that was not drawn the day a slot emptied. */
+    const made = pair.map(sl => ({ label: sl[1], html: slotBlock(sl) })).filter(x => x.html);
+    if (!made.length) return '';
+    return `<div class="card"><h3><span>${esc(made.map(x => x.label).join(' & '))}</span></h3>
+      ${figure()}
+      ${made.map(x => x.html).join('')}
+    </div>`;
+  };
+  const pairs = [];
+  for (let i = 0; i < AV_SLOTS.length; i += 2) pairs.push(AV_SLOTS.slice(i, i + 2));
 
   /* `Credits` IS DROPPED AND `Level` IS KEPT, which is not tidying. `cards.js` already draws the
      credit balance on this same column, so a second copy is one fact in two places — and dropping
@@ -830,7 +893,7 @@ function wardrobePages_() {
       <div class="av-slot"><div class="av-slot-name">Skin</div>${swatches('skin', AV_SKIN)}</div>
       <div class="av-slot"><div class="av-slot-name">Hair</div>${swatches('hairColour', AV_HAIR)}</div>
       <div class="av-slot"><div class="av-slot-name">Shirt</div>${swatches('shirt', AV_SHIRT)}</div>
-    </div>`].concat(AV_SLOTS.map(slotCard).filter(Boolean));
+    </div>`].concat(pairs.map(pairCard).filter(Boolean));
 }
 
 /* ---------- AND THE TILE IS A DOOR RATHER THAN A SHEET -------------------------------------------
