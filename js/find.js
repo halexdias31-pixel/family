@@ -780,6 +780,174 @@ function facetOwn_(facet, x) {
   return out;
 }
 
+/* ---------- WHY THESE ARE UP HERE AND NOT BESIDE `bucketValues_` --------------------------------
+   `FACETS` IS A TOP-LEVEL `const` ARRAY AND IT IS BUILT AS THE FILE LOADS, so every table a facet
+   entry names has to exist by then. Declared below it they are in the temporal dead zone and the
+   app does not start at all — `Cannot access 'KIND_BUCKET' before initialization`, on the first
+   line of the first facet. The engine that reads them is further down, where it belongs; the
+   tables are data and data comes first.
+--------------------------------------------------------------------------------------------- */
+/* ==================================================================================================
+   THE GROUPINGS THEMSELVES — "grouping many subtopics into first larger topics", written out.
+
+   THE ALPHABET IS THE FLOOR AND IT IS NOT THE ANSWER. `bucketValues_` above guarantees that no
+   question ever draws more than seven answers; these are what stop the seven being `A`, `B`, `C`.
+   Measured with the generic rule alone: `Sitting` came out as **A and S** — Autumn and Summer, two
+   buttons for nine years of exams — and `check-funnel.js` refused it outright, which is that check
+   doing its job on my own change. `What you need` came out as `P`, `Subject` as `B / C / E / M`.
+   Each is a legal grouping that nobody could use.
+
+   EVERY LABEL HERE IS A WORD ALREADY IN USE. The maths ones are the national curriculum's own
+   strand names, the boxing ones are what the weight classes are actually called, and the rest are
+   what a tutor says out loud. Nothing is title-cased by code and nothing is abbreviated — the
+   `Hcf And Lcm` fault this file records is a label a machine made up.
+
+   A TABLE AND A LOOKUP, NOT A TEST PER VALUE, so the grouping is a thing you can read down and
+   check against the data rather than a chain of conditions. `bucketOf` returns '' for a value it
+   does not place, and `bucketLabels_` stands the whole rule down the moment that happens — one
+   unplaced value and the alphabet takes over, which cannot lose anything. That is the half that
+   makes these safe to write: a grouping that goes stale as the library grows degrades to something
+   usable instead of hiding the values it forgot.
+================================================================================================== */
+/* A value -> label table, inverted once so the lookup is a map rather than a scan. */
+function bucketTable_(pairs) {
+  const at = {};
+  pairs.forEach(row => row[1].forEach(v => { at[norm(v)] = row[0]; }));
+  const of = v => at[norm(v)] || '';
+  of.order = pairs.map(row => row[0]);
+  return of;
+}
+
+/* WHAT YOU ARE HERE TO DO WITH IT. The eight kinds are three errands, and which errand somebody is
+   on is the thing they know before they know anything else. */
+const KIND_BUCKET = bucketTable_([
+  ['Work through it',  ['Questions', 'Quizzes', 'Practicals']],
+  ['Read or watch it', ['Links', 'Films', 'Resources']],
+  ['People & places',  ['Tutors', 'Venues']],
+]);
+
+/* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
+   folded into anything, because on this library they are most of it and folding the biggest answer
+   into a bucket of one is a tap that changes nothing. */
+const SUBJECT_BUCKET = bucketTable_([
+  ['Maths',             ['Maths']],
+  ['English',           ['English Language']],
+  ['Science',           ['Biology', 'Chemistry', 'Physics', 'Combined Science']],
+  ['Religious Studies', ['Religious Studies']],
+  ['Boxing',            ['Boxing']],
+]);
+
+/* THE NATIONAL CURRICULUM'S OWN STRANDS, which is where every one of these names came from in the
+   first place — `data/topics.json` is built on them. A-level pure maths sits under Algebra because
+   that is what most of it is, and because a strand of its own for 84 questions is a button nobody
+   presses. */
+const AREA_BUCKET = bucketTable_([
+  ['Number',                   ['Number']],
+  ['Algebra',                  ['Algebra', 'A-Level Pure Maths']],
+  ['Ratio & Proportion',       ['Ratio & Proportion']],
+  ['Geometry & Measures',      ['Geometry & Measures']],
+  ['Statistics & Probability', ['Statistics', 'Probability']],
+  ['Science',                  ['Biology', 'Chemistry', 'Physics']],
+  ['English',                  ['English Grammar', 'Punctuation', 'Vocabulary & Spelling']],
+]);
+
+/* GRADES IN THREES, which is how a tutor talks about them — "a grade 4 to 6 question" is a sentence
+   somebody says and "Grade 4" alone is a precision nobody has about a question they have not read.
+   Grade 9 is here although nothing carries it yet, so the day something does it is already placed. */
+const GRADE_BUCKET = bucketTable_([
+  ['Grades 1–3', ['Grade 1', 'Grade 2', 'Grade 3']],
+  ['Grades 4–6', ['Grade 4', 'Grade 5', 'Grade 6']],
+  ['Grades 7–9', ['Grade 7', 'Grade 8', 'Grade 9']],
+]);
+
+/* WHAT YOU HAVE TO HAVE IN FRONT OF YOU, by where you get it from: the calculator question is its
+   own question and everybody asks it, a drawing kit comes out of a pencil case, and a sheet is
+   something the exam board hands you. */
+const NEEDS_BUCKET = bucketTable_([
+  ['Calculator',      ['Calculator']],
+  ['No calculator',   ['No calculator']],
+  ['Drawing kit',     ['Ruler', 'Protractor', 'Compass']],
+  ['A sheet with it', ['Printed sheet', 'Equation booklet', 'Periodic table']],
+  ['A lab',           ['Lab']],
+]);
+
+/* HOW THE PART IS NUMBERED, which is the only thing this answer has ever said. `Ai` and `Aii` are
+   a letter with a roman under it, so they belong with the letters — that is where a person looks
+   for them on the paper. */
+const PART_BUCKET = bucketTable_([
+  ['Numbered', ['1', '2', '3', '4', '5', '6', '7', '8', '9']],
+  ['Lettered', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Ai', 'Aii', 'Bi', 'Bii', 'Ci', 'Cii']],
+  ['Roman',    ['I', 'Ii', 'Iii', 'Iv', 'V']],
+]);
+
+/* THE WEIGHT CLASSES, GROUPED THE WAY BOXING GROUPS THEM. Sixteen divisions is the sport's own
+   fragmentation — light, super and plain of nearly everything — and nobody outside it thinks in
+   sixteen. Every one of these six is a name a commentator uses. */
+const DIVISION_BUCKET = bucketTable_([
+  ['Heavyweight',          ['Heavyweight', 'Cruiserweight', 'Light heavyweight']],
+  ['Middleweight',         ['Super middleweight', 'Middleweight', 'Light middleweight']],
+  ['Welterweight',         ['Super welterweight', 'Welterweight', 'Light welterweight']],
+  ['Lightweight',          ['Super lightweight', 'Lightweight', 'Super featherweight']],
+  ['Featherweight',        ['Featherweight', 'Super bantamweight']],
+  ['Bantamweight & below', ['Bantamweight', 'Super flyweight', 'Flyweight',
+                            'Light flyweight', 'Minimumweight']],
+]);
+
+/* A SPAN IS FILED UNDER THE LEVEL IT GOES UP TO, and that is a decision rather than an observation.
+   `KS2–GCSE` is four values wide and belongs somewhere; the top of the range is the level somebody
+   is working towards, which is what they are choosing a question for. */
+const LEVEL_BUCKET = bucketTable_([
+  ['KS2',     ['KS2 SATs', 'KS2']],
+  ['KS3',     ['KS3', 'KS2–KS3']],
+  ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
+  ['A-Level', ['A-Level', 'AS', 'GCSE–A-level']],
+]);
+
+/* ---------- AND THE TWO THAT ARE COMPUTED RATHER THAN LISTED ------------------------------------
+   A YEAR IS NOT A LIST, so a table of sittings would need a row adding every August. These read the
+   number out of the answer, which is what `waveOf` and `decadesOf_` already put there.
+
+   NEWEST FIRST, which is the order the sitting list is already in and for the reason recorded there:
+   the newest paper is the one closest to the specification somebody is actually sitting. */
+
+/* TWO CALENDAR YEARS, AND THE LABEL SAYS SO RATHER THAN IMPLYING SOMETHING TRUER THAT IT IS NOT.
+   THE ACADEMIC YEAR IS THE UNIT A TUTOR ACTUALLY THINKS IN — Autumn 2023 and Summer 2024 are one
+   year's sittings — and it was written that way first and then counted: sixteen sittings across
+   2017 to 2025 fall into NINE academic years, which is past `FACET_MAX_SHOWN`, so rule 1 would
+   stand down and the whole question would go back to letter ranges. Worse, it would stand down at
+   some states and not others, so the sittings would be grouped by academic year on a narrow list
+   and by the alphabet on a wide one — one question with two vocabularies, which is the fault this
+   file records under `level`/`stage` and under `exam_wave`'s three spellings.
+
+   SO IT IS `2023 & 2024` AND NOT `2023–2024`. The pairing is arithmetic over the calendar and an
+   ampersand says exactly that; a dash between two years is how every exam board writes an academic
+   year, and a bucket holding Summer 2023 (the end of 2022/23) under a label reading `2023–2024`
+   would be confidently wrong about the one fact it states. */
+function waveBucket_(v) {
+  const y = (String(v).match(/(19|20)\d{2}/) || [])[0];
+  if (!y) return '';
+  const n = Number(y);
+  const lo = n - ((n + 1) % 2);          /* from the odd year up: 2023 & 2024, 2021 & 2022 */
+  return lo + ' & ' + (lo + 1);
+}
+/* NO TABLE TO ORDER BY, so `bucketLabels_` falls back to sorting the labels themselves — which for
+   `2017 & 2018` … `2025 & 2026` is oldest first. `bucketDesc: true` on the facet turns that round,
+   because this screen lists sittings newest first everywhere else. */
+waveBucket_.order = [];
+
+function decadeBucket_(v) {
+  const n = Number((String(v).match(/\d{4}/) || [])[0]);
+  if (!n) return '';
+  if (n < 1930) return 'Before 1930';
+  if (n < 1950) return '1930s & 1940s';
+  if (n < 1970) return '1950s & 1960s';
+  if (n < 1990) return '1970s & 1980s';
+  if (n < 2010) return '1990s & 2000s';
+  return '2010s onwards';
+}
+decadeBucket_.order = ['Before 1930', '1930s & 1940s', '1950s & 1960s',
+                       '1970s & 1980s', '1990s & 2000s', '2010s onwards'];
+
 const FACETS = [
   /* What sort of thing, first. It is the one question that changes which of the others make any
      sense at all — a wearable has a slot and no exam board, a paper the reverse. */
@@ -819,7 +987,8 @@ const FACETS = [
     of: x => x.groups || kindOf_(x).group },
   /* `kindLabel` ON THE ITEM WINS, the same way `groups` does on the line above — so a thing placed
      under a group its kind does not belong to can also say what it is called there. */
-  { field: 'kindLabel', label: 'What kind',   always: true,
+  { field: 'kindLabel',
+    bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => x.kindLabel || kindOf_(x).label },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to. */
@@ -827,7 +996,8 @@ const FACETS = [
   /* Only links have one, so it is only ever asked once you are looking at links — the coverage
      rule again, doing what a per-kind filter list would otherwise need code for. */
   { field: 'category',  label: 'Category',    of: x => x.category || '' },
-  { field: 'subject',   label: 'Subject',     of: x => x.subject },
+  { field: 'subject',
+    bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
   /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
      STRAIGHT AFTER `Subject`, because "Maths, and it is about fractions" is how somebody says what
      they are looking for — and because `nextFacet` walks this list IN ORDER, so anything below the
@@ -858,7 +1028,8 @@ const FACETS = [
      questions -- both rules were already there. */
   /* `not: subject` — see `facetOwn_`. `data/topics.json` gained Biology, Chemistry and Physics as
      roots when the practicals went in, and those are the three answers `Subject` already owns. */
-  { field: 'topicArea', label: 'Topic area', not: 'subject',
+  { field: 'topicArea',
+    bucketOf: AREA_BUCKET, bucketOrder: AREA_BUCKET.order, label: 'Topic area', not: 'subject',
     of: x => x.topicArea || topicAreaOf_(x) },
   /* `not: topicArea` — four roots are also typed as a leaf topic on a handful of rows (`Algebra`,
      `Number`, `Probability`, `Statistics`), and on those rows the two questions are one question. */
@@ -892,8 +1063,10 @@ const FACETS = [
      is the same fault `keystage` had, where a primary worksheet forced into one key stage vanished
      from the other, and the machinery is the same: `asList_` reads a list, so a facet returning
      several answers already filters and counts against all of them. */
-  { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
-  { field: 'division',  label: 'Division',    of: x => x.division || '' },
+  { field: 'decade',
+    bucketOf: decadeBucket_, bucketOrder: decadeBucket_.order,    label: 'Decade',      of: x => decadesOf_(x) },
+  { field: 'division',
+    bucketOf: DIVISION_BUCKET, bucketOrder: DIVISION_BUCKET.order,  label: 'Division',    of: x => x.division || '' },
   /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
      revising and somebody sitting a mock are not looking for the same thing — so it is the
      question that most changes what should come next. 412 of 417 rows can answer it, which is
@@ -929,7 +1102,8 @@ const FACETS = [
      THE COVERAGE RULE THEN DOES THE REST. `Grade` is only offered when enough of what is on screen
      can answer it, so choosing Learning · Maths · Worksheet with primary sheets showing offers
      `Year`, and with GCSE sheets showing offers `Grade` — without either list naming the other. */
-  { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
+  { field: 'bandValue',
+    bucketOf: GRADE_BUCKET, bucketOrder: GRADE_BUCKET.order, label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
                                                     ? 'Grade ' + x.bandValue : '' },
   /* `School year`, NOT `Year`. There are two facets here that were both called Year — this one, the
      year group a child is in, and `year` below, the year a paper was sat. They never collided while
@@ -966,7 +1140,8 @@ const FACETS = [
      than in the data because the data is bulk-imported and will keep arriving both ways. */
   /* `not: keystage` — 27 rows have `KS3` typed into the level column, which is what `Key stage`
      asks and asks of 736. A key stage is not a qualification. */
-  { field: 'level',     label: 'Level',       not: 'keystage', of: x => levelOf_(x) },
+  { field: 'level',
+    bucketOf: LEVEL_BUCKET, bucketOrder: LEVEL_BUCKET.order,     label: 'Level',       not: 'keystage', of: x => levelOf_(x) },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
   /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION ---------------------
      135 ROWS ANSWERED `Tier · A-Level` AND 263 ANSWERED `Level · A-Level`, so pressing the tier
@@ -983,7 +1158,8 @@ const FACETS = [
   /* `Sitting`, NOT `Exam wave`. "Wave" is the column's name and nobody outside this repo says it;
      the answers under it are now "June 2018" and "November 2018", which is what a student calls
      the thing. The `facets` tab can still relabel it. */
-  { field: 'examWave',  label: 'Sitting',     of: x => waveOf(x) },
+  { field: 'examWave',
+    bucketOf: waveBucket_, bucketOrder: waveBucket_.order, bucketDesc: true,  label: 'Sitting',     of: x => waveOf(x) },
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
@@ -1012,7 +1188,8 @@ const FACETS = [
      yet, so `FACET_COVERAGE` keeps the question quiet until the list on screen is mostly papers
      that declare it — which is the same self-correcting rule that keeps `Topic` out of the way
      until the list IS questions. */
-  { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
+  { field: 'needs',
+    bucketOf: NEEDS_BUCKET, bucketOrder: NEEDS_BUCKET.order,     label: 'What you need', of: x => asList_(x.needs) },
   /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION ------------------------
      IT READ `x.paper`, AND `questionItems` SET THAT TO `true` ON EVERY QUESTION. So the only
      reader of the field was this facet, and the only writer was a literal. Measured: 3,753 items
@@ -1175,10 +1352,22 @@ let FACET_LIVE = null, FACET_FROM = null;
    nothing, so coverage is 0 and the question is never offered — invisible, which is this app's
    signature fault. `whyThisQuestion()` is the answer: it lists every facet including this one, with
    `nobody can answer it` beside it and 0%. The instrument existed before the hazard did. */
+/* ---------- A GROUPING FOR A QUESTION THE SHEET INVENTED ------------------------------------------
+   `qPart` HAS NO ROW IN `FACETS` — it is read straight off the column by the rule below, which is
+   the whole point of that rule — and it holds twenty answers: `1`…`9`, `A`…`F`, the romans, and
+   `Ai`/`Aii`. The alphabet would bucket those as `1` and `9–A`, which is legal and says nothing.
+
+   SO THE TABLE IS KEYED ON THE FIELD NAME, beside the facet it belongs to rather than inside the
+   builder, and a column the sheet invents tomorrow still gets the alphabet with nothing to add
+   here. One entry today; the shape is what matters. */
+const SHEET_BUCKETS = { qPart: PART_BUCKET };
+
 const facetFromSheet_ = f => ({
   field: f.field,
   label: f.label || String(f.field).replace(/_/g, ' '),
   fromSheet: true,
+  bucketOf: SHEET_BUCKETS[f.field],
+  bucketOrder: SHEET_BUCKETS[f.field] && SHEET_BUCKETS[f.field].order,
   of: x => {
     const v = (x && x[f.field] !== undefined && x[f.field] !== null && x[f.field] !== '')
       ? x[f.field]
@@ -1330,20 +1519,23 @@ function filterHit(x, f) {
      a chip reading `1st Class Maths` has to find a row that says `1stclassmaths`. `norm` only
      lowercases and trims, so it would have found neither — see `spellKey_`. */
   /* ---------- A BAND MATCHES BY MEMBERSHIP, NOT BY LETTERS -------------------------------------
-     `bandNumbers_` REPLACES `1`…`13` WITH `1\u201310` AND `11\u201320`, so the chip holds a range and the
-     row holds a number and no amount of spelling reduction will ever make those equal. Tested
-     through `bandOf_`, the same function that drew the label, so the drawer and the filter cannot
-     disagree about where a band's edges are — which is the `documents_()` argument: a second
-     reader of one thing is a second chance to disagree about it. */
+     A TENS BAND REPLACES `1`…`13` WITH `1–10` AND `11–20`, so the chip holds a range and the row
+     holds a number and no amount of spelling reduction will ever make those equal. Tested through
+     `bandOf_`, the same function that drew the label, so the drawer and the filter cannot disagree
+     about where a band's edges are — which is the `documents_()` argument: a second reader of one
+     thing is a second chance to disagree about it. THAT ARGUMENT IS GENERAL NOW: see
+     `bucketValues_`, where a band is one of three kinds of bucket and all three are matched by the
+     one function that drew them. */
   /* `facetOwn_` HERE TOO, OR THE FILTER DISAGREES WITH THE BUTTON. A facet that defers to another
      stops OFFERING the deferred value; if this went on matching it, a chip carried over from a
      wider list would keep rows the question no longer claims. One reader, both jobs — the
      `documents_()` argument. */
-  const band = /^(\d+)\u2013(\d+)$/.exec(String(f.value || ''));
-  if (band) {
-    return facetOwn_(facet, x).some(v => intAnswer_(v)
-      && Number(v) >= Number(band[1]) && Number(v) <= Number(band[2]));
-  }
+  /* ---------- A BUCKET MATCHES BY MEMBERSHIP, AND IT SAYS SO RATHER THAN LOOKING LIKE IT --------
+     THIS SNIFFED THE SHAPE — `/^\d+–\d+$/` on the chip's text — which was right while a band
+     was the only bucket there was, and is a trap the moment any facet holds a value that happens to
+     read like one. `11–20` is a plausible thing for a spreadsheet cell to say.
+     The chip carries `bucket` now, set where the bucket was drawn, so the two cannot disagree. */
+  if (f.bucket) return facetOwn_(facet, x).some(v => bucketHas_(facet, f.value, v));
   return facetOwn_(facet, x).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
@@ -1545,9 +1737,10 @@ function shortLabels_(values) {
  *
  * SO IT IS NOT A NEW CAP, IT IS A DIFFERENT SHAPE FOR ONE KIND OF ANSWER. Every value has to be a
  * plain non-negative integer — `1`, not `1a`, not `Grade 4`, not `Paper 1` — and there have to be
- * more than `FACET_BAND_AT` of them. Anything else falls straight through, so subjects, topics,
- * papers and sittings are untouched by construction. Measured before writing it: of the twenty-odd
- * facets, only the sheet-invented `question` column is all-integer.
+ * more than `FACET_MAX_SHOWN` of them, which is `bucketValues_`'s own threshold rather than a
+ * second one beside it. Anything else falls straight through, so subjects, topics, papers and
+ * sittings never reach this rule. Measured before writing it: of the twenty-odd facets, only the
+ * sheet-invented `question` column is all-integer.
  *
  * TENS, AND NOT A COMPUTED BUCKET SIZE. An exam paper is numbered 1 to about 25 and a person asks
  * for "the first ten" or "the twenties" — those are the words, and a band of 7 chosen to make the
@@ -1559,35 +1752,374 @@ function shortLabels_(values) {
  * tests membership rather than equality — see the note there. Answering `11–20` and then being
  * asked again, now with ten ordinary numbers, is the funnel doing what it always does: ask the
  * question the list in front of it deserves.
+ *
+ * THIS IS RULE 2 OF THREE NOW rather than a rule of its own, and every word above still holds —
+ * see `bucketValues_` below, which is this mechanism with a declared grouping in front of it and
+ * the alphabet behind it. `bandOf_` is untouched and is still the one place a band's edges are
+ * decided.
  */
-const FACET_BAND_AT = 12;
 const FACET_BAND_BY = 10;
+
+/* ==================================================================================================
+   AND THE SAME MOVE FOR EVERY OTHER KIND OF ANSWER — NEVER MORE THAN SEVEN, EVER.
+
+   REPORTED, VERBATIM: "i noticed there are some menus in finder where there are more than 7 options.
+   And so it can't display them and asks user to search. I DO NOT LIKE THIS. Have the categories work
+   in a way that there are never more than 7. If it means grouping many suptopics into first larger
+   topics then do so. For all things by the way."
+
+   WHAT WAS THERE. `FACET_MAX_SHOWN` trimmed the drawn answers to seven and printed a line under
+   them — "and 368 more topic answers, type one into the search box above". That line is the thing
+   being rejected, and it deserves to be: it is the funnel giving up on its own job in front of you.
+   Three hundred and sixty-eight answers you cannot see, and an instruction to go and type instead.
+
+   MEASURED BEFORE ANY OF THIS WAS WRITTEN, over the real 5,587 items, at every state a person can
+   reach by answering the funnel's own questions. Fourteen facets break seven:
+
+     Topic 375 · Paper 266 · Category 25 · Question part 20 · Division 16 · Sitting 16 · Decade 14
+     Topic area 13 · Question number 11 · Level 9 · What you need 9 · What kind 8 · Subject 8
+     Grade 8
+
+   and narrowing does not save them: six answers deep on Maths worksheets at KS4 the Paper question
+   still holds 87 and Topic still holds 75.
+
+   SO THE CAP BECOMES A GROUPING RATHER THAN A TRIM, which is not a new idea here — it is exactly
+   what `bandNumbers_` already did for a run of integers, and every word of the note above it holds
+   for the general case. A band is a bucket; this is that mechanism with two more kinds of bucket
+   behind it.
+
+   THREE RULES, TRIED IN ORDER, AND THE FIRST THAT ANSWERS WINS:
+
+     1. THE FACET'S OWN.  `bucketOf: v => 'Number & Algebra'` on a facet in `FACETS`. A meaningful
+        larger category, written by somebody who knows what these answers ARE — "group many
+        subtopics into first larger topics", which is what was asked for.
+     2. TENS.             A run of plain integers bands as it always did: `1-10`, `11-20`.
+     3. THE ALPHABET.     Anything else falls into at most seven contiguous letter ranges, balanced
+        by how many things are behind each. Predictable, needs nobody to write a table, and is what
+        every long list anybody has ever scrolled does.
+
+   RULE 3 IS THE ONE THAT MAKES THIS A GUARANTEE RATHER THAN A HABIT. A facet the spreadsheet
+   invents tomorrow — `facetFromSheet_` can do that with no deploy — gets seven buckets without a
+   line here, and so does a facet whose values grow past seven next year. That is the difference
+   between a rule and a list of repairs, which is the sentence this file writes about `cost: 0` and
+   `paper: true`.
+
+   ELEVEN OF THE FOURTEEN GOT A TABLE AND THREE DID NOT, and which three is a fact about the data
+   rather than a corner that was cut. `check-funnel.js` prints every grouping on every run, in full,
+   so what follows is readable rather than taken on trust here:
+
+     `topic`     417 distinct values and **70 of them are in no branch of `data/topics.json`** —
+                 `quadratic equations`, `volume`, `sets`, `plans and elevations`, `hcf`. The tree's
+                 SECOND level is exactly the larger topic that was asked for (`Fractions`,
+                 `Angles`, `Mensuration`), and rule 1 is all-or-nothing on purpose: a grouping that
+                 places 347 and drops 70 makes those 70 unreachable with nothing on screen saying
+                 so, which is the silent absence this repository keeps producing. So it stands down
+                 at almost every state, and the honest answer is the alphabet until the 70 are
+                 aliased into the tree — data work, and a task. What carries the user's own sentence
+                 in the meantime is `Topic area`, which IS the larger topic and is asked immediately
+                 before Topic: the ranges index inside one area rather than across the library.
+     `paperId`   266 documents. A paper's larger category is its sitting, its board, its tier and
+                 its type — every one of which is already a question of its own, asked before this
+                 one. What is left to tell two papers apart by the time Paper is reached is the name
+                 on the cover, so an index of those names is what this is. See `bucketKeyOf_`.
+     `category`  the link categories, and they come out of `data/settings/links.json`, which the
+                 owner edits with no deploy. A table in code over a list the sheet owns is two
+                 things to keep in step and the code's copy is the one that goes stale — the fault
+                 this file records under `MESSAGING`, under `kinds` and under `childrenOf`.
+
+   A BUCKET IS A REAL ANSWER, NOT A VIEW. It becomes a chip with the same X, `filterHit` tests
+   membership rather than equality, and `nextFacet` asks the question AGAIN over what is left — so
+   Topic goes 375 -> seven areas -> the topics in the one you picked. Two taps to reach a place that
+   previously could not be reached at all.
+
+   AND A BUCKET DOES NOT SETTLE THE FACET, which is the line in `nextFacet` that makes the whole
+   thing terminate. `Grade` at 8 answers groups into three; pressing `Grades 4-6` leaves 671 items
+   whose Grade values are three, so Grade is asked AGAIN and now draws `Grade 4`, `Grade 5`,
+   `Grade 6`. Measured down the greedy path: every question is either at most seven real answers or
+   at most seven buckets, and every bucket is one tap from the answers inside it.
+
+   AND MEMBERSHIP IS A PURE FUNCTION OF THE CHIP, which is the constraint that shaped all of this.
+   `filterHit` is handed one item and one filter and never the list, so a bucket whose edges depend
+   on what else happened to be on screen could not be matched afterwards. Every bucket label carries
+   its own edges — `Number & Algebra` is looked up, `11-20` and `A-C` are parsed — so the drawer and
+   the filter cannot disagree about what is inside it. That is `bandOf_`'s own argument, generalised.
+================================================================================================== */
+/* AT MOST SEVEN, WHICH IS `FACET_MAX_SHOWN` RATHER THAN A SECOND NUMBER. The cap on what fits on a
+   card and the cap on when to group are the same fact about the same card, and two constants for it
+   is two things to keep in step. */
+
+/* ---------- THE SEVEN LETTER RANGES ARE BUILT, NOT DECLARED ---------------------------------------
+   A FIXED A-C / D-F / G-I TABLE WAS WRITTEN FIRST AND MEASURED BADLY: the library's topics put 96
+   of 375 under A-C and 4 under T-Z, so one bucket was a quarter of the list and another was a
+   rounding error. Contiguous runs balanced on the counts give seven buckets of comparable size,
+   which is what `FACET_MIN_MINORITY` asks of every other question here.
+
+   THE LABEL IS A PREFIX RANGE and the prefix is as short as it can be while still splitting the
+   list — one letter where one letter is enough, two inside a bucket that needed splitting again. */
+function alphaKey_(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+
+/* ---------- AND A RANGE IS MEASURED ON WHAT IS READ, NOT ON WHAT IS MATCHED ----------------------
+   THE PAPER QUESTION IS WHY THIS EXISTS AND IT WAS THE WHOLE OF WHAT WAS WRONG WITH IT. Its `of`
+   returns a `paper_id` — `P-1MA1-1705-1H`, `RS1786302107764-481`, `W-1CM-reflections` — and its
+   `showOf` turns that into the name on the paper's cover. The alphabet keyed on the value, so 266
+   papers came back as three buckets labelled `P`, `R` and `W`: legal, balanced, under the cap, and
+   an index of a spelling nobody has ever seen. Keyed on the name they are letter ranges over
+   `Adding Decimals` and `Circle Theorems Edexcel`, which is what an index of 266 documents is.
+
+   ONE READER, so the drawer and `bucketHas_` cannot disagree about which string a range is about —
+   the argument `bandOf_` makes about the edges of a band, one step along. `bucketOf` first, because
+   a facet that declares its own grouping is telling this function what its values ARE about: when
+   that grouping yields too many groups to draw, the ranges are over the GROUP names (`Angles–
+   Mensuration`) rather than over the leaves inside them.
+
+   `showOf` IS CALLED WITH NO ANSWER LIST, deliberately. `facetTally_` passes one so a label can be
+   disambiguated against the answers beside it, and `bucketHas_` is handed one item and never the
+   list — so a key built from the shortened form could not be recomputed at match time. The long
+   form is the one both ends can always reach.
+
+   AND A VALUE ITS OWN TABLE DOES NOT PLACE FALLS BACK TO ITSELF, so it sorts among the group names
+   rather than into a bucket keyed on the empty string, which would be every unplaced value in one
+   silent heap. That state is unreachable today — `bucketLabels_` rule 1 is all-or-nothing, so a
+   table that has stopped placing everything has already stood down — and it is written this way
+   because the day it is reachable, a mixed index is something you can still read. */
+function bucketKeyOf_(facet, v) {
+  if (facet) {
+    if (typeof facet.bucketOf === 'function') {
+      try { const g = facet.bucketOf(v); if (g) return String(g); } catch (e) { /* fall through */ }
+    }
+    if (typeof facet.showOf === 'function') {
+      try { const s = facet.showOf(v); if (s) return String(s); } catch (e) { /* fall through */ }
+    }
+  }
+  return String(v == null ? '' : v);
+}
+
+function alphaBuckets_(values, want, facet) {
+  /* The shortest prefix that tells these values apart. A list that is all `Paper 1 (...)` needs
+     eight characters before it says anything, and stopping at one would give one bucket holding
+     everything — a question with a single answer, which `nextFacet` would then refuse. */
+  let p = 1;
+  const groupsAt = n => {
+    const seen = [];
+    const at = {};
+    values.forEach(v => {
+      const k = alphaKey_(bucketKeyOf_(facet, v.value)).slice(0, n);
+      if (!at[k]) { at[k] = { key: k, n: 0, vals: [] }; seen.push(at[k]); }
+      at[k].n += v.n;
+      at[k].vals.push(v);
+    });
+    return seen.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  };
+  let runs = groupsAt(p);
+  while (runs.length < 2 && p < 12) { p += 1; runs = groupsAt(p); }
+  if (runs.length < 2) return null;
+
+  /* ---------- CONTIGUOUS RUNS, BALANCED TWO WAYS AT ONCE ---------------------------------------
+     CONTIGUOUS BECAUSE THE LABEL IS A RANGE, and a range that skips letters is a lie about where
+     things are: `A–C` has to hold everything starting A, B or C or it is not that range.
+
+     TWO TESTS, AND IT NEEDED BOTH — the first version had only the share and measured as doing
+     nothing at all:
+
+       ITS SHARE OF THE ITEMS.  Seven buckets of wildly different sizes is six useless taps and one
+           that changes nothing. Measured on the library's topics, one bucket per letter puts 96 of
+           375 under A and 4 under T–Z. Aiming each at an equal share of the ITEMS behind the
+           answers — not of the answers themselves — is what `FACET_MIN_MINORITY` asks of every
+           other question on this screen.
+
+       ITS SHARE OF THE RUNS.   The share test alone cannot split a list whose weight is all in one
+           place. The eight grades are 27, 90, 186, 174, 443, 54, 261 and 135 against a share of
+           196, so no single run ever reaches it and every one of them landed in the first bucket —
+           one bucket, which `bucketValues_` reads as "cannot split" and hands back untouched. That
+           is the whole facet drawn at full length again, silently, which is the fault this change
+           exists to remove. A ceiling on how many runs one bucket may hold makes a split certain
+           whenever there are two runs to split.
+
+     FOUND BY RE-RUNNING THE AUDIT RATHER THAN BY READING THE CODE, on five facets that came back
+     exactly the length they went in. */
+  const total = runs.reduce((t, r) => t + r.n, 0);
+  const share = total / want;
+  const maxRuns = Math.ceil(runs.length / want);
+  const out = [];
+  let cur = null;
+  runs.forEach(r => {
+    const full = cur && (cur.n >= share || cur.runs >= maxRuns);
+    if (!cur || (full && out.length < want)) {
+      cur = { lo: r.key, hi: r.key, n: 0, runs: 0 };
+      out.push(cur);
+    }
+    cur.hi = r.key;
+    cur.n += r.n;
+    cur.runs += 1;
+  });
+  return out.map(b => ({
+    value: b.lo === b.hi ? b.lo.toUpperCase() : b.lo.toUpperCase() + '\u2013' + b.hi.toUpperCase(),
+    n: b.n,
+  }));
+}
+
+/* ---------- IS THIS VALUE INSIDE THAT BUCKET -----------------------------------------------------
+   THE ONE TEST BOTH THE DRAWER AND `filterHit` USE. Three shapes, told apart by the chip itself
+   rather than by anything remembered:
+
+     a facet's own    the facet's `bucketOf` returns this label for the value
+     `11-20`          both ends are integers, and the value is an integer between them
+     `A-C` or `Al`    a letter range, compared on a prefix as long as the range's own ends
+
+   COMPARED ON A PREFIX, WHICH IS THE HALF THAT IS EASY TO GET WRONG. `'circles' <= 'c'` is false,
+   so a whole-string compare drops every value longer than its own upper bound — which is most of
+   them. Truncating to the bound's length is what makes `C` mean "everything starting with C". */
+function bucketHas_(facet, bucket, v) {
+  const b = String(bucket || '');
+  if (!b) return false;
+  if (facet && typeof facet.bucketOf === 'function') {
+    if (facet.bucketOf(v) === b) return true;
+  }
+  /* A TENS BAND. Both ends have to be digits, so `9–A` is not one and falls through to the prefix
+     test below — which is the branch that was refusing it.
+
+     `2025–2026` IS A SITTING'S LABEL AND MATCHES THIS SHAPE EXACTLY, which is a trap worth naming
+     even though it cannot fire: rule 1 above answers first for every value `waveBucket_` places,
+     and the rule that drew those labels only draws them when it places all of them. Were it ever
+     reached, `intAnswer_` refuses `Summer 2024` and the answer is a correct false. A declared label
+     that is two integers around a dash AND sits on a facet whose values are bare integers is the
+     one combination that would be wrong here, and nothing in `FACETS` is both. */
+  const num = /^(\d+)–(\d+)$/.exec(b);
+  if (num) {
+    return intAnswer_(v) && Number(v) >= Number(num[1]) && Number(v) <= Number(num[2]);
+  }
+  /* ---------- A PREFIX RANGE, AND IT MUST NOT INSIST ON A LETTER --------------------------------
+     THIS OPENED WITH `if (!/^[a-z]/i.test(b)) return false;` AND IT WAS WRONG about two real
+     answers: the question-part facet holds `1`…`9` beside `A`…`F`, so its buckets are `1` and
+     `9–A`, and both start with a digit. Pressing either returned nothing at all while the row
+     beside it promised 253 and 306 — the silent empty this whole mechanism exists to avoid, caused
+     by the mechanism itself. Any bucket that is not a tens band is a prefix range, whatever
+     character it starts with.
+
+     COMPARED ON A PREFIX AS LONG AS THE RANGE'S OWN ENDS, which is the other half that is easy to
+     get wrong: `'circles' <= 'c'` is false, so a whole-string compare drops every value longer than
+     its own upper bound, which is most of them. Truncating to the bound's length is what makes `C`
+     mean "everything starting with C". */
+  const ends = b.split('–');
+  const lo = alphaKey_(ends[0]);
+  const hi = alphaKey_(ends.length > 1 ? ends[1] : ends[0]);
+  if (!lo) return false;
+  /* THE SAME STRING THE RANGE WAS BUILT FROM — see `bucketKeyOf_`. A paper's range is over its
+     name and this is handed its id, so keying on the value here would test `p-1ma1-1705-1h`
+     against `adding decimals` and answer nothing at all. */
+  const k = alphaKey_(bucketKeyOf_(facet, v));
+  return k.slice(0, lo.length) >= lo && k.slice(0, hi.length) <= hi;
+}
+
+/* ---------- AND THE ANSWERS, REPLACED BY THE BUCKETS THEY FALL IN ---------------------------------
+   Returns the list unchanged when it already fits, so every facet with seven answers or fewer is
+   untouched by construction — subjects, tiers, key stages and everything else that was already
+   readable goes on being drawn exactly as it was.
+
+   THE COUNT BESIDE A BUCKET IS COUNTED OVER ITEMS, NOT SUMMED OVER ANSWERS, and the first version
+   summed. `facetTally_` counts an item once per ANSWER it gives — which is right, and is what makes
+   a worksheet tagged `KS3, KS4` appear under both — so a question tagged `Loci` and `Nets`, both
+   inside `L–O`, was counted twice in that bucket. Measured: the row promised 723 and pressing it
+   returned 646. A number beside an answer that is not the number you get is the fault the `promises`
+   test in `check-funnel.js` exists for, and it caught this one the moment it was written.
+
+   SO THE RECOUNT GOES THROUGH `bucketHas_` — the same function `filterHit` uses — over the same
+   items. The drawer and the filter cannot disagree because they are asking one function. That is
+   `bandOf_`'s own argument and `documents_()`'s before it. */
+function bucketValues_(values, facet, items) {
+  if (values.length <= FACET_MAX_SHOWN) return values;
+
+  const made = bucketLabels_(values, facet);
+  if (!made || made.length < 2) return values;
+
+  /* ONE PASS OVER THE ITEMS, counting each into every bucket it can answer and each bucket once. */
+  const tally = {};
+  made.forEach(b => { tally[b] = 0; });
+  (items || []).forEach(x => {
+    const hit = {};
+    facetOwn_(facet, x).forEach(v => {
+      made.forEach(b => { if (bucketHas_(facet, b, v)) hit[b] = 1; });
+    });
+    Object.keys(hit).forEach(b => { tally[b] += 1; });
+  });
+  return made.map(b => ({ value: b, n: tally[b], bucket: true }));
+}
+
+/* WHICH BUCKETS, AS LABELS, IN THE ORDER THEY SHOULD BE DRAWN. Split out from the counting above so
+   that one function decides the edges and another decides the numbers — the counting is the part
+   that has to agree with `filterHit`, and the edges are the part a facet may override. */
+function bucketLabels_(values, facet) {
+  /* 1. THE FACET'S OWN GROUPING. */
+  if (facet && typeof facet.bucketOf === 'function') {
+    const seen = [];
+    let whole = true;
+    values.forEach(v => {
+      const k = facet.bucketOf(v.value);
+      if (!k) { whole = false; return; }
+      if (seen.indexOf(k) === -1) seen.push(k);
+    });
+    /* EVERY VALUE OR NONE. A grouping that places most of them and drops the rest makes those
+       answers unreachable with nothing on screen saying so — the silent absence this codebase keeps
+       producing. One unplaced value and the whole rule stands down to the alphabet, which cannot
+       lose anything. */
+    if (whole && seen.length > 1 && seen.length <= FACET_MAX_SHOWN) {
+      /* THE ORDER THE TABLE WAS WRITTEN IN, because a grouping's rows are a sequence somebody
+         chose — heaviest division first, primary before A-level — and re-sorting them
+         alphabetically throws that away. A computed grouping has no table, so it falls back to
+         its labels; `bucketDesc` turns that round for the sittings, which read newest first
+         everywhere else on this screen. */
+      const order = facet.bucketOrder || [];
+      const out = seen.sort((a, b) => {
+        const ia = order.indexOf(a), ib = order.indexOf(b);
+        if (ia !== ib) return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib);
+        return a < b ? -1 : a > b ? 1 : 0;
+      });
+      return facet.bucketDesc ? out.reverse() : out;
+    }
+  }
+
+  /* 2. TENS, for a run of plain integers. */
+  if (values.every(v => intAnswer_(v.value))) {
+    const by = {};
+    const lo = {};
+    values.forEach(v => {
+      const k = bandOf_(Number(v.value));
+      by[k] = 1;
+      lo[k] = Math.min(lo[k] === undefined ? Infinity : lo[k], Number(v.value));
+    });
+    const bands = Object.keys(by).sort((a, b) => lo[a] - lo[b]);
+    if (bands.length > 1 && bands.length <= FACET_MAX_SHOWN) return bands;
+  }
+
+  /* 3. THE ALPHABET, which cannot fail to answer. */
+  const alpha = alphaBuckets_(values, FACET_MAX_SHOWN, facet);
+  return alpha ? alpha.map(b => b.value) : null;
+}
+
 
 /* A plain non-negative integer and nothing else. `+v` alone would accept ` 4 `, `4.0` and `1e3`,
    and `parseInt` would accept `4a` — which is a real value in this library, because an exam
    question is numbered `4a`. The test has to be on the characters. */
 const intAnswer_ = v => /^\d+$/.test(String(v == null ? '' : v).trim());
 
-/* THE BAND A NUMBER FALLS IN, as a label. One function so the drawer and `filterHit` cannot
+/* THE BAND A NUMBER FALLS IN, as a label. One function so the drawer and `bucketHas_` cannot
    disagree about where the edges are — the fault this file records under `documents_()`. */
 function bandOf_(n) {
   const lo = Math.floor((n - 1) / FACET_BAND_BY) * FACET_BAND_BY + 1;
-  return lo + '\u2013' + (lo + FACET_BAND_BY - 1);
+  return lo + '–' + (lo + FACET_BAND_BY - 1);
 }
 
-function bandNumbers_(values) {
-  if (values.length <= FACET_BAND_AT) return values;
-  if (!values.every(v => intAnswer_(v.value))) return values;
-  const by = {};
-  values.forEach(v => {
-    const k = bandOf_(Number(v.value));
-    if (!by[k]) by[k] = { value: k, n: 0, band: true, lo: Number(v.value) };
-    by[k].n += v.n;
-    by[k].lo = Math.min(by[k].lo, Number(v.value));
-  });
-  return Object.keys(by).map(k => by[k]).sort((a, b) => a.lo - b.lo)
-    .map(b => ({ value: b.value, show: b.value, n: b.n }));
-}
+/* ---------- `FACET_BAND_AT` AND `bandNumbers_` WERE HERE ------------------------------------------
+   THEY BANDED A RUN OF PLAIN INTEGERS INTO TENS and did nothing to anything else, which is the
+   whole of what `bucketValues_` above now does as its second rule — same `bandOf_`, same chip, same
+   membership test. Two functions doing one job is the second reader this file keeps recording, so
+   the one that only knew about numbers has gone.
+
+   ITS THRESHOLD WENT WITH IT AND THAT IS A REAL CHANGE. `FACET_BAND_AT` was 12, so a facet holding
+   eleven numbers drew eleven rows; the cap is `FACET_MAX_SHOWN` now, so eleven numbers band into
+   two. That is the point: there is one number deciding how many answers fit on a card, and it is
+   the one the card is measured against.
+--------------------------------------------------------------------------------------------- */
 
 /** The distinct values of one facet across a set, with how many each would leave. */
 /* ---------- THE FIRST QUESTION IS NOT ALPHABETICAL ------------------------------------------------
@@ -1710,10 +2242,28 @@ const spellShow_ = v => String(v).charAt(0).toUpperCase() + String(v).slice(1);
 ================================================================================================== */
 const FACET_TALLY = new WeakMap();
 
+/* ---------- THE BUCKET THIS QUESTION IS ALREADY INSIDE, IF ANY ----------------------------------
+   THE LAST ONE, because a bucket does not settle its facet and the question is asked again: press
+   `D–F` and then `D–E` and there are two chips on this field, of which the narrowest is the one
+   that was pressed last. */
+function facetWithin_(facet) {
+  let at = '';
+  (STUFF.filters || []).forEach(c => {
+    if (c && c.bucket && c.field === facet.field) at = String(c.value);
+  });
+  return at;
+}
+
 function facetTally_(items, facet) {
   let perList = FACET_TALLY.get(items);
   if (!perList) { perList = {}; FACET_TALLY.set(items, perList); }
-  const had = perList[facet.field];
+  /* ---------- KEYED ON THE BUCKET TOO, OR THE SECOND ASK READS A TALLY FROM THE FIRST -----------
+     A BUCKET CHIP RESTRICTS THE ANSWERS AS WELL AS THE ITEMS (see below), so this is no longer a
+     function of the list and the facet alone. The items array is freshly built on every filter
+     change, so the WeakMap key already differs in practice — this is the half that makes that an
+     argument rather than a coincidence. */
+  const within = facetWithin_(facet);
+  const had = perList[facet.field + '|' + within];
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. `facetList()` rebuilds when the `facets` tab
      changes, and a relabelled facet with a new `of` under an old name would otherwise read a stale
      tally — the same identity test, one level further in. */
@@ -1798,6 +2348,26 @@ function facetTally_(items, facet) {
   let values = Object.keys(folded)
     .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
+  /* ---------- AND A QUESTION ASKED INSIDE A BUCKET OFFERS ONLY WHAT IS IN IT --------------------
+     FOUND BY WALKING THE FUNNEL RATHER THAN BY READING IT. Six chips deep, pressing `Topic · D–F`
+     drew `D–E`, `F`, `I–M`, `N–P` and `S–T` — three answers plainly outside the chip sitting
+     above them.
+
+     NOTHING WAS BROKEN AND THAT IS WHY IT NEEDED MEASURING. `topic` is multi-valued, the chip means
+     "has a topic in D–F", and a question tagged `Decimals, Ratio` is legitimately kept by it and
+     legitimately still carries `Ratio`. Pressing `S–T` would have narrowed to questions that are
+     about both — correct, and unreadable: the funnel appears to step back out of the bucket it
+     just went into, on the one screen whose whole job is to say where you are.
+
+     SO THE ITEMS KEEP EVERY TOPIC THEY HAVE AND THE QUESTION OFFERS ONLY THE ONES INSIDE. `filterHit`
+     is untouched, so nothing is lost from the list; what changes is which answers this question
+     draws next, which is what the chip above it says. A single-valued facet is unaffected by
+     construction — pressing `Grades 4–6` leaves items whose only Grade is in it — which is why
+     the band this generalises never had to think about it.
+
+     THROUGH `bucketHas_`, the one function that decides what is inside a bucket, so the restriction
+     and the filter cannot disagree. */
+  if (within) values = values.filter(v => bucketHas_(facet, within, v.value));
   /* ---------- AN IDENTITY IS NOT A SPELLING, AND ONE FACET HAD BEEN USING A NAME AS BOTH --------
      `showOf` TURNS A VALUE INTO WHAT IS DRAWN and changes nothing about what is matched. It exists
      for `paperId`, whose own note already said the rule -- "the id decides WHO answers and the name
@@ -1820,17 +2390,20 @@ function facetTally_(items, facet) {
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
   shortLabels_(values);
-  /* ---------- AND A LONG LIST OF PLAIN NUMBERS IS ASKED IN TENS ---------------------------------
-     See `bandNumbers_`. Applied AFTER the labels, because a band replaces the answers rather than
-     relabelling them, and BEFORE the counts below, because the split and the coverage that decide
-     whether the question is asked at all are read off this list. */
-  values = bandNumbers_(values);
+  /* ---------- AND NO QUESTION EVER DRAWS MORE THAN SEVEN ANSWERS --------------------------------
+     See `bucketValues_`. This replaced `bandNumbers_`, which did the same thing for a run of
+     integers and nothing else; the position in this function is unchanged and the reasons for it
+     are the ones already written above — after the labels, because a bucket REPLACES the answers
+     rather than relabelling them, and before the counts, because the split and the coverage that
+     decide whether the question is asked at all are read off this list. */
+  values = bucketValues_(values, facet, items);
 
   let top = 0;
   values.forEach(v => { if (v.n > top) top = v.n; });
 
   const out = {
     facet: facet,
+    within: within,
     values: values,
     coverage: items.length ? answered / items.length : 0,
     /* ---------- HOW MUCH OF THE LIST THE COMMONEST ANSWER DOES *NOT* KEEP ------------------------
@@ -1857,7 +2430,7 @@ function facetTally_(items, facet) {
        both were fixed in the data while the rule stayed as it was. The rule is the fix. */
     split: values.length < 2 || !items.length ? 0 : (items.length - top) / items.length,
   };
-  perList[facet.field] = out;
+  perList[facet.field + '|' + within] = out;
   return out;
 }
 
@@ -1901,9 +2474,17 @@ const FACET_MAX_ANSWERS = 40;
    to every facet is the `cost: 0` lesson one more time: a rule written for the case that annoyed
    somebody comes back wearing the next facet's name.
 
-   THE REST ARE NOT HIDDEN. The line below the rows names how many are left and points at the
-   search box, which is on the same page and filters the same items -- that machinery already
-   existed for the oversized case and needed nothing added. */
+   NOTHING IS TRIMMED ANY MORE AND THIS IS NOW A CAP ON WHEN TO GROUP. The line under the rows
+   naming how many were left and pointing at the search box is what the owner reported — see the
+   block above `bucketValues_` — so the rows are not cut to this number, they are REPLACED by at
+   most this many buckets. The constant does the same job for the same reason and nothing is held
+   back behind it.
+
+   AND THE TWO NUMBERS HAVE NOT BEEN CONFLATED, which the paragraph above is right to insist on.
+   `FACET_MAX_ANSWERS` is still the "is this a question at all" test in `nextFacet` — the one thing
+   that stops 212 paper names being offered as multiple choice on the rare list the grouping cannot
+   split — and it is still 40 because it is about a list nobody can read rather than about a card.
+   This one is about the card. */
 const FACET_MAX_SHOWN = 7;
 
 /* ---------- AND A QUESTION EVERYBODY ANSWERS THE SAME WAY IS NOT A QUESTION EITHER ----------------
@@ -2008,14 +2589,21 @@ const FACET_NEEDS_FIRST = {
 
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
-  /* ---------- A BAND IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -------------------------
-     `11\u201320` narrows to ten questions and does not say which. Treating it as answered would make
-     the band a dead end — the list is small enough to name a question and the funnel would refuse
-     to, which is the "Nothing left to narrow" complaint `overFacet_` was written for. So a facet is
-     "asked" only when its answer is a single value; a band leaves it open and the next draw offers
-     the ten numbers inside it, which are now under `FACET_BAND_AT` and drawn plainly. */
+  /* ---------- A BUCKET IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -----------------------
+     `11–20` narrows to ten questions and does not say which, and `Grades 4–6` narrows to three
+     grades. Treating either as answered would make the bucket a dead end — the list is small enough
+     to name the thing and the funnel would refuse to, which is the "Nothing left to narrow"
+     complaint `overFacet_` was written for. So a facet is "asked" only once a LEAF has answered it;
+     a bucket leaves it open and the next draw offers what is inside.
+
+     ON THE FLAG THE CHIP CARRIES, NOT ON THE SHAPE OF ITS TEXT. This was `/^\d+–\d+$/` against the
+     value, which was right while a band was the only kind of bucket there was and silently wrong
+     the moment a declared one arrived: `Grades 4–6` and `Heavyweight` match no such regex, so both
+     would have settled their facet and the answers inside them would have been unreachable.
+     Sniffing the text to tell two kinds of answer apart is the trap `bucketHas_` records one rule
+     up, and it would have shipped in the same commit that created the second kind. */
   const settled = STUFF.filters
-    .filter(f => !/^\d+\u2013\d+$/.test(String(f.value || '')))
+    .filter(f => !f.bucket)
     .map(f => f.field);
 
   for (const facet of facetList()) {
@@ -3839,11 +4427,11 @@ function markNorm_(s) {
        paper, whose scheme answer is "18 000", marked "18000" wrong. */
     .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
     /* A FRACTION HAS FOUR SPELLINGS AND A CHILD TYPES ONE OF THEM. The library writes the answer
-       to Q23(b) of the June 2024 Foundation paper as `5&frasl;9`, which strips to `5\u20449` with the
+       to Q23(b) of the June 2024 Foundation paper as `5&frasl;9`, which strips to `5⁄9` with the
        FRACTION SLASH; a phone keyboard has no such key and what gets typed is `5/9`. Before this
        line those were different strings, so the one answer a student is most likely to write was
        marked wrong -- on a live paper, to a child sitting beside you, with no appeal. The vulgar
-       characters are the same fault a third way (`3\u2153` is the sign on the Corbettmaths signpost),
+       characters are the same fault a third way (`3⅓` is the sign on the Corbettmaths signpost),
        and they need the space `3 1/3` or the mixed number folds into the improper 31/3.
 
        THE SPACE IS REMOVED ONLY WHERE IT TOUCHES THE SLASH. Stripping every space instead would
@@ -6338,7 +6926,11 @@ function filterChips() {
    them: the funnel now ASKS which paper once there are few enough to list, so opening one is
    answering a question, through the one handler that has always done that. */
 on('facet-pick', el => {
-  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
+  /* A BUCKET IS HALF AN ANSWER — see `bucketValues_`. The flag rides on the chip so `filterHit`
+     knows to test membership and `nextFacet` knows the question is not finished with. */
+  const f = { field: el.dataset.field, value: el.dataset.value };
+  if (el.dataset.bucket) f.bucket = true;
+  STUFF.filters.push(f);
   paintStuff();
 });
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
@@ -7148,11 +7740,23 @@ function stuffQuestion() {
       : nothingHere('Nothing in the shop or the library yet.', true);
   }
 
-  /* THE ORDINARY QUESTION FIRST, and only if there is none, the one that is too long to draw whole.
-     `over` is what says which of the two this is, so the row list below can trim itself without
-     having to work out why it is being drawn. */
+  /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT -------------------------
+     `const over = … > FACET_MAX_ANSWERS` WAS HERE and it was the flag the row list trimmed itself
+     by. There is no trim, so there is nothing for it to say: `facetTally_` groups a long answer
+     list into at most seven buckets before it ever reaches this function. A variable set on every
+     draw and read by nothing is the reader standing over a dead condition that this file records
+     under `resource_type` in `VOCAB`, so it is gone rather than left looking load-bearing.
+
+     `overFacet_` IS NOT DEAD, AND IT IS NOW ALMOST UNREACHABLE, which is a different thing worth
+     saying out loud. Every rule in `bucketValues_` can decline — the alphabet stands down if every
+     value reduces to one prefix even at twelve characters — and a facet that comes back ungrouped
+     with more than forty answers is refused by `nextFacet` and picked up here, exactly as before.
+     What has changed is what happens then: the rows are drawn WHOLE, because the trim that used to
+     cut them to seven and point at the search box is the thing that was reported. A long readable
+     list beats a short list with answers hidden behind an apology, and `check-funnel.js` fails the
+     build the moment any question draws more than seven — so that state is a red run rather than
+     something a person has to notice on a phone. */
   const facet = nextFacet(items) || overFacet_(items);
-  const over = facet && facetValues(items, facet).length > FACET_MAX_ANSWERS;
   const adding = STUFF.filters.some(f => f.value === 'Friends')
     ? `<p style="margin:.6rem 0 0"><span class="text-action" data-do="friend-add-open"
         >Add someone by their handle</span></p>` : '';
@@ -7175,23 +7779,19 @@ function stuffQuestion() {
      question this screen exists to ask, and the form is not hard to reach: "What for · Booking" is
      the first answer in the list, and the Book buttons on tutor and venue cards go straight to it. */
 
-  /* ---------- AS MANY ANSWERS AS ANYBODY READS, BIGGEST FIRST, THEN BACK INTO ORDER --------------
-     BIGGEST FIRST TO CHOOSE THEM, ALPHABETICAL TO SHOW THEM. Which forty are worth drawing is a
-     question about size; the order they are drawn in is a question about finding one, and those
-     want opposite sorts. Taking the top forty and then putting them back into the order every other
-     question uses is both.
-     AND THE REST ARE NOT HIDDEN, they are one line below, pointing at the search box — which is
-     already on this page, already filters these same items, and is the only control that can reach
-     one specific answer out of three hundred. */
-  const all = facetValues(items, facet);
-  /* ONE TRIM, NOT TWO. This used to trim only the oversized facet and draw every other one whole,
-     which is how a 16-answer `Sitting` ran off the bottom of the card. `FACET_MAX_SHOWN` is about
-     the card and applies to all of them. */
-  const values = all.length > FACET_MAX_SHOWN
-    ? all.slice().sort((a, b) => b.n - a.n).slice(0, FACET_MAX_SHOWN)
-         .sort((a, b) => all.indexOf(a) - all.indexOf(b))
-    : all;
-  const more = all.length - values.length;
+  /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES ------------------------------
+     THIS USED TO SAY "as many answers as anybody reads, biggest first, then back into order", and
+     the sort it describes was there to choose WHICH seven of three hundred to draw. There is no
+     choosing left to do. */
+  /* ---------- NOTHING IS TRIMMED HERE ANY MORE, BECAUSE NOTHING ARRIVES OVERSIZED ----------------
+     THIS USED TO TAKE THE BIGGEST SEVEN and print "and 368 more topic answers — type one into the
+     search box above" underneath. That line was the funnel giving up on its own job in front of
+     you, and it is what the owner reported: "I DO NOT LIKE THIS."
+
+     `facetTally_` GROUPS INSTEAD — see `bucketValues_` — so what comes back here is at most seven
+     answers or at most seven buckets, and the question is asked again over whichever bucket is
+     pressed. There is no longer any such thing as an answer this screen cannot show you. */
+  const values = facetValues(items, facet);
   /* THE HEADING IS GONE — it read `> WHAT FOR   5` above five rows that were about to say the same
      thing. The label named a question whose answers were already on the screen, and the number
      counted rows you could see: a caption on a photograph of itself.
@@ -7235,16 +7835,19 @@ function stuffQuestion() {
      IT IS STILL COMPUTED, and has to be — `facetSplit_` is a share of those counts and it is what
      keeps a question that cannot narrow off the screen. What changed is that it is arithmetic now
      rather than furniture. */
-  const rest = more
-    ? `<p class="faint" style="margin:.5rem 0 0;font-size:.78rem">and ${more} more
-        ${esc(String(facet.label).toLowerCase())} answers — type one into the search box above.</p>`
-    : '';
+  /* THE "and N more" LINE WENT WITH THE TRIM. Nothing is held back, so there is nothing to
+     apologise for and nowhere else to send anybody — and it is gone rather than left as an empty
+     string concatenated onto the end, which is a reader standing over a permanently false
+     condition. */
   /* `data-value` IS THE FULL NAME AND THE TEXT IS THE SHORT ONE — see `shortLabels_`. The chip this
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
+  /* `data-bucket` SAYS WHICH KIND OF ANSWER THIS IS, and it is carried rather than worked out
+     later: `filterHit` has to test membership for a bucket and equality for a leaf, and sniffing
+     the text to tell them apart is the trap the band regex used to be. */
   return values.map(v => `<div class="row tap counted" data-do="facet-pick"
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}">
+        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + rest;
+      </div>`).join('') + skip;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,

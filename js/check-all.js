@@ -332,9 +332,21 @@ for (const c of SUITE) {
          look", printed as a report.
 
          THE TAIL STAYS, because for most checks it IS the finding. What is added is the one fact it
-         cannot carry — that there was more — and the command that prints the whole thing. */
+         cannot carry — that there was more — and the command that prints the whole thing.
+
+         AND THE LINES A CHECK MARKED WITH `!` ARE LIFTED OUT OF IT, which is the half the paragraph
+         above stopped one step short of. `check/press.js` writes a state it could not enter as
+         `! could not enter account · a tutor switched off: pic is not defined` — the whole of the
+         failure, in one line, forty lines above the tail. A pointer at the command that prints it
+         is better than nothing and it is still asking somebody to run the check a second time to
+         find out what the first run said. Anything a check chose to mark is printed whether or not
+         it falls in the last fourteen. */
       const lines = out.split('\n').filter(Boolean);
-      lines.slice(-14).forEach(l => console.log('          ' + l));
+      const marked = lines.filter(l => /^!\s/.test(l));
+      const tail = lines.slice(-14);
+      marked.filter(l => tail.indexOf(l) === -1).slice(0, 8)
+            .forEach(l => console.log('          ' + l));
+      tail.forEach(l => console.log('          ' + l));
       if (lines.length > 14) console.log('          … ' + (lines.length - 14)
         + ' earlier line(s) not shown — `node '
         + (c.file.includes('/') ? c.file : 'js/' + c.file) + '` for the whole report');

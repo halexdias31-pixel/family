@@ -634,18 +634,18 @@ const SLOT_BLOCKS = [
    another cell. A row whose height depends on how much of the week suits you is the card changing
    shape under the thumb answering it, which is the fault `SPINE` records about folding.
 
-   SO IT IS GROUPED BY BLOCK AND THE DAYS ARE SHORTENED: `Mon\u2013Fri evenings`, `Sat \u00b7 Sun
+   SO IT IS GROUPED BY BLOCK AND THE DAYS ARE SHORTENED: `Mon–Fri evenings`, `Sat · Sun
    mornings`. At most three phrases whatever is ticked, because there are three blocks — so the row
    has a ceiling rather than growing, and it reads as the sentence somebody would actually say.
 
    THE STORED LIST IS UNTOUCHED, and that separation is the same one the hour grid already makes:
-   `BOOKING.slots` holds `m13, m14` and the row prints `Monday 13:00\u201315:00`, because
+   `BOOKING.slots` holds `m13, m14` and the row prints `Monday 13:00–15:00`, because
    `waitlistWhen` on the backend counts the PHRASES and a grouped string would be one vote for a
    thing nobody ticked. What is drawn is a rendering; what is sent is the answer.
 
-   A RUN OF THREE OR MORE DAYS BECOMES A RANGE, because `Mon \u00b7 Tue \u00b7 Wed \u00b7 Thu
-   \u00b7 Fri` is five times the room for one fact, and two is not a run worth a dash: `Mon \u00b7
-   Tue` is no longer than `Mon\u2013Tue` and does not claim a span. */
+   A RUN OF THREE OR MORE DAYS BECOMES A RANGE, because `Mon · Tue · Wed · Thu
+   · Fri` is five times the room for one fact, and two is not a run worth a dash: `Mon ·
+   Tue` is no longer than `Mon–Tue` and does not claim a span. */
 function blockSay_(list) {
   const on = list || [];
   const out = [];
