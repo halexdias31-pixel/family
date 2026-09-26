@@ -8328,6 +8328,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
   border-radius: .4rem; background: var(--sunk); }
 .qsheet figure svg, .gd figure svg { width: min(100%, 20rem); height: auto; }
+
+/* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED -------------
+   THE SITE'S OWN FACE IS A CODING FONT NOW — `--font` in one place, asked for as "universal ... on
+   the whole site" — AND IT CANNOT COME IN HERE. A monospace face is about a quarter wider than a
+   serif at the same size, and every one of the 132 drawings in this repository was laid out against
+   13px and 12px serif metrics: a caption is positioned by its CENTRE and its width decides how far
+   it reaches either side. Put `var(--font)` on these four classes and `check/cards.js` reports
+   **183 labels painted outside their own `<svg>`** — 53px on the Eratosthenes drawing, 39px on an
+   AQA chemistry profile — where the same run with serif reports none. The outermost `<svg>` clips
+   to its viewport, so each of those is a sentence a reader simply does not get.
+
+   THE ALTERNATIVE IS NOT A SMALLER FONT. Shrinking to fit would be about 9.5px on a phone, which is
+   under what anybody reads, and it would rescale the balance of every drawing to serve a typeface
+   choice. The other alternative is re-laying out 132 committed drawings, which is a redraw of the
+   whole library to change a font.
+
+   AND IT IS A DIFFERENT OBJECT ANYWAY. These four classes ink an exam figure — a printed diagram
+   redrawn from a paper — where `--font` is the app's own voice. Measured before it was kept, which
+   is the only reason this is a decision rather than a thing the font change missed. */
 .qsheet .lbl, .gd .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
 .qsheet .num, .gd .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
 .qsheet .ax, .gd .ax { font: italic 9px serif; fill: currentColor; }
