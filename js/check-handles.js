@@ -326,6 +326,32 @@ function run() {
     why: 'handle and username must both be written from the same value, or the old one still answers',
     said: 'dopost.gs does not write both cells from `want`' });
 
+  /* ---------- AND `register`, WHICH IS THE WRITER EVERY ACCOUNT GOES THROUGH ONCE ---------------
+     `changeHandle` IS THE RENAME BOX AND `register` IS EVERYBODY. The rule above was written for
+     the first and the second went on folding: `norm(first + last)` stored "Halex Dias" as
+     `halexdias`, and `doget.gs` shows `handle || username || first_name` — so every account that
+     has never gone looking for the rename box has been displaying a name it did not choose.
+     Two writers of one cell and only one of them checked is the second reader this repository
+     keeps finding; the rule asks both.
+
+     THE PUNCTUATION STRIP MUST SURVIVE, and that is the other half. `HANDLE_SHAPE` never sees a
+     registered username — `handleTrouble_` guards the rename and nothing else — so this one
+     expression is all that keeps a space or an apostrophe out of the cell. A rule that only
+     refused the fold would pass a version that had dropped the strip with it. */
+  const reg = post.indexOf("action === 'register'");
+  const rblock = reg < 0 ? '' : post.slice(reg, reg + 4000);
+  const uline = (rblock.match(/username:\s*[^\n]*/) || [''])[0];
+  if (!uline) {
+    console.log('FAILED — could not find the username line in register to check.');
+    process.exit(1);
+  }
+  if (/norm\(|toLowerCase/.test(uline)) bad.push({ handle: 'register', want: 'as typed',
+    why: 'every account that never renames itself is shown a name it did not choose',
+    said: 'dopost.gs folds the case when it writes a new username' });
+  if (!/replace\(/.test(uline)) bad.push({ handle: 'register', want: 'letters and digits only',
+    why: 'HANDLE_SHAPE never sees a registered username, so this strip is the only thing holding',
+    said: 'dopost.gs no longer strips punctuation out of a new username' });
+
   /* An admin is exempt from the COOLDOWN and from nothing else — an admin fixing somebody's bad
      handle is the remedy, and an admin taking a taken one is still a collision. */
   box.setRows(OTHERS.concat([MEnew]));

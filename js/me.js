@@ -1744,9 +1744,14 @@ function fieldHtml(name, value, o) {
      unlabelled boxes is a form you have to guess at. */
   const hint = o.placeholder || '';
 
+  /* EXTRA ATTRIBUTES, FOR THE CALLERS THAT NEED ONE THE NAME CANNOT IMPLY. `inputmode` and
+     `list` above are derived from the field's own name, which is right for a hundred and twenty
+     fields and cannot say `maxlength="2"` or `autocomplete="bday-day"` — facts about a box rather
+     than about a column. Passed as a string so this stays one `<input>`: a second renderer for a
+     box that differs by two attributes is the drift this file spends most of its length avoiding. */
   return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
-           ${hint ? `placeholder="${esc(hint)}"` : ''}
+           ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
            ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
@@ -1780,6 +1785,48 @@ const isTimetable_ = list => (list || []).length > 12
    Two rows per card — the name and the PIN across, the number full width beneath — is **430.4px
    with 78.9px of headroom**. */
 const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
+
+/* ---------- AND A DATE OF BIRTH IS THREE BOXES, NOT ONE ------------------------------------------
+   ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
+   method."* It was one plain text box with no type, no placeholder and no hint about which way
+   round the first two numbers go — so what reached the cell was whatever anybody typed, and
+   `09/15/1985` is a date `sheetDate` reads as the 9th of March 1986 rather than as nothing.
+
+   WHY NOT `type="date"`, which is the other reading of "best practice": a birth year is forty
+   years of scrolling on an iOS picker that opens on today, its value is ISO rather than the
+   `dd/mm/yyyy` this sheet speaks, it ignores `inputmode` and `maxlength`, and it draws its own
+   chrome that this stylesheet cannot reach. The long note over `DOB_FIELDS` in `constants.gs`
+   carries the measurement.
+
+   THE CAPTION IS WHERE THIS STOPS COPYING THE LIBRARY SHELF. That one gets away with placeholders
+   and no caption because its group IS "Library cards" — the heading names it. A date of birth
+   sits inside `Contact` or `About you`, which name three fields between them, so the row needs a
+   caption of its own and `fieldHtml` cannot emit one (its `span` is per box).
+
+   RECOGNISED BY THE SHAPE OF THE NAMES, like the timetable and the shelf above, and for the same
+   reason: the group's title is the backend's to choose. */
+const isDobBox_ = f => /^dob_[dmy]$/.test(String(f || ''));
+const isDob_ = list => (list || []).some(isDobBox_);
+
+function dobBoxes_(value) {
+  /* `autocomplete` IS THE HALF A PHONE ACTUALLY USES. `bday-day`/`bday-month`/`bday-year` are the
+     WHATWG tokens for exactly these three boxes, so a saved birthday is offered into them; without
+     them a phone offers nothing, or offers the wrong thing into all three.
+     `maxlength` RATHER THAN A PATTERN, because a pattern refuses after the fact and a maxlength
+     stops the fourth digit being typed into a two-digit box in the first place. */
+  const box = (f, hint, len, ac) => fieldHtml(f, value(f), {
+    placeholder: hint,
+    extra: `inputmode="numeric" maxlength="${len}" autocomplete="${ac}" size="${len}"`,
+  });
+  return `<div class="dob-row" role="group" aria-label="Date of birth">
+    <span class="dob-cap">date of birth</span>
+    <div class="dob-boxes">
+      ${box('dob_d', 'DD', 2, 'bday-day')}
+      ${box('dob_m', 'MM', 2, 'bday-month')}
+      ${box('dob_y', 'YYYY', 4, 'bday-year')}
+    </div>
+  </div>`;
+}
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
@@ -1842,10 +1889,24 @@ function fieldsHtml(groups, o) {
        it in the usual way — one `filter`, rather than a second group in the backend that would
        then need a heading of its own. */
     const library = !timetable && isLibrary_(list);
-    const rest = library ? list.filter(f => !isLibraryCard_(f)) : list;
+    /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
+       `date_of_birth` IS STILL IN THE GROUP because the backend's list names columns and that is
+       the column. Drawing it as well as the three boxes would be the same fact twice on one card —
+       the roster's `<h3>` over every widget's own heading, one form along — and the extra box would
+       post a fourth value that `wanted` would happily write straight over what the boxes just said.
+       So it comes OUT of `rest` and the row goes in its place. */
+    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and
+       `isDob_` is asked as well so a deployment that ever sends the three box names draws the same
+       row rather than three bare boxes. One test, both spellings, which is the `isTimetable_`
+       argument: a renderer that recognises only what is sent today stops recognising it the day
+       the backend is tidied. */
+    const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
+    const rest = list.filter(f => !(library && isLibraryCard_(f))
+                              && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
+      + (wantsDob ? dobBoxes_(value) : '')
       + rest.map(f => fieldHtml(f, value(f), {
           attr: o.attr,
           options: o.options ? o.options(f) : null,

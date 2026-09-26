@@ -10,6 +10,7 @@
 
      `availability`   77 tickboxes -> "m09,m10,…"           `availGridOut` / `availGridIn`
      `library_card`    9 boxes     -> "name:no:pin|…"       `libCardsOut`  / `libCardsIn`
+     `date_of_birth`   3 boxes     -> "15/09/1985"          `dobOut`       / `dobIn`
 
    NOTHING HAS EVER TESTED EITHER. They are the one shape where a fault is completely silent: a
    packer that drops a field writes a shorter cell, the form reloads with an empty box, and the
@@ -52,6 +53,13 @@ const SRC = [
   grab(core,   /function availSet\([\s\S]*?\n\}/, 'availSet'),
   grab(core,   /function libCardsOut\([\s\S]*?\n\}/, 'libCardsOut'),
   grab(core,   /function libCardsIn\([\s\S]*?\n\}/, 'libCardsIn'),
+  /* THE THIRD PACKED CELL, and the one whose unpacker has to read TWO different stored shapes:
+     Sheets makes a real Date of a birthday typed into the spreadsheet, and this app writes a
+     `dd/mm/yyyy` string. `sheetDate` is what tells them apart, so it is cut out too. */
+  grab(core,   /function sheetDate\([\s\S]*?\n\}/, 'sheetDate'),
+  grab(core,   /function dobOut\([\s\S]*?\n\}/, 'dobOut'),
+  grab(core,   /function dobIn\([\s\S]*?\n\}/, 'dobIn'),
+  grab(core,   /function dobRefusal_\([\s\S]*?\n\}/, 'dobRefusal_'),
 ].join('\n\n');
 
 /* THE FOUR APPS SCRIPT HELPERS THOSE FIVE REACH FOR, copied rather than imported — the same
@@ -66,7 +74,8 @@ const box = {};
 new Function('box', PRELUDE + SRC
   + '\nbox.libOut = libCardsOut; box.libIn = libCardsIn;'
   + ' box.availOut = availGridOut; box.availIn = availGridIn;'
-  + ' box.N = LIBRARY_CARDS; box.FIELDS = LIBRARY_FIELDS;')(box);
+  + ' box.N = LIBRARY_CARDS; box.FIELDS = LIBRARY_FIELDS;'
+  + ' box.dobOut = dobOut; box.dobIn = dobIn; box.dobNo = dobRefusal_;')(box);
 
 let bad = 0;
 const is = (what, got, want) => {
@@ -147,6 +156,46 @@ is('an empty week packs to an empty cell', box.availIn(box.availOut('')), '');
 is('an hour outside the span is dropped rather than kept',
    box.availIn(box.availOut('m09,m23')), 'm09');
 
+/* ---------- AND THE DATE OF BIRTH, WHOSE UNPACKER HAS TO READ TWO STORED SHAPES -----------------
+   A BIRTHDAY TYPED INTO THE SPREADSHEET IS A REAL DATE and one written by this app is a
+   `dd/mm/yyyy` string, and `dobOut` has to come apart into the same three numbers either way. The
+   Date case is the one that was a live fault: `profileOf_` sent `S(r.date_of_birth)`, so the box
+   rendered `Sun Sep 15 1985 00:00:00 GMT+0100 (British Summer Time)`.
+
+   THE ZERO PADDING IS NOT COSMETIC. `sheetDate`'s anchored branch reads `15/09/1985`; a
+   four-digit year is what keeps it out of the two-digit rule, which is `2000 + n` and would make
+   `85` into 2085. So the packer's output is asserted character for character. */
+const dob = (d, m, y) => ({ dob_d: d, dob_m: m, dob_y: y });
+is('three numbers pack to the one format sheetDate reads',
+   box.dobIn(dob('15', '9', '1985')), '15/09/1985');
+is('and the day is padded too', box.dobIn(dob('5', '9', '1985')), '05/09/1985');
+is('a dd/mm/yyyy cell comes apart into three numbers',
+   box.dobOut('15/09/1985'), dob('15', '9', '1985'));
+is('A REAL DATE comes apart the same way — the fault that sent a JS date string into the box',
+   box.dobOut(new Date(1985, 8, 15)), dob('15', '9', '1985'));
+is('the round trip is exact', box.dobIn(box.dobOut('15/09/1985')), '15/09/1985');
+is('nothing typed at all is an empty cell', box.dobIn(dob('', '', '')), '');
+is('an empty cell unpacks to empty boxes', box.dobOut(''), dob('', '', ''));
+is('what the boxes cannot show is KEPT rather than blanked, so opening a form cannot lose it',
+   box.dobOut('sometime in 85'), dob('sometime in 85', '', ''));
+
+/* AND WHY IT MAY NOT BE WRITTEN. A partial is `null` to `sheetDate` — a birthday that vanishes off
+   the calendar with the form saying Saved, which is the whole reason the refusal exists. */
+const no = f => !!box.dobNo(f);
+is('all three blank is allowed — clearing a birthday clears it', no(dob('', '', '')), false);
+is('a real date is allowed', no(dob('15', '9', '1985')), false);
+is('A PARTIAL IS REFUSED — this is the one that loses a birthday silently',
+   no(dob('15', '', '1985')), true);
+is('and so is a missing year', no(dob('15', '9', '')), true);
+is('a two-digit year is refused, because sheetDate would make 85 into 2085',
+   no(dob('15', '9', '85')), true);
+is('there is no month 13', no(dob('1', '13', '1985')), true);
+is('there is no 31st of September', no(dob('31', '9', '1985')), true);
+is('29 February 2024 is a real day', no(dob('29', '2', '2024')), false);
+is('29 February 2023 is not', no(dob('29', '2', '2023')), true);
+is('a birthday in the future is refused', no(dob('1', '1', '2099')), true);
+
 if (bad) { console.log('\nFAILED — ' + bad + ' packed-cell case(s) wrong.'); process.exit(1); }
-console.log('\nlibrary cards: ' + box.N + '   fields: ' + box.FIELDS.length);
+console.log('\nlibrary cards: ' + box.N + '   fields: ' + box.FIELDS.length
+          + '   packed cells: availability, library_card, date_of_birth');
 console.log('OK — every packed cell on the people tab comes back as it went in.');

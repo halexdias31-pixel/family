@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-26-a-sign-in-by-email";
+const DOGET_VERSION = "2026-09-26-c-dob-and-quals";
 
 
 function doGet(e) {
@@ -617,9 +617,23 @@ function doGet(e) {
             const subj = S(r['qual_' + n]);
             if (!subj) return null;
             const lvl = S(r['qual_' + n + '_level']), grd = S(r['qual_' + n + '_grade']);
-            return [subj, lvl, grd && ('grade ' + grd)].filter(Boolean).join(' ');
+            /* THE BOARD IN BRACKETS, where it reads as the qualifying detail it is: "Maths A-Level
+               (Edexcel) grade B". Joined here rather than on the phone for the reason the three
+               parts above already are — one sentence, built once, so a card and a roster cannot
+               disagree about how a qualification is written. */
+            const brd = S(r['qual_' + n + '_board']);
+            return [subj, lvl, brd && ('(' + brd + ')'), grd && ('grade ' + grd)]
+              .filter(Boolean).join(' ');
           }).filter(Boolean),
           extraQuals: S(r.extra_quals),
+          /* ---------- AND WHAT THEY ARE STUDYING NOW, WHICH IS NOT A QUALIFICATION ---------------
+             SENT AS TWO FIELDS RATHER THAN ONE SENTENCE, unlike `quals` above — and the difference
+             is that a qualification has three parts that are always written the same way, where
+             this is a subject and a place that the card may one day want separately. What it must
+             NOT be is one cell with a comma in it: `profList_` would split "Bible and Theology,
+             University of Wales" into two, which is the practicals' comma fault. */
+          studying: S(r.studying),
+          studyingAt: S(r.studying_at),
           actionText: '▶ Watch Intro'
         });
       }
@@ -1298,6 +1312,28 @@ function doGet(e) {
             .map(r => S(r.item_id))
         : [];
     } catch (err) { payload.favourites = []; }
+
+    /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY -------------------------
+       NOT FILTERED BY PERSON, and that is the one line that makes it a spotlight rather than a
+       favourite: `js/collections.js` opens with the argument — a favourite is a statement about
+       you and a spotlight is a statement about the business, so it is one list, the same on every
+       phone, and only an admin can change it.
+
+       SENT AS THE BARE KEYS, the shape `adoptSpotlight_` already reads and the same shape
+       `favourites` above goes in. Rows switched off are dropped here rather than on the phone:
+       `on` is the admin's decision and the phone has no business re-deciding it.
+
+       AN EMPTY ARRAY IS NOT THE SAME AS NO KEY, and `spotNow_` on the phone depends on the
+       difference: a tab with rows is the authority, and a tab with none falls through to
+       `data/settings/spotlight.json`. A `catch` that sent `[]` for a tab that FAILED would look
+       exactly like a tab an admin had deliberately emptied — so it sends nothing at all, which is
+       what `adoptSpotlight_` reads as "no answer" rather than as "none". */
+    try {
+      payload.spotlight = read(TAB.spotlight).rows
+        .filter(r => TRUE_(r.on))
+        .map(r => S(r.item_id))
+        .filter(Boolean);
+    } catch (err) { delete payload.spotlight; }
 
     try { payload.festive = festiveOffers(); }
     catch (err) { payload.festive = []; }

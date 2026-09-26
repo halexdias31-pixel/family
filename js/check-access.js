@@ -71,9 +71,6 @@ const asked = [...new Set([...front.matchAll(/action:\s*'(\w+)'/g)].map(m => m[1
 
    An empty list is the goal. Adding to it should feel like a decision, because it is one. */
 const ACCEPTED_MISSING = {
-  spotlight: 'collections.js has an admin star toggle; no handler in dopost.gs, no tab in SCHEMA, '
-           + 'and doGet never sends DATA.spotlight. Wired at both ends of the front end with no '
-           + 'middle, and never finished. See CLAUDE.md.',
   acceptTerms: 'terms.js posts it; no handler anywhere in backend/, and the payload has no '
              + 'termsAccepted or termsAcceptedWhen to read back. The signature half of the terms '
              + 'feature was never built. See CLAUDE.md.',

@@ -9,5 +9,6 @@
 {"screen": "settings", "label": "Settings", "icon": "\u2699", "active": "TRUE", "sort_order": 8, "notes": "your details, your username and your PIN. One page each. RIGHT OF YOU, because it was eleventh of eleven and reported as \"I don't see it\" \u2014 the one column you reach for from your own account card should not be four swipes past it."},
 {"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 9, "notes": "the widgets."},
 {"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 10, "notes": "the arcade."},
-{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 11, "notes": "what you starred \u2014 widgets first, then anything else. Last, since Settings took the place beside You."}
+{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 11, "notes": "what you starred \u2014 widgets first, then anything else."},
+{"screen": "spotlight", "label": "Spotlight", "icon": "\u2726", "active": "TRUE", "sort_order": 12, "notes": "what the business has put in the window \u2014 one list, the same on every phone, and only an admin can change it. AFTER SAVED, which is where it was asked for: the two read alike and the difference is whose list it is."}
 ]

@@ -2050,7 +2050,23 @@ check('the camera card starts itself and offers the gallery', async () => {
     bad.push('the camera card still shows a start button — it is meant to start on arrival');
   }
   if (/Turn the camera on/i.test(html)) bad.push('`Turn the camera on` is back on the card');
-  if (/Write a post/i.test(html)) bad.push('`Write a post` is back on the camera card');
+  /* ---------- `Write a post` IS A TILE NOW, AND WHAT THIS ASSERTS IS THE OPPOSITE --------------
+     THE LINE HERE WAS `if (/Write a post/i.test(html)) bad.push('… is back on the camera card')`,
+     written the day it was removed on request. Taking it away left `on('new-post')` — the whole
+     composer, the Drive folder picker, the link box, the poll — unreachable, and `check-doors.js`
+     has reported it as its only HANDLER WITH NO DOOR ever since. It is back as a tile, because it
+     is the answer to *"i would like to add more photos to my portfolio"*: there is no portfolio
+     surface, the feed is the nearest honest reading, and a Drive link pasted into that composer
+     lands in the posts SHEET rather than in this public repository.
+
+     SO THE ASSERTION FLIPS AND GAINS A SECOND HALF. A door is not a door if nothing dispatches it,
+     which is the fault the removal caused — so this asks for the `data-do`, not merely the words.
+     What the OLD line was defending is still defended one line up: `Turn the camera on` must not
+     come back, because that one was on the normal path rather than behind a failure. */
+  if (!/Write a post/i.test(html)) bad.push('`Write a post` is gone from the camera card again');
+  if (!/data-do="new-post"/.test(html)) {
+    bad.push('`Write a post` is on the card with no `data-do="new-post"`, so nothing opens it');
+  }
 
   /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `screen('make')` renders a sentence instead, and a
      camera that starts for somebody who is not signed in is a permission prompt with no purpose. */

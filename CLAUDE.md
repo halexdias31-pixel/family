@@ -13638,3 +13638,187 @@ about `documents_()`, `factsNow_` and `childrenOf`.
 
 **The expect is per CARD rather than across the screen**, for the reason the guide's own expect
 records: six cards in the DOM is eighteen `.quiz-q` where the rule wants five.
+
+## A Spotlight column, three date boxes, a studying line, and the door back to the composer
+
+**Four of the eight asks in one message, and the largest of them needed a backend that did not
+exist.** *"can you also make a spot light column after the saved column. what admin spotlights will
+appear there. similar to favourites but with admin in control and for all."*
+
+**`toggleSpot` HAS POSTED TO A GATE THAT REFUSED IT FOR AS LONG AS IT HAS EXISTED.** `ACTION_ACCESS`
+had no `spotlight` entry, so `accessDenied` turned every press away before the handler — and there
+was no handler. **`orderPrints` again**, which this file records eleven more times over under the
+Settings migration: a control on a card, access-listed nowhere, posting into a refusal that
+`.catch` threw away. So the column needed a tab, a schema entry, a route, a handler and a payload
+key before a single page could be drawn.
+
+**AND IT IS ONE ROW PER THING RATHER THAN A CELL ON THE THING ITSELF.** A `spotlight` column on
+`people`, on `questions` and on `venues` would be three columns meaning one thing — the
+`needs_print` / `print_required` shape that cost 356 rows of disagreement. One tab, `kind` +
+`item_id`, and anything the funnel can build an item for can be spotlit without a schema change.
+
+**`spotNow_` IS `factsNow_`'s RULE FOR A FOURTH COLUMN**: the sheet wins when it has rows, and
+`data/settings/spotlight.json` is the floor. It ships empty and deliberately so — the column draws
+the sentence saying an admin has not chosen anything yet, which is a state rather than a silence.
+
+### Two pager faults were invisible only because the spotlight was always empty
+
+**`PAGER.feed` COUNTED `spotPages()` AND THE FEED DREW THEM TOO**, so the dial and the strip agreed
+only while that array was empty. **And `PAGER.stuff` did not count the spotlight pages the funnel
+was concatenating**, which is the same fault the other way up. Both are the sentence every `PAGER`
+entry carries — *a pager that counts for itself is a pager that can disagree with its own screen* —
+and both were sitting one admin row away from being reported as the column jumping.
+
+**The spotlight is its own column now and neither screen draws it**, so both counters are simply
+right rather than corrected.
+
+## `S(r.date_of_birth)` on a Sheets Date is `Sun Sep 15 1985 00:00:00 GMT+0100 (British Summer Time)`
+
+**Asked for as "date of birth should be 3 boxes. day, month and year. or copy the best practice
+method."** The three boxes are the ask; what the measurement found underneath is that the ONE box
+had been drawing that string into an editable field, because `profileOf_` stringified whatever the
+cell held and a date cell holds a `Date`.
+
+**`dobOut` TESTS THE SHAPE ITSELF RATHER THAN TRUSTING `sheetDate`.** That helper reads
+`"sometime in 85"` as 1 January 1985 — right for a column somebody types a date into and wrong here,
+because a cell holding a sentence would come back as three confident numbers nobody wrote. Only a
+real `Date` or a `dd/mm/yyyy` string is split; anything else goes into the day box untouched, so
+whatever is in the sheet is still in front of the person who has to correct it.
+
+**THE THREE BOXES ARE NOT THREE COLUMNS, and that is the packed-cell pattern for a third time** —
+`availGridOut`/`availGridIn` for the 77 hour codes, `libCardsOut`/`libCardsIn` for the nine library
+boxes, `dobOut`/`dobIn` for these. Each needs the same three wiring points on the server and it is
+worth naming them because missing any one is silent: the field names must be excluded from
+`wanted`, the real column must be header-checked explicitly (nothing else will, so `setCell` would
+write to a header that is not there and lose the value with no error), and `profileOf_` must expand
+the cell so the form comes back filled.
+
+**`inputmode="numeric"`, `maxlength`, `autocomplete="bday-day|bday-month|bday-year"`.** The
+autocomplete tokens are the half a phone actually uses — without them it offers nothing, or offers
+the same thing into all three — and `maxlength` stops the fourth digit being typed into a two-digit
+box rather than refusing it afterwards.
+
+### `6ch` clipped `1985` to `198`, and nothing measured it wrong
+
+**The box was exactly `6ch` wide and the text inside it was not.** Every input in this stylesheet
+carries `.7rem .75rem`, so about 22px of a box is gone before a digit is drawn — the track has to be
+the content **plus that**, or the fourth digit is outside a box reporting itself the size it was
+asked for. Same shape as the library shelf's `max-content` track resolving against an input's own
+idea of itself, and **found on a screenshot**, which is the twenty-third time this file writes that
+a screenshot is the last word on something drawn — counted off the entries above rather than
+remembered, because this tally has been wrong inside its own warning twice.
+
+**AND THE DAY AND MONTH BOXES WERE 41.5px AT 320.** `check/ui.js` named it on the first run that had
+this row on a screen: two digits plus the input's own padding lands just under the floor, which is
+the near-miss `.btn.tiny` records where `max(38px, 2.3rem)` never once chose the rem. `max(44px, …)`
+— **the eighth conviction of the tap-targets-in-px rule** in this stylesheet after `.btn.tiny`,
+`.post-act`, `.fm-adds label`, the chips, `.qp-check`, the reel's sound button and `.cal-arrow`.
+Measured at 320: 44 + 44 + 57.3 and two 6.75px gaps is 158.8 inside a 243.9px card, so nothing is
+given up for it.
+
+### `NO NAME` reported twelve correctly-named controls, and the whitespace is why
+
+**A WHITESPACE-ONLY LABEL IS TRUTHY.** `(lab2 ? lab2.textContent : '')` sat five rungs above the
+placeholder in that rule's `||` chain, and a caption-less `label.field` contains only a newline and
+some spaces before its `<input>` — so the chain stopped there and the `.trim()` at the end made it
+`''`. The one source that would have named those boxes was never reached.
+
+**IT HAS BEEN WRONG SINCE THE LIBRARY SHELF SHIPPED**, and the rule's own note says why nobody saw
+it: its whole argument is that *a placeholder IS the accessible name when there is nothing else*,
+and the shelf is the first thing in this app to lean on that. Nine library boxes and three date
+boxes, collapsed by the grouping key into a single `<input>` line — so the report said **1** where
+it meant **12**, and every one of the twelve was wrong. An instrument that cannot reach the source
+its own comment names is the shape this repository keeps finding in its own checks.
+
+**Each candidate is trimmed before the `||` now, not the whole chain after it.**
+
+**AND THE MUTATION EXPOSED A SECOND NARROWING WORTH TAKING.** With the placeholder removed, `dob_y`
+was still silent — because `el.value` was the last rung, and the box held `1985`. **A value is the
+name of a submit button and of nothing else**: a screen reader announces `1985` as the value and
+still has nothing to call the box. Unnarrowed, that rung made the rule blind to every unnamed box a
+person had typed into, which is the state an unnamed box is usually found in. Narrowed to
+`submit|button|reset|image`, and measured across all 252 combinations it reports **nothing new** —
+this app has no submit input at all. **Proved by mutation in both directions**: `dob_y` with no
+placeholder is named while it holds a value and reported the moment it is empty.
+
+## Qualifications carry their board, and there is somewhere to say what you are studying now
+
+**Asked for as "as halex i want to update my qualifications. I have a B in a level maths edexcel.
+also i am currently studying bible and theology at university of st david wales. is there a place to
+list this?"** The first half had a gap and the second had no home at all.
+
+**A QUALIFICATION WAS A SUBJECT, A LEVEL AND A GRADE, AND THE BOARD WAS NOWHERE.** *"A in Maths
+A-Level"* and *"A in Maths A-Level with Edexcel"* are different claims to a parent checking a tutor,
+and the board is the half that is checkable. `qual_N_board` is a `select` off the same
+`OPTION_FOR` list the library's own `exam_board` facet uses, so nobody can invent a fourth spelling
+of Edexcel — which is the fault `levelOf_` and the spelling vote already record in four columns.
+
+**`studying` AND `studying_at` ARE NOT A FOURTH QUALIFICATION**, and that is the distinction: a
+qualification is finished and graded, and a degree in progress has neither. Filing it as
+`qual_4_subject` would have printed *"Bible and Theology · —"* on a public card, which is the
+`cost: 0` shape — a missing fact rendered as a stated one.
+
+**AND THE CARD ROW IS NOT BUILT THROUGH `profList_`.** That helper splits on commas, and a
+university's name is exactly the sort of string that carries one. `[t.studying, t.studyingAt]
+.filter(Boolean).join(' at ')` is one sentence rather than a list, so *"University of Wales, Trinity
+Saint David"* stays one place rather than becoming two.
+
+## The composer had a handler and no door, and `check-doors.js` had been saying so
+
+**Asked for as "i would like to add more photos to my portfolio"**, with three Drive links and a
+video — and the measurement is that **there is no portfolio surface in this app**. What there is, is
+a complete composer: `on('new-post')` with a caption, a place, a poll and a photograph, reachable
+from nothing since `Write a post` was removed on request.
+
+**IT WAS `check-doors.js`'s ONLY HANDLER-WITH-NO-DOOR FINDING**, printed on every run, for weeks. So
+the answer to "somewhere to put photos" is a door rather than a surface — the feed is the portfolio,
+and it already had everything except the way in.
+
+**IT WAS A TILE FIRST AND A SCREENSHOT REFUSED IT.** `tile_` is glyph-only by a recorded decision —
+*"the mark is the whole button now, and the word is gone"* — so one tile on its own under a
+viewfinder is a 44px pencil in the bottom-left corner of the card with nothing beside it, which
+reads as *edit the photograph* rather than as the other way to post. The house style settles it: a
+THING has tiles and a FORM has buttons, and a card whose content is a live picture with two
+shutters under it is the second. `.btn quiet`, full width, under the camera's own row.
+
+**THE `.MOV` IS 98.9MB AND IS NOT IN.** `check-reels.js` prints the weight of every clip and the two
+that are in are 7.3 and 7.9MB; a ninety-nine megabyte file is not a thing to put on a phone's data
+allowance, and `data/reels/README.md` already carries the re-encode command for exactly this. The
+three photographs are HEIC and go in fine, because `pic()` goes through
+`lh3.googleusercontent.com/d/<id>=w1200`, **which transcodes** — so a format Safari alone can decode
+arrives as something every browser can.
+
+## `register` lower-cased every username it has ever written
+
+**Asked for as "i would like peoples username logins to be case sensitive."** The literal reading is
+declined and the line to change is named below; what the measurement found is a real fault under it.
+
+**`register` WROTE `norm(first + last)`**, which lower-cases — so every account that has never been
+renamed has been showing `halexdias` where the person wrote `HalexDias`. And `changeHandle` did the
+same to anything anybody typed. The case somebody chose is a fact about them; **it is preserved
+now**, in both writers.
+
+**MATCHING IS STILL CASE-INSENSITIVE AND THAT IS DELIBERATE.** `key()` — lower-case, alphanumerics
+only — is what `findPerson` compares with, in 147 places. Making the comparison case-sensitive means
+somebody who typed their name with a capital on Tuesday cannot sign in on Wednesday, and the
+sentence they get is *"Name or PIN not recognised"*, which is this file's own definition of the
+worse of the two failures. **What was actually wrong was the DISPLAY**, and that is what is fixed.
+One line in `key()` reverses it if the literal reading is wanted.
+
+**AND THE UNIQUENESS TEST HAD TO STAY ON `key()` WHATEVER THE DISPLAY DOES.** `HalexDias` and
+`halexdias` must not be two accounts: `findPerson` resolves both to the first row it finds, so the
+second person would sign in as the first — which is not a denial, it is a disclosure, and this file
+already records `changePin` doing exactly that by accident.
+
+### An e-mail address is the sixth rung, and the `@` guard is what makes it safe
+
+**Asked for as "i want people to be able to sign in with email as well."** `findPerson` resolved
+person_id, full_name, first+last, handle and username; it resolves an e-mail address now, **last**,
+and only when what was typed contains an `@`.
+
+**THE GUARD IS LOAD-BEARING AND THE RUNG ORDER IS NOT.** `Array.find` returns the first ROW that
+matches any rung, so a row whose `email` cell holds junk — a note, a dash, a second name — would be
+matched by a plain name typed into the box if the rung were unguarded. Measured with such a row
+placed **above** the real one, which is the only arrangement that can tell the two apart: without
+the `@` test the wrong person is returned. **Proved by mutation**, because my first reading of this
+was that the order protected it, and it does not.

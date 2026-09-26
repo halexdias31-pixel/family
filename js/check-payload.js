@@ -74,12 +74,6 @@ const ACCEPTED = {
                + 'never built. See CLAUDE.md.',
   termsAcceptedWhen: 'the timestamp half of the same unbuilt signature feature.',
 
-  /* Wired at both ends of the front end with no middle: collections.js has an admin star toggle
-     that posts `spotlight`, dopost.gs has no such handler, SCHEMA has no such tab. check-access.js
-     reports the handler half; this reports the payload half. Also already in CLAUDE.md. */
-  spotlight: 'admin star toggle with no handler, no tab and no payload key — never finished, not a '
-           + 'regression. check-access.js names the other half.',
-
   /* ---------- THE ONE WORTH BUILDING ------------------------------------------------------------
      `applyColumns_` in shell.js lets the SHEET decide which screens exist, in what order, with what
      label and icon — it mutates TABS rather than replacing it, guards against a sheet naming nothing
@@ -94,6 +88,18 @@ const ACCEPTED = {
   columns: 'applyColumns_ decides which screens the app has and in what order, and `doGet` does not '
          + 'send the key — `data/settings/columns.json` does, through settingsInto_, like the other '
          + 'nine tabs that left the Settings spreadsheet.',
+
+  /* ---------- THE FLOOR UNDER A TAB THE BACKEND DOES SEND, WHICH IS WHY IT IS A SECOND KEY -------
+     `doGet` SENDS `spotlight` AND MUST NOT SEND THIS. They are two sources for one list and the
+     whole point of the arrangement is which wins: `spotNow_` takes the sheet when it has rows and
+     falls through to `data/settings/spotlight.json` when it has none, so that an admin can dress
+     the shop window from the phone the day the backend syncs and the owner can fill it from a file
+     today, with the deploy blocked. Written into one key, either source would silently overwrite
+     the other — which is exactly the fault `settingsInto_`'s rule would cause here, because it is
+     pointed the wrong way round for a tab the app WRITES to. */
+  spotlightFile: 'the committed default under `spotlight`, written by settingsInto_ from '
+               + '`data/settings/spotlight.json`. `doGet` sends `spotlight` and deliberately not '
+               + 'this — see `spotNow_` in collections.js for which of the two wins.',
 };
 
 const WHERE = [path.join(__dirname, '..', 'backend'), path.join(__dirname, 'backend'),

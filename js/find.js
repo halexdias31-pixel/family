@@ -8070,8 +8070,13 @@ screen('stuff', () => {
 
      WHICH IS ALSO WHY THE BOOKING AND FEED PAGES SIT WITH THEM. Everything after the question is
      something you asked for; everything before it is the one thing you did not. */
-  return pages('stuff', spotPages().concat(
-    [controls],
+  /* ---------- SPOTLIGHT WAS THE FIRST GROUP HERE AND IT IS A COLUMN NOW ------------------------
+     `spotPages()` SAT IN FRONT OF THE QUESTION, so the business's own promotion was the first thing
+     on the screen somebody opened to search. Asked for as a column of its own, and `collections.js`
+     carries the argument; what matters here is that it is gone rather than copied, because two
+     homes for one list is the `documents_()` fault and `PAGER.stuff` had never counted these pages
+     while this line drew them. */
+  return pages('stuff', [controls].concat(
     frontPages_(),
     Array.from({ length: stuffPageCount() }, () => '')));
 }, () => '');

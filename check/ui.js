@@ -759,16 +759,39 @@ function inspect(opts) {
        nothing, and the number it is guarding today is zero. */
     if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(tag)
         && el.type !== 'hidden' && !el.disabled) {
+      /* ---------- EACH CANDIDATE TRIMMED BEFORE THE `||`, NOT THE WHOLE CHAIN AFTER IT -------
+         A WHITESPACE-ONLY LABEL IS TRUTHY, so `(lab2 ? lab2.textContent : '')` stopped the chain
+         dead on every caption-less field and the `.trim()` at the end then made it `''`. The one
+         source that would have named those boxes — the PLACEHOLDER, three rungs further down —
+         was never reached. Measured: twelve correctly-named controls reported as unnamed (the
+         nine library-card boxes and the three date-of-birth ones), collapsed by the grouping key
+         into a single `<input>` line, so the report said 1 where it meant 12 and every one of the
+         twelve was wrong.
+         IT HAS BEEN WRONG SINCE THE LIBRARY SHELF SHIPPED, and the note above says why nobody
+         saw it: this rule's whole argument is that a placeholder IS the accessible name when
+         there is nothing else, and the shelf is the first thing in the app to lean on that. An
+         instrument that cannot reach the source its own comment names is the shape this
+         repository keeps finding in its own checks. */
       const lab2 = el.closest('label');
       const by = el.getAttribute('aria-labelledby');
-      const name = (el.getAttribute('aria-label')
-        || el.getAttribute('title')
-        || (by ? ((document.getElementById(by) || {}).textContent || '') : '')
-        || (el.id ? ((document.querySelector('label[for="' + CSS.escape(el.id) + '"]') || {}).textContent || '') : '')
-        || (lab2 ? lab2.textContent : '')
-        || el.textContent
-        || el.getAttribute('placeholder')
-        || el.value || '').trim();
+      const t_ = v => String(v || '').trim();
+      const name = t_(el.getAttribute('aria-label'))
+        || t_(el.getAttribute('title'))
+        || (by ? t_((document.getElementById(by) || {}).textContent) : '')
+        || (el.id ? t_((document.querySelector('label[for="' + CSS.escape(el.id) + '"]') || {}).textContent) : '')
+        || (lab2 ? t_(lab2.textContent) : '')
+        || t_(el.textContent)
+        || t_(el.getAttribute('placeholder'))
+        /* A VALUE IS THE NAME OF A SUBMIT BUTTON AND OF NOTHING ELSE. `<input type="submit"
+           value="Save">` really is named by its value; a text box holding `1985` is not — a
+           screen reader announces that as the value and still has nothing to call the box.
+           Unnarrowed, this rung made the rule BLIND to every unnamed box a person had typed
+           into, which is the one state an unnamed box is usually found in. Proved by mutation:
+           with the placeholder off, `dob_y` is silent while it holds `1985` and named the moment
+           it is empty. This app has no submit input today (measured: zero across `js/` and
+           `index.html`), so the narrowing costs nothing and stops the rung from covering for a
+           fault. */
+        || (/^(submit|button|reset|image)$/.test(el.type || '') ? t_(el.value) : '');
       if (!name) found.noName.push({ tag: tag.toLowerCase(),
         cls: String(el.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.'),
         act: el.dataset ? (el.dataset.do || '') : '' });

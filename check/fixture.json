@@ -1,515 +1,529 @@
 {
-  "version": "fixture",
-  "cached": false,
-  "fileVersions": {
-    "constants": "fixture",
-    "doGet": "fixture",
-    "doPost": "fixture",
-    "booking": "fixture"
+ "version": "fixture",
+ "cached": false,
+ "fileVersions": {
+  "constants": "fixture",
+  "doGet": "fixture",
+  "doPost": "fixture",
+  "booking": "fixture"
+ },
+ "features": [
+  "openWaitlist",
+  "claimChild",
+  "answerClaim",
+  "joinWaitlist",
+  "move",
+  "events",
+  "tabs",
+  "getProfile",
+  "listPeople",
+  "createJob",
+  "updateConfig",
+  "updatePricing",
+  "updateShop",
+  "deleteShopItem",
+  "updateTrip",
+  "addTrip",
+  "imageData",
+  "saveRoom",
+  "updateLink",
+  "addLink",
+  "deleteLink",
+  "saveTodo",
+  "saveAvatar",
+  "register",
+  "verifyEmail",
+  "diagnosePeople",
+  "folderFiles",
+  "confirmDetails",
+  "editPost",
+  "deletePost",
+  "createCheckout",
+  "finalizePayment"
+ ],
+ "constants": {
+  "vars": {
+   "print_marks_per_page": "20",
+   "print_rate_per_page": "0.10",
+   "laminate_rate_per_page": 0.35,
+   "laminate_minimum": 0.5
+  }
+ },
+ "laws": [
+  {
+   "law_id": "L1",
+   "kind": "prefix",
+   "match": "#",
+   "colour": "blue",
+   "weight": "10",
+   "active": "yes"
   },
-  "features": [
-    "openWaitlist",
-    "claimChild",
-    "answerClaim",
-    "joinWaitlist",
-    "move",
-    "events",
-    "tabs",
-    "getProfile",
-    "listPeople",
-    "createJob",
-    "updateConfig",
-    "updatePricing",
-    "updateShop",
-    "deleteShopItem",
-    "updateTrip",
-    "addTrip",
-    "imageData",
-    "saveRoom",
-    "updateLink",
-    "addLink",
-    "deleteLink",
-    "saveTodo",
-    "saveAvatar",
-    "register",
-    "verifyEmail",
-    "diagnosePeople",
-    "folderFiles",
-    "confirmDetails",
-    "editPost",
-    "deletePost",
-    "createCheckout",
-    "finalizePayment"
-  ],
-  "constants": {
-    "vars": {
-      "print_marks_per_page": "20",
-      "print_rate_per_page": "0.10",
-      "laminate_rate_per_page": 0.35,
-      "laminate_minimum": 0.5
-    }
+  {
+   "law_id": "L2",
+   "kind": "prefix",
+   "match": "@",
+   "colour": "softblue",
+   "weight": "10",
+   "active": "yes"
+  }
+ ],
+ "kinds": [
+  {
+   "kind": "tutor",
+   "group": "people",
+   "label": "Tutors",
+   "order": 1,
+   "active": true,
+   "null": ""
   },
-  "laws": [
+  {
+   "kind": "venue",
+   "group": "places",
+   "label": "Venues",
+   "order": 2,
+   "active": true,
+   "null": ""
+  },
+  {
+   "kind": "receipt",
+   "group": "Booking",
+   "label": "Sessions",
+   "order": 3,
+   "active": true,
+   "null": ""
+  }
+ ],
+ "people": [
+  {
+   "person_id": "P001",
+   "role": "admin",
+   "full_name": "Test Admin",
+   "first_name": "Test",
+   "last_name": "Admin",
+   "listed": "yes",
+   "city": "London",
+   "headline": "Runs the place"
+  },
+  {
+   "person_id": "P002",
+   "role": "tutor",
+   "full_name": "Ada Tutor",
+   "first_name": "Ada",
+   "last_name": "Tutor",
+   "listed": "yes",
+   "city": "London",
+   "headline": "Maths and further maths, GCSE to A-Level",
+   "adjective_1": "patient",
+   "adjective_2": "clear",
+   "adjective_3": "quick"
+  }
+ ],
+ "tutors": [
+  {
+   "id": "P002",
+   "type": "tutor",
+   "role": "Tutor",
+   "titles": [
+    "Head of Boxing"
+   ],
+   "listed": true,
+   "title": "Ada Tutor",
+   "handle": "@ada",
+   "subtitle": "Maths and further maths, GCSE to A-Level",
+   "image": "",
+   "mediaUrl": "",
+   "tags": [
+    "Maths"
+   ],
+   "description": "Ten years of GCSE and A-Level maths.",
+   "rate": 30,
+   "dbs": true,
+   "detailsConfirmed": "04/02/2026",
+   "yrsExp": 10,
+   "minStudents": 1,
+   "maxStudents": 4,
+   "minHours": 1,
+   "maxHours": 3,
+   "extraSeat": 8,
+   "focus": [
+    "Maths"
+   ],
+   "xp": 0,
+   "credits": 0,
+   "highscore": 0,
+   "ttHighscore": 0,
+   "avail": [],
+   "busy": [],
+   "teaches": [
+    "Maths"
+   ],
+   "quals": [
+    "MMath"
+   ],
+   "extraQuals": "",
+   "studying": "Bible and Theology",
+   "studyingAt": "University of Wales Trinity Saint David",
+   "actionText": "Book this tutor",
+   "personId": "P-@ada"
+  }
+ ],
+ "students": [],
+ "clients": [],
+ "venues": [
+  {
+   "id": "V001",
+   "type": "venue",
+   "title": "Colliers Wood Library",
+   "borough": "Merton",
+   "city": "London",
+   "postcode": "SW19 2HR",
+   "lat": 51.4185,
+   "lng": -0.1774,
+   "focus": "Study room",
+   "subtitle": "Colliers Wood Library",
+   "image": "",
+   "link": "",
+   "description": "A quiet room above the lending floor.",
+   "bestRate": 12,
+   "actionText": "Book this room",
+   "tags": [
+    "quiet",
+    "step-free"
+   ],
+   "maxCapacity": 8,
+   "minCapacity": 1,
+   "minHours": 1,
+   "maxHours": 4,
+   "minNoticeDays": 2,
+   "comfort": "warm",
+   "rooms": [
     {
-      "law_id": "L1",
-      "kind": "prefix",
-      "match": "#",
-      "colour": "blue",
-      "weight": "10",
-      "active": "yes"
-    },
-    {
-      "law_id": "L2",
-      "kind": "prefix",
-      "match": "@",
-      "colour": "softblue",
-      "weight": "10",
-      "active": "yes"
+     "rowIndex": 2,
+     "name": "Room 1",
+     "rate": 12,
+     "concession": 0,
+     "min": 1,
+     "max": 8,
+     "notes": "",
+     "avail": []
     }
-  ],
-  "kinds": [
-    {
-      "kind": "tutor",
-      "group": "people",
-      "label": "Tutors",
-      "order": 1,
-      "active": true,
-      "null": ""
-    },
-    {
-      "kind": "venue",
-      "group": "places",
-      "label": "Venues",
-      "order": 2,
-      "active": true,
-      "null": ""
-    },
-    {
-      "kind": "receipt",
-      "group": "Booking",
-      "label": "Sessions",
-      "order": 3,
-      "active": true,
-      "null": ""
-    }
-  ],
-  "people": [
-    {
-      "person_id": "P001",
-      "role": "admin",
-      "full_name": "Test Admin",
-      "first_name": "Test",
-      "last_name": "Admin",
-      "listed": "yes",
-      "city": "London",
-      "headline": "Runs the place"
-    },
-    {
-      "person_id": "P002",
-      "role": "tutor",
-      "full_name": "Ada Tutor",
-      "first_name": "Ada",
-      "last_name": "Tutor",
-      "listed": "yes",
-      "city": "London",
-      "headline": "Maths and further maths, GCSE to A-Level",
-      "adjective_1": "patient",
-      "adjective_2": "clear",
-      "adjective_3": "quick"
-    }
-  ],
-  "tutors": [
-    {
-      "id": "P002",
-      "type": "tutor",
-      "role": "Tutor",
-      "titles": ["Head of Boxing"],
-      "listed": true,
-      "title": "Ada Tutor",
-      "handle": "@ada",
-      "subtitle": "Maths and further maths, GCSE to A-Level",
-      "image": "",
-      "mediaUrl": "",
-      "tags": [
-        "Maths"
-      ],
-      "description": "Ten years of GCSE and A-Level maths.",
-      "rate": 30,
-      "dbs": true,
-      "detailsConfirmed": "04/02/2026",
-      "yrsExp": 10,
-      "minStudents": 1,
-      "maxStudents": 4,
-      "minHours": 1,
-      "maxHours": 3,
-      "extraSeat": 8,
-      "focus": [
-        "Maths"
-      ],
-      "xp": 0,
-      "credits": 0,
-      "highscore": 0,
-      "ttHighscore": 0,
-      "avail": [],
-      "busy": [],
-      "teaches": [
-        "Maths"
-      ],
-      "quals": [
-        "MMath"
-      ],
-      "extraQuals": "",
-      "actionText": "Book this tutor",
-      "personId": "P-@ada"
-    }
-  ],
-  "students": [],
-  "clients": [],
-  "venues": [
-    {
-      "id": "V001",
-      "type": "venue",
-      "title": "Colliers Wood Library",
-      "borough": "Merton",
-      "city": "London",
-      "postcode": "SW19 2HR",
-      "lat": 51.4185,
-      "lng": -0.1774,
-      "focus": "Study room",
-      "subtitle": "Colliers Wood Library",
-      "image": "",
-      "link": "",
-      "description": "A quiet room above the lending floor.",
-      "bestRate": 12,
-      "actionText": "Book this room",
-      "tags": [
-        "quiet",
-        "step-free"
-      ],
-      "maxCapacity": 8,
-      "minCapacity": 1,
-      "minHours": 1,
-      "maxHours": 4,
-      "minNoticeDays": 2,
-      "comfort": "warm",
-      "rooms": [
-        {
-          "rowIndex": 2,
-          "name": "Room 1",
-          "rate": 12,
-          "concession": 0,
-          "min": 1,
-          "max": 8,
-          "notes": "",
-          "avail": []
-        }
-      ],
-      "fields": [],
-      "avail": []
-    }
-  ],
-  "jobs": [],
-  "liveJobs": [
-    {
-      "job_id": "J001",
-      "title": "GCSE Maths, Tuesday 4pm",
-      "subject": "Maths",
-      "level": "GCSE",
-      "venue": "Colliers Wood Library",
-      "price": "30",
-      "unit": "hour",
-      "seats": "3",
-      "taken": "1"
-    }
-  ],
-  "posts": [
-    {
-      "id": "PO1",
-      "author": "@family.",
-      "handle": "@family.",
-      "avatar": "",
-      "image": "",
-      "caption": "A very ordinary Tuesday at the library #maths",
-      "body": "",
-      "location": "Colliers Wood Library",
-      "when": "01/09/2026",
-      "at": 1788220800000,
-      "pinned": false,
-      "active": true,
-      "waiting": false,
-      "refused": false,
-      "approvedBy": "",
-      "poll": null,
-      "reactions": {
-        "👍": 3
-      },
-      "comments": {
-        "total": 3,
-        "list": [
-          {
-            "id": "CM1",
-            "name": "Ada Tutor",
-            "body": "Noah was so pleased with this.",
-            "at": "15/09/26 18:20",
-            "mine": false,
-            "canRemove": true
-          },
-          {
-            "id": "CM2",
-            "name": "Test Admin",
-            "body": "He worked hard for it.",
-            "at": "15/09/26 18:44",
-            "mine": true,
-            "canRemove": true
-          },
-          {
-            "id": "CM3",
-            "name": "Priya Parent",
-            "body": "Well done! Is the Saturday group still running in October, or does it stop at half term?",
-            "at": "15/09/26 19:02",
-            "mine": false,
-            "canRemove": false
-          }
-        ]
-      },
-      "rowIndex": 2
-    },
-    {
-      "id": "PO2",
-      "author": "Ada Tutor",
-      "handle": "@ada",
-      "avatar": "",
-      "image": "",
-      "caption": "Waiting on a check before this one goes up",
-      "body": "",
-      "location": "",
-      "when": "02/09/2026",
-      "at": 1788307200000,
-      "pinned": false,
-      "active": true,
-      "waiting": true,
-      "refused": false,
-      "approvedBy": "",
-      "poll": null,
-      "reactions": {},
-      "comments": {
-        "total": 0,
-        "list": []
-      },
-      "rowIndex": 3
-    }
-  ],
-  "shop": [],
-  "resources": [],
-  "messages": [],
-  "orders": [],
-  "exams": [],
-  "boxers": [],
-  "fights": [],
-  "cheatsheet": [],
-  "landmarks": [],
-  "favourites": [],
-  "festive": [],
-  "birthdays": [],
-  "gallery": [],
-  "spotlight": [],
-  "promotions": [],
-  "claims": [],
-  "validations": [],
-  "terms": [],
-  "trips": [],
-  "rooms": [],
-  "dropdowns": {
-    "subject": [
-      "Maths",
-      "English",
-      "Science"
-    ],
-    "level": [
-      "KS3",
-      "GCSE",
-      "A-Level"
+   ],
+   "fields": [],
+   "avail": []
+  }
+ ],
+ "jobs": [],
+ "liveJobs": [
+  {
+   "job_id": "J001",
+   "title": "GCSE Maths, Tuesday 4pm",
+   "subject": "Maths",
+   "level": "GCSE",
+   "venue": "Colliers Wood Library",
+   "price": "30",
+   "unit": "hour",
+   "seats": "3",
+   "taken": "1"
+  }
+ ],
+ "posts": [
+  {
+   "id": "PO1",
+   "author": "@family.",
+   "handle": "@family.",
+   "avatar": "",
+   "image": "",
+   "caption": "A very ordinary Tuesday at the library #maths",
+   "body": "",
+   "location": "Colliers Wood Library",
+   "when": "01/09/2026",
+   "at": 1788220800000,
+   "pinned": false,
+   "active": true,
+   "waiting": false,
+   "refused": false,
+   "approvedBy": "",
+   "poll": null,
+   "reactions": {
+    "👍": 3
+   },
+   "comments": {
+    "total": 3,
+    "list": [
+     {
+      "id": "CM1",
+      "name": "Ada Tutor",
+      "body": "Noah was so pleased with this.",
+      "at": "15/09/26 18:20",
+      "mine": false,
+      "canRemove": true
+     },
+     {
+      "id": "CM2",
+      "name": "Test Admin",
+      "body": "He worked hard for it.",
+      "at": "15/09/26 18:44",
+      "mine": true,
+      "canRemove": true
+     },
+     {
+      "id": "CM3",
+      "name": "Priya Parent",
+      "body": "Well done! Is the Saturday group still running in October, or does it stop at half term?",
+      "at": "15/09/26 19:02",
+      "mine": false,
+      "canRemove": false
+     }
     ]
+   },
+   "rowIndex": 2
   },
-  "multipliers": {},
-  "waitlistSeat": {
-    "Colliers Wood Library": { "perHour": 12, "perSession": 24, "seats": 4, "hours": 2 }
-  },
-  "intervals": [
-    {
-      "rel": "Current",
-      "term": "Autumn 1",
-      "label": "Autumn 1",
-      "kind": "term",
-      "weeks": 6,
-      "startDate": "01/09/2026",
-      "endDate": "18/10/2026",
-      "opensOn": "01/09/2026",
-      "closesOn": "18/10/2026",
-      "lastSun": "18/10/2026",
-      "dateFault": ""
-    }
+  {
+   "id": "PO2",
+   "author": "Ada Tutor",
+   "handle": "@ada",
+   "avatar": "",
+   "image": "",
+   "caption": "Waiting on a check before this one goes up",
+   "body": "",
+   "location": "",
+   "when": "02/09/2026",
+   "at": 1788307200000,
+   "pinned": false,
+   "active": true,
+   "waiting": true,
+   "refused": false,
+   "approvedBy": "",
+   "poll": null,
+   "reactions": {},
+   "comments": {
+    "total": 0,
+    "list": []
+   },
+   "rowIndex": 3
+  }
+ ],
+ "shop": [],
+ "resources": [],
+ "messages": [],
+ "orders": [],
+ "exams": [],
+ "boxers": [],
+ "fights": [],
+ "cheatsheet": [],
+ "landmarks": [],
+ "favourites": [],
+ "festive": [],
+ "birthdays": [],
+ "gallery": [],
+ "spotlight": [],
+ "promotions": [],
+ "claims": [],
+ "validations": [],
+ "terms": [],
+ "trips": [],
+ "rooms": [],
+ "dropdowns": {
+  "subject": [
+   "Maths",
+   "English",
+   "Science"
   ],
-  "columns": {},
-  "avatarItems": [],
-  "profileFields": {
-    "About you": [
-      "first_name",
-      "last_name",
-      "photo"
-    ],
-    "Where": [
-      "borough",
-      "city"
-    ],
-    "Your rate and group size": [
-      "rate_per_hour",
-      "extra_seat_rate",
-      "max_students",
-      "min_students"
-    ],
-    "When I can teach": [
-      "m09",
-      "m10",
-      "m11",
-      "m12",
-      "m13",
-      "m14",
-      "m15",
-      "m16",
-      "m17",
-      "m18",
-      "m19",
-      "tu09",
-      "tu10",
-      "tu11",
-      "tu12",
-      "tu13",
-      "tu14",
-      "tu15",
-      "tu16",
-      "tu17",
-      "tu18",
-      "tu19",
-      "w09",
-      "w10",
-      "w11",
-      "w12",
-      "w13",
-      "w14",
-      "w15",
-      "w16",
-      "w17",
-      "w18",
-      "w19",
-      "th09",
-      "th10",
-      "th11",
-      "th12",
-      "th13",
-      "th14",
-      "th15",
-      "th16",
-      "th17",
-      "th18",
-      "th19",
-      "f09",
-      "f10",
-      "f11",
-      "f12",
-      "f13",
-      "f14",
-      "f15",
-      "f16",
-      "f17",
-      "f18",
-      "f19",
-      "sa09",
-      "sa10",
-      "sa11",
-      "sa12",
-      "sa13",
-      "sa14",
-      "sa15",
-      "sa16",
-      "sa17",
-      "sa18",
-      "sa19",
-      "su09",
-      "su10",
-      "su11",
-      "su12",
-      "su13",
-      "su14",
-      "su15",
-      "su16",
-      "su17",
-      "su18",
-      "su19"
-    ],
-    "Library cards": [
-        "lib1_name",
-        "lib1_no",
-        "lib1_pin",
-        "lib2_name",
-        "lib2_no",
-        "lib2_pin",
-        "lib3_name",
-        "lib3_no",
-        "lib3_pin",
-        "library_note"
-      ]
-  },
-  "studentFields": [],
-  "clientFields": [],
-  "profileReadonly": [],
-  "termsAccepted": false,
-  "googleClientId": "",
-  "films": [
-    {
-      "id": "FX001",
-      "title": "A Film With A Deliberately Long Title For Measuring",
-      "year": "1998",
-      "kind": "film",
-      "audience": "adults",
-      "director": "A Director",
-      "lead": "A Lead Actor",
-      "seasons": "",
-      "url": "https://example.org/not-a-real-file",
-      "fileKind": "mkv",
-      "sizeGb": "1.90",
-      "placeholder": false,
-      "notes": ""
-    },
-    {
-      "id": "FX002",
-      "title": "A Series",
-      "year": "",
-      "kind": "series",
-      "audience": "kids",
-      "director": "",
-      "lead": "",
-      "seasons": "3",
-      "url": "https://example.org/not-a-real-folder",
-      "fileKind": "folder",
-      "sizeGb": "",
-      "placeholder": false,
-      "notes": "Season subfolders. An invented row: the fixture is public and holds nothing real."
-    },
-    {
-      "id": "FX003",
-      "title": "One Nobody Has Uploaded",
-      "year": "2007",
-      "kind": "film",
-      "audience": "adults",
-      "director": "A Director",
-      "lead": "A Lead",
-      "seasons": "",
-      "url": "",
-      "fileKind": "",
-      "sizeGb": "",
-      "placeholder": true,
-      "notes": "Asked for by name and not in the drive yet."
-    }
+  "level": [
+   "KS3",
+   "GCSE",
+   "A-Level"
   ]
+ },
+ "multipliers": {},
+ "waitlistSeat": {
+  "Colliers Wood Library": {
+   "perHour": 12,
+   "perSession": 24,
+   "seats": 4,
+   "hours": 2
+  }
+ },
+ "intervals": [
+  {
+   "rel": "Current",
+   "term": "Autumn 1",
+   "label": "Autumn 1",
+   "kind": "term",
+   "weeks": 6,
+   "startDate": "01/09/2026",
+   "endDate": "18/10/2026",
+   "opensOn": "01/09/2026",
+   "closesOn": "18/10/2026",
+   "lastSun": "18/10/2026",
+   "dateFault": ""
+  }
+ ],
+ "columns": {},
+ "avatarItems": [],
+ "profileFields": {
+  "About you": [
+   "first_name",
+   "last_name",
+   "photo"
+  ],
+  "Contact": [
+   "email",
+   "phone",
+   "date_of_birth"
+  ],
+  "Where": [
+   "borough",
+   "city"
+  ],
+  "Your rate and group size": [
+   "rate_per_hour",
+   "extra_seat_rate",
+   "max_students",
+   "min_students"
+  ],
+  "When I can teach": [
+   "m09",
+   "m10",
+   "m11",
+   "m12",
+   "m13",
+   "m14",
+   "m15",
+   "m16",
+   "m17",
+   "m18",
+   "m19",
+   "tu09",
+   "tu10",
+   "tu11",
+   "tu12",
+   "tu13",
+   "tu14",
+   "tu15",
+   "tu16",
+   "tu17",
+   "tu18",
+   "tu19",
+   "w09",
+   "w10",
+   "w11",
+   "w12",
+   "w13",
+   "w14",
+   "w15",
+   "w16",
+   "w17",
+   "w18",
+   "w19",
+   "th09",
+   "th10",
+   "th11",
+   "th12",
+   "th13",
+   "th14",
+   "th15",
+   "th16",
+   "th17",
+   "th18",
+   "th19",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14",
+   "f15",
+   "f16",
+   "f17",
+   "f18",
+   "f19",
+   "sa09",
+   "sa10",
+   "sa11",
+   "sa12",
+   "sa13",
+   "sa14",
+   "sa15",
+   "sa16",
+   "sa17",
+   "sa18",
+   "sa19",
+   "su09",
+   "su10",
+   "su11",
+   "su12",
+   "su13",
+   "su14",
+   "su15",
+   "su16",
+   "su17",
+   "su18",
+   "su19"
+  ],
+  "Library cards": [
+   "lib1_name",
+   "lib1_no",
+   "lib1_pin",
+   "lib2_name",
+   "lib2_no",
+   "lib2_pin",
+   "lib3_name",
+   "lib3_no",
+   "lib3_pin",
+   "library_note"
+  ]
+ },
+ "studentFields": [],
+ "clientFields": [],
+ "profileReadonly": [],
+ "termsAccepted": false,
+ "googleClientId": "",
+ "films": [
+  {
+   "id": "FX001",
+   "title": "A Film With A Deliberately Long Title For Measuring",
+   "year": "1998",
+   "kind": "film",
+   "audience": "adults",
+   "director": "A Director",
+   "lead": "A Lead Actor",
+   "seasons": "",
+   "url": "https://example.org/not-a-real-file",
+   "fileKind": "mkv",
+   "sizeGb": "1.90",
+   "placeholder": false,
+   "notes": ""
+  },
+  {
+   "id": "FX002",
+   "title": "A Series",
+   "year": "",
+   "kind": "series",
+   "audience": "kids",
+   "director": "",
+   "lead": "",
+   "seasons": "3",
+   "url": "https://example.org/not-a-real-folder",
+   "fileKind": "folder",
+   "sizeGb": "",
+   "placeholder": false,
+   "notes": "Season subfolders. An invented row: the fixture is public and holds nothing real."
+  },
+  {
+   "id": "FX003",
+   "title": "One Nobody Has Uploaded",
+   "year": "2007",
+   "kind": "film",
+   "audience": "adults",
+   "director": "A Director",
+   "lead": "A Lead",
+   "seasons": "",
+   "url": "",
+   "fileKind": "",
+   "sizeGb": "",
+   "placeholder": true,
+   "notes": "Asked for by name and not in the drive yet."
+  }
+ ]
 }

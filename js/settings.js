@@ -52,7 +52,8 @@
    than a second one beside it, which is the `documents_()` / `factsNow_` argument again. */
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts', 'settings/splashes', 'settings/links',
-                       'settings/campaigns', 'settings/copy', 'settings/columns'];
+                       'settings/campaigns', 'settings/copy', 'settings/columns',
+                       'settings/spotlight'];
 
 /* `norm` on the backend. Kept private rather than borrowed, because `settings.js` loads before
    `find.js` and a mapping that works only once the funnel has loaded is a mapping that breaks on
@@ -246,6 +247,23 @@ function settingsInto_(d, extra) {
        on — "a spreadsheet should not be able to make the app unusable by being blank" — so handing
        it `[]` would be relying on that guard rather than on this being right. */
     if (live.length) d.columns = live;
+  }
+
+  /* ---------- THE SHOP WINDOW'S FLOOR, AND IT IS `spotlightFile` RATHER THAN `spotlight` ----------
+     THE ONE TAB HERE THAT DOES NOT WIN. Every other file in this function is the authority because
+     nothing writes to its tab; the spotlight tab is written by an admin from the phone, so a file
+     that overwrote `d.spotlight` would silently throw away every tap. It goes to a key of its own
+     and `spotNow_` in js/collections.js decides — sheet first, this as the fall-through — which is
+     `factsNow_`'s rule stated per list.
+
+     SHIPPED EMPTY, deliberately. What a business promotes is a judgement, and an invented default
+     would be the app choosing it. The column says what to do instead, and the owner filling one
+     row in here puts something in the window with no backend and no deploy. */
+  const spot = extra['settings/spotlight'];
+  if (spot && spot.length) {
+    d.spotlightFile = spot
+      .filter(r => libS(r.item_id) && libOn(r.on))
+      .map(r => libS(r.item_id));
   }
 
   return d;

@@ -382,6 +382,33 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page' },
 
+    /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
+       `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
+       birth at all — the fourth time that file has been found stating a shape `doGet` does not
+       send, after `focus` as a string, the receipt's `sessionDates` against `dates`, and the job's
+       `students` and `venue`. `PROFILE_GROUPS` has had `['email','phone','date_of_birth']` since it
+       was written; the fixture has it now too, in the same place.
+
+       EXACTLY THREE, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding one box
+       passes a bare count — and one box is precisely what the version before this drew. The number
+       IS the assertion, which is the same reason the pricing state counts to four.
+
+       FOUND BY ASKING THE DOM, like every other state on this column: `settingsPages_`'s length
+       varies with what the backend sends, so a literal page number drifts the moment a deployment
+       sends one group fewer. */
+    { name: 'a date of birth',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="dob_d"]'));
+        if (at < 0) throw new Error('no date-of-birth page on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => (document.querySelectorAll('#s-settings .page.on .dob-boxes [data-me]').length === 3
+                     && document.querySelectorAll('#s-settings .page.on [data-me="date_of_birth"]').length === 0
+                     ? 3 : 0),
+      wants: 'three date-of-birth boxes and no fourth box for the column itself' },
+
     { name: 'the wardrobe',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -455,6 +482,37 @@ const STATES = {
         });
         paint('saved');
       } },
+  ],
+
+  /* ---------- THE SHOP WINDOW, EMPTY AND FULL, AND THE EMPTY ONE IS TWO DIFFERENT CARDS --------
+     `check/fixture.json` SENDS `spotlight: []`, so the unnamed state below is the empty column —
+     and it is not one card but two, because the sentence an ADMIN is shown says how to fill it and
+     the one everybody else is shown says what the column is for. Both are measured, because the
+     unnamed state runs for both visitors.
+
+     SEEDED THROUGH THE PAYLOAD AND `adoptSpotlight_`, which is the app's own door: `DATA.spotlight`
+     is what the backend sends and that function is the only thing that reads it. Poking `SPOT`
+     directly would measure a shape `doGet` does not send, which is the fixture fault this file has
+     now been caught committing four times.
+
+     TWO KEYS OFF `stuffItemsAll_()` RATHER THAN A LITERAL. A key written in here is a key that goes
+     stale the moment the fixture changes, and the column's whole job is to draw the cards those
+     keys name — a state that seeds a key nothing matches measures the EMPTY column while claiming
+     to measure the full one. */
+  spotlight: [
+    { name: '' },
+    { name: 'two things in the window',
+      enter: () => {
+        DATA.spotlight = stuffItemsAll_().slice(0, 2).map(x => x.key);
+        adoptSpotlight_();
+        paint('spotlight');
+      },
+      expect: () => document.querySelectorAll('#s-spotlight .page').length,
+      wants: 'a page per spotlit thing',
+      /* STATES RUN IN ORDER DOWN ONE PAGE, so what this wrote has to go — left behind, the empty
+         column would never be measured again on this run and Saved would be measured with a
+         payload key nothing else expects. */
+      leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
   tools: [

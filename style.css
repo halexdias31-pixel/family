@@ -640,7 +640,13 @@ input, select, textarea {
 textarea { min-height: 5.8rem; resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
-label.field > span {
+/* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. A date of birth is three boxes under one
+   caption, and `fieldHtml`'s own `<span>` is INSIDE the `<label>` so it cannot draw one over a row
+   — but a second rule saying the same six declarations is six chances to drift, and the first
+   version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
+   claiming it matched this. One selector, one caption style, and the row reads as one more field
+   down the same column because it IS one. */
+label.field > span, .dob-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
@@ -694,6 +700,48 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    library cards inside a 568px phone. */
 .me-said { margin: .6rem 0 0; }
 .me-said:empty { margin: 0; }
+
+/* ---------- A DATE OF BIRTH IS ONE QUESTION IN THREE BOXES --------------------------------------
+   ONE CAPTION OVER THE ROW, WHICH IS THE ONE THING `fieldHtml` CANNOT DRAW. Its `<span>` is inside
+   the `<label>`, so it is per box — three captions reading `day`, `month`, `year` under a group
+   called `Contact` is three questions where there is one. The library shelf gets away with no
+   caption at all because its group IS "Library cards"; this group names three fields between them
+   and does not name this one.
+
+   IT JOINS `label.field > span` RATHER THAN RESTATING IT — see the note up there. The row has to
+   read as one more field down the same column, and the only way to be sure of that is for the two
+   to be one declaration.
+
+   THE BOXES ARE SIZED BY WHAT GOES IN THEM: two digits, two digits, four. `max-content` would
+   resolve against an `<input>`'s own idea of itself — about twenty characters, which is the fault
+   the library shelf paid for when a `Library` box came out 4px wide beside a 250px PIN. So the
+   track is stated in `ch` of the box's own font, and `min-width: 0` lets a narrow phone shrink it
+   rather than pushing the card sideways.
+
+   `margin-bottom: 0` ON THE BOXES AND THE MARGIN ON THE ROW, for the reason written over the
+   shelf: `label.field`'s own `.75rem` is sized for a column of captioned boxes read one at a time,
+   and three of them side by side would put that gap under a row that is one thing. */
+.dob-row { margin-bottom: .75rem; }
+/* ---------- THE TRACKS HOLD THE DIGITS **AND** THE INPUT'S OWN PADDING ---------------------------
+   `6ch` CLIPPED `1985` TO `198`, and nothing measured it wrong: the box was exactly 6ch wide and
+   the text inside it was not. Every input in this stylesheet carries `.7rem .75rem`, so about 22px
+   of a box is gone before a digit is drawn — the track has to be the content plus that, or the
+   fourth digit is outside a box that reports itself the size it was asked for. Same shape as the
+   library shelf's `max-content` track resolving against an input's own idea of itself. */
+/* ---------- AND A 44px FLOOR IN `px`, BECAUSE A DAY BOX IS A FINGERTIP -------------------------
+   `calc(2ch + 1.9rem)` IS 41.5px AT 320 and `check/ui.js` named it on the first run that had this
+   row on a screen — two digits plus the input's own padding lands just under the floor, which is
+   the same near-miss `.btn.tiny` records where `max(38px, 2.3rem)` never once chose the rem.
+   IN `px`, WHICH IS THIS STYLESHEET'S EIGHTH CONVICTION OF THAT RULE after `.btn.tiny`,
+   `.post-act`, `.fm-adds label`, the chips, `.qp-check`, the reel's sound button and `.cal-arrow`:
+   a fingertip is the same size on every screen, so the one measurement here that must not scale is
+   the one the root font was about to scale. The year keeps its own track — it is already 57px and
+   a floor it clears changes nothing. Measured at 320: 44 + 44 + 57.3 and two 6.75px gaps is 158.8
+   inside a 243.9px card, so nothing is given up for it. */
+.dob-boxes { display: grid;
+  grid-template-columns: repeat(2, max(44px, calc(2ch + 1.9rem))) calc(4ch + 1.9rem); gap: .5rem; }
+.dob-boxes label.field { margin-bottom: 0; min-width: 0; }
+.dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
 .lib-row label.field, .lib-row input { min-width: 0; }
 /* THE MARGIN COMES OFF THE ROW'S OWN CHILDREN, because the row is what separates them now. The
@@ -5384,14 +5432,40 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   border-top: 2px dashed #b9b1a0;
   margin: 0 -.9rem;
 }
+/* ---------- THE BITES SIT INSIDE THE LINE NOW, AND THE REASON IS A CORRECTION ------------------
+   `right: -6px` PUSHED THE CARD'S OWN `scrollWidth` BY SIX PIXELS. An absolutely positioned child
+   sticking out to the RIGHT enters its ancestor's scroll width; one sticking out to the LEFT does
+   not — which is why only one of these two dots was ever a fault, and it is the same asymmetry the
+   booking week's joined-hours bridge already paid for and is written up over `.hr`.
+
+   INVISIBLE FOR AS LONG AS IT HAS EXISTED, because nothing had ever laid a venue card out. It is
+   drawn by `findCard` behind the funnel, so `check/ui.js` only ever stopped on one by luck — the
+   Spotlight column is the first screen that puts one in front of the lab on every run. Same shape
+   as the practical card measured 19px past its column the day something finally laid all 82 out.
+
+   ---------- AND A `translateX` DOES NOT HIDE IT, WHICH IS A CORRECTION TO THIS FILE -------------
+   THE FIX WRITTEN FIRST WAS `right: 0; transform: translateX(50%)`, on the strength of the entry
+   this repository carries about `.mat-out`: "a transform is invisible to `scrollWidth`". Measured,
+   it moved nothing — 265 against a 259px box, before and after. That sentence is true of a `scale`
+   that makes something SMALLER, which is the case it was written about: the layout box stays big
+   while the paint shrinks, so `scrollWidth` OVER-reports. The scrollable overflow region is built
+   from descendants' TRANSFORMED boxes, so a translate to the right is counted exactly as the
+   negative offset was. Two wrong fixes came out of misreading that entry once already; this is the
+   third, caught by measuring rather than by trusting the sentence.
+
+   SO THE DOTS SIT AT THE LINE'S OWN ENDS. `.slip-perf` already carries `margin: 0 -.9rem`, so its
+   ends ARE the card's padding edge — a bite taken there still reads as the tear being cut by the
+   edge of the ticket, which is what the note above asks for. What it costs is six pixels of black
+   that used to fall in the gutter between cards, and what it buys is a card that does not ask to
+   scroll. */
 .slip-perf::before, .slip-perf::after {
   content: '';
   position: absolute; top: -7px;
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--bg, #000);
 }
-.slip-perf::before { left: -6px; }
-.slip-perf::after  { right: -6px; }
+.slip-perf::before { left: 0; }
+.slip-perf::after  { right: 0; }
 
 .slip-stub {
   display: flex; justify-content: space-between; align-items: center;

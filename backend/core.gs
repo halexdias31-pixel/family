@@ -948,6 +948,78 @@ function libCardsIn(fields) {
   return items.join('|');
 }
 
+/* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK ----------------------------------------------
+   `libCardsOut` / `libCardsIn` ONE CELL ALONG, degenerate to a single value. The reason it is the
+   same shape rather than three columns is the reason written over `LIBRARY_FIELDS` and over
+   `images` and `needs` before it: a column per box is a schema change in the data, the mapping, the
+   renderer and the check, and this cell already exists and is already read by four things.
+
+   `sheetDate` RATHER THAN SPLITTING THE STRING, and that is what repairs a live fault on the way
+   past. Sheets stores a date typed into a spreadsheet as a real Date, and `profileOf_` sent it with
+   `S(r.date_of_birth)` — so the box rendered `Sun Sep 15 1985 00:00:00 GMT+0100 (British Summer
+   Time)`, the `S(c.said_on)` fault this repository records for comment timestamps, on a field
+   somebody is expected to edit. Going through `sheetDate` means a real Date and a `dd/mm/yyyy`
+   string both come apart correctly, and the box gets a number either way.
+
+   BLANK IS BLANK. All three empty writes an empty cell rather than `//`, so clearing a birthday
+   clears it. A PARTIAL is refused rather than written — see `dobRefusal_` — because `15//1985` is
+   `null` to `sheetDate`, which is a birthday that vanishes off the calendar with nothing anywhere
+   saying why. */
+function dobOut(cellValue) {
+  /* ---------- A REAL DATE, OR THE ONE WRITTEN FORM — AND NOTHING ELSE --------------------------
+     `sheetDate` ENDS IN `new Date(t)`, WHICH IS FAR TOO WILLING. Measured: `sometime in 85` comes
+     back as 1 January 1985 — not null, a real Date — so calling it here and trusting the answer
+     would draw a confident wrong birthday into three boxes, and the next Save would write it. That
+     is the `parseWhen` fault one file along, where an unanchored branch matched first and read
+     `2026-09-15` as 26 September 2015.
+
+     SO THIS ASKS THE NARROW QUESTION ITSELF: a real Date object, which is what Sheets stores, or a
+     string of the exact shape this app writes. Anything else is somebody's own typing and is KEPT
+     rather than blanked — silently emptying a cell because a function could not read it is how a
+     birthday is lost by opening a form. The day box carries it, so it is visible and editable.
+     `sheetDate` is still the authority on what a date MEANS; what it is not is a test of whether
+     a string is one. */
+  const d = (cellValue instanceof Date && !isNaN(cellValue)) ? cellValue
+          : (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}$/.test(S(cellValue)) ? sheetDate(cellValue) : null);
+  if (!d) return { dob_d: S(cellValue), dob_m: '', dob_y: '' };
+  return { dob_d: String(d.getDate()), dob_m: String(d.getMonth() + 1), dob_y: String(d.getFullYear()) };
+}
+
+function dobIn(fields) {
+  const n = v => S(v).replace(/[^0-9]/g, '');
+  const d = n(fields.dob_d), m = n(fields.dob_m), y = n(fields.dob_y);
+  if (!d && !m && !y) return '';
+  return ('0' + d).slice(-2) + '/' + ('0' + m).slice(-2) + '/' + y;
+}
+
+/* ---------- AND WHY IT MAY NOT BE WRITTEN, AS A SENTENCE --------------------------------------
+   BESIDE `handleRefusal` AND `pricingRefusal_` IN SHAPE, and for their reason: a rule written
+   inline in `updateProfile` is a rule nothing can run. It returns the sentence rather than a
+   boolean, because "fill in all three" and "there is no 31st of February" are different things to
+   be told and a person given the wrong one argues with the wrong thing.
+
+   A PARTIAL IS THE ONE THAT MATTERS. `15//1985` and `15/9/` are both `null` to `sheetDate`, so
+   without this the birthday disappears from the calendar and the form says Saved — this
+   repository's oldest shape, on the one field somebody only fills in once. */
+function dobRefusal_(fields) {
+  const n = v => S(v).replace(/[^0-9]/g, '');
+  const d = n(fields.dob_d), m = n(fields.dob_m), y = n(fields.dob_y);
+  if (!d && !m && !y) return '';                       // clearing it is allowed
+  if (!d || !m || !y) return 'A date of birth needs all three boxes — day, month and year.';
+  if (y.length !== 4) return 'Write the year in full, like 1985.';
+  const dd = Number(d), mm = Number(m), yy = Number(y);
+  if (mm < 1 || mm > 12) return 'There is no month ' + mm + '.';
+  /* THE REAL LENGTH OF THAT MONTH IN THAT YEAR, which is what makes 29/02 right in 2024 and wrong
+     in 2023. `new Date(y, m, 0)` is the last day of month `m`, and it is built from numbers rather
+     than from a string so nothing has to guess at a format. */
+  const last = new Date(yy, mm, 0).getDate();
+  if (dd < 1 || dd > last) return 'There is no ' + dd + '/' + ('0' + mm).slice(-2) + ' in ' + yy + '.';
+  const when = new Date(yy, mm - 1, dd);
+  if (when.getTime() > Date.now()) return 'That is in the future.';
+  if (yy < 1900) return 'Check the year.';
+  return '';
+}
+
 /** A sheet date, however it's stored. A real Date, or dd/mm/yyyy text — never mm/dd, which is
     what new Date() assumes and why "25/10/2026" parsed as an invalid month 25 and silently
     became zero sessions. */

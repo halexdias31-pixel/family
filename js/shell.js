@@ -105,6 +105,7 @@ const TABS = [
      duplicate that one was. APPENDED, because this table is append-only — `AT` is remembered by id
      and the X axis clamps by index. `TAB_ORDER` is what puts it last. */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
+  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
   /* ---------- AND YOUR SETTINGS, AT THE FAR END ----------------------------------------------
      ASKED FOR AS "account setting should appear in a new column by itself. For now make that new
      column at the end." It was one sheet off a tile on your own account card; see `settingsPages_`
@@ -135,6 +136,7 @@ const TABS = [
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
 const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+                   'spotlight',
                    'settings'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
@@ -1315,6 +1317,10 @@ const PAGER = {
      disagreement is what made the You column unmovable. `savedCards_` answers with one card when
      there is nothing kept, so this is never nought over a page that exists. */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
+  /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is
+     a page, and a count of nothing over a page that exists is a column you cannot be on. Same
+     reason `reelPages_` answers one when there are no clips. */
+  spotlight: () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1),
   /* AND THE SAME AGAIN FOR SETTINGS. `settingsPages_` is the list `screen('settings')` draws, so
      there is one answer to how many pages there are. It is never nought: signed out it returns the
      one card that says to sign in, which is a page somebody has to be able to be on. */
@@ -1358,8 +1364,13 @@ const PAGER = {
   /* `.concat(USER ? [''] : [])` WAS HERE, COUNTING THE ＋ CARD. That card is gone from the feed —
      it was drawn there AND as the column to its left, one swipe apart, which is the duplicate you
      could see. Counting a page that is no longer built pages once past the end onto nothing. */
-  feed:   () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
-    .concat((DATA.festive || []).map(() => ''))
+  /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT ------------
+     IT COUNTED A GROUP `postsBlocks` HAS NOT BUILT SINCE SPOTLIGHT LEFT THE FEED — the fault the
+     note directly above records about the ＋ card, on the very next line, unfixed. Invisible for as
+     long as it has existed only because `spotPages()` was measurably always empty: `doGet` sent no
+     `DATA.spotlight` and there was no handler to write one. It becomes a real over-count the moment
+     anything is spotlit, which is a page number at the end of the feed with nothing on it. */
+  feed:   () => (DATA.festive || []).map(() => '')
     .concat(feedPosts().map(() => '')),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY -----------
      IT WAS THE ONE COLUMN THE DIAL DID NOTHING ON. `paint` does `classList.toggle('paged',
@@ -1410,7 +1421,15 @@ const PAGER = {
      to be counted was real work on the path every tap goes down. `pageCount` takes either.
      NO `Basket` HERE ANY MORE — it is on the Booking column now, and this count has to match what
      `screen('stuff')` actually builds or the pager and the screen disagree. */
-  stuff:  () => 1 + bookingPages_().length + stuffPageCount(),
+  /* ---------- THE SAME GROUPS `screen('stuff')` BUILDS FROM, WHICH IS THIS TABLE'S OWN RULE ------
+     IT COUNTED `bookingPages_()` WHERE THE SCREEN DRAWS `frontPages_()`, and `frontPages_` is
+     `bookingPages_` CONCAT `feedPages_` — so every saved-feed page was a page this dial did not
+     know about. It also did not count `spotPages()`, which the screen had at the front until that
+     list became a column of its own. Two undercounts, both meaning the tail of the column cannot be
+     reached, and both invisible because the two groups are empty on the fixture.
+     `frontPages_` is asked rather than its halves added up, for the reason every other entry here
+     gives: a pager that counts for itself is a pager that can disagree with its own screen. */
+  stuff:  () => 1 + frontPages_().length + stuffPageCount(),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -1529,7 +1548,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0 };
+               saved: 0, settings: 0, spotlight: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.

@@ -551,12 +551,48 @@ function cameraCard() {
     </div>
     <p class="faint" id="cam-said"></p>
 
-    ${/* ---------- `Write a post` WAS HERE AND IS GONE ON REQUEST ---------------------------------
-          IT WAS THE ONLY DOOR TO `on('new-post')`, so that handler and the composer behind it are
-          now unreachable — working code with nothing to open it. Left in place rather than deleted:
-          it is a whole feature, and where a composer belongs is a decision about the app rather than
-          a tidy-up to make on the way past. `check-doors.js` reports it as a handler waiting for a
-          button, which is exactly what it is and exactly what that check is for. */''}
+    ${/* ---------- `Write a post` WAS HERE, WENT ON REQUEST, AND IS A TILE NOW -------------------
+          IT WAS THE ONLY DOOR TO `on('new-post')` and taking it away left that handler and the
+          whole composer behind it unreachable — working code with nothing to open it, reported by
+          `check-doors.js` as its single finding ever since. This repository's second-oldest shape,
+          and the note here was right to keep the code: the composer is the folder picker that draws
+          the posts folder as thumbnails, the link box that takes a Drive URL, the location, the
+          poll. All of it built, none of it openable.
+
+          IT IS BACK BECAUSE IT IS THE ANSWER TO A DIFFERENT ASK: *"i would like to add more photos
+          to my portfolio"*, with Drive links. There is no portfolio surface in this app — measured,
+          zero occurrences of the word — and the nearest honest reading of "my portfolio" is the
+          feed, which is a column of photographs with captions. Adding a twelfth column that drew
+          the same Drive folder the feed already draws would be a surface where a door was missing.
+
+          A TILE RATHER THAN THE OLD `.btn`. The house style decides it: the camera card is a THING
+          you are pointing, its controls are already a row of glyphs, and a full-width gold slab
+          reading "Write a post" under a shutter is the `.reel-sound` correction one screen along.
+          It sits beside `Photos` and the shutter, which is where the other two ways of getting a
+          picture onto the feed already are.
+
+          AND THE THREE ASKED-FOR IMAGES NEED NOTHING ELSE. A Drive link pasted into the composer's
+          own box lands in the posts SHEET rather than in this repository — which is the half that
+          matters, because the folder is `anyone: reader` and the file ids ARE the protection.
+          `pic()` turns it into `lh3.googleusercontent.com/d/<id>=w1200`, and lh3 TRANSCODES: the
+          `.HEIC` of the three renders on every browser through it, where the raw file is a broken
+          image everywhere but Safari. */''}
+    ${/* ---------- A LABELLED BUTTON, BECAUSE A LONE GLYPH HERE IS AN ORPHAN --------------------
+          IT WAS A TILE FIRST AND A SCREENSHOT REFUSED IT. `tile_` puts the word in `title` and
+          `aria-label` and draws the glyph alone — a recorded decision, and right in a ROW of tiles
+          under a thing, where the neighbours give it context. One tile on its own under a
+          viewfinder is a 44px pencil at the bottom-left corner of the card with nothing beside it,
+          which reads as "edit the photograph" rather than as the other way to post. Nothing
+          measured wrong: 44x44, no overflow, contrast fine.
+
+          SO IT IS A BUTTON, WHICH THE HOUSE STYLE ALREADY DECIDES. A camera card is a THING and
+          gets tiles; what this opens is a FORM — the composer, with a link box, a caption, a
+          location and a poll — and a form's own opener is a button with the words on it.
+
+          `quiet` RATHER THAN THE GOLD `.btn`, which is the `.reel-sound` correction and the
+          Messages `Refresh` one: gold is the one thing to press, and over a live viewfinder the
+          one thing to press is the shutter. */''}
+    <button class="btn quiet" data-do="new-post">Write a post</button>
   </div>`;
 }
 

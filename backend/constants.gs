@@ -168,6 +168,10 @@ const WHERE = {
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
+  /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
+     2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
+     runtime. `data/settings/spotlight.json` is the FLOOR beneath it — see `spotNow_`. */
+  spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY ------------
      THE OWNER'S OWN SENTENCE WAS "i dont want people to be able to see them", and CLAUDE.md's
      first question about where a thing lives answers it before any of the others get a turn: is
@@ -222,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-26-a-sign-in-by-email";
+const BACKEND_VERSION = "2026-09-26-c-dob-and-quals";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -250,6 +254,8 @@ const TAB = {
   /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
+  /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
+  spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
      their SCHEMA entries used to be. */
   /* Which loading splashes are in the pool — see SCHEMA.splashes. */
@@ -364,6 +370,32 @@ const SCHEMA = {
     "teaches_2", "teaches_2_level", "qual_1", "qual_1_level",
     "qual_1_grade", "qual_2", "qual_2_level", "qual_2_grade",
     "qual_3", "qual_3_level", "qual_3_grade", "extra_quals",
+    /* ---------- WHICH BOARD IT WAS, AND WHAT YOU ARE STUDYING NOW --------------------------------
+       ASKED FOR AS *"i want to update my qualifications. I have a B in a level maths edexcel. also
+       i am currently studying bible and theology at university of st david wales. is there a place
+       to list this?"* — and the honest answer to that last question was NO, twice over.
+
+       THE BOARD HAD NOWHERE TO GO. A qualification is subject, level and grade; "Edexcel" is none
+       of those, and `qual_N_level` is a closed dropdown so it could not be typed in there either.
+       THREE COLUMNS RATHER THAN ONE LIST, and that is the existing fault continued rather than
+       repaired: `qual_1/2/3` IS the numbered-column shape `images` and `needs` are written against,
+       and folding all three into one list column is a migration of live cells plus every reader —
+       `doget.gs`'s join, the three form groups, `OPTION_FOR`, `PROFILE_EDITABLE`. Worth doing; not
+       worth doing on the way past an ask about one person's A-level. The cost is named here so the
+       next reader knows it was a choice.
+
+       AND "CURRENTLY STUDYING" IS A DIFFERENT FACT FROM A QUALIFICATION, which is why it is not a
+       fourth qual. A qualification has a GRADE and is finished; a degree in progress has neither,
+       so filing it as `qual_4` with an empty grade would say somebody holds something they do not.
+       `extra_quals` is free text and would have buried it.
+
+       TWO COLUMNS RATHER THAN ONE, BECAUSE OF A COMMA. "Bible and Theology, University of Wales
+       Trinity Saint David" in one cell is one fact with a comma in it, and `profList_` splits a
+       comma cell into a list — which is exactly the fault the practicals paid for when 14 of 410
+       equipment cells held a comma inside one item. The subject and the place are two facts, so
+       they are two cells and the card joins them with the word "at". */
+    "qual_1_board", "qual_2_board", "qual_3_board",
+    "studying", "studying_at",
     "availability", "xp", "credits", "high_score_flappy",
     "high_score_tables", "friends", "notepad", "todo", "ticks_1",
     "ticks_2", "ticks_3", "children",
@@ -1160,6 +1192,27 @@ const SCHEMA = {
     "at",
   ],
 
+  /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT -----------------
+     A FAVOURITE IS A STATEMENT ABOUT YOU AND A SPOTLIGHT IS A STATEMENT ABOUT THE BUSINESS, which
+     is the one difference and it is the whole difference: no `person_id`, one list, the same list
+     on every phone, and only an admin may change it. `js/collections.js` has said exactly that at
+     the top of the file since spotlight was written.
+
+     `on` RATHER THAN DELETING THE ROW, which is the opposite of what `favourite` does and is
+     deliberate. An unfavourite leaves nothing anybody wants a history of; an admin taking something
+     out of the shop window is a decision about what the business promotes, and `who` and `at`
+     beside it say who made it and when. It is also what lets the sheet be the authority the moment
+     it holds ANY row — see `spotNow_` in js/collections.js: with rows deleted, an admin who had
+     cleared the window would fall back to the file's list and the thing would come back.
+
+     FILLED IN BY `spotlight` IN dopost.gs. Nothing else writes it. */
+  spotlight: [
+    "spot_id",
+    /* The same two the tile sends: a key whole, and what kind of thing it names. */
+    "kind", "item_id",
+    "on", "who", "at",
+  ],
+
   /* ---------- A CAMPAIGN IS A DESIGN AND A SCHEDULE, AND IT WAS ONLY EVER THE SCHEDULE -----------
      This tab said WHEN to run each campaign and nothing about what it says. The words lived in
      `FLY_ROWS`, an array in flyer.js — eleven campaigns, headline and paragraph and colours, all
@@ -1602,6 +1655,36 @@ const LIBRARY_FIELDS = (() => {
    is a second chance for one of them to stop recognising a field — the `isTimetable_` argument
    one file along. */
 const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
+
+/* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK -------------
+   ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
+   method."* It was ONE plain text box — `fieldHtml` emits `<input data-me="date_of_birth">` with no
+   type, no inputmode, no placeholder and no caption beyond `date of birth` — so what reached the
+   cell was whatever string somebody typed, with nothing anywhere saying which way round the first
+   two numbers go.
+
+   WHY NOT `type="date"`, WHICH IS THE OBVIOUS "BEST PRACTICE": a birth year is forty years of iOS
+   spinner from a picker that opens on today; its `.value` is ISO only, which is the one format that
+   reaches `sheetDate` through the `new Date(t)` fall-through rather than the anchored branch; it
+   ignores `inputmode` and `maxlength`; and it draws its own chrome that this stylesheet cannot
+   reach, on a black-and-gold app — the argument this repository already makes about Drive's own
+   `/preview` player. What it would have bought is a free calendar, free `autocomplete="bday"` and
+   free rejection of an impossible date, and the last of those is what `dobRefusal_` replaces.
+
+   `dd/mm/yyyy` WITH A FOUR-DIGIT YEAR IS THE ONE FORMAT THE CELL ALREADY SPEAKS, measured against
+   `sheetDate`: `15/09/1985` reads correctly through the anchored branch; `09/15/1985` becomes
+   **1986-03-09**, silently wrong rather than null; and `15/09/85` becomes **2085**, because the
+   two-digit rule below is `2000 + n` — right for a booking and useless for a birthday. So the boxes
+   emit exactly what `fmtDate` already emits, and the year box takes four digits.
+
+   `dob_y` RATHER THAN `dob_year`, and that is not arbitrary: `FIELD_IS_NUMERIC` in js/resource.js
+   matches `pages|year|students`, so a field called `dob_year` would pick up an `inputmode` the
+   other two boxes do not have and two of the three would differ by accident of a regex written for
+   something else. */
+const DOB_FIELDS = ['dob_d', 'dob_m', 'dob_y'];
+/* ONE TEST, EVERY READER — the `LIBRARY_FIELD` argument, and for the same three jobs: keeping these
+   three out of the column check, out of `wanted`, and out of what `profileOf_` reads as a column. */
+const DOB_FIELD = /^dob_[dmy]$/;
 const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
@@ -1912,9 +1995,13 @@ const PROFILE_GROUPS = {
   'Where you are': ['address', 'postcode'],
   'Yours':       ['favourite_colour'],
   'What you teach': ['teaches_1','teaches_1_level','teaches_2','teaches_2_level'],
-  'Qualification 1': ['qual_1','qual_1_level','qual_1_grade'],
-  'Qualification 2': ['qual_2','qual_2_level','qual_2_grade'],
-  'Qualification 3': ['qual_3','qual_3_level','qual_3_grade'],
+  'Qualification 1': ['qual_1','qual_1_level','qual_1_board','qual_1_grade'],
+  'Qualification 2': ['qual_2','qual_2_level','qual_2_board','qual_2_grade'],
+  'Qualification 3': ['qual_3','qual_3_level','qual_3_board','qual_3_grade'],
+  /* AFTER THE THREE, because it is the one that is not finished. A page of its own rather than a
+     fourth box on Qualification 3 — `settingsPages_` maps each key here onto its own card with its
+     own Save, and a thing you are still doing is not part of a thing you have done. */
+  'Studying now': ['studying','studying_at'],
   'More qualifications': ['extra_quals'],
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
@@ -1961,6 +2048,10 @@ const FIELD_OPTIONS = {
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',
+  /* THE SAME LIST THE LIBRARY'S OWN `exam_board` FACET IS FILLED FROM — one list, so a tutor's
+     A-level and a past paper cannot end up with two spellings of Edexcel, which is the whole
+     argument written over this object. */
+  qual_1_board: 'exam_board', qual_2_board: 'exam_board', qual_3_board: 'exam_board',
   borough: 'borough', city: 'city', town: 'town', focus: 'focus',
   // resources
   subject: 'subject', document_type: 'document_type', key_stage: 'key_stage',
@@ -2574,6 +2665,8 @@ const ACTION_ACCESS = {
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
   changePin: 'self', changeHandle: 'self',
+  /* The shop window is the business talking, so only the business may change it. */
+  spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',
   move: 'self', tutorMove: 'self', createJob: 'self',
   /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks
