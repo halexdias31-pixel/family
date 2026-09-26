@@ -75,6 +75,33 @@ function boot(cb) {
        A CHECK THAT CANNOT FAIL IS NOT A CHECK, and this one could not have, on the one kind that
        prompted it. Found by reading its own output rather than by trusting that it ran. */
     if (String(url).includes('practicals.json')) return Promise.resolve(body_(practicals));
+    /* ---------- AND EVERY OTHER `data/` FILE, WHICH IS THE SAME FAULT TWICE MORE -----------------
+       THE PRACTICALS FIX WAS WRITTEN AS ONE LINE FOR ONE FILE and the sentence above says what the
+       shape is: every other url fell through to the fixture. Two more files fall through it, and
+       both decide what this check measures.
+
+       `data/topics.json` IS THE TOPIC TREE. `topicAreaOf_` is its only reader, so with the fixture
+       in its place `DATA.topicTree` is empty, `Topic area` resolves to NOTHING on all 5,119 items,
+       and a declared question with 13 answers and 84% coverage was invisible to every rule below.
+       Measured both ways: 0 distinct topic areas with the fixture, 13 with the file.
+
+       `data/settings/facets.json` IS THE FUNNEL'S OWN ORDER AND LABELS, and this is the half that
+       matters most: **this check has never once measured the funnel the app draws.** The sheet
+       relabels `Sitting` back to `Exam wave`, relabels `Company` to `Paper code` over answers that
+       are publishers, switches `Year` off, and carries four rows naming fields that were renamed or
+       deleted — so it invents `Question number` and `Question part` off the row, and `Type` and
+       `Level` lose the positions it means to give them. None of that was visible here.
+
+       SO THE RULE IS THE SHAPE RATHER THAN A THIRD LINE: any `data/**.json` the app asks for is
+       served from disk, and the fixture answers only what is not a file. A file added tomorrow is
+       loaded tomorrow with nothing here to remember — which is what the one-line-per-file version
+       could not promise, and is why it needed fixing three times. */
+    const file_ = /(data\/[a-z0-9_\-\/]+\.json)/.exec(String(url));
+    if (file_) {
+      try {
+        return Promise.resolve(body_(JSON.parse(fs.readFileSync(path.join(ROOT, file_[1]), 'utf8'))));
+      } catch (e) { /* not a file on disk — the fixture answers below */ }
+    }
     if (o && o.body) return Promise.resolve(body_({ success: true }));
     return Promise.resolve(body_(fixture));
   };
@@ -82,7 +109,11 @@ function boot(cb) {
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, asList_,' +
-      ' filterHit, paperLabels_, stuffHay_, norm };');
+      ' filterHit, paperLabels_, stuffHay_, norm, RETIRED_FACETS,' +
+      /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
+         reference captured at eval time is the one from before the settings files landed, and the
+         sheet reads as nought rows. Same trap `facetList`'s own memo is keyed against. */
+      ' facetsLive: () => (DATA && DATA.facets) || [], FACETS };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -437,6 +468,128 @@ boot(f => {
     if (shared.length > 10) console.log('  \u2026 and ' + (shared.length - 10) + ' more');
   } else {
     bad.push('`paperLabels_` is not declared, so paper labels cannot be checked \u2014 not a pass');
+  }
+
+  /* ---------- A PAPER'S LABEL SAYS NOTHING THE SCREEN HAS ALREADY ANSWERED -----------------------
+     REPORTED FROM THE LIVE FUNNEL: "biology paper 1 as one category when it should be like biology
+     then paper 1." Narrowed to `Subject · Biology`, all four Paper answers read
+     `Paper 1 — June 2024 · Biology · Foundation` — the subject spelled out on four answers that are
+     all Biology, because `paperLabels_` disambiguated against the whole library once and
+     `shortLabels_` cannot take an APPENDED rung off again.
+
+     THE RULE IS ON THE ANSWERS RATHER THAN ON THE FUNCTION. Narrow by a facet, then read the labels
+     the Paper question would draw: none of them may name the answer just chosen. That is the
+     property, and it holds however the labels are built — where a test on `paperLabels_`'s
+     arguments would pass on a version that took the ids and ignored them.
+
+     THREE NARROWINGS, BECAUSE ONE PROVES ONE. A subject with several papers of one name (Biology),
+     a subject-plus-tier (Chemistry · Higher) where the bare `Paper 1` becomes available, and a
+     sitting (Physics · Summer 2024) where the date is the redundant word rather than the subject. */
+  if (typeof f.facetValues === 'function') {
+    const paper = f.facetList().find(x => x.field === 'paperId');
+    const LOOK = [
+      { say: 'Subject · Biology', on: [['subject', 'Biology']] },
+      { say: 'Subject · Chemistry, Tier · Higher',
+        on: [['subject', 'Chemistry'], ['tier', 'Higher']] },
+      { say: 'Subject · Physics, Sitting · Summer 2024',
+        on: [['subject', 'Physics'], ['examWave', 'Summer 2024']] },
+    ];
+    LOOK.forEach(look => {
+      const kept = items.filter(x => look.on.every(([field, value]) =>
+        f.filterHit(x, { field: field, value: value })));
+      if (kept.length < 20) {
+        bad.push('the paper-label rule could not reach ' + look.say + ' — ' + kept.length
+                 + ' items, so it proves nothing');
+        return;
+      }
+      const labels = f.facetValues(kept, paper).map(v => String(v.show || v.value));
+      if (!labels.length) {
+        bad.push('no paper answers at ' + look.say + ' — the rule proves nothing');
+        return;
+      }
+      look.on.forEach(([field, value]) => {
+        const said = labels.filter(l => l.indexOf(value) !== -1);
+        if (said.length) {
+          bad.push(said.length + ' of the ' + labels.length + ' paper answers at ' + look.say
+                   + ' still spell out "' + value + '", which is the chip above them: '
+                   + JSON.stringify(said[0]));
+        }
+      });
+    });
+  } else {
+    bad.push('`facetValues` is not declared, so the paper labels cannot be checked — not a pass');
+  }
+
+  /* ---------- A `facets` ROW NAMING A FIELD NOTHING ANSWERS IS A DEAD ROW ------------------------
+     FOUR OF THEM WERE LIVE WHEN THIS WAS WRITTEN, and they are the reason the funnel was reported
+     as "not uniform". `data/settings/facets.json` is the live source of every question's LABEL and
+     ORDER, and `facetList` sorts each of its rows into one of two piles: a field the code declares
+     is a relabel of that question, and a field the code has never heard of is a NEW question read
+     straight off the column. So a RENAME moves a row silently from the first pile to the second:
+
+       `resourceType`  the column is `document_type` since the rename. The row meant to put `Type`
+                       at order 40 and instead invented a dead question, while the real
+                       `documentType` facet — having no row — fell wherever its position in the
+                       code's array happened to land it. `Type` was FOURTEENTH.
+       `stage`         renamed to `level` in code for exactly this reason, and the sheet kept the
+                       old name. `Level` was EIGHTEENTH, after `Question number`.
+       `qNumber`       both deleted from the code. The sheet went on inventing them, and
+       `qPart`         `Question part` offered `A`, `B`, `C` beside `1`, `2`, `3` — two vocabularies
+                       in one question, which is the most non-uniform answer set the funnel had.
+
+     NOTHING COULD SEE ANY OF IT. `whyThisQuestion()` prints a dead question with `0%` beside it and
+     is a console tool somebody has to run; this check ran with the fixture in the sheet's place, so
+     it was measuring a funnel the app does not draw. Both halves are fixed in the same commit — the
+     boot above serves the real file, and this is the rule that refuses the next rename.
+
+     THE TEST IS "DOES ANY ITEM ANSWER IT", not "is it declared in code", because inventing a
+     question off a column is a FEATURE — `facetFromSheet_` exists for it and a row naming a real
+     `venues` column is meant to work with no code change. What cannot be right is a row nothing
+     anywhere can answer: it is a label and an order attached to nothing.
+
+     AND A ROW FOR A RETIRED FACET IS DEAD TOO. `RETIRED_FACETS` blocks it from drawing, which is
+     the guard working; a row that exists only to be blocked is still a row somebody will read as
+     live. `paper` was one. */
+  const sheet = f.facetsLive();
+  if (!sheet.length) {
+    bad.push('the facets sheet reached the app as ' + sheet.length + ' rows, so its labels and its '
+             + 'order could not be checked at all — not a pass');
+  } else {
+    const live = {};
+    f.facetList().forEach(x => { live[x.field] = true; });
+    const declared = {};
+    f.FACETS.forEach(x => { declared[x.field] = true; });
+    const dead = [];
+    sheet.forEach(r => {
+      if (!r || !r.field || r.active === false) return;
+      if (f.RETIRED_FACETS && f.RETIRED_FACETS[r.field]) {
+        dead.push(r.field + ' (retired in code — the row can only ever be blocked)');
+        return;
+      }
+      if (!live[r.field]) { dead.push(r.field + ' (switched off by the sheet itself)'); return; }
+      /* ---------- DECLARED IN CODE *OR* ANSWERED BY SOMETHING — NOT "ANSWERED", FULL STOP --------
+         THE FIRST VERSION ASKED ONLY WHETHER ANY ITEM ANSWERS, and it named `slot` and `afford`:
+         both are real code facets whose subject is the shop and the wardrobe, and `check/fixture.json`
+         has no priced rows, so their coverage here is nought. This file's own header says why that
+         cannot be a failure — the fixture supplies everything that is not the library, so a facet
+         measured thin here is measured thin by the harness rather than by the app.
+         A CODE FACET IS NEVER A DEAD ROW. Its `of` is a function somebody wrote; the row only
+         relabels and reorders it. What is dead is a row naming a field the code does NOT declare
+         and nothing anywhere answers — which is exactly what a rename leaves behind. */
+      if (declared[r.field]) return;
+      const facet = f.facetList().find(x => x.field === r.field);
+      if (f.facetCoverage(items, facet) === 0) {
+        dead.push(r.field + ' (labelled ' + JSON.stringify(r.label || '') + ', order '
+                  + r.order + ' — the code does not declare it and no item answers it)');
+      }
+    });
+    if (dead.length) {
+      bad.push('the facets sheet has ' + dead.length + ' row(s) naming a field nothing answers, so '
+               + 'the label and the order on them do nothing and the question they meant to place '
+               + 'is placed by its position in the code instead: ' + dead.join('; '));
+    }
+    console.log('\nTHE FUNNEL\'S ORDER, AS THE SHEET DECLARES IT: '
+                + f.facetList().map(x => x.label).join(' → '));
   }
 
   done();

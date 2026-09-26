@@ -12618,3 +12618,217 @@ expected to be longer than the box and draws a mark saying so, which is the oppo
 scrolling sideways when nobody asked. Narrow — both properties and no element children, because
 `overflow: hidden` alone is how a layout fault gets clipped rather than scrolled and that must go on
 being caught. **Measured: it removes three findings across the whole app and they are one element.**
+
+## The funnel's own order was half in a spreadsheet, and four of that spreadsheet's rows named fields that no longer exist
+
+**Reported as *"please have a look at finder to make sure its as sleek as possible. the other day i
+saw that it wasnt uniform. like i saw somehthing like biology paper 1 as one category when it should
+be like biology then paper 1 … also have a good flow of categories which go from each thing to the
+next."*** Three asks, and the first move was to measure the funnel rather than read it — which is
+where the largest finding came from.
+
+### `check-funnel.js` HAS NEVER ONCE MEASURED THE FUNNEL THE APP DRAWS
+
+**Its fetch stub answered `questions.json` and `practicals.json` from disk and EVERYTHING ELSE with
+`check/fixture.json`.** That one line was written to fix the practicals blindness and its own note
+says the shape out loud — *"every other url fell through to the fixture"* — and two more files fall
+through it:
+
+| | |
+|---|---|
+| `data/topics.json` | the topic tree. `topicAreaOf_` is its only reader, so `DATA.topicTree` was empty and **`Topic area` resolved to nothing on all 5,119 items** — a declared question with 13 answers and 84% coverage, invisible to every rule in the file |
+| `data/settings/facets.json` | **the funnel's own labels and order** |
+
+**So the check was green over a funnel nobody sees.** Measured with the files served, the live
+funnel's order was:
+
+```
+What for · What kind · Subject · Boxers or fights · Division · Experiment or build · Key stage ·
+Topic area · Exam board · Topic · Tier · Exam wave · Decade · Grade · Type · Paper code · Where ·
+School year · Category · Level · Question number · Question part · What you need · Paper
+```
+
+**`Type` FOURTEENTH AND `Level` TWENTIETH**, `Exam board` before `Topic`, `Decade` after
+`Exam wave` — which is "not uniform" and "the flow doesn't go from each thing to the next", exactly.
+**The stub serves any `data/**.json` from disk now**, and the fixture answers only what is not a file:
+a rule rather than a third line, because the one-line-per-file version needed fixing three times.
+
+### The sheet had gone stale, and a rename moves a row from one pile to the other in silence
+
+`facetList` sorts a `facets` row into one of two piles: a field the code declares is a RELABEL of
+that question, and a field the code has never heard of is a NEW question read off the column. **A
+rename moves a row from the first pile to the second with nothing anywhere saying so** — the fault
+this file already records for `resource_type` in `VOCAB` and for `isEdexcelGcseMaths`, third
+occurrence, in the one file that decides what every question is called.
+
+| the row | what it did |
+|---|---|
+| `resourceType`, order 40, label `Type` | the column has been `document_type` since the rename. The row invented a dead question; the real `documentType` facet, having no row, fell wherever its index in the code's array landed it — **fourteenth** |
+| `stage`, order 100 | renamed to `level` in code *for this exact reason* and the sheet kept the old name. **`Level` was twentieth**, after `Question number` |
+| `paper`, label `Printed or digital` | the retired facet. `RETIRED_FACETS` blocked it, which is the guard working — and a row that can only ever be blocked is still a row somebody reads as live |
+| `company`, label **`Paper code`** | over the answers `1st Class Maths`, `AQA`, `Edexcel`, `Corbettmaths`, `Standards & Testing Agency`. The row's own note says why it was typed — *"holds 9MA0/01 more often than a publisher; split the column when you can"* — and the column **was** split: `spec_code` has held the codes since the AQA RS papers went in |
+| `examWave`, label `Exam wave` | the code says `Sitting` with a note saying nobody outside this repo says wave. The sheet overruled it back |
+
+**AND THE NUMBERING SCHEMES COLLIDE BY CONSTRUCTION.** A code facet with no row takes
+`at = (index + 1) * 10`, and the sheet's own orders ran 10 to 180 — the same range. So a code facet
+at position 7 and the sheet's `tier` at 70 fought over one slot, and which won was the sort's
+business. **Every facet has a row with a declared order now**, so the flow is stated in one place
+instead of half-stated in two.
+
+**`data/settings/facets.json` is an export of a tab that no longer exists** — the Settings
+spreadsheet was deleted — so this is the source of truth rather than a copy of one, and the owner
+still changes any label or order in it with no deploy.
+
+### `node js/check-funnel.js` — a row naming a field nothing answers is a dead row
+
+**Its first version asked only "does any item answer this" and named `slot` and `afford`** — two real
+code facets whose subject is the shop and the wardrobe, which `check/fixture.json` has no priced rows
+for. This file's own header says why that cannot be a failure: the fixture supplies everything that is
+not the library, so a facet measured thin here is thin in the HARNESS.
+
+**A CODE FACET IS NEVER A DEAD ROW.** Its `of` is a function somebody wrote and the row only relabels
+it. What is dead is a row naming a field the code does not declare **and** nothing anywhere answers —
+which is precisely what a rename leaves behind. **Proved by mutation**: the four stale rows put back
+name `resourceType`, `stage` and `paper` and exit 1; and the run prints the funnel's whole order on
+one line, so the flow is something a person reads rather than something they reconstruct.
+
+### `qNumber` and `qPart` were described in the past tense and are two live questions
+
+**`FACETS` said "nothing sets either field now".** `questionItems` writes
+`qNumber: r.q, qPart: r.part || ''` on every question item, so `facetFromSheet_` reads both off the
+item and the sheet carries a row for each. Two questions in the funnel, described as deleted — the
+`.favwrap.is-fav` shape, found while auditing the order.
+
+**THEY ARE GOOD QUESTIONS BECAUSE OF WHERE THEY SIT, and that is the whole of it.**
+`FACET_NEEDS_FIRST` holds `qNumber` behind `paperId` and `qPart` behind `qNumber`, so both are only
+ever asked inside ONE paper — which is what stops `Question part` offering one paper's `a, b, c`
+beside another's `1, 2, 3`. Measured: 20 distinct part values across the library, 83 papers carry
+parts, and the only mixing inside a paper is a letter with the roman sub-parts under it, which is what
+an exam paper prints. Their rows sit at 142 and 144, immediately after `Paper`, which is where their
+gating already put them.
+
+## One word, one question — and twelve words were answers to two
+
+**`check-funnel.js` has printed this as a note for months.** A note nobody acts on is the thing this
+file warns about in six other places, and the owner has now reported the symptom. Measured once the
+check could see the real funnel:
+
+| | | |
+|---|---|---|
+| `Biology` | subject 243 | topicArea **305** |
+| `Chemistry` | subject 276 | topicArea **341** |
+| `Physics` | subject 348 | topicArea **263** |
+| `Algebra` | topicArea 815 | topic 11 |
+| `Number` | topicArea 1367 | topic 9 |
+| `Probability` | topicArea 119 | topic 56 |
+| `Statistics` | topicArea 289 | topic 9 |
+| `KS3` | keystage 736 | level 27 |
+| `A-Level` | level 263 | **tier 135** |
+| `Edexcel` | examBoard 2576 | **company 1148** |
+
+**EVERY ONE IS THE `level` / `stage` FAULT**, which this file records at length: the same word, twice,
+meaning different things, and which result set you get depends on which of the two questions the
+funnel happened to offer first. There it was repaired by MERGING two facets. These cannot be merged —
+a subject and a branch of the topic tree are different facts that share a name, and so are a board and
+a publisher.
+
+**SO THE NARROWER QUESTION KEEPS THE WORD.** `not: 'subject'` on `topicArea` means: drop any of my
+values that the Subject question already gives THIS item. Five facets carry one word each —
+`topicArea` defers to `subject`, `topic` to `topicArea`, `level` to `keystage`, `tier` to `level`,
+`company` to `examBoard` — and `facetOwn_` is the one reader, used by `facetTally_` **and** by
+`filterHit`, because a question that stops OFFERING a value must stop MATCHING it or a chip carried
+over from a wider list keeps rows the question no longer claims.
+
+**PER ITEM, NOT PER FACET, and that is why it is safe.** `Probability` stays a Topic wherever the
+row's topic AREA is something else and stops being one only on the rows where the two agree — a
+blanket "Topic may not say Probability" would have taken a real answer away from 47 rows to fix 9.
+Measured after: the overlap list goes from twelve words to six, and every one left is either two real
+facts sharing a name (`Maths` is a link category and a subject) or a data backlog.
+
+**`A-Level` WAS THE SHARPEST OF THEM.** A tier is Foundation or Higher; an A-level paper has neither,
+and pressing `Tier · A-Level` quietly gave you 135 of the 263 the Level chip gives. The `tier` CELL is
+untouched, deliberately — `paperLabels_` tells the A-level and the AS paper of one sitting apart by
+exactly that column.
+
+**AND `Standards & Testing Agency` IS THE ONE PAIR NO SPELLING RULE CAN JOIN.** `spellKey_` reduces an
+answer to its letters, so `STA` and the spelled-out name are two identities. It is not a spelling: it
+is an organisation's short name, which is the line `levelOf_` draws for `AS level` — the engine folds
+spellings and a reader resolves meanings. `FACET_SAME_AS` is that one fact with its reason beside it.
+
+## "Biology Paper 1" — and the appended rungs stayed on after the question they name had been answered
+
+**The owner's own words, and both halves of the fault are real.**
+
+**HALF ONE IS THE LABEL CODE.** Narrowed to `Subject · Biology`, all four Paper answers read
+`Paper 1 — June 2024 · Biology · Foundation`. Every word after `Paper 1` is on the screen already —
+the subject is the chip above and the sitting is the only sitting those four papers have — and the one
+thing that separates them is the tier, four words in.
+
+**THE CAUSE IS TWO MECHANISMS FOR ONE JOB AND ONLY ONE OF THEM LOOKS AT THE SCREEN.** `shortLabels_`
+states the rule in its own note — *"uniqueness is measured over the answers on screen rather than
+declared"* — and `paperLabels_` measured it over the whole library, once, into a memo. `shortLabels_`
+then could not undo it: `nameForms_` cuts a name at its separators, and a rung this function APPENDED
+is a prefix of nothing, so the ladder had no step between `Paper 1` and the whole string.
+
+**SO IT DISAMBIGUATES AGAINST THE IDS IT IS GIVEN.** `facetTally_` hands `showOf` the answers it is
+about to draw. Measured:
+
+| narrowed to | before | after |
+|---|---|---|
+| `Subject · Biology` | `Paper 1 — June 2024 · Biology · Foundation` | **`Paper 1 — June 2024 · Foundation`** |
+| `Physics · Summer 2024` | `Paper 1 — June 2024 · Physics · Foundation` | `Paper 1 — June 2024 · Foundation` |
+| `Chemistry · Higher` | `Paper 1` | `Paper 1` — already right, two papers sharing no name |
+| `English Language` | `Paper 1: … — June 2023 · English Language` | `Paper 1: … — June 2023` |
+
+**WITH NO IDS IT IS THE LIBRARY, MEMOISED, EXACTLY AS BEFORE** — which is what a CHIP needs. A chip
+sits alone with no siblings to be unique against, so `chipText` must get the form that is unambiguous
+in the whole library, or a chip would read `Paper 1` and name one of twenty.
+
+**THE RULE IS ON THE ANSWERS RATHER THAN ON THE FUNCTION**, in `check-funnel.js`: narrow by a facet,
+then read the labels the Paper question would draw, and none of them may name the answer just chosen.
+That holds however the labels are built, where a test on `paperLabels_`'s arguments would pass on a
+version that took the ids and ignored them. Three narrowings, because one proves one. **Proved by
+mutation twice** — the ids ignored inside the function, and `showOf` back to one argument — and both
+name `Subject · Biology` and `Physics · Summer 2024` and exit 1.
+
+### Half two is the data, and it is right
+
+**`Biology Paper 1` IS WHAT THE COVER SAYS.** AQA numbers Combined Science within the subject, so
+8464's six papers are Biology 1 and 2, Chemistry 1 and 2, Physics 1 and 2 — and `paper` is what the
+cover calls it, which this file records as a decision. **Renaming them to `Paper 1` makes it strictly
+worse**: three papers would then share that name, `paperLabels_` would append `· Combined Science` to
+all three, and the subject that actually separates them would be gone.
+
+**AND THE FUNNEL DOES ASK "BIOLOGY THEN PAPER 1" AT THAT STATE** — `Subject · Combined Science` offers
+`Topic area` next, whose answers there are `Chemistry` 65 and `Biology` 61. Which exposes the real
+gap: **the 31 Combined Science PHYSICS questions carry no `topics` at all**, so they answer neither,
+and "Doesn't matter" is the only way past that question for them. They are the June 2023 8464 physics
+rows that task #42 already covers for their answers; the topics are the same backlog.
+
+## The flow, declared in one place and measured
+
+**What the order is now, and the principle behind it**: a question that changes WHICH QUESTIONS COME
+NEXT is asked before one that merely narrows the list.
+
+```
+What for → What kind        the two doors. `always` keeps them in front whatever the sheet says
+Subject                     then the boxing and practical branches, which the coverage rule hides elsewhere
+Type                        the errand: a past paper has a Sitting and a Tier; a worksheet has a Grade
+Level → Key stage → School year → Grade      who it is for, coarse to fine
+Topic area → Topic          the branch, then the leaf
+Exam board → Tier → Sitting → Paper → Question number → Question part      where it came from, drilling in
+What you need → Publisher → Where → Category → Goes on → Price
+```
+
+**The greedy walk over the real library**: What for → What kind → Subject · Maths → Type · Worksheet →
+Level → Key stage → Grade → Topic area → Topic → Paper, every step a real narrowing. The interleaving
+of the past-paper questions and the worksheet questions costs nothing, because the coverage rule
+skips whichever set the list on screen cannot answer — which is what makes one order serve two
+errands without the funnel needing to branch.
+
+**Two things left as printed findings rather than changed.** `Level` holds four range values —
+`KS2–GCSE` 19, `KS2–KS3` 12, `KS3–GCSE` 10, `GCSE–A-level` 2 — where `Key stage` splits a comma into
+a list; splitting those would put `KS2` and `KS3` into the Level question, which is a new overlap with
+`Key stage` to fix an old one. And 27 rows have `KS3` in the level column and no `key_stage` cell, so
+`Level · KS3` finds 27 where `Key stage · KS3` finds 736: rows to repair, and the `not:` rule
+correctly does nothing on them because there is nothing there to defer to.

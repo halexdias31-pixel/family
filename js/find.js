@@ -708,6 +708,78 @@ function priced_(v) {
   return isFinite(n) ? n : undefined;
 }
 
+/* ==================================================================================================
+   ONE WORD, ONE QUESTION — AND TWELVE WORDS WERE ANSWERS TO TWO.
+
+   `check-funnel.js` HAS PRINTED THIS AS A NOTE FOR MONTHS and a note nobody acts on is the thing
+   this repository warns about in six other places. It was reported from the live funnel in the
+   owner's own words — "the other day i saw that it wasnt uniform" — so here is the measurement it
+   was reported against, once the check was made to boot with the real settings files:
+
+     Biology        subject 243   topicArea 305      the science roots `data/topics.json` gained
+     Chemistry      subject 276   topicArea 341      for the practicals
+     Physics        subject 348   topicArea 263
+     Algebra        topicArea 815   topic 11         a root's own name, used as a leaf on a few rows
+     Number         topicArea 1367  topic 9
+     Probability    topicArea 119   topic 56
+     Statistics     topicArea 289   topic 9
+     KS3            keystage 736   level 27          a key stage typed into the level column
+     A-Level        level 263      tier 135          a level answered through the Tier question
+     Edexcel        examBoard 2576 company 1148      the board's own name, in the publisher column
+
+   EVERY ONE IS THE `level` / `stage` FAULT, which this file already records at length: the same
+   word, twice, meaning different things, and which result set you get depends on which of the two
+   questions the funnel happened to offer you first. There it was repaired by merging two facets
+   into one. These cannot be merged — a subject and a branch of the topic tree are different facts
+   that happen to share a name, and so are a board and a publisher.
+
+   SO THE RULE IS THAT THE NARROWER QUESTION KEEPS THE WORD. `not: 'subject'` on `topicArea` means:
+   drop any of my values that the Subject question already gives THIS item. A Biology question stops
+   answering `Topic area` with `Biology`, because `Subject` has already asked that and asked it
+   better; a Biology PRACTICAL whose subject is Biology likewise. Nothing is lost — the narrower
+   question is the one that was going to be offered anyway — and the wider one stops offering a
+   button that duplicates it.
+
+   PER ITEM, NOT PER FACET, and that is the whole of why it is safe. `Probability` stays a Topic
+   wherever the row's topic AREA is something else, and stops being one only on the rows where the
+   two agree. A blanket "Topic may not say Probability" would have taken a real answer away from 47
+   rows to fix 9.
+
+   THROUGH `spellKey_`, because that is what the funnel already means by "the same answer" — see
+   `facetTally_`. `STA` against `Standards & Testing Agency` is the one pair no spelling rule can
+   join, and it is not a spelling: it is an organisation's short name, which is the line `levelOf_`
+   draws for `AS level`. `FACET_SAME_AS` is that one fact, with its reason beside it.
+================================================================================================== */
+const FACET_SAME_AS = {
+  /* The Standards & Testing Agency publishes the KS2 SATs papers AND is the board on them, so its
+     own name is in both columns on all 228 rows — spelled out in one and abbreviated in the other,
+     which no reduction of letters can fold. `Exam board` says `STA` because that is what a teacher
+     says; the publisher question drops it because the board question has already asked. */
+  standardstestingagency: 'sta',
+};
+
+const facetSame_ = v => {
+  const k = spellKey_(v);
+  return FACET_SAME_AS[k] || k;
+};
+
+/* The raw reader of another facet, off `FACETS` rather than off `facetList()`: the sheet may
+   relabel and reorder a question but it cannot change what a column holds, and going through the
+   live list would make a `not:` chain depend on which rows the sheet happens to carry. */
+const facetRaw_ = field => FACETS.find(f => f.field === field);
+
+/* Every value of one facet that the facet it defers to does NOT already give this item. */
+function facetOwn_(facet, x) {
+  const mine = asList_(facet.of(x));
+  if (!facet.not || !mine.length) return mine;
+  const other = facetRaw_(facet.not);
+  if (!other) return mine;
+  const theirs = new Set(asList_(other.of(x)).map(facetSame_));
+  if (!theirs.size) return mine;
+  const out = mine.filter(v => !theirs.has(facetSame_(v)));
+  return out;
+}
+
 const FACETS = [
   /* What sort of thing, first. It is the one question that changes which of the others make any
      sense at all — a wearable has a slot and no exam board, a paper the reverse. */
@@ -784,9 +856,13 @@ const FACETS = [
      NOTHING NEW DECIDES WHEN IT IS ASKED. Ten answers is under the cap and almost nothing outside
      the library carries a topic, so the coverage rule keeps it out of the way until the list is
      questions -- both rules were already there. */
-  { field: 'topicArea', label: 'Topic area',
+  /* `not: subject` — see `facetOwn_`. `data/topics.json` gained Biology, Chemistry and Physics as
+     roots when the practicals went in, and those are the three answers `Subject` already owns. */
+  { field: 'topicArea', label: 'Topic area', not: 'subject',
     of: x => x.topicArea || topicAreaOf_(x) },
-  { field: 'topic',     label: 'Topic',
+  /* `not: topicArea` — four roots are also typed as a leaf topic on a handful of rows (`Algebra`,
+     `Number`, `Probability`, `Statistics`), and on those rows the two questions are one question. */
+  { field: 'topic',     label: 'Topic', not: 'topicArea',
     of: x => x.topic || topicOf_(x) },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
      else — the same rule that hides `borough` unless you are looking at venues. */
@@ -888,9 +964,19 @@ const FACETS = [
      AND `Alevel` IS A MISSPELLING OF A PROPER NOUN. Three spellings were on screen at once —
      `Alevel`, `A-Level`, `A-Level` — reading as three different things. Normalised here rather
      than in the data because the data is bulk-imported and will keep arriving both ways. */
-  { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
+  /* `not: keystage` — 27 rows have `KS3` typed into the level column, which is what `Key stage`
+     asks and asks of 736. A key stage is not a qualification. */
+  { field: 'level',     label: 'Level',       not: 'keystage', of: x => levelOf_(x) },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
-  { field: 'tier',      label: 'Tier',        of: x => x.tier },
+  /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION ---------------------
+     135 ROWS ANSWERED `Tier · A-Level` AND 263 ANSWERED `Level · A-Level`, so pressing the tier
+     chip quietly gave you half of what the level chip gives — the smaller, wrong one. `check-funnel`
+     has printed that pair as a note since it learned to print notes.
+     A TIER IS FOUNDATION OR HIGHER. An A-level paper has neither, and saying so by answering
+     nothing is honest where inventing a third tier is not. `Level` is untouched and still answers
+     A-Level for all 263. The `tier` CELL is untouched too, because `paperLabels_` tells the A-level
+     and AS papers of one sitting apart by exactly that column. */
+  { field: 'tier',      label: 'Tier',        not: 'level', of: x => x.tier },
   /* Through `waveOf`, for the same reason `year` goes through `yearOf` one line below: the cell
      may hold a DATE rather than a wave, and a filter button sixty characters wide reading
      "Fri Jun 01 2024 08:00:00 GMT+0100 (British Summer Time)" is what that looks like untouched. */
@@ -901,7 +987,20 @@ const FACETS = [
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
-  { field: 'company',   label: 'Company',     of: x => x.company },
+  /* ---------- `Publisher`, AND IT WAS LABELLED `Paper code` OVER PUBLISHERS ----------------------
+     THE LIVE LABEL CAME OFF THE SHEET AND WAS `Paper code`, over the answers `1st Class Maths`,
+     `AQA`, `Edexcel`, `Corbettmaths` and `Standards & Testing Agency`. The row's own note in
+     `data/settings/facets.json` says why it was typed — "holds 9MA0/01 more often than a publisher;
+     split the column when you can" — and the column WAS split: `spec_code` has held the codes since
+     the AQA RS papers went in. A label is exactly the thing a spreadsheet cell never gets reviewed,
+     which is the sentence `RETIRED_FACETS` already carries.
+
+     `not: examBoard` IS THE OTHER HALF. 2,542 of these rows carry the board's own name in the
+     publisher column, so `Edexcel` was an answer to two questions with two different result sets —
+     2,576 through the board and 1,148 through this one. Deferring leaves this question meaning the
+     one thing its name means: who MADE the sheet, when that is not the board. Measured: five
+     answers become two, `1st Class Maths` (1,370) and `Corbettmaths` (1,057). */
+  { field: 'company',   label: 'Publisher',   not: 'examBoard', of: x => x.company },
   /* ---------- WHAT YOU NEED IN FRONT OF YOU ------------------------------------------------------
      A LIST, so a question needing compasses AND the printed sheet answers both — `asList_` and the
      comma are doing here exactly what they do for `keystage` two screens up. The values come from a
@@ -952,8 +1051,17 @@ const FACETS = [
      THE DIFFERENCE IS THE DOCUMENT, so the document decides. A paper's numbering is part of how it
      is referred to; a worksheet's is the order it happens to be typed in. Blank on a worksheet, so
      the coverage rule never offers it there — and unchanged on the papers, where it was right. */
-  /* `qNumber` AND `qPart` WERE HERE. Nothing sets either field now — they were written by
-     `questionItems`, which drew the duplicate cards these two existed to narrow. */
+  /* ---------- `qNumber` AND `qPart` ARE THE SHEET'S QUESTIONS, NOT THE CODE'S --------------------
+     THIS NOTE USED TO SAY "nothing sets either field now" AND THAT HAS BEEN FALSE FOR A WHILE:
+     `questionItems` writes `qNumber: r.q, qPart: r.part || ''` on every question item, so
+     `facetFromSheet_` reads both straight off the item and `data/settings/facets.json` carries a row
+     for each. Two live questions, described here in the past tense — the `.favwrap.is-fav` shape,
+     found while auditing the funnel's order.
+     THEY ARE GOOD QUESTIONS BECAUSE OF WHERE THEY SIT. `FACET_NEEDS_FIRST` holds `qNumber` behind
+     `paperId` and `qPart` behind `qNumber`, so both are only ever asked inside ONE paper — which is
+     what stops `Question part` offering a paper's `a, b, c` beside another's `1, 2, 3`. Measured: 20
+     distinct part values across the library, and within a paper the only mixing is a letter with the
+     roman sub-parts under it, which is what an exam paper prints. */
   /* ---------- THE FACET THAT IS ALWAYS TOO BIG TO ASK, DELIBERATELY ---------------------------
      202 ANSWERS. It will never be offered as a question — `FACET_MAX_ANSWERS` is 40 — and that is
      not a flaw in it, it is what makes it a COLLECTION. `collectionAxes_` picks up exactly the
@@ -984,7 +1092,7 @@ const FACETS = [
      what keeps the question away from tutors, venues and widgets. */
   { field: 'paperId',   label: 'Paper',
     of: x => (x.row && x.row.paper_id) || '',
-    showOf: id => paperLabel_(id) },
+    showOf: (id, ids) => paperLabel_(id, ids) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
      MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
@@ -1227,12 +1335,16 @@ function filterHit(x, f) {
      through `bandOf_`, the same function that drew the label, so the drawer and the filter cannot
      disagree about where a band's edges are — which is the `documents_()` argument: a second
      reader of one thing is a second chance to disagree about it. */
+  /* `facetOwn_` HERE TOO, OR THE FILTER DISAGREES WITH THE BUTTON. A facet that defers to another
+     stops OFFERING the deferred value; if this went on matching it, a chip carried over from a
+     wider list would keep rows the question no longer claims. One reader, both jobs — the
+     `documents_()` argument. */
   const band = /^(\d+)\u2013(\d+)$/.exec(String(f.value || ''));
   if (band) {
-    return asList_(facet.of(x)).some(v => intAnswer_(v)
+    return facetOwn_(facet, x).some(v => intAnswer_(v)
       && Number(v) >= Number(band[1]) && Number(v) <= Number(band[2]));
   }
-  return asList_(facet.of(x)).some(v => spellKey_(v) === spellKey_(f.value));
+  return facetOwn_(facet, x).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
 /**
@@ -1317,12 +1429,38 @@ function nameForms_(s) {
    which is why the first version of this drew every button as a raw id. The file is the faithful
    export, one row per line, `paper_id` and `name` spelled as the sheet spells them. A `WeakMap` on
    the array itself, so a new fetch is a new map with nothing to invalidate. */
+/* ---------- AND THE RUNGS STAYED ON AFTER THE QUESTION THEY NAME HAD BEEN ANSWERED ---------------
+   REPORTED FROM THE LIVE FUNNEL: "i saw somehthing like biology paper 1 as one category when it
+   should be like biology then paper 1."
+
+   MEASURED, NARROWED TO `Subject · Biology`: four answers, and every one of them read
+   `Paper 1 — June 2024 · Biology · Foundation`. Every word after `Paper 1` is something already on
+   the screen — the subject is the chip above, and the sitting is the only sitting those four papers
+   have. The one thing that actually separates them is the tier, four words in.
+
+   THE CAUSE IS TWO MECHANISMS FOR ONE JOB, AND ONLY ONE OF THEM LOOKS AT THE SCREEN. `shortLabels_`
+   states the rule in its own note — *"uniqueness is measured over the answers on screen rather than
+   declared"* — and this function measured it over the WHOLE LIBRARY, once, into a memo. So the
+   rungs were computed against 266 papers and then drawn beside four, and `shortLabels_` could not
+   take them off again: `nameForms_` cuts a name at its separators and a rung this function APPENDED
+   is not a prefix of anything, so the ladder had nothing between `Paper 1` and the whole string.
+
+   SO IT DISAMBIGUATES AGAINST THE IDS IT IS GIVEN. `facetTally_` hands `showOf` the answers it is
+   about to draw, so at `Subject · Biology` the field is those four papers: the subject is the same
+   on all of them and is not pushed, the tier differs and is, and the label comes out
+   `Paper 1 — June 2024 · Foundation`. At `Chemistry · Higher` two papers share no name at all, so
+   nothing is appended and `shortLabels_` trims both to `Paper 1` and `Paper 2`.
+
+   WITH NO IDS IT IS THE LIBRARY, MEMOISED, exactly as before — which is what a CHIP needs. A chip
+   sits alone with no siblings to be unique against, so `chipText` must get the form that is
+   unambiguous in the whole library or the chip would read `Paper 1` and name one of twenty. */
 const PAPER_LABEL = new WeakMap();
 
-function paperLabels_() {
+function paperLabels_(ids) {
   const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
     ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
-  let map = PAPER_LABEL.get(rows);
+  const only = ids && ids.length ? new Set(ids.map(String)) : null;
+  let map = only ? null : PAPER_LABEL.get(rows);
   if (map) return map;
   map = {};
   const byName = {};
@@ -1330,6 +1468,9 @@ function paperLabels_() {
   rows.forEach(r => {
     const id = r && (r.paper_id || r.paper);
     if (!r || String(r.kind) !== 'document' || !id) return;
+    /* THE FIELD IS THE ANSWERS ON SCREEN WHERE THERE ARE ANY. A paper not in the list cannot make
+       one that is ambiguous, so it must not add a rung to it. */
+    if (only && !only.has(String(id))) return;
     const name = String(r.name || '').trim();
     if (!name) return;
     docs.push({ id: id, name: name, subject: r.subject, tier: r.tier, exam_board: r.exam_board });
@@ -1362,14 +1503,14 @@ function paperLabels_() {
     });
     map[r.id] = bits.join(' \u00b7 ');
   });
-  PAPER_LABEL.set(rows, map);
+  if (!only) PAPER_LABEL.set(rows, map);
   return map;
 }
 
 /* AN ID WITH NO DOCUMENT ROW IS DRAWN AS ITSELF rather than as nothing — an unreadable button beats
    a blank one, and `check-library.js` already fails on a question whose `paper_id` names no
    document, so this is the shape that cannot happen rather than one to hide. */
-const paperLabel_ = id => paperLabels_()[id] || String(id || '');
+const paperLabel_ = (id, ids) => paperLabels_(ids)[id] || paperLabels_()[id] || String(id || '');
 
 function shortLabels_(values) {
   /* `text` IS THE DISPLAY STRING WHERE THE VALUE IS AN IDENTITY. A facet whose `of` returns an id
@@ -1585,7 +1726,9 @@ function facetTally_(items, facet) {
        People, so it is a tally mark against each — which is what makes the count behind an answer
        true: choosing People really would leave that tutor in it. `Set` because a row that somehow
        lists the same group twice must not count twice. */
-    const vals = asList_(facet.of(x));
+    /* THROUGH `facetOwn_`, so a facet that defers to another never counts a value that other
+       question already owns for this item — see the block above `FACETS`. */
+    const vals = facetOwn_(facet, x);
     if (!vals.length) return;
     answered++;
     /* ONE VALUE IS THE OVERWHELMING CASE and a `Set` of one is an allocation to prove it. The `Set`
@@ -1668,7 +1811,12 @@ function facetTally_(items, facet) {
      `check-funnel.js` COULD NOT SEE IT and its own note says why: test 2 looks for two values that
      normalise to one key, and after the fold there is only one value left to look at. The fold is
      right; feeding it an identity was not. */
-  if (facet.showOf) values.forEach(v => { v.text = facet.showOf(v.value); });
+  /* THE WHOLE ANSWER LIST GOES TO `showOf`, so a facet whose label has to be disambiguated can do
+     it against the answers beside it rather than against the library — see `paperLabels_`. */
+  if (facet.showOf) {
+    const ids = values.map(v => v.value);
+    values.forEach(v => { v.text = facet.showOf(v.value, ids); });
+  }
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
   shortLabels_(values);
