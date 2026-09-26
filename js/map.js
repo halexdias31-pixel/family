@@ -1414,6 +1414,29 @@ const WIDGETS = [
       past papers use — so anything you add to the sheet turns up here too.</span></p>
   </div>` },
 
+  /* ---------- THE BASKET, WHICH HAS NOW LIVED IN FOUR PLACES ------------------------------------
+     ASKED FOR AS *"i want the cart to be a tool in the tool column."* It has been a column, a sheet,
+     a page of Find and a page of Booking, and every one of those had the same trouble: a basket is
+     empty most of the time, so it was either a swipe that usually led to nothing or a page that
+     appeared and vanished under somebody's thumb. A tool is always there and says what state it is
+     in — see the long note over `cartCard_`.
+
+     NO `.card` OF ITS OWN, and that is the one thing different about this entry. `widgetOnColumn_`
+     already wraps every widget in `.card.is-widget`, and what `cartCard_` returns is an `.rc` — a
+     receipt, which has its own edges, its own colour and is the most obviously bounded thing in the
+     app. `bookerCard`'s note settles it one screen along: a `.card` holding an `.rc` is *"a glass
+     panel with a paper receipt inside it — two containers for one object"*.
+
+     `solid` IS NOT SET, so the funnel does not offer an empty basket as a search result. The column
+     draws it either way — `widgetsOf_` does not read that flag, deliberately. */
+  { id: 'cart', kind: 'tool', name: 'Basket', start: () => initCart?.(),
+    into: 'cart-box', what: 'What is in it',
+    html: `<h3>Basket</h3>
+    ${/* BOTH AN ID AND A CLASS. The id is what `into` and `startWidget_` look the widget up by; the
+          class is what `cartPaint_` writes to, because the Saved column draws this same markup and
+          two elements under one id is the `$('msg-text')` fault. */''}
+    <div id="cart-box" class="cart-box"></div>` },
+
   { id: 'calendar', kind: 'tool', name: 'Calendar', start: () => initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
     html: `<div class="card">

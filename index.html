@@ -1596,6 +1596,27 @@
   <div id="sheet-body"></div>
 </div>
 
+<!-- THE LIST THAT HANGS OFF A FIELD. Three shapes of this control have now been reported: a
+     `<select>` closed on every choice ("i have to click on field then click on subject then click
+     on field then click on another subject. thats long"), a sheet covered the app ("no pop up
+     menus"), and a page that replaced the form was worse again ("i hate this"). What was asked for
+     is the ordinary thing: a drop-down anchored to the field that takes several ticks and stays
+     open.
+
+     IT HAS TO BE HERE RATHER THAN IN THE CARD, and that is geometry rather than tidiness. `.pane`
+     is `overflow: hidden`, so a panel drawn inside the booking card is CLIPPED by it however it is
+     positioned — and `position: fixed` does not escape either, because `placeCells` puts a
+     `transform` on every column and a transformed ancestor becomes the containing block for a fixed
+     descendant AND goes on clipping it. A sibling of the screens is the only place a fixed box is
+     measured against the viewport.
+
+     THE BACKDROP IS INVISIBLE AND IS NOT A SCRIM. Its whole job is that a tap anywhere else closes
+     the list, which is what a drop-down does; darkening the app is what a sheet does, and a sheet
+     is the shape that was refused. The swipe still works through it, because `overworld.js` listens
+     on the window rather than on what happens to be on top. -->
+<div id="drop-back" class="hidden" data-do="book-many-done"></div>
+<div id="drop" class="hidden"></div>
+
 <!-- `<nav id="tabs">` WAS HERE AND WAS ALREADY EMPTY. Nothing in any JavaScript file has written
      to it since the bar was removed — the stylesheet's own note says its rules "LIVED HERE" — so it
      was an empty fixed element reserving three rem at the foot of every screen for a control that

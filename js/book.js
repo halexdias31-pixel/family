@@ -86,12 +86,11 @@ function bookBlocks() {
   /* BELOW THE FORM, NOT AS A SECOND PAGE. Each element of this array is a page somebody swipes to,
      and the booking they just made is not somewhere else — it is the answer to the form they are
      looking at. Same string, under the money block. */
-  /* WHILE A LIST IS OPEN THE PAGE IS THE LIST. The money block and the receipt for what was just
-     asked for are both ABOUT the form, and neither is what somebody pressing a field went looking
-     for — `bookerCard` returns the picker in that state and this is the rest of the same sentence.
-     The page COUNT does not change, which is what keeps `PAGE.booking` pointing where it was. */
-  return [BOOKING.picking ? bookerCard()
-    : bookerCard()
+  /* THE PAGE IS ALWAYS THE FORM. For one commit an open list replaced it here, on the argument that
+     the money block and the receipt are both ABOUT the form and neither is what somebody pressing a
+     field went looking for. True, and it was reported as *"i hate this"* — the list hangs off its
+     own field now and covers nothing, so there is nothing for this to stand aside for. */
+  return [bookerCard()
     + (typeof moneyBlock === 'function'
        ? moneyBlock({ tutor: BOOKING.tutor, tutorPay: L && L.tutorPay, profit: L && L.profit })
        : '')
@@ -2441,29 +2440,31 @@ function stepInput_(st) {
    `<select multiple>` IS STILL REFUSED, for the reason written over `stepSelect_`: on a phone it
    renders as a list box with its own scrollbar, which is the deleted panel in a worse shape.
 
-   AND IT WAS A SHEET FOR ONE COMMIT. `#sheet-body` scrolls where `.pane` does not, which is this
-   app's answer to anything longer than a row — the practical guide, the quiz and the tutor profile
-   all take it. Reported the next morning as *"i dont like this. this is shit. no pop up menus."*
+   THEN A SHEET, THEN A PAGE, AND BOTH WERE REPORTED. `#sheet-body` scrolls where `.pane` does not,
+   which is this app's answer to anything longer than a row — and it came back as *"i dont like
+   this. this is shit. no pop up menus."* So the page the form was on drew the LIST instead of the
+   form: nothing covered anything, the page count did not change, and it came back the next morning
+   as *"i hate this."*
 
-   SO THE PAGE THE FORM IS ON SHOWS THE PICKER INSTEAD OF THE FORM, and that is the only shape left
-   once the geometry is measured. `.pane` is `overflow: hidden` and the booking card is **544px of
-   content in a 534px pane at 320 and 605.7 in 613 at 390** — seven pixels of headroom at the widest
-   phone and ten past the fold at the narrowest. So a list that opens UNDER a row, wrapped chips or otherwise,
-   pushes the rows below it past a fold with no scroll and no page to turn to: twelve subjects is
-   about 276px at 320, and the Send tile ends up somewhere nobody can reach. Every in-card
-   expansion overflows, whatever shape it takes.
+   WHAT WAS ASKED FOR ALL THREE TIMES IS ONE THING. *"i prefer drop down list, one that allows
+   multiselect, but doesnt disapear after each option click."* That is the ordinary control, and the
+   only reason the app did not have it is that this card has nowhere to put one.
 
-   IT IS NOT SOMEWHERE ELSE, WHICH IS THE WHOLE DIFFERENCE FROM A SHEET. Nothing covers anything,
-   the page count does not change — `bookBlocks` still returns the form's page first and the
-   receipts after it — so `PAGE.booking` is where it was, the back gesture does not leave the app,
-   and the card in front of you becomes the list and then becomes the card again. Pressing the field
-   opens it and pressing Done closes it, which is the gesture that was asked for in the first place:
-   *"click on subject field then click on the subjects."*
+   IT CANNOT BE DRAWN IN THE CARD, AND THAT IS MEASURED. `.pane` is `overflow: hidden` and the
+   booking card is **544px of content in a 534px pane at 320 and 605.7 in 613 at 390** — ten pixels
+   past the fold at the narrowest phone. A list that opens IN FLOW under a row pushes the rows below
+   it past that fold with no scroll and no page to turn to; twelve subjects is about 276px at 320,
+   and the Send tile ends up somewhere nobody can reach. An OVERLAY does not push anything, so the
+   arithmetic does not apply to it — but `overflow: hidden` clips an absolutely positioned child just
+   as readily, and `position: fixed` does not escape either: `placeCells` puts a `transform` on every
+   column, and a transformed ancestor becomes the containing block for a fixed descendant AND goes on
+   clipping it. So the panel is `#drop` in index.html, a sibling of the screens like `#sheet`, and
+   three numbers reach it from here.
 
-   `BOOKING.picking` IS THE WHOLE OF THE STATE, and it is an answer like every other one — kept with
-   them rather than in the DOM, so a redraw cannot lose it. Every tick redraws the page, which is
-   what makes the ✓ and the row's own summary land together; `bookToggle_` is the one place either
-   control changes the list.
+   `BOOKING.picking` IS STILL THE WHOLE OF THE STATE, and it is an answer like every other one — kept
+   with them rather than in the DOM, so a redraw cannot lose it. Every tick redraws the card AND the
+   panel, which is what makes the ✓, the row's own summary and the running price land together;
+   `bookToggle_` is the one place either control changes the list.
 
    THE ROW'S CONTROL IS A BUTTON WEARING `.bk-sel`. It is the same object as far as the card is
    concerned — right-aligned, no chrome, the answer as its text — and drawing it as a second thing
@@ -2474,51 +2475,178 @@ function stepMulti_(st) {
   const chosen = BOOKING[st.id] || [];
   const fb = st.fallback ? String(st.fallback() || '') : '';
   const said = chosen.join(', ') || fb;
+  /* `aria-expanded` BECAUSE IT IS A DROP-DOWN NOW and that is the one fact a screen reader cannot
+     get from anywhere else: the panel is `#drop`, outside this markup entirely, so nothing about the
+     row says a list is open unless the row says it. */
   return `<button type="button" class="bk-sel bk-many${said ? '' : ' is-unset'}"
     data-do="book-many" data-step="${esc(st.id)}"
+    aria-expanded="${BOOKING.picking === st.id ? 'true' : 'false'}"
     aria-label="${esc(st.label)}">${esc(said || '\u2014')}</button>`;
 }
 
-/* ---------- THE LIST, ON THE PAGE THE FORM WAS ON --------------------------------------------------
+/* ---------- THE PANEL, HANGING OFF THE FIELD ------------------------------------------------------
    A FORM'S CONTROLS ARE BUTTONS RATHER THAN TILES — the house style settles that — and one per
    option is the shape every list in this app has.
 
-   TWO COLUMNS RATHER THAN A STACK, AND THAT IS ARITHMETIC. Twelve full-width 44px buttons is 528px
-   against a pane that caps at **534px at 320×568**, with no room left for the heading or the way
-   back. `minmax(7.5rem, 1fr)` gives two columns on a phone and as many as fit on anything wider:
-   six rows of 44 is 276, and the card measures **432.7px at 320** with twelve options, the heading
-   and the Done on it — a hundred pixels inside the pane.
+   TWO COLUMNS RATHER THAN A STACK, AND THAT IS ARITHMETIC. Twelve full-width 44px buttons is 528px,
+   which is more than a 568px phone has either above or below a field — so a stack would scroll
+   whatever it hangs off. `minmax(7.5rem, 1fr)` gives two columns on a phone and as many as fit on
+   anything wider: six rows of 44 is 276px, and the panel measures inside the space on the side it
+   chose at every width.
 
    44px EACH, IN px, because a fingertip does not scale — this stylesheet's own rule, and the one
-   thing on this page that was never negotiable.
+   thing on this control that was never negotiable.
 
-   THE HEADING IS THE STEP'S OWN QUESTION, so the page says what it is for without a second string
-   to keep in step with the row it came from. */
-function pickerCard_(st) {
+   WHAT IS TICKED, AND NOT THE QUESTION. The panel hangs BELOW the row rather than over it, so the
+   question is still on screen an inch above — printing it again is the fault this file records where
+   the roster's `name` drew an `<h3>` over every widget's own heading. What is NOT readable up there
+   is the answer: `.bk-sel` is right-aligned in an 80px column and ellipsises at the second subject. */
+function dropCard_(st) {
   let opts = [];
   try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
   const chosen = BOOKING[st.id] || [];
   const on = o => chosen.some(c => norm(c) === norm(o));
   const said = chosen.join(', ');
-  return `<div class="card pick-card">
-    <h3>${esc(st.label)}</h3>
-    ${/* WHAT IS TICKED, ABOVE THE LIST. The row it came from is not on screen while this is, so
-          without it the only record of the answer is twelve buttons you have to read. */''}
-    <p class="sub">${said ? esc(said) : 'Nothing chosen yet — tap as many as apply.'}</p>
+  return `<p class="drop-say${said ? '' : ' is-none'}">${said ? esc(said)
+      : 'Nothing chosen yet — tap as many as apply.'}</p>
     ${opts.length ? `<div class="pick-list">${opts.map(o => `<button type="button"
         class="btn quiet pick-opt${on(o) ? ' on' : ''}" data-do="book-many-pick"
         data-step="${esc(st.id)}" data-val="${esc(o)}"
         aria-pressed="${on(o) ? 'true' : 'false'}"
-        >${on(o) ? '\u2713 ' : ''}${esc(st.label_ ? st.label_(o) : o)}</button>`).join('')}</div>`
+        >${on(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</button>`).join('')}</div>`
       : `<p class="muted">Nothing to choose here yet.</p>`}
-    <button type="button" class="btn" data-do="book-many-done">Done</button>
-  </div>`;
+    ${/* QUIET, AND A SCREENSHOT IS WHAT SAID SO. A gold `.btn` is the ONE thing to press on a card,
+          and on a panel whose whole content is twelve things to press it was the loudest object on
+          the screen — competing with the gold border a ticked option wears an inch above it. This is
+          the `.reel-sound` correction and the Messages column's `Refresh` one: a dismissal is not
+          the action. 44px either way, which is the measurement that does not move. */''}
+    <button type="button" class="btn quiet drop-done" data-do="book-many-done">Done</button>`;
+}
+
+/* WHICH QUESTION IS OPEN, OR NOTHING. A STEP THAT CANNOT BE ANSWERED CLOSES THE LIST rather than
+   drawing an unpressable one: changing Kind can lock the very question being picked — a joined class
+   settles its own subjects — and a panel of twelve greyed buttons with a Done under it is a state
+   nobody chose to be in. */
+function dropStep_() {
+  if (!BOOKING.picking) return null;
+  const st = bookStep_(BOOKING.picking);
+  if (!st || stepLocked_(st)) { BOOKING.picking = ''; return null; }
+  return st;
+}
+
+/* WHERE IT HANGS FROM, ASKED OF THE DOM RATHER THAN HELD. A repaint replaces the row with a new
+   node, so a reference kept from the press would be pointing at an element that is no longer in the
+   document — the `$('msg-text')` shape one step along. `#bookr` is the form's own wrapper, which is
+   also how `paintBook_` answers "which screen is this on".
+
+   AND IT IS NOT ENOUGH THAT THE ROW EXISTS. A fixed panel is measured against the VIEWPORT, so it
+   does not travel with a column that slides away underneath it: the booking card lives in a section
+   that stays in the document whichever column you are on, and every page of a paged column is in
+   there too. So the row has to be on the screen you are actually on, on the page that is actually
+   in front of you, or there is nothing for a drop-down to hang off. */
+function dropRow_(st) {
+  const box = $('bookr');
+  const row = box && box.querySelector('[data-do="book-many"][data-step="' + st.id + '"]');
+  if (!row) return null;
+  const host = row.closest('.screen');
+  if (!host || host.id !== 's-' + AT) return null;
+  /* WHICH PAGE, OFF `PAGE` RATHER THAN OFF `.page.on`. That class is written by `placeGrid`, and
+     `paint` replaces the markup without placing it — so the first version of this read `.on` from a
+     page that had just been rebuilt by the very redraw that called it, found it absent on every
+     tick, and closed the list it was meant to keep open. `PAGE[AT]` is the app's own answer to
+     "which page is in front of you" and no repaint can lose it; `logIndex_` is what turns a DOM
+     position into a page number, which is not the same thing on the Find screen. */
+  const page = row.closest('.page');
+  if (page) {
+    const kids = host.querySelectorAll(':scope > .page');
+    const pos = Array.prototype.indexOf.call(kids, page);
+    const p = typeof logIndex_ === 'function' ? logIndex_(AT, pos) : pos;
+    if (p !== (PAGE[AT] || 0)) return null;
+  }
+  return row;
+}
+
+/* ---------- THREE NUMBERS AND NOTHING ELSE -------------------------------------------------------
+   RIGHT EDGES TOGETHER, because the value it hangs off is right-aligned — a panel left-aligned to an
+   80px column would sit two thirds of the card away from the answer it is about. Clamped to the
+   gutter this app keeps at every width, so a field near the edge does not push it off screen.
+
+   WHICHEVER SIDE HAS MORE ROOM, and `max-height` from that room rather than a number chosen here. A
+   list that always opened downwards would be cut off by the bottom of the screen on the last few
+   rows of a twelve-row form, which is exactly where the subjects row is on a saved booking.
+
+   `touch-action` FROM THE MEASURED OVERFLOW, which is `padReach_`'s rule on the notepad: a box that
+   keeps a gesture it cannot use is a box you cannot swipe off, and this one is over the app. Six
+   pixels is the same floor `axisFree` uses, because two places asking one question have to ask it
+   the same way. */
+function dropPlace_(el, row) {
+  const pad = 8;
+  el.style.maxHeight = '';                 /* measured from nothing, or yesterday's cap decides */
+  const r = row.getBoundingClientRect();
+  const w = el.offsetWidth;
+  const left = Math.max(pad, Math.min(r.right - w, window.innerWidth - w - pad));
+  const below = window.innerHeight - r.bottom - pad * 2;
+  const above = r.top - pad * 2;
+  const under = below >= above;
+  el.style.maxHeight = Math.max(140, under ? below : above) + 'px';
+  el.style.left = Math.round(left) + 'px';
+  el.style.top = Math.round(under ? r.bottom + 4 : r.top - 4 - el.offsetHeight) + 'px';
+  el.style.touchAction = el.scrollHeight > el.clientHeight + 6 ? 'pan-y' : 'none';
+}
+
+/* THE BUILD. Called from `drawBooker`, which is the one entry point everything that changes an
+   answer already goes through — so the panel is rebuilt by the same call that rebuilds the card and
+   the two cannot disagree about what is ticked. */
+function bookDrop_() {
+  const el = $('drop'), back = $('drop-back');
+  if (!el || !back) return;
+  const st = dropStep_();
+  const row = st && dropRow_(st);
+  if (!row) { dropShut_(); return; }
+  el.innerHTML = dropCard_(st);
+  el.setAttribute('aria-label', st.label);
+  back.classList.remove('hidden');
+  el.classList.remove('hidden');
+  dropPlace_(el, row);
+}
+
+/* THE MOVE, WITHOUT THE BUILD. `placeNow_` calls this on every placement the grid makes — a column
+   swipe, a page turn, a resize — and a rebuild there would throw away the panel's own scroll
+   position sixty times a second while a finger is down. Nothing is rebuilt; the panel either follows
+   the field or, once the field is on a screen or a page nobody is looking at, closes. */
+function bookDropMove_() {
+  const el = $('drop');
+  if (!el || el.classList.contains('hidden')) return;
+  const st = dropStep_();
+  const row = st && dropRow_(st);
+  if (!row) { dropShut_(); return; }
+  dropPlace_(el, row);
+}
+
+/* HIDDEN AND EMPTIED. Emptied because the options are a live answer — a panel left holding
+   yesterday's list is a list that can be reopened by a stray class. */
+function dropShut_() {
+  const el = $('drop'), back = $('drop-back');
+  if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
+  if (back) back.classList.add('hidden');
+}
+
+/* ESCAPE, from the keydown handler beside the sheet's. Answers whether there was anything to close,
+   so the same keystroke does not then also close a sheet that was never open. */
+function bookDropShut_() {
+  const el = $('drop');
+  if (!el || el.classList.contains('hidden')) return false;
+  BOOKING.picking = '';
+  drawBooker();
+  return true;
 }
 
 on('book-many', el => {
   const st = bookStep_(el.dataset.step);
   if (!st || stepLocked_(st)) return;
-  BOOKING.picking = st.id;
+  /* PRESSING THE OPEN ONE SHUTS IT, which is what every drop-down does and is the second way out
+     besides Done and a tap anywhere else. */
+  BOOKING.picking = BOOKING.picking === st.id ? '' : st.id;
   drawBooker();
 });
 
@@ -2526,8 +2654,9 @@ on('book-many-pick', el => {
   const st = bookStep_(el.dataset.step);
   if (!st) return;
   bookToggle_(st, el.dataset.val);
-  /* THE LIST STAYS OPEN, which is the whole feature. `drawBooker` redraws the page it is on, so the
-     ✓ and the line above it saying what is chosen move together and neither is patched by hand. */
+  /* THE LIST STAYS OPEN, which is the whole feature. `drawBooker` redraws the card and then the
+     panel, so the ✓, the row's own summary and the running price move together and none of them is
+     patched by hand. */
   drawBooker();
 });
 

@@ -445,6 +445,35 @@ const STATES = {
       expect: () => document.querySelector('#s-tools #fm-out .fm-sheet'),
       wants: 'the flyer drawn on screen' },
 
+    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
+       `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:
+       whichever surface the basket has been on, this file has only ever seen it empty. It was a
+       page of the booking column and is a tool now — asked for as *"i want the cart to be a tool
+       in the tool column"* — so the state moved with it, seeded exactly as before.
+
+       SEEDED THE WAY THE APP FILLS IT. `CART` is what `cartCard_` reads and `cart-add` writes, and
+       `initCart()` is the widget's own `start` — which is what `toolsStart_` calls when the column
+       arrives, so this is the state a moment after somebody pressed the trolley on a card in Find.
+
+       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
+       sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
+       wider than `£270.00`, which is the difference between a finding and a pass. */
+    { name: 'the basket',
+      enter: () => {
+        CART = [{ key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
+                  cost: 0, money: 120000 },
+                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'cart');
+        if (n < 0) throw new Error('no basket widget in the roster');
+        goPage('tools', n, true);
+        initCart();
+      },
+      expect: () => document.querySelector('#s-tools [data-do="cart-send"]'),
+      wants: 'a basket with a way to pay on it',
+      /* PUT BACK, because states run in order down one page and an empty basket is what every
+         other state on this column expects to find. */
+      leave: () => { CART = []; initCart(); } },
+
     /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------
        THE SEVENTY-SEVEN CELLS OF A WEEK GRID, on a card nobody had measured, in the one place this
        file could not reach before: `widgetsOf_` shows it to a tutor or an admin and to nobody
@@ -756,17 +785,24 @@ const STATES = {
          empty it — the same call every send path ends with. */
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
-    /* ---------- THE LIST THAT REPLACES THE FORM ------------------------------------------------
+    /* ---------- THE LIST THAT HANGS OFF A FIELD ------------------------------------------------
        `check/press.js` REPORTED IT BEFORE THIS EXISTED: *"named on a screen and then not found to
        press (2): booking/book-many-pick, booking/book-many-done"*. Both controls are drawn only
        once a field has been pressed, and the press pass builds its queue from what is on the screen
-       — so the two halves of the picker were pressed by nothing. While it was a sheet they were
-       collected with everything else a press opens; on the page they are a state or they are
+       — so the two halves of the list were pressed by nothing. While it was a sheet they were
+       collected with everything else a press opens; anywhere else they are a state or they are
        nowhere, which is exactly the hole this file's own header describes.
 
-       AND `check/ui.js` HAD NEVER LAID IT OUT EITHER. Twelve 44px options in a pane that caps at
-       534px is the arithmetic the whole design turns on, and until this state it was measured in a
-       probe rather than on every commit.
+       AND IT IS `#drop` NOW RATHER THAN THE PAGE. The list replaced the form for one commit and was
+       reported as *"i hate this"*; it hangs off its field, outside the screens, because `.pane` is
+       `overflow: hidden` and would clip it anywhere else. So the measured root is the panel, not
+       `#s-booking` — a selector scoped to the screen finds nothing and reads as the list being
+       absent, which is this file's own recurring fault about an instrument that cannot reach its
+       subject.
+
+       AND `check/ui.js` HAD NEVER LAID IT OUT EITHER. Twelve 44px options in whichever side of the
+       field has more room is the arithmetic the whole design turns on, and until this state it was
+       measured in a probe rather than on every commit.
 
        SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does — the
        app's own door rather than markup poked into the page. The step is found rather than named:
@@ -779,9 +815,12 @@ const STATES = {
           .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
         if (st) { BOOKING.picking = st.id; drawBooker(); }
       },
-      expect: () => document.querySelectorAll('#s-booking .pick-opt').length >= 1
-        && !!document.querySelector('#s-booking [data-do="book-many-done"]'),
-      wants: 'a page of options with a Done under them',
+      expect: () => document.querySelectorAll('#drop .pick-opt').length >= 1
+        && !!document.querySelector('#drop [data-do="book-many-done"]')
+        /* AND OPEN, because `#drop` keeps its markup for as long as it is up and an assertion on the
+           options alone would pass on a panel that is hidden. */
+        && !document.getElementById('drop').classList.contains('hidden'),
+      wants: 'a list of options hanging off the field, with a Done under them',
       /* PUT BACK, because states run in order down one page and the receipt state after this one
          would otherwise be measuring a picker. */
       leave: () => { BOOKING.picking = ''; drawBooker(); } },
@@ -853,29 +892,6 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#s-booking .rc .bk-row').length,
       wants: 'a receipt with rows on it' },
-    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ----------------------------
-       `basketPages()` RETURNS NOTHING WHEN `CART` IS EMPTY — deliberately, because "your basket is
-       empty" is a whole pane whose content is the word no. And `CART` lives in `localStorage`, not
-       in the payload, so no fixture can put anything in it: this column has drawn the form and
-       nothing else on every run this file has ever made.
-
-       SEEDED THE WAY THE APP FILLS IT. `CART` is what `basketPages` reads and `cart-add` writes,
-       so setting it is the state a moment after somebody pressed Add to basket.
-
-       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
-       sized in `ch` of a proportional font and drawn in mono at 1.05rem bold — and `£2050.00` is
-       one character wider than `£270.00`, which is the difference between a finding and a pass. */
-    { name: 'the basket',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        CART = [{ key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
-                  cost: 0, money: 120000 },
-                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
-        paint('booking');
-        goPage('booking', pageCount('booking') - 1, true);
-      },
-      expect: () => document.querySelector('#s-booking [data-do="cart-send"]'),
-      wants: 'a basket with a way to pay on it' },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------

@@ -138,22 +138,24 @@ on('book-share', el => {
 /* The one entry point. Everything that changes an answer calls this, and it is the only thing that
    calls `drawBooker_` — so nothing can redraw the card without keeping its place. It sat orphaned
    at the head of this file for as long as the shared picture was written between it and here. */
-function drawBooker() { redrawBooker_(paintBook_); }
+/* AND THE PANEL, because the list that hangs off a field is `#drop` outside the screens entirely —
+   see `bookDrop_`. It is here rather than beside it in book.js so that a redraw cannot rebuild the
+   card without rebuilding the list on it: every tick goes through this one function, which is what
+   keeps the ✓, the row's own summary and the running price in step. */
+function drawBooker() {
+  redrawBooker_(paintBook_);
+  if (typeof bookDrop_ === 'function') bookDrop_();
+}
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
 function bookerCard() {
-  /* ---------- OR THE LIST, ON THE SAME PAGE ------------------------------------------------------
-     `#bookr` IS THE WRAPPER EITHER WAY, and that is not tidiness: `paintBook_` finds the screen to
-     repaint by walking up from `#bookr`, so a picker drawn outside it would come up once and then
-     be unable to redraw itself — every tick would run the handler and change nothing, which is the
-     fourth of the four causes `clicks()` lists and the one that looks like the app being dead.
+  /* ---------- THE LIST IS NOT DRAWN HERE ANY MORE -------------------------------------------------
+     FOR ONE COMMIT THIS RETURNED THE PICKER INSTEAD OF THE CARD, and it was reported as *"i hate
+     this."* The list hangs off its field now — `#drop`, a sibling of the screens, built by
+     `bookDrop_` off the same `BOOKING.picking` this used to read. The card is always the card.
 
-     A STEP THAT CANNOT BE ANSWERED CLOSES THE LIST RATHER THAN DRAWING AN UNPRESSABLE ONE. Changing
-     Kind can lock the very question being picked — a joined class settles its own subjects — and a
-     page of twelve greyed buttons with a Done under it is a state nobody chose to be in. */
-  const pick = BOOKING.picking ? bookStep_(BOOKING.picking) : null;
-  if (pick && !stepLocked_(pick)) return `<div id="bookr">${pickerCard_(pick)}</div>`;
-  if (BOOKING.picking) BOOKING.picking = '';
+     `#bookr` STILL HAS TO BE HERE, and that is not tidiness: `paintBook_` finds the screen to
+     repaint by walking up from it, and `dropRow_` finds the field to hang off inside it. */
   const out = drawBooker_();
   if (!out) return '';
   return `<div id="bookr">

@@ -5592,22 +5592,17 @@ function bookingPages_(o) {
   const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
   if (!(o && o.column) && narrowed) return [];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  /* ---------- THE BASKET BELONGS TO BOOKING, AND WAS FILED UNDER THE FUNNEL ----------------------
-     IT SAT ON THE `stuff` COLUMN, between the saved things and the first result. The layout sheet
-     puts it under Booking — second row of that column — and the sheet is right: a basket is the
-     end of arranging a session, not a thing you search for. Moved.
+  /* ---------- THE BASKET IS NOT HERE ANY MORE, AND IT WAS HERE FOR ONE GOOD REASON --------------
+     IT WAS A PAGE OF THIS COLUMN, appended in column mode only: a basket is the end of arranging a
+     session rather than a thing you search for, so it belonged with the booking and not with the
+     funnel. That argument was right about which of those two it is closer to and wrong about it
+     being either — a basket is empty most of the time, so as a page it appeared and disappeared
+     under somebody's thumb, which is the whole reason it has now lived in four places.
 
-     COLUMN MODE ONLY, and that is the whole care in this change. `bookingPages_()` with no argument
-     is what `frontPages_()` calls to put the form on the FUNNEL — so adding the basket to the plain
-     return would have moved it out of one place on `stuff` and straight back into another.
-
-     AND THREE COUNTERS HAD TO MOVE WITH IT. `stuffFirstResult_`, `paintStuff` and `screen('stuff')`
-     each added `basketPages().length` to work out where the results start; a page list and a page
-     count that disagree is exactly the fault that put a blank card under the question for every
-     starred thing. All three are updated, and `check-flow` walks the funnel to prove it. */
-  return o && o.column && typeof basketPages === 'function'
-    ? form.concat(basketPages())
-    : form;
+     IT IS A TOOL. `cartCard_` says why at length, and what is left here is one `return` — no page
+     to count, so `stuffFirstResult_`, `paintStuff` and `screen('stuff')` have nothing to add up.
+     Asked for as *"i want the cart to be a tool in the tool column."* */
+  return form;
 }
 
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER -------------------------------------------------------
@@ -6406,7 +6401,8 @@ function paintStuff(keepPage) {
 
   /* ---------- ONE INSERT, IN THE ORDER `screen('stuff')` BUILDS -----------------------------------
      THIS PUT THE SAVED AND BASKET PAGES BEFORE THE QUESTION. `screen('stuff')` puts them after it —
-     `[controls], frontPages_(), savedPages_(), basketPages(), blanks` — and the note that used to
+     `[controls], frontPages_(), savedPages_(), blanks` (the basket was here too, and is a tool on
+     the Tools column now) — and the note that used to
      be here claimed the two agreed. They did not, and the note four lines above it had already
      named the risk: "Two ways of ordering the same page list, twenty lines apart, is a good way to
      get one of them the wrong way round."
