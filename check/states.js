@@ -133,29 +133,47 @@ const STATES = {
        here could see it until `inspect` was taught to — see the note there.
 
        THE KIT, THE METHOD AND THREE TEXTAREAS, none of it measured for a tap target, a contrast
-       ratio or a sideways scroll until this. `openSheet` is what the tile's handler calls, so this
-       is the app's own door and not a reach past it.
+       ratio or a sideways scroll until this.
+
+       IT OPENED A SHEET AND THERE IS NO SHEET ANY MORE. "I HATE POP UP" — so `practicalCard_`
+       draws the guide inline and the tile, its handler and `openSheet` are all gone from this
+       path. A state that opened a surface the app no longer has would be measuring something
+       nobody can see, which is this repository's oldest fault pointed at its own lab. It answers
+       the funnel down to the practicals and turns to the first result instead, which is the app's
+       own door and the state a person is actually in.
 
        IT WAS EIGHT BOXES AND A RISK LIST until the guide was cut to the five things its own note
-       names. The number is asserted rather than described — `>= 3` would pass on a guide that had
-       quietly grown a fourth question nobody decided on, and this state is the only thing that
-       renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
-       ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
-       which is a state that measures nothing it claims to.
+       names.
 
-       LAST IN THE LIST, AND IT PUTS THE SHEET BACK. States run in order down one page and `go()`
-       does not close a sheet, so an open guide would otherwise be measured again as part of Tools
-       and Games. `leave` is what says so. */
+       LAST IN THE LIST, AND IT PUTS THE FUNNEL BACK. States run in order down one page, so a
+       funnel left narrowed to the practicals would be measured again as part of Tools and Games.
+       `leave` is what says so. */
     { name: 'a practical guide',
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded);
-        if (!x) throw new Error('no practical in the list to open a guide on');
-        openSheet(x.name, practicalGuide_(x), null, null);
+        if (!x) throw new Error('no practical in the list to draw a card for');
+        /* THE FUNNEL'S OWN ANSWER, not a hand on the list. `kindLabel` is what the `What kind`
+           question writes, so this is the chip a thumb would have set. */
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
+        paintStuff();
+        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
       },
-      expect: () => document.querySelectorAll('#sheet-body .gd-box').length === 3
-                 && document.querySelector('#sheet-body .prac-kit .kit-chip'),
-      wants: 'the guide open in the sheet, with its kit chips and the three worksheet boxes',
-      leave: () => closeSheet() },
+      /* THE NUMBER IS ASSERTED RATHER THAN DESCRIBED — `>= 3` would pass on a guide that had
+         quietly grown a fourth question nobody decided on, and this state is the only thing that
+         renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
+         ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
+         which is a state that measures nothing it claims to. */
+      expect: () => {
+        /* ONE CARD, NOT THE SCREEN. The windowed pager keeps about six result pages in the DOM at
+           once, so counting `.gd-box` across `#s-stuff` counts six guides and answers 18 — which
+           is what the first version of this did, and it reported the state unreachable on a screen
+           that was drawing it perfectly. The count is per card because the claim is per card. */
+        const c = document.querySelector('#s-stuff .card.prac');
+        return !!c && c.querySelectorAll('.gd-box').length === 3
+               && !!c.querySelector('.prac-kit .kit-chip');
+      },
+      wants: 'a practical card with its guide on it — the kit chips and the three worksheet boxes',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
        with four live buttons; answered, with the right one marked, the wrong one outlined and the
@@ -170,33 +188,61 @@ const STATES = {
        agree. `quizKey_` is the app's own key-builder for the reason the seeded message thread uses
        `MESSAGES`: a second spelling of that key here would be a second thing to keep in step.
 
-       AND IT PUTS THE SHEET BACK, for the reason the guide above does. */
+       AND IT PUTS THE FUNNEL BACK, for the reason the guide above does. It opened a SHEET until
+       "ok get rid of the other pop up menu" took the quiz onto its card; a state that opens a
+       surface the app no longer has measures something nobody can see. */
     { name: 'a quiz',
       enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'quiz');
-        if (!x) throw new Error('no quiz in the list to open');
-        const qs = x.row.qs || [];
+        const any = stuffItemsAll_().find(it => it.kind === 'quiz');
+        if (!any) throw new Error('no quiz in the list to draw a card for');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(any).label }];
+        paintStuff();
+        /* ---------- SEEDED ON THE QUIZ THE SCREEN WILL ACTUALLY SHOW -------------------------
+           NOT ON `stuffItemsAll_()`'s FIRST, which is a different order from the funnel's: the
+           list is sorted before it is paged, so seeding one quiz and landing on another would
+           leave this state measuring an untouched card and reporting the marked states missing.
+           `stuffFiltered()` after the repaint is the order the pages are built from. */
+        const x = stuffFiltered()[0];
+        if (!x) throw new Error('the funnel returned no quiz after filtering to them');
         /* One right and one wrong, so both marked states are on the screen at once. A quiz where
            everything is right measures no red, which is half the rules in the block. */
-        const pick = qs.filter(q => q.kind === 'choice');
+        const pick = (x.row.qs || []).filter(q => q.kind === 'choice');
         if (pick.length >= 2) {
           localStorage.setItem(quizKey_(x, pick[0].n), pick[0].answer);
           const other = (pick[1].choices || []).find(c => c !== pick[1].answer);
           if (other) localStorage.setItem(quizKey_(x, pick[1].n), other);
         }
-        openSheet(x.name, quizSheet_(x), null, null);
+        paintStuff();
+        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
       },
-      expect: () => document.querySelectorAll('#sheet-body .quiz-q').length >= 3
-                 && document.querySelector('#sheet-body .quiz-q.is-right')
-                 && document.querySelector('#sheet-body .quiz-q.is-near')
-                 && document.querySelector('#sheet-body .quiz-why'),
-      wants: 'the quiz open, with one question right, one wrong, and both explanations drawn',
+      /* ONE CARD, NOT THE SCREEN, for the reason the guide's own expect records: the windowed
+         pager holds about six result pages at once, so a count across `#s-stuff` counts six
+         quizzes. The seeded one is the first, which is what the `stuffFiltered()[0]` above buys. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.quiz');
+        return !!c && c.querySelectorAll('.quiz-q').length >= 3
+               && !!c.querySelector('.quiz-q.is-right')
+               && !!c.querySelector('.quiz-q.is-near')
+               && !!c.querySelector('.quiz-why');
+      },
+      wants: 'a quiz card with one question right, one wrong, and both explanations drawn',
+      /* ---------- IT CLEARS THE QUIZ IT SEEDED, AND IT USED TO CLEAR A DIFFERENT ONE ------------
+         THIS READ `stuffItemsAll_()`'s FIRST QUIZ, which was the same one `enter` seeded while
+         `enter` read that list too. It does not any more — the seed moved to `stuffFiltered()[0]`,
+         which is the funnel's own order — so looking the quiz up the old way would clear five keys
+         on a quiz nobody touched and leave five behind on the one that was. States run in order
+         down one page, so those would still be there when Tools and Games are measured.
+
+         BOTH ENDS READ THE SAME LIST NOW, which is the only arrangement where they cannot drift —
+         the sentence this repository writes about `documents_()`, `factsNow_` and `childrenOf`. */
       leave: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'quiz');
-        if (x) (x.row.qs || []).forEach(q => {
+        const x = stuffFiltered()[0];
+        if (x && x.kind === 'quiz') (x.row.qs || []).forEach(q => {
           try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
         });
-        closeSheet();
+        STUFF.filters = [];
+        paintStuff();
+        goPage('stuff', 0);
       } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.

@@ -322,9 +322,24 @@ function outside(svg, row) {
        that card had existed. Nothing anywhere could see it — `check/ui.js` renders whichever five
        cards the funnel happens to stop on, and this file measured the other axis.
 
-       IT IS A FAILURE RATHER THAN A COUNT, because after that card was split into a search result
-       and a guide the number is ZERO — median 274px, worst 386. There is no backlog to swamp it,
-       so the first card that goes back past the fold says so instead of joining a red nobody reads.
+       IT WAS A FAILURE AND IS A COUNT NOW, AND THE SENTENCE IT PRINTED WAS THE THING THAT WENT
+       WRONG. "Cut off with no scroll and no page to turn to" was true when the guide was split off
+       and the number fell to zero. The owner has since said "I HATE POP UP", so the guide is back
+       on the card and 77 of the 82 are past the cap again — and the sentence is no longer true of
+       any of them. `paneReach_` in find.js measures every funnel pane after a paint and writes
+       `overflow-y: auto` on the ones that overflow; `scrollHost_` then scrolls that pane from the
+       app's own drag and hands the next swipe to the grid. A practical card is a funnel result, so
+       it has been covered since the day that was written for the 431 question cards.
+
+       MEASURED WITH REAL TOUCH EVENTS RATHER THAN ASSUMED, because a rule that stands itself down
+       on a mechanism nobody checked is worse than the red it replaces: on the tallest card the pane
+       showed 805px of 1152, `paneReach_` had set it to `auto`, two swipes scrolled it 0 -> 260 ->
+       347 and reached the end, and the third turned the page.
+
+       SO IT SAYS WHAT THE QUESTION RULE ABOVE IT SAYS, in the same words, because it is now the
+       same fact. What would make it a failure again is the pane's scroll going away — and that is
+       `check/ui.js`'s OUT OF REACH, which asks whether anything is hidden with no way to reach it,
+       rather than this, which only counts what is taller than the fold.
 
        ONLY THE PRACTICALS, AND THAT LINE IS PRINCIPLED RATHER THAN LAZY. This pass boots the real
        app and calls `practicalCard_`, so what it measures is the height the app actually draws. The
@@ -341,17 +356,20 @@ function outside(svg, row) {
     });
     return { n: items.length, cap: Math.round(cap), tall };
   }, WIDTH);
-  /* ---------- AND EVERY GUIDE, THROUGH THE SHEET THE APP OPENS IT IN ----------------------------
-     THE CARD IS THE SEARCH RESULT AND THE GUIDE IS THE DOCUMENT, and the split above moved the kit,
-     the method and seventeen apparatus drawings out of one and into the other. (The safety line went
-     with them and the guide has since stopped drawing it; the split is what matters here.)
-     Nothing was measuring the half that moved: `check/ui.js` has ONE declared state that opens a
-     guide, which is one practical of fifty-two, and this file was laying out the card.
+  /* ---------- AND EVERY GUIDE, WHICH IS ON THE CARD ---------------------------------------------
+     THE CARD WAS THE SEARCH RESULT AND THE GUIDE WAS THE DOCUMENT, and that split is over: the
+     owner saw the sheet it opened in and said "I HATE POP UP", so the kit, the method, the drawings
+     and the worksheet are drawn inline by `practicalCard_` again. This pass follows them.
 
-     THROUGH `openSheet` RATHER THAN A DIV OF THE RIGHT WIDTH. `#sheet-body` has its own padding and
-     its own cap, so a guide measured in a bare 320px column is measured in a column it is never in
-     -- and guessing that padding here would be a second copy of a number the stylesheet already
-     owns. The app's own door, one at a time, closed after each.
+     IT IS STILL A SEPARATE PASS FROM THE CARD ONE ABOVE, deliberately. That one asks whether a card
+     fits the COLUMN at 320px; this one asks the questions only the guide's own contents raise — a
+     drawing clipped by its own viewBox, a drawing rendered twice, the picture landing below the kit
+     list, and how many kit chips carry a quantity. Folding them together would make one report of
+     two different subjects.
+
+     RENDERED INTO A `.pane`, which is what a funnel result page is: `.page.is-res > .pane >
+     .favwrap > .card.prac`. A bare div of the right width would be a column the card is never in,
+     and copying the pane's padding here would be a second copy of a number the stylesheet owns.
 
      A DRAWING GETS A SECOND QUESTION IN PIXELS A VIEWER CAN SEE. `measure` skips everything inside
      an `<svg>`, correctly: the outermost `<svg>` clips to its viewport, so nothing in there can push
@@ -425,17 +443,37 @@ function outside(svg, row) {
 
   await pracPage.evaluate('window.__measure = ' + measure.toString());
   await pracPage.evaluate('window.__outside = ' + outside.toString());
+  /* ---------- ON THE CARD, WHERE IT IS DRAWN, AND IT USED TO BE IN A SHEET ----------------------
+     THIS OPENED EACH GUIDE WITH `openSheet` because that is where the guide lived. It does not any
+     more: "I HATE POP UP", so `practicalCard_` draws it inline and there is no sheet, no tile and
+     no handler left to reach. Measuring a surface the app no longer has would be this repository's
+     oldest fault pointed at its own instrument — a check reporting on something nobody can see.
+
+     EVERY MEASUREMENT INSIDE THE LOOP IS UNCHANGED, and that is the point of the edit being this
+     small: the `.gd` block is the same markup in the same order, so the width rule, the clipped-
+     label rule, the drawn-once rule, the picture-before-the-kit rule and the chip counts all ask
+     exactly what they asked before. What changed is only how it gets on a screen — rendered into a
+     `.pane`, which is what a funnel result page actually is. */
   const guides = await pracPage.evaluate(arg => {
-    if (typeof practicalGuide_ !== 'function' || typeof openSheet !== 'function') return -1;
+    if (typeof practicalCard_ !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'practical');
     const wide = [], clipped = [], order = [];
     let drawings = 0, chips = 0, withQty = 0;
+    const host = document.createElement('div');
+    host.id = '__cardhost';
+    host.innerHTML = '<section class="page"><div class="pane"></div></section>';
+    document.body.appendChild(host);
+    const pane = host.querySelector('.pane');
     items.forEach(x => {
-      openSheet(x.name, practicalGuide_(x), null, null);
-      const gd = document.querySelector('#sheet-body .gd');
+      pane.innerHTML = practicalCard_(x);
+      const gd = pane.querySelector('.gd');
+      /* A REFUSED PRACTICAL DRAWS NO GUIDE, BY RULE — no kit, no method, no worksheet, because
+         writing out a procedure for something nobody will run is inventing content to satisfy a
+         checker. Five of the 82 are in that state, so a missing `.gd` here is correct and the
+         count below is of the ones that have one. */
       if (!gd) return;
       gd.dataset.row = x.key;
-      window.__measure({ slack: arg.slack, sel: '#sheet-body .gd' })
+      window.__measure({ slack: arg.slack, sel: '#__cardhost .gd' })
         .forEach(f => wide.push(f));
       gd.querySelectorAll('figure svg').forEach(svg => {
         drawings++;
@@ -466,8 +504,8 @@ function outside(svg, row) {
         chips++;
         if (c.querySelector('.kit-q')) withQty++;
       });
-      if (typeof closeSheet === 'function') closeSheet();
     });
+    host.remove();
     return { n: items.length, drawings, wide, clipped, order, chips, withQty };
   }, { slack: SLACK });
 
@@ -475,7 +513,7 @@ function outside(svg, row) {
      answer as "I checked and it was fine", which is the fault this repository has recorded five
      ways and the reason `check-booking.js` read as a pass for months. */
   if (guides === -1 || (guides !== -1 && !guides.n)) {
-    console.error('\nthe app did not open one practical guide -- not a pass');
+    console.error('\nthe app did not draw one practical card -- not a pass');
     process.exit(1);
   }
   if (practicals === -1) {
@@ -621,29 +659,39 @@ function outside(svg, row) {
   }
 
   if (practicals.tall.length) {
-    console.log('\nBELOW THE FOLD  (' + practicals.tall.length + ')');
+    console.log('\nA PRACTICAL THAT HAS TO BE SCROLLED  (' + practicals.tall.length + ' of '
+      + practicals.n + ') — reachable, not cut off: see the note above `tall`');
     practicals.tall.sort((a, b) => b.px - a.px).slice(0, 10)
-      .forEach(t => console.log('  ' + t.row + ' — ' + t.px + 'px past the pane, cut off with '
-        + 'no scroll and no page to turn to'));
+      .forEach(t => console.log('  ' + t.row + ' — ' + t.px + 'px past the ' + practicals.cap
+        + 'px pane, so the pane scrolls and the pager takes over at the end'));
     if (practicals.tall.length > 10) {
       console.log('  … and ' + (practicals.tall.length - 10) + ' more');
     }
   }
 
   bad.push(...guides.wide);
-  if (!bad.length && !practicals.tall.length && !painted.length && !guides.order.length
+  /* `practicals.tall` IS OUT OF THIS TEST, with the rule it belongs to: it counts cards taller than
+     the fold, and the pane scrolls them. The question count beside it was never in it. */
+  if (!bad.length && !painted.length && !guides.order.length
       && !papers.over.length && !papers.leak.length) {
     /* IT SAID "EVERY QUESTION FITS THE NARROWEST PHONE" AND MEANT ITS WIDTH. That was true and
        read as more than it said, which is the "all 18 checks pass" shape one more time: the
        question pass asks about the column and the count above asks about the fold, and 431 rows
        are past it. The sentence names the axis now. */
     console.log('\nOK — every question, every practical and every guide fits the WIDTH of the\n'
-              + '     narrowest phone, every practical card fits the pane it is drawn in, every\n'
-              + '     label in every drawing is inside the drawing, and every printed quiz fits\n'
-              + '     one side of A4 with its answers on the other sheet.'
+              + '     narrowest phone, every label in every drawing is inside the drawing, and\n'
+              + '     every printed quiz fits one side of A4 with its answers on the other sheet.'
               + '\n     The picture of a practical comes before the things it is made of, once each.'
+              /* IT SAID "every practical card fits the pane it is drawn in" AND 77 OF 82 DO NOT.
+                 That was true while the guide opened in a sheet and stopped being true the hour it
+                 came back onto the card — a confident sentence outliving the thing it described,
+                 which is the fault this repository records under `.favwrap.is-fav` and the dead
+                 `kind === 'paper'` guard. Both counts are printed rather than claimed now, and
+                 neither is a failure: the pane scrolls them. */
               + (qtall !== -1 && qtall.tall.length
-                 ? '\n     ' + qtall.tall.length + ' question cards are taller than the pane and scroll — printed above.' : ''));
+                 ? '\n     ' + qtall.tall.length + ' question cards are taller than the pane and scroll — printed above.' : '')
+              + (practicals.tall.length
+                 ? '\n     ' + practicals.tall.length + ' practical cards are too, for the same reason.' : ''));
     process.exit(0);
   }
 

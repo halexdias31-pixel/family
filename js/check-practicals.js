@@ -407,18 +407,6 @@ rows.filter(r => String(r.excluded_reason || '').trim() && String(r.diagram || '
    tower's layers, the lava lamp's two liquids, the gear train. That is the same line every drawing
    in tools/draw-practicals.py is written along, stated from the other side. */
 const NO_DRAWING = {
-  'PR-CH04': 'a cup inside a beaker with a lid on it; the arrangement is one sentence and the '
-           + 'temperature is the reading',
-  'PR-BI04': 'four tubes and four colour changes, and the colours ARE the reading',
-  'PR-BI10': 'a tube in a water bath, which is the shape of every water bath and assembles nothing',
-  'PR-FN04': 'the melted patches are what you measure, and a plate drawn without them says nothing',
-  'PR-FN08': 'three cups and a counter. The decision tree would be the answer',
-  'PR-FN09': 'a park is a different shape in every town, so nothing here determines the picture',
-  'PR-FN11': "the tower's shape is the variable each team chooses",
-  'PR-FN13': 'step 2 is "predict the order of the layers from the densities alone", so the layers '
-           + 'are the answer',
-  'PR-HM01': 'a bottle standing in a bowl. The foam is the whole of it and the foam is the result',
-  'PR-HM02': 'a rack of tubes whose colours are the reading',
   'PR-HM04': 'a pad of wire wool, a battery and a scale, none of it assembled',
   'PR-HM05': 'a tablet, a glass and a stopwatch',
   'PR-HM09': 'two lamp posts and a measured distance between them',

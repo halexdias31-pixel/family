@@ -13273,3 +13273,368 @@ about `KIND_BUCKET` and the temporal dead zone, from the other side.
 above the tables, both indexes are built at construction, and the lazy branch is gone. A dependency
 that is real belongs above its dependent, which is the one rule `index.html`'s file list is built
 on, applied one file in.
+
+## The tab bar was deleted and the three rem it reserved was not
+
+**Reported as "sometimes when trying to swipe up on phone it scrolls on the whole page like do you
+know what I mean? It feels clunky. Also won't let me swipe up on posts on my iPhone."** Measured at
+six phone sizes before anything was touched, and the two sentences have one cause.
+
+| | document height | viewport | can the whole page scroll |
+|---|---|---|---|
+| **320x568** | **609px** | 568 | **by 41px** |
+| **360x640** | **681px** | 640 | **by 41px** |
+| 375x667 | 667 | 667 | no |
+| 390x844, 414x736, 430x932 | = viewport | | no |
+
+**`#screen` IS `100dvh` MINUS FOUR VARIABLES AND `body` PADS BY EXACTLY THE SAME FOUR**, so the
+document is the viewport and there is nothing under it. What put 3rem beneath it is one line in a
+media query:
+
+```css
+@media (max-width: 23rem) { body { padding-bottom: calc(3rem + var(--safe-bottom)); } }
+```
+
+**IT IS A SECOND, HARDCODED COPY OF `--bar`.** `index.html` deleted `<nav id="tabs">` and its own
+note there says why — *"an empty fixed element reserving three rem at the foot of every screen for a
+control that did not exist"* — and `--top` and `--bar` went to `0rem` in the same spirit, both
+documented at the top of `style.css` as kept-but-zero because five rules measure from them. **This
+copy does not reference `--bar`, so setting it to zero never reached it.** The rest of that block —
+`.tab .lb`, `.tab .ic`, `#tabs { height }` — named elements no JavaScript file has produced since,
+and `#tabs` was still sitting in two live selector groups.
+
+**AND `23rem` IS 368px, NOT 320.** A media query resolves `rem` against the INITIAL font size, 16px,
+never the root's own `clamp(13.5px, 3.8vw, 16px)` — so the comment's "a 320px iPhone SE" was every
+phone up to an iPhone 12 mini.
+
+### Why 41px is worse than 41px on iOS
+
+**A scrollable document is what lets Safari start collapsing its toolbar** — and `100dvh` is the
+DYNAMIC viewport, so it grows as the toolbar goes, `#screen` and `body` grow with it, and the
+overflow changes underneath the gesture. That is a loop, and "clunky" is what a loop feels like. On
+the columns it never showed, because `#screen` is `touch-action: none` and the grid takes every
+gesture there; measured in Chromium the page turns at all six sizes with the 41px present. **The
+platform this was reported from is the one platform this environment cannot open**, so the mechanism
+is stated from the code rather than from a measurement of iOS.
+
+### `overscroll-behavior-y` was on `body`, and the viewport reads it off the root
+
+**`overflow` is the property that is taken from `body` when the root has none. `overscroll-behavior`
+is not** — it propagates from `html` and from nowhere else. So this spent its life on `body`, where
+Chrome happened to honour it and Safari, correctly, did not: **on iOS the viewport has been `auto`
+throughout.**
+
+**That is the half that survives even with nothing to scroll**: a rubber-band on a document that
+cannot move is the app coming away from the top of the screen and springing back, which is the other
+half of "it feels clunky". One declaration, on `html`, not two.
+
+### `node check/ui.js` — THE DOCUMENT SCROLLS
+
+**Three geometry rules were green over this and each is right about what it asks.** SIDEWAYS SCROLL
+is the other axis. OUT OF REACH asks whether a PANE hides content below its own fold — this pane did
+not, the padding was outside it. PANE OFF THE SCREEN asks whether a pane is placed outside the
+viewport — it was not. **The loss is one box further out again: the DOCUMENT, which no rule had ever
+measured.**
+
+**ZERO TOLERANCE, not a floor, and that is the difference from every other rule in this file.** The
+six-pixel floors elsewhere exist because `scrollHeight` is rounded from a layout in fractions and a
+pane that fits exactly reports a pixel or two; here the two numbers are the same `100dvh` twice, so
+they agree exactly — measured at six phone sizes the overflow is 0px and not 1px. A floor would let
+the next 3rem in as long as somebody wrote it as 3px.
+
+**Per width and visitor, not per screen**, because the document is the document whichever column is
+in front of it. **Proved by mutation** — the rule put back at a verified top-level spot names it at
+320px, signed out and signed in: *"the page is 885px tall inside a 844px viewport, so the whole app
+can be scrolled by 41px — body padding 0px / 40.5px, children main#screen 844px"* — and exits 1.
+
+**THE FIRST MUTATION SILENTLY DID NOT APPLY AND THE CHECK CORRECTLY SAID NOTHING.** The anchor it
+replaced against no longer existed, so `grep -c` matched the sentence in the new comment rather than
+a rule, and I read a green run as a rule that could not fire. A mutation that changes no behaviour is
+not a test — this file's own words about the `waveOf` mutant — and the only thing that catches it is
+checking that the mutant is really in the file and really computes.
+
+### The posts half is the same 41px, and what it is not
+
+**Measured in Chromium at 320, 360, 375, 390 and 430, signed in, with a real photograph on each
+post: the swipe up turns the page every time**, with the finger on the picture, on the caption and on
+the pane. `scrollHost_` answers `null` and `axisFree` answers true, which is right — nothing under
+the finger can scroll, so the gesture is the grid's.
+
+**So the posts sentence is the first sentence on the column somebody uses most**, and the fix above
+is the fix for it. Two other possibilities are worth knowing before anybody debugs it again: a feed
+holding ONE post has nowhere to swipe to, and the last page of any column correctly refuses to move.
+
+### `check/ui.js` has a 320px phone that is 844px tall
+
+**Found while measuring the photograph, and it is why two real faults have sat here.**
+`newPage({ viewport: { width, height: 844 } })` — one height for every width — so the lab's "320px"
+is a 320x844 phone that does not exist and whose pane is 807px against a real iPhone SE's 534px.
+
+**What it hides, measured:** a post with a 4:5 portrait photograph — the shape the markup itself
+reserves, because it is the shape a phone camera gives — is 582px inside a 534px pane at 320x568, so
+`post-said`, `cmt-form`, the textarea and its Send button are **below the fold with no scroll and no
+page to turn to**. 46px at 375x667, nothing at 390 and up. **The session receipt's own 216px at
+320x568 is invisible for the same reason**, and this file already records that one as pre-existing.
+
+**And the fixture's posts carry `image: ""`**, so no run has ever drawn a photograph on that card at
+all — the fourth time the fixture has been found stating a shape `doGet` does not send, after `focus`
+as a string, the receipt's `sessionDates` against `dates`, and the job's `students` and `venue`.
+
+**NOT FIXED HERE, and both halves are tasks rather than a silence.** Pairing each width with a real
+phone height surfaces several pre-existing OUT OF REACH findings at once, each of which then needs a
+decision rather than a blanket accepted list; and a fixture photograph proves nothing until the
+viewport is real, because at 320x844 it still fits.
+
+### And `.post-pic`'s own comment said the opposite, which is why nobody looked
+
+It said a tall photograph *"runs past the bottom of the screen and the page scrolls, which the pager
+already allows for — a page that can scroll keeps the gesture until it reaches its end, so reading a
+long picture and then swiping to the next post is one continuous movement rather than two rules."*
+
+**That was true of `.pane.scrolls`, and that class was deleted.** The note by `.pane`'s own
+`touch-action` records the removal; a pane is `overflow: hidden` and clips, so there is no scroll for
+a gesture to reach the end of. A confident sentence describing a mechanism that no longer exists —
+the `.favwrap.is-fav` shape for the fourth time, after `resource_type` in `VOCAB` and the dead
+`kind === 'paper'` guard.
+
+**What a fix would cost is written down rather than taken.** `object-fit: cover` and a bare
+`max-height` are both refused above that rule and both reasons stand — one crops the top and bottom
+of a portrait, which is where the person is, and the other crops it a second way. What would work is
+a height cap with `object-fit: contain`, which crops nothing and squashes nothing and makes a tall
+photograph **narrower than the card** on a short phone: about 74% of the width at 320, 83% at 375,
+unchanged at 390. That is a visible change to how every photograph is shown, so it is the owner's
+call rather than a repair.
+
+### A NUL byte in `check/ui.js`, and ripgrep refusing the file is what found it
+
+**The escape sweep this file records — 23 comments holding the literal text `–` — broke two
+files by replacing an escape that was there on purpose, in prose ABOUT the character.** `data.js` was
+reverted and `find.js` repaired. **There was a third, and it was not a comment:** `check/ui.js` held
+`kind + '\x00' + key`, a separator that sorts below every printable character, as a real NUL byte in
+a string literal.
+
+**At runtime it is identical** — a JS string holding U+0000 either way — which is why nothing failed.
+What it cost is the tooling: the byte sits at offset 71586, past git's 8000-byte binary sniff, so git
+still called the file text while **ripgrep refused to search it**. Found by a `grep` for `createServer`
+coming back `binary file matches` on the one file this session needed to read.
+
+**Written back as `'\u0000'`.** And the scan that found it was wrong first: `grep -qU $'\x00'` is an
+EMPTY argument in bash, because a NUL cannot be passed in one, so it matched all 257 tracked files
+including every `.mp4`. A scan that reports everything is a scan that reports nothing — the same
+shape as the throwaway probe that reported clean on the `and`/`&` spellings. Python reads the bytes.
+
+## The guide is back on the card, and the bridge was already built
+
+**Reported, in these words: "I want a diagram for every practical. As I said. Same layout. Diagram,
+ingredients, steps, work. It seems you've moved it all to pop up after pressing a tile. I HATE THIS.
+I HATE POP UP. Even if it doesn't fit on screen we'll cross that bridge when we get there."**
+
+So `practicalCard_` calls `practicalGuide_` inline, and the `prac-guide` tile, its handler and the
+sheet are deleted. `practicalGuide_` is KEPT as the builder rather than inlined, which is what
+leaves every `.gd` rule in the stylesheet applying unchanged — the drawing's `figure`, the kit
+chips, the worksheet boxes and their `.gd-sec` headings are the same markup in the same order.
+
+### The measurement said this was going to be bad, and then said it was already solved
+
+**With the guide on it a practical card is a MEDIAN 1,581px inside an 807px pane at 390×844, and 77
+of the 82 are over.** Clipped, that is about half of every practical unreachable — the method from
+step four onwards and the whole worksheet — which is a different thing from a card that runs a
+little long, and worth more than "we'll cross that bridge".
+
+**SO A `max-height` AND AN `overflow-y: auto` WENT ONTO `.card.prac`, AND IT WORKED, AND IT WAS
+WRONG.** `paneReach_` in `find.js` already measures every funnel pane after a paint and writes
+`overflow-y: auto` **inline** on the ones that overflow — written for the 431 question cards with
+exactly this fault — and `scrollHost_` in `overworld.js` then scrolls that pane from the app's own
+drag and hands the next swipe to the grid. **A practical card is a funnel result, so it has been
+covered since the day that was written.**
+
+**MEASURED, THE NEW RULE MADE IT WORSE: two scrollers down one card.** The card scrolled 266px and
+then the PANE scrolled a further 81, because a card capped at the pane's OUTER height does not fit
+inside the pane's padding — and a swipe was eaten between them. The instrumented run said it
+outright, wrapping the app's own functions: `scrollHost_` answered `card prac` on the first swipe
+and `pane` on the second.
+
+**So there is no new CSS at all.** The `--cell-max` variable extracted at `:root` for the same wrong
+reason went back with it. **Proved with real touch events on the tallest card**: the pane shows
+805px of 1,152, `paneReach_` has set it to `auto`, two swipes scroll it 0 → 260 → 347 and reach the
+end, and the third turns the page. One card, everything on it, nothing unreachable, no pop-up.
+
+**FOUND BY ASKING THE BROWSER WHICH RULE WON**, which is the only thing that could have found it:
+the pane's own `overflow-y` came back `auto` while `.pane` in the stylesheet says `hidden`, and
+`CSS.getMatchedStylesForNode` named the winner as `INLINE`. A stylesheet grep would have reported
+`hidden` and been confidently wrong.
+
+### Two checks were measuring a surface the app no longer has
+
+**`check/cards.js` opened each guide with `openSheet` and `check/states.js`'s declared state did
+too.** Both would have gone on passing — about a surface nobody can reach, which is this
+repository's oldest fault pointed at its own instruments. Both render the card now; every
+measurement inside those loops is unchanged, because the `.gd` block is.
+
+**AND `check/cards.js`'s HEIGHT RULE PRINTED A SENTENCE THAT HAD STOPPED BEING TRUE.** *"Cut off
+with no scroll and no page to turn to"* — a failure, correct when the guide was split off and the
+count fell to zero, and false of all 77 the moment it came back, because the pane scrolls them. It
+is a count now, in the same words as the question rule directly above it, which had been saying the
+right thing all along: *"so the pane scrolls and the pager takes over at the end"*. Stood down on a
+measurement rather than on convenience — the real-touch run above is what licensed it.
+
+**And the run's own pass sentence claimed "every practical card fits the pane it is drawn in"**,
+with 77 that do not. Both counts are printed rather than claimed now. Same shape as
+`.favwrap.is-fav` and the dead `kind === 'paper'` guard: a confident sentence outliving the thing it
+described, in the check that exists to catch exactly that.
+
+### The state counted eighteen worksheet boxes and wanted three
+
+**`check/ui.js` reported `stuff · a practical guide` as NOT MEASURED at every width**, and the state
+was drawing perfectly. The expect asked `document.querySelectorAll('#s-stuff .card.prac .gd-box')
+.length === 3` — and the windowed pager keeps about six result pages in the DOM at once, so that
+counts six guides and answers **18**. The claim is per card, so the count is per card. Caught by
+replicating the state's own `enter` in a browser rather than by reading it.
+
+### What is NOT done, and one thing worth deciding
+
+**"I HATE POP UP" is a general sentence and this commit acted on the practical guide only**, which
+is what the report was about. **Measured, fourteen other surfaces still open in a sheet**: the quiz,
+the flyer and cheat-sheet widgets, a post's reactions list, the new-post and edit-post composers,
+Add a friend, Add your child, Message, Build, a day on the calendar, Mark it paid, Join in, and a
+legal document. Each is a form or a document rather than a thing you are looking AT, which is the
+line the house style already draws — but the quiz is the one that is plainly the same object as a
+practical guide, and if it should come onto the card too that is one edit of the same shape.
+
+## The site draws in a real coding font now, and it is a file rather than a hope
+
+**Reported as "I don't like the site font. I prefer that coding font. Like visual studios code font.
+Idk what it's called. This is universal so I imagine you just have to change the font name in one
+place."** The last sentence is right, and the first one needed measuring, because the site was
+ALREADY a monospace stack: `ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace`.
+
+**ON AN iPHONE THAT RESOLVES TO SF MONO**, which is a coding font and is also the one the phone
+would have picked by itself — so the site read as a system default rather than as something with a
+face of its own. **A stack can only ever ask; it cannot decide.** Every `font-family` in the
+stylesheet is `var(--font)` or `var(--mono)`, so there was nothing overriding it and nothing broken
+to find: the complaint was about which font, not about whether one applied.
+
+**`fonts/family-code.woff2` IS CASCADIA MONO**, which is the typeface Visual Studio Code and Windows
+Terminal ship with — and it is the MONO cut deliberately: Cascadia Code's programming ligatures
+would turn `<=` or `->` inside a GCSE maths answer into a single glyph, which is the class of fault
+this repository refuses everywhere else. One line in the stylesheet swaps to the ligature cut.
+
+| | |
+|---|---|
+| **the variable font** | `wght` 200–700, so all six weights this stylesheet asks for come out of one file. Two static cuts would have been 306KB for two of those six |
+| **subset** | 210,484 bytes → **53,836**, a quarter, with 699 glyphs and the axis intact |
+| **what it keeps** | the 247 distinct characters the site renders were COUNTED — every file in `js/`, the stylesheet, `index.html` and every `data/` file the app fetches, of which 151 are not ASCII — then kept with whole blocks of headroom: Latin-1, Latin Extended-A, Greek, punctuation, super- and subscripts, currency, arrows, maths operators, technical and geometric shapes |
+
+**RENAMED, AND THAT IS A LICENCE REQUIREMENT RATHER THAN A PREFERENCE.** The SIL Open Font License
+reserves the name "Cascadia Code", and subsetting DELETES components, which makes this a Modified
+Version under section 3 — so the family is renamed to `Family Code` in the font's own name table, as
+that section requires. `fonts/OFL.txt` is the licence verbatim, which section 2 requires to travel
+with it, and `fonts/README.md` records exactly what was done so it can be rebuilt.
+
+**`swap`, NOT `block`.** The boot path is where this app once took itself down, and a face that
+blocks paints nothing until the file lands. `swap` paints in SF Mono at once and changes when the
+file arrives — **so the old stack behind it is not decoration**: it is what a reader sees for the
+first few hundred milliseconds, and what they see for ever if the file 404s. A stack that degrades
+to SF Mono degrades to the font this site had yesterday.
+
+**NO `LOAD` STAMP ON THAT URL**, unlike every file in `window.FILES`: the stamp is written by
+index.html, which cannot reach a URL inside a stylesheet. `sw.js` revalidates by `ETag` instead,
+which is the same guarantee one step later — and a typeface is the one asset here that genuinely
+never changes.
+
+**Measured in a browser rather than assumed**: one request, `200 family-code.woff2`, registered as
+`Family Code 200 700 loaded`, `document.fonts.check` true, and the same string rendering **606px
+against the fallback's 622** — which is what says it is actually drawing in the new face rather than
+falling through. Screenshotted, because whether a typeface reads right is not a thing a measurement
+settles.
+
+## Venues are in the finder, and a facet that had never been askable is live
+
+**Asked for as "add venues to finder".** `FUNNEL_NOT_FOR` drops anything whose group list is EXACTLY
+`['Booking']` — and **its own note says the array form "has been supported since a tutor was two
+things"**, so a second group is the mechanism rather than a workaround. `asList_` splits the cell,
+so two groups is a comma: `group: 'Booking, Places'`.
+
+**PLACES, NOT LEARNING**, and the distinction is what the two doors are for: `What for` takes
+somebody from the whole app to a department, and a venue is not a thing you learn from, it is
+somewhere you go. **It stays in Booking too**, which is what keeps the booking form's dropdown and
+the pricing working — this adds a second door onto the same rows rather than moving them.
+
+**AND IT MAKES A DEAD FACET REACHABLE.** `borough` has sat in `FACETS` carrying the note *"Only
+venues have one, so it is only ever asked once you are looking at venues"* — which, with venues out
+of the funnel, was never. Measured after: `What for` offers `Places`, pressing it returns the
+venues, and the next question is `Where`, answering `Merton`. A reader left standing over a
+permanently false condition, which is the shape recorded here under `resource_type` in `VOCAB` and
+the dead `kind === 'paper'` guard, and it cost nothing to close.
+
+**THE DRAWN PICTURE PER VENUE IS NOT THIS COMMIT.** Asked for in the same message as "later", so it
+is a task — and `findCard` already draws `image` where a row has one, which is where a drawing would
+go.
+
+## The quiz came off its sheet too, and three of the four things on the card were saying it twice
+
+**Asked for as "ok get rid of the other pop up menu"** — the second half of *"I HATE THIS. I HATE
+POP UP"*. The practical guide came off its sheet the commit before; the quiz was the surface left
+that is plainly the same object, and the arithmetic that sent both there was the same arithmetic.
+
+**THE BRIDGE WAS ALREADY BUILT, WHICH IS WHY THIS IS SMALL.** `paneReach_` gives an overflowing
+funnel pane `overflow-y: auto` after a paint and `scrollHost_` hands the swipe to it, so a card
+taller than the pane scrolls and the pager takes over at the end. That was written for the 431
+question cards and it is what made the guide's move one line; a quiz is 5 questions, 20 options and
+5 explanations, and it is the same line.
+
+### Three of the four pieces on the card were a second copy of something
+
+**Measured before anything was deleted, on a real card**: the head, a `sub`, a `.quiz-say`, a tile
+row — and then the same facts again inside the sheet the tile opened.
+
+| | |
+|---|---|
+| **`.quiz-say`** | *"3 of 5 answered so far"* on the card, with `.quiz-score` saying *"1 right out of the 3 answered · 2 to go"* an inch below once the sheet was open. **Two sentences about one fact, and the one that says more stays** — the roster's `<h3>` over a widget's own heading, and `Shared by · 1 family` over a row already reading `Just you` |
+| **the `Start` / `Carry on` tile** | its label's second job was saying whether you had begun, which is the score line's job. With the quiz drawn underneath it, the tile's first job is to reveal what is already there — **a control that does nothing, which is exactly what `check/press.js` exists to report** |
+| **`quizSheet_`'s first line** | `<p class="sub">Biology · GCSE Higher</p>`, with `Biology · 5 questions` and a `GCSE Higher` chip four lines above it on the card. Invisible while the two were on different surfaces and one fact three times the moment they were on one |
+
+**`Print` MOVED RATHER THAN GOING, and its own note is why.** *"A tutor should not have to open a
+quiz to get at its worksheet"* — with nothing to open, the card satisfies that by itself, so the
+button at the foot of the form is the only copy. **A FORM has buttons; the card IS the form now**,
+which is the house style deciding it rather than a preference.
+
+### Six quizzes are in the DOM at once, so an id would have marked the wrong one
+
+**`quizAnswered_` READ `$('sheet-body')`** — correct while a sheet was the one place a quiz could
+be. The funnel's windowed pager keeps about six result pages in the DOM, so on a card that is
+**`$('msg-text')` again**: the fault where a reply typed into the second thread posted to the
+first. Same for `quiz-again`, which called `openSheet` to repaint.
+
+**ASKED OF THE DOM RATHER THAN REMEMBERED**, which is what `msg-send` and `me-save` already do —
+walk up from the element pressed to the block it belongs to (`el.closest('.quiz-body')`). **And the
+block is read BEFORE the row is replaced**: `row.outerHTML = …` detaches the row, and `closest` on
+a detached node cannot find its old parents. Measured on the real screen with six quiz cards up:
+pressing a choice on card 2 gives marked rows `0,1,0,0,0,0`, explanations `0,1,0,0,0,0`, and only
+card 2's score moves; `Start again` on card 2 returns it to `0,0,0,0,0,0` with exactly one
+`.quiz-body` per card.
+
+**`quiz-again` REDRAWS ITS BLOCK RATHER THAN THE COLUMN.** A `paintStuff()` would rebuild the whole
+funnel strip to clear five keys — the argument `cart-drop` already makes: the press IS the change,
+and what it changed is in `localStorage` rather than on a wire.
+
+**And `quizSheet_` is `quizBody_`.** A function called `quizSheet_` that builds no sheet is the
+stale name this repository keeps finding — `resource_type` in `VOCAB`, the dead `kind === 'paper'`
+guard, `.favwrap.is-fav`.
+
+### The state was measuring a surface the app no longer has, and its two ends had drifted apart
+
+**`check/states.js`'s quiz state opened a sheet and counted `#sheet-body .quiz-q`** — so left alone
+it would have reported the quiz unreachable while the card drew it perfectly. It filters the funnel
+to quizzes, repaints, and turns to the first result page, exactly as the practical state does.
+
+**AND THE SEED HAD TO MOVE WITH IT, which is the half that would have been silent.** `enter`
+seeded `stuffItemsAll_()`'s first quiz; the funnel SORTS before it pages, so the card the screen
+lands on is `stuffFiltered()[0]` and seeding the other one leaves this state measuring an untouched
+card. Both ends read the same list now — **`leave` too, or it would clear five keys on a quiz
+nobody touched and leave five behind on the one that was**, and states run in order down one page,
+so those keys would still be there when Tools and Games are measured. The sentence this file writes
+about `documents_()`, `factsNow_` and `childrenOf`.
+
+**The expect is per CARD rather than across the screen**, for the reason the guide's own expect
+records: six cards in the DOM is eighteen `.quiz-q` where the rule wants five.

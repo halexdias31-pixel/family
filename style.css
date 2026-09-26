@@ -114,15 +114,66 @@
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* One family, and it is the code one. A terminal that switches to a UI font for its headings is
-     a terminal for about four seconds. */
-  --font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  /* ---------- ONE FAMILY, AND IT IS SHIPPED RATHER THAN HOPED FOR --------------------------------
+     One family, and it is the code one. A terminal that switches to a UI font for its headings is a
+     terminal for about four seconds.
+
+     THIS WAS A STACK OF FONTS THE PHONE MIGHT HAVE, and every entry in it was a system font: on an
+     iPhone `ui-monospace` resolves to SF Mono and that is what the site has always drawn in.
+     Reported as "I don't like the site font. I prefer that coding font. Like visual studios code
+     font" — which is the same observation from the other side. SF Mono is a coding font and it is
+     also the one a phone would have chosen anyway, so the site read as a system default rather than
+     as something with a face of its own. A stack can only ever ask; it cannot decide.
+
+     SO IT IS A FILE IN THIS REPOSITORY. `fonts/family-code.woff2` is Cascadia Mono, which is the
+     typeface Visual Studio Code and Windows Terminal ship with, subset and renamed — `fonts/README.md`
+     says exactly what was done and why the name changed, and `fonts/OFL.txt` is the licence that
+     has to travel with it. The MONO cut, deliberately: Cascadia Code's programming ligatures would
+     turn `<=` or `->` inside a GCSE maths answer into one glyph, which is the class of fault this
+     repository refuses everywhere else. One line below swaps to the ligature cut if that is ever
+     wanted.
+
+     THE OLD STACK STAYS BEHIND IT and is not decoration. `font-display: swap` means the first paint
+     is whatever is already on the device, so those names are what a reader sees for the few hundred
+     milliseconds before the file lands — and they are what they see for ever if it 404s. A stack
+     that degrades to SF Mono degrades to the font this site had yesterday. */
+  --font: 'Family Code', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   --mono: var(--font);
 
   /* How wide the app is ever allowed to be. A phone, and on a desktop still a phone. */
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+}
+
+/* ---------- THE TYPEFACE, SELF-HOSTED ------------------------------------------------------------
+   ONE FILE FOR EVERY WEIGHT. This is the VARIABLE font, so `wght` runs 200 to 700 continuously and
+   the six weights this stylesheet asks for (400, 500, 550, 600, 620, 700) all come out of it. Two
+   static cuts would have been 306KB for two of those six; this is 53,836 bytes for all of them.
+
+   SUBSET, AND THE NUMBER IS WHY. 210,484 bytes as shipped, 53,836 after — a quarter — because the
+   characters this site renders were counted rather than guessed at: 247 distinct across every file
+   in `js/`, this stylesheet, `index.html` and every `data/` file the app fetches, of which 151 are
+   not ASCII. Kept with headroom rather than to that list, so the next `≠` or `Å` somebody types is
+   already there: Latin-1, Latin Extended-A, Greek, punctuation, super- and subscripts, currency,
+   arrows, maths operators, technical and geometric shapes.
+
+   `swap`, NOT `block`. The boot path is where this app once took itself down, and a face that
+   blocks paints nothing until the file lands. `swap` paints in SF Mono at once and changes to this
+   when it arrives, so the worst case is one reflow rather than a blank screen — and a 404 leaves
+   the site in exactly the font it had before this file existed.
+
+   NO `LOAD` STAMP ON THIS URL, unlike every file in `window.FILES`. That stamp is written by
+   index.html, which cannot reach a URL inside a stylesheet. `sw.js` revalidates by `ETag` instead,
+   which is the same guarantee one step later — and a typeface is the one asset here that genuinely
+   never changes. */
+@font-face {
+  font-family: 'Family Code';
+  src: url('fonts/family-code.woff2') format('woff2-variations'),
+       url('fonts/family-code.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -142,6 +193,22 @@ html {
   /* On a screen wider than a phone the app is a fixed-width column, so the root stops growing and
      the layout is exactly what a phone gets. */
   -webkit-text-size-adjust: 100%;
+  /* ---------- NO BOUNCE, AND IT HAS TO BE DECLARED HERE RATHER THAN ON `body` -------------------
+     THE VIEWPORT TAKES ITS OVERSCROLL BEHAVIOUR FROM THE ROOT ELEMENT. `overflow` is the property
+     that is read off `body` when the root has none; `overscroll-behavior` is not — it propagates
+     from `html` and from nowhere else. So this spent its life on `body`, where Chrome happened to
+     honour it and Safari, correctly, did not: on iOS the viewport has been `auto` throughout.
+
+     THAT IS THE SECOND HALF OF "it scrolls on the whole page ... it feels clunky", and it is the
+     half that survives even with nothing to scroll: a rubber-band on a document that cannot move is
+     the app coming away from the top of the screen and springing back. The first half was 3rem of
+     padding reserved for a tab bar that no longer exists — see THE TAB BAR IS GONE below.
+
+     `none` rather than `contain`, because there is no scroll here to keep inside anything: this app
+     is one viewport with the columns moved by transforms, so a document scroll of any size is a
+     fault rather than something to contain. `check/ui.js` measures that — see THE DOCUMENT SCROLLS
+     there, which is what would have caught the 3rem. */
+  overscroll-behavior-y: none;
 }
 @media (min-width: 30rem) { html { font-size: 15.5px; } }
 
@@ -165,7 +232,8 @@ body {
   letter-spacing: -.01em;
   padding: calc(var(--top) + var(--safe-top)) 0 calc(var(--bar) + var(--safe-bottom));
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  /* `overscroll-behavior-y: none` WAS HERE and did nothing on the one platform that needed it — the
+     viewport reads it off `html`, where it is now. One declaration, not two. */
   position: relative;
 }
 
@@ -174,9 +242,6 @@ body {
 @media (min-width: 30rem) {
   html { background: #0a0908; }
   body { box-shadow: 0 0 0 1px var(--line-soft); }
-  /* The bars keep the app's own background on a wider screen, so the column reads as continuous
-     from the header, through the content, to the tabs. */
-  #tabs { background: rgba(0,0,0,.96); }
 }
 
 .hidden { display: none !important; }
@@ -192,8 +257,11 @@ body {
    reads as a broken layout rather than as a deliberate margin — a bar that stops short of the
    screen looks like it failed to load.
    `left: 0; right: 0` rather than `width: 100%`, because for a fixed element the two differ once
-   a scrollbar exists, and the difference is exactly the sliver of gap that started this. */
-#tabs, #banner {
+   a scrollbar exists, and the difference is exactly the sliver of gap that started this.
+
+   `#tabs` WAS THE OTHER HALF OF THIS SELECTOR and is gone with the bar. The plural in the comment
+   above is kept: the argument is about a bar, and `#banner` is one. */
+#banner {
   position: fixed;
   left: 0; right: 0;
   transform: none;
@@ -804,33 +872,34 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 #sheet-close { color: var(--dim); font-size: 1.1rem; padding: .25rem .4rem; cursor: pointer; }
 #sheet-body { padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-/* ---------- THE TAB BAR -------------------------------------------------------------------------
-   Seven tabs across a phone. In rem, so the icons and labels grow with the screen — and because
-   the bar is a percentage of the app width rather than of the window, each tab is the same share
-   of the thumb's reach on every phone.
+/* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED ----
+   `<nav id="tabs">` was deleted from index.html, and its own note there says WHY: it was "an empty
+   fixed element reserving three rem at the foot of every screen for a control that did not exist".
+   `--top` and `--bar` went to `0rem` in the same spirit, and both are documented at the top of this
+   file as kept-but-zero because five rules measure from them.
+
+   WHAT SURVIVED WAS A SECOND, HARDCODED COPY OF THAT SAME THREE REM. Here, in a media query, not
+   referencing `--bar` and therefore untouched by setting it to zero:
+
+     @media (max-width: 23rem) { body { padding-bottom: calc(3rem + var(--safe-bottom)); } }
+
+   `#screen` is `100dvh` minus those same four variables, so it is exactly the viewport — and this
+   put 3rem of padding UNDER it. Measured: the document is 609px tall inside a 568px viewport at
+   320x568, so THE WHOLE PAGE COULD SCROLL BY 41px. And a media query resolves `rem` against the
+   INITIAL font size, 16px, never the root's own clamp — so `23rem` is 368px and this was every
+   phone up to an iPhone 12 mini, not the 320px SE the comment was written about.
+
+   REPORTED AS "sometimes when trying to swipe up on phone it scrolls on the whole page ... it feels
+   clunky". On iOS that is worse than 41px of travel: any scrollable document at all lets Safari
+   start collapsing its toolbar, `100dvh` grows as it does, `#screen` and `body` grow with it, and
+   the overflow changes underneath the gesture — a loop, which is what "clunky" describes.
+
+   The rest of the block — `.tab .lb`, `.tab .ic`, `#tabs { height }` — named elements no JavaScript
+   file has produced since the bar was removed. The arithmetic is kept as prose because it is the
+   reason the query existed: eight tabs across 390px is 48px each, which clears Google's minimum;
+   across 320px it is 40px, which does not, so the labels came off below 23rem and the bar shrank to
+   3rem. Nothing is left to apply it to.
 --------------------------------------------------------------------------------------------- */
-/* The row of tabs, capped — so on a wide screen the bar reaches both edges and the tabs stay
-   under the content, rather than eight icons spread across a desktop. */
-
-/* EIGHT TABS. On a 390px phone that is 48px each, which clears Google's minimum; on a 320px
-   iPhone SE it is 40px, which does not.
-   So below 23rem the LABELS come off. The label is what forces the width — an icon at 40px is
-   perfectly pressable, and eight WORDS at 40px are four letters and an ellipsis, which is worse
-   than no word at all. */
-@media (max-width: 23rem) {
-  .tab .lb { display: none; }
-  .tab .ic { font-size: 1.3rem; }
-  #tabs { height: calc(3rem + var(--safe-bottom)); }
-  body { padding-bottom: calc(3rem + var(--safe-bottom)); }
-}
-
-/* The plus takes a narrower share than the rest — it is a raised circle, not a word, so it does
-   not need a full slot. That gives the other seven their width back and lands the circle within a
-   few pixels of centre. */
-/* A bar above the chosen tab rather than a filled background — it marks the tab without shrinking
-   the target, which a background would. */
-.tab.on::before { content: ''; position: absolute; top: 0;
-                  width: 1.8rem; height: 2.5px; border-radius: 0 0 2px 2px; background: var(--gold); }
 
 /* ---------- THE TOAST ---------------------------------------------------------------------------
    Above the bar, never over it. A message covering the way out traps somebody inside whatever went
@@ -977,17 +1046,11 @@ a { color: inherit; text-decoration: none; }
 .feed { position: relative; aspect-ratio: 9/16; border-radius: var(--r-sm); overflow: hidden;
         background: var(--sunk); cursor: pointer; }
 
-/* ---------- THE BOOK TAB, which is a plus ---------------------------------------------------------
-   Dead centre and raised. The middle is where a thumb rests without moving, and the one action the
-   whole app exists for should not be a word among six other words.
---------------------------------------------------------------------------------------------- */
-/* FLAT. The raised circle was the loudest thing on the screen and it stuck out of the bar like a
-   button somebody bolted on. It is a plus now — the same size as every other icon, in the accent
-   colour, sitting on the same line as the rest.
-   It still reads as the main action because it is the only coloured thing in the bar, which is a
-   quieter way of saying the same thing. */
-
-.tab.big.on::before { display: none; }      /* the raised circle already says which one it is */
+/* THE BOOK TAB WAS HERE — the one raised, then flattened, then removed with the rest of the bar.
+   Its argument is worth keeping because it is a rule rather than a decoration: the middle of the
+   bar is where a thumb rests without moving, so the action the whole app exists for belonged there
+   rather than being a word among six other words. `.tab.big.on::before` was the last rule left of
+   it and matched nothing. */
 
 
 /* ---------- THE FINDING CONTROLS ------------------------------------------------------------------
@@ -1244,11 +1307,33 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    photograph of a child's work with the work cut off is worse than a photograph with a gap under
    it, and this is a feed of things children made rather than a wallpaper.
 
-   So: edge to edge across, natural height down. A landscape photograph leaves room below it for
-   the caption and some black; a tall one runs past the bottom of the screen and the page scrolls,
-   which the pager already allows for — a page that can scroll keeps the gesture until it reaches
-   its end, so reading a long picture and then swiping to the next post is one continuous movement
-   rather than two rules. */
+   So: edge to edge across, natural height down. A landscape photograph leaves room below it for the
+   caption and some black.
+
+   AND THE SENTENCE THAT USED TO FOLLOW THAT ONE WAS FALSE. It said a tall photograph "runs past the
+   bottom of the screen and the page scrolls, which the pager already allows for — a page that can
+   scroll keeps the gesture until it reaches its end". That was true of `.pane.scrolls`, the class
+   that gave an overflowing pane its vertical gesture back, and that class was DELETED — the note by
+   `.pane`'s own `touch-action` records it, and CLAUDE.md records the argument. A pane is
+   `overflow: hidden` and clips. There is no scroll for the gesture to reach the end of.
+
+   SO IT IS CUT OFF, AND MEASURED IT IS THE COMMENT BOX. A 4:5 portrait — the shape the markup above
+   reserves, because it is the shape a phone camera gives — puts the post 582px into a 534px pane at
+   320x568: `post-said`, `cmt-form`, the textarea and its Send button are all below the fold, with no
+   scroll and no page to turn to. 46px at 375x667. Nothing at 390 and up.
+
+   NOT FIXED HERE, because every fix for it is a visible change to how a photograph is shown and
+   that is the owner's call rather than a repair. `object-fit: cover` and a bare `max-height` are
+   both refused above and the reasons stand; what would work is a height cap with `object-fit:
+   contain`, which crops nothing and squashes nothing and makes a tall photograph NARROWER than the
+   card on a short phone — about 74% of the width at 320, 83% at 375, unchanged at 390. That is the
+   trade, written down so it is a decision.
+
+   AND THE LAB CANNOT SEE IT, WHICH IS WHY IT HAS SAT HERE. Two reasons, both in `check/ui.js`:
+   `check/fixture.json`'s posts carry `image: ""`, so no run has ever drawn a photograph on this
+   card; and every width is measured in a viewport 844px TALL, so its "320px" is a 320x844 phone
+   that does not exist and whose pane is 807px. The receipt's own 216px below the fold at 320x568 is
+   invisible for the same second reason, and CLAUDE.md already records that one. */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
   height: auto;            /* its own height, from its own proportions */
@@ -8243,6 +8328,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
   border-radius: .4rem; background: var(--sunk); }
 .qsheet figure svg, .gd figure svg { width: min(100%, 20rem); height: auto; }
+
+/* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED -------------
+   THE SITE'S OWN FACE IS A CODING FONT NOW — `--font` in one place, asked for as "universal ... on
+   the whole site" — AND IT CANNOT COME IN HERE. A monospace face is about a quarter wider than a
+   serif at the same size, and every one of the 132 drawings in this repository was laid out against
+   13px and 12px serif metrics: a caption is positioned by its CENTRE and its width decides how far
+   it reaches either side. Put `var(--font)` on these four classes and `check/cards.js` reports
+   **183 labels painted outside their own `<svg>`** — 53px on the Eratosthenes drawing, 39px on an
+   AQA chemistry profile — where the same run with serif reports none. The outermost `<svg>` clips
+   to its viewport, so each of those is a sentence a reader simply does not get.
+
+   THE ALTERNATIVE IS NOT A SMALLER FONT. Shrinking to fit would be about 9.5px on a phone, which is
+   under what anybody reads, and it would rescale the balance of every drawing to serve a typeface
+   choice. The other alternative is re-laying out 132 committed drawings, which is a redraw of the
+   whole library to change a font.
+
+   AND IT IS A DIFFERENT OBJECT ANYWAY. These four classes ink an exam figure — a printed diagram
+   redrawn from a paper — where `--font` is the app's own voice. Measured before it was kept, which
+   is the only reason this is a decision rather than a thing the font change missed. */
 .qsheet .lbl, .gd .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
 .qsheet .num, .gd .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
 .qsheet .ax, .gd .ax { font: italic 9px serif; fill: currentColor; }
@@ -8310,6 +8414,30 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    is a flag with a word cut off. Wrapping is the only version where neither has to give: the flags
    drop under the title on the narrowest phone and sit beside it everywhere else. `check/cards.js`
    lays out all 82 of these at 320px, which is what says whether that is true. */
+/* ---------- THE WHOLE PRACTICAL IS ON THIS CARD, AND NOTHING HERE HAD TO CHANGE FOR IT ------------
+   REPORTED AS "Same layout. Diagram, ingredients, steps, work. It seems you've moved it all to pop
+   up after pressing a tile. I HATE THIS. I HATE POP UP. Even if it doesn't fit on screen we'll
+   cross that bridge when we get there."
+
+   THE BRIDGE WAS ALREADY BUILT, and finding that out is the whole of this entry. With the guide
+   drawn inline a practical card is a MEDIAN 1,581px at 390x844 and 77 of the 82 are over the cap —
+   so the obvious move was a `max-height` and an `overflow-y: auto` on `.card.prac`, and it was
+   written, and it worked, and it was WRONG. `paneReach_` in find.js already measures every funnel
+   pane after a paint and writes `overflow-y: auto` inline on the ones that overflow, for the 431
+   question cards that had the same fault; `scrollHost_` in overworld.js then scrolls that pane from
+   the app's own drag and hands the next swipe to the grid. A practical card is a funnel result, so
+   it has been covered since the day that was written.
+
+   MEASURED, THE NEW RULE MADE IT WORSE: the card scrolled 266px, and then the PANE scrolled a
+   further 81, because a card capped at the pane's outer height does not fit inside the pane's
+   padding. Two scrollers down one card, and a swipe eaten between them. The instrumented run said
+   it outright — `scrollHost_` answered `card prac` on the first swipe and `pane` on the second.
+
+   SO THERE IS NO RULE HERE. One card, everything on it, the pane scrolls it, and the swipe after
+   the end turns the page. `--cell-max` was extracted at `:root` for the same wrong reason and went
+   back with it. The measurement is kept because it is what says the reachability is real rather
+   than assumed. */
+
 .prac-head { display: flex; flex-wrap: wrap; align-items: baseline;
              justify-content: space-between; gap: .5rem; }
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------
@@ -8569,7 +8697,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP ---------------------------------------
    `textarea` IS `min-height: 5.8rem` GLOBALLY, which is a page-long box seven times over. These are
-   two or three lines each and the sheet is already long. In `px` at the floor and `rem` above it,
+   two or three lines each and the card is already long. In `px` at the floor and `rem` above it,
    which is the shape the global rule uses and the reason it survives a fluid root — 4.2rem is 62px
    on a 390px phone and 44px is the fingertip underneath it. Sixth conviction of that rule. */
 .gd-box { margin: .35rem 0 0; }
@@ -8584,15 +8712,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `.reel .over` was a second description of `.feed-art` and drifted the first time either was
    touched. The flag is a level rather than a compliance word, so only its own class is new.
 
-   THE LEVEL FLAG IS NOT GOLD. Gold in this app means the one thing to press, which on a quiz card
-   is the tile underneath — `.reel-sound` is the entry recording what happens when a control takes
-   gold on a card whose content is elsewhere. This is a label.
+   THE LEVEL FLAG IS NOT GOLD, and what gold means here has moved without changing the argument. It
+   was `Start` — the tile underneath, which the sentence named — and with the quiz drawn on the card
+   it is the right answer's own border and the figure in the running score. Either way this is a
+   label rather than a thing to press, and `.reel-sound` is the entry recording what happens when
+   something that is not the point takes the colour that says it is.
+
+   `.quiz-say` WAS HERE AND ITS MARKUP HAS GONE. It drew "3 of 5 answered so far" on the card while
+   the quiz was behind a tile; the quiz is on the card now, so `.quiz-score` says that four lines
+   down and says more. Deleted rather than left: `check-css.js` prints a class styled and nowhere
+   produced, and the argument in it — that a card which looks the same whether you have done it or
+   not is a card you cannot choose between — is now carried by the score line itself.
 ================================================================================================== */
 .quiz-lvl { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
             text-transform: uppercase; color: var(--dim); border: 1px solid var(--line);
             border-radius: 999px; padding: .22rem .45rem; white-space: nowrap; }
-.quiz-say { margin: .45rem 0 .1rem; font-size: .78rem; line-height: 1.45; color: var(--faint); }
-.quiz-say b { color: var(--dim); font-weight: 600; }
 
 .quiz-intro { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--faint); }
 

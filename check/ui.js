@@ -1102,6 +1102,55 @@ function inspect(opts) {
     });
     if (ragged && ragged.by > 2) rows.push({ width, id: '—', as: who.as, ragged });
 
+    /* ---------- THE DOCUMENT MUST NOT SCROLL -----------------------------------------------------
+       THIS APP IS ONE VIEWPORT WITH THE COLUMNS MOVED BY TRANSFORMS. `#screen` is `100dvh` minus the
+       four spacing variables and `body` pads by exactly the same four, so the document is the
+       viewport and there is nothing under it. A document that CAN scroll is therefore never a
+       feature here — it is always some box or padding that outgrew the arithmetic.
+
+       REPORTED AS "sometimes when trying to swipe up on phone it scrolls on the whole page ... it
+       feels clunky", and measured: `@media (max-width: 23rem)` reserved 3rem at the foot of `body`
+       for a tab bar that was deleted from index.html, so at 320x568 the document was 609px inside a
+       568px viewport. On iOS that is worse than 41px of travel — any scrollable document lets Safari
+       begin collapsing its toolbar, `100dvh` grows as it does, `#screen` and `body` grow with it,
+       and the overflow changes underneath the gesture.
+
+       NOTHING HERE COULD SEE IT, and each of the three geometry rules is right about what it asks.
+       SIDEWAYS SCROLL is the other axis. OUT OF REACH asks whether a PANE hides content below its
+       own fold — this pane did not, the padding was outside it. PANE OFF THE SCREEN asks whether a
+       pane is placed outside the viewport — it was not. The loss is one box further out again: the
+       DOCUMENT, which no rule had ever measured.
+
+       ZERO TOLERANCE, not a floor, and that is the difference from every other rule in this file.
+       The six-pixel floors elsewhere exist because `scrollHeight` is rounded from a layout in
+       fractions and a pane that fits exactly reports a pixel or two. Here the two numbers are the
+       same `100dvh` twice, so they agree exactly — measured at six phone sizes, the overflow is 0px
+       and not 1px. A floor would let the next 3rem in as long as somebody wrote it as 3px.
+
+       PER WIDTH AND VISITOR, not per screen: the document is the document whichever column is in
+       front of it, and asking nine times would report one fault as nine. */
+    const docScroll = await page.evaluate(() => {
+      const se = document.scrollingElement || document.documentElement;
+      const over = se.scrollHeight - se.clientHeight;
+      if (over <= 0) return null;
+      /* WHAT STICKS OUT, because a number with nothing to look at is a fault nobody can act on.
+         Fixed elements are skipped — they cannot lengthen the document — and so is anything inside a
+         box that clips, which `#screen` does. */
+      const past = [];
+      document.querySelectorAll('body > *').forEach(el => {
+        const st = getComputedStyle(el);
+        if (st.display === 'none' || st.position === 'fixed') return;
+        const r = el.getBoundingClientRect();
+        past.push({ what: el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''),
+                    h: Math.round(r.height) });
+      });
+      const bs = getComputedStyle(document.body);
+      return { over: Math.round(over), h: se.scrollHeight, vh: se.clientHeight,
+               pad: bs.paddingTop + ' / ' + bs.paddingBottom,
+               kids: past.map(k => k.what + ' ' + k.h + 'px').join(', ') };
+    });
+    if (docScroll) rows.push({ width, id: '—', as: who.as, docScroll });
+
     if (jsErrors.length) {
       failures += jsErrors.length;
       rows.push({ width, id: '—', as: who.as, jsErrors });
@@ -1118,7 +1167,7 @@ function inspect(opts) {
      printed per screen it reads as nine problems and buries the one that only happens at 320. */
   const bucket = {};
   const add = (kind, key, where, why) => {
-    const k = kind + ' ' + key;
+    const k = kind + '\u0000' + key;
     (bucket[k] = bucket[k] || { kind, key, where: [], why }).where.push(where);
   };
   /* A KIND ENDING IN "(known)" IS IN ONE OF THE ACCEPTED LISTS: printed in full, with its reason,
@@ -1141,6 +1190,12 @@ function inspect(opts) {
     /* NOT GROUPED UNDER A SCREEN NAME, because it is not about one: the place is the width and the
        visitor, and the finding names the two columns furthest apart so there is something to look
        at rather than a number. */
+    /* LIKE THE ONE BELOW IT, NOT GROUPED UNDER A SCREEN: the document belongs to no column. */
+    if (r.docScroll) add('THE DOCUMENT SCROLLS',
+      `the page is ${r.docScroll.h}px tall inside a ${r.docScroll.vh}px viewport, so the whole app `
+      + `can be scrolled by ${r.docScroll.over}px — body padding ${r.docScroll.pad}, `
+      + `children ${r.docScroll.kids}`,
+      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
       `the current card starts ${r.ragged.by}px apart across ${r.ragged.n} columns — `
       + `${r.ragged.hi.id} at ${r.ragged.hi.top}, ${r.ragged.lo.id} at ${r.ragged.lo.top}`,
