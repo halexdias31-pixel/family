@@ -142,6 +142,22 @@ html {
   /* On a screen wider than a phone the app is a fixed-width column, so the root stops growing and
      the layout is exactly what a phone gets. */
   -webkit-text-size-adjust: 100%;
+  /* ---------- NO BOUNCE, AND IT HAS TO BE DECLARED HERE RATHER THAN ON `body` -------------------
+     THE VIEWPORT TAKES ITS OVERSCROLL BEHAVIOUR FROM THE ROOT ELEMENT. `overflow` is the property
+     that is read off `body` when the root has none; `overscroll-behavior` is not — it propagates
+     from `html` and from nowhere else. So this spent its life on `body`, where Chrome happened to
+     honour it and Safari, correctly, did not: on iOS the viewport has been `auto` throughout.
+
+     THAT IS THE SECOND HALF OF "it scrolls on the whole page ... it feels clunky", and it is the
+     half that survives even with nothing to scroll: a rubber-band on a document that cannot move is
+     the app coming away from the top of the screen and springing back. The first half was 3rem of
+     padding reserved for a tab bar that no longer exists — see THE TAB BAR IS GONE below.
+
+     `none` rather than `contain`, because there is no scroll here to keep inside anything: this app
+     is one viewport with the columns moved by transforms, so a document scroll of any size is a
+     fault rather than something to contain. `check/ui.js` measures that — see THE DOCUMENT SCROLLS
+     there, which is what would have caught the 3rem. */
+  overscroll-behavior-y: none;
 }
 @media (min-width: 30rem) { html { font-size: 15.5px; } }
 
@@ -165,7 +181,8 @@ body {
   letter-spacing: -.01em;
   padding: calc(var(--top) + var(--safe-top)) 0 calc(var(--bar) + var(--safe-bottom));
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  /* `overscroll-behavior-y: none` WAS HERE and did nothing on the one platform that needed it — the
+     viewport reads it off `html`, where it is now. One declaration, not two. */
   position: relative;
 }
 
@@ -174,9 +191,6 @@ body {
 @media (min-width: 30rem) {
   html { background: #0a0908; }
   body { box-shadow: 0 0 0 1px var(--line-soft); }
-  /* The bars keep the app's own background on a wider screen, so the column reads as continuous
-     from the header, through the content, to the tabs. */
-  #tabs { background: rgba(0,0,0,.96); }
 }
 
 .hidden { display: none !important; }
@@ -192,8 +206,11 @@ body {
    reads as a broken layout rather than as a deliberate margin — a bar that stops short of the
    screen looks like it failed to load.
    `left: 0; right: 0` rather than `width: 100%`, because for a fixed element the two differ once
-   a scrollbar exists, and the difference is exactly the sliver of gap that started this. */
-#tabs, #banner {
+   a scrollbar exists, and the difference is exactly the sliver of gap that started this.
+
+   `#tabs` WAS THE OTHER HALF OF THIS SELECTOR and is gone with the bar. The plural in the comment
+   above is kept: the argument is about a bar, and `#banner` is one. */
+#banner {
   position: fixed;
   left: 0; right: 0;
   transform: none;
@@ -804,33 +821,34 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 #sheet-close { color: var(--dim); font-size: 1.1rem; padding: .25rem .4rem; cursor: pointer; }
 #sheet-body { padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-/* ---------- THE TAB BAR -------------------------------------------------------------------------
-   Seven tabs across a phone. In rem, so the icons and labels grow with the screen — and because
-   the bar is a percentage of the app width rather than of the window, each tab is the same share
-   of the thumb's reach on every phone.
+/* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED ----
+   `<nav id="tabs">` was deleted from index.html, and its own note there says WHY: it was "an empty
+   fixed element reserving three rem at the foot of every screen for a control that did not exist".
+   `--top` and `--bar` went to `0rem` in the same spirit, and both are documented at the top of this
+   file as kept-but-zero because five rules measure from them.
+
+   WHAT SURVIVED WAS A SECOND, HARDCODED COPY OF THAT SAME THREE REM. Here, in a media query, not
+   referencing `--bar` and therefore untouched by setting it to zero:
+
+     @media (max-width: 23rem) { body { padding-bottom: calc(3rem + var(--safe-bottom)); } }
+
+   `#screen` is `100dvh` minus those same four variables, so it is exactly the viewport — and this
+   put 3rem of padding UNDER it. Measured: the document is 609px tall inside a 568px viewport at
+   320x568, so THE WHOLE PAGE COULD SCROLL BY 41px. And a media query resolves `rem` against the
+   INITIAL font size, 16px, never the root's own clamp — so `23rem` is 368px and this was every
+   phone up to an iPhone 12 mini, not the 320px SE the comment was written about.
+
+   REPORTED AS "sometimes when trying to swipe up on phone it scrolls on the whole page ... it feels
+   clunky". On iOS that is worse than 41px of travel: any scrollable document at all lets Safari
+   start collapsing its toolbar, `100dvh` grows as it does, `#screen` and `body` grow with it, and
+   the overflow changes underneath the gesture — a loop, which is what "clunky" describes.
+
+   The rest of the block — `.tab .lb`, `.tab .ic`, `#tabs { height }` — named elements no JavaScript
+   file has produced since the bar was removed. The arithmetic is kept as prose because it is the
+   reason the query existed: eight tabs across 390px is 48px each, which clears Google's minimum;
+   across 320px it is 40px, which does not, so the labels came off below 23rem and the bar shrank to
+   3rem. Nothing is left to apply it to.
 --------------------------------------------------------------------------------------------- */
-/* The row of tabs, capped — so on a wide screen the bar reaches both edges and the tabs stay
-   under the content, rather than eight icons spread across a desktop. */
-
-/* EIGHT TABS. On a 390px phone that is 48px each, which clears Google's minimum; on a 320px
-   iPhone SE it is 40px, which does not.
-   So below 23rem the LABELS come off. The label is what forces the width — an icon at 40px is
-   perfectly pressable, and eight WORDS at 40px are four letters and an ellipsis, which is worse
-   than no word at all. */
-@media (max-width: 23rem) {
-  .tab .lb { display: none; }
-  .tab .ic { font-size: 1.3rem; }
-  #tabs { height: calc(3rem + var(--safe-bottom)); }
-  body { padding-bottom: calc(3rem + var(--safe-bottom)); }
-}
-
-/* The plus takes a narrower share than the rest — it is a raised circle, not a word, so it does
-   not need a full slot. That gives the other seven their width back and lands the circle within a
-   few pixels of centre. */
-/* A bar above the chosen tab rather than a filled background — it marks the tab without shrinking
-   the target, which a background would. */
-.tab.on::before { content: ''; position: absolute; top: 0;
-                  width: 1.8rem; height: 2.5px; border-radius: 0 0 2px 2px; background: var(--gold); }
 
 /* ---------- THE TOAST ---------------------------------------------------------------------------
    Above the bar, never over it. A message covering the way out traps somebody inside whatever went
@@ -977,17 +995,11 @@ a { color: inherit; text-decoration: none; }
 .feed { position: relative; aspect-ratio: 9/16; border-radius: var(--r-sm); overflow: hidden;
         background: var(--sunk); cursor: pointer; }
 
-/* ---------- THE BOOK TAB, which is a plus ---------------------------------------------------------
-   Dead centre and raised. The middle is where a thumb rests without moving, and the one action the
-   whole app exists for should not be a word among six other words.
---------------------------------------------------------------------------------------------- */
-/* FLAT. The raised circle was the loudest thing on the screen and it stuck out of the bar like a
-   button somebody bolted on. It is a plus now — the same size as every other icon, in the accent
-   colour, sitting on the same line as the rest.
-   It still reads as the main action because it is the only coloured thing in the bar, which is a
-   quieter way of saying the same thing. */
-
-.tab.big.on::before { display: none; }      /* the raised circle already says which one it is */
+/* THE BOOK TAB WAS HERE — the one raised, then flattened, then removed with the rest of the bar.
+   Its argument is worth keeping because it is a rule rather than a decoration: the middle of the
+   bar is where a thumb rests without moving, so the action the whole app exists for belonged there
+   rather than being a word among six other words. `.tab.big.on::before` was the last rule left of
+   it and matched nothing. */
 
 
 /* ---------- THE FINDING CONTROLS ------------------------------------------------------------------
@@ -1244,11 +1256,33 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    photograph of a child's work with the work cut off is worse than a photograph with a gap under
    it, and this is a feed of things children made rather than a wallpaper.
 
-   So: edge to edge across, natural height down. A landscape photograph leaves room below it for
-   the caption and some black; a tall one runs past the bottom of the screen and the page scrolls,
-   which the pager already allows for — a page that can scroll keeps the gesture until it reaches
-   its end, so reading a long picture and then swiping to the next post is one continuous movement
-   rather than two rules. */
+   So: edge to edge across, natural height down. A landscape photograph leaves room below it for the
+   caption and some black.
+
+   AND THE SENTENCE THAT USED TO FOLLOW THAT ONE WAS FALSE. It said a tall photograph "runs past the
+   bottom of the screen and the page scrolls, which the pager already allows for — a page that can
+   scroll keeps the gesture until it reaches its end". That was true of `.pane.scrolls`, the class
+   that gave an overflowing pane its vertical gesture back, and that class was DELETED — the note by
+   `.pane`'s own `touch-action` records it, and CLAUDE.md records the argument. A pane is
+   `overflow: hidden` and clips. There is no scroll for the gesture to reach the end of.
+
+   SO IT IS CUT OFF, AND MEASURED IT IS THE COMMENT BOX. A 4:5 portrait — the shape the markup above
+   reserves, because it is the shape a phone camera gives — puts the post 582px into a 534px pane at
+   320x568: `post-said`, `cmt-form`, the textarea and its Send button are all below the fold, with no
+   scroll and no page to turn to. 46px at 375x667. Nothing at 390 and up.
+
+   NOT FIXED HERE, because every fix for it is a visible change to how a photograph is shown and
+   that is the owner's call rather than a repair. `object-fit: cover` and a bare `max-height` are
+   both refused above and the reasons stand; what would work is a height cap with `object-fit:
+   contain`, which crops nothing and squashes nothing and makes a tall photograph NARROWER than the
+   card on a short phone — about 74% of the width at 320, 83% at 375, unchanged at 390. That is the
+   trade, written down so it is a decision.
+
+   AND THE LAB CANNOT SEE IT, WHICH IS WHY IT HAS SAT HERE. Two reasons, both in `check/ui.js`:
+   `check/fixture.json`'s posts carry `image: ""`, so no run has ever drawn a photograph on this
+   card; and every width is measured in a viewport 844px TALL, so its "320px" is a 320x844 phone
+   that does not exist and whose pane is 807px. The receipt's own 216px below the fold at 320x568 is
+   invisible for the same second reason, and CLAUDE.md already records that one. */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
   height: auto;            /* its own height, from its own proportions */
