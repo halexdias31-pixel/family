@@ -13148,6 +13148,72 @@ twenty-six facets cold went 271 ms → 541 ms, which is a number the app never p
 in order and stops at the first question that qualifies, and `facetTally_`'s memo makes every
 reading after that free.
 
+### A review of all fourteen groupings found a hole in the engine, and refuted the one I had left open
+
+**Fourteen designs, one per over-sized question, each then attacked by three independent reviewers
+told to refute it.** All forty-two verdicts came back unsound, which is what a refuter is for and
+is not by itself a finding. Three of the defects are about the code that shipped rather than about
+the proposals, and all three are real.
+
+**THE FIRST ONE BROKE THE GUARANTEE THIS WHOLE COMMIT IS ABOUT.** `bucketKeyOf_` preferred
+`bucketOf` — on the argument that a facet declaring its own grouping is saying what its values are
+about, so a grouping with too many groups to draw would at least give ranges over the GROUP names.
+What it gives when every value on the list maps to ONE group is a key that is **the same string for
+every value**: `alphaBuckets_` grows its prefix to twelve characters, never finds a second run,
+returns null, and `bucketValues_` hands the list back **ungrouped**. Measured on a ten-value facet
+whose table answers one label: **ten answers drawn, cap gone.**
+
+**THE KEY HAS TO BE A PURE FUNCTION OF THE VALUE *AND* HAS TO TELL VALUES APART**, and those two
+together are the whole constraint — `bucketHas_` is handed one item and never the list, so it
+cannot know which key the drawer chose. What a value is READ as always tells values apart, because
+that is what makes them different answers. So the key is `showOf` or the value, and the
+`KS2`-against-`KS2–GCSE` leak that `bucketOf` was put in the key to close is closed by
+`bucketDeclares_` instead: **a label the grouping made is the grouping's, both ways** — not "the
+table says yes, and then try the ranges anyway", which is what let a range labelled `KS2` collect a
+span the table files under `GCSE`. A table enumerates its labels in `bucketOrder`; a computed one
+is idempotent (`waveBucket_('2023 & 2024')` reads the year out of its own label and answers it),
+which holds by construction for a grouping that reads a number out of a string.
+
+**THE SECOND IS THAT THE TABLES WERE KEYED MORE TIGHTLY THAN THE FOLD THAT DECIDED THEIR ANSWERS.**
+`bucketTable_` keyed on `norm` — lower case and trim — while `facetTally_` folds variants by
+`spellKey_`, alphanumerics only, and hands the grouping whichever spelling won the vote. This file
+records `Alevel` / `A-level` / `A-Level` as three answers on one screen **in this very column**: a
+row spelled `A Level` is the same answer to `spellKey_`, wins the vote by carrying a separator,
+reaches the table as a key `norm` has never seen — and one unplaced value stands the WHOLE grouping
+down to the alphabet, silently, on a question that worked the day before. It falls back to
+`spellKey_` now, built on first use because the tables are constructed before that function exists.
+**Proved by mutation**: the old lookup names `subject` and exits 1.
+
+**The third is that `bucketLabels_` called `bucketOf` with no `try`** where `bucketKeyOf_` wrapped
+it. Nothing can throw today — eleven are table lookups and two are a regex over a string — and
+`filterHit` runs the same function per item per chip, so the day one of them resolves against a
+file that has not landed, an unguarded call is the Find screen rather than an ungrouped question.
+
+### And it refuted the grouping I had left `topic` without
+
+**THE OBVIOUS ONE IS THE TREE'S SECOND LEVEL and it is not available, which is now measured rather
+than reasoned.** `data/topics.json` is three levels — 13 roots, 95 mid nodes, 191 leaves — and the
+roots are what `topicArea` already draws. A mid-level grouping folds to 37 labels, at most seven
+present at once, and the review measured what it actually draws over **873 reachable states**:
+
+| | |
+|---|---|
+| states where Topic is asked and needs grouping | 303 |
+| **where the 37 labels fire** | **76** |
+| where it falls back to letter ranges anyway | 227 |
+| `Topic area · Number` / `· Algebra` / `· Geometry & Measures` | **all three still draw letters** |
+
+**Those three are the errands.** So the proposal does not fix the complaint where the complaint
+appears, and it costs a 64-entry table, a 46-entry fold and a three-pass resolver to not fix it.
+**And the reason is structural rather than a gap in the table**: at `Topic area · Number` the 91
+topic values on offer span all seven strands, because a question tagged `Multiplication, Area of
+2-D Shapes` is in both lists — so any map fine enough to tell two topics inside one strand apart
+has at least eight labels present there. The only map that fires on a wide list is the strand map,
+and the strand map is `topicArea`'s, asked one row above.
+
+**So the alphabet stays, and it stays on a measurement instead of on my judgement.** What would
+change the answer is the data — a topic column with one strand per row — and not a cleverer table.
+
 ### And the runner hid the failure that this change caused, twice
 
 **`check/press.js` FAILED INSIDE `npm run check` AND THE FOURTEEN LINES UNDER IT WERE THE PART THAT
@@ -13189,3 +13255,21 @@ diff, grep or review — rather than the app, and it would have been committed i
 **It is the reason this is a sweep rather than a check.** Telling a comment that QUOTES an escape
 from one that LEAKED an escape is a judgement about what a sentence means, and a rule that cannot
 tell them apart would corrupt the two files it should leave alone.
+
+### And `check.js` refused the first version of the fold, one finding per table
+
+**`bucketTable_` is CALLED AT LOAD** — `const KIND_BUCKET = bucketTable_([…])` runs as the file is
+parsed — and the first version kept `spellKey_` where it was, four hundred lines further down,
+by building its second index lazily on the first lookup. **`js/check.js` named all eight tables**:
+*"calls `bucketTable_()`, which uses `spellKey_` — declared at line 2252 of the same file, so it is
+still in its dead zone and this throws. Everything below it in the file never loads."*
+
+**IT COULD NOT SEE THAT THE REFERENCE SITS BEHIND A BRANCH THAT ONLY RUNS LATER, and that is the
+check being conservative about the right thing.** What it guards is a throw at load taking every
+name below it with it — which this file has already paid for once, in the note above `FACETS`
+about `KIND_BUCKET` and the temporal dead zone, from the other side.
+
+**So the dependency was made real rather than argued with**: `SPELL_KEYS` and `spellKey_` moved
+above the tables, both indexes are built at construction, and the lazy branch is gone. A dependency
+that is real belongs above its dependent, which is the one rule `index.html`'s file list is built
+on, applied one file in.

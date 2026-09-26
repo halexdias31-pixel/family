@@ -809,11 +809,48 @@ function facetOwn_(facet, x) {
    makes these safe to write: a grouping that goes stale as the library grows degrades to something
    usable instead of hiding the values it forgot.
 ================================================================================================== */
-/* A value -> label table, inverted once so the lookup is a map rather than a scan. */
+/* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH ---------------------------------------
+   IT IS A PURE FUNCTION OVER A TINY SET. `facetTally_` and `filterHit` call this once per item per
+   facet, and the values are a subject, a tier, a board -- `Maths` is folded five thousand times to
+   the same five letters on every filter change. A `Map` makes the second one free.
+
+   BOUNDED BY THE DATA rather than by a cap: the keys are the distinct values the library holds in
+   its facet columns, which is hundreds, not the strings anybody can type. Nothing here is fed a
+   search box. */
+const SPELL_KEYS = new Map();
+const spellKey_ = v => {
+  const raw = String(v == null ? '' : v);
+  let k = SPELL_KEYS.get(raw);
+  if (k === undefined) {
+    k = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    SPELL_KEYS.set(raw, k);
+  }
+  return k;
+};
+
+/* ---------- A VALUE -> LABEL TABLE, INVERTED ONCE SO THE LOOKUP IS A MAP RATHER THAN A SCAN ------
+   AND IT FALLS BACK TO `spellKey_`, WHICH IS THE FOLD THAT DECIDED THE VALUE WAS ONE ANSWER.
+   `norm` is `toLowerCase().trim()` and nothing else, and `facetTally_` folds variants by
+   `spellKey_` — alphanumerics only — then hands this function whichever spelling `spellBetter_`
+   picked to SHOW. So the two ends were using different folds, and the gap is the one this file
+   records for this exact column: `Alevel`, `A-level` and `A-Level` were three answers on one
+   screen, and `spellKey_` is what made them one. A row spelled `A Level` folds to the same answer
+   as `A-Level`, wins the spelling vote if it carries more separators, reaches this table as a key
+   `norm` has never seen — and one unplaced value stands the WHOLE grouping down to the alphabet,
+   silently, on a question that was working the day before.
+
+   BOTH INDEXES ARE BUILT AT CONSTRUCTION, and the first version built the second one lazily so it
+   could keep `spellKey_` where it was, further down the file. `js/check.js` refused that with one
+   finding per table: it cannot see that the reference is behind a branch that only runs on the
+   first lookup, and what it is guarding is a throw at LOAD that takes every name below it in the
+   file with it. The dependency is real, so `spellKey_` moved above these tables instead — which is
+   the rule `index.html`'s file list is built on, one file in. */
 function bucketTable_(pairs) {
   const at = {};
   pairs.forEach(row => row[1].forEach(v => { at[norm(v)] = row[0]; }));
-  const of = v => at[norm(v)] || '';
+  const spelt = {};
+  Object.keys(at).forEach(k => { spelt[spellKey_(k)] = at[k]; });
+  const of = v => at[norm(v)] || spelt[spellKey_(v)] || '';
   of.order = pairs.map(row => row[0]);
   return of;
 }
@@ -1833,7 +1870,7 @@ const FACET_BAND_BY = 10;
    previously could not be reached at all.
 
    AND A BUCKET DOES NOT SETTLE THE FACET, which is the line in `nextFacet` that makes the whole
-   thing terminate. `Grade` at 8 answers groups into three; pressing `Grades 4-6` leaves 671 items
+   thing terminate. `Grade` at 8 answers groups into three; pressing `Grades 4–6` leaves 671 items
    whose Grade values are three, so Grade is asked AGAIN and now draws `Grade 4`, `Grade 5`,
    `Grade 6`. Measured down the greedy path: every question is either at most seven real answers or
    at most seven buckets, and every bucket is one tap from the answers inside it.
@@ -1867,31 +1904,53 @@ function alphaKey_(v) { return String(v == null ? '' : v).trim().toLowerCase(); 
    `Adding Decimals` and `Circle Theorems Edexcel`, which is what an index of 266 documents is.
 
    ONE READER, so the drawer and `bucketHas_` cannot disagree about which string a range is about —
-   the argument `bandOf_` makes about the edges of a band, one step along. `bucketOf` first, because
-   a facet that declares its own grouping is telling this function what its values ARE about: when
-   that grouping yields too many groups to draw, the ranges are over the GROUP names (`Angles–
-   Mensuration`) rather than over the leaves inside them.
+   the argument `bandOf_` makes about the edges of a band, one step along.
+
+   AND IT DELIBERATELY DOES NOT ASK `bucketOf`, WHICH IT DID FOR ONE COMMIT AND WHICH OPENED A HOLE
+   IN THE WHOLE GUARANTEE. The idea was that a facet declaring its own grouping is saying what its
+   values are about, so a grouping with too many groups to draw would at least give ranges over the
+   GROUP names. What it actually gives, when every value on the list maps to ONE group, is a key
+   that is the same string for all of them: `alphaBuckets_` grows its prefix to twelve characters,
+   never finds a second run, returns null — and `bucketValues_` hands the list back UNGROUPED.
+   Measured on a ten-value facet whose table answers one label: ten answers drawn, cap gone.
+
+   THE KEY HAS TO BE A PURE FUNCTION OF THE VALUE AND IT HAS TO TELL VALUES APART. Those two are
+   the whole constraint: `bucketHas_` is handed one item and never the list, so it cannot know
+   which key the drawer chose, and a key that collapses is a question that cannot be split. What a
+   value is READ as always tells values apart, because that is what makes them different answers.
+
+   SO THE TABLE OWNS ITS OWN LABELS INSTEAD — see `bucketDeclares_` in `bucketHas_`, which is where
+   the `KS2`-against-`KS2–GCSE` leak this key was introduced to close is now closed, and closed by
+   the table rather than by a spelling.
 
    `showOf` IS CALLED WITH NO ANSWER LIST, deliberately. `facetTally_` passes one so a label can be
    disambiguated against the answers beside it, and `bucketHas_` is handed one item and never the
    list — so a key built from the shortened form could not be recomputed at match time. The long
-   form is the one both ends can always reach.
-
-   AND A VALUE ITS OWN TABLE DOES NOT PLACE FALLS BACK TO ITSELF, so it sorts among the group names
-   rather than into a bucket keyed on the empty string, which would be every unplaced value in one
-   silent heap. That state is unreachable today — `bucketLabels_` rule 1 is all-or-nothing, so a
-   table that has stopped placing everything has already stood down — and it is written this way
-   because the day it is reachable, a mixed index is something you can still read. */
+   form is the one both ends can always reach. */
 function bucketKeyOf_(facet, v) {
-  if (facet) {
-    if (typeof facet.bucketOf === 'function') {
-      try { const g = facet.bucketOf(v); if (g) return String(g); } catch (e) { /* fall through */ }
-    }
-    if (typeof facet.showOf === 'function') {
-      try { const s = facet.showOf(v); if (s) return String(s); } catch (e) { /* fall through */ }
-    }
+  if (facet && typeof facet.showOf === 'function') {
+    try { const s = facet.showOf(v); if (s) return String(s); } catch (e) { /* fall through */ }
   }
   return String(v == null ? '' : v);
+}
+
+/* ---------- IS THIS LABEL ONE THE FACET'S OWN GROUPING MADE? -------------------------------------
+   A TABLE ENUMERATES ITS LABELS in `bucketOrder` and a computed grouping cannot, so the second test
+   is that it is IDEMPOTENT: `waveBucket_('2023 & 2024')` reads the year out of its own label and
+   answers `2023 & 2024`, and `decadeBucket_('1930s & 1940s')` does the same. Both hold by
+   construction for a grouping that reads a number out of a string, which is what a computed one is.
+
+   IT MATTERS BECAUSE A DECLARED LABEL MUST NOT BE READ AS A LETTER RANGE. `LEVEL_BUCKET` files a
+   span under the level it goes up to, so `KS2–GCSE` belongs to `GCSE` — and the prefix test below,
+   handed the label `KS2`, answered yes to it, because `ks2` is `ks2`. Measured: 31 rows were in two
+   buckets at once and the table's own sentence was contradicted by the mechanism meant to carry it.
+   The table decides both ways now, which is what `bandOf_`'s note means by one function owning the
+   edges. */
+function bucketDeclares_(facet, b) {
+  if (!facet || typeof facet.bucketOf !== 'function') return false;
+  const order = facet.bucketOrder;
+  if (order && order.indexOf(b) >= 0) return true;
+  try { return facet.bucketOf(b) === b; } catch (e) { return false; }
 }
 
 function alphaBuckets_(values, want, facet) {
@@ -1972,8 +2031,12 @@ function alphaBuckets_(values, want, facet) {
 function bucketHas_(facet, bucket, v) {
   const b = String(bucket || '');
   if (!b) return false;
-  if (facet && typeof facet.bucketOf === 'function') {
-    if (facet.bucketOf(v) === b) return true;
+  /* ---------- A DECLARED LABEL IS THE TABLE'S, BOTH WAYS --------------------------------------
+     NOT "matches if the table says so, and then try the ranges anyway", which is what this was and
+     what let `KS2` collect `KS2–GCSE`. If the grouping made this label, the grouping is the whole
+     answer about it. See `bucketDeclares_`. */
+  if (bucketDeclares_(facet, b)) {
+    try { return facet.bucketOf(v) === b; } catch (e) { return false; }
   }
   /* A TENS BAND. Both ends have to be digits, so `9–A` is not one and falls through to the prefix
      test below — which is the branch that was refusing it.
@@ -2054,7 +2117,13 @@ function bucketLabels_(values, facet) {
     const seen = [];
     let whole = true;
     values.forEach(v => {
-      const k = facet.bucketOf(v.value);
+      /* A GROUPING THAT THROWS STANDS DOWN RATHER THAN TAKING THE FUNNEL WITH IT. `bucketOf` is a
+         table lookup for eleven of these and a regex over a string for the other two, so nothing
+         here can throw today — and `filterHit` runs the same function per item per chip, so the
+         day one of them is a resolver over a file that has not landed, an unguarded call is the
+         Find screen rather than an ungrouped question. The house rule is fallbacks everywhere. */
+      let k = '';
+      try { k = facet.bucketOf(v.value); } catch (e) { k = ''; }
       if (!k) { whole = false; return; }
       if (seen.indexOf(k) === -1) seen.push(k);
     });
@@ -2187,24 +2256,12 @@ function bandOf_(n) {
    one is kept because it also guards the facets a spreadsheet invents at runtime, where the wrapper
    below is the only thing standing between the sheet and the screen.
 ================================================================================================== */
-/* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH ---------------------------------------
-   IT IS A PURE FUNCTION OVER A TINY SET. `facetTally_` and `filterHit` call this once per item per
-   facet, and the values are a subject, a tier, a board -- `Maths` is folded five thousand times to
-   the same five letters on every filter change. A `Map` makes the second one free.
-
-   BOUNDED BY THE DATA rather than by a cap: the keys are the distinct values the library holds in
-   its facet columns, which is hundreds, not the strings anybody can type. Nothing here is fed a
-   search box. */
-const SPELL_KEYS = new Map();
-const spellKey_ = v => {
-  const raw = String(v == null ? '' : v);
-  let k = SPELL_KEYS.get(raw);
-  if (k === undefined) {
-    k = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-    SPELL_KEYS.set(raw, k);
-  }
-  return k;
-};
+/* `SPELL_KEYS` AND `spellKey_` WERE HERE, and they are above `bucketTable_` now because that
+   function keys its second index on them and is CALLED AT LOAD. `js/check.js` refused the lazy
+   version outright — eight findings, one per table — and it was right to: it cannot see that the
+   reference sits behind a branch that only runs on the first lookup, and the thing it is guarding
+   is a throw at load that takes every name below it in the file with it. A dependency that is real
+   belongs above its dependent, which is the one rule `index.html`'s file list is built on. */
 
 /* HOW MANY PIECES THE WRITER BROKE IT INTO. Not a score out of ten — just "did a person put gaps in
    this", which is what tells a name from a slug. */

@@ -109,7 +109,8 @@ function boot(cb) {
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
-      ' filterHit, facetOwn_, bucketHas_, STUFF, paperLabels_, stuffHay_, norm, RETIRED_FACETS,' +
+      ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
+      ' RETIRED_FACETS,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
          reference captured at eval time is the one from before the settings files landed, and the
          sheet reads as nought rows. Same trap `facetList`'s own memo is keyed against. */
@@ -683,7 +684,7 @@ boot(f => {
     const seenState = {};
     /* ---------- AND WHAT THE GROUPS ACTUALLY SAY, WHICH IS THE HALF A RULE CANNOT JUDGE ----------
        SEVEN LEGAL BUCKETS AND SEVEN USABLE ONES ARE NOT THE SAME THING. `Heavyweight` and
-       `Grades 4-6` are questions a person can answer; `P`, `R`, `W` were the three the Paper
+       `Grades 4–6` are questions a person can answer; `P`, `R`, `W` were the three the Paper
        question drew before its ranges were measured on the paper's NAME rather than on the id
        behind it, and every rule here was green over them. So the first grouping each question
        makes is printed, once, and a person reads it -- the argument this repository makes about
@@ -757,10 +758,18 @@ boot(f => {
     const leaks = [];
     f.facetList().forEach(facet => {
       const g = groups[facet.field];
-      const order = facet.bucketOrder;
-      if (!g || !order || typeof facet.bucketOf !== 'function') return;
+      if (!g || !f.bucketDeclares_ || typeof facet.bucketOf !== 'function') return;
       const labels = g.says.map(t => t.replace(/ \(\d+\)$/, ''));
-      if (!labels.every(b => order.indexOf(b) >= 0)) return;   /* not the facet's own grouping */
+      /* ---------- THROUGH THE ENGINE'S OWN TEST, NOT A SECOND COPY OF IT ------------------------
+         THIS ASKED `facet.bucketOrder.indexOf(b) >= 0` AND IT SILENTLY SKIPPED `examWave`. That
+         grouping is computed rather than listed, so its `order` is an EMPTY ARRAY — truthy, so the
+         guard above let it through, and then every one of its labels failed the `indexOf` and the
+         whole facet returned. A rule that cannot reach its subject reporting that the subject is
+         fine is this repository's oldest shape, and here it was hiding a fifth of the declared
+         groupings from the rule written to guard them. `bucketDeclares_` is what `bucketHas_`
+         itself asks, so the check and the engine agree about which labels a grouping owns by
+         construction rather than by two functions that have to be kept in step. */
+      if (!labels.every(b => f.bucketDeclares_(facet, b))) return;
       let said = 0;
       all.forEach(x => {
         let mine;
@@ -831,6 +840,71 @@ boot(f => {
       bad.push('a question asked inside a bucket offers an answer that is not in it, so the screen '
                + 'says the opposite of the chip above it: ' + outside.slice(0, 6).join('; ')
                + (outside.length > 6 ? '; and ' + (outside.length - 6) + ' more' : ''));
+    }
+
+    /* ---------- AND THE ENGINE ITSELF, ON THE ONE SHAPE THE REAL FACETS DO NOT HAVE -------------
+       EVERY RULE ABOVE WALKS THE LIVE FUNNEL, and the live funnel cannot reach this: a grouping
+       that answers ONE label for every value on the list. `bucketLabels_` rule 1 needs two, so it
+       declines; rule 2 needs integers; and rule 3 used to key the alphabet through `bucketOf`,
+       which for such a grouping is the same string for every value — so it grew its prefix to
+       twelve characters, never found a second run, returned null, and `bucketValues_` handed the
+       list back UNGROUPED. Ten answers drawn, on the one guarantee this whole mechanism is for.
+
+       FOUND BY A REVIEW RATHER THAN BY A RULE, and the fix is that the alphabet keys on what a
+       value is READ as, which always tells values apart. This is the rule, and it is asked of a
+       facet built here rather than of the library, because the eleven declared tables all split
+       what they are given and none of them can reproduce it. A shape that cannot occur in the data
+       is exactly the shape a check has to carry. */
+    const collapse = { field: '__collapse', label: 'Collapse', of: x => x.__v || '',
+                       bucketOf: () => 'One thing', bucketOrder: ['One thing'] };
+    const ten = 'alpha bravo charlie delta echo foxtrot golf hotel india juliet'
+      .split(' ').map(v => ({ __v: v }));
+    let drew = [];
+    try { drew = f.facetValues(ten, collapse); } catch (e) { drew = []; }
+    if (!drew.length) {
+      bad.push('the seven-answer cap cannot be checked against a grouping that collapses - not a pass');
+    } else if (drew.length > CAP) {
+      bad.push('a grouping that answers one label for every value leaves the question ungrouped: '
+               + drew.length + ' answers drawn where the cap is ' + CAP + ' — see `bucketKeyOf_`, '
+               + 'which must key the alphabet on something that tells two values apart');
+    }
+
+    /* ---------- AND A TABLE PLACES EVERY SPELLING OF A VALUE IT LISTS ---------------------------
+       `facetTally_` FOLDS VARIANTS BY `spellKey_` AND HANDS THE GROUPING WHICHEVER SPELLING WON,
+       so a table keyed on `norm` — lower case and trim, nothing else — is using a looser fold at
+       one end than the fold that decided the answer at the other. `A Level` is the same answer as
+       `A-Level` to `spellKey_` and a different key to `norm`; it wins the vote by carrying a
+       separator; and ONE unplaced value stands the whole grouping down to the alphabet, silently,
+       on a question that worked the day before. This file records `Alevel` / `A-level` /
+       `A-Level` as three answers on one screen in this very column.
+
+       SO IT IS ASKED OF THE TABLES RATHER THAN OF THE DATA. Every label a facet declares must come
+       back for a spelling of it with the separators taken out, which is the perturbation
+       `spellKey_` is built to see through and `norm` cannot. */
+    const unfolded = [];
+    f.facetList().forEach(facet => {
+      const order = facet.bucketOrder;
+      if (!order || !order.length || typeof facet.bucketOf !== 'function') return;
+      let vals = [];
+      try { vals = f.facetValues(all, facet); } catch (e) { return; }
+      vals.forEach(v => {
+        const raw = String(v.value);
+        let got = '';
+        try { got = facet.bucketOf(raw); } catch (e) { got = ''; }
+        if (!got) return;                       /* unplaced is rule 1's business, not this one */
+        const bare = raw.replace(/[^A-Za-z0-9]+/g, '');
+        let same = '';
+        try { same = facet.bucketOf(bare); } catch (e) { same = ''; }
+        if (same !== got) {
+          unfolded.push('`' + facet.field + '` places "' + raw + '" in "' + got + '" and "'
+                        + bare + '" in "' + (same || 'nothing') + '"');
+        }
+      });
+    });
+    if (unfolded.length) {
+      bad.push('a grouping is keyed more tightly than the fold that decided its answers, so one '
+               + 'typed cell would stand it down to letter ranges: ' + unfolded.slice(0, 5).join('; ')
+               + (unfolded.length > 5 ? '; and ' + (unfolded.length - 5) + ' more' : ''));
     }
 
     const grouped = Object.keys(groups);
