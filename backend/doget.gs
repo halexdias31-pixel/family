@@ -1076,8 +1076,10 @@ function doGet(e) {
              counts of the same gesture and a heart sat next to a 👍 competing with it.
 
              What is on offer, how many of each, which is yours, and WHO. The set comes from
-             `reactionSet` — this post's own column, then the brand tab, then the six in the code
-             — so there is always something to draw. */
+             `reactionSet` — this post's own column, then the six in `HOUSE_REACTIONS`. The brand
+             tab was the middle rung and is `data/settings/brand.json` now, which this file cannot
+             reach; the house list is the floor and is never empty, so there is always something to
+             draw and the `null` below cannot actually be returned. */
           reactions: (function () {
             const emoji = reactionSet(r);
             if (!emoji.length) return null;

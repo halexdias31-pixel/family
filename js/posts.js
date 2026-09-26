@@ -107,8 +107,22 @@ function postCard_(p, i) {
             The reactions move UP here, into the place the heart held: directly under the picture,
             where the eye already goes and where the thing you can do about a photograph belongs. */''}
       <div class="post-acts">
+        ${/* ---------- WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN ----------------
+              IT SAID "fill in `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab
+              became `data/settings/brand.json`, which the phone reads and Apps Script cannot — so
+              `reactionSet` is down to the post's own cell and `HOUSE_REACTIONS`, and that second
+              one is six faces in `constants.gs` that are never empty. Measured: `reactionSet`
+              cannot return an empty list, so `doGet` cannot send `reactions: null`.
+
+              WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what
+              it should now say. An empty row means the payload came from a deployment older than
+              the house set — nothing to type into a cell, and the remedy is a sync. Sending
+              somebody to edit a tab that is not there any more is the fault this repository
+              records under `.favwrap.is-fav` and under the dead `kind === 'paper'` guard: a
+              sentence that outlived the thing it described. */''}
         ${reacts(p) || (isAdmin()
-          ? '<span class="faint">No reaction set — fill in <code>brand!reactions</code>.</span>'
+          ? '<span class="faint">No reactions — this payload predates them. '
+            + 'Check the build stamp on You.</span>'
           : '<span></span>')}
         ${/* SHARING MOVED DOWN INTO THE TILE ROW. It was the one action living in this row, drawn
               as a `.post-act` — its own class, its own 44px rule, its own hover — for a control
@@ -1075,8 +1089,12 @@ function reacts(p) {
   /* NO FACES, NO ROW — and the caller is told, rather than being handed an empty div.
      `r.emoji.map` over an empty array drew a `<div class="reacts">` with nothing inside it, which
      renders as no gap, no message and no clue: exactly the silent absence this codebase keeps
-     producing. The emoji set comes from `brand!reactions`, and while that cell is empty there is
-     nothing to draw. */
+     producing.
+
+     WHERE THE FACES COME FROM: the post's own `reactions` cell, then `HOUSE_REACTIONS` in
+     `constants.gs`. The brand tab was the middle rung and is a file in git now, which Apps Script
+     cannot read — so the house list is the floor and it is never empty. An absent row therefore
+     means the payload predates the house set rather than that a cell is blank. */
   if (!r || !Array.isArray(r.emoji) || !r.emoji.length) return '';
   const counts = Array.isArray(r.counts) ? r.counts : [];
   return `<div class="reacts">

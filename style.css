@@ -1469,8 +1469,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    A row of faces. Wraps rather than scrolls — a sideways scroller inside a vertical feed is a
    gesture fighting a gesture, and with five or six emoji there is nothing to scroll to anyway.
 
-   With no emoji set in `brand!reactions` there is no row at all, and the markup says so in words
-   for an admin rather than leaving a gap that reads as a styling fault.
+   With no emoji at all there is no row, and the markup says so in words for an admin rather than
+   leaving a gap that reads as a styling fault. That used to mean an empty `brand!reactions` cell;
+   the brand tab is a file in git now and `HOUSE_REACTIONS` is the floor, so the only way to see
+   that sentence is a payload older than the house set. See the note over `reacts()`.
 --------------------------------------------------------------------------------------------- */
 .reacts { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0 .2rem; }
 .react {
