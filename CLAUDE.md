@@ -6976,15 +6976,16 @@ tile, so nothing anywhere invites somebody to plan an experiment that has been t
 Measured: 0 of 5. `check-practicals.js` prints all three counts, so the next row added without one
 shows up as a one instead of joining 41.
 
-### Seventeen drawings, and what is deliberately not drawn is the result
+### The first drawings, and what is deliberately not drawn is the result
 
 **A guide that lists a burette, a conical flask and a white tile has said nothing about where the
 tile goes.** *"The thermometer bulb level with the side arm"* is a sentence somebody reads twice and
-still assembles wrongly. So seventeen practicals carry a `diagram` — the same column the library's
+still assembles wrongly. So a practical carries a `diagram` — the same column the library's
 questions carry, inline SVG committed beside the row, taking the page's own ink so it works on both
-palettes and offline.
+palettes and offline. (Seventeen of them at this commit; the run prints the number now, and the
+entry at the foot of this file is the one that finished the set.)
 
-**CLAUDE.md'S OWN RULE DECIDES WHICH SEVENTEEN**: draw only where the row's own words determine the
+**CLAUDE.md'S OWN RULE DECIDES WHICH ONES**: draw only where the row's own words determine the
 picture. Here that means a SET-UP or a CONSTRUCTION — a circuit, a clamp stand, a condenser, the
 right-angled triangle behind R = d²/2h — something you build before the first reading, so the kit
 list and the first three steps fix it exactly.
@@ -6994,7 +6995,7 @@ density tower is the sharp case and it is the reason the line is worth stating: 
 *"predict the order of the layers from the densities alone"*, so a drawing of the finished column
 would answer the question the practical asks. Same line the `science` paragraphs are written along.
 
-**One placement, at the head of "How it runs".** Every one of the seventeen is a thing you build, so
+**One placement, at the head of "How it runs".** Every one of them is a thing you build, so
 it belongs above the numbered steps and nowhere else; a flag saying *this one is explanatory* would
 be a second thing to keep in step with the drawing.
 
@@ -12317,3 +12318,958 @@ comes from the array the row is built from, so a row listing six and counting fi
 `a session at the client's own home cannot be booked for one` asserts the floor, the option list,
 the refusal's units, and that none of it leaks onto a booking with no venue chosen yet. 37 journeys,
 all 38 checks pass.
+
+## One ticked term priced two academic years, and the button was there twice
+
+**Reported as "why is it coming out to so much?"** over a screenshot of the booking card totalling
+**£1024.59** whose Dates row listed **eighteen sessions across two Septembers** — 28/09/26 to
+13/10/26, and then 06/09/27 to 12/10/27 — for one ticked term.
+
+**REPRODUCED BEFORE ANYTHING WAS READ ABOUT, WHICH IS WHY THE DIAGNOSIS IS SHORT.** With two rows
+named `Autumn 1` in the payload and one button pressed:
+
+| | one `Autumn 1` | two |
+|---|---|---|
+| `bookSpec().windows` | 1 | **2** |
+| the `Term` row reads | `Autumn 1` | **`Autumn 1, Autumn 1`** |
+| sessions | 3 | **10** |
+| the total | £60 | **£200** |
+
+**`bookSpec` FILTERS BY NAME WHERE EVERY OTHER READER FINDS.** It became a filter when the step
+learned to take several answers — correctly, because several terms is several windows — and a name
+sent twice is then one tick meaning two of them. `waitTerm_` and the receipt's term lookup both use
+`.find`, so they were already right BY ACCIDENT; `intervals_()` is the one answer to "which terms
+exist" and all four readers go through it, which makes that luck a rule and stops the option list
+offering a name the price would read differently.
+
+**A NAME IS AN ANSWER TO A QUESTION AND A QUESTION HAS ONE ANSWER.** Two identical buttons is not a
+choice anybody can make, and ticking one cannot honestly mean *both of them* — it means the one
+about to be taught, which is the first, because `doGet` sends them chronologically.
+
+### The payload really ships the name twice, and its own comment said otherwise
+
+**`doget.gs` HAS CARRIED A NOTE CLAIMING THIS WAS FIXED** — that once terms which have ENDED are
+dropped, *"each name appears once inside the next twelve months"*. Measured against the real
+`schoolYear` on **25/09/2026**, the filter it describes keeps **`Autumn 1 2026-09-07..2026-10-23`
+AND `Autumn 1 2027-09-06..2027-10-22`**: the first has not ended, and the second starts **four days**
+inside the 370-day cut-off. Every other name appears once.
+
+**SO IT HELD FOR MOST OF THE YEAR AND FAILED EVERY AUTUMN, which is the one term it matters for** —
+a sentence true in March and false in September, which is exactly the shape this file records under
+`.favwrap.is-fav` and the dead `kind === 'paper'` guard. One row per name, the earliest, which is
+what the sentence always meant to say. **The 370-day window is untouched**: a shorter one would drop
+July's list of the September after it, which is the case two school years are sent for.
+
+**FIXED AT SOURCE AND ON THE PHONE, because the deploy is blocked** on the Cloud-project switch and
+this app's house rule is that a broken sheet must still produce a working site. The source fix is the
+repair; `intervals_()` is what makes a payload it does not control harmless.
+
+### `no day of the year offers one term name twice` — the real block, over a year of todays
+
+**One date proves one date, and the fault is a date RANGE.** So `check-booking.js` cuts the
+`computed` block out of `doget.gs` and runs it 365 times, with `Date` **shadowed as a parameter of
+the generated function** rather than the source being rewritten — so what is measured is the code
+that ships, to the character. `termsFor` is stubbed to `schoolYear`, which is what the real one
+answers with when nobody has typed the dates into the sheet: the case that ships.
+
+**THE FIRST VERSION'S CUT ENDED AT THE DEDUPE FILTER'S OWN `});`** — so removing that filter, which
+is the one mutation worth making here, took the cut to an unrelated brace and the check failed with
+*"missing ) after argument list"*. **A guard firing for a fault in its own cutter teaches nothing**,
+which is the `check/load.js` lesson about an instrument that lies. It ends at the next STATEMENT now.
+**Proved by mutation**: the dedupe removed names every day from 25/09/2026 onwards with both start
+dates printed; the real file is green.
+
+**And a journey for the other half.** `one ticked term prices one term` seeds a payload holding the
+name twice and asserts four things: the question does not offer one name as two buttons, one tick
+opens one window, the Term row reads one name, and **no session falls outside the ticked term's own
+year** — which is the thing the report was actually about. All four fire with `intervals_()` reverted.
+
+## Four numbers are one quote, and they were two pages with a save each
+
+**Asked for as "only let tutors change thier rate, min number of kids and max number of kids willing
+to work with and fraction extra rate all together. and they can only change once a month."** It
+generalises the seat-cap cooldown from the night before — and the night before's version could not
+have done what was asked, for a reason that is about the FORM rather than the rule.
+
+**`Group size` AND `Your rate` WERE TWO `PROFILE_GROUPS` ENTRIES, AND `settingsPages_` MAPS EACH KEY
+ONTO ITS OWN CARD WITH ITS OWN SAVE.** So *"all together"* was not merely unenforced, it was
+impossible: a tutor would have spent the month's one change on whichever page they pressed first and
+found the other refused. One page, four boxes, one Save.
+
+**`PRICING_FIELDS` IS THE LIST AND BOTH THE PAGE AND THE RULE READ IT.** `PROFILE_GROUPS` builds the
+page from it and `pricingRefusal_` decides the month from it, so a fifth field is on the page and
+under the cooldown in one edit — which is the sentence already written over those groups about one
+list driving the form and the allow-list.
+
+**ONE CLOCK FOR THE FOUR, WHICH IS WHAT "ALL TOGETHER" MEANS.** A stamp each would be four clocks and
+a tutor could walk round them a week at a time — the rate on Monday, the extra-seat fraction next
+Monday — which is the arms race `handle_changed_at` was written against. So `pricing_changed_at`
+replaces `max_students_changed_at`, and **that rename cost nothing**: the old column shipped the
+night before and `?setup=1` has not run since, so `ensureSchema` never created it and no cell
+anywhere holds a date under the old name.
+
+**WHAT IT SAYS IS THE GROUP, NOT THE FIELD THAT MOVED.** Naming one of the four would read as an
+invitation to change the other three, which is exactly what one clock refuses.
+
+**AND `wanted` IS WHAT IS ASKED ABOUT, NOT `fields`.** A field the allow-list dropped is a field that
+will not be written, so a cooldown started by one would be a month spent on a change that never
+happened.
+
+**Two things carried over from the seat cap unchanged, because both were the load-bearing halves**:
+the test is on the VALUE and not on the field being present — that page posts all four on every save
+whether or not any was touched — and it is read BEFORE `setCell`, whose last line is
+`row[field] = value`, so asking afterwards compares the new values against themselves and the clock
+would never start.
+
+### `check-handles.js` — eleven cases, and the cross ones are what make it one clock
+
+**Every case is a fault that would have happened.** A page sending no pricing field at all must not
+be refused, because that is what `About you` does. All four posted unchanged must not be refused,
+because that is what the pricing page does on every save. And **a rate moved five days ago must
+refuse a seat cap today**, in all four directions — which is the only thing that distinguishes one
+clock from four wearing one name, and no single-field case can say it.
+
+**PLUS A CASE THAT READS THE CONSTANT.** A rule that had quietly lost a field from its list would
+pass every case above: each names the field it moves, so a list of three simply stops refusing the
+fourth and nothing says the fourth exists. **Proved by mutation three ways** — firing on presence
+names the two unchanged-value cases; dropping `extra_seat_rate` from `PRICING_FIELDS` names both the
+refusal case and the list case; removing the admin exemption names the admin case.
+
+**And its heading named one of the two things it checks.** It printed `A USERNAME JUDGED WRONGLY`
+over a list that has held pricing findings since the cap cooldown went in, and its FAILED sentence
+was about usernames alone — the "all 18 checks pass" shape, in the summary of the check that guards
+both. Both name both now.
+
+### `check/fixture.json` had never sent a pricing field, so the lab had never drawn one
+
+**Neither group was in it**, so `check/ui.js` has measured the settings column without ever rendering
+a rate box — the same hole the booking receipt, the message thread and the basket were each in, and
+**the third time in three commits that the fixture was found stating a shape `doGet` does not send**.
+
+**`settings · the rate and group size` ASSERTS EXACTLY FOUR BOXES, not merely some.** `expect` is
+read as a truthy value, so a bare count would pass on a page holding two — and two is precisely what
+splitting the group back produces. **Proved by mutation**: split, it names the state at all four
+widths as *"was entered and shows no all four pricing boxes on one page"*; merged, 20 combinations
+with nothing new.
+
+## Four shapes of one control, and the fourth is the ordinary one
+
+**Reported as "i hate this. i prefer drop down list, one that allows multiselect, but doesnt
+disapear after each option click."** It is the third report about one question on the booking card,
+and the three before it rule out everything except the answer:
+
+| | |
+|---|---|
+| a `<select>` | closes when you choose — that is what choosing MEANS to it. *"for me to multiselect i have to click on field then click on subject then click on field then click on another subject. thats long."* |
+| a sheet | *"i dont like this. this is shit. no pop up menus."* |
+| the page the form was on, drawing the LIST instead | *"i hate this."* |
+
+**WHAT WAS ASKED FOR EVERY TIME IS THE THING EVERY OTHER SITE HAS**, and the only reason this app
+did not have it is that the booking card has nowhere to put one.
+
+### The arithmetic rules out the card and does not rule out an overlay
+
+`.pane` is `overflow: hidden` and the booking card is **544px of content in a 534px pane at 320 and
+605.7 in 613 at 390** — ten pixels past the fold at the narrowest phone, seven pixels of headroom at
+the widest. A list that opens IN FLOW under a row pushes everything below it past that fold with no
+scroll and no page to turn to: twelve subjects is about 276px at 320, and the Send tile ends up
+somewhere nobody can reach. **That arithmetic is what produced the page-replacement**, and it does
+not apply to a panel that is drawn OVER the card rather than inside its flow.
+
+**WHAT DOES APPLY IS THE CLIPPING, AND `position: fixed` DOES NOT ESCAPE IT.** `overflow: hidden`
+clips an absolutely positioned child as readily as an ordinary one — and `placeCells` puts a
+`transform` on every column, which makes a transformed ancestor the containing block for a fixed
+descendant **and goes on clipping it**. So `#drop` is a sibling of the screens in index.html, like
+`#sheet`, and three numbers reach it from `js/book.js`: `left`, `top` and `max-height`.
+
+**RIGHT EDGES TOGETHER, because the value it hangs off is right-aligned.** The answer column on that
+card is **56.3 / 75.3 / 80.9px** at 320 / 390 / 768 — a drop-down four characters wide — so the panel
+is `min(20rem, calc(100vw - 2rem))` and lines its right edge up with the row's, clamped to the
+gutter. **Whichever side of the field has more room**, with `max-height` taken from that room rather
+than a number chosen here: a list that always opened downwards would be cut off by the bottom of the
+screen on the last rows of a twelve-row form, which is where the subjects row sits on a saved
+booking. And `touch-action` is set from the **measured** overflow, which is `padReach_`'s rule on the
+notepad — a box that keeps a gesture it cannot use is a box you cannot swipe off, and this one is
+over the app.
+
+**IT FOLLOWS THE FIELD OR IT CLOSES.** A fixed box is measured against the viewport, so it does not
+travel with a column that slides away underneath it — and the booking card's section stays in the
+document whichever column you are on. `placeNow_` is the one place that knows the grid has moved (a
+swipe, a page turn, a resize all arrive there) and it calls `bookDropMove_`, which re-places the
+panel or shuts it. **Before the drag guard**, because a finger sliding the columns is exactly when it
+has to keep up.
+
+**THE STATE IS STILL `BOOKING.picking`**, kept with the answers rather than in the DOM, so a redraw
+cannot lose it. `drawBooker` rebuilds the card and then the panel, which is what makes the ✓, the
+row's own summary and the running price land together.
+
+### Which page, off `PAGE` rather than off `.page.on`
+
+**THE FIRST VERSION CLOSED THE LIST ON EVERY TICK, and the reason is worth keeping.** `.page.on` is
+written by `placeGrid`; **`paint` replaces the markup without placing it**, so the guard was reading
+that class off a page the very redraw that called it had just rebuilt — absent every time. `PAGE[AT]`
+is the app's own answer to "which page is in front of you" and no repaint can lose it; `logIndex_`
+turns a DOM position into a page number, which is not the same thing on the Find screen.
+
+**And it exposed something already true of every column**: after any `paint(id)` the pages carry no
+`.on` and no `.far` until the next placement. Nothing is misplaced — `placeGrid` sets pages to
+`position: static`, which is the default, and the column carries the transform — so what is lost for
+a frame is the dimming. Written down rather than fixed here.
+
+### The journey asks three things that pull against each other
+
+`check/ui.js` cannot ask any of them: a select that shuts after every pick **measures perfectly**.
+`check/press.js` presses each action once and asks whether anything changed, which is true of all
+four shapes. So `check-flow.js` asserts, on the real booking column through the app's own handlers:
+the list stays open across ticks, **nothing opens over the app**, and **the form is still on its
+page** while the list is up. A check asking only the first passes on both rejected shapes; one
+asking the first two passes on the page-replacement — **which is how the last version of this
+journey went green over the thing that was about to be reported.**
+
+**Proved by mutation in both directions**: a tick that clears `BOOKING.picking` names three
+assertions; `bookerCard` returning the list instead of the form names *"opening the list takes the
+form off its page"*. The real files pass all 38 journeys.
+
+**AND THREE INSTRUMENTS HAD TO LEARN ABOUT `#drop`**, each for the reason they already know about
+`#sheet`: `check/ui.js` measures it, so its options are inside the sweep rather than outside it;
+`check/press.js` presses what is in it and hashes it into `stateOf`, or opening, ticking and closing
+would all read as presses that did nothing; and `check/states.js`'s declared state reads the panel
+rather than `#s-booking`, because a selector scoped to the screen finds nothing and reads as the list
+being absent.
+
+**And a screenshot caught the one thing measurement could not.** The Done button was a gold `.btn` —
+the loudest object on a panel whose entire content is twelve things to press, competing with the gold
+border a ticked option wears an inch above it. It is `.btn quiet`: the options are the actions and
+the way out is not one. Same correction as `.reel-sound` and the Messages column's `Refresh`.
+**Twenty-first time this file writes that a screenshot is the last word on something drawn** —
+counted off the entries above rather than remembered, because this tally has been wrong in its own
+warning twice.
+
+## The basket has lived in four places, and a tool is the shape that fits it
+
+**Asked for as "you remember the cart? i want the cart to be a tool in the tool column. forget its
+old css of green computer screen. it should just be consistent like everything else. should like
+slightly like booking widgets. but not fully as its only recording items and sheets and wether to
+upgrade a specific sheet to lamininated."**
+
+**A COLUMN, A SHEET, A PAGE OF FIND, A PAGE OF BOOKING.** Every one of those had the same trouble and
+it is not a styling one: **a basket is empty most of the time**, so wherever it lives it is either a
+swipe that usually leads to nothing or a page that appears and disappears under somebody's thumb.
+The last of those was reported in its own right — a star inserting a page in front of the results is
+the fault `paintStuff` records — and the basket page did exactly that at the other end of the column.
+
+**A TOOL DOES NOT HAVE THAT PROBLEM, and `widgetsOf_`'s own note is the argument**: *"a column is the
+place you go to see all of them; hiding half of it because the calendar is empty this week is the
+column failing to be a place."* It does not read `solid`, so the basket is always on the Tools column
+and says which state it is in.
+
+**SO THE EMPTY STATE CAME BACK.** It was deleted on the argument that *"an empty basket should be no
+basket"* — right for a page in front of a search box, wrong for a widget: a tool that draws nothing
+is a tool that reads as broken, which is this repository's oldest shape. And it says where things
+come FROM, because the one thing nobody can work out from an empty basket is how to fill it.
+
+**"SLIGHTLY LIKE BOOKING WIDGETS" IS `receiptHtml`, AND IT ALREADY WAS.** The basket and the booking
+are the same document — a list of things you are about to pay for, a total, and the button printed on
+the paper rather than floating under it. **The green terminal the complaint names went several
+commits ago**, with the other three skins `receiptHtml` used to carry; what is left is the paper, and
+this change moves where it hangs rather than what it looks like.
+
+**NO `.card` OF ITS OWN, which is the one thing different about this entry in the roster.**
+`widgetOnColumn_` already wraps every widget in `.card.is-widget`, and what `cartCard_` returns is an
+`.rc` — a receipt, which has its own edges and its own colour. `bookerCard`'s note settles it one
+screen along: a `.card` holding an `.rc` is *"a glass panel with a paper receipt inside it — two
+containers for one object"*.
+
+### `cartPaint_` writes by class, because the Saved column draws the same markup
+
+**Every screen in this app is in the document at once**, and a starred basket puts a SECOND
+`#cart-box` on the page — so `$()` would hand every caller the first of them, which is the
+`$('msg-text')` fault that once posted a reply to the wrong person. The id stays, because `into` and
+`startWidget_` look a widget's parts up by it; the writing is done by class.
+
+**AND THE TWO HANDLERS STOPPED REPAINTING A SCREEN.** `cart-drop` and `cart-laminate` called
+`paintStuff(true)` or `repaint()` — a whole column rebuilt so that one line could go or one total
+could move. There is nothing to rebuild: the basket is a box, `CART` is in `localStorage` rather than
+on a wire, and the press IS the change. Same argument `cart-add` already makes for using `tileSet_`.
+
+**The declared state moved with it** and is seeded exactly as before — `CART` cannot be reached by
+any fixture, so this file has only ever seen the basket empty whichever surface it was on. The
+thousand-pound price in it is deliberate: the figure column is sized in `ch` of a proportional font
+and drawn in mono, and `£2050.00` is one character wider than `£270.00`, which is the difference
+between a finding and a pass.
+
+### Standing next to the calendar found three faults nobody had measured
+
+**The basket is the tenth of eleven tools, so the state that reaches it is the first thing this lab
+has ever stood within three pages of the end of that column.** `.far` hides a page more than three
+away and every other tools state sits at the top, so `week` and `calendar` had never been laid out
+at any width by any visitor. All three findings are pre-existing, none is in this change's diff, and
+all three are real:
+
+| | |
+|---|---|
+| `.cal-arrow` | **31x36 at 320.** Its padding is in `rem`, which is this stylesheet's seventh conviction of that rule after `.btn.tiny`, `.post-act`, `.fm-adds label`, the chips, `.qp-check` and the reel's sound button |
+| `.rost-slot:not(.on)` | **`background: transparent`, measured at 1.31:1** — `--paper-ink` on `--bg`. The roster was written for a cream receipt and its one live caller draws it into the `week` widget on the app's own black card, where three of the four seats are usually open. The fill stays; `opacity` is what keeps it pale, which is what the rule's own note asks for |
+| `.rost-role` | `--paper-faint` on the seat's `#eeeadd` fill is **3.19:1**. Which seat somebody is in is not small print — it is the label the name above it answers |
+
+**AND THE FOURTH WAS THE CHECK.** `span.rost-name overflows by 15px` is a four-column roster on a
+320px phone with `text-overflow: ellipsis` doing exactly its job. **`ellipsis` is the second way of
+being told**, alongside the `<input>` exemption one line above it: it declares that the text is
+expected to be longer than the box and draws a mark saying so, which is the opposite of a box
+scrolling sideways when nobody asked. Narrow — both properties and no element children, because
+`overflow: hidden` alone is how a layout fault gets clipped rather than scrolled and that must go on
+being caught. **Measured: it removes three findings across the whole app and they are one element.**
+
+## The funnel's own order was half in a spreadsheet, and four of that spreadsheet's rows named fields that no longer exist
+
+**Reported as *"please have a look at finder to make sure its as sleek as possible. the other day i
+saw that it wasnt uniform. like i saw somehthing like biology paper 1 as one category when it should
+be like biology then paper 1 … also have a good flow of categories which go from each thing to the
+next."*** Three asks, and the first move was to measure the funnel rather than read it — which is
+where the largest finding came from.
+
+### `check-funnel.js` HAS NEVER ONCE MEASURED THE FUNNEL THE APP DRAWS
+
+**Its fetch stub answered `questions.json` and `practicals.json` from disk and EVERYTHING ELSE with
+`check/fixture.json`.** That one line was written to fix the practicals blindness and its own note
+says the shape out loud — *"every other url fell through to the fixture"* — and two more files fall
+through it:
+
+| | |
+|---|---|
+| `data/topics.json` | the topic tree. `topicAreaOf_` is its only reader, so `DATA.topicTree` was empty and **`Topic area` resolved to nothing on all 5,119 items** — a declared question with 13 answers and 84% coverage, invisible to every rule in the file |
+| `data/settings/facets.json` | **the funnel's own labels and order** |
+
+**So the check was green over a funnel nobody sees.** Measured with the files served, the live
+funnel's order was:
+
+```
+What for · What kind · Subject · Boxers or fights · Division · Experiment or build · Key stage ·
+Topic area · Exam board · Topic · Tier · Exam wave · Decade · Grade · Type · Paper code · Where ·
+School year · Category · Level · Question number · Question part · What you need · Paper
+```
+
+**`Type` FOURTEENTH AND `Level` TWENTIETH**, `Exam board` before `Topic`, `Decade` after
+`Exam wave` — which is "not uniform" and "the flow doesn't go from each thing to the next", exactly.
+**The stub serves any `data/**.json` from disk now**, and the fixture answers only what is not a file:
+a rule rather than a third line, because the one-line-per-file version needed fixing three times.
+
+### The sheet had gone stale, and a rename moves a row from one pile to the other in silence
+
+`facetList` sorts a `facets` row into one of two piles: a field the code declares is a RELABEL of
+that question, and a field the code has never heard of is a NEW question read off the column. **A
+rename moves a row from the first pile to the second with nothing anywhere saying so** — the fault
+this file already records for `resource_type` in `VOCAB` and for `isEdexcelGcseMaths`, third
+occurrence, in the one file that decides what every question is called.
+
+| the row | what it did |
+|---|---|
+| `resourceType`, order 40, label `Type` | the column has been `document_type` since the rename. The row invented a dead question; the real `documentType` facet, having no row, fell wherever its index in the code's array landed it — **fourteenth** |
+| `stage`, order 100 | renamed to `level` in code *for this exact reason* and the sheet kept the old name. **`Level` was twentieth**, after `Question number` |
+| `paper`, label `Printed or digital` | the retired facet. `RETIRED_FACETS` blocked it, which is the guard working — and a row that can only ever be blocked is still a row somebody reads as live |
+| `company`, label **`Paper code`** | over the answers `1st Class Maths`, `AQA`, `Edexcel`, `Corbettmaths`, `Standards & Testing Agency`. The row's own note says why it was typed — *"holds 9MA0/01 more often than a publisher; split the column when you can"* — and the column **was** split: `spec_code` has held the codes since the AQA RS papers went in |
+| `examWave`, label `Exam wave` | the code says `Sitting` with a note saying nobody outside this repo says wave. The sheet overruled it back |
+
+**AND THE NUMBERING SCHEMES COLLIDE BY CONSTRUCTION.** A code facet with no row takes
+`at = (index + 1) * 10`, and the sheet's own orders ran 10 to 180 — the same range. So a code facet
+at position 7 and the sheet's `tier` at 70 fought over one slot, and which won was the sort's
+business. **Every facet has a row with a declared order now**, so the flow is stated in one place
+instead of half-stated in two.
+
+**`data/settings/facets.json` is an export of a tab that no longer exists** — the Settings
+spreadsheet was deleted — so this is the source of truth rather than a copy of one, and the owner
+still changes any label or order in it with no deploy.
+
+### `node js/check-funnel.js` — a row naming a field nothing answers is a dead row
+
+**Its first version asked only "does any item answer this" and named `slot` and `afford`** — two real
+code facets whose subject is the shop and the wardrobe, which `check/fixture.json` has no priced rows
+for. This file's own header says why that cannot be a failure: the fixture supplies everything that is
+not the library, so a facet measured thin here is thin in the HARNESS.
+
+**A CODE FACET IS NEVER A DEAD ROW.** Its `of` is a function somebody wrote and the row only relabels
+it. What is dead is a row naming a field the code does not declare **and** nothing anywhere answers —
+which is precisely what a rename leaves behind. **Proved by mutation**: the four stale rows put back
+name `resourceType`, `stage` and `paper` and exit 1; and the run prints the funnel's whole order on
+one line, so the flow is something a person reads rather than something they reconstruct.
+
+### `qNumber` and `qPart` were described in the past tense and are two live questions
+
+**`FACETS` said "nothing sets either field now".** `questionItems` writes
+`qNumber: r.q, qPart: r.part || ''` on every question item, so `facetFromSheet_` reads both off the
+item and the sheet carries a row for each. Two questions in the funnel, described as deleted — the
+`.favwrap.is-fav` shape, found while auditing the order.
+
+**THEY ARE GOOD QUESTIONS BECAUSE OF WHERE THEY SIT, and that is the whole of it.**
+`FACET_NEEDS_FIRST` holds `qNumber` behind `paperId` and `qPart` behind `qNumber`, so both are only
+ever asked inside ONE paper — which is what stops `Question part` offering one paper's `a, b, c`
+beside another's `1, 2, 3`. Measured: 20 distinct part values across the library, 83 papers carry
+parts, and the only mixing inside a paper is a letter with the roman sub-parts under it, which is what
+an exam paper prints. Their rows sit at 142 and 144, immediately after `Paper`, which is where their
+gating already put them.
+
+## One word, one question — and twelve words were answers to two
+
+**`check-funnel.js` has printed this as a note for months.** A note nobody acts on is the thing this
+file warns about in six other places, and the owner has now reported the symptom. Measured once the
+check could see the real funnel:
+
+| | | |
+|---|---|---|
+| `Biology` | subject 243 | topicArea **305** |
+| `Chemistry` | subject 276 | topicArea **341** |
+| `Physics` | subject 348 | topicArea **263** |
+| `Algebra` | topicArea 815 | topic 11 |
+| `Number` | topicArea 1367 | topic 9 |
+| `Probability` | topicArea 119 | topic 56 |
+| `Statistics` | topicArea 289 | topic 9 |
+| `KS3` | keystage 736 | level 27 |
+| `A-Level` | level 263 | **tier 135** |
+| `Edexcel` | examBoard 2576 | **company 1148** |
+
+**EVERY ONE IS THE `level` / `stage` FAULT**, which this file records at length: the same word, twice,
+meaning different things, and which result set you get depends on which of the two questions the
+funnel happened to offer first. There it was repaired by MERGING two facets. These cannot be merged —
+a subject and a branch of the topic tree are different facts that share a name, and so are a board and
+a publisher.
+
+**SO THE NARROWER QUESTION KEEPS THE WORD.** `not: 'subject'` on `topicArea` means: drop any of my
+values that the Subject question already gives THIS item. Five facets carry one word each —
+`topicArea` defers to `subject`, `topic` to `topicArea`, `level` to `keystage`, `tier` to `level`,
+`company` to `examBoard` — and `facetOwn_` is the one reader, used by `facetTally_` **and** by
+`filterHit`, because a question that stops OFFERING a value must stop MATCHING it or a chip carried
+over from a wider list keeps rows the question no longer claims.
+
+**PER ITEM, NOT PER FACET, and that is why it is safe.** `Probability` stays a Topic wherever the
+row's topic AREA is something else and stops being one only on the rows where the two agree — a
+blanket "Topic may not say Probability" would have taken a real answer away from 47 rows to fix 9.
+Measured after: the overlap list goes from twelve words to six, and every one left is either two real
+facts sharing a name (`Maths` is a link category and a subject) or a data backlog.
+
+**`A-Level` WAS THE SHARPEST OF THEM.** A tier is Foundation or Higher; an A-level paper has neither,
+and pressing `Tier · A-Level` quietly gave you 135 of the 263 the Level chip gives. The `tier` CELL is
+untouched, deliberately — `paperLabels_` tells the A-level and the AS paper of one sitting apart by
+exactly that column.
+
+**AND `Standards & Testing Agency` IS THE ONE PAIR NO SPELLING RULE CAN JOIN.** `spellKey_` reduces an
+answer to its letters, so `STA` and the spelled-out name are two identities. It is not a spelling: it
+is an organisation's short name, which is the line `levelOf_` draws for `AS level` — the engine folds
+spellings and a reader resolves meanings. `FACET_SAME_AS` is that one fact with its reason beside it.
+
+## "Biology Paper 1" — and the appended rungs stayed on after the question they name had been answered
+
+**The owner's own words, and both halves of the fault are real.**
+
+**HALF ONE IS THE LABEL CODE.** Narrowed to `Subject · Biology`, all four Paper answers read
+`Paper 1 — June 2024 · Biology · Foundation`. Every word after `Paper 1` is on the screen already —
+the subject is the chip above and the sitting is the only sitting those four papers have — and the one
+thing that separates them is the tier, four words in.
+
+**THE CAUSE IS TWO MECHANISMS FOR ONE JOB AND ONLY ONE OF THEM LOOKS AT THE SCREEN.** `shortLabels_`
+states the rule in its own note — *"uniqueness is measured over the answers on screen rather than
+declared"* — and `paperLabels_` measured it over the whole library, once, into a memo. `shortLabels_`
+then could not undo it: `nameForms_` cuts a name at its separators, and a rung this function APPENDED
+is a prefix of nothing, so the ladder had no step between `Paper 1` and the whole string.
+
+**SO IT DISAMBIGUATES AGAINST THE IDS IT IS GIVEN.** `facetTally_` hands `showOf` the answers it is
+about to draw. Measured:
+
+| narrowed to | before | after |
+|---|---|---|
+| `Subject · Biology` | `Paper 1 — June 2024 · Biology · Foundation` | **`Paper 1 — June 2024 · Foundation`** |
+| `Physics · Summer 2024` | `Paper 1 — June 2024 · Physics · Foundation` | `Paper 1 — June 2024 · Foundation` |
+| `Chemistry · Higher` | `Paper 1` | `Paper 1` — already right, two papers sharing no name |
+| `English Language` | `Paper 1: … — June 2023 · English Language` | `Paper 1: … — June 2023` |
+
+**WITH NO IDS IT IS THE LIBRARY, MEMOISED, EXACTLY AS BEFORE** — which is what a CHIP needs. A chip
+sits alone with no siblings to be unique against, so `chipText` must get the form that is unambiguous
+in the whole library, or a chip would read `Paper 1` and name one of twenty.
+
+**THE RULE IS ON THE ANSWERS RATHER THAN ON THE FUNCTION**, in `check-funnel.js`: narrow by a facet,
+then read the labels the Paper question would draw, and none of them may name the answer just chosen.
+That holds however the labels are built, where a test on `paperLabels_`'s arguments would pass on a
+version that took the ids and ignored them. Three narrowings, because one proves one. **Proved by
+mutation twice** — the ids ignored inside the function, and `showOf` back to one argument — and both
+name `Subject · Biology` and `Physics · Summer 2024` and exit 1.
+
+### Half two is the data, and it is right
+
+**`Biology Paper 1` IS WHAT THE COVER SAYS.** AQA numbers Combined Science within the subject, so
+8464's six papers are Biology 1 and 2, Chemistry 1 and 2, Physics 1 and 2 — and `paper` is what the
+cover calls it, which this file records as a decision. **Renaming them to `Paper 1` makes it strictly
+worse**: three papers would then share that name, `paperLabels_` would append `· Combined Science` to
+all three, and the subject that actually separates them would be gone.
+
+**AND THE FUNNEL DOES ASK "BIOLOGY THEN PAPER 1" AT THAT STATE** — `Subject · Combined Science` offers
+`Topic area` next, whose answers there are `Chemistry` 65 and `Biology` 61. Which exposes the real
+gap: **the 31 Combined Science PHYSICS questions carry no `topics` at all**, so they answer neither,
+and "Doesn't matter" is the only way past that question for them. They are the June 2023 8464 physics
+rows that task #42 already covers for their answers; the topics are the same backlog.
+
+## The flow, declared in one place and measured
+
+**What the order is now, and the principle behind it**: a question that changes WHICH QUESTIONS COME
+NEXT is asked before one that merely narrows the list.
+
+```
+What for → What kind        the two doors. `always` keeps them in front whatever the sheet says
+Subject                     then the boxing and practical branches, which the coverage rule hides elsewhere
+Type                        the errand: a past paper has a Sitting and a Tier; a worksheet has a Grade
+Level → Key stage → School year → Grade      who it is for, coarse to fine
+Topic area → Topic          the branch, then the leaf
+Exam board → Tier → Sitting → Paper → Question number → Question part      where it came from, drilling in
+What you need → Publisher → Where → Category → Goes on → Price
+```
+
+**The greedy walk over the real library**: What for → What kind → Subject · Maths → Type · Worksheet →
+Level → Key stage → Grade → Topic area → Topic → Paper, every step a real narrowing. The interleaving
+of the past-paper questions and the worksheet questions costs nothing, because the coverage rule
+skips whichever set the list on screen cannot answer — which is what makes one order serve two
+errands without the funnel needing to branch.
+
+**Two things left as printed findings rather than changed.** `Level` holds four range values —
+`KS2–GCSE` 19, `KS2–KS3` 12, `KS3–GCSE` 10, `GCSE–A-level` 2 — where `Key stage` splits a comma into
+a list; splitting those would put `KS2` and `KS3` into the Level question, which is a new overlap with
+`Key stage` to fix an old one. And 27 rows have `KS3` in the level column and no `key_stage` cell, so
+`Level · KS3` finds 27 where `Key stage · KS3` finds 736: rows to repair, and the `not:` rule
+correctly does nothing on them because there is nothing there to defer to.
+
+## The drawings are finished, and twenty-six rows say in a sentence why they have none
+
+**Asked for as "Address it. You know best how to do it. Can you finish practical diagrams and all
+that stuff. For all the practicals."** Measured first: **17 of the 77 live rows carried a drawing**,
+and the entry above records the argument for them rather than a decision about the other sixty. So
+the first move was to read the `equipment`, `steps` and `outcome` of all sixty and sort them, which
+is what produced the two numbers this commit is about.
+
+| | before | after |
+|---|---|---|
+| live practicals carrying an apparatus drawing | **17 of 77** | **51 of 77** |
+| the rest | a printed number and nothing else | **26, each with one written reason** |
+
+**THE RULE IS UNCHANGED AND IS WHAT DID THE SORTING.** Draw only where the row's own words determine
+the picture; a SET-UP or a CONSTRUCTION, never a RESULT. Applied to sixty rows rather than to the
+seventeen somebody had in front of them, it splits into three kinds — and the middle one is the one
+worth naming, because it is the only kind that is a judgement rather than an observation:
+
+| | |
+|---|---|
+| **nothing to assemble** | a cup, a thermometer and a stopwatch is a sentence. `PR-HM05`, `PR-HM28`, `PR-HM31`, `PR-HM35` |
+| **the shape IS the variable** | a spaghetti tower, an egg's packaging — a drawing would be one team's answer printed on everybody's card. `PR-FN11`, `PR-HM23` |
+| **it could be drawn and must not be** | the density tower's layers, the lava lamp's two liquids, the gear train: the only thing there is to draw is what the practical asks the student to work out |
+
+**THREE ROWS SHOW WHERE THAT LAST LINE FALLS, AND ALL THREE ARE DRAWN.** The periscope gets the BOX
+and no ray path; the slinky gets the STRETCHED SPRING and neither wave type; the electromagnet gets
+the coil and no iron filings. Every one of those three has an outcome that says, in as many words,
+that the missing half is the student's own drawing — so the construction is the figure and the
+answer is not. `PR-HM26`, the lava lamp, is the one that gets nothing at all, because its step 2 is
+*"ask which is on top and why before saying anything"* and the two layers are the whole of the
+answer to that.
+
+### `NO_DRAWING` — a printed 26 reads the same whether those rows were judged or forgotten
+
+**That is the fault with the count the last commit left behind.** `check-practicals.js` printed *"17
+carry an apparatus drawing"* and nothing said whether the other sixty had been looked at. So every
+one of the twenty-six now has a sentence, a live row with neither a drawing nor an entry **fails**,
+and an entry for a row that HAS one fails as stale. **Sixth time this repository reaches for the
+pattern**, after `ACCEPTED` in `check-payload.js`, `VOCAB` in `check-library.js`, `ACCEPTED_TAP` in
+`check/ui.js`, `RETIRED_FACETS` in `find.js` and `HANDLE_ALLOWED` in `people.gs` — and the argument
+is the same one every time: a NEW row without a picture fails loudly instead of joining a red nobody
+reads. **Proved by mutation three ways**: an entry removed names the row, an entry added beside a
+real drawing names it as stale, and an entry naming a row that does not exist is named too.
+
+### `bunsen` and `person` came out of two drawings, and the write loop proves the old bytes back
+
+**A burner is a flame and a barrel, and a person is a head, a body and two legs.** Both were written
+inline in one drawing each — the distillation and the clinometer — and the second practical that
+needed either would have been a second hand-drawn copy. They are in `pracdraw.py` now, with
+`beaker`, `tube` and `flask` beside them.
+
+**AN EXTRACTION IS ONLY SAFE IF THE OLD BYTES COME BACK**, which is the `libraryExtras_` rule and
+the `svgplot.py` rule. So the write loop compares every regenerated drawing against what is
+committed and **refuses to write** when one has moved, unless `--redraw` says that is what was
+meant. Its first run reported none moved, which is what made the extraction a refactor rather than a
+redraw. **`%g` rather than `%.1f` in `bunsen` is the whole of why**: the drawing it came from wrote
+its path with whole numbers, and a `.0` on every one of them is a different string for an identical
+picture.
+
+**And the loop had a latent bug that the same change exposes.** It inserted `diagram` after
+`variables` while iterating the row's own keys — and `diagram` comes immediately after `variables`,
+so the loop's own `new[k] = v` then wrote the OLD cell straight back over the new one. Every drawing
+this file has ever produced landed because the row had no `diagram` key yet; **re-running it to
+CHANGE one was a no-op**, silently. Found by needing to change nine of them.
+
+### Nine labels were painted outside their own drawing, and the four-edge rule is what said so
+
+**`check/cards.js` named all nine on the first run** — *"'MARKED point' is 11px past the svg's own
+box, so the reader never sees that part of it"* — which is the rule added with the practical
+drawings doing exactly what it exists for, on nine labels a person would have had to spot one at a
+time. Nothing else in the suite can see it: the outermost `<svg>` clips to its viewport, so a word
+painted outside it costs no overflow, no layout fault and no error.
+
+**A SCREENSHOT CAUGHT ELEVEN MORE THAT MEASURED PERFECTLY**, which is the twenty-second time this
+file writes that a screenshot is the last word on a drawing — counted off the entries above rather
+than remembered, because this tally has been wrong inside its own warning twice. Worth listing,
+because none of them is a thing a rule could ask about:
+
+- **the periscope's mirrors were two crossing lines each**, so both read as an X rather than as one
+  surface at 45°. Drawn as a single bar apiece — and the two openings moved to the SAME side of the
+  box, which is what a periscope is: you look forward and see forward.
+- **the projector's two arrows both pointed the wrong way.** A single lens turns the picture over,
+  so the phone's arrow has to point DOWN and the wall's UP — which is the whole reason step 3 says
+  to put the phone in upside down, drawn backwards.
+- **`fn07`'s straightened string ran off the right-hand edge**, because a string once round a
+  54-radius circle is 339 units long in a 340-wide box. The circle is 34 now and the string fits,
+  which is the only version where the picture is to scale at all.
+- **two caption blocks were in the wrong vertical order** — `cap(x, 50, …)` written above
+  `cap(x, 36, …)`, so the second line printed first.
+- **the lemon chain's LED loop was not connected to anything.** Drawn with the zinc on the left and
+  the copper on the right, "copper of one to the nail of the next" is one short hop between
+  neighbours and the two free ends are the outside ones, which is what the LED goes across.
+- and five label blocks sitting on top of the apparatus they name.
+
+**Every one of the 51 was laid out at phone width and looked at**, in three rounds. `check/cards.js`
+opens all 77 live guides through the app's own `openSheet`, so what was measured is the sheet a
+tutor actually reads rather than a div of the right width.
+
+### What "and all that stuff" did NOT turn out to be
+
+**`science`, `risks`, `safety`, `maths_link` and `notes` are still columns the guide does not
+draw**, and that is left alone deliberately rather than quietly fixed. The guide was cut to five
+things — the name, the picture, the kit, the method and the three worksheet questions — on an
+explicit ask (*"Just that for now for each"*), and re-adding a section to it is a design decision
+somebody has to make rather than a gap to fill. The count is printed on every run so it stays
+visible, and the strongest case for the first one back is still `science`, for the reason recorded
+above: **994 words across those columns are searchable and drawn nowhere**, so a search can return
+the right practical for a word that then appears nowhere on it.
+
+**Everything else measured complete.** Per column, of 82 rows: `age_min` 82, `wow` 82, `science` 77,
+`variables` 77, `log` 77, `risks` 77 — the five refused rows correctly carry none of the last four.
+`cost_per_run_gbp` at 8 of 82 is the deliberate gap this file already records (a school owns the kit
+and nobody has ever costed a lab practical), and `item_ids` at 20 is the shop join waiting for stock
+rows that live in a spreadsheet.
+
+## No question ever draws more than seven answers, and the seven had to be worth reading
+
+**Reported, verbatim: "I e noticed there are some menus in finder where there are more than 7
+options. And so it can't display them and asks user to search. I DO NOT LIKE THIS. Have the
+categories work in a way that there are never more than 7. If it means grouping many suptopics into
+first larger topics then do so. For all things by the way."**
+
+**WHAT WAS THERE WAS THE FUNNEL GIVING UP ON ITS OWN JOB IN FRONT OF YOU.** `FACET_MAX_SHOWN`
+trimmed the drawn answers to the biggest seven and printed a line under them — *"and 368 more topic
+answers, type one into the search box above"*. Three hundred and sixty-eight answers you cannot
+see, and an instruction to go and type instead.
+
+**Measured before anything was written, over the real 5,587 items, at every state a person can
+reach by answering the funnel's own questions — fourteen facets break seven:**
+
+```
+Topic 375 · Paper 266 · Category 25 · Question part 20 · Division 16 · Sitting 16 · Decade 14
+Topic area 13 · Question number 11 · Level 9 · What you need 9 · What kind 8 · Subject 8 · Grade 8
+```
+
+**And narrowing does not save them**: six answers deep on Maths worksheets at KS4 the Paper question
+still held 87 and Topic still held 75, so a fix aimed at the opening question would have missed the
+states the complaint was about.
+
+### The cap became a grouping, which is `bandNumbers_` generalised
+
+**This is not a new idea here.** `bandNumbers_` already turned a run of plain integers into `1–10`,
+`11–20` — a band that is a real chip, matched by membership through the one function that drew it.
+`bucketValues_` is that mechanism with two more kinds of bucket behind it, and the old function is
+gone rather than left beside it.
+
+**THREE RULES, TRIED IN ORDER, AND THE FIRST THAT ANSWERS WINS:**
+
+| | |
+|---|---|
+| **the facet's own** | `bucketOf` on a `FACETS` entry — a larger category written by somebody who knows what these answers ARE. *"Group many subtopics into first larger topics"*, which is what was asked for |
+| **tens** | a run of plain integers bands as it always did |
+| **the alphabet** | anything else falls into at most seven contiguous letter ranges, balanced by how many things are behind each |
+
+**RULE 3 IS WHAT MAKES THIS A GUARANTEE RATHER THAN A HABIT.** A facet the spreadsheet invents
+tomorrow — `facetFromSheet_` can do that with no deploy — gets seven buckets with no line in code,
+and so does a facet whose values grow past seven next year. That is the difference between a rule
+and a list of repairs, which is this file's own sentence about `cost: 0` and `paper: true`.
+
+**A BUCKET IS A REAL ANSWER, NOT A VIEW.** Same row, same chip, same ✕. `filterHit` tests
+membership rather than equality, and **a bucket does not settle the facet** — `nextFacet` skips a
+field only where a non-bucket chip has answered it — so the question is asked AGAIN over what is
+left. Measured on the real app: `Grade` at eight answers draws `Grades 1–3 / 4–6 / 7–9`; pressing
+`Grades 4–6` leaves 671 items and the next question is Grade again, drawing `Grade 4`, `Grade 5`,
+`Grade 6`. Two taps to reach a place that previously could not be reached at all.
+
+**AND MEMBERSHIP IS A PURE FUNCTION OF THE CHIP**, which is the constraint that shaped all of it.
+`filterHit` is handed one item and one filter and never the list, so a bucket whose edges depended
+on what else happened to be on screen could not be matched afterwards. Every label carries its own
+edges — a declared one is looked up, `11–20` and `A–C` are parsed — so the drawer and the filter
+cannot disagree. That is `bandOf_`'s own argument, generalised.
+
+### The generic rule alone produced seven buttons nobody could use
+
+**Measured with the alphabet and nothing else: `Sitting` came out as `A` and `S`** — Autumn and
+Summer, two buttons for nine years of exams — **and `check-funnel.js` refused it outright**, which
+is that check doing its job on my own change. `What you need` came out as `P`. `Subject` came out as
+`B / C / E / M`. Each is a legal grouping, under the cap, balanced, and worthless.
+
+**So eleven facets carry a declared table** — `Heavyweight … Bantamweight & below`, `Before 1930 …
+2010s onwards`, `Grades 1–3`, `Calculator / No calculator / Drawing kit / A sheet with it / A lab`,
+`Numbered / Lettered / Roman`.
+
+**AND THE SITTINGS SAY `2023 & 2024` RATHER THAN `2023–2024`, which is the one label that had to be
+argued about.** The academic year is the unit a tutor thinks in — Autumn 2023 and Summer 2024 are
+one year's sittings — and it was written that way first and then counted: **sixteen sittings across
+2017 to 2025 fall into nine academic years**, past the cap, so rule 1 would stand down at the wide
+states and hold at the narrow ones. One question with two vocabularies is the `level` / `stage`
+fault, so the pairing stays arithmetic over the calendar — and the label says so, because a dash
+between two years is how every board writes an academic year and `2023–2024` over a bucket holding
+Summer 2023 would be confidently wrong about the one fact it states. **Every label is a word already in use**: the maths ones are the
+national curriculum's own strand names, the boxing ones are what the weight classes are called, and
+none is title-cased by code — the `Hcf And Lcm` fault this file records is a label a machine made up.
+
+**THE TABLES HAD TO GO ABOVE `const FACETS = [`.** That array is a top-level `const` built as the
+file loads, so a table declared below it is in the temporal dead zone and **the app does not start
+at all** — `Cannot access 'KIND_BUCKET' before initialization`, on the first line of the first facet.
+
+### Three fell to the alphabet, and which three is a fact about the data
+
+| | |
+|---|---|
+| `topic` | 417 distinct values and **70 are in no branch of `data/topics.json`** — `quadratic equations`, `volume`, `sets`, `plans and elevations`, `hcf`. The tree's SECOND level is exactly the larger topic that was asked for, and **rule 1 is all-or-nothing on purpose**: a grouping that places 347 and drops 70 makes those 70 unreachable with nothing on screen saying so. What carries the user's own sentence meanwhile is `Topic area`, which IS the larger topic and is asked immediately before Topic — so the ranges index inside one area rather than across the library |
+| `paperId` | a paper's larger category is its sitting, its board, its tier and its type, and every one of those is already a question asked before this one. What is left to tell two papers apart by then is the name on the cover |
+| `category` | the link categories come out of `data/settings/links.json`, which the owner edits with no deploy. A table in code over a list the sheet owns is two things to keep in step, and the code's copy is the one that goes stale |
+
+### `P`, `R`, `W` — the paper question indexed a spelling nobody has ever seen
+
+**266 papers came back as three buckets.** The `paperId` facet's `of` returns an id —
+`P-1MA1-1705-1H`, `RS1786302107764-481`, `W-1CM-reflections` — and its own note has said since it
+was written that *"the id decides WHO answers and the name is what is shown"*. The alphabet keyed
+on the value, so it indexed the id.
+
+**`bucketKeyOf_` is the one reader and it prefers `bucketOf`, then `showOf`, then the value.** Keyed
+on the name the paper question is six ranges over `Adding Decimals` and `Circle Theorems Edexcel`,
+which is what an index of 266 documents is. `showOf` is called with no answer list, deliberately:
+`facetTally_` passes one so a label can be disambiguated against its siblings, and `bucketHas_` is
+handed one item and never the list — so a key built from the shortened form could not be recomputed
+at match time.
+
+**AND IT CLOSED A LEAK IN EVERY DECLARED TABLE WHOSE LABELS ARE PREFIXES OF ITS VALUES.** `Level`
+drew `KS2 (259)` where `LEVEL_BUCKET` says 228: a range labelled `KS2` prefix-matched the values
+`KS2–GCSE` and `KS2–KS3`, so **31 rows were in two buckets at once** and that table's own sentence —
+*"a span is filed under the level it goes UP TO"* — was contradicted by the mechanism meant to
+implement it. `KS3` was the same, ten rows.
+
+**Every rule was green over it**, and the reason is worth keeping: the drawn count and the pressed
+count agreed, because both go through `bucketHas_`, which is the function that was wrong.
+
+### Two rules in `check-funnel.js`, and one printed list, because only one of the three is checkable
+
+**THE CAP IS A PROPERTY OF THE DATA RATHER THAN OF THE CODE**, which is why it is walked rather than
+assumed: every rule in `bucketValues_` can decline — a facet's own grouping stands down if it cannot
+place every value, the tens band stands down unless everything is an integer, and the alphabet
+stands down if every value reduces to one key. Each of those is right and each leaves the list
+untrimmed. So the check walks the real funnel — the top, every answer to both doors, and the greedy
+path — and fails on a question drawn with more than seven answers. **Proved by mutation**: with
+`bucketValues_` handing back its input it names **71 over-sized questions across 17 states** — the
+first eight of them `topic` at 375 answers, `division` at 16, `decade` at 14 — and exits 1.
+
+**AND A DECLARED BUCKET HOLDS EXACTLY WHAT ITS TABLE SAYS.** Comparing `filterHit` against
+`facet.bucketOf` per item is what catches the `KS2` leak — the table is the thing compared against,
+not the code that reads it. **Proved by mutation**: the alphabet keyed back on the raw value names
+`level` and exits 1.
+
+**WHAT NEITHER CAN JUDGE IS WHETHER SEVEN BUCKETS ARE WORTH READING**, and `P / R / W` is the proof:
+legal, balanced, under the cap, and green on every rule in the suite. So the first grouping each
+question makes is **printed in full on every run** and a person reads it — the argument this
+repository makes about the figure backlog and the transcription queue, pointed at the funnel.
+
+### Three things the buckets broke, and each refusal was right
+
+| | |
+|---|---|
+| **the sitting vocabulary** | rule 4 refuses an `examWave` answer that is not `<series> <year>`, and sixteen sittings group into year pairs — so it named all five of `2023 & 2024` and friends. **A bucket is a GROUP over spellings, so by construction it cannot be one.** It reads `facetOwn_` over the items now — the column itself, one step before the grouping — which is what the rule was always about: `First wave` sat on 850 rows for months and the fault was in the column |
+| **the `promises` test** | it pressed `{field, value}` and the app presses `{field, value, bucket}`, so it reported `1–10` returning 0 of a promised 14. The harness was wrong about the press, and the flag is carried from the value that drew the row so the two cannot disagree |
+| **the paper test** | *one answer per paper* is right about a leaf and meaningless about a shelf. Told apart by the flag the row carries rather than by the shape of the text |
+
+**And the cross-facet overlap note named four letter ranges** — `2–B` is an answer to Topic and to
+Paper, `M–P` to Paper and to Category. That is arithmetic rather than ambiguity, where the four real
+findings under it are one WORD carrying two meanings. Buckets are skipped by the same flag. (It is
+still worth knowing that the Paper index and the Topic index read alike over the 1st Class Maths
+worksheets, because those sheets are NAMED after their topic — a fact about the library.)
+
+### A question asked inside a bucket was still offering what was outside it
+
+**Found by walking the funnel and reading what it drew, which is the only way it could have been.**
+Six chips deep, pressing `Topic · D–F` drew **`D–E`, `F`, `I–M`, `N–P` and `S–T`** — three answers
+plainly outside the chip sitting above them.
+
+**NOTHING WAS BROKEN, AND THAT IS WHY IT NEEDED MEASURING RATHER THAN READING.** `topic` is
+multi-valued; the chip means *"has a topic in D–F"*; and a question tagged `Decimals, Ratio` is
+legitimately kept by it and legitimately still carries `Ratio`. Pressing `S–T` would have narrowed
+to questions about both — correct, and unreadable: the funnel appears to step back out of the
+bucket it has just gone into, on the one screen whose whole job is to say where you are.
+
+**So the ITEMS keep every value they have and the QUESTION offers only the ones inside.**
+`filterHit` is untouched, so nothing leaves the list; what changes is which answers the next ask
+draws. Measured after: `Topic · D–F` draws `D`, `E`, `F`. **A single-valued facet is unaffected by
+construction** — pressing `Grades 4–6` leaves items whose only Grade is inside it — which is why
+the tens band this generalises never had to think about it.
+
+**And the tally is keyed on the bucket as well as on the list and the facet**, because it is no
+longer a function of the first two alone. The items array is freshly built on every filter change,
+so the `WeakMap` key already differed in practice; the third key is what makes that an argument
+rather than a coincidence.
+
+**The rule tests the RAW VALUES, and its first version named four findings that were all correct
+behaviour.** Asking `bucketHas_` whether an inner ANSWER is inside the outer one is a category
+error: inside `1–10` the question numbers re-group as `2–3`, `4–5`, and a label is not a value.
+What it asks now is whether any value on a kept item that the outer chip does not contain is held
+by an answer drawn inside it. **Proved by mutation**: with the restriction off it names `topic`,
+`topicArea` and `decade` — eighteen findings — and exits 1.
+
+### The count beside a bucket is counted over items, not summed over answers
+
+**The first version summed and the `promises` test caught it the moment it was written.**
+`facetTally_` counts an item once per ANSWER it gives — which is right, and is what makes a
+worksheet tagged `KS3, KS4` appear under both — so a question tagged `Loci` and `Nets`, both inside
+`L–O`, was counted twice in that bucket. Measured: the row promised 723 and pressing it returned
+646. **The recount goes through `bucketHas_`**, the same function `filterHit` uses, over the same
+items.
+
+**And `bucketHas_` opened with `if (!/^[a-z]/i.test(b)) return false;`, which was wrong about two
+real answers**: the question-part facet holds `1`…`9` beside `A`…`F`, so its buckets were `1` and
+`9–A` and pressing either returned nothing at all while the row beside it promised 253 and 306 —
+the silent empty this whole mechanism exists to avoid, caused by the mechanism itself.
+
+**What it costs, measured**: a repaint at every state down the greedy path is **2–11 ms** over 5,587
+items, against the 15–28 ms this file already records for answering a question. Tallying all
+twenty-six facets cold went 271 ms → 541 ms, which is a number the app never pays: `nextFacet` walks
+in order and stops at the first question that qualifies, and `facetTally_`'s memo makes every
+reading after that free.
+
+### A review of all fourteen groupings found a hole in the engine, and refuted the one I had left open
+
+**Fourteen designs, one per over-sized question, each then attacked by three independent reviewers
+told to refute it.** All forty-two verdicts came back unsound, which is what a refuter is for and
+is not by itself a finding. Three of the defects are about the code that shipped rather than about
+the proposals, and all three are real.
+
+**THE FIRST ONE BROKE THE GUARANTEE THIS WHOLE COMMIT IS ABOUT.** `bucketKeyOf_` preferred
+`bucketOf` — on the argument that a facet declaring its own grouping is saying what its values are
+about, so a grouping with too many groups to draw would at least give ranges over the GROUP names.
+What it gives when every value on the list maps to ONE group is a key that is **the same string for
+every value**: `alphaBuckets_` grows its prefix to twelve characters, never finds a second run,
+returns null, and `bucketValues_` hands the list back **ungrouped**. Measured on a ten-value facet
+whose table answers one label: **ten answers drawn, cap gone.**
+
+**THE KEY HAS TO BE A PURE FUNCTION OF THE VALUE *AND* HAS TO TELL VALUES APART**, and those two
+together are the whole constraint — `bucketHas_` is handed one item and never the list, so it
+cannot know which key the drawer chose. What a value is READ as always tells values apart, because
+that is what makes them different answers. So the key is `showOf` or the value, and the
+`KS2`-against-`KS2–GCSE` leak that `bucketOf` was put in the key to close is closed by
+`bucketDeclares_` instead: **a label the grouping made is the grouping's, both ways** — not "the
+table says yes, and then try the ranges anyway", which is what let a range labelled `KS2` collect a
+span the table files under `GCSE`. A table enumerates its labels in `bucketOrder`; a computed one
+is idempotent (`waveBucket_('2023 & 2024')` reads the year out of its own label and answers it),
+which holds by construction for a grouping that reads a number out of a string.
+
+**THE SECOND IS THAT THE TABLES WERE KEYED MORE TIGHTLY THAN THE FOLD THAT DECIDED THEIR ANSWERS.**
+`bucketTable_` keyed on `norm` — lower case and trim — while `facetTally_` folds variants by
+`spellKey_`, alphanumerics only, and hands the grouping whichever spelling won the vote. This file
+records `Alevel` / `A-level` / `A-Level` as three answers on one screen **in this very column**: a
+row spelled `A Level` is the same answer to `spellKey_`, wins the vote by carrying a separator,
+reaches the table as a key `norm` has never seen — and one unplaced value stands the WHOLE grouping
+down to the alphabet, silently, on a question that worked the day before. It falls back to
+`spellKey_` now, built on first use because the tables are constructed before that function exists.
+**Proved by mutation**: the old lookup names `subject` and exits 1.
+
+**The third is that `bucketLabels_` called `bucketOf` with no `try`** where `bucketKeyOf_` wrapped
+it. Nothing can throw today — eleven are table lookups and two are a regex over a string — and
+`filterHit` runs the same function per item per chip, so the day one of them resolves against a
+file that has not landed, an unguarded call is the Find screen rather than an ungrouped question.
+
+### And it refuted the grouping I had left `topic` without
+
+**THE OBVIOUS ONE IS THE TREE'S SECOND LEVEL and it is not available, which is now measured rather
+than reasoned.** `data/topics.json` is three levels — 13 roots, 95 mid nodes, 191 leaves — and the
+roots are what `topicArea` already draws. A mid-level grouping folds to 37 labels, at most seven
+present at once, and the review measured what it actually draws over **873 reachable states**:
+
+| | |
+|---|---|
+| states where Topic is asked and needs grouping | 303 |
+| **where the 37 labels fire** | **76** |
+| where it falls back to letter ranges anyway | 227 |
+| `Topic area · Number` / `· Algebra` / `· Geometry & Measures` | **all three still draw letters** |
+
+**Those three are the errands.** So the proposal does not fix the complaint where the complaint
+appears, and it costs a 64-entry table, a 46-entry fold and a three-pass resolver to not fix it.
+**And the reason is structural rather than a gap in the table**: at `Topic area · Number` the 91
+topic values on offer span all seven strands, because a question tagged `Multiplication, Area of
+2-D Shapes` is in both lists — so any map fine enough to tell two topics inside one strand apart
+has at least eight labels present there. The only map that fires on a wide list is the strand map,
+and the strand map is `topicArea`'s, asked one row above.
+
+**So the alphabet stays, and it stays on a measurement instead of on my judgement.** What would
+change the answer is the data — a topic column with one strand per row — and not a cleverer table.
+
+### And the runner hid the failure that this change caused, twice
+
+**`check/press.js` FAILED INSIDE `npm run check` AND THE FOURTEEN LINES UNDER IT WERE THE PART THAT
+IS FINE** — the twelve controls that are correctly quiet, and a count. This file already records
+that happening once and the repair it chose was a pointer line: *"… 7 earlier line(s) not shown —
+`node check/press.js` for the whole report"*. Better than nothing, and it is still asking somebody
+to run a three-minute check a second time to find out what the first run said.
+
+**THE WHOLE OF THE FAILURE WAS ONE LINE FORTY LINES ABOVE THE TAIL**: `! could not enter account ·
+a tutor switched off: pic is not defined`. A check that marks a line with `!` has already said this
+is the finding, so the runner lifts those out of the tail and prints them whether or not they fall
+in the last fourteen. The tail stays, because for most checks it IS the report.
+
+### And twenty-three comments said `1\u201310` where they meant `1–10`
+
+**Found by a `python3` heredoc refusing to match a string I had written with it an hour earlier.**
+A `\u2013` inside a non-raw Python string is an en dash; written into a file through a layer that
+had already consumed the backslash, it lands as the six literal characters `\u2013`. So the
+comment over `filterHit` read *"REPLACES `1`…`13` WITH `1\u201310` AND `11\u201320`"* — in a
+repository whose own first page says the prose is the most valuable thing in it.
+
+**Twenty-three across four files, twenty-one of them leaks and nine of those months old**, in `book.js`'s note about the
+waiting-list week. Nothing could see them: they are comments, so they parse, they render nothing,
+and no check here reads English. A scan that marks the comment spans with a small state machine and
+leaves every string literal and regex alone is what found them — `' \u2014 '` inside a JS string
+is a real em dash at runtime and must not be touched.
+
+**AND TWO OF THE TWENTY-THREE WERE RIGHT AND THE SWEEP BROKE BOTH.** `data.js` carries *"`\u0000`
+cannot occur in a law's text"* and `sortKey_` in `find.js` carries *"`\u0000` BETWEEN THE PARTS,
+because it sorts below every printable character"* — prose ABOUT the escape, where the literal
+characters are the point. Replacing them wrote a real NUL byte into each, and **git reported both
+files as binary**: no diff, and `grep` refuses them outright, which is how it was found.
+
+**MEASURED RATHER THAN ASSUMED, because the obvious conclusion was wrong.** A NUL inside a comment
+is legal source: node parses it, and Chromium served the same file over HTTP and ran everything
+either side of it. So what the corruption costs is the TOOLING and the history — a file nothing can
+diff, grep or review — rather than the app, and it would have been committed in exactly that state.
+
+**It is the reason this is a sweep rather than a check.** Telling a comment that QUOTES an escape
+from one that LEAKED an escape is a judgement about what a sentence means, and a rule that cannot
+tell them apart would corrupt the two files it should leave alone.
+
+### And `check.js` refused the first version of the fold, one finding per table
+
+**`bucketTable_` is CALLED AT LOAD** — `const KIND_BUCKET = bucketTable_([…])` runs as the file is
+parsed — and the first version kept `spellKey_` where it was, four hundred lines further down,
+by building its second index lazily on the first lookup. **`js/check.js` named all eight tables**:
+*"calls `bucketTable_()`, which uses `spellKey_` — declared at line 2252 of the same file, so it is
+still in its dead zone and this throws. Everything below it in the file never loads."*
+
+**IT COULD NOT SEE THAT THE REFERENCE SITS BEHIND A BRANCH THAT ONLY RUNS LATER, and that is the
+check being conservative about the right thing.** What it guards is a throw at load taking every
+name below it with it — which this file has already paid for once, in the note above `FACETS`
+about `KIND_BUCKET` and the temporal dead zone, from the other side.
+
+**So the dependency was made real rather than argued with**: `SPELL_KEYS` and `spellKey_` moved
+above the tables, both indexes are built at construction, and the lazy branch is gone. A dependency
+that is real belongs above its dependent, which is the one rule `index.html`'s file list is built
+on, applied one file in.

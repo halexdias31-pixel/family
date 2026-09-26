@@ -1041,7 +1041,16 @@ a { color: inherit; text-decoration: none; }
    headings distinguishable from the dates.
 --------------------------------------------------------------------------------------------- */
 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: .2rem 0 .5rem; }
-.cal-arrow { padding: .4rem .8rem; cursor: pointer; color: var(--gold); font-size: 1.2rem; }
+/* ---------- 44px, IN px, AND IT WAS 31x36 ---------------------------------------------------------
+   FOUND THE DAY THE BASKET BECAME A TOOL, which is the whole argument for a declared state: the
+   calendar is the last widget on that column and nothing had ever stood within three pages of it,
+   so `check/ui.js` had never laid it out. `.far` hides a page more than three away, and the tools
+   states before this one all sat at the top of the column.
+   PADDING IN `rem` IS THE FAULT, and this stylesheet has six convictions of it — `.btn.tiny`,
+   `.post-act`, `.fm-adds label`, the chips, `.qp-check` and the reel's sound button. A fingertip is
+   the same size on every screen; a rem is 13.5px on a 320px phone. */
+.cal-arrow { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px;
+             cursor: pointer; color: var(--gold); font-size: 1.2rem; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: .15rem; text-align: center; }
 .cal .cal-h { font-size: .68rem; color: var(--faint); padding: .3rem 0; }
 /* The padding is set once, below, where the room for the dots under a date is decided. */
@@ -1460,8 +1469,10 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    A row of faces. Wraps rather than scrolls — a sideways scroller inside a vertical feed is a
    gesture fighting a gesture, and with five or six emoji there is nothing to scroll to anyway.
 
-   With no emoji set in `brand!reactions` there is no row at all, and the markup says so in words
-   for an admin rather than leaving a gap that reads as a styling fault.
+   With no emoji at all there is no row, and the markup says so in words for an admin rather than
+   leaving a gap that reads as a styling fault. That used to mean an empty `brand!reactions` cell;
+   the brand tab is a file in git now and `HOUSE_REACTIONS` is the floor, so the only way to see
+   that sentence is a payload older than the house set. See the note over `reacts()`.
 --------------------------------------------------------------------------------------------- */
 .reacts { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0 .2rem; }
 .react {
@@ -2345,7 +2356,15 @@ button.text-drop { color: var(--bad); }
              background: #eeeadd; min-width: 0; }
 /* An open slot is dashed and pale — the same language every lobby uses for a space you could take,
    and unmistakably different from a filled one at a glance. */
-.rost-slot:not(.on) { border-style: dashed; background: transparent; opacity: .6; }
+/* ---------- `background: transparent` WAS A PAPER RULE DRAWN ON BLACK ---------------------------
+   MEASURED AT 1.31:1 — the word "Open" in `--paper-ink` on `--bg`, which is near-black on
+   near-black and is not a low-contrast label so much as an invisible one. The roster was written
+   for a cream receipt and `rosterHtml`'s one live caller is `fillRoster_`, which draws it into the
+   `week` widget on the app's own card: three of the four seats are usually empty, so most of it.
+   THE FILL STAYS AND THE `opacity` KEEPS IT PALE, which is what the note above asks for — the
+   dashed border is what says "you could take this", and it says it just as well on a ground.
+   FOUND BY THE BASKET BECOMING A TOOL, for the same reason as `.cal-arrow` above. */
+.rost-slot:not(.on) { border-style: dashed; opacity: .6; }
 /* The tutor is not a seat. A line above the slot says so without needing a different shape. */
 .rost-slot.tut { border-top: 2px solid #8a7a4a; }
 .rost-pic { width: 18px; height: 18px; display: grid; place-items: center; }
@@ -2353,8 +2372,12 @@ button.text-drop { color: var(--bad); }
 .rost-plus { font-size: 1.1rem; color: #a99f8f; line-height: 1; }
 .rost-name { font-size: .6rem; font-weight: 700; color: var(--paper-ink); max-width: 100%;
              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* `--paper-dim` RATHER THAN `--paper-faint`, MEASURED AT 3.19:1 AGAINST THE SLOT'S OWN FILL. The
+   faint token is the small print and it is right for a caption on the full page; on a 0.52rem
+   uppercase label inside a #eeeadd seat it is under WCAG AA. Which seat somebody is in is not small
+   print — it is the label the name above it is answering. */
 .rost-role { font-size: .52rem; text-transform: uppercase; letter-spacing: .06em;
-             color: var(--paper-faint); }
+             color: var(--paper-dim); }
 /* ---------- THE STUB: A WHOLE DOCUMENT TYPE, STYLED, THAT NOTHING DRAWS --------------------------
    FORTY-FOUR LINES AND FOURTEEN CLASSES for "the receipt folded up" — what it is, where and when,
    where it stands, two thumbnails, a row of seat pips. It reads like a good idea and it probably
@@ -2765,16 +2788,58 @@ button.text-drop { color: var(--bad); }
    a column of eight gold slabs is the loudest thing in the app on a list where several are normally
    chosen. Full ink and a ✓ says the same thing at reading volume — and `aria-pressed` says it to a
    screen reader, which no colour can. */
-/* ---------- THE PICKER IS A PAGE OF THE BOOKING COLUMN, NOT A SHEET OVER IT -----------------------
-   `.many-list` WAS A COLUMN OF FULL-WIDTH BUTTONS IN A SHEET, and the sheet went on *"no pop up
-   menus"*. What replaces it draws on the page the form was on, so it has a pane's height rather
-   than a scroller's — and the arithmetic is why this is a grid: twelve 44px buttons stacked is
-   528px against a pane that caps at **534px at 320×568**, before the heading and the Done. Two
-   columns is six rows and 276px, and the card measures **432.7px at 320** with twelve options on
-   it — a hundred pixels inside the pane.
+/* ---------- THE LIST HANGS OFF THE FIELD ----------------------------------------------------------
+   THREE SHAPES OF THIS CONTROL HAVE BEEN REPORTED AND THIS IS THE FOURTH. A `<select>` shut on
+   every choice; a sheet covered the app; a page that REPLACED the form was worse than either. What
+   was asked for each time is one thing — *"i prefer drop down list, one that allows multiselect, but
+   doesnt disapear after each option click"* — and it is what this is.
 
-   `minmax(7.5rem, 1fr)` RATHER THAN `repeat(2, 1fr)`, so a wider screen gets more columns and the
-   number is never one somebody has to keep in step with a width. */
+   `#drop` IS A SIBLING OF THE SCREENS, not a box in the card, and the reason is `overflow: hidden`
+   on `.pane`. A panel inside the card is clipped by it at any position, and `position: fixed` does
+   not get out either: `placeCells` transforms every column, and a transformed ancestor becomes the
+   containing block for a fixed descendant and goes on clipping it. Three numbers come from
+   JavaScript — `left`, `top` and `max-height` — and everything else is here.
+
+   THE WIDTH IS NOT THE FIELD'S WIDTH, and it cannot be. The answer column on that card is
+   **56.3 / 75.3 / 80.9px** at 320 / 390 / 768, which is a drop-down four characters wide. `20rem`
+   capped at the viewport's own gutter is the widest a phone can hold, and the right edges are lined
+   up in JavaScript because the value it hangs off is right-aligned.
+
+   IT SCROLLS ONLY IF IT HAS TO. `max-height` is set from whichever side of the field has more room,
+   so a long list gets a scroller and a short one never does — and `touch-action` is set from the
+   measured overflow rather than declared here, which is `padReach_`'s rule on the notepad: a box
+   that keeps a gesture it cannot use is a box you cannot swipe off. One writer, so there is no
+   cascade to lose.
+
+   43 AND 44, WHICH PUTS IT OVER THE APP AND UNDER THE SHEET (45/46) AND THE TOAST (50). A drop-down
+   that covered a sheet would be a popover over a modal, and nothing here opens both. */
+#drop-back { position: fixed; inset: 0; z-index: 43; }
+#drop {
+  position: fixed; z-index: 44;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: .55rem .6rem .6rem;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--raised);
+  /* THE SHADOW IS WHAT SAYS "OVER", and it is doing the job a scrim would otherwise do. Without it
+     a panel the same colour as a raised card reads as part of the card behind it. */
+  box-shadow: 0 .6rem 1.6rem rgba(0,0,0,.55);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+/* WHAT IS TICKED, ABOVE THE LIST. The field itself stays visible — the panel hangs below it rather
+   than over it — but its text is right-aligned in an 80px column and ellipsises at the second
+   subject, so this is the only place several answers can be read at once. The QUESTION is not
+   repeated: it is on the row this is hanging off, and one fact drawn twice is the fault this
+   stylesheet already records where a widget printed its own name over its own heading. */
+.drop-say { margin: 0 .1rem .1rem; font-size: .72rem; color: var(--dim); }
+.drop-say.is-none { color: var(--faint); }
+/* THE WAY OUT IS NOT THE ACTION. The options are what this panel is for; Done dismisses it, and so
+   does the row above and a tap anywhere else. `.btn quiet` rather than the gold one, and no top
+   margin of its own — `.pick-list` already carries the gap below it. */
+.drop-done { margin: 0; }
+/* THE `.pick-list` GRID IS UNCHANGED FROM THE PAGE VERSION and the arithmetic that chose it still
+   holds: twelve 44px buttons stacked is 528px, which no phone has room for above or below a field.
+   Two columns is six rows and 276px. `minmax(7.5rem, 1fr)` rather than `repeat(2, 1fr)`, so a wider
+   screen gets more columns and the number is never one somebody has to keep in step with a width. */
 .pick-list { display: grid; gap: .4rem; margin: .6rem 0;
              grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); }
 /* ---------- `text-align: left` DID NOTHING, WHICH A SCREENSHOT IS WHAT SAID ---------------------

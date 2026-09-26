@@ -210,19 +210,32 @@ function savedPages_() {
    IT IS ALSO THE ONLY WAY IN. `find.js` builds a `basket ‧ n` chip and hands it to `screen()` as a
    THIRD argument, which `screen(id, draw)` does not take — so the only `open-cart` control in the
    app has never been rendered. Things could go into the basket and nothing could open it. */
-/* ---------- THE BASKET IS A PAGE ON FIND, IN FRONT OF THE QUESTION -------------------------------
-   IT WAS A COLUMN, and a column is a swipe on every screen whether or not anything is in it — which
-   for a basket is most of the time. It also sat two columns away from the only place anything gets
-   put in one: every single thing in it was added by pressing a trolley on a card in Find.
+/* ---------- THE BASKET IS A TOOL NOW -------------------------------------------------------------
+   ASKED FOR AS *"i want the cart to be a tool in the tool column ... it should just be consistent
+   like everything else. should like slightly like booking widgets. but not fully as its only
+   recording items and sheets and wether to upgrade a specific sheet to lamininated."*
 
-   IN FRONT, WITH THE SAVED THINGS, and for the same reason. Those pages are what you already have —
-   the things you kept, the things you are about to pay for — and the question is what you are here
-   to ask next. What you have, then what you want.
+   IT HAS BEEN A COLUMN, A SHEET, A PAGE OF FIND AND A PAGE OF BOOKING. Every one of those was the
+   same difficulty: a basket is empty most of the time, so wherever it lives it is either a swipe
+   that usually leads to nothing or a page that appears and disappears under somebody's thumb. A
+   TOOL is the shape that does not have that problem — `widgetsOf_`'s own note says so: *"a column
+   is the place you go to see all of them; hiding half of it because the calendar is empty this week
+   is the column failing to be a place."* So the basket is always there, and when it is empty it
+   says so in a card the same size as the one it will be.
 
-   NOTHING WHEN IT IS EMPTY. "Your basket is empty" was a whole pane whose entire content was the
-   announcement of its own emptiness; on a column somebody had deliberately opened that at least
-   answered them, and in front of the search box it is a permanent notice for everyone who has not
-   bought anything. An empty basket should be no basket. */
+   AND THAT IS ALSO WHY THE EMPTY STATE CAME BACK. It was deleted on the argument that *"an empty
+   basket should be no basket"*, which is right for a page in front of a search box and wrong for a
+   widget: a tool that draws nothing is a tool that reads as broken, which is this repository's
+   oldest shape — *I did not manage to look*, printed as *I looked and there was nothing there*.
+
+   "SLIGHTLY LIKE BOOKING WIDGETS" IS `receiptHtml`, AND IT ALREADY WAS. The basket and the booking
+   are the same document — a list of things you are about to pay for, a total, and the button on the
+   paper rather than under it — so this keeps the paper and changes where it hangs. The green
+   terminal the complaint names went several commits ago, with the other three skins; the argument
+   for its removal is kept below where the class was.
+
+   ONE STRING, NOT A LIST OF PAGES. A widget is a card rather than a column, so there is nothing to
+   page to and nothing to count. */
 /* ---------- THE LAMINATE TOGGLE ON ONE BASKET LINE ------------------------------------------------
    ONE SWITCH, TWO STATES, AND THE PRICE IN BOTH. Off it says what it would cost; on it says what it
    is costing, so nobody has to take it off to find out. The ✕ next to it removes the whole line, so
@@ -243,8 +256,16 @@ function lamControl_(c) {
         title="Laminate this copy">+ laminate ${esc(money(p))}</button>`;
 }
 
-function basketPages() {
-  if (!CART.length) return [];
+function cartCard_() {
+  /* ---------- NOTHING IN IT IS A STATE, NOT AN ABSENCE ------------------------------------------
+     THE HEADING IS OUTSIDE THIS, in the widget's own markup, so what is drawn here is the paper or
+     the sentence that says there is no paper yet. It also says where things come FROM, because the
+     one thing a person cannot work out from an empty basket is how to fill it: every line in here
+     arrived by pressing the trolley on a card in Find. */
+  if (!CART.length) {
+    return `<p class="empty">Nothing in your basket yet.<br><span class="faint">The trolley on a
+      shop card in Find puts something in it.</span></p>`;
+  }
 
   /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE -------------------------------------------
      IT WAS BUILT FROM `.row`, the app's generic label-and-value line, and it broke: `.k` has no
@@ -327,7 +348,7 @@ function basketPages() {
       ? 'Printing is charged at cost — paper only. Collect from the library or a session.'
       : 'Nothing leaves your basket until you confirm.'}</p>`;
 
-  return [receiptHtml({
+  return receiptHtml({
     /* ---------- THE BASKET WORE THE GREEN TERMINAL, AND IT WAS THE LAST ONE WEARING ANYTHING ------
        `receiptHtml` HAD FOUR SKINS — screen, application, waitlist, receipt — one per stage of a
        booking, and the same session wore three of them over its life. Three went in an earlier
@@ -351,11 +372,30 @@ function basketPages() {
     totalLabel: cash ? 'To pay' : 'Credits',
     total: cash ? money(cash) : String(due),
     foot: foot,
-  })];
+  });
 }
 
-/* `screen('basket')` WAS HERE. A screen with no tab is a screen nobody can reach — the basket is
-   pages on Find now, assembled beside the saved things. */
+/* ---------- AND IT IS REPAINTED WHERE IT STANDS ---------------------------------------------------
+   BY CLASS RATHER THAN BY ID, and that is not fussiness. The tools column and the Saved column both
+   draw `widgetOnColumn_`, and every screen in this app is in the document at once — so a starred
+   basket puts a SECOND `#cart-box` on the page and `$()` hands every caller the first of them. That
+   is the `$('msg-text')` fault, which cost a reply posted to the wrong person, and the id has to
+   stay because `into` and `startWidget_` look the widget's parts up by it.
+
+   NO SCREEN REPAINT. `cart-drop` and `cart-laminate` used to call `paintStuff(true)` or `repaint()`
+   — a whole screen rebuilt so that one line could go — and there is nothing to rebuild now: the
+   basket is a box, the change is local, and `CART` is in `localStorage` rather than on a wire, so
+   the press IS the change. Same argument `cart-add` already makes for using `tileSet_`. */
+function cartPaint_() {
+  document.querySelectorAll('.cart-box').forEach(el => { el.innerHTML = cartCard_(); });
+}
+
+/* THE WIDGET'S OWN `start`. It is called when the tools column arrives and on every repaint of it,
+   which is the list `toolsStart_` walks. */
+function initCart() { cartPaint_(); }
+
+/* `screen('basket')` WAS HERE. A screen with no tab is a screen nobody can reach — and the basket
+   has been a page of Find and a page of Booking since. It is a tool now; see the note above. */
 
 
 /* ---------- THE PAGERS ---------------------------------------------------------------------------

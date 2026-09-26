@@ -220,6 +220,10 @@ function boot(opts) {
          taken from the FIRST run, so a journey asking whether the week reads in order is asking
          about three cells of the job row as well as about the card. */
       'spec: () => (typeof bookSpec === "function" ? bookSpec() : null),' +
+      /* THE LEDGER THE CARD IS BUILT FROM. `paper()` above is the markup; this is the figures,
+         and `sessionDates` is the one of them a journey can ask a question about that no
+         rendering can answer — which year a session falls in. */
+      'price: () => (typeof bookPrice === "function" ? bookPrice() : null),' +
       /* THE SEVEN DAY NAMES, because a week step is seven rows of the card rather than one and
          a journey that listed them here would be a second copy of `SLOT_DAYS` to keep in step. */
       'days: () => (typeof SLOT_DAYS !== "undefined" ? SLOT_DAYS.map(d => d[1]) : []),' +
@@ -295,7 +299,7 @@ function boot(opts) {
       'CART: () => CART, setCart: v => { CART = v; },' +
       'cartMoney: typeof cartMoney_ === "function" ? cartMoney_ : null,' +
       'lamPrice: typeof laminatePrice === "function" ? laminatePrice : null,' +
-      'basket: typeof basketPages === "function" ? basketPages : null,' +
+      'basket: typeof cartCard_ === "function" ? cartCard_ : null,' +
       'PAGE: () => PAGE,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
@@ -398,7 +402,7 @@ check('the basket draws a laminate control on a paper and on nothing else', asyn
     { key: 'T1', name: 'Quadratics', kind: 'print', cost: 0, money: 0.16, pages: 8 },
     { key: 'S1', name: 'Revision workbook', kind: 'shop', cost: 3, money: 0, pages: 64 },
   ]);
-  const html = (t.basket() || []).join('');
+  const html = String(t.basket() || '');
   const bad = [];
   const n = (html.match(/data-do="cart-laminate"/g) || []).length;
   if (n !== 1) {
@@ -889,67 +893,85 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   return bad;
 });
 
-check('picking several answers is one open, on the page, with nothing over the app', async () => {
-  /* ---------- FOUR TAPS FOR TWO SUBJECTS, AND THEN A PANEL OVER THE CARD ------------------------
-     REPORTED AS *"for me to multiselect i have to click on field then click on subject then click
-     on field then click on another subject. thats long."* A `<select>` closes when you choose —
-     that is what choosing means to it — so a question taking three answers was three opens, three
-     scrolls and three closes. The toggling always worked; the gesture was the cost.
+check('picking several answers is one open, hanging off the field, over nothing', async () => {
+  /* ---------- FOUR SHAPES OF ONE CONTROL, THREE OF THEM REPORTED ---------------------------------
+     A `<select>` closed when you chose — that is what choosing means to it — so a question taking
+     three answers was three opens, three scrolls and three closes: *"thats long."* A sheet was next
+     and came back as *"i dont like this. this is shit. no pop up menus."* A page that REPLACED the
+     form was third: *"i hate this."*
 
-     THE FIRST FIX WAS A SHEET AND THE SECOND REPORT WAS *"i dont like this. this is shit. no pop
-     up menus."* So there are two things to assert and they pull in opposite directions: the list
-     must stay open across ticks, AND nothing may open over the app. A check that asks only the
-     first passes on the shape that was just rejected.
+     SO THERE ARE THREE THINGS TO ASSERT AND THEY PULL AGAINST EACH OTHER. The list must stay open
+     across ticks; nothing may open over the app; and the form must still be on its page while the
+     list is up. A check asking only the first passes on both rejected shapes, and a check asking the
+     first two passes on the page-replacement — which is how the last version of this journey went
+     green over the thing that was about to be reported.
 
-     `check/ui.js` CANNOT ASK EITHER. It measures whether a control can be read and hit, and a
+     `check/ui.js` CANNOT ASK ANY OF THEM. It measures whether a control can be read and hit, and a
      select that closes after every pick measures perfectly. `check/press.js` presses each action
-     once and asks whether anything changed, which is true of all three shapes.
+     once and asks whether anything changed, which is true of all four shapes.
 
-     THROUGH THE APP'S OWN HANDLERS AND ITS OWN PAGE BUILDER, so the toggle, the picker and the
-     re-render are the ones that ship — a harness rewriting `BOOKING.interval` itself would prove
-     nothing about any of them. */
+     ON THE BOOKING COLUMN, because the panel is `#drop` outside the screens and `dropRow_` will not
+     open it unless the field is on the screen somebody is on and the page in front of them — which
+     is the guard that stops a fixed box hanging in front of a column that has slid away. Driving the
+     handlers on a screen nobody is on would prove nothing about any of it.
+
+     THROUGH THE APP'S OWN HANDLERS, so the toggle, the panel and the re-render are the ones that
+     ship — a harness rewriting `BOOKING.interval` itself would prove nothing about them. */
   const { w } = boot();
   await wait(300);
   const A = w.__t.ACTIONS || {};
   if (!A['book-many'] || !A['book-many-pick'] || !A['book-many-done']) {
-    return ['book-many / book-many-pick / book-many-done are not registered — cannot check the picker'];
+    return ['book-many / book-many-pick / book-many-done are not registered — cannot check the list'];
   }
   if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
+  const panel = w.document.getElementById('drop');
+  if (!panel) return ['#drop is not in index.html — the list has nowhere to hang'];
   w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  /* `repaint()` BEFORE `go`, because `paintNeighbours` skips a screen that already has markup and
+     the booking column was drawn at boot while nobody was signed in — so without this the column
+     is still the "Sign in to book" card and the field the list hangs off is not in the document.
+     That is `STALE`'s whole job and the app does the same thing when somebody signs in. */
+  try { w.__t.repaint(true); } catch (e) { return ['repaint() threw: ' + e.message]; }
+  try { w.__t.go('booking', false, true); } catch (e) { return ['go("booking") threw: ' + e.message]; }
+  await wait(120);
   const step = (w.__t.STEPS || []).filter(x => x.multi && !x.grid)
     .filter(x => { try { return x.options().filter(Boolean).length >= 2; } catch (e) { return false; } })[0];
-  if (!step) return ['no multiple-answer question offers two options — cannot check the picker'];
+  if (!step) return ['no multiple-answer question offers two options — cannot check the list'];
   const opts = step.options().filter(Boolean);
   const bad = [];
-  const page = () => String(w.__t.bookerCard() || '');
-  const marked = () => (page().match(/class="btn quiet pick-opt on"/g) || []).length;
+
+  const open = () => !panel.classList.contains('hidden');
+  const list = () => String(panel.innerHTML || '');
+  const marked = () => (list().match(/class="btn quiet pick-opt on"/g) || []).length;
+  const sheetOpen = () => !w.document.getElementById('sheet').classList.contains('hidden');
+  /* THE FORM, ON ITS OWN PAGE, WHICHEVER STATE THE LIST IS IN — the page-replacement half. */
+  const formUp = () => String(w.__t.bookerCard() || '').indexOf('id="bookr"') !== -1;
 
   A['book-many']({ dataset: { step: step.id } });
-  const sheetOpen = () => !w.document.getElementById('sheet').classList.contains('hidden');
-  if (page().indexOf('pick-list') === -1) {
-    bad.push('pressing the "' + step.id + '" row does not put the list on the page');
+  if (!open()) bad.push('pressing the "' + step.id + '" row does not open the list');
+  if (list().indexOf('pick-list') === -1) {
+    bad.push('the list opens holding ' + JSON.stringify(list().slice(0, 80)) + ' rather than options');
   }
-  /* THE HALF THE SECOND REPORT WAS ABOUT. */
   if (sheetOpen()) bad.push('the "' + step.id + '" row opens a sheet over the app');
-  const drawn = (page().match(/data-do="book-many-pick"/g) || []).length;
+  if (!formUp()) bad.push('opening the list takes the form off its page');
+  const drawn = (list().match(/data-do="book-many-pick"/g) || []).length;
   if (drawn !== opts.length) {
-    bad.push('the page draws ' + drawn + ' options for a question with ' + opts.length);
+    bad.push('the list draws ' + drawn + ' options for a question with ' + opts.length);
   }
 
   /* TWO TICKS WITHOUT REOPENING — which is the whole of what was asked for. */
   A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
-  if (page().indexOf('pick-list') === -1) {
-    bad.push('ticking an answer closes the list, so the next one is another open');
-  }
+  if (!open()) bad.push('ticking an answer closes the list, so the next one is another open');
   A['book-many-pick']({ dataset: { step: step.id, val: opts[1] } });
-  if (page().indexOf('pick-list') === -1) bad.push('ticking a second answer closes the list');
+  if (!open()) bad.push('ticking a second answer closes the list');
+  if (!formUp()) bad.push('ticking an answer takes the form off its page');
   if ((B[step.id] || []).length !== 2) {
     bad.push('two ticks left ' + JSON.stringify(B[step.id]) + ' rather than two answers');
   }
   if (marked() !== 2) {
-    bad.push('the page shows ' + marked() + ' options marked, not the two that are chosen');
+    bad.push('the list shows ' + marked() + ' options marked, not the two that are chosen');
   }
 
   /* AND TICKING AGAIN TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
@@ -958,21 +980,34 @@ check('picking several answers is one open, on the page, with nothing over the a
     bad.push('ticking a chosen answer again does not take it off: ' + JSON.stringify(B[step.id]));
   }
 
-  /* ---------- AND DONE PUTS THE FORM BACK, WHICH IS THE ONLY WAY OUT ----------------------------
-     A LIST WITH NO WAY BACK IS A PAGE SOMEBODY IS STUCK ON. The sheet had the app's own close;
-     this replaces the form, so the close is a control on it and there is nothing else to press. */
+  /* ---------- AND THERE IS A WAY OUT, WHICH A DROP-DOWN HAS THREE OF ------------------------------
+     DONE, THE ROW AGAIN, AND A TAP ANYWHERE ELSE. The third is `#drop-back` carrying the same
+     action, so it is the same handler and there is nothing separate to keep in step. */
   A['book-many-done']({ dataset: {} });
   if (B.picking) bad.push('Done leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
-  if (page().indexOf('pick-list') !== -1) bad.push('Done leaves the list on the page');
-  if (page().indexOf('id="bookr"') === -1) bad.push('Done does not put the form back');
+  if (open()) bad.push('Done leaves the list open');
+  if (list().indexOf('pick-list') !== -1) bad.push('Done leaves the options in #drop');
+  if (!formUp()) bad.push('the form is not on its page once the list has closed');
+
+  A['book-many']({ dataset: { step: step.id } });
+  A['book-many']({ dataset: { step: step.id } });
+  if (open()) bad.push('pressing the open row again does not shut the list');
+
+  const back = w.document.getElementById('drop-back');
+  if (!back) bad.push('#drop-back is not in index.html — a tap outside cannot close the list');
+  else if (back.getAttribute('data-do') !== 'book-many-done') {
+    bad.push('#drop-back carries ' + JSON.stringify(back.getAttribute('data-do'))
+             + ' rather than the action that closes the list');
+  }
 
   /* ---------- AND THE ROW IS WHAT OPENS IT, WHICH THE REST OF THIS CANNOT SAY -------------------
      THE FIRST VERSION CALLED THE HANDLERS AND NOTHING ELSE, so putting the row back to a `<select>`
-     left every assertion above green: the sheet still opened, because the journey opened it. A
+     left every assertion above green: the panel still opened, because the journey opened it. A
      check that cannot fail on the fault it was written for is the shape this file has deleted one
      of — measured by mutation, which is the only way to know.
-     TWO THINGS OF THE CONTROL: it carries the action, and it reads back what has been ticked —
-     the button is the only label on the row, so a sheet full of ✓s cannot show the second. */
+     THREE THINGS OF THE CONTROL: it carries the action, it reads back what has been ticked — the
+     button is the only label on the row — and it says whether the list is up, which is the one fact
+     a screen reader cannot get from anywhere else now that the panel is outside this markup. */
   const row = String(w.__t.control ? w.__t.control(step) : '');
   if (!w.__t.control) bad.push('stepControl_ is not exported — the row itself cannot be checked');
   else {
@@ -982,6 +1017,9 @@ check('picking several answers is one open, on the page, with nothing over the a
     }
     if (row.indexOf(opts[1]) === -1) {
       bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
+    }
+    if (row.indexOf('aria-expanded') === -1) {
+      bad.push('the row does not say whether the list is open');
     }
   }
   return bad;
@@ -1311,6 +1349,76 @@ check('the dates row says how many dates it lists', async () => {
   if (one.mul) bad.push('one date reads ' + JSON.stringify(one.mul) + ' rather than nothing');
   const none = dates('');
   if (none.mul) bad.push('no dates reads ' + JSON.stringify(none.mul) + ' rather than nothing');
+  return bad;
+});
+
+check('one ticked term prices one term', async () => {
+  /* ---------- REPORTED AS *"why is it coming out to so much?"* -----------------------------------
+     Over a card totalling £1024.59 whose Dates row listed EIGHTEEN sessions across two Septembers —
+     September 2026 AND September 2027 — for one ticked term. Reproduced before anything was changed:
+     with two rows named `Autumn 1` in the payload, `bookSpec().windows` came back with a length of
+     two, the `Time interval` row read `Autumn 1, Autumn 1`, and three sessions became ten.
+
+     THE PAYLOAD REALLY SHIPS THE NAME TWICE, and `doget.gs` believed otherwise — its own comment
+     said that once terms which have ENDED are dropped *"each name appears once inside the next
+     twelve months"*. Measured against the real `schoolYear` on 25/09/2026, that filter keeps
+     `Autumn 1 2026-09-07..2026-10-23` AND `Autumn 1 2027-09-06..2027-10-22`: the first has not
+     ended and the second starts four days inside the 370-day cut-off. So it held for most of the
+     year and failed every autumn, which is the one term it matters for.
+
+     REPAIRED AT SOURCE AND ON THE PHONE. The source fix is a deploy away and this app's house rule
+     is that a broken sheet must still produce a working site, so `intervals_()` answers one row per
+     name — and that is the half this journey can reach, because a journey seeds a payload rather
+     than running `doGet`.
+
+     THE ASSERTION IS THE WINDOWS AND THE SESSIONS, not the pounds. A price is a chain of six other
+     rows and a figure here would fail for reasons that have nothing to do with terms; how many
+     windows one ticked name opens is the fault itself. */
+  const twice = payload();
+  const one = twice.intervals[0];
+  twice.intervals = [one, Object.assign({}, one, { startDate: '01/09/2027', endDate: '18/10/2027',
+    lastSun: '18/10/2027', rel: 'Next year' })];
+  const { w } = boot({ payload: twice });
+  await wait(300);
+  if (!w.__t.spec) return ['bookSpec is not exported — cannot check the term windows'];
+  const bad = [];
+
+  /* THE STEP MUST NOT OFFER THE NAME TWICE EITHER. Two identical buttons is not a choice anybody
+     can make, and it is the half a person sees before the price is ever wrong. */
+  const st = (w.__t.STEPS || []).filter(x => x.id === 'interval')[0];
+  if (!st) bad.push('no interval step — cannot check what the term question offers');
+  else {
+    const offered = st.options();
+    if (offered.length !== new Set(offered.map(x => String(x).toLowerCase())).size) {
+      bad.push('the term question offers ' + JSON.stringify(offered)
+             + ' — one name, two buttons');
+    }
+  }
+
+  const B = w.__t.BOOKING;
+  B.kind = 'Instant class'; B.subjects = ['Maths']; B.level = 'GCSE';
+  B.interval = ['Autumn 1']; B.n = '1'; B.slots = ['m13', 'm14'];
+  const spec = w.__t.spec();
+  if ((spec.windows || []).length !== 1) {
+    bad.push('one ticked term opened ' + (spec.windows || []).length + ' windows: '
+           + JSON.stringify(spec.windows));
+  }
+  if (spec.interval !== 'Autumn 1') {
+    bad.push('the Term row reads ' + JSON.stringify(spec.interval)
+           + ' for one ticked term');
+  }
+  /* AND THE SESSIONS ARE INSIDE THAT ONE TERM, which is the thing the report was actually about: a
+     second window a year away shows up as a date in the wrong year on the Dates row, and that is
+     what the family would have been billed for. */
+  if (w.__t.price) {
+    const L = w.__t.price() || {};
+    const out = (L.sessionDates || []).filter(d => d.getFullYear() !== 2026);
+    if (out.length) {
+      bad.push(out.length + ' of ' + (L.sessionDates || []).length
+             + ' sessions fall outside the ticked term: '
+             + out.map(d => d.getFullYear()).join(', '));
+    }
+  }
   return bad;
 });
 

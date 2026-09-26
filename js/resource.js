@@ -178,30 +178,30 @@ on('cart-laminate', el => {
   if (!line) return;
   line.laminate = el.dataset.on === '1';
   cartSave();
-  /* STAY WHERE YOU ARE — the same reason `cart-drop` says it. Turning an upgrade on should not
-     move you off the basket page. */
-  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true); else repaint();
+  /* THE BOX, NOT THE SCREEN. This repainted a whole column so that one line's total could move —
+     and the basket is a tool now, so the thing that changed is a box with an id. See `cartPaint_`,
+     which also explains why it is written to by class. */
+  if (typeof cartPaint_ === 'function') cartPaint_();
   toast(line.laminate ? 'Laminated' : 'Back to plain paper');
 });
 
 on('cart-drop', el => {
   CART = CART.filter(c => !(c.key === el.dataset.key && c.kind === el.dataset.kind));
   cartSave();
-  /* THE PAGE COUNT CHANGES when the last thing leaves the basket — the basket page stops being
-     drawn at all — so this is a rebuild rather than a repaint. `paintStuff` handles both, and
-     knows not to disturb the search box while it does. */
-  /* STAY WHERE YOU ARE. Taking a line off the basket should not move you off the basket. */
-  if (typeof paintStuff === 'function' && $('s-stuff')) paintStuff(true); else repaint();
+  /* NO PAGE COUNT TO CHANGE ANY MORE. This was a rebuild because the basket page stopped being
+     drawn when the last line left it — which is exactly the appearing-and-vanishing page the move
+     to a tool was for. The card is always there; only what is in it moves. */
+  if (typeof cartPaint_ === 'function') cartPaint_();
 });
 
 /* ---------- `on_openCart` AND `on('open-cart')` WERE HERE ------------------------------------------
    A SECOND BASKET, IN A SHEET. It drew the same lines, the same total and the same Send button as
-   `basketPages` in collections.js, over the top of whatever you were looking at — two versions of
+   `cartCard_` in collections.js, over the top of whatever you were looking at — two versions of
    one screen, kept in two files, and only one of them had been fixed when a long title started
    pushing prices off the edge. That is exactly how the two come to disagree about what is in your
    basket.
 
-   The basket is a page in front of the question on Find. There is nothing to pop out.
+   The basket is a tool on the Tools column. There is nothing to pop out.
 
    ITS BETTER WORDING SURVIVED. "Pay £0.92" rather than "Send", "N more credits needed" on a button
    that cannot be pressed, and the line about printing being charged at cost — all of it says more

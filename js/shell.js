@@ -1170,6 +1170,15 @@ function placeCells(which, instant, dragPx, id) {
 function placeNow_(which, instant, dragPx, id) {
   placeGrid(instant, dragPx ? { which, px: dragPx } : null);
 
+  /* THE ONE THING IN THIS APP THAT IS MEASURED AGAINST THE VIEWPORT rather than placed by the grid:
+     the booking form's drop-down, which is a sibling of the screens because `.pane` would clip it
+     anywhere else. So it does not travel with a column that slides away underneath it, and this is
+     the one place that knows a column has moved — a swipe, a page turn or a resize all arrive here.
+     It follows the field it hangs off, or closes once that field is on a screen or a page nobody is
+     looking at. BEFORE the drag guard below, because a finger sliding the columns is exactly when it
+     has to keep up. */
+  if (typeof bookDropMove_ === 'function') bookDropMove_();
+
   /* THE TWO SWEEPS BELOW DO NOT RUN WHILE A FINGER IS DOWN.
 
      Both answer questions about what EXISTS — which panes to watch, which screens no tab points at
@@ -2362,6 +2371,9 @@ const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
                  ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
 
 addEventListener('keydown', e => {
+  /* THE DROP-DOWN FIRST, because it is the innermost thing open and nothing opens both. It answers
+     whether there was anything to close, so one Escape does not also shut a sheet behind it. */
+  if (e.key === 'Escape' && typeof bookDropShut_ === 'function' && bookDropShut_()) return;
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 
   const arrow = ARROWS[e.key];

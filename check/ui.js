@@ -414,7 +414,15 @@ function inspect(opts) {
   const sheet = document.getElementById('sheet');
   const onSheet = sheet && !sheet.classList.contains('hidden') && vis(sheet)
     ? [sheet, ...sheet.querySelectorAll('*')] : [];
-  const inside = [...live.querySelectorAll('*'), ...onSheet].filter(vis);
+  /* ---------- AND THE DROP-DOWN, FOR THE SAME REASON ---------------------------------------------
+     `#drop` IS THE BOOKING FORM'S LIST OF ANSWERS and it is a sibling of the screens because `.pane`
+     is `overflow: hidden` and would clip it anywhere else. So its twelve 44px options are outside
+     `#s-booking` entirely, and a measurement that stopped at the screen would report a clean sweep
+     of the card behind them. Same sentence as the sheet above, one control along. */
+  const drop = document.getElementById('drop');
+  const onDrop = drop && !drop.classList.contains('hidden') && vis(drop)
+    ? [drop, ...drop.querySelectorAll('*')] : [];
+  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onDrop].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR ------------------------------------------
      `scrollWidth > clientWidth` on a box whose overflow-x is not auto or scroll. This is the honest
@@ -463,6 +471,23 @@ function inspect(opts) {
        tap-target rule's question. Only the input's own horizontal scroll is exempt, and only it.
        `<textarea>` is NOT exempt: it wraps, so a sideways scroll there is a real fault. */
     if (el.tagName === 'INPUT') continue;
+    /* ---------- AND AN ELLIPSIS IS THE OTHER WAY OF BEING TOLD ---------------------------------
+       SAME QUESTION, SECOND ANSWER. `text-overflow: ellipsis` on a clipped box is a declaration
+       that the text is EXPECTED to be longer than the box and that the browser should say so — and
+       it does say so, in the one place the reader is looking, with a mark drawn on the screen. That
+       is the opposite of a box scrolling sideways when nobody asked it to: nothing is hidden
+       silently and nothing can be reached by dragging.
+
+       BOTH PROPERTIES AND NO ELEMENT CHILDREN, which is what keeps this narrow. `overflow: hidden`
+       on its own is not permission — it is how a layout fault gets clipped instead of scrolled, and
+       the rule must go on catching that. A box with element children is a layout, and an ellipsis on
+       one of those says nothing about whether its children fit.
+
+       IT REMOVES THREE FINDINGS ACROSS THE WHOLE APP and they are one element: `.rost-name`, a
+       seat's occupant in a four-column roster on a 320px phone. The rule was reporting the ellipsis
+       working. */
+    if (!el.children.length && /ellipsis/.test(s.textOverflow || '')
+        && /hidden|clip/.test(s.overflowX)) continue;
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
       const box = el.getBoundingClientRect();

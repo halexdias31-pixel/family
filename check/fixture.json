@@ -362,6 +362,12 @@
       "borough",
       "city"
     ],
+    "Your rate and group size": [
+      "rate_per_hour",
+      "extra_seat_rate",
+      "max_students",
+      "min_students"
+    ],
     "When I can teach": [
       "m09",
       "m10",

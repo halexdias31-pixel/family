@@ -222,7 +222,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-25-d-seat-cap";
+const BACKEND_VERSION = "2026-09-25-e-one-quote";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -333,18 +333,29 @@ const SCHEMA = {
        because they like it. */
     "address", "postcode", "favourite_colour",
     "travel_km", "rate_per_hour", "max_students", "min_students",
-    /* WHEN THE SEAT CAP LAST MOVED, AND IT IS THE `handle_changed_at` SHAPE ON A SECOND COLUMN.
-       ASKED FOR AS *"make it so tutors cant update their maximum number of kids willing to work
-       with more then once a month."* A tutor's `max_students` is not a preference: it is what
-       `seatLimits` offers a family, and every booking already taken was priced and seated against
-       whatever it said on the day. A cap that moves on a whim leaves classes already agreed sitting
-       above it, so the answer somebody gave a week ago stops being an answer.
+    /* WHEN WHAT THIS TUTOR CHARGES LAST MOVED, AND IT IS THE `handle_changed_at` SHAPE ON A SECOND
+       COLUMN. ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of
+       kids willing to work with and fraction extra rate all together. and they can only change once
+       a month."* None of those four is a preference: between them they ARE the quote. `seatLimits`
+       offers a family a seat count and `priceFrom` builds the price from the rate and the extra-seat
+       fraction, and every booking already taken was priced and seated against whatever they said on
+       the day. A rate that moves on a whim leaves sessions already agreed at a figure nobody would
+       quote now, and a cap that moves leaves classes already agreed sitting above it.
+
+       ONE DATE FOR ALL FOUR, which is what *"all together"* means. Four stamps would be four clocks
+       and a tutor could walk round them a week at a time, which is the arms race `handle_changed_at`
+       was written against. It is also what puts them on one page: you see the whole quote and change
+       as much of it as you like in one save.
 
        ONE DATE AND NO COUNTER, for the reason written over `handle_changed_at`: the rule is "has a
        month passed" rather than a tally to keep in step, and a row that has never changed has no
-       cell and is free. There is no `max_students_was` beside it — a previous handle is a
-       safeguarding fact about a person, and a previous seat count is not. */
-    "max_students_changed_at",
+       cell and is free. There is nothing `_was` beside it — a previous handle is a safeguarding fact
+       about a person, and a previous price is not.
+
+       IT REPLACES `max_students_changed_at`, WHICH COST NOTHING TO RENAME. That column shipped the
+       night before this and `?setup=1` has not run since, so `ensureSchema` never created it and no
+       cell anywhere holds a date under the old name. */
+    "pricing_changed_at",
     /* These four were added to forms, payloads and pricing over several rounds and never to the
        schema — so ensureSchema never created the columns, every write went nowhere, and each
        feature failed silently for want of one line here. Nothing else was wrong with any of them. */
@@ -1845,6 +1856,22 @@ const AVATAR_ITEMS = [
   { id: 'skirt',     slot: 'legs',      name: 'Skirt',      level: 3 },
 ];
 
+/* ---------- THE FOUR FIELDS THAT ARE THE QUOTE ---------------------------------------------------
+   ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of kids
+   willing to work with and fraction extra rate all together."* Between them these four decide what a
+   family is quoted: `priceFrom` builds the price from the rate and the extra-seat fraction, and
+   `seatLimits` offers the seat count. So they are one decision wearing four cells.
+
+   ONE LIST, READ BY THE PAGE AND BY THE RULE. `PROFILE_GROUPS` builds the page from it and
+   `pricingRefusal_` in `people.gs` decides the month from it — so a fifth field added here is on the
+   page and under the cooldown in one edit, and the two can never disagree about which fields are the
+   quote. That is the sentence directly below this one about one list driving the form and the
+   allow-list, applied once more.
+
+   THE ORDER IS THE ORDER OF THE BOXES, and it is the order somebody reads a quote in: what an hour
+   costs, what a second seat is worth, then the range of class sizes it applies to. */
+const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
+
 /* ---------- WHAT A TUTOR/CLIENT MAY EDIT -----------------------------------------------------
    One list per role drives the edit form AND the write allow-list, so the two cannot drift.
    Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
@@ -1863,14 +1890,23 @@ const PROFILE_GROUPS = {
      the map that disagreed with them. */
   'Contact':     ['email','phone','date_of_birth'],
   'Where':       ['borough','city','town','travel_km'],
-  'Group size':  ['max_students','min_students'],
-  // One number: what an hour with this tutor costs the client. Their own pay is the minimum wage
-  // and is fixed in the code, so this is the only pricing decision a tutor makes.
-  /* One number for an hour with them, and one for what a second student is worth. The extra-seat
-     fraction is theirs because the extra work is theirs — teaching two is more than teaching one,
-     and by how much is a judgement only the person doing it can make. Your own share of it stays
-     in config, so a tutor can price their effort without touching your margin. */
-  'Your rate':   ['rate_per_hour', 'extra_seat_rate'],
+  /* ---------- ONE PAGE, BECAUSE THEY ARE ONE DECISION AND ONE CLOCK ---------------------------
+     `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH, and the four fields on them are
+     what a family is quoted: an hour with this tutor, what a second seat is worth, and the range of
+     class sizes that applies to. Asked for as *"…all together. and they can only change once a
+     month."* — and two pages cannot be changed together at all: `settingsPages_` maps each key here
+     onto its own card with its own Save, so a tutor would have spent the month's one change on
+     whichever page they pressed first and found the other refused.
+
+     Their own pay is the minimum wage and is fixed in the code, so these four are the whole of the
+     pricing decision a tutor makes. The extra-seat fraction is theirs because the extra work is
+     theirs — teaching two is more than teaching one, and by how much is a judgement only the person
+     doing it can make. Your own share of it stays in config, so a tutor can price their effort
+     without touching your margin.
+
+     BUILT FROM `PRICING_FIELDS`, which is also what `pricingRefusal_` reads, so the page and the
+     cooldown cannot disagree about which fields are the quote. */
+  'Your rate and group size': PRICING_FIELDS,
   /* An address is a parent's to give and nobody else's business, so it sits with contact details
      rather than on the public card. */
   'Where you are': ['address', 'postcode'],
@@ -1986,17 +2022,17 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
    an admin fixing somebody else's bad handle is the remedy rather than the abuse. */
 const HANDLE_COOLDOWN_DAYS = 30;
 
-/* ---------- AND A MONTH ON THE SEAT CAP, WHICH IS ITS OWN NUMBER ---------------------------------
+/* ---------- AND A MONTH ON WHAT A TUTOR CHARGES, WHICH IS ITS OWN NUMBER -------------------------
    THE SAME THIRTY AND DELIBERATELY NOT THE SAME CONSTANT. The two rules answer different questions
    and could honestly diverge: a username cooldown is a brake on an arms race, and this is about
-   bookings already taken against a stated capacity. Folding them onto one name would make a change
-   to either a change to both, which is the shape this repository records under `needs_print` /
-   `print_required` — one fact in two columns is a fault, and two facts under one name is the same
-   fault the other way round.
+   bookings already taken against a stated price and a stated capacity. Folding them onto one name
+   would make a change to either a change to both, which is the shape this repository records under
+   `needs_print` / `print_required` — one fact in two columns is a fault, and two facts under one
+   name is the same fault the other way round.
 
    ADMINS ARE EXEMPT AND NOTHING ELSE IS, exactly as the handle rule has it: an admin fixing a
-   tutor's cap is the remedy rather than the thing being braked. */
-const SEATS_COOLDOWN_DAYS = 30;
+   tutor's rate or cap is the remedy rather than the thing being braked. */
+const PRICING_COOLDOWN_DAYS = 30;
 
 /* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER.
    NO UNICODE, and that is the one rule here that is about safety rather than tidiness: `раul` with a

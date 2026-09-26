@@ -214,6 +214,12 @@ function stateOf(id) {
   return [
     scr ? hash(scr.innerHTML) : -1,
     sheet && !sheet.classList.contains('hidden') ? hash((document.getElementById('sheet-body') || {}).innerHTML || '1') : 0,
+    /* AND THE DROP-DOWN, which is the booking form's list of answers and is a sibling of the screens
+       for the reason `#sheet` is: `.pane` is `overflow: hidden` and would clip it. So opening it,
+       ticking in it and closing it all happen outside `#s-booking` entirely, and a state read that
+       stopped at the screen would call every one of them a press that did nothing. */
+    (() => { const d = document.getElementById('drop');
+      return d && !d.classList.contains('hidden') ? hash(d.innerHTML || '1') : 0; })(),
     typeof AT === 'undefined' ? '?' : AT,
     typeof PAGE === 'undefined' ? '?' : JSON.stringify(PAGE),
     toast ? (toast.textContent || '').trim() : '',
@@ -307,6 +313,10 @@ for (const who of VISITORS) {
     const scr = document.getElementById('s-' + sid);
     const sheet = document.getElementById('sheet');
     const open = sheet && !sheet.classList.contains('hidden');
+    /* AND THE DROP-DOWN, for `#sheet`'s reason: the booking form's list of answers is outside the
+       screens, so its options and its Done are on no screen and would be pressed by nothing. */
+    const drop = document.getElementById('drop');
+    const dropOpen = drop && !drop.classList.contains('hidden');
     /* THE ONE THAT IS NOT ALREADY CHOSEN, WHERE THERE IS A CHOICE. The first honest run reported
        `mat-level`, `mat-exam` and `timer-set` as presses that changed nothing, and all three were
        this harness pressing the option that was already selected — the answer a person gets for
@@ -322,13 +332,14 @@ for (const who of VISITORS) {
       return [...all.filter(e => !chosen(e)), ...all.filter(chosen)];
     };
     /* THE SHEET FIRST WHEN ONE IS OPEN, because it is in front and it is what a finger would reach. */
-    const cands = (open ? pick(sheet) : []).concat(pick(scr));
+    const cands = (dropOpen ? pick(drop) : []).concat(open ? pick(sheet) : []).concat(pick(scr));
     /* PRESENT AND DISABLED IS NOT ABSENT, and it is not a fault either. `mat-print` is greyed until
        the sheet has something on it to print, and a disabled control doing nothing when it is
        pressed is the browser working correctly. Reported apart from "could not find it at all",
        because those two want opposite responses. */
     if (!cands.length) {
-      const any = (open && sheet ? [...sheet.querySelectorAll('[data-do="' + act + '"]')] : [])
+      const any = (dropOpen && drop ? [...drop.querySelectorAll('[data-do="' + act + '"]')] : [])
+        .concat(open && sheet ? [...sheet.querySelectorAll('[data-do="' + act + '"]')] : [])
         .concat(scr ? [...scr.querySelectorAll('[data-do="' + act + '"]')] : []);
       return any.length ? { disabled: true } : { gone: true };
     }
@@ -380,10 +391,17 @@ for (const who of VISITORS) {
     /* WHAT THE PRESS PUT IN FRONT OF SOMEBODY. A sheet's actions are on no screen at all — the
        details form, the composer, the pay sheet, the practical guide — so the only way any of them
        is ever pressed is by being collected here, while the sheet that holds them is still open. */
-    const inSheet = sheetOpen ? [...new Set([...sh.querySelectorAll('[data-do]')].map(e => e.dataset.do))] : [];
+    const dp = document.getElementById('drop');
+    const dropUp = !!(dp && !dp.classList.contains('hidden'));
+    /* AND WHATEVER THE DROP-DOWN PUT THERE, for the same reason: the booking form's list of answers
+       is outside the screens, so its options and its Done are collected here or nowhere. Joined to
+       `inSheet` rather than given a field of its own — what the caller does with either is
+       identical, and a second name would be a second list to keep in step. */
+    const inSheet = (sheetOpen ? [...sh.querySelectorAll('[data-do]')].map(e => e.dataset.do) : [])
+      .concat(dropUp ? [...dp.querySelectorAll('[data-do]')].map(e => e.dataset.do) : []);
     const s2 = document.getElementById('s-' + sid);
     const onScreen = s2 ? [...new Set([...s2.querySelectorAll('[data-do]')].map(e => e.dataset.do))] : [];
-    return { where, changed, sheetOpen, inSheet, onScreen, alive: aliveIn(sid) };
+    return { where, changed, sheetOpen: sheetOpen || dropUp, inSheet: [...new Set(inSheet)], onScreen, alive: aliveIn(sid) };
   }, { sid, act });
 
   /* ---------- A CLEAN PAGE, WHICH IS THE ONLY HONEST WAY TO SAY "NOT THERE" ------------------------
