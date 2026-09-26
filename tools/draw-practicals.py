@@ -1793,6 +1793,717 @@ def hm02():
                     'below it six identical test tubes standing in a rack, each part-filled to '
                     'the same depth and numbered one to six with nothing added to them yet', *p)
 
+# ---- THE LAST SIXTEEN ------------------------------------------------------------------------------
+# EVERY ONE OF THESE WAS DRAWN AND THEN ATTACKED BY A SECOND READER TOLD TO REFUSE IT, and all
+# sixteen came back `needs_changes` — which is what a refuter is for and is not by itself a
+# finding. TWO OF THEM GAVE THE ANSWER AWAY and would have shipped: `fn08` captioned the host's
+# cup trick with "he knows which is which", which is the hinge the row's own `science` calls
+# crucial and the one candidate its `variables` list flags as load-bearing; and `hm13` drew a
+# stop line and a dot on a tape it had itself graduated at 10 cm a division, so the distance the
+# practical exists to measure was countable straight off the card. Both are out of the drawing.
+#
+# AND THE REST WERE FOUND BY LOOKING, which is the twenty-fourth time this project says a
+# screenshot is the last word on a drawing: a thermometer bulb the same width as its own stem, a
+# liquid level drawn at exactly half a cup the method then adds more to, and a leader line that
+# ran flat out of the cup and through the beaker wall so the picture showed one surface spanning
+# both vessels — under a caption that had to spend a line denying it. A caption that must deny
+# what the picture shows is the fault this file records where a figure and its prose disagree.
+
+def hm04():
+    p = [# the battery, brought down so that BOTH terminals sit on the pad at once
+         ln(170, 20, 170, 34), head(0, 12, 170, 34, 5.5),
+         rect(157, 38, 26, 34), cap(214, 50, '9V battery', 'start'), ln(186, 52, 210, 50),
+         rect(160.5, 72, 5, 9), rect(174.5, 72, 5, 9),
+         cap(128, 54, 'both terminals', 'end'), cap(128, 66, 'on the wool at once', 'end'),
+         ln(132, 62, 161, 76.5),
+         # the pad: an outline and two scribbles, because wire wool is a tangle
+         path('M 136 113 Q 132 92 152 84 Q 170 78 188 84 Q 208 92 204 113'),
+         poly([(144, 104), (152, 92), (158, 105), (150, 97), (165, 89), (159, 101),
+               (174, 96), (168, 85), (181, 93), (176, 104), (189, 97), (184, 88),
+               (195, 100)]),
+         poly([(146, 110), (156, 101), (149, 106), (163, 109), (155, 112), (170, 103),
+               (162, 107), (178, 111), (171, 105), (186, 108), (179, 112), (193, 106)]),
+         ln(152, 86, 166, 106), ln(186, 87, 174, 107), ln(158, 95, 184, 99),
+         # the tray
+         poly([(86, 87), (96, 113), (244, 113), (254, 87)]),
+         cap(78, 92, 'metal', 'end'), cap(78, 104, 'baking tray', 'end'), ln(82, 100, 91, 102),
+         cap(170, 131, 'a 3 to 5 g pad of wire wool, grade 0000'),
+         # the scale, platform empty and display blank: the readings are the experiment
+         rect(32, 159, 88, 7), rect(38, 166, 76, 18), rect(63, 170, 26, 10),
+         cap(76, 200, 'digital scale'),
+         path('M 206 160 Q 246 206 286 160'), ln(218, 172, 274, 172),
+         cap(246, 200, 'bowl of water alongside'),
+         cap(170, 218, 'weigh the pad before it is lit, and again once it is'),
+         cap(170, 232, 'stone cold — the two readings are the whole experiment')]
+    return svg(244, 'A pad of wire wool on a metal baking tray with a 9V battery lowered onto it '
+                    'so that both terminals touch the pad at once, and a digital scale with an '
+                    'empty platform and a bowl of water standing alongside', *p)
+
+def hm05():
+    # THE VOLUME AND THE THERMOMETER ARE THE WHOLE METHOD, and the graph is the result, so neither
+    # the graph nor a glass fizzing harder than its neighbour is here. Three identical glasses at
+    # one level, before the tablet touches the water.
+    G = ((112, 'cold'), (190, 'warm'), (268, 'hot'))
+    p = [# the measuring jug: what makes the volume the same run after run
+         beaker(26, 82, 66, 116, 126),
+         path('M 26 104 Q 12 120 26 136'),                              # the handle
+         ln(92, 82, 105, 78),                                           # the pouring lip
+         ''.join(ln(26, 110 + 16 * k, 34, 110 + 16 * k) for k in (0, 2, 3, 4)),
+         cap(59, 74, 'measuring jug'),
+         ln(106, 84, 122, 112), head(16, 28, 122, 112, 6),
+         # the three glasses, identical, filled to one level
+         ''.join(beaker(x, 114, 60, 84, 140) for x, _ in G),
+         dash(172, 140, 190, 140), dash(250, 140, 268, 140),
+         ''.join(cap(x + 30, 216, nm) for x, nm in G),
+         # the probe, down into the WATER of the run being set up
+         rect(112, 60, 36, 20), rect(116, 64, 28, 12),
+         rect(125, 80, 8, 80), path('M 125 160 L 129 168 L 133 160'),
+         cap(129, 52, 'thermometer'),
+         # one whole tablet, still above the water
+         circ(162, 76, 8), ln(162, 88, 162, 106), head(0, 18, 162, 106, 5.5),
+         cap(178, 80, 'one WHOLE tablet', 'start'),
+         # the clock, at zero
+         rect(297, 64, 6, 6), circ(300, 88, 18), ln(300, 88, 300, 74), dot(300, 88, 2),
+         cap(300, 60, 'stopwatch'),
+         cap(170, 240, 'the same volume every run — change ONE thing at a time')]
+    return svg(252, 'A measuring jug standing beside three identical glasses filled to the same '
+                    'level and labelled cold, warm and hot, with a digital thermometer probe in '
+                    'the first glass, one whole tablet held above it, and a stopwatch at zero',
+               *p)
+
+def hm09():
+    ROAD, KERB, A, B = 150, 144, 100, 270
+
+    # THE SHADE'S BACK EDGE IS VERTICAL so the arm actually MEETS it. Drawn as a symmetric
+    # trapezium its left edge runs (x+11,12) to (x+14,22), so at the two heights the arm walls
+    # arrive at it sits at x+11.6 and x+13.1 -- the outer wall landed 0.6 short, which the 1.3
+    # stroke hides, and the INNER wall landed 2.1 short and ended in mid air. At 20rem that is a
+    # visible break between a post and its own lamp, on both posts. Caught on a screenshot, which
+    # CLAUDE.md records as the last word on a drawing.
+    def post(x):
+        return (path('M %.1f %d L %.1f 30 Q %.1f 14 %.1f 14'
+                     % (x - 2.5, ROAD, x - 2.5, x - 2.5, x + 11)) +
+                path('M %.1f %d L %.1f 36 Q %.1f 19 %.1f 19'
+                     % (x + 2.5, ROAD, x + 2.5, x + 2.5, x + 11)) +
+                poly([(x + 11, 12), (x + 28, 12), (x + 25, 22), (x + 11, 22), (x + 11, 12)]))
+
+    p = [# the pavement you stand on, the kerb, and the road
+         ln(14, KERB, 76, KERB), ln(76, KERB, 76, ROAD), ln(76, ROAD, 330, ROAD),
+         post(A), post(B),
+         # one car, between the two points
+         ln(150, 131, 220, 131), ln(150, 131, 150, 144), ln(220, 131, 220, 144),
+         ln(150, 144, 159, 144), ln(173, 144, 191, 144), ln(205, 144, 220, 144),
+         poly([(162, 131), (167, 118), (194, 118), (201, 131)]),
+         circ(166, 143, 7), circ(198, 143, 7),
+         ln(232, 134, 258, 134), head(26, 0, 258, 134, 5.5),
+         # you, back from the kerb, a stopwatch in one hand and a blank sheet in the other
+         person(38, KERB),
+         ln(38, 88, 58, 96), circ(64, 99, 7), ln(64, 99, 64, 93),
+         ln(38, 90, 24, 96), rect(10, 96, 18, 24), rect(15, 93, 8, 3),
+         ln(13, 106, 25, 106), ln(13, 113, 25, 113),
+         # the one measurement, taken once
+         dash(A, ROAD, A, 176), dash(B, ROAD, B, 176),
+         arrow(A, 182, B, 182), lbl(185, 177, 'd'),
+         cap(170, 204, 'two fixed landmarks — consecutive lamp posts are ideal'),
+         cap(170, 218, 'measured once with a tape or the tool in Google Maps'),
+         cap(170, 240, 'start the watch at one post and stop it at the other'),
+         cap(170, 254, 'speed = d ÷ t, and × 2.237 for mph'),
+         cap(170, 276, 'you, the stopwatch and the sheet you log twenty on, all'),
+         cap(170, 290, 'well back on the pavement — never in the road')]
+    return svg(300, 'Two consecutive lamp posts standing beside a road with the distance between '
+                    'them marked d, one car passing between them, and an observer up on the '
+                    'pavement well back from the kerb holding a stopwatch and a clipboard', *p)
+
+def hm10():
+    """The recording sheet, ruled up before the first look. THE TALLY AND THE BAR CHART ARE THE
+    RESULT and neither is here: every cell is empty, and what fixes the grid at eight columns is
+    the row's own two minutes divided by its own fifteen seconds. The five rows are the five
+    behaviours the step names and no others."""
+    def fish(cx, cy):
+        # THE CURVE REACHES cy +- 6, NOT cy +- 12: a quadratic sits half way to its control point,
+        # so the drawn body is 12 tall and the tail corners are its widest part. Anything placed
+        # against a fish is placed against cx-16..cx+9 by cy-6..cy+6.
+        return (path('M %.1f %.1f Q %.1f %.1f %.1f %.1f Q %.1f %.1f %.1f %.1f'
+                     % (cx - 9, cy, cx, cy - 12, cx + 9, cy, cx, cy + 12, cx - 9, cy)) +
+                poly([(cx - 9, cy), (cx - 16, cy - 6), (cx - 16, cy + 6), (cx - 9, cy)]) +
+                dot(cx + 4, cy - 1, 1.4))
+
+    GL, GR, GT = 112.0, 316.0, 190.0                   # the grid: left, right, top
+    COL, ROW = (GR - GL) / 8, 17.0
+    behaviours = ('swimming', 'still', 'at the surface', 'hiding', 'feeding')
+
+    p = [# the tank, and the ONE animal you stay with -- which is step 1 and the thing most likely
+         # to be got wrong, so it is ringed rather than written
+         rect(26, 34, 128, 66), ln(26, 44, 154, 44),
+         # fish(104, 92) REACHED y=98 AGAINST A TANK FLOOR AT y=100. Two units, of which 1.3 is
+         # the stroke either side, so the fish and the bottom rail merged into one line and the
+         # fish read as stuck through the glass. Seven units of clearance now.
+         fish(116, 56), fish(104, 87), fish(136, 82),
+         # THE RING IS CENTRED ON THE FISH, NOT ON ITS Q-CURVE ORIGIN. A fish is drawn from cx-16
+         # to cx+9, so its middle is cx-3.5: centred at cx the ring left 1.9 of clearance at the
+         # tail and 10 at the nose, and 1.9 is narrower than the 1.3 stroke either side of it, so
+         # the ring and the tail merged and the one mark that says "this is the animal you stay
+         # with" read as a line cut through it. A screenshot is what showed that; nothing measures
+         # it -- the glyph is inside the viewBox either way.
+         fish(70, 72), circ(66.5, 72, 18, 'pt', 'style="stroke-dasharray:4 3"'),
+         cap(90, 118, 'ONE animal, and'), cap(90, 132, 'stay with it'),
+         # the stopwatch, with the one mark it is there for
+         circ(250, 68, 24), rect(245, 38, 10, 7),
+         ln(250, 46, 250, 52), ln(272, 68, 266, 68),
+         ln(250, 90, 250, 84), ln(228, 68, 234, 68),
+         ln(250, 68, 267, 68), dot(250, 68, 2),
+         txt(292, 72, '15 s', 'num'), cap(250, 118, 'stopwatch'),
+         # the sheet: eight looks across, five behaviours down, and nothing written in any of them
+         cap(214, 152, 'two minutes, a look every 15 s'),
+         arrow(GL, 166, GR, 166, False),
+         ''.join(txt(GL + COL * (k + .5), 184, str(k + 1), 'num') for k in range(8)),
+         ''.join(ln(GL, GT + ROW * k, GR, GT + ROW * k) for k in range(6)),
+         ''.join(ln(GL + COL * k, GT, GL + COL * k, GT + ROW * 5) for k in range(9)),
+         ''.join(cap(106, GT + ROW * k + 13, behaviours[k], 'end') for k in range(5)),
+         cap(170, 297, 'a tank, a pond or birds at a window all work'),
+         cap(170, 311, 'rule up TWO: one before feeding, one after'),
+         cap(170, 325, 'you cannot watch it all, so you SAMPLE')]
+    return svg(334, 'A fish tank holding four fish with one of them ringed, a stopwatch with its '
+                    'fifteen-second mark labelled, and an empty recording grid of five behaviour '
+                    'rows against eight fifteen-second columns', *p)
+
+def hm13():
+    p = [# ---- THE RUN BEFORE ANYBODY LETS GO. Everything here is a fact the row states: a hard
+         #      floor about 3 m long, a start line taped onto it (step 2), and the tape measure
+         #      laid from that line (step 3, "set it on the line ... measure how far it travels").
+         #      The tape's left end runs on through the floor, so the line the tape reads nought
+         #      at and the line the model stands on are visibly the SAME line.
+         ln(14, 118, 328, 118),
+         rect(22, 118, 48, 4),
+         ln(70, 108, 320, 108), ln(70, 108, 70, 124), ln(320, 108, 320, 118),
+         ticks(70, 118, 250, 30, 5),
+         lbl(320, 102, '3 m', 'end'),
+         cap(52, 140, 'taped start line'),
+         cap(210, 140, 'tape measure from the line, on hard floor'),
+
+         # ---- THE MODEL, its front edge on that line. DASHED ON PURPOSE: step 1 is "build the
+         #      mechanism from the kit", so the BOOKLET fixes its shape and this row does not --
+         #      a drawn assembly would be a guess at somebody else's kit printed on a card a
+         #      child is following. What is solid is what the row states: two WHEELS, named by
+         #      its own science ("friction between the wheels and the floor is what eventually
+         #      stops it"). The stopwatch is in `equipment` and no step uses it, so where it goes
+         #      is not a set-up fact and it is not drawn.
+         rect(32, 80, 38, 26, 'pt', 'style="stroke-dasharray:5 4;opacity:.75"'),
+         circ(41, 112.5, 5.5), circ(61, 112.5, 5.5),
+
+         # ---- THE WINDING. The counts are steps 3 and 5 word for word.
+         arc(51, 44, 14, -150, 130), head(-0.766, -0.643, 42.0, 54.7, 6),
+         dash(58, 62, 58, 78),
+         cap(78, 38, 'your kit, built to its', 'start'),
+         cap(78, 52, 'own booklet — wind it', 'start'),
+         cap(78, 66, '5, then 10, 15, 20', 'start'),
+
+         # ---- AND THEN IT GOES, AND THAT IS WHERE THIS PICTURE STOPS. No stop line, no dot on
+         #      the tape and no dimension: how far it travels at each number of winds IS the
+         #      measurement, and a mark anywhere on a tape graduated in tens of centimetres is a
+         #      reading whatever its caption says -- the first version put one at 2.18 m of the
+         #      3 m run, countable off 22 divisions, under a caption claiming it was not drawn.
+         #      The winds-against-distance graph and the point where the line stops being
+         #      straight -- the whole of `outcome` -- are nowhere here either.
+         cap(200, 86, 'let go — then read off where it stops'),
+         ln(76, 96, 230, 96), head(28, 0, 230, 96, 6),
+
+         # ---- and the two things the method gets wrong if nobody says them ---------------------
+         cap(170, 170, 'check it runs freely before you measure anything'),
+         cap(170, 192, 'three runs at each number of winds — the MIDDLE value'),
+         cap(170, 206, 'is what you write down, not the best one')]
+    return svg(216, 'A wind-up model standing with its front edge on a taped start line on a hard '
+                    'floor, drawn as a dashed box on two wheels because the kit rather than this '
+                    'row fixes its shape, with a circular arrow above it for the winding and a '
+                    'three-metre tape measure running along the floor from that same line, and an '
+                    'arrow along the run showing the direction it is let go in', *p)
+
+def hm22():
+    # THE RUN IS THE SET-UP AND THE BAR CHART IS THE ANSWER. `outcome` is "a bar chart of surface
+    # against speed, and a ranking of the surfaces by how much friction they add", so no speed, no
+    # time and no distance VALUE is on this picture: d and t are named and never given numbers.
+    # An earlier version drew the four surfaces as four equal framed boxes on a common baseline
+    # with a category name centred under each -- which is that bar chart's own x-axis, with all
+    # four bars the same height. They are four short pieces of GROUND now, so nothing reads as a
+    # bar; and they stay in the equipment list's own order, which alternates rough and smooth and
+    # is therefore not the friction ranking either.
+    GY, SX, FX = 104, 136, 306
+
+    def mark(x, word):
+        """A masking-tape line: the tape on the ground, and the sightline up off it."""
+        return ln(x, GY, x, 74) + rect(x - 7, GY, 14, 4) + cap(x, 68, word)
+
+    def ground(x1, x2, ink):
+        """A piece of floor is a LINE with something on it, not a box. The framed version read as
+        a bar; and the carpet inside it -- eleven evenly spaced equal-height risers off a baseline
+        -- was the shape `ticks()` draws for the tape measure 45 units above, so one picture held
+        two things that read as rules. A screenshot is what said so; nothing measures wrong."""
+        return ln(x1, 200, x2, 200) + ink
+
+    p = [ln(14, GY, 330, GY, 'axis'),
+         mark(SX, 'start'), mark(FX, 'finish'),
+         # THE SPAN IS THE LABELLED THING, not either line: step 4 is "use the same distance on
+         # every surface, or the comparison is worthless", so what has to be seen is d itself.
+         dash(SX, GY + 4, SX, 128), dash(FX, GY + 4, FX, 128),
+         rect(SX, 128, FX - SX, 9), ticks(SX, 137, FX - SX, 12), lbl(221, 124, 'd'),
+         # THE CAR BEFORE THE LINE AND ALREADY MOVING, which is the whole of the rolling start.
+         # No aerial: the row says "a remote-control car" and nothing about one, and an aerial
+         # asserts a kind of car (most are 2.4 GHz and have none) the row never states.
+         circ(44, 96, 8), circ(78, 96, 8), dot(44, 96, 1.8), dot(78, 96, 1.8),
+         rect(30, 78, 62, 14), poly([(42, 78), (50, 66), (72, 66), (80, 78)]),
+         ln(100, 86, 128, 86), head(28, 0, 128, 86, 5.5),
+         # the stopwatch, leadered to BOTH marks. Step 2 times it "between the marks", and that it
+         # does not run from rest is the one thing on this card the prose cannot show.
+         circ(221, 42, 12), rect(218.5, 25, 5, 5), ln(221, 42, 228, 34),
+         lbl(241, 47, 't', 'start'),
+         dash(212, 50, 140, 78), dash(230, 50, 302, 78),
+         cap(170, 150, 'a ROLLING start: flat out BEFORE it crosses the first line'),
+         cap(170, 164, 'and the SAME d on all four'),
+         # FOUR PIECES OF GROUND: pile, bare, joints, blades. `hard floor` is deliberately the bare
+         # line -- it is the smooth one, and a bare line states that without narrowing the named
+         # object into floorboards, which is a guess the row does not make. Same for `pavement`:
+         # two joints, not a brick bond.
+         ground(24, 83, ''.join(path('M %g 200 q 3.2 -6.5 6.4 0' % (25 + 6.4 * k))
+                                for k in range(9))),
+         ground(101, 161, ''),
+         ground(179, 239, ln(199, 200, 199, 207) + ln(219, 200, 219, 207)),
+         ground(257, 317, ''.join(path('M %g 200 Q %g 194 %g %g'
+                                       % (259 + 7.4 * k, 260.5 + 7.4 * k, 263 + 7.4 * k,
+                                          186 + 3 * (k % 3)))
+                                  for k in range(8))),
+         cap(53, 220, 'carpet'), cap(131, 220, 'hard floor'),
+         cap(209, 220, 'pavement'), cap(287, 220, 'short grass'),
+         # THE ONE CAPTION THAT IS ABOUT THE PICTURE RATHER THAN ABOUT THE METHOD. Four surfaces in
+         # a row invite being read as a run order, and `notes` says that reading is the confound:
+         # "running carpet, then floor, then grass gives grass the flattest battery and the answer
+         # everybody expected". Steps 1 and 3 are not repeated here -- the ordered list sits two
+         # inches below this figure and carries both.
+         cap(170, 242, 'the four are in no order: rotate which you run first,'),
+         cap(170, 256, 'or a flattening battery makes the last one look slow')]
+    return svg(264, 'A remote-control car on the ground short of a masking-tape start line with an '
+                    'arrow showing it already moving, a second tape line further along, and a '
+                    'graduated tape measure spanning the distance between the two; a stopwatch '
+                    'above with dashed leaders to each line; and below them four short pieces of '
+                    'ground drawn side by side and labelled, one with carpet pile, one bare, one '
+                    'with paving joints and one with blades of grass', *p)
+
+def hm23():
+    # THE KIT IS DRAWN AND THE BUILD IS NOT. Step 2 gives fifteen minutes to design, so what anybody
+    # makes from the ration is the variable each team chooses -- a straw cage or a parachute drawn
+    # here is one team's answer printed on everybody's card, and it is also the practical's own
+    # question, since `outcome` wants a reason involving stopping time. The egg is bare and `h` is
+    # generic: WHICH height it survived is the recorded result, not the set-up.
+    # ALL FIVE MATERIALS, because equipment reads "Paper, straws, tape, string, plastic bags" and
+    # step 1's numbers are an example -- "say ten straws...". Drawing three of the five as though
+    # they were the ration deletes the plastic bag and the string, which is what a parachute is made
+    # of, and `science` names a parachute as one of the two mechanisms that work.
+    # THE LADDER IS STATED EQUIPMENT and is what makes this a set-up rather than an egg floating on
+    # a line: "a step ladder or an upstairs window, WITH AN ADULT", which is the row's one safety
+    # clause on a practical whose age_min is 7.
+    egg = path('M 136 48 A 10 10 0 0 0 156 48 Q 155 35 146 32 Q 137 35 136 48')
+    ladder = [ln(44, 176, 62, 58), ln(96, 176, 78, 58), ln(58, 58, 82, 58),
+              ln(47.7, 152, 92.3, 152), ln(51.9, 124, 88.1, 124), ln(56.2, 96, 83.8, 96)]
+    p = ladder + [
+        # the drop: held level with the top of the ladder, measured, over a tray on the floor
+        dash(82, 58, 134, 58), egg,
+        ln(157, 40, 166, 40),
+        cap(170, 43, 'the egg, bare — what you', 'start'),
+        cap(170, 57, 'build round it is yours', 'start'),
+        cap(170, 79, 'from a step ladder or a', 'start'),
+        cap(170, 93, 'window, with an adult', 'start'),
+        dash(146, 62, 146, 152),
+        arrow(26, 58, 26, 176), lbl(15, 121, 'h'),
+        cap(170, 119, 'start low, then go higher', 'start'),
+        # THE FLOOR IS BROKEN UNDER THE TRAY rather than drawn through it, which is `hwire`'s own
+        # rule in this file: a tray whose base sits on a continuous line has no base you can see.
+        ln(14, 176, 124, 176), ln(168, 176, 326, 176),
+        poly([(120, 156), (126, 176), (166, 176), (172, 156)]),
+        cap(186, 170, 'a tray or bin bag under it', 'start'),
+        # the kit on the table, with step 1's example quantities on the three it gives them for
+        cap(170, 200, 'set a materials limit before anybody builds'),
+        ln(14, 248, 326, 248),
+        ''.join(ln(22.2 + 4.4 * i, 214, 22.2 + 4.4 * i, 248) for i in range(10)),
+        poly([(86, 248), (86, 208), (112, 208), (122, 218), (122, 248), (86, 248)]),
+        poly([(112, 208), (112, 218), (122, 218)]),
+        circ(164, 232, 16), circ(164, 232, 6),
+        ln(180, 229, 196, 229), ln(180, 235, 196, 235), ln(196, 229, 196, 235),
+        path('M 212 248 Q 218 230 226 242 Q 233 252 241 238 Q 249 226 256 248'),
+        rect(281, 218, 31, 30),
+        path('M 286 218 Q 289 206 294 218'), path('M 300 218 Q 305 206 308 218'),
+        cap(42, 262, 'ten straws'), cap(104, 262, 'one sheet'),
+        cap(172, 262, '50 cm of tape'), cap(234, 262, 'string'),
+        cap(296, 262, 'plastic bags')]
+    return svg(272, 'A bare egg held level with the top of a step ladder, above a tray standing on '
+                    'the floor, with the drop height h measured down the side and a dashed line '
+                    'marking the fall; and under it the build kit laid out on a table — ten straws, '
+                    'a sheet of paper, a roll of tape, a length of string and a plastic bag', *p)
+
+def hm24():
+    # 12 directions, 30 degrees apart, written out because nothing here imports. A gear is a hub,
+    # a rim and radial teeth -- and those teeth are the one thing in this picture that must NOT be
+    # counted as a real number, which is what the closing caption says outright.
+    U = [(1, 0), (.866, .5), (.5, .866), (0, 1), (-.5, .866), (-.866, .5),
+         (-1, 0), (-.866, -.5), (-.5, -.866), (0, -1), (.5, -.866), (.866, -.5)]
+
+    def gear(cx, cy, tooth, r=25, tip=6):
+        out = [circ(cx, cy, r), circ(cx, cy, 7)]
+        for ux, uy in U:
+            out.append(ln(cx + ux * r, cy + uy * r, cx + ux * (r + tip), cy + uy * (r + tip)))
+        out.append(dot(cx + U[tooth][0] * (r + tip), cy + U[tooth][1] * (r + tip), 3.4))
+        return ''.join(out)
+
+    p = [# THE TWO ENDS, EACH CAPTIONED DIRECTLY ABOVE THE THING IT NAMES, in step 2's own words.
+         # An earlier layout put all three top captions on one row at one y, and the middle one was
+         # centred on 155 -- which is the centre of the dashed box under it, so scanning the row
+         # read three labels for three objects and called the unknown gear train "ONE tooth
+         # marked", over a box already carrying its own two-line label inside it.
+         cap(54, 20, 'the gear the handle'), cap(54, 34, 'or motor turns'),
+         cap(272, 20, 'the gear the wheels'), cap(272, 34, 'are on'),
+         # THE STICKER, ON A LINE OF ITS OWN AND JOINED TO BOTH MARKED TEETH. The leaders reach the
+         # dots rather than stopping in clear space several pixels short of everything, so the note
+         # is plainly about them. Teeth 11 and 7 put the two dots on the inward-facing tips, which
+         # is what makes the leaders short -- and they are still at different clock positions, so
+         # nothing implies the two gears start aligned.
+         cap(155, 52, 'a sticker on ONE tooth of each'),
+         ln(90, 57, 80.8, 76.5), ln(220, 57, 229.2, 76.5),
+         # THE INPUT: ten turns, with a head on the arc, because which way you crank it is a CHOICE
+         # rather than anything the practical asks anybody to work out -- and it is what makes the
+         # missing head on the output legible as a question instead of as an oversight.
+         gear(54, 92, 11),
+         arc(54, 92, 40, 45, 135), head(-.707, -.707, 25.7, 120.3, 5.5),
+         lbl(54, 150, '× 10'),
+         # WHATEVER THE INSTRUCTIONS PUT BETWEEN THE TWO ENDS. The row never says how many gears,
+         # and it is that unknown that keeps the output's direction genuinely open: with an unknown
+         # count in between, a known input direction settles nothing.
+         dash(85, 92, 96, 92), head(1, 0, 98, 92, 6),
+         dash(98, 62, 212, 62), dash(212, 62, 212, 122),
+         dash(212, 122, 98, 122), dash(98, 122, 98, 62),
+         cap(155, 86, 'however many gears'), cap(155, 100, 'are in between'),
+         dash(212, 92, 223, 92), head(1, 0, 225, 92, 6),
+         # THE OUTPUT: the same arc with NO head and NO count, on the same axle as a wheel. The
+         # direction and the ratio are the whole of what steps 4 to 6 ask for, so neither is here.
+         gear(256, 92, 7),
+         arc(256, 92, 40, 45, 135), lbl(256, 150, '× ?'),
+         ln(287, 92, 300, 92), circ(314, 92, 14), circ(314, 92, 5),
+         cap(170, 174, 'ten turns of the input, then count the turns the output makes'),
+         cap(170, 196, 'the output arc has no arrowhead and no number: which way'),
+         cap(170, 210, 'it turns and how often are what you are finding out'),
+         cap(170, 232, "the train, each gear's direction and the ratio go on YOUR paper"),
+         # BOTH GEARS ARE THE SAME SIZE AND BOTH CARRY TWELVE TEETH, and this line is what makes
+         # that safe: step 7 has the student count real teeth, so a countable drawn number is a
+         # ratio nobody measured, and two different drawn sizes would hint at which way it goes.
+         cap(170, 246, 'the teeth here are a drawing — count the ones on your own gears')]
+    return svg(260, 'The two ends of a gear train: the gear a handle or motor turns, a dashed box '
+                    'standing for however many gears the instructions put in between, and the gear '
+                    'on the same axle as a wheel, with one tooth of each marked',
+               *p)
+
+def hm26():
+    p = [# the bottle, after step 1 and no further: water to a quarter and nothing above it
+         path('M 80 30 Q 90 24 100 30'),
+         ln(80, 30, 80, 58), ln(100, 30, 100, 58),
+         ln(80, 58, 60, 76), ln(100, 58, 120, 76),
+         ln(60, 76, 60, 212), ln(120, 76, 120, 212),
+         ln(60, 170, 120, 170), cap(90, 194, 'water'), cap(90, 130, 'empty'),
+         arrow(48, 212, 48, 170), lbl(36, 192, '¼'),
+         # the tray it stands in, whose rim is the bottle's own base line
+         ln(34, 212, 34, 226), ln(146, 212, 146, 226), ln(34, 226, 146, 226),
+         ln(34, 212, 146, 212, 'axis'), cap(90, 244, 'the tray'),
+         # the oil, still in its own bottle
+         rect(190, 26, 12, 8),
+         ln(190, 34, 190, 46), ln(202, 34, 202, 46),
+         ln(190, 46, 176, 58), ln(202, 46, 216, 58),
+         ln(176, 58, 176, 112), ln(216, 58, 216, 112), ln(176, 112, 216, 112),
+         ln(176, 74, 216, 74),
+         cap(196, 124, 'vegetable oil'), cap(196, 137, 'in NEXT, slowly'),
+         # the food colouring
+         rect(287, 30, 6, 10), rect(283, 40, 14, 6),
+         ln(278, 46, 278, 112), ln(302, 46, 302, 112), ln(278, 112, 302, 112),
+         ln(278, 66, 302, 66),
+         cap(290, 124, 'food colouring'), cap(290, 137, '10 drops'),
+         # a tablet with its quarters scored on it. IT IS NAMED, and that is not decoration: it is
+         # a circle sitting beside a same-sized dial, and the one object with no label was the one
+         # a reader could not identify. Every other thing here says what it is.
+         circ(196, 176, 17), dash(196, 159, 196, 193), dash(179, 176, 213, 176),
+         cap(196, 214, 'a tablet'), cap(196, 227, 'a QUARTER first'),
+         # the stopwatch
+         rect(286, 153, 8, 6), circ(290, 176, 19),
+         ln(290, 176, 290, 163), ln(290, 176, 299, 182),
+         cap(290, 214, 'stopwatch'), cap(290, 227, 'time each run'),
+         cap(170, 270, 'the bottle after STEP 1 — water only, and only a quarter'),
+         cap(170, 284, 'which of the two ends up on top, and WHY, is step 2 — so'),
+         cap(170, 298, 'this figure stops before the oil goes in'),
+         cap(170, 320, 'a quarter of a tablet first, then a half, then a whole one')]
+    return svg(332, 'A tall clear bottle standing in a shallow tray, filled to a quarter of its '
+                    'height with water and empty above that, with a bottle of vegetable oil, a '
+                    'dropper bottle of food colouring, an effervescent tablet scored into quarters '
+                    'and a stopwatch standing beside it', *p)
+
+def hm27():
+    def egg(cx, cy):
+        return path('M %g %g C %g %g %g %g %g %g C %g %g %g %g %g %g '
+                    'C %g %g %g %g %g %g C %g %g %g %g %g %g'
+                    % (cx - 22, cy,
+                       cx - 21, cy - 11, cx - 10, cy - 14, cx + 2, cy - 14,
+                       cx + 15, cy - 14, cx + 22, cy - 6, cx + 22, cy,
+                       cx + 22, cy + 6, cx + 15, cy + 14, cx + 2, cy + 14,
+                       cx - 10, cy + 14, cx - 21, cy + 11, cx - 22, cy))
+    p = [cap(70, 80, 'string round it — the'), cap(70, 94, 'SAME place each time'),
+         dash(72, 104, 72, 138), egg(70, 124),
+         rect(28, 138, 84, 16), rect(92, 142, 14, 8),
+         cap(141, 120, 'then'), ln(124, 136, 158, 136), head(34, 0, 158, 136, 5.5),
+         ln(204, 60, 258, 60), ln(208, 60, 208, 70), ln(254, 60, 254, 70),
+         poly([(208, 70), (196, 84), (196, 162), (266, 162), (266, 84), (254, 70)]),
+         ln(196, 106, 266, 106), egg(231, 148),
+         ln(266, 106, 274, 111), cap(278, 115, 'vinegar', 'start'),
+         ln(198, 41, 262, 55.9), ln(198, 46, 262, 60.9),
+         ln(198, 41, 198, 46), ln(262, 55.9, 262, 68),
+         ln(262, 66, 274, 75),
+         cap(278, 79, 'lid on,', 'start'), cap(278, 93, 'LOOSE', 'start'),
+         ln(216, 55, 164, 46), head(-52, -9, 164, 46, 5.5),
+         cap(158, 40, 'the gas has to get out', 'end'),
+         cap(70, 182, 'weigh it and note it'),
+         cap(231, 182, 'shell still ON — this is the start'),
+         cap(231, 196, '× 2 — the second jar is the same'),
+         cap(170, 222, 'the vinegar has to COVER it — a shell half out of the'),
+         cap(170, 236, 'liquid dissolves half, and the mass says nothing'),
+         cap(170, 258, 'the lid goes on LOOSE, because this fizzes for two days')]
+    return svg(272, 'An egg lying on a digital kitchen scale with a dashed line marking where the '
+                    'string goes round it, and beside it a jar holding a whole egg covered by '
+                    'vinegar, with the lid tipped up off one side of the rim so there is a gap for '
+                    'the gas to escape', *p)
+
+def hm28():
+    BENCH = 112
+    pack = ('M 53 78 L 173 78 Q 190 78 190 95 Q 190 112 173 112 '
+            'L 53 112 Q 36 112 36 95 Q 36 78 53 78 Z')
+    inpan = ('M 131 188 L 187 188 Q 196 188 196 195 Q 196 202 187 202 '
+             'L 131 202 Q 122 202 122 195 Q 122 188 131 188 Z')
+    p = [cap(170, 18, '1 · before the click — still LIQUID'),
+         # the pack lying flat, with the disc in it and nothing spreading from it
+         ln(22, BENCH, 318, BENCH), path(pack),
+         circ(64, 95, 8), circ(64, 95, 3.5),
+         cap(36, 52, 'the metal disc —', 'start'),
+         cap(36, 66, 'click it, step 2', 'start'),
+         ln(58, 70, 62, 86),
+         # the thermometer, standing, tip pressed on the pack. The display is BLANK:
+         # a number on it would be a reading, and the readings ARE the experiment.
+         rect(133, 26, 26, 20), rect(137, 30, 18, 11),
+         rect(143, 46, 6, 28), poly([(143, 74), (146, 78.5), (149, 74)]),
+         cap(200, 32, 'digital thermometer', 'start'), ln(163, 32, 196, 32),
+         cap(200, 46, 'or an infrared one', 'start'),
+         cap(200, 60, 'tip pressed ON the pack', 'start'), ln(196, 57, 154, 72),
+         # the reset, which is step 6 and is the tutor's job before the session.
+         # WIDE AND SHALLOW, WITH THE HANDLE ON THE RIM. The first version was a beaker's
+         # proportions (116 by 52) with the water 18px under an open top and a bar floating
+         # above the wall, and the screenshot read as a box with shelves. Rim lips and steam
+         # were both drawn and both made it worse -- a closed top line reads as a lid, which
+         # is why beaker() leaves the top open, and two Q-curves read as parentheses.
+         cap(170, 138, '2 · the reset — ten minutes, before the session'),
+         beaker(92, 158, 134, 50, 182), rect(226, 155, 34, 6),
+         path(inpan), ln(200, 195, 244, 195), cap(248, 198, 'the pack', 'start'),
+         cap(84, 186, 'water', 'end'), ln(87, 182, 95, 182),
+         rect(78, 208, 162, 9), cap(70, 228, 'hob', 'end'), ln(73, 224, 84, 214),
+         cap(170, 250, 'boil until completely CLEAR, then cool UNDISTURBED'),
+         # THE ONLY THING THE PICTURE CANNOT SAY FOR ITSELF. The blank display is deliberate
+         # and without this line it reads as a drawing that forgot a number. The sampling
+         # intervals are NOT here: step 3 states them and prints directly under this figure,
+         # and maths_link calls choosing them "a real decision rather than a rule".
+         cap(170, 276, 'the display is blank and no crystals are drawn —'),
+         cap(170, 290, 'the peak and the curve are what you are here to find')]
+    return svg(302, 'A sodium acetate click hand warmer lying flat on the bench before it has been '
+                    'clicked, with the metal disc inside it and a digital thermometer standing with '
+                    'its tip pressed on the pack and its display blank, and below it the pan of '
+                    'water on a hob that the pack is boiled in to reset it', *p)
+
+def hm30():
+    # NOT ONE CRYSTAL IS DRAWN, and that is the whole of the restraint. `science` says fast cooling
+    # gives a great many tiny crystals and slow cooling a few large ones, which is exactly what the
+    # student is sent to find out -- so the two jars are the SAME shape, the SAME width and filled
+    # to the SAME level, and the only difference between them is where each one stands. The ruler
+    # and the magnifier are in the kit and are not drawn either: the only thing they could be shown
+    # measuring is that answer.
+    # THE DOTS ARE THE ONE THING A READER COULD MISTAKE FOR THE RESULT -- a scatter on the floor of
+    # a vessel, in a crystal practical -- so the caption naming them undissolved is not decoration,
+    # it is what stops the picture saying the opposite of what it means.
+    # THE JARS COME OUT OF THE JUG'S OWN HELPER, so "two identical jars" is true by construction
+    # rather than by two hand-drawn copies agreeing. Open-topped, because the row names no lid and
+    # a band across the mouth reads as one -- and a sealed jar is a different experiment.
+    def jar(cx, wy):
+        return beaker(cx - 21, 74, 42, 98, wy)
+    p = [# the teaspoon, tipping the next spoonful in
+         path('M 44 32 Q 58 46 72 26'), ln(44, 32, 72, 26), ln(72, 26, 104, 16),
+         dot(47, 48, 1.7), dot(44, 57, 1.7), dot(50, 65, 1.7),
+         cap(62, 60, 'Epsom salts', 'start'),
+         # the mixing jug -- step 2 pours FROM something into both jars, so there is a third
+         # vessel whether or not the kit list names one
+         beaker(26, 74, 80, 98, 88),
+         ''.join(dot(35 + 9 * k, 167 if k % 2 == 0 else 163, 1.8) for k in range(8)),
+         dot(49, 158, 1.8), dot(75, 158, 1.8),
+         cap(66, 198, 'hot water'),
+         arrow(116, 118, 138, 118, False),
+         # the two jars, the same solution to the same level and nothing grown in either
+         jar(172, 112), cap(172, 198, 'somewhere warm,'), cap(172, 212, 'undisturbed'),
+         jar(266, 112),
+         rect(224, 58, 82, 114), ln(299, 100, 299, 130),
+         cap(266, 198, 'the fridge'),
+         cap(170, 234, 'a little left in the bottom of the jug: SATURATED'),
+         cap(170, 252, 'pour off the CLEAR solution, not the undissolved bit')]
+    return svg(260, 'A jug of hot water with Epsom salts being tipped in a spoonful at a time and '
+                    'a little left undissolved on the floor of it, and the clear solution poured '
+                    'into two identical open jars filled to the same level, one of them standing '
+                    'inside a fridge and the other left out', *p)
+
+def hm31():
+    FLOOR = 190
+    p = [ln(16, FLOOR, 324, FLOOR, 'axis'),
+         ln(36, 122, 172, 122),
+         path('M 36 122 Q 104 140 172 122', 'pt', 'style="opacity:.8"'),
+         ln(36, 122, 58, 182), ln(172, 122, 150, 182),
+         path('M 58 182 Q 104 198 150 182'),
+         ln(49.9, 160, 158.1, 160),
+         path('M 49.9 160 Q 104 169 158.1 160', 'pt', 'style="opacity:.8"'),
+         cap(132, 153, '100 ml'),
+         path('M 65 175 Q 81 176 83 160 Q 67 159 65 175'),
+         ln(83, 160, 146, 100),
+         cap(154, 96, 'spoon', 'start'),
+         path('M 186 184 Q 196 193 206 184 Q 196 175 186 184'),
+         ln(186, 184, 164, 180),
+         cap(196, 166, 'half a tsp'), ln(196, 170, 196, 177),
+         rect(226, 118, 44, 72),
+         path('M 226 118 Q 234 106 240 104'), path('M 270 118 Q 262 106 256 104'),
+         rect(240, 90, 16, 14),
+         rect(232, 136, 32, 42),
+         path('M 236 143 L 259 143', 'pt', 'style="opacity:.55"'),
+         path('M 236 150 L 254 150', 'pt', 'style="opacity:.55"'),
+         path('M 236 157 L 260 157', 'pt', 'style="opacity:.55"'),
+         path('M 236 164 L 250 164', 'pt', 'style="opacity:.55"'),
+         path('M 236 171 L 257 171', 'pt', 'style="opacity:.55"'),
+         cap(248, 38, 'the ingredients MUST'),
+         cap(248, 52, 'list boric acid or'),
+         cap(248, 66, 'sodium borate — plain'),
+         cap(248, 80, 'saline does nothing'),
+         ln(200, 86, 231, 143),
+         cap(170, 214, 'PVA glue first, with half a teaspoon of bicarb stirred in'),
+         cap(170, 228, 'then the saline half a teaspoon at a time, stirring hard'),
+         cap(170, 250, 'stop the moment it comes away from the bowl — this is the'),
+         cap(170, 264, 'step everybody overshoots')]
+    return svg(276, 'A mixing bowl holding 100 ml of PVA glue with a spoon standing in it, a '
+                    'half-teaspoon measuring spoon lying on the bench beside it, and a bottle of '
+                    'contact lens saline standing on the bench with its ingredients panel drawn', *p)
+
+def hm33():
+    # 20 cm to 21 px, and the ground is zero — the eight marks are the scale the film is read off.
+    MARKS = [185 - 21 * k for k in range(8)]
+
+    p = [ln(14, 206, 326, 206),
+         # the cane, in the ground rather than standing on it, marked every 20 cm
+         rect(158, 34, 4, 186),
+         ''.join(ln(162, y, 176, y) for y in MARKS),
+         cap(80, 58, 'the cane, pushed into'), cap(80, 72, 'the ground and marked'),
+         cap(80, 86, 'every 20 cm'), ln(116, 92, 156, 104),
+         arrow(186, MARKS[0], 186, MARKS[1]), cap(194, 178, '20 cm', 'start'),
+         # THE BOTTLE IS DRAWN TO THE CANE'S OWN SCALE — 33 px for the 31 cm a two-litre bottle is.
+         # The `20 cm` on the arrow CALIBRATES this picture, so unlike every other drawing here a
+         # height beside the cane is a claim rather than a schematic: at 56 px it said a 2-litre
+         # bottle is 53 cm, mis-stating the one instrument the practical exists to teach. Only the
+         # WIDTH is generous (13 px for 10 cm), so two 1.4 px walls still read apart — the axis the
+         # cane does not measure is the one that can be stretched for legibility.
+         poly([(93.5, 206), (93.5, 186), (97.5, 178), (97.5, 173)]),
+         poly([(106.5, 206), (106.5, 186), (102.5, 178), (102.5, 173)]),
+         cap(100, 166, '2-litre bottle'),
+         # the mints, still in the roll, lying where they were put down. Uniformly about 2.5x life
+         # size at their true 3:1 proportions: a roll to this scale is a 9x3 sliver, and the SHAPE
+         # is what makes it a roll — drawn upright with rungs across it, it read as a ladder.
+         path('M 33 199 L 53 199 A 3.5 3.5 0 0 1 53 206 L 33 206 A 3.5 3.5 0 0 1 33 199 Z'),
+         ln(39.5, 199.4, 39.5, 205.6), ln(46.5, 199.4, 46.5, 205.6),
+         cap(41, 182, 'rough-coated'), cap(41, 194, 'mints'),
+         # filmed from one marked spot, well back
+         person(300, 206, 88), ln(300, 108, 282, 114),
+         rect(271, 104, 11, 20), ln(273, 108, 280, 108),
+         cap(280, 52, 'the phone films'), cap(280, 66, 'from the same place'),
+         ln(294, 208, 306, 214), ln(294, 214, 306, 208),
+         cap(170, 244, 'without the cane, three eruptions is three eruptions and'),
+         cap(170, 258, 'nobody can say which was biggest'),
+         cap(170, 280, 'drop the mints in and get straight back; the bottle size'),
+         cap(170, 294, 'and the number of mints stay the same for every drink')]
+    return svg(306, 'A two-litre bottle standing open on the ground outdoors with a cane pushed '
+                    'into the ground beside it and marked every 20 centimetres as a scale, a roll '
+                    'of rough-coated mints waiting beside it, and a phone held by somebody '
+                    'standing well back on a marked spot on the ground', *p)
+
+def hm34():
+    p = [# THE HAIRDRYER, held nozzle-down: body, handle at the top, nozzle below.
+         rect(158, 22, 32, 36), rect(190, 26, 28, 13),
+         poly([(158, 58), (152, 70), (196, 70), (190, 58)]),
+         # STEP 3'S OWN WORDS, SPLIT OVER TWO LINES. It can only be drawn over one strip, and
+         # "over each strip" is the half a single drawn position cannot say -- without it the
+         # picture reads as "write on the lemon one, heat the vinegar one" to a six-year-old.
+         cap(226, 44, 'hairdryer, on hot', 'start'),
+         cap(226, 58, 'over each strip', 'start')]
+    for x in (164, 174, 184):
+        p.append(arrow(x, 76, x, 88, both=False))
+    # the cotton bud, writing on the first strip -- the strip step 1 names
+    p += [ln(53, 119, 88, 76), circ(50, 122, 4.5), cap(94, 70, 'cotton bud', 'start')]
+    names = (('lemon',), ('milk',), ('vinegar',), ('sugar water',), ('water', 'the control'))
+    for k, nm in enumerate(names):
+        cx = 50 + 62 * k
+        # EVERY STRIP BLANK AND IDENTICAL. The outcome is a table of which liquids work, so a
+        # browned word on the lemon one would print the answer, and drawing the water strip
+        # differently would give the control's result away before it has been run.
+        p.append(rect(cx - 21, 92, 42, 66))
+        for j, s in enumerate(nm):
+            p.append(cap(cx, 174 + 14 * j, s))
+    # THE ONE CAPTION THE STEPS DO NOT ALREADY CARRY. It says why five rectangles are blank --
+    # otherwise they read as an unfinished drawing -- and why they are labelled at all, which
+    # step 2 makes necessary by producing five indistinguishable strips. What came out is the
+    # drying warning: that was step 1 word for word, and the guide prints step 1 two inches
+    # under this figure.
+    p += [cap(170, 212, 'nothing shows on any of them yet, so'),
+          cap(170, 226, 'keep track of which strip is which')]
+    return svg(240, 'Five blank strips of white paper in a row, one written on with each liquid and '
+                    'named beneath — lemon, milk, vinegar, sugar water and plain water as the '
+                    'control — with a cotton bud writing on the first and a hairdryer held '
+                    'nozzle-down over the middle one', *p)
+
+def hm35():
+    p = [# THE CUP AT STEP 1: the water measured, and nothing added to it yet — the same move ch04
+         # makes with "before any alkali", so no reading and no reaction can be implied
+         poly([(74, 100), (88, 214), (154, 214), (168, 100)]),
+         ln(74.5, 104, 167.5, 104),
+         ln(77.9, 132, 164.1, 132),
+         cap(68, 158, 'water,', 'end'), cap(68, 172, '100 ml', 'end'),
+         ln(70, 165, 92, 170),
+         # the digital thermometer, and the display is BLANK: the number is the whole answer
+         rect(119, 22, 30, 24), rect(124, 27, 20, 12),
+         rect(129.5, 46, 9, 128),
+         poly([(129.5, 174), (134, 182), (138.5, 174)]),
+         cap(160, 30, 'digital', 'start'), cap(160, 44, 'thermometer', 'start'),
+         ln(150, 34, 157, 33),
+         # "probe UNDER" ran 4 units off the LEFT of the viewBox and arrived as "robe UNDER", which
+         # is the fault check/cards.js fails on. `tip` says the same thing about the same object --
+         # the label above already names it a thermometer -- and leaves 17 units of margin.
+         cap(74, 198, 'tip UNDER', 'end'), cap(74, 212, 'the water', 'end'),
+         ln(78, 204, 126, 182),
+         # the two measuring spoons, waiting on the bench IN THE ORDER THEY GO IN — which is the
+         # one thing "three things stirred into it" cannot say
+         path('M 196 106 Q 209 123 222 106'), ln(196, 106, 222, 106), rect(222, 103.5, 34, 5),
+         cap(262, 100, 'citric acid,', 'start'), cap(262, 114, '2 tbsp', 'start'),
+         cap(262, 128, 'goes in first', 'start'),
+         path('M 196 176 Q 209 193 222 176'), ln(196, 176, 222, 176), rect(222, 173.5, 34, 5),
+         cap(262, 170, 'bicarbonate', 'start'), cap(262, 184, 'of soda,', 'start'),
+         # the em dash took this one to the viewBox's own right edge with nothing to spare
+         cap(262, 198, '1 tbsp, LAST', 'start'),
+         cap(170, 246, 'a reading BEFORE anything goes in, and again once the citric'),
+         cap(170, 260, 'acid has dissolved — then one every 15 s for two minutes'),
+         cap(170, 282, 'feel the OUTSIDE of the cup — that is step 5, and the bit'),
+         cap(170, 296, 'people remember. The curve and its lowest point are yours')]
+    return svg(304, 'A plastic cup holding 100 ml of water with a digital thermometer standing in '
+                    'it, its probe reaching under the surface and its display blank, and beside it '
+                    'two measuring spoons in the order they go in — citric acid first, then '
+                    'bicarbonate of soda', *p)
+
+
 D = {'PR-BI01': bi01, 'PR-BI02': bi02, 'PR-BI03': bi03, 'PR-BI04': bi04, 'PR-BI05': bi05,
      'PR-BI06': bi06, 'PR-BI07': bi07, 'PR-BI08': bi08, 'PR-BI09': bi09, 'PR-BI10': bi10,
      'PR-CH01': ch01, 'PR-CH02': ch02, 'PR-CH03': ch03, 'PR-CH04': ch04, 'PR-CH05': ch05,
@@ -1800,10 +2511,13 @@ D = {'PR-BI01': bi01, 'PR-BI02': bi02, 'PR-BI03': bi03, 'PR-BI04': bi04, 'PR-BI0
      'PR-FN03': fn03, 'PR-FN04': fn04, 'PR-FN05': fn05, 'PR-FN06': fn06, 'PR-FN07': fn07,
      'PR-FN08': fn08, 'PR-FN09': fn09, 'PR-FN10': fn10, 'PR-FN11': fn11, 'PR-FN12': fn12,
      'PR-FN13': fn13, 'PR-HM01': hm01, 'PR-HM02': hm02, 'PR-HM03': hm03, 'PR-HM06': hm06,
-     'PR-HM07': hm07, 'PR-HM08': hm08, 'PR-HM11': hm11, 'PR-HM12': hm12, 'PR-HM14': hm14,
+     'PR-HM04': hm04, 'PR-HM05': hm05, 'PR-HM07': hm07, 'PR-HM08': hm08, 'PR-HM09': hm09,
+     'PR-HM10': hm10, 'PR-HM11': hm11, 'PR-HM12': hm12, 'PR-HM13': hm13, 'PR-HM14': hm14,
      'PR-HM15': hm15, 'PR-HM16': hm16, 'PR-HM17': hm17, 'PR-HM18': hm18, 'PR-HM19': hm19,
-     'PR-HM20': hm20, 'PR-HM21': hm21, 'PR-HM25': hm25, 'PR-HM29': hm29, 'PR-HM32': hm32,
-     'PR-HM36': hm36, 'PR-PH01': ph01, 'PR-PH02': ph02, 'PR-PH03': ph03, 'PR-PH04': ph04,
+     'PR-HM20': hm20, 'PR-HM21': hm21, 'PR-HM22': hm22, 'PR-HM23': hm23, 'PR-HM24': hm24,
+     'PR-HM25': hm25, 'PR-HM26': hm26, 'PR-HM27': hm27, 'PR-HM28': hm28, 'PR-HM29': hm29,
+     'PR-HM30': hm30, 'PR-HM31': hm31, 'PR-HM32': hm32, 'PR-HM33': hm33, 'PR-HM34': hm34,
+     'PR-HM35': hm35, 'PR-HM36': hm36, 'PR-PH01': ph01, 'PR-PH02': ph02, 'PR-PH03': ph03, 'PR-PH04': ph04,
      'PR-PH05': ph05, 'PR-PH06': ph06, 'PR-PH07': ph07, 'PR-PH08': ph08, 'PR-PH09': ph09,
      'PR-PH10': ph10}
 
