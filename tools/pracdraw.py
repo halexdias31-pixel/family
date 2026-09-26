@@ -217,3 +217,57 @@ def arc(cx, cy, r, a1, a2):
     sweep = 1 if a2 > a1 else 0
     return path('M %.1f %.1f A %.1f %.1f 0 %d %d %.1f %.1f'
                 % (x1, y1, r, r, large, sweep, x2, y2), 'pt', 'style="opacity:.8"')
+
+
+# ---- vessels ------------------------------------------------------------------------------------
+# THESE ARE SHAPES, NOT PICTURES OF GLASSWARE. A beaker is an open-topped box and a tube is two
+# walls with a round bottom; drawing either one twice is two chances to draw it differently, which
+# is the second-reader fault CLAUDE.md records about `documents_()` and `factsNow_`.
+def beaker(x, y, w, h, wy=None):
+    """An open-topped vessel: three sides and, where one is given, the liquid level in it."""
+    out = [poly([(x, y), (x, y + h), (x + w, y + h), (x + w, y)])]
+    if wy is not None:
+        out.append(ln(x, wy, x + w, wy))
+    return ''.join(out)
+
+
+def tube(cx, top, bot, w=36, rim=14, wy=None):
+    """A test tube or boiling tube, with its rim line and optionally its contents."""
+    hw = w / 2.0
+    out = [ln(cx - hw, top, cx - hw, bot), ln(cx + hw, top, cx + hw, bot),
+           path('M %.1f %.1f Q %.1f %.1f %.1f %.1f'
+                % (cx - hw, bot, cx, bot + hw * .9, cx + hw, bot))]
+    if rim:
+        out.append(ln(cx - hw, top + rim, cx + hw, top + rim))
+    if wy is not None:
+        out.append(ln(cx - hw, wy, cx + hw, wy))
+    return ''.join(out)
+
+
+def flask(cx, necktop, shoulder, floory, neckw=16, basew=78):
+    """A conical flask: the neck, the sloping sides, and the liquid line where one is wanted."""
+    nh = neckw / 2.0
+    bh = basew / 2.0
+    return (rect(cx - nh, necktop, neckw, shoulder - necktop) +
+            poly([(cx - nh, shoulder), (cx - bh, floory), (cx + bh, floory), (cx + nh, shoulder)]))
+
+
+# THE FLAME AND THE BARREL, EXTRACTED FROM THE DISTILLATION DRAWING rather than written a second
+# time -- and `build()` asserts every one of the drawings that existed before still comes out byte
+# for byte the same, which is the only thing that makes an extraction safe. CLAUDE.md records that
+# rule under the `libraryExtras_` cutover and under `svgplot.py`.
+# `%g` rather than `%.1f`, deliberately: the drawing it came from wrote its path with whole
+# numbers, and a `.0` on every one of them is a different string for an identical picture.
+def bunsen(cx, floory):
+    return (path('M %g %g Q %g %g %g %g'
+                 % (cx - 14, floory, cx, floory - 26, cx + 14, floory)) +
+            rect(cx - 7, floory, 14, 22))
+
+
+def person(x, groundy, top=None):
+    """A person, drawn at the scale the clinometer drawing uses: a head, a body and two legs, with
+    any arm left to the caller because where it points is the whole of what it says."""
+    top = groundy - 78 if top is None else top
+    hip = top + 44
+    return (circ(x, top, 7) + ln(x, top + 7, x, hip) +
+            ln(x, hip, x - 9, groundy) + ln(x, hip, x + 9, groundy))

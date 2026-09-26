@@ -367,17 +367,19 @@ console.log('risk assessments: ' + risked + ' of ' + (rows.length - excluded) + 
    It is deliberate rather than accidental, which is the whole difference from `figure`,
    `orderPrints` and `exam_date`: keep it filled and a guide that wants it again has it.
 
-   A DRAWING IS A DIFFERENT KIND OF BACKLOG. Only 17 of the live rows carry one, and most of the
-   rest never will: CLAUDE.md's rule is to draw only where the row's own words determine the
-   picture, and a ruler-drop reaction test or a Punnett square written out in prose determines
-   nothing to draw. So this is a number to look at rather than a number to drive to zero. */
+   A DRAWING IS A DIFFERENT KIND OF BACKLOG, and this is the one count that is not aiming at zero.
+   CLAUDE.md's rule is to draw only where the row's own words determine the picture, so a rack of
+   tubes whose colours ARE the reading, a build whose shape is the variable, and a kit whose own
+   booklet determines it each correctly get nothing. The number is printed off the run rather than
+   named in this comment, which is the "all 18 checks pass" fault. */
 const live = rows.filter(r => !String(r.excluded_reason || '').trim());
 const noSci = live.filter(r => !String(r.science || '').trim()).length;
 const noVar = live.filter(r => !String(r.variables || '').trim()
                             || !String(r.log || '').trim()).length;
 const drawn = live.filter(r => String(r.diagram || '').indexOf('<svg') === 0).length;
 console.log('the guide: ' + (live.length - noVar) + ' of ' + live.length
-  + ' offer things to change and things to measure, ' + drawn + ' carry an apparatus drawing; '
+  + ' offer things to change and things to measure, ' + drawn + ' carry an apparatus drawing and '
+  + (live.length - drawn) + ' say in a sentence why they do not; '
   + (live.length - noSci) + ' hold a "What is going on" the guide does not draw at present');
 if (noSci) note.push(noSci + ' live practical(s) have no "What is going on" paragraph held');
 if (noVar) note.push(noVar + ' live practical(s) ask for an independent variable with nothing '
@@ -388,6 +390,70 @@ if (noVar) note.push(noVar + ' live practical(s) ask for an independent variable
    so the reasoning is findable, not so the experiment is. */
 rows.filter(r => String(r.excluded_reason || '').trim() && String(r.diagram || '').trim())
     .forEach(r => fail.push(r.practical_id + ' is a refused experiment and carries a diagram'));
+/* ---------- AND A ROW WITH NO DRAWING SAYS WHY -------------------------------------------------
+   THE COUNT ABOVE IS NOT AIMING AT ZERO, which is exactly what makes it useless on its own: a
+   printed 26 reads the same whether those rows were judged or forgotten. So every one of them has
+   a written reason here, and a live row that has neither a drawing nor an entry FAILS. Sixth time
+   this repository reaches for the pattern, after `ACCEPTED` in check-payload.js, `VOCAB` in
+   check-library.js, `ACCEPTED_TAP` in check/ui.js, `RETIRED_FACETS` in find.js and `HANDLE_ALLOWED`
+   in people.gs — one entry, one sentence, so a NEW row without a picture fails loudly instead of
+   joining a red nobody reads.
+
+   THE ENTRIES FALL INTO THREE KINDS and the middle one is the one worth reading. Some have nothing
+   to assemble: a cup, a thermometer and a stopwatch is a sentence, not a picture. Some are things
+   whose SHAPE is the variable — a spaghetti tower, an egg's packaging — so a drawing would be one
+   team's answer printed on everybody's card. And some could be drawn and must not be, because the
+   only thing there is to draw is what the practical asks the student to work out: the density
+   tower's layers, the lava lamp's two liquids, the gear train. That is the same line every drawing
+   in tools/draw-practicals.py is written along, stated from the other side. */
+const NO_DRAWING = {
+  'PR-CH04': 'a cup inside a beaker with a lid on it; the arrangement is one sentence and the '
+           + 'temperature is the reading',
+  'PR-BI04': 'four tubes and four colour changes, and the colours ARE the reading',
+  'PR-BI10': 'a tube in a water bath, which is the shape of every water bath and assembles nothing',
+  'PR-FN04': 'the melted patches are what you measure, and a plate drawn without them says nothing',
+  'PR-FN08': 'three cups and a counter. The decision tree would be the answer',
+  'PR-FN09': 'a park is a different shape in every town, so nothing here determines the picture',
+  'PR-FN11': "the tower's shape is the variable each team chooses",
+  'PR-FN13': 'step 2 is "predict the order of the layers from the densities alone", so the layers '
+           + 'are the answer',
+  'PR-HM01': 'a bottle standing in a bowl. The foam is the whole of it and the foam is the result',
+  'PR-HM02': 'a rack of tubes whose colours are the reading',
+  'PR-HM04': 'a pad of wire wool, a battery and a scale, none of it assembled',
+  'PR-HM05': 'a tablet, a glass and a stopwatch',
+  'PR-HM09': 'two lamp posts and a measured distance between them',
+  'PR-HM10': 'a ruled recording grid and a fish. There is no apparatus',
+  'PR-HM13': "built to the kit's own instruction booklet, which determines it rather than the row",
+  'PR-HM22': 'a start line and a finish line a fixed distance apart',
+  'PR-HM23': "the egg's packaging is the variable, and drawing one answers the design",
+  'PR-HM24': "the gear train is the student's own drawing at step 6, and the build is the "
+           + "booklet's",
+  'PR-HM26': 'step 2 asks which liquid is on top and why, so the two layers are the answer',
+  'PR-HM27': 'an egg in a jar of vinegar, with the lid loose',
+  'PR-HM28': 'a warmer and a thermometer. The crystals spreading from the disc are the result',
+  'PR-HM30': 'two jars of the same solution, one of them in the fridge',
+  'PR-HM31': 'a bowl and a spoon',
+  'PR-HM33': 'a bottle and a marked cane, which is the measurement the volcano already draws',
+  'PR-HM34': 'strips of paper and a hairdryer',
+  'PR-HM35': 'a cup, a thermometer and three things stirred into it'
+};
+live.forEach(r => {
+  const has = String(r.diagram || '').trim();
+  if (!has && !NO_DRAWING[r.practical_id]) {
+    fail.push(r.practical_id + ' has no apparatus drawing and no written reason in NO_DRAWING — '
+      + 'either draw it, or say in one sentence what there is about it that no picture determines');
+  }
+  if (has && NO_DRAWING[r.practical_id]) {
+    fail.push(r.practical_id + ' carries a drawing AND an entry in NO_DRAWING saying why it has '
+      + 'none; the entry is stale');
+  }
+});
+Object.keys(NO_DRAWING).forEach(id => {
+  if (!rows.some(r => r.practical_id === id)) {
+    fail.push('NO_DRAWING names ' + id + ', which is not a row in this file');
+  }
+});
+
 /* AND A DRAWING HAS TO BE A DRAWING. `libraryInto_` hands `diagram` straight to the page without
    escaping it, exactly as the library's questions are handed to `questionCard_`, so what is in the
    cell has to be an inline SVG and nothing else. */
