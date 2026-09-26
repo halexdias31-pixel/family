@@ -114,15 +114,66 @@
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* One family, and it is the code one. A terminal that switches to a UI font for its headings is
-     a terminal for about four seconds. */
-  --font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  /* ---------- ONE FAMILY, AND IT IS SHIPPED RATHER THAN HOPED FOR --------------------------------
+     One family, and it is the code one. A terminal that switches to a UI font for its headings is a
+     terminal for about four seconds.
+
+     THIS WAS A STACK OF FONTS THE PHONE MIGHT HAVE, and every entry in it was a system font: on an
+     iPhone `ui-monospace` resolves to SF Mono and that is what the site has always drawn in.
+     Reported as "I don't like the site font. I prefer that coding font. Like visual studios code
+     font" — which is the same observation from the other side. SF Mono is a coding font and it is
+     also the one a phone would have chosen anyway, so the site read as a system default rather than
+     as something with a face of its own. A stack can only ever ask; it cannot decide.
+
+     SO IT IS A FILE IN THIS REPOSITORY. `fonts/family-code.woff2` is Cascadia Mono, which is the
+     typeface Visual Studio Code and Windows Terminal ship with, subset and renamed — `fonts/README.md`
+     says exactly what was done and why the name changed, and `fonts/OFL.txt` is the licence that
+     has to travel with it. The MONO cut, deliberately: Cascadia Code's programming ligatures would
+     turn `<=` or `->` inside a GCSE maths answer into one glyph, which is the class of fault this
+     repository refuses everywhere else. One line below swaps to the ligature cut if that is ever
+     wanted.
+
+     THE OLD STACK STAYS BEHIND IT and is not decoration. `font-display: swap` means the first paint
+     is whatever is already on the device, so those names are what a reader sees for the few hundred
+     milliseconds before the file lands — and they are what they see for ever if it 404s. A stack
+     that degrades to SF Mono degrades to the font this site had yesterday. */
+  --font: 'Family Code', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   --mono: var(--font);
 
   /* How wide the app is ever allowed to be. A phone, and on a desktop still a phone. */
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+}
+
+/* ---------- THE TYPEFACE, SELF-HOSTED ------------------------------------------------------------
+   ONE FILE FOR EVERY WEIGHT. This is the VARIABLE font, so `wght` runs 200 to 700 continuously and
+   the six weights this stylesheet asks for (400, 500, 550, 600, 620, 700) all come out of it. Two
+   static cuts would have been 306KB for two of those six; this is 53,836 bytes for all of them.
+
+   SUBSET, AND THE NUMBER IS WHY. 210,484 bytes as shipped, 53,836 after — a quarter — because the
+   characters this site renders were counted rather than guessed at: 247 distinct across every file
+   in `js/`, this stylesheet, `index.html` and every `data/` file the app fetches, of which 151 are
+   not ASCII. Kept with headroom rather than to that list, so the next `≠` or `Å` somebody types is
+   already there: Latin-1, Latin Extended-A, Greek, punctuation, super- and subscripts, currency,
+   arrows, maths operators, technical and geometric shapes.
+
+   `swap`, NOT `block`. The boot path is where this app once took itself down, and a face that
+   blocks paints nothing until the file lands. `swap` paints in SF Mono at once and changes to this
+   when it arrives, so the worst case is one reflow rather than a blank screen — and a 404 leaves
+   the site in exactly the font it had before this file existed.
+
+   NO `LOAD` STAMP ON THIS URL, unlike every file in `window.FILES`. That stamp is written by
+   index.html, which cannot reach a URL inside a stylesheet. `sw.js` revalidates by `ETag` instead,
+   which is the same guarantee one step later — and a typeface is the one asset here that genuinely
+   never changes. */
+@font-face {
+  font-family: 'Family Code';
+  src: url('fonts/family-code.woff2') format('woff2-variations'),
+       url('fonts/family-code.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -8344,6 +8395,30 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    is a flag with a word cut off. Wrapping is the only version where neither has to give: the flags
    drop under the title on the narrowest phone and sit beside it everywhere else. `check/cards.js`
    lays out all 82 of these at 320px, which is what says whether that is true. */
+/* ---------- THE WHOLE PRACTICAL IS ON THIS CARD, AND NOTHING HERE HAD TO CHANGE FOR IT ------------
+   REPORTED AS "Same layout. Diagram, ingredients, steps, work. It seems you've moved it all to pop
+   up after pressing a tile. I HATE THIS. I HATE POP UP. Even if it doesn't fit on screen we'll
+   cross that bridge when we get there."
+
+   THE BRIDGE WAS ALREADY BUILT, and finding that out is the whole of this entry. With the guide
+   drawn inline a practical card is a MEDIAN 1,581px at 390x844 and 77 of the 82 are over the cap —
+   so the obvious move was a `max-height` and an `overflow-y: auto` on `.card.prac`, and it was
+   written, and it worked, and it was WRONG. `paneReach_` in find.js already measures every funnel
+   pane after a paint and writes `overflow-y: auto` inline on the ones that overflow, for the 431
+   question cards that had the same fault; `scrollHost_` in overworld.js then scrolls that pane from
+   the app's own drag and hands the next swipe to the grid. A practical card is a funnel result, so
+   it has been covered since the day that was written.
+
+   MEASURED, THE NEW RULE MADE IT WORSE: the card scrolled 266px, and then the PANE scrolled a
+   further 81, because a card capped at the pane's outer height does not fit inside the pane's
+   padding. Two scrollers down one card, and a swipe eaten between them. The instrumented run said
+   it outright — `scrollHost_` answered `card prac` on the first swipe and `pane` on the second.
+
+   SO THERE IS NO RULE HERE. One card, everything on it, the pane scrolls it, and the swipe after
+   the end turns the page. `--cell-max` was extracted at `:root` for the same wrong reason and went
+   back with it. The measurement is kept because it is what says the reachability is real rather
+   than assumed. */
+
 .prac-head { display: flex; flex-wrap: wrap; align-items: baseline;
              justify-content: space-between; gap: .5rem; }
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------

@@ -133,29 +133,47 @@ const STATES = {
        here could see it until `inspect` was taught to — see the note there.
 
        THE KIT, THE METHOD AND THREE TEXTAREAS, none of it measured for a tap target, a contrast
-       ratio or a sideways scroll until this. `openSheet` is what the tile's handler calls, so this
-       is the app's own door and not a reach past it.
+       ratio or a sideways scroll until this.
+
+       IT OPENED A SHEET AND THERE IS NO SHEET ANY MORE. "I HATE POP UP" — so `practicalCard_`
+       draws the guide inline and the tile, its handler and `openSheet` are all gone from this
+       path. A state that opened a surface the app no longer has would be measuring something
+       nobody can see, which is this repository's oldest fault pointed at its own lab. It answers
+       the funnel down to the practicals and turns to the first result instead, which is the app's
+       own door and the state a person is actually in.
 
        IT WAS EIGHT BOXES AND A RISK LIST until the guide was cut to the five things its own note
-       names. The number is asserted rather than described — `>= 3` would pass on a guide that had
-       quietly grown a fourth question nobody decided on, and this state is the only thing that
-       renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
-       ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
-       which is a state that measures nothing it claims to.
+       names.
 
-       LAST IN THE LIST, AND IT PUTS THE SHEET BACK. States run in order down one page and `go()`
-       does not close a sheet, so an open guide would otherwise be measured again as part of Tools
-       and Games. `leave` is what says so. */
+       LAST IN THE LIST, AND IT PUTS THE FUNNEL BACK. States run in order down one page, so a
+       funnel left narrowed to the practicals would be measured again as part of Tools and Games.
+       `leave` is what says so. */
     { name: 'a practical guide',
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded);
-        if (!x) throw new Error('no practical in the list to open a guide on');
-        openSheet(x.name, practicalGuide_(x), null, null);
+        if (!x) throw new Error('no practical in the list to draw a card for');
+        /* THE FUNNEL'S OWN ANSWER, not a hand on the list. `kindLabel` is what the `What kind`
+           question writes, so this is the chip a thumb would have set. */
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
+        paintStuff();
+        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
       },
-      expect: () => document.querySelectorAll('#sheet-body .gd-box').length === 3
-                 && document.querySelector('#sheet-body .prac-kit .kit-chip'),
-      wants: 'the guide open in the sheet, with its kit chips and the three worksheet boxes',
-      leave: () => closeSheet() },
+      /* THE NUMBER IS ASSERTED RATHER THAN DESCRIBED — `>= 3` would pass on a guide that had
+         quietly grown a fourth question nobody decided on, and this state is the only thing that
+         renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
+         ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
+         which is a state that measures nothing it claims to. */
+      expect: () => {
+        /* ONE CARD, NOT THE SCREEN. The windowed pager keeps about six result pages in the DOM at
+           once, so counting `.gd-box` across `#s-stuff` counts six guides and answers 18 — which
+           is what the first version of this did, and it reported the state unreachable on a screen
+           that was drawing it perfectly. The count is per card because the claim is per card. */
+        const c = document.querySelector('#s-stuff .card.prac');
+        return !!c && c.querySelectorAll('.gd-box').length === 3
+               && !!c.querySelector('.prac-kit .kit-chip');
+      },
+      wants: 'a practical card with its guide on it — the kit chips and the three worksheet boxes',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
        with four live buttons; answered, with the right one marked, the wrong one outlined and the

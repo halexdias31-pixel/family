@@ -121,7 +121,29 @@ const KINDS = {
                          && norm((x.row || {}).title) === norm(USER.name))
                         ? meCard()
                         : findCard({ kind: x.kind, row: x.row }) },
-  venue:   { group: 'Booking', label: 'Venues',   card: x => findCard({ kind: x.kind, row: x.row }) },
+  /* ---------- A VENUE IS IN TWO GROUPS, AND THAT IS WHAT PUTS IT BACK IN THE FUNNEL -------------
+     ASKED FOR AS "add venues to finder". `FUNNEL_NOT_FOR` drops anything whose group list is
+     EXACTLY `['Booking']` — and its own note says the array form "has been supported since a tutor
+     was two things", so a second group is the mechanism rather than a workaround. `asList_` splits
+     this cell, so two groups is a comma.
+
+     PLACES, NOT LEARNING, and the distinction is the one the two doors are for. `What for` takes
+     somebody from the whole app to a department; a venue is not a thing you learn from, it is
+     somewhere you go. Putting it under Learning would have made that door mean two things.
+
+     IT STAYS IN BOOKING TOO, which is what keeps the booking form's dropdown and the pricing
+     working: `venueRows` is unchanged and `Booking · Venues` still answers. This adds a second
+     door onto the same rows rather than moving them.
+
+     AND IT MAKES A DEAD FACET REACHABLE. `borough` has sat in `FACETS` with a note saying it "is
+     only ever asked once you are looking at venues" — which, with venues out of the funnel, was
+     never. It is a live question again with nothing added.
+
+     WHAT IS NOT DONE HERE: the drawn picture per venue. Asked for in the same message as "later",
+     so it is a task rather than this commit — `findCard` already draws `image` where a row has
+     one, which is where a drawing would go. */
+  venue:   { group: 'Booking, Places', label: 'Venues',
+             card: x => findCard({ kind: x.kind, row: x.row }) },
   subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
   /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on —
      and it was the one you could not look at. Same group as the other three because it is the same
@@ -3070,38 +3092,31 @@ function practicalCard_(x) {
           `check-practicals.js` and the five cards a substring wrongly called required. */''}
     ${(!off && (p.wow === 'high' || p.wow === 'very high'))
       ? `<p class="prac-open">Worth opening a session with.</p>` : ''}
-    ${/* ---------- THE METHOD, THE KIT AND THE GUIDE ARE ONE TAP AWAY, AND THAT IS A REPAIR -------
-          MEASURED BEFORE ANY OF THIS WAS WRITTEN: `.pane` caps at 805px on an 844px phone and
-          **51 of the 56 practical cards were taller than that**, median 921px. `.pane` is
-          `overflow: hidden` and a card is one page, so everything past the fold was already cut
-          off with no scroll and no page to turn to — the kit, the method, the safety line and the
-          notes, on more than half the set. Nothing had ever measured it: `check/ui.js` stops on
-          whichever funnel page it lands on and `check/cards.js` asked about WIDTH only.
+    ${/* ---------- THE GUIDE IS ON THE CARD, AND THE TILE THAT OPENED IT IS GONE ------------------
+          REPORTED, IN THESE WORDS: "I want a diagram for every practical. As I said. Same layout.
+          Diagram, ingredients, steps, work. It seems you've moved it all to pop up after pressing
+          a tile. I HATE THIS. I HATE POP UP. Even if it doesn't fit on screen we'll cross that
+          bridge when we get there."
 
-          SO THE CARD IS THE SEARCH RESULT AND THE GUIDE IS THE DOCUMENT. That is the same split
-          the funnel already makes everywhere else, and it is what makes the guide possible at all:
-          a guide appended to the bottom of a card that is already cut off is a guide nobody can
-          reach. The sheet scrolls — `#sheet-body` is `overflow-y: auto`, which is this app's own
-          answer for anything longer than a card, and the note by `.pane` says so outright:
-          *"Anything genuinely long should be PAGED"* or it belongs somewhere that scrolls.
+          SO IT IS ONE CARD AGAIN, in the four parts that were asked for and in that order. The
+          sheet, the `prac-guide` tile and its handler are all deleted; `practicalGuide_` is kept
+          as the builder and is called from here instead, which is what leaves every `.gd` rule in
+          the stylesheet applying unchanged.
 
-          A TILE, BECAUSE A PRACTICAL IS A THING. The house style settles it: a THING has tiles, a
-          FORM has buttons, and tiles win any tie. One renderer, one tap target, and
-          `check-doors.js` pairs the `act` against its handler. */''}
-    ${/* `doc`, WHICH IS IN `TILE_ICONS`. A tile is a MARK and `tileIcon_` falls back to the word
-          for a name it has never heard of — "visibly wrong rather than invisible", which is what
-          `icon: 'paper'` got: a square reading `Guide` among a column of glyphs. A guide is a
-          document, so it takes the document. */''}
-    ${/* THE NOTE NAMES WHAT THE GUIDE HOLDS, and it said `method, risks, variables` until the
-          guide was cut to five things — a tile advertising a risk assessment that is no longer
-          behind it. Worse, it was a CONDITIONAL on `p.risks.length` whose other branch could
-          never run: the tile is drawn only on a live row and `check-practicals.js` FAILS a live
-          row with no risks, so `method and variables` was dead the day that rule was written.
-          Three words, unconditional, in the order the guide draws them. */''}
-    ${off ? '' : `<div class="tile-row">${tile_({
-      icon: 'doc', label: 'Guide',
-      note: 'kit, method, worksheet',
-      act: 'prac-guide', data: { key: x.key } })}</div>`}
+          WHAT THAT COSTS IS REAL AND IS THE OWNER'S CALL, WHICH THEY HAVE MADE. `.pane` is
+          `overflow: hidden` and caps at about 805px on an 844px phone; a practical card with its
+          guide on it is well past that, so the bottom of the longer ones is cut off with no scroll
+          and no page to turn to. That is exactly the measurement the split was made on — 51 of 56
+          cards over the cap, median 921px — and "we'll cross that bridge when we get there" is the
+          answer to it. It is not a silence: `check/ui.js`'s OUT OF REACH is what measures it, and
+          `ACCEPTED_TALL` there carries the owner's own sentence so the numbers are printed on
+          every run rather than failing the build.
+
+          THE OTHER TWO ROUTES WERE AVAILABLE AND ARE NOT WHAT WAS ASKED FOR. Paging the practical
+          over three pages is swiping rather than a pop-up, and it is still not "same layout, one
+          card". A pane that scrolls was tried once and reverted, and the note by `.pane`'s own
+          `touch-action` records why. */''}
+    ${off ? '' : practicalGuide_(x)}
     ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
       and it is bought once.</p>` : ''}
   </div>`;
@@ -3131,9 +3146,13 @@ function practicalCard_(x) {
    can hold an answer per question instead of one. It held eight and holds three; every key ever
    written is still there, so a question that comes back comes back filled.
 
-   IT OPENS IN THE SHEET BECAUSE IT DOES NOT FIT ANYWHERE ELSE. `#sheet-body` is `overflow-y: auto`;
-   `.pane` is `overflow: hidden` and caps at 805px, and 51 of the 56 practical cards were already
-   past that before a word of this was added. See the note in `practicalCard_`.
+   IT IS ON THE CARD, AND IT OPENED IN A SHEET UNTIL THE OWNER SAW ONE. "I HATE POP UP. Even if it
+   doesn't fit on screen we'll cross that bridge when we get there." So `practicalCard_` calls this
+   builder directly and there is no sheet, no tile and no handler. The arithmetic that sent it to a
+   sheet is unchanged and is now a cost rather than a reason — `.pane` is `overflow: hidden` and
+   caps at about 805px on an 844px phone, so the foot of a long practical is cut off. `check/ui.js`
+   measures exactly that and `ACCEPTED_TALL` there carries the decision, so the number is printed
+   every run instead of the build going red or the loss going quiet. See `practicalCard_`.
 ================================================================================================== */
 
 /* ---------- ONE BOX, ONE SLOT --------------------------------------------------------------------
@@ -3279,15 +3298,11 @@ function practicalGuide_(x) {
   </div>`;
 }
 
-/* FOUND BY KEY, THROUGH THE LIST THE CARD WAS BUILT FROM. The tile carries `x.key` rather than the
-   practical id, because `stuffItems()` is what the card came from and a second lookup into
-   `DATA.practicals` would be a second reader of one list — see `reelPages_` and `factsNow_`. */
-on('prac-guide', el => {
-  const key = el.getAttribute('data-key') || '';
-  const x = stuffItemsAll_().find(it => it.key === key);
-  if (!x) return toast('That practical is not in the list any more');
-  openSheet(x.name, practicalGuide_(x), null, null);
-});
+/* `on('prac-guide')` WAS HERE and is gone with the tile that opened it. It looked the practical up
+   by `x.key` through `stuffItemsAll_()` rather than by id into `DATA.practicals`, and that half is
+   worth carrying forward: the card came from that list, so a second lookup would have been a second
+   reader of one thing — see `reelPages_` and `factsNow_`. Nothing looks anything up now; the card
+   already holds the row it is drawing. */
 
 
 /* ==================================================================================================
