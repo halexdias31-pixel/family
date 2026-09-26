@@ -1304,18 +1304,508 @@ def hm25():
                     'side propped on three books with the slope angle marked', *p)
 
 
-D = {'PR-PH01': ph01, 'PR-PH02': ph02, 'PR-PH03': ph03, 'PR-PH04': ph04, 'PR-PH05': ph05,
-     'PR-PH06': ph06, 'PR-PH07': ph07, 'PR-PH08': ph08, 'PR-PH09': ph09, 'PR-PH10': ph10,
-     'PR-CH01': ch01, 'PR-CH02': ch02, 'PR-CH03': ch03, 'PR-CH05': ch05, 'PR-CH06': ch06,
-     'PR-CH07': ch07, 'PR-CH08': ch08,
-     'PR-BI01': bi01, 'PR-BI02': bi02, 'PR-BI03': bi03, 'PR-BI05': bi05, 'PR-BI06': bi06,
-     'PR-BI07': bi07, 'PR-BI08': bi08, 'PR-BI09': bi09,
-     'PR-FN01': fn01, 'PR-FN02': fn02, 'PR-FN03': fn03, 'PR-FN05': fn05, 'PR-FN06': fn06,
-     'PR-FN07': fn07, 'PR-FN10': fn10, 'PR-FN12': fn12,
-     'PR-HM03': hm03, 'PR-HM06': hm06, 'PR-HM07': hm07, 'PR-HM08': hm08, 'PR-HM11': hm11,
-     'PR-HM12': hm12, 'PR-HM14': hm14, 'PR-HM15': hm15, 'PR-HM16': hm16, 'PR-HM17': hm17,
-     'PR-HM18': hm18, 'PR-HM19': hm19, 'PR-HM20': hm20, 'PR-HM21': hm21, 'PR-HM25': hm25,
-     'PR-HM29': hm29, 'PR-HM32': hm32, 'PR-HM36': hm36}
+# ---- PR-BI04  the four food tests, labelled by reagent and coloured nowhere ----------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: Every colour. The row's own
+# why_no_drawing says "the colours ARE the reading", and it is right — so not one tube has coloured
+# contents, no reagent bottle is tinted, and the two closing captions name no colour at all (they
+# say "the result is the CHANGE, not the colour you end up with"). The tubes carry a plain liquid
+# LEVEL line and nothing else, and they are labelled by what you put IN rather than by what comes
+# out. Also withheld: the lipid test's cloudy emulsion (so the ethanol tube is drawn with nothing
+# tipped into water yet), and any hint of which of the four samples is positive for what.
+#
+# OFF THE ROW: Equipment gives every object drawn: "Pestle and mortar" (bowl, grinding head, shaft),
+# "Filter funnel and paper" (cone plus the fainter paper cone inside it), "Test tubes and rack"
+# (three tubes through a rail onto a base plate), "Dropping pipettes" (bulb, stem, one drop over
+# tube 1), "Water bath at 75 C" (the open vessel, its water line and the thermometer with its bulb
+# under the surface), and the four reagents "Iodine solution", "Benedict's solution", "Biuret
+# reagent", "Ethanol" as the four tube labels. Step 1 — "Grind the food with a little distilled
+# water and filter it" — is the whole top band and the caption "grind, then filter"; that one
+# filtrate feeding all four tests is why the beaker is labelled "ONE filtrate — all four tests run
+# from it". Step 3 — "add Benedict's and stand in the hot water bath for five minutes" — is why
+# exactly one tube is out of the rack and in the bath, and is the source of "75 °C water bath, five
+# minutes". Step 2's "add a few drops of iodine" is the pipette and its caption. Step 6 — "Record
+# the starting and finishing colour for every test — not just the result" — is the two closing
+# lines, reworded so no colour is named. Height 334 fits the two bands plus their labels; nothing
+# invented, and no second tube of water for the emulsion step because the row does not say what it
+# is poured into.
+def bi04():
+    p = [
+        # 1 - grind: the pestle and mortar
+        path('M 26 58 Q 26 92 52 92 Q 78 92 78 58'), ln(22, 58, 82, 58),
+        circ(50, 72, 7.5), ln(55, 66, 86, 28), ln(82, 24, 90, 32),
+        arrow(96, 62, 124, 62, False),
+        # 2 - filter: the funnel, the paper in it, and the beaker the filtrate runs into
+        ln(142, 38, 194, 38), ln(142, 38, 164, 72), ln(194, 38, 172, 72),
+        ln(164, 72, 164, 96), ln(172, 72, 172, 96),
+        poly([(148, 42), (168, 68), (188, 42)], 'pt', 'style="opacity:.7"'),
+        beaker(140, 84, 60, 50, 112),
+        cap(66, 122, 'grind, then filter'),
+        ln(204, 92, 232, 92),
+        cap(274, 78, 'ONE filtrate —'), cap(274, 92, 'all four tests'),
+        cap(274, 106, 'run from it'),
+        # 3 - the dropping pipette over the first tube
+        circ(44, 158, 7.5), ln(44, 165.5, 44, 180), dot(44, 186, 2),
+        cap(76, 164, 'a few drops', 'start'),
+        # 4 - three tubes in the rack
+        tube(44, 184, 248, 28, 12, 210),
+        tube(97, 184, 248, 28, 12, 210),
+        tube(150, 184, 248, 28, 12, 210),
+        rect(18, 220, 158, 9), rect(18, 264, 158, 9),
+        ln(22, 229, 22, 264), ln(172, 229, 172, 264),
+        cap(44, 288, 'iodine'), cap(97, 288, 'Biuret'), cap(150, 288, 'ethanol'),
+        # 5 - and the fourth standing in the water bath, which is the only one that needs heat
+        cap(280, 152, '75 °C water bath,'), cap(280, 166, 'five minutes'),
+        beaker(206, 198, 114, 66, 218),
+        rect(212, 166, 9, 62), circ(216.5, 232, 4.5),
+        tube(272, 184, 246, 28, 12, 212),
+        cap(272, 288, "Benedict's"),
+        cap(170, 310, 'record the STARTING colour as well as the finishing one —'),
+        cap(170, 324, 'the result is the CHANGE, not the colour you end up with')]
+    return svg(334, 'A pestle and mortar beside a filter funnel draining into a beaker, and four '
+                    'test tubes labelled by reagent: iodine, Biuret and ethanol standing in a '
+                    'rack, and the Benedict’s tube standing in a water bath at 75 degrees '
+                    'with a thermometer in it', *p)
+
+# ---- PR-BI10  lipase, held outside the tube it is about to go into -------------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: Nothing of the reading: no
+# pink, no colourless, no time, no stopwatch face, no rate, no temperature values, no optimum and no
+# denaturation. The whole answer to this practical is the time for the pink to go and the peaked
+# rate-against-temperature curve, so no colour is indicated anywhere and the bath carries no number
+# — its label is just "water bath". The row's own why_no_drawing names the trap as "a tube in a
+# water bath, which is the shape of every water bath and assembles nothing", and what is drawn
+# instead of that bare shape is the ASSEMBLY ORDER: the three measured things already in the tube,
+# the tube in the bath, and the lipase held OUTSIDE, not yet added.
+#
+# OFF THE ROW: Step 1 gives the three contents and their exact amounts, drawn as the label block
+# over the rack ("5 cm³ milk", "7 cm³ sodium carbonate", "5 drops phenolphthalein"). "Test tubes and
+# rack" in the equipment gives the three tubes standing in a rack, and step 5 ("repeat at each
+# temperature, keeping every volume the same") gives why there are three identical ones and the "one
+# per bath" arrow. "Water baths at a range of temperatures" and "Thermometer" give the beaker with
+# its water line and the thermometer with its bulb under the surface; step 2 ("stand the tube in the
+# first water bath and let it reach temperature") puts the tube in it. Step 3 ("add 1 cm³ of lipase
+# and start the stopwatch") gives the dropping pipette — "Dropping pipettes" is in the equipment —
+# holding 1 cm³, labelled "added FOURTH" and drawn with its tip still above the tube mouth, plus the
+# caption about the clock. The bottom caption pair is steps 2, 3 and 5 stated as conditions. Nothing
+# in the picture comes from anywhere but those.
+def bi10():
+    # ---- every tube is made up first, and all of them the same -------------------------------
+    p = [cap(74, 22, '5 cm³ milk'),
+         cap(74, 36, '7 cm³ sodium carbonate'),
+         cap(74, 50, '5 drops phenolphthalein')]
+    for cx in (34, 74, 114):
+        p.append(tube(cx, 60, 150, 28, 10, 94))
+    p += [poly([(14, 136), (14, 156), (134, 156), (134, 136)]),
+          # ---- one of them stands in a bath and comes up to its temperature -----------------
+          cap(167, 87, 'one per bath'),
+          ln(142, 95, 194, 95), head(52, 0, 194, 95, 6),
+          beaker(200, 84, 118, 98, 98), cap(256, 200, 'water bath'),
+          rect(288, 48, 9, 58), circ(292.5, 106, 4.5), cap(300, 40, 'thermometer'),
+          tube(252, 58, 166, 28, 10, 112),
+          # ---- and the lipase is still in the pipette ---------------------------------------
+          circ(252, 18, 8), ln(249, 24, 249, 44), ln(255, 24, 255, 44),
+          poly([(249, 44), (251.5, 54), (255, 44)]),
+          cap(232, 20, '1 cm³ of lipase', 'end'), cap(232, 34, 'added FOURTH', 'end'),
+          cap(170, 224, 'the lipase goes in only once the tube has reached the'),
+          cap(170, 238, 'bath temperature, and the clock starts as it goes in'),
+          cap(170, 260, 'every volume the same at every temperature, or what'),
+          cap(170, 274, 'changed between two runs is the mixture and not the heat')]
+    return svg(282, 'Three test tubes holding the same made-up mixture standing in a rack, beside '
+                    'a water bath with one of those tubes in it, a thermometer in the water, and a '
+                    'dropping pipette of lipase held just above the tube and not yet added', *p)
+
+# ---- PR-CH04  the calorimeter before the first drop of alkali ------------------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: The result and everything
+# that leads to it: no graph, no axes, no peak, no temperature value anywhere, and no alkali in the
+# picture at all. The row's outcome is "a peak temperature at the neutralisation point" and its
+# steps end by plotting temperature against volume of alkali — so the alkali arriving in 5 cm³
+# steps, the rising and then falling temperature, and the peak are all the answer this practical
+# asks for, and none of them is drawn. The acid is explicitly labelled "before any alkali" to fix
+# the picture at the starting state.
+#
+# OFF THE ROW: Every element traces to the row's own words. "Stand the polystyrene cup inside the
+# beaker for insulation" gives the nesting, the air gap and — because no liquid is named for the
+# outer vessel — the empty beaker, which is the bottom caption. "Polystyrene cup" and "Second cup or
+# beaker for insulation" are the two vessels. "Lid with a hole" (one hole) is the lid drawn in
+# section as two pieces with a 16-unit gap, and the thermometer occupies that gap rather than a
+# second one being invented. "Thermometer or temperature probe" plus step 2's "record its starting
+# temperature" of the acid puts the bulb under the surface. "Measure 30 cm³ of acid into the cup" is
+# the liquid level and its label. The previous session's why_no_drawing named the trap exactly —
+# "the temperature is the reading" — so the reading is absent and what is drawn is the assembly the
+# sentence cannot settle: that the cup's rim stands above the beaker's so the lid closes the CUP,
+# that the gap runs all round, and that the outer vessel holds nothing. The measuring cylinders,
+# stopwatch, stirring rod and eye protection are named kit with no place to show, and are left out
+# on ph02's recorded argument.
+def ch04():
+    p = [# the outer beaker, EMPTY, with the inner cup standing on its own floor
+         beaker(90, 116, 120, 98),
+         poly([(110, 94), (122, 214), (178, 214), (190, 94)]),
+         cap(74, 136, 'air gap', 'end'), ln(76, 132, 102, 132), head(26, 0, 102, 132, 5.5),
+         # the acid, in the inner cup only, and before anything has been added to it
+         ln(116, 154, 184, 154),
+         cap(226, 144, 'the acid — 30 cm³,', 'start'),
+         cap(226, 158, 'before any alkali', 'start'), ln(186, 154, 222, 152),
+         # the lid, in section: one lid with one hole is two pieces and the gap between them
+         rect(106, 84, 36, 10), rect(158, 84, 36, 10),
+         # the thermometer, down through that hole, with the bulb under the surface
+         rect(145, 26, 10, 145), circ(150, 175, 5.5),
+         cap(206, 38, 'thermometer', 'start'), ln(158, 42, 202, 32),
+         cap(226, 192, 'the bulb IN the', 'start'),
+         cap(226, 206, 'liquid, not above it', 'start'), ln(160, 180, 222, 194),
+         cap(150, 236, 'the polystyrene cup, standing inside the beaker'),
+         cap(170, 266, 'the outer beaker stays EMPTY — it is there for the gap,'),
+         cap(170, 280, 'not as a water bath, and the lid closes the inner cup')]
+    return svg(290, 'A polystyrene cup standing inside a larger empty beaker, holding acid, with a '
+                    'lid over the cup and a thermometer through the hole in it so that the bulb is '
+                    'under the liquid surface', *p)
+
+# ---- PR-FN04  the microwave loaded, and nothing melted yet ---------------------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: The melted patches — where
+# they fall, how many there are and how far apart they sit is the entire measurement, so nothing is
+# drawn on the chocolate and no ruler-and-dimension arrow spans a spacing. No standing wave inside
+# the cavity either, because its antinodes ARE the patch positions. And no 3 × 10⁸ m/s: the caption
+# carries the method (centre to centre is half a wavelength, c = f × 2d, which steps 4–7 state in
+# words) and never the answer.
+#
+# OFF THE ROW: Turntable out on the bench + the "with the turntable IN…" caption: step 1 and the
+# `science` paragraph about food riding through the hot spots. Chocolate drawn as a flat slab on a
+# plate on the oven floor: step 2 ("lay the chocolate flat on the plate") and the "microwave-safe
+# plate" in the kit. 20 s on the display: step 3. The 2450 MHz plate with a leader to the oven and
+# "label at the BACK": step 6 and the kit's "frequency from the oven label, usually 2450 MHz". The
+# ruler with graduations: the kit's "30 cm ruler". The caption's centre-to-centre rule and c = f ×
+# 2d: steps 4, 5 and 7 and the row's `outcome`. Nothing in the picture comes from anywhere else.
+def fn04():
+    p = [# the 30 cm ruler, on top of the oven until the plate comes out
+         cap(99, 20, '30 cm ruler'),
+         rect(40, 27, 118, 11), ticks(40, 38, 118, 12),
+         # the oven: cavity on the left, controls on the right
+         rect(18, 38, 178, 134), rect(28, 50, 114, 110), rect(150, 50, 38, 110),
+         rect(152, 56, 34, 16), txt(169, 68, '20 s', 'num'),
+         ''.join(dot(x, y, 2) for y in (90, 104, 118) for x in (158, 169, 180)),
+         rect(154, 132, 30, 12),
+         rect(28, 172, 18, 8), rect(168, 172, 18, 8), ln(8, 180, 332, 180),
+         # the plate on the oven FLOOR, and the bar lying flat on it
+         poly([(42, 150), (47, 160), (127, 160), (132, 150), (42, 150)]),
+         rect(56, 134, 62, 16), ln(56, 142, 118, 142),
+         ''.join(ln(x, 134, x, 150) for x in (71.5, 87, 102.5)),
+         cap(85, 114, 'chocolate laid FLAT'), cap(85, 126, 'on the plate'),
+         # the frequency, read off the label rather than assumed
+         rect(216, 22, 104, 22), txt(268, 37.5, '2450 MHz', 'num'),
+         dash(214, 40, 198, 54),
+         cap(268, 60, 'the frequency, off the'), cap(268, 72, 'label at the BACK'),
+         # and the turntable, out on the bench
+         cap(262, 96, 'the turntable,'), cap(262, 108, 'taken OUT'),
+         circ(262, 150, 30), circ(262, 150, 9),
+         ln(200, 164, 226, 158), head(26, -6, 226, 158, 5.5),
+         cap(170, 200, 'with the turntable IN, the food rides through the hot spots'),
+         cap(170, 214, 'and melts evenly, which measures nothing'),
+         cap(170, 236, 'the patches are YOURS to find: measure CENTRE to CENTRE'),
+         cap(170, 250, 'of two side by side, and that gap is HALF a wavelength'),
+         cap(170, 264, 'so c = f × 2d')]
+    return svg(278, 'A microwave oven with its door open and its turntable removed and standing on '
+                    'the bench beside it, a bar of chocolate lying flat on a plate on the oven '
+                    'floor, a thirty centimetre ruler on top of the oven, and the frequency label '
+                    'from the back of the oven reading 2450 megahertz', *p)
+
+# ---- PR-FN08  three cups and an empty tally sheet ------------------------------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: The decision tree, which
+# the row's own why_no_drawing names as the answer — no branches, no 1-in-3 or 2-in-3, and nothing
+# saying which way of playing wins. Also: which cup the counter is under (it is drawn standing
+# beside the cups, not concealed under any one of them, so no cup is implied to be the hiding
+# place), no cup drawn lifted, and not one tally mark or count in the sheet — the numbers in those
+# four cells ARE the experiment.
+#
+# OFF THE ROW: The three cups mouth down come from equipment "Cups or cards × 3" and from steps 2
+# and 3, which say the player picks "without lifting it" and the host "lifts one of the other two
+# cups" — so they start down. The numbers come from step 4, "Record the choice", which needs the
+# cups named. The counter beside them is equipment "A counter or sweet to hide" plus step 1, "hides
+# the counter under one of three cups". The sheet is equipment "Tally sheet"; its TWO blocks are
+# step 5, "Do 50 trials always sticking, then 50 always switching", and the × 50 on each is that
+# same step; the won/lost rows are step 4, "Record the choice and the result". The first foot
+# caption is step 1's "while the other looks away" and step 3's "always revealing an empty one". The
+# second is step 5 and 6 — two blocks, two rates to compare.
+def fn08():
+    TOP, TABLE = 44.0, 86.0
+    def cup(cx):
+        return poly([(cx - 19, TABLE), (cx - 14, TOP), (cx + 14, TOP), (cx + 19, TABLE)])
+    p = [cap(170, 22, 'three identical cups, mouth down'),
+         ln(40, TABLE, 276, TABLE),
+         cup(100), cup(170), cup(240),
+         txt(100, 104, '1', 'num'), txt(170, 104, '2', 'num'), txt(240, 104, '3', 'num'),
+         circ(58, 78, 8), circ(58, 78, 3.4), cap(58, 104, 'counter'),
+         # the sheet, ruled and empty
+         cap(170, 140, 'ONE tally sheet, TWO separate blocks'),
+         rect(44, 152, 252, 100),
+         ln(44, 176, 296, 176), ln(170, 152, 170, 252), ln(44, 214, 296, 214),
+         cap(107, 169, 'ALWAYS STICK  × 50'), cap(233, 169, 'ALWAYS SWITCH  × 50'),
+         cap(54, 198, 'won', 'start'), cap(54, 236, 'lost', 'start'),
+         cap(180, 198, 'won', 'start'), cap(180, 236, 'lost', 'start'),
+         cap(170, 274, 'hidden under ONE of them while the player looks away, and'),
+         cap(170, 288, 'the host always lifts an empty one — he knows which is which'),
+         cap(170, 310, 'fifty sticking and fifty switching, each in its own block —'),
+         cap(170, 324, 'or the two rates are one tally nobody can separate')]
+    return svg(334, 'Three identical cups standing mouth down in a row on a table, numbered one to '
+                    'three, with the counter on the table beside them, and below it a blank tally '
+                    'sheet ruled into two separate blocks headed always stick and always switch, '
+                    'each block having a won row and a lost row', *p)
+
+# ---- PR-FN09  the trundle wheel calibrated, and a boundary that leaves the frame -----------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: No park outline, which is
+# the trap the row's own why_no_drawing names: the boundary is a fragment that leaves the picture at
+# both edges, so the picture claims nothing about what shape any particular park is. And no
+# decomposition into rectangles and triangles (steps 4–6) — choosing those shapes and where to cut
+# them IS the area answer, so drawing an example would be doing the practical on an invented park.
+# No total, no section lengths, no area, no satellite image.
+#
+# OFF THE ROW: The wheel, the click and the 318 mm are the `science` sentence word for word — "one
+# click is one circumference, usually exactly a metre — which is why the wheel is about 318 mm
+# across, since C = πd" — so the caption hedges with "on most wheels" exactly as the row does. The
+# two panels' geometry is step 2, "walk the perimeter with the trundle wheel, recording each
+# straight section separately": a section runs from one corner to the next, and the cones marking
+# those corners are `equipment`'s own "Cones to mark corners". "Add the sections for the total
+# perimeter" is step 3, which is why the caption says write each one down before adding them up. The
+# boundary leaving the frame is the `why_no_drawing` field answered rather than ignored. `venue:
+# outdoors` is why it stands on a ground line.
+def fn09():
+    C = 2 * 3.1416 * 29
+    end = 54 + C
+
+    def cone(cx, y):
+        return (poly([(cx - 8, y), (cx, y - 22), (cx + 8, y)]) + ln(cx - 12, y, cx + 12, y))
+
+    p = [ln(14, 96, 330, 96),
+         circ(54, 67, 29), ln(54, 67, 54, 96), dot(54, 96),
+         ln(54, 67, 126, 34), ln(122.7, 26.7, 129.3, 41.3),
+         arrow(25, 67, 83, 67), lbl(54, 61, 'd'),
+         circ(end, 67, 29, 'pt', 'style="stroke-dasharray:4 3;opacity:.6"'),
+         dash(end, 67, end, 96), dot(end, 96),
+         cap(272, 62, 'one turn', 'start'), cap(272, 76, 'later', 'start'),
+         dash(54, 96, 54, 116), dash(end, 96, end, 116),
+         arrow(54, 124, end, 124), lbl(145, 118, '1 m'),
+         cap(170, 146, 'one full turn is ONE CLICK, and on most wheels ONE METRE'),
+         cap(170, 160, 'C = πd, so a one-metre wheel is about 318 mm across'),
+         dash(8, 176, 112, 214), ln(112, 214, 246, 214), dash(246, 214, 332, 178),
+         cone(112, 214), cone(246, 214),
+         cap(179, 204, 'cone at each corner'),
+         arrow(112, 236, 246, 236), cap(179, 230, 'one section'),
+         cap(170, 258, 'walk it cone to cone, and write every straight section'),
+         cap(170, 272, 'down on its own before adding them up'),
+         cap(170, 294, 'the boundary runs off this picture on purpose: a park is'),
+         cap(170, 308, 'a different shape in every town — you place the cones')]
+    return svg(318, 'A trundle wheel standing on the ground with its diameter marked and a rim '
+                    'mark at the contact point, shown again one full revolution later with the '
+                    'metre it has rolled measured along the ground, and below it one straight '
+                    'section of a park boundary running off both sides of the picture with a cone '
+                    'at each of its two corners', *p)
+
+# ---- PR-FN11  the kit each team is issued, and no tower ------------------------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: Any tower at all. The row's
+# science paragraph is triangles-versus-squares and step 7 is "discuss which shapes survived", so
+# the shape of the tower IS the answer — a drawn frame would print one team's design, and a
+# triangulated one would hand over the whole discussion. Also withheld: how tall a tower gets (the
+# top is a dashed line captioned "wherever it ends up"), how much mass it carries (two masses in the
+# basket rather than a filled one), and the height-against-mass graph the outcome asks for.
+#
+# OFF THE ROW: Step 1 names the kit exactly — "20 sticks, 20 marshmallows, one metre of tape" —
+# which is the tray and its three labels, and "give each team the same materials" is the "the same
+# to every team" heading. Equipment's "Metre stick" is the graduated rule; step 3 "measure each
+# tower's height" is the arrowed h from the table to the top line. Step 4 "hang the basket from the
+# top and add masses 50 g at a time" is the string from the dashed top, the basket (equipment:
+# "Small basket or cup to hold the masses") and the slotted masses labelled 50 g. Equipment's "Eye
+# protection" plus the aim's "test it to destruction" is the safety caption. Nothing in the picture
+# is outside those words: the 30 cm ruler, stopwatch and camera are drawn nowhere because their
+# placement is not a set-up fact.
+def fn11():
+    STICK = [44 + 6 * k for k in range(8)]
+    MALLOW = [37, 51, 65, 79, 93]
+    p = [ln(16, 206, 324, 206),
+         cap(65, 32, 'the same to'), cap(65, 44, 'every team'),
+         rect(18, 52, 94, 154, 'pt', 'style="stroke-dasharray:5 4;opacity:.65"'),
+         ''.join(ln(x, 62, x, 102) for x in STICK),
+         cap(65, 116, '20 sticks'),
+         ''.join(circ(cx, 138, 6.5) for cx in MALLOW),
+         cap(65, 158, '20 marshmallows'),
+         circ(38, 175, 13), circ(38, 175, 5.5),
+         ln(51, 169, 98, 169), ln(51, 181, 98, 181), ln(98, 169, 98, 181),
+         cap(65, 201, '1 m of tape'),
+         cap(151, 50, 'metre stick'),
+         rect(146, 62, 11, 144),
+         ''.join(ln(157, 206 - 14.4 * k, 157 + (8 if k % 5 == 0 else 4), 206 - 14.4 * k)
+                 for k in range(11)),
+         cap(240, 72, 'the top of your tower,'), cap(240, 86, 'wherever it ends up'),
+         dash(176, 100, 296, 100),
+         ln(248, 100, 248, 122), ln(248, 122, 230, 134), ln(248, 122, 266, 134),
+         beaker(230, 134, 36, 26),
+         rect(236, 140, 24, 8), rect(236, 149, 24, 8),
+         cap(280, 142, '50 g at a', 'start'), cap(280, 156, 'time', 'start'),
+         arrow(132, 100, 132, 206), lbl(124, 155, 'h', 'end'),
+         cap(170, 228, 'the kit is fixed, so the shape is the only variable —'),
+         cap(170, 242, 'which is why no tower is drawn here, only the rig'),
+         cap(170, 264, 'eye protection on — a tower fails all at once, not slowly')]
+    return svg(276, 'The kit issued to every team, laid out in a tray: twenty dried spaghetti '
+                    'sticks, twenty marshmallows and a metre of masking tape. Beside it the test '
+                    'rig, with a metre stick standing on the table, a dashed line marking the top '
+                    'of the tower wherever it ends up, the height measured from the table to that '
+                    'line, and a basket hanging from the top holding slotted masses added fifty '
+                    'grams at a time', *p)
+
+# ---- PR-FN13  the cylinder on the balance, and no layers -----------------------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: The layer order, and the
+# layers themselves — step 2 is "predict the order of the layers from the densities alone", so a
+# drawn tower is that answer. Also withheld: any density figure (the balance readout is an empty
+# box, not a number), and where the grape, bolt, cork, bead and ping-pong ball come to rest, which
+# is what steps 6 and 7 ask. The four liquids are not drawn as a row of bottles either, because any
+# left-to-right arrangement of honey, washing-up liquid, water and oil reads as a claim about their
+# order.
+#
+# OFF THE ROW: The balance, the measuring cylinder and the 50 ml level are step 1, "Weigh 50 ml of
+# each liquid and calculate its density", with the balance and measuring cylinder both named in
+# `equipment`. The funnel is in `equipment`, and its stem sitting just inside the rim with the
+# stream running down the glass is step 3, "then each next one gently down the side of the jar" —
+# the row's `science` says why in as many words: "Pouring down the side of the jar stops the layers
+# mixing on the way in", which is the crossed-out centre line and the caption under it. The jar is
+# the "Tall clear jar or measuring cylinder" of `equipment`, and it is empty because step 2 sits
+# between weighing and pouring. Nothing in the picture comes from outside those fields: no
+# colouring, no objects, no numbers.
+def fn13():
+    p = [# 1 · the weighing set-up. The SAME 50 ml every time is what makes step 2 arithmetic
+         # rather than a guess, so the marked level and the empty readout are the whole of it.
+         rect(44, 176, 88, 22), rect(60, 166, 56, 10), rect(106, 182, 20, 10),
+         cap(138, 192, 'balance', 'start'),
+         beaker(76, 88, 24, 78, 124),
+         # the 50 ml line is the reading, so no graduation stub is drawn across it
+         ''.join(ln(76, 160 - 9 * i, 82, 160 - 9 * i) for i in range(7) if i != 4),
+         cap(70, 128, '50 ml', 'end'),
+         # 2 · the jar, EMPTY. Which liquid goes in first is step 2 and it is not drawn here.
+         beaker(202, 62, 54, 136),
+         poly([(190, 20), (212, 46), (234, 20)]), rect(209, 46, 6, 30),
+         cap(238, 30, 'funnel', 'start'),
+         poly([(212, 76), (208, 90), (208, 180)]), head(0, 12, 208, 186, 5.5),
+         dash(229, 78, 229, 176),
+         ln(221, 120, 237, 136), ln(237, 120, 221, 136),
+         cap(262, 128, 'NOT into', 'start'), cap(262, 142, 'the middle', 'start'),
+         cap(86, 222, '1 · weigh 50 ml of each'),
+         cap(232, 222, '2 · pour down the SIDE'),
+         cap(170, 250, 'a stream into the middle mixes the layers on the way in'),
+         cap(170, 272, 'the ORDER is YOURS, from the densities alone — step 2,'),
+         cap(170, 286, 'before a single drop is poured')]
+    return svg(296, 'A measuring cylinder holding 50 ml of liquid standing on a balance, and '
+                    'beside it an empty tall jar with a funnel whose stem reaches just inside the '
+                    'rim so the liquid runs down the inside wall, with the centre of the jar '
+                    'crossed out', *p)
+
+# ---- PR-HM01  the bottle standing in the bowl, a moment before the foam --------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: The foam. The row's own
+# outcome is "a column of foam" and the previous session's note says the foam is the whole of it —
+# so the bottle is drawn as it stands BEFORE step 6, with only a fifth of it filled and the yeast
+# still in its own cup. Nothing anywhere suggests how high the foam goes or what it looks like,
+# which is the thing the practical exists to show. The warm bottle (the exothermic half) is not
+# drawn either.
+#
+# OFF THE ROW: Every object is a clause of steps 1-5. "Stand the bottle in the washing-up bowl" ->
+# the bowl's near rim passes in front of the bottle, which is the one thing that distinguishes in-it
+# from beside-it. "Empty 500 ml plastic bottle with a narrow neck" -> the neck is 34 wide against a
+# 74-wide body, labelled. "Pour in 100 ml of 6% hydrogen peroxide" -> a liquid line about a fifth
+# up, labelled 100 ml, with the caption naming the peroxide and the squeeze of washing-up liquid
+# that shares it. "Drip food colouring down the inside of the neck so the foam comes out striped" ->
+# two streaks with a bead each, INSIDE the neck and not reaching the liquid, labelled and captioned
+# with the reason. "In a separate cup stir one 7 g yeast sachet into 3 tbsp of warm water. Leave one
+# minute" -> a cup standing apart on the same bench, a third full, captioned with all three
+# quantities. "Pour the yeast mixture into the bottle and step back" -> stated in the last caption,
+# not drawn as an action, because pouring it is the run. Goggles are on the equipment list and the
+# guide draws no risks column, so they are in that caption too.
+def hm01():
+    FLOOR, RIM = 190, 126
+    p = [ln(16, FLOOR, 324, FLOOR, 'axis'),
+         # the washing-up bowl. Its near rim passes IN FRONT of the bottle, which is the whole of
+         # step 1: the bottle stands in the bowl rather than beside it.
+         ln(40, RIM, 52, FLOOR), ln(212, RIM, 200, FLOOR), ln(52, FLOOR, 200, FLOOR),
+         path('M 40 126 Q 126 142 212 126', 'pt', 'style="opacity:.8"'),
+         # the 500 ml bottle: narrow neck, screw lip, shoulder, body
+         ln(108, 38, 108, 68), ln(142, 38, 142, 68), ln(108, 46, 142, 46),
+         path('M 108 68 Q 104 84 89 92'), path('M 142 68 Q 146 84 163 92'),
+         ln(89, 92, 89, FLOOR), ln(163, 92, 163, FLOOR), ln(89, FLOOR, 163, FLOOR),
+         cap(84, 110, '500 ml bottle', 'end'),
+         ln(89, 166, 163, 166), cap(126, 161, '100 ml'),
+         # the colouring, run down the INSIDE of the neck rather than into the liquid
+         path('M 114 50 Q 109 64 116 80', 'pt', 'style="opacity:.75"'),
+         path('M 136 50 Q 141 66 133 82', 'pt', 'style="opacity:.75"'),
+         dot(116, 81, 1.8), dot(133, 83, 1.8),
+         cap(84, 62, 'colouring', 'end'), ln(88, 58, 106, 58),
+         # the yeast, standing in its own cup on the bench
+         ln(244, 136, 250, FLOOR), ln(292, 136, 286, FLOOR), ln(250, FLOOR, 286, FLOOR),
+         path('M 244 136 Q 268 143 292 136', 'pt', 'style="opacity:.8"'),
+         path('M 292 148 Q 310 157 292 170'),
+         ln(247.6, 168, 288.4, 168),
+         cap(268, 94, '7 g dried yeast'), cap(268, 108, 'in 3 tbsp warm water'),
+         cap(268, 122, 'stirred, left a minute'), ln(268, 127, 268, 134),
+         cap(170, 210, '100 ml of 6% peroxide and a good squeeze of washing-up'),
+         cap(170, 224, 'liquid, in a bottle standing IN the bowl'),
+         cap(170, 246, 'drip the colouring down the INSIDE of the neck, so the'),
+         cap(170, 260, 'foam comes out striped'),
+         cap(170, 282, 'goggles on, then the yeast goes in LAST and you step back')]
+    return svg(292, 'A 500 ml plastic bottle standing in a washing-up bowl holding 100 ml of '
+                    'peroxide with washing-up liquid, food colouring striped down the inside of its '
+                    'narrow neck, and a separate cup of yeast stirred into warm water standing on '
+                    'the bench beside it', *p)
+
+# ---- PR-HM02  the cabbage strained, and six tubes all the same purple ----------------------------
+# WHAT IT WITHHOLDS, AND THAT IS THE WHOLE OF WHY IT IS DRAWABLE AT ALL: Every colour and every
+# position. The tubes are identical and unlabelled, drawn at the moment they all hold the same
+# purple liquid, so the picture cannot hand over the READING (red through green) or the ORDER (step
+# 4's left-to-right ranking by pH) — which together are the whole answer. No substance is assigned
+# to a tube, and no green-turning-purple neutralisation from step 5. The caption lists the six
+# substances in the row's own step-3 order, which is deliberately not the pH order.
+#
+# OFF THE ROW: Sieve, jug and drip: `equipment` "Sieve or colander", step 1 "chop half a red
+# cabbage, cover with boiling water, leave 15 minutes, strain. Keep the purple liquid in the
+# fridge", and `notes` "boil and strain the night before — the one bit of prep that cannot be
+# rushed" (the three right-hand caption lines are that step almost verbatim). Six tubes in a rack at
+# one level: `equipment` "Glass test tubes and a rack × 6–8 tubes" and step 2 "part-fill six to
+# eight test tubes with the purple liquid" — six rather than eight because step 3 names exactly six
+# substances. The arrow from jug to rack is step 1 feeding step 2. The closing caption is step 3's
+# own list, "a different household substance to each … and plain water as the control". Nothing in
+# the picture comes from `science`, which is where the pH colours are.
+def hm02():
+    tubes = [58, 102, 146, 190, 234, 278]
+    p = [# the night before: chopped cabbage in a sieve, straining into a jug
+         path('M 66 34 L 74 22 L 82 34'), path('M 86 38 L 96 20 L 106 38'),
+         path('M 110 34 L 118 23 L 126 34'),
+         ln(56, 28, 136, 28), path('M 56 28 Q 96 88 136 28'),
+         path('M 64 31 Q 96 68 128 31', 'pt', 'style="stroke-dasharray:3 4;opacity:.6"'),
+         ln(56, 28, 38, 24),
+         dash(96, 60, 96, 76),
+         beaker(70, 80, 52, 42, 96), path('M 122 90 Q 137 101 122 112'),
+         ln(152, 32, 136, 26),
+         cap(156, 36, 'half a red cabbage, chopped,', 'start'),
+         cap(156, 50, 'covered in boiling water,', 'start'),
+         cap(156, 64, '15 minutes, then strained', 'start'),
+         cap(156, 90, 'the purple liquid keeps in', 'start'),
+         cap(156, 104, 'the fridge — the night before', 'start'),
+         ln(96, 126, 96, 136), head(0, 10, 96, 136, 5.5),
+         # six tubes standing in a rack, identical on purpose
+         ''.join(tube(cx, 144, 214, 26, 9, 184) for cx in tubes),
+         beaker(32, 200, 272, 32),
+         ''.join(txt(cx, 252, str(i + 1), 'num') for i, cx in enumerate(tubes)),
+         cap(170, 276, 'the same depth of purple in every tube, and nothing'),
+         cap(170, 290, 'added yet — then one thing in each: vinegar, lemon,'),
+         cap(170, 304, 'bicarb, soapy water, salt water, plain water as the control')]
+    return svg(312, 'A sieve of chopped red cabbage draining into a jug of purple liquid, and '
+                    'below it six identical test tubes standing in a rack, each part-filled to '
+                    'the same depth and numbered one to six with nothing added to them yet', *p)
+
+D = {'PR-BI01': bi01, 'PR-BI02': bi02, 'PR-BI03': bi03, 'PR-BI04': bi04, 'PR-BI05': bi05,
+     'PR-BI06': bi06, 'PR-BI07': bi07, 'PR-BI08': bi08, 'PR-BI09': bi09, 'PR-BI10': bi10,
+     'PR-CH01': ch01, 'PR-CH02': ch02, 'PR-CH03': ch03, 'PR-CH04': ch04, 'PR-CH05': ch05,
+     'PR-CH06': ch06, 'PR-CH07': ch07, 'PR-CH08': ch08, 'PR-FN01': fn01, 'PR-FN02': fn02,
+     'PR-FN03': fn03, 'PR-FN04': fn04, 'PR-FN05': fn05, 'PR-FN06': fn06, 'PR-FN07': fn07,
+     'PR-FN08': fn08, 'PR-FN09': fn09, 'PR-FN10': fn10, 'PR-FN11': fn11, 'PR-FN12': fn12,
+     'PR-FN13': fn13, 'PR-HM01': hm01, 'PR-HM02': hm02, 'PR-HM03': hm03, 'PR-HM06': hm06,
+     'PR-HM07': hm07, 'PR-HM08': hm08, 'PR-HM11': hm11, 'PR-HM12': hm12, 'PR-HM14': hm14,
+     'PR-HM15': hm15, 'PR-HM16': hm16, 'PR-HM17': hm17, 'PR-HM18': hm18, 'PR-HM19': hm19,
+     'PR-HM20': hm20, 'PR-HM21': hm21, 'PR-HM25': hm25, 'PR-HM29': hm29, 'PR-HM32': hm32,
+     'PR-HM36': hm36, 'PR-PH01': ph01, 'PR-PH02': ph02, 'PR-PH03': ph03, 'PR-PH04': ph04,
+     'PR-PH05': ph05, 'PR-PH06': ph06, 'PR-PH07': ph07, 'PR-PH08': ph08, 'PR-PH09': ph09,
+     'PR-PH10': ph10}
 
 
 # ---- what has to be true --------------------------------------------------------------------------
