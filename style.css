@@ -8678,7 +8678,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP ---------------------------------------
    `textarea` IS `min-height: 5.8rem` GLOBALLY, which is a page-long box seven times over. These are
-   two or three lines each and the sheet is already long. In `px` at the floor and `rem` above it,
+   two or three lines each and the card is already long. In `px` at the floor and `rem` above it,
    which is the shape the global rule uses and the reason it survives a fluid root — 4.2rem is 62px
    on a 390px phone and 44px is the fingertip underneath it. Sixth conviction of that rule. */
 .gd-box { margin: .35rem 0 0; }
@@ -8693,15 +8693,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `.reel .over` was a second description of `.feed-art` and drifted the first time either was
    touched. The flag is a level rather than a compliance word, so only its own class is new.
 
-   THE LEVEL FLAG IS NOT GOLD. Gold in this app means the one thing to press, which on a quiz card
-   is the tile underneath — `.reel-sound` is the entry recording what happens when a control takes
-   gold on a card whose content is elsewhere. This is a label.
+   THE LEVEL FLAG IS NOT GOLD, and what gold means here has moved without changing the argument. It
+   was `Start` — the tile underneath, which the sentence named — and with the quiz drawn on the card
+   it is the right answer's own border and the figure in the running score. Either way this is a
+   label rather than a thing to press, and `.reel-sound` is the entry recording what happens when
+   something that is not the point takes the colour that says it is.
+
+   `.quiz-say` WAS HERE AND ITS MARKUP HAS GONE. It drew "3 of 5 answered so far" on the card while
+   the quiz was behind a tile; the quiz is on the card now, so `.quiz-score` says that four lines
+   down and says more. Deleted rather than left: `check-css.js` prints a class styled and nowhere
+   produced, and the argument in it — that a card which looks the same whether you have done it or
+   not is a card you cannot choose between — is now carried by the score line itself.
 ================================================================================================== */
 .quiz-lvl { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
             text-transform: uppercase; color: var(--dim); border: 1px solid var(--line);
             border-radius: 999px; padding: .22rem .45rem; white-space: nowrap; }
-.quiz-say { margin: .45rem 0 .1rem; font-size: .78rem; line-height: 1.45; color: var(--faint); }
-.quiz-say b { color: var(--dim); font-weight: 600; }
 
 .quiz-intro { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--faint); }
 

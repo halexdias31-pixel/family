@@ -3375,13 +3375,6 @@ function quizRight_(q, typed) {
 
 function quizCard_(x) {
   const q = x.row;
-  const m = quizMarks_(x);
-  /* THE CARD SAYS WHERE YOU GOT TO, because a recap is a thing you come back to and a card that
-     looks identical whether you have done it or not is a card you cannot choose between. Nothing
-     is said about a quiz nobody has started — an empty progress line on 81 cards is noise. */
-  const been = m.done
-    ? (m.done === m.total ? m.right + ' of ' + m.total + ' right' : m.done + ' of ' + m.total + ' answered')
-    : '';
   return `<div class="card quiz">
     <div class="prac-head">
       <h3>${esc(q.topic)}</h3>
@@ -3398,16 +3391,28 @@ function quizCard_(x) {
           Caught on a screenshot of five cards in a column, all carrying the same sentence. What
           actually tells two of them apart is the topic, the level chip and how far through you are,
           and only the third of those is ever worth a line. */''}
-    ${been ? `<p class="quiz-say"><b>${esc(been)}</b> so far.</p>` : ''}
-    ${/* TWO TILES, BECAUSE THEY ARE TWO THINGS. `Start` is for the person answering it and `Print`
-          is for the tutor who wants it on paper before the session — and a tutor should not have to
-          open a quiz to get at its worksheet. A THING has tiles; one renderer, one 44px target. */''}
-    <div class="tile-row">${tile_({
-      icon: 'doc', label: m.done ? 'Carry on' : 'Start',
-      note: q.qs.length + ' questions',
-      act: 'quiz-open', data: { key: x.key } })}${tile_({
-      icon: 'print', label: 'Print', note: 'quiz and answers',
-      act: 'quiz-print', data: { key: x.key } })}</div>
+    ${/* ---------- THE QUIZ IS ON THE CARD, AND THE TILE THAT OPENED IT IS GONE -----------------
+          "ok get rid of the other pop up menu" — the second half of "I HATE POP UP", once the
+          practical guide came off its sheet and the quiz was the surface left that was plainly the
+          same object: a thing you read and write into, opened from a card in the funnel.
+
+          `Start` / `Carry on` WENT WITH IT. A tile whose whole job is to reveal what is now drawn
+          underneath it is a control that does nothing — which `check/press.js` is there to report
+          — and the label had a second job the card no longer needs, saying whether you had begun.
+          `quizScore_` says that better, four lines down, and in the block that owns the fact.
+
+          `been` WENT FOR THE SAME REASON AND IT WAS THE SHARPER ONE. It printed "3 of 5 answered
+          so far" on the card while `quizScore_` printed "1 right out of the 3 answered · 2 to go"
+          an inch below it — two sentences about one fact, which is the shape this repository
+          records where the roster's `name` drew an `<h3>` over a widget's own heading, and where a
+          post said "Shared by · 1 family" over a row already saying "Just you". The one that says
+          more, once.
+
+          AND `Print` MOVED RATHER THAN GOING. Its own note was that "a tutor should not have to
+          open a quiz to get at its worksheet" — with nothing to open, that argument is satisfied
+          by the card itself, so the button at the foot of the form is the only copy and there is
+          no tile row left to draw. A FORM has buttons; the card IS the form now. */''}
+    ${quizBody_(x)}
   </div>`;
 }
 
@@ -3460,11 +3465,18 @@ function quizRow_(x, q) {
   </section>`;
 }
 
-function quizSheet_(x) {
+/* ---------- THE ANSWERING BLOCK, WHICH WAS A SHEET AND IS THE BODY OF THE CARD --------------------
+   IT WAS `quizSheet_` AND THE NAME WENT WITH THE SHEET. A function called `quizSheet_` that builds
+   no sheet is the stale name this repository keeps finding — `resource_type` in `VOCAB`, the dead
+   `kind === 'paper'` guard, `.favwrap.is-fav`.
+
+   ITS FIRST LINE WAS A `sub` THE CARD ALREADY DRAWS. `Biology · GCSE Higher` above the intro, with
+   `Biology · 5 questions` and a `GCSE Higher` chip four lines above THAT — invisible while the two
+   were on different surfaces and one fact three times the moment they were on one. The card keeps
+   its own, which carries the question count as well. */
+function quizBody_(x) {
   const m = quizMarks_(x);
-  return `<div class="gd quiz-sheet">
-    <p class="sub">${esc([x.row.subject, x.row.tier ? x.row.level + ' ' + x.row.tier : x.row.level]
-      .join(' · '))}</p>
+  return `<div class="gd quiz-body">
     ${/* ---------- WHAT THIS IS, SAID BEFORE THE FIRST QUESTION -------------------------------
           "just a quiz so less pressure" IS THE BRIEF and a screen that does not say so reads as a
           test. Nothing here is sent anywhere, nothing is timed and nothing is reported to a tutor
@@ -3476,8 +3488,10 @@ function quizSheet_(x) {
     ${/* ANOTHER GO CLEARS THE FIVE KEYS, so the quiz is genuinely blank rather than blanked on
           screen. It is the one control here that destroys something, which is why it says what it
           will do rather than carrying a glyph. */''}
-    ${/* AND IN THE SHEET TOO, for whoever is already looking at it. A FORM has buttons — the house
-          style — and this is the foot of a form, so it is a button here and a tile on the card. */''}
+    ${/* THE ONLY COPY NOW. These were buttons at the foot of the sheet AND tiles on the card, on
+          the argument that whoever was already looking at the sheet should not have to close it.
+          There is one surface, so there is one of each, and the house style says which: a FORM has
+          buttons, and this is the foot of a form. */''}
     <div class="quiz-foot">
       <button type="button" class="btn quiet" data-do="quiz-print"
         data-key="${esc(x.key)}">Print this quiz and its answers</button>
@@ -3506,21 +3520,21 @@ function quizFind_(key) {
   return stuffItemsAll_().find(it => it.key === key && it.kind === 'quiz') || null;
 }
 
-on('quiz-open', el => {
-  const x = quizFind_(el.getAttribute('data-key') || '');
-  if (!x) return toast('That quiz is not in the list any more');
-  openSheet(x.name, quizSheet_(x), null, null);
-});
+/* `on('quiz-open')` WAS HERE and is gone with the tile that drew its door. `quizFind_` above it
+   stays: the two handlers below still look a quiz up by the key its own markup carries. */
 
 /* ---------- ANSWERING ----------------------------------------------------------------------------
-   THE ROW IS REDRAWN AND THE SHEET IS NOT. Re-rendering the whole sheet would put `#sheet-body`'s
-   scroll back to the top on every answer — five questions in, that throws somebody back to the
-   intro each time they press a button. So the one `<section>` that changed is replaced and the
-   score line is updated, which are exactly the two things an answer changes.
+   THE ROW IS REDRAWN AND THE BLOCK AROUND IT IS NOT, and the argument survived the sheet going.
+   It was that re-rendering the whole sheet puts `#sheet-body`'s scroll back to the top on every
+   answer — five questions in, that throws somebody back to the intro each time they press a
+   button. A card is in a `.pane`, and `paneReach_` gives an overflowing pane `overflow-y: auto`,
+   so the scroller is one box further out and the fault is the same one: rebuilding the card, or
+   the strip it is in, loses where somebody had got to. The one `<section>` that changed is
+   replaced and the score line is updated, which are exactly the two things an answer changes.
 
    AND BOTH ARE REDRAWN FROM STORAGE rather than patched. `quizRow_` reads the stored answer and
-   works the mark out itself, so the markup after a press is byte-identical to the markup after
-   reopening the sheet — which is what stops the two paths drifting. See the note over `quizRow_`. */
+   works the mark out itself, so the markup after a press is byte-identical to the markup after a
+   repaint — which is what stops the two paths drifting. See the note over `quizRow_`. */
 function quizAnswered_(el, key, n, value) {
   const x = quizFind_(key);
   if (!x) return;
@@ -3528,8 +3542,19 @@ function quizAnswered_(el, key, n, value) {
   if (!q) return;
   try { localStorage.setItem(quizKey_(x, q.n), value); } catch (e) {}
   const row = el.closest('.quiz-q');
+  /* ---------- THE SCORE IS FOUND FROM THE ROW, NOT FROM THE SHEET ------------------------------
+     THIS READ `$('sheet-body')`, which was the one place a quiz could be. It is on a card in the
+     funnel now, and the funnel's windowed pager keeps about six result pages in the DOM at once —
+     so an id, or a document-wide `querySelector`, would have updated the FIRST quiz on the screen
+     rather than the one under the thumb. That is the `$('msg-text')` fault this repository records,
+     where a reply typed into the second thread posted to the first.
+
+     ASKED OF THE DOM RATHER THAN REMEMBERED, which is what `msg-send` and `me-save` already do:
+     walk up from the element that was pressed to the block it belongs to. `body` is read before
+     the row is replaced, because `outerHTML` detaches `row` and `closest` on a detached node
+     cannot find its old parents. */
+  const body = el.closest('.quiz-body');
   if (row) row.outerHTML = quizRow_(x, q);
-  const body = $('sheet-body');
   const score = body && body.querySelector('.quiz-score');
   if (score) score.innerHTML = quizScore_(quizMarks_(x));
 }
@@ -3556,7 +3581,16 @@ on('quiz-again', el => {
   (x.row.qs || []).forEach(q => {
     try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
   });
-  openSheet(x.name, quizSheet_(x), null, null);
+  /* ---------- REDRAWN IN PLACE, WHERE IT USED TO REOPEN THE SHEET ------------------------------
+     `openSheet(x.name, quizSheet_(x))` was how this repainted: throw the surface away and build it
+     again. With the quiz on a card there is nothing to reopen, and a `paintStuff()` would be worse
+     than nothing — it rebuilds the whole funnel strip to clear five answers, and the note over
+     `cart-drop` makes that argument already: the press IS the change and the state it changed is
+     in `localStorage` rather than on a wire.
+
+     THE BLOCK THE BUTTON IS IN, for the reason above: six quizzes can be in the DOM at once. */
+  const body = el.closest('.quiz-body');
+  if (body) body.outerHTML = quizBody_(x);
 });
 
 /* ==================================================================================================

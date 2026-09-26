@@ -188,33 +188,61 @@ const STATES = {
        agree. `quizKey_` is the app's own key-builder for the reason the seeded message thread uses
        `MESSAGES`: a second spelling of that key here would be a second thing to keep in step.
 
-       AND IT PUTS THE SHEET BACK, for the reason the guide above does. */
+       AND IT PUTS THE FUNNEL BACK, for the reason the guide above does. It opened a SHEET until
+       "ok get rid of the other pop up menu" took the quiz onto its card; a state that opens a
+       surface the app no longer has measures something nobody can see. */
     { name: 'a quiz',
       enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'quiz');
-        if (!x) throw new Error('no quiz in the list to open');
-        const qs = x.row.qs || [];
+        const any = stuffItemsAll_().find(it => it.kind === 'quiz');
+        if (!any) throw new Error('no quiz in the list to draw a card for');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(any).label }];
+        paintStuff();
+        /* ---------- SEEDED ON THE QUIZ THE SCREEN WILL ACTUALLY SHOW -------------------------
+           NOT ON `stuffItemsAll_()`'s FIRST, which is a different order from the funnel's: the
+           list is sorted before it is paged, so seeding one quiz and landing on another would
+           leave this state measuring an untouched card and reporting the marked states missing.
+           `stuffFiltered()` after the repaint is the order the pages are built from. */
+        const x = stuffFiltered()[0];
+        if (!x) throw new Error('the funnel returned no quiz after filtering to them');
         /* One right and one wrong, so both marked states are on the screen at once. A quiz where
            everything is right measures no red, which is half the rules in the block. */
-        const pick = qs.filter(q => q.kind === 'choice');
+        const pick = (x.row.qs || []).filter(q => q.kind === 'choice');
         if (pick.length >= 2) {
           localStorage.setItem(quizKey_(x, pick[0].n), pick[0].answer);
           const other = (pick[1].choices || []).find(c => c !== pick[1].answer);
           if (other) localStorage.setItem(quizKey_(x, pick[1].n), other);
         }
-        openSheet(x.name, quizSheet_(x), null, null);
+        paintStuff();
+        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
       },
-      expect: () => document.querySelectorAll('#sheet-body .quiz-q').length >= 3
-                 && document.querySelector('#sheet-body .quiz-q.is-right')
-                 && document.querySelector('#sheet-body .quiz-q.is-near')
-                 && document.querySelector('#sheet-body .quiz-why'),
-      wants: 'the quiz open, with one question right, one wrong, and both explanations drawn',
+      /* ONE CARD, NOT THE SCREEN, for the reason the guide's own expect records: the windowed
+         pager holds about six result pages at once, so a count across `#s-stuff` counts six
+         quizzes. The seeded one is the first, which is what the `stuffFiltered()[0]` above buys. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.quiz');
+        return !!c && c.querySelectorAll('.quiz-q').length >= 3
+               && !!c.querySelector('.quiz-q.is-right')
+               && !!c.querySelector('.quiz-q.is-near')
+               && !!c.querySelector('.quiz-why');
+      },
+      wants: 'a quiz card with one question right, one wrong, and both explanations drawn',
+      /* ---------- IT CLEARS THE QUIZ IT SEEDED, AND IT USED TO CLEAR A DIFFERENT ONE ------------
+         THIS READ `stuffItemsAll_()`'s FIRST QUIZ, which was the same one `enter` seeded while
+         `enter` read that list too. It does not any more — the seed moved to `stuffFiltered()[0]`,
+         which is the funnel's own order — so looking the quiz up the old way would clear five keys
+         on a quiz nobody touched and leave five behind on the one that was. States run in order
+         down one page, so those would still be there when Tools and Games are measured.
+
+         BOTH ENDS READ THE SAME LIST NOW, which is the only arrangement where they cannot drift —
+         the sentence this repository writes about `documents_()`, `factsNow_` and `childrenOf`. */
       leave: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'quiz');
-        if (x) (x.row.qs || []).forEach(q => {
+        const x = stuffFiltered()[0];
+        if (x && x.kind === 'quiz') (x.row.qs || []).forEach(q => {
           try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
         });
-        closeSheet();
+        STUFF.filters = [];
+        paintStuff();
+        goPage('stuff', 0);
       } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
