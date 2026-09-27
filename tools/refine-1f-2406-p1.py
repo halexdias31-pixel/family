@@ -577,6 +577,13 @@ for raw in lines:
         out.append(raw)
         continue
     rid = row.get('row_id')
+    # ---- THIS SCRIPT MUST NOT RUN TWICE, and it did. -------------------------------------------
+    #      `tools/draw-1f-1705-q13.py` carries exactly this guard and this one was written without
+    #      it: run a second time against its own output it appends FIVE MORE preambles with the
+    #      same row_ids, which `check-library.js` catches as duplicate ids -- but only after the
+    #      file has been rewritten. Refusing is cheaper than repairing.
+    if rid in ('Q-1MA1-2406-1F-%s' % p['q'] for p in PREAMBLES):
+        raise SystemExit('%s already exists -- this script has already run against this file' % rid)
     short = rid.replace('Q-1MA1-2406-1F-', '') if rid else ''
 
     # ---- the preamble this paper already had: give it the picture it has been describing --------

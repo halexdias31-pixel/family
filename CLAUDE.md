@@ -14624,3 +14624,43 @@ named on more than one part of one question: 146**, and the sharp end of it, **d
 one of them: 20**. Printed rather than failed, and `figure` is why: it is a LABEL, so two parts both
 saying `graph` may mean Figure 3 and Figure 5, and a rule that cannot tell that from two parts
 sharing one picture is the `check-rows.js` fault with 95 findings and 2 real ones.
+
+### And three questions still printed their own gap, which is the failure mode that file names first
+
+**Asked as *"is maths foundation paper 1 2024 summer all complete now. with diagram too and
+everything"*.** Every picture was in by then and these were not:
+
+```
+Q11(b)  "Find the value of [INDEX NOT EXTRACTED - printed as a power, ...]"
+Q18     "Write down the value of [INDEX NOT EXTRACTED - ... 10 to the power 0]"
+Q28     "Solve x + 11 [INEQUALITY SIGN NOT EXTRACTED] 5 - 1/2 x"
+```
+
+**THE SYMBOL WAS ALREADY KNOWN AND WRITTEN DOWN TWO COLUMNS AWAY.** Each row's `examiner_note`
+said what it is and how the scheme settles it — so the question was unreadable while its own
+answer sat beside it, which is the fault this file records on the AQA chemistry papers: a
+description is right while the thing is missing and a second, worse source for it the moment it is
+not.
+
+**AND IT IS THE TEXT LAYER'S WORST FAILURE, which this file names four ways and calls this one the
+worst "because the question still reads sensibly and is now a different question".** `10 to the
+power 0` and `10` are both askable; `x + 11 ≤ …` and `x + 11 = …` have different answers.
+
+**Each is proved by its own answer rather than read off a PDF** — 2⁵ = 32 where 5² = 25, 10⁰ = 1,
+and x + 11 ≤ 5 − ½x gives exactly x ≤ −4 with equality AT −4, which is what makes the sign
+inclusive. The assertions run before a row is written. `examiner_note` keeps the provenance rather
+than being emptied: the symbol is recovered rather than transcribed, and a reader is owed that
+distinction for the reason `diagram_by` exists.
+
+**AND THE SCRIPT BESIDE THIS ONE HAD NO RUN-ONCE GUARD, WHICH COST A FILE.** `tools/draw-1f-1705-q13.py`
+opens by refusing to run against its own output; `tools/refine-1f-2406-p1.py` was written without
+that line, and re-running it to add these three appended **five duplicate preambles** with the same
+row_ids. Caught by counting ids immediately afterwards and restored from the index — but the lesson
+is the precedent's: **a script that rewrites a committed data file refuses a second run**, because
+refusing is cheaper than repairing. Both scripts carry it now, and the second run prints the
+refusal rather than a diff.
+
+**The paper: 41 questions, 80 marks, 41 of 41 answered, 31 of 41 with a Check, 6 preambles, 9
+drawings, 3 tables, 0 missing pictures and 0 gaps left in any question's own text.** The ten
+without a Check are correctly without one — an explain, a show-that, a draw-a-chart, a
+describe-the-transformation scored as two independent B1s, and an answer that is an infinite family.
