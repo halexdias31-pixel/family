@@ -5908,7 +5908,7 @@ const topicOne_ = k => k.endsWith('ies') && k.length > 5 ? k.slice(0, -3) + 'y'
 function topicIndex_() {
   if (TOPIC_AREA) return TOPIC_AREA;
   const tree = (DATA && DATA.topicTree) || [];
-  const byId = {}, exact = {}, roots = [];
+  const byId = {}, exact = {}, roots = [], limits = {};
   tree.forEach(r => { if (r && r.topic_id) byId[r.topic_id] = r; });
   const rootOf = (r, n) => {
     const p = String((r && r.parent_id) || '').trim();
@@ -5916,7 +5916,23 @@ function topicIndex_() {
   };
   tree.forEach(r => {
     if (!r || !r.label) return;
-    const area = (rootOf(r) || r).label;
+    const root = rootOf(r) || r;
+    const area = root.label;
+    /* ---------- WHAT THE BRANCH SAYS ABOUT ITSELF -------------------------------------------
+       DECLARED ON THE ROOT ROW RATHER THAN READ OUT OF ITS NAME. `Pure` is A-level maths and
+       `Punctuation` is English, and both were facts only a person reading the label knew — which
+       is how a GCSE proof question ended up in an A-level menu and a grammar question about
+       brackets ended up under Number. A substring rule over the label is what put a gold
+       "required practical" flag on five cards that say they are not one. */
+    if (limits[area] === undefined) {
+      /* `topicAtoms_`, NOT `asList_`. The second one does not split a comma — it wraps a string
+         in a one-element array, and the comma-reading in this app is done by whoever owns the
+         cell. Written with `asList_` these two came out as the single key `alevelas` and every
+         A-level question lost its area; `topicAtoms_` is the same splitter `topicOf_` uses on the
+         cell these are being compared against. */
+      limits[area] = { subjects: topicAtoms_(root.only_subject).map(spellKey_).filter(Boolean),
+                       levels:   topicAtoms_(root.only_level).map(spellKey_).filter(Boolean) };
+    }
     const names = [r.label, String(r.topic_id || '').replace(/-/g, ' ')]
       .concat(String(r.aliases || '').split(',').filter(a => a.trim()));
     /* A ROOT ANSWERS TO ITS OWN HALVES. "Ratio & Proportion" is one branch and the library writes
@@ -5924,27 +5940,78 @@ function topicIndex_() {
     if (!String(r.parent_id || '').trim()) names.push.apply(names, r.label.split(/[&/,]/));
     names.forEach(nm => {
       [topicKey_(nm), topicOne_(topicKey_(nm))].forEach(k => {
-        if (k && exact[k] === undefined) exact[k] = area;
+        if (!k) return;
+        /* ---------- EVERY BRANCH THE WORD REACHES, NOT THE FIRST ONE IN THE FILE -------------
+           THIS WAS `if (exact[k] === undefined) exact[k] = area`, so a word in two branches
+           resolved to whichever sits higher in `data/topics.json` — a decision nobody made,
+           taken silently, and unreadable from either row. Measured: five words are in two roots
+           (`brackets`, `arc length`, `reflection`, `trapezium rule` and the singular of the
+           first), and `brackets` is why two KS2 GRAMMAR questions were filed under Number.
+           Keeping them all is what lets the row decide, below. */
+        if (exact[k] === undefined) exact[k] = [];
+        if (exact[k].indexOf(area) < 0) exact[k].push(area);
       });
     });
     roots.push([topicOne_(topicKey_(r.label)), area]);
   });
-  return (TOPIC_AREA = { exact: exact, roots: roots });
+  return (TOPIC_AREA = { exact: exact, roots: roots, limits: limits });
+}
+
+/* ---------- WHICH OF THE BRANCHES A ROW CAN HONESTLY BE IN --------------------------------------
+   THREE STEPS, AND THE ASYMMETRY BETWEEN THE FIRST TWO IS THE WHOLE CARE.
+
+   A LEVEL CONTRADICTION ALWAYS RULES A BRANCH OUT. `Pure` says it is A-level; a GCSE row is not in
+   it, whatever its topic cell says. That is the eighteen Edexcel Higher questions this was reported
+   for — `proof`, `rates of change`, `coordinate geometry`, `arithmetic` — every one of them sitting
+   in an A-level menu because the A-level subtree was the only place those words appeared.
+
+   A SUBJECT CONTRADICTION ONLY BREAKS A TIE, and that restraint was measured rather than chosen:
+   **97 practicals carry a science subject and resolve to a MATHS area on purpose** — the resistance
+   of a wire IS a straight-line graph, and a student stuck on direct proportion should find it. A
+   blanket subject rule would have broken all ninety-seven to fix two, which is the ninety-five
+   findings with two real ones in them that `check-rows.js` records.
+
+   AND A BRANCH THE ROW POSITIVELY MATCHES BEATS ONE THAT SAYS NOTHING. With `proof` now reaching
+   GCSE `Algebraic Proof` as well as A-level `Proof`, an A-level row matches both — and the branch
+   that declared itself A-level is the better answer for a row that is. Without this step the fix
+   for the GCSE rows would have taken the area off the A-level ones. */
+function topicPick_(cands, x) {
+  const at = topicIndex_();
+  const lim = a => at.limits[a] || { subjects: [], levels: [] };
+  const lv = spellKey_(levelOf_(x) || '');
+  const sub = spellKey_(String((x && x.subject) || '') || '');
+
+  let left = cands.filter(a => !(lv && lim(a).levels.length && lim(a).levels.indexOf(lv) < 0));
+  if (left.length > 1 && sub) {
+    const fits = left.filter(a => !(lim(a).subjects.length && lim(a).subjects.indexOf(sub) < 0));
+    if (fits.length) left = fits;
+  }
+  if (left.length > 1 && lv) {
+    const named = left.filter(a => lim(a).levels.indexOf(lv) >= 0);
+    if (named.length) left = named;
+  }
+  /* STILL MORE THAN ONE IS NO ANSWER. A chip that is wrong is worse than a chip that is missing —
+     this file's own rule about `cost: 0` and about a description standing in for a picture — and
+     `check-funnel.js` counts what lands here so it is a number rather than a silence. */
+  return left.length === 1 ? left[0] : null;
 }
 function topicAreaOf_(x) {
   const at = topicIndex_();
   const out = [];
   asList_(topicOf_(x)).forEach(t => {
     const k = topicKey_(t), k1 = topicOne_(k);
-    let area = at.exact[k] !== undefined ? at.exact[k]
-             : at.exact[k1] !== undefined ? at.exact[k1] : null;
-    if (area === null && k1.length >= 4) {
+    const hit = at.exact[k] !== undefined ? at.exact[k]
+              : at.exact[k1] !== undefined ? at.exact[k1] : null;
+    let area = hit ? topicPick_(hit, x) : null;
+    if (area === null && !hit && k1.length >= 4) {
       let only = null, many = false;
       at.roots.forEach(pair => {
         if (pair[0].indexOf(k1) < 0) return;
         if (only === null) only = pair[1]; else if (only !== pair[1]) many = true;
       });
-      if (only !== null && !many) area = only;
+      /* THROUGH THE SAME CHOICE, because a PARTIAL match is less certain than an exact one, not
+         more — so a branch the row's level rules out is ruled out here too. */
+      if (only !== null && !many) area = topicPick_([only], x);
     }
     if (area && out.indexOf(area) < 0) out.push(area);
   });
