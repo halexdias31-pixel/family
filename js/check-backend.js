@@ -158,6 +158,54 @@ say('A SHEET CHANGED WITHOUT `delRow`, so the stored payload keeps the deleted r
   strays,
   'route it through delRow(t, row) — it sets POST_WROTE, which is what retires the payload.');
 
+/* ---------- AND A NAME IS NOT PROOF OF WHO IS ASKING ----------------------------------------------
+   `doGet` DECIDED WHO YOU WERE FROM `?name=`. `p` is the URL query string, the web app is deployed
+   `ANYONE_ANONYMOUS`, and every tutor's display name is printed on the screen — so
+   `?name=<an admin's display name>` was the whole of what it took to be served the admin payload:
+   the films list, every unlisted tutor, `payload.students` (every child's name, handle, avatar,
+   friends, xp and credits), a child's home `address`, withheld posts, refused and waiting bookings,
+   and the e-mail addresses a booker typed into a split. `?person=<any id>` bought four more —
+   another family's birthday diary, another person's print orders, somebody else's withheld posts.
+
+   `doPost` HAS BEEN RIGHT SINCE SESSIONS WERE BUILT and its own note says why: "BEING SIGNED IN IS A
+   TOKEN, NOT A NAME — any name, the field simply had to be non-empty". `accessDenied` resolves
+   `authWhoIs_(body.token)` and overwrites `body.name` with whoever the token really is. `doGet` was
+   never moved onto the same machinery, and nothing anywhere compared the two halves of one app.
+
+   A GREP, AND THE SAME ONE EXEMPTION SHAPE AS `delRow` ABOVE. The question is whether the string
+   appears outside the one block allowed to use it, which has exactly one right answer — and that
+   block is `if (p.run)`, a URL an admin types by hand with no token to hand, authenticated by a PIN
+   through `authCheckPin_`. Everywhere else, a name or an id in a URL is a claim.
+
+   `p.pin`, `p.health`, `p.receipts`, `p.arg` AND THE REST ARE NOT ASKED ABOUT, deliberately. They
+   are switches and secrets rather than identities: a switch anybody may flip costs nothing, and the
+   PIN is the thing being checked rather than a thing being believed. A rule that fired on every
+   query parameter would fire on the honest ones, which is a rule somebody switches off. */
+const CLAIMS = /\bp\.(name|person)\b/;
+const claims = [];
+(function () {
+  const f = 'doget.gs';
+  let src;
+  try { src = fs.readFileSync(path.join(dir, f), 'utf8').split('\n'); } catch (e) { src = null; }
+  /* A FILE THAT CANNOT BE READ IS A FAILURE, NOT AN EMPTY PASS. "I did not manage to look" printed
+     as "I looked and it was fine" is the fault this repository keeps finding in its own checks. */
+  if (!src) { claims.push([f, 'could not be read, so NOTHING was checked — not a pass']); return; }
+  let inRun = false, inComment = false;
+  src.forEach((line, i) => {
+    const before = inComment;
+    if (!inComment && line.includes('/*') && !line.includes('*/')) inComment = true;
+    else if (inComment && line.includes('*/')) inComment = false;
+    if (before || inComment) return;
+    if (/^\s*\/\//.test(line)) return;
+    if (/^\s*if \(p\.run\) \{/.test(line)) inRun = true;
+    else if (inRun && /^    \}$/.test(line)) inRun = false;
+    if (inRun) return;
+    if (CLAIMS.test(line)) claims.push([f + ':' + (i + 1), line.trim().slice(0, 78)]);
+  });
+})();
+say('WHO IS ASKING TAKEN FROM A NAME OR AN ID IN THE URL, which anybody can type', claims,
+  'resolve the session token instead — authWhoIs_(p.token), as accessDenied already does for POST.');
+
 console.log('');
 console.log(files.length + ' file(s) in ' + path.relative(path.join(__dirname, '..'), dir)
           + '   top-level functions: ' + fn.size + '   values: ' + val.size);

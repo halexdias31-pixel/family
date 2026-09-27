@@ -382,6 +382,71 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page' },
 
+    /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
+       `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
+       birth at all — the fourth time that file has been found stating a shape `doGet` does not
+       send, after `focus` as a string, the receipt's `sessionDates` against `dates`, and the job's
+       `students` and `venue`. `PROFILE_GROUPS` has had `['email','phone','date_of_birth']` since it
+       was written; the fixture has it now too, in the same place.
+
+       EXACTLY THREE, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding one box
+       passes a bare count — and one box is precisely what the version before this drew. The number
+       IS the assertion, which is the same reason the pricing state counts to four.
+
+       FOUND BY ASKING THE DOM, like every other state on this column: `settingsPages_`'s length
+       varies with what the backend sends, so a literal page number drifts the moment a deployment
+       sends one group fewer. */
+    { name: 'a date of birth',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="dob_d"]'));
+        if (at < 0) throw new Error('no date-of-birth page on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => (document.querySelectorAll('#s-settings .page.on .dob-boxes [data-me]').length === 3
+                     && document.querySelectorAll('#s-settings .page.on [data-me="date_of_birth"]').length === 0
+                     ? 3 : 0),
+      wants: 'three date-of-birth boxes and no fourth box for the column itself' },
+
+    /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
+       ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
+       big exam:_____."* The group is in `STUDENT_GROUPS` and in neither of the other two maps, which
+       is what makes it appear for a student and for nobody else — so it is unreachable as the admin
+       every other state on this column is measured as, and would have gone unmeasured for exactly
+       that reason.
+
+       `USER.role` IS THE APP'S OWN DOOR AND IS WHY THIS IS NOT A POKE. `loginReplyFor_` sends the
+       role and `data.js` writes it onto `USER`, so a state that sets it and repaints is the state a
+       student's own sign-in produces — the same argument as the message thread seeded through
+       `MESSAGES`, which is what `loadMessages` writes.
+
+       `studentFields` WAS `[]` IN THE FIXTURE, which is not what `doGet` sends — it sends
+       `STUDENT_GROUPS`, an object — so `Object.keys([]).length` was 0, `settingsPages_` fell through
+       to the tutor's map, and a student's whole settings column has never been drawn here at all.
+       The FIFTH time that file has been found stating a shape the server does not send.
+
+       IT PUTS THE ROLE BACK, because states run in order down one page and a lab left holding a
+       student would measure every column after this one as the wrong visitor. */
+    { name: 'the exam dates',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_ROLE_WAS = USER.role;
+        USER.role = 'student';
+        repaint();
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="exam_small_date"]'));
+        if (at < 0) throw new Error('no exam-dates page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { USER.role = window.STATE_ROLE_WAS; repaint(); },
+      /* BOTH, AND BOTH A REAL DATE PICKER. `expect` is truthy-read, so a bare count passes on a page
+         holding two plain text boxes — which is precisely what `FIELD_IS_DATE` failing to match
+         produces, and the whole point of the `_date` suffix. So the type is the assertion. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on input[type="date"][data-me]')
+                       .length === 2 ? 2 : 0),
+      wants: 'two exam-date boxes, both drawn as a date picker' },
+
     { name: 'the wardrobe',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -455,6 +520,37 @@ const STATES = {
         });
         paint('saved');
       } },
+  ],
+
+  /* ---------- THE SHOP WINDOW, EMPTY AND FULL, AND THE EMPTY ONE IS TWO DIFFERENT CARDS --------
+     `check/fixture.json` SENDS `spotlight: []`, so the unnamed state below is the empty column —
+     and it is not one card but two, because the sentence an ADMIN is shown says how to fill it and
+     the one everybody else is shown says what the column is for. Both are measured, because the
+     unnamed state runs for both visitors.
+
+     SEEDED THROUGH THE PAYLOAD AND `adoptSpotlight_`, which is the app's own door: `DATA.spotlight`
+     is what the backend sends and that function is the only thing that reads it. Poking `SPOT`
+     directly would measure a shape `doGet` does not send, which is the fixture fault this file has
+     now been caught committing four times.
+
+     TWO KEYS OFF `stuffItemsAll_()` RATHER THAN A LITERAL. A key written in here is a key that goes
+     stale the moment the fixture changes, and the column's whole job is to draw the cards those
+     keys name — a state that seeds a key nothing matches measures the EMPTY column while claiming
+     to measure the full one. */
+  spotlight: [
+    { name: '' },
+    { name: 'two things in the window',
+      enter: () => {
+        DATA.spotlight = stuffItemsAll_().slice(0, 2).map(x => x.key);
+        adoptSpotlight_();
+        paint('spotlight');
+      },
+      expect: () => document.querySelectorAll('#s-spotlight .page').length,
+      wants: 'a page per spotlit thing',
+      /* STATES RUN IN ORDER DOWN ONE PAGE, so what this wrote has to go — left behind, the empty
+         column would never be measured again on this run and Saved would be measured with a
+         payload key nothing else expects. */
+      leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
   tools: [

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-25-e-one-quote";
+const DOGET_VERSION = "2026-09-27-a-exam-dates";
 
 
 function doGet(e) {
@@ -36,6 +36,43 @@ function doGet(e) {
     const t0 = Date.now(), timings = {};
     const mark = n => { timings[n] = Date.now() - t0; };
     const p = (e && e.parameter) || {};
+
+    /* ==============================================================================================
+       WHO IS LOOKING, AND IT IS THE SESSION TOKEN THAT SAYS SO
+       ----------------------------------------------------------------------------------------------
+       THIS FUNCTION DECIDED WHO YOU ARE FROM `?name=`. `p` IS THE URL QUERY STRING, the web app is
+       deployed `ANYONE_ANONYMOUS`, and the name of every tutor is printed on the screen — so
+       `?name=<an admin's display name>` was the whole of what it took to be served the admin
+       payload. Measured, that is: the films list, every unlisted tutor, `payload.students` (every
+       child's name, handle, avatar, friends, xp and credits), a child's home `address`, withheld
+       posts, refused and waiting bookings, and the e-mail addresses a booker typed into a split.
+
+       `doPost` HAS BEEN RIGHT ABOUT THIS SINCE SESSIONS WERE BUILT and its own note says why:
+       "BEING SIGNED IN IS A TOKEN, NOT A NAME — any name, the field simply had to be non-empty".
+       `accessDenied` resolves `authWhoIs_(body.token)` and overwrites `body.name` with whoever the
+       token really is. The same machinery, the same function; `doGet` was simply never moved onto it.
+
+       MEMOISED, because `authWhoIs_` runs `authHash_` and that is four thousand rounds of SHA-256 by
+       design — about fifty milliseconds. Seven places here ask who is looking; one answer.
+
+       THE TOKEN TRAVELS IN THE QUERY STRING AND THAT COSTS SOMETHING, said plainly rather than
+       waved past: a GET URL is written to Apps Script's own execution log, where a POST body is not.
+       What reads that log is the script's owner, who can already read the whole spreadsheet — so the
+       exposure is a surface the owner already has, against a hole any visitor had. The alternative is
+       to make the payload a POST, which takes the boot fetch out of `index.html`'s head and gives up
+       the head start the whole of that block exists for. Written down so it is a trade rather than an
+       oversight.
+
+       ONE NAME IS STILL READ AND IT IS THE ONE THAT PROVES SOMETHING ALONGSIDE IT: `?run=` is a URL
+       an admin types by hand, so there is no token to hand, and it authenticates with a PIN checked
+       through `authCheckPin_` — see the block there. `?person=` is read for identity nowhere in this
+       function any more. What is gone everywhere else is a name, or an id, taken as PROOF.
+    ============================================================================================== */
+    let ASKED_BY = undefined;
+    const askedBy_ = function () {
+      if (ASKED_BY === undefined) ASKED_BY = authWhoIs_(p.token);
+      return ASKED_BY;
+    };
 
     /* ---------- THE SHEET CATCHES UP, BUT NEVER WHILE SOMEBODY IS WAITING -------------------------
        THIS RAN ON EVERY PAGE LOAD, and the note it carried said the quiet part out loud: "it must
@@ -98,7 +135,27 @@ function doGet(e) {
       const who = findPerson(S(p.name));
       /* Both checks, and one message for both. "That name is not an admin" tells somebody trying
          addresses which half they got right. */
-      if (!who || S(who.pin) !== S(p.pin) || !hasRole(who, 'admin')) {
+      /* ---------- IT COMPARED THE PIN AGAINST A CELL THAT IS EMPTY ON EVERY HASHED ROW -----------
+         `S(who.pin) !== S(p.pin)` read the PLAINTEXT `pin` cell, and `authSetPin_` CLEARS that cell
+         the moment a PIN is hashed — which is every row that has ever changed its PIN through the
+         app, and every row a reset has touched. So `S(who.pin)` is `''`; a URL carrying no `pin`
+         parameter at all makes `S(p.pin)` `''` too; the comparison passes.
+
+         SO `?run=<job>&name=<an admin's display name>` RAN THAT JOB FOR ANYBODY, with no PIN, and a
+         display name is on the screen. Every job in `RUNNABLE` was reachable that way —
+         `ensureSchema`, `rename`, `seedOptions`, `seedFamilies`, `installTriggers`,
+         `clearPayloadCache`. Not a disclosure: remote invocation of the maintenance surface.
+
+         `authCheckPin_` IS THE ONE FUNCTION THAT KNOWS THE ANSWER. It refuses an empty PIN on its
+         first line, reads the hash where there is one, and keeps the plaintext branch as the
+         migration path for a row typed into the sheet before hashing existed — re-hashing it on the
+         way through. Exactly what `verifyLogin` asks, which is the point: one test, one place.
+
+         NO THROTTLE HERE, DELIBERATELY. `authWrong_`'s ladder guards the sign-in door; this is a URL
+         typed by hand by somebody who already holds the spreadsheet, and a lock-out written from a
+         mistyped `?run=` would shut the owner out of the app itself. */
+      if (!who || !hasRole(who, 'admin')
+          || !authCheckPin_(read(TAB.people), who, S(p.pin))) {
         return jsonOut({ error: 'Name or PIN not recognised, or that person is not an admin.',
                          hint: 'Add &name=Your%20Name&pin=0000 to the URL.' });
       }
@@ -155,8 +212,12 @@ function doGet(e) {
       /* BY ID WHERE THE SITE KNOWS IT. This asked for the name alone, which is the same weakness the
          receipts themselves had: two people who answer to one name get one another's documents, and
          a renamed person gets nobody's. The site has held a `personId` since sign-in. */
-      const who = findPerson(S(p.name), S(p.person));
-      if (!who) return jsonOut({ error: 'Name not recognised.' });
+      /* AND THE TOKEN DECIDES WHOSE. The id was an improvement on the name and both are claims: a
+         `person_id` is printed on nothing, but it is a string in a URL and the route handed over a
+         household's whole year to anybody holding one. Nothing in `js/` calls this route — measured,
+         `receipts=` occurs nowhere in the front end — so it is a door with no handle that was open. */
+      const who = askedBy_();
+      if (!who) return jsonOut({ error: 'Please sign in again.' });
       const mine = read(TAB.receipts).rows.filter(r =>
         (S(r.person_id) && S(r.person_id) === S(who.person_id))
         || key(S(r.person_name)) === key(personDisplayName(who)));
@@ -295,7 +356,16 @@ function doGet(e) {
        people tab per person — fifteen scans to answer one question — and it was not asked at all
        where posts and resources are filtered, so a switched-off post vanished from the admin who
        switched it off and could never be brought back from the phone. */
-    const viewerIsAdmin = isAdminPerson(S(p.name));
+    /* AND ASKED OF THE TOKEN rather than of `?name=`. `isAdminPerson` takes a name and a name was a
+       claim — see the block at the top of this function. `hasRole` on the row the token resolved to
+       is the same question asked of something the visitor had to prove. */
+    const meAsked = askedBy_();
+    const meAskedName = meAsked ? personDisplayName(meAsked) : '';
+    /* `?person=` IS NO LONGER READ FOR IDENTITY ANYWHERE IN THIS FUNCTION. It was four more claims:
+       another family's birthday diary, another person's print orders, somebody else's withheld posts
+       and somebody else's comment controls, each for the cost of a `person_id` in a URL. */
+    const meAskedId = meAsked ? S(meAsked.person_id) : '';
+    const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
 
     const cfg = config(), opts = allOptions(), sur = surcharges();
     mark('config');
@@ -617,9 +687,23 @@ function doGet(e) {
             const subj = S(r['qual_' + n]);
             if (!subj) return null;
             const lvl = S(r['qual_' + n + '_level']), grd = S(r['qual_' + n + '_grade']);
-            return [subj, lvl, grd && ('grade ' + grd)].filter(Boolean).join(' ');
+            /* THE BOARD IN BRACKETS, where it reads as the qualifying detail it is: "Maths A-Level
+               (Edexcel) grade B". Joined here rather than on the phone for the reason the three
+               parts above already are — one sentence, built once, so a card and a roster cannot
+               disagree about how a qualification is written. */
+            const brd = S(r['qual_' + n + '_board']);
+            return [subj, lvl, brd && ('(' + brd + ')'), grd && ('grade ' + grd)]
+              .filter(Boolean).join(' ');
           }).filter(Boolean),
           extraQuals: S(r.extra_quals),
+          /* ---------- AND WHAT THEY ARE STUDYING NOW, WHICH IS NOT A QUALIFICATION ---------------
+             SENT AS TWO FIELDS RATHER THAN ONE SENTENCE, unlike `quals` above — and the difference
+             is that a qualification has three parts that are always written the same way, where
+             this is a subject and a place that the card may one day want separately. What it must
+             NOT be is one cell with a comma in it: `profList_` would split "Bible and Theology,
+             University of Wales" into two, which is the practicals' comma fault. */
+          studying: S(r.studying),
+          studyingAt: S(r.studying_at),
           actionText: '▶ Watch Intro'
         });
       }
@@ -641,7 +725,10 @@ function doGet(e) {
          matches an EXACT handle deliberately — a search that guesses adds the wrong child — so a
          student has to be able to look one up. That is a real need and it is met by sending the
          list to students rather than to the internet. */
-      const meRow = S(p.person) ? findPerson('', S(p.person)) : findPerson(S(p.name));
+      /* THE TOKEN, NOT THE QUERY STRING. `?person=<any id>` or `?name=<any name>` made somebody a
+         student or a parent for the length of one request, and `maySeeChildren` is what sends every
+         child's row to the phone. */
+      const meRow = meAsked;
       payload.clients = payload.clients || [];
       const iAmStudent = !!meRow && hasRole(meRow, 'student');
       const iAmParent = !!meRow && hasRole(meRow, 'client');
@@ -956,7 +1043,7 @@ function doGet(e) {
          post — the same argument the `faces` lookup below makes about the people tab. */
       const said = read(TAB.post_comments).rows;
 
-      const me = S(p.person);
+      const me = meAskedId;
 
       /* Who posted it, and their face. Built once as a lookup rather than searched per post —
          fifteen people and ten posts is nothing, but a hundred posts against a growing people
@@ -998,8 +1085,8 @@ function doGet(e) {
         const state = norm(r.approved);
         const waiting = state === 'pending';
         const refused = state === 'refused';
-        const mine = S(p.person) && S(r.author) && findPerson(S(r.author))
-          && S(findPerson(S(r.author)).person_id) === S(p.person);
+        const mine = !!meAskedId && S(r.author) && findPerson(S(r.author))
+          && S(findPerson(S(r.author)).person_id) === meAskedId;
         if (refused && !viewerIsAdmin) return;
         if (waiting && !viewerIsAdmin && !mine) return;
         /* An author who is not in the people list still gets a name — the one typed in the row.
@@ -1182,7 +1269,7 @@ function doGet(e) {
        birthday rather than how old somebody is turning. It also has no year BY DESIGN — it
        happens every year, and a date that appears once is a date somebody misses. */
     {
-      const meId = S(p.person);
+      const meId = meAskedId;
       /* Your own family, as BOTH SIDES have agreed it. A claim nobody answered is a request and
          not a relationship, so it opens nobody's diary. */
       const family = meId ? [meId]
@@ -1220,7 +1307,7 @@ function doGet(e) {
        A print order is work that happens over days — printed, put in an envelope, posted — so the
        person who asked needs to see where it has got to, and you need a list of what to do. */
     {
-      const meId = S(p.person);
+      const meId = meAskedId;
       read(TAB.orders).rows.forEach(r => {
         if (!S(r.order_id)) return;
         if (!viewerIsAdmin && (!meId || S(r.person_id) !== meId)) return;
@@ -1290,14 +1377,35 @@ function doGet(e) {
        screen anywhere that wants somebody else's. Sent as the bare keys, which is the shape the
        Find screen already holds them in. */
     try {
-      const meFav = S(p.person) ? findPerson('', S(p.person))
-                  : (S(p.name) ? findPerson(S(p.name)) : null);
+      const meFav = meAsked;
       payload.favourites = meFav
         ? read(TAB.favourites).rows
             .filter(r => key(r.person_id) === key(meFav.person_id))
             .map(r => S(r.item_id))
         : [];
     } catch (err) { payload.favourites = []; }
+
+    /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY -------------------------
+       NOT FILTERED BY PERSON, and that is the one line that makes it a spotlight rather than a
+       favourite: `js/collections.js` opens with the argument — a favourite is a statement about
+       you and a spotlight is a statement about the business, so it is one list, the same on every
+       phone, and only an admin can change it.
+
+       SENT AS THE BARE KEYS, the shape `adoptSpotlight_` already reads and the same shape
+       `favourites` above goes in. Rows switched off are dropped here rather than on the phone:
+       `on` is the admin's decision and the phone has no business re-deciding it.
+
+       AN EMPTY ARRAY IS NOT THE SAME AS NO KEY, and `spotNow_` on the phone depends on the
+       difference: a tab with rows is the authority, and a tab with none falls through to
+       `data/settings/spotlight.json`. A `catch` that sent `[]` for a tab that FAILED would look
+       exactly like a tab an admin had deliberately emptied — so it sends nothing at all, which is
+       what `adoptSpotlight_` reads as "no answer" rather than as "none". */
+    try {
+      payload.spotlight = read(TAB.spotlight).rows
+        .filter(r => TRUE_(r.on))
+        .map(r => S(r.item_id))
+        .filter(Boolean);
+    } catch (err) { delete payload.spotlight; }
 
     try { payload.festive = festiveOffers(); }
     catch (err) { payload.festive = []; }
@@ -1583,9 +1691,11 @@ function doGet(e) {
                  business but the family's and yours.
 
          An admin sees the lot, because somebody has to. */
+      /* AGAINST THE NAME THE TOKEN RESOLVED TO. `?name=` here bought the whole of a booking — every
+         family on it by name, and the addresses below — to anybody who could spell one seat. */
       const iAmIn = viewerIsAdmin
-        || cs.some(c => key(c.name) === key(S(p.name)))
-        || ts.some(t2 => key(t2.name) === key(S(p.name)));
+        || (!!meAskedName && cs.some(c => key(c.name) === key(meAskedName)))
+        || (!!meAskedName && ts.some(t2 => key(t2.name) === key(meAskedName)));
       const openToOthers = TRUE_(j.open_to_others);
       const seatsGoing = Math.max(0, maxKids - cs.length);
       if (!iAmIn && !(openToOthers && seatsGoing > 0)) return;
@@ -1693,7 +1803,8 @@ function doGet(e) {
            hand one family the e-mail addresses another family chose. The booker is `cs[0]`, which
            is the same seat `client` above is taken from, and an admin sees the lot because
            somebody has to. */
-        splitEmails: (viewerIsAdmin || (cs[0] && key(cs[0].name) === key(S(p.name))))
+        splitEmails: (viewerIsAdmin
+                      || (!!meAskedName && cs[0] && key(cs[0].name) === key(meAskedName)))
           ? S(j.split_emails) : '',
         stealable: TRUE_(j.stealable),
         // Emitted in the shape the frontend already reads, so nothing there had to change. The

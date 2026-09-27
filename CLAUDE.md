@@ -13638,3 +13638,674 @@ about `documents_()`, `factsNow_` and `childrenOf`.
 
 **The expect is per CARD rather than across the screen**, for the reason the guide's own expect
 records: six cards in the DOM is eighteen `.quiz-q` where the rule wants five.
+
+## A Spotlight column, three date boxes, a studying line, and the door back to the composer
+
+**Four of the eight asks in one message, and the largest of them needed a backend that did not
+exist.** *"can you also make a spot light column after the saved column. what admin spotlights will
+appear there. similar to favourites but with admin in control and for all."*
+
+**`toggleSpot` HAS POSTED TO A GATE THAT REFUSED IT FOR AS LONG AS IT HAS EXISTED.** `ACTION_ACCESS`
+had no `spotlight` entry, so `accessDenied` turned every press away before the handler — and there
+was no handler. **`orderPrints` again**, which this file records eleven more times over under the
+Settings migration: a control on a card, access-listed nowhere, posting into a refusal that
+`.catch` threw away. So the column needed a tab, a schema entry, a route, a handler and a payload
+key before a single page could be drawn.
+
+**AND IT IS ONE ROW PER THING RATHER THAN A CELL ON THE THING ITSELF.** A `spotlight` column on
+`people`, on `questions` and on `venues` would be three columns meaning one thing — the
+`needs_print` / `print_required` shape that cost 356 rows of disagreement. One tab, `kind` +
+`item_id`, and anything the funnel can build an item for can be spotlit without a schema change.
+
+**`spotNow_` IS `factsNow_`'s RULE FOR A FOURTH COLUMN**: the sheet wins when it has rows, and
+`data/settings/spotlight.json` is the floor. It ships empty and deliberately so — the column draws
+the sentence saying an admin has not chosen anything yet, which is a state rather than a silence.
+
+### Two pager faults were invisible only because the spotlight was always empty
+
+**`PAGER.feed` COUNTED `spotPages()` AND THE FEED DREW THEM TOO**, so the dial and the strip agreed
+only while that array was empty. **And `PAGER.stuff` did not count the spotlight pages the funnel
+was concatenating**, which is the same fault the other way up. Both are the sentence every `PAGER`
+entry carries — *a pager that counts for itself is a pager that can disagree with its own screen* —
+and both were sitting one admin row away from being reported as the column jumping.
+
+**The spotlight is its own column now and neither screen draws it**, so both counters are simply
+right rather than corrected.
+
+## `S(r.date_of_birth)` on a Sheets Date is `Sun Sep 15 1985 00:00:00 GMT+0100 (British Summer Time)`
+
+**Asked for as "date of birth should be 3 boxes. day, month and year. or copy the best practice
+method."** The three boxes are the ask; what the measurement found underneath is that the ONE box
+had been drawing that string into an editable field, because `profileOf_` stringified whatever the
+cell held and a date cell holds a `Date`.
+
+**`dobOut` TESTS THE SHAPE ITSELF RATHER THAN TRUSTING `sheetDate`.** That helper reads
+`"sometime in 85"` as 1 January 1985 — right for a column somebody types a date into and wrong here,
+because a cell holding a sentence would come back as three confident numbers nobody wrote. Only a
+real `Date` or a `dd/mm/yyyy` string is split; anything else goes into the day box untouched, so
+whatever is in the sheet is still in front of the person who has to correct it.
+
+**THE THREE BOXES ARE NOT THREE COLUMNS, and that is the packed-cell pattern for a third time** —
+`availGridOut`/`availGridIn` for the 77 hour codes, `libCardsOut`/`libCardsIn` for the nine library
+boxes, `dobOut`/`dobIn` for these. Each needs the same three wiring points on the server and it is
+worth naming them because missing any one is silent: the field names must be excluded from
+`wanted`, the real column must be header-checked explicitly (nothing else will, so `setCell` would
+write to a header that is not there and lose the value with no error), and `profileOf_` must expand
+the cell so the form comes back filled.
+
+**`inputmode="numeric"`, `maxlength`, `autocomplete="bday-day|bday-month|bday-year"`.** The
+autocomplete tokens are the half a phone actually uses — without them it offers nothing, or offers
+the same thing into all three — and `maxlength` stops the fourth digit being typed into a two-digit
+box rather than refusing it afterwards.
+
+### `6ch` clipped `1985` to `198`, and nothing measured it wrong
+
+**The box was exactly `6ch` wide and the text inside it was not.** Every input in this stylesheet
+carries `.7rem .75rem`, so about 22px of a box is gone before a digit is drawn — the track has to be
+the content **plus that**, or the fourth digit is outside a box reporting itself the size it was
+asked for. Same shape as the library shelf's `max-content` track resolving against an input's own
+idea of itself, and **found on a screenshot**, which is the twenty-third time this file writes that
+a screenshot is the last word on something drawn — counted off the entries above rather than
+remembered, because this tally has been wrong inside its own warning twice.
+
+**AND THE DAY AND MONTH BOXES WERE 41.5px AT 320.** `check/ui.js` named it on the first run that had
+this row on a screen: two digits plus the input's own padding lands just under the floor, which is
+the near-miss `.btn.tiny` records where `max(38px, 2.3rem)` never once chose the rem. `max(44px, …)`
+— **the eighth conviction of the tap-targets-in-px rule** in this stylesheet after `.btn.tiny`,
+`.post-act`, `.fm-adds label`, the chips, `.qp-check`, the reel's sound button and `.cal-arrow`.
+Measured at 320: 44 + 44 + 57.3 and two 6.75px gaps is 158.8 inside a 243.9px card, so nothing is
+given up for it.
+
+### `NO NAME` reported twelve correctly-named controls, and the whitespace is why
+
+**A WHITESPACE-ONLY LABEL IS TRUTHY.** `(lab2 ? lab2.textContent : '')` sat five rungs above the
+placeholder in that rule's `||` chain, and a caption-less `label.field` contains only a newline and
+some spaces before its `<input>` — so the chain stopped there and the `.trim()` at the end made it
+`''`. The one source that would have named those boxes was never reached.
+
+**IT HAS BEEN WRONG SINCE THE LIBRARY SHELF SHIPPED**, and the rule's own note says why nobody saw
+it: its whole argument is that *a placeholder IS the accessible name when there is nothing else*,
+and the shelf is the first thing in this app to lean on that. Nine library boxes and three date
+boxes, collapsed by the grouping key into a single `<input>` line — so the report said **1** where
+it meant **12**, and every one of the twelve was wrong. An instrument that cannot reach the source
+its own comment names is the shape this repository keeps finding in its own checks.
+
+**Each candidate is trimmed before the `||` now, not the whole chain after it.**
+
+**AND THE MUTATION EXPOSED A SECOND NARROWING WORTH TAKING.** With the placeholder removed, `dob_y`
+was still silent — because `el.value` was the last rung, and the box held `1985`. **A value is the
+name of a submit button and of nothing else**: a screen reader announces `1985` as the value and
+still has nothing to call the box. Unnarrowed, that rung made the rule blind to every unnamed box a
+person had typed into, which is the state an unnamed box is usually found in. Narrowed to
+`submit|button|reset|image`, and measured across all 252 combinations it reports **nothing new** —
+this app has no submit input at all. **Proved by mutation in both directions**: `dob_y` with no
+placeholder is named while it holds a value and reported the moment it is empty.
+
+## Qualifications carry their board, and there is somewhere to say what you are studying now
+
+**Asked for as "as halex i want to update my qualifications. I have a B in a level maths edexcel.
+also i am currently studying bible and theology at university of st david wales. is there a place to
+list this?"** The first half had a gap and the second had no home at all.
+
+**A QUALIFICATION WAS A SUBJECT, A LEVEL AND A GRADE, AND THE BOARD WAS NOWHERE.** *"A in Maths
+A-Level"* and *"A in Maths A-Level with Edexcel"* are different claims to a parent checking a tutor,
+and the board is the half that is checkable. `qual_N_board` is a `select` off the same
+`OPTION_FOR` list the library's own `exam_board` facet uses, so nobody can invent a fourth spelling
+of Edexcel — which is the fault `levelOf_` and the spelling vote already record in four columns.
+
+**`studying` AND `studying_at` ARE NOT A FOURTH QUALIFICATION**, and that is the distinction: a
+qualification is finished and graded, and a degree in progress has neither. Filing it as
+`qual_4_subject` would have printed *"Bible and Theology · —"* on a public card, which is the
+`cost: 0` shape — a missing fact rendered as a stated one.
+
+**AND THE CARD ROW IS NOT BUILT THROUGH `profList_`.** That helper splits on commas, and a
+university's name is exactly the sort of string that carries one. `[t.studying, t.studyingAt]
+.filter(Boolean).join(' at ')` is one sentence rather than a list, so *"University of Wales, Trinity
+Saint David"* stays one place rather than becoming two.
+
+## The composer had a handler and no door, and `check-doors.js` had been saying so
+
+**Asked for as "i would like to add more photos to my portfolio"**, with three Drive links and a
+video — and the measurement is that **there is no portfolio surface in this app**. What there is, is
+a complete composer: `on('new-post')` with a caption, a place, a poll and a photograph, reachable
+from nothing since `Write a post` was removed on request.
+
+**IT WAS `check-doors.js`'s ONLY HANDLER-WITH-NO-DOOR FINDING**, printed on every run, for weeks. So
+the answer to "somewhere to put photos" is a door rather than a surface — the feed is the portfolio,
+and it already had everything except the way in.
+
+**IT WAS A TILE FIRST AND A SCREENSHOT REFUSED IT.** `tile_` is glyph-only by a recorded decision —
+*"the mark is the whole button now, and the word is gone"* — so one tile on its own under a
+viewfinder is a 44px pencil in the bottom-left corner of the card with nothing beside it, which
+reads as *edit the photograph* rather than as the other way to post. The house style settles it: a
+THING has tiles and a FORM has buttons, and a card whose content is a live picture with two
+shutters under it is the second. `.btn quiet`, full width, under the camera's own row.
+
+**THE `.MOV` IS 98.9MB AND IS NOT IN.** `check-reels.js` prints the weight of every clip and the two
+that are in are 7.3 and 7.9MB; a ninety-nine megabyte file is not a thing to put on a phone's data
+allowance, and `data/reels/README.md` already carries the re-encode command for exactly this. The
+three photographs are HEIC and go in fine, because `pic()` goes through
+`lh3.googleusercontent.com/d/<id>=w1200`, **which transcodes** — so a format Safari alone can decode
+arrives as something every browser can.
+
+## `register` lower-cased every username it has ever written
+
+**Asked for as "i would like peoples username logins to be case sensitive."** The literal reading is
+declined and the line to change is named below; what the measurement found is a real fault under it.
+
+**`register` WROTE `norm(first + last)`**, which lower-cases — so every account that has never been
+renamed has been showing `halexdias` where the person wrote `HalexDias`. And `changeHandle` did the
+same to anything anybody typed. The case somebody chose is a fact about them; **it is preserved
+now**, in both writers.
+
+**MATCHING IS STILL CASE-INSENSITIVE AND THAT IS DELIBERATE.** `key()` — lower-case, alphanumerics
+only — is what `findPerson` compares with, in 147 places. Making the comparison case-sensitive means
+somebody who typed their name with a capital on Tuesday cannot sign in on Wednesday, and the
+sentence they get is *"Name or PIN not recognised"*, which is this file's own definition of the
+worse of the two failures. **What was actually wrong was the DISPLAY**, and that is what is fixed.
+One line in `key()` reverses it if the literal reading is wanted.
+
+**AND THE UNIQUENESS TEST HAD TO STAY ON `key()` WHATEVER THE DISPLAY DOES.** `HalexDias` and
+`halexdias` must not be two accounts: `findPerson` resolves both to the first row it finds, so the
+second person would sign in as the first — which is not a denial, it is a disclosure, and this file
+already records `changePin` doing exactly that by accident.
+
+### An e-mail address is the sixth rung, and the `@` guard is what makes it safe
+
+**Asked for as "i want people to be able to sign in with email as well."** `findPerson` resolved
+person_id, full_name, first+last, handle and username; it resolves an e-mail address now, **last**,
+and only when what was typed contains an `@`.
+
+**THE GUARD IS LOAD-BEARING AND THE RUNG ORDER IS NOT.** `Array.find` returns the first ROW that
+matches any rung, so a row whose `email` cell holds junk — a note, a dash, a second name — would be
+matched by a plain name typed into the box if the rung were unguarded. Measured with such a row
+placed **above** the real one, which is the only arrangement that can tell the two apart: without
+the `@` test the wrong person is returned. **Proved by mutation**, because my first reading of this
+was that the order protected it, and it does not.
+
+## The last sixteen drawings, and fourteen of the reasons for not drawing them were wrong
+
+**`NO_DRAWING` held sixteen entries and is empty now.** Every one of the 77 live practicals carries
+an apparatus drawing — the count this file printed as *"17 of 77"*, then *"51 of 77"*, is 77.
+
+**THE FOURTEEN REASONS WERE HONEST AND THEY WERE ANSWERING A DIFFERENT QUESTION.** Each was a reason
+not to draw the RESULT, taken as a reason not to draw the SET-UP. `PR-HM05` read *"a tablet, a glass
+and a stopwatch"* — and the thing a picture of that has to settle is whether the stopwatch starts as
+the tablet touches the water, which is the whole of what the method cannot say in a sentence.
+`PR-HM04` read *"a pad of wire wool, a battery and a scale, none of it assembled"*, and *none of it
+assembled* is precisely the drawing: both terminals on the wool at once, over a metal tray, with the
+scale beside it and the first weighing before the wool is lit.
+
+**THE TWO THAT WERE RIGHT ARE STILL RIGHT AND ARE DRAWN A DIFFERENT WAY.** `PR-HM24`'s gear train is
+**dashed**, because step 1 builds it from somebody else's booklet and a drawn assembly would be a
+guess at a kit this row does not describe; what is solid is the input gear, the output gear, and a
+sticker on one tooth of each. `PR-HM26`'s two layers are simply **absent** — the bottle is drawn
+with water only and the caption says the figure stops before the oil goes in, because step 2 asks
+which ends up on top and why.
+
+**So the rule did not change; what changed is which thing it was asked about.** *"No picture
+determines this"* was being asked of the whole practical rather than of its first three steps.
+
+### The list is empty and it stays, which is the strongest state this pattern has
+
+A list somebody deletes for being empty is the guard gone: the next row added without a picture
+would pass in silence rather than being refused until somebody writes the sentence. **Same argument
+as `ACCEPTED` in `check-payload.js` holding five entries and `ACCEPTED_TAP` holding 1,213** — the
+point of the list is never its contents, it is that an entry has to be *written*.
+
+### Every one was attacked by a second reader told to refuse it, and two gave the answer away
+
+**All sixteen came back `needs_changes`, which is what a refuter is for and is not by itself a
+finding.** Two of them would have shipped a card that answers its own question:
+
+| | |
+|---|---|
+| **`fn08`** | captioned the host's cup trick *"the host always lifts an empty one — HE KNOWS WHICH IS WHICH"*. That is the hinge the row's own `science` calls **crucially**, and the fourth entry in its `variables` list — the candidates the worksheet asks a student to sort — is verbatim *"Whether the host knows where the counter is, WHICH IS THE ASSUMPTION THE WHOLE THING RESTS ON"*. The picture was answering the worksheet printed under it |
+| **`hm13`** | drew a stop line and a filled dot on a tape it had itself graduated — `ticks(70, 136, 250, 30, 5)`, thirty divisions over a stated 3 m, so 10 cm each. The dot is 21.8 divisions along. **The distance the practical exists to measure was countable straight off the card**, and the caption under it read *"how far it goes is the reading, so it is not drawn here"* — a caption denying its own picture, which is the `figCredit_` over-claim one data file along |
+
+**The second is the one worth keeping**, because it was wrong twice over: 2.18 m of a 3 m floor
+reads as the FIRST and shortest of four runs the caption above it promises at 5, 10, 15 and 20
+winds — so a child who believes the picture concludes the floor is too short for the practical.
+
+### And the rest were found by looking
+
+**Twenty-fourth time this file writes that a screenshot is the last word on a drawing** — counted
+off the entries above rather than remembered, because this tally has been wrong inside its own
+warning twice. Three from `ch04` alone, none of which any rule here asks about:
+
+- **a thermometer bulb the same width as its own stem** — `circ(150, 175, 5.5)` against a 10-unit
+  stem renders as a ring on the end of a rod. That is the ONE detail this drawing exists to settle,
+  and `pracdraw.py`'s own docstring names it: *"the thermometer bulb level with the side arm"* is
+  the sentence somebody reads twice and still assembles wrongly.
+- **a liquid level at exactly half a cup the method then adds 40 cm³ to.** The line is labelled with
+  its volume, so it is making a scale claim, and the claim was that the practical overflows its own
+  vessel.
+- **a leader line that ran flat out of the cup and through the beaker's wall**, so the picture showed
+  one liquid surface spanning both vessels — under a foot caption that had to spend a line saying
+  *"the outer beaker stays EMPTY"*. **A caption that must deny what the picture shows is the fault
+  this file records where a figure and the prose under it disagree**, and on a card a fourteen-year-old
+  is following, the picture wins. The emptiness is labelled on the gap itself now.
+
+**And one thing the refuters were right to leave alone**: the outer beaker being empty, the cup
+standing proud of it, and the lid drawn in section either side of its one hole are all inferences
+rather than statements — and each is the only arrangement in which the row's own sentence is true,
+which is the line between a drawing instruction and a guess.
+
+## `?name=` was proof, and the worst of it ran a migration for anybody
+
+**Found by reading `doget.gs` to answer a different question, which is this file's own definition of
+luck.** `p` is `e.parameter` — the URL query string — the web app is deployed `ANYONE_ANONYMOUS`,
+and **every tutor's display name is printed on the screen.** So `?name=<an admin's display name>`
+was the whole of what it took to be served the admin payload. Measured, by grepping every use:
+
+| | |
+|---|---|
+| `viewerIsAdmin` | the films list, every unlisted tutor, withheld posts, refused and waiting bookings, `canRemove` on every comment |
+| **`maySeeChildren`** | **`payload.students` — every child's name, handle, avatar, friends, xp and credits** |
+| `address` | a child's home address, under a comment saying *"sending it anywhere it is not needed is the sort of thing that is fine until it is not"* |
+| `iAmIn` / `splitEmails` | every family on a booking by name, and the addresses its booker typed in |
+| **`?person=<any id>`** | four more — another family's birthday diary, another person's print orders, somebody else's withheld posts, somebody else's comment controls |
+| `?receipts=` | a household's whole year. **Nothing in `js/` calls that route** — measured, the string occurs nowhere in the front end — so it was a door with no handle, open |
+
+**`doPost` HAS BEEN RIGHT ABOUT THIS SINCE SESSIONS WERE BUILT, and its own note says the sentence**:
+*"BEING SIGNED IN IS A TOKEN, NOT A NAME — any name, the field simply had to be non-empty."*
+`accessDenied` resolves `authWhoIs_(body.token)` and overwrites `body.name` with whoever the token
+really is. The same machinery, the same function, in the same project. **`doGet` was simply never
+moved onto it, and nothing anywhere compared the two halves of one app.**
+
+### The one that is not a disclosure: `?run=` ran every maintenance job with no PIN at all
+
+**`if (!who || S(who.pin) !== S(p.pin) || !hasRole(who, 'admin'))` read the PLAINTEXT `pin` cell —
+and `authSetPin_` CLEARS that cell the moment a PIN is hashed**, which is every row that has ever
+changed its PIN through the app and every row a reset has touched. So `S(who.pin)` is `''`; a URL
+carrying no `pin` parameter at all makes `S(p.pin)` `''` too; `'' !== ''` is false; the gate passes.
+
+**`?run=ensureSchema&name=<an admin's display name>` ran that job for anybody**, and every job in
+`RUNNABLE` was reachable the same way — `rename`, `seedOptions`, `seedFamilies`, `installTriggers`,
+`clearPayloadCache`, `warmPayload`. Not a leak of data: **remote invocation of the maintenance
+surface.** `authCheckPin_` is the one function that knows the answer — it refuses an empty PIN on its
+first line, reads the hash where there is one, and keeps the plaintext branch as the migration path
+for a row typed into the sheet before hashing existed, re-hashing it on the way through. Exactly what
+`verifyLogin` asks, which is the point: one test, one place.
+
+**NO THROTTLE ON THAT GATE, deliberately.** `authWrong_`'s ladder guards the sign-in door; this is a
+URL typed by hand by somebody who already holds the spreadsheet, and a lock-out written from a
+mistyped `?run=` would shut the owner out of the app itself.
+
+### One resolver, memoised, and `?person=` is read for identity nowhere in `doGet` now
+
+`askedBy_()` is `authWhoIs_(p.token)` held in a local — **memoised because `authWhoIs_` runs
+`authHash_`, which is four thousand rounds of SHA-256 by design, about fifty milliseconds.** Seven
+places here ask who is looking; one answer. `viewerIsAdmin` is `hasRole` on the row the token
+resolved to rather than `isAdminPerson` on a string somebody typed, and `meAskedName` / `meAskedId`
+are what the name and id comparisons read.
+
+**ONE NAME IS STILL READ AND IT IS THE ONE WITH A PIN BESIDE IT.** `?run=` is a URL an admin types
+by hand, so there is no token to hand.
+
+### Both GET callers send all three, which is what makes it safe to push before the backend deploys
+
+**The backend deploy is blocked** — `pullFromGitHub` on the Cloud-project switch, clasp
+unconfigured — so the two land days apart whichever order they are written in. `index.html`'s boot
+fetch and `load()`'s own builder both send `person`, `name` **and** `token`:
+
+| | |
+|---|---|
+| old backend, new phone | `name` still decides. Nothing changes |
+| **new backend, old phone** | no token, so an admin is served the ordinary payload — **degraded, and safe** |
+| both new | the token decides |
+
+There is no ordering in which somebody is served more than they should be.
+
+**THE TOKEN TRAVELS IN A QUERY STRING AND THAT COSTS SOMETHING, said plainly rather than waved
+past**: a GET URL is written to Apps Script's own execution log where a POST body is not. What reads
+that log is the script's owner, who can already read the whole spreadsheet — so the exposure is a
+surface the owner already has, against a hole any visitor had. The alternative is to make the payload
+a POST, which takes the boot fetch out of `index.html`'s head and gives up the head start that whole
+block exists for. A trade rather than an oversight.
+
+### `check-backend.js` — a name in the URL is a claim, and the rule has one exemption
+
+**Same shape as the `delRow` rule above it in that file, and for the reason its own note gives**: the
+question is whether the string appears outside the one block allowed to use it, which has exactly one
+right answer and no scope to get wrong. That block is `if (p.run)`, tracked opener to closer, with
+the block-comment tracker that rule already needed — *a check whose first finding is its own
+documentation is a check that gets switched off within a day.*
+
+**`p.pin`, `p.health`, `p.receipts` and `p.arg` are deliberately not asked about.** They are switches
+and secrets rather than identities: a switch anybody may flip costs nothing, and the PIN is the thing
+being *checked* rather than a thing being *believed*. A rule that fired on every query parameter
+would fire on the honest ones, which is a rule somebody switches off — the `check-rows.js` lesson.
+
+**Proved by mutation five ways**: the old `isAdminPerson(S(p.name))` back (names `doget.gs:368`);
+the two `meId` reads back on `?person=` (names both); one `iAmIn` comparison back on `p.name`; the
+`if (p.run)` block renamed so the exemption stops applying (names the run gate's own `p.name`); and
+`doget.gs` made unreadable, which reports *"could not be read, so NOTHING was checked — not a
+pass"*. The real file exits 0.
+
+#### `'\b'` IN A PYTHON STRING IS A BACKSPACE, AND THE MUTATION IS WHAT CAUGHT IT
+
+**The first version of that rule reported nothing on every mutant.** The file-unreadable guard fired,
+so the file was being read — the regex was the fault: written through a Python heredoc as `'\\bp\\.'`
+in a non-raw string, `\b` is **U+0008 BACKSPACE**, so the rule compiled to
+`/<BS>p\.(name|person)<BS>/` and matched nothing anywhere.
+
+**It is a rule that could not fail, standing under a confident comment about what it protects**,
+which is this file's own definition of a green light with nothing behind it — and the only thing that
+found it is that the mutant survived. Same class as the twenty-three `–` comments and the NUL
+byte in `check/ui.js`: an escape consumed by the layer it was written through. **A mutation is not
+finished when it fires; it is finished when the check is green again and the mutant is not.**
+
+## Every width was measured on a phone 844px tall, and nine columns were clipped on the one that is 568
+
+**`check/ui.js` GAVE EVERY WIDTH ONE HEIGHT** — `newPage({ viewport: { width, height: 844 } })`,
+written out once and used for all four — so its "320px phone" was a **320x844 device that has never
+been made**, and the pane it measured was 807px against a real iPhone SE's 534. `.pane` caps at
+`100dvh` minus the chrome, so the pane's height IS the viewport's: a fake height is a fake pane, and
+every rule in that file that asks whether content fits a box was asking it of a box a third taller
+than the one the app is in on the phone the complaints come from.
+
+| | |
+|---|---|
+| before | 4 widths x 844 |
+| after | **320x568, 390x844, 768x1024, 1280x800** — the SE and the 5, the iPhone 12 to 15, the iPad upright, an ordinary laptop |
+| OUT OF REACH, real heights, nothing else changed | **21 panes across nine columns** |
+| after the two app fixes below | **0 failures, 3 printed inside the app's own floor** |
+
+**THE HEIGHT IS A REAL DEVICE'S OR IT IS THE SAME FAULT AGAIN**, and 800 is the SHORTEST of the
+laptop heights rather than the tallest, because the question this file asks is whether a thing FITS.
+
+### `paneReach_` was on the funnel and nowhere else, on the strength of a sentence this instrument disproved
+
+**The note over `PANE_REACH` said it outright**: *"ON THE FUNNEL'S PANES AND NOWHERE ELSE. Every one
+of the 431 is a question card, and `check/ui.js`'s OUT OF REACH rule reports nothing on the other
+nine columns — so this is as narrow as the fault."* **It reports plenty.** The camera after a
+photograph 191px, the Scrabble board 161px, the high-score board 113px, a waiting list 105px, your
+own account 95px, the Saved column 73px, Spotlight 86px — every one of them content that can be
+neither scrolled to nor paged to, on a 320x568 phone.
+
+**So the narrowness that comment claimed was an artefact of the instrument**, which is this
+repository's oldest shape pointed at a rule rather than at a screen: a confident sentence resting on
+a measurement that could not see its subject. `paneWatch_` is called for the screen you are on from
+`placeNow_`, and **nothing new had to be built** — `scrollHost_` walks up from the finger and takes
+any ancestor whose `overflow-y` is `auto`, so a pane on any column scrolls from the app's own drag
+and hands back to the grid at its end, exactly as a question card has since that was written.
+
+### Once per placement is not enough, and one hook per grower is what keeps being forgotten
+
+**Thirteen of the twenty-one went with that one line and eight did not**, because a card that grows
+AFTER the placement that measured it keeps the clipping of the card that fitted:
+
+| | |
+|---|---|
+| Scrabble, the high-score board | drawn into the card by a widget `startScreen_` starts after the paint |
+| the camera | 167px of controls the moment a photograph is taken |
+| `drawBooker()`, `paint('spotlight')`, `paint('dm')` | **REPLACE the card**, which throws away the inline `overflow-y` with the element that carried it |
+
+**THE APP'S ANSWER SO FAR HAS BEEN ONE HOOK PER GROWER** — the camera calls `placeCells` at each of
+the four places its card changes height — and the trouble with that is that it has to be remembered
+by whoever writes the next card that grows. `paneWatch_` is the same fact declared once: a
+`ResizeObserver` over the cards, so a card whose height changes re-asks the question about the pane
+it is in. **On the card and not the pane**, because a pane is `max-height`-capped and stops growing
+at the cap — an observer on the pane would go quiet at the moment it became worth hearing from.
+
+**AND `disconnect()` WOULD HAVE BEEN WRONG**, which is the one thing here that had to be got right:
+`paintNeighbours` paints every other column, so a global disconnect would drop the watch on the one
+you are looking at. Each host remembers what was observed on its behalf and only that is let go.
+
+**BOOKED FROM `paint` AS WELL, because a paint is not always followed by a placement.** `dmPoll_`
+calls `paint('dm')` every twenty seconds and `dm-refresh` calls it on a tap — so a conversation that
+gained a message would keep the clipping of the markup it replaced. Through `afterSlide_` rather
+than run inline, for `paneReach_`'s own reason: reading `scrollHeight` a line after writing
+`innerHTML` forces the layout synchronously, and on boot `paintNeighbours` comes through there once
+per column.
+
+### Two floors for one question, and the check reads the app's
+
+**The last three findings were 11px, 20px and 21px — every one under `PANE_REACH`'s 24.** The app
+deliberately leaves a pane that close to fitting clipped, because below that the competing gesture is
+the whole navigation and handing it over to move a card a few pixels reads as a swipe that did
+nothing. Asking with a floor of 2 while the app answers with a floor of 24 is **two numbers for one
+question**, which is the shape this file records under `needs_print` / `print_required` and under
+`AVAIL_HOURS` against `SLOT_HOURS`. The rule reads `PANE_REACH` out of the page.
+
+**Printed rather than silent, and not as a failure.** The content really is unreachable — under a
+line of text — and the only thing that can win it back is the card's own design, so it is the
+`ACCEPTED` / `VOCAB` / `ACCEPTED_TAP` pattern for a seventh time: in full, with one written reason,
+not counted against the run.
+
+### Proved in three directions on one column, because a fault the instrument cannot see is the whole entry
+
+| `--screen=make` | |
+|---|---|
+| as it ships | nothing to report |
+| real heights, the app fix reverted | **71px, 191px and 29px** |
+| **one 844 height for every width, the app fix reverted** | **"nothing to report"** |
+
+That third row is the instrument as it was, with the fault present and in front of it. And removing
+`paint`'s booking names Spotlight's two at 42px and 86px.
+
+### A fact about the longest word in the dictionary contains it
+
+**`Pneumonoultramicroscopicsilicovolcanoconiosis` is 46 characters with nothing to break at**, so
+`.feed-body` ran **79px past the card**. Found as a sideways scroll on the games column — and found
+**one run in three**, because which of the 400 facts the widget deals varies, so it is also the shape
+this file records where a check reports a real fault only when it happens to look at the right
+screen. `overflow-wrap: anywhere`, which is the declaration the question cards already carry for the
+51 dotted answer lines — the identical fault one column along — and on the heading as well, because a
+long word in a heading runs off just as far.
+
+### And the sweep that fixes an escape broke a regex, for the second time
+
+**`\u2014` written through a Python heredoc is a real em dash**, which is right in prose and wrong in
+`markRange_`: `/(?:to|\u2013|\u2014)/` needs the escapes, and a sweep that replaces them writes a
+real dash into a regex that must match both. **CLAUDE.md already records this exact pair of faults**
+— 23 comments holding a leaked escape, two of which were quoting one on purpose — and the tell this
+time was `git diff` naming a line nobody had edited. Restored byte for byte.
+
+**AND `check-marking.js` WOULD NOT HAVE CAUGHT IT.** All 46 of its cases pass with the em dash
+broken, because not one of them writes an accepted band with a dash rather than the word `to` —
+which is a gap in that check and is written down here rather than quietly filled.
+
+### What this did NOT fix, and both are the owner's call rather than a repair
+
+**A 4:5 PORTRAIT PHOTOGRAPH ON A POST IS STILL 582px INSIDE A 534px PANE at 320x568** — the fault
+this file already records with no instrument — and the pane scrolls it now, which is a real
+improvement and not the same thing as fitting. The fix that would make it fit is a height cap with
+`object-fit: contain`, which makes a tall photograph **narrower than the card** (about 74% of the
+width at 320, 83% at 375), and that is a visible change to how every photograph in the app is shown.
+**`check/fixture.json`'s posts still carry `image: ""`**, so no run has drawn one at all.
+
+**AND THE BOOKING CARD IS 11px TOO TALL FOR A 568px PHONE.** Inside the app's own floor, so it
+prints; the only thing that wins those eleven pixels back is the card, which is the app's main form.
+
+## Two exam dates on a student's own page, and the login that still fails is a spreadsheet cell
+
+**Asked for as "also allow student accounts to be able to write exam dates. like Small exam: _____
+big exam:_____. also i still cant login with my details. i dont want case sensitive details to
+login."** Two things, and only one of them is a code change.
+
+### Login is not case-sensitive, has never been, and the ask is already how it works
+
+**MEASURED IN THE CODE RATHER THAN ASSUMED, because the commit before this one changed something
+next door and the two are easy to confuse.** `verifyLogin` resolves through `findPerson` and nothing
+else, and every one of its six rungs compares through `key()` — `S(v).toLowerCase().replace(/[^a-z0-9]/g, '')` — so `HalexD`, `halexd` and `HALEX D` are one identity. The e-mail rung is `norm`, which
+also folds case.
+
+**WHAT CHANGED LAST NIGHT WAS THE DISPLAY, NOT THE MATCHING.** `register` wrote `norm(first + last)`
+and `changeHandle` lower-cased what anybody typed, so the name shown back to somebody was
+`halexdias` where they had written `HalexDias`. That is preserved now. **And the uniqueness test
+still goes through `key()`, which it must**: `HalexDias` and `halexdias` as two rows is two accounts
+`findPerson` cannot tell apart, so the second person signs in as the first — not a denial, a
+disclosure, and this file already records `changePin` doing exactly that by accident.
+
+**So there is nothing to change for that sentence, and one line to change if the literal reading is
+ever wanted**: `key()` in `constants.gs`. It is not changed, because somebody who typed a capital on
+Tuesday would not be able to sign in on Wednesday and the sentence they would get is *"Name or PIN
+not recognised"* — the worse of the two failures this repository names.
+
+### And the live row says exactly why the PIN is refused
+
+**READ OFF `Ledger` → `people` THROUGH THE DRIVE CONNECTOR, not reasoned about.** On P001:
+`pin_hash` populated, `pin_salt` populated, **and the plaintext `pin` holding the four digits being
+typed.** `authCheckPin_`'s second line is `if (hash) return authSame_(...)` — **a row with a hash
+never consults the plaintext again** — so the right answer is sitting in a cell nothing reads, one
+column away from the one that decides. `authSetPin_` writes the hash and clears the plaintext *in
+the same call*, so that pair cannot be produced by any path through this code: the digits were typed
+back into the cell by hand after the hash existed.
+
+**`tries: 8` WITH `locked_until` EMPTY IS THE OTHER THING THAT ROW SAYS, and it is new.** This file
+recorded `tries: 4` beside a written lock as arithmetically impossible under `FREE_TRIES: 10` and
+therefore proof the throttle rewrite had not been pulled into Apps Script. Eight wrong answers with
+no lock is only possible *under* the new code. **So the backend HAS been deployed since**, and what
+is left is the cell. Two free attempts remain before the ladder starts.
+
+**THE REMEDY IS FOUR CELLS AND IS THE OWNER'S**, because nothing here can compute the hash — the
+pepper is in Script Properties and unreachable. On that row: put the PIN in **`pin`**, empty
+**`pin_hash`** and **`pin_salt`**, empty **`locked_until`**, and set **`tries`** to 0. The next
+sign-in takes the plaintext path, succeeds, and re-hashes immediately, clearing the plaintext again.
+
+**THE CODE CHANGE THAT WOULD "FIX" IT IS REFUSED AND NAMED SO NOBODY REACHES FOR IT.** Falling back
+to the plaintext when the hash fails makes a stale cell a second permanent credential for every row
+that has one — which is the whole reason hashing replaced it.
+
+### The exams tab exists, has the better shape, and is deliberately not used
+
+**`exams` IS A REAL TAB WITH `person_id`, `subject`, `label`, `exam_date`, `board`, `notes` AND
+`active`, and it is read by nothing** — this repository's oldest silence. What makes it useful is a
+repeating row editor: a surface to add a row, name a subject, pick a board, delete one again. That is
+a feature rather than two blanks, and two blanks is what was asked for.
+
+**So it is two columns on `people`, and the choice is written beside them with its upgrade path**:
+if a student ever needs five exams with boards and notes, `exam_small_date` and `exam_big_date` are
+what the migration reads and that tab is where it writes. Two NAMED facts rather than a list — the
+mock and the real thing — so this is not the numbered-column shape `images`, `needs` and
+`equipment_1 … equipment_10` are written against.
+
+**`STUDENT_GROUPS` AND NEITHER OF THE OTHER TWO MAPS.** A tutor's exams are their qualifications and
+a parent does not sit one, so the page appears for a student and for nobody else with nothing on the
+phone deciding it — the `MESSAGING` rule, which is why a policy is never repeated there. **Third in
+that map**, straight after the two things a student is asked for first, because the note over
+`PROFILE_GROUPS`' own `Contact` row is the same argument: *"a field nobody can find is a field that
+is not there"*, written about a group that had been the thirteenth of twenty-three swipes.
+
+### A date picker, which is the opposite decision from the birthday and for its own reasons
+
+**THE NOTE OVER `DOB_FIELDS` REFUSES `type="date"` AND GIVES FOUR REASONS. For an exam date three
+fall away and the load-bearing one INVERTS:**
+
+| | |
+|---|---|
+| a birth year is forty years of scrolling on a picker that opens on today | **an exam is weeks away**, so a picker opening on today is the shortest route rather than the longest |
+| it ignores `inputmode` and `maxlength` | irrelevant — there are no boxes |
+| it draws its own chrome this stylesheet cannot reach | still true, and the price of a real calendar and a value the platform has already validated |
+| its value is ISO rather than the `dd/mm/yyyy` this sheet writes | what `isoDate_` is for |
+
+**And one argument a birthday could not have: somebody picking an exam date wants to see which day
+of the week it falls on**, which only a calendar can say.
+
+**`FIELD_IS_DATE = /_date$/`, MATCHED RATHER THAN LISTED**, which is the argument written over
+`FIELD_IS_BOOL` three lines above it: the sheet grows columns and a list has to be remembered. **And
+`date_of_birth` does not match it**, so the two arrangements need no exception written about each
+other — the suffix is what separates them, which is why it is load-bearing rather than decoration.
+
+### The caption is the owner's own sentence, because the column name reads as nothing
+
+**`exam_small_date` WITH ITS UNDERSCORES TAKEN OUT IS "exam small date"**, which is `fieldLabel`'s
+default and is right far more often than it is wrong — `exam_board` reads perfectly as "exam board".
+It is wrong here twice over: nobody says it, and inside a group already called **Exam dates** it says
+both words twice, which is the argument written over `library_card` three lines up in `FIELD_LABEL`.
+
+**NOT SHORTENED TO "small" AND "big", WHICH IS WHERE THIS STOPS COPYING THAT ONE.** There the two
+parts are self-describing once the group has named the thing — "card number", "PIN". Here `small`
+alone on a card is a size of nothing. So the repetition is kept and the caption is
+*"Small exam: _____ big exam:_____"*, which is both the owner's own words and what a student
+recognises: the mock and the real one.
+
+### `isoDate_` never constructs a Date from a string, and the check runs in New York to prove it
+
+**`new Date('2027-05-14')` IS UTC MIDNIGHT**, so anywhere west of Greenwich it reads back as the
+13th — the `parseWhen` fault this file records reading `2026-09-15` as 26 September 2015. `sheetDate`
+ends in exactly that call, so it is not used for the ISO branch: a real Date is read through its own
+local fields and a string is **matched and re-spelled**.
+
+**THE CONTAINER IS UTC, SO THE ONE MUTATION THAT MATTERS PASSED HERE BY LUCK.** Parsing the ISO
+branch with `new Date(<string>)` satisfies every assertion in a UTC zone and fails two of them in
+New York. `check-people.js` sets `process.env.TZ = 'America/New_York'` before the first `Date` is
+constructed — so every case in that file, the birthday ones included, now runs in a zone behind UTC.
+**A case that only fails somewhere else is a case that passes here by luck**, which is this
+repository's own definition of a check that cannot fail. **Proved by mutation three ways**: the ISO
+branch parsed with `new Date` (2 cases), the `dd/mm` branch read as `mm/dd` (2), and the refusal
+widened to accept anything `sheetDate` can read (1). The real file is green in UTC, New York and
+Auckland.
+
+**AND THE CELL COMES BACK A DIFFERENT TYPE FROM THE ONE THAT WAS WRITTEN, which is the non-obvious
+half.** `setCell` writes the string `2027-05-14` and Sheets COERCES it into a real Date in a cell with
+default formatting — so the very next read is not the string that was sent. That is why `isoDate_`
+tests `instanceof Date` first rather than last: the round trip through the spreadsheet changes the
+type, every time, and a function that only handled the string would work once and then draw an empty
+picker for ever.
+
+**AN UNREADABLE CELL COMES BACK EMPTY, AND THAT IS A STATED COST.** `dobOut` can keep a value it
+cannot parse — it puts it in the day box, visible and editable — and **a date input cannot hold
+one**: a non-ISO value is silently rejected by the control. So a hand-typed "after half term" in one
+of these two cells draws an empty picker and the next save of that page writes the empty over it.
+Acceptable because these columns are new and written by one control; it would not be on a column
+somebody has been typing into for a year.
+
+**AND THE REFUSAL EXISTS EVEN THOUGH THE CONTROL CANNOT PRODUCE A BAD VALUE.** Every case
+`isoRefusal_` catches is a request that did not come from the form, and `doPost` is reachable by
+anybody with the URL — the sentence this file writes about `?name=`. **No "is it in the future"
+test**, deliberately: a birthday in the future is always a mistake and an exam date in the past is an
+exam already sat, which a student's own page may hold for months.
+
+### `DATE_COLS` and `FIELD_IS_DATE` are one arrangement in two files, and now something compares them
+
+**Nothing made them agree**, and both directions of disagreement are real: a column in the list whose
+name does not match the regex is sent as ISO and drawn as a text box, so `2027-05-14` is what
+somebody is asked to edit and `14/05/2027` is what they type — refused, on a page that looks fine.
+The reverse is worse and silent: a column that matches but is not in the list draws a picker and is
+sent whatever the cell holds, so a real Date opens it empty and the next save blanks it.
+
+**`check-people.js` READS THE REGEX OUT OF `js/me.js`** rather than writing it again — a copy would
+agree with itself and with nothing else, the fault that file's own header names. **Proved by
+mutation**: a `DATE_COLS` entry renamed to `exam_big` is named and exits 1.
+
+### `studentFields` was `[]` in the fixture, so a student's settings column had never been drawn
+
+**`doGet` SENDS `STUDENT_GROUPS`, AN OBJECT.** The fixture sent an empty array, so
+`Object.keys([]).length` was 0, `settingsPages_` fell through to the tutor's map, and **every state
+on that column has been measured as a tutor** — the FIFTH time that file has been found stating a
+shape the server does not send, after `focus` as a string, the receipt's `sessionDates` against
+`dates`, the job's `students` and `venue`, and the availability hour codes.
+
+**`USER.role` IS THE APP'S OWN DOOR.** `loginReplyFor_` sends the role and `data.js` writes it onto
+`USER`, so the declared state sets it and repaints — which is the state a student's own sign-in
+produces, the same argument as the message thread seeded through `MESSAGES`. **It puts the role
+back**, because states run in order down one page and a lab left holding a student measures every
+column after it as the wrong visitor.
+
+**MEASURED IN A BROWSER AS WELL, because a green state says only that the assertion held.** Page 3
+of a student's twelve, headed **Exam dates**, two `input[type="date"]` captioned `small exam` and
+`big exam`, the seeded `2027-05-14` in the first, and the pane hiding **0px** below its own fold at
+390x844. The probe needed `go('settings')` before `paint` to get it: `repaint()` paints the screen
+you are ON and its neighbours, and the settings column is eighth — which is not a fault in the state,
+because `check/ui.js` has already `go`ne to the screen before `enter` runs.
+
+**THE ASSERTION IS THE TYPE RATHER THAN THE COUNT.** `expect` is read as a truthy value, so a bare
+count of two passes on a page holding two plain text boxes — which is exactly what `FIELD_IS_DATE`
+failing to match produces. **Proved by mutation**: the regex made unmatchable names the state at all
+four widths as *"was entered and shows no two exam-date boxes, both drawn as a date picker"*.
+
+### And `git checkout <file>` threw away three uncommitted edits
+
+**Reverting a mutation with `git checkout backend/constants.gs` reverted the whole file** — the
+schema columns, the `STUDENT_GROUPS` entry and `DATE_COLS` with it, all uncommitted. Caught by
+grepping for one of them immediately afterwards, and only because the three scratchpad scripts that
+wrote them were still on disk to re-run. **A mutation on a file with uncommitted work is undone from
+a copy, never from the index**, which is what the other two mutations in this commit did.
+
+**Nothing the owner has to do but the four cells above**, and one thing that must run before the new
+page can save: **`?setup=1`**, which is what `ensureSchema` needs to create `exam_small_date` and
+`exam_big_date`. Until it does, saving that page is refused by name — *"The sheet has no column for:
+exam_small_date"* — which is the refusal that exists so nobody meets a silent no-op.

@@ -35,9 +35,34 @@ const COLL_PER = 8;
    promoting. Empty is the honest answer when the payload has not landed. */
 let SPOT = new Set();
 
+/* ---------- THE SHEET IS THE AUTHORITY THE MOMENT IT HOLDS A ROW, AND THE FILE IS THE FLOOR -------
+   THE BACKEND DEPLOY IS BLOCKED and has been for weeks — `pullFromGitHub` on the Cloud-project
+   switch, clasp unconfigured — so a feature whose only source is a tab is a feature that does
+   nothing until somebody runs a sync. The front end reaches Pages in a minute. That gap is exactly
+   what `factsNow_` and `clipsNow_` are shaped for, and this is that rule a third time: ask the
+   sheet, fall through to what is committed here when it has nothing.
+
+   WHICH WAY ROUND IT GOES IS THE OPPOSITE OF `settingsInto_`, and getting it backwards would break
+   the control. Those nine tabs became files because nothing writes to them; this one an ADMIN
+   writes to from the phone, so a file that WON would silently throw away every tap. The sheet wins.
+
+   AND A ROW SWITCHED OFF IS STILL A ROW, which is why `spotlight` in dopost.gs sets a cell rather
+   than deleting one. An admin who cleared the window would otherwise leave an empty tab, fall
+   through to the file, and watch the things they had just removed come straight back.
+
+   `DATA.spotlight` ABSENT IS NOT THE SAME AS EMPTY. `doGet` sends the key only when it managed to
+   read the tab — a read that threw deletes it — so an absent key means "no answer" and an empty
+   array means "an admin has emptied the window on purpose". Reading a failure as an empty list is
+   this repository's oldest fault and the one `nothingHere` exists for. */
+function spotNow_() {
+  const sheet = (DATA && DATA.spotlight);
+  if (Array.isArray(sheet) && sheet.length) return sheet.map(String);
+  const file = (DATA && DATA.spotlightFile) || [];
+  return (Array.isArray(file) ? file : []).map(String);
+}
+
 function adoptSpotlight_() {
-  if (!DATA || !DATA.spotlight) return;
-  SPOT = new Set(DATA.spotlight.map(String));
+  SPOT = new Set(spotNow_());
 }
 
 const isSpot = k => SPOT.has(String(k));
@@ -70,6 +95,13 @@ function toggleSpot(k, kind) {
   send({
     action: 'spotlight',
     name: USER.name,
+    /* ---------- AND THE ID, BECAUSE A NAME IS A CELL SOMEBODY CAN EDIT ------------------------
+       `findPerson` FALLS BACK TO MATCHING THE NAME when no id comes, which is right for a row
+       typed into the sheet before anybody has one and silently wrong the day two people share a
+       name — the denial `changePin` already caused for real, to one person. `check-post.js` asks
+       exactly one question, that a handler reading `body.personId` is sent one, and it named this
+       call the moment the handler existed. */
+    personId: (USER && USER.personId) || '',
     /* THE KEY GOES ACROSS WHOLE and the kind is passed separately, for the same reason the star
        does it: some keys are a bare title and some are prefixed, and splitting on the colon turns
        a venue called "Colliers Wood Library" into a kind. */
@@ -154,6 +186,44 @@ function spotPages() {
   if (!items.length) return [];
   const credits = collCredits_();
   return items.map(x => stuffCard(x, credits));
+}
+
+/* ---------- AND IT IS A COLUMN AGAIN, WHICH IS THE THIRD TIME IT HAS MOVED -----------------------
+   ASKED FOR AS *"can you also make a spot light column after the saved column. what admin
+   spotlights will appear there. similar to favourites but with admin in control and for all."*
+   It WAS a column, and `TABS`'s own note lists Spotlight among the ones that were folded into the
+   funnel. So this is a decision being reversed, and the reason it is not the mistake CLAUDE.md
+   warns about is that the thing being reversed was never working: measured, `spotPages()` returned
+   `[]` for everybody on every load, because there was no handler, no tab, and no payload key.
+   A list that is always empty is a list whose home nobody could have judged.
+
+   ONE HOME NOW, NOT TWO. It came off the front of the Find screen in the same commit — a page of
+   business promotion in front of somebody's search results is the duplication this file already
+   records producing twice, and two readers of one list is the `documents_()` fault. Which also
+   repairs both pagers: `PAGER.feed` had gone on counting these pages after the feed stopped drawing
+   them, and `PAGER.stuff` had never counted them while the Find screen did.
+
+   THREE SENTENCES, NOT ONE, BECAUSE THERE ARE THREE STATES AND THEY ARE NOT THE SAME FACT. "I did
+   not manage to look" printed as "I looked and there was nothing there" is this repository's oldest
+   fault, and a column whose whole content comes off a payload is exactly where it lands. */
+function spotlightCards_() {
+  /* THE PAYLOAD DID NOT COME. `nothingHere` is the one thing that can tell a failed request from an
+     empty list, and it draws the reason and a Try again. */
+  if (typeof LOAD_FAILED !== 'undefined' && LOAD_FAILED && typeof nothingHere === 'function') {
+    return [nothingHere()];
+  }
+  const cards = spotPages();
+  if (cards.length) return cards;
+  /* AN ADMIN IS TOLD HOW TO FILL IT, because they are the only person who can — and a column that
+     says "nothing here" to the one person able to change that is the fault `savedCards_` fixed on
+     the column next door. Everybody else is told what the column is FOR, so an empty one reads as
+     a shop window nobody has dressed rather than as a screen that failed. */
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  return [`<div class="card"><h3>Spotlight</h3><p class="note">${admin
+    ? `Nothing in the window yet.<br><span class="faint">Press <b>Spotlight</b> on any card — a
+       tutor, a class, a paper — and it turns up here for everybody.</span>`
+    : `Nothing is being featured just now.<br><span class="faint">This is where @family. puts the
+       things worth a look.</span>`}</p></div>`];
 }
 
 

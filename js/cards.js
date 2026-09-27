@@ -322,6 +322,19 @@ function findCard(x) {
         t.yrsExp ? row('Experience', String(t.yrsExp).replace(/^(\d+)$/, '$1 years')) : '',
         profList_(t.quals).length ? row('Qualifications', profList_(t.quals).join(' · ')) : '',
         profList_(t.extraQuals).length ? row('Also', profList_(t.extraQuals).join(' · ')) : '',
+        /* ---------- AND WHAT THEY ARE STUDYING NOW, UNDER THE THINGS THEY HAVE FINISHED ----------
+           NOT THROUGH `profList_`, WHICH IS THE ONE THING TO GET RIGHT HERE. That function reads a
+           comma cell as a LIST, and "Bible and Theology" is one subject that happens to contain an
+           "and" — one comma in either cell and the card would print two half-facts joined by a
+           middle dot. So the two are read as single values and joined with the word "at", which is
+           also the only shape that reads as a sentence: "Bible and Theology at University of Wales
+           Trinity Saint David".
+
+           EITHER HALF ALONE IS STILL WORTH DRAWING. Somebody studying something with no institution
+           named, or at a place with no subject given, has said something true; a row that appears
+           only when both cells are filled is a row that silently swallows half an answer. */
+        (t.studying || t.studyingAt)
+          ? row('Studying', [t.studying, t.studyingAt].filter(Boolean).join(' at ')) : '',
         profList_(t.focus).length ? row('Focus', profList_(t.focus).join(' · ')) : '',
         /* WHAT A SESSION WITH THEM LOOKS LIKE. Two rows rather than four, because "1 to 4 students"
            is the fact and `minStudents` / `maxStudents` are how it is stored — and a card that

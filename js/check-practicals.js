@@ -392,38 +392,28 @@ rows.filter(r => String(r.excluded_reason || '').trim() && String(r.diagram || '
     .forEach(r => fail.push(r.practical_id + ' is a refused experiment and carries a diagram'));
 /* ---------- AND A ROW WITH NO DRAWING SAYS WHY -------------------------------------------------
    THE COUNT ABOVE IS NOT AIMING AT ZERO, which is exactly what makes it useless on its own: a
-   printed 26 reads the same whether those rows were judged or forgotten. So every one of them has
-   a written reason here, and a live row that has neither a drawing nor an entry FAILS. Sixth time
-   this repository reaches for the pattern, after `ACCEPTED` in check-payload.js, `VOCAB` in
+   printed 26 reads the same whether those rows were judged or forgotten. So every row without one
+   has a written reason here, and a live row that has neither a drawing nor an entry FAILS. Sixth
+   time this repository reaches for the pattern, after `ACCEPTED` in check-payload.js, `VOCAB` in
    check-library.js, `ACCEPTED_TAP` in check/ui.js, `RETIRED_FACETS` in find.js and `HANDLE_ALLOWED`
    in people.gs — one entry, one sentence, so a NEW row without a picture fails loudly instead of
    joining a red nobody reads.
 
-   THE ENTRIES FALL INTO THREE KINDS and the middle one is the one worth reading. Some have nothing
-   to assemble: a cup, a thermometer and a stopwatch is a sentence, not a picture. Some are things
-   whose SHAPE is the variable — a spaghetti tower, an egg's packaging — so a drawing would be one
-   team's answer printed on everybody's card. And some could be drawn and must not be, because the
-   only thing there is to draw is what the practical asks the student to work out: the density
-   tower's layers, the lava lamp's two liquids, the gear train. That is the same line every drawing
-   in tools/draw-practicals.py is written along, stated from the other side. */
+   IT IS EMPTY NOW AND THAT IS WHY IT STAYS. All 77 live practicals carry a drawing, so the list
+   has nothing to hold — and a list somebody deletes because it is empty is the guard gone: the next
+   row added without a picture would then pass in silence rather than being refused until somebody
+   writes the sentence. An empty accepted-list is the strongest state this pattern has, not a spent
+   one.
+
+   THE SIXTEEN IT USED TO HOLD ARE THE ENTRY WORTH READING, because fourteen of them were wrong. The
+   reasons were honest and they were reasons not to draw the RESULT, taken as reasons not to draw
+   the SET-UP: `PR-HM05` read "a tablet, a glass and a stopwatch", and the thing that picture has to
+   settle is whether the stopwatch starts as the tablet touches the water. The two that were right
+   are still right and are drawn a different way: `PR-HM24`'s gear train is dashed, because step 1
+   builds it from somebody else's booklet, and `PR-HM26`'s two layers are simply absent, because
+   step 2 asks which is on top. What changed is not the rule — it is that "no picture determines
+   this" was being asked of the whole practical rather than of its first three steps. */
 const NO_DRAWING = {
-  'PR-HM04': 'a pad of wire wool, a battery and a scale, none of it assembled',
-  'PR-HM05': 'a tablet, a glass and a stopwatch',
-  'PR-HM09': 'two lamp posts and a measured distance between them',
-  'PR-HM10': 'a ruled recording grid and a fish. There is no apparatus',
-  'PR-HM13': "built to the kit's own instruction booklet, which determines it rather than the row",
-  'PR-HM22': 'a start line and a finish line a fixed distance apart',
-  'PR-HM23': "the egg's packaging is the variable, and drawing one answers the design",
-  'PR-HM24': "the gear train is the student's own drawing at step 6, and the build is the "
-           + "booklet's",
-  'PR-HM26': 'step 2 asks which liquid is on top and why, so the two layers are the answer',
-  'PR-HM27': 'an egg in a jar of vinegar, with the lid loose',
-  'PR-HM28': 'a warmer and a thermometer. The crystals spreading from the disc are the result',
-  'PR-HM30': 'two jars of the same solution, one of them in the fridge',
-  'PR-HM31': 'a bowl and a spoon',
-  'PR-HM33': 'a bottle and a marked cane, which is the measurement the volcano already draws',
-  'PR-HM34': 'strips of paper and a hairdryer',
-  'PR-HM35': 'a cup, a thermometer and three things stirred into it'
 };
 live.forEach(r => {
   const has = String(r.diagram || '').trim();

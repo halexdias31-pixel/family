@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-25-e-one-quote";
+const DOPOST_VERSION = "2026-09-27-a-exam-dates";
 
 
 function doPost(e) {
@@ -180,7 +180,24 @@ function doPost(e) {
         // person signing themselves up is almost always the one being taught.
         person_id: 'P' + Date.now(), role: 'student',
         first_name: first, last_name: last, full_name: full,
-        username: norm(first + last).replace(/[^a-z0-9]/g, ''),
+        /* ---------- THE CASE THEY TYPED, WHICH IS THE ONE WRITER THAT STILL FOLDED IT ------------
+           `changeHandle` STOPPED LOWER-CASING AND THIS DID NOT. It was `norm(first + last)` —
+           somebody signing up as "Halex Dias" was stored `halexdias`, and `doget.gs`'s
+           `handle || username || first_name` then SHOWS that, so every account on the tab that has
+           never renamed itself has been displaying a lower-cased name. That is the half of "i would
+           like peoples username logins to be case sensitive" a person actually sees, on the one
+           path that reaches everybody who has not gone looking for the rename box.
+
+           THE PUNCTUATION STILL GOES AND THE LETTERS STAY. `HANDLE_SHAPE` is never applied to a
+           registered username — `handleTrouble_` guards `changeHandle` and nothing else — so this
+           is the only thing keeping a space or an apostrophe out of the cell, and it has to hold.
+           What it must not do any more is decide somebody's capitals for them.
+
+           NOTHING ABOUT MATCHING CHANGES, which is the whole of why this is safe: `findPerson`
+           compares through `key()`, which folds case and strips the same characters, so a row
+           written `HalexDias` is found by `halexdias`, `HALEXDIAS` and `Halex Dias` exactly as
+           before. See the long note over `changeHandle`. */
+        username: S(first + last).replace(/[^A-Za-z0-9]/g, ''),
         email, pin, credits: 0, xp: 0,
         came_from: arrivedWith,
         invited_by: inviter,
@@ -426,6 +443,49 @@ function doPost(e) {
           + 'Run ensureSchema() to add it — nothing was saved.' });
       }
       if (libSent) setCell(t, r, 'library_card', libCardsIn(fields));
+
+      /* ---------- AND THE DATE OF BIRTH ARRIVES AS THREE BOXES AND IS STORED AS ONE CELL --------
+         THE SAME THREE PLACES `library_card` NEEDED, for the same three reasons, and skipping any
+         one of them makes the control a silent no-op. `dob_d`/`dob_m`/`dob_y` are not columns, so
+         they would be dropped by `wanted` below and `date_of_birth` would never be written — the
+         form would say Saved and nothing would change, which is the favourites-star shape.
+
+         THE HEADER IS CHECKED HERE BECAUSE THE LIST BELOW CANNOT SEE IT. Out of `wanted` means out
+         of the `noColumn` refusal, and `setCell` writes to a missing header and loses the value
+         with no error anywhere. `date_of_birth` IS in the live sheet, unlike `library_card`, so
+         this will not fire today — which is exactly why it has to be written rather than assumed.
+
+         REFUSED BEFORE THE WRITE, like the pricing clock and the e-mail clash above it: a partial
+         is `null` to `sheetDate`, so the birthday would go off the calendar with a toast saying
+         Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
+      const dobSent = Object.keys(fields).some(f => DOB_FIELD.test(f))
+                   && allowed.indexOf('date_of_birth') !== -1;
+      if (dobSent) {
+        if (t.headers.indexOf('date_of_birth') === -1) {
+          return jsonOut({ error: 'The sheet has no column for: date_of_birth. '
+            + 'Run ensureSchema() to add it — nothing was saved.' });
+        }
+        const dobNo = dobRefusal_(fields);
+        if (dobNo) return jsonOut({ error: dobNo });
+        setCell(t, r, 'date_of_birth', dobIn(fields));
+      }
+      /* ---------- AND AN EXAM DATE IS REFUSED BEFORE IT IS WRITTEN --------------------------
+         THESE TWO **ARE** COLUMNS, unlike the nine library boxes and the three date boxes above, so
+         they need none of that plumbing: `wanted` finds them, the `noColumn` refusal covers them,
+         and `setCell` writes them. What they need is the one thing a column check cannot do, which
+         is to say whether the VALUE is a date.
+
+         A DATE INPUT CANNOT PRODUCE A BAD ONE, WHICH IS NOT A REASON TO TRUST IT. Every refusal
+         here is about a request that did not come from the form, and `doPost` is reachable by
+         anybody with the URL — the sentence this repository already writes about `?name=`. Without
+         it, `after half term` lands in the cell, `isoDate_` cannot read it back, and the picker is
+         empty for ever with nothing anywhere saying why.
+
+         BEFORE THE LOOP BELOW, like the pricing clock and the birthday above it: a refusal after a
+         partial write is a save that half happened under a toast saying it did not. */
+      const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
+                        : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
+      if (badDate) return jsonOut({ error: badDate });
       /* A field with no column vanishes silently: setCell writes to a header that isn't there and
          the value is gone with no error anywhere. That's how an extra-seat fraction was entered
          four times and lost four times, with the site showing a stale default each time and
@@ -482,6 +542,25 @@ function doPost(e) {
       const priceMoved = pricingMoved_(r, priceAsked).length > 0;
       const priceNo = pricingRefusal_(r, priceAsked, isAdminPerson(asker));
       if (priceNo) return jsonOut({ error: priceNo });
+
+      /* ---------- AN ADDRESS THAT ALREADY ANSWERS TO SOMEBODY ELSE ------------------------------
+         SINCE `findPerson` RESOLVES AN E-MAIL, THIS COLUMN IS A CREDENTIAL. Two rows holding one
+         address means the first wins and the second person is told their own PIN is wrong — the
+         denial recorded under `changePin`, one column along. The rule is `emailRefusal_` in
+         `people.gs` rather than four lines here, beside `handleRefusal` and `pricingRefusal_` and
+         for their reason: something has to be able to RUN it.
+
+         READ BEFORE THE WRITE, like the pricing clock above and for the same reason — `setCell`
+         ends with `row[field] = value`, so asking afterwards compares the new address against
+         itself and finds no clash, every time.
+
+         ONLY WHEN THE FORM SENT ONE. `About you` and every other page post no `email` at all, and a
+         rule firing on absence would refuse them. An admin is NOT exempt: an admin putting a
+         duplicate address on somebody's row is still the collision. */
+      if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
+        const mailNo = emailRefusal_(fields.email, r);
+        if (mailNo) return jsonOut({ error: mailNo });
+      }
 
       wanted.forEach(f => setCell(t, r, f, fields[f]));
       /* ---------- AND THE STAMP GOES ON AFTER THE WRITE, NOT INSTEAD OF IT -----------------------
@@ -1683,7 +1762,30 @@ function doPost(e) {
     if (action === 'changeHandle') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'We could not find your account.' });
-      const want = S(body.handle).trim().toLowerCase();
+      /* ---------- WHAT WAS TYPED IS WHAT IS STORED, AND EVERY COMPARISON STILL FOLDS ------------
+         ASKED FOR AS *"i would like peoples username logins to be case sensitive."* This line was
+         `.toLowerCase()`, so somebody who typed `HaLeX` was stored and shown as `halex` — the case
+         they chose thrown away at the moment they chose it, which is the half of that sentence a
+         person actually sees.
+
+         THE MATCHING IS NOT TOUCHED AND MUST NOT BE. `findPerson` compares through `key()`, which
+         lower-cases AND strips everything but letters and digits, and it has 85 call sites across
+         this backend: the roster, the booking, the messaging, every gate. Making THAT case
+         sensitive would mean somebody typing `Halex` at the sign-in box is told the name is not
+         recognised — which is sign-in getting harder for everybody, and is what every site on the
+         internet deliberately does not do.
+
+         AND IT WOULD OPEN AN IMPERSONATION SURFACE ON A SITE CHILDREN USE. `handleTrouble_` checks
+         a new handle against every column `findPerson` answers to, through that same fold — so
+         while it folds, `HaLeX` cannot be taken when `halex` exists. Case-sensitive matching makes
+         those two different accounts that render identically, which is exactly what
+         `HANDLE_SHAPE`'s ASCII-only rule already refuses unicode lookalikes for: `paul` with a
+         Cyrillic a is impersonation with nothing to point at, and `HaLeX` beside `halex` is the
+         same object in a cheaper disguise.
+
+         SO: CASE-PRESERVING, CASE-INSENSITIVE. Store the letters as typed; fold for every
+         comparison. That is what "case sensitive" means everywhere it is safe to mean anything. */
+      const want = S(body.handle).trim();
       const why = handleTrouble_(want, me, isAdminPerson(S(body.name)));
       if (why) return jsonOut({ error: why });
 
@@ -2622,6 +2724,49 @@ function doPost(e) {
        ONE ACTION FOR BOTH, because they are the same gesture and splitting them means a card has to
        know which state it is in before it can ask — which is exactly the thing that goes wrong when
        two tabs are open. The row exists or it does not; this makes it match `on`. */
+    /* ---------- THE SHOP WINDOW, AND WHY A ROW IS SWITCHED OFF RATHER THAN DELETED --------------
+       THIS HANDLER DID NOT EXIST. The tile was built, admin-gated twice, and posting since it was
+       written — and `spotlight` was in no access list, so `accessDenied` refused it before any
+       handler could be reached, and `doGet` sent no `DATA.spotlight` for `adoptSpotlight_` to read.
+       Measured: zero occurrences of the word anywhere under `backend/`. Wired at both ends of the
+       phone with nothing in the middle, which is `orderPrints` for the thirteenth time in this
+       repository.
+
+       ADMIN-GATED HERE AS WELL AS IN `ACTION_ACCESS`, the way `openWaitlist` is: the access list
+       says who may reach the handler and this says what the handler will do, and a button is not a
+       permission. The phone's own `if (!isAdmin()) return` in `toggleSpot` is a third, and it is
+       the one that may be wrong — a phone can be lied to.
+
+       SWITCHED OFF RATHER THAN DELETED, which is the opposite of `favourite` two blocks down.
+       An unfavourite leaves nothing worth keeping. Taking something OUT of the shop window is a
+       decision about what the business promotes, and `who` and `at` are who made it and when. It
+       is also what makes the sheet the authority the moment it holds any row at all: with rows
+       deleted, an admin who had cleared the window would fall through to the file's default list
+       and the thing they removed would come straight back. See `spotNow_` in js/collections.js. */
+    if (action === 'spotlight') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Sign in first.' });
+      if (!isAdminPerson(S(body.name))) return jsonOut({ error: 'Admins only.' });
+      const kind = norm(body.kind), itemId = S(body.itemId);
+      if (!kind || !itemId) return jsonOut({ error: 'Nothing to spotlight.' });
+
+      const t = read(TAB.spotlight);
+      const row = t.rows.find(r => norm(r.kind) === kind && key(r.item_id) === key(itemId));
+      const on = TRUE_(body.on) ? 'TRUE' : '';
+      if (row) {
+        setCell(t, row, 'on', on);
+        setCell(t, row, 'who', S(me.person_id));
+        setCell(t, row, 'at', new Date());
+      } else {
+        addRow(t, {
+          spot_id: 'S-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+          kind: kind, item_id: itemId, on: on, who: S(me.person_id), at: new Date(),
+        });
+      }
+      clearCache();
+      return jsonOut({ success: true, on: !!on });
+    }
+
     if (action === 'favourite') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Sign in first.' });
@@ -3115,12 +3260,33 @@ function profileOf_(r) {
   /* ONE CELL, EXPANDED ONCE, for the reason `availSet` is called once above rather than per hour
      code. `libCardsOut` is the only reader of the `name:number:pin|…` format on this side. */
   const cards = libCardsOut(r.library_card);
+  /* ---------- AND THE DATE OF BIRTH, WHICH WAS BEING SENT AS A JAVASCRIPT DATE STRING ------------
+     `S(r.date_of_birth)` IS `String(v).trim()`, AND SHEETS STORES A DATE AS A REAL DATE. So a
+     birthday typed into the spreadsheet came back into the box as
+     `Sun Sep 15 1985 00:00:00 GMT+0100 (British Summer Time)` — rendered and verified — on a field
+     somebody is expected to read and edit. Every other date leaving this file goes through
+     `fmtDate`; this one did not, which is the `S(c.said_on)` fault one tab along.
+     Repaired by the three boxes rather than beside them: `dobOut` reads the cell through
+     `sheetDate`, so a real Date and a `dd/mm/yyyy` string both come apart into three numbers. */
+  const dob = dobOut(r.date_of_birth);
   const out = { avatar: S(r.avatar), role: S(r.role) };
   PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
            : LIBRARY_FIELD.test(f) ? S(cards[f])
+           : f === 'date_of_birth' ? S(dobIn(dob))
+           /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD ------
+              `S(r[f])` IS THE `S(r.date_of_birth)` FAULT ONE COLUMN ALONG, and worse: a birthday
+              sent as `Sun Sep 15 1985 …` at least DREW, wrongly, in a text box. A date input
+              silently rejects any value that is not ISO — so a real Date, or a `dd/mm/yyyy` string
+              typed into the spreadsheet, would open an EMPTY picker over a cell that has a date in
+              it, and the next save would write the empty over it. */
+           : DATE_COLS.indexOf(f) !== -1 ? isoDate_(r[f])
            : S(r[f]);
   });
+  /* THE THREE BOXES ARE SENT AS WELL AS THE CELL. They are not columns, so the loop above cannot
+     produce them — and the form reads them by name. The cell itself stays because `fieldsHtml`
+     dispatches on the group's field list, which still names `date_of_birth`. */
+  DOB_FIELDS.forEach(f => { out[f] = S(dob[f]); });
   return out;
 }
 

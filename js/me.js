@@ -57,8 +57,22 @@ function signInCard_() {
   return `<div class="card">
         <h3>Sign in</h3>
         <p class="sub">You need an account to book, to keep a checklist, or to spend credits.</p>
-        <label class="field"><span>your name</span>
-          <input id="in-name" autocomplete="username" placeholder="e.g. Halex Dias"></label>
+        ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO -----------------------
+             ASKED FOR AS *"i want people to be able to sign in with email as well."* `findPerson`
+             takes an address now — but a box captioned "your name" is a box nobody tries an address
+             in, which is this repository's own sentence about the calculator and about `topics`: a
+             thing nobody can find is a thing that is not there.
+
+             THREE WORDS RATHER THAN A SENTENCE UNDER IT. A caption is read; a paragraph explaining
+             a single text box is the note this app has now been asked three times to take off a
+             card. The placeholder carries the example, which is what a placeholder is for.
+
+             `autocomplete="username"` IS UNCHANGED AND IS STILL RIGHT. It is the token for "the
+             thing you sign in with" whatever that thing is, and a phone offers a saved address
+             under it as readily as a saved handle — `email` would tell the phone this box is only
+             ever an address, which it is not. */''}
+        <label class="field"><span>name, username or email</span>
+          <input id="in-name" autocomplete="username" placeholder="Halex Dias, @halex, or your email"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         <button class="btn" data-do="do-signin">Sign in</button>
@@ -769,10 +783,38 @@ on('build-said', () => openSheet('Build', versionSaid_()));
    new screen id needs — no `TABS`, no `TAB_ORDER`, no `PAGER`, no `PAGE`, no `<section>`, and no
    row in `data/settings/columns.json`.
 
-   ONE SLOT PER PAGE, WHICH IS `settingsPages_`'s OWN RULE AND ALSO THE MEASUREMENT. Splitting it in
-   two leaves Things at 948.1px; in three, all three pages are over; in four there are 34.1px spare
-   and the "Saving…" line takes it 18px over the moment it appears. One slot per page is **356.0px
-   with 178.3px spare at 320** and fits at all four widths.
+   ONE SLOT PER PAGE WAS THE FIRST ANSWER AND IT IS TWO NOW. Splitting the whole wardrobe in two
+   leaves Things at 948.1px; in three, all three pages are over; in four there are 34.1px spare and
+   the "Saving…" line takes it 18px over the moment it appears. One slot per page is 356.0px with
+   178.3px spare at 320 and fits at all four widths — and it made SEVEN pages, six of them carrying
+   the same picture.
+
+   ---------- AND SEVEN COPIES OF ONE PICTURE IS WHAT GOT REPORTED ---------------------------------
+   *"the avatar customisation has like over 5 different widgets of same avater. bit redundant."* —
+   and it is exactly seven: `Colours` plus one per slot in `AV_SLOTS`, every one drawing the same
+   64px figure at the top. Settings is not windowed (`PAGE_KEEP` is written only for `stuff`), so
+   all seven are in the document at once — 84 element nodes for one picture — and swiping the
+   wardrobe is the same avatar going past six times.
+
+   TWO SLOTS A PAGE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN. At 320x568 against the 534.25px
+   pane cap: the worst pair, Hairstyle (6 options) with Headwear (5), is 424.7px — **109.6px
+   spare** — and Face+Shoulders is 302.3 and Holding+Legs is 363.5. Every pairing fits at every
+   width, so nothing has to be hand-balanced. THREE a page does not: the naive grouping is 569px,
+   **over the cap by 34.7**, and only a hand-picked one fits with 26.5px spare — which is two option
+   rows from failing the day a shop row adds an item, because `avatarCatalogue()` builds this list
+   from the shop tab and a new row needs no deploy. That is the `isEdexcelGcseMaths` shape: a rule
+   fitted to the data somebody had in front of them.
+
+   THE FIGURE STAYS ON EVERY PAGE, AND THAT IS THE ONE THING NOT TRADED. Dropping it from the slot
+   pages takes them to 202.1px and answers the complaint completely — and it deletes the live
+   preview `avatarSave` redraws before the server answers, which its own note calls the difference
+   between a wardrobe and a form. You cannot try a hat on without seeing it on. Seven pictures
+   become four; the picture stays where the change happens.
+
+   AND THE LAB CANNOT REFUSE A TOO-TALL PAGE, so these numbers were taken at a real 320x568 rather
+   than read off a run. `check/ui.js` gives every width an 844px viewport, so its "320" has an 807px
+   cap and the three-a-page merge that is 34.7px over on an iPhone SE measures green there. Same gap
+   CLAUDE.md records under `.post-pic`.
 
    APPENDED, NOT PREPENDED. `PAGE.settings` remembers where somebody was, so inserting at the front
    moves every existing index and a returning visitor lands on a different page. */
@@ -796,12 +838,14 @@ function wardrobePages_() {
       title="${esc(col)}"></span>`).join('')}
   </div>`;
 
-  const slotCard = ([slot, label]) => {
+  /* ONE SLOT'S OPTIONS, WITH ITS OWN NAME OVER THEM — which is what the Colours card already does
+     for Skin, Hair and Shirt. With two slots to a card the card's `h3` names both and `.av-slot-name`
+     says which block is which, so nothing new had to be styled. */
+  const slotBlock = ([slot, label]) => {
     const mine = items.filter(x => x.slot === slot);
     if (!mine.length) return '';
-    return `<div class="card"><h3><span>${esc(label)}</span></h3>
-      ${figure()}
-      <div class="av-slot">
+    return `<div class="av-slot">
+      <div class="av-slot-name">${esc(label)}</div>
       <div class="av-opts">${mine.map(it => {
         const on = cfg[slot] === it.id;
         /* WHY it is not yours, on the item itself. "Locked" is a state; "Level 8" is a thing you
@@ -816,8 +860,27 @@ function wardrobePages_() {
           ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
         </button>`;
       }).join('')}</div>
-    </div></div>`;
+    </div>`;
   };
+
+  /* PAIRED IN THE ORDER `AV_SLOTS` DECLARES THEM, which is top of the head downwards — so the card
+     reads Hairstyle & Headwear, Face & Shoulders, Holding & Legs rather than a grouping somebody
+     picked. Every pairing fits (see above), so there is nothing to balance and nothing to go stale.
+     A slot with no items drops out first, so a pair is never half empty. */
+  const pairCard = pair => {
+    /* BUILT ONCE AND KEPT WITH ITS LABEL. A first version mapped for the markup and then filtered
+       the labels by calling `slotBlock` again — two readings of "does this slot have items", which
+       is the second reader this repository keeps finding, and here it would have put a name over a
+       block that was not drawn the day a slot emptied. */
+    const made = pair.map(sl => ({ label: sl[1], html: slotBlock(sl) })).filter(x => x.html);
+    if (!made.length) return '';
+    return `<div class="card"><h3><span>${esc(made.map(x => x.label).join(' & '))}</span></h3>
+      ${figure()}
+      ${made.map(x => x.html).join('')}
+    </div>`;
+  };
+  const pairs = [];
+  for (let i = 0; i < AV_SLOTS.length; i += 2) pairs.push(AV_SLOTS.slice(i, i + 2));
 
   /* `Credits` IS DROPPED AND `Level` IS KEPT, which is not tidying. `cards.js` already draws the
      credit balance on this same column, so a second copy is one fact in two places — and dropping
@@ -830,7 +893,7 @@ function wardrobePages_() {
       <div class="av-slot"><div class="av-slot-name">Skin</div>${swatches('skin', AV_SKIN)}</div>
       <div class="av-slot"><div class="av-slot-name">Hair</div>${swatches('hairColour', AV_HAIR)}</div>
       <div class="av-slot"><div class="av-slot-name">Shirt</div>${swatches('shirt', AV_SHIRT)}</div>
-    </div>`].concat(AV_SLOTS.map(slotCard).filter(Boolean));
+    </div>`].concat(pairs.map(pairCard).filter(Boolean));
 }
 
 /* ---------- AND THE TILE IS A DOOR RATHER THAN A SHEET -------------------------------------------
@@ -1628,6 +1691,18 @@ const FIELD_IS_BOOL = /^(dbs|active|listed|is_|has_|allow|paid|trackable|stealab
 const FIELD_IS_DECIMAL = /rate|price|cost|hours|km|fraction/;
 const FIELD_IS_NUMERIC = /pages|year|students|days|weeks|count|level_required/;
 
+/* ---------- AND A NAME ENDING `_date` IS A DAY ON A CALENDAR --------------------------------------
+   MATCHED RATHER THAN LISTED, which is the argument written over `FIELD_IS_BOOL` three lines up:
+   the sheet grows columns and a list has to be remembered. `exam_small_date` and `exam_big_date` are
+   the two on a form today; `exam_date` on the exams tab and `creation_date` on a post are the same
+   shape and would be right to draw this way if either ever reached a form.
+
+   `date_of_birth` DOES NOT MATCH IT, AND THAT IS THE POINT RATHER THAN AN ESCAPE. A birthday is
+   three boxes and a `dd/mm/yyyy` cell — see `isDobBox_` below, and the long note over `isoDate_` in
+   core.gs, which argues that the same control is wrong for a birth year and right for an exam. The
+   suffix is what separates them, so neither needs an exception written about the other. */
+const FIELD_IS_DATE = /_date$/;
+
 /**
  * ONE FIELD, drawn from what is known about it.
  *
@@ -1665,6 +1740,26 @@ function fieldHtml(name, value, o) {
       </select></label>`;
   }
 
+  /* ---------- A DAY ON A CALENDAR IS A DATE INPUT -----------------------------------------------
+     WHAT IT BUYS OVER A TEXT BOX, which is what these two were until this: the platform's own
+     calendar, the weekday beside each number, a value it has already validated, and no way to type
+     `05/14/2027` into a sheet that reads `14/05/2027`. That last one is not hypothetical — it is the
+     fault the three birthday boxes were written to close, one column along.
+
+     ITS VALUE IS ALWAYS `yyyy-mm-dd`, WHICHEVER WAY THE PHONE DRAWS IT. The control shows the
+     viewer's own format and yields ISO, so the sheet gets one spelling from every device — which is
+     why `isoDate_` on the server sends ISO back rather than the `dd/mm/yyyy` everything else writes:
+     a non-ISO value is SILENTLY REJECTED by the control, so a picker fed the wrong spelling opens
+     empty over a cell that has a date in it and the next save writes the empty over it.
+
+     NO PLACEHOLDER, because a date input does not show one — it draws its own hint — so the caption
+     is the only thing that can name it and is always kept. */
+  if (FIELD_IS_DATE.test(name)) {
+    return `<label class="field"><span>${esc(label)}</span>
+      <input type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
+             ${ro ? 'disabled' : ''} ${o.extra || ''}></label>`;
+  }
+
   /* WHAT OTHERS SAY IS A SUGGESTION, not a rule — a datalist offers them and still lets somebody
      type a new one, which is right where the list is descriptive rather than decided. */
   const seen = (o.suggest || []).filter(Boolean);
@@ -1681,9 +1776,14 @@ function fieldHtml(name, value, o) {
      unlabelled boxes is a form you have to guess at. */
   const hint = o.placeholder || '';
 
+  /* EXTRA ATTRIBUTES, FOR THE CALLERS THAT NEED ONE THE NAME CANNOT IMPLY. `inputmode` and
+     `list` above are derived from the field's own name, which is right for a hundred and twenty
+     fields and cannot say `maxlength="2"` or `autocomplete="bday-day"` — facts about a box rather
+     than about a column. Passed as a string so this stays one `<input>`: a second renderer for a
+     box that differs by two attributes is the drift this file spends most of its length avoiding. */
   return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
-           ${hint ? `placeholder="${esc(hint)}"` : ''}
+           ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
            ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
@@ -1717,6 +1817,48 @@ const isTimetable_ = list => (list || []).length > 12
    Two rows per card — the name and the PIN across, the number full width beneath — is **430.4px
    with 78.9px of headroom**. */
 const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
+
+/* ---------- AND A DATE OF BIRTH IS THREE BOXES, NOT ONE ------------------------------------------
+   ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
+   method."* It was one plain text box with no type, no placeholder and no hint about which way
+   round the first two numbers go — so what reached the cell was whatever anybody typed, and
+   `09/15/1985` is a date `sheetDate` reads as the 9th of March 1986 rather than as nothing.
+
+   WHY NOT `type="date"`, which is the other reading of "best practice": a birth year is forty
+   years of scrolling on an iOS picker that opens on today, its value is ISO rather than the
+   `dd/mm/yyyy` this sheet speaks, it ignores `inputmode` and `maxlength`, and it draws its own
+   chrome that this stylesheet cannot reach. The long note over `DOB_FIELDS` in `constants.gs`
+   carries the measurement.
+
+   THE CAPTION IS WHERE THIS STOPS COPYING THE LIBRARY SHELF. That one gets away with placeholders
+   and no caption because its group IS "Library cards" — the heading names it. A date of birth
+   sits inside `Contact` or `About you`, which name three fields between them, so the row needs a
+   caption of its own and `fieldHtml` cannot emit one (its `span` is per box).
+
+   RECOGNISED BY THE SHAPE OF THE NAMES, like the timetable and the shelf above, and for the same
+   reason: the group's title is the backend's to choose. */
+const isDobBox_ = f => /^dob_[dmy]$/.test(String(f || ''));
+const isDob_ = list => (list || []).some(isDobBox_);
+
+function dobBoxes_(value) {
+  /* `autocomplete` IS THE HALF A PHONE ACTUALLY USES. `bday-day`/`bday-month`/`bday-year` are the
+     WHATWG tokens for exactly these three boxes, so a saved birthday is offered into them; without
+     them a phone offers nothing, or offers the wrong thing into all three.
+     `maxlength` RATHER THAN A PATTERN, because a pattern refuses after the fact and a maxlength
+     stops the fourth digit being typed into a two-digit box in the first place. */
+  const box = (f, hint, len, ac) => fieldHtml(f, value(f), {
+    placeholder: hint,
+    extra: `inputmode="numeric" maxlength="${len}" autocomplete="${ac}" size="${len}"`,
+  });
+  return `<div class="dob-row" role="group" aria-label="Date of birth">
+    <span class="dob-cap">date of birth</span>
+    <div class="dob-boxes">
+      ${box('dob_d', 'DD', 2, 'bday-day')}
+      ${box('dob_m', 'MM', 2, 'bday-month')}
+      ${box('dob_y', 'YYYY', 4, 'bday-year')}
+    </div>
+  </div>`;
+}
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
@@ -1779,10 +1921,24 @@ function fieldsHtml(groups, o) {
        it in the usual way — one `filter`, rather than a second group in the backend that would
        then need a heading of its own. */
     const library = !timetable && isLibrary_(list);
-    const rest = library ? list.filter(f => !isLibraryCard_(f)) : list;
+    /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
+       `date_of_birth` IS STILL IN THE GROUP because the backend's list names columns and that is
+       the column. Drawing it as well as the three boxes would be the same fact twice on one card —
+       the roster's `<h3>` over every widget's own heading, one form along — and the extra box would
+       post a fourth value that `wanted` would happily write straight over what the boxes just said.
+       So it comes OUT of `rest` and the row goes in its place. */
+    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and
+       `isDob_` is asked as well so a deployment that ever sends the three box names draws the same
+       row rather than three bare boxes. One test, both spellings, which is the `isTimetable_`
+       argument: a renderer that recognises only what is sent today stops recognising it the day
+       the backend is tidied. */
+    const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
+    const rest = list.filter(f => !(library && isLibraryCard_(f))
+                              && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
+      + (wantsDob ? dobBoxes_(value) : '')
       + rest.map(f => fieldHtml(f, value(f), {
           attr: o.attr,
           options: o.options ? o.options(f) : null,

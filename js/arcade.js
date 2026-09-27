@@ -300,5 +300,10 @@ function toolsStop_() {
    class and the pages sit there unreachable, which is precisely what had happened to the feed and
    to You. Pages without a pager is the same bug wearing a different hat. */
 screen('saved', () => pages('saved', savedCards_()));
+/* THE SHOP WINDOW. Built like Saved and for the same reason — one card per thing, a pager that
+   counts the same array the screen is built from, and a sentence rather than a blank when there is
+   nothing in it. It starts and stops nothing, because a spotlit thing is a card rather than a
+   widget: nothing on this column runs. */
+screen('spotlight', () => pages('spotlight', spotlightCards_()));
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

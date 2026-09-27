@@ -105,6 +105,7 @@ const TABS = [
      duplicate that one was. APPENDED, because this table is append-only — `AT` is remembered by id
      and the X axis clamps by index. `TAB_ORDER` is what puts it last. */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
+  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
   /* ---------- AND YOUR SETTINGS, AT THE FAR END ----------------------------------------------
      ASKED FOR AS "account setting should appear in a new column by itself. For now make that new
      column at the end." It was one sheet off a tile on your own account card; see `settingsPages_`
@@ -135,6 +136,7 @@ const TABS = [
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
 const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+                   'spotlight',
                    'settings'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
@@ -542,6 +544,22 @@ function paint(id) {
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
+
+  /* ---------- AND WHETHER THE NEW CARDS FIT THE PANES THEY ARE IN --------------------------------
+     `paneWatch_` GIVES AN OVERFLOWING PANE `overflow-y: auto` and watches the card for a later
+     change of height. It is booked HERE as well as from `placeNow_` because a `paint` is not always
+     followed by a placement: `dmPoll_` calls `paint('dm')` every twenty seconds and `dm-refresh`
+     calls it on a tap, so a conversation that gained a message would keep the clipping of the
+     markup it replaced — and the cards the observer was watching are detached by that same line.
+
+     BOOKED RATHER THAN RUN, for `paneReach_`'s own reason: reading `scrollHeight` a line after
+     writing `innerHTML` forces the layout synchronously, and on boot `paintNeighbours` comes
+     through here once per column. Whether a card scrolls matters when a thumb tries to scroll it,
+     which is at least a frame away. Keyed per screen, so eleven paints book eleven jobs rather
+     than overwriting one another — see `afterSlide_`. */
+  if (typeof afterSlide_ === 'function' && typeof paneWatch_ === 'function') {
+    afterSlide_(() => paneWatch_($('s-' + id)), 'panes:' + id);
+  }
 }
 
 /**
@@ -1190,6 +1208,37 @@ function placeNow_(which, instant, dragPx, id) {
      run when the drag ends, which is when the answer can have changed. */
   if (dragPx) return;
 
+  /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN ------------------------------
+     `paneReach_` GIVES AN OVERFLOWING PANE `overflow-y: auto` so `scrollHost_` can scroll it from
+     the app's own drag and hand over to the grid at its end. It was called from `fillStuffPages`
+     and from nowhere else, and the note over `PANE_REACH` said why: *"ON THE FUNNEL'S PANES AND
+     NOWHERE ELSE — `check/ui.js`'s OUT OF REACH rule reports nothing on the other nine
+     columns."*
+
+     THAT SENTENCE WAS TRUE OF A PHONE THAT DOES NOT EXIST. `check/ui.js` gave every width an
+     844px-tall viewport, so its "320px phone" was a 320x844 device and its pane was 807px against a
+     real iPhone SE's 534. Paired with real device heights the same rule names **twenty-one** panes
+     on nine columns at 320x568 — the camera after a photograph 191px, the Scrabble board 161px,
+     a waiting list 105px, your own account 95px — every one of them content that can be neither
+     scrolled to nor paged to. One instrument fix, and the narrowness that comment claimed was an
+     artefact of the instrument.
+
+     HERE RATHER THAN IN `startScreen_`, because a card that GROWS after its screen was drawn is
+     half the finding: taking a photograph adds 167px of controls, and the camera's answer is
+     `placeCells('y', true, 0, 'make')` — which arrives here. Every grower in the app already
+     calls this, so there is one hook rather than one per card.
+
+     THE SCREEN YOU ARE ON, not every pane in the document: about a dozen against a hundred, and a
+     column you cannot see has its turn the moment you arrive at it. Below the drag guard with the
+     other two sweeps, for their reason — nothing changes height while a finger is down, and this
+     is a read of every pane's `scrollHeight`.
+
+     AND `paneWatch_` RATHER THAN `paneReach_` BECAUSE ONCE PER PLACEMENT IS NOT ENOUGH. Four of the
+     columns grow a card after the placement that measured it — a widget drawing into its canvas, a
+     photograph adding its controls, `drawBooker()` replacing the card outright — so the measuring
+     is also booked on a `ResizeObserver` over the cards themselves. See its note in find.js. */
+  if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
+
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */
   const mine = TABS.map(t => $('s-' + t.id));
@@ -1315,6 +1364,10 @@ const PAGER = {
      disagreement is what made the You column unmovable. `savedCards_` answers with one card when
      there is nothing kept, so this is never nought over a page that exists. */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
+  /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is
+     a page, and a count of nothing over a page that exists is a column you cannot be on. Same
+     reason `reelPages_` answers one when there are no clips. */
+  spotlight: () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1),
   /* AND THE SAME AGAIN FOR SETTINGS. `settingsPages_` is the list `screen('settings')` draws, so
      there is one answer to how many pages there are. It is never nought: signed out it returns the
      one card that says to sign in, which is a page somebody has to be able to be on. */
@@ -1358,8 +1411,13 @@ const PAGER = {
   /* `.concat(USER ? [''] : [])` WAS HERE, COUNTING THE ＋ CARD. That card is gone from the feed —
      it was drawn there AND as the column to its left, one swipe apart, which is the duplicate you
      could see. Counting a page that is no longer built pages once past the end onto nothing. */
-  feed:   () => (typeof spotPages === 'function' ? spotPages() : []).map(() => '')
-    .concat((DATA.festive || []).map(() => ''))
+  /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT ------------
+     IT COUNTED A GROUP `postsBlocks` HAS NOT BUILT SINCE SPOTLIGHT LEFT THE FEED — the fault the
+     note directly above records about the ＋ card, on the very next line, unfixed. Invisible for as
+     long as it has existed only because `spotPages()` was measurably always empty: `doGet` sent no
+     `DATA.spotlight` and there was no handler to write one. It becomes a real over-count the moment
+     anything is spotlit, which is a page number at the end of the feed with nothing on it. */
+  feed:   () => (DATA.festive || []).map(() => '')
     .concat(feedPosts().map(() => '')),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY -----------
      IT WAS THE ONE COLUMN THE DIAL DID NOTHING ON. `paint` does `classList.toggle('paged',
@@ -1410,7 +1468,15 @@ const PAGER = {
      to be counted was real work on the path every tap goes down. `pageCount` takes either.
      NO `Basket` HERE ANY MORE — it is on the Booking column now, and this count has to match what
      `screen('stuff')` actually builds or the pager and the screen disagree. */
-  stuff:  () => 1 + bookingPages_().length + stuffPageCount(),
+  /* ---------- THE SAME GROUPS `screen('stuff')` BUILDS FROM, WHICH IS THIS TABLE'S OWN RULE ------
+     IT COUNTED `bookingPages_()` WHERE THE SCREEN DRAWS `frontPages_()`, and `frontPages_` is
+     `bookingPages_` CONCAT `feedPages_` — so every saved-feed page was a page this dial did not
+     know about. It also did not count `spotPages()`, which the screen had at the front until that
+     list became a column of its own. Two undercounts, both meaning the tail of the column cannot be
+     reached, and both invisible because the two groups are empty on the fixture.
+     `frontPages_` is asked rather than its halves added up, for the reason every other entry here
+     gives: a pager that counts for itself is a pager that can disagree with its own screen. */
+  stuff:  () => 1 + frontPages_().length + stuffPageCount(),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -1529,7 +1595,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0 };
+               saved: 0, settings: 0, spotlight: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
@@ -2473,9 +2539,21 @@ async function load() {
          · `orders` holds only your own, so the queue of paper to print is always empty
          · `health.problems` is never filled in
        None of those looks like a fault. Each looks like a feature that does nothing. */
+    /* ---------- AND THE TOKEN, WHICH IS THE ONLY ONE OF THE THREE THAT PROVES ANYTHING -----------
+       `doGet` DECIDED WHO YOU WERE FROM `name`, and the name of every tutor is on the screen — so the
+       admin payload was one query string away for anybody. `api()` has attached `USER.token` to every
+       POST since sessions were built and `accessDenied` has resolved it there; the GET was simply
+       never moved onto it. The block at the top of `doget.gs` has the measurement and the trade.
+
+       ALL THREE ARE STILL SENT, and that is what makes this safe to push before the backend deploys
+       — which is blocked on the Cloud-project switch, so the two land days apart whichever order they
+       are written in. Old backend, new phone: `name` still decides, nothing changes. New backend, old
+       phone: no token, so an admin is served the ordinary payload — degraded, and safe. Both new: the
+       token decides. There is no ordering in which somebody is served more than they should be. */
     const q = [];
     if (USER && USER.personId) q.push('person=' + encodeURIComponent(USER.personId));
     if (USER && USER.name) q.push('name=' + encodeURIComponent(USER.name));
+    if (USER && USER.token) q.push('token=' + encodeURIComponent(USER.token));
     const who = q.length ? '?' + q.join('&') : '';
     /* NO CACHE, AND A DIFFERENT URL EVERY TIME. Both, because either alone can be got round.
        This is a plain GET, which a browser is entitled to hold — so an edit to the spreadsheet
