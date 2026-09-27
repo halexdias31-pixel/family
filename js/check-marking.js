@@ -116,6 +116,31 @@ const CASES = [
      writes a subtraction and how this library writes an age range. */
   ['9', '7-11', false, 'a hyphen is not `to`'],
   ['banana', '1.5 to 2 metres', false, 'and a word is in no band'],
+
+  /* ---------- A RATIO, WHICH NOTHING IN THIS LIBRARY COULD MARK UNTIL THE COLON FOLDED ----------
+     `markNorm_` took the spaces off either side of a fraction slash and left them round a colon,
+     so `2:3` typed against the `2 : 3` a mark scheme prints came out FALSE. Measured across the
+     whole library first: not one of its 1,435 `accept` cells held a colon, so no ratio answer
+     anywhere could mark itself -- which is also what proves the fold cannot change an existing
+     row. Q10 of the June 2024 Foundation paper is the first one that can. */
+  ['2:3', '2 : 3', true, 'Q10 of June 2024 Foundation, typed the way a child types it'],
+  ['2 : 3', '2 : 3', true, 'and the way the mark scheme prints it'],
+  ['2 :3', '2 : 3', true, 'and with the spacing somebody actually manages on a phone'],
+  ['3:2', '2 : 3', false, 'the other way round is a different ratio'],
+  ['6:9', '2 : 3', false, 'and an uncancelled one fails a question asking for simplest form'],
+  ['2/3', '2 : 3', false, 'a ratio is not the fraction its two numbers make'],
+
+  /* ---------- AN ACCEPTED BAND WRITTEN WITH A DASH, WHICH NO CASE HERE HAD -----------------------
+     `markRange_` takes `to` and the two long dashes, and every case above uses the word -- so the
+     dash half of that rule has never once been exercised. CLAUDE.md records the gap in as many
+     words, and it is the shape an escape sweep has broken in this repository twice: a real en dash
+     written into a regex through a layer that eats the backslash leaves `/(?:to|-|-)/`, which
+     matches the word and no dash, and every case in this file goes on passing. */
+  ['1.75', '1.5\u20132 metres', true, 'the middle of a band written with an EN dash'],
+  ['1.5', '1.5\u20132 metres', true, 'its bottom end'],
+  ['2', '1.5\u20132 metres', true, 'its top end'],
+  ['2.1', '1.5\u20132 metres', false, 'and over is still over'],
+  ['1.75', '1.5\u20142 metres', true, 'and the same band written with an EM dash'],
   /* NOTHING TYPED IS NOT A WRONG ANSWER */
   ['', '7', null, 'an empty box is not a mistake'],
   ['banana', '7', false, 'and a word is not a number'],

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-27-b-handles";
+const DOPOST_VERSION = "2026-09-27-c-haspin";
 
 
 function doPost(e) {

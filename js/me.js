@@ -1629,7 +1629,48 @@ function send_(body, o) {
              if (o.busy) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
   if (o.saying) say(o.saying);
 
+  /* ---------- AND THE FIELDS, WHICH IS THE HALF THAT WAS MISSING ---------------------------------
+     REPORTED AS *"i can still backspace login details while its loading logging in. this is not
+     proffesional or right."* Exactly right: this function disabled the BUTTON and left every box
+     on the card live, so you could edit the PIN that was already on the wire. What is then on the
+     screen is not what is being checked, and when the refusal comes back it is about a PIN the
+     screen no longer shows.
+
+     ON `send_` RATHER THAN ON THE SIGN-IN CARD, because it is the one shared POST helper in this
+     app -- so the booking form, the composer, the broadcast and the profile save all get it from
+     one place. A lock written on the card that prompted it is the fault this repository records
+     under `cost: 0` and `paper: true`: repaired in the instance, and back within a month.
+
+     EXACTLY WHAT IT DISABLED IS WHAT IT ENABLES. A field already disabled for its own reason -- a
+     locked step on the booking form, a shut `<select>` -- must still be disabled afterwards, so
+     the list is the ones this actually changed rather than everything it can find. The button is
+     left out of it because `done()` below already owns that one.
+
+     AND THE FOCUS COMES BACK. Disabling the box somebody is typing in moves focus to the document,
+     so after a refusal the caret would be nowhere and the next keystroke would go to the page.
+     Remembered here and restored in `done()`. */
+  const box = o.lock
+    ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
+    : btn && btn.closest('.me-form, .msg-form, .quiz-body, .rc, #drop, #sheet-body, .card');
+  const had = document.activeElement;
+  const locked = [];
+  if (box) {
+    [].forEach.call(box.querySelectorAll('input, select, textarea, button'), el => {
+      if (el === btn || el.disabled) return;
+      el.disabled = true;
+      locked.push(el);
+    });
+    box.classList.add('is-sending');
+  }
+
   const done = () => {
+    locked.forEach(el => { el.disabled = false; });
+    locked.length = 0;
+    if (box) box.classList.remove('is-sending');
+    /* ONLY IF THE PAGE STILL HOLDS IT. A reply that repaints the card replaces the element that
+       had the caret, and focusing a detached node moves focus to the body -- which is worse than
+       leaving it where the repaint put it. */
+    if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) {} }
     if (!btn) return;
     btn.disabled = false;
     btn.classList.remove('is-busy');

@@ -637,6 +637,29 @@ input, select, textarea {
   -webkit-appearance: none; appearance: none;
   transition: border-color var(--quick) ease;
 }
+
+/* ---------- A FIELD THAT IS WAITING HAS TO LOOK LIKE IT IS ----------------------------------------
+   REPORTED AS *"i can still backspace login details while its loading logging in. this is not
+   proffesional or right."* `send_` in me.js locks every field on the card for the length of a
+   request now -- and until this rule there was no `input:disabled` in this stylesheet at all, so a
+   locked box drew exactly like a live one. A control that has stopped answering and does not say
+   so is the invisible mode this repository records against the reel that was paused with nothing
+   on it saying so, and against the camera's own shutter.
+
+   THE SAME WASH THE BUTTON ALREADY USES. `.btn[disabled]` is `opacity: .4`; a field carries text
+   somebody needs to still be able to READ while it is being checked, so it recedes rather than
+   fades out -- enough to say "not now", not so much that you cannot see the PIN you typed.
+
+   `not-allowed` RATHER THAN NOTHING, because the one thing somebody does with a box that has
+   stopped taking keystrokes is click it again. */
+input:disabled, select:disabled, textarea:disabled {
+  opacity: .62;
+  cursor: not-allowed;
+  background: var(--sunk);
+}
+/* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
+   the pair reads as a rendering fault rather than as a state. */
+.is-sending .field > span { opacity: .62; }
 textarea { min-height: 5.8rem; resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
