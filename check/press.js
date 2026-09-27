@@ -115,6 +115,11 @@ const ACCEPTED_QUIET = {
                    + 'right answer to "post nothing".' },
   'msg-send': { why: 'the message box is empty. Same refusal as `cmt-add`, and the same right one.' },
   'dock-add': { why: 'the to-do box is empty; the handler focuses it and adds no line.' },
+  /* IT CAME OFF THIS LIST ONCE, WITH THE STATE THAT REACHED IT. The "carry on" block was deleted
+     and nothing pressed `pad-clear` again, so the entry would have been a written reason with
+     nothing behind it. `stuff · a diagram you can draw on` reaches it again. */
+  'pad-clear': { why: 'nothing has been drawn on the pad, so this writes an empty list over an '
+                    + 'empty list — the same refusal as an empty box, and the same right one.' },
 
   /* ---------- A CARET IS NOT A PRESS --------------------------------------------------------------
      These are `<input>`s and a `<textarea>`. They answer what is TYPED — `input` and `change` — and
@@ -918,11 +923,21 @@ for (const who of VISITORS) {
         if (i < 0) return null;
         goPage('stuff', i + stuffFirstResult_(), true);
         await new Promise(r => setTimeout(r, 650));
-        const btn = document.querySelector('#s-stuff .qpad [data-do="pad-draw"]');
+        /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW ------------
+           THIS WAS `[data-do="pad-draw"]` AND IT STOPPED BEING UNAMBIGUOUS. `padWrap_` puts the
+           action on `.qpad-art` while the pen is off — the second door, and the one a finger
+           finds — and the art comes FIRST in the markup, so `querySelector` handed this the
+           PICTURE. Steps 1 and 2 below still passed, because tapping the picture really does arm
+           the pen; step 3, which taps the same point to turn it back OFF, landed on the ink
+           instead and drew a dot. The pen stayed on, the swipe after it was correctly refused,
+           and this reported the app broken. `padArm_` in find.js names the same class for the
+           same reason. */
+        const btn = document.querySelector('#s-stuff .qpad-lock');
+        const art = document.querySelector('#s-stuff .qpad-art');
         const ink = document.querySelector('#s-stuff .qpad-ink');
         if (!btn || !ink) return null;
         const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
-        return { at: AT, page: PAGE.stuff,
+        return { at: AT, page: PAGE.stuff, door: !!(art && art.getAttribute('data-do')),
                  ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
                         w: Math.round(r.width) },
                  btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
@@ -936,14 +951,44 @@ for (const who of VISITORS) {
            and a synthetic click cannot clear it because nothing sent a `pointerdown` first -- so
            the second press would be swallowed and the pen would read as stuck on. On a phone a tap
            always sends one. Measured: with `el.click()` this reported the pen still on. */
-        await touch(box.btn.x, box.btn.y, 0, 0);
+        /* ---------- A DRAG ON THE PICTURE IS A SWIPE, AND IT MUST NOT ARM THE PEN -------------
+           THE PICTURE IS A DOOR NOW, so the one thing that could go wrong with it is that every
+           swipe beginning on a diagram arms a pen nobody asked for — 26 rows in the library carry
+           one, and on those cards the picture is the biggest thing to put a thumb on. What stops
+           it is `PRESS_MOVED` in shell.js, which swallows the click a drag produces; this is the
+           only instrument that can ask, because a mouse cannot produce the gesture and a
+           dispatched click never travels. */
+        const armedByDrag = await (async () => {
+          if (!box.door) return 'the picture carries no action, so the only way to arm the pen is '
+                              + 'a button under the card — which is what the report was about';
+          const k0 = tabs.indexOf('stuff');
+          await touch(box.ink.x + 60, box.ink.y, -140, 0);
+          const r2 = await page.evaluate(() => ({ at: AT,
+            on: !!document.querySelector('#s-stuff .qpad.is-drawing') }));
+          if (r2.on) return 'a swipe beginning on the picture armed the pen';
+          if (k0 + 1 < tabs.length && r2.at !== tabs[k0 + 1])
+            return 'a swipe beginning on the picture did not change column — it landed on ' + r2.at;
+          await page.evaluate(x => go(x, false, true), 'stuff');
+          await page.waitForTimeout(420);
+          return '';
+        })();
+        swipes.push({ from: 'stuff · a swipe beginning on the picture', dir: 'touch left',
+                      ok: !armedByDrag,
+                      got: armedByDrag || 'the column moved and the pen stayed off',
+                      want: 'the column moves and nothing is armed' });
+
+        /* THE PICTURE, NOT THE BUTTON, because the picture is the gesture people actually make and
+           the button is already covered by the press pass above. */
+        await touch(box.ink.x, box.ink.y, 0, 0);
         const on = await page.evaluate(() => {
           const pad = document.querySelector('#s-stuff .qpad');
           return pad && pad.classList.contains('is-drawing')
-            && !!pad.querySelector('.qpad-ink[data-noswipe]');
+            && !!pad.querySelector('.qpad-ink[data-noswipe]')
+            && !pad.querySelector('.qpad-art[data-do]');
         });
-        swipes.push({ from: 'stuff · Draw on it', dir: 'tap', ok: on,
-                      got: on ? 'the pen is on and the pad is named' : 'the pen did not come on',
+        swipes.push({ from: 'stuff · a tap on the picture', dir: 'tap', ok: on,
+                      got: on ? 'the pen is on, the pad is named and the picture is no longer a door'
+                              : 'the pen did not come on',
                       want: 'the pen on' });
         if (on) {
           await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + 30,

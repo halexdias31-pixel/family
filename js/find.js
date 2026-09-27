@@ -4931,6 +4931,19 @@ const padPath_ = st => {
   return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
 };
 
+/* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
+   THE HANDLER REWRITES THIS BUTTON IN PLACE rather than repainting the card, so the label exists in
+   two places by construction — the markup above and the press below. Written twice they drift, and
+   the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode you cannot
+   see, which is the fault the gold frame was added for.
+
+   `Draw on it` SAID NOTHING ABOUT THE CARD BEING HELD, and that is what the report was about. The
+   owner's own sentence is the label: a padlock, and `Lock it to draw`. */
+const PAD_TAP = 'Hold the card still and draw on this';
+const padLockFace_ = pen =>
+  (typeof tileIcon_ === 'function' ? tileIcon_(pen ? 'lock' : 'unlock') : '')
+  + (pen ? 'Done drawing' : 'Lock it to draw');
+
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
   const marks = padRead_(k);
@@ -4953,20 +4966,48 @@ function padWrap_(x, svg, credit) {
      the answer to exactly that: the width is measured on the screen rather than in the stretched
      user space, so the pen is one pen. */
   return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
-    <div class="qpad-art">${svg}
+    <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
       </svg>
-    </div>${credit || ''}
+    </div>
     <div class="qpad-bar">
-      <button type="button" class="qpad-btn" data-do="pad-draw" aria-pressed="${pen}">${
-        pen ? 'Done drawing' : 'Draw on it'}</button>
+      <button type="button" class="qpad-btn qpad-lock" data-do="pad-draw" aria-pressed="${pen}">${
+        padLockFace_(pen)}</button>
       <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
       <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
-    </div>
+    </div>${credit || ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
+}
+
+/* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER --------------------------------------------
+   FOUR THINGS MOVE AND THE HANDLER USED TO MOVE THEM IN FOUR PLACES: the class the frame is drawn
+   from, the `data-noswipe` the grid reads, the `data-do` that makes the picture itself a door, and
+   the button's own face. Four sites is four chances to leave a pad half-armed — a gold frame over a
+   picture that still hands the finger to the grid, or the other way round — and a half-armed pad is
+   exactly the invisible mode the frame exists to prevent.
+
+   TURNING ONE ON TURNS EVERY OTHER OFF, which is why this takes a flag rather than toggling: two
+   live `touch-action: none` regions on one scroller is the trap twice. */
+function padArm_(pad, on) {
+  if (!pad) return;
+  pad.classList.toggle('is-drawing', !!on);
+  const ink = pad.querySelector('.qpad-ink');
+  if (ink) { if (on) ink.setAttribute('data-noswipe', ''); else ink.removeAttribute('data-noswipe'); }
+  /* THE PICTURE IS A DOOR ONLY WHILE THE PEN IS OFF. Armed, the ink layer is over it taking every
+     pointer — and a `data-do` still on the art would make the dispatcher walk up from that ink and
+     turn the pen off again on the first dot anybody drew. */
+  const art = pad.querySelector('.qpad-art');
+  if (art) {
+    if (on) { art.removeAttribute('data-do'); art.removeAttribute('title'); }
+    else { art.setAttribute('data-do', 'pad-draw'); art.setAttribute('title', PAD_TAP); }
+  }
+  /* `.qpad-lock` RATHER THAN THE ACTION, because the art carries the same action when the pen is
+     off and `querySelector` would hand back whichever comes first in the markup. */
+  const b = pad.querySelector('.qpad-lock');
+  if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.innerHTML = padLockFace_(!!on); }
 }
 
 /* ---------- THE PEN ------------------------------------------------------------------------------
@@ -5037,39 +5078,31 @@ function padEnd_(e) {
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
 
-/* THE THREE CONTROLS. `Draw on it` is a MODE and not an action, so it says which it is with
+/* THE THREE CONTROLS. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
    simply always be on. Only one pad takes the pen at a time: turning one on turns the last one
    off, because two live `touch-action: none` regions on one scroller is the trap twice. */
 on('pad-draw', (el) => {
+  /* TWO DOORS, ONE HANDLER. `el` is the button in the bar, or — while the pen is off — the
+     PICTURE itself, which carries the same action for the reason written over `padArm_`. Both are
+     inside the pad, so neither needs to be told apart here.
+
+     `touch-action: none` STOPS THE BROWSER AND NOT THIS APP, and that is the whole of the fault
+     this was first reported as: "when i try draw a line of best fit it slides the whole widget to
+     the left". The grid's swipe is a `pointermove` listener on the window — it never asks the
+     browser for a scroll, so no `touch-action` anywhere can refuse it, and a line of best fit is
+     exactly the stroke that travels furthest sideways. `axisFree` names `[data-noswipe]`, so the
+     attribute is the app's own half of the same sentence the stylesheet makes to the browser.
+
+     ONLY WHILE THE PEN IS ON, for the reason written over `.qpad-ink` in the stylesheet: a picture
+     you cannot swipe past is a picture that traps you on it, and every question card with a diagram
+     would become a page with no way off. */
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const want = PAD_ON !== k;
-  [].slice.call(document.querySelectorAll('.qpad.is-drawing'))
-    .forEach(p => p.classList.remove('is-drawing'));
-  [].slice.call(document.querySelectorAll('.qpad-ink[data-noswipe]'))
-    .forEach(i => i.removeAttribute('data-noswipe'));
-  [].slice.call(document.querySelectorAll('[data-do="pad-draw"]')).forEach(b => {
-    b.setAttribute('aria-pressed', 'false'); b.textContent = 'Draw on it';
-  });
+  [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
-  if (want) {
-    pad.classList.add('is-drawing');
-    /* `touch-action: none` STOPS THE BROWSER AND NOT THIS APP, and that is the whole of the fault
-       it was reported as: "when i try draw a line of best fit it slides the whole widget to the
-       left". The grid's swipe is a `pointermove` listener on the window — it never asks the
-       browser for a scroll, so no `touch-action` anywhere can refuse it, and a line of best fit is
-       exactly the stroke that travels furthest sideways. `axisFree` names `[data-noswipe]`, so the
-       attribute is the app's own half of the same sentence the stylesheet makes to the browser.
-
-       ONLY WHILE THE PEN IS ON, for the reason written over `.qpad-ink` in the stylesheet: a
-       picture you cannot swipe past is a picture that traps you on it, and every question card
-       with a diagram would become a page with no way off. */
-    const ink = pad.querySelector('.qpad-ink');
-    if (ink) ink.setAttribute('data-noswipe', '');
-    el.setAttribute('aria-pressed', 'true');
-    el.textContent = 'Done drawing';
-  }
+  if (want) padArm_(pad, true);
 });
 
 on('pad-undo', (el) => {
