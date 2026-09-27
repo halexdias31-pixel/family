@@ -130,10 +130,14 @@ function doPost(e) {
         total: rows.length,
         duplicateNames: [...new Set(dupes)],
         noId:   rows.filter(r => !S(r.person_id)).map(personDisplayName),
-        noPin:  rows.filter(r => !S(r.pin)).map(personDisplayName),
+        /* `hasPin_`, NOT `S(r.pin)`. The plaintext cell is EMPTY on every correctly hashed row —
+           `authSetPin_` clears it — so this listed every properly secured person as having no PIN,
+           on the one screen an admin opens to find out who cannot sign in. The third and fourth
+           readers of that cell; see the note over `hasPin_` in booking.gs. */
+        noPin:  rows.filter(r => !hasPin_(r)).map(personDisplayName),
         noName: rows.filter(r => !personDisplayName(r)).length,
         people: rows.map(r => ({ id: S(r.person_id), name: personDisplayName(r),
-                                 roles: rolesOf(r), email: S(r.email), hasPin: !!S(r.pin) }))
+                                 roles: rolesOf(r), email: S(r.email), hasPin: hasPin_(r) }))
       });
     }
 

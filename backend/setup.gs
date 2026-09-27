@@ -352,7 +352,34 @@ function makeBrandAccount(pin) {
       setCell(t, existing, 'role', S(existing.role) ? S(existing.role) + ', admin' : 'admin');
       fixed.push('role');
     }
-    if (pin && /^\d{4,8}$/.test(String(pin))) { setCell(t, existing, 'pin', String(pin)); fixed.push('pin'); }
+    /* ---------- THROUGH `authSetPin_`, AND THIS LINE IS WHY THE OWNER COULD NOT SIGN IN ----------
+       IT WAS `setCell(t, existing, 'pin', String(pin))` AND IT LEFT `pin_hash` STANDING.
+       `authCheckPin_`'s second line is `if (hash) return authSame_(...)` — a row with a hash never
+       consults the plaintext again — so this wrote the digits into a cell nothing reads and left the
+       real credential as a hash of some earlier PIN. The row is then unverifiable for ever: the
+       owner types what is visibly in the sheet and is refused every time, with nothing anywhere
+       saying why.
+
+       MEASURED ON THE LIVE SHEET: P001 carries `pin`, `pin_hash` AND `pin_salt` all populated, which
+       is this line's output cell for cell — and the reason "I cannot sign in but Danile can" is that
+       Danile is a client, so no brand-account path has ever touched her plaintext cell.
+
+       AND `dataProblems` SENT PEOPLE HERE. It tested `!S(brand.pin)` — the cell `authSetPin_`
+       deliberately empties — so it reported every correctly hashed admin as having no PIN and told
+       the owner to run this function. Following the app's own advice created the fault. See
+       `hasPin_` in booking.gs.
+
+       THE THROTTLE GOES WITH IT, because this function's own note two lines up says it exists to
+       "make sure it actually WORKS" — and a row at the top of the lockout ladder does not work
+       however right its PIN is. `tries` is what `authWrong_` counts and nothing but a successful
+       sign-in resets it, so a row that has been refused ten times stays one typo from an hour's
+       wait. Clearing both is the difference between a repair and a repair you cannot use. */
+    if (pin && /^\d{4,8}$/.test(String(pin))) {
+      authSetPin_(t, existing, String(pin));
+      setCell(t, existing, 'tries', 0);
+      setCell(t, existing, 'locked_until', '');
+      fixed.push('pin');
+    }
     if (norm(existing.verified) === 'pending') { setCell(t, existing, 'verified', 'TRUE'); fixed.push('verified'); }
     if (S(existing.listed) === '') { setCell(t, existing, 'listed', 'FALSE'); fixed.push('listed'); }
     clearCache();
@@ -377,7 +404,10 @@ function makeBrandAccount(pin) {
     role: 'admin',
     first_name: name, last_name: '', full_name: name,
     username: 'family', handle: name,
-    pin: String(pin),
+    /* NO `pin` HERE. It used to be `pin: String(pin)` — the brand account's PIN sitting in a
+       spreadsheet cell in plain sight, which is the whole thing `authSetPin_` was written to stop,
+       on the one row that can reach every control on the site. The hash is set below, once the row
+       exists and there is something for `setCell` to write to. */
     email: email,
     /* Blank, not PENDING. An account waiting on a confirmation link nobody is going to send
        cannot log in, and the error it gives says nothing about why. */
@@ -386,6 +416,10 @@ function makeBrandAccount(pin) {
     joined_on: new Date(),
     came_from: 'the business itself',
   });
+  /* AFTER `addRow`, BECAUSE `authSetPin_` WRITES THROUGH `setCell` and that needs a row on the
+     sheet. So the PIN is hashed in a second step rather than passed in — which is also what makes
+     the created row and the repaired row above end in exactly the same state. */
+  if (row) authSetPin_(t, row, String(pin));
   clearCache();
 
   const out = { created: true, name: name, personId: row ? S(row.person_id) : '',
@@ -1002,14 +1036,18 @@ function dataProblems(deep) {
       add('nobody can sign in as it', 'There is no account called ' + ADMIN_NAME,
           'Run makeBrandAccount(\'0000\') from the editor with a PIN of your own choosing. '
           + 'Do it BEFORE removing admin from anybody else, or nobody can reach the controls.');
-    } else if (!S(brand.pin)) {
+    /* `hasPin_`, NOT `S(brand.pin)`. That cell is EMPTY on every correctly hashed row, so this
+       reported a working admin as unable to sign in — and sent them to `makeBrandAccount`, which
+       until today wrote the plaintext and left the hash standing. The diagnostic manufactured the
+       fault it was diagnosing. See the note over `hasPin_` in booking.gs. */
+    } else if (!hasPin_(brand)) {
       add('nobody can sign in as it', ADMIN_NAME + ' has no PIN',
           'Run makeBrandAccount with one. The row exists and cannot be logged into.');
     } else if (!hasRole(brand, 'admin')) {
       add('nobody can sign in as it', ADMIN_NAME + ' is not an admin',
           'Its role cell says "' + S(brand.role) + '". Every admin control is absent for it.');
     }
-    const admins = read(TAB.people).rows.filter(r => hasRole(r, 'admin') && S(r.pin));
+    const admins = read(TAB.people).rows.filter(r => hasRole(r, 'admin') && hasPin_(r));
     if (!admins.length) {
       add('locked out', 'No account with the admin role has a PIN',
           'Nothing on the site can be edited by anybody. Fix a PIN on an admin row in the sheet.');
