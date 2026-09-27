@@ -1850,8 +1850,19 @@ button.text-drop { color: var(--bad); }
 .feed-subject { font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
                 color: var(--c); }
 .feed-art.has-photo .feed-subject { color: #fff; opacity: .8; }
-.feed-head { margin: .3rem 0 .45rem; font-size: 1.25rem; line-height: 1.2; font-weight: 640; }
-.feed-body { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--dim); }
+/* A FACT ABOUT THE LONGEST WORD IN THE DICTIONARY CONTAINS IT, which is the one thing a slide's
+   own text can do that its box cannot survive: `Pneumonoultramicroscopicsilicovolcanoconiosis` is
+   46 characters with nothing in it to break at, and to a browser that is one word, so the paragraph
+   ran 79px past the card. Found by `check/ui.js` as a sideways scroll on the games column, and
+   INTERMITTENTLY — one run in three — because which of the 400 facts the widget deals varies, so it
+   is also the shape this repository calls a check that reports a real fault only when it happens to
+   look at the right screen. The same declaration the question cards already carry for the 51 dotted
+   answer lines, which is the identical fault in another column. On both, because a heading is one
+   line and a long word in one runs off just as far. */
+.feed-head { margin: .3rem 0 .45rem; font-size: 1.25rem; line-height: 1.2; font-weight: 640;
+             overflow-wrap: anywhere; }
+.feed-body { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--dim);
+             overflow-wrap: anywhere; }
 .feed-art.has-photo .feed-body { color: rgba(255,255,255,.86); }
 
 /* WHOSE PICTURE IT IS. Small, top-left, and only there when there is one — Commons images carry

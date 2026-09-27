@@ -544,6 +544,22 @@ function paint(id) {
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
+
+  /* ---------- AND WHETHER THE NEW CARDS FIT THE PANES THEY ARE IN --------------------------------
+     `paneWatch_` GIVES AN OVERFLOWING PANE `overflow-y: auto` and watches the card for a later
+     change of height. It is booked HERE as well as from `placeNow_` because a `paint` is not always
+     followed by a placement: `dmPoll_` calls `paint('dm')` every twenty seconds and `dm-refresh`
+     calls it on a tap, so a conversation that gained a message would keep the clipping of the
+     markup it replaced — and the cards the observer was watching are detached by that same line.
+
+     BOOKED RATHER THAN RUN, for `paneReach_`'s own reason: reading `scrollHeight` a line after
+     writing `innerHTML` forces the layout synchronously, and on boot `paintNeighbours` comes
+     through here once per column. Whether a card scrolls matters when a thumb tries to scroll it,
+     which is at least a frame away. Keyed per screen, so eleven paints book eleven jobs rather
+     than overwriting one another — see `afterSlide_`. */
+  if (typeof afterSlide_ === 'function' && typeof paneWatch_ === 'function') {
+    afterSlide_(() => paneWatch_($('s-' + id)), 'panes:' + id);
+  }
 }
 
 /**
@@ -1191,6 +1207,37 @@ function placeNow_(which, instant, dragPx, id) {
      That is most of what made a sideways swipe feel heavy, and none of it was doing anything. They
      run when the drag ends, which is when the answer can have changed. */
   if (dragPx) return;
+
+  /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN ------------------------------
+     `paneReach_` GIVES AN OVERFLOWING PANE `overflow-y: auto` so `scrollHost_` can scroll it from
+     the app's own drag and hand over to the grid at its end. It was called from `fillStuffPages`
+     and from nowhere else, and the note over `PANE_REACH` said why: *"ON THE FUNNEL'S PANES AND
+     NOWHERE ELSE — `check/ui.js`'s OUT OF REACH rule reports nothing on the other nine
+     columns."*
+
+     THAT SENTENCE WAS TRUE OF A PHONE THAT DOES NOT EXIST. `check/ui.js` gave every width an
+     844px-tall viewport, so its "320px phone" was a 320x844 device and its pane was 807px against a
+     real iPhone SE's 534. Paired with real device heights the same rule names **twenty-one** panes
+     on nine columns at 320x568 — the camera after a photograph 191px, the Scrabble board 161px,
+     a waiting list 105px, your own account 95px — every one of them content that can be neither
+     scrolled to nor paged to. One instrument fix, and the narrowness that comment claimed was an
+     artefact of the instrument.
+
+     HERE RATHER THAN IN `startScreen_`, because a card that GROWS after its screen was drawn is
+     half the finding: taking a photograph adds 167px of controls, and the camera's answer is
+     `placeCells('y', true, 0, 'make')` — which arrives here. Every grower in the app already
+     calls this, so there is one hook rather than one per card.
+
+     THE SCREEN YOU ARE ON, not every pane in the document: about a dozen against a hundred, and a
+     column you cannot see has its turn the moment you arrive at it. Below the drag guard with the
+     other two sweeps, for their reason — nothing changes height while a finger is down, and this
+     is a read of every pane's `scrollHeight`.
+
+     AND `paneWatch_` RATHER THAN `paneReach_` BECAUSE ONCE PER PLACEMENT IS NOT ENOUGH. Four of the
+     columns grow a card after the placement that measured it — a widget drawing into its canvas, a
+     photograph adding its controls, `drawBooker()` replacing the card outright — so the measuring
+     is also booked on a `ResizeObserver` over the cards themselves. See its note in find.js. */
+  if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */

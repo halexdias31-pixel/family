@@ -124,11 +124,29 @@ const ONLY  = arg('screen');
    `--list` STILL PRINTS WHAT IT FOUND, and there is nothing left to compare it against by eye. */
 const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'make', 'reel', 'dm'];
 
-/* THE WIDTHS THAT EXIST. 320 is the smallest phone still in use and the one everything breaks on
-   first; 390 is the modern iPhone; 768 is a tablet held upright; 1280 is a laptop. Four is enough —
-   a layout that survives 320 and 1280 has survived everything between them, and every extra width
-   is twenty more seconds on a check that has to be quick enough to run every time. */
-const WIDTHS = [320, 390, 768, 1280];
+/* THE SIZES THAT EXIST, AND THE HEIGHT IS HALF OF EACH ONE. 320 is the smallest phone still in use
+   and the one everything breaks on first; 390 is the modern iPhone; 768 is a tablet held upright;
+   1280 is a laptop. Four is enough — a layout that survives 320 and 1280 has survived everything
+   between them, and every extra size is twenty more seconds on a check that has to be quick enough
+   to run every time.
+
+   THIS WAS FOUR WIDTHS AT ONE HEIGHT — `{ width, height: 844 }`, written out once and used for all
+   four — so the lab's "320px phone" was a 320x844 device that has never existed, and its pane was
+   807px against a real iPhone SE's 534. Every rule in this file that asks whether content fits a box
+   was therefore measuring a box a third taller than the one it is in on the phone the complaint
+   always comes from. `.pane` caps at `100dvh` minus the chrome, so the pane's height IS the
+   viewport's, and a fake height is a fake pane.
+
+   WHAT IT HID, AND BOTH ARE RECORDED IN CLAUDE.md AS FAULTS WITH NO INSTRUMENT: a 4:5 portrait
+   photograph on a post is 582px inside a 534px pane at 320x568, so the caption, the comment box and
+   its Send button are below the fold with no scroll and no page to turn to; and the session receipt
+   runs 216px past the same pane. Neither is visible at 844.
+
+   A HEIGHT IS A REAL DEVICE'S OR IT IS THE SAME FAULT AGAIN. 568 is the iPhone SE and the 5; 844 is
+   the iPhone 12 through 15; 1024 is the iPad held upright, which is where 768 comes from; 800 is an
+   ordinary laptop, and the shortest of the laptop heights rather than the tallest, because the
+   question this file asks is whether a thing FITS. */
+const SIZES = [[320, 568], [390, 844], [768, 1024], [1280, 800]];
 
 /* THE STATES A SCREEN CAN BE IN — see check/states.js, which `check/press.js` reads as well. One
    list, because a state declared for the measuring pass and not the pressing one is a surface
@@ -548,6 +566,14 @@ function inspect(opts) {
      scaled to a phone — so the lowest RENDERED child edge settles it. Without this the mat and the
      flyer would report hundreds of pixels that are not on any screen, which is the finding that
      cost this project two wrong fixes the first time round. */
+  /* AND THE FLOOR IS THE APP'S OWN NUMBER, NOT ONE OF THIS FILE'S. `paneReach_` leaves a pane
+     `hidden` unless it is more than `PANE_REACH` over, deliberately: below that the competing
+     gesture is the app's whole navigation and handing it over for a few pixels reads as a swipe
+     that did nothing. Asking with a floor of 2 while the app answers with a floor of 24 is two
+     numbers for one question — this repository's oldest shape — so the rule reads the app's
+     constant out of the page and anything at or under it is reported as the declared tolerance
+     rather than as a fault. 2 only if the page does not have it, which is a boot that failed. */
+  const paneFloor = typeof PANE_REACH === 'number' ? PANE_REACH : 2;
   const panes = live && live.querySelectorAll ? [...live.querySelectorAll('.pane')] : [];
   for (const el of panes) {
     const s2 = getComputedStyle(el);
@@ -564,7 +590,7 @@ function inspect(opts) {
     found.hidden.push({ tag: el.tagName.toLowerCase(),
       cls: String((el.firstElementChild && el.firstElementChild.className) || el.className || '')
              .slice(0, 40),
-      by: under, height: el.clientHeight });
+      by: under, height: el.clientHeight, tol: under <= paneFloor, floor: paneFloor });
   }
 
   /* ---------- AND THE PANE ITSELF CAN BE OFF THE SCREEN, WHICH THE RULE ABOVE CANNOT SEE ----------
@@ -932,9 +958,9 @@ function inspect(opts) {
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 
-  for (const width of WIDTHS) {
+  for (const [width, height] of SIZES) {
   for (const who of VISITORS) {
-    const page = await browser.newPage({ viewport: { width, height: 844 },
+    const page = await browser.newPage({ viewport: { width, height },
                                          deviceScaleFactor: 1 });
     const jsErrors = [];
     page.on('pageerror', e => jsErrors.push(String(e.message).slice(0, 120)));
@@ -1228,8 +1254,18 @@ function inspect(opts) {
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
-    (r.hidden || []).forEach(o => add('OUT OF REACH',
-      `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} hides ${o.by}px below its own fold`, at));
+    (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
+                                             : 'OUT OF REACH',
+      `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} hides ${o.by}px below its own fold`, at,
+      o.tol ? `A PANE THIS CLOSE TO FITTING IS LEFT CLIPPED ON PURPOSE, and the number is `
+            + `\`PANE_REACH\` in find.js — ${o.floor}px, read out of the page rather than written `
+            + `here, so the app and this rule cannot drift apart about one question. Below it the `
+            + `competing gesture is the app's whole navigation: \`scrollHost_\` would take a swipe `
+            + `to move the card by a few pixels and the page would not turn, which reads as a swipe `
+            + `that did nothing. THE CONTENT REALLY IS UNREACHABLE and that is why this prints `
+            + `rather than staying silent — under a line of text on a card whose own design is the `
+            + `only thing that can win it back.`
+            : undefined));
     /* A SEPARATE HEADING FROM THE ONE ABOVE, DELIBERATELY. They are the same loss and different
        repairs: "below its own fold" is a card too tall for its pane, and wants the card split or
        the column paged; "off the screen" is a pane placed for a card that has since changed size,
@@ -1258,7 +1294,7 @@ function inspect(opts) {
   const checked = rows.filter(r => !r.skipped && r.id !== '—').length;
   console.log(`\nchecked ${checked} screen/width/visitor combinations `
             + `(${screens.reduce((n, id) => n + statesOf(id).length, 0)} screen states x `
-            + `${WIDTHS.length} widths x `
+            + `${SIZES.length} sizes (${SIZES.map(([w, h]) => w + 'x' + h).join(', ')}) x `
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
 

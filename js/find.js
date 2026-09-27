@@ -7489,9 +7489,14 @@ const STUFF_SOON = 1;
    fold in a box you are typing in"; here the competing gesture is the app's whole navigation, so
    the answer has to be obvious rather than merely true.
 
-   ON THE FUNNEL'S PANES AND NOWHERE ELSE. Every one of the 431 is a question card, and
-   `check/ui.js`'s OUT OF REACH rule reports nothing on the other nine columns -- so this is as
-   narrow as the fault, which is what this repository asks of a rule. */
+   IT WAS ON THE FUNNEL'S PANES AND NOWHERE ELSE, on the strength of a sentence that said
+   `check/ui.js`'s OUT OF REACH rule reported nothing on the other nine columns. IT DID, and the
+   reason it did not say so is that it gave every width an 844px-tall viewport: its "320px phone"
+   was a 320x844 device that has never been made, with a pane 807px tall against a real iPhone SE's
+   534. Paired with real device heights the same rule names twenty-one panes across nine columns at
+   320x568. So the narrowness this comment claimed was an artefact of the instrument, and it is
+   called for the screen you are on from `placeNow_` in shell.js as well -- where every card in the
+   app that grows after its paint already arrives. */
 const PANE_REACH = 24;
 
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
@@ -7514,7 +7519,62 @@ function paneReach_(panes) {
        scrolled to its end and then could not be left by swiping at all, three swipes and the page
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
-    list.forEach((p, i) => { p.style.overflowY = want[i] ? 'auto' : ''; });
+    /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
+       desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
+       and a write that sets the value it already had would go round again for ever. */
+    list.forEach((p, i) => {
+      const to = want[i] ? 'auto' : '';
+      if (p.style.overflowY !== to) p.style.overflowY = to;
+    });
+  } catch (e) {}
+}
+
+/* ---------- AND A CARD THAT GROWS AFTER ITS SCREEN WAS PLACED ------------------------------------
+   MEASURING ONCE PER PLACEMENT IS NOT ENOUGH, and four of the columns proved it the first time
+   `check/ui.js` was pointed at a real 320x568 phone: the Scrabble board and the high-score board
+   draw into a card AFTER `startScreen_` has started the widget, the camera adds 167px of controls
+   when a photograph is taken, and `drawBooker()` REPLACES the booking card outright — which throws
+   away the inline `overflow-y` with the element that carried it. Every one of those is a pane that
+   was measured while it fitted and overflowed a moment later.
+
+   THE APP'S ANSWER SO FAR HAS BEEN ONE HOOK PER GROWER — the camera calls `placeCells` at each of
+   the four places its card changes height — and the trouble with that is that it has to be
+   remembered by whoever writes the next card that grows. This is the same fact declared once
+   instead: a card whose height changes re-asks the question about the pane it is in.
+
+   ON THE CARD, NOT THE PANE. A pane is `max-height`-capped, so it stops growing at the cap and the
+   growth that matters is exactly the growth it can no longer show — an observer on the pane would
+   go quiet at the moment it became worth hearing from.
+
+   RE-OBSERVED PER SCREEN AND UNOBSERVED PER SCREEN, which is the one thing here that had to be got
+   right. A `paint` replaces a screen's cards, so the elements being watched are detached and a
+   `ResizeObserver` holds them alive until it is told otherwise — and the obvious `disconnect()` is
+   wrong, because `paintNeighbours` paints every other column and would drop the watch on the one
+   you are looking at. So each host remembers what was observed on its behalf and only that is let
+   go. One observer, because the cost of a ResizeObserver is per observed element rather than per
+   observer.
+
+   THE ONE CASE IT CANNOT SEE IS A ROTATION: the pane's own cap moves and the card does not, so
+   nothing resizes. That is why `placeNow_` calls this as well — a resize arrives there. */
+let PANE_WATCH = null;
+function paneWatch_(host) {
+  if (!host || !host.querySelectorAll) return;
+  const panes = host.querySelectorAll('.pane');
+  paneReach_(panes);
+  if (typeof ResizeObserver !== 'function') return;
+  try {
+    if (!PANE_WATCH) PANE_WATCH = new ResizeObserver(rows => {
+      const mine = [];
+      rows.forEach(r => {
+        const pane = r.target && r.target.parentElement;
+        if (pane && mine.indexOf(pane) === -1) mine.push(pane);
+      });
+      paneReach_(mine);
+    });
+    (host.PANE_KIDS || []).forEach(k => { try { PANE_WATCH.unobserve(k); } catch (e) {} });
+    const kids = [].slice.call(panes).map(p => p.firstElementChild).filter(Boolean);
+    kids.forEach(k => PANE_WATCH.observe(k));
+    host.PANE_KIDS = kids;
   } catch (e) {}
 }
 
