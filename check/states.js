@@ -310,13 +310,37 @@ const STATES = {
      — the same argument as the films two blocks up. */
   account: [
     { name: '' },
+    /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT ----------------------------------
+       ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible half of that
+       had never existed: `doGet` has sent `handle` on every tutor since it was written and the only
+       place the `@` appeared anywhere in `js/` was a toast.
+
+       ONE, NOT AT LEAST ONE, AND THAT IS THE ASSERTION RATHER THAN A DETAIL. The fixture stated the
+       handle as `@ada` — a shape `HANDLE_SHAPE` refuses and no row can hold — so a card drawing `@` +
+       the cell rendered `@@ada`, and a rule that only asked whether an `@` was present would have
+       passed on it. `check-handles.js` now refuses such a fixture; this refuses such a card. */
+    { name: 'a handle on a card',
+      only: () => typeof USER !== 'undefined' && !!USER
+                  && !!((DATA.tutors || []).find(t => t && t.handle)),
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-account .page')]
+          .findIndex(pg => pg.querySelector('.prof-handle'));
+        if (at < 0) throw new Error('no card on the account column draws a handle');
+        goPage('account', at, true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-account .page.on .prof-handle');
+        const txt = el ? el.textContent.trim() : '';
+        return (/^@[A-Za-z][A-Za-z0-9_]{2,19}$/.test(txt)) ? 1 : 0;
+      },
+      wants: 'a handle drawn as exactly one @ and a shape a row could hold' },
     { name: 'a tutor switched off',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         window.__OFF_HELD = (DATA.tutors || []).slice();
         DATA.tutors = (DATA.tutors || []).concat([Object.assign(
           {}, (DATA.tutors || [])[0] || {},
-          { personId: 'P-unlisted', handle: '@unlisted', title: 'Switched Off',
+          { personId: 'P-unlisted', handle: 'unlisted', title: 'Switched Off',
             subtitle: 'Maths, GCSE', listed: false })]);
         paint('account');
         /* THE PAGE NUMBER COMES FROM THE BUILDER THE COLUMN IS DRAWN FROM, not from a second

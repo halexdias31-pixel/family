@@ -238,6 +238,94 @@ function handleTrouble_(want, me, isAdmin) {
 }
 
 /* ==================================================================================================
+   AND A HANDLE IS GENERATED RATHER THAN DERIVED FROM A CHILD'S NAME.
+
+   ASKED FOR AS *"each person should have randomly generated username, handle llik \"@_____\",
+   email, first name, last name and username."*
+
+   MEASURED FIRST, AND TWO THINGS WERE WRONG. `register` wrote
+   `username: S(first + last).replace(/[^A-Za-z0-9]/g, '')` and **no `handle` at all** — so every
+   account made through the form has a blank handle to this day, and `doGet`'s
+   `handle || username || first_name` has been showing the squashed name instead.
+
+   AND THAT USERNAME COLLIDES, WHICH IS NOT A TIDINESS FAULT. Two people called John Smith both get
+   `JohnSmith`. `findPerson` matches `username` and returns the FIRST row, so the second person
+   signs in as the first — and `changePin` then checks the PIN they typed against the other one's
+   row and tells them their own PIN is wrong. This file records that denial happening for real, to
+   one person, by accident. Nothing guarded it: `handleTrouble_` guards `changeHandle` and was never
+   reached by registration.
+
+   WORDS RATHER THAN THE NAME, AND THAT IS THE SAFEGUARDING HALF. Most of the people on this tab are
+   children. A handle built from a real child's full name publishes that name wherever the handle is
+   shown — which is exactly what made `ticks_1/2/3` a leak rather than untidiness, and CLAUDE.md
+   carries that entry in full. `BrightOtter42` is memorable, sayable down a phone, and says nothing
+   about whose it is.
+
+   NAME-PLUS-A-RANDOM-TAIL WAS THE OTHER CANDIDATE AND IT LOSES ON THAT ONE POINT ALONE. It is
+   friendlier (`halexdias_4b` is guessable by its owner) and it still prints the child's name. The
+   ask said randomly generated; the privacy argument says the same thing, so there is nothing to
+   trade.
+
+   `handleTrouble_` IS THE ONE GATE AND THIS GOES THROUGH IT. Shape, the reserved list, the
+   blocklist and the clash against all four columns `findPerson` answers to — a generator with its
+   own copy of any of that is the second reader this repository keeps finding. It is handed
+   `isAdmin: true` so the month's cooldown is skipped: that rule is a brake on somebody changing
+   their mind, and a row being GIVEN its first handle has not changed anything.
+
+   TWO COLUMNS, WRITTEN TOGETHER OR NOT AT ALL. `handle` and `username` are one fact in two columns
+   — this file's own sentence, and `changeHandle` already writes both — so a generated pair is the
+   same string in both, which is what makes `findPerson` resolve one person however they type it.
+================================================================================================ */
+
+/* ---------- THE TWO LISTS, AND WHY NOTHING IN THEM IS A JUDGEMENT CALL --------------------------
+   EVERY WORD IS ORDINARY AND HAS NO SECOND MEANING somebody has to have thought about.
+
+   AND THE LENGTH IS MEASURED RATHER THAN CAPPED BY A RULE OF THUMB. `HANDLE_SHAPE` allows twenty
+   characters and the tail is two, so the longest pair may be eighteen: the longest adjective here is
+   6, the longest noun 7, and the worst pair plus its tail is **15**. A first version of this
+   paragraph said "eight characters or fewer" and did the arithmetic as 8 + 8 + 2 — which is a rule
+   nothing enforces and, measured, not what the lists are. What enforces it is the check, and a
+   thirteen-letter noun is what it takes to break it.
+
+   `check-handles.js` PUTS ALL OF THEM THROUGH `handleTrouble_` rather than trusting this paragraph.
+   The blocklist folds digits onto letters, so a pair nobody would look at twice could still reduce
+   onto a banned word — that is a fact about the two lists together, which is exactly the kind of
+   thing a person reading one list cannot check. */
+const HANDLE_ADJ = ['Bright', 'Calm', 'Clever', 'Bold', 'Brave', 'Keen', 'Swift', 'Quiet',
+                    'Sunny', 'Lucky', 'Merry', 'Neat', 'Warm', 'Wise', 'Jolly', 'Kind',
+                    'Royal', 'Loyal', 'Steady', 'Tidy', 'Golden', 'Silver', 'Copper', 'Amber'];
+const HANDLE_NOUN = ['Otter', 'Badger', 'Heron', 'Robin', 'Falcon', 'Marten', 'Puffin', 'Beaver',
+                     'Comet', 'Meadow', 'Harbour', 'Lantern', 'Compass', 'Anchor', 'Willow',
+                     'Cedar', 'Maple', 'Pebble', 'River', 'Summit', 'Harvest', 'Beacon',
+                     'Cobble', 'Thistle'];
+/* HOW MANY TRIES BEFORE GIVING UP. 24 x 24 x 90 is 51,840 pairs, so on a tab of any size this
+   repository will ever hold, forty consecutive clashes cannot happen — the number is a backstop
+   against a `handleTrouble_` that has started refusing everything, not a real ceiling. It gives up
+   rather than looping, and the caller reports it, because a job that spins for ever is worse than
+   one that says it could not. */
+const HANDLE_TRIES = 40;
+
+/**
+ * A handle nobody has, or '' if one could not be found.
+ *
+ * `me` is the row it is FOR, so that row's own cells are not counted as a clash — pass null for a
+ * row that does not exist yet. Nothing is written here: the caller decides, because `register`
+ * writes it into a row it is building and the repair job writes it into one that exists.
+ */
+function handleMake_(me) {
+  for (let i = 0; i < HANDLE_TRIES; i++) {
+    const a = HANDLE_ADJ[Math.floor(Math.random() * HANDLE_ADJ.length)];
+    const b = HANDLE_NOUN[Math.floor(Math.random() * HANDLE_NOUN.length)];
+    /* TEN TO NINETY-NINE, so the tail is always two digits. A single digit would make `Otter7` and
+       `Otter70` two handles one keystroke apart, which is the impersonation shape `HANDLE_SHAPE`'s
+       ASCII rule exists to close one character along. */
+    const want = a + b + String(10 + Math.floor(Math.random() * 90));
+    if (!handleTrouble_(want, me || null, true)) return want;
+  }
+  return '';
+}
+
+/* ==================================================================================================
    AND WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER.
 
    ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of kids willing

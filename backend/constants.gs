@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-27-a-exam-dates";
+const BACKEND_VERSION = "2026-09-27-b-handles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2438,6 +2438,12 @@ const RUNNABLE = {
      before it knew which columns the merged tab had. Never overwrites a cell with anything in it,
      so it is safe to run whenever and tells you how many it left alone. */
   priceWearables:    () => repairShopPrices(),
+  /* ---------- EVERY PERSON GETS A HANDLE, AND ONLY A BLANK CELL IS TOUCHED ----------------------
+     A URL RATHER THAN A MIGRATION, and that is the difference from the `MIGRATIONS` ledger below:
+     those run once and are remembered by name, which is right for a one-way reshaping of data. This
+     one is safe to run again and gets more useful the more rows there are — it fills what is blank
+     and reports what it left alone, so it is `priceWearables` above rather than a spent id. */
+  fillHandles:       () => fillHandles(),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
      `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since

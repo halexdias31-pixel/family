@@ -138,6 +138,81 @@ function repairShopPrices() {
   return out;
 }
 
+/* ==================================================================================================
+   EVERY PERSON HAS A HANDLE, AND THE ONES THAT CANNOT BE GENERATED ARE REPORTED RATHER THAN INVENTED.
+
+   ASKED FOR AS *"each person should have randomly generated username, handle llik \"@_____\", email,
+   first name, last name and username."*
+
+   `register` DOES THIS FOR EVERY NEW ROW FROM NOW ON — see `handleMake_`. This is the other half:
+   the rows that are already there, every one of which was written before any of it existed.
+
+   IT ONLY EVER FILLS A BLANK, WHICH IS `repairShopPrices`' RULE AND FOR ITS REASON. A handle is what
+   somebody signs in with and what `findPerson` resolves them by, so a job that replaced one would
+   lock that person out of their own account and change the name their friends know them by. A cell
+   with anything at all in it is left exactly as it is, and the count of what was left alone is
+   printed — "0 filled" on its own reads the same whether everything was already right or nothing
+   was found.
+
+   AND IT WILL NOT INVENT AN EMAIL, A FIRST NAME OR A LAST NAME. That is the one place this job
+   stops, and it is the same line the practicals' blank `needs` and the library's `figure` count are
+   drawn on: a generated `@example.com` address is not a blank cell, it is a WRONG cell — `notify`,
+   `forgotPin`, the verification link and every invitation would post into nothing and report
+   success, which is this repository's oldest shape with a stamped addressed envelope. A made-up
+   first name on a real child's public card is worse again. So they are COUNTED and NAMED by
+   `person_id`, and somebody who knows the answer types it in.
+
+   IDS RATHER THAN NAMES IN THE REPORT, because a row missing a first name has nothing else to be
+   called, and because this reply is read by an admin over a URL rather than by the person.
+================================================================================================ */
+function fillHandles() {
+  const t = read(TAB.people);
+  if (!t.sheet) return { error: 'no people tab' };
+  for (const col of ['handle', 'username']) {
+    /* NAMED, NOT SKIPPED. `setCell` writes to a header that is not there and loses the value with
+       no error anywhere — the fault every `noColumn` refusal in this project exists to prevent, and
+       the reason a job that "ran" and changed nothing is the worst possible outcome here. */
+    if (t.headers.indexOf(col) === -1) {
+      return { error: 'the people tab has no ' + col + ' column. Run ensureSchema() first '
+                    + '— nothing was changed.' };
+    }
+  }
+  const out = { filled: 0, leftAlone: 0, couldNotGenerate: [],
+                noEmail: [], noFirstName: [], noLastName: [] };
+  t.rows.forEach(r => {
+    const who = S(r.person_id) || '(a row with no id)';
+    if (!S(r.email))      out.noEmail.push(who);
+    if (!S(r.first_name)) out.noFirstName.push(who);
+    if (!S(r.last_name))  out.noLastName.push(who);
+
+    /* BOTH CELLS, OR NEITHER. A row with a handle and no username is half-resolvable: `findPerson`
+       answers to one spelling and not the other, which is the `needs_print` / `print_required`
+       shape on the two columns that decide who somebody IS. So an existing handle is copied across
+       rather than a second one generated. */
+    const has = S(r.handle), hasUser = S(r.username);
+    if (has && hasUser) { out.leftAlone++; return; }
+    if (has && !hasUser) { setCell(t, r, 'username', has); out.filled++; return; }
+    if (!has && hasUser) { setCell(t, r, 'handle', hasUser); out.filled++; return; }
+
+    /* `r` IS PASSED, so this row's own cells are not counted as a clash — which matters for
+       `full_name` and `first + last`, the two `handleTrouble_` also compares against. */
+    const made = handleMake_(r);
+    if (!made) { out.couldNotGenerate.push(who); return; }
+    setCell(t, r, 'handle', made);
+    setCell(t, r, 'username', made);
+    out.filled++;
+  });
+  clearCache();
+  /* THE COUNTS, NOT JUST THE LISTS, because a reader scanning a JSON reply reads a number and skims
+     an array — and `noEmail: []` and a missing key look alike at a glance. */
+  out.missingEmail = out.noEmail.length;
+  out.missingFirstName = out.noFirstName.length;
+  out.missingLastName = out.noLastName.length;
+  out.means = 'handle and username filled where blank; nothing overwritten. An email or a name is '
+            + 'never invented — the ids above are the rows somebody has to type one into.';
+  return out;
+}
+
 /** Add any config key that's missing. Never overwrites a value you've set. */
 function seedConfig() {
   const t = read(TAB.config);

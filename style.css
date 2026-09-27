@@ -5364,6 +5364,19 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .is-prof { --prof-warn: #c4655a; }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .prof-where { font: 400 .7rem/1.2 var(--mono); color: var(--dim); }
+/* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME ----------------------------------------
+   IT IS NOT THE NAME AND MUST NOT COMPETE WITH IT. `.prof-name` is 1.05rem at 700; this is the
+   thing you sign in with rather than the thing you are called, so it sits under the name at the
+   size `.prof-where` already uses for the second line of this block.
+
+   GOLD, BECAUSE IT IS YOURS IN THE SENSE THIS APP ALREADY MEANS BY GOLD — the one starred thing,
+   the ticked hour, the chosen answer. It is also what separates `@BrightOtter42` from the place
+   name directly beneath it at the same size and font, which `--dim` alone would not.
+
+   `overflow-wrap` FOR THE REASON `.prof-name` HAS IT. A handle is up to twenty characters with
+   nothing to break at, which at this size is 85px — under the column at every width the app is
+   measured at, and one `HANDLE_SHAPE` change away from not being. */
+.prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
 /* THE ONE THING A PARENT IS SCANNING FOR, and the only fact on this card that is a mark rather than
    a row. Present and green, or absent and said so — never quietly missing, which is what a blank
    field is. `align-self: start` so the chip is the width of its own words rather than the width of
