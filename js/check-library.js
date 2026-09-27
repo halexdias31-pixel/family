@@ -1085,6 +1085,62 @@ if (worst.length) {
   console.log(`   worst papers: ${worst.map(k => `${k} (${perPaper[k]})`).join(', ')}`);
 }
 
+/* ---------- A QUESTION WHOSE TABLE NEVER CAME ACROSS --------------------------------------------
+   FOUND WHILE AUDITING ONE PAPER, BY AN INSTRUMENT THAT WAS WRONG FIRST. Asked whether June 2024
+   Foundation Paper 1 was complete, I swept it for a row whose own words name a thing the card does
+   not hold — and read `html` and `diagram` only. Q7 says "The table shows the number of hours that
+   Lena and Pavel worked", and the sweep reported it as a gap: I was one edit from writing a
+   `placeholder` stand-in over a table that is CORRECT and checks against its own mark scheme
+   (6+7=13, 9+6=15, 8+5=13, 6+6=12, the four daily totals the scheme prints). It is in `lead`,
+   which `questionCard_` draws as `.qsheet-lead` and which my sweep never looked at.
+
+   SO THIS READS EVERY COLUMN THE CARD DRAWS. `html`, `lead`, `diagram` and `images`, on the row and
+   on every preamble that hangs above it — because a table a paper prints above three parts belongs
+   on the preamble, which is where the six on that paper now live. A rule that reads two of the four
+   reports a fault about the two it did not read.
+
+   WHAT IT IS FOR is the same silence the picture count above it closed. 29 of these carry
+   `figure: 'table'`, so that count already has them; 1 carries an answer-space label, so the table
+   IS the blank and the row is complete. The rest are in NEITHER — a question that says "the table
+   shows information about the masses of 400 apples" with the headers flattened into its prose and
+   not one frequency anywhere, which is `Q-1CM-averages-from-tables-2`, five marks, unanswerable,
+   and recorded nowhere. The 1st Class Maths averages sheets are the cluster and their PDFs are in
+   Drive, so they are repairable the way the Corbettmaths fraction sheets were.
+
+   PRINTED, NOT FAILED, AND WIDE ON PURPOSE. Narrowing it to "the table SHOWS" — a table introduced
+   as carrying data — drops 36, and the dropped set is full of real faults: "Complete the table of
+   values for y = x² − x" with no table is as unanswerable as a missing data table, and the repair
+   is simply a different one. Left wide it also catches rows that are fine: "Here is a list of
+   numbers 6 8 11 14" prints its list in the prose, and one KS2 grammar question is about the word
+   "space" in "Make space on the table for the laptop". Those are the price of not dropping the
+   other 36, and they are why this is a number somebody reads rather than a build failure — the
+   same argument the picture count makes about `figure` being two columns under one name. */
+const DRAWN_COLS = ['html', 'lead', 'diagram', 'images'];
+const drawnText = r => DRAWN_COLS.map(k => String(r[k] || '')).join('');
+const stemsAbove = {};
+rows.forEach(r => {
+  if (r && r.kind === 'preamble') (stemsAbove[r.paper_id] = stemsAbove[r.paper_id] || []).push(r);
+});
+const NAMES_A_TABLE = /\b(?:the|this)\s+table\b|\bthe\s+list\b/i;
+const noTable = rows.filter(r => r && r.kind === 'question'
+  && NAMES_A_TABLE.test(String(r.html || ''))
+  && !/<table/i.test(drawnText(r) + (stemsAbove[r.paper_id] || [])
+       .filter(p => !String(p.question || '') || String(p.question) === String(r.question))
+       .map(drawnText).join('')));
+const tableCounted = noTable.filter(r => String(r.figure || '').trim()
+  && ANSWER_SPACE.indexOf(String(r.figure).trim()) === -1).length;
+const tableIsBlank = noTable.filter(r => ANSWER_SPACE.indexOf(String(r.figure || '').trim()) !== -1).length;
+const tableSilent = noTable.filter(r => !String(r.figure || '').trim());
+const tPerPaper = {};
+tableSilent.forEach(r => { tPerPaper[r.paper_id] = (tPerPaper[r.paper_id] || 0) + 1; });
+const tWorst = Object.keys(tPerPaper).sort((a, b) => tPerPaper[b] - tPerPaper[a]).slice(0, 5);
+console.log(`questions naming a table their card does not hold: ${noTable.length}`
+  + `  (${tableCounted} already in the picture count, ${tableIsBlank} where the table IS the answer space, `
+  + `${tableSilent.length} recorded nowhere)`);
+if (tWorst.length) {
+  console.log(`   worst for the ${tableSilent.length}: ${tWorst.map(k => `${k} (${tPerPaper[k]})`).join(', ')}`);
+}
+
 /* ---------- ONE PICTURE, SEVERAL PARTS, AND WHERE IT BELONGS ------------------------------------
    `preamble_` DRAWS A QUESTION-SCOPED PREAMBLE ON EVERY PART THAT HANGS FROM IT, so a figure two
    parts share is written ONCE on the preamble and appears on both. Named on each part instead, it
